@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
-import { ScenarioFrameSchema, TurnSchema } from './schemas.ts';
+import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from './schemas.ts';
 import { sampleCoachItem, sampleTurn } from './samples.ts';
+import { DrillBatchSchema } from '../drill/generate.ts';
 import { CAFE_FRAME, APERO_FRAME } from '../fixtures.ts';
 
 describe('the turn contract round-trips', () => {
@@ -63,6 +64,8 @@ describe('the schemas are safe for structured outputs', () => {
     for (const [name, schema] of [
       ['tutor_turn', TurnSchema],
       ['scenario_frame', ScenarioFrameSchema],
+      ['memory_extraction', MemoryExtractionSchema],
+      ['drill_batch', DrillBatchSchema],
     ] as const) {
       const format = zodOutputFormat(schema);
       const text = JSON.stringify(format);
@@ -82,8 +85,15 @@ describe('the schemas are safe for structured outputs', () => {
   });
 
   test('nullable is expressed as a null union, never as an absent property', () => {
-    const text = JSON.stringify(zodOutputFormat(TurnSchema));
-    assert.ok(/"null"/.test(text), 'expected null unions for the frWritten-style fields');
+    // One representative nullable field per schema that ships to the API.
+    for (const [name, schema] of [
+      ['tutor_turn (frWritten-style fields)', TurnSchema],
+      ['memory_extraction (openerFr/openerEn)', MemoryExtractionSchema],
+      ['drill_batch (repeat-this ipa)', DrillBatchSchema],
+    ] as const) {
+      const text = JSON.stringify(zodOutputFormat(schema));
+      assert.ok(/"null"/.test(text), `expected null unions in ${name}`);
+    }
   });
 });
 

@@ -28,7 +28,7 @@ possible. That alignment is the whole thesis.
 ## Layout
 
 ```
-packages/core/       Pure TypeScript. No network, no mic, no keys. 122 tests.
+packages/core/       Pure TypeScript. No network, no mic, no keys. 338 tests.
   phonemes/          36-phoneme French inventory + 16 drills + scoring
   ladder/            The 4-rung scaffolding state machine
   lessons/           "Commander un café" (A0, 12 turns)
