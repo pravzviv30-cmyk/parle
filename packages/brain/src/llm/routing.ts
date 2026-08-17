@@ -1,0 +1,67 @@
+/**
+ * Which model answers which kind of call — the fast-talker / careful-analyst
+ * split in one table.
+ *
+ * A realtime voice turn lives on a latency budget (the learner is standing in
+ * the silence it leaves), so it goes to the fastest model that holds the
+ * contract. The background calls — scenario design, post-session extraction,
+ * drill authoring — happen while nobody is waiting, and what they produce is
+ * load-bearing pedagogy, so they go to the strongest model at full effort.
+ * Cost follows the same line: turns run ~2/minute for a whole session, the
+ * background calls run once.
+ *
+ * The table is the single source of truth: the tutor-agent and the playground
+ * both construct their clients from it, so "which model is speaking?" is
+ * always answered here and never by a call site.
+ */
+
+export type BrainEffort = 'low' | 'medium' | 'high';
+
+export type BrainActivity = 'turn' | 'frame' | 'extract' | 'drills';
+
+export interface ModelRoute {
+  model: string;
+  /** undefined leaves the API's own default (high) in place. */
+  effort: BrainEffort | undefined;
+  /** Covers thinking plus response on this model family — sized with headroom. */
+  maxTokens: number;
+  /**
+   * Whether the model accepts a system-role message after conversation
+   * history. Sonnet-tier models reject it (400), so the trailing app context
+   * must ride as a tagged user message there instead.
+   */
+  midConversationSystem: boolean;
+}
+
+export type BrainRouting = Record<BrainActivity, ModelRoute>;
+
+export const DEFAULT_ROUTING: BrainRouting = {
+  // The talker. Low effort keeps thinking short and first audio close; the
+  // turn object itself is well under 1k tokens.
+  turn: { model: 'claude-sonnet-5', effort: 'low', maxTokens: 3_000, midConversationSystem: false },
+  // The learner audibly waits behind the bridge line while the scene is
+  // designed — medium effort holds the 3–6 second band.
+  frame: { model: 'claude-sonnet-5', effort: 'medium', maxTokens: 6_000, midConversationSystem: false },
+  // Post-session, nobody waiting. What these two write shapes every future
+  // session (openers, memory) and every offline rep (accepted answers), so
+  // they get the analyst model at full effort.
+  extract: { model: 'claude-opus-5', effort: 'high', maxTokens: 4_000, midConversationSystem: true },
+  drills: { model: 'claude-opus-5', effort: 'high', maxTokens: 16_000, midConversationSystem: true },
+};
+
+const EFFORTS: readonly BrainEffort[] = ['low', 'medium', 'high'];
+
+/**
+ * The routing table with environment overrides applied. BRAIN_EFFORT remains
+ * the one blunt dev knob it has always been: it moves every activity at once,
+ * because it exists for playground experiments, not per-route tuning.
+ */
+export function resolveRouting(env: Record<string, string | undefined> = process.env): BrainRouting {
+  const effort = env.BRAIN_EFFORT;
+  if (effort === undefined || !EFFORTS.includes(effort as BrainEffort)) return DEFAULT_ROUTING;
+  const routed = {} as Record<BrainActivity, ModelRoute>;
+  for (const activity of Object.keys(DEFAULT_ROUTING) as BrainActivity[]) {
+    routed[activity] = { ...DEFAULT_ROUTING[activity], effort: effort as BrainEffort };
+  }
+  return routed;
+}

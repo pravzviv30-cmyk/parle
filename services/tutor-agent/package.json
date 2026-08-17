@@ -1,0 +1,30 @@
+{
+  "name": "@parle/tutor-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/agent.ts",
+  "scripts": {
+    "dev": "node --experimental-strip-types src/agent.ts dev",
+    "start": "node --experimental-strip-types src/agent.ts start",
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
+    "warm-cache": "node --experimental-strip-types src/warmCache.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@livekit/agents": "^1.6.2",
+    "@livekit/agents-plugin-anthropic": "^1.6.2",
+    "@livekit/agents-plugin-deepgram": "^1.6.2",
+    "@livekit/agents-plugin-elevenlabs": "^1.6.2",
+    "@livekit/agents-plugin-openai": "^1.6.2",
+    "@livekit/agents-plugin-silero": "^1.6.2",
+    "@parle/brain": "*",
+    "@parle/core": "*",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

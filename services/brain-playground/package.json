@@ -1,0 +1,24 @@
+{
+  "name": "@parle/brain-playground",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Terminal playground for talking to the tutor brain, plus the curated live eval.",
+  "type": "module",
+  "scripts": {
+    "chat": "node --experimental-strip-types src/chat.ts",
+    "eval": "node --experimental-strip-types src/eval/runEval.ts",
+    "eval:frames": "node --experimental-strip-types src/eval/frameEval.ts",
+    "eval:drills": "node --experimental-strip-types src/eval/drillEval.ts",
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@parle/brain": "*",
+    "@parle/core": "*",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "parle",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Speak French from your first session — and know exactly which sounds you're getting wrong.",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "services/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "web": "npm run web --workspace=@parle/mobile"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

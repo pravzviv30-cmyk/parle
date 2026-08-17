@@ -1,0 +1,44 @@
+/**
+ * The session-start call that turns a freeform request into a playable scene.
+ *
+ * Reuses the cached persona + pack blocks; the frame-specific briefing rides
+ * in the user message so the prefix cache still hits. The learner picture is
+ * summarized, not dumped — the frame call needs pitch, not history.
+ */
+
+import type { CefrBand } from '../types.ts';
+
+export interface ScenarioRequestInput {
+  /** The learner's freeform ask, English or French. */
+  request: string;
+  learner: { cefr: CefrBand; watchFor: string[] };
+}
+
+const INSTRUCTION = [
+  `Design a playable scene from the learner's request below.`,
+  ``,
+  `Rules:`,
+  `- 3 to 6 beats, ordered. Each is one small conversational goal, with a French goal and an English gloss. Ids in kebab-case.`,
+  `- Characters carry the register they really would: staff get courant and vous, old friends get familier or argot.`,
+  `- registerGuidance: one short paragraph on how people actually talk in this scene.`,
+  `- goalPhrases: 5 to 8 lines a local would genuinely use here, spoken forms, register-labelled.`,
+  `- openingNarration: two or three short sentences that put the learner inside the scene before anyone speaks to them. Spoken to "you", present tense, concrete: "Imagine the scene. You are walking down a narrow street, and you bump into a tall man." en is what is said aloud; fr is the same picture in simple French; speaker is "narration". End on the moment the openingLine lands in.`,
+  `- openingLine: the first thing said to the learner, in character, matched to their level.`,
+  `- openingSupport: for a learner with no words yet. fullLine is the natural reply to the openingLine; options are two or three short different replies; hintEn is English only, no French words.`,
+  `- Pitch the language at the learner's level. The scene stays real either way.`,
+  `- cultureNotes: up to three, only when genuinely useful.`,
+].join('\n');
+
+export function buildScenarioInstruction(): string {
+  return INSTRUCTION;
+}
+
+export function buildScenarioRequest(input: ScenarioRequestInput): string {
+  const watch = input.learner.watchFor.length > 0 ? ` Recurring trouble: ${input.learner.watchFor.join(', ')}.` : '';
+  return [
+    INSTRUCTION,
+    ``,
+    `LEARNER: CEFR estimate ${input.learner.cefr}.${watch}`,
+    `REQUEST: ${input.request}`,
+  ].join('\n');
+}

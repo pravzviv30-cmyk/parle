@@ -1,0 +1,34 @@
+node_modules/
+dist/
+build/
+.expo/
+.expo-shared/
+web-build/
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS
+.DS_Store
+*.pem
+
+# Native build output
+ios/
+android/
+!apps/mobile/ios/.gitkeep
+!apps/mobile/android/.gitkeep
+
+# Synthesized tutor audio (regenerate with: npm run warm-cache -w @parle/tutor-agent)
+.tts-cache/

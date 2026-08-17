@@ -1,0 +1,143 @@
+/**
+ * The drill bank on the device.
+ *
+ * Same architecture as review/store.ts: AsyncStorage under one versioned key,
+ * every mutation through one serialized write chain so concurrent writers can
+ * never lose an update. One difference, deliberate: the store is read once and
+ * cached, because the bank is written from few places and the drill screen
+ * reads it on every mount — a load-once cache keeps that read instant without
+ * a second source of truth (every write updates the cache before the disk).
+ *
+ * First run is the fixtures. A learner installs the app and can drill the café
+ * arc immediately; generated batches arriving later merge over the fixtures
+ * through `mergeExercises` rather than waiting on a first conversation.
+ */
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DRILL_FIXTURES, type DrillExercise } from '@parle/core';
+
+const KEY = 'parle.drills.v1';
+
+interface DrillStore {
+  version: 1;
+  exercises: DrillExercise[];
+  /** ISO timestamp until which "can't speak now" holds, or null. */
+  micSuppressedUntil: string | null;
+}
+
+function defaultStore(): DrillStore {
+  return { version: 1, exercises: [...DRILL_FIXTURES], micSuppressedUntil: null };
+}
+
+/** Same shape as review/store.ts and for the same reason: see that file. */
+let writeChain: Promise<unknown> = Promise.resolve();
+
+function serialized<T>(mutation: () => Promise<T>): Promise<T> {
+  const next = writeChain.then(mutation, mutation);
+  writeChain = next.catch(() => {});
+  return next;
+}
+
+let cache: Promise<DrillStore> | null = null;
+
+function isStore(value: unknown): value is DrillStore {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    (value as { version?: unknown }).version === 1 &&
+    Array.isArray((value as { exercises?: unknown }).exercises)
+  );
+}
+
+async function readStore(): Promise<DrillStore> {
+  try {
+    const raw = await AsyncStorage.getItem(KEY);
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (isStore(parsed)) {
+        return {
+          version: 1,
+          exercises: parsed.exercises,
+          micSuppressedUntil: typeof parsed.micSuppressedUntil === 'string' ? parsed.micSuppressedUntil : null,
+        };
+      }
+    }
+  } catch {
+    // A corrupt bank is not worth crashing over. Start from the fixtures.
+  }
+  return defaultStore();
+}
+
+function loadStore(): Promise<DrillStore> {
+  cache ??= readStore();
+  return cache;
+}
+
+async function saveStore(store: DrillStore): Promise<void> {
+  // The cache is the truth the moment the write is decided; the disk catches up.
+  cache = Promise.resolve(store);
+  try {
+    await AsyncStorage.setItem(KEY, JSON.stringify(store));
+  } catch {
+    // Storage full or unavailable. The bank still works for this launch.
+  }
+}
+
+/** The exercises to drill from. The fixtures until anything fresher lands. */
+export async function loadDrillBank(): Promise<DrillExercise[]> {
+  return (await loadStore()).exercises;
+}
+
+/**
+ * Fold a generated batch into the bank. Nothing calls this yet; it exists so
+ * batches arriving over the wire have somewhere correct to land.
+ *
+ * Replace, never accumulate: a fresher generation of the same drill (same
+ * `phraseKey`, same kind) takes the old one's slot, so the bank holds at most
+ * one exercise per phrase-and-format and regenerating can only improve it.
+ * Plain id collisions replace in place too, covering batches that kept their
+ * ids while changing key or kind.
+ */
+export function mergeExercises(incoming: readonly DrillExercise[]): Promise<DrillExercise[]> {
+  return serialized(async () => {
+    const store = await loadStore();
+    const merged = [...store.exercises];
+    for (const exercise of incoming) {
+      const byKey = merged.findIndex((e) => e.phraseKey === exercise.phraseKey && e.kind === exercise.kind);
+      const byId = merged.findIndex((e) => e.id === exercise.id);
+      if (byKey !== -1) {
+        merged[byKey] = exercise;
+        if (byId !== -1 && byId !== byKey) merged.splice(byId, 1);
+      } else if (byId !== -1) {
+        merged[byId] = exercise;
+      } else {
+        merged.push(exercise);
+      }
+    }
+    await saveStore({ ...store, exercises: merged });
+    return merged;
+  });
+}
+
+/**
+ * Persist the "can't speak now" window. The session applies `suppressMic` for
+ * its own lifetime; this remembers the decision across screens and relaunches
+ * so the next hour of sittings opens silent without being asked again.
+ */
+export function setMicSuppressed(until: string | null): Promise<void> {
+  return serialized(async () => {
+    const store = await loadStore();
+    await saveStore({ ...store, micSuppressedUntil: until });
+  });
+}
+
+/** The raw window edge, or null when none was ever set. */
+export async function getMicSuppressedUntil(): Promise<string | null> {
+  return (await loadStore()).micSuppressedUntil;
+}
+
+/** Whether "can't speak now" still holds. An unparseable date reads as expired. */
+export async function isMicSuppressed(now = Date.now()): Promise<boolean> {
+  const until = await getMicSuppressedUntil();
+  return until !== null && Date.parse(until) > now;
+}

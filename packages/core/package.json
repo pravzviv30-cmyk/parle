@@ -1,0 +1,23 @@
+{
+  "name": "@parle/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./phonemes": "./src/phonemes/index.ts",
+    "./ladder": "./src/ladder/index.ts",
+    "./lessons": "./src/lessons/index.ts",
+    "./metering": "./src/metering/index.ts"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

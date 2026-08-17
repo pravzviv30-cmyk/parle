@@ -1,0 +1,15 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    // @parle/core ships raw TypeScript with explicit .ts specifiers so Node can run
+    // it directly via type stripping and Metro can bundle it without a build step.
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "include": ["**/*.ts", "**/*.tsx", "../../packages/core/src/**/*.ts"],
+  // Core's tests are typechecked by core's own tsconfig, which has the Node types
+  // their assertions need. Pulling them in here only produces phantom errors.
+  "exclude": ["node_modules", "../../packages/core/src/**/*.test.ts"]
+}

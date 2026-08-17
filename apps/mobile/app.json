@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Parle",
+    "slug": "parle",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "parle",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0E1116"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.parle.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Parle listens while you speak French so it can tell you which sounds to work on."
+      }
+    },
+    "android": {
+      "package": "com.parle.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0E1116",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-font",
+      "@livekit/react-native-expo-plugin",
+      "expo-sharing",
+      "expo-audio"
+    ]
+  }
+}

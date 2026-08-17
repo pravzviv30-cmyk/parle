@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "parle-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "web",
+        "--workspace=@parle/mobile",
+        "--",
+        "--port",
+        "8082"
+      ],
+      "port": 8082
+    }
+  ]
+}

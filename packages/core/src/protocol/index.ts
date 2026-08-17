@@ -1,0 +1,16 @@
+export {
+  TOPIC_SERVER,
+  TOPIC_CLIENT,
+  encodeMessage,
+  decodeServerMessage,
+  decodeClientMessage,
+  toLearnerInput,
+  type ServerMessage,
+  type ClientMessage,
+  type ConvoSpeakerLine,
+  type ConvoSupportView,
+  type ConvoCoachItem,
+  type ConvoPhrase,
+  type ConvoView,
+  type RecapPayload,
+} from './protocol.ts';
