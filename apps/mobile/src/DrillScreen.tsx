@@ -56,6 +56,7 @@ import { paper, signal, space, type, radius, font, HAIRLINE, HIT } from './theme
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
+import { authHeaders } from './auth/adapter.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 
 /** How long a feedback line holds the floor before the next exercise deals. */
@@ -65,12 +66,6 @@ const MIC_SUPPRESS_MS = 60 * 60 * 1000;
 
 /** The same server, and the same default, that useLiveSession reaches for. */
 const TOKEN_SERVER = process.env.EXPO_PUBLIC_TOKEN_SERVER_URL ?? 'http://localhost:8787';
-/**
- * The scoring budget is per-user-per-day on the server, and accounts don't
- * exist yet, so every install shares one drill identity. TODO(auth): replace
- * with the real user id once there is one.
- */
-const DRILL_USER_ID = 'drill-user';
 /** The server refuses larger bodies; sending one would only waste the upload. */
 const MAX_SCORE_BYTES = 2 * 1024 * 1024;
 /**
@@ -126,7 +121,7 @@ function verdictColor(verdict: DrillVerdict): string {
  * exactly like the self-report flow. At most one learner-safe sentence comes
  * back: the reason behind core's single focus point, never a number.
  */
-async function scoreAttempt(uri: string, reference: string): Promise<string | null> {
+async function scoreAttempt(userId: string, uri: string, reference: string): Promise<string | null> {
   try {
     // The recorder hands back a file:// path on native and a blob: URL on the
     // web; expo-file-system's File is native-only, so each side reads its own.
@@ -134,8 +129,8 @@ async function scoreAttempt(uri: string, reference: string): Promise<string | nu
     const size = body instanceof Uint8Array ? body.byteLength : body.size;
     if (size === 0 || size > MAX_SCORE_BYTES) return null;
     const res = await fetch(
-      `${TOKEN_SERVER}/drill/score?userId=${encodeURIComponent(DRILL_USER_ID)}&reference=${encodeURIComponent(reference)}`,
-      { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body },
+      `${TOKEN_SERVER}/drill/score?userId=${encodeURIComponent(userId)}&reference=${encodeURIComponent(reference)}`,
+      { method: 'POST', headers: { 'content-type': 'application/octet-stream', ...(await authHeaders()) }, body },
     );
     if (!res.ok) return null;
     const data = (await res.json()) as { report?: SessionPhonemeReport };
@@ -579,7 +574,7 @@ function RepeatThisView({
 
 // ───────────────────────────────────────────────────────────────── the screen
 
-export function DrillScreen({ onDone }: { onDone: () => void }) {
+export function DrillScreen({ userId, onDone }: { userId: string; onDone: () => void }) {
   const insets = useSafeAreaInsets();
 
   // The sitting. Null while the deck and bank load.
@@ -658,11 +653,11 @@ export function DrillScreen({ onDone }: { onDone: () => void }) {
       const beat = beatRef.current;
       answer(current.reference);
       if (uri === null) return;
-      void scoreAttempt(uri, current.reference).then((reason) => {
+      void scoreAttempt(userId, uri, current.reference).then((reason) => {
         if (reason !== null && beatRef.current === beat) setFocusLine(reason);
       });
     },
-    [session, feedback, answer],
+    [session, feedback, answer, userId],
   );
 
   // The feedback beat: hold the line, then deal the next exercise. A missed

@@ -11,7 +11,7 @@ import { HeroCafe } from '../illustrations.tsx';
 export function WelcomeScreen({ onCreateAccount, onSignIn }: { onCreateAccount: () => void; onSignIn: () => void }) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(10), paddingBottom: insets.bottom + space(6) }]}>
+    <View style={[st.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
       <View style={st.hero}>
         <HeroCafe width={230} />
         <Text style={[type.display, { color: paper.ink, textAlign: 'center', marginTop: space(6) }]}>
@@ -35,8 +35,7 @@ const st = StyleSheet.create({
     flex: 1,
     backgroundColor: paper.ground,
     paddingHorizontal: space(6),
-    justifyContent: 'space-between',
     gap: space(8),
   },
-  hero: { alignItems: 'center', paddingHorizontal: space(2) },
+  hero: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(2) },
 });

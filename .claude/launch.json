@@ -13,6 +13,19 @@
         "8082"
       ],
       "port": 8082
+    },
+    {
+      "name": "parle-web-2",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "web",
+        "--workspace=@parle/mobile",
+        "--",
+        "--port",
+        "8090"
+      ],
+      "port": 8090
     }
   ]
 }

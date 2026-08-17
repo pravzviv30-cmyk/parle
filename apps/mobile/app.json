@@ -39,7 +39,8 @@
       "expo-font",
       "@livekit/react-native-expo-plugin",
       "expo-sharing",
-      "expo-audio"
+      "expo-audio",
+      "expo-web-browser"
     ]
   }
 }

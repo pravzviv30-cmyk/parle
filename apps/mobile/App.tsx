@@ -32,6 +32,12 @@ import { createStoredProfile, loadProfile, saveProfile, type StoredProfile } fro
 
 import { paper, space, type, radius, HAIRLINE } from './src/theme.ts';
 import { Card, Label, PillButton, OutlineButton, GhostButton } from './src/components.tsx';
+import { auth } from './src/auth/adapter.ts';
+import { AuthProvider, useAuth } from './src/auth/useAuth.tsx';
+import { AuthFlow } from './src/auth/AuthFlow.tsx';
+import { SetNewPasswordScreen } from './src/auth/SetNewPasswordScreen.tsx';
+import type { AuthUser } from './src/auth/types.ts';
+import { migrateLegacyStores, setActiveUser } from './src/storage/scope.ts';
 import { SessionScreen } from './src/SessionScreen.tsx';
 import { LiveSessionScreen } from './src/LiveSessionScreen.tsx';
 import { SummaryScreen } from './src/SummaryScreen.tsx';
@@ -49,12 +55,6 @@ type Screen =
   | { name: 'convo'; textMode?: boolean };
 
 const TOKEN_SERVER = process.env.EXPO_PUBLIC_TOKEN_SERVER_URL ?? 'http://localhost:8787';
-
-/**
- * Identity, pre-auth. Random per install and kept in memory for now; replaced by
- * real accounts when persistence lands. Good enough to exercise per-user metering.
- */
-const DEV_USER_ID = `dev-${Math.random().toString(36).slice(2, 10)}`;
 
 /**
  * Live when the token server answers, demo otherwise. The app must never be a
@@ -222,7 +222,38 @@ function asRung(value: unknown): Rung | null {
   return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 4 ? (value as Rung) : null;
 }
 
-function Root() {
+/**
+ * Everything behind the sign-in door. Mounted with `key={user.id}` so an
+ * account switch remounts the whole tree with fresh state; the storage scope
+ * is set (and legacy data migrated, first account only) before anything that
+ * reads a store renders.
+ */
+function SignedInRoot({ user }: { user: AuthUser }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setActiveUser(user.id);
+    void migrateLegacyStores(user.id).then(() => {
+      if (!cancelled) setReady(true);
+    });
+    return () => {
+      cancelled = true;
+      setActiveUser(null);
+    };
+  }, [user.id]);
+
+  if (!ready) {
+    return (
+      <View style={st.loading}>
+        <ActivityIndicator color={paper.inkFaint} />
+      </View>
+    );
+  }
+  return <HomeRoot user={user} />;
+}
+
+function HomeRoot({ user }: { user: AuthUser }) {
   const [screen, setScreen] = useState<Screen>({ name: 'start' });
   const { live: liveAvailable, recheck } = useLiveAvailable();
 
@@ -304,7 +335,7 @@ function Root() {
       <LiveSessionScreen
         key="live"
         lesson={CAFE_LESSON}
-        userId={DEV_USER_ID}
+        userId={user.id}
         startRung={startRung}
         onFinish={handleFinish}
         onExit={restart}
@@ -317,12 +348,12 @@ function Root() {
     return <ReviewScreen onDone={restart} />;
   }
   if (screen.name === 'drill') {
-    return <DrillScreen onDone={restart} />;
+    return <DrillScreen userId={user.id} onDone={restart} />;
   }
   if (screen.name === 'convo') {
     return (
       <ConvoScreen
-        userId={DEV_USER_ID}
+        userId={user.id}
         snapshot={profile.brain}
         onRecap={(_recap, profileBlob) => {
           // The agent owns the learner model's shape; the app is its storage.
@@ -357,21 +388,44 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <View style={st.app}>
-        {loaded ? (
-          // A phone app that also runs in a browser. Constrained to a phone column
-          // rather than stretched — the composition is designed for a thumb.
-          <View style={st.shell}>
-            <Root />
-          </View>
-        ) : (
-          <View style={st.loading}>
-            <ActivityIndicator color={paper.inkFaint} />
-          </View>
-        )}
-      </View>
+      <AuthProvider adapter={auth}>
+        <View style={st.app}>
+          {loaded ? (
+            // A phone app that also runs in a browser. Constrained to a phone column
+            // rather than stretched — the composition is designed for a thumb.
+            <View style={st.shell}>
+              <Gate />
+            </View>
+          ) : (
+            <View style={st.loading}>
+              <ActivityIndicator color={paper.inkFaint} />
+            </View>
+          )}
+        </View>
+      </AuthProvider>
     </SafeAreaProvider>
   );
+}
+
+/**
+ * The door. Loading holds a spinner, signed out shows the welcome flow, a
+ * password-recovery landing interposes its one screen, and a signed-in user
+ * gets the app keyed to their account.
+ */
+function Gate() {
+  const { status, user, recovering, clearRecovery } = useAuth();
+  if (status === 'loading') {
+    return (
+      <View style={st.loading}>
+        <ActivityIndicator color={paper.inkFaint} />
+      </View>
+    );
+  }
+  if (status === 'signedIn' && user !== null) {
+    if (recovering) return <SetNewPasswordScreen onDone={clearRecovery} />;
+    return <SignedInRoot key={user.id} user={user} />;
+  }
+  return <AuthFlow />;
 }
 
 const st = StyleSheet.create({

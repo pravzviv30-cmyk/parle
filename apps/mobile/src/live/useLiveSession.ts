@@ -24,6 +24,7 @@ import {
   type TurnFeedback,
 } from '@parle/core';
 import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from './globals.ts';
+import { authHeaders } from '../auth/adapter.ts';
 
 /** Where the token server lives. Configurable per env for device testing. */
 const TOKEN_SERVER = process.env.EXPO_PUBLIC_TOKEN_SERVER_URL ?? 'http://localhost:8787';
@@ -131,7 +132,9 @@ export function useLiveSession(
     try {
       const res = await fetch(`${TOKEN_SERVER}/session/start`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        // The bearer token, when auth is live, lets the server verify the
+        // asserted userId instead of trusting it. Mock mode adds nothing.
+        headers: { 'content-type': 'application/json', ...(await authHeaders()) },
         // The token server signs startRung (and, for free conversation, the mode
         // and learner snapshot) into the join credential, so what the session
         // opens as is not something the client can quietly re-assert.
