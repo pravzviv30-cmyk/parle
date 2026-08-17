@@ -1,33 +1,61 @@
 /**
- * The enamel component vocabulary.
+ * The paper & ink component vocabulary.
  *
- * Everything here is built from one physical object: a vitreous enamel plaque
- * struck with a raised white rim, a green gap, and a thin inner keyline. Getting
- * that anatomy right is what separates this from a rounded card with a border.
+ * Flat white cards with a hairline rule on lilac paper, solid ink pills for
+ * the one primary action, quiet outline and ghost buttons for everything
+ * second. Icons are authored line art at the same 2.2 stroke the
+ * illustrations use — one pen drew the whole app.
  */
 
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+  type KeyboardTypeOptions,
+} from 'react-native';
 import Svg, { Path, Circle, G } from 'react-native-svg';
-import { enamel, radius, space, type, HIT, rungColor } from './theme.ts';
+import { paper, radius, signal, space, type, HAIRLINE, HIT, STROKE, rungColor } from './theme.ts';
 import type { Rung } from '@parle/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
-// Authored SVG in one consistent stroke weight. No glyph or emoji substitutes.
+// Authored SVG in the illustration stroke. No glyph or emoji substitutes.
 
-export function ArrowRight({ size = 18, color = enamel.white }: { size?: number; color?: string }) {
-  // The RATP directional arrow: a solid equilateral head on a short thick shaft.
+export function ArrowRight({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path d="M3 10.4h11.2V6.2L21.5 12l-7.3 5.8v-4.2H3z" fill={color} />
+      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M4 12h15.2" />
+        <Path d="M13.6 5.8 19.8 12l-6.2 6.2" />
+      </G>
     </Svg>
   );
 }
 
-export function MicGlyph({ size = 30, color = enamel.white }: { size?: number; color?: string }) {
+export function ChevronLeft({ size = 22, color = paper.ink }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <G fill="none" stroke={color} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
+      <Path
+        d="M14.8 5.2 8 12l6.8 6.8"
+        fill="none"
+        stroke={color}
+        strokeWidth={STROKE}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function MicGlyph({ size = 30, color = paper.ink }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
         <Path d="M12 3.2a2.9 2.9 0 0 1 2.9 2.9v5.6a2.9 2.9 0 0 1-5.8 0V6.1A2.9 2.9 0 0 1 12 3.2Z" />
         <Path d="M5.9 11.2a6.1 6.1 0 0 0 12.2 0M12 17.3v3.5" />
       </G>
@@ -35,11 +63,11 @@ export function MicGlyph({ size = 30, color = enamel.white }: { size?: number; c
   );
 }
 
-export function EarGlyph({ size = 26, color = enamel.white }: { size?: number; color?: string }) {
+export function EarGlyph({ size = 26, color = paper.ink }: { size?: number; color?: string }) {
   // Shown while the tutor is speaking: sound arriving, not being captured.
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <G fill="none" stroke={color} strokeWidth={2.1} strokeLinecap="round">
+      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round">
         <Path d="M4 9.5v5h3.4L12 18.6V5.4L7.4 9.5z" strokeLinejoin="round" />
         <Path d="M15.4 8.6a4.6 4.6 0 0 1 0 6.8M18.2 5.9a8.4 8.4 0 0 1 0 12.2" />
       </G>
@@ -47,15 +75,15 @@ export function EarGlyph({ size = 26, color = enamel.white }: { size?: number; c
   );
 }
 
-export function HelpGlyph({ size = 16, color = enamel.whiteMuted }: { size?: number; color?: string }) {
+export function HelpGlyph({ size = 16, color = paper.inkSoft }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Circle cx={12} cy={12} r={9.2} fill="none" stroke={color} strokeWidth={2} />
+      <Circle cx={12} cy={12} r={9.2} fill="none" stroke={color} strokeWidth={STROKE} />
       <Path
         d="M9.3 9.2a2.8 2.8 0 0 1 5.5.7c0 1.9-2.7 2.2-2.7 4"
         fill="none"
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={STROKE}
         strokeLinecap="round"
       />
       <Circle cx={12.1} cy={17.2} r={1.25} fill={color} />
@@ -63,153 +91,180 @@ export function HelpGlyph({ size = 16, color = enamel.whiteMuted }: { size?: num
   );
 }
 
-// ────────────────────────────────────────────────────────────────── the plaque
+/** A monochrome G in the house line style — no brand-colour asset needed. */
+export function GoogleMark({ size = 20, color = paper.ink }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round">
+        <Path d="M20.4 12.2A8.6 8.6 0 1 1 17.8 6" />
+        <Path d="M12.6 12.2h7.8" />
+      </G>
+    </Svg>
+  );
+}
 
-/**
- * A struck enamel plaque.
- *
- * Anatomy, outside in: raised white rim with a bevel, green gap, thin white
- * keyline, then the content. The bevel is a real offset shadow plus a lighter top
- * edge — not a flat outline and not a coloured halo.
- */
-export function Plaque({
+// ─────────────────────────────────────────────────────────────────── surfaces
+
+/** A flat white card: hairline rule, soft corners, no shadow. */
+export function Card({
   children,
   style,
-  raised = false,
-  tone = 'field',
+  padded = true,
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
-  raised?: boolean;
-  tone?: 'field' | 'white';
+  padded?: boolean;
 }) {
-  const isWhite = tone === 'white';
+  return <View style={[s.card, padded && s.cardPadded, style]}>{children}</View>;
+}
+
+/** A small caps label above a card or a count. */
+export function Label({ children, color = paper.inkSoft }: { children: React.ReactNode; color?: string }) {
+  return <Text style={[type.label, { color }]}>{children}</Text>;
+}
+
+// ────────────────────────────────────────────────────────────────── controls
+
+/** The one primary action on a screen: a solid ink pill. */
+export function PillButton({
+  label,
+  onPress,
+  disabled = false,
+  icon,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  icon?: React.ReactNode;
+}) {
   return (
-    <View
-      style={[
-        s.plaqueOuter,
-        {
-          backgroundColor: isWhite ? enamel.white : raised ? enamel.fieldRaised : enamel.field,
-          borderColor: isWhite ? enamel.field : enamel.white,
-        },
-        raised && s.plaqueRaised,
-        style,
-      ]}
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      style={({ pressed }) => [s.pill, disabled && s.pillDisabled, pressed && !disabled && { opacity: 0.88 }]}
     >
-      <View style={[s.plaqueKeyline, { borderColor: isWhite ? 'rgba(15,59,44,0.35)' : 'rgba(242,239,228,0.42)' }]}>{children}</View>
-    </View>
+      {icon}
+      <Text style={[type.button, { color: paper.onInk }]}>{label}</Text>
+    </Pressable>
   );
 }
 
-/** A small caps tag, the lettering stencilled above a plaque. */
-export function Tag({ children, color = enamel.whiteMuted }: { children: React.ReactNode; color?: string }) {
-  return <Text style={[type.tag, { color }]}>{children}</Text>;
+/** A secondary action: white pill, ink rule. */
+export function OutlineButton({
+  label,
+  sub,
+  onPress,
+  disabled = false,
+  icon,
+}: {
+  label: string;
+  sub?: string;
+  onPress: () => void;
+  disabled?: boolean;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      style={({ pressed }) => [s.outline, pressed && !disabled && { backgroundColor: paper.groundDeep }, disabled && { opacity: 0.45 }]}
+    >
+      <View style={s.outlineRow}>
+        {icon}
+        <Text style={[type.button, { color: paper.ink }]}>{label}</Text>
+      </View>
+      {sub != null && <Text style={[type.small, { color: paper.inkSoft, marginTop: 2 }]}>{sub}</Text>}
+    </Pressable>
+  );
+}
+
+/** A quiet inline action — text only, full touch height. */
+export function GhostButton({
+  label,
+  onPress,
+  color = paper.inkSoft,
+}: {
+  label: string;
+  onPress: () => void;
+  color?: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [s.ghost, pressed && { opacity: 0.55 }]}
+    >
+      <Text style={[type.bodyStrong, { color }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** A small choice chip. Learning-content chips keep their English gloss. */
+export function Chip({
+  label,
+  gloss,
+  selected = false,
+  onPress,
+}: {
+  label: string;
+  gloss?: string;
+  selected?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={gloss ? `${label} — ${gloss}` : label}
+      style={({ pressed }) => [s.chip, selected && s.chipSelected, pressed && { opacity: 0.75 }]}
+    >
+      <Text style={[type.bodyStrong, { color: selected ? paper.onInk : paper.ink }]}>{label}</Text>
+      {gloss != null && (
+        <Text style={[type.small, { color: selected ? paper.onInk : paper.inkSoft }]}>{gloss}</Text>
+      )}
+    </Pressable>
+  );
 }
 
 /**
- * A French label with its plain English meaning underneath.
- *
- * The French chrome is part of the app's identity, but a beginner should never
- * have to guess what a heading means. Every French label in the interface goes
- * through this so the pairing stays consistent.
+ * A tappable option the learner can choose — the successor of the direction
+ * plaque. French text in the serif, English gloss beneath, optional replay.
  */
-export function LabeledTag({ fr, en, color = enamel.whiteMuted }: { fr: string; en: string; color?: string }) {
-  return (
-    <View accessibilityLabel={en}>
-      <Text style={[type.tag, { color }]}>{fr}</Text>
-      <Text style={[type.small, { color: enamel.whiteFaint, marginTop: 2 }]}>{en}</Text>
-    </View>
-  );
-}
-
-/** A Métro line bullet. Used for the ladder rungs. */
-export function LineBullet({ rung, active, size = 26 }: { rung: Rung; active: boolean; size?: number }) {
-  const color = rungColor[rung];
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: radius.bullet,
-        backgroundColor: active ? color : 'transparent',
-        borderWidth: 2,
-        borderColor: active ? color : 'rgba(242,239,228,0.22)',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Text
-        style={{
-          ...type.tag,
-          fontSize: size * 0.44,
-          letterSpacing: 0,
-          // On a light bullet the numeral must go dark, or it vanishes.
-          color: active ? (rung === 1 || rung === 4 ? enamel.field : enamel.white) : 'rgba(242,239,228,0.34)',
-        }}
-      >
-        {rung}
-      </Text>
-    </View>
-  );
-}
-
-/**
- * The lesson as a Métro line: one stop per turn, the current one struck.
- * Reading your position off a line is the same gesture as reading it off a map.
- */
-export function StationLine({ total, index }: { total: number; index: number }) {
-  return (
-    <View style={s.stationRow} accessibilityLabel={`Stop ${index + 1} of ${total}`}>
-      {Array.from({ length: total }, (_, i) => {
-        const done = i < index;
-        const here = i === index;
-        return (
-          <View key={i} style={s.stationCell}>
-            {i > 0 && <View style={[s.stationRail, { backgroundColor: done || here ? enamel.white : 'rgba(242,239,228,0.18)' }]} />}
-            <View
-              style={[
-                s.stationDot,
-                here && s.stationDotHere,
-                { backgroundColor: done ? enamel.white : here ? enamel.white : 'rgba(242,239,228,0.22)' },
-              ]}
-            />
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
-/** A directional plaque — an option the learner can say, with a RATP arrow. */
-export function DirectionPlaque({
+export function OptionCard({
   text,
   gloss,
   onPress,
   onHear,
+  selected = false,
 }: {
   text: string;
-  gloss: string;
+  gloss?: string;
   onPress: () => void;
   /** Replay this option aloud without choosing it. */
   onHear?: () => void;
+  selected?: boolean;
 }) {
   // The hear control is a sibling of the main press target, not a child — a
   // button nested inside a button is invalid HTML on web. Pressed feedback is
-  // lifted to the container so the whole plaque still flashes as one object.
+  // lifted to the container so the whole card still flashes as one object.
   const [pressed, setPressed] = useState(false);
   return (
-    <View style={[s.direction, pressed && s.directionPressed]}>
+    <View style={[s.option, selected && s.optionSelected, pressed && s.optionPressed]}>
       <Pressable
         onPress={onPress}
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
         accessibilityRole="button"
-        accessibilityLabel={`${text} — ${gloss}`}
-        style={s.directionMain}
+        accessibilityLabel={gloss ? `${text} — ${gloss}` : text}
+        style={s.optionMain}
       >
         <View style={{ flex: 1 }}>
-          <Text style={[type.bodyStrong, { color: enamel.white }]}>{text}</Text>
-          <Text style={[type.small, { color: enamel.whiteMuted, marginTop: space(0.5) }]}>{gloss}</Text>
+          <Text style={[type.french, { color: paper.ink }]}>{text}</Text>
+          {gloss != null && (
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{gloss}</Text>
+          )}
         </View>
       </Pressable>
       {onHear && (
@@ -220,60 +275,380 @@ export function DirectionPlaque({
           accessibilityLabel={`Hear ${text}`}
           style={({ pressed: hearPressed }) => [{ padding: space(2) }, hearPressed && { opacity: 0.6 }]}
         >
-          <EarGlyph size={18} color={enamel.whiteMuted} />
+          <EarGlyph size={18} color={paper.inkSoft} />
         </Pressable>
       )}
-      <ArrowRight size={20} color={enamel.white} />
+      <ArrowRight size={18} color={paper.inkFaint} />
     </View>
   );
 }
 
+/** A labelled text input with an inline error line. */
+export function Field({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  error,
+  secure = false,
+  keyboardType,
+  autoCapitalize = 'none',
+  autoComplete,
+  returnKeyType,
+  onSubmitEditing,
+  autoFocus = false,
+  maxLength,
+  center = false,
+}: {
+  label?: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder?: string;
+  error?: string | null;
+  secure?: boolean;
+  keyboardType?: KeyboardTypeOptions;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoComplete?: React.ComponentProps<typeof TextInput>['autoComplete'];
+  returnKeyType?: React.ComponentProps<typeof TextInput>['returnKeyType'];
+  onSubmitEditing?: () => void;
+  autoFocus?: boolean;
+  maxLength?: number;
+  center?: boolean;
+}) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={{ gap: space(1.5) }}>
+      {label != null && <Label>{label}</Label>}
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={paper.inkFaint}
+        secureTextEntry={secure}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        autoComplete={autoComplete}
+        autoCorrect={false}
+        returnKeyType={returnKeyType}
+        onSubmitEditing={onSubmitEditing}
+        autoFocus={autoFocus}
+        maxLength={maxLength}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={[s.field, center && { textAlign: 'center' }, focused && { borderColor: paper.ink }]}
+      />
+      {error != null && <Text style={[type.small, { color: signal.correspondance }]}>{error}</Text>}
+    </View>
+  );
+}
+
+/** The Home top tabs: a soft track with a white active pill. */
+export function TabBar<K extends string>({
+  tabs,
+  active,
+  onChange,
+}: {
+  tabs: readonly { key: K; label: string }[];
+  active: K;
+  onChange: (key: K) => void;
+}) {
+  return (
+    <View style={s.tabTrack} accessibilityRole="tablist">
+      {tabs.map((tab) => {
+        const isActive = tab.key === active;
+        return (
+          <Pressable
+            key={tab.key}
+            onPress={() => onChange(tab.key)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive }}
+            style={[s.tab, isActive && s.tabActive]}
+          >
+            <Text style={[type.button, { color: isActive ? paper.ink : paper.inkSoft }]}>{tab.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Onboarding progress: one dot per page, the current one stretched. */
+export function ProgressDots({ total, index }: { total: number; index: number }) {
+  return (
+    <View style={s.dotsRow} accessibilityLabel={`Step ${index + 1} of ${total}`}>
+      {Array.from({ length: total }, (_, i) => (
+        <View key={i} style={[s.dot, i === index && s.dotHere, i < index && { backgroundColor: paper.inkSoft }]} />
+      ))}
+    </View>
+  );
+}
+
+/**
+ * THE speak control: one red circle, everywhere the learner talks.
+ * `active` while the mic is live; `muted` when the tutor holds the floor.
+ */
+export function SpeakCircle({
+  onPress,
+  onPressIn,
+  onPressOut,
+  active = false,
+  muted = false,
+  disabled = false,
+  size = 108,
+  accessibilityLabel,
+}: {
+  onPress?: () => void;
+  onPressIn?: () => void;
+  onPressOut?: () => void;
+  active?: boolean;
+  muted?: boolean;
+  disabled?: boolean;
+  size?: number;
+  accessibilityLabel: string;
+}) {
+  const iconColor = active ? paper.onInk : muted ? paper.inkFaint : signal.live;
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      disabled={disabled || muted}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      style={({ pressed }) => [
+        s.speak,
+        { width: size, height: size, borderRadius: size / 2 },
+        active ? s.speakLive : muted ? s.speakMuted : s.speakIdle,
+        pressed && !active && { backgroundColor: paper.groundDeep },
+      ]}
+    >
+      <MicGlyph size={size * 0.34} color={iconColor} />
+    </Pressable>
+  );
+}
+
+/** A rung bullet. Support colour when active, quiet outline when not. */
+export function LineBullet({ rung, active, size = 26 }: { rung: Rung; active: boolean; size?: number }) {
+  const color = rungColor[rung];
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius.pill,
+        backgroundColor: active ? color : 'transparent',
+        borderWidth: active ? 0 : HAIRLINE + 0.5,
+        borderColor: active ? color : paper.line,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: type.button.fontFamily,
+          fontSize: size * 0.44,
+          // Rung 4 is ink-filled; its numeral must go light or it vanishes.
+          color: active ? (rung === 4 ? paper.onInk : paper.ink) : paper.inkFaint,
+        }}
+      >
+        {rung}
+      </Text>
+    </View>
+  );
+}
+
+/** The lesson as a line: one stop per turn, the current one struck larger. */
+export function StationLine({ total, index }: { total: number; index: number }) {
+  return (
+    <View style={s.stationRow} accessibilityLabel={`Stop ${index + 1} of ${total}`}>
+      {Array.from({ length: total }, (_, i) => {
+        const done = i < index;
+        const here = i === index;
+        return (
+          <View key={i} style={s.stationCell}>
+            {i > 0 && <View style={[s.stationRail, { backgroundColor: done || here ? paper.ink : paper.line }]} />}
+            <View
+              style={[
+                s.stationDot,
+                here && s.stationDotHere,
+                { backgroundColor: done || here ? paper.ink : paper.line },
+              ]}
+            />
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+/**
+ * Length-aware display sizing for a French line: short lines strike large,
+ * long ones step down the way a sign is cut to fit its longest word.
+ */
+export function fitDisplay(text: string): TextStyle {
+  if (text.length <= 16) return type.frenchLg;
+  if (text.length <= 32) return { fontFamily: type.frenchLg.fontFamily, fontSize: 24, lineHeight: 31 };
+  return { fontFamily: type.frenchLg.fontFamily, fontSize: 20, lineHeight: 27 };
+}
+
+// ─────────────────────────────────────────────────────── transition wrappers
+// Deprecated names kept so un-swept screens compile; deleted with the sweep.
+
+/** @deprecated use Card. */
+export function Plaque({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+  raised?: boolean;
+  tone?: 'field' | 'white';
+}) {
+  return <Card style={style}>{children}</Card>;
+}
+
+/** @deprecated use Label. */
+export function Tag({ children, color = paper.inkSoft }: { children: React.ReactNode; color?: string }) {
+  return <Label color={color}>{children}</Label>;
+}
+
+/** @deprecated the chrome is English now — use Label with one string. */
+export function LabeledTag({ fr, en, color = paper.inkSoft }: { fr: string; en: string; color?: string }) {
+  return (
+    <View accessibilityLabel={en}>
+      <Label color={color}>{en}</Label>
+      <Text style={[type.small, { color: paper.inkFaint, marginTop: 2 }]}>{fr}</Text>
+    </View>
+  );
+}
+
+/** @deprecated use OptionCard. */
+export function DirectionPlaque({
+  text,
+  gloss,
+  onPress,
+  onHear,
+}: {
+  text: string;
+  gloss: string;
+  onPress: () => void;
+  onHear?: () => void;
+}) {
+  return <OptionCard text={text} gloss={gloss} onPress={onPress} onHear={onHear} />;
+}
+
 const s = StyleSheet.create({
-  plaqueOuter: {
-    borderWidth: 3,
-    borderRadius: radius.plaque,
-    padding: space(1.5),
-    // A real bevel: offset down, softly blurred. Not a zero-offset halo.
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    elevation: 6,
+  card: {
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    borderRadius: radius.card,
   },
-  plaqueRaised: {
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.42,
-    shadowRadius: 22,
-    elevation: 10,
+  cardPadded: { paddingVertical: space(4), paddingHorizontal: space(4) },
+  pill: {
+    minHeight: HIT + 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space(2),
+    backgroundColor: paper.ink,
+    borderRadius: radius.pill,
+    paddingHorizontal: space(6),
   },
-  plaqueKeyline: {
-    borderWidth: 1,
-    borderRadius: 2,
-    paddingVertical: space(4),
+  pillDisabled: { backgroundColor: paper.inkFaint },
+  outline: {
+    minHeight: HIT + 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: paper.card,
+    borderWidth: 1.5,
+    borderColor: paper.ink,
+    borderRadius: radius.pill,
+    paddingVertical: space(2.5),
+    paddingHorizontal: space(5),
+  },
+  outlineRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  ghost: {
+    minHeight: HIT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: space(3),
+  },
+  chip: {
+    minHeight: HIT,
+    justifyContent: 'center',
+    backgroundColor: paper.groundDeep,
+    borderRadius: radius.chip,
+    paddingVertical: space(2),
     paddingHorizontal: space(3.5),
   },
-  stationRow: { flexDirection: 'row', alignItems: 'center' },
-  stationCell: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  stationRail: { height: 2, flex: 1 },
-  stationDot: { width: 7, height: 7, borderRadius: radius.bullet },
-  stationDotHere: {
-    width: 13,
-    height: 13,
-    borderWidth: 3,
-    borderColor: enamel.ground,
-  },
-  direction: {
+  chipSelected: { backgroundColor: paper.ink },
+  option: {
     minHeight: HIT + 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space(3),
-    backgroundColor: enamel.fieldRaised,
-    borderWidth: 2,
-    borderColor: 'rgba(242,239,228,0.55)',
-    borderRadius: radius.plaque,
-    paddingVertical: space(2.5),
-    paddingHorizontal: space(3.5),
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    borderRadius: radius.card,
+    paddingVertical: space(3),
+    paddingHorizontal: space(4),
   },
-  directionMain: { flex: 1, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
-  directionPressed: { backgroundColor: '#1B5742', borderColor: enamel.white },
+  optionSelected: { borderColor: paper.ink, borderWidth: 1.5 },
+  optionPressed: { backgroundColor: paper.groundDeep },
+  optionMain: { flex: 1, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
+  field: {
+    minHeight: HIT + 6,
+    backgroundColor: paper.card,
+    borderWidth: 1.5,
+    borderColor: paper.line,
+    borderRadius: radius.input,
+    paddingHorizontal: space(4),
+    paddingVertical: space(3),
+    ...type.body,
+    color: paper.ink,
+  },
+  tabTrack: {
+    flexDirection: 'row',
+    backgroundColor: paper.groundDeep,
+    borderRadius: radius.pill,
+    padding: 3,
+  },
+  tab: {
+    flex: 1,
+    minHeight: HIT - 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+  },
+  tabActive: { backgroundColor: paper.card },
+  dotsRow: { flexDirection: 'row', gap: space(1.5), alignItems: 'center' },
+  dot: { width: 7, height: 7, borderRadius: radius.pill, backgroundColor: paper.line },
+  dotHere: { width: 22, backgroundColor: paper.ink },
+  speak: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: paper.card,
+  },
+  speakIdle: { borderWidth: 2, borderColor: signal.live },
+  speakLive: {
+    backgroundColor: signal.live,
+    shadowColor: signal.live,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  speakMuted: { borderWidth: 2, borderColor: paper.line },
+  stationRow: { flexDirection: 'row', alignItems: 'center' },
+  stationCell: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  stationRail: { height: 2, flex: 1 },
+  stationDot: { width: 7, height: 7, borderRadius: radius.pill },
+  stationDotHere: {
+    width: 13,
+    height: 13,
+    borderWidth: 3,
+    borderColor: paper.ground,
+  },
 });

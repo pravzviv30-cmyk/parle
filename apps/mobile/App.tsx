@@ -365,15 +365,16 @@ function Root() {
 
 export default function App() {
   const [loaded] = useFonts({
-    'Archivo-Regular': require('./assets/fonts/Archivo-Regular.ttf'),
-    'Archivo-SemiBold': require('./assets/fonts/Archivo-SemiBold.ttf'),
-    'Archivo-Bold': require('./assets/fonts/Archivo-Bold.ttf'),
-    'Archivo-ExtraBold': require('./assets/fonts/Archivo-ExtraBold.ttf'),
+    'Fraunces-SemiBold': require('./assets/fonts/Fraunces-SemiBold.ttf'),
+    'Fraunces-Bold': require('./assets/fonts/Fraunces-Bold.ttf'),
+    'DMSans-Regular': require('./assets/fonts/DMSans-Regular.ttf'),
+    'DMSans-Medium': require('./assets/fonts/DMSans-Medium.ttf'),
+    'DMSans-Bold': require('./assets/fonts/DMSans-Bold.ttf'),
   });
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <View style={st.app}>
         {loaded ? (
           // A phone app that also runs in a browser. Constrained to a phone column
