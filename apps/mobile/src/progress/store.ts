@@ -8,14 +8,16 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { buildProgressReport, type ProgressReport, type SessionSummary, type StoredSession } from '@parle/core';
+import { userKey } from '../storage/scope.ts';
 
-const KEY = 'parle.history.v1';
+/** Resolved per call: the active account can change between calls. */
+const KEY = () => userKey('history');
 /** Plenty for trends, small enough to parse on every launch without noticing. */
 const MAX_SESSIONS = 50;
 
 export async function loadHistory(): Promise<StoredSession[]> {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
+    const raw = await AsyncStorage.getItem(KEY());
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as StoredSession[]) : [];
@@ -46,7 +48,7 @@ export async function recordSession(summary: SessionSummary, now = Date.now()): 
   history.push({ endedAt: now, summary });
   const trimmed = history.slice(-MAX_SESSIONS);
   try {
-    await AsyncStorage.setItem(KEY, JSON.stringify(trimmed));
+    await AsyncStorage.setItem(KEY(), JSON.stringify(trimmed));
   } catch {
     // Storage full or unavailable. The session still counts for this launch.
   }

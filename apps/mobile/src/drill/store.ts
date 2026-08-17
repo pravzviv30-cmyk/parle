@@ -15,8 +15,10 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DRILL_FIXTURES, type DrillExercise } from '@parle/core';
+import { onUserScopeReset, userKey } from '../storage/scope.ts';
 
-const KEY = 'parle.drills.v1';
+/** Resolved per call: the active account can change between calls. */
+const KEY = () => userKey('drills');
 
 interface DrillStore {
   version: 1;
@@ -40,6 +42,12 @@ function serialized<T>(mutation: () => Promise<T>): Promise<T> {
 
 let cache: Promise<DrillStore> | null = null;
 
+// The load-once cache is per-account truth: drop it the moment the account
+// changes, or the next learner would drill the last learner's bank.
+onUserScopeReset(() => {
+  cache = null;
+});
+
 function isStore(value: unknown): value is DrillStore {
   return (
     typeof value === 'object' &&
@@ -51,7 +59,7 @@ function isStore(value: unknown): value is DrillStore {
 
 async function readStore(): Promise<DrillStore> {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
+    const raw = await AsyncStorage.getItem(KEY());
     if (raw) {
       const parsed: unknown = JSON.parse(raw);
       if (isStore(parsed)) {
@@ -77,7 +85,7 @@ async function saveStore(store: DrillStore): Promise<void> {
   // The cache is the truth the moment the write is decided; the disk catches up.
   cache = Promise.resolve(store);
   try {
-    await AsyncStorage.setItem(KEY, JSON.stringify(store));
+    await AsyncStorage.setItem(KEY(), JSON.stringify(store));
   } catch {
     // Storage full or unavailable. The bank still works for this launch.
   }

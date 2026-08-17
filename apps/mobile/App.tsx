@@ -1,25 +1,26 @@
 /*
  * ── DIRECTION CONTRACT ───────────────────────────────────────────────────────
- * THESIS: Learning to speak is wayfinding, not scoring. This app orients a lost
- *   beginner the way a sign does; it refuses the gamified-card-and-confetti
- *   arrangement the category always ships.
- * OWN-WORLD: Paris street-plaque enamel. Deep bottle-green field, struck white
- *   rim with a real bevel, thin inner keyline, white caps on wide tracking,
- *   Archivo throughout. Rungs are RATP line bullets (L1 yellow → L5 orange →
- *   L13 sky → plain enamel), cooling as support is withdrawn.
- * STORY: The learner sees where they are on the line, says the thing on the
- *   plaque, and is stepped in for — never scolded — the moment they stall.
- * FIRST VIEWPORT: Line header and station strip up top; the line to say struck
- *   large on a raised plaque at centre; rung bullets and one red speak control
- *   at the bottom, thumb-height.
- * FORM: Métro enamel wayfinding — candidate 3 of 7, seed key 160dc64e.
- * FINISH: unreviewed and undocumented is unfinished; this build ends with the
- *   finish review, the verdict, and DESIGN.md
+ * THESIS: Learning to speak should feel like a warm, unhurried picture book —
+ *   calm, friendly, professional. Easy to look at twice a day.
+ * OWN-WORLD: Paper & ink. Pale lilac paper, warm black ink, hand-drawn line
+ *   art, Fraunces for anything with a voice (headlines and every French line),
+ *   DM Sans for the furniture. Flat white cards on a hairline rule; one solid
+ *   ink pill per screen. Chrome is plain English; French appears only as the
+ *   thing being learned.
+ * KEPT FROM THE ENAMEL WORLD (behaviour, not surface): one primary action per
+ *   screen; the four support colours cooling as help is withdrawn; the red
+ *   live microphone; no scores and no scolding mid-session; 44pt floors.
+ * STORY: Sign in once, answer four gentle questions, then two doors — Speak
+ *   with the tutor, or Learn from what you said. Stalling is stepped in for,
+ *   never commented on.
+ * FINISH: unreviewed and undocumented is unfinished; the restyle ends with the
+ *   finish review and a rewritten DESIGN.md. The enamel design survives at the
+ *   repo's baseline commit.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
@@ -29,8 +30,8 @@ import { lastSummaryFor, loadHistory, recordSession } from './src/progress/store
 import { addFromSummary, dueCount } from './src/review/store.ts';
 import { createStoredProfile, loadProfile, saveProfile, type StoredProfile } from './src/profile/store.ts';
 
-import { enamel, space, type, radius, HIT } from './src/theme.ts';
-import { Plaque, Tag, LabeledTag, ArrowRight } from './src/components.tsx';
+import { paper, space, type, radius, HAIRLINE } from './src/theme.ts';
+import { Card, Label, PillButton, OutlineButton, GhostButton } from './src/components.tsx';
 import { SessionScreen } from './src/SessionScreen.tsx';
 import { LiveSessionScreen } from './src/LiveSessionScreen.tsx';
 import { SummaryScreen } from './src/SummaryScreen.tsx';
@@ -148,87 +149,68 @@ function StartScreen({
       <View style={{ gap: space(6) }}>
         <View>
           <View style={st.lineRow}>
-            <Tag>LIGNE {lesson.cefr}</Tag>
-            <Tag color={live ? enamel.white : enamel.whiteFaint}>{live ? 'EN DIRECT' : 'DÉMO'}</Tag>
+            <Label>Level {lesson.cefr}</Label>
+            <Label color={live ? paper.inkSoft : paper.inkFaint}>{live ? 'Live' : 'Demo'}</Label>
           </View>
-          <Text style={[type.plaque, { color: enamel.white, marginTop: space(3) }]}>{lesson.title.toUpperCase()}</Text>
-          <Text style={[type.body, { color: enamel.whiteMuted, marginTop: space(3) }]}>{lesson.premise}</Text>
+          <Text style={[type.display, { color: paper.ink, marginTop: space(3) }]}>{lesson.title}</Text>
+          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>{lesson.premise}</Text>
         </View>
 
-        <Plaque tone="white">
-          <LabeledTag fr="AVANT DE PARTIR" en="Before you go" color="rgba(15,59,44,0.6)" />
-          <Text style={[type.bodyStrong, { color: enamel.field, marginTop: space(2.5) }]}>{lesson.culturalNotes[0]}</Text>
-        </Plaque>
+        <Card>
+          <Label>Before you go</Label>
+          <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2.5) }]}>{lesson.culturalNotes[0]}</Text>
+        </Card>
       </View>
 
       <View style={{ gap: space(3) }}>
         {/* The sounds this line will put in front of them. Sets the expectation
             that pronunciation is the point, before a word has been spoken. */}
         <View style={st.sounds}>
-          <LabeledTag fr="SONS TRAVAILLÉS" en="Sounds you will practice" color={enamel.whiteFaint} />
+          <Label color={paper.inkFaint}>Sounds you will practice</Label>
           <View style={st.soundRow}>
             {lesson.targetPhonemes.map((p) => (
               <View key={p} style={st.sound}>
-                <Text style={[type.notation, { color: enamel.white }]}>/{p}/</Text>
+                <Text style={[type.notation, { color: paper.ink }]}>/{p}/</Text>
               </View>
             ))}
           </View>
         </View>
 
-        <Text style={[type.small, { color: enamel.whiteFaint }]}>
+        <Text style={[type.small, { color: paper.inkFaint }]}>
           {lesson.turns.length} stops · about five minutes · you will speak on every one
         </Text>
-        <Pressable onPress={onBegin} accessibilityRole="button" style={({ pressed }) => [st.begin, pressed && { opacity: 0.85 }]}>
-          <Text style={[type.tag, { color: enamel.field }]}>MONTER · START THE LESSON</Text>
-          <ArrowRight size={16} color={enamel.field} />
-        </Pressable>
-        {/* Free conversation needs the live brain, so DÉMO never shows it.
+        <PillButton label="Start the lesson" onPress={onBegin} />
+        {/* Free conversation needs the live brain, so Demo never shows it.
             Before the first finished lesson it waits, forward-framed and
             unpressable — a locked door with the key described, not a scold. */}
         {live &&
           sessions !== null &&
           (sessions >= 1 ? (
             <>
-              <Pressable
-                onPress={() => onConvo(false)}
-                accessibilityRole="button"
-                style={({ pressed }) => [st.review, pressed && { opacity: 0.8 }]}
-              >
-                <Text style={[type.tag, { color: enamel.white }]}>CONVERSATION · FREE TALK</Text>
-              </Pressable>
+              <OutlineButton label="Free talk" onPress={() => onConvo(false)} />
               {/* The quiet-carriage door: the same tutor, typed. A situation,
                   not a setting, so it sits beside the spoken door rather than
                   behind a menu. */}
-              <Pressable
-                onPress={() => onConvo(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Free talk by typing, without the microphone"
-                style={({ pressed }) => [st.helpLink, pressed && { opacity: 0.6 }]}
-              >
-                <Text style={[type.small, { color: enamel.whiteMuted }]}>sans micro · can't speak right now</Text>
-              </Pressable>
+              <GhostButton label="Unable to speak right now?" onPress={() => onConvo(true)} />
             </>
           ) : (
             <View style={st.convoLocked} accessibilityLabel="Your first lesson opens free talk">
-              <Text style={[type.tag, { color: enamel.whiteFaint }]}>CONVERSATION · FREE TALK</Text>
-              <Text style={[type.small, { color: enamel.whiteFaint, marginTop: 2, textAlign: 'center' }]}>
-                Votre première leçon ouvre ceci. · Your first lesson opens this.
+              <Text style={[type.bodyStrong, { color: paper.inkFaint }]}>Free talk</Text>
+              <Text style={[type.small, { color: paper.inkFaint, marginTop: 2, textAlign: 'center' }]}>
+                Your first lesson opens this.
               </Text>
             </View>
           ))}
         {due > 0 && (
-          <Pressable onPress={onReview} accessibilityRole="button" style={({ pressed }) => [st.review, pressed && { opacity: 0.8 }]}>
-            <Text style={[type.tag, { color: enamel.white }]}>RÉVISION · REVIEW</Text>
-            <Text style={[type.small, { color: enamel.whiteMuted, marginTop: 2 }]}>
-              {due === 1 ? '1 carte · 1 card' : `${due} cartes · ${due} cards`}
-            </Text>
-          </Pressable>
+          <OutlineButton
+            label="Review"
+            sub={due === 1 ? '1 card is ready' : `${due} cards are ready`}
+            onPress={onReview}
+          />
         )}
         {/* Always open: the fixture bank guarantees content, and the screen
             itself says so calmly when nothing is due. */}
-        <Pressable onPress={onDrill} accessibilityRole="button" style={({ pressed }) => [st.review, pressed && { opacity: 0.8 }]}>
-          <Text style={[type.tag, { color: enamel.white }]}>ENTRAÎNEMENT · DRILLS</Text>
-        </Pressable>
+        <OutlineButton label="Practice" onPress={onDrill} />
       </View>
     </View>
   );
@@ -297,7 +279,7 @@ function Root() {
   if (profile === 'loading') {
     return (
       <View style={st.loading}>
-        <ActivityIndicator color={enamel.whiteMuted} />
+        <ActivityIndicator color={paper.inkFaint} />
       </View>
     );
   }
@@ -384,7 +366,7 @@ export default function App() {
           </View>
         ) : (
           <View style={st.loading}>
-            <ActivityIndicator color={enamel.whiteMuted} />
+            <ActivityIndicator color={paper.inkFaint} />
           </View>
         )}
       </View>
@@ -393,56 +375,32 @@ export default function App() {
 }
 
 const st = StyleSheet.create({
-  app: { flex: 1, backgroundColor: enamel.ground },
+  app: { flex: 1, backgroundColor: paper.ground },
   shell: { flex: 1, width: '100%', maxWidth: 460, alignSelf: 'center' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   lineRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sounds: { gap: space(2.5) },
   soundRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   sound: {
-    borderWidth: 1,
-    borderColor: 'rgba(242,239,228,0.3)',
-    borderRadius: 3,
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    borderRadius: 8,
     paddingVertical: space(1.5),
     paddingHorizontal: space(2.5),
   },
   // Content sits high, the action is anchored at thumb height. Not spread evenly:
   // even spread is what leaves a phone screen looking half-empty.
   start: { flex: 1, paddingHorizontal: space(5), justifyContent: 'space-between', gap: space(8) },
-  begin: {
-    minHeight: HIT + 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space(2),
-    backgroundColor: enamel.white,
-    borderRadius: radius.plaque,
-  },
-  // Secondary to MONTER: an outline where the begin button is a filled plaque.
-  review: {
-    minHeight: HIT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: space(2),
-    borderWidth: 2,
-    borderColor: enamel.white,
-    borderRadius: radius.plaque,
-  },
-  // The same outline, muted: visible as a destination, unmistakably not yet a door.
-  helpLink: {
-    minHeight: HIT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: space(3),
-  },
+  // Visible as a destination, unmistakably not yet a door.
   convoLocked: {
-    minHeight: HIT,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: space(2),
     paddingHorizontal: space(3),
-    borderWidth: 2,
-    borderColor: 'rgba(242,239,228,0.22)',
-    borderRadius: radius.plaque,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    borderRadius: radius.card,
   },
 });

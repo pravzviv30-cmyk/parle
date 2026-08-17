@@ -4,15 +4,15 @@
  * Everything pedagogical happens in the agent; this screen connects, opens the
  * microphone, and renders what it is told. Note what is deliberately absent
  * compared to the mock: no silence timer (the agent runs the rescue), no grading,
- * no mic-press handler (the learner just talks), and option plaques are read-along
+ * no mic-press handler (the learner just talks), and option cards are read-along
  * support rather than buttons — saying it aloud is the product.
  */
 
 import { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import type { Lesson, Rung, SessionSummary } from '@parle/core';
-import { enamel, space, type, radius, HIT } from './theme.ts';
-import { LabeledTag, Plaque } from './components.tsx';
+import { paper, space, type, HIT } from './theme.ts';
+import { Card, Label, PillButton } from './components.tsx';
 import { SessionView } from './SessionView.tsx';
 import { useLiveSession } from './live/useLiveSession.ts';
 
@@ -49,9 +49,8 @@ export function LiveSessionScreen({
   if (live.status.phase === 'connecting' || live.status.phase === 'idle') {
     return (
       <View style={st.center}>
-        <ActivityIndicator color={enamel.whiteMuted} />
-        <Text style={[type.small, { color: enamel.whiteMuted, marginTop: space(3) }]}>Connexion au serveur…</Text>
-        <Text style={[type.small, { color: enamel.whiteFaint, marginTop: space(0.5) }]}>Reaching the server</Text>
+        <ActivityIndicator color={paper.inkSoft} />
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>Reaching the server…</Text>
       </View>
     );
   }
@@ -59,13 +58,13 @@ export function LiveSessionScreen({
   if (live.status.phase === 'out-of-minutes') {
     return (
       <View style={st.center}>
-        <LabeledTag fr="TERMINUS" en="You are out of minutes" color={enamel.whiteFaint} />
-        <Text style={[type.plaqueSmall, { color: enamel.white, marginTop: space(3), textAlign: 'center' }]}>
+        <Text style={[type.title, { color: paper.ink, textAlign: 'center' }]}>Out of minutes</Text>
+        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
           {live.status.message}
         </Text>
-        <Pressable onPress={onExit} accessibilityRole="button" style={({ pressed }) => [st.exit, pressed && { opacity: 0.8 }]}>
-          <Text style={[type.tag, { color: enamel.white }]}>RETOUR · BACK</Text>
-        </Pressable>
+        <View style={{ marginTop: space(6) }}>
+          <PillButton label="Back" onPress={onExit} />
+        </View>
       </View>
     );
   }
@@ -73,13 +72,13 @@ export function LiveSessionScreen({
   if (live.status.phase === 'error') {
     return (
       <View style={st.center}>
-        <LabeledTag fr="PERTURBATION" en="Connection problem" color={enamel.whiteFaint} />
-        <Text style={[type.body, { color: enamel.whiteMuted, marginTop: space(3), textAlign: 'center' }]}>
+        <Label>Connection problem</Label>
+        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
           {live.status.message}
         </Text>
-        <Pressable onPress={onExit} accessibilityRole="button" style={({ pressed }) => [st.exit, pressed && { opacity: 0.8 }]}>
-          <Text style={[type.tag, { color: enamel.white }]}>RETOUR · BACK</Text>
-        </Pressable>
+        <View style={{ marginTop: space(6) }}>
+          <PillButton label="Back" onPress={onExit} />
+        </View>
       </View>
     );
   }
@@ -87,30 +86,31 @@ export function LiveSessionScreen({
   if (!live.prompt) {
     return (
       <View style={st.center}>
-        <ActivityIndicator color={enamel.whiteMuted} />
+        <ActivityIndicator color={paper.inkSoft} />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={st.root}>
       {live.audioBlocked && (
         // The browser wants a gesture before it will play the tutor. One calm
-        // white notice, gone the moment it is tapped.
+        // white card, gone the moment it is tapped.
         <Pressable
           onPress={live.resumeAudio}
           accessibilityRole="button"
+          accessibilityLabel="Tap to listen"
           style={({ pressed }) => [st.listen, pressed && { opacity: 0.85 }]}
         >
-          <Plaque tone="white">
-            <LabeledTag fr="TOUCHEZ POUR ÉCOUTER" en="Tap to hear your tutor" color="rgba(15,59,44,0.6)" />
-          </Plaque>
+          <Card style={{ alignItems: 'center' }}>
+            <Label>Tap to listen</Label>
+          </Card>
         </Pressable>
       )}
       <View style={st.topRow}>
         {/* Transient trouble from the agent (a voice hiccup). The session is
             still live; this clears itself. */}
-        <Text style={[type.small, { color: enamel.whiteMuted, flex: 1 }]}>{live.notice ?? ''}</Text>
+        <Text style={[type.small, { color: paper.inkSoft, flex: 1 }]}>{live.notice ?? ''}</Text>
         {/* Metered minutes must always have a door. */}
         <Pressable
           onPress={leaveNow}
@@ -118,7 +118,7 @@ export function LiveSessionScreen({
           accessibilityLabel="Leave the lesson"
           style={({ pressed }) => [st.leave, pressed && { opacity: 0.6 }]}
         >
-          <Text style={[type.tag, { color: enamel.whiteMuted }]}>SORTIE · LEAVE</Text>
+          <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
         </Pressable>
       </View>
       <SessionView
@@ -138,18 +138,9 @@ export function LiveSessionScreen({
 }
 
 const st = StyleSheet.create({
-  center: { flex: 1, backgroundColor: enamel.ground, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
+  root: { flex: 1, backgroundColor: paper.ground },
+  center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
   listen: { minHeight: HIT, paddingHorizontal: space(5), paddingTop: space(3) },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingHorizontal: space(5), paddingTop: space(2) },
   leave: { minHeight: HIT, justifyContent: 'center', paddingLeft: space(3) },
-  exit: {
-    marginTop: space(6),
-    minHeight: HIT,
-    paddingHorizontal: space(6),
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: enamel.white,
-    borderRadius: radius.plaque,
-  },
 });

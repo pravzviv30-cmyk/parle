@@ -9,18 +9,8 @@
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SessionPrompt } from '@parle/core';
-import { enamel, rungColor, rungLabel, rungLabelEn, signal, space, type, HIT, radius } from './theme.ts';
-import { Plaque, Tag, LabeledTag, LineBullet, StationLine, DirectionPlaque, MicGlyph, EarGlyph, HelpGlyph } from './components.tsx';
-
-/**
- * Signage lettering has to fit its plaque — a real sign is cut to its longest word.
- */
-function plaqueType(text: string) {
-  const n = text.length;
-  if (n <= 16) return type.plaque;
-  if (n <= 32) return { ...type.plaque, fontSize: 24, lineHeight: 31, letterSpacing: 1.1 };
-  return { ...type.plaque, fontSize: 19, lineHeight: 26, letterSpacing: 0.7 };
-}
+import { paper, rungColor, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
+import { Card, Label, LineBullet, StationLine, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
 
 /**
  * What the support block can render. A structural superset of the lesson path's
@@ -35,9 +25,9 @@ export type SupportContent =
   | { kind: 'none' };
 
 /**
- * The scaffolding, rendered. One visual grammar for every mode: a raised plaque
- * when the tutor hands over the whole line, direction plaques when the learner
- * chooses, a white notice when they are nudged, quiet nothing when they are free.
+ * The scaffolding, rendered. One visual grammar for every mode: a white card
+ * with the whole line when the tutor hands it over, option cards when the
+ * learner chooses, a quiet notice when they are nudged, nothing when free.
  */
 export function SupportBlock({
   support,
@@ -50,25 +40,26 @@ export function SupportBlock({
   onOptionPress?: (text: string) => void;
   /** Replay a rung-2 option aloud without submitting it. */
   onOptionHear?: (text: string) => void;
-  /** Replay the line on the plaque. Every cued turn should be hearable on demand. */
+  /** Replay the line on the card. Every cued turn should be hearable on demand. */
   onHearLine?: () => void;
 }) {
   if (support.kind === 'full-line') {
     return (
-      <Plaque raised style={st.mainPlaque}>
-        <Text style={[plaqueType(support.line), { color: enamel.white, textAlign: 'center' }]}>
-          {support.line.toUpperCase()}
+      <Card style={st.mainCard}>
+        <Label>Say this</Label>
+        <Text style={[fitDisplay(support.line), { color: paper.ink, textAlign: 'center', marginTop: space(2) }]}>
+          {support.line}
         </Text>
-        <Text style={[type.body, { color: enamel.whiteMuted, textAlign: 'center', marginTop: space(2) }]}>
+        <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2) }]}>
           {support.gloss}
         </Text>
         {support.ipa ? (
-          <Text style={[type.notation, { color: enamel.whiteFaint, textAlign: 'center', marginTop: space(1.5) }]}>
+          <Text style={[type.notation, { color: paper.inkFaint, textAlign: 'center', marginTop: space(1.5) }]}>
             /{support.ipa}/
           </Text>
         ) : null}
         {support.written && support.written !== support.line ? (
-          <Text style={[type.small, { color: enamel.whiteFaint, textAlign: 'center', marginTop: space(1.5) }]}>
+          <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center', marginTop: space(1.5) }]}>
             {support.written}
           </Text>
         ) : null}
@@ -79,11 +70,11 @@ export function SupportBlock({
             accessibilityLabel="Hear the line again"
             style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
           >
-            <EarGlyph size={15} color={enamel.whiteMuted} />
-            <Text style={[type.small, { color: enamel.whiteMuted }]}>écouter · hear it</Text>
+            <EarGlyph size={15} color={paper.inkSoft} />
+            <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
           </Pressable>
         )}
-      </Plaque>
+      </Card>
     );
   }
 
@@ -91,7 +82,7 @@ export function SupportBlock({
     return (
       <View style={st.options}>
         {support.options.map((o) => (
-          <DirectionPlaque
+          <OptionCard
             key={o.text}
             text={o.text}
             gloss={o.en}
@@ -105,16 +96,16 @@ export function SupportBlock({
 
   if (support.kind === 'hint') {
     return (
-      <Plaque tone="white" style={st.mainPlaque}>
-        <LabeledTag fr="DITES-LUI" en="Tell them this, in French" color="rgba(15,59,44,0.6)" />
-        <Text style={[type.plaqueSmall, { color: enamel.field, marginTop: space(2) }]}>{support.hint}</Text>
-      </Plaque>
+      <Card style={st.mainCard}>
+        <Label>Tell them this, in French</Label>
+        <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>{support.hint}</Text>
+      </Card>
     );
   }
 
   return (
     <View style={st.freeBlock}>
-      <Text style={[type.small, { color: enamel.whiteFaint, textAlign: 'center' }]}>
+      <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center' }]}>
         No prompts from here. Answer however you like.
       </Text>
     </View>
@@ -133,13 +124,13 @@ export interface SessionViewProps {
   transcript?: string | null;
   /**
    * Mock path: submits the option as if spoken. Live path: absent — the learner
-   * must say it aloud, and the plaques are read-along support, not buttons.
+   * must say it aloud, and the cards are read-along support, not buttons.
    */
   onOptionPress?: (text: string) => void;
   /** Mock path only: simulates speaking the target line. */
   onMicPress?: () => void;
   onHelp: () => void;
-  /** Replay the line on the plaque. Every cued turn should be hearable on demand. */
+  /** Replay the line on the card. Every cued turn should be hearable on demand. */
   onHearLine?: () => void;
   /** Replay a rung-2 option aloud without submitting it. */
   onOptionHear?: (text: string) => void;
@@ -154,12 +145,12 @@ export function SessionView(props: SessionViewProps) {
     <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
       <View style={st.header}>
         <View style={st.headerRow}>
-          <Tag>LIGNE {props.cefr}</Tag>
-          <Tag color={enamel.whiteFaint}>
+          <Label>Level {props.cefr}</Label>
+          <Label color={paper.inkFaint}>
             {prompt.position} / {prompt.total}
-          </Tag>
+          </Label>
         </View>
-        <Text style={[type.heading, { color: enamel.white, marginTop: space(1) }]} numberOfLines={1}>
+        <Text style={[type.heading, { color: paper.ink, marginTop: space(1) }]} numberOfLines={1}>
           {props.lessonTitle}
         </Text>
         <View style={{ marginTop: space(2.5) }}>
@@ -170,11 +161,11 @@ export function SessionView(props: SessionViewProps) {
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
         <View style={st.tutorBlock}>
           <View style={st.tutorHead}>
-            <EarGlyph size={19} color={listening ? enamel.whiteFaint : enamel.white} />
-            <Tag color={listening ? enamel.whiteFaint : enamel.white}>LE SERVEUR · THE WAITER</Tag>
+            <EarGlyph size={19} color={listening ? paper.inkFaint : paper.ink} />
+            <Label color={listening ? paper.inkFaint : paper.ink}>The waiter</Label>
           </View>
-          <Text style={[type.bodyStrong, { color: enamel.white, marginTop: space(1.5) }]}>{prompt.turn.tutor}</Text>
-          <Text style={[type.small, { color: enamel.whiteMuted, marginTop: space(0.5) }]}>{prompt.turn.tutorEn}</Text>
+          <Text style={[type.french, { color: paper.ink, marginTop: space(1.5) }]}>{prompt.turn.tutor}</Text>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{prompt.turn.tutorEn}</Text>
         </View>
 
         <SupportBlock
@@ -186,14 +177,14 @@ export function SessionView(props: SessionViewProps) {
 
         {props.transcript ? (
           <View style={st.heard}>
-            <LabeledTag fr="ENTENDU" en="What the tutor heard" color={enamel.whiteFaint} />
-            <Text style={[type.body, { color: enamel.whiteMuted, marginTop: space(1) }]}>« {props.transcript} »</Text>
+            <Label color={paper.inkFaint}>What the tutor heard</Label>
+            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>« {props.transcript} »</Text>
           </View>
         ) : null}
 
         {prompt.turn.note && listening && (
           <View style={st.note}>
-            <Text style={[type.small, { color: enamel.whiteMuted }]}>{prompt.turn.note}</Text>
+            <Text style={[type.small, { color: paper.inkSoft }]}>{prompt.turn.note}</Text>
           </View>
         )}
       </ScrollView>
@@ -204,32 +195,29 @@ export function SessionView(props: SessionViewProps) {
             <LineBullet key={r} rung={r} active={r === rung} />
           ))}
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[type.tag, { color: rungColor[rung] }]}>{rungLabel[rung]}</Text>
-          <Text style={[type.small, { color: enamel.whiteMuted, marginTop: 2 }]}>{rungLabelEn[rung]}</Text>
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
+          <View style={[st.rungDot, { backgroundColor: rungColor[rung] }]} />
+          <Text style={[type.bodyStrong, { color: paper.ink }]}>{rungLabel[rung]}</Text>
         </View>
       </View>
 
       <View style={st.controls}>
         {flash ? (
-          <Text style={[type.bodyStrong, { color: enamel.white, textAlign: 'center', marginBottom: space(2) }]}>{flash}</Text>
+          <Text style={[type.bodyStrong, { color: paper.ink, textAlign: 'center', marginBottom: space(2) }]}>{flash}</Text>
         ) : (
           <View style={{ height: space(2) + 23, marginBottom: space(2) }} />
         )}
 
-        <Pressable
+        <SpeakCircle
           onPress={props.onMicPress}
-          disabled={!listening || !props.onMicPress}
-          accessibilityRole="button"
+          active={listening}
+          muted={!listening}
+          disabled={!props.onMicPress}
           accessibilityLabel={listening ? 'Speak your answer' : 'The tutor is speaking'}
-          accessibilityState={{ disabled: !listening }}
-          style={({ pressed }) => [st.speak, listening ? st.speakLive : st.speakIdle, pressed && listening && st.speakPressed]}
-        >
-          <MicGlyph size={28} color={listening ? enamel.white : enamel.whiteFaint} />
-          <Text style={[type.tag, { color: listening ? enamel.white : enamel.whiteFaint, marginTop: space(1) }]}>
-            {listening ? 'PARLEZ · SPEAK' : 'ÉCOUTEZ · LISTEN'}
-          </Text>
-        </Pressable>
+        />
+        <Text style={[type.label, { color: listening ? paper.ink : paper.inkFaint, marginTop: space(2) }]}>
+          {listening ? 'Speak' : 'Listen'}
+        </Text>
 
         <Pressable
           onPress={props.onHelp}
@@ -239,7 +227,7 @@ export function SessionView(props: SessionViewProps) {
           style={({ pressed }) => [st.help, pressed && { opacity: 0.6 }]}
         >
           <HelpGlyph size={15} />
-          <Text style={[type.small, { color: enamel.whiteMuted }]}>aide-moi · help me out</Text>
+          <Text style={[type.small, { color: paper.inkSoft }]}>Help me out</Text>
         </Pressable>
       </View>
     </View>
@@ -247,13 +235,13 @@ export function SessionView(props: SessionViewProps) {
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: enamel.ground, paddingHorizontal: space(5) },
+  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
   header: { paddingBottom: space(3) },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   scroll: { paddingTop: space(3), paddingBottom: space(5), gap: space(5), flexGrow: 1, justifyContent: 'center' },
-  tutorBlock: { borderLeftWidth: 1, borderLeftColor: 'rgba(242,239,228,0.28)', paddingLeft: space(3.5) },
+  tutorBlock: { borderLeftWidth: HAIRLINE + 1, borderLeftColor: paper.line, paddingLeft: space(3.5) },
   tutorHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
-  mainPlaque: { marginTop: space(1) },
+  mainCard: { alignItems: 'center' },
   options: { gap: space(2.5) },
   freeBlock: { paddingVertical: space(6) },
   hear: {
@@ -264,29 +252,18 @@ const st = StyleSheet.create({
     justifyContent: 'center',
     gap: space(2),
   },
-  heard: { borderTopWidth: 1, borderTopColor: 'rgba(242,239,228,0.14)', paddingTop: space(3) },
-  note: { borderTopWidth: 1, borderTopColor: 'rgba(242,239,228,0.14)', paddingTop: space(3) },
+  heard: { borderTopWidth: HAIRLINE, borderTopColor: paper.line, paddingTop: space(3) },
+  note: { borderTopWidth: HAIRLINE, borderTopColor: paper.line, paddingTop: space(3) },
   rungRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space(3.5),
     paddingVertical: space(3),
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(242,239,228,0.14)',
+    borderTopWidth: HAIRLINE,
+    borderTopColor: paper.line,
   },
+  rungDot: { width: 8, height: 8, borderRadius: 999 },
   bullets: { flexDirection: 'row', gap: space(1.5) },
   controls: { alignItems: 'center', paddingTop: space(1) },
-  speak: { width: 108, height: 108, borderRadius: radius.bullet, alignItems: 'center', justifyContent: 'center', borderWidth: 3 },
-  speakLive: {
-    backgroundColor: signal.live,
-    borderColor: enamel.white,
-    shadowColor: signal.live,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  speakIdle: { backgroundColor: 'transparent', borderColor: 'rgba(242,239,228,0.22)' },
-  speakPressed: { transform: [{ scale: 0.96 }] },
-  help: { marginTop: space(3), minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(4) },
+  help: { marginTop: space(2), minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(4) },
 });

@@ -7,8 +7,8 @@
  * like grading or selection appears in this file, it is in the wrong file.
  *
  * Feedback follows the signal vocabulary: `signal.good` for a phrase that came
- * out, `signal.correspondance` for the change-here correction, enamel white for
- * a spelling pointed at. Never a number and never a scold mid-session; the end
+ * out, `signal.correspondance` for the change-here correction, plain ink for a
+ * spelling pointed at. Never a number and never a scold mid-session; the end
  * card is the one place counts are allowed, where they can be given context.
  *
  * Leaving early is honest and cheap: every exercise answered so far grades its
@@ -52,8 +52,8 @@ import {
   type SessionPhonemeReport,
   type TapTranslateExercise,
 } from '@parle/core';
-import { enamel, signal, space, type, radius, font, HIT } from './theme.ts';
-import { Plaque, Tag, LabeledTag, DirectionPlaque, ArrowRight, MicGlyph, EarGlyph } from './components.tsx';
+import { paper, signal, space, type, radius, font, HAIRLINE, HIT } from './theme.ts';
+import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
@@ -82,44 +82,36 @@ const CAN_RECORD =
   Platform.OS !== 'web' ||
   (typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined');
 
-/** Signage lettering has to fit its plaque — a real sign is cut to its longest word. */
-function plaqueType(text: string) {
-  const n = text.length;
-  if (n <= 16) return type.plaque;
-  if (n <= 32) return { ...type.plaque, fontSize: 24, lineHeight: 31, letterSpacing: 1.1 };
-  return { ...type.plaque, fontSize: 19, lineHeight: 26, letterSpacing: 0.7 };
-}
-
-/** What this exercise asks for, in the plaque's own vocabulary. */
+/** What this exercise asks for, said plainly. */
 function kindTag(exercise: DrillExercise): string {
   switch (exercise.kind) {
     case 'fill-blank':
-      return 'COMPLÉTEZ · FILL THE BLANK';
+      return 'Fill the blank';
     case 'best-sentence':
-      return 'LA BONNE PHRASE · WHICH WOULD YOU SAY?';
+      return 'Which would you say?';
     case 'appropriate-reply':
-      return 'RÉPONDEZ · CHOOSE A REPLY';
+      return 'Choose a reply';
     case 'tap-translate':
-      return 'TRADUISEZ · BUILD IT IN FRENCH';
+      return 'Build it in French';
     case 'listen-type':
-      return 'DICTÉE · LISTEN AND TYPE';
+      return 'Listen and type';
     case 'repeat-this':
-      return 'RÉPÉTEZ · SAY IT ALOUD';
+      return 'Say it aloud';
   }
 }
 
 /**
  * The verdict's colour, by the signals' fixed meanings: good is a sound that
  * worked, correspondance is "change here" (the recast in ConvoScreen uses the
- * same colour for the same reason), and a typo is neutral enamel — accepted,
- * with the spelling merely kept in view.
+ * same colour for the same reason), and a typo is plain ink — accepted, with
+ * the spelling merely kept in view.
  */
 function verdictColor(verdict: DrillVerdict): string {
   switch (verdict) {
     case 'good':
       return signal.good;
     case 'typo':
-      return enamel.white;
+      return paper.ink;
     case 'miss':
       return signal.correspondance;
   }
@@ -153,11 +145,11 @@ async function scoreAttempt(uri: string, reference: string): Promise<string | nu
   }
 }
 
-// ─────────────────────────────────────────────────────── local plaque pieces
-// Composed here rather than added to components.tsx: DirectionPlaque wants a
-// gloss, and fill-blank options are bare words by authored design.
+// ──────────────────────────────────────────────────────── local card pieces
+// Composed here rather than added to components.tsx: OptionCard wants a gloss,
+// and fill-blank options are bare words by authored design.
 
-/** A single-word option, in the direction-plaque anatomy without the gloss line. */
+/** A single-word option, in the option-card anatomy without the gloss line. */
 function WordChoice({ word, onPress, locked }: { word: string; onPress: () => void; locked: boolean }) {
   return (
     <Pressable
@@ -167,13 +159,13 @@ function WordChoice({ word, onPress, locked }: { word: string; onPress: () => vo
       accessibilityLabel={word}
       style={({ pressed }) => [ds.choice, pressed && ds.choicePressed]}
     >
-      <Text style={[type.bodyStrong, { color: enamel.white, flex: 1 }]}>{word}</Text>
-      <ArrowRight size={20} color={enamel.white} />
+      <Text style={[type.french, { color: paper.ink, flex: 1 }]}>{word}</Text>
+      <ArrowRight size={18} color={paper.inkFaint} />
     </Pressable>
   );
 }
 
-/** The écouter affordance ReviewScreen uses, for hearing a French line again. */
+/** The hear-it affordance ReviewScreen uses, for hearing a French line again. */
 function HearRow({ text }: { text: string }) {
   return (
     <Pressable
@@ -182,13 +174,13 @@ function HearRow({ text }: { text: string }) {
       accessibilityLabel="Hear it in French"
       style={({ pressed }) => [ds.hear, pressed && { opacity: 0.6 }]}
     >
-      <EarGlyph size={15} color={enamel.whiteMuted} />
-      <Text style={[type.small, { color: enamel.whiteMuted }]}>écouter · hear it</Text>
+      <EarGlyph size={15} color={paper.inkSoft} />
+      <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
     </Pressable>
   );
 }
 
-/** The app's first text input: an enamel field with the plaque's own anatomy. */
+/** The app's first text input: a paper field in the Field anatomy. */
 function TypedAnswer({
   typed,
   onChange,
@@ -217,7 +209,7 @@ function TypedAnswer({
           if (canSubmit) onSubmit();
         }}
         placeholder={placeholder}
-        placeholderTextColor={enamel.whiteFaint}
+        placeholderTextColor={paper.inkFaint}
         accessibilityLabel="Your answer in French"
         style={ds.input}
       />
@@ -226,9 +218,9 @@ function TypedAnswer({
         disabled={!canSubmit}
         accessibilityRole="button"
         accessibilityLabel="Check your answer"
-        style={({ pressed }) => [ds.valider, pressed && { opacity: 0.85 }, !canSubmit && { opacity: 0.4 }]}
+        style={({ pressed }) => [ds.check, !canSubmit && ds.checkDisabled, pressed && canSubmit && { opacity: 0.88 }]}
       >
-        <Text style={[type.tag, { color: enamel.field }]}>VALIDER · CHECK</Text>
+        <Text style={[type.button, { color: paper.onInk }]}>Check</Text>
       </Pressable>
     </View>
   );
@@ -251,13 +243,13 @@ function FillBlankView({
 }) {
   return (
     <View style={{ gap: space(4) }}>
-      <Plaque raised>
-        <Tag color={enamel.whiteFaint}>{kindTag(exercise)}</Tag>
-        <Text style={[plaqueType(exercise.sentence), { color: enamel.white, textAlign: 'center', marginTop: space(4) }]}>
+      <Card style={ds.exCard}>
+        <Label color={paper.inkFaint}>{kindTag(exercise)}</Label>
+        <Text style={[fitDisplay(exercise.sentence), { color: paper.ink, textAlign: 'center', marginTop: space(4) }]}>
           {exercise.sentence}
         </Text>
-        <Text style={[type.small, { color: enamel.whiteMuted, textAlign: 'center', marginTop: space(2.5) }]}>{exercise.en}</Text>
-      </Plaque>
+        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2.5) }]}>{exercise.en}</Text>
+      </Card>
       {exercise.options ? (
         <View style={{ gap: space(2.5) }}>
           {exercise.options.map((option) => (
@@ -270,7 +262,7 @@ function FillBlankView({
           onChange={onChange}
           onSubmit={() => onAnswer(typed)}
           locked={locked}
-          placeholder="le mot qui manque · the missing word"
+          placeholder="The missing word"
         />
       )}
     </View>
@@ -288,13 +280,13 @@ function BestSentenceView({
 }) {
   return (
     <View style={{ gap: space(4) }}>
-      <Plaque raised>
-        <Tag color={enamel.whiteFaint}>{kindTag(exercise)}</Tag>
-        <Text style={[type.heading, { color: enamel.white, marginTop: space(3) }]}>{exercise.prompt}</Text>
-      </Plaque>
+      <Card>
+        <Label color={paper.inkFaint}>{kindTag(exercise)}</Label>
+        <Text style={[type.heading, { color: paper.ink, marginTop: space(3) }]}>{exercise.prompt}</Text>
+      </Card>
       <View style={{ gap: space(2.5) }}>
         {exercise.candidates.map((candidate, i) => (
-          <DirectionPlaque
+          <OptionCard
             key={candidate.fr}
             text={candidate.fr}
             gloss={candidate.en}
@@ -319,18 +311,18 @@ function AppropriateReplyView({
 }) {
   return (
     <View style={{ gap: space(4) }}>
-      <Plaque raised>
-        <Tag color={enamel.whiteFaint}>{kindTag(exercise)}</Tag>
+      <Card>
+        <Label color={paper.inkFaint}>{kindTag(exercise)}</Label>
         <View style={{ marginTop: space(3) }}>
-          <Tag color={enamel.white}>{exercise.line.speaker.toUpperCase()}</Tag>
-          <Text style={[type.bodyStrong, { color: enamel.white, marginTop: space(1.5) }]}>{exercise.line.fr}</Text>
-          <Text style={[type.small, { color: enamel.whiteMuted, marginTop: space(0.5) }]}>{exercise.line.en}</Text>
+          <Label color={paper.ink}>{exercise.line.speaker}</Label>
+          <Text style={[type.french, { color: paper.ink, marginTop: space(1.5) }]}>{exercise.line.fr}</Text>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{exercise.line.en}</Text>
         </View>
         <HearRow text={exercise.line.fr} />
-      </Plaque>
+      </Card>
       <View style={{ gap: space(2.5) }}>
         {exercise.options.map((option, i) => (
-          <DirectionPlaque
+          <OptionCard
             key={option.fr}
             text={option.fr}
             gloss={option.en}
@@ -359,17 +351,18 @@ function TapTranslateView({
   locked: boolean;
 }) {
   const answerText = assembled.map((i) => exercise.tokens[i]).join(' ');
+  const canCheck = assembled.length > 0 && !locked;
   return (
     <View style={{ gap: space(4) }}>
-      <Plaque raised>
-        <Tag color={enamel.whiteFaint}>{kindTag(exercise)}</Tag>
-        <Text style={[type.heading, { color: enamel.white, textAlign: 'center', marginTop: space(3) }]}>{exercise.en}</Text>
-      </Plaque>
+      <Card style={ds.exCard}>
+        <Label color={paper.inkFaint}>{kindTag(exercise)}</Label>
+        <Text style={[type.heading, { color: paper.ink, textAlign: 'center', marginTop: space(3) }]}>{exercise.en}</Text>
+      </Card>
 
       {/* The answer line being assembled. Tap a word to put it back. */}
       <View style={ds.answerLine} accessibilityLabel="Your sentence so far">
         {assembled.length === 0 ? (
-          <Text style={[type.small, { color: enamel.whiteFaint }]}>touchez les mots · tap the words in order</Text>
+          <Text style={[type.small, { color: paper.inkFaint }]}>Tap the words in order</Text>
         ) : (
           assembled.map((tokenIndex, position) => (
             <Pressable
@@ -380,13 +373,13 @@ function TapTranslateView({
               accessibilityLabel={`Remove ${exercise.tokens[tokenIndex]}`}
               style={({ pressed }) => [ds.assembledWord, pressed && { opacity: 0.6 }]}
             >
-              <Text style={[type.bodyStrong, { color: enamel.white }]}>{exercise.tokens[tokenIndex]}</Text>
+              <Text style={[type.french, { color: paper.ink }]}>{exercise.tokens[tokenIndex]}</Text>
             </Pressable>
           ))
         )}
       </View>
 
-      {/* The pool. Used tiles stay in place and grey out, so nothing jumps. */}
+      {/* The pool. Used tiles stay in place and fade out, so nothing jumps. */}
       <View style={ds.tokenPool}>
         {exercise.tokens.map((token, i) => {
           const used = assembled.includes(i);
@@ -400,7 +393,7 @@ function TapTranslateView({
               accessibilityState={{ disabled: used }}
               style={({ pressed }) => [ds.token, used && ds.tokenUsed, pressed && !used && ds.choicePressed]}
             >
-              <Text style={[type.bodyStrong, { color: used ? enamel.whiteFaint : enamel.white }]}>{token}</Text>
+              <Text style={[type.french, { color: used ? paper.inkFaint : paper.ink }]}>{token}</Text>
             </Pressable>
           );
         })}
@@ -408,12 +401,12 @@ function TapTranslateView({
 
       <Pressable
         onPress={() => onAnswer(answerText)}
-        disabled={assembled.length === 0 || locked}
+        disabled={!canCheck}
         accessibilityRole="button"
         accessibilityLabel="Check your sentence"
-        style={({ pressed }) => [ds.valider, pressed && { opacity: 0.85 }, (assembled.length === 0 || locked) && { opacity: 0.4 }]}
+        style={({ pressed }) => [ds.check, !canCheck && ds.checkDisabled, pressed && canCheck && { opacity: 0.88 }]}
       >
-        <Text style={[type.tag, { color: enamel.field }]}>VALIDER · CHECK</Text>
+        <Text style={[type.button, { color: paper.onInk }]}>Check</Text>
       </Pressable>
     </View>
   );
@@ -434,28 +427,28 @@ function ListenTypeView({
 }) {
   return (
     <View style={{ gap: space(4) }}>
-      <Plaque raised>
-        <Tag color={enamel.whiteFaint}>{kindTag(exercise)}</Tag>
+      <Card style={ds.exCard}>
+        <Label color={paper.inkFaint}>{kindTag(exercise)}</Label>
         {/* Replayable freely — dictation is a listening exercise, not a memory test. */}
         <Pressable
           onPress={() => tutorVoice.speak(exercise.fr)}
           accessibilityRole="button"
           accessibilityLabel="Play the French line"
-          style={({ pressed }) => [ds.listenButton, pressed && { opacity: 0.8 }]}
+          style={({ pressed }) => [ds.listenButton, pressed && { backgroundColor: paper.groundDeep }]}
         >
-          <EarGlyph size={22} color={enamel.white} />
-          <Text style={[type.tag, { color: enamel.white }]}>ÉCOUTER · HEAR IT</Text>
+          <EarGlyph size={22} color={paper.ink} />
+          <Text style={[type.button, { color: paper.ink }]}>Hear it</Text>
         </Pressable>
-        <Text style={[type.small, { color: enamel.whiteMuted, textAlign: 'center', marginTop: space(2.5) }]}>
-          Écoutez, puis écrivez ce que vous entendez. · Listen, then type what you hear.
+        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2.5) }]}>
+          Listen, then type what you hear.
         </Text>
-      </Plaque>
+      </Card>
       <TypedAnswer
         typed={typed}
         onChange={onChange}
         onSubmit={() => onAnswer(typed)}
         locked={locked}
-        placeholder="ce que vous entendez · what you hear"
+        placeholder="What you hear"
       />
     </View>
   );
@@ -497,7 +490,7 @@ function RepeatThisView({
         } catch {
           // A take the recorder lost was still spoken; only scoring goes without.
         }
-        // Hand the audio session back to playback, so écouter keeps its volume.
+        // Hand the audio session back to playback, so Hear it keeps its volume.
         void setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => undefined);
         setMic('armed');
         onSpoke(uri);
@@ -522,62 +515,52 @@ function RepeatThisView({
 
   return (
     <View style={{ gap: space(4) }}>
-      <Plaque raised>
-        <Tag color={enamel.whiteFaint}>{kindTag(exercise)}</Tag>
-        <Text style={[plaqueType(exercise.reference), { color: enamel.white, textAlign: 'center', marginTop: space(4) }]}>
+      <Card style={ds.exCard}>
+        <Label color={paper.inkFaint}>{kindTag(exercise)}</Label>
+        <Text style={[fitDisplay(exercise.reference), { color: paper.ink, textAlign: 'center', marginTop: space(4) }]}>
           {exercise.reference}
         </Text>
-        <Text style={[type.small, { color: enamel.whiteMuted, textAlign: 'center', marginTop: space(2.5) }]}>
+        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2.5) }]}>
           {exercise.referenceEn}
         </Text>
         {exercise.ipa !== null && (
-          <Text style={[type.notation, { color: enamel.whiteFaint, textAlign: 'center', marginTop: space(2) }]}>
+          <Text style={[type.notation, { color: paper.inkFaint, textAlign: 'center', marginTop: space(2) }]}>
             /{exercise.ipa}/
           </Text>
         )}
         <HearRow text={exercise.reference} />
-      </Plaque>
+      </Card>
 
       <View style={{ alignItems: 'center', gap: space(3) }}>
         {mic === 'silent' ? (
           <>
-            {/* The SpeakControl's geometry, in the invitation state: hollow,
-                white, never live-red — nothing is recording here, and the red
-                circle must keep meaning "the microphone is on". */}
-            <View style={ds.micCircle} accessibilityLabel="Say the line out loud">
-              <MicGlyph size={28} color={enamel.white} />
-              <Text style={[type.tag, { color: enamel.white, marginTop: space(1) }]}>PARLEZ · SPEAK</Text>
+            {/* The speak circle in its muted state: nothing records here, and
+                the red fill must keep meaning "the microphone is on". */}
+            <View style={ds.speakBlock}>
+              <SpeakCircle muted accessibilityLabel="Say the line out loud" />
+              <Text style={[type.label, { color: paper.ink }]}>Speak</Text>
             </View>
 
             {/* Without a microphone the learner's word is the grade. Saying so
                 out loud in the control's own copy keeps the report honest. */}
-            <Pressable
-              onPress={() => onAnswer(exercise.reference)}
-              disabled={locked}
-              accessibilityRole="button"
-              accessibilityLabel="I said it"
-              style={({ pressed }) => [ds.valider, ds.saidIt, pressed && { opacity: 0.85 }, locked && { opacity: 0.4 }]}
-            >
-              <Text style={[type.tag, { color: enamel.field }]}>JE L'AI DIT · I SAID IT</Text>
-            </Pressable>
+            <View style={ds.saidIt}>
+              <PillButton label="I said it" onPress={() => onAnswer(exercise.reference)} disabled={locked} />
+            </View>
           </>
         ) : (
-          /* The same geometry made real: hollow white at rest, and signal.live
+          /* The one speak control made real: hollow at rest, and signal.live
              red only while the microphone is actually on — the red circle keeps
-             its one meaning, here as in ConvoScreen. Tapping TERMINÉ grades
-             exactly as JE L'AI DIT does; the recording only ever adds a line. */
-          <Pressable
-            onPress={() => void toggleRecord()}
-            disabled={locked}
-            accessibilityRole="button"
-            accessibilityLabel={mic === 'live' ? "I've said it — stop recording" : 'Record yourself saying it'}
-            style={({ pressed }) => [ds.micCircle, mic === 'live' && ds.micCircleLive, pressed && !locked && { opacity: 0.85 }]}
-          >
-            <MicGlyph size={28} color={enamel.white} />
-            <Text style={[type.tag, { color: enamel.white, marginTop: space(1) }]}>
-              {mic === 'live' ? 'TERMINÉ · DONE' : 'PARLEZ · SPEAK'}
-            </Text>
-          </Pressable>
+             its one meaning, here as in ConvoScreen. Tapping Done grades
+             exactly as I said it does; the recording only ever adds a line. */
+          <View style={ds.speakBlock}>
+            <SpeakCircle
+              onPress={() => void toggleRecord()}
+              active={mic === 'live'}
+              disabled={locked}
+              accessibilityLabel={mic === 'live' ? 'Stop recording' : 'Record yourself saying it'}
+            />
+            <Text style={[type.label, { color: paper.ink }]}>{mic === 'live' ? 'Done' : 'Speak'}</Text>
+          </View>
         )}
 
         <Pressable
@@ -587,7 +570,7 @@ function RepeatThisView({
           accessibilityLabel="I can't speak right now"
           style={({ pressed }) => [ds.noMic, pressed && { opacity: 0.6 }]}
         >
-          <Text style={[type.small, { color: enamel.whiteMuted }]}>SANS MICRO · can't speak now</Text>
+          <Text style={[type.small, { color: paper.inkSoft }]}>Unable to speak right now?</Text>
         </Pressable>
       </View>
     </View>
@@ -610,7 +593,7 @@ export function DrillScreen({ onDone }: { onDone: () => void }) {
   // a late answer from the scorer is dropped unseen, never shown out of place.
   const [focusLine, setFocusLine] = useState<string | null>(null);
   const beatRef = useRef(0);
-  // Grades leave this screen exactly once, whether by finishing or by SORTIE.
+  // Grades leave this screen exactly once, whether by finishing or by Leave.
   const persistedRef = useRef(false);
 
   // Per-exercise input state, cleared on every advance.
@@ -723,28 +706,26 @@ export function DrillScreen({ onDone }: { onDone: () => void }) {
   if (session === null) {
     return (
       <View style={ds.center}>
-        <ActivityIndicator color={enamel.whiteMuted} />
+        <ActivityIndicator color={paper.inkSoft} />
       </View>
     );
   }
 
-  // Built empty: nothing due right now. One calm plaque and the way out.
+  // Built empty: nothing due right now. One calm card and the way out.
   if (session.finished && session.answered.length === 0) {
     return (
       <View style={[ds.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
-        <LabeledTag fr="ENTRAÎNEMENT" en="Drills" />
+        <Label>Drills</Label>
         <View style={ds.centerFill}>
-          <Plaque raised>
-            <LabeledTag fr="RIEN À RÉVISER" en="Nothing due right now" color={enamel.whiteMuted} />
-            <Text style={[type.plaqueSmall, { color: enamel.white, marginTop: space(2.5) }]}>Rien à réviser.</Text>
-            <Text style={[type.body, { color: enamel.whiteMuted, marginTop: space(2) }]}>
-              Nothing due right now. Your next session adds more.
+          <Card>
+            <Label>Nothing due right now</Label>
+            <Text style={[type.title, { color: paper.ink, marginTop: space(2.5) }]}>Nothing to review.</Text>
+            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
+              Your next session adds more.
             </Text>
-          </Plaque>
+          </Card>
         </View>
-        <Pressable onPress={onDone} accessibilityRole="button" style={({ pressed }) => [ds.done, pressed && { opacity: 0.8 }]}>
-          <Text style={[type.tag, { color: enamel.white }]}>SORTIE · DONE</Text>
-        </Pressable>
+        <PillButton label="Done" onPress={onDone} />
       </View>
     );
   }
@@ -754,40 +735,38 @@ export function DrillScreen({ onDone }: { onDone: () => void }) {
     const s = summariseDrill(session);
     return (
       <View style={[ds.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
-        <LabeledTag fr="ENTRAÎNEMENT" en="Drills" />
+        <Label>Drills</Label>
         <View style={ds.centerFill}>
-          <Plaque raised>
-            <LabeledTag fr="TERMINÉ" en="Session done" color={signal.good} />
+          <Card>
+            <Label color={signal.good}>Session done</Label>
             <View style={ds.stats}>
               <View style={ds.stat}>
-                <Text style={[type.plaqueSmall, { color: enamel.white }]}>{s.total}</Text>
-                <Text style={[type.tag, { color: enamel.whiteFaint, marginTop: space(1) }]}>EXERCICES · DRILLS</Text>
+                <Text style={[type.title, { color: paper.ink }]}>{s.total}</Text>
+                <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Drills</Text>
               </View>
               <View style={ds.stat}>
-                <Text style={[type.plaqueSmall, { color: enamel.white }]}>{s.resolved}</Text>
-                <Text style={[type.tag, { color: enamel.whiteFaint, marginTop: space(1) }]}>RÉUSSIS · GOT RIGHT</Text>
+                <Text style={[type.title, { color: paper.ink }]}>{s.resolved}</Text>
+                <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Got right</Text>
               </View>
               {s.typos > 0 && (
                 <View style={ds.stat}>
-                  <Text style={[type.plaqueSmall, { color: enamel.white }]}>{s.typos}</Text>
-                  <Text style={[type.tag, { color: enamel.whiteFaint, marginTop: space(1) }]}>ORTHOGRAPHE · SPELLING SLIPS</Text>
+                  <Text style={[type.title, { color: paper.ink }]}>{s.typos}</Text>
+                  <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Spelling slips</Text>
                 </View>
               )}
               {s.unresolved > 0 && (
                 <View style={ds.stat}>
-                  <Text style={[type.plaqueSmall, { color: enamel.white }]}>{s.unresolved}</Text>
-                  <Text style={[type.tag, { color: enamel.whiteFaint, marginTop: space(1) }]}>À REVOIR · COMING BACK</Text>
+                  <Text style={[type.title, { color: paper.ink }]}>{s.unresolved}</Text>
+                  <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Coming back</Text>
                 </View>
               )}
             </View>
-            <Text style={[type.small, { color: enamel.whiteFaint, marginTop: space(3) }]}>
-              Le carnet reprend la suite. · Your review deck takes it from here.
+            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(3) }]}>
+              Your review deck takes it from here.
             </Text>
-          </Plaque>
+          </Card>
         </View>
-        <Pressable onPress={leave} accessibilityRole="button" style={({ pressed }) => [ds.done, pressed && { opacity: 0.8 }]}>
-          <Text style={[type.tag, { color: enamel.white }]}>SORTIE · DONE</Text>
-        </Pressable>
+        <PillButton label="Done" onPress={leave} />
       </View>
     );
   }
@@ -800,7 +779,7 @@ export function DrillScreen({ onDone }: { onDone: () => void }) {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
       <View style={[ds.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(4) }]}>
         <View style={ds.headerRow}>
-          <LabeledTag fr="ENTRAÎNEMENT" en="Drills" />
+          <Label>Drills</Label>
           {/* A sitting is an offer, not an obligation. Leaving persists what
               was answered; the rest simply stays due. Never a count up here. */}
           <Pressable
@@ -809,7 +788,7 @@ export function DrillScreen({ onDone }: { onDone: () => void }) {
             accessibilityLabel="Leave the drills"
             style={({ pressed }) => [ds.leave, pressed && { opacity: 0.6 }]}
           >
-            <Text style={[type.tag, { color: enamel.whiteMuted }]}>SORTIE · LEAVE</Text>
+            <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
           </Pressable>
         </View>
 
@@ -842,7 +821,7 @@ export function DrillScreen({ onDone }: { onDone: () => void }) {
           )}
         </ScrollView>
 
-        {/* Reserved height, so the plaque never jumps when a line arrives. */}
+        {/* Reserved height, so the card never jumps when a line arrives. */}
         <View style={ds.feedbackArea}>
           {feedback && (
             <Text style={[type.bodyStrong, { color: verdictColor(feedback.verdict), textAlign: 'center' }]}>
@@ -852,7 +831,7 @@ export function DrillScreen({ onDone }: { onDone: () => void }) {
           {/* The scorer's whole say is this one muted line — core's focus
               reason, already learner-safe. Never a score, never a bar. */}
           {feedback && focusLine !== null && (
-            <Text style={[type.small, { color: enamel.whiteMuted, textAlign: 'center', marginTop: space(1.5) }]}>
+            <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
               {focusLine}
             </Text>
           )}
@@ -863,50 +842,56 @@ export function DrillScreen({ onDone }: { onDone: () => void }) {
 }
 
 const ds = StyleSheet.create({
-  root: { flex: 1, backgroundColor: enamel.ground, paddingHorizontal: space(5) },
-  center: { flex: 1, backgroundColor: enamel.ground, alignItems: 'center', justifyContent: 'center' },
+  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
+  center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center' },
   centerFill: { flex: 1, justifyContent: 'center' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   leave: { minHeight: HIT, justifyContent: 'center', paddingLeft: space(3) },
   scroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: space(4) },
   feedbackArea: { minHeight: HIT + 8, justifyContent: 'center', paddingHorizontal: space(2) },
 
-  // The direction-plaque anatomy, for choices that are bare words.
+  // The exercise card: the SessionView main-card anatomy, content centred.
+  exCard: { alignItems: 'center' },
+
+  // The option-card anatomy, for choices that are bare words.
   choice: {
     minHeight: HIT + 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space(3),
-    backgroundColor: enamel.fieldRaised,
-    borderWidth: 2,
-    borderColor: 'rgba(242,239,228,0.55)',
-    borderRadius: radius.plaque,
-    paddingVertical: space(2.5),
-    paddingHorizontal: space(3.5),
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    borderRadius: radius.card,
+    paddingVertical: space(3),
+    paddingHorizontal: space(4),
   },
-  choicePressed: { backgroundColor: '#1B5742', borderColor: enamel.white },
+  choicePressed: { backgroundColor: paper.groundDeep },
 
-  // The enamel text field. Type styles from the theme, minus lineHeight, which
-  // clips single-line TextInputs on iOS.
+  // The paper text field, in the Field anatomy. Type styles from the theme,
+  // minus lineHeight, which clips single-line TextInputs on iOS.
   input: {
     minHeight: HIT + 8,
-    backgroundColor: enamel.field,
-    borderWidth: 2,
-    borderColor: 'rgba(242,239,228,0.55)',
-    borderRadius: radius.plaque,
-    paddingVertical: space(2.5),
-    paddingHorizontal: space(3.5),
-    color: enamel.white,
-    fontFamily: font.semibold,
+    backgroundColor: paper.card,
+    borderWidth: 1.5,
+    borderColor: paper.line,
+    borderRadius: radius.input,
+    paddingVertical: space(3),
+    paddingHorizontal: space(4),
+    color: paper.ink,
+    fontFamily: font.sans,
     fontSize: 16,
   },
-  valider: {
-    minHeight: HIT + 4,
+  // The one primary action, in the PillButton anatomy.
+  check: {
+    minHeight: HIT + 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: enamel.white,
-    borderRadius: radius.plaque,
+    backgroundColor: paper.ink,
+    borderRadius: radius.pill,
+    paddingHorizontal: space(6),
   },
+  checkDisabled: { backgroundColor: paper.inkFaint },
 
   answerLine: {
     minHeight: HIT + 12,
@@ -914,9 +899,10 @@ const ds = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: space(2),
-    borderWidth: 1,
-    borderColor: 'rgba(242,239,228,0.35)',
-    borderRadius: radius.plaque,
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    borderRadius: radius.card,
     paddingVertical: space(2),
     paddingHorizontal: space(3),
   },
@@ -924,10 +910,8 @@ const ds = StyleSheet.create({
     minHeight: HIT - 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: enamel.fieldRaised,
-    borderWidth: 1,
-    borderColor: 'rgba(242,239,228,0.55)',
-    borderRadius: 3,
+    backgroundColor: paper.groundDeep,
+    borderRadius: radius.chip,
     paddingVertical: space(1.5),
     paddingHorizontal: space(2.5),
   },
@@ -936,13 +920,14 @@ const ds = StyleSheet.create({
     minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(242,239,228,0.35)',
-    borderRadius: 3,
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    borderRadius: radius.chip,
     paddingVertical: space(2),
     paddingHorizontal: space(3),
   },
-  tokenUsed: { borderColor: 'rgba(242,239,228,0.14)' },
+  tokenUsed: { backgroundColor: 'transparent' },
 
   listenButton: {
     marginTop: space(3.5),
@@ -951,9 +936,11 @@ const ds = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: space(2.5),
-    borderWidth: 2,
-    borderColor: enamel.white,
-    borderRadius: radius.plaque,
+    backgroundColor: paper.card,
+    borderWidth: 1.5,
+    borderColor: paper.ink,
+    borderRadius: radius.pill,
+    paddingHorizontal: space(5),
   },
   hear: {
     marginTop: space(3),
@@ -964,37 +951,10 @@ const ds = StyleSheet.create({
     gap: space(2),
   },
 
-  micCircle: {
-    width: 108,
-    height: 108,
-    borderRadius: radius.bullet,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: enamel.white,
-  },
-  // ConvoScreen's speakLive, verbatim: red means the microphone is on, and
-  // that meaning must not drift between screens.
-  micCircleLive: {
-    backgroundColor: signal.live,
-    borderColor: enamel.white,
-    shadowColor: signal.live,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-  },
+  speakBlock: { alignItems: 'center', gap: space(2) },
   saidIt: { alignSelf: 'stretch' },
   noMic: { minHeight: HIT, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(4) },
 
   stats: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(3) },
   stat: { width: '50%', paddingVertical: space(2.5) },
-  done: {
-    minHeight: HIT + 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: enamel.white,
-    borderRadius: radius.plaque,
-  },
 });

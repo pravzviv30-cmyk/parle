@@ -9,8 +9,10 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createProfile, type LearnerProfile } from '@parle/brain';
+import { userKey } from '../storage/scope.ts';
 
-const KEY = 'parle.profile.v1';
+/** Resolved per call: the active account can change between calls. */
+const KEY = () => userKey('profile');
 
 export interface StoredProfile {
   version: 1;
@@ -25,7 +27,7 @@ export interface StoredProfile {
 
 export async function loadProfile(): Promise<StoredProfile | null> {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
+    const raw = await AsyncStorage.getItem(KEY());
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return null;
@@ -39,7 +41,7 @@ export async function loadProfile(): Promise<StoredProfile | null> {
 
 export async function saveProfile(p: StoredProfile): Promise<void> {
   try {
-    await AsyncStorage.setItem(KEY, JSON.stringify(p));
+    await AsyncStorage.setItem(KEY(), JSON.stringify(p));
   } catch {
     // Storage full or unavailable. The profile still holds for this launch.
   }

@@ -21,8 +21,10 @@ import {
   type ReviewGrade,
   type SessionSummary,
 } from '@parle/core';
+import { userKey } from '../storage/scope.ts';
 
-const KEY = 'parle.review.v1';
+/** Resolved per call: the active account can change between calls. */
+const KEY = () => userKey('review');
 
 /**
  * All writers share one key via read-modify-write, and two of them are fired
@@ -40,7 +42,7 @@ function serialized<T>(mutation: () => Promise<T>): Promise<T> {
 
 export async function loadDeck(): Promise<ReviewCard[]> {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
+    const raw = await AsyncStorage.getItem(KEY());
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as ReviewCard[]) : [];
@@ -52,7 +54,7 @@ export async function loadDeck(): Promise<ReviewCard[]> {
 
 async function saveDeck(deck: readonly ReviewCard[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(KEY, JSON.stringify(deck));
+    await AsyncStorage.setItem(KEY(), JSON.stringify(deck));
   } catch {
     // Storage full or unavailable. The deck still works for this launch.
   }

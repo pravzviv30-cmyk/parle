@@ -10,11 +10,12 @@
  */
 
 import { useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RecapPayload } from '@parle/core';
-import { enamel, signal, space, type, radius, HIT } from './theme.ts';
-import { Plaque, Tag, LabeledTag, ArrowRight } from './components.tsx';
+import { paper, signal, space, type, HAIRLINE } from './theme.ts';
+import { Card, Label, PillButton } from './components.tsx';
+import { RecapPostcard } from './illustrations.tsx';
 import { addPhrases } from './review/store.ts';
 
 /** Fixes shown on the card. The agent already ranked them; we keep the top few. */
@@ -22,18 +23,18 @@ const MAX_FIXES = 4;
 
 /**
  * A register label the learner can actually read: the French term is the
- * vocabulary being taught, the English gloss is the meaning — the same pairing
- * rule every other French label in the interface follows.
+ * vocabulary being taught, the English gloss is the meaning. Taught vocabulary
+ * keeps both halves even though the chrome around it is English.
  */
 function registerTag(register: string): string {
   const en: Record<string, string> = {
-    argot: 'SLANG',
-    familier: 'CASUAL',
-    courant: 'EVERYDAY',
-    soutenu: 'FORMAL',
+    argot: 'slang',
+    familier: 'casual',
+    courant: 'everyday',
+    soutenu: 'formal',
   };
   const gloss = en[register];
-  return gloss ? `${register.toUpperCase()} · ${gloss}` : register.toUpperCase();
+  return gloss ? `${register} · ${gloss}` : register;
 }
 
 export function RecapScreen({ recap, onDone }: { recap: RecapPayload; onDone: () => void }) {
@@ -48,109 +49,94 @@ export function RecapScreen({ recap, onDone }: { recap: RecapPayload; onDone: ()
   return (
     <View style={[st.root, { paddingTop: insets.top + space(2) }]}>
       <ScrollView contentContainerStyle={[st.scroll, { paddingBottom: insets.bottom + space(8) }]} showsVerticalScrollIndicator={false}>
-        <View>
-          <LabeledTag fr="SORTIE" en="End of conversation" />
-          <Text style={[type.plaqueSmall, { color: enamel.white, marginTop: space(2) }]}>{recap.headline}</Text>
-          <Text style={[type.small, { color: enamel.whiteMuted, marginTop: space(1) }]}>
-            {recap.stats.turns} turns · {Math.round(recap.stats.unassistedRate * 100)}% on your own
-          </Text>
+        {/* ── something arrived in the mail ──────────────────────────── */}
+        <View style={st.header}>
+          <RecapPostcard width={180} />
+          <View style={st.headerText}>
+            <Label>End of conversation</Label>
+            <Text style={[type.title, { color: paper.ink, textAlign: 'center' }]}>{recap.headline}</Text>
+            <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>
+              {recap.stats.turns} turns · {Math.round(recap.stats.unassistedRate * 100)}% on your own
+            </Text>
+          </View>
         </View>
 
         {/* ── what they said that landed ─────────────────────────────── */}
         {recap.wins.length > 0 && (
-          <View style={st.wins}>
-            <LabeledTag fr="VOS RÉUSSITES" en="Your wins" color={signal.good} />
-            <View style={{ marginTop: space(2), gap: space(1.5) }}>
-              {recap.wins.map((w) => (
-                <Text key={w} style={[type.bodyStrong, { color: enamel.white }]}>
-                  « {w} »
-                </Text>
-              ))}
-            </View>
+          <View>
+            <Label color={signal.good}>Your wins</Label>
+            <Card style={st.sectionCard}>
+              <View style={{ gap: space(2.5) }}>
+                {recap.wins.map((w) => (
+                  <Text key={w} style={[type.french, { color: paper.ink }]}>
+                    « {w} »
+                  </Text>
+                ))}
+              </View>
+            </Card>
           </View>
         )}
 
         {/* ── gentle fixes, their own words quoted back ──────────────── */}
         {recap.fixes.length > 0 && (
           <View>
-            <LabeledTag fr="À AJUSTER" en="Small fixes" color={signal.correspondance} />
-            <View style={{ marginTop: space(3), gap: space(2.5) }}>
-              {recap.fixes.slice(0, MAX_FIXES).map((f) => (
-                <View key={f.quote + f.better} style={st.fix}>
-                  <View style={st.fixLine}>
-                    <Text style={[type.body, { color: enamel.whiteMuted, flexShrink: 1 }]}>« {f.quote} »</Text>
-                    <ArrowRight size={14} color={enamel.whiteFaint} />
-                    <Text style={[type.bodyStrong, { color: enamel.white, flexShrink: 1 }]}>{f.better}</Text>
+            <Label color={signal.correspondance}>Small fixes</Label>
+            <Card style={st.sectionCard}>
+              <View style={{ gap: space(3) }}>
+                {recap.fixes.slice(0, MAX_FIXES).map((f, i) => (
+                  <View key={f.quote + f.better} style={i > 0 ? st.divider : undefined}>
+                    <Text style={[type.small, { color: paper.inkSoft }]}>« {f.quote} »</Text>
+                    <Text style={[type.french, { color: paper.ink, marginTop: space(1) }]}>{f.better}</Text>
+                    <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{f.betterEn}</Text>
+                    <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{f.why}</Text>
                   </View>
-                  <Text style={[type.small, { color: enamel.whiteMuted, marginTop: space(1.5) }]}>{f.betterEn}</Text>
-                  <Text style={[type.small, { color: enamel.whiteFaint, marginTop: space(0.5) }]}>{f.why}</Text>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            </Card>
           </View>
         )}
 
         {/* ── new phrases, with the register they belong to ──────────── */}
         {recap.phrases.length > 0 && (
           <View>
-            <LabeledTag fr="NOUVELLES PHRASES" en="New phrases" color={enamel.whiteFaint} />
-            <View style={{ marginTop: space(3), gap: space(2.5) }}>
-              {recap.phrases.map((p) => (
-                <View key={p.fr} style={st.phrase}>
-                  <View style={st.phraseHead}>
-                    <Text style={[type.bodyStrong, { color: enamel.white, flex: 1 }]}>{p.fr}</Text>
-                    <Tag color={enamel.whiteFaint}>{registerTag(p.register)}</Tag>
+            <Label>New phrases</Label>
+            <Card style={st.sectionCard}>
+              <View style={{ gap: space(3) }}>
+                {recap.phrases.map((p, i) => (
+                  <View key={p.fr} style={i > 0 ? st.divider : undefined}>
+                    <View style={st.phraseHead}>
+                      <Text style={[type.french, { color: paper.ink, flex: 1 }]}>{p.fr}</Text>
+                      <Text style={[type.small, { color: paper.inkFaint }]}>{registerTag(p.register)}</Text>
+                    </View>
+                    <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{p.en}</Text>
                   </View>
-                  <Text style={[type.small, { color: enamel.whiteMuted, marginTop: space(0.5) }]}>{p.en}</Text>
-                </View>
-              ))}
-            </View>
-            <Text style={[type.small, { color: enamel.whiteFaint, marginTop: space(2.5) }]}>These joined your review deck.</Text>
+                ))}
+              </View>
+            </Card>
+            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(2.5) }]}>These joined your review deck.</Text>
           </View>
         )}
 
         {/* ── exactly one next step, never a list ────────────────────── */}
-        <Plaque raised>
-          <LabeledTag fr="PROCHAINE ÉTAPE" en="Next step" color={signal.correspondance} />
-          <Text style={[type.bodyStrong, { color: enamel.white, marginTop: space(2.5) }]}>{recap.nextFocus}</Text>
-        </Plaque>
+        <View>
+          <Label color={signal.correspondance}>Next step</Label>
+          <Card style={st.sectionCard}>
+            <Text style={[type.bodyStrong, { color: paper.ink }]}>{recap.nextFocus}</Text>
+          </Card>
+        </View>
 
-        <Pressable onPress={onDone} accessibilityRole="button" style={({ pressed }) => [st.done, pressed && { opacity: 0.8 }]}>
-          <Text style={[type.tag, { color: enamel.white }]}>SORTIE · DONE</Text>
-        </Pressable>
+        <PillButton label="Done" onPress={onDone} />
       </ScrollView>
     </View>
   );
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: enamel.ground },
+  root: { flex: 1, backgroundColor: paper.ground },
   scroll: { paddingHorizontal: space(5), paddingTop: space(3), gap: space(7) },
-  wins: {
-    borderLeftWidth: 1,
-    borderLeftColor: signal.good,
-    paddingLeft: space(3.5),
-  },
-  fix: {
-    backgroundColor: enamel.field,
-    borderRadius: radius.plaque,
-    borderWidth: 1,
-    borderColor: 'rgba(242,239,228,0.24)',
-    padding: space(3.5),
-  },
-  fixLine: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(2) },
-  phrase: {
-    paddingBottom: space(2),
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(242,239,228,0.1)',
-  },
+  header: { alignItems: 'center' },
+  headerText: { alignItems: 'center', gap: space(2), marginTop: space(4) },
+  sectionCard: { marginTop: space(2) },
+  divider: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard, paddingTop: space(3) },
   phraseHead: { flexDirection: 'row', alignItems: 'baseline', gap: space(2) },
-  done: {
-    minHeight: HIT + 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: enamel.white,
-    borderRadius: radius.plaque,
-  },
 });

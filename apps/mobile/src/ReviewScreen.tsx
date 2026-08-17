@@ -5,33 +5,26 @@
  * opposite of the SRS backlog wall: no progress bar, no score, no clock. The
  * scheduler already capped the sitting; this screen just deals the cards.
  *
- * A card is a small enamel plaque: the front struck large, tap to turn it
- * over, then say how it went. "Again" is not a failure state — the card simply
- * rejoins the end of the sitting, the way a tutor would circle back.
+ * A card is a flat white card on the paper ground: the front struck large in
+ * the serif, tap to turn it over, then say how it went. "Again" is not a
+ * failure state — the card simply rejoins the end of the sitting, the way a
+ * tutor would circle back.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { dueCards, type ReviewCard, type ReviewCardKind, type ReviewGrade } from '@parle/core';
-import { enamel, space, type, radius, HIT } from './theme.ts';
-import { Plaque, Tag, LabeledTag, EarGlyph } from './components.tsx';
+import { paper, space, type, radius, HAIRLINE, HIT } from './theme.ts';
+import { Card, Label, PillButton, EarGlyph, fitDisplay } from './components.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 
-/** Signage lettering has to fit its plaque — a real sign is cut to its longest word. */
-function plaqueType(text: string) {
-  const n = text.length;
-  if (n <= 16) return type.plaque;
-  if (n <= 32) return { ...type.plaque, fontSize: 24, lineHeight: 31, letterSpacing: 1.1 };
-  return { ...type.plaque, fontSize: 19, lineHeight: 26, letterSpacing: 0.7 };
-}
-
-/** What kind of card this is, in the plaque's own vocabulary. */
+/** What kind of card this is, said plainly. */
 const KIND_TAG: Record<ReviewCardKind, string> = {
-  vocab: 'VOCABULAIRE · WORD',
-  phoneme: 'SON · SOUND',
-  turn: 'PHRASE · SAY IT IN FRENCH',
+  vocab: 'Word',
+  phoneme: 'Sound',
+  turn: 'Say it in French',
 };
 
 /**
@@ -90,29 +83,27 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   if (queue === null) {
     return (
       <View style={st.center}>
-        <ActivityIndicator color={enamel.whiteMuted} />
+        <ActivityIndicator color={paper.inkSoft} />
       </View>
     );
   }
 
   const remaining = queue.length - index;
 
-  // Nothing due, or the sitting is done. Same calm plaque either way — the
+  // Nothing due, or the sitting is done. Same calm card either way — the
   // deck never announces a backlog and never asks for more than it dealt.
   if (!card) {
     return (
       <View style={[st.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
-        <LabeledTag fr="RÉVISION" en="Review" />
+        <Label>Review</Label>
         <View style={st.centerFill}>
-          <Plaque raised>
-            <LabeledTag fr="RIEN EN ATTENTE" en="Nothing waiting" color={enamel.whiteMuted} />
-            <Text style={[type.plaqueSmall, { color: enamel.white, marginTop: space(2.5) }]}>Nothing waiting.</Text>
-            <Text style={[type.body, { color: enamel.whiteMuted, marginTop: space(2) }]}>Your next session adds more.</Text>
-          </Plaque>
+          <Card>
+            <Label>Nothing waiting</Label>
+            <Text style={[type.title, { color: paper.ink, marginTop: space(2.5) }]}>Nothing waiting.</Text>
+            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Your next session adds more.</Text>
+          </Card>
         </View>
-        <Pressable onPress={onDone} accessibilityRole="button" style={({ pressed }) => [st.done, pressed && { opacity: 0.8 }]}>
-          <Text style={[type.tag, { color: enamel.white }]}>SORTIE · DONE</Text>
-        </Pressable>
+        <PillButton label="Done" onPress={onDone} />
       </View>
     );
   }
@@ -123,9 +114,9 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   return (
     <View style={[st.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
       <View style={st.headerRow}>
-        <LabeledTag fr="RÉVISION" en="Review" />
+        <Label>Review</Label>
         <View style={st.headerRight}>
-          <Tag color={enamel.whiteFaint}>{remaining === 1 ? '1 CARTE · 1 CARD' : `${remaining} CARTES · ${remaining} CARDS`}</Tag>
+          <Label color={paper.inkFaint}>{remaining === 1 ? '1 card' : `${remaining} cards`}</Label>
           {/* A sitting is an offer, not an obligation — the learner can put the
               deck down mid-card and nothing is lost or counted against them. */}
           <Pressable
@@ -134,7 +125,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
             accessibilityLabel="Leave the review"
             style={({ pressed }) => [st.leave, pressed && { opacity: 0.6 }]}
           >
-            <Text style={[type.tag, { color: enamel.whiteMuted }]}>SORTIE · LEAVE</Text>
+            <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
           </Pressable>
         </View>
       </View>
@@ -145,25 +136,23 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
           accessibilityRole="button"
           accessibilityLabel={flipped ? 'Show the front of the card' : 'Turn the card over'}
         >
-          <Plaque raised>
-            <Tag color={enamel.whiteFaint}>{KIND_TAG[card.kind]}</Tag>
+          <Card style={st.card}>
+            <Label color={paper.inkFaint}>{KIND_TAG[card.kind]}</Label>
 
             {!flipped ? (
-              <Text style={[plaqueType(card.front), { color: enamel.white, textAlign: 'center', marginTop: space(4) }]}>
-                {/* Only single words take the signage caps: uppercasing IPA or a
-                    whole cue sentence would corrupt the one and shout the other. */}
-                {card.kind === 'vocab' ? card.front.toUpperCase() : card.front}
+              <Text style={[fitDisplay(card.front), { color: paper.ink, textAlign: 'center', marginTop: space(4) }]}>
+                {card.front}
               </Text>
             ) : (
-              <View style={{ marginTop: space(4) }}>
-                <Text style={[plaqueType(card.back), { color: enamel.white, textAlign: 'center' }]}>{card.back}</Text>
+              <View style={{ alignSelf: 'stretch', marginTop: space(4) }}>
+                <Text style={[fitDisplay(card.back), { color: paper.ink, textAlign: 'center' }]}>{card.back}</Text>
                 {card.context !== '' && card.context !== card.back && (
-                  <Text style={[type.body, { color: enamel.whiteMuted, textAlign: 'center', marginTop: space(2.5) }]}>
+                  <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2.5) }]}>
                     {card.context}
                   </Text>
                 )}
                 {card.ipa !== '' && (
-                  <Text style={[type.notation, { color: enamel.whiteFaint, textAlign: 'center', marginTop: space(2) }]}>
+                  <Text style={[type.notation, { color: paper.inkFaint, textAlign: 'center', marginTop: space(2) }]}>
                     /{card.ipa}/
                   </Text>
                 )}
@@ -180,11 +169,11 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
                 accessibilityLabel="Hear it in French"
                 style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
               >
-                <EarGlyph size={15} color={enamel.whiteMuted} />
-                <Text style={[type.small, { color: enamel.whiteMuted }]}>écouter · hear it</Text>
+                <EarGlyph size={15} color={paper.inkSoft} />
+                <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
               </Pressable>
             )}
-          </Plaque>
+          </Card>
         </Pressable>
       </View>
 
@@ -192,26 +181,25 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
         <View style={st.grades}>
           {(
             [
-              { grade: 'again', fr: 'ENCORE', en: 'again' },
-              { grade: 'good', fr: 'BIEN', en: 'got it' },
-              { grade: 'easy', fr: 'FACILE', en: 'easy' },
+              { grade: 'again', label: 'Again' },
+              { grade: 'good', label: 'Got it' },
+              { grade: 'easy', label: 'Easy' },
             ] as const
-          ).map(({ grade, fr, en }) => (
+          ).map(({ grade, label }) => (
             <Pressable
               key={grade}
               onPress={() => handleGrade(grade)}
               accessibilityRole="button"
-              accessibilityLabel={en}
+              accessibilityLabel={label}
               style={({ pressed }) => [st.grade, pressed && st.gradePressed]}
             >
-              <Text style={[type.tag, { color: enamel.white }]}>{fr}</Text>
-              <Text style={[type.small, { color: enamel.whiteMuted, marginTop: 2 }]}>{en}</Text>
+              <Text style={[type.button, { color: paper.ink }]}>{label}</Text>
             </Pressable>
           ))}
         </View>
       ) : (
         <View style={st.flipHint}>
-          <Text style={[type.small, { color: enamel.whiteFaint, textAlign: 'center' }]}>touchez la plaque · tap to turn it over</Text>
+          <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center' }]}>Tap to turn it over</Text>
         </View>
       )}
     </View>
@@ -219,12 +207,14 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: enamel.ground, paddingHorizontal: space(5) },
-  center: { flex: 1, backgroundColor: enamel.ground, alignItems: 'center', justifyContent: 'center' },
+  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
+  center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center' },
   centerFill: { flex: 1, justifyContent: 'center' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   headerRight: { alignItems: 'flex-end', gap: space(1) },
   leave: { minHeight: HIT, justifyContent: 'center', paddingLeft: space(3) },
+  // The card itself: the SessionView main-card anatomy, content centred.
+  card: { alignItems: 'center' },
   hear: {
     marginTop: space(3),
     minHeight: HIT,
@@ -239,20 +229,13 @@ const st = StyleSheet.create({
     minHeight: HIT + 8,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(242,239,228,0.35)',
-    borderRadius: radius.plaque,
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    borderRadius: radius.card,
     paddingVertical: space(2.5),
   },
-  gradePressed: { backgroundColor: enamel.fieldRaised, borderColor: enamel.white },
-  // Same height as the grade row, so the plaque does not jump on the flip.
+  gradePressed: { backgroundColor: paper.groundDeep, borderColor: paper.ink },
+  // Same height as the grade row, so the card does not jump on the flip.
   flipHint: { minHeight: HIT + 8, justifyContent: 'center' },
-  done: {
-    minHeight: HIT + 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: enamel.white,
-    borderRadius: radius.plaque,
-  },
 });
