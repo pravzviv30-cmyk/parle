@@ -41,6 +41,20 @@ export function userKey(suffix: string): string {
   return `parle.u.${activeUid}.${suffix}`;
 }
 
+/**
+ * Wipe the signed-in account's learning data (profile, history, deck, bank)
+ * and drop module caches. The account itself survives; onboarding reruns.
+ */
+export async function clearActiveUserData(): Promise<void> {
+  if (activeUid === null) return;
+  try {
+    await AsyncStorage.multiRemove(['profile', 'history', 'review', 'drills'].map((s) => `parle.u.${activeUid}.${s}`));
+  } catch {
+    // Storage unavailable; caches still reset so nothing stale shows.
+  }
+  for (const hook of resetHooks) hook();
+}
+
 const MIGRATED_MARKER = 'parle.legacyMigrated.v1';
 
 /** Legacy pre-auth key → per-user suffix. Payload versions live inside the JSON. */

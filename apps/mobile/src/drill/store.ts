@@ -97,6 +97,15 @@ export async function loadDrillBank(): Promise<DrillExercise[]> {
 }
 
 /**
+ * Whether the tutor has authored anything from this learner's own
+ * conversations yet — generated ids carry the `gen:` prefix. The Learn tab
+ * shows its starter framing until this flips.
+ */
+export async function hasGeneratedExercises(): Promise<boolean> {
+  return (await loadStore()).exercises.some((e) => e.id.startsWith('gen:'));
+}
+
+/**
  * Fold a generated batch into the bank. Nothing calls this yet; it exists so
  * batches arriving over the wire have somewhere correct to land.
  *
