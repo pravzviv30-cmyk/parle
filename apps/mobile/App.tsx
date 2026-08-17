@@ -28,7 +28,7 @@ import { CAFE_LESSON, type ProgressReport, type RecapPayload, type Rung, type Se
 import type { LearnerProfile } from '@parle/brain';
 import { lastSummaryFor, loadHistory, recordSession } from './src/progress/store.ts';
 import { addFromSummary, dueCount } from './src/review/store.ts';
-import { createStoredProfile, loadProfile, saveProfile, type StoredProfile } from './src/profile/store.ts';
+import { completeProfile, createStoredProfile, loadProfile, saveProfile, type StoredProfile } from './src/profile/store.ts';
 
 import { paper, space, type, radius, HAIRLINE } from './src/theme.ts';
 import { Card, Label, PillButton, OutlineButton, GhostButton } from './src/components.tsx';
@@ -44,7 +44,7 @@ import { SummaryScreen } from './src/SummaryScreen.tsx';
 import { ReviewScreen } from './src/ReviewScreen.tsx';
 import { DrillScreen } from './src/DrillScreen.tsx';
 import { ConvoScreen } from './src/ConvoScreen.tsx';
-import { OnboardingScreen } from './src/onboarding/OnboardingScreen.tsx';
+import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 
 type Screen =
   | { name: 'start' }
@@ -314,14 +314,17 @@ function HomeRoot({ user }: { user: AuthUser }) {
       </View>
     );
   }
-  if (profile === null) {
+  // Nobody yet, or a pre-account profile missing the new answers: onboarding
+  // runs, asking only what has never been answered (motivation pre-selects).
+  if (profile === null || profile.name === null) {
     return (
-      <OnboardingScreen
-        onDone={(motivation, goal) => {
-          const created = createStoredProfile(motivation, goal);
-          // Fire and forget: the write catches up while the start screen shows.
-          void saveProfile(created);
-          setProfile(created);
+      <OnboardingFlow
+        existing={profile}
+        onDone={(answers) => {
+          const next = profile === null ? createStoredProfile(answers) : completeProfile(profile, answers);
+          // Fire and forget: the write catches up while the home screen shows.
+          void saveProfile(next);
+          setProfile(next);
         }}
       />
     );

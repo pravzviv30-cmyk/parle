@@ -491,52 +491,6 @@ export function fitDisplay(text: string): TextStyle {
   return { fontFamily: type.frenchLg.fontFamily, fontSize: 20, lineHeight: 27 };
 }
 
-// ─────────────────────────────────────────────────────── transition wrappers
-// Deprecated names kept so un-swept screens compile; deleted with the sweep.
-
-/** @deprecated use Card. */
-export function Plaque({
-  children,
-  style,
-}: {
-  children: React.ReactNode;
-  style?: StyleProp<ViewStyle>;
-  raised?: boolean;
-  tone?: 'field' | 'white';
-}) {
-  return <Card style={style}>{children}</Card>;
-}
-
-/** @deprecated use Label. */
-export function Tag({ children, color = paper.inkSoft }: { children: React.ReactNode; color?: string }) {
-  return <Label color={color}>{children}</Label>;
-}
-
-/** @deprecated the chrome is English now — use Label with one string. */
-export function LabeledTag({ fr, en, color = paper.inkSoft }: { fr: string; en: string; color?: string }) {
-  return (
-    <View accessibilityLabel={en}>
-      <Label color={color}>{en}</Label>
-      <Text style={[type.small, { color: paper.inkFaint, marginTop: 2 }]}>{fr}</Text>
-    </View>
-  );
-}
-
-/** @deprecated use OptionCard. */
-export function DirectionPlaque({
-  text,
-  gloss,
-  onPress,
-  onHear,
-}: {
-  text: string;
-  gloss: string;
-  onPress: () => void;
-  onHear?: () => void;
-}) {
-  return <OptionCard text={text} gloss={gloss} onPress={onPress} onHear={onHear} />;
-}
-
 const s = StyleSheet.create({
   card: {
     backgroundColor: paper.card,

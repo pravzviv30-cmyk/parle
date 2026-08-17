@@ -1,10 +1,11 @@
 /**
- * The learner's profile on the device.
+ * The learner's profile on the device, keyed to the signed-in account.
  *
- * AsyncStorage is enough for now. The profile is one small JSON object — why
- * they came, what they are aiming for, and the brain's learner model — and
- * nothing here needs a backend. When accounts arrive this file is the only
- * thing that changes.
+ * One small JSON object: who they are, why they came, and the brain's learner
+ * model. Version 2 added the account-era fields (name, date of birth, daily
+ * goal); a version-1 profile upgrades in place and the learner is asked only
+ * the questions they have never answered — the brain's memory of them is
+ * never thrown away.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,14 +16,38 @@ import { userKey } from '../storage/scope.ts';
 const KEY = () => userKey('profile');
 
 export interface StoredProfile {
-  version: 1;
+  version: 2;
+  /** What they asked to be called. Null only on upgraded v1 profiles. */
+  name: string | null;
+  /** Date of birth as 'YYYY-MM-DD'. Null only on upgraded v1 profiles. */
+  dob: string | null;
   /** Why they came, as the tag chosen during onboarding. */
   motivation: string;
-  /** What they want French for, same provenance. */
-  goal: string;
+  /** The daily practice promise they picked. */
+  dailyGoalMin: 5 | 10 | 15;
   onboardedAt: number;
-  /** The brain's learner model. Updated after live conversations, later. */
+  /** The brain's learner model. Updated after live conversations. */
   brain: LearnerProfile;
+}
+
+export interface OnboardingAnswers {
+  name: string;
+  dob: string;
+  motivation: string;
+  dailyGoalMin: 5 | 10 | 15;
+}
+
+function upgradeV1(parsed: Record<string, unknown>): StoredProfile {
+  return {
+    version: 2,
+    name: null,
+    dob: null,
+    motivation: typeof parsed.motivation === 'string' ? parsed.motivation : 'want',
+    dailyGoalMin: 10,
+    onboardedAt: typeof parsed.onboardedAt === 'number' ? parsed.onboardedAt : Date.now(),
+    // The one thing that must survive any migration: what the tutor knows.
+    brain: (parsed.brain as LearnerProfile | undefined) ?? createProfile(),
+  };
 }
 
 export async function loadProfile(): Promise<StoredProfile | null> {
@@ -31,7 +56,9 @@ export async function loadProfile(): Promise<StoredProfile | null> {
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return null;
-    if ((parsed as { version?: unknown }).version !== 1) return null;
+    const version = (parsed as { version?: unknown }).version;
+    if (version === 1) return upgradeV1(parsed as Record<string, unknown>);
+    if (version !== 2) return null;
     return parsed as StoredProfile;
   } catch {
     // A corrupt profile is not worth crashing over. Onboarding runs again.
@@ -47,6 +74,11 @@ export async function saveProfile(p: StoredProfile): Promise<void> {
   }
 }
 
-export function createStoredProfile(motivation: string, goal: string, now = Date.now()): StoredProfile {
-  return { version: 1, motivation, goal, onboardedAt: now, brain: createProfile() };
+export function createStoredProfile(answers: OnboardingAnswers, now = Date.now()): StoredProfile {
+  return { version: 2, ...answers, onboardedAt: now, brain: createProfile() };
+}
+
+/** Fold onboarding answers into an existing (upgraded) profile, keeping the brain. */
+export function completeProfile(existing: StoredProfile, answers: OnboardingAnswers): StoredProfile {
+  return { ...existing, ...answers };
 }

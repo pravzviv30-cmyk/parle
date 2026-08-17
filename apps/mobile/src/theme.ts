@@ -68,15 +68,6 @@ export const font = {
   sans: 'DMSans-Regular',
   sansMedium: 'DMSans-Medium',
   sansBold: 'DMSans-Bold',
-  // Transition aliases for un-swept screens; deleted with the shim block below.
-  /** @deprecated use `sans`. */
-  regular: 'DMSans-Regular',
-  /** @deprecated use `sansMedium`. */
-  semibold: 'DMSans-Medium',
-  /** @deprecated use `sansBold`. */
-  bold: 'DMSans-Bold',
-  /** @deprecated use `serifBold`. */
-  extrabold: 'Fraunces-Bold',
 } as const;
 
 /**
@@ -110,20 +101,6 @@ export const type = {
   button: { fontFamily: font.sansBold, fontSize: 16, lineHeight: 20 },
   /** IPA and notation. Never monospace-as-costume — this really is notation. */
   notation: { fontFamily: font.sansMedium, fontSize: 14, lineHeight: 20, letterSpacing: 0.4 },
-
-  // Transition aliases for un-swept screens; deleted with the shim block below.
-  /** @deprecated use `frenchLg`. */
-  plaque: { fontFamily: font.serif, fontSize: 28, lineHeight: 36 },
-  /** @deprecated use `title`. */
-  plaqueSmall: { fontFamily: font.serif, fontSize: 22, lineHeight: 28 },
-  /** @deprecated use `label`. */
-  tag: {
-    fontFamily: font.sansBold,
-    fontSize: 11.5,
-    lineHeight: 15,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase' as const,
-  },
 } as const;
 
 /** 4pt base. Tight within a group, generous between groups. */
@@ -134,10 +111,6 @@ export const radius = {
   chip: 10,
   input: 12,
   pill: 999,
-  /** @deprecated transition alias — swept screens use `card`. */
-  plaque: 14,
-  /** @deprecated transition alias — swept screens use `pill`. */
-  bullet: 999,
 } as const;
 
 /** The one stroke weight: icons and illustrations alike. */
@@ -148,23 +121,3 @@ export const HAIRLINE = 1;
 
 /** Minimum tappable size. iOS HIG floor, enforced on every control. */
 export const HIT = 44;
-
-// ─────────────────────────────────────────────────────── transition shims
-// Everything below exists so un-swept screens keep typechecking and render
-// legibly (ink on paper) while the sweep walks the app. Deleted at the end of
-// the restyle; nothing new may import from this block.
-
-/** @deprecated enamel is gone — read `paper` instead. */
-export const enamel = {
-  ground: paper.ground,
-  field: paper.card,
-  fieldRaised: paper.card,
-  white: paper.ink,
-  whiteMuted: paper.inkSoft,
-  whiteFaint: paper.inkFaint,
-  bevelLight: 'transparent',
-  bevelDark: 'transparent',
-} as const;
-
-/** @deprecated English lives in `rungLabel` now. */
-export const rungLabelEn = rungLabel;
