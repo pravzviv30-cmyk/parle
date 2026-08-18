@@ -89,7 +89,16 @@ Two hard behavioural commitments, both derived from confirmed research:
 
 - **No streak guilt.** Streaks are a guilt mechanic implicated in intermediate-
   plateau churn. Progress is framed forward ("three sounds from unlocking the café
-  scenario"), never as a loss to protect.
+  scenario"), never as a loss to protect. Reaffirmed when the five-tab redesign
+  asked for a days-active streak: the streak was dropped and a level ladder
+  shipped instead.
+
+- **The ladder displays evidence; it is not a new incentive.** Six levels
+  (Beginner → Rookie → General → Captain → Master → Veteran) over XP that can
+  only be earned by producing French — words said, turns composed unaided,
+  phrases resolved, cards recalled. Never minutes elapsed, sessions started, or
+  app opens, and capped per day so a marathon cannot buy a level. It measures
+  returning, not bingeing, and it cannot be ground.
 - **The learner is never stranded and never scolded.** No mid-session scores, no
   "wrong", no commenting on hesitation. The tutor steps in and carries the
   conversation the way a good human tutor does.
