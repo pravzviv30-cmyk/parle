@@ -13,5 +13,6 @@ export * from './session/index.ts';
 export * from './metering/index.ts';
 export * from './protocol/index.ts';
 export * from './progress/index.ts';
+export * from './levels/index.ts';
 export * from './review/index.ts';
 export * from './drill/index.ts';

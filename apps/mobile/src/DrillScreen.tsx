@@ -51,8 +51,10 @@ import {
   type RepeatThisExercise,
   type SessionPhonemeReport,
   type TapTranslateExercise,
+  drillXp,
 } from '@parle/core';
 import { paper, signal, space, type, radius, font, HAIRLINE, HIT } from './theme.ts';
+import { recordActivity } from './progress/activity.ts';
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
@@ -626,9 +628,13 @@ export function DrillScreen({ userId, onDone }: { userId: string; onDone: () => 
   const persistGrades = useCallback((state: DrillSessionState) => {
     if (persistedRef.current) return;
     persistedRef.current = true;
-    for (const { phraseKey, grade } of summariseDrill(state).grades) {
+    const summary = summariseDrill(state);
+    for (const { phraseKey, grade } of summary.grades) {
       void gradeCard(phraseKey, grade);
     }
+    // What the sitting was worth. Clean answers count double, because getting
+    // it right without being shown the spelling is the harder thing.
+    void recordActivity('drill', drillXp({ clean: summary.resolved - summary.typos, typoCorrected: summary.typos }));
   }, []);
 
   const answer = useCallback(

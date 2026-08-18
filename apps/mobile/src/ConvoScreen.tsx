@@ -11,10 +11,10 @@
  * no numbers — the station line alone gives the sense of moving through beats).
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { RecapPayload } from '@parle/core';
+import { conversationXp, type RecapPayload } from '@parle/core';
 import { paper, signal, space, type, radius, HAIRLINE, HIT } from './theme.ts';
 import {
   Card,
@@ -30,6 +30,7 @@ import {
 import { SupportBlock } from './SessionView.tsx';
 import { RecapScreen } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
+import { recordActivity } from './progress/activity.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
 import { VoiceOrb, type OrbState } from './tutor/VoiceOrb.tsx';
@@ -79,8 +80,17 @@ export function ConvoScreen({
   // the end card, because the agent's background work — the enriched profile
   // and tonight's generated drills — arrives seconds AFTER the recap, and a
   // torn-down room would lose both. onRecap persists; it no longer navigates.
+  const bankedRef = useRef(false);
   useEffect(() => {
-    if (live.recap) onRecap(live.recap.recap, live.recap.profile);
+    if (!live.recap) return;
+    onRecap(live.recap.recap, live.recap.profile);
+    // The recap arrives twice — once as itself, then again enriched with the
+    // learner model — so this is banked exactly once per conversation.
+    if (!bankedRef.current) {
+      bankedRef.current = true;
+      const { phrases, stats } = live.recap.recap;
+      void recordActivity('convo', conversationXp({ phraseCount: phrases.length, unassistedRate: stats.unassistedRate }));
+    }
   }, [live.recap, onRecap]);
 
   useEffect(() => {

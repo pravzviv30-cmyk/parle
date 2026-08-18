@@ -37,6 +37,9 @@ import { AuthFlow } from './src/auth/AuthFlow.tsx';
 import { SetNewPasswordScreen } from './src/auth/SetNewPasswordScreen.tsx';
 import type { AuthUser } from './src/auth/types.ts';
 import { clearActiveUserData, migrateLegacyStores, setActiveUser } from './src/storage/scope.ts';
+import { loadHistory } from './src/progress/store.ts';
+import { backfillFrom } from './src/progress/activity.ts';
+import { lessonXp } from '@parle/core';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { SplashScreen } from './src/splash/SplashScreen.tsx';
 import { hasSeenSplash, markSplashSeen } from './src/splash/store.ts';
@@ -69,9 +72,20 @@ function SignedInRoot({ user }: { user: AuthUser }) {
   useEffect(() => {
     let cancelled = false;
     setActiveUser(user.id);
-    void migrateLegacyStores(user.id).then(() => {
-      if (!cancelled) setReady(true);
-    });
+    void migrateLegacyStores(user.id)
+      .then(async () => {
+        // Sessions finished before the activity log existed have no evidence
+        // stored to price them properly, so each is credited at the base rate
+        // and no more. Without this, everyone already using the app is told on
+        // launch day that they are a Beginner with nothing to their name.
+        const history = await loadHistory();
+        if (history.length > 0) {
+          await backfillFrom(history, lessonXp({ wordsProduced: [], unassistedRate: 0 }));
+        }
+      })
+      .then(() => {
+        if (!cancelled) setReady(true);
+      });
     return () => {
       cancelled = true;
       setActiveUser(null);

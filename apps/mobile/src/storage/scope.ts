@@ -51,7 +51,7 @@ export async function clearActiveUserData(): Promise<void> {
     await AsyncStorage.multiRemove(
       // Every per-user key belongs here. One that is missed survives a reset,
       // which for a one-time flag means it never fires again.
-      ['profile', 'history', 'review', 'drills', 'tutorIntro'].map((s) => `parle.u.${activeUid}.${s}`),
+      ['profile', 'history', 'review', 'drills', 'tutorIntro', 'activity'].map((s) => `parle.u.${activeUid}.${s}`),
     );
   } catch {
     // Storage unavailable; caches still reset so nothing stale shows.

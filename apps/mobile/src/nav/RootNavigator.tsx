@@ -20,12 +20,13 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, type RouteProp, useRoute } from '@react-navigation/native';
-import { CAFE_LESSON, type ProgressReport, type Rung, type SessionSummary } from '@parle/core';
+import { CAFE_LESSON, lessonXp, type ProgressReport, type Rung, type SessionSummary } from '@parle/core';
 import { paper } from '../theme.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { lastSummaryFor, recordSession } from '../progress/store.ts';
+import { recordActivity } from '../progress/activity.ts';
 import { addFromSummary } from '../review/store.ts';
 import { LiveSessionScreen } from '../LiveSessionScreen.tsx';
 import { SessionScreen } from '../SessionScreen.tsx';
@@ -83,6 +84,7 @@ function LessonRoute() {
     // since-you-started block when it lands. A slow disk must not delay it.
     setSummary(s);
     void recordSession(s).then(setReport);
+    void recordActivity('lesson', lessonXp({ wordsProduced: s.wordsProduced, unassistedRate: s.unassistedRate }));
     // The session's words become review cards, same fire-and-forget contract.
     void addFromSummary(s);
   }, []);

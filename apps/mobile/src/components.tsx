@@ -373,6 +373,16 @@ export function TabBar<K extends string>({
 }
 
 /** Onboarding progress: one dot per page, the current one stretched. */
+/** One counted fact. End cards and Home both use it, so it lives here. */
+export function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <View style={{ flexBasis: '46%', flexGrow: 1 }}>
+      <Text style={[type.title, { color: paper.ink }]}>{value}</Text>
+      <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>{label}</Text>
+    </View>
+  );
+}
+
 export function ProgressDots({ total, index }: { total: number; index: number }) {
   return (
     <View style={s.dotsRow} accessibilityLabel={`Step ${index + 1} of ${total}`}>
