@@ -15,18 +15,9 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { buildEntries, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@parle/core';
 import { paper, signal, space, type, radius, HAIRLINE } from './theme.ts';
-import { Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight } from './components.tsx';
+import { Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
 import { RecapPostcard } from './illustrations.tsx';
 import { saveTextFile } from './progress/saveFile.ts';
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <View style={st.stat}>
-      <Text style={[type.title, { color: paper.ink }]}>{value}</Text>
-      <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>{label}</Text>
-    </View>
-  );
-}
 
 export function SummaryScreen({
   lesson,

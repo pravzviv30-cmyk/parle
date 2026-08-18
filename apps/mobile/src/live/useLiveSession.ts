@@ -5,6 +5,10 @@
  * and the rescue timing; this hook connects, publishes the microphone, and renders
  * whatever the agent says to render. If a piece of pedagogy logic ever appears in
  * this file, it is in the wrong place.
+ *
+ * It does own one thing beyond connecting: knowing when the tutor never turned
+ * up. A room that opens and stays empty used to render a bare spinner forever,
+ * with no message and no way out, while the meter ran. See the watchdog below.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -25,16 +29,116 @@ import {
 } from '@parle/core';
 import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from './globals.ts';
 import { authHeaders } from '../auth/adapter.ts';
+import { classifyFailure, failureCopy, micApiUnavailable, TokenServerError, type LiveFailure } from './failure.ts';
+import { pushTurn, type TurnLine } from './turns.ts';
 
 /** Where the token server lives. Configurable per env for device testing. */
 const TOKEN_SERVER = process.env.EXPO_PUBLIC_TOKEN_SERVER_URL ?? 'http://localhost:8787';
+
+/**
+ * How long to wait for the tutor to walk into the room.
+ *
+ * The room connecting proves the network works; it proves nothing about the
+ * agent worker, which is a separate process that may be down, keyless, or
+ * throwing inside its job entry. Twelve seconds is long enough for a cold
+ * worker to pick up a job and short enough that nobody wonders if it is broken.
+ */
+const AGENT_JOIN_TIMEOUT_MS = 12000;
+
+/**
+ * How long to wait for the tutor to actually START the session once it is in
+ * the room.
+ *
+ * This is a separate deadline because the two failures are separate, and
+ * conflating them was a real bug in the first cut of this watchdog. An agent
+ * that never dispatches is silent; an agent whose voice or brain is missing a
+ * key JOINS, publishes `speaking` as it takes the floor, and then hangs inside
+ * the vendor call forever — so treating "said anything at all" as proof of life
+ * let exactly the more common failure sail straight through. Liveness is
+ * content, not noise: a prompt, a scene, or the topic chips.
+ *
+ * Longer than the join deadline on purpose. Opening a free conversation runs
+ * the scenario builder, which is a real model call and is allowed to think.
+ */
+const SESSION_OPEN_TIMEOUT_MS = 25000;
+
+/**
+ * When to say "ready" again while waiting.
+ *
+ * The first `ready` is normally DROPPED: LiveKit does not queue data for
+ * participants who have not joined yet, and the agent only starts listening
+ * after it has waited for us. Today that is invisible because both agents also
+ * push their opening state unconditionally — these retries make the handshake
+ * survive on its own terms rather than on that coincidence. Both agents answer
+ * `ready` by republishing current state, so extra ones are harmless.
+ */
+const READY_RETRIES_MS = [1500, 3500, 6500];
+
+/** Give up on the signal connection well before the learner does. */
+const CONNECT_TIMEOUTS = { peerConnectionTimeout: 12000, websocketTimeout: 8000 };
+
+/**
+ * Everything worth knowing about why a session did or did not start, collected
+ * as it happens and shown behind "What happened?" on an error screen. The point
+ * is that the next person can tell an environment problem from a bug without
+ * reading LiveKit's logs.
+ */
+export interface LiveDiagnostics {
+  tokenServer: string;
+  livekitUrl: string | null;
+  tokenStatus: number | null;
+  connectMs: number | null;
+  micPublished: boolean;
+  agentJoined: boolean;
+  audioTrackSubscribed: boolean;
+  firstServerMessage: boolean;
+  /** The tutor sent something the screen could actually render. */
+  sessionOpened: boolean;
+  lastFailure: LiveFailure | null;
+}
+
+function emptyDiagnostics(): LiveDiagnostics {
+  return {
+    tokenServer: TOKEN_SERVER,
+    livekitUrl: null,
+    tokenStatus: null,
+    connectMs: null,
+    micPublished: false,
+    agentJoined: false,
+    audioTrackSubscribed: false,
+    firstServerMessage: false,
+    sessionOpened: false,
+    lastFailure: null,
+  };
+}
+
+/**
+ * The server messages that mean "there is now a session on screen" — per mode,
+ * because the two session shapes render from different messages entirely.
+ *
+ * Mode-specific on purpose. A first cut used one shared set, and a stale agent
+ * answering a conversation request with a lesson `prompt` therefore counted as
+ * the conversation having opened: the watchdog stood down and ConvoScreen —
+ * which renders `convo`, never `prompt` — span forever anyway. An agent that
+ * serves the wrong protocol for the mode it was handed is a real fault and
+ * should time out and say so, not be quietly accepted.
+ */
+const OPENING_TAGS: Record<'lesson' | 'convo', ReadonlySet<string>> = {
+  lesson: new Set(['prompt', 'summary']),
+  convo: new Set(['convo', 'topics', 'recap']),
+};
+
+/** One stable prefix so a developer can filter the console to just this. */
+function trace(event: string, detail?: Record<string, unknown>): void {
+  console.info(`[parle:live] ${event}`, detail ?? {});
+}
 
 export type LiveStatus =
   | { phase: 'idle' }
   | { phase: 'connecting' }
   | { phase: 'live' }
   | { phase: 'out-of-minutes'; message: string }
-  | { phase: 'error'; message: string }
+  | { phase: 'error'; failure: LiveFailure; message: string; canType: boolean }
   | { phase: 'ended' };
 
 export interface LiveSession {
@@ -65,8 +169,26 @@ export interface LiveSession {
    * is still live — this renders IN the session, never as a terminal screen.
    */
   notice: string | null;
+  /**
+   * The conversation so far, accumulated on this side because the wire only
+   * ever describes the current turn. Empty on the lesson path.
+   */
+  turns: TurnLine[];
+  /**
+   * True between the learner finishing a turn and the tutor answering it.
+   * Derived here from messages that already exist — the agent has no
+   * "thinking" message and does not need one.
+   */
+  thinking: boolean;
   /** True while the browser refuses playback until it sees a user gesture. */
   audioBlocked: boolean;
+  /**
+   * True once the room is open but before the tutor has said anything. The
+   * screens render a waiting state rather than an unexplained spinner.
+   */
+  waitingForTutor: boolean;
+  /** Filled in when a session fails. Null otherwise. */
+  diagnostics: LiveDiagnostics | null;
   /** Restart playback — call from a tap so the gesture satisfies autoplay policy. */
   resumeAudio: () => void;
   start: () => Promise<void>;
@@ -102,20 +224,46 @@ export function useLiveSession(
   const [recap, setRecap] = useState<{ recap: RecapPayload; profile: unknown } | null>(null);
   const [drills, setDrills] = useState<DrillExercise[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [turns, setTurns] = useState<TurnLine[]>([]);
+  const [thinking, setThinking] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
+  const [waitingForTutor, setWaitingForTutor] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<LiveDiagnostics | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Destructured so `start` does not churn on every render just because the
   // caller wrote the options object inline.
   const mode = opts?.mode;
   const snapshot = opts?.snapshot;
   const roomRef = useRef<Room | null>(null);
+  const diagRef = useRef<LiveDiagnostics>(emptyDiagnostics());
+  // The ready retries plus the give-up timer, so both can be cancelled the
+  // instant the agent speaks — or the screen goes away.
+  const watchdogRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const heardAgentRef = useRef(false);
+  const sessionOpenedRef = useRef(false);
+  // Monotonic, so a React key never collides and nothing depends on a clock.
+  const turnSeq = useRef(0);
   // The <audio> elements holding the tutor's voice on web. Owned here so they are
   // guaranteed to leave the document when the session does.
   const audioElsRef = useRef<HTMLMediaElement[]>([]);
 
+  // 'convo' and 'convo-text' are the same protocol; only the audio differs.
+  const openingTags = mode === 'convo' || mode === 'convo-text' ? OPENING_TAGS.convo : OPENING_TAGS.lesson;
+
   const removeAudioEls = useCallback(() => {
     for (const el of audioElsRef.current) el.remove();
     audioElsRef.current = [];
+  }, []);
+
+  const clearWatchdog = useCallback(() => {
+    for (const t of watchdogRef.current) clearTimeout(t);
+    watchdogRef.current = [];
+  }, []);
+
+  const addTurn = useCallback((line: Omit<TurnLine, 'id'>) => {
+    turnSeq.current += 1;
+    const id = `t${turnSeq.current}`;
+    setTurns((list) => pushTurn(list, line, id));
   }, []);
 
   const send = useCallback((message: ClientMessage) => {
@@ -127,9 +275,44 @@ export function useLiveSession(
     });
   }, []);
 
+  /**
+   * Defined before `start` so the watchdog can use the same exit the learner
+   * has. Ending the room is what stops the meter, so a session that failed must
+   * take this path and not simply render an error over a live room.
+   */
+  const leave = useCallback(async () => {
+    clearWatchdog();
+    send({ t: 'leave' });
+    await roomRef.current?.disconnect();
+    roomRef.current = null;
+    removeAudioEls();
+    await releaseAudioSession();
+  }, [send, removeAudioEls, clearWatchdog]);
+
+  const fail = useCallback((failure: LiveFailure) => {
+    const copy = failureCopy(failure);
+    diagRef.current.lastFailure = failure;
+    setDiagnostics({ ...diagRef.current });
+    setWaitingForTutor(false);
+    trace('failed', { failure, ...diagRef.current });
+    setStatus({ phase: 'error', failure, message: copy.message, canType: copy.canType });
+  }, []);
+
   const start = useCallback(async () => {
     setStatus({ phase: 'connecting' });
+    setWaitingForTutor(false);
+    setDiagnostics(null);
+    diagRef.current = emptyDiagnostics();
+    heardAgentRef.current = false;
+    sessionOpenedRef.current = false;
+    setTurns([]);
+    setThinking(false);
+    clearWatchdog();
     try {
+      // Checked before anything else: with no microphone API there is nothing to
+      // connect for, and the failure deep inside the client would be unreadable.
+      if (mode !== 'convo-text' && micApiUnavailable()) throw new Error('navigator.mediaDevices is unavailable');
+
       const res = await fetch(`${TOKEN_SERVER}/session/start`, {
         method: 'POST',
         // The bearer token, when auth is live, lets the server verify the
@@ -146,15 +329,18 @@ export function useLiveSession(
           ...(snapshot !== undefined ? { snapshot } : {}),
         }),
       });
+      diagRef.current.tokenStatus = res.status;
 
       if (res.status === 402) {
         const body = (await res.json()) as { message?: string };
         setStatus({ phase: 'out-of-minutes', message: body.message ?? 'You are out of minutes.' });
         return;
       }
-      if (!res.ok) throw new Error(`token server replied ${res.status}`);
+      if (!res.ok) throw new TokenServerError(res.status);
 
       const grant = (await res.json()) as { token: string; livekitUrl: string };
+      diagRef.current.livekitUrl = grant.livekitUrl;
+      trace('token', { status: res.status, livekitUrl: grant.livekitUrl });
 
       ensureLiveKitGlobals();
       const room = new Room();
@@ -165,6 +351,7 @@ export function useLiveSession(
       // the learner is heard and hears nothing back.
       room.on(RoomEvent.TrackSubscribed, (track) => {
         if (track.kind !== Track.Kind.Audio) return;
+        diagRef.current.audioTrackSubscribed = true;
         // On native the WebRTC session routes remote audio itself; the DOM path
         // is web-only.
         if (typeof document === 'undefined') return;
@@ -180,6 +367,12 @@ export function useLiveSession(
           audioElsRef.current = audioElsRef.current.filter((kept) => kept !== el);
         }
       });
+      // Whether anyone else is in the room at all. The difference between "the
+      // tutor is thinking" and "the tutor was never dispatched" is exactly this.
+      room.on(RoomEvent.ParticipantConnected, (participant) => {
+        diagRef.current.agentJoined = true;
+        trace('participant-joined', { identity: participant.identity });
+      });
       // The MONTER tap usually carries user activation through connect, but a slow
       // token fetch can outlive it and the browser then blocks playback. Surface
       // that as a tap-to-listen affordance rather than playing silence.
@@ -191,6 +384,24 @@ export function useLiveSession(
         if (topic !== TOPIC_SERVER) return;
         const msg = decodeServerMessage(payload);
         if (!msg) return;
+        // Any message at all proves the agent is in the room and talking to us.
+        // It does NOT prove the session started — see SESSION_OPEN_TIMEOUT_MS.
+        if (!heardAgentRef.current) {
+          heardAgentRef.current = true;
+          diagRef.current.firstServerMessage = true;
+          trace('agent-first-message', { t: msg.t });
+        }
+        // Content, on the other hand, means the session is genuinely under way:
+        // there is something on screen and the learner has a session to leave.
+        // `speaking`, `transcript` and `feedback` deliberately do not count —
+        // an agent hung inside its TTS emits `speaking` and nothing more.
+        if (!sessionOpenedRef.current && openingTags.has(msg.t)) {
+          sessionOpenedRef.current = true;
+          diagRef.current.sessionOpened = true;
+          clearWatchdog();
+          setWaitingForTutor(false);
+          trace('session-opened', { t: msg.t });
+        }
         switch (msg.t) {
           case 'prompt':
             setPrompt(msg.prompt);
@@ -201,9 +412,16 @@ export function useLiveSession(
             break;
           case 'speaking':
             setTutorSpeaking(msg.speaking);
+            // The tutor having taken the floor means it is no longer deciding.
+            if (msg.speaking) setThinking(false);
             break;
           case 'transcript':
-            if (msg.final) setLastTranscript(msg.text);
+            if (msg.final) {
+              setLastTranscript(msg.text);
+              addTurn({ who: 'learner', fr: msg.text, frWritten: null, en: null });
+              // Said, and not yet answered.
+              setThinking(true);
+            }
             break;
           case 'summary':
             setSummary(msg.summary);
@@ -211,6 +429,42 @@ export function useLiveSession(
             break;
           case 'convo':
             setConvo(msg.view);
+            setThinking(false);
+            // Narration lands before the line it introduces, the way it is
+            // heard. `pushTurn` drops it when it is the same one as last turn.
+            if (msg.view.narration) {
+              addTurn({
+                who: 'narration',
+                fr: msg.view.narration.fr,
+                frWritten: msg.view.narration.frWritten ?? null,
+                en: msg.view.narration.en,
+              });
+            }
+            addTurn({
+              who: 'tutor',
+              fr: msg.view.sceneReply.fr,
+              frWritten: msg.view.sceneReply.frWritten ?? null,
+              en: msg.view.sceneReply.en,
+            });
+            // A recast belongs under the learner line it corrects, so it is
+            // attached backwards to the last thing the learner said.
+            if (msg.view.coachNow.length > 0) {
+              setTurns((list) => {
+                const i = list.map((t) => t.who).lastIndexOf('learner');
+                if (i < 0) return list;
+                const next = [...list];
+                next[i] = {
+                  ...next[i]!,
+                  recasts: msg.view.coachNow.map((c) => ({
+                    quote: c.quote,
+                    better: c.better,
+                    betterEn: c.betterEn,
+                    why: c.why,
+                  })),
+                };
+                return next;
+              });
+            }
             // The scene has opened; the choosing moment is over. An agent that
             // never sent topics (an older build, say) is also covered — the app
             // renders whatever arrives.
@@ -218,6 +472,8 @@ export function useLiveSession(
             break;
           case 'topics':
             setTopics({ prompt: msg.prompt, chips: msg.chips });
+            setThinking(false);
+            addTurn({ who: 'tutor', fr: msg.prompt.fr, frWritten: null, en: msg.prompt.en });
             break;
           case 'recap':
             setRecap({ recap: msg.recap, profile: msg.profile });
@@ -243,9 +499,12 @@ export function useLiveSession(
         // If the summary already arrived this is a normal ending, and an earlier
         // error (a denied microphone, say) already explains itself — this handler
         // only covers the drop nobody else accounted for.
-        setStatus((s) =>
-          s.phase === 'ended' || s.phase === 'error' ? s : { phase: 'error', message: 'Connection lost. Your progress is saved.' },
-        );
+        clearWatchdog();
+        setStatus((s) => {
+          if (s.phase === 'ended' || s.phase === 'error') return s;
+          const copy = failureCopy('dropped');
+          return { phase: 'error', failure: 'dropped', message: copy.message, canType: copy.canType };
+        });
       });
 
       // Text mode carries no audio in either direction: no microphone to
@@ -254,9 +513,13 @@ export function useLiveSession(
       if (mode !== 'convo-text') {
         await ensureAudioSession();
       }
-      await room.connect(grant.livekitUrl, grant.token);
+      const connectStartedAt = Date.now();
+      await room.connect(grant.livekitUrl, grant.token, CONNECT_TIMEOUTS);
+      diagRef.current.connectMs = Date.now() - connectStartedAt;
+      trace('connected', { connectMs: diagRef.current.connectMs });
       if (mode !== 'convo-text') {
         await room.localParticipant.setMicrophoneEnabled(true);
+        diagRef.current.micPublished = true;
         try {
           await room.startAudio();
         } catch {
@@ -265,36 +528,49 @@ export function useLiveSession(
         }
       }
       setStatus({ phase: 'live' });
+
+      // The room is open. Now find out whether anyone is home.
+      setWaitingForTutor(true);
       send({ t: 'ready' });
+      // Leaving properly rather than just rendering an error over a live room:
+      // an abandoned room is a room the meter is still counting.
+      const giveUp = (failure: LiveFailure) => {
+        void leave().catch(() => {});
+        fail(failure);
+      };
+      watchdogRef.current = [
+        ...READY_RETRIES_MS.map((ms) =>
+          setTimeout(() => {
+            if (heardAgentRef.current) return;
+            trace('ready-retry', { afterMs: ms });
+            send({ t: 'ready' });
+          }, ms),
+        ),
+        // Nobody came. The worker is down, or was never dispatched to this room.
+        setTimeout(() => {
+          if (sessionOpenedRef.current) return;
+          if (diagRef.current.agentJoined || heardAgentRef.current) return; // it is here, just slow — the next timer owns it
+          giveUp('agent-absent');
+        }, AGENT_JOIN_TIMEOUT_MS),
+        // Somebody came and never started. Almost always a missing vendor key:
+        // the agent takes the floor, the voice or the brain hangs, and the
+        // opening line is never finished or published.
+        setTimeout(() => {
+          if (sessionOpenedRef.current) return;
+          giveUp(diagRef.current.agentJoined || heardAgentRef.current ? 'agent-silent' : 'agent-absent');
+        }, SESSION_OPEN_TIMEOUT_MS),
+      ];
     } catch (err) {
       // A half-started session must not stay half-started: without this the room
       // stays open behind the error screen, the agent keeps teaching an empty
       // call, and the meter keeps counting.
+      clearWatchdog();
       void roomRef.current?.disconnect().catch(() => {});
       roomRef.current = null;
       removeAudioEls();
-      const msg = err instanceof Error ? err.message : '';
-      const name = err instanceof Error ? err.name : '';
-      setStatus({
-        phase: 'error',
-        // A speaking app without a microphone cannot run, but the learner should
-        // hear that in plain words, not a shrug.
-        message: /NotAllowed|Permission|NotFound/i.test(`${name} ${msg}`)
-          ? 'Parle needs your microphone to hear you speak. Allow the microphone in your browser and try again.'
-          : /fetch/i.test(msg)
-            ? 'Could not reach the session server. Is it running?'
-            : 'Could not start the session.',
-      });
+      fail(classifyFailure(err));
     }
-  }, [userId, lessonId, startRung, mode, snapshot, send, removeAudioEls]);
-
-  const leave = useCallback(async () => {
-    send({ t: 'leave' });
-    await roomRef.current?.disconnect();
-    roomRef.current = null;
-    removeAudioEls();
-    await releaseAudioSession();
-  }, [send, removeAudioEls]);
+  }, [userId, lessonId, startRung, mode, snapshot, send, removeAudioEls, clearWatchdog, leave, fail, openingTags, addTurn]);
 
   const resumeAudio = useCallback(() => {
     // Success flips audioBlocked back via AudioPlaybackStatusChanged.
@@ -304,6 +580,8 @@ export function useLiveSession(
   // Never leave a microphone open past the component that owns it.
   useEffect(() => {
     return () => {
+      for (const t of watchdogRef.current) clearTimeout(t);
+      watchdogRef.current = [];
       void roomRef.current?.disconnect();
       roomRef.current = null;
       removeAudioEls();
@@ -324,7 +602,11 @@ export function useLiveSession(
     recap,
     drills,
     notice,
+    turns,
+    thinking,
     audioBlocked,
+    waitingForTutor,
+    diagnostics,
     resumeAudio,
     start,
     sendHelp: useCallback(() => send({ t: 'help' }), [send]),
@@ -333,7 +615,17 @@ export function useLiveSession(
     sendTopic: useCallback((value: string) => send({ t: 'topic', value }), [send]),
     sendSlower: useCallback(() => send({ t: 'slower' }), [send]),
     sendEnglish: useCallback(() => send({ t: 'english' }), [send]),
-    sendSay: useCallback((text: string) => send({ t: 'say', text }), [send]),
+    sendSay: useCallback(
+      (text: string) => {
+        // The agent transcribes speech back to us but never echoes a TYPED
+        // turn, so without this optimistic append the learner's own words
+        // simply never appear in text mode.
+        addTurn({ who: 'learner', fr: text, frWritten: null, en: null });
+        setThinking(true);
+        send({ t: 'say', text });
+      },
+      [send, addTurn],
+    ),
     leave,
   };
 }

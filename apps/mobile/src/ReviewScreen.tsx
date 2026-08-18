@@ -11,13 +11,14 @@
  * tutor would circle back.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { dueCards, type ReviewCard, type ReviewCardKind, type ReviewGrade } from '@parle/core';
+import { dueCards, reviewXp, type ReviewCard, type ReviewCardKind, type ReviewGrade } from '@parle/core';
 import { paper, space, type, radius, HAIRLINE, HIT } from './theme.ts';
 import { Card, Label, PillButton, EarGlyph, fitDisplay } from './components.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
+import { recordActivity } from './progress/activity.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 
 /** What kind of card this is, said plainly. */
@@ -51,6 +52,11 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   const [queue, setQueue] = useState<ReviewCard[] | null>(null);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  // Cards recalled without help, counted locally: the deck stores when a
+  // card is next due, not how a sitting went, and there is no sitting-end
+  // hook to read one from.
+  const recalled = useRef(0);
+  const banked = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +66,12 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
     return () => {
       cancelled = true;
       tutorVoice.stop();
+      // Banked here rather than on the Done button: leaving by the back
+      // gesture, a tab switch or an unmount is still a sitting that happened.
+      if (!banked.current && recalled.current > 0) {
+        banked.current = true;
+        void recordActivity('review', reviewXp({ recalled: recalled.current }));
+      }
     };
   }, []);
 
@@ -71,6 +83,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       tutorVoice.stop();
       // Persist in the background; the sitting itself never waits on a disk.
       void gradeCard(card.id, grade);
+      if (grade === 'good' || grade === 'easy') recalled.current += 1;
       // A missed card rejoins the end of this sitting rather than hiding until
       // its ten-minute retry — the learner meets it again while it is warm.
       if (grade === 'again') setQueue((q) => (q ? [...q, card] : q));

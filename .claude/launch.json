@@ -26,6 +26,19 @@
         "8090"
       ],
       "port": 8090
+    },
+    {
+      "name": "parle-worktree",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "web",
+        "--workspace=@parle/mobile",
+        "--",
+        "--port",
+        "8091"
+      ],
+      "port": 8091
     }
   ]
 }

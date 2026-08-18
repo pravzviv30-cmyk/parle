@@ -60,12 +60,28 @@ npm install
 npm run web
 ```
 
-First open: create an account (with no Supabase configured, accounts live in a
-local on-device store — any email works, and the Google button signs into a dev
-account instantly), answer the four onboarding questions, then on the **Speak**
-tab tap **Start the lesson** — and, this is the point, *say nothing for four
-seconds*. The tutor steps in, drops a rung, and offers you the line. It never
-comments on the pause.
+First open: a moving welcome, then create an account (with no Supabase
+configured, accounts live in a local on-device store — any email works, and the
+Google button signs into a dev account instantly), answer the four onboarding
+questions, and land on five tabs along the bottom — Home, Tutor, Practice,
+Leaderboard, Profile.
+
+Go to **Practice** and tap **Start the lesson** — and, this is the point, *say
+nothing for four seconds*. The tutor steps in, drops a rung, and offers you the
+line. It never comments on the pause.
+
+**Tutor** is free conversation, and it is reachable from a brand-new account.
+It used to be gated behind one finished lesson, which was a deadlock: session
+history is scoped per account, so every account after the first on a device
+started at zero and the only way to earn the tutor was the very lesson that had
+to work first. The mic-free typed route was behind the same gate — the door a
+learner who cannot speak needs most.
+
+When a live session cannot start, it says which of eleven things went wrong,
+always offers a way out, and hides a **What happened?** panel reporting whether
+the token server answered, how long the room took to connect, whether the tutor
+joined, and whether it ever said anything. That panel is how you tell an
+environment problem from a bug without reading LiveKit's logs.
 
 ### Accounts (optional Supabase)
 

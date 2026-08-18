@@ -102,15 +102,30 @@ suitcase, winged clock, clinking speech bubbles, sprouting word cards, postcard.
 
 ## Structure
 
-Sign-in gate (Welcome / Create account / Sign in) → four onboarding pages →
-**Home with two tabs**: *Speak* (the conversation and the guided lesson that
-unlocks it; "Unable to speak right now?" at the bottom opens the same tutor in
-text mode) and *Learn* (tutor-picked practice: review deck when due, the drill
-bank always, a starter framing until generated exercises land). Screens are a
-hand-rolled discriminated union in `App.tsx` — still no navigation library.
+A moving welcome on first launch → sign-in gate (Welcome / Create account /
+Sign in) → four onboarding pages → **five icon-only tabs along the bottom**:
 
-On web the app is a **460pt centred column**: a phone app that also runs in a
-browser, not a stretched web page.
+| Tab | What it is |
+|---|---|
+| Home | The level card, the evidence, one way in |
+| Tutor | Free conversation. A one-time intro the first time only |
+| Practice | The path, the guided lesson, the drill bank, the review deck |
+| Leaderboard | Global and Friends. Honest empty state until there is a server |
+| Profile | Account, support, sign out, the legal footer |
+
+Navigation is React Navigation: a root stack whose first screen is the tab
+navigator, with the lesson, the conversation, drills and review as siblings
+*above* it. That is what hides the tab bar on a metered screen, and what makes
+leaving a live session an explicit act rather than a tab switch — a room that
+survives a tab switch is a room the meter is still counting.
+
+The tab bar has no filled-icon variant, because a solid icon would be the first
+two-weight mark in the app. Active is ink plus a dot beneath it, which is
+ProgressDots' grammar reused.
+
+On web the app is still a **460pt centred column**, and the navigator mounts
+inside it, so the tab bar is clamped to the column rather than spanning the
+browser.
 
 ## Copy
 
@@ -130,10 +145,46 @@ Two hard rules, held from the enamel era:
 - **No mid-session message scolds.** No "wrong", "bad", "failed", "incorrect".
   A rescue reads *"Let's take that one together."*
 
+## Motion
+
+The app had none. It now has exactly one vocabulary, and the next animated
+screen must not invent a second:
+
+- **transform and opacity only**, always `useNativeDriver: true`
+- **never an SVG attribute** (`r`, `d`, `cx`) — those cannot cross to the
+  native driver and drop the whole animation onto the JS thread
+- one continuous loop plus one settling entrance; nothing bounces
+- **reduce-motion renders the final frame**, not nothing: the scene is the
+  content, the movement is the flourish
+- absolutely-positioned moving pieces are placed in *container* pixels, not in
+  the viewBox units the still art is drawn in
+
+Two things move. The **splash** — steam drifting off a café cup, two speech
+bubbles arriving one after the other. And the **VoiceOrb**: three concentric
+ink rings that breathe, offset so they drift rather than pump in unison. Five
+states — idle, speaking, listening, thinking, error — said in ring colour and
+one caption. It carries no shadow; the app's only shadow belongs to the live
+microphone and nothing else may borrow it.
+
+Deliberately not driven by audio amplitude. An analyser feeding setState sixty
+times a second is the churn that would force a reanimated dependency, and that
+is the one place worth spending one later.
+
+## Two deliberate divergences
+
+Written down so nobody "fixes" them back:
+
+- **The practice path does not gate.** Every authored node is open in any
+  order; sequence is one node marked as next. PRODUCT.md principle 1 is that
+  support is withdrawn as the learner improves, never withheld until earned.
+  The only thing that locks is practice written from conversations the learner
+  has not had yet.
+- **Home and the leaderboard may count.** DESIGN.md's rule is that no
+  *mid-session* message contains a number. Home is not mid-session, so the
+  board counts and the tutor still does not — no numerals in watchdog copy, no
+  counts in the transcript, dots rather than numbers on progress.
+
 ## What has no design yet
 
-Motion, still. There is no authored transition between rungs or pages — the
-support block changing shape remains the product's most meaningful state change
-and it deserves one orchestrated moment. It survived the restyle as the first
-thing to add next. The app icon and splash artwork are also still the enamel
-era's placeholders on paper-coloured ground.
+The app icon and splash artwork in `app.json` are still the enamel era's
+placeholders on paper-coloured ground.

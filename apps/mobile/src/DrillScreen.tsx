@@ -51,8 +51,10 @@ import {
   type RepeatThisExercise,
   type SessionPhonemeReport,
   type TapTranslateExercise,
+  drillXp,
 } from '@parle/core';
 import { paper, signal, space, type, radius, font, HAIRLINE, HIT } from './theme.ts';
+import { recordActivity } from './progress/activity.ts';
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
@@ -574,7 +576,19 @@ function RepeatThisView({
 
 // ───────────────────────────────────────────────────────────────── the screen
 
-export function DrillScreen({ userId, onDone }: { userId: string; onDone: () => void }) {
+export function DrillScreen({
+  userId,
+  onDone,
+  node,
+}: {
+  userId: string;
+  onDone: () => void;
+  /**
+   * One node of the practice path. Omitted, the whole deck plays, which is
+   * what "Start practice" has always done and still does.
+   */
+  node?: { id: string; title: string; phraseKeys: readonly string[] };
+}) {
   const insets = useSafeAreaInsets();
 
   // The sitting. Null while the deck and bank load.
@@ -590,6 +604,7 @@ export function DrillScreen({ userId, onDone }: { userId: string; onDone: () => 
   const beatRef = useRef(0);
   // Grades leave this screen exactly once, whether by finishing or by Leave.
   const persistedRef = useRef(false);
+  const gradeWritesRef = useRef<Promise<void>>(Promise.resolve());
 
   // Per-exercise input state, cleared on every advance.
   const [typed, setTyped] = useState('');
@@ -600,7 +615,7 @@ export function DrillScreen({ userId, onDone }: { userId: string; onDone: () => 
     void Promise.all([loadDeck(), loadDrillBank(), getMicSuppressedUntil()]).then(([deck, bank, until]) => {
       if (cancelled) return;
       const now = Date.now();
-      let built = buildDrillSession(deck, bank, now);
+      let built = buildDrillSession(deck, bank, now, node ? { only: node.phraseKeys } : undefined);
       if (until !== null && Date.parse(until) > now) {
         // Still inside the "can't speak now" hour: open silent, unasked.
         built = suppressMic(built);
@@ -614,7 +629,7 @@ export function DrillScreen({ userId, onDone }: { userId: string; onDone: () => 
       cancelled = true;
       tutorVoice.stop();
     };
-  }, []);
+  }, [node]);
 
   /**
    * Feed outcomes to the one memory system, through the review store's own
@@ -626,9 +641,16 @@ export function DrillScreen({ userId, onDone }: { userId: string; onDone: () => 
   const persistGrades = useCallback((state: DrillSessionState) => {
     if (persistedRef.current) return;
     persistedRef.current = true;
-    for (const { phraseKey, grade } of summariseDrill(state).grades) {
-      void gradeCard(phraseKey, grade);
-    }
+    const summary = summariseDrill(state);
+    // Collected rather than fired and forgotten: the caller awaits these before
+    // navigating, because loadDeck reads storage directly and is not on the
+    // review store's write chain. Without it, the screen that comes next can
+    // read a deck that predates this sitting.
+    const writes = summary.grades.map(({ phraseKey, grade }) => gradeCard(phraseKey, grade));
+    gradeWritesRef.current = Promise.all(writes).then(() => undefined);
+    // What the sitting was worth. Clean answers count double, because getting
+    // it right without being shown the spelling is the harder thing.
+    void recordActivity('drill', drillXp({ clean: summary.resolved - summary.typos, typoCorrected: summary.typos }));
   }, []);
 
   const answer = useCallback(
@@ -682,13 +704,23 @@ export function DrillScreen({ userId, onDone }: { userId: string; onDone: () => 
     return () => clearTimeout(t);
   }, [feedback, focusLine, persistGrades]);
 
-  const leave = useCallback(() => {
+  /**
+   * Leave, once this sitting is actually on disk.
+   *
+   * The wait matters because the screen behind this one re-reads the deck the
+   * moment it regains focus, and `loadDeck` bypasses the review store's write
+   * chain. Navigating first meant the practice map could show a node that had
+   * plainly just been finished as untouched.
+   */
+  const finishAndLeave = useCallback(() => {
     tutorVoice.stop();
     // Mid-beat, the answered exercise lives in pendingRef; count it.
     const state = pendingRef.current ?? session;
     if (state) persistGrades(state);
-    onDone();
+    void gradeWritesRef.current.finally(onDone);
   }, [session, persistGrades, onDone]);
+
+  const leave = finishAndLeave;
 
   const goSilent = useCallback(() => {
     if (!session || feedback) return;
@@ -720,7 +752,7 @@ export function DrillScreen({ userId, onDone }: { userId: string; onDone: () => 
             </Text>
           </Card>
         </View>
-        <PillButton label="Done" onPress={onDone} />
+        <PillButton label="Done" onPress={finishAndLeave} />
       </View>
     );
   }

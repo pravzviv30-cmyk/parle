@@ -48,7 +48,11 @@ export function userKey(suffix: string): string {
 export async function clearActiveUserData(): Promise<void> {
   if (activeUid === null) return;
   try {
-    await AsyncStorage.multiRemove(['profile', 'history', 'review', 'drills'].map((s) => `parle.u.${activeUid}.${s}`));
+    await AsyncStorage.multiRemove(
+      // Every per-user key belongs here. One that is missed survives a reset,
+      // which for a one-time flag means it never fires again.
+      ['profile', 'history', 'review', 'drills', 'tutorIntro', 'activity'].map((s) => `parle.u.${activeUid}.${s}`),
+    );
   } catch {
     // Storage unavailable; caches still reset so nothing stale shows.
   }

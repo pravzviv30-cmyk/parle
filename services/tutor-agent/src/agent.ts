@@ -38,6 +38,7 @@ import * as openai from '@livekit/agents-plugin-openai';
 import { DEFAULT_ROUTING } from '@parle/brain';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as silero from '@livekit/agents-plugin-silero';
+import { preflight, selectedBrain } from './preflight.ts';
 import 'dotenv/config';
 
 import { buildTTS } from './voice.ts';
@@ -80,8 +81,7 @@ type Publisher = (message: ServerMessage) => void;
  *          default.
  */
 function tutorLLM() {
-  const brain = process.env.TUTOR_LLM ?? 'anthropic';
-  if (brain === 'groq') return openai.LLM.withGroq({ model: 'llama-3.3-70b-versatile' }); // reads GROQ_API_KEY
+  if (selectedBrain() === 'groq') return openai.LLM.withGroq({ model: 'llama-3.3-70b-versatile' }); // reads GROQ_API_KEY
   return new anthropic.LLM({ model: DEFAULT_ROUTING.turn.model });
 }
 
@@ -390,5 +390,10 @@ export default defineAgent({
     }
   },
 });
+
+// Before anything registers with LiveKit. A worker that cannot serve a turn
+// must not advertise itself as able to — otherwise the first learner to arrive
+// gets a room that opens and then stays silent.
+preflight();
 
 cli.runApp(new WorkerOptions({ agent: fileURLToPath(import.meta.url) }));

@@ -16,6 +16,7 @@
  */
 
 import { voice, type llm } from '@livekit/agents';
+import { selectedBrain } from './preflight.ts';
 
 import {
   APERO_FRAME,
@@ -173,8 +174,7 @@ export function chooseFrame(profile: LearnerProfile): ScenarioFrame {
  * tier. Groq remains the documented $0 fallback for key-less setups.
  */
 function brainClient(): LlmClient {
-  const brain = process.env.TUTOR_LLM ?? 'anthropic';
-  if (brain === 'groq') return new OpenAiCompatBrainClient({ apiKey: process.env.GROQ_API_KEY ?? '' });
+  if (selectedBrain() === 'groq') return new OpenAiCompatBrainClient({ apiKey: process.env.GROQ_API_KEY ?? '' });
   return new AnthropicBrainClient(); // reads ANTHROPIC_API_KEY
 }
 
