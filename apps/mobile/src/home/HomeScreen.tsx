@@ -1,23 +1,26 @@
 /**
  * Home: two doors under one greeting.
  *
- * Speak is the product — the conversation, and the guided lesson that earns
- * it. Learn is the echo — practice the tutor authored from what the learner
- * actually said. One primary action per tab, state-dependent, exactly the
- * gating StartScreen enforced: free talk needs the live brain plus one
- * finished lesson; review appears only when cards are due; the lesson and
- * the drill bank are always open.
+ * Speak is the product — the conversation, and the guided lesson beside it.
+ * Learn is the echo — practice the tutor authored from what the learner
+ * actually said. One primary action per tab.
+ *
+ * The conversation used to be gated behind one finished lesson. That gate was
+ * a deadlock: history is scoped per account, so every account after the first
+ * on a device started at zero, and the only way to earn the tutor was the very
+ * lesson that was failing. The tutor is now reachable whenever the servers are
+ * up — including the mic-free text route, which a learner who cannot speak
+ * needs most and could previously never get to at all.
  */
 
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CAFE_LESSON } from '@parle/core';
-import { paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
+import { paper, space, type, radius, HIT } from '../theme.ts';
 import { Card, Label, PillButton, OutlineButton, GhostButton, TabBar } from '../components.tsx';
 import { SpeakBubbles, LearnStack } from '../illustrations.tsx';
 import { dueCount } from '../review/store.ts';
-import { loadHistory } from '../progress/store.ts';
 import { hasGeneratedExercises } from '../drill/store.ts';
 import { AccountSheet } from './AccountSheet.tsx';
 import type { AuthUser } from '../auth/types.ts';
@@ -54,18 +57,14 @@ export function HomeScreen({
   const lesson = CAFE_LESSON;
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Cards waiting in the review deck, and lessons finished so far. The screen
-  // remounts on every return home, so both counts stay honest.
+  // Cards waiting in the review deck. The screen remounts on every return
+  // home, so the count stays honest.
   const [due, setDue] = useState(0);
-  const [sessions, setSessions] = useState<number | null>(null);
   const [curated, setCurated] = useState(false);
   useEffect(() => {
     let cancelled = false;
     void dueCount().then((n) => {
       if (!cancelled) setDue(n);
-    });
-    void loadHistory().then((h) => {
-      if (!cancelled) setSessions(h.length);
     });
     void hasGeneratedExercises().then((has) => {
       if (!cancelled) setCurated(has);
@@ -75,7 +74,6 @@ export function HomeScreen({
     };
   }, []);
 
-  const talkOpen = live && sessions !== null && sessions >= 1;
   const firstName = (profile.name ?? '').split(' ')[0] || 'you';
 
   return (
@@ -114,7 +112,7 @@ export function HomeScreen({
             <SpeakBubbles width={190} />
           </View>
 
-          {talkOpen ? (
+          {live ? (
             <>
               <Text style={st.headline}>Ready to talk?</Text>
               <Text style={st.subline}>Your tutor remembers you. Pick a topic and go.</Text>
@@ -136,18 +134,9 @@ export function HomeScreen({
               </Card>
               <View style={st.actions}>
                 <PillButton label="Start the lesson" onPress={onBegin} />
-                {live ? (
-                  <View style={st.locked} accessibilityLabel="Your first lesson opens free talk">
-                    <Text style={[type.bodyStrong, { color: paper.inkFaint }]}>Free talk</Text>
-                    <Text style={[type.small, { color: paper.inkFaint, marginTop: 2 }]}>
-                      Your first lesson opens this.
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center', marginTop: space(1) }]}>
-                    Running in demo mode. The live tutor needs its servers up.
-                  </Text>
-                )}
+                <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center', marginTop: space(1) }]}>
+                  Running in demo mode. The live tutor needs its servers up.
+                </Text>
               </View>
             </>
           )}
@@ -209,14 +198,4 @@ const st = StyleSheet.create({
   headline: { ...type.display, color: paper.ink, textAlign: 'center' },
   subline: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
   actions: { marginTop: 'auto', gap: space(3), paddingTop: space(6) },
-  locked: {
-    minHeight: HIT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: space(2),
-    paddingHorizontal: space(3),
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-    borderRadius: radius.card,
-  },
 });

@@ -12,9 +12,10 @@ import { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import type { Lesson, Rung, SessionSummary } from '@parle/core';
 import { paper, space, type, HIT } from './theme.ts';
-import { Card, Label, PillButton } from './components.tsx';
+import { Card, Label, PillButton, GhostButton } from './components.tsx';
 import { SessionView } from './SessionView.tsx';
 import { useLiveSession } from './live/useLiveSession.ts';
+import { LiveErrorView } from './live/LiveErrorView.tsx';
 
 export function LiveSessionScreen({
   lesson,
@@ -70,23 +71,32 @@ export function LiveSessionScreen({
   }
 
   if (live.status.phase === 'error') {
+    // The lesson is spoken by definition, so typing is not an answer here —
+    // no onType. The conversation offers it; this does not.
     return (
-      <View style={st.center}>
-        <Label>Connection problem</Label>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
-          {live.status.message}
-        </Text>
-        <View style={{ marginTop: space(6) }}>
-          <PillButton label="Back" onPress={onExit} />
-        </View>
-      </View>
+      <LiveErrorView
+        failure={live.status.failure}
+        message={live.status.message}
+        diagnostics={live.diagnostics}
+        onBack={onExit}
+      />
     );
   }
 
   if (!live.prompt) {
+    // The room is open and the tutor has not spoken yet. This used to be a bare
+    // spinner with no words and no way out, which is what a down agent looked
+    // like — forever. The hook's watchdog now ends this state either way, and
+    // there is a door while it lasts.
     return (
       <View style={st.center}>
         <ActivityIndicator color={paper.inkSoft} />
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>
+          {live.waitingForTutor ? 'Waiting for your tutor…' : 'One moment…'}
+        </Text>
+        <View style={{ marginTop: space(6) }}>
+          <GhostButton label="Leave" onPress={leaveNow} />
+        </View>
       </View>
     );
   }

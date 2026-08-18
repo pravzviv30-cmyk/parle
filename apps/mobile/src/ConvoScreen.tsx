@@ -20,7 +20,6 @@ import {
   Card,
   Label,
   PillButton,
-  OutlineButton,
   GhostButton,
   OptionCard,
   SpeakCircle,
@@ -33,6 +32,7 @@ import { SupportBlock } from './SessionView.tsx';
 import { RecapScreen } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
+import { LiveErrorView } from './live/LiveErrorView.tsx';
 
 export function ConvoScreen({
   userId,
@@ -118,30 +118,18 @@ export function ConvoScreen({
   }
 
   if (live.status.phase === 'error') {
-    const micDenied = !textMode && /microphone/i.test(live.status.message);
+    // A microphone problem is a situation, not a dead end: the same tutor, the
+    // same scene, typed instead of spoken. Which failures those are is the
+    // taxonomy's business now, rather than a regex over the rendered sentence.
+    // Already typing means typing is no longer an offer worth making.
     return (
-      <View style={st.center}>
-        <Label color={paper.inkFaint}>Connection problem</Label>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
-          {live.status.message}
-        </Text>
-        {micDenied ? (
-          // A denied microphone is a situation, not a dead end: the same
-          // tutor, the same scene, typed instead of spoken.
-          <>
-            <View style={st.terminalAction}>
-              <PillButton label="Continue by typing" onPress={() => setTextMode(true)} />
-            </View>
-            <View style={st.terminalSecondary}>
-              <GhostButton label="Back" onPress={onExit} />
-            </View>
-          </>
-        ) : (
-          <View style={st.terminalAction}>
-            <OutlineButton label="Back" onPress={onExit} />
-          </View>
-        )}
-      </View>
+      <LiveErrorView
+        failure={live.status.failure}
+        message={live.status.message}
+        diagnostics={live.diagnostics}
+        onBack={onExit}
+        onType={textMode ? undefined : () => setTextMode(true)}
+      />
     );
   }
 
@@ -213,9 +201,18 @@ export function ConvoScreen({
   }
 
   if (!view) {
+    // An open room and a silent tutor. The hook's watchdog ends this state one
+    // way or the other; until it does there are words and a door, which is
+    // exactly what a down agent used to look like without either.
     return (
       <View style={st.center}>
         <ActivityIndicator color={paper.inkSoft} />
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>
+          {live.waitingForTutor ? 'Waiting for your tutor…' : 'One moment…'}
+        </Text>
+        <View style={st.terminalAction}>
+          <GhostButton label="Leave" onPress={leaveNow} />
+        </View>
       </View>
     );
   }
@@ -408,7 +405,6 @@ const st = StyleSheet.create({
   center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
   listen: { minHeight: HIT, paddingHorizontal: space(5), paddingTop: space(3) },
   terminalAction: { marginTop: space(6), alignSelf: 'stretch' },
-  terminalSecondary: { marginTop: space(2), alignSelf: 'stretch' },
   header: { paddingBottom: space(3) },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   leave: { minHeight: HIT, justifyContent: 'center', paddingLeft: space(3) },
