@@ -139,10 +139,31 @@ function feedbackMessage(verdict: DrillVerdict, closest: string | null): string 
  * the bank cannot drill is skipped without comment; the flashcard deck still
  * covers it.
  */
-export function buildDrillSession(deck: readonly ReviewCard[], bank: readonly DrillExercise[], now: number): DrillSessionState {
+export function buildDrillSession(
+  deck: readonly ReviewCard[],
+  bank: readonly DrillExercise[],
+  now: number,
+  opts?: {
+    /**
+     * Restrict the sitting to these phrases — one node of the practice path.
+     * Omitted, the whole deck plays, so every existing two- and three-argument
+     * call behaves exactly as before.
+     */
+    only?: readonly string[];
+  },
+): DrillSessionState {
+  // The filter is applied to the DECK, before `dueCards`, and that ordering is
+  // the whole point. `dueCards` takes the most overdue twenty across the entire
+  // deck; filtering after it would let twenty unrelated overdue cards fill the
+  // cap and leave a node's own phrases out of its own sitting. On a small dev
+  // deck that bug is invisible, and on a real one it is the only behaviour.
+  const scope = opts?.only;
+  const scopedDeck = scope ? deck.filter((c) => scope.includes(c.id)) : deck;
+  const scopedBank = scope ? bank.filter((e) => scope.includes(e.phraseKey)) : bank;
+
   const queue: DrillExercise[] = [];
-  for (const card of dueCards(deck, now)) {
-    const forPhrase = bank.filter((e) => e.phraseKey === card.id);
+  for (const card of dueCards(scopedDeck, now)) {
+    const forPhrase = scopedBank.filter((e) => e.phraseKey === card.id);
     if (forPhrase.length === 0) continue;
     queue.push(pickForStage(forPhrase, stageForReps(card.reps)));
   }
@@ -153,13 +174,13 @@ export function buildDrillSession(deck: readonly ReviewCard[], bank: readonly Dr
   // skipped entirely once a real review load exists: introduction gives way
   // to maintenance, never competes with it.
   if (queue.length < NEW_PHRASES_PER_SESSION) {
-    const known = new Set(deck.map((card) => card.id));
+    const known = new Set(scopedDeck.map((card) => card.id));
     const queued = new Set(queue.map((exercise) => exercise.phraseKey));
-    for (const exercise of bank) {
+    for (const exercise of scopedBank) {
       if (queue.length >= NEW_PHRASES_PER_SESSION) break;
       if (known.has(exercise.phraseKey) || queued.has(exercise.phraseKey)) continue;
       queued.add(exercise.phraseKey);
-      const forPhrase = bank.filter((e) => e.phraseKey === exercise.phraseKey);
+      const forPhrase = scopedBank.filter((e) => e.phraseKey === exercise.phraseKey);
       queue.push(pickForStage(forPhrase, DRILL_STAGES[0]!));
     }
   }

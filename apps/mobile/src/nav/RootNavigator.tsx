@@ -137,9 +137,10 @@ function ConvoRoute() {
 
 function DrillRoute() {
   const nav = useNavigation<{ goBack: () => void }>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Drill'>>();
   const { user } = useAuth();
   if (!user) return <Loading />;
-  return <DrillScreen userId={user.id} onDone={() => nav.goBack()} />;
+  return <DrillScreen userId={user.id} node={route.params?.node} onDone={() => nav.goBack()} />;
 }
 
 function ReviewRoute() {

@@ -27,6 +27,11 @@ export type RootStackParamList = {
   Lesson: undefined;
   /** Free conversation. `textMode` opens it with the voice pipeline dark. */
   Convo: { textMode?: boolean } | undefined;
-  Drill: undefined;
+  /**
+   * One node of the practice path, or the whole deck when omitted. The node
+   * is plain data — id, title and phrase keys — so navigation state stays
+   * serialisable.
+   */
+  Drill: { node?: { id: string; title: string; phraseKeys: readonly string[] } } | undefined;
   Review: undefined;
 };

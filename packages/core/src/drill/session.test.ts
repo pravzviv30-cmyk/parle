@@ -355,3 +355,37 @@ describe('new material — the first-open problem', () => {
     }
   });
 });
+
+describe('a sitting scoped to one path node', () => {
+  const NOW = new Date(2026, 0, 15, 12).getTime();
+  const DAY = 86_400_000;
+  const mk = (id: string, due: number): ReviewCard => ({
+    id, kind: 'turn', front: id, back: id, context: '', ipa: '',
+    addedAt: NOW - 30 * DAY, due, reps: 2, ease: 2.5, intervalDays: 3, lapses: 0,
+  });
+
+  test('only the node’s own phrases play', () => {
+    const only = ['phrase:merci beaucoup'];
+    const deck = [mk('phrase:merci beaucoup', NOW - DAY), mk('phrase:santé !', NOW - DAY)];
+    const session = buildDrillSession(deck, DRILL_FIXTURES, NOW, { only });
+    assert.ok(session.queue.length > 0);
+    assert.ok(session.queue.every((e) => only.includes(e.phraseKey)));
+  });
+
+  test('a node’s due phrase survives a deck full of unrelated overdue cards', () => {
+    // The bug the deck-before-dueCards ordering prevents: DUE_CAP is applied
+    // overdue-first across the whole deck, so filtering afterwards would let
+    // twenty strangers crowd out the one phrase the learner tapped.
+    const flood = Array.from({ length: 40 }, (_, i) => mk(`phrase:other-${i}`, NOW - (100 + i) * DAY));
+    const deck = [...flood, mk('phrase:merci beaucoup', NOW - DAY)];
+    const session = buildDrillSession(deck, DRILL_FIXTURES, NOW, { only: ['phrase:merci beaucoup'] });
+    assert.ok(session.queue.some((e) => e.phraseKey === 'phrase:merci beaucoup'));
+  });
+
+  test('omitting the option leaves every existing call unchanged', () => {
+    const deck = [mk('phrase:merci beaucoup', NOW - DAY), mk('phrase:santé !', NOW - DAY)];
+    const before = buildDrillSession(deck, DRILL_FIXTURES, NOW);
+    const after = buildDrillSession(deck, DRILL_FIXTURES, NOW, {});
+    assert.deepEqual(after.queue.map((e) => e.id), before.queue.map((e) => e.id));
+  });
+});

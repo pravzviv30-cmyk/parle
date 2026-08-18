@@ -1,82 +1,72 @@
 /**
- * Practice — everything that is not a conversation.
+ * Practice — the path.
  *
- * The guided café lesson, the review deck when cards are due, and the drill
- * bank, which is always open. The lesson lives here rather than under Tutor
- * because it is scripted content, not the tutor: Tutor is the thing that talks
- * back.
+ * Two authored units over the phrases the bank can actually drill, plus one
+ * that fills itself from the learner's own conversations. Node state is read
+ * from the review deck rather than stored, so the map and the scheduler can
+ * never disagree about whether something has been learned.
  *
- * The lesson path/map lands on this screen next. What is here now is the honest
- * shape of today's content — one lesson and one bank — rather than a map with
- * nothing on it.
+ * Honest about its length. The repo holds one lesson and one fixture bank, so
+ * this is seven authored stops and no more; a longer map would be empty rooms.
+ * The terminus says where the rest comes from, because that is true and it is
+ * also the product's whole argument.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { CAFE_LESSON } from '@parle/core';
+import { buildPath, CAFE_LESSON, type PathUnit } from '@parle/core';
 import { paper, space, type } from '../theme.ts';
-import { Card, Label, PillButton, OutlineButton } from '../components.tsx';
-import { LearnStack } from '../illustrations.tsx';
+import { Card, Label, OutlineButton } from '../components.tsx';
+import { PathNodeRow } from '../practice/PathNodeRow.tsx';
+import { loadDeck } from '../review/store.ts';
+import { loadDrillBank } from '../drill/store.ts';
+import { lastSummaryFor } from '../progress/store.ts';
 import { dueCount } from '../review/store.ts';
-import { hasGeneratedExercises } from '../drill/store.ts';
 import { useLive } from '../app/LiveContext.tsx';
 
 export function PracticeTab() {
   const insets = useSafeAreaInsets();
-  const nav = useNavigation<{ navigate: (screen: string) => void }>();
+  const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { recheck } = useLive();
 
+  const [units, setUnits] = useState<PathUnit[] | null>(null);
   const [due, setDue] = useState(0);
-  const [curated, setCurated] = useState(false);
 
-  // Re-read on every return to the tab: finishing a sitting must be able to
-  // clear the count, and the tab is not remounted between visits.
+  // Rebuilt on every return: a sitting that just finished must be visible on
+  // the map the moment the learner lands back on it.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void dueCount().then((n) => {
-        if (!cancelled) setDue(n);
-      });
-      void hasGeneratedExercises().then((has) => {
-        if (!cancelled) setCurated(has);
-      });
+      void Promise.all([loadDeck(), loadDrillBank(), lastSummaryFor(CAFE_LESSON.id), dueCount()]).then(
+        ([deck, bank, lastLesson, dueNow]) => {
+          if (cancelled) return;
+          setUnits(buildPath(deck, bank, { lessonDone: lastLesson !== null }, Date.now()));
+          setDue(dueNow);
+        },
+      );
       return () => {
         cancelled = true;
       };
     }, []),
   );
 
+  const open = (node: { id: string; kind: string; title: string; phraseKeys: readonly string[] }) => {
+    if (node.kind === 'lesson') {
+      void recheck().then(() => nav.navigate('Lesson'));
+      return;
+    }
+    nav.navigate('Drill', { node: { id: node.id, title: node.title, phraseKeys: node.phraseKeys } });
+  };
+
   return (
     <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
+      <Text style={[type.title, { color: paper.ink }]}>Practice</Text>
+
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
-        <View style={st.hero}>
-          <LearnStack width={170} />
-        </View>
-
-        <Text style={st.headline}>Practice</Text>
-        <Text style={st.subline}>
-          {curated
-            ? 'Fresh exercises, written by your tutor from your own conversations.'
-            : 'Your conversations write these. The starter set is ready meanwhile.'}
-        </Text>
-
-        <Card style={{ marginTop: space(5) }}>
-          <Label>The guided lesson</Label>
-          <Text style={[type.french, { color: paper.ink, marginTop: space(2) }]}>{CAFE_LESSON.title}</Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{CAFE_LESSON.premise}</Text>
-          <View style={{ marginTop: space(3) }}>
-            <OutlineButton
-              label="Start the lesson"
-              sub="Guided, about five minutes"
-              onPress={() => void recheck().then(() => nav.navigate('Lesson'))}
-            />
-          </View>
-        </Card>
-
         {due > 0 && (
-          <View style={{ marginTop: space(4) }}>
+          <View style={{ marginBottom: space(6) }}>
             <OutlineButton
               label="Review"
               sub={due === 1 ? '1 card is ready' : `${due} cards are ready`}
@@ -85,9 +75,26 @@ export function PracticeTab() {
           </View>
         )}
 
-        <View style={st.actions}>
-          <PillButton label="Start practice" onPress={() => nav.navigate('Drill')} />
-        </View>
+        {units?.map((unit) => (
+          <View key={unit.id} style={{ marginBottom: space(7) }}>
+            <Label>{unit.title}</Label>
+            <View style={{ marginTop: space(3), gap: space(2.5) }}>
+              {unit.nodes.map((node) => (
+                <PathNodeRow key={node.id} node={node} onPress={() => open(node)} />
+              ))}
+            </View>
+          </View>
+        ))}
+
+        <Card>
+          <Label>The rest of this path</Label>
+          <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>
+            Your conversations write the rest of this.
+          </Text>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
+            Every time you talk to your tutor, it writes practice from what you actually said, and it lands here.
+          </Text>
+        </Card>
       </ScrollView>
     </View>
   );
@@ -95,9 +102,5 @@ export function PracticeTab() {
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(3) },
-  hero: { alignItems: 'center', marginBottom: space(4) },
-  headline: { ...type.display, color: paper.ink, textAlign: 'center' },
-  subline: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
-  actions: { marginTop: 'auto', paddingTop: space(6) },
+  scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(4) },
 });
