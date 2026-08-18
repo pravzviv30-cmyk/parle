@@ -15,7 +15,7 @@ import { useEffect, useRef } from 'react';
 import { View, Text, Animated, Easing, StyleSheet, AccessibilityInfo } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Ellipse, G } from 'react-native-svg';
-import { paper, space, type, STROKE } from '../theme.ts';
+import { paper, space, type, STROKE, decorative } from '../theme.ts';
 import { PillButton } from '../components.tsx';
 
 /** The still art is a 200x150 viewBox drawn at 1.3x. */
@@ -41,7 +41,7 @@ const SCENE_H = 195;
 function Scene({ steam, bubbleA, bubbleB }: { steam: Animated.Value; bubbleA: Animated.Value; bubbleB: Animated.Value }) {
   return (
     <View style={st.scene}>
-      <Svg width={SCENE_W} height={SCENE_H} viewBox="0 0 200 150" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width={SCENE_W} height={SCENE_H} viewBox="0 0 200 150" {...decorative}>
         <G fill="none" stroke={paper.ink} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
           {/* the table, tilted a degree or two and holding still */}
           <Ellipse cx={86} cy={104} rx={60} ry={13} transform="rotate(-2 86 104)" />
@@ -71,7 +71,7 @@ function Scene({ steam, bubbleA, bubbleB }: { steam: Animated.Value; bubbleA: An
           },
         ]}
       >
-        <Svg width={44} height={44} viewBox="0 0 44 44">
+        <Svg width={44} height={44} viewBox="0 0 44 44" {...decorative}>
           <G fill="none" stroke={paper.ink} strokeWidth={STROKE} strokeLinecap="round">
             <Path d="M15 38c-3.4-7 3.4-10.5 0-17.5" />
             <Path d="M29 38c3.4-7-3.4-10.5 0-17.5" />
@@ -81,7 +81,7 @@ function Scene({ steam, bubbleA, bubbleB }: { steam: Animated.Value; bubbleA: An
 
       {/* Two bubbles over the table, arriving one after the other. */}
       <Animated.View style={[st.bubbleA, bubbleStyle(bubbleA)]}>
-        <Svg width={62} height={50} viewBox="0 0 62 50">
+        <Svg width={62} height={50} viewBox="0 0 62 50" {...decorative}>
           <G fill="none" stroke={paper.ink} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
             <Path d="M9 5h44a6 6 0 0 1 6 6v16a6 6 0 0 1-6 6H24l-9 8v-8H9a6 6 0 0 1-6-6V11a6 6 0 0 1 6-6Z" />
             <Circle cx={22} cy={19} r={1.9} fill={paper.ink} stroke="none" />
@@ -91,7 +91,7 @@ function Scene({ steam, bubbleA, bubbleB }: { steam: Animated.Value; bubbleA: An
         </Svg>
       </Animated.View>
       <Animated.View style={[st.bubbleB, bubbleStyle(bubbleB)]}>
-        <Svg width={54} height={46} viewBox="0 0 54 46">
+        <Svg width={54} height={46} viewBox="0 0 54 46" {...decorative}>
           <G fill="none" stroke={paper.ink} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
             <Path d="M45 5H9a6 6 0 0 0-6 6v14a6 6 0 0 0 6 6h22l9 7v-7h5a6 6 0 0 0 6-6V11a6 6 0 0 0-6-6Z" />
             {/* the solid accent, and the only one in the scene */}

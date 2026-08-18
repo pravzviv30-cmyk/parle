@@ -13,11 +13,11 @@
  */
 
 import Svg, { Path, Circle, Ellipse, G } from 'react-native-svg';
-import { paper, STROKE } from './theme.ts';
+import { paper, STROKE, decorative } from './theme.ts';
 
 function Frame({ width = 200, children }: { width?: number; children: React.ReactNode }) {
   return (
-    <Svg width={width} height={width * 0.75} viewBox="0 0 200 150" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <Svg width={width} height={width * 0.75} viewBox="0 0 200 150" {...decorative}>
       <G fill="none" stroke={paper.ink} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
         {children}
       </G>

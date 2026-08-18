@@ -12,6 +12,8 @@
  * and type that respects the OS reading size.
  */
 
+import { Platform } from 'react-native';
+
 export const paper = {
   /** The page itself. Everything sits directly on this. */
   ground: '#F3E8F3',
@@ -121,3 +123,25 @@ export const HAIRLINE = 1;
 
 /** Minimum tappable size. iOS HIG floor, enforced on every control. */
 export const HIT = 44;
+
+/**
+ * Hides decorative art from assistive tech. Spread onto any illustration.
+ *
+ * The scenes carry no information the surrounding text does not already say,
+ * so a screen reader should walk straight past them rather than announce an
+ * unlabelled image.
+ *
+ * Three platforms, three spellings: iOS reads `accessibilityElementsHidden`,
+ * Android reads `importantForAccessibility`, and the web needs `aria-hidden`.
+ * Sending the React Native pair to the web is not merely useless — react-native-svg
+ * forwards unknown props straight onto the DOM node, and React rejects both as
+ * invalid attributes, so every illustration logged two console errors.
+ */
+export const decorative: {
+  'aria-hidden'?: boolean;
+  accessibilityElementsHidden?: boolean;
+  importantForAccessibility?: 'no-hide-descendants';
+} =
+  Platform.OS === 'web'
+    ? { 'aria-hidden': true }
+    : { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' };
