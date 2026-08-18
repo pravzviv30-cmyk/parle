@@ -181,11 +181,3 @@ audio — not your own — before trusting any of the pronunciation output.
 **2. Cost per session.** Premium voice is ~60% of the per-minute cost. The model in
 `packages/core/src/metering/meter.ts` is instrumented and tested; reconcile it
 against real vendor bills in week one, not month three.
-
----
-
-## A note on the path
-
-This repo lives at a path containing a space (`Language Speaker`). Web and EAS cloud
-builds handle it, but local native tooling historically does not. Renaming to a
-space-free directory before the first local iOS build is cheap insurance.
