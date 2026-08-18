@@ -34,8 +34,11 @@ packages/core/       Pure TypeScript. No network, no mic, no keys. 338 tests.
   lessons/           "Commander un café" (A0, 12 turns)
   session/           Ties the above together
   metering/          Usage limits and the unit-economic model
+packages/brain/      The tutor brain: prompts, engine, routing, learner model
 apps/mobile/         Expo app → iOS, Android, web from one codebase
-services/tutor-agent/  LiveKit Agents worker (Node) — voice pipeline
+services/tutor-agent/    LiveKit Agents worker (Node) — voice pipeline
+services/token-server/   Session credentials, metering gate, drill scoring
+services/brain-playground/  Terminal chat + the AI-quality eval suites
 ```
 
 `packages/core` is deliberately platform-free so the app **and** the tutor agent run
@@ -57,9 +60,24 @@ npm install
 npm run web
 ```
 
-Then: tap **Monter dans le train**, and — this is the point — *say nothing for four
+First open: create an account (with no Supabase configured, accounts live in a
+local on-device store — any email works, and the Google button signs into a dev
+account instantly), answer the four onboarding questions, then on the **Speak**
+tab tap **Start the lesson** — and, this is the point, *say nothing for four
 seconds*. The tutor steps in, drops a rung, and offers you the line. It never
 comments on the pause.
+
+### Accounts (optional Supabase)
+
+Real accounts are one env file away. Create a Supabase project, then in
+`apps/mobile/.env` set `EXPO_PUBLIC_SUPABASE_URL` and
+`EXPO_PUBLIC_SUPABASE_ANON_KEY` (see `.env.example`). Email/password works
+immediately. For Google sign-in, enable the Google provider in the Supabase
+dashboard and allow-list the redirect URLs you use: your web origin
+(`http://localhost:8090`), `parle://auth/callback` for a dev/store build, and
+the `exp://…/--/auth/callback` URL Expo Go prints. To make the token server
+*verify* users instead of trusting the client, set `SUPABASE_URL` (or the
+legacy `SUPABASE_JWT_SECRET`) in `services/token-server/.env`.
 
 Run the test suite:
 
@@ -114,13 +132,14 @@ npm run dev --workspace=@parle/tutor-agent
 npm run web
 ```
 
-The start screen shows **EN DIRECT** when the token server is reachable and the
-session runs over LiveKit; otherwise it falls back to **DÉMO** (the mock pipeline)
-automatically. The agent is authoritative: it owns the ladder and lesson state and
-the app renders what it is sent over the data channel (`packages/core/src/protocol/`).
-Metering is enforced at token issuance — an out-of-minutes learner gets a 402 and
-the TERMINUS screen, and consumed seconds are debited by the agent when the room
-closes, so killing the app does not dodge the meter.
+The home screen runs **Live** when the token server is reachable and the
+session runs over LiveKit; otherwise it shows a small **Demo** label and falls
+back to the mock pipeline automatically. The agent is authoritative: it owns the
+ladder and lesson state and the app renders what it is sent over the data
+channel (`packages/core/src/protocol/`). Metering is enforced at token
+issuance — an out-of-minutes learner gets a 402 and the out-of-minutes screen,
+and consumed seconds are debited by the agent when the room closes, so killing
+the app does not dodge the meter.
 
 ---
 

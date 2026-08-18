@@ -1,141 +1,139 @@
 # Design
 
 <!-- Recorded from the built artifact, not from intentions. Every value below is
-     read out of apps/mobile/src/theme.ts and the screens as shipped. -->
+     read out of apps/mobile/src/theme.ts and the screens as shipped. The
+     previous design system (enamel wayfinding, dark Métro-plaque green) lives
+     in full at the repo's baseline commit. -->
 
 ## The world
 
-**Enamel wayfinding.** The Paris street plaque and the Métro sign: a deep bottle-green
-vitreous enamel field, a struck white rim with a real bevel, a thin inner keyline, and
-white caps on generous tracking.
+**Paper & ink.** A picture book for adults: pale lilac paper, warm black ink,
+hand-drawn line-art illustrations, a serif that speaks and a sans that stays out
+of the way. Flat white cards on a hairline rule; one solid ink pill per screen.
 
-Chosen because it is a *wayfinding* system, and scaffolding is wayfinding — you are
-here, go this way. Enamel signs are calm and authoritative. They never panic and never
-scold; they orient you and then get out of the way. That is the exact behaviour the
-product contractually requires of its tutor.
+Chosen because the product asks a nervous adult to speak out loud twice a day,
+and the surface that earns that is calm, friendly and professional — easy on the
+eye, easy to come back to. It is the consumer language-app register (the founder
+pointed at Babbel's stack screens) executed with our own pen.
 
-It also happens to be the graphic system the learner will be standing in front of,
-lost, when they finally reach France.
-
-Deliberately **not**: gamified cartoon green with confetti (the category default), and
-not calm cream-and-serif "mindful learning" (its predictable opposite).
-
-Direction seed key `160dc64e`, candidate 3 of 7.
+What did **not** change from the enamel era, because it is behaviour rather than
+surface: one primary action per screen; support colours that visibly cool as
+help is withdrawn; the red live microphone; no scores and no scolding
+mid-session; 44pt touch floors; type that respects the OS reading size.
 
 ## Colour
 
-Dark, and not by category habit. The use scene decides it: an adult on a dim evening
-train, phone at chest height, headphones in, slightly self-conscious about speaking
-aloud. Deep green also *is* the plaque colour, so the ground and the material agree.
-
-Strategy: **Committed** — one saturated field owns the surface, the way a real plaque
-does. Not neutrals-plus-accent.
+Light, and committed to one paper. Tokens from `apps/mobile/src/theme.ts`:
 
 | Token | Value | Role |
 |---|---|---|
-| `enamel.ground` | `#08221A` | Page ground — a plaque in shadow |
-| `enamel.field` | `#0F3B2C` | The plaque body |
-| `enamel.fieldRaised` | `#154836` | A raised plaque, one step up |
-| `enamel.white` | `#F2EFE4` | Enamel white — warm, never pure |
-| `enamel.whiteMuted` | `#A9C4B6` | Secondary text, tinted from the field's hue |
-| `enamel.whiteFaint` | `#6E9384` | Tertiary — counts, IPA, tags |
+| `paper.ground` | `#F3E8F3` | The page — everything sits directly on it |
+| `paper.groundDeep` | `#EAD9EA` | Pressed states, chips, the tab track |
+| `paper.card` | `#FFFFFF` | Card surface, flat |
+| `paper.ink` | `#1A141E` | Near-black ink, a whisper of violet |
+| `paper.inkSoft` | `#5F5566` | Secondary text |
+| `paper.inkFaint` | `#92879A` | Tertiary — counts, placeholders, IPA |
+| `paper.line` | `#DCCEDC` | Hairline rule on the ground |
+| `paper.lineOnCard` | `#EAE0EA` | Hairline divider inside a card |
+| `paper.onInk` | `#FFF9F2` | Text on an ink control — warm, never pure |
 
-Secondary text is tinted green from the ground rather than greyed, so it stays part of
-the same material.
+### Support colours still cool as help is withdrawn
 
-### Rung colours are real RATP line colours
-
-Not invented. Support visibly *cools* as it is withdrawn — hot yellow while the tutor
-carries the learner, plain enamel white once they are on their own.
-
-| Rung | Colour | Line | Meaning |
-|---|---|---|---|
-| 1 Echo | `#FFCD00` | Ligne 1 | Repeat after the tutor |
-| 2 Cued | `#FF7E2E` | Ligne 5 | Choose a reply and say it |
-| 3 Prompted | `#6EC4E8` | Ligne 13 | Say it in your own words |
-| 4 Free | `#F2EFE4` | — | No line left to follow |
+| Rung | Colour | Meaning |
+|---|---|---|
+| 1 Echo | `#FFCD00` | Repeat after the tutor |
+| 2 Cued | `#FF7E2E` | Choose a reply and say it |
+| 3 Prompted | `#6EC4E8` | Say it in your own words |
+| 4 Free | `#1A141E` | Plain ink — no line left to follow |
 
 ### Signals
 
-Kept out of the rung set so state never reads as a rung.
-`correspondance #CF009E` (where you change lines to fix a sound) ·
-`good #6ECA97` · `live #FF4B3E` (the microphone).
+Kept out of the rung set so state never reads as a rung:
+`live #FF4B3E` (the microphone) · `good #1E8A5B` · `correspondance #B4008A`
+(both darkened from the enamel era to hold on white cards).
 
 ## Type
 
-**Archivo**, self-hosted, four weights (400/600/700/800). A grotesque with genuine
-signage character — the system sans would have been a failure, not a fallback.
+**Fraunces** (SemiBold/Bold, the 72pt optical statics) carries anything with a
+voice: screen headlines, big stats, and **every French line the learner reads**,
+always sentence case, never caps. **DM Sans** (Regular/Medium/Bold) is the
+furniture. Both OFL, committed in `assets/fonts/` with their licences.
 
-Plaque lettering is ExtraBold, uppercase, `letterSpacing 1.6`, and **steps down by
-line length** (30 → 24 → 19pt) because a real sign is cut to fit its longest word.
-Nothing disables `allowFontScaling`, so everything respects the OS reading size.
-
-| Style | Size / tracking | Use |
+| Style | Face / size | Use |
 |---|---|---|
-| `plaque` | 30 / 1.6 | The line to say |
-| `plaqueSmall` | 21 / 1.1 | Section heads, stat values |
-| `heading` | 19 / 0.6 | Drill titles |
-| `tag` | 11 / 1.8 | Stencilled caps tags |
-| `body` | 16 | Prose |
-| `notation` | 14 / 0.4 | IPA — real notation, not mono-as-costume |
+| `display` | Fraunces Bold 32 | Screen headline |
+| `title` | Fraunces 24 | Section head, big stat |
+| `frenchLg` | Fraunces 28 | The line to say (`fitDisplay()` steps 28 → 24 → 20 by length) |
+| `french` | Fraunces 21 | Inline French — options, cards, chips |
+| `heading` | DM Sans Bold 17 | Screen titles in chrome |
+| `body` / `bodyStrong` | DM Sans 16 | Prose |
+| `small` | DM Sans 13.5 | Secondary lines |
+| `label` | DM Sans Bold 11.5, caps, 1.2 tracking | Micro-labels above cards |
+| `button` | DM Sans Bold 16 | Pill and outline lettering |
+| `notation` | DM Sans Medium 14 | IPA — real notation, not mono-as-costume |
 
-## The plaque
+## Surfaces and controls
 
-The one component everything else derives from. Anatomy, outside in: **raised white
-rim (3px) → green gap → thin white keyline (1px) → content.** The bevel is an offset,
-softly-blurred shadow (`0 6px 14px`, raised `0 10px 22px`), never a zero-offset halo.
-Corner radius 5 — real plaques are almost square.
+- **Card** — white, radius 14, one hairline `paper.line` rule, flat. No shadows
+  anywhere except the live microphone's glow.
+- **PillButton** — the one primary action: solid ink pill, warm-white label,
+  52pt tall.
+- **OutlineButton / GhostButton** — the seconds: white pill with an ink rule, or
+  bare text at full touch height.
+- **OptionCard** — a tappable choice: French in the serif, English gloss under,
+  quiet arrow, optional replay ear. Selection is a heavier ink rule.
+- **Chip, Field, TabBar, ProgressDots** — chips fill `groundDeep`; inputs are
+  white with a 1.5 rule that turns ink on focus; the Home tabs are a soft track
+  with a white active pill; onboarding dots stretch the current page.
+- **SpeakCircle** — THE microphone: one 108pt circle used by every speaking
+  surface. Red-ringed when waiting, red-filled (with the app's only shadow)
+  when live, hairline-muted when the tutor holds the floor.
+- **Icons** — authored SVG at the illustration stroke (2.2), ink by default.
+  The Google mark is a monochrome line-art G: no brand-colour asset in v1.
 
-Two tones carry a real distinction: **green is permanent wayfinding** (the line to
-say), **white is a temporary notice** (the rung-3 English instruction). The material
-change tells the learner the information has a different status.
+## Illustrations
 
-## Components
+Authored inline SVG in `src/illustrations.tsx`, one style contract stated in
+the file header: ink stroke 2.2 round-capped, `fill="none"` except tiny solid
+accents (a beret, a flame, a heart — a tenth of a scene at most), stipple-dot
+shading, deliberately quirky proportions, viewBox 200×150, no second colour —
+the paper shows through. Eight scenes: café hero, name tag, birthday cake,
+suitcase, winged clock, clinking speech bubbles, sprouting word cards, postcard.
 
-- **Line bullet** — Métro roundel, 26pt, numeral flips dark on light fills.
-- **Station line** — the lesson as a line, one stop per turn, current stop struck
-  larger with a ground-coloured ring.
-- **Direction plaque** — a rung-2 option with an RATP arrow. Min height 56pt.
-- **Speak control** — 108pt circle, red when live with a matching coloured shadow,
-  hollow and muted when the tutor holds the floor.
-- **Icons** — authored SVG at a consistent 2.1 stroke. No glyphs, no emoji. The arrow
-  is the RATP solid head on a short thick shaft.
+## Structure
 
-## Spacing
+Sign-in gate (Welcome / Create account / Sign in) → four onboarding pages →
+**Home with two tabs**: *Speak* (the conversation and the guided lesson that
+unlocks it; "Unable to speak right now?" at the bottom opens the same tutor in
+text mode) and *Learn* (tutor-picked practice: review deck when due, the drill
+bank always, a starter framing until generated exercises land). Screens are a
+hand-rolled discriminated union in `App.tsx` — still no navigation library.
 
-4pt base (`space(n) = n * 4`). Tight inside a group, generous between. Screen gutter
-`space(5)` = 20pt.
-
-## Platform
-
-iOS HIG governs structure; the world expresses through tint, type, surface and
-content. Safe-area insets on every screen. **44pt minimum** on every tappable control
-(the `aide-moi` affordance and the drill CTA are sized to it explicitly). On web the
-app is constrained to a **460pt centred column** — it is a phone app that also runs in
-a browser, not a stretched web page.
+On web the app is a **460pt centred column**: a phone app that also runs in a
+browser, not a stretched web page.
 
 ## Copy
 
-French for the product's own furniture (`SORTIE`, `CORRESPONDANCE`, `PARLEZ`,
-`aide-moi`, `VOTRE CARNET`), and every French label carries its plain English
-meaning beside or beneath it, via the `LabeledTag` component or an inline
-`FRENCH · ENGLISH` pairing on buttons. The chrome stays part of the immersion and a
-beginner is never left guessing what a control does.
+**Chrome is plain English.** Sentence case on buttons; the caps look lives only
+in the micro-`label`. French appears exactly where it is content: tutor lines,
+lesson text, phrases and their glosses, topic chips (fr + en), review fronts,
+register vocabulary — and the single flourish "Bonjour, {name}" on Home, which
+is lesson-one vocabulary. The old FRENCH · ENGLISH paired furniture is retired.
 
-Prose rules, enforced by `packages/core/src/copy.test.ts`: no em dashes anywhere a
-learner reads, short plain sentences, no filler words. The tutor LLM carries the
-same rules in its prompt.
+Prose rules, unchanged and still enforced by `packages/core/src/copy.test.ts`
+for core content: no em dashes where a learner reads, short plain sentences.
 
-Two hard rules, enforced by tests rather than by review:
+Two hard rules, held from the enamel era:
 
-- **No mid-session message contains a number.** Scores make a beginner
-  self-conscious about speaking, which is the one thing the product cannot afford.
-- **No mid-session message scolds.** No "wrong", "bad", "failed", "incorrect". A
-  rescue reads *"Let's take that one together."*
+- **No mid-session message contains a number.** End cards may count; a session
+  may not score.
+- **No mid-session message scolds.** No "wrong", "bad", "failed", "incorrect".
+  A rescue reads *"Let's take that one together."*
 
 ## What has no design yet
 
-Motion. There is no authored transition between rungs, and the ladder changing shape —
-plaque to options to notice — is currently instant. That change is the product's most
-meaningful state transition and it deserves one orchestrated moment. It is the first
-thing to add, not more colour.
+Motion, still. There is no authored transition between rungs or pages — the
+support block changing shape remains the product's most meaningful state change
+and it deserves one orchestrated moment. It survived the restyle as the first
+thing to add next. The app icon and splash artwork are also still the enamel
+era's placeholders on paper-coloured ground.
