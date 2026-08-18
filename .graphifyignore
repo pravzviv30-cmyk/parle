@@ -1,0 +1,12 @@
+# Excluded from the knowledge graph — no semantic content worth extracting.
+# .gitignore is already honoured automatically (node_modules, ios, android, .tts-cache).
+
+# Font license boilerplate (SIL OFL text, identical upstream legal text)
+apps/mobile/assets/fonts/OFL-*.txt
+
+# App icons and splash art — raster assets with no extractable concepts.
+# The design rationale that matters lives in DESIGN.md, which IS graphed.
+apps/mobile/assets/*.png
+
+# Instructions to the graph tool itself; self-referential.
+CLAUDE.md

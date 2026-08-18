@@ -1,0 +1,8 @@
+# graphify machine-written artifacts — kept out of context to avoid
+# invalidating Claude Code's prompt cache on every graph rebuild.
+# GRAPH_REPORT.md is deliberately NOT ignored: it is the human-readable map.
+# graph.json is consumed via `graphify query/path/explain`, not by reading it.
+graphify-out/cache/
+graphify-out/graph.json
+graphify-out/cost.json
+graphify-out/graph.html
