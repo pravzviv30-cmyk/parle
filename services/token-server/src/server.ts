@@ -13,6 +13,7 @@ import { PLANS, buildReport, secondsRemaining } from '@parle/core';
 import { scoreUtterance } from '../../shared/speechace.ts';
 import { InMemoryEntitlementStore, type EntitlementStore } from './store.ts';
 import { grantSession, type TokenConfig } from './tokens.ts';
+import { createUserResolver } from './auth.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
 
@@ -35,6 +36,13 @@ const config: TokenConfig = {
 };
 const livekitUrl = requiredEnv('LIVEKIT_URL');
 const store: EntitlementStore = new InMemoryEntitlementStore();
+
+// Optional Supabase verification. Absent, the server trusts asserted userIds
+// exactly as it always has — the keyless dev path.
+const users = createUserResolver({
+  jwtSecret: process.env.SUPABASE_JWT_SECRET,
+  supabaseUrl: process.env.SUPABASE_URL,
+});
 
 function json(res: ServerResponse, status: number, body: unknown): void {
   const payload = JSON.stringify(body);
@@ -97,7 +105,7 @@ const server = createServer(async (req, res) => {
     res.writeHead(204, {
       'access-control-allow-origin': '*',
       'access-control-allow-methods': 'GET,POST,OPTIONS',
-      'access-control-allow-headers': 'content-type',
+      'access-control-allow-headers': 'content-type, authorization',
     });
     return res.end();
   }
@@ -112,9 +120,11 @@ const server = createServer(async (req, res) => {
     // What the app calls to begin. Returns credentials, or 402 with the reason.
     if (req.method === 'POST' && url.pathname === '/session/start') {
       const body = await readJson(req);
-      const userId = typeof body.userId === 'string' && body.userId ? body.userId : null;
+      const asserted = typeof body.userId === 'string' && body.userId ? body.userId : null;
       const lessonId = typeof body.lessonId === 'string' && body.lessonId ? body.lessonId : 'cafe-01';
-      if (!userId) return json(res, 400, { error: 'userId is required' });
+      const resolved = await users.resolve(req.headers.authorization, asserted);
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      const userId = resolved.userId;
 
       // Session-shape hints the app may send. All optional, all validated: an
       // invalid startRung is dropped (grantSession checks integer 1–4), anything
@@ -148,9 +158,11 @@ const server = createServer(async (req, res) => {
     // the phoneme observations plus the ONE focus core selects; the app must
     // never turn this into eleven red bars.
     if (req.method === 'POST' && url.pathname === '/drill/score') {
-      const userId = url.searchParams.get('userId');
       const reference = url.searchParams.get('reference');
-      if (!userId || !reference) return json(res, 400, { error: 'userId and reference are required' });
+      if (!reference) return json(res, 400, { error: 'reference is required' });
+      const resolved = await users.resolve(req.headers.authorization, url.searchParams.get('userId'));
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      const userId = resolved.userId;
       if (!underScoreBudget(userId)) {
         return json(res, 429, { error: 'scoring budget reached', message: 'Enough speaking for today. The drills still listen tomorrow.' });
       }
@@ -166,7 +178,11 @@ const server = createServer(async (req, res) => {
       return json(res, 200, { observations, report });
     }
 
-    // Called when a session ends. Metered seconds are debited here.
+    // Called when a session ends. Metered seconds are debited here. This one
+    // stays body-trusted on purpose: the caller is the tutor agent, server
+    // side, using the identity it read out of the signed join token — there is
+    // no learner bearer token in that path. Follow-up: a shared agent secret
+    // would close the debit-a-stranger griefing hole.
     if (req.method === 'POST' && url.pathname === '/session/end') {
       const body = await readJson(req);
       const userId = typeof body.userId === 'string' ? body.userId : null;

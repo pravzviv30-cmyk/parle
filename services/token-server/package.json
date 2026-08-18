@@ -13,6 +13,7 @@
   "dependencies": {
     "@parle/core": "*",
     "dotenv": "^16.4.7",
+    "jose": "^5.10.0",
     "livekit-server-sdk": "^2.17.0"
   },
   "devDependencies": {
