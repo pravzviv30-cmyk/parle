@@ -22,7 +22,6 @@ import {
   PillButton,
   GhostButton,
   OptionCard,
-  SpeakCircle,
   StationLine,
   EarGlyph,
   HelpGlyph,
@@ -33,6 +32,8 @@ import { RecapScreen } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
+import { VoiceOrb, type OrbState } from './tutor/VoiceOrb.tsx';
+import { Transcript } from './tutor/Transcript.tsx';
 
 export function ConvoScreen({
   userId,
@@ -218,7 +219,15 @@ export function ConvoScreen({
   }
 
   const listening = !live.tutorSpeaking;
-  const reply = view.sceneReply;
+  // The orb says one thing at a time, and thinking outranks everything: the
+  // learner has just spoken and nothing has come back yet.
+  const orbState: OrbState = live.thinking
+    ? 'thinking'
+    : live.tutorSpeaking
+      ? 'speaking'
+      : textMode
+        ? 'idle'
+        : 'listening';
 
   return (
     <View style={st.shell}>
@@ -251,10 +260,15 @@ export function ConvoScreen({
               <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
             </Pressable>
           </View>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{view.beat.goalEn}</Text>
-          <View style={{ marginTop: space(2.5) }}>
+          <View style={{ marginTop: space(2) }}>
             <StationLine total={view.beat.total} index={view.beat.position - 1} />
           </View>
+        </View>
+
+        {/* The tutor, as an object. Toward the top, and the only thing on the
+            screen that moves. */}
+        <View style={st.orbBlock}>
+          <VoiceOrb state={orbState} />
         </View>
 
         {live.notice ? (
@@ -263,28 +277,12 @@ export function ConvoScreen({
           </View>
         ) : null}
 
-        <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
-          {view.narration ? (
-            // The narrator sets the scene and is not a character in it — the
-            // white card marks the different status of what it says.
-            <Card>
-              <Text style={[type.bodyStrong, { color: paper.ink }]}>{view.narration.en}</Text>
-              <Text style={[type.french, { color: paper.inkSoft, marginTop: space(1) }]}>{view.narration.fr}</Text>
-            </Card>
-          ) : null}
+        {/* The conversation so far. Takes what is left and no more — the
+            current turn's support and controls below it are what the learner
+            is acting on. */}
+        <Transcript turns={live.turns} />
 
-          <View style={st.sceneBlock}>
-            <View style={st.sceneHead}>
-              <EarGlyph size={19} color={listening ? paper.inkFaint : paper.ink} />
-              <Label color={listening ? paper.inkFaint : paper.ink}>{reply.speaker}</Label>
-            </View>
-            <Text style={[type.french, { color: paper.ink, marginTop: space(1.5) }]}>{reply.fr}</Text>
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{reply.en}</Text>
-            {reply.frWritten && reply.frWritten !== reply.fr ? (
-              <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{reply.frWritten}</Text>
-            ) : null}
-          </View>
-
+        <View style={st.support}>
           <SupportBlock
             support={view.supportView}
             // Replays come from the agent in the premium voice, and only while
@@ -292,30 +290,16 @@ export function ConvoScreen({
             // tutor. Text mode has no voice to replay.
             onHearLine={listening && !textMode ? live.sendHear : undefined}
           />
-        </ScrollView>
+        </View>
 
         <View style={st.controls}>
-          {view.coachNow.length > 0 ? (
-            // The recast, visible: what they said, then what a local says. A
-            // correction that is only spoken mostly slides past; seeing the
-            // better form in the correspondance color is the "change here"
-            // signal the design system already owns.
-            <View style={{ alignItems: 'center', marginBottom: space(2) }}>
-              <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center' }]}>
-                «{view.coachNow[0]!.quote}»
-              </Text>
-              <Text style={[type.french, { color: signal.correspondance, textAlign: 'center', marginTop: space(0.5) }]}>
-                {view.coachNow[0]!.better}
-                <Text style={[type.small, { color: paper.inkSoft }]}>  ·  {view.coachNow[0]!.betterEn}</Text>
-              </Text>
-            </View>
-          ) : view.coachLine ? (
+          {/* The recast now renders in the thread, attached to the line it
+              corrects, so only the spoken coaching line belongs here. */}
+          {view.coachLine ? (
             <Text style={[type.bodyStrong, { color: paper.ink, textAlign: 'center', marginBottom: space(2) }]}>
               {view.coachLine}
             </Text>
-          ) : (
-            <View style={{ height: space(2) + 23, marginBottom: space(2) }} />
-          )}
+          ) : null}
 
           {textMode ? (
             <View style={st.typeRow}>
@@ -343,21 +327,7 @@ export function ConvoScreen({
                 <Text style={[type.button, { color: paper.onInk }]}>Send</Text>
               </Pressable>
             </View>
-          ) : (
-            <>
-              {/* The open microphone, as an indicator: the learner never holds
-                  or taps it here, so it stays non-interactive. */}
-              <SpeakCircle
-                active={listening}
-                muted={!listening}
-                disabled
-                accessibilityLabel={listening ? 'Speak your answer' : 'The tutor is speaking'}
-              />
-              <Text style={[type.label, { color: listening ? paper.ink : paper.inkFaint, marginTop: space(2) }]}>
-                {listening ? 'Speak' : 'Listen'}
-              </Text>
-            </>
-          )}
+          ) : null}
 
           <View style={st.helpRow}>
             <Pressable
@@ -400,6 +370,8 @@ export function ConvoScreen({
 }
 
 const st = StyleSheet.create({
+  orbBlock: { alignItems: 'center', paddingTop: space(4), paddingBottom: space(7) },
+  support: { paddingBottom: space(2) },
   shell: { flex: 1, backgroundColor: paper.ground },
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
   center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },

@@ -10,24 +10,59 @@
  * backwards — it is the one they need most.
  */
 
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { paper, space, type } from '../theme.ts';
 import { PillButton, GhostButton, Card, Label } from '../components.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
 import { useLive } from '../app/LiveContext.tsx';
+import { TutorIntro } from '../tutor/TutorIntro.tsx';
+import { hasSeenTutorIntro, markTutorIntroSeen } from '../tutor/store.ts';
 
 export function TutorTab() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { live, recheck } = useLive();
 
+  // Read here rather than at the app root: the flag only matters to this tab,
+  // and gating higher would flash the bottom nav and hold up Home for a disk
+  // read that nothing else is waiting on.
+  const [seenIntro, setSeenIntro] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void hasSeenTutorIntro().then((seen) => {
+      if (!cancelled) setSeenIntro(seen);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const open = (textMode: boolean) => {
     // Probe again at the moment of starting, so a server that came up after
     // launch is used and one that just died is not.
     void recheck().then(() => nav.navigate('Convo', { textMode }));
   };
+
+  if (seenIntro === null) {
+    return (
+      <View style={st.center}>
+        <ActivityIndicator color={paper.inkFaint} />
+      </View>
+    );
+  }
+  if (!seenIntro) {
+    return (
+      <TutorIntro
+        onDone={() => {
+          void markTutorIntroSeen();
+          setSeenIntro(true);
+        }}
+      />
+    );
+  }
 
   return (
     <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
@@ -59,6 +94,7 @@ export function TutorTab() {
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
+  center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center' },
   scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(3) },
   hero: { alignItems: 'center', marginBottom: space(4) },
   headline: { ...type.display, color: paper.ink, textAlign: 'center' },

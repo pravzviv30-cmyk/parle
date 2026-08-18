@@ -30,6 +30,7 @@ import {
 import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from './globals.ts';
 import { authHeaders } from '../auth/adapter.ts';
 import { classifyFailure, failureCopy, micApiUnavailable, TokenServerError, type LiveFailure } from './failure.ts';
+import { pushTurn, type TurnLine } from './turns.ts';
 
 /** Where the token server lives. Configurable per env for device testing. */
 const TOKEN_SERVER = process.env.EXPO_PUBLIC_TOKEN_SERVER_URL ?? 'http://localhost:8787';
@@ -168,6 +169,17 @@ export interface LiveSession {
    * is still live — this renders IN the session, never as a terminal screen.
    */
   notice: string | null;
+  /**
+   * The conversation so far, accumulated on this side because the wire only
+   * ever describes the current turn. Empty on the lesson path.
+   */
+  turns: TurnLine[];
+  /**
+   * True between the learner finishing a turn and the tutor answering it.
+   * Derived here from messages that already exist — the agent has no
+   * "thinking" message and does not need one.
+   */
+  thinking: boolean;
   /** True while the browser refuses playback until it sees a user gesture. */
   audioBlocked: boolean;
   /**
@@ -212,6 +224,8 @@ export function useLiveSession(
   const [recap, setRecap] = useState<{ recap: RecapPayload; profile: unknown } | null>(null);
   const [drills, setDrills] = useState<DrillExercise[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [turns, setTurns] = useState<TurnLine[]>([]);
+  const [thinking, setThinking] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [waitingForTutor, setWaitingForTutor] = useState(false);
   const [diagnostics, setDiagnostics] = useState<LiveDiagnostics | null>(null);
@@ -227,6 +241,8 @@ export function useLiveSession(
   const watchdogRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const heardAgentRef = useRef(false);
   const sessionOpenedRef = useRef(false);
+  // Monotonic, so a React key never collides and nothing depends on a clock.
+  const turnSeq = useRef(0);
   // The <audio> elements holding the tutor's voice on web. Owned here so they are
   // guaranteed to leave the document when the session does.
   const audioElsRef = useRef<HTMLMediaElement[]>([]);
@@ -242,6 +258,12 @@ export function useLiveSession(
   const clearWatchdog = useCallback(() => {
     for (const t of watchdogRef.current) clearTimeout(t);
     watchdogRef.current = [];
+  }, []);
+
+  const addTurn = useCallback((line: Omit<TurnLine, 'id'>) => {
+    turnSeq.current += 1;
+    const id = `t${turnSeq.current}`;
+    setTurns((list) => pushTurn(list, line, id));
   }, []);
 
   const send = useCallback((message: ClientMessage) => {
@@ -283,6 +305,8 @@ export function useLiveSession(
     diagRef.current = emptyDiagnostics();
     heardAgentRef.current = false;
     sessionOpenedRef.current = false;
+    setTurns([]);
+    setThinking(false);
     clearWatchdog();
     try {
       // Checked before anything else: with no microphone API there is nothing to
@@ -388,9 +412,16 @@ export function useLiveSession(
             break;
           case 'speaking':
             setTutorSpeaking(msg.speaking);
+            // The tutor having taken the floor means it is no longer deciding.
+            if (msg.speaking) setThinking(false);
             break;
           case 'transcript':
-            if (msg.final) setLastTranscript(msg.text);
+            if (msg.final) {
+              setLastTranscript(msg.text);
+              addTurn({ who: 'learner', fr: msg.text, frWritten: null, en: null });
+              // Said, and not yet answered.
+              setThinking(true);
+            }
             break;
           case 'summary':
             setSummary(msg.summary);
@@ -398,6 +429,42 @@ export function useLiveSession(
             break;
           case 'convo':
             setConvo(msg.view);
+            setThinking(false);
+            // Narration lands before the line it introduces, the way it is
+            // heard. `pushTurn` drops it when it is the same one as last turn.
+            if (msg.view.narration) {
+              addTurn({
+                who: 'narration',
+                fr: msg.view.narration.fr,
+                frWritten: msg.view.narration.frWritten ?? null,
+                en: msg.view.narration.en,
+              });
+            }
+            addTurn({
+              who: 'tutor',
+              fr: msg.view.sceneReply.fr,
+              frWritten: msg.view.sceneReply.frWritten ?? null,
+              en: msg.view.sceneReply.en,
+            });
+            // A recast belongs under the learner line it corrects, so it is
+            // attached backwards to the last thing the learner said.
+            if (msg.view.coachNow.length > 0) {
+              setTurns((list) => {
+                const i = list.map((t) => t.who).lastIndexOf('learner');
+                if (i < 0) return list;
+                const next = [...list];
+                next[i] = {
+                  ...next[i]!,
+                  recasts: msg.view.coachNow.map((c) => ({
+                    quote: c.quote,
+                    better: c.better,
+                    betterEn: c.betterEn,
+                    why: c.why,
+                  })),
+                };
+                return next;
+              });
+            }
             // The scene has opened; the choosing moment is over. An agent that
             // never sent topics (an older build, say) is also covered — the app
             // renders whatever arrives.
@@ -405,6 +472,8 @@ export function useLiveSession(
             break;
           case 'topics':
             setTopics({ prompt: msg.prompt, chips: msg.chips });
+            setThinking(false);
+            addTurn({ who: 'tutor', fr: msg.prompt.fr, frWritten: null, en: msg.prompt.en });
             break;
           case 'recap':
             setRecap({ recap: msg.recap, profile: msg.profile });
@@ -501,7 +570,7 @@ export function useLiveSession(
       removeAudioEls();
       fail(classifyFailure(err));
     }
-  }, [userId, lessonId, startRung, mode, snapshot, send, removeAudioEls, clearWatchdog, leave, fail, openingTags]);
+  }, [userId, lessonId, startRung, mode, snapshot, send, removeAudioEls, clearWatchdog, leave, fail, openingTags, addTurn]);
 
   const resumeAudio = useCallback(() => {
     // Success flips audioBlocked back via AudioPlaybackStatusChanged.
@@ -533,6 +602,8 @@ export function useLiveSession(
     recap,
     drills,
     notice,
+    turns,
+    thinking,
     audioBlocked,
     waitingForTutor,
     diagnostics,
@@ -544,7 +615,17 @@ export function useLiveSession(
     sendTopic: useCallback((value: string) => send({ t: 'topic', value }), [send]),
     sendSlower: useCallback(() => send({ t: 'slower' }), [send]),
     sendEnglish: useCallback(() => send({ t: 'english' }), [send]),
-    sendSay: useCallback((text: string) => send({ t: 'say', text }), [send]),
+    sendSay: useCallback(
+      (text: string) => {
+        // The agent transcribes speech back to us but never echoes a TYPED
+        // turn, so without this optimistic append the learner's own words
+        // simply never appear in text mode.
+        addTurn({ who: 'learner', fr: text, frWritten: null, en: null });
+        setThinking(true);
+        send({ t: 'say', text });
+      },
+      [send, addTurn],
+    ),
     leave,
   };
 }
