@@ -99,6 +99,12 @@ is armed: if anything else was queued while it waited, or the learner has the
 floor, it drops itself. Clearing a timeout cannot unschedule a callback that has
 already fired.
 
+"Every state change" means every one, and the way in matters as much as the
+timer: a typed answer and an aide-moi tap take the queue exactly as speech does.
+Both used to call the engine directly on the conversation path, which left the
+moment unmarked — so a rescue already in flight still read as current and applied
+on top of them. One moment of being stuck, two rescues.
+
 ## When it fails
 
 `apps/mobile/src/live/failure.ts` enumerates eleven distinct failures, each with

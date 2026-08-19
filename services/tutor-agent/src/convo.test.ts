@@ -1,9 +1,13 @@
-import { test, describe } from 'node:test';
+import { test, describe, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { voice } from '@livekit/agents';
 import {
   APERO_FRAME,
+  BrainParseError,
   CAFE_FRAME,
+  MockLlmClient,
+  RECOVERY_LINE,
   assembleRecap,
   createConversation,
   createProfile,
@@ -19,9 +23,23 @@ import {
   type SupportView,
   type TurnView,
 } from '@parle/brain';
-import { decodeServerMessage, encodeMessage, type ServerMessage } from '@parle/core';
+import {
+  STUCK_SILENCE_MS,
+  decodeServerMessage,
+  encodeMessage,
+  type ClientMessage,
+  type ServerMessage,
+} from '@parle/core';
 
-import { CONVO_LINES, chooseFrame, parseStoredProfile, toConvoView, toRecapPayload, topicChips } from './convo.ts';
+import {
+  CONVO_LINES,
+  ParleConversation,
+  chooseFrame,
+  parseStoredProfile,
+  toConvoView,
+  toRecapPayload,
+  topicChips,
+} from './convo.ts';
 
 /** A fresh flow-mode café conversation, exactly as ParleConversation builds one. */
 function freshState() {
@@ -305,5 +323,306 @@ describe('a profile that predates memory', () => {
     assert.equal(parseStoredProfile({ cefr: {} }).stats.sessions, 0);
     assert.equal(parseStoredProfile(null).stats.sessions, 0);
     assert.equal(parseStoredProfile('nope').stats.sessions, 0);
+  });
+});
+
+// ─────────────────────────────────── the agent itself, driven off the worker
+
+/**
+ * A stand-in for the LiveKit session.
+ *
+ * The conversation agent never asks the pipeline to generate — the brain writes
+ * the reply out of band — so `say` is the whole surface. `this.session` on
+ * voice.Agent throws unless the agent is attached to a live activity, hence the
+ * instance property shadowing the prototype getter.
+ */
+function stubSession() {
+  const said: string[] = [];
+  const session = {
+    say(text: string) {
+      said.push(text);
+    },
+  };
+  return { session: session as never, said };
+}
+
+/** A brain that cannot answer. Everything else about the session is real. */
+class FailingBrain extends MockLlmClient {
+  readonly failure: Error;
+  constructor(failure: Error) {
+    super();
+    this.failure = failure;
+  }
+  override async turn(): Promise<never> {
+    throw this.failure;
+  }
+}
+
+/**
+ * `t` is not decoration: a text-mode conversation re-arms its silence clock
+ * every time it publishes, so a test that ends without standing the rescue
+ * down leaves the tutor patiently rescuing an empty room until the turn cap.
+ */
+function buildConvo(t: TestContext, opts: { voiceless?: boolean; client?: MockLlmClient } = {}) {
+  const client = opts.client ?? new MockLlmClient();
+  const convo = new ParleConversation(createProfile(), { voiceless: opts.voiceless ?? false, client });
+  const { session, said } = stubSession();
+  Object.defineProperty(convo, 'session', { value: session, configurable: true });
+  const published: ServerMessage[] = [];
+  convo.attach((message) => published.push(message));
+  t.after(() => convo.clearRescue());
+  return { convo, client, session, said, published };
+}
+
+/** A tap or a keystroke, as it arrives on the data channel. */
+function tapped(message: ClientMessage): Uint8Array {
+  return encodeMessage(message);
+}
+
+/** What the recogniser hands the agent at the end of a turn. */
+function heard(text: string) {
+  return { textContent: text } as never;
+}
+
+/** Open the session and get into the scene the way a learner does: by choosing. */
+async function inScene(t: TestContext, opts: { voiceless?: boolean; client?: MockLlmClient } = {}) {
+  const built = buildConvo(t, opts);
+  built.convo.open(built.session);
+  await built.convo.handleClientMessage(built.session, tapped({ t: 'topic', value: 'Au café' }));
+  return built;
+}
+
+/** Every convo view the app was sent, in order. */
+function views(published: readonly ServerMessage[]) {
+  return published.filter((m): m is Extract<ServerMessage, { t: 'convo' }> => m.t === 'convo');
+}
+
+describe('the conversation agent, off the worker', () => {
+  test('a conversation can be built without booting the worker', (t) => {
+    // The constructor used to reach for a vendor SDK and an API key, so none of
+    // the behaviour below could be built, let alone driven.
+    const { convo } = buildConvo(t);
+    assert.equal(convo.conversationState.turnCount, 0);
+    assert.equal(convo.conversationState.finished, false);
+  });
+
+  test('the session opens on the choosing moment without a single model call', (t) => {
+    const { convo, session, client, published, said } = buildConvo(t);
+    convo.open(session);
+
+    const topics = published.find((m) => m.t === 'topics');
+    assert.ok(topics, 'the learner has to be asked what they want to talk about');
+    assert.equal(topics.chips.length, 3);
+    assert.deepEqual(said, [CONVO_LINES.opener.fr], 'and asked out loud, first');
+    assert.equal(client.turnRequests.length + client.frameRequests.length, 0, 'nothing cost a round-trip');
+  });
+
+  test('choosing a topic opens a scene the learner can see and hear', async (t) => {
+    const { client, published, said } = await inScene(t);
+
+    assert.equal(client.frameRequests.length, 1, 'the scene was designed for what they asked for');
+    const opened = views(published);
+    assert.equal(opened.length, 1, 'the opening view lands before anyone has spoken');
+    assert.equal(opened[0]!.view.beat.position, 1);
+    // The bridge line is spoken from cache before the scene is designed, so
+    // nobody sits in silence while the builder thinks.
+    assert.ok(said.includes(CONVO_LINES.bridge.fr), 'the bridge line lands the moment the topic does');
+    assert.ok(said.indexOf(CONVO_LINES.bridge.fr) < said.indexOf(CAFE_FRAME.openingLine.fr), 'and lands first');
+    assert.ok(said.includes(CAFE_FRAME.openingLine.fr), 'and then the character speaks, before the learner has to');
+    assert.equal(client.turnRequests.length, 0, 'opening a scene is not a turn');
+  });
+});
+
+describe('a spoken conversation turn that came back with no words', () => {
+  test('an empty conversation transcript stops the pipeline reply', async (t) => {
+    const { convo, client } = await inScene(t);
+
+    await assert.rejects(
+      () => convo.onUserTurnCompleted({} as never, heard('   ')),
+      (err: unknown) => err instanceof voice.StopResponse,
+      'the unused pipeline LLM must be told to stay quiet',
+    );
+
+    assert.equal(client.turnRequests.length, 0, 'and the brain was not asked about nothing');
+    assert.equal(convo.conversationState.turnCount, 0, 'the scene did not move');
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'nor was it counted against them');
+  });
+
+  test('a spoken turn is integrated and answered, then the pipeline is stopped', async (t) => {
+    const { convo, client, published, said } = await inScene(t);
+
+    await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Bonjour, un café')), voice.StopResponse);
+    await convo.settled();
+
+    assert.equal(client.turnRequests.length, 1, 'the brain answered once');
+    assert.equal(convo.conversationState.turnCount, 1);
+    const transcript = published.find((m) => m.t === 'transcript');
+    assert.ok(transcript, 'the learner is shown that they were heard');
+    const reply = views(published).at(-1)!.view;
+    assert.ok(said.includes(reply.sceneReply.fr), 'and the scene reply is what gets spoken');
+  });
+});
+
+describe('a conversation rescue and a learner answering at the same moment', () => {
+  test('a conversation rescue that loses the race is discarded', async (t) => {
+    const { convo, session, client } = await inScene(t);
+
+    // The clock runs out and the learner reaches for aide-moi in the same
+    // breath. By then the timer callback is already scheduled, and clearTimeout
+    // cannot unschedule what has fired — so this is the callback arriving late.
+    // The help tap went straight to the engine rather than through the queue,
+    // so nothing marked the moment as taken and both rescues applied: one
+    // moment of being stuck counted twice, and the tutor stepping in twice.
+    const generation = convo.armRescue(session);
+    await convo.handleClientMessage(session, tapped({ t: 'help' }));
+    await convo.settled();
+
+    await convo.runRescue(generation);
+    await convo.settled();
+
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'one moment of being stuck, counted once');
+    assert.equal(client.turnRequests.length, 1, 'and the tutor stepped in once');
+    assert.equal(convo.conversationState.turnCount, 1, 'one turn of the scene spent on it, not two');
+  });
+
+  test('a conversation rescue in flight is dropped the moment the learner takes the floor', async (t) => {
+    const { convo, session, client } = await inScene(t);
+
+    const generation = convo.armRescue(session);
+    convo.setLearnerSpeaking(true); // the VAD heard them; the transcript is still coming
+    await convo.runRescue(generation);
+    await convo.settled();
+
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'somebody who is talking is not stuck');
+    assert.equal(client.turnRequests.length, 0, 'and nothing was said over them');
+  });
+
+  test('a conversation rescue still fires when the learner really does say nothing', async (t) => {
+    const { convo, session, client, published } = await inScene(t);
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+
+    convo.armRescue(session);
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'four silent seconds is being stuck, not thinking');
+    assert.equal(client.turnRequests.length, 1, 'and the tutor steps in, in character');
+    assert.ok(views(published).length >= 2, 'the support renders before the model is back');
+  });
+
+  test('a rescue hands over support without moving the scene on', async (t) => {
+    const { convo, session, published } = await inScene(t);
+    const opening = views(published)[0]!.view;
+
+    const generation = convo.armRescue(session);
+    await convo.runRescue(generation);
+    await convo.settled();
+
+    // The instant merge: the scene has not moved, so the last reply stands and
+    // only the support changes. Stale narration clears — a rescue is not a
+    // scene shift — and the coach stays silent over a learner who froze.
+    const instant = views(published)[1]!.view;
+    assert.deepEqual(instant.sceneReply, opening.sceneReply, 'the learner is not moved on from what they froze on');
+    assert.equal(instant.narration, null);
+    assert.equal(instant.coachLine, null);
+    assert.deepEqual(instant.coachNow, []);
+    assert.equal(instant.supportView.kind, 'full-line', 'and they are handed the line, whatever rung they were on');
+  });
+});
+
+describe('a conversation for someone who cannot speak aloud', () => {
+  test('a typed conversation turn is integrated once, not twice', async (t) => {
+    const { convo, session, client, published } = await inScene(t, { voiceless: true });
+
+    // Same collision, from the other side: the silence callback has already
+    // fired when the learner finishes typing. The typed path went straight to
+    // the engine instead of through the queue, so the moment never counted as
+    // taken and the stale rescue folded a second turn into the same scene.
+    const generation = convo.armRescue(session);
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await convo.settled();
+
+    await convo.runRescue(generation);
+    await convo.settled();
+
+    assert.equal(convo.conversationState.turnCount, 1, 'one typed answer is one turn in the scene');
+    assert.equal(client.turnRequests.length, 1, 'and one brain call');
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'somebody who answered was not stuck');
+    assert.equal(views(published).length, 2, 'the opening view and the reply, and nothing else');
+  });
+
+  test('two typed answers are taken in order, never against the same moment', async (t) => {
+    const { convo, session, client } = await inScene(t, { voiceless: true });
+
+    // Two arriving together is the ordinary case on a busy connection. Without
+    // the queue both were prepared from the same state, so the tutor answered
+    // the second sentence as though the first had never been said.
+    await Promise.all([
+      convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour' })),
+      convo.handleClientMessage(session, tapped({ t: 'say', text: "Un café, s'il vous plaît" })),
+    ]);
+    await convo.settled();
+
+    assert.equal(convo.conversationState.turnCount, 2, 'both answers landed, neither was lost');
+    assert.equal(client.turnRequests.length, 2);
+    assert.ok(
+      client.turnRequests[1]!.messages.length > client.turnRequests[0]!.messages.length,
+      'the second question was asked with the first exchange in hand',
+    );
+  });
+
+  test('a typed conversation rescues a learner who goes quiet, on a reader’s clock', async (t) => {
+    // Enabled before the scene opens: the clock a typed session runs on is
+    // armed by the render itself, so it has to be the mocked one from the start.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, client } = await inScene(t, { voiceless: true });
+
+    // Nothing speaks, so no AgentStateChanged ever fires to start the clock.
+    // Rendering the turn is the moment the learner has the floor — and a reader
+    // pauses differently from a speaker, so four seconds would be a hover.
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'a reader gets longer than a speaker');
+
+    t.mock.timers.tick(12_000);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'a quiet learner is still a stuck learner');
+    assert.equal(client.turnRequests.length, 1);
+  });
+
+  test('a typed conversation says nothing aloud, from the opener to the answer', async (t) => {
+    const { convo, session, said, published } = await inScene(t, { voiceless: true });
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour' }));
+    await convo.settled();
+    await convo.handleClientMessage(session, tapped({ t: 'hear' }));
+
+    assert.deepEqual(said, [], 'a learner in a quiet carriage is never made to listen');
+    assert.ok(views(published).length >= 2, 'and the whole scene still reaches them on screen');
+  });
+});
+
+describe('a brain turn that fails mid-scene', () => {
+  test('a refused brain turn hands back the recovery line and records nothing', async (t) => {
+    const client = new FailingBrain(new BrainParseError('not a turn', '{'));
+    const { convo, session, said, published } = await inScene(t, { client });
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour' }));
+    await convo.settled();
+
+    assert.equal(said.at(-1), RECOVERY_LINE, 'the learner is never left in silence');
+    assert.equal(convo.conversationState.turnCount, 0, 'and a turn that never happened is not recorded');
+    assert.equal(views(published).length, 1, 'nor is a reply invented to publish');
+  });
+
+  test('a brain outage mid-scene is survived the same way', async (t) => {
+    const client = new FailingBrain(new Error('socket hang up'));
+    const { convo, session, said } = await inScene(t, { client });
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour' }));
+    await convo.settled();
+
+    assert.equal(said.at(-1), RECOVERY_LINE);
+    assert.equal(convo.conversationState.finished, false, 'a bad turn is not a dead session');
   });
 });

@@ -130,14 +130,19 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### C1 — The conversation agent's rescue and brain turn have no tests at all
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/convo.ts:433
-- note: convo.test.ts covers the pure mapping helpers and never instantiates
+- note: convo.test.ts covered the pure mapping helpers and never instantiated
   ParleConversation, so `rescue()`, `runBrainTurn()`, `armRescue` in voiceless
-  mode, the StopResponse throw and the serial queue guard are all uncovered. The
+  mode, the StopResponse throw and the serial queue guard were all uncovered. The
   queue guard in particular was added to this file by analogy with the scripted
-  tutor and has never been executed by a test — the exact shape of change that
-  looks done and is not.
+  tutor and had never been executed by a test — the exact shape of change that
+  looks done and is not. It was not: only the spoken path went through the queue.
+  A typed answer and an aide-moi tap called the engine directly, so a rescue that
+  had already fired still read as current and applied on top of them — two
+  rescues on the card, or two turns of the scene, for one moment of being stuck.
+  Both call sites are queued now, and the class takes an injectable `client` so
+  it can be built at all without a vendor key.
 - verified-by: `a conversation rescue that loses the race is discarded`
 - verified-by: `a typed conversation turn is integrated once, not twice`
 

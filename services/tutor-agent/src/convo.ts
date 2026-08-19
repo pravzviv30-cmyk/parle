@@ -266,7 +266,12 @@ export class ParleConversation extends voice.Agent {
   /** True between the learner taking the floor and their turn being integrated. */
   private learnerSpeaking = false;
 
-  constructor(profile: LearnerProfile, opts: { voiceless?: boolean } = {}) {
+  /**
+   * `client` is the seam a test drives this class through. Without it the
+   * constructor reaches for a real vendor SDK and an API key, which is why
+   * every behaviour below went untested: the object could not be built.
+   */
+  constructor(profile: LearnerProfile, opts: { voiceless?: boolean; client?: LlmClient } = {}) {
     // The pipeline LLM never generates here; see the header. One line keeps
     // the framework satisfied and makes the intent grep-able.
     super({ instructions: 'You are unused; replies are generated out of band.' });
@@ -276,7 +281,12 @@ export class ParleConversation extends voice.Agent {
       strictness: 'flow',
       maxTurns: CONVO_MAX_TURNS,
     });
-    this.client = brainClient();
+    this.client = opts.client ?? brainClient();
+  }
+
+  /** Where the conversation has got to. Read-only, for the worker and for tests. */
+  get conversationState(): ConversationState {
+    return this.state;
   }
 
   /** Every spoken line funnels through here so text mode can stay silent. */
@@ -412,27 +422,44 @@ export class ParleConversation extends voice.Agent {
    * While the scenario builder runs, silence is expected and the timer stays
    * dark.
    */
-  armRescue(session: voice.AgentSession): void {
+  armRescue(session: voice.AgentSession): number {
     this.clearRescue();
     void session; // kept for signature parity with ParleTutor; speech goes via this.session
-    if (this.ended || this.phase === 'starting') return;
-    const window = this.voiceless ? TEXT_SILENCE_MS : STUCK_SILENCE_MS;
+    // Captured now, checked when the timer fires. Returned so the caller — and
+    // a test — can name the moment this particular wait began.
+    const generation = this.queue.generation;
+    if (this.ended || this.phase === 'starting') return generation;
+    const window = this.silenceWindow();
     if (this.phase === 'choosing') {
-      if (this.suggested) return;
+      if (this.suggested) return generation;
       this.silenceTimer = setTimeout(() => {
         this.suggested = true;
         this.say(CONVO_LINES.suggest.fr, { allowInterruptions: false });
         if (this.lastTopics) this.publish(this.lastTopics);
       }, window);
-      return;
+      return generation;
     }
-    // Captured now, checked when it fires: a timeout that has already gone off
-    // cannot be cleared, and a learner who has started talking is not silent.
-    const generation = this.queue.generation;
-    this.silenceTimer = setTimeout(() => {
-      if (this.ended || this.learnerSpeaking) return;
-      void this.queue.runIfCurrent(generation, () => this.rescue({ type: 'silence', durationMs: window }));
-    }, window);
+    this.silenceTimer = setTimeout(() => void this.runRescue(generation), window);
+    return generation;
+  }
+
+  /** How long nothing may happen before the learner is stuck rather than thinking. */
+  private silenceWindow(): number {
+    return this.voiceless ? TEXT_SILENCE_MS : STUCK_SILENCE_MS;
+  }
+
+  /**
+   * The silence rescue itself, separated from the timer that schedules it.
+   *
+   * Clearing a timeout cannot unschedule a callback that has already fired, so
+   * "the learner answered half a beat after the clock ran out" arrives here with
+   * the rescue already in flight. Two things stop it: they are speaking right
+   * now, or something else has been queued since this wait began — either way
+   * the silence it was going to report is silence that ended.
+   */
+  async runRescue(generation: number): Promise<void> {
+    if (this.ended || this.learnerSpeaking) return;
+    await this.queue.runIfCurrent(generation, () => this.rescue({ type: 'silence', durationMs: this.silenceWindow() }));
   }
 
   /**
@@ -473,13 +500,16 @@ export class ParleConversation extends voice.Agent {
     }
     if (msg.t === 'leave') return void this.finish();
 
-    if (msg.t === 'topic') return void this.startScene(msg.value);
+    // Awaited, not fired and forgotten: the scene is the next thing that has to
+    // exist, and a caller (or a test) that waits on this message deserves to be
+    // waiting for the scene rather than for the tick that happens to open it.
+    if (msg.t === 'topic') return this.startScene(msg.value);
 
     // Before the scene exists, every other tap gets the same gentle answer as
     // silence: a spoken suggestion and the chips again. There is no ladder to
     // move and no line to replay yet.
     if (this.phase !== 'scene') {
-      if (msg.t === 'say') return void this.startScene(msg.text);
+      if (msg.t === 'say') return this.startScene(msg.text);
       if (msg.t === 'help' || msg.t === 'skip') {
         this.clearRescue();
         this.suggested = true;
@@ -511,17 +541,23 @@ export class ParleConversation extends voice.Agent {
     }
     if (msg.t === 'say') {
       // A typed learner turn: text-mode conversation, or a voice learner who
-      // could not say it aloud just now. Identical to speech from here on.
+      // could not say it aloud just now. Identical to speech from here on —
+      // including the queue. Going straight to the engine left the moment
+      // unmarked, so a rescue that had already fired still counted as current
+      // and folded a second turn into the scene on top of their answer.
       this.clearRescue();
       this.publish({ t: 'transcript', text: msg.text, final: true });
-      await this.runBrainTurn({ type: 'spoke', text: msg.text });
+      await this.queue.run(() => this.runBrainTurn({ type: 'spoke', text: msg.text }));
       return;
     }
     if (msg.t === 'help' || msg.t === 'skip') {
       // The brain has no skip: a learner reaching for either button is lost,
       // and what a lost learner needs is support, not a hole in the scene.
+      // Queued for the same reason as the typed turn: asking for help is the
+      // learner answering the silence themselves, and it must retire the
+      // rescue that was already on its way.
       this.clearRescue();
-      await this.rescue({ type: 'help' });
+      await this.queue.run(() => this.rescue({ type: 'help' }));
     }
     // 'choice' arrives as speech as well, exactly like the scripted path.
   }
