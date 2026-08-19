@@ -188,7 +188,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### D1 — A failed brain turn in text mode strands the learner in silence
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/convo.ts:291
 - note: found by the loop while closing C1, and left alone as out of scope —
   correctly, but it is the more serious of the two. When the model refuses,
@@ -198,7 +198,16 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   no explanation and no way to tell a broken tutor from a slow one. "Never
   strand a learner mid-scene" is one of this product's stated invariants, and
   the quiet path is exactly where a stranded learner has least to go on.
+  Both exits now go through `recover()`, which in text mode publishes the same
+  RECOVERY_LINE as a `{t:'error'}` notice — the one channel the app surfaces
+  inside a live session instead of as a dead-end screen — and re-arms the
+  silence clock. The re-arm is half the fix and the easier half to miss: a
+  spoken session re-arms when the recovery line finishes playing (agent.ts, on
+  `listening`), nothing plays in text mode, so without it the rescue never
+  fires again and the learner loses the one thing that still works with the
+  model down — the full line, rendered locally from material already in hand.
 - verified-by: `a failed brain turn in text mode still says something to the learner`
+- verified-by: `a text learner whose turn failed is still on the silence clock`
 
 ### D2 — /œ/ changes the word but is not marked as meaning-bearing
 - severity: P2
@@ -211,3 +220,20 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   priority by 1.4× and will shift fixtures that were tuned around the old
   weight, so it wants doing deliberately rather than in passing.
 - verified-by: `every phoneme whose drill teaches a word-changing contrast is marked meaning-bearing`
+
+### D3 — The orb thinks forever when the answer never comes
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/live/useLiveSession.ts:496
+- note: found by the loop while closing D1, and it is the app-side half of the
+  same moment. `sendSay` sets `thinking` true and only `prompt`, `convo`,
+  `topics` or `speaking: true` ever clears it. A trouble notice does not, so
+  after a failed brain turn in text mode the learner now reads "Say that once
+  more for me." while the orb beside it still says the tutor is thinking — and
+  the notice clears itself after eight seconds while the orb does not. Typing
+  is never blocked, which is why this is a P2 and not the stranding D1 was.
+  The fix is one line in the `error` case; what makes it worth an entry rather
+  than a drive-by is that apps/mobile has no test suite at all — no *.test.ts
+  anywhere under it and no floor in scripts/gate.floors.json — so this cannot
+  be closed honestly until there is somewhere for its test to live.
+- verified-by: `a trouble notice stops the tutor looking like it is still thinking`

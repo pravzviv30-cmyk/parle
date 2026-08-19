@@ -627,13 +627,13 @@ export class ParleConversation extends voice.Agent {
     } catch (error) {
       if (this.ended) return; // a failed turn against a finished session is just noise
       if (error instanceof BrainParseError || error instanceof BrainRefusalError) {
-        this.say(RECOVERY_LINE);
+        this.recover();
         return;
       }
       // Anything else (network, provider outage) gets the same gentle exit:
       // an unhandled throw here would strand the learner in silence.
       console.error('[parle] convo brain turn failed:', error);
-      this.say(RECOVERY_LINE);
+      this.recover();
       return;
     }
 
@@ -652,6 +652,30 @@ export class ParleConversation extends voice.Agent {
     this.speak(view);
 
     if (view.recapDue) await this.finish();
+  }
+
+  /**
+   * The model could not answer. Hand back the recovery line and record nothing —
+   * a turn that never happened must not move the scene.
+   *
+   * In text mode `say` is a no-op and a failed turn publishes no view, so the
+   * spoken session's whole recovery amounted to nothing: the learner sat looking
+   * at their own typed sentence with no reply, no reason and no way to tell a
+   * broken tutor from a slow one. The notice is the same words the spoken
+   * session hears, on the one channel the app surfaces inside a live session
+   * rather than as a dead end.
+   *
+   * Re-arming matters as much as the words. A spoken session re-arms when the
+   * recovery line finishes playing (agent.ts, on `listening`); nothing plays
+   * here, so without this the silence clock never restarts and the support a
+   * stuck learner would be handed — rendered locally, no model needed — never
+   * comes.
+   */
+  private recover(): void {
+    this.say(RECOVERY_LINE);
+    if (!this.voiceless) return;
+    this.publishError(RECOVERY_LINE);
+    this.armRescue(this.session);
   }
 
   /** Narration, then coach, then the scene reply — outside-in, like a film. */

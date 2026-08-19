@@ -625,4 +625,49 @@ describe('a brain turn that fails mid-scene', () => {
     assert.equal(said.at(-1), RECOVERY_LINE);
     assert.equal(convo.conversationState.finished, false, 'a bad turn is not a dead session');
   });
+
+  test('a failed brain turn in text mode still says something to the learner', async (t) => {
+    const client = new FailingBrain(new BrainParseError('not a turn', '{'));
+    const { convo, session, said, published } = await inScene(t, { client, voiceless: true });
+    const before = published.length;
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour' }));
+    await convo.settled();
+
+    // In text mode `say` is a no-op and a failed turn publishes no view, so the
+    // learner used to sit looking at their own sentence: no reply, no reason,
+    // and no way to tell a broken tutor from a slow one.
+    assert.deepEqual(said, [], 'a learner in a quiet carriage is still never made to listen');
+    const notice = published.slice(before).find((m) => m.t === 'error');
+    assert.ok(notice, 'the learner has to be told the tutor could not answer');
+    assert.equal(notice.message, RECOVERY_LINE, 'in the same words a spoken session hears');
+    assert.equal(convo.conversationState.turnCount, 0, 'and a turn that never happened is not recorded');
+    assert.equal(views(published).length, 1, 'nor is a reply invented to publish');
+    assert.equal(convo.conversationState.finished, false, 'a bad turn is not a dead session');
+  });
+
+  test('a text learner whose turn failed is still on the silence clock', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const client = new FailingBrain(new Error('socket hang up'));
+    const { convo, session, published } = await inScene(t, { client, voiceless: true });
+
+    // A spoken session re-arms when the recovery line finishes playing. Nothing
+    // plays here, so the failed turn itself has to re-arm — otherwise the one
+    // thing that could still help a learner whose tutor is down never fires.
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour' }));
+    await convo.settled();
+
+    t.mock.timers.tick(12_001);
+    await convo.settled();
+
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'a learner nobody answered is a stuck learner');
+    // The support is rendered from material already in hand, so it lands even
+    // with the model still down: the last thing between them and a dead screen.
+    // Asserted as a view that ARRIVED after the failure — an A0 scene already
+    // opens on full-line support, so the support kind alone proves nothing.
+    assert.equal(views(published).length, 2, 'the opening view, then the rescue that answered the silence');
+    const rescued = views(published)[1]!.view;
+    assert.deepEqual(rescued.sceneReply, views(published)[0]!.view.sceneReply, 'and it holds the moment they froze on');
+    assert.equal(rescued.supportView.kind, 'full-line', 'with the line handed over, no model needed');
+  });
 });
