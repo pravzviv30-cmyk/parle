@@ -133,12 +133,17 @@ function composePrompt(g, deadEnds) {
     '',
     ledger,
     '',
-    deadEnds.length ? `Attempts already made in this run that did NOT move the gate — do not repeat them:\n${deadEnds.map((d, i) => `${i + 1}. ${d}`).join('\n')}` : '',
-    '',
+    deadEnds.length
+      ? `Attempts already made in this run that did NOT move the gate — do not repeat them:\n${deadEnds.map((d, i) => `${i + 1}. ${d}`).join('\n')}\n`
+      : null,
     RULES,
     '',
     'When you are done, run `npm run gate` yourself and report the number of failing checks.',
-  ].filter(Boolean).join('\n');
+  ]
+    // Only the conditional block is optional; the empty strings are deliberate
+    // blank lines, and a prompt run together is a prompt that reads worse.
+    .filter((line) => line !== null)
+    .join('\n');
 }
 
 // --------------------------------------------------------------------- run
