@@ -189,10 +189,24 @@ const RESCUE_PREFIX =
   'Do NOT mention that they hesitated, do not apologise, and do not ask whether they are finding it hard — ' +
   'just carry the conversation forward as a good human tutor would. ';
 
+/**
+ * What to render, and what to tell the tutor, for a given rung.
+ *
+ * A rescue overrides the rung's usual support with the whole line, every time.
+ * Dropping one rung is right for what comes *next* — but the turn the learner
+ * just froze on has to be answered with the answer. A freeze at Free that lands
+ * on Prompted hands back an English hint, which asks the person who could not
+ * compose French a moment ago to compose French again; that is the exact failure
+ * this ladder exists to prevent, and RESCUE_PREFIX already promises the model it
+ * will hand over the line. This makes the rendered support say the same thing as
+ * the instruction instead of contradicting it.
+ *
+ * The rung still drops. Support returns to the rung's own level on the next turn.
+ */
 export function directiveFor(rung: Rung, rescued = false): LadderDirective {
   return {
     rung,
-    support: SUPPORT_BY_RUNG[rung],
+    support: rescued ? 'full-line' : SUPPORT_BY_RUNG[rung],
     rescued,
     tutorInstruction: rescued ? RESCUE_PREFIX + INSTRUCTION_BY_RUNG[rung] : INSTRUCTION_BY_RUNG[rung],
   };

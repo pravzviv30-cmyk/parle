@@ -20,6 +20,7 @@
  */
 
 import { normalise } from '../lessons/types.ts';
+import { damerauLevenshtein, TYPO_MAX_DISTANCE, TYPO_MIN_LENGTH } from '../text/distance.ts';
 import type { DrillExercise } from './types.ts';
 
 export type DrillVerdict = 'good' | 'typo' | 'miss';
@@ -34,43 +35,11 @@ export interface GradeResult {
   closest: string | null;
 }
 
-/** Below this many letters, one edit is too large a share of the word to forgive. */
-export const TYPO_MIN_LENGTH = 5;
-/** The edit budget a typo gets. One slip; two edits is a different word. */
-export const TYPO_MAX_DISTANCE = 1;
+// The typo window and the distance itself now live in ../text/distance.ts, so the
+// spoken path can hold itself to exactly the same standard. Re-exported here
+// because this is where callers have always found them.
+export { damerauLevenshtein, sameWord, TYPO_MIN_LENGTH, TYPO_MAX_DISTANCE } from '../text/distance.ts';
 
-/**
- * Damerau-Levenshtein distance, optimal-string-alignment variant: insertions,
- * deletions, substitutions, and adjacent transpositions all cost one. The
- * transposition case is the whole point — "cafeé" and "caef" are finger slips,
- * and plain Levenshtein bills a swap as two errors.
- */
-export function damerauLevenshtein(a: string, b: string): number {
-  if (a === b) return 0;
-  const rows = a.length + 1;
-  const cols = b.length + 1;
-  const d: number[][] = Array.from({ length: rows }, () => new Array<number>(cols).fill(0));
-  for (let i = 0; i < rows; i++) d[i]![0] = i;
-  for (let j = 0; j < cols; j++) d[0]![j] = j;
-
-  for (let i = 1; i < rows; i++) {
-    for (let j = 1; j < cols; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      let best = Math.min(
-        d[i - 1]![j]! + 1, // deletion
-        d[i]![j - 1]! + 1, // insertion
-        d[i - 1]![j - 1]! + cost, // substitution
-      );
-      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
-        best = Math.min(best, d[i - 2]![j - 2]! + 1); // transposition
-      }
-      d[i]![j] = best;
-    }
-  }
-  return d[a.length]![b.length]!;
-}
-
-/** The accepted strings for a free-text exercise, in their real spelling. */
 function acceptedFor(exercise: DrillExercise): string[] {
   switch (exercise.kind) {
     case 'fill-blank':

@@ -394,7 +394,15 @@ export function integrateTurn(
   // model reported: the tutor hands back the French and the beat is invited
   // again. Bounded like every retry by the attempt cap, so nobody loops.
   const reachedForEnglish = input.type === 'spoke' && turn.assessment.language === 'english';
-  const shouldAdvance = (turn.scene.beatDone && !reachedForEnglish) || forceAdvance;
+
+  // Nor does a rescue. The model has just modelled the line, so it has every
+  // reason to report the beat done — but the learner has not said it yet, and
+  // the one thing they needed was another go at the thing they froze on. Same
+  // shape as the English guard, and bounded by the same cap: forceAdvance is
+  // already set for them by applyNonSpokenInput once the attempts run out, so
+  // the scene still moves whatever happens.
+  const wasRescued = input.type === 'silence' || input.type === 'help' || state.directive.rescued;
+  const shouldAdvance = (turn.scene.beatDone && !reachedForEnglish && !wasRescued) || forceAdvance;
   if (shouldAdvance) {
     beatStatus[state.currentBeat] = 'done';
     advancedBeat = true;

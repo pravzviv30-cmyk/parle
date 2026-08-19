@@ -178,8 +178,12 @@ for (const entry of entries) {
 const ok = failures.length === 0;
 
 if (bless) {
-  if (!ok) {
-    console.error('refusing to bless floors while the gate is red');
+  // Blessing raises the floors, so it only needs the suites to be sound — an open
+  // ledger item is work still to do, not a reason to leave new tests undefended.
+  const blocking = failures.filter((f) => f.check !== 'goal');
+  if (blocking.length > 0) {
+    console.error('refusing to bless floors while tests, typecheck or hygiene are red:');
+    for (const f of blocking) console.error(`  [${f.check}] ${f.detail}`);
     process.exit(1);
   }
   const next = { ...floors };

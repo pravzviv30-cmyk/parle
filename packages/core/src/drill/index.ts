@@ -12,6 +12,7 @@ export {
 export {
   gradeAnswer,
   damerauLevenshtein,
+  sameWord,
   TYPO_MIN_LENGTH,
   TYPO_MAX_DISTANCE,
   type DrillVerdict,

@@ -19,7 +19,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### A1 — A spoken answer has to match the script exactly
 - severity: P0
-- status: [ ]
+- status: [x]
 - where: packages/core/src/lessons/types.ts:99
 - note: normalised equality only. Beginner STT fillers, a dropped word or a near miss all
   grade `poor`, drop a rung and print "Not quite." The typed drills already forgive one
@@ -29,14 +29,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### A2 — An empty transcript is graded as a wrong answer
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: packages/core/src/session/session.ts:233
 - note: silence that reaches the engine as an empty `spoke` should rescue, not demote.
 - verified-by: `an empty transcript is treated as silence, not a wrong answer`
 
 ### A3 — A freeze at the top rung still asks the learner to invent French
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: packages/core/src/ladder/ladder.ts:107
 - note: a rescue drops one rung; from FREE that lands on PROMPTED, an English-only hint,
   while RESCUE_PREFIX simultaneously tells the model to give the line. Split brain.
@@ -44,7 +44,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### A4 — A rescue can skip the beat the learner froze on
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/engine/conversation.ts:397
 - note: English is protected from `beatDone`; silence and help are not.
 - verified-by: `a rescue never completes the beat the learner froze on`

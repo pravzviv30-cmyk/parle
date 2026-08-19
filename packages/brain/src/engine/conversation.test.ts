@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { STUCK_SILENCE_MS } from '@parle/core';
+import { STUCK_SILENCE_MS, directiveFor } from '@parle/core';
 
 import {
   MAX_ATTEMPTS_PER_BEAT,
@@ -103,8 +103,21 @@ describe('silence and aide-moi — the rescue, before any model call', () => {
     assert.equal(after.ladder.rung, 2);
     assert.equal(after.ladder.rescues, 1);
     assert.equal(view.rescued, true);
-    // Rung 2 support renders from the material the last turn already carried.
-    assert.equal(view.supportView.kind, 'options');
+    // The support renders instantly from material the last turn already carried —
+    // and a rescue renders the whole line, not the rung's usual scaffolding. The
+    // learner who just froze is handed the answer; the rung drop is for next time.
+    assert.equal(view.supportView.kind, 'full-line');
+  });
+
+  test('a rescue never leaves the learner composing French they just could not compose', () => {
+    // The A2 learner opens at rung 3 and freezes. Dropping to rung 2 alone would
+    // hand back options; from rung 4 it would hand back an English hint, which is
+    // the original stranding bug wearing a different hat.
+    for (const rung of [1, 2, 3, 4] as const) {
+      const state = { ...fresh(), ladder: { ...fresh().ladder, rung }, directive: directiveFor(rung) };
+      const { view } = applyNonSpokenInput(state, { type: 'silence', durationMs: STUCK_SILENCE_MS });
+      assert.equal(view.supportView.kind, 'full-line', `a freeze at rung ${rung} must be answered with the line`);
+    }
   });
 
   test('the rescued directive reaches the next prepared prompt', () => {
@@ -158,6 +171,33 @@ describe('the ladder in free conversation', () => {
 });
 
 describe('beats — the conversation always moves', () => {
+  test('a rescue never completes the beat the learner froze on', () => {
+    const state = fresh();
+    const silence = { type: 'silence', durationMs: STUCK_SILENCE_MS } as const;
+    const { state: rescued } = applyNonSpokenInput(state, silence);
+    const beatBefore = rescued.currentBeat;
+
+    // The model has just modelled the line, so it reports the beat done — of
+    // course it does, it heard itself say it. The learner has still not said a
+    // word, and the beat they froze on is exactly the one they need again.
+    const { state: after, view } = integrateTurn(rescued, silence, sampleTurn({ scene: { beat: 'greet', beatDone: true, sceneDone: false } }));
+
+    assert.equal(after.currentBeat, beatBefore, 'the beat they froze on is still the beat');
+    assert.equal(view.advancedBeat, false);
+  });
+
+  test('a frozen learner still moves on once the attempt cap trips', () => {
+    const silence = { type: 'silence', durationMs: STUCK_SILENCE_MS } as const;
+    let state = fresh();
+    // Freeze twice: applyNonSpokenInput counts the attempts and latches
+    // forceAdvance, which is what guarantees nobody is stuck on one beat.
+    for (let i = 0; i < MAX_ATTEMPTS_PER_BEAT; i++) {
+      state = applyNonSpokenInput(state, silence).state;
+      state = integrateTurn(state, silence, sampleTurn({ scene: { beat: 'greet', beatDone: true, sceneDone: false } })).state;
+    }
+    assert.equal(state.currentBeat, 'order-drink', 'the cap carries the scene forward, however silent the learner');
+  });
+
   test('beatDone advances the spine and resets attempts', () => {
     const state = fresh();
     const { state: after, view } = integrateTurn(state, spoke(), sampleTurn({ scene: { beat: 'greet', beatDone: true, sceneDone: false } }));

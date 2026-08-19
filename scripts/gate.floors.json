@@ -1,6 +1,6 @@
 {
-  "@parle/core": 374,
-  "@parle/brain": 149,
+  "@parle/core": 384,
+  "@parle/brain": 152,
   "@parle/tutor-agent": 77,
   "@parle/token-server": 29,
   "@parle/brain-playground": 12
