@@ -173,22 +173,28 @@ export function overallScore(stats: readonly PhonemeStat[]): number {
 export function buildReport(observations: readonly PhonemeObservation[]): SessionPhonemeReport {
   const stats = aggregate(observations);
 
-  let best: { stat: PhonemeStat; phoneme: Phoneme; score: number } | null = null;
+  const ranked: { stat: PhonemeStat; phoneme: Phoneme; score: number }[] = [];
   for (const stat of stats) {
     const phoneme = getPhoneme(stat.ipa);
     if (!phoneme) continue; // unknown symbol from the scorer — ignore rather than guess
     const score = priority(stat, phoneme);
-    if (score > 0 && (!best || score > best.score)) best = { stat, phoneme, score };
+    if (score > 0) ranked.push({ stat, phoneme, score });
   }
+  ranked.sort((a, b) => b.score - a.score);
 
+  // A phoneme with no drill built yet must not become the focus — we would be
+  // naming a problem and offering no way to fix it, which is worse than silence.
+  // But that is a reason to skip the phoneme, not to abandon the report: letting
+  // an undrillable sound win the ranking used to mean a learner who also mangled
+  // /ʁ/ was told nothing at all. The drill bank now covers everything at
+  // difficulty 4 and above, so this is a backstop for the easier sounds rather
+  // than the usual path — phonemes.test.ts holds that line.
   let focus: FocusPoint | null = null;
-  if (best) {
-    const drill = bestDrillFor(best.phoneme, best.stat.commonSubstitution);
-    // A phoneme with no drill built yet must not become the focus — we would be
-    // naming a problem and offering no way to fix it, which is worse than silence.
-    if (drill) {
-      focus = { phoneme: best.phoneme, stat: best.stat, drill, reason: buildReason(best.phoneme, best.stat) };
-    }
+  for (const candidate of ranked) {
+    const drill = bestDrillFor(candidate.phoneme, candidate.stat.commonSubstitution);
+    if (!drill) continue;
+    focus = { phoneme: candidate.phoneme, stat: candidate.stat, drill, reason: buildReason(candidate.phoneme, candidate.stat) };
+    break;
   }
 
   const wins = stats.filter(

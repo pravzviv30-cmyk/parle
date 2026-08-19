@@ -8,7 +8,8 @@
  * tab switch — which matters, because a room that survives a tab switch is a
  * room the meter is still counting.
  *
- * No route carries a payload. The lesson renders its own end card in place,
+ * Route params stay to plain serialisable flags. The lesson renders its own
+ * end card in place,
  * exactly as ConvoScreen already renders its recap in place, so nothing
  * non-serialisable is ever put into navigation state.
  */
@@ -23,8 +24,12 @@ export type TabParamList = {
 
 export type RootStackParamList = {
   Tabs: undefined;
-  /** The guided café lesson, and the summary it ends on. */
-  Lesson: undefined;
+  /**
+   * The guided café lesson, and the summary it ends on. `textMode` opens it
+   * with the voice pipeline dark, for a learner who cannot speak aloud right
+   * now — the same door the conversation has always had.
+   */
+  Lesson: { textMode?: boolean } | undefined;
   /** Free conversation. `textMode` opens it with the voice pipeline dark. */
   Convo: { textMode?: boolean } | undefined;
   /**

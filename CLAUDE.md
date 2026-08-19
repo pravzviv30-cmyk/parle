@@ -1,3 +1,22 @@
+## Context docs
+
+`docs/` is the map. Read [docs/README.md](docs/README.md) first and then the one
+file that answers your question — not the whole folder, and not the source.
+
+| Question | File |
+|---|---|
+| What the workspaces are, who owns which decision | `docs/ARCHITECTURE.md` |
+| How a live session works end to end | `docs/LIVE_VOICE.md` |
+| The ladder, the rescue, what counts as a right answer | `docs/PEDAGOGY.md` |
+| Where the learner's data lives | `docs/STATE_AND_STORAGE.md` |
+| How to run and write tests | `docs/TESTING.md` |
+| The gate, the bug loop, the agents | `docs/LOOP.md` |
+| What is known to be broken | `docs/KNOWN_ISSUES.md` |
+
+Before finishing any change, run `npm run gate`. It checks typecheck, every
+suite, the per-workspace test-count floors, and that no P0 or P1 in the ledger is
+still open — where a ticked box only counts if the test it names actually passed.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

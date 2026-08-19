@@ -20,6 +20,7 @@ import {
   applyTurn,
   directiveFor,
   initialState as initialLadder,
+  openingRung,
   type LadderDirective,
   type LadderState,
   type Rung,
@@ -133,20 +134,16 @@ export interface RescueView {
 
 const BASE_RUNG_BY_CEFR: Record<CefrBand, Rung> = { A0: 1, A1: 2, A2: 3, B1: 3, B2: 4, C1: 4, C2: 4 };
 
-function clampRung(rung: number): Rung {
-  return Math.min(4, Math.max(1, rung)) as Rung;
-}
-
 /**
- * Where a session opens. Core's philosophy: start one rung below where you
- * could be — starting cold at the edge of your ability is how a session dies
- * in its first thirty seconds, and the ladder climbs back within two good
- * turns anyway. A first-ever session opens at the level's base rung.
+ * Where a conversation opens.
+ *
+ * The rule itself is core's `openingRung`, shared with scripted lessons, so the
+ * two cannot drift apart again. This function only supplies the piece core
+ * cannot know: which rung a self-reported CEFR band starts a first-ever session
+ * on. Everything after that first session is decided by what the learner did.
  */
 export function openingRungFor(learner: LearnerSnapshot): Rung {
-  const base = BASE_RUNG_BY_CEFR[learner.cefr];
-  if (learner.lastRung === null) return base;
-  return clampRung(Math.min(base, learner.lastRung) - 1);
+  return openingRung({ cefrBase: BASE_RUNG_BY_CEFR[learner.cefr], lastRung: learner.lastRung });
 }
 
 /** The scene plan as the model sees it — message zero of every session. */
@@ -394,7 +391,15 @@ export function integrateTurn(
   // model reported: the tutor hands back the French and the beat is invited
   // again. Bounded like every retry by the attempt cap, so nobody loops.
   const reachedForEnglish = input.type === 'spoke' && turn.assessment.language === 'english';
-  const shouldAdvance = (turn.scene.beatDone && !reachedForEnglish) || forceAdvance;
+
+  // Nor does a rescue. The model has just modelled the line, so it has every
+  // reason to report the beat done — but the learner has not said it yet, and
+  // the one thing they needed was another go at the thing they froze on. Same
+  // shape as the English guard, and bounded by the same cap: forceAdvance is
+  // already set for them by applyNonSpokenInput once the attempts run out, so
+  // the scene still moves whatever happens.
+  const wasRescued = input.type === 'silence' || input.type === 'help' || state.directive.rescued;
+  const shouldAdvance = (turn.scene.beatDone && !reachedForEnglish && !wasRescued) || forceAdvance;
   if (shouldAdvance) {
     beatStatus[state.currentBeat] = 'done';
     advancedBeat = true;

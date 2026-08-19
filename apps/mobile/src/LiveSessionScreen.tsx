@@ -23,6 +23,8 @@ export function LiveSessionScreen({
   startRung,
   onFinish,
   onExit,
+  textMode = false,
+  onRetryAsText,
 }: {
   lesson: Lesson;
   userId: string;
@@ -30,8 +32,12 @@ export function LiveSessionScreen({
   startRung?: Rung;
   onFinish: (s: SessionSummary) => void;
   onExit: () => void;
+  /** Open with the voice pipeline dark: the lesson is read and typed, never spoken. */
+  textMode?: boolean;
+  /** Reopen this lesson typed. Absent means the caller cannot offer that. */
+  onRetryAsText?: () => void;
 }) {
-  const live = useLiveSession(userId, lesson.id, startRung);
+  const live = useLiveSession(userId, lesson.id, startRung, textMode ? { mode: 'lesson-text' } : undefined);
 
   // Connect on mount. The hook tears the room down on unmount.
   useEffect(() => {
@@ -71,14 +77,17 @@ export function LiveSessionScreen({
   }
 
   if (live.status.phase === 'error') {
-    // The lesson is spoken by definition, so typing is not an answer here —
-    // no onType. The conversation offers it; this does not.
+    // A learner whose microphone was refused is exactly the learner who needs
+    // the typed route, and the four failures that carry canType are the ones
+    // where typing is a real way out. This used to be the conversation's
+    // privilege alone.
     return (
       <LiveErrorView
         failure={live.status.failure}
         message={live.status.message}
         diagnostics={live.diagnostics}
         onBack={onExit}
+        onType={textMode ? undefined : () => onRetryAsText?.()}
       />
     );
   }
@@ -141,7 +150,14 @@ export function LiveSessionScreen({
         onHelp={live.sendHelp}
         // Replays come from the agent in the premium voice, and only while the
         // learner holds the floor — a replay must not talk over the tutor.
-        onHearLine={!live.tutorSpeaking ? live.sendHear : undefined}
+        onHearLine={!live.tutorSpeaking && !textMode ? live.sendHear : undefined}
+        // Saying it aloud is still the product, and the cards are still
+        // read-along support while the learner has a voice to use. But a
+        // carriage full of strangers is not a reason to finish a lesson having
+        // said nothing: a tap is an answer, graded like any other, and counted
+        // as an utterance nobody heard rather than one that went well.
+        onOptionPress={live.sendChoice}
+        onType={textMode ? live.sendSay : undefined}
       />
     </View>
   );

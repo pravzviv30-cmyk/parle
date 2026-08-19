@@ -3,6 +3,7 @@ export {
   directiveFor,
   initialState,
   nextSessionRung,
+  openingRung,
   unassistedRate,
   PROMOTION_STREAK,
   RUNGS,

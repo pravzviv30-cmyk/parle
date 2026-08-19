@@ -9,7 +9,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createProfile, type LearnerProfile } from '@parle/brain';
+import { createProfile, repairProfile, type LearnerProfile } from '@parle/brain';
 import { userKey } from '../storage/scope.ts';
 
 /** Resolved per call: the active account can change between calls. */
@@ -46,7 +46,7 @@ function upgradeV1(parsed: Record<string, unknown>): StoredProfile {
     dailyGoalMin: 10,
     onboardedAt: typeof parsed.onboardedAt === 'number' ? parsed.onboardedAt : Date.now(),
     // The one thing that must survive any migration: what the tutor knows.
-    brain: (parsed.brain as LearnerProfile | undefined) ?? createProfile(),
+    brain: repairProfile(parsed.brain),
   };
 }
 
@@ -59,7 +59,13 @@ export async function loadProfile(): Promise<StoredProfile | null> {
     const version = (parsed as { version?: unknown }).version;
     if (version === 1) return upgradeV1(parsed as Record<string, unknown>);
     if (version !== 2) return null;
-    return parsed as StoredProfile;
+    // The cast used to stop here, which meant a v2 blob with a missing or
+    // half-written `brain` travelled all the way to the tutor worker as the
+    // session snapshot and crashed it on open. Repair at the door: this is the
+    // only place the device's copy is read, so it is the only place that can
+    // stop a bad one leaving.
+    const stored = parsed as StoredProfile;
+    return { ...stored, brain: repairProfile(stored.brain) };
   } catch {
     // A corrupt profile is not worth crashing over. Onboarding runs again.
     return null;

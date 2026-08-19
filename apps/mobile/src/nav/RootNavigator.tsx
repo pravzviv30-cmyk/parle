@@ -61,7 +61,9 @@ function Loading() {
 
 /** The guided lesson, and the end card it finishes on. */
 function LessonRoute() {
-  const nav = useNavigation<{ goBack: () => void }>();
+  const nav = useNavigation<{ goBack: () => void; setParams: (p: { textMode?: boolean }) => void }>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Lesson'>>();
+  const textMode = route.params?.textMode ?? false;
   const { user } = useAuth();
   const { live } = useLive();
   const [startRung, setStartRung] = useState<Rung | null>(null);
@@ -103,10 +105,12 @@ function LessonRoute() {
   }
   return live && user ? (
     <LiveSessionScreen
-      key="live"
+      key={textMode ? 'live-text' : 'live'}
       lesson={CAFE_LESSON}
       userId={user.id}
       startRung={startRung}
+      textMode={textMode}
+      onRetryAsText={() => nav.setParams({ textMode: true })}
       onFinish={finish}
       onExit={() => nav.goBack()}
     />

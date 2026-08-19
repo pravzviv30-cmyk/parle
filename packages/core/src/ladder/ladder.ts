@@ -189,10 +189,24 @@ const RESCUE_PREFIX =
   'Do NOT mention that they hesitated, do not apologise, and do not ask whether they are finding it hard — ' +
   'just carry the conversation forward as a good human tutor would. ';
 
+/**
+ * What to render, and what to tell the tutor, for a given rung.
+ *
+ * A rescue overrides the rung's usual support with the whole line, every time.
+ * Dropping one rung is right for what comes *next* — but the turn the learner
+ * just froze on has to be answered with the answer. A freeze at Free that lands
+ * on Prompted hands back an English hint, which asks the person who could not
+ * compose French a moment ago to compose French again; that is the exact failure
+ * this ladder exists to prevent, and RESCUE_PREFIX already promises the model it
+ * will hand over the line. This makes the rendered support say the same thing as
+ * the instruction instead of contradicting it.
+ *
+ * The rung still drops. Support returns to the rung's own level on the next turn.
+ */
 export function directiveFor(rung: Rung, rescued = false): LadderDirective {
   return {
     rung,
-    support: SUPPORT_BY_RUNG[rung],
+    support: rescued ? 'full-line' : SUPPORT_BY_RUNG[rung],
     rescued,
     tutorInstruction: rescued ? RESCUE_PREFIX + INSTRUCTION_BY_RUNG[rung] : INSTRUCTION_BY_RUNG[rung],
   };
@@ -209,12 +223,26 @@ export function unassistedRate(state: LadderState): number {
 }
 
 /**
- * The rung to open the learner's next session on.
+ * The rung a session opens on — the one rule, for scripted lessons and free
+ * conversation alike.
  *
- * Deliberately one below where they finished. Starting at the edge of your
- * ability while cold is how a session dies in its first thirty seconds, and the
- * ladder climbs back within two good turns anyway.
+ * Deliberately one below where the learner finished. Starting at the edge of
+ * your ability while cold is how a session dies in its first thirty seconds, and
+ * the ladder climbs back within two good turns anyway.
+ *
+ * Once there is a `lastRung`, it decides on its own and the CEFR base steps
+ * aside. What someone actually did last session is better evidence than what
+ * they told an onboarding screen about themselves — an A1 who worked their way
+ * up to free conversation should not be handed the Echo rung next time because
+ * a dropdown once said A1. The base is for the first session, when there is
+ * nothing else to go on.
  */
+export function openingRung(previous: { cefrBase: Rung; lastRung: Rung | null }): Rung {
+  if (previous.lastRung === null) return clamp(previous.cefrBase);
+  return clamp(previous.lastRung - 1);
+}
+
+/** Where this session's ladder leaves the next one. */
 export function nextSessionRung(state: LadderState): Rung {
-  return clamp(state.rung - 1);
+  return openingRung({ cefrBase: RUNGS.FREE, lastRung: state.rung });
 }

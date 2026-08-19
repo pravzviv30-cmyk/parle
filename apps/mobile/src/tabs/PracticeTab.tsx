@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { buildPath, CAFE_LESSON, type PathUnit } from '@parle/core';
 import { paper, space, type } from '../theme.ts';
-import { Card, Label, OutlineButton } from '../components.tsx';
+import { Card, Label, OutlineButton, GhostButton } from '../components.tsx';
 import { PathNodeRow } from '../practice/PathNodeRow.tsx';
 import { loadDeck } from '../review/store.ts';
 import { loadDrillBank } from '../drill/store.ts';
@@ -52,13 +52,15 @@ export function PracticeTab() {
     }, []),
   );
 
-  const open = (node: { id: string; kind: string; title: string; phraseKeys: readonly string[] }) => {
+  const open = (node: { id: string; kind: string; title: string; phraseKeys: readonly string[] }, textMode = false) => {
     if (node.kind === 'lesson') {
-      void recheck().then(() => nav.navigate('Lesson'));
+      void recheck().then(() => nav.navigate('Lesson', textMode ? { textMode: true } : undefined));
       return;
     }
     nav.navigate('Drill', { node: { id: node.id, title: node.title, phraseKeys: node.phraseKeys } });
   };
+
+  const lessonNode = units?.flatMap((u) => u.nodes).find((n) => n.kind === 'lesson') ?? null;
 
   return (
     <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
@@ -85,6 +87,15 @@ export function PracticeTab() {
             </View>
           </View>
         ))}
+
+        {lessonNode && (
+          <View style={{ marginBottom: space(6) }}>
+            <GhostButton
+              label="Unable to speak right now?"
+              onPress={() => open(lessonNode, true)}
+            />
+          </View>
+        )}
 
         <Card>
           <Label>The rest of this path</Label>

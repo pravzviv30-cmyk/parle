@@ -35,11 +35,12 @@ export function roomNameFor(userId: string, lessonId: string, now = Date.now()):
 
 /**
  * The session shapes the app may request. The agent stays authoritative.
+ * 'lesson-text' is the scripted lesson with the voice pipeline dark, and
  * 'convo-text' is the same conversation with the voice pipeline dark — the
  * learner types instead of speaking, for the train carriage and the denied
  * microphone. Metered like any session: the tutor is thinking either way.
  */
-export type SessionMode = 'lesson' | 'convo' | 'convo-text';
+export type SessionMode = 'lesson' | 'convo' | 'convo-text' | 'lesson-text';
 
 /**
  * A requested opening rung, kept only when it really is one. Anything else —

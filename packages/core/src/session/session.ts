@@ -28,7 +28,7 @@ import {
   type TurnQuality,
 } from '../ladder/ladder.ts';
 import { buildReport, type PhonemeObservation, type SessionPhonemeReport } from '../phonemes/scoring.ts';
-import { isAcceptable, type Lesson, type LessonTurn } from '../lessons/types.ts';
+import { matchAcceptable, normalise, type Lesson, type LessonTurn } from '../lessons/types.ts';
 
 /**
  * The point below which an utterance probably was not *understood*.
@@ -170,13 +170,18 @@ function meanScore(obs: readonly PhonemeObservation[]): number | null {
 /**
  * Grade an utterance on its two independent axes.
  *
- * Wrong words is always `poor` — no amount of beautiful pronunciation makes an
- * unrelated answer right. Right words spoken intelligibly is `good`, accent and
- * all. Only speech so unclear a listener would not have caught it holds position
- * at `partial`, and even then it never drops the learner down a rung.
+ * Wrong words is `poor` — no amount of beautiful pronunciation makes an
+ * unrelated answer right. Nearly-right words are `partial`, which holds the rung:
+ * see `matchAcceptable` for where the line between the two is drawn. Right words
+ * spoken intelligibly is `good`, accent and all. Speech so unclear a listener
+ * would not have caught it also holds at `partial`, and neither kind of partial
+ * ever drops the learner down a rung.
  */
-export function grade(wordsCorrect: boolean, pronunciation: number | null): TurnQuality {
-  if (!wordsCorrect) return 'poor';
+export function grade(wordsCorrect: boolean, pronunciation: number | null, nearMiss = false): TurnQuality {
+  // Half the line is not the line, but it is not a different answer either. A
+  // learner who produced most of it and lost the rest to nerves has earned
+  // "that got the message across", not a rung.
+  if (!wordsCorrect) return nearMiss ? 'partial' : 'poor';
   if (pronunciation === null) return 'good'; // nothing scored; do not invent a penalty
   return pronunciation >= INTELLIGIBLE ? 'good' : 'partial';
 }
@@ -207,8 +212,19 @@ function wordsFrom(transcript: string): string[] {
  */
 export const MAX_ATTEMPTS_PER_TURN = 2;
 
-export function submitTurn(lesson: Lesson, state: SessionState, input: LearnerInput): { state: SessionState; feedback: TurnFeedback } {
+export function submitTurn(lesson: Lesson, state: SessionState, given: LearnerInput): { state: SessionState; feedback: TurnFeedback } {
   const turn = lesson.turns[Math.min(state.turnIndex, lesson.turns.length - 1)]!;
+
+  /**
+   * A turn that arrived through the speech path carrying no words is silence
+   * that happened to trip the recogniser — a cough, a passing bus, the tutor's
+   * own voice in a speakerphone. Grading it as a wrong answer scolds a learner
+   * who never said anything, so it becomes what it actually is.
+   */
+  const input: LearnerInput =
+    given.type === 'spoke' && normalise(given.transcript).length === 0
+      ? { type: 'silence', durationMs: STUCK_SILENCE_MS }
+      : given;
 
   // A short pause is thinking, not being stuck. Nothing happened at all.
   if (input.type === 'silence' && input.durationMs < STUCK_SILENCE_MS) {
@@ -220,6 +236,7 @@ export function submitTurn(lesson: Lesson, state: SessionState, input: LearnerIn
 
   let event: TurnEvent;
   let wordsCorrect = false;
+  let nearMiss = false;
   let pronunciation: number | null = null;
   const next: SessionState = {
     ...state,
@@ -231,9 +248,11 @@ export function submitTurn(lesson: Lesson, state: SessionState, input: LearnerIn
 
   switch (input.type) {
     case 'spoke': {
-      wordsCorrect = isAcceptable(turn, input.transcript);
+      const match = matchAcceptable(turn, input.transcript);
+      wordsCorrect = match.accepted;
+      nearMiss = match.via === 'near';
       pronunciation = meanScore(input.phonemes);
-      const quality = grade(wordsCorrect, pronunciation);
+      const quality = grade(wordsCorrect, pronunciation, nearMiss);
       event = { type: 'spoke', quality };
 
       next.observations.push(...input.phonemes);
@@ -261,7 +280,7 @@ export function submitTurn(lesson: Lesson, state: SessionState, input: LearnerIn
   next.ladder = ladder;
   next.directive = directive;
 
-  const quality: TurnQuality = input.type === 'spoke' ? grade(wordsCorrect, pronunciation) : 'poor';
+  const quality: TurnQuality = input.type === 'spoke' ? grade(wordsCorrect, pronunciation, nearMiss) : 'poor';
 
   // A rescue, or a wrong answer, re-attempts this same turn with more support —
   // never skips past something the learner could not say. Bounded so nobody can
@@ -311,10 +330,23 @@ function feedbackMessage(kind: LearnerInput['type'], quality: TurnQuality, rescu
   return 'Not quite. Listen and try it this way.';
 }
 
+/**
+ * Whether this session could say anything about pronunciation at all.
+ *
+ * The distinction the end card has to make and could not: `clean` means we
+ * listened and there was nothing worth working on; `unavailable` means we never
+ * heard them — no audio reached the scorer, or the learner answered by tapping
+ * and typing. Collapsing the two into an empty focus card shows a learner who
+ * was never assessed the same screen as a learner who did well, which is a claim
+ * this product does not get to make.
+ */
+export type PronunciationStatus = 'scored' | 'clean' | 'unavailable';
+
 export interface SessionSummary {
   lessonId: string;
   durationSec: number;
   pronunciation: SessionPhonemeReport;
+  pronunciationStatus: PronunciationStatus;
   /** Share of turns the learner composed French for themselves. */
   unassistedRate: number;
   /** Distinct words they actually said aloud, correctly. */
@@ -338,10 +370,12 @@ export interface SessionSummary {
 
 export function summarise(state: SessionState, now = Date.now()): SessionSummary {
   const durationSec = Math.max(0, ((state.endedAt ?? now) - state.startedAt) / 1000);
+  const pronunciation = buildReport(state.observations);
   return {
     lessonId: state.lessonId,
     durationSec,
-    pronunciation: buildReport(state.observations),
+    pronunciation,
+    pronunciationStatus: state.utterancesScored === 0 ? 'unavailable' : pronunciation.focus ? 'scored' : 'clean',
     unassistedRate: unassistedRate(state.ladder),
     wordsProduced: [...state.wordsProduced].sort(),
     longestTurnSec: state.longestTurnSec,

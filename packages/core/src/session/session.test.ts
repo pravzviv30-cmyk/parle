@@ -19,6 +19,41 @@ function step(state: SessionState, input: LearnerInput) {
   return submitTurn(lesson, state, input);
 }
 
+describe('what arrives through the speech path but carries no words', () => {
+  test('an empty transcript is treated as silence, not a wrong answer', () => {
+    const state = createSession(lesson, RUNGS.PROMPTED);
+    // A cough, a passing bus, or the tutor's own voice in a speakerphone: the
+    // recogniser fired and returned nothing. The learner did not say anything
+    // wrong, because the learner did not say anything.
+    const { state: after, feedback } = step(state, { type: 'spoke', transcript: '   ', phonemes: [], durationSec: 0 });
+
+    assert.equal(feedback.rescued, true, 'silence is rescued, never marked wrong');
+    assert.equal(after.ladder.rescues, 1);
+    assert.equal(after.ladder.rung, RUNGS.CUED, 'one rung of extra support, exactly as a real pause gets');
+    assert.equal(feedback.message, "Let's take that one together.");
+    assert.notEqual(feedback.message, 'Not quite. Listen and try it this way.');
+  });
+
+  test('an empty transcript adds nothing to the record of what was said', () => {
+    const state = createSession(lesson, RUNGS.PROMPTED);
+    const { state: after } = step(state, { type: 'spoke', transcript: '', phonemes: [], durationSec: 0 });
+    assert.equal(after.transcript.length, 0, 'nothing was said, so nothing is transcribed');
+    assert.equal(after.wordsProduced.size, 0);
+  });
+
+  test('a near miss holds the rung instead of dropping it', () => {
+    const state = createSession(lesson, RUNGS.PROMPTED);
+    const first = step(state, said('Bonjour')); // turn 1, clean
+    // Turn 2 is "Un café, s'il vous plaît". They ordered, they forgot the please.
+    const { state: after, feedback } = step(first.state, said('un café'));
+
+    assert.equal(feedback.wordsCorrect, false, 'the line was not complete');
+    assert.equal(feedback.quality, 'partial');
+    assert.equal(after.ladder.rung, first.state.ladder.rung, 'a near miss never costs a rung');
+    assert.equal(feedback.message, 'Good. That got the message across.');
+  });
+});
+
 describe('grading the two independent axes', () => {
   test('right words, good pronunciation is good', () => {
     assert.equal(grade(true, 90), 'good');
@@ -102,7 +137,31 @@ describe('the stuck learner — the behaviour the whole product rests on', () =>
     assert.equal(feedback.rescued, true);
     assert.equal(feedback.advanced, false, 'a rescue must not skip the turn');
     assert.equal(currentPrompt(lesson, state).position, 1, 'still on the same turn');
-    assert.equal(currentPrompt(lesson, state).support.kind, 'options', 'but with more support than before');
+    // The turn they just froze on is answered with the answer, whatever rung the
+    // freeze happened at. The rung drop governs what comes next, not this.
+    assert.equal(currentPrompt(lesson, state).support.kind, 'full-line', 'a freeze is answered with the line');
+    assert.equal(state.ladder.rung, RUNGS.CUED, 'and the rung still drops for the next attempt');
+  });
+
+  test('a rescue hands over the full line from every rung', () => {
+    for (const rung of [RUNGS.ECHO, RUNGS.CUED, RUNGS.PROMPTED, RUNGS.FREE] as const) {
+      const { state, feedback } = step(createSession(lesson, rung), stuck);
+      assert.equal(feedback.rescued, true, `rung ${rung} should rescue`);
+      assert.equal(
+        currentPrompt(lesson, state).support.kind,
+        'full-line',
+        `a learner who froze at rung ${rung} must be handed the line, not asked to compose again`,
+      );
+      assert.ok(state.ladder.rung < rung || rung === RUNGS.ECHO, 'the rung still drops, except at the floor');
+    }
+  });
+
+  test('the line is a rescue courtesy, not a new rung — support returns on the next turn', () => {
+    const rescued = step(createSession(lesson, RUNGS.FREE), stuck);
+    assert.equal(currentPrompt(lesson, rescued.state).support.kind, 'full-line');
+    // They answer it. Support goes back to what the dropped rung actually offers.
+    const next = step(rescued.state, said('Bonjour'));
+    assert.equal(currentPrompt(lesson, next.state).support.kind, 'hint', 'rung 3 support, as the drop intended');
   });
 
   test('the rescue message offers help without ever naming the struggle', () => {
@@ -302,5 +361,48 @@ describe('a complete run through the lesson', () => {
     assert.ok(sum.wordsProduced.length > 15, `expected a real vocabulary haul, got ${sum.wordsProduced.length}`);
     assert.ok(sum.unassistedRate > 0.5, 'most turns should have been composed unaided');
     assert.equal(sum.pronunciation.focus, null, 'nothing to fix after a clean run');
+  });
+});
+
+describe('what the end card is allowed to claim', () => {
+  test('a session with nothing scored reports pronunciation unavailable', () => {
+    // The live path used to end here on every single session: no audio ever
+    // reached the scorer, so there were no observations, so there was no focus
+    // — and an empty focus renders exactly like a clean one.
+    let state = createSession(lesson, RUNGS.FREE);
+    state = step(state, { type: 'spoke', transcript: 'Bonjour', phonemes: [], durationSec: 2 }).state;
+    const summary = summarise(state);
+
+    assert.equal(summary.utterancesScored, 0);
+    assert.equal(summary.pronunciation.focus, null);
+    assert.equal(summary.pronunciationStatus, 'unavailable', 'never heard is not the same as nothing to fix');
+  });
+
+  test('a session that was scored and went well reports clean, not unavailable', () => {
+    let state = createSession(lesson, RUNGS.FREE);
+    state = step(state, said('Bonjour', 96)).state;
+    const summary = summarise(state);
+
+    assert.ok(summary.utterancesScored > 0);
+    assert.equal(summary.pronunciationStatus, 'clean');
+  });
+
+  test('a session with a real problem reports it as scored', () => {
+    const bad = (text: string): LearnerInput => ({
+      type: 'spoke',
+      transcript: text,
+      durationSec: 2,
+      phonemes: [
+        { ipa: 'ʁ', score: 30, word: text, substituted: 'l' },
+        { ipa: 'ʁ', score: 28, word: text, substituted: 'l' },
+        { ipa: 'ʁ', score: 33, word: text, substituted: 'l' },
+      ],
+    });
+    let state = createSession(lesson, RUNGS.FREE);
+    state = step(state, bad('Bonjour')).state;
+    const summary = summarise(state);
+
+    assert.equal(summary.pronunciationStatus, 'scored');
+    assert.equal(summary.pronunciation.focus?.phoneme.ipa, 'ʁ');
   });
 });

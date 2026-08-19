@@ -114,6 +114,19 @@ export function SummaryScreen({
               </View>
             </Card>
           </View>
+        ) : summary.pronunciationStatus === 'unavailable' ? (
+          /* Said plainly, because the alternative is worse. A session nobody
+             listened to used to render the card below — "every sound you used
+             held up" — to a learner whose audio never reached the scorer at all.
+             Quiet, unalarming, and true: no red, no apology, no fault. */
+          <Card>
+            <Label color={paper.inkFaint}>No sound check today</Label>
+            <Text style={[type.title, { color: paper.ink, marginTop: space(2.5) }]}>We did not listen this time.</Text>
+            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
+              Your pronunciation was not scored in this session, so there is nothing to report on it. Everything else
+              below still counts.
+            </Text>
+          </Card>
         ) : (
           <Card>
             <Label color={signal.good}>Nothing to work on</Label>

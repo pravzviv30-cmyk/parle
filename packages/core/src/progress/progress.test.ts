@@ -17,6 +17,7 @@ function session(endedAt: number, rScore: number, words: string[], longest = 2.5
       overall: rScore,
       wins: [],
     },
+    pronunciationStatus: 'scored',
     unassistedRate: 0.4,
     wordsProduced: words,
     longestTurnSec: longest,

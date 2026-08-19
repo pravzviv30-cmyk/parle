@@ -192,6 +192,26 @@ export const DRILLS: readonly Drill[] = [
     ],
   },
   {
+    id: 'oeu-vs-e',
+    kind: 'minimal-pair',
+    target: 'œ',
+    contrast: 'ɛ',
+    // The error an English speaker actually makes here is the vowel in "her":
+    // central, and crucially unrounded. There is no French /ɜː/ to contrast
+    // against, but an unrounded /œ/ lands on /ɛ/ — and that is a different word
+    // every time, so the pairs below are exactly what the substitution costs.
+    title: 'peur / père: keep your lips round',
+    why: 'English "her" says this vowel with flat lips. Flatten yours in French and "peur" (fear) comes out as "père" (father).',
+    durationSec: 60,
+    pairs: [
+      { a: { word: 'peur', ipa: 'pœʁ', gloss: 'fear' }, b: { word: 'père', ipa: 'pɛʁ', gloss: 'father' } },
+      { a: { word: 'heure', ipa: 'œʁ', gloss: 'hour' }, b: { word: 'air', ipa: 'ɛʁ', gloss: 'air' } },
+      { a: { word: 'meurt', ipa: 'mœʁ', gloss: '(he) dies' }, b: { word: 'mère', ipa: 'mɛʁ', gloss: 'mother' } },
+      { a: { word: 'sœur', ipa: 'sœʁ', gloss: 'sister' }, b: { word: 'serre', ipa: 'sɛʁ', gloss: 'greenhouse' } },
+      { a: { word: 'fleur', ipa: 'flœʁ', gloss: 'flower' }, b: { word: 'flair', ipa: 'flɛʁ', gloss: 'scent / flair' } },
+    ],
+  },
+  {
     id: 'zh-initial',
     kind: 'minimal-pair',
     target: 'ʒ',

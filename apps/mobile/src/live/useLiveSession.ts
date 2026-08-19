@@ -31,6 +31,7 @@ import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from '.
 import { authHeaders } from '../auth/adapter.ts';
 import { classifyFailure, failureCopy, micApiUnavailable, TokenServerError, type LiveFailure } from './failure.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
+import { thinkingAfter } from './thinking.ts';
 
 /** Where the token server lives. Configurable per env for device testing. */
 const TOKEN_SERVER = process.env.EXPO_PUBLIC_TOKEN_SERVER_URL ?? 'http://localhost:8787';
@@ -196,6 +197,14 @@ export interface LiveSession {
   sendSkip: () => void;
   /** Ask the agent to replay the current line in the tutor's voice. */
   sendHear: () => void;
+  /**
+   * Answer a scripted turn by tapping one of its options.
+   *
+   * Graded exactly as a spoken turn, and deliberately not counted as an
+   * utterance anybody listened to — so the end card reports that nothing was
+   * scored rather than implying a tap sounded good.
+   */
+  sendChoice: (text: string) => void;
   /** Choose a conversation topic by tapping its chip. */
   sendTopic: (value: string) => void;
   /** Ask the tutor to say it again slowly, and to stay slow. */
@@ -211,7 +220,7 @@ export function useLiveSession(
   userId: string,
   lessonId: string,
   startRung?: Rung,
-  opts?: { mode?: 'lesson' | 'convo' | 'convo-text'; snapshot?: unknown },
+  opts?: { mode?: 'lesson' | 'convo' | 'convo-text' | 'lesson-text'; snapshot?: unknown },
 ): LiveSession {
   const [status, setStatus] = useState<LiveStatus>({ phase: 'idle' });
   const [prompt, setPrompt] = useState<SessionPrompt | null>(null);
@@ -402,6 +411,11 @@ export function useLiveSession(
           setWaitingForTutor(false);
           trace('session-opened', { t: msg.t });
         }
+        // Whether the tutor is still deciding is one rule about the whole
+        // message union, not a line in each branch — see thinking.ts for what
+        // scattering it cost.
+        setThinking((was) => thinkingAfter(was, msg));
+
         switch (msg.t) {
           case 'prompt':
             setPrompt(msg.prompt);
@@ -412,15 +426,11 @@ export function useLiveSession(
             break;
           case 'speaking':
             setTutorSpeaking(msg.speaking);
-            // The tutor having taken the floor means it is no longer deciding.
-            if (msg.speaking) setThinking(false);
             break;
           case 'transcript':
             if (msg.final) {
               setLastTranscript(msg.text);
               addTurn({ who: 'learner', fr: msg.text, frWritten: null, en: null });
-              // Said, and not yet answered.
-              setThinking(true);
             }
             break;
           case 'summary':
@@ -429,7 +439,6 @@ export function useLiveSession(
             break;
           case 'convo':
             setConvo(msg.view);
-            setThinking(false);
             // Narration lands before the line it introduces, the way it is
             // heard. `pushTurn` drops it when it is the same one as last turn.
             if (msg.view.narration) {
@@ -472,7 +481,6 @@ export function useLiveSession(
             break;
           case 'topics':
             setTopics({ prompt: msg.prompt, chips: msg.chips });
-            setThinking(false);
             addTurn({ who: 'tutor', fr: msg.prompt.fr, frWritten: null, en: msg.prompt.en });
             break;
           case 'recap':
@@ -612,6 +620,7 @@ export function useLiveSession(
     sendHelp: useCallback(() => send({ t: 'help' }), [send]),
     sendSkip: useCallback(() => send({ t: 'skip' }), [send]),
     sendHear: useCallback(() => send({ t: 'hear' }), [send]),
+    sendChoice: useCallback((text: string) => send({ t: 'choice', text }), [send]),
     sendTopic: useCallback((value: string) => send({ t: 'topic', value }), [send]),
     sendSlower: useCallback(() => send({ t: 'slower' }), [send]),
     sendEnglish: useCallback(() => send({ t: 'english' }), [send]),
