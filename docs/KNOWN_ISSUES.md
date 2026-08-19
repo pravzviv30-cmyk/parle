@@ -127,3 +127,40 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: /session/end is unauthenticated and body-trusted, and the store is in-memory, so
   a restart zeroes every learner's balance.
 - verified-by: `a debit without the agent secret is refused`
+
+### C1 — The conversation agent's rescue and brain turn have no tests at all
+- severity: P1
+- status: [ ]
+- where: services/tutor-agent/src/convo.ts:433
+- note: convo.test.ts covers the pure mapping helpers and never instantiates
+  ParleConversation, so `rescue()`, `runBrainTurn()`, `armRescue` in voiceless
+  mode, the StopResponse throw and the serial queue guard are all uncovered. The
+  queue guard in particular was added to this file by analogy with the scripted
+  tutor and has never been executed by a test — the exact shape of change that
+  looks done and is not.
+- verified-by: `a conversation rescue that loses the race is discarded`
+- verified-by: `a typed conversation turn is integrated once, not twice`
+
+### C2 — A learner who mangles /œ/ is told nothing, because there is no drill
+- severity: P1
+- status: [ ]
+- where: packages/core/src/phonemes/drills.ts
+- note: /œ/ is difficulty 4 (`peur`, `sœur`, `fleur`, `heure`), it clears the
+  priority bar comfortably, and it is the one sound at that difficulty with
+  nothing to practise it. buildReport now walks past it to the next drillable
+  problem, which stops the whole report vanishing — but the sound itself still
+  goes unaddressed, and the fallthrough is a floor, not a fix. The English
+  substitution to teach against is the vowel in "her".
+- verified-by: `every phoneme hard enough to become a focus has a drill`
+
+### C3 — Nothing proves audio ever reaches the scorer
+- severity: P1
+- status: [ ]
+- where: services/shared/speechace.ts:36
+- note: the capture is tested and the parser is tested, but scoreUtterance itself
+  has no test that gives it audio and checks what leaves the building — the
+  reference text, the audio part, the dialect. The tests only cover the two ways
+  it returns nothing. The whole pronunciation claim rests on this request being
+  well formed, so it should not be the one link taken on trust. preflight.ts
+  already establishes the pattern: take an injectable fetch.
+- verified-by: `an utterance with audio is sent to the vendor with its reference text`
