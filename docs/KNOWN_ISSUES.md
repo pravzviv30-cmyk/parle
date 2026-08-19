@@ -185,3 +185,29 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `an utterance with audio is sent to the vendor with its reference text`
 - verified-by: `the utterance is scored against the dialect the learner is learning`
 - verified-by: `no request is made at all when there is nothing to score`
+
+### D1 — A failed brain turn in text mode strands the learner in silence
+- severity: P1
+- status: [ ]
+- where: services/tutor-agent/src/convo.ts:291
+- note: found by the loop while closing C1, and left alone as out of scope —
+  correctly, but it is the more serious of the two. When the model refuses,
+  fails to parse or times out, `runBrainTurn` says RECOVERY_LINE and returns.
+  In voiceless mode `say()` returns early, so nothing is spoken and no view is
+  published: the learner sits looking at their own typed answer with no reply,
+  no explanation and no way to tell a broken tutor from a slow one. "Never
+  strand a learner mid-scene" is one of this product's stated invariants, and
+  the quiet path is exactly where a stranded learner has least to go on.
+- verified-by: `a failed brain turn in text mode still says something to the learner`
+
+### D2 — /œ/ changes the word but is not marked as meaning-bearing
+- severity: P2
+- status: [ ]
+- where: packages/core/src/phonemes/inventory.ts:139
+- note: also found by the loop, while writing the /œ/ drill. The drill's whole
+  argument is that an unrounded /œ/ lands on /ɛ/ and says a different word —
+  peur/père, heure/air — which is the definition of meaningBearing, and every
+  other phoneme carrying that weight has the flag. Setting it raises /œ/'s
+  priority by 1.4× and will shift fixtures that were tuned around the old
+  weight, so it wants doing deliberately rather than in passing.
+- verified-by: `every phoneme whose drill teaches a word-changing contrast is marked meaning-bearing`

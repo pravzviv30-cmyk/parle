@@ -109,9 +109,14 @@ Rules, in order of importance:
 3. The test title you put in docs/KNOWN_ISSUES.md under verified-by: must be the exact
    title of a test that passes. Tick the box only after it does.
 4. Fix ONE ledger item per iteration. A small committed step beats a large reverted one.
-5. Match the house style: node:test + node:assert/strict, colocated *.test.ts, describe
+5. File what you find. Anything real you notice outside the item you are on gets a
+   new entry appended to docs/KNOWN_ISSUES.md — severity, where, note, and the
+   verified-by test that would close it — and is then left alone. A finding you
+   only mention in your reply is a finding that dies with this iteration. P2
+   entries do not block the gate, so filing one never traps the loop.
+6. Match the house style: node:test + node:assert/strict, colocated *.test.ts, describe
    blocks named for a behaviour, test names that are full sentences about the learner.
-6. Product invariants that must survive every change: never remark on a learner's
+7. Product invariants that must survive every change: never remark on a learner's
    hesitation, never force someone to speak aloud, never invent or display a pronunciation
    score that did not come from audio, never strand a learner mid-scene.
 `.trim();
