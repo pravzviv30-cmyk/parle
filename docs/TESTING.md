@@ -73,7 +73,18 @@ Both looked like green coverage of a fixed bug and were neither.
 
 ## What is not covered
 
-`apps/mobile` has no test script — it typechecks only. UI behaviour is verified by
-running the app; see the verification workflow in LOOP.md. The evals in
-`services/brain-playground` (`npm run eval`) measure AI quality and need real
-keys, so they are not part of the gate.
+`apps/mobile` has a suite now, but a small one, and it only covers logic that can
+be imported without React Native — the pure modules under `src/live/`
+(`thinking.ts`, `turns.ts`, `failure.ts`) and `mockSpeech.ts`. There is no
+renderer and no component test.
+
+That shapes how app bugs get fixed: **pull the rule out into a plain module and
+test it there**, rather than leaving it inline and untestable. `thinking.ts` is
+the worked example — the "is the tutor still deciding" rule lived in five
+branches of a switch, which is exactly how a sixth branch came to be missed.
+Anything still inside a component or a hook is verified by running the app; see
+the verification workflow in LOOP.md, and say which parts were proven by test and
+which by eye.
+
+The evals in `services/brain-playground` (`npm run eval`) measure AI quality and
+need real keys, so they are not part of the gate.

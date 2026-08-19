@@ -100,6 +100,6 @@ which is the same discipline as `npm run loop`, with you in the room.
 
 ## Verifying UI work
 
-The gate cannot see the app. `apps/mobile` has no tests, so anything visual is
-verified by running it — `npm run web`, drive the preview, read the console — and
+The gate cannot see the app. `apps/mobile`'s suite covers only what imports
+without React Native, so anything visual is verified by running it — `npm run web`, drive the preview, read the console — and
 by saying plainly which parts were proven by test and which by eye.

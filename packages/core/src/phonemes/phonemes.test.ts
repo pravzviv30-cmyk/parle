@@ -97,6 +97,29 @@ describe('drills', () => {
     assert.deepEqual(undrilled, [], 'a sound that can top the ranking needs a drill, or it can never be told to the learner');
   });
 
+  test('every phoneme whose drill teaches a word-changing contrast is marked meaning-bearing', () => {
+    // meaningBearing is a 1.4x weight on the focus ranking, and it means exactly
+    // one thing: get this wrong and you said a different word. A minimal-pair
+    // drill whose pairs are two real words with two different meanings is that
+    // claim, written out five times. The flag and the drill bank cannot disagree
+    // about it — and they did, for /œ/, /ʒ/ and /e/, all three of which teach a
+    // contrast that changes the word and none of which carried the weight.
+    for (const drill of DRILLS) {
+      const pairs = drill.pairs;
+      if (drill.kind !== 'minimal-pair' || !pairs || pairs.length === 0) continue;
+      const changesTheWord = pairs.every((p) => p.a.word !== p.b.word && p.a.gloss !== p.b.gloss);
+      if (!changesTheWord) continue;
+
+      const phoneme = getPhoneme(drill.target);
+      assert.ok(phoneme, `${drill.id} targets /${drill.target}/, which is not in the inventory`);
+      assert.equal(
+        phoneme.meaningBearing,
+        true,
+        `${drill.id} teaches that /${drill.target}/ changes the word (${pairs[0]!.a.word} vs ${pairs[0]!.b.word}), so the phoneme must say so`,
+      );
+    }
+  });
+
   test('drills stay at 60 seconds so they never feel like homework', () => {
     for (const d of DRILLS) assert.equal(d.durationSec, 60);
   });

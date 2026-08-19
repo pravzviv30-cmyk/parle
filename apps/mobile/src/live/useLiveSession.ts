@@ -31,6 +31,7 @@ import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from '.
 import { authHeaders } from '../auth/adapter.ts';
 import { classifyFailure, failureCopy, micApiUnavailable, TokenServerError, type LiveFailure } from './failure.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
+import { thinkingAfter } from './thinking.ts';
 
 /** Where the token server lives. Configurable per env for device testing. */
 const TOKEN_SERVER = process.env.EXPO_PUBLIC_TOKEN_SERVER_URL ?? 'http://localhost:8787';
@@ -410,28 +411,26 @@ export function useLiveSession(
           setWaitingForTutor(false);
           trace('session-opened', { t: msg.t });
         }
+        // Whether the tutor is still deciding is one rule about the whole
+        // message union, not a line in each branch — see thinking.ts for what
+        // scattering it cost.
+        setThinking((was) => thinkingAfter(was, msg));
+
         switch (msg.t) {
           case 'prompt':
             setPrompt(msg.prompt);
             setFeedback(null);
-            // A new turn is the answer to the last one. In a typed lesson
-            // nothing speaks, so this is the only thing that ever says so.
-            setThinking(false);
             break;
           case 'feedback':
             setFeedback(msg.feedback);
             break;
           case 'speaking':
             setTutorSpeaking(msg.speaking);
-            // The tutor having taken the floor means it is no longer deciding.
-            if (msg.speaking) setThinking(false);
             break;
           case 'transcript':
             if (msg.final) {
               setLastTranscript(msg.text);
               addTurn({ who: 'learner', fr: msg.text, frWritten: null, en: null });
-              // Said, and not yet answered.
-              setThinking(true);
             }
             break;
           case 'summary':
@@ -440,7 +439,6 @@ export function useLiveSession(
             break;
           case 'convo':
             setConvo(msg.view);
-            setThinking(false);
             // Narration lands before the line it introduces, the way it is
             // heard. `pushTurn` drops it when it is the same one as last turn.
             if (msg.view.narration) {
@@ -483,7 +481,6 @@ export function useLiveSession(
             break;
           case 'topics':
             setTopics({ prompt: msg.prompt, chips: msg.chips });
-            setThinking(false);
             addTurn({ who: 'tutor', fr: msg.prompt.fr, frWritten: null, en: msg.prompt.en });
             break;
           case 'recap':

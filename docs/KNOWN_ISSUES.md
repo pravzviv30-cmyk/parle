@@ -211,19 +211,26 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### D2 — /œ/ changes the word but is not marked as meaning-bearing
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/phonemes/inventory.ts:139
 - note: also found by the loop, while writing the /œ/ drill. The drill's whole
   argument is that an unrounded /œ/ lands on /ɛ/ and says a different word —
   peur/père, heure/air — which is the definition of meaningBearing, and every
   other phoneme carrying that weight has the flag. Setting it raises /œ/'s
   priority by 1.4× and will shift fixtures that were tuned around the old
-  weight, so it wants doing deliberately rather than in passing.
+  weight, so it wants doing deliberately rather than in passing. Doing it
+  deliberately turned up two more: /ʒ/ (j'ai/chez) and /e/ (fée/fait, and it is
+  what marks the verb tense) carry drills making exactly the same argument and
+  were unflagged too. The flag is not a judgement call — a minimal-pair drill
+  whose pairs are two real words with two different meanings *is* the claim that
+  the sound changes the word — so the test holds the drill bank and the
+  inventory to each other rather than listing the three by name. No fixture
+  moved: the weights that shifted did not change any ranking that is asserted.
 - verified-by: `every phoneme whose drill teaches a word-changing contrast is marked meaning-bearing`
 
 ### D3 — The orb thinks forever when the answer never comes
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/live/useLiveSession.ts:496
 - note: found by the loop while closing D1, and it is the app-side half of the
   same moment. `sendSay` sets `thinking` true and only `prompt`, `convo`,
@@ -235,5 +242,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   The fix is one line in the `error` case; what makes it worth an entry rather
   than a drive-by is that apps/mobile has no test suite at all — no *.test.ts
   anywhere under it and no floor in scripts/gate.floors.json — so this cannot
-  be closed honestly until there is somewhere for its test to live.
+  be closed honestly until there is somewhere for its test to live. There is
+  now: apps/mobile has a test script, a floor, and its first suite. The fix came
+  out larger than one line and better for it — the rule was spread across five
+  branches of the switch, which is why a sixth was missed, so it is one function
+  over the whole message union in live/thinking.ts with the compiler holding
+  every case. That the app had no tests at all is the more useful half of this
+  entry; the orb was just the first thing to fall through the gap.
 - verified-by: `a trouble notice stops the tutor looking like it is still thinking`

@@ -70,6 +70,9 @@ export const FRENCH_PHONEMES: readonly Phoneme[] = [
     cue: 'Like "ay" in "say", but stop before the "y". One pure sound.',
     typicalSubstitution: 'eɪ',
     trick: 'Say "say" and freeze your mouth halfway. That frozen sound is /e/.',
+    // fée / fait, ces / sait, thé / tait — and it is what marks the verb tense.
+    // See the e-closed-vs-open drill.
+    meaningBearing: true,
   },
   {
     ipa: 'ɛ',
@@ -143,6 +146,9 @@ export const FRENCH_PHONEMES: readonly Phoneme[] = [
     examples: ['peur', 'sœur', 'fleur', 'heure'],
     cue: 'Like "e" in "bet" with rounded lips. Jaw lower than /ø/.',
     typicalSubstitution: 'ɜː',
+    // Unround it, as the vowel in "her" does, and it lands on /ɛ/: peur becomes
+    // père, sœur becomes serre. See the oeu-vs-e drill.
+    meaningBearing: true,
   },
   {
     ipa: 'ə',
@@ -294,6 +300,8 @@ export const FRENCH_PHONEMES: readonly Phoneme[] = [
     cue: 'The "s" in "measure". English never starts a word with this sound. French does it all the time.',
     typicalSubstitution: 'dʒ',
     trick: 'Say "measure", isolate the middle sound, then put it at the front of "je".',
+    // j'ai / chez, joue / chou, gêne / chêne. See the zh-initial drill.
+    meaningBearing: true,
   },
 
   // ------------------------------------------------------------ nasal consonants
