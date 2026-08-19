@@ -6,10 +6,11 @@
  * cannot diverge — there is exactly one rendering of a session.
  */
 
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SessionPrompt } from '@parle/core';
-import { paper, rungColor, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
+import { paper, radius, rungColor, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
 import { Card, Label, LineBullet, StationLine, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
 
 /**
@@ -123,8 +124,13 @@ export interface SessionViewProps {
   /** What the learner just said, as heard. Shown for trust in the live path. */
   transcript?: string | null;
   /**
-   * Mock path: submits the option as if spoken. Live path: absent — the learner
-   * must say it aloud, and the cards are read-along support, not buttons.
+   * Submits the option as the learner's answer.
+   *
+   * Saying it aloud is the product, and on the live path the cards are still
+   * read-along support first. But a learner in a quiet carriage who cannot
+   * speak used to have no way to answer at all, and finished the session having
+   * said nothing — so a tap answers, and is recorded as an answer nobody heard
+   * rather than one that was heard and went well.
    */
   onOptionPress?: (text: string) => void;
   /** Mock path only: simulates speaking the target line. */
@@ -134,12 +140,25 @@ export interface SessionViewProps {
   onHearLine?: () => void;
   /** Replay a rung-2 option aloud without submitting it. */
   onOptionHear?: (text: string) => void;
+  /**
+   * Typed answers, for a lesson taken without a microphone. Present only in text
+   * mode; the mic circle stands down and this takes its place.
+   */
+  onType?: (text: string) => void;
 }
 
 export function SessionView(props: SessionViewProps) {
   const insets = useSafeAreaInsets();
   const { prompt, listening, flash } = props;
   const rung = prompt.directive.rung;
+  const [draft, setDraft] = useState('');
+
+  const sendDraft = () => {
+    const text = draft.trim();
+    if (text.length === 0) return;
+    setDraft('');
+    props.onType?.(text);
+  };
 
   return (
     <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
@@ -208,16 +227,45 @@ export function SessionView(props: SessionViewProps) {
           <View style={{ height: space(2) + 23, marginBottom: space(2) }} />
         )}
 
-        <SpeakCircle
-          onPress={props.onMicPress}
-          active={listening}
-          muted={!listening}
-          disabled={!props.onMicPress}
-          accessibilityLabel={listening ? 'Speak your answer' : 'The tutor is speaking'}
-        />
-        <Text style={[type.label, { color: listening ? paper.ink : paper.inkFaint, marginTop: space(2) }]}>
-          {listening ? 'Speak' : 'Listen'}
-        </Text>
+        {props.onType ? (
+          <View style={st.typeRow}>
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              onSubmitEditing={sendDraft}
+              returnKeyType="send"
+              submitBehavior="submit"
+              placeholder="Type your answer"
+              placeholderTextColor={paper.inkFaint}
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="Type your answer in French"
+              style={[type.body, st.input]}
+            />
+            <Pressable
+              onPress={sendDraft}
+              disabled={draft.trim().length === 0}
+              accessibilityRole="button"
+              accessibilityLabel="Send your answer"
+              style={({ pressed }) => [st.send, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={[type.bodyStrong, { color: draft.trim().length === 0 ? paper.inkFaint : paper.ink }]}>Send</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <SpeakCircle
+              onPress={props.onMicPress}
+              active={listening}
+              muted={!listening}
+              disabled={!props.onMicPress}
+              accessibilityLabel={listening ? 'Speak your answer' : 'The tutor is speaking'}
+            />
+            <Text style={[type.label, { color: listening ? paper.ink : paper.inkFaint, marginTop: space(2) }]}>
+              {listening ? 'Speak' : 'Listen'}
+            </Text>
+          </>
+        )}
 
         <Pressable
           onPress={props.onHelp}
@@ -236,6 +284,18 @@ export function SessionView(props: SessionViewProps) {
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
+  typeRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), alignSelf: 'stretch' },
+  input: {
+    flex: 1,
+    color: paper.ink,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    borderRadius: radius.input,
+    paddingHorizontal: space(3),
+    paddingVertical: space(2.5),
+    backgroundColor: paper.card,
+  },
+  send: { paddingHorizontal: space(3), paddingVertical: space(2.5), minHeight: HIT },
   header: { paddingBottom: space(3) },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   scroll: { paddingTop: space(3), paddingBottom: space(5), gap: space(5), flexGrow: 1, justifyContent: 'center' },

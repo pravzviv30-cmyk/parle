@@ -196,6 +196,14 @@ export interface LiveSession {
   sendSkip: () => void;
   /** Ask the agent to replay the current line in the tutor's voice. */
   sendHear: () => void;
+  /**
+   * Answer a scripted turn by tapping one of its options.
+   *
+   * Graded exactly as a spoken turn, and deliberately not counted as an
+   * utterance anybody listened to — so the end card reports that nothing was
+   * scored rather than implying a tap sounded good.
+   */
+  sendChoice: (text: string) => void;
   /** Choose a conversation topic by tapping its chip. */
   sendTopic: (value: string) => void;
   /** Ask the tutor to say it again slowly, and to stay slow. */
@@ -211,7 +219,7 @@ export function useLiveSession(
   userId: string,
   lessonId: string,
   startRung?: Rung,
-  opts?: { mode?: 'lesson' | 'convo' | 'convo-text'; snapshot?: unknown },
+  opts?: { mode?: 'lesson' | 'convo' | 'convo-text' | 'lesson-text'; snapshot?: unknown },
 ): LiveSession {
   const [status, setStatus] = useState<LiveStatus>({ phase: 'idle' });
   const [prompt, setPrompt] = useState<SessionPrompt | null>(null);
@@ -406,6 +414,9 @@ export function useLiveSession(
           case 'prompt':
             setPrompt(msg.prompt);
             setFeedback(null);
+            // A new turn is the answer to the last one. In a typed lesson
+            // nothing speaks, so this is the only thing that ever says so.
+            setThinking(false);
             break;
           case 'feedback':
             setFeedback(msg.feedback);
@@ -612,6 +623,7 @@ export function useLiveSession(
     sendHelp: useCallback(() => send({ t: 'help' }), [send]),
     sendSkip: useCallback(() => send({ t: 'skip' }), [send]),
     sendHear: useCallback(() => send({ t: 'hear' }), [send]),
+    sendChoice: useCallback((text: string) => send({ t: 'choice', text }), [send]),
     sendTopic: useCallback((value: string) => send({ t: 'topic', value }), [send]),
     sendSlower: useCallback(() => send({ t: 'slower' }), [send]),
     sendEnglish: useCallback(() => send({ t: 'english' }), [send]),

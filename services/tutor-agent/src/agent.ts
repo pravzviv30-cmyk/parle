@@ -117,10 +117,11 @@ export default defineAgent({
     // driving it differs. The convo profile is the app's stored brain profile,
     // riding the token as an opaque snapshot — tampering with it moves
     // pedagogy, never minutes.
+    const voiceless = meta.mode === 'convo-text' || meta.mode === 'lesson-text';
     const tutor =
       meta.mode === 'convo' || meta.mode === 'convo-text'
-        ? new ParleConversation(parseStoredProfile(meta.snapshot), { voiceless: meta.mode === 'convo-text' })
-        : new ParleTutor(lesson, startRung);
+        ? new ParleConversation(parseStoredProfile(meta.snapshot), { voiceless })
+        : new ParleTutor(lesson, startRung, { voiceless });
     tutor.learnerId = participant.identity;
 
     // Safety net for reconnects and any learner who lands after the first: the
@@ -206,11 +207,14 @@ export default defineAgent({
       // opening support. No model call — the frame carries everything.
       tutor.open(session);
     } else {
-      tutor.sendCurrentPrompt();
+      tutor.sendCurrentPrompt(session);
 
       // The tutor opens. A beginner must never face a silent microphone and be
-      // expected to start a conversation in a language they do not speak.
-      session.generateReply(tutor.replyOptions());
+      // expected to start a conversation in a language they do not speak. In a
+      // typed lesson there is nothing to speak with: the published turn already
+      // carries the tutor's line, the target and the support, and the model has
+      // nothing to add to a script.
+      if (!voiceless) session.generateReply(tutor.replyOptions());
     }
   },
 });

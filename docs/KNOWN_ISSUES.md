@@ -113,7 +113,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### B5 — A live lesson has no quiet path
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/LiveSessionScreen.tsx:74
 - note: option cards are display-only and there is no typed route, so a learner who
   cannot speak aloud finishes having said nothing.

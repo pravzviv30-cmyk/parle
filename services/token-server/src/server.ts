@@ -156,7 +156,13 @@ const server = createServer(async (req, res) => {
       // passes through opaquely — the 64KB body cap already bounds its size.
       const startRung = typeof body.startRung === 'number' ? body.startRung : undefined;
       const mode =
-        body.mode === 'convo' ? ('convo' as const) : body.mode === 'convo-text' ? ('convo-text' as const) : ('lesson' as const);
+        body.mode === 'convo'
+          ? ('convo' as const)
+          : body.mode === 'convo-text'
+            ? ('convo-text' as const)
+            : body.mode === 'lesson-text'
+              ? ('lesson-text' as const)
+              : ('lesson' as const);
       const snapshot = typeof body.snapshot === 'object' && body.snapshot !== null ? body.snapshot : undefined;
 
       const entitlement = await store.get(userId);

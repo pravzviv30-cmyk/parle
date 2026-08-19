@@ -54,12 +54,23 @@ export class ParleTutor extends voice.Agent {
   /** Keeps a copy of each utterance on its way to the recogniser. */
   private readonly tap = new UtteranceTap();
 
-  constructor(lesson: Lesson, startRung?: Rung) {
+  /**
+   * Voiceless: the lesson runs with no microphone and no speech at all.
+   *
+   * The scripted turn is already published in full — the tutor's line, the
+   * target, the support view — so a typed lesson needs no model call and no TTS
+   * to be a lesson. The ladder, the rescue and the summary are the same code;
+   * only the delivery changes. A learner on a quiet train is still a learner.
+   */
+  private readonly voiceless: boolean;
+
+  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean } = {}) {
     const state = createSession(lesson, startRung);
     const prompt = currentPrompt(lesson, state);
     super({ instructions: buildPrompt(lesson, prompt.turn, prompt.directive) });
     this.lesson = lesson;
     this.state = state;
+    this.voiceless = options.voiceless ?? false;
   }
 
   get sessionState(): SessionState {
@@ -72,9 +83,12 @@ export class ParleTutor extends voice.Agent {
   }
 
   /** Send the app whatever it should be rendering right now. */
-  sendCurrentPrompt(): void {
+  sendCurrentPrompt(session?: voice.AgentSession): void {
     if (this.state.finished) return;
     this.publish({ t: 'prompt', prompt: currentPrompt(this.lesson, this.state) });
+    // With no speech there is no AgentStateChanged to start the silence clock,
+    // and the moment the turn renders is the moment they have the floor.
+    if (this.voiceless && session) this.armRescue(session);
   }
 
   /** Drives the microphone control: live while the learner has the floor. */
@@ -97,8 +111,21 @@ export class ParleTutor extends voice.Agent {
     if (msg.t === 'hear') {
       // Replay the line to say, uninterruptible so it always plays out whole.
       // Scripted lines come from the TTS cache, so a replay costs nothing.
+      if (this.voiceless) return;
       const prompt = currentPrompt(this.lesson, this.state);
       session.say(prompt.turn.target, { allowInterruptions: false });
+      return;
+    }
+
+    // A tapped option and a typed line are both answers. They are graded exactly
+    // as a spoken turn would be — the ladder does not care how the words
+    // arrived — but they carry no phonemes, so nothing counts them as an
+    // utterance that was listened to and the end card keeps saying so.
+    if (msg.t === 'choice' || msg.t === 'say') {
+      const text = msg.text.trim();
+      if (text.length === 0) return;
+      this.publish({ t: 'transcript', text, final: true });
+      await this.enqueue(session, { type: 'spoke', transcript: text, phonemes: [], durationSec: 0 });
       return;
     }
 
@@ -259,8 +286,12 @@ export class ParleTutor extends voice.Agent {
     // The tutor answers every applied input — a spoken turn, a rescue, a skip —
     // and always through replyOptions(), so a modelled line on a scripted rung
     // can never be cut off by the mic hearing the tutor's own voice.
-    if (session) {
+    if (session && !this.voiceless) {
       session.generateReply(this.replyOptions());
+    } else if (session) {
+      // Nothing is going to speak, so nothing will hand the floor back. The
+      // published turn is the handover, and the clock starts with it.
+      this.armRescue(session);
     }
   }
 

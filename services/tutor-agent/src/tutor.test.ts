@@ -2,7 +2,7 @@ import { test, describe, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { voice } from '@livekit/agents';
-import { CAFE_LESSON, RUNGS, STUCK_SILENCE_MS, encodeMessage, type ServerMessage } from '@parle/core';
+import { CAFE_LESSON, RUNGS, STUCK_SILENCE_MS, encodeMessage, type ClientMessage, type Rung, type ServerMessage } from '@parle/core';
 import { ParleTutor } from './tutor.ts';
 
 /**
@@ -26,13 +26,18 @@ function stubSession() {
   return { session: session as never, calls };
 }
 
-function build(startRung = RUNGS.PROMPTED) {
-  const tutor = new ParleTutor(CAFE_LESSON, startRung);
+function build(startRung: Rung = RUNGS.PROMPTED, options: { voiceless?: boolean } = {}) {
+  const tutor = new ParleTutor(CAFE_LESSON, startRung, options);
   const { session, calls } = stubSession();
   Object.defineProperty(tutor, 'session', { value: session, configurable: true });
   const published: ServerMessage[] = [];
   tutor.attach((message) => published.push(message));
   return { tutor, session, calls, published };
+}
+
+/** A tap or a keystroke, as it arrives on the data channel. */
+function tapped(message: ClientMessage): Uint8Array {
+  return encodeMessage(message);
 }
 
 /** What the recogniser hands the agent at the end of a turn. */
@@ -154,5 +159,75 @@ describe('a rescue and a learner talking at the same moment', () => {
 
     assert.equal(tutor.sessionState.turnIndex, 2, 'both turns landed, neither was lost');
     assert.equal(calls.generateReply.length, 2, 'and each got exactly one reply');
+  });
+});
+
+describe('a lesson for someone who cannot speak aloud', () => {
+  test('a tapped option advances the turn without claiming it was heard', async () => {
+    const { tutor, session, calls } = build(RUNGS.CUED);
+
+    // The cards were read-along decoration: the wire has carried `choice` all
+    // along and nothing on either end ever sent or handled one. A learner on a
+    // train either spoke or sat through rescues and finished having said
+    // nothing at all.
+    await tutor.handleClientMessage(session, tapped({ t: 'choice', text: 'Bonjour' }));
+    await tutor.settled();
+
+    assert.equal(tutor.sessionState.turnIndex, 1, 'the answer counts');
+    assert.equal(tutor.sessionState.utterancesScored, 0, 'but nobody heard it, and the end card must not pretend otherwise');
+    assert.equal(tutor.sessionState.learnerSpeakingSec, 0, 'a tap is not speaking time');
+    assert.equal(calls.generateReply.length, 1, 'the tutor still answers');
+  });
+
+  test('a wrong tap is graded like a wrong answer, not waved through', async () => {
+    const { tutor, session } = build(RUNGS.CUED);
+    await tutor.handleClientMessage(session, tapped({ t: 'choice', text: 'Bonsoir' }));
+    await tutor.settled();
+
+    // 'Bonsoir' is the deliberately-wrong option on turn one. Tapping is a way
+    // to answer, not a way to skip the ladder.
+    assert.equal(tutor.sessionState.turnIndex, 0, 'they get another go at it');
+    assert.equal(tutor.sessionState.ladder.rung, RUNGS.ECHO, 'with more support than before');
+  });
+
+  test('a lesson can be completed entirely by typing', async () => {
+    const { tutor, calls, published } = build(RUNGS.ECHO, { voiceless: true });
+    const { session } = stubSession();
+
+    tutor.sendCurrentPrompt(session);
+    let guard = 0;
+    while (!tutor.sessionState.finished && guard++ < CAFE_LESSON.turns.length * 3) {
+      const prompt = tutor.sessionState;
+      const turn = CAFE_LESSON.turns[Math.min(prompt.turnIndex, CAFE_LESSON.turns.length - 1)]!;
+      await tutor.handleClientMessage(session, tapped({ t: 'say', text: turn.target }));
+      await tutor.settled();
+    }
+
+    assert.equal(tutor.sessionState.finished, true, 'the whole café lesson, start to end, with no microphone');
+    assert.equal(calls.generateReply.length, 0, 'nothing was generated');
+    assert.equal(calls.said.length, 0, 'and nothing was spoken');
+
+    const summary = published.find((m) => m.t === 'summary');
+    assert.ok(summary, 'a typed lesson still ends with an end card');
+    assert.equal(summary.summary.pronunciationStatus, 'unavailable', 'and it says plainly that nobody listened');
+  });
+
+  test('a typed lesson still rescues a learner who goes quiet', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { tutor, session } = build(RUNGS.PROMPTED, { voiceless: true });
+
+    // Nothing speaks, so no AgentStateChanged ever fires to start the clock.
+    // Rendering the turn is the moment the learner has the floor.
+    tutor.sendCurrentPrompt(session);
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await tutor.settled();
+
+    assert.equal(tutor.sessionState.ladder.rescues, 1, 'a quiet learner is still a stuck learner');
+  });
+
+  test('asking to hear the line does nothing when there is no voice', async () => {
+    const { tutor, session, calls } = build(RUNGS.ECHO, { voiceless: true });
+    await tutor.handleClientMessage(session, tapped({ t: 'hear' }));
+    assert.equal(calls.said.length, 0);
   });
 });

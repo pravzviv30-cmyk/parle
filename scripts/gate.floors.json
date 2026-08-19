@@ -1,7 +1,7 @@
 {
   "@parle/core": 391,
   "@parle/brain": 152,
-  "@parle/tutor-agent": 100,
+  "@parle/tutor-agent": 105,
   "@parle/token-server": 34,
   "@parle/brain-playground": 12
 }
