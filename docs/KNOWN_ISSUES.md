@@ -165,12 +165,23 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### C3 — Nothing proves audio ever reaches the scorer
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: services/shared/speechace.ts:36
 - note: the capture is tested and the parser is tested, but scoreUtterance itself
-  has no test that gives it audio and checks what leaves the building — the
-  reference text, the audio part, the dialect. The tests only cover the two ways
+  had no test that gave it audio and checked what leaves the building — the
+  reference text, the audio part, the dialect. The tests only covered the two ways
   it returns nothing. The whole pronunciation claim rests on this request being
   well formed, so it should not be the one link taken on trust. preflight.ts
-  already establishes the pattern: take an injectable fetch.
+  already established the pattern, and `scoreUtterance` now takes the same
+  injectable fetch. The request is asserted end to end: the reference text as
+  `text`, the learner's exact bytes as `user_audio_file`, the dialect in both the
+  form and the query, and the vendor's answer arriving back as observations. The
+  dialect default was computed twice from `req.dialect ?? 'fr-fr'` — form and URL
+  could not disagree in practice, but a score attributed to the wrong French is
+  the kind of thing that should be impossible rather than merely unlikely, so it
+  is read once. Two behaviours nothing had held down are held down now: a vendor
+  that refuses leaves the session unscored instead of ending it, and an
+  unconfigured scorer sends the learner's voice nowhere at all.
 - verified-by: `an utterance with audio is sent to the vendor with its reference text`
+- verified-by: `the utterance is scored against the dialect the learner is learning`
+- verified-by: `no request is made at all when there is nothing to score`

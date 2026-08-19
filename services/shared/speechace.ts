@@ -27,6 +27,20 @@ export interface ScoreRequest {
 const ENDPOINT = 'https://api.speechace.co/api/scoring/text/v9/json';
 
 /**
+ * Just enough of `fetch` to send a multipart POST and read a JSON body.
+ *
+ * Injectable for the same reason preflight.ts takes one: everything downstream
+ * of this call is well covered, and everything upstream is too, but the request
+ * itself — the reference text, the audio part, the dialect — was the one link
+ * in the pronunciation claim that no test had ever looked at. A score the
+ * learner sees is only honest if their voice actually reached the scorer.
+ */
+export type ScoreFetch = (
+  url: string,
+  init: { method: string; body: FormData },
+) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
+
+/**
  * Score one utterance, or return nothing.
  *
  * Returning `[]` rather than throwing is deliberate. `grade()` in the session
@@ -34,18 +48,24 @@ const ENDPOINT = 'https://api.speechace.co/api/scoring/text/v9/json';
  * degrades the session to text-only grading instead of ending it. A learner
  * mid-conversation should never be interrupted because a third-party API is down.
  */
-export async function scoreUtterance(req: ScoreRequest): Promise<PhonemeObservation[]> {
+export async function scoreUtterance(
+  req: ScoreRequest,
+  fetchFn: ScoreFetch = globalThis.fetch as unknown as ScoreFetch,
+): Promise<PhonemeObservation[]> {
   const key = process.env.SPEECHACE_API_KEY;
   if (!key || !req.audio) return [];
 
   try {
+    const dialect = req.dialect ?? 'fr-fr';
     const form = new FormData();
     form.append('text', req.reference);
     form.append('user_audio_file', new Blob([req.audio as BlobPart]), 'utterance.wav');
-    form.append('dialect', req.dialect ?? 'fr-fr');
+    form.append('dialect', dialect);
 
-    const url = `${ENDPOINT}?key=${encodeURIComponent(key)}&dialect=${req.dialect ?? 'fr-fr'}`;
-    const res = await fetch(url, { method: 'POST', body: form });
+    // The key rides in the query string, never in the multipart body — the body
+    // is the part that gets logged when a vendor call is being debugged.
+    const url = `${ENDPOINT}?key=${encodeURIComponent(key)}&dialect=${dialect}`;
+    const res = await fetchFn(url, { method: 'POST', body: form });
     if (!res.ok) {
       console.warn(`[speechace] ${res.status} — falling back to text-only grading`);
       return [];

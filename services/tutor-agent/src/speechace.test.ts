@@ -106,6 +106,100 @@ describe('degrading safely', () => {
   });
 });
 
+describe('the request that carries the audio', () => {
+  /** A capturing stand-in for fetch: records the call, answers with RESPONSE. */
+  function recorder(reply: { ok?: boolean; status?: number; body?: unknown } = {}) {
+    const calls: { url: string; init: { method?: string; body?: FormData } }[] = [];
+    const fetchFn = async (url: string, init: { method?: string; body?: FormData }) => {
+      calls.push({ url, init });
+      return {
+        ok: reply.ok ?? true,
+        status: reply.status ?? 200,
+        json: async () => reply.body ?? RESPONSE,
+      };
+    };
+    return { calls, fetchFn };
+  }
+
+  /** Recognisable bytes, so "the audio arrived" is a claim and not a shrug. */
+  const AUDIO = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x01, 0x02, 0x03, 0x04]);
+
+  async function withKey<T>(run: () => Promise<T>): Promise<T> {
+    const saved = process.env.SPEECHACE_API_KEY;
+    process.env.SPEECHACE_API_KEY = 'test-key';
+    try {
+      return await run();
+    } finally {
+      if (saved === undefined) delete process.env.SPEECHACE_API_KEY;
+      else process.env.SPEECHACE_API_KEY = saved;
+    }
+  }
+
+  test('an utterance with audio is sent to the vendor with its reference text', async () => {
+    const { calls, fetchFn } = recorder();
+    await withKey(() => scoreUtterance({ reference: 'Sur place', audio: AUDIO }, fetchFn));
+
+    assert.equal(calls.length, 1, 'exactly one request should carry the utterance');
+    const call = calls[0]!;
+    assert.equal(call.init.method, 'POST');
+    assert.ok(call.url.startsWith('https://api.speechace.co/api/scoring/text/v9/json'));
+
+    const form = call.init.body!;
+    assert.equal(form.get('text'), 'Sur place', 'accuracy scoring is meaningless without the line');
+
+    const sent = form.get('user_audio_file') as Blob | null;
+    assert.ok(sent, 'the audio part is the whole point of the request');
+    assert.deepEqual(new Uint8Array(await sent.arrayBuffer()), AUDIO, 'the bytes the learner spoke');
+  });
+
+  test('the utterance is scored against the dialect the learner is learning', async () => {
+    const { calls, fetchFn } = recorder();
+    await withKey(() => scoreUtterance({ reference: 'Bonjour', audio: AUDIO }, fetchFn));
+    assert.equal(calls[0]!.init.body!.get('dialect'), 'fr-fr', 'French by default, never English');
+    assert.match(calls[0]!.url, /dialect=fr-fr/);
+
+    const quebec = recorder();
+    await withKey(() => scoreUtterance({ reference: 'Bonjour', audio: AUDIO, dialect: 'fr-ca' }, quebec.fetchFn));
+    assert.equal(quebec.calls[0]!.init.body!.get('dialect'), 'fr-ca');
+    assert.match(quebec.calls[0]!.url, /dialect=fr-ca/);
+  });
+
+  test('what the vendor heard comes back as the learner’s observations', async () => {
+    const { fetchFn } = recorder();
+    const observations = await withKey(() => scoreUtterance({ reference: 'Sur place', audio: AUDIO }, fetchFn));
+
+    assert.equal(observations.length, 7, 'a scored utterance must produce scores');
+    assert.deepEqual(observations[1], { ipa: 'y', score: 41, word: 'sur', substituted: 'u' });
+  });
+
+  test('a vendor that refuses the utterance leaves the session unscored, not broken', async () => {
+    const refused = recorder({ ok: false, status: 429 });
+    assert.deepEqual(await withKey(() => scoreUtterance({ reference: 'Bonjour', audio: AUDIO }, refused.fetchFn)), []);
+
+    const thrown = async () => {
+      throw new Error('socket hang up');
+    };
+    assert.deepEqual(
+      await withKey(() => scoreUtterance({ reference: 'Bonjour', audio: AUDIO }, thrown as never)),
+      [],
+      'a scorer outage degrades to text-only grading rather than ending the session',
+    );
+  });
+
+  test('no request is made at all when there is nothing to score', async () => {
+    const noAudio = recorder();
+    await withKey(() => scoreUtterance({ reference: 'Bonjour' }, noAudio.fetchFn));
+    assert.equal(noAudio.calls.length, 0, 'silence is not worth a vendor round trip');
+
+    const noKey = recorder();
+    const saved = process.env.SPEECHACE_API_KEY;
+    delete process.env.SPEECHACE_API_KEY;
+    await scoreUtterance({ reference: 'Bonjour', audio: AUDIO }, noKey.fetchFn);
+    if (saved !== undefined) process.env.SPEECHACE_API_KEY = saved;
+    assert.equal(noKey.calls.length, 0, 'an unconfigured scorer must not send the learner’s voice anywhere');
+  });
+});
+
 describe('the vendor does not have to speak our alphabet', () => {
   /** The same utterance, scored in X-SAMPA instead of IPA. */
   const xsampa = {
