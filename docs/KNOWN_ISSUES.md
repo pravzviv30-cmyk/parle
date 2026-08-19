@@ -148,14 +148,19 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### C2 — A learner who mangles /œ/ is told nothing, because there is no drill
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: packages/core/src/phonemes/drills.ts
 - note: /œ/ is difficulty 4 (`peur`, `sœur`, `fleur`, `heure`), it clears the
-  priority bar comfortably, and it is the one sound at that difficulty with
-  nothing to practise it. buildReport now walks past it to the next drillable
+  priority bar comfortably, and it was the one sound at that difficulty with
+  nothing to practise it. buildReport walks past it to the next drillable
   problem, which stops the whole report vanishing — but the sound itself still
-  goes unaddressed, and the fallthrough is a floor, not a fix. The English
-  substitution to teach against is the vowel in "her".
+  went unaddressed, and the fallthrough is a floor, not a fix. The English
+  substitution to teach against is the vowel in "her". `oeu-vs-e` teaches it:
+  there is no French /ɜː/ to contrast against, but "her" says the vowel with
+  flat lips, and an unrounded /œ/ lands on /ɛ/ — peur/père, heure/air,
+  meurt/mère — so the minimal pairs are exactly what the substitution costs.
+  The buildReport fallthrough is now a backstop for the easier sounds; its two
+  tests moved onto /ɲ/, the hardest phoneme still without a drill.
 - verified-by: `every phoneme hard enough to become a focus has a drill`
 
 ### C3 — Nothing proves audio ever reaches the scorer

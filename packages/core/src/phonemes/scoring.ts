@@ -184,9 +184,11 @@ export function buildReport(observations: readonly PhonemeObservation[]): Sessio
 
   // A phoneme with no drill built yet must not become the focus — we would be
   // naming a problem and offering no way to fix it, which is worse than silence.
-  // But that is a reason to skip the phoneme, not to abandon the report: /œ/ is
-  // difficulty 4 with no drill in the bank, and letting it win the ranking used
-  // to mean a learner who also mangled /ʁ/ was told nothing at all.
+  // But that is a reason to skip the phoneme, not to abandon the report: letting
+  // an undrillable sound win the ranking used to mean a learner who also mangled
+  // /ʁ/ was told nothing at all. The drill bank now covers everything at
+  // difficulty 4 and above, so this is a backstop for the easier sounds rather
+  // than the usual path — phonemes.test.ts holds that line.
   let focus: FocusPoint | null = null;
   for (const candidate of ranked) {
     const drill = bestDrillFor(candidate.phoneme, candidate.stat.commonSubstitution);

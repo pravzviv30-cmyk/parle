@@ -87,13 +87,14 @@ describe('drills', () => {
     }
   });
 
-  test('the drill bank is measured against the sounds that can win a focus', () => {
+  test('every phoneme hard enough to become a focus has a drill', () => {
     // Difficulty 4 clears the priority bar comfortably, so a gap there is a
     // phoneme that can top the ranking with nothing to offer the learner.
-    // buildReport now walks past such a phoneme rather than falling silent, but
-    // this records which ones it has to walk past.
+    // buildReport walks past such a phoneme rather than falling silent, but that
+    // is a floor, not a fix: the sound itself still goes unaddressed. The bank
+    // has to cover everything that can win a focus.
     const undrilled = FRENCH_PHONEMES.filter((x) => x.difficulty >= 4 && drillsFor(x.ipa).length === 0).map((x) => x.ipa);
-    assert.deepEqual(undrilled, ['œ'], 'the known gap is /œ/ alone — a new one needs a drill or a deliberate decision');
+    assert.deepEqual(undrilled, [], 'a sound that can top the ranking needs a drill, or it can never be told to the learner');
   });
 
   test('drills stay at 60 seconds so they never feel like homework', () => {
@@ -181,33 +182,45 @@ describe('scoring', () => {
   });
 
   test('focus falls through to the next phoneme that has a drill', () => {
-    // /œ/ is difficulty 4 with no drill in the bank; /y/ is difficulty 5 with
-    // one. Scored badly enough, /œ/ tops the ranking — and used to take the
-    // whole focus point with it, so a learner who also mangled /y/ was told
-    // nothing at all rather than being given the drill that existed.
+    // Nothing at difficulty 4 or 5 is undrilled any more — the test above holds
+    // that line. /ɲ/ is the hardest sound left with no drill, and scored badly
+    // enough it still tops the ranking over a mildly wobbly /y/. A phoneme with
+    // no drill must not take the whole focus point down with it: the learner who
+    // also mangled /y/ gets the drill that exists.
     const report = buildReport([
-      obs('œ', 20, 'peur'),
-      obs('œ', 22, 'sœur'),
-      obs('œ', 18, 'fleur'),
+      obs('ɲ', 20, 'agneau'),
+      obs('ɲ', 22, 'montagne'),
+      obs('ɲ', 18, 'champagne'),
       obs('y', 70, 'tu', 'u'),
       obs('y', 72, 'rue', 'u'),
       obs('y', 68, 'sur', 'u'),
     ]);
 
-    // /œ/ ranks 38.4 here and /y/ 25.2, so /œ/ genuinely wins the ranking — the
+    // /ɲ/ ranks 28.8 here and /y/ 25.2, so /ɲ/ genuinely wins the ranking — the
     // fixture is only worth having if the undrillable sound is actually on top.
     assert.ok(report.focus, 'a drillable problem was present and must not be swallowed');
     assert.equal(report.focus.phoneme.ipa, 'y');
     assert.equal(report.focus.drill.id, 'y-vs-u');
     assert.ok(
-      report.stats.some((st) => st.ipa === 'œ'),
+      report.stats.some((st) => st.ipa === 'ɲ'),
       'the undrillable sound is still reported in the stats — it is skipped as a focus, not hidden',
     );
   });
 
   test('a problem with no drill anywhere still produces no focus, rather than a dead end', () => {
-    const report = buildReport([obs('œ', 20, 'peur'), obs('œ', 22, 'sœur'), obs('œ', 18, 'fleur')]);
+    const report = buildReport([obs('ɲ', 20, 'agneau'), obs('ɲ', 22, 'montagne'), obs('ɲ', 18, 'champagne')]);
     assert.equal(report.focus, null, 'naming a problem with no way to fix it is worse than silence');
+  });
+
+  test('the sound behind "her" now has somewhere to send the learner', () => {
+    // The whole point of C2: /œ/ is difficulty 4, so it clears the priority bar
+    // on its own, and it used to be skipped in silence. It must now win its own
+    // focus and arrive with the drill attached.
+    const report = buildReport([obs('œ', 30, 'peur'), obs('œ', 32, 'sœur'), obs('œ', 28, 'fleur')]);
+
+    assert.ok(report.focus, '/œ/ scored this badly must be told to the learner');
+    assert.equal(report.focus.phoneme.ipa, 'œ');
+    assert.equal(report.focus.drill.id, 'oeu-vs-e');
   });
 
   test('a clean session produces no focus point rather than inventing one', () => {
