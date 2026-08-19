@@ -48,3 +48,6 @@ graphify-out/.graphify_uncached.txt
 graphify-out/.graphify_labels.json.sig
 # dated pre-update backups of the curated graph
 graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
+
+# The bug loop keeps its journal here — per-run, per-machine, never committed.
+.loop/
