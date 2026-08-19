@@ -65,6 +65,117 @@ export function warnings(env: Env = process.env): string[] {
   return out;
 }
 
+/**
+ * A key that is present is not a key that works.
+ *
+ * Presence checks catch the empty .env. They do not catch the two failures
+ * that actually reach a learner as silence: a key that the vendor now rejects,
+ * and a model the vendor has retired. Both leave every required name filled
+ * in, so the checks above pass, the worker registers, the room opens — and the
+ * tutor never says a word, which is the exact outcome this module exists to
+ * prevent.
+ *
+ * So the credentials get used once, cheaply, before the worker advertises
+ * itself. A rejected credential or a missing model is fatal: the worker cannot
+ * serve a turn and must not pretend otherwise. A vendor that is merely
+ * unreachable is not — that is the network, it is usually momentary, and
+ * refusing to boot over it would make a laptop on a bad connection undebuggable.
+ */
+export interface VendorCheck {
+  vendor: string;
+  fatal: boolean;
+  detail: string;
+}
+
+type FetchLike = (
+  url: string,
+  init?: { method?: string; headers?: Record<string, string> },
+) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
+
+async function probe(
+  vendor: string,
+  url: string,
+  headers: Record<string, string>,
+  fetchFn: FetchLike,
+  onOk?: (body: unknown) => VendorCheck | null,
+): Promise<VendorCheck | null> {
+  let response: { ok: boolean; status: number; json(): Promise<unknown> };
+  try {
+    response = await fetchFn(url, { method: 'GET', headers });
+  } catch {
+    return { vendor, fatal: false, detail: `could not be reached — check the network, not the key.` };
+  }
+  if (response.status === 401 || response.status === 403) {
+    return { vendor, fatal: true, detail: `rejected the key (HTTP ${response.status}). It is wrong, expired, or revoked.` };
+  }
+  if (!response.ok) {
+    return { vendor, fatal: false, detail: `answered HTTP ${response.status}; treating as a blip rather than a misconfiguration.` };
+  }
+  if (onOk === undefined) return null;
+  try {
+    return onOk(await response.json());
+  } catch {
+    return { vendor, fatal: false, detail: `returned a body this check could not read.` };
+  }
+}
+
+/** Reaches each vendor the selected pipeline needs. Empty means all is well. */
+export async function verifyVendors(
+  env: Env = process.env,
+  model: string = '',
+  fetchFn: FetchLike = globalThis.fetch as unknown as FetchLike,
+): Promise<VendorCheck[]> {
+  const checks: Promise<VendorCheck | null>[] = [];
+
+  if (selectedBrain(env) === 'groq') {
+    checks.push(
+      probe('Groq', 'https://api.groq.com/openai/v1/models', { Authorization: `Bearer ${env.GROQ_API_KEY ?? ''}` }, fetchFn, (body) => {
+        const ids = ((body as { data?: { id?: string }[] }).data ?? []).map((m) => m.id).filter((id): id is string => typeof id === 'string');
+        if (model === '' || ids.includes(model)) return null;
+        return {
+          vendor: 'Groq',
+          fatal: true,
+          detail:
+            `does not serve "${model}" — it has been retired, and a request for it returns a bare 404.\n` +
+            `          Set GROQ_MODEL in services/tutor-agent/.env to one of: ${ids.slice(0, 6).join(', ')}`,
+        };
+      }),
+    );
+  } else {
+    checks.push(
+      probe(
+        'Anthropic',
+        'https://api.anthropic.com/v1/models',
+        { 'x-api-key': env.ANTHROPIC_API_KEY ?? '', 'anthropic-version': '2023-06-01' },
+        fetchFn,
+      ),
+    );
+  }
+
+  checks.push(probe('ElevenLabs', 'https://api.elevenlabs.io/v1/user', { 'xi-api-key': env.ELEVEN_API_KEY ?? '' }, fetchFn));
+  checks.push(probe('Deepgram', 'https://api.deepgram.com/v1/projects', { Authorization: `Token ${env.DEEPGRAM_API_KEY ?? ''}` }, fetchFn));
+
+  return (await Promise.all(checks)).filter((c): c is VendorCheck => c !== null);
+}
+
+/** Prints what the vendors said, and refuses to start on anything fatal. */
+export function reportVendors(checks: readonly VendorCheck[], exit: (code: number) => never = process.exit): void {
+  for (const check of checks.filter((c) => !c.fatal)) console.warn(`[parle:agent] ${check.vendor} ${check.detail}`);
+
+  const fatal = checks.filter((c) => c.fatal);
+  if (fatal.length === 0) {
+    console.info('[parle:agent] vendors ok — brain, voice and transcription all answered.');
+    return;
+  }
+  console.error(
+    `\n[parle:agent] Cannot start. The keys are present but the vendors disagree:\n` +
+      fatal.map((c) => `        - ${c.vendor} ${c.detail}`).join('\n') +
+      `\n\n        Every one of these reaches a learner the same way: a room that opens\n` +
+      `        and a tutor that never speaks. Fix them in services/tutor-agent/.env.\n`,
+  );
+  exit(1);
+}
+
 /** Called once at startup, before the worker registers with LiveKit. */
 export function preflight(env: Env = process.env, exit: (code: number) => never = process.exit): void {
   for (const line of warnings(env)) console.warn(`[parle:agent] ${line}`);

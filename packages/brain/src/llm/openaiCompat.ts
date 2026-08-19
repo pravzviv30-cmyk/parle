@@ -37,7 +37,32 @@ type FetchLike = (url: string, init: { method: string; headers: Record<string, s
 }>;
 
 const DEFAULT_BASE_URL = 'https://api.groq.com/openai/v1';
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+
+/**
+ * The free-tier talker.
+ *
+ * Groq retires models on its own schedule and answers a request for a retired
+ * one with a bare 404 — no hint that the name is the problem. `llama-3.3-70b-versatile`
+ * was the default here until Groq dropped it, and the failure surfaced as a
+ * tutor that joined the room and never spoke, because every turn threw before
+ * a single word reached the voice.
+ *
+ * So this is a name with a shelf life, not a constant. GROQ_MODEL overrides it,
+ * which makes the next retirement a line in .env rather than a code change and
+ * a release.
+ */
+const DEFAULT_MODEL = 'openai/gpt-oss-120b';
+
+/**
+ * The model this client will use absent an explicit one. Empty is treated as
+ * absent, exactly as the tutor-agent's TUTOR_LLM is — a `GROQ_MODEL=` line
+ * left in a copied .env should read as "unset", not as a request for a model
+ * with no name.
+ */
+export function defaultModel(env: Record<string, string | undefined> = process.env): string {
+  const raw = (env.GROQ_MODEL ?? '').trim();
+  return raw === '' ? DEFAULT_MODEL : raw;
+}
 
 interface ChatCompletion {
   choices?: { message?: { content?: string } }[];
@@ -59,7 +84,7 @@ export class OpenAiCompatBrainClient implements LlmClient {
     this.config = {
       apiKey: config.apiKey,
       baseUrl: config.baseUrl ?? DEFAULT_BASE_URL,
-      model: config.model ?? DEFAULT_MODEL,
+      model: config.model ?? defaultModel(),
     };
     this.fetchFn = fetchFn;
   }

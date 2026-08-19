@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { AnthropicBrainClient, type ParseCapableSdk } from './anthropic.ts';
-import { OpenAiCompatBrainClient } from './openaiCompat.ts';
+import { OpenAiCompatBrainClient, defaultModel } from './openaiCompat.ts';
 import { MockLlmClient } from './mock.ts';
 import { DEFAULT_ROUTING, resolveRouting, type BrainRouting } from './routing.ts';
 import { BrainParseError, BrainRefusalError, type BrainTurnRequest } from './client.ts';
@@ -253,5 +253,28 @@ describe('MockLlmClient', () => {
     assert.equal(first.turn.coachLine, 'scripted');
     assert.equal(second.turn.coachLine, null);
     assert.equal(mock.turnRequests.length, 2, 'requests are recorded for prompt assertions');
+  });
+});
+
+/**
+ * Groq retired `llama-3.3-70b-versatile` while it was this file's hardcoded
+ * default, and answered every request for it with a bare 404 — which reached
+ * the learner as a tutor that joined the room and never spoke. The name now
+ * has an escape hatch so the next retirement is a line in .env.
+ */
+describe('the free-tier model name', () => {
+  test('falls back to a model Groq still serves', () => {
+    assert.equal(defaultModel({}), 'openai/gpt-oss-120b');
+  });
+
+  test('GROQ_MODEL overrides it, so a retirement needs no release', () => {
+    assert.equal(defaultModel({ GROQ_MODEL: 'openai/gpt-oss-20b' }), 'openai/gpt-oss-20b');
+  });
+
+  test('an empty GROQ_MODEL reads as unset, not as a model with no name', () => {
+    // The same trap TUTOR_LLM fell into: a commented-out line copied from
+    // .env.example arrives as '', and `??` would have taken it literally.
+    assert.equal(defaultModel({ GROQ_MODEL: '' }), 'openai/gpt-oss-120b');
+    assert.equal(defaultModel({ GROQ_MODEL: '   ' }), 'openai/gpt-oss-120b');
   });
 });

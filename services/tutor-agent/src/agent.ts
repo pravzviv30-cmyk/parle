@@ -35,10 +35,10 @@ import {
 } from '@livekit/agents';
 import * as anthropic from '@livekit/agents-plugin-anthropic';
 import * as openai from '@livekit/agents-plugin-openai';
-import { DEFAULT_ROUTING } from '@parle/brain';
+import { DEFAULT_ROUTING, defaultModel } from '@parle/brain';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as silero from '@livekit/agents-plugin-silero';
-import { preflight, selectedBrain } from './preflight.ts';
+import { preflight, reportVendors, selectedBrain, verifyVendors } from './preflight.ts';
 import 'dotenv/config';
 
 import { buildTTS } from './voice.ts';
@@ -395,5 +395,10 @@ export default defineAgent({
 // must not advertise itself as able to — otherwise the first learner to arrive
 // gets a room that opens and then stays silent.
 preflight();
+
+// Presence is not health. The keys can all be filled in and still be rejected,
+// and the model named in one of them can have been retired since it was written
+// — both of which land on the learner as that same silent room.
+reportVendors(await verifyVendors(process.env, selectedBrain() === 'groq' ? defaultModel() : ''));
 
 cli.runApp(new WorkerOptions({ agent: fileURLToPath(import.meta.url) }));

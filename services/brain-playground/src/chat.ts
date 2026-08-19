@@ -15,6 +15,7 @@ import {
   CAFE_FRAME,
   MockLlmClient,
   OpenAiCompatBrainClient,
+  defaultModel,
   type BrainEffort,
   type LlmClient,
   type ScenarioFrame,
@@ -48,7 +49,7 @@ function pickClient(): { client: LlmClient; label: string } {
   }
   if ((choice === 'groq' || choice === '' || choice === 'anthropic') && groqKey) {
     if (choice === 'anthropic') console.log(meta('No ANTHROPIC_API_KEY found; falling back to groq.'));
-    return { client: new OpenAiCompatBrainClient({ apiKey: groqKey }), label: 'llama-3.3-70b · groq free tier' };
+    return { client: new OpenAiCompatBrainClient({ apiKey: groqKey }), label: `${defaultModel()} · groq free tier` };
   }
   if (choice === 'anthropic' || choice === 'groq') {
     console.log(meta(`No key found for BRAIN_LLM=${choice}; running the offline mock.`));

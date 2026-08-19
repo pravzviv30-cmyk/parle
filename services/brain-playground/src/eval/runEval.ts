@@ -25,6 +25,7 @@ import {
   applyNonSpokenInput,
   copyViolations,
   createConversation,
+  defaultModel,
   integrateTurn,
   prepareTurn,
   type BrainEffort,
@@ -73,7 +74,7 @@ function pickClient(): { client: LlmClient; label: string } {
     };
   }
   if ((choice === 'groq' || choice === '') && groqKey) {
-    return { client: new OpenAiCompatBrainClient({ apiKey: groqKey }), label: 'llama-3.3-70b · groq' };
+    return { client: new OpenAiCompatBrainClient({ apiKey: groqKey }), label: `${defaultModel()} · groq` };
   }
   console.error('The eval needs a real model. Set ANTHROPIC_API_KEY (or GROQ_API_KEY) in services/brain-playground/.env');
   process.exit(2);
