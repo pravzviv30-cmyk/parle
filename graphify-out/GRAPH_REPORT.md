@@ -1,39 +1,39 @@
 # Graph Report - Parle  (2026-08-19)
 
 ## Corpus Check
-- 228 files · ~156,788 words
+- 228 files · ~161,802 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1765 nodes · 4420 edges · 100 communities (74 shown, 26 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 71 edges (avg confidence: 0.83)
+- 1787 nodes · 4464 edges · 100 communities (72 shown, 28 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 73 edges (avg confidence: 0.83)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4753fa81`
+- Built from commit: `cde77aa6`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - generate.ts
 - drill/index.ts
-- metering/index.ts
+- server.ts
 - phonemes/index.ts
-- components.tsx
-- conversation.ts
+- space
+- runEval.ts
 - useLiveSession.ts
 - sessionLoop.ts
 - expo
 - App.tsx
 - dependencies
-- buildSystemBlocks
+- frameEval.ts
 - review/store.ts
 - loop.mjs
-- profile.ts
+- conversation.ts
 - AuthAdapter
-- extractPrompt.ts
-- ttsCache.test.ts
-- DrillScreen.tsx
+- drill/validate.ts
+- warmCache.ts
+- drill/types.ts
 - ladder.ts
 - SignUpScreen.tsx
 - brain/package.json
@@ -41,17 +41,17 @@
 - brain-playground/package.json
 - session/session.ts
 - OnboardingFlow.tsx
-- convo.ts
-- ConvoScreen.tsx
+- ParleConversation
+- src/theme.ts
 - core/package.json
-- tutor.ts
+- core/src/index.ts
 - compilerOptions
-- drill/store.ts
+- DrillScreen.tsx
 - ParleTutor
-- SessionScreen.tsx
+- contract/types.ts
 - mobile/tsconfig.json
 - package.json
-- Expo + TypeScript npm-workspaces monorepo
+- profile.ts
 - dependencies
 - mobile/package.json
 - protocol.ts
@@ -64,8 +64,8 @@
 - RootNavigator.tsx
 - scripts
 - globals.native.ts
-- paper
-- Entitlement
+- path.ts
+- preflight.ts
 - expo-crypto
 - openaiCompat.ts
 - anthropic.ts
@@ -81,18 +81,18 @@
 - react
 - react-native
 - @react-native-async-storage/async-storage
-- contract/types.ts
+- convo.ts
 - react-native-svg
-- levels.ts
-- runEval.ts
-- gate.mjs
 - activity.ts
+- LlmUsage
+- gate.mjs
+- brain/src/index.ts
 - Format
-- server.ts
-- tokens.ts
+- engine/grading.ts
+- CAFE_LESSON
 - shared/speechace.ts
-- SplashScreen.tsx
-- nav/theme.ts
+- AnthropicBrainClient
+- drill/grading.ts
 - @livekit/react-native-webrtc
 - @parle/brain
 - react-dom
@@ -101,8 +101,8 @@
 - @react-navigation/native
 - @supabase/supabase-js
 - SummaryScreen.tsx
-- scope.ts
-- auth.ts
+- LeaderboardTab.tsx
+- TurnQueue
 - The pedagogy
 - expo-file-system
 - The live path
@@ -112,32 +112,32 @@
 - bug-hunter.md
 - Architecture
 - README.md
-- Cascaded STT to LLM to TTS voice pipeline
+- FailingBrain
 - fix-verifier.md
 
 ## God Nodes (most connected - your core abstractions)
 1. `space()` - 62 edges
 2. `paper` - 35 edges
-3. `ParleConversation` - 29 edges
+3. `ParleConversation` - 34 edges
 4. `type` - 28 edges
 5. `ParleTutor` - 24 edges
 6. `LlmUsage` - 23 edges
 7. `Rung` - 23 edges
 8. `integrateTurn()` - 21 edges
-9. `ScenarioFrame` - 20 edges
-10. `createConversation()` - 20 edges
+9. `Format` - 21 edges
+10. `ScenarioFrame` - 20 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Chrome is plain English, French only where it is content` --rationale_for--> `CAFE_LESSON`  [INFERRED]
-  DESIGN.md → packages/core/src/lessons/cafe.ts
-- `Drill mode and the recognition-to-production ramp` --conceptually_related_to--> `bestDrillFor()`  [INFERRED]
-  README.md → packages/core/src/phonemes/drills.ts
 - `A real spoken exchange inside one five-minute session` --rationale_for--> `createSession()`  [INFERRED]
+  PRODUCT.md → packages/core/src/session/session.ts
+- `Words-right and sounds-right are separate questions` --rationale_for--> `grade()`  [INFERRED]
   PRODUCT.md → packages/core/src/session/session.ts
 - `460pt centred web column` --rationale_for--> `App()`  [INFERRED]
   DESIGN.md → apps/mobile/App.tsx
 - `fitDisplay length-stepped French line` --rationale_for--> `fitDisplay()`  [EXTRACTED]
   DESIGN.md → apps/mobile/src/components.tsx
+- `Paper colour token set` --rationale_for--> `paper`  [EXTRACTED]
+  DESIGN.md → apps/mobile/src/theme.ts
 
 ## Import Cycles
 - None detected.
@@ -147,91 +147,91 @@
 - **The trustworthy-pronunciation chain** — product_trustworthy_pronunciation, product_french_only_depth, product_say_one_thing, readme_missing_score_no_penalty, packages_core_src_phonemes_inventory_french_phonemes, packages_core_src_phonemes_drills_drills, packages_core_src_phonemes_scoring_buildreport, services_shared_speechace_scoreutterance [INFERRED 0.85]
 - **Unit economics and metering enforcement** — product_metered_minutes, product_cascaded_voice_pipeline, readme_metering_at_token_issuance, readme_tts_warm_cache, readme_risk_cost_per_session, packages_core_src_metering_meter_plans, packages_core_src_metering_meter_estimatesessioncost [INFERRED 0.85]
 
-## Communities (100 total, 26 thin omitted)
+## Communities (100 total, 28 thin omitted)
 
 ### Community 0 - "generate.ts"
-Cohesion: 0.09
-Nodes (24): NewPhrase, AppropriateReplyZ, BASE, BestSentenceZ, buildDrillGenerationRequest(), DrillBatchSchema, DrillGenerationInput, FillBlankZ (+16 more)
+Cohesion: 0.08
+Nodes (22): AppropriateReplyZ, BASE, BestSentenceZ, DrillBatchSchema, DrillGenerationInput, FillBlankZ, GeneratedExerciseZ, INSTRUCTION (+14 more)
 
 ### Community 1 - "drill/index.ts"
-Cohesion: 0.05
-Nodes (85): check(), checkDrill(), DRILL_FIXTURES, acceptedFor(), DrillVerdict, gradeAnswer(), gradeFreeText(), GradeResult (+77 more)
+Cohesion: 0.15
+Nodes (24): DrillVerdict, answerCurrent(), AnsweredExercise, applyDrillResults(), buildDrillSession(), DRILL_STAGES, DrillFeedback, DrillOutcome (+16 more)
 
-### Community 2 - "metering/index.ts"
-Cohesion: 0.20
-Nodes (18): CostModel, DEFAULT_COST_MODEL, estimateSessionCost(), Margin, MIN_VIABLE_SESSION_SEC, planMargin(), PLANS, PlanSpec (+10 more)
+### Community 2 - "server.ts"
+Cohesion: 0.05
+Nodes (54): canStartSession(), CostModel, DEFAULT_COST_MODEL, Entitlement, estimateSessionCost(), Margin, MIN_VIABLE_SESSION_SEC, Plan (+46 more)
 
 ### Community 3 - "phonemes/index.ts"
-Cohesion: 0.10
-Nodes (45): bestDrillFor(), BY_ID, Drill, DrillKind, DRILLS, drillsFor(), DrillWord, getDrill() (+37 more)
+Cohesion: 0.06
+Nodes (69): Paper colour token set, Paper & Ink design world, BY_ID, getLesson(), LESSONS, AcceptanceMatch, AcceptanceRoute, candidatesFor() (+61 more)
 
-### Community 4 - "components.tsx"
-Cohesion: 0.10
-Nodes (28): HelpGlyph(), Label(), LineBullet(), MicGlyph(), ProgressDots(), s, SpeakCircle(), StationLine() (+20 more)
+### Community 4 - "space"
+Cohesion: 0.08
+Nodes (48): Card(), EarGlyph(), fitDisplay(), HelpGlyph(), Label(), LineBullet(), MicGlyph(), OptionCard() (+40 more)
 
-### Community 5 - "conversation.ts"
-Cohesion: 0.10
-Nodes (34): FR_PACK, renderAuthenticityPack(), AuthenticityPack, CoachItem, SpeakerLine, SupportView, coachFallbackLine(), CopyRule (+26 more)
+### Community 5 - "runEval.ts"
+Cohesion: 0.12
+Nodes (26): CoachKind, coachFallbackLine(), CopyRule, copyViolations(), EM_DASH_RE, FILLER_RE, outsideQuotes(), RECOVERY_LINE (+18 more)
 
 ### Community 6 - "useLiveSession.ts"
-Cohesion: 0.14
-Nodes (21): authHeaders(), scoreAttempt(), classifyFailure(), COPY, LiveFailure, micApiUnavailable(), TokenServerError, ensureAudioSession() (+13 more)
+Cohesion: 0.10
+Nodes (29): classifyFailure(), COPY, LiveFailure, micApiUnavailable(), TokenServerError, ensureAudioSession(), ensureLiveKitGlobals(), releaseAudioSession() (+21 more)
 
 ### Community 7 - "sessionLoop.ts"
 Cohesion: 0.13
-Nodes (34): SessionRecap, createProfile(), main(), pickClient(), Command, COMMAND_HELP, parseCommand(), STRICTNESS_LEVELS (+26 more)
+Nodes (35): SessionRecap, createProfile(), main(), pickClient(), Command, COMMAND_HELP, parseCommand(), STRICTNESS_LEVELS (+27 more)
 
 ### Community 8 - "expo"
 Cohesion: 0.05
 Nodes (34): backgroundColor, backgroundImage, foregroundImage, monochromeImage, adaptiveIcon, package, permissions, predictiveBackGestureEnabled (+26 more)
 
 ### Community 9 - "App.tsx"
-Cohesion: 0.16
-Nodes (15): App(), Gate(), SignedInRoot(), st, LiveProvider(), AuthFlow(), RootNavigator(), completeProfile() (+7 more)
+Cohesion: 0.14
+Nodes (15): Read the exact versioned Expo docs before writing code, App(), Gate(), st, AuthFlow(), RootNavigator(), linking, navTheme (+7 more)
 
 ### Community 10 - "dependencies"
 Cohesion: 0.05
 Nodes (37): @livekit/agents, @livekit/agents-plugin-anthropic, @livekit/agents-plugin-deepgram, @livekit/agents-plugin-elevenlabs, @livekit/agents-plugin-openai, @livekit/agents-plugin-silero, dependencies, dotenv (+29 more)
 
-### Community 11 - "buildSystemBlocks"
+### Community 11 - "frameEval.ts"
 Cohesion: 0.18
-Nodes (18): ZERO_USAGE, learnerSnapshotFrom(), buildScenarioRequest(), buildSystemBlocks(), main(), pickClient(), PROFILES, checkFrame() (+10 more)
+Nodes (17): buildDrillGenerationRequest(), buildScenarioRequest(), main(), pickClient(), PROFILES, checkFrame(), main(), pickClient() (+9 more)
 
 ### Community 12 - "review/store.ts"
-Cohesion: 0.07
-Nodes (50): HomeIcon(), LeaderboardIcon(), PracticeIcon(), ProfileIcon(), TabIconProps, TutorIcon(), ICONS, LABELS (+42 more)
+Cohesion: 0.16
+Nodes (29): addFromSummary(), addPhrases(), dueCount(), gradeCard(), KEY(), loadDeck(), saveDeck(), serialized() (+21 more)
 
 ### Community 13 - "loop.mjs"
 Cohesion: 0.07
 Nodes (18): ALLOWED_TOOLS, argv, BRANCH, branchNow, current, deadEnds, DRY_RUN, final (+10 more)
 
-### Community 14 - "profile.ts"
-Cohesion: 0.07
-Nodes (47): Ctx, ProfileGate(), ProfileValue, KEY(), loadProfile(), OnboardingAnswers, saveProfile(), StoredProfile (+39 more)
+### Community 14 - "conversation.ts"
+Cohesion: 0.10
+Nodes (33): ContrastPair, Filler, RegisterDef, SlangEntry, CoachItem, NewPhrase, SpeakerLine, SupportView (+25 more)
 
 ### Community 15 - "AuthAdapter"
 Cohesion: 0.08
 Nodes (20): auth, build(), createMockAdapter(), notify(), setSession(), emptyStore(), MockAccount, MockStore (+12 more)
 
-### Community 16 - "extractPrompt.ts"
-Cohesion: 0.33
-Nodes (8): MemoryFact, buildExtractionRequest(), ExtractionInput, factLine(), INSTRUCTION, interview, request(), tennis
-
-### Community 17 - "ttsCache.test.ts"
-Cohesion: 0.07
-Nodes (18): CachedChunkedStream, CachedTTS, CachedTTSOptions, normaliseLine(), FakeChunkedStream, FakeTTS, NO_RETRY, synth() (+10 more)
-
-### Community 18 - "DrillScreen.tsx"
+### Community 16 - "drill/validate.ts"
 Cohesion: 0.17
-Nodes (21): EarGlyph(), fitDisplay(), OptionCard(), ConvoScreen(), AppropriateReplyView(), BestSentenceView(), ds, FillBlankView() (+13 more)
+Nodes (18): DrillStore, check(), checkDrill(), DRILL_FIXTURES, DrillDifficulty, DrillExercise, checkAccepted(), checkDistinct() (+10 more)
+
+### Community 17 - "warmCache.ts"
+Cohesion: 0.06
+Nodes (23): CachedChunkedStream, CachedTTS, CachedTTSOptions, normaliseLine(), FakeChunkedStream, FakeTTS, NO_RETRY, synth() (+15 more)
+
+### Community 18 - "drill/types.ts"
+Cohesion: 0.17
+Nodes (18): typed(), withOptions(), AppropriateReplyExercise, BestSentenceExercise, DrillExerciseBase, FillBlankExercise, ListenTypeExercise, RepeatThisExercise (+10 more)
 
 ### Community 19 - "ladder.ts"
-Cohesion: 0.13
-Nodes (29): Chrome is plain English, French only where it is content, No number and no scolding mid-session, applyTurn(), clamp(), directiveFor(), initialState(), INSTRUCTION_BY_RUNG, LadderDirective (+21 more)
+Cohesion: 0.16
+Nodes (24): applyTurn(), clamp(), directiveFor(), initialState(), INSTRUCTION_BY_RUNG, LadderState, nextSessionRung(), openingRung() (+16 more)
 
 ### Community 20 - "SignUpScreen.tsx"
-Cohesion: 0.21
-Nodes (16): AuthScreen, SetNewPasswordScreen(), st, SignInScreen(), st, SignUpScreen(), st, useAuth() (+8 more)
+Cohesion: 0.18
+Nodes (19): AuthScreen, SetNewPasswordScreen(), st, SignInScreen(), st, SignUpScreen(), st, useAuth() (+11 more)
 
 ### Community 21 - "brain/package.json"
 Cohesion: 0.08
@@ -246,40 +246,40 @@ Cohesion: 0.08
 Nodes (24): dependencies, dotenv, @parle/brain, @parle/core, description, devDependencies, @types/node, typescript (+16 more)
 
 ### Community 24 - "session/session.ts"
-Cohesion: 0.15
-Nodes (23): SessionViewProps, TurnQuality, LessonTurn, PhonemeObservation, SessionPhonemeReport, feedbackMessage(), grade(), INTELLIGIBLE (+15 more)
+Cohesion: 0.13
+Nodes (28): ANGLOPHONE_WEAKNESS, CARRIER, carrierWord(), estimateDurationSec(), jitter(), LearnerProfile, mockObservations(), Phase (+20 more)
 
 ### Community 25 - "OnboardingFlow.tsx"
 Cohesion: 0.09
-Nodes (29): st, WelcomeScreen(), Card(), GhostButton(), PillButton(), HeroCafe(), LearnStack(), OnboardCake() (+21 more)
+Nodes (26): st, WelcomeScreen(), GhostButton(), HeroCafe(), LearnStack(), OnboardCake(), OnboardClock(), OnboardSuitcase() (+18 more)
 
-### Community 26 - "convo.ts"
-Cohesion: 0.06
-Nodes (38): LearnerTurnInput, encodeMessage(), TokenMeta, tutorLLM(), brainClient(), chooseFrame(), CONVO_LINES, ConvoView (+30 more)
+### Community 26 - "ParleConversation"
+Cohesion: 0.13
+Nodes (11): MemoryFact, buildExtractionRequest(), ExtractionInput, factLine(), INSTRUCTION, interview, request(), tennis (+3 more)
 
-### Community 27 - "ConvoScreen.tsx"
-Cohesion: 0.15
-Nodes (16): st, RecapScreen(), registerTag(), st, HAIRLINE, type, Line(), Recast() (+8 more)
+### Community 27 - "src/theme.ts"
+Cohesion: 0.11
+Nodes (22): HomeIcon(), LeaderboardIcon(), PracticeIcon(), ProfileIcon(), TabIconProps, TutorIcon(), ICONS, LABELS (+14 more)
 
 ### Community 28 - "core/package.json"
 Cohesion: 0.10
 Nodes (19): devDependencies, @types/node, typescript, exports, ./ladder, ./lessons, ./metering, ./phonemes (+11 more)
 
-### Community 29 - "tutor.ts"
-Cohesion: 0.20
-Nodes (10): Rung, CAFE_LESSON, Lesson, A real spoken exchange inside one five-minute session, baseInstructions(), buildPrompt(), turnInstructions(), Publisher (+2 more)
+### Community 29 - "core/src/index.ts"
+Cohesion: 0.29
+Nodes (8): Rung, Lesson, baseInstructions(), buildPrompt(), turnInstructions(), Publisher, reportUsage(), UsageReport
 
 ### Community 30 - "compilerOptions"
 Cohesion: 0.10
 Nodes (19): DOM, ES2023, compilerOptions, allowImportingTsExtensions, esModuleInterop, exactOptionalPropertyTypes, forceConsistentCasingInFileNames, isolatedModules (+11 more)
 
-### Community 31 - "drill/store.ts"
-Cohesion: 0.24
-Nodes (16): defaultStore(), DrillStore, getMicSuppressedUntil(), hasGeneratedExercises(), isMicSuppressed(), isStore(), KEY(), loadDrillBank() (+8 more)
+### Community 31 - "DrillScreen.tsx"
+Cohesion: 0.14
+Nodes (25): authHeaders(), defaultStore(), getMicSuppressedUntil(), hasGeneratedExercises(), isMicSuppressed(), isStore(), KEY(), loadDrillBank() (+17 more)
 
-### Community 33 - "SessionScreen.tsx"
-Cohesion: 0.23
-Nodes (12): ANGLOPHONE_WEAKNESS, CARRIER, carrierWord(), estimateDurationSec(), jitter(), LearnerProfile, mockObservations(), Phase (+4 more)
+### Community 33 - "contract/types.ts"
+Cohesion: 0.15
+Nodes (16): AssessmentZ, CefrBandZ, CoachItemZ, CoachKindZ, MemoryExtractionSchema, MemoryFactZ, NewPhraseZ, OptionZ (+8 more)
 
 ### Community 34 - "mobile/tsconfig.json"
 Cohesion: 0.13
@@ -289,9 +289,9 @@ Nodes (14): compilerOptions, allowImportingTsExtensions, noEmit, noUncheckedInde
 Cohesion: 0.11
 Nodes (17): description, engines, node, name, private, scripts, gate, gate:bless (+9 more)
 
-### Community 36 - "Expo + TypeScript npm-workspaces monorepo"
-Cohesion: 0.22
-Nodes (9): Read the exact versioned Expo docs before writing code, Absolute-beginner audience (CEFR A0-A2), Parle (working name), Expo + TypeScript npm-workspaces monorepo, Trustworthy pronunciation needs a reference text, The agent is authoritative over session state, The alignment thesis, packages/core is deliberately platform-free (+1 more)
+### Community 36 - "profile.ts"
+Cohesion: 0.18
+Nodes (18): normalizeErrorTag(), applyExtractionToProfile(), applyTurnToProfile(), bandIndex(), evictOverflowPhrases(), evictStalePatterns(), EVIDENCE_WINDOW, finishSession() (+10 more)
 
 ### Community 37 - "dependencies"
 Cohesion: 0.13
@@ -302,8 +302,8 @@ Cohesion: 0.20
 Nodes (9): devDependencies, @types/react, typescript, typescript, main, name, private, version (+1 more)
 
 ### Community 39 - "protocol.ts"
-Cohesion: 0.17
-Nodes (20): LiveSession, CLIENT_TAGS, ClientMessage, ConvoCoachItem, ConvoPhrase, ConvoSpeakerLine, ConvoSupportView, ConvoView (+12 more)
+Cohesion: 0.13
+Nodes (23): CLIENT_TAGS, ClientMessage, ConvoCoachItem, ConvoPhrase, ConvoSpeakerLine, ConvoSupportView, decodeAs(), decodeClientMessage() (+15 more)
 
 ### Community 40 - "tutorVoice.ts"
 Cohesion: 0.43
@@ -330,91 +330,87 @@ Cohesion: 0.25
 Nodes (7): compilerOptions, types, extends, include, node, src/**/*.ts, ../../tsconfig.base.json
 
 ### Community 46 - "RootNavigator.tsx"
-Cohesion: 0.15
-Nodes (20): Ctx, LiveValue, useLive(), LiveSessionScreen(), asRung(), DrillRoute(), LessonRoute(), st (+12 more)
+Cohesion: 0.11
+Nodes (26): Ctx, LiveProvider(), LiveValue, useLive(), useProfile(), asRung(), ConvoRoute(), DrillRoute() (+18 more)
 
 ### Community 47 - "scripts"
 Cohesion: 0.33
 Nodes (6): scripts, android, ios, start, typecheck, web
 
-### Community 49 - "paper"
-Cohesion: 0.12
-Nodes (18): useProfile(), ArrowRight(), Acknowledgements(), Notice, NOTICES, st, ConvoRoute(), SettingsRow() (+10 more)
+### Community 49 - "path.ts"
+Cohesion: 0.20
+Nodes (14): AUTHORED_PATH, AuthoredNode, authoredPhraseKeys(), AuthoredUnit, buildPath(), GENERATED_PREFIX, NodeKind, NodeState (+6 more)
 
-### Community 50 - "Entitlement"
-Cohesion: 0.24
-Nodes (5): Entitlement, Plan, EntitlementStore, FileEntitlementStore, InMemoryEntitlementStore
+### Community 50 - "preflight.ts"
+Cohesion: 0.21
+Nodes (14): tutorLLM(), Brain, BRAIN_KEY, Env, FetchLike, missingRequired(), preflight(), probe() (+6 more)
 
 ### Community 52 - "openaiCompat.ts"
-Cohesion: 0.15
-Nodes (21): MemoryExtraction, ScenarioFrame, TutorTurn, DrillBatch, BrainDrillsRequest, BrainExtractRequest, BrainFrameRequest, BrainParseError (+13 more)
+Cohesion: 0.18
+Nodes (18): MemoryExtraction, ScenarioFrame, TutorTurn, DrillBatch, BrainDrillsRequest, BrainExtractRequest, BrainFrameRequest, BrainTurnRequest (+10 more)
 
 ### Community 53 - "anthropic.ts"
-Cohesion: 0.13
-Nodes (18): AnthropicBrainClient, AnthropicBrainConfig, outputConfig(), parse(), ParseCapableSdk, ParsedResponse, toProviderMessages(), usageOf() (+10 more)
+Cohesion: 0.14
+Nodes (14): AnthropicBrainConfig, ParseCapableSdk, ParsedResponse, BrainParseError, BrainRefusalError, AnyRecord, BrainActivity, BrainEffort (+6 more)
 
-### Community 66 - "contract/types.ts"
+### Community 66 - "convo.ts"
+Cohesion: 0.08
+Nodes (33): sampleCoachItem(), sampleSupport(), sampleTurn(), SupportMaterial, createConversation(), LearnerTurnInput, MAX_ATTEMPTS_PER_BEAT, openingRungFor() (+25 more)
+
+### Community 68 - "activity.ts"
 Cohesion: 0.07
-Nodes (46): sampleCoachItem(), sampleSupport(), sampleTurn(), AssessmentZ, CefrBandZ, CoachItemZ, CoachKindZ, MemoryExtractionSchema (+38 more)
+Nodes (52): SignedInRoot(), Ctx, ProfileGate(), ProfileValue, completeProfile(), createStoredProfile(), KEY(), loadProfile() (+44 more)
 
-### Community 68 - "levels.ts"
-Cohesion: 0.24
-Nodes (18): clamp(), ConversationEvidence, conversationXp(), DAILY_XP_CAP, DatedXp, DrillEvidence, drillXp(), LessonEvidence (+10 more)
-
-### Community 69 - "runEval.ts"
-Cohesion: 0.19
-Nodes (15): CoachKind, applyNonSpokenInput(), defaultModel(), EVAL_CASES, EvalCase, EvalExpectation, CaseResult, expectationMisses() (+7 more)
+### Community 69 - "LlmUsage"
+Cohesion: 0.47
+Nodes (4): LlmUsage, jsonSchemaText(), OpenAiCompatBrainClient, CaseResult
 
 ### Community 70 - "gate.mjs"
 Cohesion: 0.12
 Nodes (13): args, asJson, bless, counts, entries, failures, floors, FLOORS_PATH (+5 more)
 
-### Community 71 - "activity.ts"
-Cohesion: 0.26
-Nodes (11): ActivityEntry, ActivityKind, backfillFrom(), chain, earnedXp(), empty(), loadActivity(), prune() (+3 more)
+### Community 71 - "brain/src/index.ts"
+Cohesion: 0.30
+Nodes (8): FR_PACK, renderAuthenticityPack(), AuthenticityPack, historyViewOfTurn(), contextInput(), buildSystemBlocks(), CONTRACT, PERSONA
 
 ### Community 72 - "Format"
-Cohesion: 0.13
-Nodes (15): A1 — A spoken answer has to match the script exactly, A2 — An empty transcript is graded as a wrong answer, A3 — A freeze at the top rung still asks the learner to invent French, A4 — A rescue can skip the beat the learner froze on, A5 — Two different opening-rung formulas, A6 — A focus point vanishes when the worst sound has no drill, A7 — A v2 snapshot with no memory crashes the worker, B0 — ParleTutor cannot be tested at all (+7 more)
+Cohesion: 0.10
+Nodes (21): A1 — A spoken answer has to match the script exactly, A2 — An empty transcript is graded as a wrong answer, A3 — A freeze at the top rung still asks the learner to invent French, A4 — A rescue can skip the beat the learner froze on, A5 — Two different opening-rung formulas, A6 — A focus point vanishes when the worst sound has no drill, A7 — A v2 snapshot with no memory crashes the worker, B0 — ParleTutor cannot be tested at all (+13 more)
 
-### Community 73 - "server.ts"
-Cohesion: 0.20
-Nodes (11): agentDebitAllowed(), config, json(), livekitUrl, PORT, readAudio(), readJson(), scoreCounts (+3 more)
+### Community 73 - "engine/grading.ts"
+Cohesion: 0.23
+Nodes (12): Assessment, assessmentToQuality(), INLINE_CAP, KIND_PRIORITY, splitCoach(), SURFACE, surfacePolicy(), assembleRecap() (+4 more)
 
-### Community 74 - "tokens.ts"
-Cohesion: 0.27
-Nodes (11): canStartSession(), secondsRemaining(), GrantResult, grantSession(), roomNameFor(), SessionGrant, SessionMode, config (+3 more)
+### Community 74 - "CAFE_LESSON"
+Cohesion: 0.18
+Nodes (9): Chrome is plain English, French only where it is content, No number and no scolding mid-session, CAFE_LESSON, Never stranded and never scolded, A real spoken exchange inside one five-minute session, Live when reachable, Demo fallback otherwise, Accounts work without Supabase via a local on-device store, A missing score is never an invented penalty (+1 more)
 
 ### Community 75 - "shared/speechace.ts"
-Cohesion: 0.27
-Nodes (7): ALIASES, FRENCH_IPA, toInventoryIpa(), parseSpeechace(), ScoreRequest, scoreUtterance(), RESPONSE
+Cohesion: 0.20
+Nodes (8): ALIASES, FRENCH_IPA, toInventoryIpa(), parseSpeechace(), ScoreFetch, ScoreRequest, scoreUtterance(), RESPONSE
 
-### Community 76 - "SplashScreen.tsx"
-Cohesion: 0.40
-Nodes (5): bubbleStyle(), Scene(), SplashScreen(), st, decorative
+### Community 76 - "AnthropicBrainClient"
+Cohesion: 0.33
+Nodes (5): AnthropicBrainClient, outputConfig(), parse(), toProviderMessages(), usageOf()
 
-### Community 77 - "nav/theme.ts"
-Cohesion: 0.25
-Nodes (7): linking, navTheme, RootStackParamList, TabParamList, font, fitDisplay length-stepped French line, Fraunces speaks, DM Sans is furniture
+### Community 77 - "drill/grading.ts"
+Cohesion: 0.36
+Nodes (9): acceptedFor(), gradeAnswer(), gradeFreeText(), GradeResult, realWordSet(), damerauLevenshtein(), sameWord(), TYPO_MAX_DISTANCE (+1 more)
 
 ### Community 85 - "SummaryScreen.tsx"
-Cohesion: 0.21
-Nodes (8): Stat(), PathNodeRow(), st, statusLine(), saveTextFile(), st, SummaryScreen(), radius
+Cohesion: 0.16
+Nodes (12): ArrowRight(), Stat(), PathNodeRow(), st, statusLine(), saveTextFile(), SettingsRow(), st (+4 more)
 
-### Community 86 - "scope.ts"
-Cohesion: 0.31
-Nodes (6): LEGACY_KEYS, onUserScopeReset(), resetHooks, userKey(), hasSeenTutorIntro(), markTutorIntroSeen()
-
-### Community 87 - "auth.ts"
-Cohesion: 0.25
-Nodes (5): createUserResolver(), ResolvedUser, SIGN_IN_REQUIRED, UserResolver, VerifierConfig
+### Community 86 - "LeaderboardTab.tsx"
+Cohesion: 0.29
+Nodes (6): ProgressDots(), TabBar(), Board, LeaderboardTab(), st, Gate, onboarding, Home with Speak and Learn tabs
 
 ### Community 88 - "The pedagogy"
 Cohesion: 0.25
 Nodes (8): One focus, one drill, The four rungs, The invariants, The pedagogy, The rescue, Two independent axes, What counts as a right answer, Where the next session opens
 
 ### Community 90 - "The live path"
-Cohesion: 0.29
+Cohesion: 0.25
 Nodes (7): Audio, and what may be claimed about it, Serialisation, The four modes, The live path, The route, The wire, When it fails
 
 ### Community 91 - "The loop"
@@ -437,29 +433,25 @@ Nodes (5): House style, How you work, Product invariants — a change that break
 Cohesion: 0.33
 Nodes (5): Architecture, Mock or live, No build step, Two paths, one ladder, Who owns what
 
-### Community 97 - "Cascaded STT to LLM to TTS voice pipeline"
-Cohesion: 0.50
-Nodes (4): Learner-accented French breaks ordinary STT, Cascaded STT to LLM to TTS voice pipeline, Risk 1: STT on real learner French, Self-hosted open-source LiveKit, the $0 stack
-
 ## Knowledge Gaps
-- **494 isolated node(s):** `st`, `name`, `slug`, `version`, `orientation` (+489 more)
+- **501 isolated node(s):** `st`, `name`, `slug`, `version`, `orientation` (+496 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **26 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **28 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Rung` connect `tutor.ts` to `SessionScreen.tsx`, `drill/index.ts`, `components.tsx`, `conversation.ts`, `useLiveSession.ts`, `protocol.ts`, `RootNavigator.tsx`, `profile.ts`, `ladder.ts`, `session/session.ts`, `convo.ts`?**
-  _High betweenness centrality (0.023) - this node is a cross-community bridge._
-- **Why does `plugins` connect `expo` to `AuthAdapter`?**
+- **Why does `Rung` connect `core/src/index.ts` to `phonemes/index.ts`, `space`, `profile.ts`, `useLiveSession.ts`, `activity.ts`, `protocol.ts`, `RootNavigator.tsx`, `conversation.ts`, `ladder.ts`, `session/session.ts`?**
   _High betweenness centrality (0.022) - this node is a cross-community bridge._
-- **Why does `ParleConversation` connect `convo.ts` to `contract/types.ts`, `protocol.ts`, `buildSystemBlocks`, `profile.ts`, `openaiCompat.ts`?**
+- **Why does `plugins` connect `expo` to `AuthAdapter`?**
+  _High betweenness centrality (0.021) - this node is a cross-community bridge._
+- **Why does `ParleConversation` connect `ParleConversation` to `convo.ts`, `activity.ts`, `protocol.ts`, `conversation.ts`, `openaiCompat.ts`?**
   _High betweenness centrality (0.020) - this node is a cross-community bridge._
 - **What connects `st`, `name`, `slug` to the rest of the system?**
-  _494 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _501 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `generate.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.0873015873015873 - nodes in this community are weakly interconnected._
-- **Should `drill/index.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.05175202156334232 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08307692307692308 - nodes in this community are weakly interconnected._
+- **Should `server.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.05450165612767239 - nodes in this community are weakly interconnected._
 - **Should `phonemes/index.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.0962962962962963 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05895061728395062 - nodes in this community are weakly interconnected._
