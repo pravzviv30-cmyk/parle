@@ -330,10 +330,23 @@ function feedbackMessage(kind: LearnerInput['type'], quality: TurnQuality, rescu
   return 'Not quite. Listen and try it this way.';
 }
 
+/**
+ * Whether this session could say anything about pronunciation at all.
+ *
+ * The distinction the end card has to make and could not: `clean` means we
+ * listened and there was nothing worth working on; `unavailable` means we never
+ * heard them — no audio reached the scorer, or the learner answered by tapping
+ * and typing. Collapsing the two into an empty focus card shows a learner who
+ * was never assessed the same screen as a learner who did well, which is a claim
+ * this product does not get to make.
+ */
+export type PronunciationStatus = 'scored' | 'clean' | 'unavailable';
+
 export interface SessionSummary {
   lessonId: string;
   durationSec: number;
   pronunciation: SessionPhonemeReport;
+  pronunciationStatus: PronunciationStatus;
   /** Share of turns the learner composed French for themselves. */
   unassistedRate: number;
   /** Distinct words they actually said aloud, correctly. */
@@ -357,10 +370,12 @@ export interface SessionSummary {
 
 export function summarise(state: SessionState, now = Date.now()): SessionSummary {
   const durationSec = Math.max(0, ((state.endedAt ?? now) - state.startedAt) / 1000);
+  const pronunciation = buildReport(state.observations);
   return {
     lessonId: state.lessonId,
     durationSec,
-    pronunciation: buildReport(state.observations),
+    pronunciation,
+    pronunciationStatus: state.utterancesScored === 0 ? 'unavailable' : pronunciation.focus ? 'scored' : 'clean',
     unassistedRate: unassistedRate(state.ladder),
     wordsProduced: [...state.wordsProduced].sort(),
     longestTurnSec: state.longestTurnSec,

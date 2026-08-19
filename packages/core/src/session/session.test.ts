@@ -363,3 +363,46 @@ describe('a complete run through the lesson', () => {
     assert.equal(sum.pronunciation.focus, null, 'nothing to fix after a clean run');
   });
 });
+
+describe('what the end card is allowed to claim', () => {
+  test('a session with nothing scored reports pronunciation unavailable', () => {
+    // The live path used to end here on every single session: no audio ever
+    // reached the scorer, so there were no observations, so there was no focus
+    // — and an empty focus renders exactly like a clean one.
+    let state = createSession(lesson, RUNGS.FREE);
+    state = step(state, { type: 'spoke', transcript: 'Bonjour', phonemes: [], durationSec: 2 }).state;
+    const summary = summarise(state);
+
+    assert.equal(summary.utterancesScored, 0);
+    assert.equal(summary.pronunciation.focus, null);
+    assert.equal(summary.pronunciationStatus, 'unavailable', 'never heard is not the same as nothing to fix');
+  });
+
+  test('a session that was scored and went well reports clean, not unavailable', () => {
+    let state = createSession(lesson, RUNGS.FREE);
+    state = step(state, said('Bonjour', 96)).state;
+    const summary = summarise(state);
+
+    assert.ok(summary.utterancesScored > 0);
+    assert.equal(summary.pronunciationStatus, 'clean');
+  });
+
+  test('a session with a real problem reports it as scored', () => {
+    const bad = (text: string): LearnerInput => ({
+      type: 'spoke',
+      transcript: text,
+      durationSec: 2,
+      phonemes: [
+        { ipa: 'ʁ', score: 30, word: text, substituted: 'l' },
+        { ipa: 'ʁ', score: 28, word: text, substituted: 'l' },
+        { ipa: 'ʁ', score: 33, word: text, substituted: 'l' },
+      ],
+    });
+    let state = createSession(lesson, RUNGS.FREE);
+    state = step(state, bad('Bonjour')).state;
+    const summary = summarise(state);
+
+    assert.equal(summary.pronunciationStatus, 'scored');
+    assert.equal(summary.pronunciation.focus?.phoneme.ipa, 'ʁ');
+  });
+});

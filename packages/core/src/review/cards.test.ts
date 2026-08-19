@@ -15,6 +15,7 @@ function makeSummary(overrides: Partial<SessionSummary> = {}): SessionSummary {
     lessonId: CAFE_LESSON.id,
     durationSec: 300,
     pronunciation: buildReport([]),
+    pronunciationStatus: 'clean',
     unassistedRate: 0.5,
     wordsProduced: [],
     longestTurnSec: 3,

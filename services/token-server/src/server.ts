@@ -11,9 +11,10 @@ import 'dotenv/config';
 
 import { PLANS, buildReport, secondsRemaining } from '@parle/core';
 import { scoreUtterance } from '../../shared/speechace.ts';
-import { InMemoryEntitlementStore, type EntitlementStore } from './store.ts';
+import { FileEntitlementStore, InMemoryEntitlementStore, type EntitlementStore } from './store.ts';
 import { grantSession, type TokenConfig } from './tokens.ts';
 import { createUserResolver } from './auth.ts';
+import { agentDebitAllowed } from './agentAuth.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
 
@@ -35,7 +36,30 @@ const config: TokenConfig = {
   apiSecret: requiredEnv('LIVEKIT_API_SECRET'),
 };
 const livekitUrl = requiredEnv('LIVEKIT_URL');
-const store: EntitlementStore = new InMemoryEntitlementStore();
+/**
+ * Shared with the tutor agent, which is the only legitimate caller of
+ * /session/end. Unset, the endpoint behaves exactly as it always has — the
+ * keyless dev path stays keyless — but it says so at boot, once, rather than
+ * leaving the hole undocumented in a running process.
+ */
+const AGENT_SECRET = process.env.PARLE_AGENT_SECRET;
+if (!AGENT_SECRET) {
+  console.warn(
+    '[parle] PARLE_AGENT_SECRET is not set: /session/end will accept a debit from anyone who can reach this port. ' +
+      'Fine locally, not fine anywhere else.',
+  );
+}
+
+/**
+ * File-backed when ENTITLEMENT_STORE_PATH says where, in memory otherwise.
+ *
+ * In memory, a restart hands every learner their minutes back — which is
+ * generous until the day it is not, and either way means the balance shown to a
+ * learner is a property of the server's uptime rather than of what they bought.
+ */
+const store: EntitlementStore = process.env.ENTITLEMENT_STORE_PATH
+  ? new FileEntitlementStore(process.env.ENTITLEMENT_STORE_PATH)
+  : new InMemoryEntitlementStore();
 
 // Optional Supabase verification. Absent, the server trusts asserted userIds
 // exactly as it always has — the keyless dev path.
@@ -184,6 +208,12 @@ const server = createServer(async (req, res) => {
     // no learner bearer token in that path. Follow-up: a shared agent secret
     // would close the debit-a-stranger griefing hole.
     if (req.method === 'POST' && url.pathname === '/session/end') {
+      // The caller is the tutor agent, server side, using the identity it read
+      // out of the signed join token. A shared secret is what separates that
+      // from anyone else on the network draining a stranger's minutes.
+      if (!agentDebitAllowed(AGENT_SECRET, req.headers['x-parle-agent'])) {
+        return json(res, 401, { error: 'agent authentication required' });
+      }
       const body = await readJson(req);
       const userId = typeof body.userId === 'string' ? body.userId : null;
       const seconds = typeof body.seconds === 'number' ? body.seconds : NaN;

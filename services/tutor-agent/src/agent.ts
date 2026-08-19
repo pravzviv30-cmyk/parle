@@ -15,12 +15,14 @@
  *
  * WIRING STATUS — read before trusting a score.
  *   Wired:      voice loop, turn detection, barge-in, ladder-driven prompting,
- *               text-level answer grading, the silence rescue.
- *   Not wired:  per-utterance audio capture feeding Speechace. `scoreUtterance`
- *               is called with the reference text and returns null without audio,
- *               and `grade()` treats a null score as "do not invent a penalty".
- *               So the session runs correctly today and simply reports no
- *               pronunciation focus until the audio tap is connected.
+ *               text-level answer grading, the silence rescue, per-utterance
+ *               audio capture (utterance.ts) and the real spoken duration that
+ *               comes with it.
+ *   Behind a flag: sending that audio to Speechace. PARLE_AUDIO_SCORING=1 turns
+ *               it on. Off, `scoreUtterance` is called with the reference alone
+ *               and returns an empty array, `grade()` treats a null score as
+ *               "do not invent a penalty", and the end card says plainly that
+ *               nothing was scored rather than rendering a clean session.
  */
 
 import { fileURLToPath } from 'node:url';
@@ -31,7 +33,6 @@ import {
   cli,
   defineAgent,
   voice,
-  llm,
 } from '@livekit/agents';
 import * as anthropic from '@livekit/agents-plugin-anthropic';
 import * as openai from '@livekit/agents-plugin-openai';
@@ -45,28 +46,15 @@ import { buildTTS } from './voice.ts';
 
 import {
   CAFE_LESSON,
-  createSession,
-  currentPrompt,
-  submitTurn,
-  summarise,
-  decodeClientMessage,
   encodeMessage,
-  toLearnerInput,
-  STUCK_SILENCE_MS,
   TOPIC_CLIENT,
   TOPIC_SERVER,
   type Lesson,
   type Rung,
   type ServerMessage,
-  type SessionState,
 } from '@parle/core';
-import { buildPrompt } from './prompt.ts';
-import { scoreUtterance } from './speechace.ts';
-import { reportUsage } from './usage.ts';
 import { ParleConversation, parseStoredProfile } from './convo.ts';
-
-/** Anything that can carry a message back to the app. */
-type Publisher = (message: ServerMessage) => void;
+import { ParleTutor } from './tutor.ts';
 
 /**
  * The tutor brain, selected by env so the quality/cost trade is a .env change.
@@ -83,173 +71,6 @@ type Publisher = (message: ServerMessage) => void;
 function tutorLLM() {
   if (selectedBrain() === 'groq') return openai.LLM.withGroq({ model: 'llama-3.3-70b-versatile' }); // reads GROQ_API_KEY
   return new anthropic.LLM({ model: DEFAULT_ROUTING.turn.model });
-}
-
-class ParleTutor extends voice.Agent {
-  private state: SessionState;
-  private silenceTimer?: ReturnType<typeof setTimeout>;
-  // Not a constructor parameter property — Node runs this worker by stripping
-  // types, and parameter properties emit runtime code, so they are rejected.
-  private readonly lesson: Lesson;
-  private publish: Publisher = () => {};
-  private startedAt = Date.now();
-  private ended = false;
-
-  constructor(lesson: Lesson, startRung?: Rung) {
-    const state = createSession(lesson, startRung);
-    const prompt = currentPrompt(lesson, state);
-    super({ instructions: buildPrompt(lesson, prompt.turn, prompt.directive) });
-    this.lesson = lesson;
-    this.state = state;
-  }
-
-  get sessionState(): SessionState {
-    return this.state;
-  }
-
-  /** Wire up the channel back to the app. */
-  attach(publish: Publisher): void {
-    this.publish = publish;
-  }
-
-  /** Send the app whatever it should be rendering right now. */
-  sendCurrentPrompt(): void {
-    if (this.state.finished) return;
-    this.publish({ t: 'prompt', prompt: currentPrompt(this.lesson, this.state) });
-  }
-
-  /** Drives the microphone control: live while the learner has the floor. */
-  sendSpeaking(speaking: boolean): void {
-    this.publish({ t: 'speaking', speaking });
-  }
-
-  /** Tell the learner something went wrong, in plain unscolding words. */
-  publishError(message: string): void {
-    this.publish({ t: 'error', message });
-  }
-
-  /** Handle an intent the learner expressed by tapping rather than speaking. */
-  async handleClientMessage(session: voice.AgentSession, payload: Uint8Array): Promise<void> {
-    const msg = decodeClientMessage(payload);
-    if (!msg) return; // a malformed frame must not disturb a live conversation
-
-    if (msg.t === 'ready') return this.sendCurrentPrompt();
-    if (msg.t === 'leave') return void this.finish();
-    if (msg.t === 'hear') {
-      // Replay the line to say, uninterruptible so it always plays out whole.
-      // Scripted lines come from the TTS cache, so a replay costs nothing.
-      const prompt = currentPrompt(this.lesson, this.state);
-      session.say(prompt.turn.target, { allowInterruptions: false });
-      return;
-    }
-
-    const input = toLearnerInput(msg);
-    if (input) await this.applyInput(session, input);
-  }
-
-  /**
-   * Speech options for the next tutor reply.
-   *
-   * On the scripted rungs the modelled line must play out in full: without
-   * headphones the learner's microphone hears the tutor, and a VAD "interruption"
-   * during the model line is almost never the learner talking.
-   */
-  replyOptions(): { allowInterruptions?: boolean } {
-    const directive = currentPrompt(this.lesson, this.state).directive;
-    return directive.rung <= 2 || directive.rescued ? { allowInterruptions: false } : {};
-  }
-
-  /**
-   * Arm the rescue.
-   *
-   * Called once the tutor has finished speaking. If the learner has not started
-   * talking within four seconds they are stuck, not thinking, and the ladder drops
-   * a rung so the next prompt carries more support.
-   */
-  armRescue(session: voice.AgentSession): void {
-    this.clearRescue();
-    this.silenceTimer = setTimeout(() => {
-      void this.applyInput(session, { type: 'silence', durationMs: STUCK_SILENCE_MS });
-    }, STUCK_SILENCE_MS);
-  }
-
-  clearRescue(): void {
-    if (this.silenceTimer) clearTimeout(this.silenceTimer);
-    this.silenceTimer = undefined;
-  }
-
-  /** The learner said something. Grade it, move the ladder, re-brief the tutor. */
-  override async onUserTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
-    this.clearRescue();
-    const transcript = newMessage.textContent ?? '';
-    if (!transcript.trim()) return;
-
-    this.publish({ t: 'transcript', text: transcript, final: true });
-
-    const prompt = currentPrompt(this.lesson, this.state);
-    // Reference text is what makes accuracy scoring meaningful at all — see the
-    // note in packages/core/src/lessons/types.ts.
-    const phonemes = await scoreUtterance({ reference: prompt.turn.reference });
-
-    await this.applyInput(this.session, {
-      type: 'spoke',
-      transcript,
-      phonemes,
-      durationSec: 0, // filled from audio metrics once the audio tap is wired
-    });
-
-    // applyInput generated the reply itself, under the interruption rules the
-    // current rung demands. Cancel the pipeline's own automatic reply — it
-    // would speak a second time, and with interruptions allowed, which is how
-    // a speakerphone mic gets to cut the modelled line off mid-sentence.
-    throw new voice.StopResponse();
-  }
-
-  private async applyInput(session: voice.AgentSession | undefined, input: Parameters<typeof submitTurn>[2]): Promise<void> {
-    const { state, feedback } = submitTurn(this.lesson, this.state, input);
-    this.state = state;
-
-    if (feedback.message) this.publish({ t: 'feedback', feedback });
-
-    if (state.finished) return void this.finish();
-
-    const next = currentPrompt(this.lesson, state);
-    await this.updateInstructions(buildPrompt(this.lesson, next.turn, next.directive));
-    this.publish({ t: 'prompt', prompt: next });
-
-    // The tutor answers every applied input — a spoken turn, a rescue, a skip —
-    // and always through replyOptions(), so a modelled line on a scripted rung
-    // can never be cut off by the mic hearing the tutor's own voice.
-    if (session) {
-      session.generateReply(this.replyOptions());
-    }
-  }
-
-  /**
-   * End the session: send the card, then debit the metered seconds.
-   *
-   * Idempotent, because both a finished lesson and a learner closing the app can
-   * arrive here — and billing someone twice for one session is the kind of bug
-   * that costs a refund and a review.
-   */
-  async finish(): Promise<void> {
-    if (this.ended) return;
-    this.ended = true;
-    this.clearRescue();
-
-    const summary = summarise(this.state);
-    this.publish({ t: 'summary', summary });
-
-    const wallClockSec = Math.round((Date.now() - this.startedAt) / 1000);
-    console.log(
-      `[parle] session complete — ${summary.turnsCompleted} turns, ${summary.wordsProduced.length} words, ` +
-        `${wallClockSec}s, focus=${summary.pronunciation.focus?.phoneme.ipa ?? 'none'}`,
-    );
-    await reportUsage({ userId: this.learnerId, seconds: wallClockSec, utterancesScored: summary.utterancesScored });
-  }
-
-  /** Set from the room identity so usage lands on the right account. */
-  learnerId = 'anonymous';
 }
 
 export default defineAgent({
@@ -357,8 +178,11 @@ export default defineAgent({
     });
 
     session.on(voice.AgentSessionEventTypes.UserStateChanged, (ev) => {
-      // They have started speaking — they are not stuck after all.
-      if (ev.newState === 'speaking') tutor.clearRescue();
+      // They have started speaking — they are not stuck after all. This also
+      // stands a rescue down that has already fired and is on its way; clearing
+      // the timeout alone cannot, and both landing costs the learner a turn.
+      if (ev.newState === 'speaking') tutor.setLearnerSpeaking(true);
+      if (ev.newState === 'listening' || ev.newState === 'away') tutor.setLearnerSpeaking(false);
     });
 
     // A learner who closes the app still gets their minutes debited correctly.

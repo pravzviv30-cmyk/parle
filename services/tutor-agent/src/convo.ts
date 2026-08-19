@@ -17,6 +17,7 @@
 
 import { voice, type llm } from '@livekit/agents';
 import { selectedBrain } from './preflight.ts';
+import { TurnQueue } from './queue.ts';
 
 import {
   APERO_FRAME,
@@ -260,6 +261,10 @@ export class ParleConversation extends voice.Agent {
    * pedagogical is identical — that is the point.
    */
   private readonly voiceless: boolean;
+  /** Every brain turn and every rescue runs through here, one at a time. */
+  private readonly queue = new TurnQueue();
+  /** True between the learner taking the floor and their turn being integrated. */
+  private learnerSpeaking = false;
 
   constructor(profile: LearnerProfile, opts: { voiceless?: boolean } = {}) {
     // The pipeline LLM never generates here; see the header. One line keeps
@@ -421,9 +426,30 @@ export class ParleConversation extends voice.Agent {
       }, window);
       return;
     }
+    // Captured now, checked when it fires: a timeout that has already gone off
+    // cannot be cleared, and a learner who has started talking is not silent.
+    const generation = this.queue.generation;
     this.silenceTimer = setTimeout(() => {
-      void this.rescue({ type: 'silence', durationMs: window });
+      if (this.ended || this.learnerSpeaking) return;
+      void this.queue.runIfCurrent(generation, () => this.rescue({ type: 'silence', durationMs: window }));
     }, window);
+  }
+
+  /**
+   * The learner has the floor, or has given it up.
+   *
+   * Stands down a rescue that has already fired and is on its way — clearing the
+   * timeout cannot, and a rescue landing on top of a spoken turn costs them one
+   * of the two.
+   */
+  setLearnerSpeaking(speaking: boolean): void {
+    this.learnerSpeaking = speaking;
+    if (speaking) this.clearRescue();
+  }
+
+  /** Settle once every queued turn has been integrated. For tests. */
+  settled(): Promise<void> {
+    return this.queue.idle();
   }
 
   clearRescue(): void {
@@ -503,6 +529,7 @@ export class ParleConversation extends voice.Agent {
   /** The learner said something. Run it through the brain, speak the answer. */
   override async onUserTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
     this.clearRescue();
+    this.learnerSpeaking = false;
     const text = (newMessage.textContent ?? '').trim();
     if (text.length > 0 && !this.ended) {
       if (this.phase === 'choosing') {
@@ -512,7 +539,7 @@ export class ParleConversation extends voice.Agent {
         void this.startScene(text);
       } else if (this.phase === 'scene') {
         this.publish({ t: 'transcript', text, final: true });
-        await this.runBrainTurn({ type: 'spoke', text });
+        await this.queue.run(() => this.runBrainTurn({ type: 'spoke', text }));
       }
       // Speech while the scenario builder runs is dropped: the learner is
       // watching the bridge moment, and the scene they asked for is seconds

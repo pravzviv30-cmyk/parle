@@ -13,6 +13,7 @@
  */
 
 import type { PhonemeObservation } from '@parle/core';
+import { toInventoryIpa } from './phoneMap.ts';
 
 export interface ScoreRequest {
   /** The text the learner was supposed to say. Accuracy scoring is meaningless without it. */
@@ -62,6 +63,7 @@ export function parseSpeechace(payload: unknown): PhonemeObservation[] {
   if (!Array.isArray(words)) return [];
 
   const out: PhonemeObservation[] = [];
+  const unknown = new Set<string>();
   for (const w of words) {
     const word = (w as { word?: string }).word;
     const phones = (w as { phone_score_list?: unknown[] }).phone_score_list;
@@ -70,16 +72,35 @@ export function parseSpeechace(payload: unknown): PhonemeObservation[] {
     for (const p of phones) {
       const phone = p as { phone?: string; quality_score?: number; sound_most_like?: string };
       if (typeof phone.phone !== 'string' || typeof phone.quality_score !== 'number') continue;
+
+      // Translated rather than trusted. Downstream this becomes an exact lookup
+      // into the inventory, and a symbol that misses is skipped without a word —
+      // so a vendor answering in X-SAMPA produces a session where every single
+      // observation is silently dropped and there is never a focus point.
+      const ipa = toInventoryIpa(phone.phone);
+      if (ipa === null) {
+        unknown.add(phone.phone);
+        continue;
+      }
+      // `sound_most_like` is what the learner actually produced — the single most
+      // useful field in the response, because it turns "your /y/ was 44%" into
+      // "you said 'tout' when you meant 'tu'". Kept verbatim when it is not a
+      // French phoneme: an English vowel is exactly the answer worth showing.
+      const heard = phone.sound_most_like ? (toInventoryIpa(phone.sound_most_like) ?? phone.sound_most_like) : undefined;
       out.push({
-        ipa: phone.phone,
+        ipa,
         score: phone.quality_score,
         word,
-        // `sound_most_like` is what the learner actually produced — the single most
-        // useful field in the response, because it turns "your /y/ was 44%" into
-        // "you said 'tout' when you meant 'tu'".
-        substituted: phone.sound_most_like && phone.sound_most_like !== phone.phone ? phone.sound_most_like : undefined,
+        substituted: heard && heard !== ipa ? heard : undefined,
       });
     }
+  }
+
+  if (unknown.size > 0) {
+    console.warn(
+      `[speechace] ${unknown.size} phone symbol(s) are not in the French inventory, so nothing can be said about ` +
+        `them: ${[...unknown].join(' ')}. If the whole response is listed here, the vendor has changed alphabet.`,
+    );
   }
   return out;
 }

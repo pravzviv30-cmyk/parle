@@ -73,7 +73,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### B0 — ParleTutor cannot be tested at all
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/agent.ts:88
 - note: not exported, and importing the module runs preflight + cli.runApp at module
   scope. Every live-agent fix below is unverifiable until this is split.
@@ -81,7 +81,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### B1 — Live pronunciation scoring never receives audio
 - severity: P0
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/agent.ts:192
 - note: `scoreUtterance({ reference })` with no audio returns [] every time, and
   `durationSec: 0` is hard-coded, so speaking share and longest turn are always zero. The
@@ -91,21 +91,21 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### B2 — Speechace phone symbols are assumed to be IPA
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/shared/speechace.ts:74
 - note: a non-IPA alphabet drops every observation silently at scoring.ts:179.
 - verified-by: `vendor phone symbols map onto the inventory`
 
 ### B3 — An empty transcript lets the pipeline speak unladdered
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/agent.ts:185
 - note: the early return never throws StopResponse, unlike the conversation agent.
 - verified-by: `an empty transcript stops the pipeline reply`
 
 ### B4 — A rescue and a spoken turn can both apply
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/agent.ts:169
 - note: nothing serialises state, and clearing the timer cannot cancel a rescue already
   in flight.
@@ -122,7 +122,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### B6 — Anyone can debit anyone's minutes
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:181
 - note: /session/end is unauthenticated and body-trusted, and the store is in-memory, so
   a restart zeroes every learner's balance.

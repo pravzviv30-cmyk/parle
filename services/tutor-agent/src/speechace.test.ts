@@ -2,6 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { parseSpeechace, scoreUtterance } from './speechace.ts';
+import { toInventoryIpa } from '../../shared/phoneMap.ts';
 import { buildReport } from '@parle/core';
 
 /** A trimmed but structurally faithful Speechace v9 response for "sur place". */
@@ -102,5 +103,68 @@ describe('degrading safely', () => {
     assert.deepEqual(await scoreUtterance({ reference: 'Bonjour' }), []);
     if (saved === undefined) delete process.env.SPEECHACE_API_KEY;
     else process.env.SPEECHACE_API_KEY = saved;
+  });
+});
+
+describe('the vendor does not have to speak our alphabet', () => {
+  /** The same utterance, scored in X-SAMPA instead of IPA. */
+  const xsampa = {
+    text_score: {
+      word_score_list: [
+        {
+          word: 'rue',
+          phone_score_list: [
+            { phone: 'R', quality_score: 41, sound_most_like: 'l' },
+            { phone: 'y', quality_score: 52, sound_most_like: 'u' },
+          ],
+        },
+        {
+          word: 'bonjour',
+          phone_score_list: [
+            { phone: 'b', quality_score: 95 },
+            { phone: 'o~', quality_score: 48 },
+            { phone: 'Z', quality_score: 71, sound_most_like: 'S' },
+          ],
+        },
+      ],
+    },
+  };
+
+  test('vendor phone symbols map onto the inventory', () => {
+    const observations = parseSpeechace(xsampa);
+
+    // Every one of these used to be dropped by the exact-match lookup in
+    // buildReport, which is silent by design — so the whole session produced no
+    // focus and looked exactly like a session that went well.
+    assert.deepEqual(
+      observations.map((o) => o.ipa),
+      ['ʁ', 'y', 'b', 'ɔ̃', 'ʒ'],
+    );
+    assert.equal(observations[1]?.substituted, 'u');
+    assert.equal(observations[4]?.substituted, 'ʃ', 'what they said instead is translated too');
+  });
+
+  test('the mapped observations reach a focus point, which is the whole purpose', () => {
+    const report = buildReport([
+      ...parseSpeechace(xsampa),
+      ...parseSpeechace(xsampa),
+      ...parseSpeechace(xsampa),
+    ]);
+    assert.ok(report.focus, 'three samples of a badly-produced /ʁ/ must be actionable');
+    assert.equal(report.focus.phoneme.ipa, 'ʁ');
+  });
+
+  test('a symbol nobody can place is dropped rather than guessed at', () => {
+    const observations = parseSpeechace({
+      text_score: { word_score_list: [{ word: 'x', phone_score_list: [{ phone: 'ʘ', quality_score: 10 }] }] },
+    });
+    assert.deepEqual(observations, [], 'naming the wrong sound is worse than naming none');
+  });
+
+  test('symbols already in IPA are passed through untouched', () => {
+    assert.equal(toInventoryIpa('ʁ'), 'ʁ');
+    assert.equal(toInventoryIpa('ɔ̃'), 'ɔ̃');
+    assert.equal(toInventoryIpa('y'), 'y');
+    assert.equal(toInventoryIpa('nonsense'), null);
   });
 });
