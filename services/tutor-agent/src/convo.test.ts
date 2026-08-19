@@ -274,3 +274,36 @@ describe('narration and visible recasts on the wire', () => {
     overTheWire({ t: 'convo', view: convo });
   });
 });
+
+describe('a profile that predates memory', () => {
+  test('a v2 snapshot with no memory is repaired, not discarded', () => {
+    // `memory` arrived after version 2 was already on devices. migrateProfile
+    // only fills it in for version 1, so this shape used to sail through the
+    // guard and take the worker down on the first read of memory.facts.
+    const aged = createProfile();
+    const snapshot = { ...aged } as Record<string, unknown>;
+    delete snapshot.memory;
+    snapshot.stats = { sessions: 4, totalTurns: 40, rescues: 2, lastRung: 3 };
+
+    const profile = parseStoredProfile(snapshot);
+
+    assert.deepEqual(profile.memory, { facts: [], opener: null });
+    assert.equal(profile.stats.sessions, 4, 'the learning history survives the repair');
+    assert.equal(profile.stats.lastRung, 3);
+    // The crash site itself: topicChips reads memory.facts on session open.
+    assert.doesNotThrow(() => topicChips(profile));
+    assert.equal(topicChips(profile).length, 3);
+  });
+
+  test('a snapshot with a broken memory field is repaired rather than believed', () => {
+    const snapshot = { ...createProfile(), memory: 'nonsense' } as unknown;
+    const profile = parseStoredProfile(snapshot);
+    assert.deepEqual(profile.memory, { facts: [], opener: null });
+  });
+
+  test('a snapshot missing a field the engine needs still falls back to a fresh profile', () => {
+    assert.equal(parseStoredProfile({ cefr: {} }).stats.sessions, 0);
+    assert.equal(parseStoredProfile(null).stats.sessions, 0);
+    assert.equal(parseStoredProfile('nope').stats.sessions, 0);
+  });
+});

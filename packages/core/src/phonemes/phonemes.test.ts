@@ -87,6 +87,15 @@ describe('drills', () => {
     }
   });
 
+  test('the drill bank is measured against the sounds that can win a focus', () => {
+    // Difficulty 4 clears the priority bar comfortably, so a gap there is a
+    // phoneme that can top the ranking with nothing to offer the learner.
+    // buildReport now walks past such a phoneme rather than falling silent, but
+    // this records which ones it has to walk past.
+    const undrilled = FRENCH_PHONEMES.filter((x) => x.difficulty >= 4 && drillsFor(x.ipa).length === 0).map((x) => x.ipa);
+    assert.deepEqual(undrilled, ['œ'], 'the known gap is /œ/ alone — a new one needs a drill or a deliberate decision');
+  });
+
   test('drills stay at 60 seconds so they never feel like homework', () => {
     for (const d of DRILLS) assert.equal(d.durationSec, 60);
   });
@@ -169,6 +178,36 @@ describe('scoring', () => {
     assert.equal(report.focus.phoneme.ipa, 'y');
     assert.equal(report.focus.drill.id, 'y-vs-u');
     assert.match(report.focus.reason, /different word/);
+  });
+
+  test('focus falls through to the next phoneme that has a drill', () => {
+    // /œ/ is difficulty 4 with no drill in the bank; /y/ is difficulty 5 with
+    // one. Scored badly enough, /œ/ tops the ranking — and used to take the
+    // whole focus point with it, so a learner who also mangled /y/ was told
+    // nothing at all rather than being given the drill that existed.
+    const report = buildReport([
+      obs('œ', 20, 'peur'),
+      obs('œ', 22, 'sœur'),
+      obs('œ', 18, 'fleur'),
+      obs('y', 70, 'tu', 'u'),
+      obs('y', 72, 'rue', 'u'),
+      obs('y', 68, 'sur', 'u'),
+    ]);
+
+    // /œ/ ranks 38.4 here and /y/ 25.2, so /œ/ genuinely wins the ranking — the
+    // fixture is only worth having if the undrillable sound is actually on top.
+    assert.ok(report.focus, 'a drillable problem was present and must not be swallowed');
+    assert.equal(report.focus.phoneme.ipa, 'y');
+    assert.equal(report.focus.drill.id, 'y-vs-u');
+    assert.ok(
+      report.stats.some((st) => st.ipa === 'œ'),
+      'the undrillable sound is still reported in the stats — it is skipped as a focus, not hidden',
+    );
+  });
+
+  test('a problem with no drill anywhere still produces no focus, rather than a dead end', () => {
+    const report = buildReport([obs('œ', 20, 'peur'), obs('œ', 22, 'sœur'), obs('œ', 18, 'fleur')]);
+    assert.equal(report.focus, null, 'naming a problem with no way to fix it is worse than silence');
   });
 
   test('a clean session produces no focus point rather than inventing one', () => {

@@ -223,12 +223,26 @@ export function unassistedRate(state: LadderState): number {
 }
 
 /**
- * The rung to open the learner's next session on.
+ * The rung a session opens on — the one rule, for scripted lessons and free
+ * conversation alike.
  *
- * Deliberately one below where they finished. Starting at the edge of your
- * ability while cold is how a session dies in its first thirty seconds, and the
- * ladder climbs back within two good turns anyway.
+ * Deliberately one below where the learner finished. Starting at the edge of
+ * your ability while cold is how a session dies in its first thirty seconds, and
+ * the ladder climbs back within two good turns anyway.
+ *
+ * Once there is a `lastRung`, it decides on its own and the CEFR base steps
+ * aside. What someone actually did last session is better evidence than what
+ * they told an onboarding screen about themselves — an A1 who worked their way
+ * up to free conversation should not be handed the Echo rung next time because
+ * a dropdown once said A1. The base is for the first session, when there is
+ * nothing else to go on.
  */
+export function openingRung(previous: { cefrBase: Rung; lastRung: Rung | null }): Rung {
+  if (previous.lastRung === null) return clamp(previous.cefrBase);
+  return clamp(previous.lastRung - 1);
+}
+
+/** Where this session's ladder leaves the next one. */
 export function nextSessionRung(state: LadderState): Rung {
-  return clamp(state.rung - 1);
+  return openingRung({ cefrBase: RUNGS.FREE, lastRung: state.rung });
 }

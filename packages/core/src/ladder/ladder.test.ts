@@ -6,6 +6,7 @@ import {
   directiveFor,
   initialState,
   nextSessionRung,
+  openingRung,
   unassistedRate,
   PROMOTION_STREAK,
   RUNGS,
@@ -148,6 +149,19 @@ describe('ladder — progress signals', () => {
 
   test('the next session opens one rung below where they finished', () => {
     assert.equal(nextSessionRung({ ...initialState(), rung: RUNGS.FREE }), RUNGS.PROMPTED);
+  });
+
+  test('both engines open the next session on the same rung', () => {
+    // One rule, reached two ways. Scripted lessons ask "where did the ladder
+    // finish"; free conversation asks "what do we know about this learner".
+    // They used to disagree: conversation capped the answer at the band the
+    // learner picked during onboarding, so an A1 who worked all the way up to
+    // free conversation was handed the Echo rung next time.
+    const finishedFree = { ...initialState(), rung: RUNGS.FREE };
+    assert.equal(nextSessionRung(finishedFree), RUNGS.PROMPTED);
+    assert.equal(openingRung({ cefrBase: RUNGS.CUED, lastRung: RUNGS.FREE }), RUNGS.PROMPTED, 'what they did beats what they said');
+    assert.equal(openingRung({ cefrBase: RUNGS.CUED, lastRung: null }), RUNGS.CUED, 'until there is anything to go on');
+    assert.equal(openingRung({ cefrBase: RUNGS.FREE, lastRung: RUNGS.ECHO }), RUNGS.ECHO, 'and never below the floor');
   });
 
   test('a learner who finished at the bottom still opens at the bottom', () => {

@@ -51,21 +51,21 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### A5 — Two different opening-rung formulas
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/engine/conversation.ts:146
 - note: an A1 who reached FREE reopens at ECHO instead of PROMPTED.
 - verified-by: `both engines open the next session on the same rung`
 
 ### A6 — A focus point vanishes when the worst sound has no drill
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/phonemes/scoring.ts:173
 - note: reachable today via /oe/, difficulty 4 with no drill.
 - verified-by: `focus falls through to the next phoneme that has a drill`
 
 ### A7 — A v2 snapshot with no memory crashes the worker
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/convo.ts:135
 - note: two doors — the agent's guard omits `memory`, and the app casts unchecked at
   apps/mobile/src/profile/store.ts:62.

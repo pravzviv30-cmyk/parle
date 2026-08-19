@@ -80,6 +80,48 @@ export function createProfile(): LearnerProfile {
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Take whatever came back off a device — or off the wire — and return a profile
+ * the engine can actually run on.
+ *
+ * Validation is deliberately loose, because a tampered profile only affects
+ * pedagogy and never minutes. What it is strict about is the fields the engine
+ * dereferences the moment a session opens: those must exist, or a stranger's
+ * malformed blob takes the worker down instead of quietly degrading to a fresh
+ * profile.
+ *
+ * `memory` is the one that bites. It arrived after version 2 was already on
+ * devices, so `migrateProfile` — which only fills it in for version 1 — hands a
+ * version-2 profile without it straight back, and the first thing that reads
+ * `profile.memory.facts` throws. Repairing just that field keeps the learner's
+ * error patterns, phrases and CEFR evidence, which is the whole point of not
+ * simply starting over.
+ */
+export function repairProfile(stored: unknown): LearnerProfile {
+  if (
+    !isRecord(stored) ||
+    !isRecord(stored.cefr) ||
+    !isRecord(stored.errorPatterns) ||
+    !isRecord(stored.phrases) ||
+    !isRecord(stored.preferences) ||
+    !Array.isArray(stored.preferences.lastScenarios) ||
+    !isRecord(stored.stats)
+  ) {
+    return createProfile();
+  }
+
+  const migrated = migrateProfile(stored as unknown as LearnerProfile);
+  const memory = migrated.memory;
+  if (isRecord(memory) && Array.isArray(memory.facts)) {
+    return memory.opener === undefined ? { ...migrated, memory: { ...memory, opener: null } } : migrated;
+  }
+  return { ...migrated, memory: { facts: [], opener: null } };
+}
+
 /**
  * Bring a stored profile up to the current shape. Version 1 predates memory;
  * everything else it carried is still exactly right, so the upgrade is purely

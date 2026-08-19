@@ -35,11 +35,10 @@ import {
   buildScenarioRequest,
   buildSystemBlocks,
   createConversation,
-  createProfile,
   finishSession,
   integrateTurn,
   learnerSnapshotFrom,
-  migrateProfile,
+  repairProfile,
   prepareTurn,
   supportViewFor,
   type ConversationState,
@@ -121,10 +120,6 @@ export function toRecapPayload(recap: SessionRecap): RecapPayload {
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 /**
  * The app sends its stored LearnerProfile back as the opaque `snapshot` field
  * of the token metadata. Validation is deliberately loose — a tampered profile
@@ -133,20 +128,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * worker instead of degrading to a fresh profile.
  */
 export function parseStoredProfile(snapshot: unknown): LearnerProfile {
-  if (
-    isRecord(snapshot) &&
-    isRecord(snapshot.cefr) &&
-    isRecord(snapshot.errorPatterns) &&
-    isRecord(snapshot.phrases) &&
-    isRecord(snapshot.preferences) &&
-    Array.isArray(snapshot.preferences.lastScenarios) &&
-    isRecord(snapshot.stats)
-  ) {
-    // Older apps send back version-1 profiles for as long as they live on a
-    // device; the upgrade is additive and never touches learning history.
-    return migrateProfile(snapshot as unknown as LearnerProfile);
-  }
-  return createProfile();
+  // Older apps send back version-1 profiles for as long as they live on a
+  // device, and some version-2 profiles predate `memory` entirely. repairProfile
+  // is the one place that knows how to bring either forward without discarding
+  // what the tutor already learned about this person.
+  return repairProfile(snapshot);
 }
 
 /**
