@@ -148,11 +148,16 @@ describe('preflight', () => {
  * the model and ElevenLabs stopped honouring the key.
  */
 describe('the voice the tutor is configured to use', () => {
-  /** Answers each vendor by hostname, so one fake serves a whole pipeline. */
-  function fakeFetch(byHost: Record<string, { status: number; body?: unknown } | 'throw'>) {
+  /**
+   * Answers by host, or by "host+path" when a vendor is asked two things.
+   * ElevenLabs is asked two: whether the key is good, and what the account can
+   * say. They are different endpoints because only one of them can refuse an
+   * absent key.
+   */
+  function fakeFetch(byRoute: Record<string, { status: number; body?: unknown } | 'throw'>) {
     return async (url: string) => {
-      const host = new URL(url).host;
-      const reply = byHost[host];
+      const { host, pathname } = new URL(url);
+      const reply = byRoute[host + pathname] ?? byRoute[host];
       if (reply === undefined) return { ok: true, status: 200, json: async () => ({}) };
       if (reply === 'throw') throw new Error('ECONNREFUSED');
       return { ok: reply.status < 400, status: reply.status, json: async () => reply.body ?? {} };
@@ -192,6 +197,35 @@ describe('the voice the tutor is configured to use', () => {
     const checks = await verifyVendors(noVoice, '', fakeFetch({ 'api.elevenlabs.io': catalogue('anything') }) as never);
     assert.equal(checks.find((c) => c.vendor === 'ElevenLabs'), undefined);
     assert.ok(warnings(noVoice).some((w) => /ELEVEN_VOICE_ID is unset/.test(w)));
+  });
+
+  test('a key that is missing entirely is still caught', () => {
+    // The regression this file exists to remember. /v1/voices answers 200 to a
+    // caller with no key at all — it serves the premade catalogue anonymously —
+    // so authentication cannot be checked there, however well it appears to work
+    // against a fake that returns whatever the test told it to.
+    assert.ok(missingRequired({ ...FULL, ELEVEN_API_KEY: '' }).some((m) => /ELEVEN_API_KEY/.test(m)));
+  });
+
+  test('an unauthenticated catalogue does not vouch for the key', async () => {
+    // Exactly what the live endpoint does: /v1/user refuses, /v1/voices does not.
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      fakeFetch({
+        'api.elevenlabs.io/v1/user': { status: 401 },
+        'api.elevenlabs.io/v1/voices': catalogue('v'),
+      }) as never,
+    );
+    const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
+    assert.ok(eleven, 'the rejected key must still be reported');
+    assert.equal(eleven.fatal, true);
+    assert.match(eleven.detail, /rejected the key/);
+  });
+
+  test('one broken vendor produces one message, not two', async () => {
+    const checks = await verifyVendors(FULL, '', fakeFetch({ 'api.elevenlabs.io': { status: 401 } }) as never);
+    assert.equal(checks.filter((c) => c.vendor === 'ElevenLabs').length, 1);
   });
 
   test('a rejected key still reads as a rejected key, not a missing voice', async () => {

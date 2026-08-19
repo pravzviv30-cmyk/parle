@@ -233,38 +233,53 @@ export async function verifyVendors(
     );
   }
 
-  // Listing the voices proves the key AND settles the voice id in one request:
-  // /v1/voices answers 401 to a bad key exactly as /v1/user did, and its body is
-  // the only thing that can tell us the configured voice actually belongs to
-  // this account. A voice id from a different account passes every other check
-  // and then 404s at synthesis time — which reaches the learner as a room that
-  // opens and a tutor that never speaks, the precise failure this file exists to
-  // prevent. It was the one hole left in it.
+  // Two questions, two endpoints, because neither can answer the other's.
+  //
+  // /v1/user refuses an absent key. /v1/voices does NOT — it serves the premade
+  // catalogue to anonymous callers and answers 200 with no header at all — so
+  // the key check cannot live there, though a *wrong* key does get a 401. That
+  // asymmetry is worth stating: putting authentication on /v1/voices looks like
+  // it works, passes every test written against a fake, and quietly stops
+  // catching the one case it most needs to.
+  //
+  // The catalogue is still the only thing that can settle the voice id. A voice
+  // belongs to the account that made it, so a key rotated onto a new account
+  // leaves an id that passes every other check and then 404s at synthesis —
+  // reaching the learner as a room that opens and a tutor that never speaks.
+  // Asked second, and only once the key is known good, so one broken vendor
+  // produces one message.
   checks.push(
-    probe('ElevenLabs', 'https://api.elevenlabs.io/v1/voices', { 'xi-api-key': env.ELEVEN_API_KEY ?? '' }, fetchFn, (body) => {
-      const wanted = (env.ELEVEN_VOICE_ID ?? '').trim();
-      if (wanted === '') return null; // unset is a warning, not a fault — see warnings()
+    (async (): Promise<VendorCheck | null> => {
+      const headers = { 'xi-api-key': env.ELEVEN_API_KEY ?? '' };
+      const auth = await probe('ElevenLabs', 'https://api.elevenlabs.io/v1/user', headers, fetchFn);
+      if (auth !== null) return auth;
 
-      const voices = (body as { voices?: { voice_id?: string; name?: string }[] }).voices ?? [];
-      const ids = voices.map((v) => v.voice_id).filter((id): id is string => typeof id === 'string');
-      // An unreadable or empty list is not evidence the voice is missing.
-      if (ids.length === 0 || ids.includes(wanted)) return null;
+      return probe('ElevenLabs', 'https://api.elevenlabs.io/v1/voices', headers, fetchFn, (body) => {
+        const wanted = (env.ELEVEN_VOICE_ID ?? '').trim();
+        if (wanted === '') return null; // unset is a warning, not a fault — see warnings()
 
-      const named = voices
-        .filter((v) => typeof v.voice_id === 'string')
-        .slice(0, 4)
-        .map((v) => `${v.name ?? 'unnamed'} (${v.voice_id})`);
-      return {
-        vendor: 'ElevenLabs',
-        fatal: true,
-        detail:
-          `accepts the key but has no voice "${wanted}" — a voice belongs to the account that made it,\n` +
-          `          so this is what a key rotated onto a NEW account looks like. Synthesis would 404 and\n` +
-          `          the tutor would join and never speak.\n` +
-          `          Unset ELEVEN_VOICE_ID for the default voice, or set it to one of: ${named.join(', ')}`,
-      };
-    }),
+        const voices = (body as { voices?: { voice_id?: string; name?: string }[] }).voices ?? [];
+        const ids = voices.map((v) => v.voice_id).filter((id): id is string => typeof id === 'string');
+        // An unreadable or empty list is not evidence the voice is missing.
+        if (ids.length === 0 || ids.includes(wanted)) return null;
+
+        const named = voices
+          .filter((v) => typeof v.voice_id === 'string')
+          .slice(0, 4)
+          .map((v) => `${v.name ?? 'unnamed'} (${v.voice_id})`);
+        return {
+          vendor: 'ElevenLabs',
+          fatal: true,
+          detail:
+            `accepts the key but has no voice "${wanted}" — a voice belongs to the account that made it,\n` +
+            `          so this is what a key rotated onto a NEW account looks like. Synthesis would 404 and\n` +
+            `          the tutor would join and never speak.\n` +
+            `          Unset ELEVEN_VOICE_ID for the default voice, or set it to one of: ${named.join(', ')}`,
+        };
+      });
+    })(),
   );
+
   checks.push(probe('Deepgram', 'https://api.deepgram.com/v1/projects', { Authorization: `Token ${env.DEEPGRAM_API_KEY ?? ''}` }, fetchFn));
 
   return (await Promise.all(checks)).filter((c): c is VendorCheck => c !== null);
