@@ -1098,3 +1098,36 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   styles went with them.
 - verified-by: `the components and scenes nothing imported are gone`
 - verified-by: `every scene the barrel exports is drawn somewhere`
+
+### E1 — A voice id from another account passes preflight and then never speaks
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/preflight.ts
+- note: found by actually running the worker against a dead ElevenLabs key.
+  preflight checked that ELEVEN_VOICE_ID was *set* and never that the account
+  could use it — but a voice belongs to the account that made it, so rotating a
+  key onto a new account leaves a voice id that passes every check and then 404s
+  at synthesis. That reaches a learner as a room that opens and a tutor that
+  never speaks, which is the exact failure this file exists to prevent, and it
+  was the one hole left in it. Worse, it hides: the warm .tts-cache replays every
+  scripted lesson line from disk, so the lesson would sound perfect and only free
+  conversation would go silent. The key probe now lists the account's voices
+  instead of reading /v1/user — same 401 on a bad key, and the body is the only
+  thing that can settle the question — and an absent voice is fatal with the
+  usable voices named, mirroring the retired-Groq-model check.
+- verified-by: `a voice the account does not have is fatal, not a warning`
+
+### E2 — A dead voice key blocks the two modes that need no voice
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/preflight.ts:180
+- note: also found by running it. `lesson-text` and `convo-text` make no TTS call
+  at all — `say()` returns early when voiceless — yet the worker refuses to boot
+  on a rejected ElevenLabs key, so a stale *voice* credential locks out the two
+  modes built for the learner who cannot use their voice. Refusing to start is
+  the right default for a worker that serves all four modes, and a worker that
+  boots into a half-usable state is its own kind of trap, so this is a design
+  decision rather than a bug: either the worker advertises which modes it can
+  serve, or a text-only worker becomes a separate registration. Filed rather than
+  fixed because picking between those is not a call to make in passing.
+- verified-by: `a worker with no usable voice can still serve the typed modes`

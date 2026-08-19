@@ -233,7 +233,38 @@ export async function verifyVendors(
     );
   }
 
-  checks.push(probe('ElevenLabs', 'https://api.elevenlabs.io/v1/user', { 'xi-api-key': env.ELEVEN_API_KEY ?? '' }, fetchFn));
+  // Listing the voices proves the key AND settles the voice id in one request:
+  // /v1/voices answers 401 to a bad key exactly as /v1/user did, and its body is
+  // the only thing that can tell us the configured voice actually belongs to
+  // this account. A voice id from a different account passes every other check
+  // and then 404s at synthesis time — which reaches the learner as a room that
+  // opens and a tutor that never speaks, the precise failure this file exists to
+  // prevent. It was the one hole left in it.
+  checks.push(
+    probe('ElevenLabs', 'https://api.elevenlabs.io/v1/voices', { 'xi-api-key': env.ELEVEN_API_KEY ?? '' }, fetchFn, (body) => {
+      const wanted = (env.ELEVEN_VOICE_ID ?? '').trim();
+      if (wanted === '') return null; // unset is a warning, not a fault — see warnings()
+
+      const voices = (body as { voices?: { voice_id?: string; name?: string }[] }).voices ?? [];
+      const ids = voices.map((v) => v.voice_id).filter((id): id is string => typeof id === 'string');
+      // An unreadable or empty list is not evidence the voice is missing.
+      if (ids.length === 0 || ids.includes(wanted)) return null;
+
+      const named = voices
+        .filter((v) => typeof v.voice_id === 'string')
+        .slice(0, 4)
+        .map((v) => `${v.name ?? 'unnamed'} (${v.voice_id})`);
+      return {
+        vendor: 'ElevenLabs',
+        fatal: true,
+        detail:
+          `accepts the key but has no voice "${wanted}" — a voice belongs to the account that made it,\n` +
+          `          so this is what a key rotated onto a NEW account looks like. Synthesis would 404 and\n` +
+          `          the tutor would join and never speak.\n` +
+          `          Unset ELEVEN_VOICE_ID for the default voice, or set it to one of: ${named.join(', ')}`,
+      };
+    }),
+  );
   checks.push(probe('Deepgram', 'https://api.deepgram.com/v1/projects', { Authorization: `Token ${env.DEEPGRAM_API_KEY ?? ''}` }, fetchFn));
 
   return (await Promise.all(checks)).filter((c): c is VendorCheck => c !== null);
