@@ -12,6 +12,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
+import { missingRequired, selectedBrain } from './preflight.ts';
 import {
   bootPlan,
   classifyPort,
@@ -179,5 +180,37 @@ describe('devPlan — the agent secret', () => {
   test('two different configured secrets are a gap, because the debit would be refused', () => {
     const secret = sharedAgentSecret({ PARLE_AGENT_SECRET: 'a' }, { PARLE_AGENT_SECRET: 'b' }, () => 'unused');
     assert.equal(secret.mismatch, true);
+  });
+});
+
+
+describe('devPlan — the supervisor and the agent must agree', () => {
+  test('the supervisor and the agent preflight agree on which brain TUTOR_LLM selects', () => {
+    // devPlan cannot import preflight: services/shared is below the services
+    // that use it, and reaching upward would invert the direction speechace.ts
+    // established. So it mirrors selectedBrain, and an unguarded mirror is a
+    // silent disagreement waiting for a fourth TUTOR_LLM value: the supervisor
+    // would demand the wrong key, or none, and the agent would demand another
+    // one process later.
+    //
+    // Nothing here couples the two implementations. It couples their answers.
+    const complete = { ...AGENT_ENV };
+    for (const value of ['', '  ', 'anthropic', 'ANTHROPIC', 'groq', 'claude-cli', 'CLAUDE-CLI', 'nonsense']) {
+      const env = { ...complete, TUTOR_LLM: value };
+      const brain = selectedBrain(env);
+
+      // Blank every key, then ask each side which one it misses.
+      const bare = { ...env, ANTHROPIC_API_KEY: '', GROQ_API_KEY: '' };
+      const agentWants = missingRequired(bare).filter((name) => name.endsWith('_API_KEY'));
+      const devWants = envGaps(bare, TOKEN_ENV)
+        .filter((gap) => gap.name.endsWith('_API_KEY'))
+        .map((gap) => gap.name);
+
+      assert.deepEqual(
+        devWants,
+        agentWants,
+        `TUTOR_LLM=${JSON.stringify(value)} reads as ${brain}; npm run dev and the agent must want the same key`,
+      );
+    }
   });
 });

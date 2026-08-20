@@ -417,3 +417,18 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: frontmatter written out of order, or a name that disagrees with the filename it is
   dispatched by, both fail silently at dispatch rather than at commit.
 - verified-by: `carries name, description, tools and model, in that order`
+
+### F13 — devPlan's brainOf mirrors selectedBrain, and nothing holds the mirror
+- severity: P2
+- status: [x]
+- where: services/shared/devPlan.ts:191
+- note: filed by the work-judge. The contract said the supervisor's env gate
+  would reuse preflight's own selectedBrain. It mirrors it instead, for a
+  defensible reason: services/shared cannot import from services/tutor-agent
+  without inverting the dependency direction speechace.ts established. But the
+  mirror was unguarded, so a fourth TUTOR_LLM value added to preflight.ts and
+  not to brainOf would make npm run dev demand the wrong key, or none, while the
+  agent's own preflight disagreed one process later. The test couples their
+  answers rather than their implementations: over every TUTOR_LLM spelling,
+  blank both keys and require both sides to miss exactly the same one.
+- verified-by: `the supervisor and the agent preflight agree on which brain TUTOR_LLM selects`
