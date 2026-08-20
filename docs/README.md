@@ -13,6 +13,7 @@ re-deriving the architecture from source every time.
 | How to run and write tests, and the trap that eats whole suites | [TESTING.md](TESTING.md) |
 | The gate, the bug loop, and how to give it a goal it can check | [LOOP.md](LOOP.md) |
 | Building something new: Fable designs, Opus builds, Fable judges | [FORGE.md](FORGE.md) |
+| Who owns which part of the codebase, and which agent to call | [TEAM.md](TEAM.md) |
 | What is known to be broken right now | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
 
 These deliberately do not repeat what already exists:

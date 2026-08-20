@@ -169,6 +169,21 @@ export interface PathOptions {
   lessonDone: boolean;
 }
 
+/**
+ * Whether the bank can drill any of these phrases at all.
+ *
+ * The gap this closes is small and entirely reachable. A conversation banks its
+ * phrases into the review deck and authors drills for them, in that order, from
+ * two separate post-session calls. Close the app between the two and the topic
+ * has phrases the deck knows and nothing that can drill them, so the node
+ * projected as tappable and opened onto "Nothing due right now" — a door with
+ * nothing behind it, at the exact moment a learner went looking for what they
+ * had just said.
+ */
+function drillableKeys(keys: readonly string[], bank: readonly DrillExercise[]): string[] {
+  return keys.filter((key) => bank.some((exercise) => exercise.phraseKey === key));
+}
+
 function stateForPhrases(keys: readonly string[], deck: readonly ReviewCard[], now: number): NodeState {
   if (keys.length === 0) return 'available';
   const cards = deck.filter((c) => keys.includes(c.id));
@@ -235,7 +250,19 @@ export function buildPath(
         sub: discussedInWords(topic.discussed.length),
         kind: 'topic',
         phraseKeys: topic.phraseKeys,
-        state: stateForPhrases(topic.phraseKeys, deck, now),
+        // State is projected over the phrases that can actually be drilled,
+        // not over every phrase the topic names. None of them drillable is
+        // locked, and that is the one lock DESIGN.md sanctions: practice
+        // written from your conversations, still being written.
+        //
+        // Projecting over all of them was the subtler half of the same bug: a
+        // topic whose only drillable phrase was already known and not due read
+        // as in-progress, because the phrase with no drill counted as missing
+        // from the deck. Tappable, and nothing behind it.
+        state: (() => {
+          const drillable = drillableKeys(topic.phraseKeys, bank);
+          return drillable.length === 0 ? 'locked' : stateForPhrases(drillable, deck, now);
+        })(),
         isNext: false,
       }),
     );

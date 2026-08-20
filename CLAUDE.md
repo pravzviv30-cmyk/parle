@@ -12,6 +12,7 @@ file that answers your question — not the whole folder, and not the source.
 | How to run and write tests | `docs/TESTING.md` |
 | The gate, the bug loop, the agents | `docs/LOOP.md` |
 | Building something new, and which model does what | `docs/FORGE.md` |
+| Who owns which part of the codebase, and which agent to call | `docs/TEAM.md` |
 | What is known to be broken | `docs/KNOWN_ISSUES.md` |
 
 Before finishing any change, run `npm run gate`. It checks typecheck, every

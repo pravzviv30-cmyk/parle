@@ -15,7 +15,10 @@
     "web": "npm run web --workspace=@parle/mobile",
     "gate": "node scripts/gate.mjs",
     "gate:bless": "node scripts/gate.mjs --bless",
-    "loop": "node scripts/loop.mjs"
+    "gate:fast": "node scripts/gate.mjs --fast",
+    "loop": "node scripts/loop.mjs",
+    "hooks": "node scripts/installHooks.mjs",
+    "postinstall": "node scripts/installHooks.mjs"
   },
   "engines": {
     "node": ">=22"

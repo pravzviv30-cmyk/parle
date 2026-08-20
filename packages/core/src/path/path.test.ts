@@ -2,6 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { buildPath, authoredPhraseKeys, AUTHORED_PATH } from './path.ts';
+import { buildDrillSession } from '../drill/session.ts';
 import { DRILL_FIXTURES } from '../drill/fixtures.ts';
 import type { ReviewCard } from '../review/scheduler.ts';
 import type { PracticeTopic } from '../topics/topics.ts';
@@ -134,8 +135,11 @@ describe("topic cards — practice from the learner's own conversations", () => 
     ...over,
   });
 
+  /** A generated exercise for one phrase, so a topic's drills count as arrived. */
+  const generated = (key: string) => ({ ...DRILL_FIXTURES[0]!, id: `gen:${key}`, phraseKey: key });
+
   test('each topic becomes one node in the mine unit, state projected from the deck', () => {
-    const units = buildPath([card('phrase:ça marche', NOW + DAY)], [], [topic()], OPTS, NOW);
+    const units = buildPath([card('phrase:ça marche', NOW + DAY)], [generated('phrase:ça marche')], [topic()], OPTS, NOW);
     const mine = units.find((u) => u.id === 'mine')!;
     assert.equal(mine.nodes.length, 1);
     const node = mine.nodes[0]!;
@@ -147,7 +151,7 @@ describe("topic cards — practice from the learner's own conversations", () => 
   });
 
   test('a due phrase pulls its topic back to needs-review', () => {
-    const units = buildPath([card('phrase:ça marche', NOW - 1)], [], [topic()], OPTS, NOW);
+    const units = buildPath([card('phrase:ça marche', NOW - 1)], [generated('phrase:ça marche')], [topic()], OPTS, NOW);
     assert.equal(units.find((u) => u.id === 'mine')!.nodes[0]!.state, 'needs-review');
   });
 
@@ -169,5 +173,93 @@ describe("topic cards — practice from the learner's own conversations", () => 
     const subs = units.find((u) => u.id === 'mine')!.nodes.map((n) => n.sub);
     assert.deepEqual(subs, ['Talked about once', 'One of your regulars']);
     for (const sub of subs) assert.ok(!/\d/.test(sub), `digit leaked into "${sub}"`);
+  });
+});
+
+
+describe('a topic the tutor has not finished writing', () => {
+  const KEY = 'phrase:je bosse dans la tech';
+
+  const topic = (keys: string[]): PracticeTopic => ({
+    id: 'topic:my-job',
+    title: { fr: 'Mon travail', en: 'My job' },
+    discussed: ['2026-08-20'],
+    phraseKeys: keys,
+  });
+
+  const drillable = (key: string) => DRILL_FIXTURES.map((e) => ({ ...e, id: `gen:${key}`, phraseKey: key }))[0]!;
+
+  const topicNodes = (deck: ReviewCard[], bank: ReturnType<typeof drillable>[], topics: PracticeTopic[]) =>
+    buildPath(deck, bank, topics, { lessonDone: true }, NOW).find((u) => u.id === 'mine')!.nodes;
+
+  test('a topic node the bank cannot drill yet is locked', () => {
+    // The crash window: a conversation banks its phrases and authors its drills
+    // from two separate post-session calls. Close the app in between and the
+    // phrases are in the deck with nothing able to drill them.
+    const nodes = topicNodes([card(KEY, NOW - DAY)], [], [topic([KEY])]);
+    assert.equal(nodes[0]!.state, 'locked', 'a door with nothing behind it must not look open');
+  });
+
+  test('a still-being-written topic is never the primary action', () => {
+    const nodes = topicNodes([card(KEY, NOW - DAY)], [], [topic([KEY])]);
+    assert.equal(nodes[0]!.isNext, false, 'the one highlighted next step cannot be the one that goes nowhere');
+  });
+
+  test('a topic with even one drillable phrase stays open', () => {
+    // Partial arrival is normal and fine: the sitting builds from what exists.
+    const other = 'phrase:un café, s’il vous plaît';
+    const nodes = topicNodes([card(KEY, NOW - DAY), card(other, NOW - DAY)], [drillable(other)], [topic([KEY, other])]);
+    assert.notEqual(nodes[0]!.state, 'locked');
+  });
+
+  test('a topic whose drills have all landed behaves exactly as before', () => {
+    const nodes = topicNodes([card(KEY, NOW - DAY)], [drillable(KEY)], [topic([KEY])]);
+    assert.equal(nodes[0]!.state, 'needs-review');
+  });
+
+  test('no tappable node ever opens onto an empty sitting', () => {
+    // The invariant behind the fix, checked across the whole map rather than at
+    // the one node that prompted it. PEDAGOGY.md: never stranded.
+    //
+    // One bank, given to both calls, because that is how the app works: the
+    // drill store seeds from the fixtures and generated exercises are appended
+    // to the same list. Handing buildPath one bank and the sitting another
+    // would test a state the learner can never be in.
+    const other = 'phrase:un café, s’il vous plaît';
+    const decks: ReviewCard[][] = [
+      [],
+      [card(KEY, NOW - DAY)],
+      [card(KEY, NOW + DAY)],
+      [card(KEY, NOW - DAY), card(other, NOW - DAY)],
+      [card(KEY, NOW - DAY, 0)],
+    ];
+    const extras = [[], [drillable(other)], [drillable(KEY)], [drillable(KEY), drillable(other)]];
+    const topicSets: PracticeTopic[][] = [[], [topic([KEY])], [topic([KEY, other])]];
+
+    let checked = 0;
+    for (const deck of decks) {
+      for (const extra of extras) {
+        const bank = [...DRILL_FIXTURES, ...extra];
+        for (const topics of topicSets) {
+          for (const lessonDone of [false, true]) {
+            const units = buildPath(deck, bank, topics, { lessonDone }, NOW);
+            for (const node of units.flatMap((u) => u.nodes)) {
+              if (node.kind === 'lesson') continue; // the lesson is a scene, not a sitting
+              // Only the states that promise material. 'locked' promises none,
+              // and 'complete' means known with nothing due, where "Nothing due
+              // right now" is the true answer rather than a dead end.
+              if (node.state !== 'needs-review' && node.state !== 'in-progress' && node.state !== 'available') continue;
+              const sitting = buildDrillSession(deck, bank, NOW, { only: node.phraseKeys });
+              checked += 1;
+              assert.ok(
+                sitting.queue.length > 0,
+                `${node.id} is tappable in state ${node.state} but its sitting is empty`,
+              );
+            }
+          }
+        }
+      }
+    }
+    assert.ok(checked > 100, `the sweep should cover real ground, only checked ${checked} nodes`);
   });
 });

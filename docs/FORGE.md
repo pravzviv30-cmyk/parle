@@ -114,3 +114,12 @@ To wire it, when we come back to this:
 
 Deferred on purpose. The interactive pass should earn its keep before it runs unattended on
 its own branch.
+
+## Who actually builds it
+
+Step 5 of `/forge` does not hand the work to a generic executor. It reads the contract's
+*Files to touch* and routes to whichever of the twelve engineers owns those paths, each of
+which knows the things about its territory that a generalist gets wrong.
+
+The roster, the territories, and the two agents that answer rather than build are in
+[TEAM.md](TEAM.md). One explanation per idea: this file stays about the loop.

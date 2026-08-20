@@ -15,6 +15,7 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import type { PathNode } from '@parle/core';
 import { paper, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
+import { statusLine } from './statusLine.ts';
 import { ArrowRight } from '../components.tsx';
 
 function Mark({ state }: { state: PathNode['state'] }) {
@@ -26,21 +27,6 @@ function Mark({ state }: { state: PathNode['state'] }) {
 }
 
 /** What the row says under its title. Plain English, and never a count. */
-function statusLine(node: PathNode): string {
-  switch (node.state) {
-    case 'complete':
-      return 'Learned';
-    case 'needs-review':
-      return 'Ready to come back to';
-    case 'in-progress':
-      return 'Started';
-    case 'locked':
-      return 'Your conversations write this one';
-    default:
-      return node.sub;
-  }
-}
-
 export function PathNodeRow({ node, onPress }: { node: PathNode; onPress: () => void }) {
   const locked = node.state === 'locked';
   return (

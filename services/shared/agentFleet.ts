@@ -44,7 +44,7 @@ export type AgentFrontmatter = {
 /** The frontmatter block only. A `model:` line in the prose body is not a pin. */
 export function frontmatterBlock(source: string): string | null {
   const block = source.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  return block ? block[1] : null;
+  return block?.[1] ?? null;
 }
 
 export function parseAgentFrontmatter(source: string): AgentFrontmatter | null {

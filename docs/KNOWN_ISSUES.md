@@ -331,7 +331,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F6 — A topic node the tutor has not finished writing is locked, with honest words
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: packages/core/src/path/path.ts:172
 - note: the reported version of this, that a fresh account strands on six of seven
   Practice stops, does not reproduce: buildDrillSession was run against every authored
@@ -373,3 +373,40 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   eventually disagree about something. One exported constant, three imports, and a walk
   that proves the literal appears exactly once, in the manner of copy.test.ts.
 - verified-by: `the token server address has exactly one home in the app`
+
+### F9 — Every agent on disk is pinned to a model the gate defends
+- severity: P1
+- status: [x]
+- where: scripts/gate.mjs:141
+- note: the pin map defended four names by listing them, so a thirteenth agent added and
+  not listed would inherit the session model and nothing would ever notice. The directory
+  now decides which names must be pinned; the map still decides what they are pinned to.
+- verified-by: `is pinned to a model in the gate, so none inherits the session model unnoticed`
+- verified-by: `is a real file when the gate names it`
+
+### F10 — An agent that decides cannot quietly do
+- severity: P1
+- status: [x]
+- where: .claude/agents/fix-verifier.md:8
+- note: five agents are read-only by design and nothing checked that they stayed that way.
+  fix-verifier never said why it had no Edit, which is exactly how the next person helpfully
+  gives it one and turns the second opinion into the same opinion twice.
+- verified-by: `a guard declares no Edit and no Write, because it decides rather than does`
+- verified-by: `a guard says in its own words that the missing tools are deliberate`
+
+### F11 — /forge routes only to engineers that exist
+- severity: P1
+- status: [x]
+- where: .claude/commands/forge.md:28
+- note: step 5 dispatches by territory now. A typo in the routing table, or an engineer
+  deleted without editing the table, fails at dispatch time with nothing to catch it sooner.
+- verified-by: `names only engineers that exist`
+- verified-by: `gives every builder somewhere to be dispatched from`
+
+### F12 — A malformed agent definition names itself
+- severity: P2
+- status: [x]
+- where: services/shared/agentFleet.ts:1
+- note: frontmatter written out of order, or a name that disagrees with the filename it is
+  dispatched by, both fail silently at dispatch rather than at commit.
+- verified-by: `carries name, description, tools and model, in that order`
