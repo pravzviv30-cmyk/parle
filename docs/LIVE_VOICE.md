@@ -18,7 +18,8 @@ app  ──POST /session/start──►  token-server
                                  │   asserted id when neither key is configured)
                                  ├ refuses if the balance cannot cover a viable session
                                  └ signs a LiveKit join token whose metadata carries
-                                     { lessonId, startRung, mode, snapshot, secondsRemaining }
+                                     { lessonId, startRung, mode, snapshot, seedTopic,
+                                       secondsRemaining }
 app  ──joins the room──────►  LiveKit
                                  └ dispatches the job to the tutor-agent worker
 agent  ─reads the metadata──►  builds ParleTutor or ParleConversation
@@ -65,7 +66,20 @@ malformed frame must not take down a live conversation.
 A free conversation opens on `opening`: the tutor asks, out loud and in
 English, what the learner wants to talk about — no menu, no chips. Whatever
 they say or type becomes the scene (the agent treats a pre-scene `say` as the
-topic). After the recap, `practice` carries the session's curated leave-behind:
+topic).
+
+A conversation started from a practice topic card skips the question. The join
+token carries a `seedTopic`, the opening names the topic instead of asking for
+one, and the scene is built from it straight away. Everything downstream is the
+same code path, including the request-grounded recovery scene when the frame
+call fails.
+
+If the scenario-builder call times out, fails, or returns an invalid frame, the
+agent opens a small request-grounded frame instead. The learner's words remain
+the scene setting and ride every later turn; a provider failure must never turn
+an arbitrary request into the café fixture.
+
+After the recap, `practice` carries the session's curated leave-behind:
 at most three topics, each with the few phrases worth keeping, chosen by the
 brain's `curate` activity (model proposes, code caps and matches, a
 deterministic fallback ships when the call fails). Drills are then authored

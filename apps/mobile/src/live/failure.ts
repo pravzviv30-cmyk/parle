@@ -143,9 +143,15 @@ const COPY: Record<LiveFailure, FailureCopy> = {
     message: 'This browser will not open a microphone on an insecure address. Open Parle over localhost or https, or carry on by typing.',
     canType: true,
   },
+  // The one failure a learner is most likely to meet, and the one that read
+  // worst: "Check it is running, then try again" is advice for whoever runs the
+  // service. A learner has no process to check, and Back was the only move on
+  // the screen. Typing stays closed on purpose — it goes through the same token
+  // server — so the way forward has to be the rest of the app, which is all
+  // on-device and completely unaffected.
   'server-unreachable': {
-    label: 'Server not answering',
-    message: 'Could not reach the session server. Check it is running, then try again.',
+    label: 'Tutor unavailable',
+    message: 'Parle cannot reach your tutor right now. Practice works offline, so you can carry on there. Try again in a little while.',
     canType: false,
   },
   'server-refused': {

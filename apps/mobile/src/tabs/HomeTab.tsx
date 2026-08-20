@@ -22,7 +22,14 @@ import { accent, paper, space, type, radius, HIT } from '../theme.ts';
 import { Card, Label, PillButton, StationLine, Stat } from '../components.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
 import { loadHistory } from '../progress/store.ts';
-import { earnedXp } from '../progress/activity.ts';
+import { earnedXp, loadActivity } from '../progress/activity.ts';
+import { todayFrom, type Today } from '../progress/today.ts';
+import { loadDeck } from '../review/store.ts';
+import { loadTopics } from '../topics/store.ts';
+import { buildPhrasebook, type Phrasebook } from '../phrases/phrasebook.ts';
+import { PhrasebookScreen } from '../phrases/PhrasebookScreen.tsx';
+import { TodayRow } from '../home/TodayRow.tsx';
+import { PhrasebookCard } from '../home/PhrasebookCard.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 
@@ -34,6 +41,9 @@ export function HomeTab() {
 
   const [report, setReport] = useState<ProgressReport | null>(null);
   const [standing, setStanding] = useState<LevelStanding | null>(null);
+  const [today, setToday] = useState<Today | null>(null);
+  const [book, setBook] = useState<Phrasebook | null>(null);
+  const [showingPhrases, setShowingPhrases] = useState(false);
 
   // Re-read on every return: finishing a sitting anywhere in the app should be
   // visible here the moment the learner comes back to look.
@@ -46,6 +56,15 @@ export function HomeTab() {
       void earnedXp().then((xp) => {
         if (!cancelled) setStanding(levelFor(xp));
       });
+      void loadActivity().then((entries) => {
+        if (!cancelled) setToday(todayFrom(entries, Date.now()));
+      });
+      // The deck and the topics are the only record of what a conversation
+      // produced: `recordSession` is called from the end of a guided lesson and
+      // nowhere else, so history alone cannot see a learner who only ever talks.
+      void Promise.all([loadDeck(), loadTopics()]).then(([deck, topics]) => {
+        if (!cancelled) setBook(buildPhrasebook(deck, topics, Date.now()));
+      });
       return () => {
         cancelled = true;
       };
@@ -54,6 +73,10 @@ export function HomeTab() {
 
   const firstName = (profile.name ?? '').split(' ')[0] || 'you';
   const started = standing !== null && standing.xp > 0;
+
+  if (showingPhrases && book) {
+    return <PhrasebookScreen book={book} onDone={() => setShowingPhrases(false)} />;
+  }
 
   return (
     // No bottom inset: the tab bar owns the bottom edge now, and adding it here
@@ -77,9 +100,13 @@ export function HomeTab() {
       </View>
 
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
+        {/* Today, and only today. Absent entirely until the learner has done
+            something, which is what stops a daily count becoming a streak. */}
+        {today && <TodayRow today={today} />}
+
         {started && standing ? (
           <>
-            <Card>
+            <Card style={today ? { marginTop: space(5) } : undefined}>
               <Label>Your level</Label>
               <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>{standing.name}</Text>
               <View style={{ marginTop: space(3) }}>
@@ -103,6 +130,12 @@ export function HomeTab() {
                   <Stat value={`${report.longestTurnEverSec.toFixed(1)}s`} label="Longest turn" />
                   <Stat value={String(standing.xp)} label="XP earned" />
                 </View>
+              </View>
+            )}
+
+            {book && (
+              <View style={{ marginTop: space(6) }}>
+                <PhrasebookCard book={book} onOpen={() => setShowingPhrases(true)} />
               </View>
             )}
 

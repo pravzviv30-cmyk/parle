@@ -188,10 +188,11 @@ export interface EnvGap {
 }
 
 /** The brain the agent's .env asks for. Mirrors preflight.ts, empty means absent. */
-function brainOf(env: Env): 'anthropic' | 'groq' | 'claude-cli' {
+function brainOf(env: Env): 'anthropic' | 'groq' | 'claude-cli' | 'claude-cli-all' {
   const raw = (env.TUTOR_LLM ?? '').trim().toLowerCase();
   if (raw === 'groq') return 'groq';
   if (raw === 'claude-cli') return 'claude-cli';
+  if (raw === 'claude-cli-all') return 'claude-cli-all';
   return 'anthropic';
 }
 
@@ -226,11 +227,15 @@ export function envGaps(agentEnv: Env, tokenEnv: Env): EnvGap[] {
     need(agentEnv, 'GROQ_API_KEY', AGENT_FILE, 'TUTOR_LLM=groq selects it, so it has to be there.');
   } else if (brain === 'anthropic') {
     need(agentEnv, 'ANTHROPIC_API_KEY', AGENT_FILE, 'TUTOR_LLM is anthropic, so the brain has no credential.');
-  } else {
-    // claude-cli needs no key. It needs the binary, which is checked by the
-    // supervisor against the filesystem rather than against an env file.
+  } else if (brain === 'claude-cli') {
+    // The subscription needs no key. It needs the binary, which is checked by
+    // the supervisor against the filesystem rather than against an env file.
+    // Groq is still here because it is still answering the realtime turns.
     need(agentEnv, 'GROQ_API_KEY', AGENT_FILE, 'TUTOR_LLM=claude-cli still answers realtime turns on Groq.');
   }
+  // claude-cli-all wants nothing at all: the subscription takes the realtime
+  // turn too, so Groq drops out and no credential is left to ask for. Naming a
+  // gap here would stop a boot that would have worked.
   return gaps;
 }
 

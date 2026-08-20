@@ -177,6 +177,19 @@ export type ClientMessage =
   | { t: 'english' }
   /** Text-mode conversation: the learner typed this instead of speaking it. */
   | { t: 'say'; text: string }
+  /**
+   * The learner is composing. Presence, not content.
+   *
+   * Silence is how the agent decides someone is stuck, and a learner typing is
+   * the one kind of silence that means the opposite. This says "still here" so
+   * the stuck clock stands down and nobody is rescued mid-sentence — which
+   * would be a remark on their hesitation, and we never make one.
+   *
+   * Deliberately carries no text. The draft is the learner's until they send
+   * it: half a sentence is not something to put on a data channel or into a
+   * log, and the agent has no use for it.
+   */
+  | { t: 'typing' }
   /** The learner left. Ends the session so metered seconds are debited promptly. */
   | { t: 'leave' };
 
@@ -193,6 +206,12 @@ export function encodeMessage(message: ServerMessage | ClientMessage): Uint8Arra
  * Never throws. A malformed frame on the data channel must not take down a live
  * conversation — the learner is mid-sentence, and a dropped frame is recoverable
  * where a crashed session is not.
+ *
+ * Null on an unknown tag is also how the two halves ship independently. The app
+ * on a learner's phone and the agent in the room update on different days, so a
+ * new tag always meets an old peer for a while. Adding one is safe because the
+ * old side ignores it and behaves exactly as it did before; changing or removing
+ * one is not, and needs a plan for the mismatched pair.
  */
 export function decodeServerMessage(payload: Uint8Array): ServerMessage | null {
   return decodeAs<ServerMessage>(payload, SERVER_TAGS);
@@ -203,7 +222,7 @@ export function decodeClientMessage(payload: Uint8Array): ClientMessage | null {
 }
 
 const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'error']);
-const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower', 'english', 'say', 'leave']);
+const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower', 'english', 'say', 'typing', 'leave']);
 
 function decodeAs<T>(payload: Uint8Array, tags: ReadonlySet<string>): T | null {
   try {

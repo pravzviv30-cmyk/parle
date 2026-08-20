@@ -27,7 +27,7 @@
 
 import { useEffect, useRef } from 'react';
 import { View, Text, Animated, Easing, StyleSheet, AccessibilityInfo } from 'react-native';
-import { orb, paper, space, type, STROKE } from '../theme.ts';
+import { orb, paper, space, type, STROKE, decorative } from '../theme.ts';
 
 export type OrbState = 'idle' | 'speaking' | 'listening' | 'thinking' | 'error';
 
@@ -102,11 +102,20 @@ export function VoiceOrb({
   state,
   size = RINGS[0],
   withCaption = true,
+  announce = true,
 }: {
   state: OrbState;
   size?: number;
   /** TutorIntro's walkthrough writes its own labels beside mini orbs. */
   withCaption?: boolean;
+  /**
+   * Whether the orb speaks for itself.
+   *
+   * False when something around it already does. On the choosing screen the
+   * orb sits inside a control that carries its own role and label, and two
+   * labels on one thing read to a screen reader as two things.
+   */
+  announce?: boolean;
 }) {
   const look = LOOKS[state];
   // One driver per ring so the two can be offset and drift apart rather than
@@ -172,7 +181,12 @@ export function VoiceOrb({
   const scale = size / RINGS[0];
 
   return (
-    <View style={[st.root, { width: size, height: size }]} accessibilityRole="image" accessibilityLabel={`Tutor: ${look.caption || 'stopped'}`}>
+    <View
+      style={[st.root, { width: size, height: size }]}
+      {...(announce
+        ? { accessibilityRole: 'image' as const, accessibilityLabel: `Tutor: ${look.caption || 'stopped'}` }
+        : decorative)}
+    >
       {RINGS.map((ring, i) => (
         <Animated.View
           key={ring}

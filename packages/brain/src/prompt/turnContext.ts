@@ -63,6 +63,20 @@ export function buildTurnContext(input: TurnContextInput): string {
     `LADDER: rung ${directive.rung} of 4 (${RUNG_NAMES[directive.rung]}). ${directive.tutorInstruction}`,
   ];
 
+  if (directive.support === 'full-line') {
+    // Echo and every rescue hand the whole line over, and the ladder instruction
+    // that does it ("say the target line, then invite them to repeat it") was
+    // written for the scripted lesson, where the tutor is a coach and the target
+    // is a field on the turn. Here the tutor is also a character, so left alone
+    // that sentence reads as permission to put its own line on the learner's
+    // card. The scripted path cannot make that mistake because `tutor` and
+    // `target` are different fields; this line is what stands in for them.
+    lines.push(
+      'HANDOVER: the line they repeat is their own next line, not the line you are about to say. ' +
+        'You stay in character in sceneReply. support.fullLine is what they say back to you, so the two are never the same words.',
+    );
+  }
+
   let beatLine = `BEAT: ${beat.id} (${beat.goal})`;
   if (beat.forceAdvance) {
     beatLine +=

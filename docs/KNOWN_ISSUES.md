@@ -432,3 +432,287 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   answers rather than their implementations: over every TUTOR_LLM spelling,
   blank both keys and require both sides to miss exactly the same one.
 - verified-by: `the supervisor and the agent preflight agree on which brain TUTOR_LLM selects`
+
+### F14 — The start button no longer walks a learner into a dead server
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/TutorTab.tsx:43
+- note: the tab probes health and then navigates regardless of the answer, which ends at
+  an un-typeable error screen. The probe's answer must decide. ConvoRoute gets the same
+  gate LessonRoute already has, minus the mock it does not have.
+- verified-by: `a learner whose tutor servers are down stays on the tutor tab with honest words`
+- verified-by: `the same button starts the conversation once the servers answer again`
+
+### F15 — The unreachable screen speaks to the learner, not the operator
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/failure.ts:146
+- note: "Check it is running, then try again" is ops advice. canType stays false because
+  typing needs the same server; the words instead point at what still works.
+- verified-by: `the unreachable screen tells the learner practice still works instead of giving ops advice`
+
+### F16 — A mixed sitting alternates topics instead of blocking them
+- severity: P1
+- status: [x]
+- where: packages/core/src/drill/session.ts:142
+- note: dueCards returns same-session cards clustered, so an unscoped sitting plays
+  blocked by topic. mixQueue reorders round-robin across topic groups, deterministically,
+  and touches selection not at all.
+- verified-by: `a mixed sitting alternates between topics instead of finishing one before starting the next`
+- verified-by: `mixing only reorders a sitting and never adds or drops an exercise`
+
+### F17 — Practice offers Today's mix when more than one topic is due
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/PracticeTab.tsx:70
+- note: the entry card and its offer rule; below two topics the mix equals the topic's own
+  sitting and would be noise. Rule and groups live in practice/mix.ts so node tests can
+  reach them.
+- verified-by: `today's mix is offered only when due phrases span more than one topic`
+
+### F18 — A chosen topic rides the join token
+- severity: P1
+- status: [x]
+- where: services/token-server/src/server.ts:145
+- note: seedTopic joins mode, startRung and snapshot on the existing start-body-to-metadata
+  channel. Invalid input is dropped, never refused; the session still starts generic.
+- verified-by: `a seeded topic rides the join token and a malformed one is dropped without refusing the session`
+
+### F19 — The tutor opens on the seeded topic instead of asking
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:380
+- note: with a seed in the metadata, open() publishes a seeded opening statement and hands
+  the seed to startScene, which already owns the bridge line, the frame call, the timeout
+  and the request-grounded fallback.
+- verified-by: `a session started from a topic card opens its scene on that topic without the choosing question`
+- verified-by: `a seeded session whose scenario build fails stays on the topic it was given`
+
+### F20 — A topic card offers another conversation and says what it costs
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/practice/PathNodeRow.tsx:1
+- note: the talk-again affordance on topic nodes, labelled before the tap: it starts a
+  live conversation and uses talking minutes. Numberless because the app does not know the
+  balance before issuance.
+- verified-by: `the talk again offer says it will use minutes before anything starts`
+
+### F21 — The drill store's comment stops denying its caller
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/drill/store.ts:109
+- note: the comment says nothing calls mergeExercises; ConvoScreen.tsx:99 calls it every
+  session. The test pins the merge behaviour the comment sits above.
+- verified-by: `merging a regenerated exercise replaces its earlier take instead of duplicating it`
+
+### F22 — Check again remembers the quiet route the learner chose
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/TutorTab.tsx:112
+- note: found by the work-judge while reviewing F14, and confirmed by reading the file. The
+  held-back card's retry calls open(false) whatever the learner originally tapped, so
+  someone who chose "Unable to speak right now?", waited for the servers, and pressed
+  Check again lands in a voice session. Not a stranding, so it is not the dead end F14
+  closed, but it hands a learner in a quiet carriage the exact thing the typed route
+  exists to spare them. The tab already knows a start was held back; it has to remember
+  which start.
+- verified-by: `a learner who chose the quiet route is still on it when the servers come back`
+
+### F23 — Free conversation hands the learner the shopkeeper's half of the scene
+- severity: P1
+- status: [x]
+- where: packages/brain/src/engine/conversation.ts:240
+- note: seen live on 2026-08-20, convo-text, "ordering coffee at a cafe", at Echo. Turn 1
+  was right because it came from the frame's openingSupport. From turn 2 the SAY THIS card
+  showed the barista's own question, "Bonjour, vous désirez ?", then repeated it. A scripted
+  lesson cannot do this: LessonTurn keeps `tutor` and `target` apart and core's supportView
+  only ever reads `target`. Free conversation has one model call authoring both `sceneReply`
+  and `support`, and rung 1's shared instruction ("say the target line, then invite them to
+  repeat it") reads to a model that is also playing the barista as permission to let one
+  line do both jobs. learnerSideSupport is the missing `target`: support that is only the
+  line just spoken is repaired from an option this same turn already carried, and when
+  nothing survives the full line is emptied so the view falls back to the English hint. The
+  prompt is fixed at both ends too, but the guard is the part that holds when it is not.
+- verified-by: `the scene’s own line is never handed back as the line to say`
+- verified-by: `the cued rung never offers the scene’s line as one of the choices`
+- verified-by: `a support view with no line left to hand over falls back to the hint`
+- verified-by: `a rescue after a collapsed turn does not replay the scene’s line either`
+- verified-by: `a genuine reply is left exactly as the model wrote it`
+- verified-by: `an opening frame that collapses the two lines is repaired before turn one`
+- verified-by: `the contract says support is the learner’s side of the scene, not the tutor’s`
+- verified-by: `whenever the whole line is handed over, the context says whose line it is`
+- verified-by: `hear it never replays the scene’s own line back as the learner’s`
+
+### F24 — The typed topic sends from every entry point
+- severity: P0
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:224
+- note: the driver first reported that Enter was dead on react-native-web and said it was
+  reproduced live. That was a test-harness artifact and it is retracted: the browser
+  automation sent Return as an empty key event, and Enter almost certainly worked. What
+  react-native-web 0.21.2's own source does establish, and what this entry rests on: its
+  strict forwardPropsList whitelist drops submitBehavior before the DOM sees it, so that
+  prop was inert; blurOnSubmit defaults to !multiline, so web blurred the field after
+  every Enter and contradicted submitBehavior="submit" by dropping the caret on each
+  send; and the choosing ScrollView was the only input screen in the app without
+  keyboardShouldPersistTaps, which swallows the Send tap on iOS and Android, exactly why
+  the in-scene reply Send worked and the topic Send did not. Routing through onKeyPress,
+  which RNW calls from inside its own handleKeyDown before the Enter branch, gives one
+  send and no blur. The key rule is extracted so node can test it, and the silently
+  swallowed publishData failure is logged.
+- verified-by: `pressing enter in a typed input is a send, not a no-op`
+- verified-by: `the choosing screen keeps taps while the keyboard is up`
+
+### F25 — The screen answers a sent topic within a frame
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:195
+- note: sendSay already appends the learner's bubble and sets thinking; the choosing
+  screen renders neither, so for three to ten seconds the only pixel that changed was the
+  input emptying. Mount Transcript below the orb with the settle entrance, derive the orb
+  state from choosingView, and show the audioBlocked plaque here too.
+- verified-by: `the moment a topic is sent the learner sees their own words and a tutor visibly thinking`
+
+### F26 — The circle opens the microphone, not the connect
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:556
+- note: the mic is hot before the choosing screen paints; the founder chose tap to talk.
+  Convo mode connects with the mic closed, the orb tap opens it once for the session, and
+  the tutor's own spoken question stops being heard by a live mic.
+- verified-by: `a free conversation keeps the microphone closed until the learner taps the circle`
+
+### F27 — The quiet door stands on the choosing screen itself
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:245
+- note: today the typed route exists only before the session and on the error screen. The
+  same offer on the choosing screen flips the one flip the screen already supports, and
+  every spoken path keeps its quiet twin.
+- verified-by: `a learner who cannot speak can switch to typing without leaving the choosing moment`
+
+### F28 — A scene that fails to open hands back the choosing moment
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:490
+- note: a throw after phase turns to starting leaves the session eating every later press
+  with no log. Failure resets the phase, republishes the opening, and logs; a repeat press
+  starts a fresh scene instead of vanishing.
+- verified-by: `a failed scene build returns the learner to choosing instead of a dead session`
+- verified-by: `pressing send again after a failed build starts a fresh scene`
+
+### F29 — A scenario with no beats is refused at the contract
+- severity: P1
+- status: [x]
+- where: packages/brain/src/contract/schemas.ts:183
+- note: beats has no floor while createConversation and openScene both dereference
+  beats[0]. With a minimum of one an empty frame fails parse inside buildFrame's catch and
+  the request-grounded recovery scene opens, so the wedge never forms.
+- verified-by: `a scenario with no beats is rejected before it can open`
+
+### F30 — A client message can no longer take the worker down
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:644
+- note: agent.ts fires handleClientMessage with no catch, so one throw is an unhandled
+  rejection in a worker serving live learners. The handler contains its own failures and
+  logs them; the call site gets the belt and braces catch.
+- verified-by: `a client message whose handling fails is contained and logged instead of rejecting unhandled`
+
+### F31 — Typing is presence, not silence
+- severity: P1
+- status: [x]
+- where: packages/core/src/protocol/protocol.ts:206
+- note: measured at four rescues in one hundred and five seconds while the founder typed.
+  A throttled typing note on the existing client channel resets the text clock, so a
+  composing learner is never rescued mid sentence, and rescue itself is untouched for a
+  learner who truly froze.
+- verified-by: `the stuck clock stands down while the learner is typing and restarts when they stop`
+- verified-by: `the app notes typing at most once per window while the draft changes`
+
+### F32 — The subscription can be the whole brain in development
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/preflight.ts:13
+- note: TUTOR_LLM=claude-cli-all routes turns and frames to the CLI too, needs no vendor
+  key, widens the frame deadline, and warns plainly about the seconds each turn costs. The
+  queue busy guard stops the silence clock firing behind a slow turn, for every brain.
+- verified-by: `claude-cli-all sends every call, turns included, to the subscription`
+- verified-by: `both brain selectors agree on claude-cli-all`
+- verified-by: `a slow brain turn is not mistaken for a stuck learner`
+- verified-by: `the scene builder gets a longer deadline when the subscription is the whole brain`
+
+### F33 — A rate-limited brain call waits and tries once more
+- severity: P2
+- status: [x]
+- where: packages/brain/src/llm/openaiCompat.ts:1
+- note: eight 429s in one live session, zero retries anywhere in the client. One retry
+  honouring Retry-After capped near two seconds, then the existing failure path; the
+  realtime budget cannot absorb more.
+- verified-by: `a learner whose turn hits the free tier’s limit still gets an answer`
+- verified-by: `the wait is the one the vendor actually asked for`
+- verified-by: `a long wait is capped, because nobody stares at a silent tutor for thirty seconds`
+
+### F34 — The caps kickers that repeat the sentence beneath them are gone
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:199
+- note: both Free talk labels and the audited decorative set. Every load-bearing label
+  stays, and Tap to listen is restyled to sentence case rather than deleted because it is
+  the browser gesture affordance. Headers that lose their left child keep Leave on the
+  right.
+- verified-by: `the retired kickers stay retired`
+
+### F35 — A brain turn that never returns is not a learner who never speaks
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:791
+- note: filed by backend-engineer while building F32, and it is that work that makes it
+  bite. runBrainTurn races nothing: buildFrame has a deadline and a fixture to fall back
+  on, a turn has neither. With Groq answering in under a second a wedged call was a
+  theoretical problem. With claude-cli-all it is an eight to twelve second call from a
+  command line process that can hang, and the queue busy guard added for F32 now means a
+  hung turn leaves the learner with no rescue clock running at all. A turn gets the same
+  treatment its scene builder already has: a deadline, then the recovery line.
+- verified-by: `a brain turn that never answers hands back the recovery line instead of hanging`
+
+### F36 — The record of the enter fix still claims a reproduction nobody made
+- severity: P1
+- status: [x]
+- where: docs/KNOWN_ISSUES.md:550
+- note: the Round log in .forge/voice-first-choosing/contract.md establishes that
+  "Enter is dead on react-native-web" was a test-harness artifact — the automation
+  sent Return as an empty key event, and Enter almost certainly worked — yet the
+  F24 note still opens "reproduced live. Enter is dead on react-native-web", and
+  apps/mobile/src/tutor/enterSubmit.test.ts repeats "Reproduced live: the topic
+  was typed, Enter was pressed, and the text sat in the box." Reword both to claim
+  only what react-native-web 0.21.2's source established: submitBehavior dropped
+  by the prop whitelist, the blur after every Enter, and the choosing ScrollView's
+  missing keyboardShouldPersistTaps. The code is right and stays; the record is
+  what future sessions trust, and it currently states a disproven diagnosis as
+  fact. No working code may be removed to close this.
+- verified-by: `the record of the enter fix claims the platform's source, not a reproduction nobody made`
+
+### F37 — A failed custom scene silently becomes a café lesson
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:590
+- note: startScene catches every frame timeout, provider error and parse failure, then
+  opens chooseFrame(profile). For a new learner that is always the café, so an operational
+  failure reaches them as a tutor that ignored “driving with friends” and chose coffee.
+  The recovery frame now carries the learner's exact request into the scene plan and uses
+  neutral, reusable French; the prompt also marks every part of the request as binding.
+- verified-by: `a driving request can never become the café fixture when the scenario builder fails`
+- verified-by: `a seeded session whose scenario build fails stays on the topic it was given`
+- verified-by: `an ordinary brain that goes quiet still opens on the learner request at ten seconds`
+
+### F38 — Local voice testing can exhaust the one-off learner trial
+- severity: P1
+- status: [x]
+- where: services/token-server/src/store.ts:24
+- note: the local token server applies the real finite trial to development accounts, so
+  repeated Tutor testing eventually blocks the founder behind a paywall with no purchase
+  path. An explicit local-only store now returns a fresh Regular allowance after every
+  debit, while NODE_ENV=production refuses the flag and keeps real metering authoritative.
+- verified-by: `development minutes have to be explicitly enabled and can never activate in production`
+- verified-by: `local testing minutes do not run down between tutor sessions`

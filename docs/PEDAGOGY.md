@@ -15,6 +15,14 @@ rather than reimplementing it.
 | 3 | Prompted | an English hint. No French words |
 | 4 | Free | nothing |
 
+Whose line is on the card, at every rung, is **the learner's own next line** —
+never the tutor's. Echo means repeat the line you are being handed, not the line
+you just heard: a scene where the barista asks "vous désirez ?" and the card says
+"vous désirez ?" has the learner playing the wrong role. A scripted lesson gets
+this for free, because `LessonTurn` keeps `tutor` and `target` in separate fields.
+Free conversation has one model call writing both, so `learnerSideSupport` in
+`packages/brain/src/engine/conversation.ts` is what stands in for that split.
+
 Movement: two consecutive good turns promote. A `poor` turn drops one. A
 `partial` turn **holds** — dropping there punishes normal beginner performance. A
 skip drops silently. A pause under four seconds does precisely nothing; the state

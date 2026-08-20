@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { paper, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { Card, Label, TabBar } from '../components.tsx';
+import { NobodyYet } from '../illustrations.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { withUsername } from '../profile/store.ts';
@@ -113,27 +114,37 @@ export function LeaderboardTab() {
 
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
         {board === 'global' ? (
-          <Card>
-            <Label>Not ready yet</Label>
-            <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>
+          <>
+            {/* The global board is empty until there is a server, so this one
+                has to be charming rather than sorry. */}
+            <View style={st.emptyArt}>
+              <NobodyYet width={180} />
+            </View>
+            <Card>
+            <Text style={[type.bodyStrong, { color: paper.ink }]}>
               A board the whole world shares needs a server to keep score, and Parle does not have one yet. It is
               coming.
             </Text>
             <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
               Everything you learn is saved on this device in the meantime. Nothing is lost by waiting.
             </Text>
-          </Card>
+            </Card>
+          </>
         ) : friendRows.length === 0 ? (
-          <Card>
-            <Label>No friends here yet</Label>
-            <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>
+          <>
+            <View style={st.emptyArt}>
+              <NobodyYet width={180} />
+            </View>
+            <Card>
+            <Text style={[type.bodyStrong, { color: paper.ink }]}>
               Your board is waiting on its first friend. Tap the little person up top to add one.
             </Text>
             <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
               Until friend servers arrive, the people you can add are sample profiles. They are marked, and the flow
               works end to end.
             </Text>
-          </Card>
+            </Card>
+          </>
         ) : (
           <Card padded={false}>
             {rows.map((row, i) => (
@@ -167,6 +178,7 @@ export function LeaderboardTab() {
 }
 
 const st = StyleSheet.create({
+  emptyArt: { alignItems: 'center', marginBottom: space(4) },
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   addButton: {

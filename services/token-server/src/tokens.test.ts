@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { PLANS, type Entitlement } from '@parle/core';
 import { grantSession, roomNameFor, type TokenConfig } from './tokens.ts';
-import { InMemoryEntitlementStore } from './store.ts';
+import { DevelopmentEntitlementStore, InMemoryEntitlementStore, developmentEntitlementsEnabled } from './store.ts';
 
 const config: TokenConfig = { apiKey: 'devkey', apiSecret: 'a-secret-long-enough-for-hmac-signing-0123456789' };
 
@@ -128,6 +128,40 @@ describe('session shape in token metadata', () => {
     const meta = await metadataFor({});
     assert.equal('snapshot' in meta, false);
   });
+
+  test('a seeded topic rides the join token and a malformed one is dropped without refusing the session', async () => {
+    const good = await metadataFor({ seedTopic: { fr: '  Commander un café  ', en: '  Ordering coffee  ' } });
+    assert.deepEqual(
+      good.seedTopic,
+      { fr: 'Commander un café', en: 'Ordering coffee' },
+      'the trimmed pair is what gets signed, because the trimmed pair is what the tutor will say',
+    );
+
+    const atTheCap = await metadataFor({ seedTopic: { fr: 'é'.repeat(120), en: 'a'.repeat(120) } });
+    assert.deepEqual(atTheCap.seedTopic, { fr: 'é'.repeat(120), en: 'a'.repeat(120) }, 'a title exactly at the cap is a title');
+
+    const malformed: unknown[] = [
+      { fr: 'Commander un café' }, // half a seed names the topic in one language only
+      { en: 'Ordering coffee' },
+      { fr: 'Commander un café', en: '' },
+      { fr: '   ', en: 'Ordering coffee' },
+      { fr: 'Commander un café', en: 'a'.repeat(121) },
+      { fr: 'é'.repeat(121), en: 'Ordering coffee' },
+      { fr: 5, en: 'Ordering coffee' },
+      { fr: 'Commander un café', en: { en: 'Ordering coffee' } },
+      'Ordering coffee',
+      42,
+      [],
+      null,
+    ];
+    for (const bad of malformed) {
+      // metadataFor asserts the grant succeeded, which is the whole point: a
+      // bad hint costs the learner their seeded topic, never their session.
+      const meta = await metadataFor({ seedTopic: bad });
+      assert.equal('seedTopic' in meta, false, `seedTopic ${JSON.stringify(bad)} should have been dropped, not signed`);
+      assert.equal(meta.mode, 'lesson', 'and the session still starts, generic');
+    }
+  });
 });
 
 describe('entitlement store', () => {
@@ -155,5 +189,30 @@ describe('entitlement store', () => {
     await store.consume('u1', PLANS.trial.secondsPerPeriod);
     const result = await grantSession({ userId: 'u1', lessonId: 'cafe-01', entitlement: await store.get('u1'), config });
     assert.equal(result.ok, false);
+  });
+
+  test('development minutes have to be explicitly enabled and can never activate in production', () => {
+    assert.equal(developmentEntitlementsEnabled({}), false);
+    assert.equal(developmentEntitlementsEnabled({ PARLE_DEV_UNLIMITED_MINUTES: '1' }), true);
+    assert.equal(
+      developmentEntitlementsEnabled({ PARLE_DEV_UNLIMITED_MINUTES: '1', NODE_ENV: 'production' }),
+      false,
+    );
+  });
+
+  test('local testing minutes do not run down between tutor sessions', async () => {
+    const store = new DevelopmentEntitlementStore();
+    const before = await store.get('test-user');
+    const after = await store.consume('test-user', PLANS.regular.secondsPerPeriod);
+
+    assert.deepEqual(before, { plan: 'regular', secondsUsed: 0 });
+    assert.deepEqual(after, before, 'even a full-period debit leaves the local test allowance fresh');
+    const grant = await grantSession({ userId: 'test-user', lessonId: 'cafe-01', entitlement: after, config });
+    assert.equal(grant.ok, true, 'the next test session still starts');
+  });
+
+  test('the development store still rejects an invalid debit', async () => {
+    const store = new DevelopmentEntitlementStore();
+    await assert.rejects(() => store.consume('test-user', -1), RangeError);
   });
 });

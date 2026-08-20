@@ -12,7 +12,7 @@ import { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import type { Lesson, Rung, SessionSummary } from '@parle/core';
 import { paper, space, type, HIT } from './theme.ts';
-import { Card, Label, PillButton, GhostButton } from './components.tsx';
+import { Card, PillButton, GhostButton } from './components.tsx';
 import { SessionView } from './SessionView.tsx';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
@@ -122,7 +122,7 @@ export function LiveSessionScreen({
           style={({ pressed }) => [st.listen, pressed && { opacity: 0.85 }]}
         >
           <Card style={{ alignItems: 'center' }}>
-            <Label>Tap to listen</Label>
+            <Text style={[type.bodyStrong, { color: paper.ink }]}>Tap to listen</Text>
           </Card>
         </Pressable>
       )}

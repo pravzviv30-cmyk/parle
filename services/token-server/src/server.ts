@@ -11,7 +11,13 @@ import 'dotenv/config';
 
 import { PLANS, buildReport, secondsRemaining } from '@parle/core';
 import { scoreUtterance } from '../../shared/speechace.ts';
-import { FileEntitlementStore, InMemoryEntitlementStore, type EntitlementStore } from './store.ts';
+import {
+  DevelopmentEntitlementStore,
+  FileEntitlementStore,
+  InMemoryEntitlementStore,
+  developmentEntitlementsEnabled,
+  type EntitlementStore,
+} from './store.ts';
 import { grantSession, type TokenConfig } from './tokens.ts';
 import { createUserResolver } from './auth.ts';
 import { agentDebitAllowed } from './agentAuth.ts';
@@ -57,9 +63,19 @@ if (!AGENT_SECRET) {
  * generous until the day it is not, and either way means the balance shown to a
  * learner is a property of the server's uptime rather than of what they bought.
  */
-const store: EntitlementStore = process.env.ENTITLEMENT_STORE_PATH
-  ? new FileEntitlementStore(process.env.ENTITLEMENT_STORE_PATH)
-  : new InMemoryEntitlementStore();
+const developmentMinutes = developmentEntitlementsEnabled(process.env);
+if (process.env.PARLE_DEV_UNLIMITED_MINUTES === '1' && !developmentMinutes) {
+  console.warn('[parle] PARLE_DEV_UNLIMITED_MINUTES was ignored because NODE_ENV=production.');
+}
+if (developmentMinutes) {
+  console.warn('[parle] development minutes are enabled: local testing sessions are not debited.');
+}
+
+const store: EntitlementStore = developmentMinutes
+  ? new DevelopmentEntitlementStore()
+  : process.env.ENTITLEMENT_STORE_PATH
+    ? new FileEntitlementStore(process.env.ENTITLEMENT_STORE_PATH)
+    : new InMemoryEntitlementStore();
 
 // Optional Supabase verification. Absent, the server trusts asserted userIds
 // exactly as it always has — the keyless dev path.
@@ -154,6 +170,10 @@ const server = createServer(async (req, res) => {
       // invalid startRung is dropped (grantSession checks integer 1–4), anything
       // but the conversation modes means the scripted lesson, and the snapshot
       // passes through opaquely — the 64KB body cap already bounds its size.
+      // seedTopic — a topic the learner wants to talk about again — rides the same
+      // channel: shape-checked here, validated in grantSession, and dropped there
+      // if it does not hold two sane strings. Never a 400, because a bad hint
+      // must not refuse a session; it simply starts generic, as it does today.
       const startRung = typeof body.startRung === 'number' ? body.startRung : undefined;
       const mode =
         body.mode === 'convo'
@@ -164,6 +184,7 @@ const server = createServer(async (req, res) => {
               ? ('lesson-text' as const)
               : ('lesson' as const);
       const snapshot = typeof body.snapshot === 'object' && body.snapshot !== null ? body.snapshot : undefined;
+      const seedTopic = typeof body.seedTopic === 'object' && body.seedTopic !== null ? body.seedTopic : undefined;
 
       const entitlement = await store.get(userId);
       const result = await grantSession({
@@ -174,6 +195,7 @@ const server = createServer(async (req, res) => {
         mode,
         ...(startRung !== undefined ? { startRung } : {}),
         ...(snapshot !== undefined ? { snapshot } : {}),
+        ...(seedTopic !== undefined ? { seedTopic } : {}),
       });
 
       if (!result.ok) {

@@ -21,6 +21,40 @@ export interface EntitlementStore {
   consume(userId: string, seconds: number): Promise<Entitlement>;
 }
 
+/**
+ * Whether the deliberately non-metering local store may be used.
+ *
+ * The second condition is load-bearing. A copied development env file must not
+ * be able to turn production metering off, even when it still contains the
+ * opt-in flag.
+ */
+export function developmentEntitlementsEnabled(env: Record<string, string | undefined>): boolean {
+  return env.PARLE_DEV_UNLIMITED_MINUTES === '1' && env.NODE_ENV !== 'production';
+}
+
+/**
+ * A local testing allowance that never runs down.
+ *
+ * It presents the existing Regular allowance rather than inventing an
+ * "unlimited" production plan. Every read and debit returns a fresh allowance,
+ * so repeated voice testing cannot strand the developer behind the paywall.
+ * The server only selects this store through developmentEntitlementsEnabled.
+ */
+export class DevelopmentEntitlementStore implements EntitlementStore {
+  async get(_userId: string): Promise<Entitlement> {
+    return { plan: 'regular', secondsUsed: 0 };
+  }
+
+  async save(_userId: string, _entitlement: Entitlement): Promise<void> {}
+
+  async consume(_userId: string, seconds: number): Promise<Entitlement> {
+    if (!Number.isFinite(seconds) || seconds < 0) {
+      throw new RangeError('seconds must be a non-negative number');
+    }
+    return { plan: 'regular', secondsUsed: 0 };
+  }
+}
+
 export class InMemoryEntitlementStore implements EntitlementStore {
   private readonly rows = new Map<string, Entitlement>();
   // Written out longhand rather than as a constructor parameter property: Node runs

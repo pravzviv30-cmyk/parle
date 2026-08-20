@@ -31,6 +31,12 @@ describe('selectedBrain', () => {
     assert.equal(selectedBrain({ TUTOR_LLM: ' GROQ ' }), 'groq');
   });
 
+  test('selects the subscription-for-everything brain, case and whitespace insensitively', () => {
+    assert.equal(selectedBrain({ TUTOR_LLM: 'claude-cli' }), 'claude-cli');
+    assert.equal(selectedBrain({ TUTOR_LLM: 'claude-cli-all' }), 'claude-cli-all');
+    assert.equal(selectedBrain({ TUTOR_LLM: ' CLAUDE-CLI-ALL ' }), 'claude-cli-all', 'and is not read as the split one');
+  });
+
   test('an unrecognised value falls back to the default rather than throwing', () => {
     assert.equal(selectedBrain({ TUTOR_LLM: 'llama' }), 'anthropic');
   });
@@ -62,6 +68,16 @@ describe('missingRequired', () => {
     assert.deepEqual(missingRequired({ ...groq, GROQ_API_KEY: 'g' }), []);
   });
 
+  test('claude-cli-all needs no brain key at all, because a binary on PATH is not a credential', () => {
+    // claude-cli still wants GROQ_API_KEY, because Groq is still serving its
+    // realtime turns. claude-cli-all takes those too, so there is nothing left
+    // for a key to buy — and demanding one would refuse to start a worker that
+    // was perfectly able to run.
+    const env = { ...FULL, TUTOR_LLM: 'claude-cli-all', ANTHROPIC_API_KEY: '' };
+    assert.deepEqual(missingRequired(env), []);
+    assert.deepEqual(missingRequired({ ...env, TUTOR_LLM: 'claude-cli' }), ['GROQ_API_KEY']);
+  });
+
   test('ELEVEN_VOICE_ID is not required, because voice.ts has a fallback', () => {
     assert.deepEqual(missingRequired({ ...FULL, ELEVEN_VOICE_ID: '' }), []);
   });
@@ -77,6 +93,14 @@ describe('warnings', () => {
     assert.equal(w.length, 2);
     assert.match(w[0]!, /ELEVEN_VOICE_ID/);
     assert.match(w[1]!, /groq/i);
+  });
+
+  test('claude-cli-all says plainly what it costs, and that it is for development', () => {
+    const w = warnings({ ...FULL, TUTOR_LLM: 'claude-cli-all', ANTHROPIC_API_KEY: '' });
+    assert.equal(w.length, 1);
+    assert.match(w[0]!, /claude-cli-all/);
+    assert.match(w[0]!, /seconds/i, 'the learner will sit through every one of them');
+    assert.match(w[0]!, /development/i, 'and nobody should discover that in production');
   });
 });
 
@@ -164,6 +188,18 @@ describe('verifyVendors', () => {
     assert.equal(checks.length, 1);
     assert.equal(checks[0]!.fatal, false);
     assert.match(checks[0]!.detail, /network/);
+  });
+
+  test('claude-cli-all probes no brain vendor, because neither one is serving it', async () => {
+    // The trap: the Groq probe sends whatever GROQ_API_KEY holds, which under
+    // claude-cli-all is nothing. An empty key takes a 401, a 401 is fatal, and
+    // the worker refuses to start over a vendor it was never going to call.
+    const checks = await verifyVendors(
+      { ...FULL, TUTOR_LLM: 'claude-cli-all', ANTHROPIC_API_KEY: '', GROQ_API_KEY: '' },
+      '',
+      fakeFetch({ 'api.groq.com': { status: 401 }, 'api.anthropic.com': { status: 401 } }),
+    );
+    assert.deepEqual(checks, [], 'the voice and the transcription answered, and there was no brain to ask');
   });
 
   test('the anthropic brain is checked instead when it is the one selected', async () => {

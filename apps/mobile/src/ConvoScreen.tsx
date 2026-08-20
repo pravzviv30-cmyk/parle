@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { conversationXp, phraseKeyOf, type RecapPayload } from '@parle/core';
 import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from './theme.ts';
@@ -37,6 +37,31 @@ import { useLiveSession } from './live/useLiveSession.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
 import { VoiceOrb, type OrbState } from './tutor/VoiceOrb.tsx';
 import { Transcript } from './tutor/Transcript.tsx';
+import { QUIET_DOOR, choosingView } from './tutor/choosingView.ts';
+import { enterSubmits, keyPressFrom } from './tutor/enterSubmit.ts';
+
+/**
+ * The browser wants a gesture before it will play the tutor.
+ *
+ * On both surfaces now, not only inside a scene: the choosing moment promises
+ * a tutor who asks out loud, and a promise that fails in silence is worse than
+ * one that never got made. Sentence case rather than the caps micro-label,
+ * because it is a control and DESIGN.md puts buttons in sentence case.
+ */
+function ListenPlaque({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Tap to listen to your tutor"
+      style={({ pressed }) => [st.listen, pressed && { opacity: 0.85 }]}
+    >
+      <Card style={{ alignItems: 'center' }}>
+        <Text style={[type.bodyStrong, { color: paper.ink }]}>Tap to listen</Text>
+      </Card>
+    </Pressable>
+  );
+}
 
 export function ConvoScreen({
   userId,
@@ -44,6 +69,7 @@ export function ConvoScreen({
   onRecap,
   onExit,
   startInTextMode = false,
+  seedTopic,
 }: {
   userId: string;
   /** The stored learner model, passed through to the agent opaquely. */
@@ -53,6 +79,12 @@ export function ConvoScreen({
   onExit: () => void;
   /** "Can't speak right now": the same tutor, typed. */
   startInTextMode?: boolean;
+  /**
+   * What the learner asked to talk about again, from a topic card. It rides the
+   * start body into the join token, the same channel mode and the snapshot use.
+   * A session with no seed opens exactly as it always has.
+   */
+  seedTopic?: { fr: string; en: string };
 }) {
   const insets = useSafeAreaInsets();
   // Text mode is a session property, not a toggle: switching rebuilds the
@@ -62,7 +94,11 @@ export function ConvoScreen({
   const [draft, setDraft] = useState('');
   // Which text input holds the caret, for the ink focus border. Visual only.
   const [focusedInput, setFocusedInput] = useState<'topic' | 'reply' | null>(null);
-  const live = useLiveSession(userId, 'convo-01', undefined, { mode: textMode ? 'convo-text' : 'convo', snapshot });
+  const live = useLiveSession(userId, 'convo-01', undefined, {
+    mode: textMode ? 'convo-text' : 'convo',
+    snapshot,
+    seedTopic,
+  });
 
   // Connect on mount, and again when the learner switches to text mode after
   // a denied microphone. The hook tears the room down on unmount.
@@ -76,6 +112,27 @@ export function ConvoScreen({
     if (text.length === 0) return;
     setDraft('');
     live.sendSay(text);
+  };
+
+  // Typing is presence. The hook throttles, so this can be handed every letter.
+  const changeDraft = (text: string) => {
+    setDraft(text);
+    live.sendTyping();
+  };
+
+  /**
+   * The return key, on the one platform where the props are not enough.
+   *
+   * react-native-web 0.21 has never heard of `submitBehavior`, and it runs its
+   * own Enter branch from inside the very handler it calls this one from. So
+   * this goes first and calls preventDefault, which makes that branch stand
+   * down: exactly one send, and the caret stays where the learner left it.
+   * See tutor/enterSubmit.ts for what the platform actually does.
+   */
+  const keyDraft = (event: { preventDefault: () => void }) => {
+    if (!enterSubmits(Platform.OS, keyPressFrom(event), draft)) return;
+    event.preventDefault();
+    sendDraft();
   };
 
   // The recap renders here, not on a separate screen: the room must outlive
@@ -182,35 +239,94 @@ export function ConvoScreen({
   // talk about. No menu — the circle listens, and whatever the learner says
   // (or types) becomes the scene. The first scene view replaces all of this.
   if (!view && live.opening) {
+    const choosing = choosingView({
+      textMode,
+      micOpen: live.micOpen,
+      thinking: live.thinking,
+      tutorSpeaking: live.tutorSpeaking,
+      turns: live.turns,
+    });
     return (
-      <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
-        <View style={st.headerRow}>
-          <Label>Free talk</Label>
-          <Pressable
-            onPress={leaveNow}
-            accessibilityRole="button"
-            accessibilityLabel="Leave the conversation"
-            style={({ pressed }) => [st.leave, pressed && { opacity: 0.6 }]}
-          >
-            <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
-          </Pressable>
-        </View>
-        <ScrollView contentContainerStyle={st.chooseScroll} showsVerticalScrollIndicator={false}>
-          <Text style={[fitDisplay(live.opening.prompt.en), { color: paper.ink, textAlign: 'center' }]}>
-            {live.opening.prompt.en}
-          </Text>
-          <Text style={[type.french, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
-            {live.opening.prompt.fr}
-          </Text>
-          <View style={{ marginTop: space(7), marginBottom: space(8), alignItems: 'center' }}>
-            <VoiceOrb state={textMode ? 'idle' : 'listening'} />
+      <View style={st.shell}>
+        {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} /> : null}
+
+        <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
+          <View style={st.headerRow}>
+            <Pressable
+              onPress={leaveNow}
+              accessibilityRole="button"
+              accessibilityLabel="Leave the conversation"
+              style={({ pressed }) => [st.leave, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
+            </Pressable>
           </View>
-          {textMode ? (
-            <View style={[st.typeRow, { marginTop: space(4) }]}>
+
+          <ScrollView
+            style={choosing.showTranscript ? st.chooseHeadShrink : st.chooseHeadGrow}
+            contentContainerStyle={choosing.showTranscript ? st.chooseTop : st.chooseScroll}
+            showsVerticalScrollIndicator={false}
+            // Every other input screen in this app sets this. Without it the
+            // keyboard closing eats the first tap, which is why Send worked in
+            // the scene and did nothing here.
+            keyboardShouldPersistTaps="handled"
+          >
+            {choosing.showQuestion ? (
+              <>
+                <Text style={[fitDisplay(live.opening.prompt.en), { color: paper.ink, textAlign: 'center' }]}>
+                  {live.opening.prompt.en}
+                </Text>
+                <Text style={[type.french, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
+                  {live.opening.prompt.fr}
+                </Text>
+              </>
+            ) : null}
+
+            {/* The circle is the primary action here until it is tapped: the
+                tutor asks out loud, and this is where the learner agrees to be
+                heard. One label on one control, so the orb's own is silenced. */}
+            <View style={choosing.showQuestion ? st.chooseOrb : st.chooseOrbTight}>
+              {choosing.orbIsButton ? (
+                <Pressable
+                  onPress={live.openMic}
+                  accessibilityRole="button"
+                  accessibilityLabel={choosing.orbLabel}
+                  style={({ pressed }) => [st.orbTap, pressed && { opacity: 0.7 }]}
+                >
+                  <VoiceOrb state={choosing.orb} announce={false} />
+                </Pressable>
+              ) : (
+                <View style={st.orbTap} accessibilityRole="image" accessibilityLabel={choosing.orbLabel}>
+                  <VoiceOrb state={choosing.orb} announce={false} />
+                </View>
+              )}
+            </View>
+
+            {choosing.helper ? (
+              <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center', marginTop: space(4) }]}>
+                {choosing.helper}
+              </Text>
+            ) : null}
+          </ScrollView>
+
+          {/* Everything said so far, arriving with the app's one settle. This
+              is what makes a sent topic land on screen at once instead of
+              three to ten seconds later. */}
+          {choosing.showTranscript ? <Transcript turns={live.turns} /> : null}
+
+          {live.notice ? (
+            <View style={st.notice}>
+              <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{live.notice}</Text>
+            </View>
+          ) : null}
+
+          {choosing.showInput ? (
+            <View style={st.typeRow}>
               <TextInput
                 value={draft}
-                onChangeText={setDraft}
+                onChangeText={changeDraft}
                 onSubmitEditing={sendDraft}
+                onKeyPress={keyDraft}
                 placeholder="Type what you want to talk about"
                 placeholderTextColor={paper.inkFaint}
                 autoCapitalize="none"
@@ -231,12 +347,15 @@ export function ConvoScreen({
                 <Text style={[type.button, { color: paper.onInk }]}>Send</Text>
               </Pressable>
             </View>
-          ) : (
-            <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center', marginTop: space(4) }]}>
-              Anything goes. Say it in English or French, and your tutor takes it from there.
-            </Text>
-          )}
-        </ScrollView>
+          ) : choosing.showQuietDoor ? (
+            // The quiet twin, offered where a learner finds out they need it:
+            // on a train, mid-question, not two screens back. Flipping rebuilds
+            // the session voiceless and the tutor asks again.
+            <View style={st.quietDoor}>
+              <GhostButton label={QUIET_DOOR} onPress={() => setTextMode(true)} />
+            </View>
+          ) : null}
+        </View>
       </View>
     );
   }
@@ -271,24 +390,12 @@ export function ConvoScreen({
 
   return (
     <View style={st.shell}>
-      {live.audioBlocked && (
-        // The browser wants a gesture before it will play the tutor. One calm
-        // white notice, gone the moment it is tapped.
-        <Pressable
-          onPress={live.resumeAudio}
-          accessibilityRole="button"
-          style={({ pressed }) => [st.listen, pressed && { opacity: 0.85 }]}
-        >
-          <Card style={{ alignItems: 'center' }}>
-            <Label color={paper.ink}>Tap to listen</Label>
-          </Card>
-        </Pressable>
-      )}
+      {/* One calm white notice, gone the moment it is tapped. */}
+      {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} /> : null}
 
       <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
         <View style={st.header}>
           <View style={st.headerRow}>
-            <Label>Free talk</Label>
             {/* Metered minutes must always have a door. Leaving ends the scene
                 early and still delivers the recap the session has earned. */}
             <Pressable
@@ -345,8 +452,9 @@ export function ConvoScreen({
             <View style={st.typeRow}>
               <TextInput
                 value={draft}
-                onChangeText={setDraft}
+                onChangeText={changeDraft}
                 onSubmitEditing={sendDraft}
+                onKeyPress={keyDraft}
                 placeholder="Type your reply"
                 placeholderTextColor={paper.inkFaint}
                 autoCapitalize="none"
@@ -418,11 +526,27 @@ const st = StyleSheet.create({
   listen: { minHeight: HIT, paddingHorizontal: space(5), paddingTop: space(3) },
   terminalAction: { marginTop: space(6), alignSelf: 'stretch' },
   header: { paddingBottom: space(3) },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  // flex-end, not space-between: the caps "Free talk" label that used to hold
+  // the left of this row is gone, and without this Leave slides over to fill
+  // the space it left.
+  headerRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start' },
   leave: { minHeight: HIT, justifyContent: 'center', paddingLeft: space(3) },
   notice: { paddingBottom: space(2) },
   scroll: { paddingTop: space(3), paddingBottom: space(5), gap: space(5), flexGrow: 1, justifyContent: 'center' },
+  // Nothing but the question and the circle yet: they sit in the middle of the
+  // screen, exactly as they always have.
+  chooseHeadGrow: { flex: 1 },
   chooseScroll: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: space(6) },
+  // Once the thread opens it takes the room, and the head above it gives way
+  // rather than pushing anything off the bottom.
+  chooseHeadShrink: { flexGrow: 0, flexShrink: 1 },
+  chooseTop: { alignItems: 'center', paddingTop: space(2), paddingBottom: space(4) },
+  chooseOrb: { alignItems: 'center', marginTop: space(7), marginBottom: space(8) },
+  chooseOrbTight: { alignItems: 'center', marginTop: space(2), marginBottom: space(8) },
+  // The circle is well past the touch floor already; the floor is here so it
+  // stays past it if the circle ever shrinks.
+  orbTap: { minWidth: HIT, minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
+  quietDoor: { alignItems: 'center', paddingTop: space(2) },
   sceneBlock: { borderLeftWidth: HAIRLINE + 1, borderLeftColor: paper.line, paddingLeft: space(3.5) },
   sceneHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   controls: { alignItems: 'center', paddingTop: space(1) },

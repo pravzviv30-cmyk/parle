@@ -58,8 +58,7 @@ export function SummaryScreen({
           <View style={st.postcard}>
             <RecapPostcard width={190} />
           </View>
-          <Label>End of session</Label>
-          <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>{lesson.title}</Text>
+          <Text style={[type.title, { color: paper.ink }]}>{lesson.title}</Text>
           <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>
             {summary.turnsCompleted} stops · {mins > 0 ? `${mins} min ` : ''}
             {secs}s
@@ -133,8 +132,7 @@ export function SummaryScreen({
              held up" — to a learner whose audio never reached the scorer at all.
              Quiet, unalarming, and true: no red, no apology, no fault. */
           <Card>
-            <Label color={paper.inkFaint}>No sound check today</Label>
-            <Text style={[type.title, { color: paper.ink, marginTop: space(2.5) }]}>We did not listen this time.</Text>
+            <Text style={[type.title, { color: paper.ink }]}>We did not listen this time.</Text>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
               Your pronunciation was not scored in this session, so there is nothing to report on it. Everything else
               below still counts.
@@ -142,8 +140,7 @@ export function SummaryScreen({
           </Card>
         ) : (
           <Card>
-            <Label color={signal.good}>Nothing to work on</Label>
-            <Text style={[type.title, { color: paper.ink, marginTop: space(2.5) }]}>Nothing to fix today.</Text>
+            <Text style={[type.title, { color: paper.ink }]}>Nothing to fix today.</Text>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
               Every sound you used held up. Next session moves you further along the line.
             </Text>

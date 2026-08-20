@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { dueCards, reviewXp, type ReviewCard, type ReviewCardKind, type ReviewGrade } from '@parle/core';
 import { paper, space, type, radius, HAIRLINE, HIT } from './theme.ts';
 import { Card, Label, PillButton, EarGlyph, fitDisplay } from './components.tsx';
+import { NothingDue } from './illustrations.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
 import { recordActivity } from './progress/activity.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
@@ -108,11 +109,14 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   if (!card) {
     return (
       <View style={[st.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
-        <Label>Review</Label>
         <View style={st.centerFill}>
+          {/* An empty deck is the good outcome, not a dead end, so it gets the
+              cleared table rather than a sentence sitting on its own. */}
+          <View style={{ alignItems: 'center', marginBottom: space(5) }}>
+            <NothingDue width={190} />
+          </View>
           <Card>
-            <Label>Nothing waiting</Label>
-            <Text style={[type.title, { color: paper.ink, marginTop: space(2.5) }]}>Nothing waiting.</Text>
+            <Text style={[type.title, { color: paper.ink }]}>Nothing waiting.</Text>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Your next session adds more.</Text>
           </Card>
         </View>
@@ -127,7 +131,6 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   return (
     <View style={[st.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
       <View style={st.headerRow}>
-        <Label>Review</Label>
         <View style={st.headerRight}>
           <Label color={paper.inkFaint}>{remaining === 1 ? '1 card' : `${remaining} cards`}</Label>
           {/* A sitting is an offer, not an obligation — the learner can put the
@@ -223,7 +226,9 @@ const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
   center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center' },
   centerFill: { flex: 1, justifyContent: 'center' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  // flex-end: the caps screen title that used to hold the left of this row is
+  // gone, and without this the count and the way out slide across to fill it.
+  headerRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start' },
   headerRight: { alignItems: 'flex-end', gap: space(1) },
   leave: { minHeight: HIT, justifyContent: 'center', paddingLeft: space(3) },
   // The card itself: the SessionView main-card anatomy, content centred.

@@ -30,14 +30,23 @@ export type RootStackParamList = {
    * now — the same door the conversation has always had.
    */
   Lesson: { textMode?: boolean } | undefined;
-  /** Free conversation. `textMode` opens it with the voice pipeline dark. */
-  Convo: { textMode?: boolean } | undefined;
+  /**
+   * Free conversation. `textMode` opens it with the voice pipeline dark.
+   * `seedTopic` is what the learner asked to talk about again, in both
+   * languages, and rides the start body into the join token. Plain strings, so
+   * navigation state stays serialisable; a malformed one is dropped by the
+   * server and the session simply opens generic.
+   */
+  Convo: { textMode?: boolean; seedTopic?: { fr: string; en: string } } | undefined;
   /**
    * One node of the practice path, or the whole deck when omitted. The node
    * is plain data — id, title and phrase keys — so navigation state stays
-   * serialisable.
+   * serialisable. `mix` asks for the unscoped sitting interleaved across
+   * topics rather than played in due order, which is one topic at a time.
    */
-  Drill: { node?: { id: string; title: string; phraseKeys: readonly string[] } } | undefined;
+  Drill:
+    | { node?: { id: string; title: string; phraseKeys: readonly string[] }; mix?: boolean }
+    | undefined;
   Review: undefined;
   /** Search and ask sample profiles to be friends, until friend servers arrive. */
   AddFriends: undefined;

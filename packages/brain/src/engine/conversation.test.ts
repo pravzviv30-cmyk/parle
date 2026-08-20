@@ -459,3 +459,99 @@ describe('topics — the learner steers, the tutor follows, code remembers', () 
     assert.ok(after.messages.at(-1)!.text.includes('TOPIC: they steered the conversation to: Rugby'));
   });
 });
+
+describe('the learner plays themselves — the support card is their line, never the scene’s', () => {
+  /** A turn where the model let one line do both jobs: the barista's question, handed back as the card. */
+  function collapsedTurn(overrides: Partial<TutorTurn> = {}): TutorTurn {
+    return sampleTurn({
+      sceneReply: { speaker: 'Karim', fr: 'Bonjour, vous désirez ?', frWritten: null, en: 'Hello, what would you like?' },
+      support: {
+        fullLine: { fr: 'Bonjour, vous désirez ?', frWritten: null, en: 'Hello, what would you like?' },
+        options: [
+          { fr: 'Bonjour, vous désirez ?', en: 'Hello, what would you like?' },
+          { fr: "Un café, s'il vous plaît", en: 'A coffee, please' },
+        ],
+        hintEn: 'Greet him back and order a drink.',
+      },
+      ...overrides,
+    });
+  }
+
+  test('the scene’s own line is never handed back as the line to say', () => {
+    const state = fresh({}, learner({ cefr: 'A0' }));
+    assert.equal(state.ladder.rung, 1, 'this test needs the Echo rung, where the whole line is shown');
+
+    const { view } = integrateTurn(state, spoke('euh'), collapsedTurn());
+
+    assert.equal(view.supportView.kind, 'full-line');
+    assert.notEqual(
+      view.supportView.kind === 'full-line' ? view.supportView.line : null,
+      view.sceneReply.fr,
+      'the card told the learner to say the barista’s own question back to the barista',
+    );
+    // Repaired from material this same turn already carried, never invented.
+    assert.equal(view.supportView.kind === 'full-line' ? view.supportView.line : null, "Un café, s'il vous plaît");
+  });
+
+  test('the cued rung never offers the scene’s line as one of the choices', () => {
+    // A1 opens at Cued, where the card is options rather than a line.
+    const state = fresh({}, learner({ cefr: 'A1' }));
+    assert.equal(state.ladder.rung, 2);
+
+    const { state: after, view } = integrateTurn(state, spoke('euh'), collapsedTurn());
+    assert.equal(view.supportView.kind, 'options');
+    const offered = view.supportView.kind === 'options' ? view.supportView.options.map((o) => o.text) : [];
+    assert.deepEqual(offered, ["Un café, s'il vous plaît"]);
+    assert.ok(after.lastSupport.options.every((o) => o.fr !== 'Bonjour, vous désirez ?'));
+  });
+
+  test('a support view with no line left to hand over falls back to the hint', () => {
+    const state = fresh({}, learner({ cefr: 'A0' }));
+    const turn = collapsedTurn({
+      support: {
+        fullLine: { fr: 'Bonjour, vous désirez ?', frWritten: null, en: 'Hello, what would you like?' },
+        options: [{ fr: 'Bonjour, vous désirez ?', en: 'Hello, what would you like?' }],
+        hintEn: 'Greet him back and order a drink.',
+      },
+    });
+
+    const { view } = integrateTurn(state, spoke('euh'), turn);
+    assert.equal(view.supportView.kind, 'hint');
+    assert.equal(view.supportView.kind === 'hint' ? view.supportView.hint : null, 'Greet him back and order a drink.');
+  });
+
+  test('a rescue after a collapsed turn does not replay the scene’s line either', () => {
+    const state = fresh({}, learner({ cefr: 'A0' }));
+    const { state: after } = integrateTurn(state, spoke('euh'), collapsedTurn());
+    assert.notEqual(after.lastSupport.fullLine.fr, 'Bonjour, vous désirez ?');
+
+    const { view } = applyNonSpokenInput(after, { type: 'help' });
+    assert.equal(view.supportView.kind, 'full-line');
+    assert.notEqual(view.supportView.kind === 'full-line' ? view.supportView.line : null, 'Bonjour, vous désirez ?');
+  });
+
+  test('a genuine reply is left exactly as the model wrote it', () => {
+    const state = fresh({}, learner({ cefr: 'A0' }));
+    const { state: after, view } = integrateTurn(state, spoke('Bonjour'), sampleTurn());
+    assert.deepEqual(after.lastSupport, sampleTurn().support);
+    assert.equal(view.supportView.kind === 'full-line' ? view.supportView.line : null, "Un café, s'il vous plaît");
+  });
+
+  test('an opening frame that collapses the two lines is repaired before turn one', () => {
+    const collapsed = {
+      ...CAFE_FRAME,
+      openingSupport: {
+        ...CAFE_FRAME.openingSupport,
+        fullLine: { fr: "Bonjour ! Qu'est-ce que je vous sers ?", frWritten: null, en: 'Hello! What can I get you?' },
+      },
+    };
+    const state = createConversation(collapsed, learner({ cefr: 'A0' }), { strictness: 'balanced', maxTurns: 24 }, 1_000);
+    assert.notEqual(state.lastSupport.fullLine.fr, collapsed.openingLine.fr);
+    assert.equal(state.lastSupport.fullLine.fr, "Un café, s'il vous plaît");
+  });
+
+  test('a well-built frame is untouched', () => {
+    const state = fresh();
+    assert.deepEqual(state.lastSupport, CAFE_FRAME.openingSupport);
+  });
+});

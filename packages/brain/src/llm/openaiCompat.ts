@@ -35,10 +35,54 @@ export interface OpenAiCompatConfig {
 type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body: string }) => Promise<{
   ok: boolean;
   status: number;
+  /** Absent on older fakes; only Retry-After is ever read. */
+  headers?: { get(name: string): string | null };
   json(): Promise<unknown>;
 }>;
 
+/** Injectable so the rate-limit path can be tested without anyone waiting. */
+type SleepLike = (ms: number) => Promise<void>;
+
 const DEFAULT_BASE_URL = 'https://api.groq.com/openai/v1';
+
+/**
+ * The free tier's most common failure, and the only one worth waiting out.
+ *
+ * Groq answers a burst with 429 and a `Retry-After`. Today that ends the turn:
+ * the learner's sentence goes unanswered and the tutor says a canned line
+ * instead. One retry buys most of those turns back.
+ *
+ * Exactly one, and capped. This is the realtime path — the learner is standing
+ * in the silence while we wait, and past a couple of seconds that silence is
+ * worse than the fallback. So when the vendor asks for eight seconds we try
+ * once at the cap anyway and take whatever we get; a second 429 is a real
+ * answer, and it fails exactly as it did before. No general retry policy, no
+ * other status, no backoff schedule: the budget cannot absorb one.
+ *
+ * The budget is one retry per HTTP request, so a call that also needs the
+ * repair round-trip could in principle wait twice. That needs a 429 *and* a
+ * malformed body in the same turn, and the second wait is what saves it; the
+ * worst case is still bounded by twice the cap.
+ */
+const RETRY_AFTER_CAP_MS = 2_000;
+
+/** What to wait when the vendor names no usable delay. Short: it is a guess. */
+const RETRY_AFTER_FALLBACK_MS = 500;
+
+/**
+ * Retry-After in milliseconds, clamped to the realtime budget.
+ *
+ * Only the delay-seconds form is understood. The HTTP-date form is legal and
+ * Groq does not send it; reading it as "nothing usable" costs a short pause
+ * rather than a wrong one.
+ */
+function retryAfterMs(header: string | null | undefined): number {
+  const seconds = Number.parseFloat((header ?? '').trim());
+  if (!Number.isFinite(seconds) || seconds < 0) return RETRY_AFTER_FALLBACK_MS;
+  return Math.min(seconds * 1000, RETRY_AFTER_CAP_MS);
+}
+
+const realSleep: SleepLike = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * The free-tier talker.
@@ -86,14 +130,20 @@ function jsonSchemaText(schema: ContractSchema): string {
 export class OpenAiCompatBrainClient implements LlmClient {
   private readonly config: Required<OpenAiCompatConfig>;
   private readonly fetchFn: FetchLike;
+  private readonly sleep: SleepLike;
 
-  constructor(config: OpenAiCompatConfig, fetchFn: FetchLike = globalThis.fetch as unknown as FetchLike) {
+  constructor(
+    config: OpenAiCompatConfig,
+    fetchFn: FetchLike = globalThis.fetch as unknown as FetchLike,
+    sleep: SleepLike = realSleep,
+  ) {
     this.config = {
       apiKey: config.apiKey,
       baseUrl: config.baseUrl ?? DEFAULT_BASE_URL,
       model: config.model ?? defaultModel(),
     };
     this.fetchFn = fetchFn;
+    this.sleep = sleep;
   }
 
   async turn(request: BrainTurnRequest): Promise<{ turn: TutorTurn; usage: LlmUsage }> {
@@ -182,7 +232,17 @@ export class OpenAiCompatBrainClient implements LlmClient {
   }
 
   private async post(messages: { role: string; content: string }[]): Promise<ChatCompletion> {
-    const response = await this.fetchFn(`${this.config.baseUrl}/chat/completions`, {
+    const first = await this.send(messages);
+    if (first.status !== 429) return unwrap(first);
+
+    // Rate limited. Wait the vendor's own number, capped, and ask once more.
+    // Everything else — including a second 429 — falls through unchanged.
+    await this.sleep(retryAfterMs(first.headers?.get('retry-after')));
+    return unwrap(await this.send(messages));
+  }
+
+  private send(messages: { role: string; content: string }[]) {
+    return this.fetchFn(`${this.config.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         authorization: `Bearer ${this.config.apiKey}`,
@@ -194,9 +254,12 @@ export class OpenAiCompatBrainClient implements LlmClient {
         messages,
       }),
     });
-    if (!response.ok) {
-      throw new Error(`Chat completion failed with status ${response.status}`);
-    }
-    return (await response.json()) as ChatCompletion;
   }
+}
+
+async function unwrap(response: Awaited<ReturnType<FetchLike>>): Promise<ChatCompletion> {
+  if (!response.ok) {
+    throw new Error(`Chat completion failed with status ${response.status}`);
+  }
+  return (await response.json()) as ChatCompletion;
 }

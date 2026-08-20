@@ -53,7 +53,7 @@ import {
   type Rung,
   type ServerMessage,
 } from '@parle/core';
-import { ParleConversation, parseStoredProfile, sttLanguageFor } from './convo.ts';
+import { ParleConversation, parseStoredProfile, sttLanguageFor, validSeedTopic } from './convo.ts';
 import { ParleTutor } from './tutor.ts';
 import { createTurnTiming, formatTiming, mark } from './timing.ts';
 
@@ -115,7 +115,7 @@ export default defineAgent({
     await ctx.connect();
     const participant = await ctx.waitForParticipant();
 
-    type TokenMeta = { lessonId?: string; startRung?: number; mode?: string; snapshot?: unknown };
+    type TokenMeta = { lessonId?: string; startRung?: number; mode?: string; snapshot?: unknown; seedTopic?: unknown };
     const parseMeta = (raw?: string): TokenMeta => {
       try {
         return raw ? (JSON.parse(raw) as TokenMeta) : {};
@@ -153,9 +153,18 @@ export default defineAgent({
       language: sttLanguageFor(isConvo ? 'convo' : 'lesson', 'choosing'),
     });
 
+    // A topic the learner tapped in Practice, so the conversation opens on it
+    // rather than asking what to talk about. Checked again here for the same
+    // reason as the rung above: the value is server-signed, but the shape
+    // inside it came from the app, and this one ends up in a spoken line.
+    // Meaningful only for a conversation — the scripted lesson has a script,
+    // and nothing for a seed to steer.
+    const seedTopic = validSeedTopic(meta.seedTopic);
+
     const tutor = isConvo
       ? new ParleConversation(parseStoredProfile(meta.snapshot), {
           voiceless,
+          seedTopic,
           setSttLanguage: (language) => stt.updateOptions({ language }),
         })
       : new ParleTutor(lesson, startRung, { voiceless });
@@ -187,7 +196,13 @@ export default defineAgent({
 
     ctx.room.on('dataReceived', (payload: Uint8Array, _participant, _kind, topic?: string) => {
       if (topic !== TOPIC_CLIENT) return;
-      void tutor.handleClientMessage(session, payload);
+      // The belt to handleClientMessage's braces. It contains its own failures,
+      // so this should never fire — but this worker serves every learner on the
+      // process, and an unhandled rejection here ends all of their sessions at
+      // once. A `void` with no catch is that bet, taken on every frame.
+      void tutor.handleClientMessage(session, payload).catch((err: unknown) => {
+        console.error('[parle] a client message failed on its way in', err);
+      });
     });
 
     const session = new voice.AgentSession({

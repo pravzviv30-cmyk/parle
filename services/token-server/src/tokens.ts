@@ -54,6 +54,43 @@ function validStartRung(value: unknown): 1 | 2 | 3 | 4 | undefined {
     : undefined;
 }
 
+/**
+ * A topic the learner already talked about, tapped in Practice and handed back
+ * so the conversation opens on it instead of asking what to talk about.
+ */
+export interface SeedTopic {
+  fr: string;
+  en: string;
+}
+
+/** A topic card's title, and nothing longer. Anything longer is not a title. */
+const MAX_SEED_TOPIC_CHARS = 120;
+
+/**
+ * A requested topic, kept only when it really is one: two strings, both with
+ * something in them once trimmed, both short enough to be a title. The trimmed
+ * pair is what gets signed, because the trimmed pair is what the tutor will
+ * say — and the same reasoning as the rung above applies with more force here,
+ * since whatever lands in the token metadata arrives at the agent with the
+ * server's signature on it and goes straight into a spoken line.
+ *
+ * Half a seed is no seed: a pair naming the topic in one language only would
+ * open the tutor on a subject with no name on screen. So anything that fails
+ * drops the whole thing rather than keeping the half that passed.
+ *
+ * Dropped, never refused. A bad hint is not a reason to deny someone their
+ * session; they get the generic conversation, which is what they get today.
+ */
+function validSeedTopic(value: unknown): SeedTopic | undefined {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const { fr, en } = value as { fr?: unknown; en?: unknown };
+  if (typeof fr !== 'string' || typeof en !== 'string') return undefined;
+  const trimmed: SeedTopic = { fr: fr.trim(), en: en.trim() };
+  if (trimmed.fr.length === 0 || trimmed.en.length === 0) return undefined;
+  if (trimmed.fr.length > MAX_SEED_TOPIC_CHARS || trimmed.en.length > MAX_SEED_TOPIC_CHARS) return undefined;
+  return trimmed;
+}
+
 export async function grantSession(
   opts: {
     userId: string;
@@ -67,6 +104,12 @@ export async function grantSession(
     mode?: SessionMode;
     /** A compact learner snapshot, passed through opaquely for the agent. */
     snapshot?: object;
+    /**
+     * A topic to open on, from a practice card. Validated here rather than at
+     * the edge, which is why it arrives as `unknown`: one place decides what a
+     * seed is, and it is the place that signs it.
+     */
+    seedTopic?: unknown;
   },
 ): Promise<GrantResult> {
   const decision = canStartSession(opts.entitlement, MIN_VIABLE_SESSION_SEC);
@@ -77,6 +120,7 @@ export async function grantSession(
   }
 
   const startRung = validStartRung(opts.startRung);
+  const seedTopic = validSeedTopic(opts.seedTopic);
   const roomName = roomNameFor(opts.userId, opts.lessonId, opts.now);
   const at = new AccessToken(opts.config.apiKey, opts.config.apiSecret, {
     identity: opts.userId,
@@ -88,6 +132,7 @@ export async function grantSession(
       secondsRemaining: decision.secondsRemaining,
       mode: opts.mode ?? 'lesson',
       ...(startRung !== undefined ? { startRung } : {}),
+      ...(seedTopic !== undefined ? { seedTopic } : {}),
       ...(opts.snapshot !== undefined ? { snapshot: opts.snapshot } : {}),
     }),
   });

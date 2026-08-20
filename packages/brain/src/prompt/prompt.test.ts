@@ -70,6 +70,15 @@ describe('the stable prefix', () => {
     assert.ok(contract.includes("J'sais pas"), 'the flagship example belongs in the briefing');
   });
 
+  test('the contract says support is the learner’s side of the scene, not the tutor’s', () => {
+    // The defect this pins: at Echo the ladder tells the tutor to say the target
+    // line and invite a repeat, which to a model also playing the barista reads
+    // as permission to put its own question on the learner's card.
+    const { contract } = buildSystemBlocks();
+    assert.match(contract, /never (a copy of )?your(s| own| sceneReply)/i, 'support must be marked as theirs, not the tutor’s');
+    assert.match(contract, /answers it|reply .*back to/i, 'fullLine must be named as the answer to the line just said');
+  });
+
   test('no em dashes and no volatile tokens anywhere in the prefix', () => {
     // Prompt text is model-facing, not learner-facing, so it may QUOTE banned
     // words ('never say "wrong"'). Two rules do apply: the model mimics prompt
@@ -122,6 +131,30 @@ describe('the per-turn context', () => {
   test('is framed as app context, not learner speech', () => {
     assert.match(buildTurnContext(contextInput()), /^\[CONTEXT FROM THE APP, NOT FROM THE LEARNER\]/);
   });
+
+  test('whenever the whole line is handed over, the context says whose line it is', () => {
+    // Echo, and every rescue from every rung, render `full-line`. That is exactly
+    // where "say the target line, then invite them to repeat it" collides with
+    // sceneReply being the tutor's own in-character line.
+    const handovers = [
+      directiveFor(RUNGS.ECHO),
+      directiveFor(RUNGS.CUED, true),
+      directiveFor(RUNGS.PROMPTED, true),
+      directiveFor(RUNGS.FREE, true),
+    ];
+    for (const directive of handovers) {
+      assert.equal(directive.support, 'full-line', 'this test is about the handover rungs');
+      const text = buildTurnContext(contextInput({ directive }));
+      assert.match(text, /their own next line|not the line you/i, `rung ${directive.rung} did not say whose line it is`);
+    }
+  });
+
+  test('the rungs that hand over nothing stay quiet about it', () => {
+    for (const rung of [RUNGS.PROMPTED, RUNGS.FREE]) {
+      const text = buildTurnContext(contextInput({ directive: directiveFor(rung) }));
+      assert.doesNotMatch(text, /not the line you/i, `rung ${rung} carries a handover note it has no handover for`);
+    }
+  });
 });
 
 describe('the history view', () => {
@@ -155,6 +188,9 @@ describe('the scenario request', () => {
     assert.match(text, /English only/i);
     assert.ok(text.includes('A2'));
     assert.ok(text.includes("I'm meeting friends at a café in Paris"));
+    assert.match(text, /request is binding/i);
+    assert.match(text, /source of truth/i);
+    assert.match(text, /driv.*friends.*what they see/i, 'the failure the prompt must make unambiguous');
     assert.doesNotMatch(text, /—/);
   });
 });

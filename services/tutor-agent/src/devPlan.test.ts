@@ -195,7 +195,7 @@ describe('devPlan — the supervisor and the agent must agree', () => {
     //
     // Nothing here couples the two implementations. It couples their answers.
     const complete = { ...AGENT_ENV };
-    for (const value of ['', '  ', 'anthropic', 'ANTHROPIC', 'groq', 'claude-cli', 'CLAUDE-CLI', 'nonsense']) {
+    for (const value of ['', '  ', 'anthropic', 'ANTHROPIC', 'groq', 'claude-cli', 'CLAUDE-CLI', 'claude-cli-all', 'CLAUDE-CLI-ALL', 'nonsense']) {
       const env = { ...complete, TUTOR_LLM: value };
       const brain = selectedBrain(env);
 
@@ -212,5 +212,22 @@ describe('devPlan — the supervisor and the agent must agree', () => {
         `TUTOR_LLM=${JSON.stringify(value)} reads as ${brain}; npm run dev and the agent must want the same key`,
       );
     }
+  });
+
+  test('both brain selectors agree on claude-cli-all', () => {
+    // The fourth value the mirror was waiting for. It is the one where the
+    // right answer is "no key at all": the subscription answers through a
+    // binary on PATH, and Groq drops out of the picture entirely. A supervisor
+    // that demanded GROQ_API_KEY here would refuse to boot a stack that runs.
+    const env = { ...AGENT_ENV, TUTOR_LLM: 'claude-cli-all', ANTHROPIC_API_KEY: '', GROQ_API_KEY: '' };
+
+    assert.equal(selectedBrain(env), 'claude-cli-all');
+    const agentWants = missingRequired(env).filter((name) => name.endsWith('_API_KEY'));
+    const devWants = envGaps(env, TOKEN_ENV)
+      .filter((gap) => gap.name.endsWith('_API_KEY'))
+      .map((gap) => gap.name);
+
+    assert.deepEqual(agentWants, [], 'the agent asks for no brain credential');
+    assert.deepEqual(devWants, agentWants, 'and npm run dev asks for exactly the same nothing');
   });
 });

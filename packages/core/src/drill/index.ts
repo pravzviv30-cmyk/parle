@@ -21,6 +21,7 @@ export {
 
 export {
   buildDrillSession,
+  mixQueue,
   answerCurrent,
   suppressMic,
   // Aliased at the boundary: session/ already owns the bare name, and the

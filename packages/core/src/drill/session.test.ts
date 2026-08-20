@@ -5,6 +5,7 @@ import {
   answerCurrent,
   applyDrillResults,
   buildDrillSession,
+  mixQueue,
   missFeedback,
   stageForReps,
   stageOf,
@@ -387,5 +388,69 @@ describe('a sitting scoped to one path node', () => {
     const before = buildDrillSession(deck, DRILL_FIXTURES, NOW);
     const after = buildDrillSession(deck, DRILL_FIXTURES, NOW, {});
     assert.deepEqual(after.queue.map((e) => e.id), before.queue.map((e) => e.id));
+  });
+});
+
+describe('mixQueue — a sitting that moves between topics', () => {
+  const CAFE = ['phrase:un cafe', 'phrase:sur place'];
+  const AMIS = ['phrase:ca va', 'phrase:on fait quoi'];
+  const TRAIN = ['phrase:le quai'];
+
+  /** The order dueCards hands back after two conversations: one topic, then the next. */
+  function blocked(): DrillExercise[] {
+    return [
+      optionsEx('c1', CAFE[0]!),
+      optionsEx('c2', CAFE[1]!),
+      optionsEx('a1', AMIS[0]!),
+      optionsEx('a2', AMIS[1]!),
+      optionsEx('t1', TRAIN[0]!),
+    ];
+  }
+
+  test('a mixed sitting alternates between topics instead of finishing one before starting the next', () => {
+    const mixed = mixQueue(blocked(), [CAFE, AMIS, TRAIN]);
+
+    assert.deepEqual(
+      mixed.map((e) => e.id),
+      ['c1', 'a1', 't1', 'c2', 'a2'],
+      'round-robin across the three topics, within-topic order kept',
+    );
+
+    // The claim in the founder's words: it does not have to start at the
+    // beginning of one conversation and work through it.
+    const topicOf = (key: string) => [CAFE, AMIS, TRAIN].findIndex((g) => g.includes(key));
+    for (let i = 1; i < mixed.length; i++) {
+      assert.notEqual(
+        topicOf(mixed[i]!.phraseKey),
+        topicOf(mixed[i - 1]!.phraseKey),
+        `nothing follows its own topic back to back, but position ${i} did`,
+      );
+    }
+  });
+
+  test('mixing only reorders a sitting and never adds or drops an exercise', () => {
+    const before = blocked();
+    const mixed = mixQueue(before, [CAFE, AMIS, TRAIN]);
+
+    assert.equal(mixed.length, before.length, 'a mix is the same sitting, not a smaller or bigger one');
+    assert.deepEqual(
+      mixed.map((e) => e.id).sort(),
+      before.map((e) => e.id).sort(),
+      'every exercise that was selected still plays, and nothing new appears',
+    );
+
+    // Selection belongs to buildDrillSession alone. A phrase no group names
+    // still plays, so a deck older than the topic store loses nothing.
+    const withStranger = [...before, optionsEx('x1', 'phrase:orphan')];
+    assert.equal(mixQueue(withStranger, [CAFE, AMIS, TRAIN]).length, 6, 'a phrase in no topic is still drilled');
+
+    // One lane is not a mix. Reordering it would be motion for its own sake.
+    const oneTopic = [optionsEx('c1', CAFE[0]!), optionsEx('c2', CAFE[1]!)];
+    assert.deepEqual(
+      mixQueue(oneTopic, [CAFE]).map((e) => e.id),
+      ['c1', 'c2'],
+      'a sitting with nothing to alternate with comes back untouched',
+    );
+    assert.deepEqual(mixQueue([], [CAFE]), [], 'an empty sitting stays empty');
   });
 });

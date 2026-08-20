@@ -46,7 +46,6 @@ export function RecapScreen({ recap, onDone }: { recap: RecapPayload; onDone: ()
         <View style={st.header}>
           <RecapPostcard width={180} />
           <View style={st.headerText}>
-            <Label>End of conversation</Label>
             <Text style={[type.title, { color: paper.ink, textAlign: 'center' }]}>{recap.headline}</Text>
             <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>
               {recap.stats.turns} turns · {Math.round(recap.stats.unassistedRate * 100)}% on your own

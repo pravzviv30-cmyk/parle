@@ -14,7 +14,10 @@
  *     `.optional()` — the API wants every property present
  *   - no `.min()`/`.max()`/regex refinements — unsupported server-side, and a
  *     client-side-only check would turn a model slip into a hard parse failure.
- *     Length caps are enforced in code after the parse instead
+ *     Length caps are enforced in code after the parse instead. The single
+ *     exception is `ScenarioFrameSchema.beats.min(1)`, which survives the trip
+ *     (the SDK forwards `minItems` when it is 0 or 1) and guards a field the
+ *     engine dereferences before any code could check it — see the note there
  *   - no recursion, shallow nesting
  *
  * Imported from 'zod/v4' deliberately: the SDK's zodOutputFormat converts via
@@ -179,8 +182,23 @@ export const ScenarioFrameSchema = z.object({
   ),
   /** One short paragraph: how people actually talk in this scene. */
   registerGuidance: z.string(),
-  /** 3–6 ordered goals; the conversation's spine and the unit of "stuck". */
-  beats: z.array(z.object({ id: z.string(), goal: z.string(), goalEn: z.string() })),
+  /**
+   * 3–6 ordered goals; the conversation's spine and the unit of "stuck".
+   *
+   * `.min(1)` is the one refinement in this file, and it earns the exception on
+   * both counts the header cares about. It is not client-side-only: the SDK's
+   * schema transform passes `minItems` through to the API when the value is 0
+   * or 1, so the model is actually held to it (`.min(3)`, matching the 3–6
+   * above, would be demoted to a prose hint — which is exactly the trap the
+   * header warns about, so it stays a comment).
+   *
+   * And an empty spine is not a model slip we can absorb after the parse: the
+   * engine reads `beats[0]` the moment the scene is created, so zero beats
+   * throws between "choosing" and "scene" and strands the learner in a phase
+   * where everything they say is dropped. Refusing it here puts the failure
+   * inside buildFrame's catch, which opens the request-grounded recovery scene.
+   */
+  beats: z.array(z.object({ id: z.string(), goal: z.string(), goalEn: z.string() })).min(1),
   /** Lines a local would actually use here, register-labelled. */
   goalPhrases: z.array(PhraseZ.extend({ register: RegisterZ })),
   /**

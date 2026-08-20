@@ -39,6 +39,7 @@ import { File } from 'expo-file-system';
 import {
   answerCurrent,
   buildDrillSession,
+  mixQueue,
   suppressMic,
   summariseDrill,
   type AppropriateReplyExercise,
@@ -58,7 +59,10 @@ import { accent, paper, signal, space, type, radius, font, HAIRLINE, HIT } from 
 import { recordActivity } from './progress/activity.ts';
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
+import { RewardMark } from './illustrations.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
+import { loadTopics } from './topics/store.ts';
+import { sittingTitle, topicGroups } from './practice/mix.ts';
 import { authHeaders } from './auth/adapter.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 
@@ -579,6 +583,7 @@ export function DrillScreen({
   userId,
   onDone,
   node,
+  mix = false,
 }: {
   userId: string;
   onDone: () => void;
@@ -587,6 +592,12 @@ export function DrillScreen({
    * what "Start practice" has always done and still does.
    */
   node?: { id: string; title: string; phraseKeys: readonly string[] };
+  /**
+   * Today's mix: the same unscoped sitting, reordered so it moves between
+   * topics instead of playing one conversation's worth and then the next.
+   * Order only. Who plays is still buildDrillSession's decision alone.
+   */
+  mix?: boolean;
 }) {
   const insets = useSafeAreaInsets();
 
@@ -611,24 +622,32 @@ export function DrillScreen({
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([loadDeck(), loadDrillBank(), getMicSuppressedUntil()]).then(([deck, bank, until]) => {
-      if (cancelled) return;
-      const now = Date.now();
-      let built = buildDrillSession(deck, bank, now, node ? { only: node.phraseKeys } : undefined);
-      if (until !== null && Date.parse(until) > now) {
-        // Still inside the "can't speak now" hour: open silent, unasked.
-        built = suppressMic(built);
-      } else if (until !== null) {
-        // The window lapsed; clear it so spoken drills return next sitting.
-        void setMicSuppressed(null);
-      }
-      setSession(built);
-    });
+    // Topics are read only for the mix: they are the lanes the round robin runs
+    // over, and an ordinary sitting has no use for them.
+    const topicsSoon = mix ? loadTopics() : Promise.resolve([]);
+    void Promise.all([loadDeck(), loadDrillBank(), getMicSuppressedUntil(), topicsSoon]).then(
+      ([deck, bank, until, topics]) => {
+        if (cancelled) return;
+        const now = Date.now();
+        let built = buildDrillSession(deck, bank, now, node ? { only: node.phraseKeys } : undefined);
+        // Reorder, never re-pick: the cap, the earned stage and the newcomer
+        // rule were all applied above, and are not this screen's to argue with.
+        if (mix) built = { ...built, queue: mixQueue(built.queue, topicGroups(topics)) };
+        if (until !== null && Date.parse(until) > now) {
+          // Still inside the "can't speak now" hour: open silent, unasked.
+          built = suppressMic(built);
+        } else if (until !== null) {
+          // The window lapsed; clear it so spoken drills return next sitting.
+          void setMicSuppressed(null);
+        }
+        setSession(built);
+      },
+    );
     return () => {
       cancelled = true;
       tutorVoice.stop();
     };
-  }, [node]);
+  }, [node, mix]);
 
   /**
    * Feed outcomes to the one memory system, through the review store's own
@@ -729,6 +748,10 @@ export function DrillScreen({
     void setMicSuppressed(new Date(Date.now() + MIC_SUPPRESS_MS).toISOString());
   }, [session, feedback]);
 
+  // What this sitting calls itself. A learner who opened Today's mix and landed
+  // on a screen headed "Drills" would have no way to tell the two apart.
+  const heading = sittingTitle({ mix });
+
   if (session === null) {
     return (
       <View style={ds.center}>
@@ -741,11 +764,9 @@ export function DrillScreen({
   if (session.finished && session.answered.length === 0) {
     return (
       <View style={[ds.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
-        <Label>Drills</Label>
         <View style={ds.centerFill}>
           <Card>
-            <Label>Nothing due right now</Label>
-            <Text style={[type.title, { color: paper.ink, marginTop: space(2.5) }]}>Nothing to review.</Text>
+            <Text style={[type.title, { color: paper.ink }]}>Nothing to review.</Text>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
               Your next session adds more.
             </Text>
@@ -761,10 +782,8 @@ export function DrillScreen({
     const s = summariseDrill(session);
     return (
       <View style={[ds.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
-        <Label>Drills</Label>
         <View style={ds.centerFill}>
           <Card>
-            <Label color={signal.good}>Session done</Label>
             <View style={ds.stats}>
               <View style={ds.stat}>
                 <Text style={[type.title, { color: paper.ink }]}>{s.total}</Text>
@@ -805,7 +824,6 @@ export function DrillScreen({
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
       <View style={[ds.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(4) }]}>
         <View style={ds.headerRow}>
-          <Label>Drills</Label>
           {/* A sitting is an offer, not an obligation. Leaving persists what
               was answered; the rest simply stays due. Never a count up here. */}
           <Pressable
@@ -850,9 +868,17 @@ export function DrillScreen({
         {/* Reserved height, so the card never jumps when a line arrives. */}
         <View style={ds.feedbackArea}>
           {feedback && (
-            <Text style={[type.bodyStrong, { color: verdictColor(feedback.verdict), textAlign: 'center' }]}>
-              {feedback.message}
-            </Text>
+            <View style={ds.verdictRow}>
+              {/* No mark on a miss, and that is the rule rather than an
+                  oversight: a mid-session message may not scold, and a drawing
+                  scolds louder than a word. A miss keeps the line it always
+                  had, alone. The mark unmounts between beats, so its arrival
+                  replays on every verdict without a key to force it. */}
+              {feedback.verdict !== 'miss' && <RewardMark size={26} kind={feedback.verdict} />}
+              <Text style={[type.bodyStrong, { color: verdictColor(feedback.verdict), textAlign: 'center' }]}>
+                {feedback.message}
+              </Text>
+            </View>
           )}
           {/* The scorer's whole say is this one muted line — core's focus
               reason, already learner-safe. Never a score, never a bar. */}
@@ -871,10 +897,13 @@ const ds = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
   center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center' },
   centerFill: { flex: 1, justifyContent: 'center' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  // flex-end: the caps screen title that used to hold the left of this row is
+  // gone, and without this Leave slides over to fill the space it left.
+  headerRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
   leave: { minHeight: HIT, justifyContent: 'center', paddingLeft: space(3) },
   scroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: space(4) },
   feedbackArea: { minHeight: HIT + 8, justifyContent: 'center', paddingHorizontal: space(2) },
+  verdictRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2) },
 
   // The exercise card: the SessionView main-card anatomy, content centred.
   exCard: { alignItems: 'center' },

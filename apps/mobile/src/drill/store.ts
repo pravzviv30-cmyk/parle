@@ -16,6 +16,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DRILL_FIXTURES, type DrillExercise } from '@parle/core';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { mergeExerciseBank } from './merge.ts';
 
 /** Resolved per call: the active account can change between calls. */
 const KEY = () => userKey('drills');
@@ -106,31 +107,19 @@ export async function hasGeneratedExercises(): Promise<boolean> {
 }
 
 /**
- * Fold a generated batch into the bank. Nothing calls this yet; it exists so
- * batches arriving over the wire have somewhere correct to land.
+ * Where the `drills` protocol message lands. `ConvoScreen` calls this once per
+ * conversation, with the batch the tutor authored from what the learner just
+ * said, so a sitting's own drills reach the bank on the way out of the session
+ * rather than waiting on a relaunch.
  *
- * Replace, never accumulate: a fresher generation of the same drill (same
- * `phraseKey`, same kind) takes the old one's slot, so the bank holds at most
- * one exercise per phrase-and-format and regenerating can only improve it.
- * Plain id collisions replace in place too, covering batches that kept their
- * ids while changing key or kind.
+ * The fold itself is `mergeExerciseBank` in merge.ts — replace, never
+ * accumulate, proven there under plain node. This function owns only the disk:
+ * read through the cache, fold, write back through the chain.
  */
 export function mergeExercises(incoming: readonly DrillExercise[]): Promise<DrillExercise[]> {
   return serialized(async () => {
     const store = await loadStore();
-    const merged = [...store.exercises];
-    for (const exercise of incoming) {
-      const byKey = merged.findIndex((e) => e.phraseKey === exercise.phraseKey && e.kind === exercise.kind);
-      const byId = merged.findIndex((e) => e.id === exercise.id);
-      if (byKey !== -1) {
-        merged[byKey] = exercise;
-        if (byId !== -1 && byId !== byKey) merged.splice(byId, 1);
-      } else if (byId !== -1) {
-        merged[byId] = exercise;
-      } else {
-        merged.push(exercise);
-      }
-    }
+    const merged = mergeExerciseBank(store.exercises, incoming);
     await saveStore({ ...store, exercises: merged });
     return merged;
   });

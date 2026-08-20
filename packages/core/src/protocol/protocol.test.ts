@@ -166,6 +166,7 @@ describe('client messages', () => {
       { t: 'slower' },
       { t: 'english' },
       { t: 'say', text: 'Bonjour, un café' },
+      { t: 'typing' },
     ] as const) {
       assert.deepEqual(decodeClientMessage(encodeMessage(msg)), msg);
     }
@@ -184,6 +185,54 @@ describe('client messages', () => {
     assert.equal(toLearnerInput({ t: 'slower' }), null);
     assert.equal(toLearnerInput({ t: 'english' }), null);
     assert.equal(toLearnerInput({ t: 'say', text: 'x' }), null);
+  });
+});
+
+describe('typing is presence, not content — a composing learner is not a silent one', () => {
+  test('a learner half-way through writing can be heard as present', () => {
+    assert.deepEqual(
+      decodeClientMessage(encodeMessage({ t: 'typing' })),
+      { t: 'typing' },
+      'an unknown tag decodes to null, so without this the agent hears nothing and the stuck clock keeps counting a learner who is right there',
+    );
+  });
+
+  test('nothing the learner is part-way through writing goes over the wire', () => {
+    const frame = new TextDecoder().decode(encodeMessage({ t: 'typing' }));
+    assert.equal(
+      frame,
+      '{"t":"typing"}',
+      'the ping is presence, not content: half a sentence is the learner’s draft, and it has no business on a data channel or in a log',
+    );
+
+    const decoded = decodeClientMessage(encodeMessage({ t: 'typing' }));
+    assert.ok(decoded, 'the ping has to decode at all for the shape assertion above to mean anything');
+    assert.deepEqual(Object.keys(decoded), ['t'], 'the tag carries no payload, so there is no field a draft could leak through');
+  });
+
+  test('composing is never mistaken for an answer', () => {
+    assert.equal(
+      toLearnerInput({ t: 'typing' }),
+      null,
+      'presence is not a turn: a keystroke must never move the ladder or spend one of the learner’s attempts',
+    );
+  });
+
+  test('a typing frame cut off mid-flight is dropped, never thrown', () => {
+    const truncated = new TextEncoder().encode('{"t":"typing"');
+    assert.doesNotThrow(
+      () => decodeClientMessage(truncated),
+      'a torn frame from a phone on a train must not take down a live conversation',
+    );
+    assert.equal(decodeClientMessage(truncated), null, 'an unparseable frame is dropped, not guessed at');
+  });
+
+  test('the tutor cannot claim to be typing — the tag belongs to the learner’s side alone', () => {
+    assert.equal(
+      decodeServerMessage(encodeMessage({ t: 'typing' })),
+      null,
+      'typing is a client intent; accepting it on the server channel would let the agent’s own chatter reset the clock it owns',
+    );
   });
 });
 

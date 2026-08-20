@@ -16,7 +16,7 @@ import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { paper, space, type } from '../theme.ts';
-import { ChevronLeft, ProgressDots, PillButton, Card, Label } from '../components.tsx';
+import { ChevronLeft, ProgressDots, PillButton, Card } from '../components.tsx';
 import { SpeakBubbles, OnboardWave, RecapPostcard } from '../illustrations.tsx';
 import { VoiceOrb, type OrbState } from './VoiceOrb.tsx';
 
@@ -117,8 +117,7 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
         {page.key === 'orb' ? <OrbWalkthrough /> : null}
         {page.note ? (
           <Card style={{ marginTop: space(5) }}>
-            <Label>While you talk</Label>
-            <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{page.note}</Text>
+            <Text style={[type.bodyStrong, { color: paper.ink }]}>{page.note}</Text>
           </Card>
         ) : null}
       </ScrollView>

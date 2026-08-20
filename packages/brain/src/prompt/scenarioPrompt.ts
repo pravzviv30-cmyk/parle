@@ -18,6 +18,8 @@ const INSTRUCTION = [
   `Design a playable scene from the learner's request below.`,
   ``,
   `Rules:`,
+  `- The request is binding. Preserve its people, relationship, place, activity, and learning goal. Do not substitute a familiar stock scene or reuse an example from these instructions.`,
+  `- Make the title, setting, learner role, characters, every beat, and the opening visibly belong to that request. If they ask to drive with friends and discuss what they see, the learner is driving with friends and the beats teach that conversation.`,
   `- 3 to 6 beats, ordered. Each is one small conversational goal, with a French goal and an English gloss. Ids in kebab-case.`,
   `- Characters carry the register they really would: staff get courant and vous, old friends get familier or argot.`,
   `- registerGuidance: one short paragraph on how people actually talk in this scene.`,
@@ -40,6 +42,6 @@ export function buildScenarioRequest(input: ScenarioRequestInput): string {
     INSTRUCTION,
     ``,
     `LEARNER: CEFR estimate ${input.learner.cefr}.${watch}`,
-    `REQUEST: ${input.request}`,
+    `LEARNER REQUEST, THE SOURCE OF TRUTH: ${input.request}`,
   ].join('\n');
 }
