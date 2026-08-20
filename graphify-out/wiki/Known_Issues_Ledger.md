@@ -1,10 +1,10 @@
 # Known Issues Ledger
 
-> 21 nodes · cohesion 0.10
+> 33 nodes · cohesion 0.06
 
 ## Key Concepts
 
-- **Format** (21 connections) — `docs/KNOWN_ISSUES.md`
+- **Format** (33 connections) — `docs/KNOWN_ISSUES.md`
 - **A1 — A spoken answer has to match the script exactly** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **A2 — An empty transcript is graded as a wrong answer** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **A3 — A freeze at the top rung still asks the learner to invent French** (1 connections) — `docs/KNOWN_ISSUES.md`
@@ -25,10 +25,15 @@
 - **D1 — A failed brain turn in text mode strands the learner in silence** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **D2 — /œ/ changes the word but is not marked as meaning-bearing** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **D3 — The orb thinks forever when the answer never comes** (1 connections) — `docs/KNOWN_ISSUES.md`
+- **F10 — An agent that decides cannot quietly do** (1 connections) — `docs/KNOWN_ISSUES.md`
+- **F11 — /forge routes only to engineers that exist** (1 connections) — `docs/KNOWN_ISSUES.md`
+- **F12 — A malformed agent definition names itself** (1 connections) — `docs/KNOWN_ISSUES.md`
+- **F1 — One command boots the whole product, waits for health, and reaps its children** (1 connections) — `docs/KNOWN_ISSUES.md`
+- *... and 8 more nodes in this community*
 
 ## Relationships
 
-- [Docs Index & Known Issues](Docs_Index_&_Known_Issues.md) (1 shared connections)
+- [Project Documentation Index](Project_Documentation_Index.md) (1 shared connections)
 
 ## Source Files
 
@@ -36,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 21 (100%)
+- EXTRACTED: 33 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

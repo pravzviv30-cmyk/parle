@@ -1,8 +1,8 @@
 # LlmUsage
 
-> God node · 26 connections · `packages/brain/src/llm/client.ts`
+> God node · 39 connections · `packages/brain/src/llm/client.ts`
 
-**Community:** [LLM Client Adapters](LLM_Client_Adapters.md)
+**Community:** [Alternate Brain Clients](Alternate_Brain_Clients.md)
 
 ## Connections by Relation
 
@@ -12,12 +12,15 @@
 ### imports
 - sessionLoop.ts `EXTRACTED`
 - anthropic.ts `EXTRACTED`
+- claudeCli.ts `EXTRACTED`
 - runEval.ts `EXTRACTED`
 - openaiCompat.ts `EXTRACTED`
 - mock.ts `EXTRACTED`
+- split.ts `EXTRACTED`
 - brain-playground/src/usage.ts `EXTRACTED`
 
 ### references
+- .ask() `EXTRACTED`
 - .parseWithRetry() `EXTRACTED`
 - .completeJson() `EXTRACTED`
 - .turn() `EXTRACTED`
@@ -31,12 +34,12 @@
 - .frame() `EXTRACTED`
 - .turn() `EXTRACTED`
 - Session `EXTRACTED`
-- .turn() `EXTRACTED`
 - .curate() `EXTRACTED`
 - .drills() `EXTRACTED`
 - .extract() `EXTRACTED`
 - .frame() `EXTRACTED`
-- CaseResult `EXTRACTED`
+- .turn() `EXTRACTED`
+- .turn() `EXTRACTED`
 
 ---
 

@@ -21,9 +21,9 @@
 
 - [Mock Auth Adapter](Mock_Auth_Adapter.md) (6 shared connections)
 - [Auth Adapter Interface](Auth_Adapter_Interface.md) (3 shared connections)
-- [Auth Screens](Auth_Screens.md) (3 shared connections)
-- [Mobile App Root](Mobile_App_Root.md) (2 shared connections)
-- [Expo Plugins & File Saving](Expo_Plugins_&_File_Saving.md) (1 shared connections)
+- [Auth Context and Friends UI](Auth_Context_and_Friends_UI.md) (3 shared connections)
+- [App Root and Profile Gate](App_Root_and_Profile_Gate.md) (2 shared connections)
+- [Expo Native Plugins](Expo_Native_Plugins.md) (1 shared connections)
 
 ## Source Files
 

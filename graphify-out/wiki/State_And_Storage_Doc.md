@@ -1,4 +1,4 @@
-# State And Storage Doc
+# State and Storage Doc
 
 > 7 nodes · cohesion 0.29
 
@@ -14,7 +14,7 @@
 
 ## Relationships
 
-- [Docs Index & Known Issues](Docs_Index_&_Known_Issues.md) (1 shared connections)
+- [Project Documentation Index](Project_Documentation_Index.md) (1 shared connections)
 
 ## Source Files
 

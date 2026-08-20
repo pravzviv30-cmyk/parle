@@ -7,7 +7,7 @@
 - **dependencies** (30 connections) — `apps/mobile/package.json`
 - **expo** (2 connections) — `apps/mobile/package.json`
 - **expo-crypto** (2 connections) — `apps/mobile/package.json`
-- **livekit-client** (2 connections) — `apps/mobile/package.json`
+- **expo-file-system** (2 connections) — `apps/mobile/package.json`
 - **@parle/brain** (2 connections) — `apps/mobile/package.json`
 - **react** (2 connections) — `apps/mobile/package.json`
 - **react-native-web** (2 connections) — `apps/mobile/package.json`
@@ -15,7 +15,7 @@
 - **@parle/brain** (1 connections) — `apps/mobile/package.json`
 - **expo** (1 connections) — `apps/mobile/package.json`
 - **expo-crypto** (1 connections) — `apps/mobile/package.json`
-- **livekit-client** (1 connections) — `apps/mobile/package.json`
+- **expo-file-system** (1 connections) — `apps/mobile/package.json`
 - **react** (1 connections) — `apps/mobile/package.json`
 - **react-native-web** (1 connections) — `apps/mobile/package.json`
 - **@react-navigation/native-stack** (1 connections) — `apps/mobile/package.json`
@@ -23,17 +23,17 @@
 ## Relationships
 
 - [Mobile Package Manifest](Mobile_Package_Manifest.md) (1 shared connections)
-- [Metro Runtime](Metro_Runtime.md) (1 shared connections)
+- [Metro Runtime Dependency](Metro_Runtime_Dependency.md) (1 shared connections)
 - [LiveKit React Native SDK](LiveKit_React_Native_SDK.md) (1 shared connections)
 - [LiveKit Expo Plugin](LiveKit_Expo_Plugin.md) (1 shared connections)
-- [LiveKit WebRTC Transport](LiveKit_WebRTC_Transport.md) (1 shared connections)
+- [LiveKit WebRTC Dependency](LiveKit_WebRTC_Dependency.md) (1 shared connections)
 - [Core Package Dependency](Core_Package_Dependency.md) (1 shared connections)
-- [Async Storage Library](Async_Storage_Library.md) (1 shared connections)
-- [Bottom Tab Navigation](Bottom_Tab_Navigation.md) (1 shared connections)
+- [Async Storage Dependency](Async_Storage_Dependency.md) (1 shared connections)
+- [Bottom Tabs Navigation](Bottom_Tabs_Navigation.md) (1 shared connections)
 - [React Navigation Core](React_Navigation_Core.md) (1 shared connections)
-- [Supabase Client SDK](Supabase_Client_SDK.md) (1 shared connections)
-- [Expo Audio Playback](Expo_Audio_Playback.md) (1 shared connections)
-- [Expo File System](Expo_File_System.md) (1 shared connections)
+- [Supabase Client Dependency](Supabase_Client_Dependency.md) (1 shared connections)
+- [Expo Audio Dependency](Expo_Audio_Dependency.md) (1 shared connections)
+- [Expo Font Dependency](Expo_Font_Dependency.md) (1 shared connections)
 
 ## Source Files
 

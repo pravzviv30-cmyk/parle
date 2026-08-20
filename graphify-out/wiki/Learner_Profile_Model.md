@@ -4,60 +4,60 @@
 
 ## Key Concepts
 
+- **convo.ts** (63 connections) — `services/tutor-agent/src/convo.ts`
 - **profile.ts** (38 connections) — `packages/brain/src/profile/profile.ts`
 - **profile.test.ts** (25 connections) — `packages/brain/src/profile/profile.test.ts`
-- **src/types.ts** (17 connections) — `packages/brain/src/types.ts`
-- **turnContext.ts** (14 connections) — `packages/brain/src/prompt/turnContext.ts`
-- **CefrBand** (13 connections) — `packages/brain/src/types.ts`
+- **LearnerProfile** (18 connections) — `packages/brain/src/profile/profile.ts`
 - **createProfile()** (12 connections) — `packages/brain/src/profile/profile.ts`
 - **applyTurnToProfile()** (11 connections) — `packages/brain/src/profile/profile.ts`
 - **learnerSnapshotFrom()** (11 connections) — `packages/brain/src/profile/profile.ts`
-- **Strictness** (10 connections) — `packages/brain/src/types.ts`
+- **profileStore.ts** (11 connections) — `services/brain-playground/src/profileStore.ts`
 - **finishSession()** (9 connections) — `packages/brain/src/profile/profile.ts`
 - **repairProfile()** (8 connections) — `packages/brain/src/profile/profile.ts`
-- **scenarioPrompt.ts** (8 connections) — `packages/brain/src/prompt/scenarioPrompt.ts`
+- **.constructor()** (7 connections) — `services/tutor-agent/src/convo.ts`
+- **loadProfile()** (6 connections) — `services/brain-playground/src/profileStore.ts`
+- **profileStore.test.ts** (6 connections) — `services/brain-playground/src/profileStore.test.ts`
 - **applyExtractionToProfile()** (5 connections) — `packages/brain/src/profile/profile.ts`
 - **migrateProfile()** (5 connections) — `packages/brain/src/profile/profile.ts`
-- **TurnContextInput** (5 connections) — `packages/brain/src/prompt/turnContext.ts`
-- **freshState()** (5 connections) — `services/tutor-agent/src/convo.test.ts`
+- **normalizeErrorTag()** (4 connections) — `packages/brain/src/engine/conversation.ts`
+- **brainClient()** (4 connections) — `services/tutor-agent/src/convo.ts`
+- **chooseFrame()** (4 connections) — `services/tutor-agent/src/convo.ts`
+- **parseStoredProfile()** (4 connections) — `services/tutor-agent/src/convo.ts`
 - **phraseKey()** (3 connections) — `packages/brain/src/profile/profile.ts`
 - **bandIndex()** (2 connections) — `packages/brain/src/profile/profile.ts`
 - **evictOverflowPhrases()** (2 connections) — `packages/brain/src/profile/profile.ts`
 - **evictStalePatterns()** (2 connections) — `packages/brain/src/profile/profile.ts`
 - **EVIDENCE_WINDOW** (2 connections) — `packages/brain/src/profile/profile.ts`
 - **isRecord()** (2 connections) — `packages/brain/src/profile/profile.ts`
-- **MASTERY_USES** (2 connections) — `packages/brain/src/profile/profile.ts`
-- **MAX_ERROR_PATTERNS** (2 connections) — `packages/brain/src/profile/profile.ts`
-- **MAX_MEMORY_FACTS** (2 connections) — `packages/brain/src/profile/profile.ts`
 - *... and 13 more nodes in this community*
 
 ## Relationships
 
-- [Turn Integration & Copy Rules](Turn_Integration_&_Copy_Rules.md) (16 shared connections)
-- [Contract Schemas & Samples](Contract_Schemas_&_Samples.md) (16 shared connections)
-- [Playground CLI Commands](Playground_CLI_Commands.md) (16 shared connections)
-- [French Authenticity Pack](French_Authenticity_Pack.md) (10 shared connections)
-- [Profile Store & Upgrade](Profile_Store_&_Upgrade.md) (7 shared connections)
-- [Convo Frames & Usage](Convo_Frames_&_Usage.md) (7 shared connections)
-- [Conversation Engine Tests](Conversation_Engine_Tests.md) (5 shared connections)
-- [Drill Types & Fixtures](Drill_Types_&_Fixtures.md) (4 shared connections)
-- [Conversation State Pipeline](Conversation_State_Pipeline.md) (4 shared connections)
-- [LLM Client Adapters](LLM_Client_Adapters.md) (3 shared connections)
-- [Live Conversation Orchestrator](Live_Conversation_Orchestrator.md) (3 shared connections)
-- [Navigation & Live Context](Navigation_&_Live_Context.md) (2 shared connections)
+- [Playground Chat Commands](Playground_Chat_Commands.md) (18 shared connections)
+- [Conversation Orchestrator](Conversation_Orchestrator.md) (13 shared connections)
+- [Conversation Test Doubles](Conversation_Test_Doubles.md) (10 shared connections)
+- [Scenario Prompt and Grading](Scenario_Prompt_and_Grading.md) (9 shared connections)
+- [Conversation State and Recap](Conversation_State_and_Recap.md) (9 shared connections)
+- [Zod Contract Schemas](Zod_Contract_Schemas.md) (9 shared connections)
+- [App Root and Profile Gate](App_Root_and_Profile_Gate.md) (8 shared connections)
+- [Conversation Ladder and Copy Rules](Conversation_Ladder_and_Copy_Rules.md) (7 shared connections)
+- [Brain Client Contracts](Brain_Client_Contracts.md) (7 shared connections)
+- [French Authenticity Pack](French_Authenticity_Pack.md) (6 shared connections)
+- [Prompt and Turn Queue](Prompt_and_Turn_Queue.md) (6 shared connections)
+- [Tutor Copy Rules](Tutor_Copy_Rules.md) (5 shared connections)
 
 ## Source Files
 
+- `packages/brain/src/engine/conversation.ts`
 - `packages/brain/src/profile/profile.test.ts`
 - `packages/brain/src/profile/profile.ts`
-- `packages/brain/src/prompt/scenarioPrompt.ts`
-- `packages/brain/src/prompt/turnContext.ts`
-- `packages/brain/src/types.ts`
-- `services/tutor-agent/src/convo.test.ts`
+- `services/brain-playground/src/profileStore.test.ts`
+- `services/brain-playground/src/profileStore.ts`
+- `services/tutor-agent/src/convo.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 166 (100%)
+- EXTRACTED: 209 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

@@ -36,6 +36,7 @@ import { AuthProvider, useAuth } from './src/auth/useAuth.tsx';
 import { AuthFlow } from './src/auth/AuthFlow.tsx';
 import { SetNewPasswordScreen } from './src/auth/SetNewPasswordScreen.tsx';
 import type { AuthUser } from './src/auth/types.ts';
+import { recoverJournal } from './src/live/journal.ts';
 import { clearActiveUserData, migrateLegacyStores, setActiveUser } from './src/storage/scope.ts';
 import { loadHistory } from './src/progress/store.ts';
 import { backfillFrom } from './src/progress/activity.ts';
@@ -82,6 +83,11 @@ function SignedInRoot({ user }: { user: AuthUser }) {
         if (history.length > 0) {
           await backfillFrom(history, lessonXp({ wordsProduced: [], unassistedRate: 0 }));
         }
+        // A conversation that ended without being banked, because the app was
+        // closed between the recap and the practice message. Ordinary launches
+        // find nothing here and this costs one read.
+        const recovered = await recoverJournal();
+        if (recovered > 0) console.info(`[parle] recovered ${recovered} phrases from a session that did not finish banking`);
       })
       .then(() => {
         if (!cancelled) setReady(true);

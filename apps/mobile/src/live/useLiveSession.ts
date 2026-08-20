@@ -11,6 +11,7 @@
  * with no message and no way out, while the meter ran. See the watchdog below.
  */
 
+import { TOKEN_SERVER } from './serverUrl.ts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Room, RoomEvent, Track } from 'livekit-client';
 import {
@@ -30,12 +31,11 @@ import {
 } from '@parle/core';
 import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from './globals.ts';
 import { authHeaders } from '../auth/adapter.ts';
+import { journalRecap } from './journal.ts';
 import { classifyFailure, failureCopy, micApiUnavailable, TokenServerError, type LiveFailure } from './failure.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
 import { thinkingAfter } from './thinking.ts';
 
-/** Where the token server lives. Configurable per env for device testing. */
-const TOKEN_SERVER = process.env.EXPO_PUBLIC_TOKEN_SERVER_URL ?? 'http://localhost:8787';
 
 /**
  * How long to wait for the tutor to walk into the room.
@@ -494,6 +494,10 @@ export function useLiveSession(
             break;
           case 'recap':
             setRecap({ recap: msg.recap, profile: msg.profile });
+            // Written down before anything else, because from here the learner
+            // can close the app at any moment and the leave-early fallback only
+            // runs when they tap Done. Cleared as soon as banking succeeds.
+            void journalRecap(msg.recap);
             setStatus({ phase: 'ended' });
             break;
           case 'practice':

@@ -29,6 +29,7 @@ import {
 import { SupportBlock } from './SessionView.tsx';
 import { RecapScreen } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
+import { clearJournal } from './live/journal.ts';
 import { addPhrases } from './review/store.ts';
 import { mergeSessionTopics } from './topics/store.ts';
 import { recordActivity } from './progress/activity.ts';
@@ -112,10 +113,7 @@ export function ConvoScreen({
         phraseKeys: t.phrases.map((p) => phraseKeyOf(p.fr)),
       })),
     );
-    void addPhrases(
-      live.practice.flatMap((t) => t.phrases),
-      { stagger: true },
-    );
+    void addPhrases(live.practice.flatMap((t) => t.phrases), { stagger: true }).then(clearJournal);
   }, [live.practice]);
 
   const leaveNow = () => {
@@ -129,7 +127,7 @@ export function ConvoScreen({
       const home = live.recap.recap.topics[0];
       if (phrases.length > 0 && home !== undefined) {
         void mergeSessionTopics([{ title: home, phraseKeys: phrases.map((p) => phraseKeyOf(p.fr)) }]);
-        void addPhrases(phrases, { stagger: true });
+        void addPhrases(phrases, { stagger: true }).then(clearJournal);
       }
     }
     void live.leave().finally(onExit);

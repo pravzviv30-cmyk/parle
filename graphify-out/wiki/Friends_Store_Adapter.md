@@ -1,6 +1,6 @@
 # Friends Store Adapter
 
-> 51 nodes · cohesion 0.08
+> 50 nodes · cohesion 0.09
 
 ## Key Concepts
 
@@ -29,15 +29,14 @@
 - **FriendsStore** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **loadStore()** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **saveStore()** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
-- *... and 26 more nodes in this community*
+- *... and 25 more nodes in this community*
 
 ## Relationships
 
-- [Add Friends UI](Add_Friends_UI.md) (16 shared connections)
-- [Mobile App Root](Mobile_App_Root.md) (3 shared connections)
-- [Activity Log](Activity_Log.md) (2 shared connections)
-- [Profile Store & Upgrade](Profile_Store_&_Upgrade.md) (2 shared connections)
-- [Drill Store](Drill_Store.md) (1 shared connections)
+- [Auth Context and Friends UI](Auth_Context_and_Friends_UI.md) (16 shared connections)
+- [App Root and Profile Gate](App_Root_and_Profile_Gate.md) (4 shared connections)
+- [Live Session Navigation Context](Live_Session_Navigation_Context.md) (2 shared connections)
+- [Drill Local Store](Drill_Local_Store.md) (1 shared connections)
 
 ## Source Files
 
@@ -50,7 +49,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 130 (100%)
+- EXTRACTED: 128 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

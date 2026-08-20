@@ -18,13 +18,15 @@
 
 ## Relationships
 
-- [LLM Client Adapters](LLM_Client_Adapters.md) (5 shared connections)
-- [Contract Schemas & Samples](Contract_Schemas_&_Samples.md) (3 shared connections)
-- [Conversation State Pipeline](Conversation_State_Pipeline.md) (2 shared connections)
-- [Learner Profile Model](Learner_Profile_Model.md) (1 shared connections)
-- [Turn Integration & Copy Rules](Turn_Integration_&_Copy_Rules.md) (1 shared connections)
+- [Zod Contract Schemas](Zod_Contract_Schemas.md) (3 shared connections)
+- [Brain Client Contracts](Brain_Client_Contracts.md) (3 shared connections)
+- [Learner Profile Model](Learner_Profile_Model.md) (2 shared connections)
+- [Conversation State and Recap](Conversation_State_and_Recap.md) (1 shared connections)
+- [Conversation Ladder and Copy Rules](Conversation_Ladder_and_Copy_Rules.md) (1 shared connections)
+- [Anthropic and Claude CLI Providers](Anthropic_and_Claude_CLI_Providers.md) (1 shared connections)
+- [Alternate Brain Clients](Alternate_Brain_Clients.md) (1 shared connections)
 - [French Authenticity Pack](French_Authenticity_Pack.md) (1 shared connections)
-- [Convo Frames & Usage](Convo_Frames_&_Usage.md) (1 shared connections)
+- [Conversation Orchestrator](Conversation_Orchestrator.md) (1 shared connections)
 
 ## Source Files
 

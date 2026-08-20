@@ -1,8 +1,8 @@
 # type
 
-> God node · 30 connections · `apps/mobile/src/theme.ts`
+> God node · 31 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Conversation Screen UI](Conversation_Screen_UI.md)
+**Community:** [Auth Context and Friends UI](Auth_Context_and_Friends_UI.md)
 
 ## Connections by Relation
 
@@ -15,20 +15,20 @@
 - ConvoScreen.tsx `EXTRACTED`
 - AddFriendsScreen.tsx `EXTRACTED`
 - LeaderboardTab.tsx `EXTRACTED`
+- SummaryScreen.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
 - ReviewScreen.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
 - SessionView.tsx `EXTRACTED`
-- SummaryScreen.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
 - ProfileTab.tsx `EXTRACTED`
 - LiveErrorView.tsx `EXTRACTED`
 - LiveSessionScreen.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`
 - SignUpScreen.tsx `EXTRACTED`
+- FocusDrillPlayer.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
 - SignInScreen.tsx `EXTRACTED`
-- RecapScreen.tsx `EXTRACTED`
 - PathNodeRow.tsx `EXTRACTED`
 
 ### rationale_for

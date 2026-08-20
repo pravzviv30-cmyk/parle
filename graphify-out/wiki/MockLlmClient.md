@@ -1,8 +1,8 @@
 # MockLlmClient
 
-> God node · 24 connections · `packages/brain/src/llm/mock.ts`
+> God node · 26 connections · `packages/brain/src/llm/mock.ts`
 
-**Community:** [LLM Client Adapters](LLM_Client_Adapters.md)
+**Community:** [Brain Client Contracts](Brain_Client_Contracts.md)
 
 ## Connections by Relation
 
@@ -10,15 +10,17 @@
 - mock.ts `EXTRACTED`
 
 ### implements
-- LlmClient `EXTRACTED`
+- [LlmClient](LlmClient.md) `EXTRACTED`
 
 ### imports
 - convo.test.ts `EXTRACTED`
 - runEval.ts `EXTRACTED`
 - chat.ts `EXTRACTED`
 - client.test.ts `EXTRACTED`
+- split.test.ts `EXTRACTED`
 
 ### inherits
+- DeadBrain `EXTRACTED`
 - FailingBrain `EXTRACTED`
 - NoCuration `EXTRACTED`
 
@@ -31,7 +33,7 @@
 - .curate() `EXTRACTED`
 
 ### references
-- ScenarioFrame `EXTRACTED`
+- [ScenarioFrame](ScenarioFrame.md) `EXTRACTED`
 - TutorTurn `EXTRACTED`
 - MemoryExtraction `EXTRACTED`
 - BrainTurnRequest `EXTRACTED`

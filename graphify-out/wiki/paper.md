@@ -1,8 +1,8 @@
 # paper
 
-> God node · 37 connections · `apps/mobile/src/theme.ts`
+> God node · 38 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Tab Bar Icons](Tab_Bar_Icons.md)
+**Community:** [Conversation and Recap Screens](Conversation_and_Recap_Screens.md)
 
 ## Connections by Relation
 
@@ -17,11 +17,11 @@
 - ConvoScreen.tsx `EXTRACTED`
 - AddFriendsScreen.tsx `EXTRACTED`
 - LeaderboardTab.tsx `EXTRACTED`
+- SummaryScreen.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
 - ReviewScreen.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
 - SessionView.tsx `EXTRACTED`
-- SummaryScreen.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
 - ProfileTab.tsx `EXTRACTED`
 - LiveErrorView.tsx `EXTRACTED`
@@ -29,7 +29,7 @@
 - illustrations.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`
 - SignUpScreen.tsx `EXTRACTED`
-- TutorTab.tsx `EXTRACTED`
+- FocusDrillPlayer.tsx `EXTRACTED`
 
 ### rationale_for
 - Paper & Ink design world `EXTRACTED`

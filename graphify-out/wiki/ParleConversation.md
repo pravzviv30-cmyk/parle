@@ -1,8 +1,8 @@
 # ParleConversation
 
-> God node · 38 connections · `services/tutor-agent/src/convo.ts`
+> God node · 39 connections · `services/tutor-agent/src/convo.ts`
 
-**Community:** [Live Conversation Orchestrator](Live_Conversation_Orchestrator.md)
+**Community:** [Conversation Orchestrator](Conversation_Orchestrator.md)
 
 ## Connections by Relation
 
@@ -23,6 +23,7 @@
 - .say() `EXTRACTED`
 - .clearRescue() `EXTRACTED`
 - .constructor() `EXTRACTED`
+- .openScene() `EXTRACTED`
 - .rescue() `EXTRACTED`
 - .curatePractice() `EXTRACTED`
 - .generateDrills() `EXTRACTED`
@@ -30,14 +31,13 @@
 - .publishView() `EXTRACTED`
 - .curateAndDrill() `EXTRACTED`
 - .extractMemory() `EXTRACTED`
-- .openScene() `EXTRACTED`
 - .onUserTurnCompleted() `EXTRACTED`
 - .recover() `EXTRACTED`
 - .speak() `EXTRACTED`
 
 ### references
+- [LlmClient](LlmClient.md) `EXTRACTED`
 - ConversationState `EXTRACTED`
-- LlmClient `EXTRACTED`
 - LearnerProfile `EXTRACTED`
 - ServerMessage `EXTRACTED`
 

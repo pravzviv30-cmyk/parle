@@ -347,26 +347,33 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `no tappable node ever opens onto an empty sitting`
 - verified-by: `a still-being-written topic says the tutor is writing it`
 
-### F7 — A conversation's phrases survive the app dying before the recap
+### F7 — A conversation's phrases survive the app being killed after the recap
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/live/journalRules.ts:1
-- note: everything a session leaves behind arrives in the recap at the very end, so
-  closing the app one beat early loses the lot. Scene lines are journalled as they
-  arrive, on the same serialized single-promise write chain and userKey scoping as
-  topics/store.ts, the recap retires the journal so nothing is banked twice, and a
-  journal orphaned by a crash banks its phrases into the review deck on the next launch.
-  The honest limit, stated here rather than papered over: the learner's memory update
-  and that session's generated drills are computed agent-side and delivered only over
-  the live room, so a crash still loses those, and recovered phrases live in Review
-  until some later session drills them.
-- verified-by: `a scene line is written to the journal the moment it arrives`
-- verified-by: `the recap retires the journal so nothing is banked twice`
+- note: the entry as first written said scene lines would be journalled as they
+  arrived. They cannot be, and finding out why narrowed this to the window that
+  is actually closable. ConvoView does not carry newPhrases on the wire, so
+  before the recap the app holds a transcript and no phrase list at all; turning
+  a transcript into review cards is curation, which is the agent's decision and
+  not one the app may invent. Two windows exist and only one is client-side.
+  Killed mid-session, everything is lost and closing that needs the agent to
+  redeliver a recap to a later session, which is filed under out of scope.
+  Killed AFTER the recap and before Done is tapped, the phrases are sitting in
+  memory and the practice message either never arrived or never got banked, and
+  that window is wide: RecapScreen's leave-early fallback only runs when the
+  learner taps Done, so reading the recap and swiping the app away loses the lot.
+  So the recap is journalled the moment it arrives, on the same serialized
+  versioned-store seam as topics/store.ts, banking clears it, and an orphan
+  banks on the next launch. Memory and generated drills are agent-side and stay
+  lost either way; that limit is stated rather than papered over.
+- verified-by: `the recap is journalled the moment it arrives`
+- verified-by: `banking the session clears the journal, so nothing is banked twice`
 - verified-by: `a journal orphaned by a crash banks its phrases on the next launch`
 
 ### F8 — The token server address has one home in the app
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/live/serverUrl.ts:1
 - note: the same default is spelled out in live/useLiveSession.ts:38, app/LiveContext.tsx:12
   and DrillScreen.tsx:70. Three copies already disagree about nothing; a fourth would

@@ -7,9 +7,9 @@
  * that came up after launch is used and one that just died is not.
  */
 
+import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-const TOKEN_SERVER = process.env.EXPO_PUBLIC_TOKEN_SERVER_URL ?? 'http://localhost:8787';
 
 interface LiveValue {
   /** True when the token server answered. False means demo, and says so. */

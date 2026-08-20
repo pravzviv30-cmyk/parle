@@ -20,6 +20,7 @@
  * one calm line; it has no way to slow, block, or punish.
  */
 
+import { TOKEN_SERVER } from './live/serverUrl.ts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -66,8 +67,6 @@ const FEEDBACK_MS = 1600;
 /** "Can't speak now" holds for an hour, then spoken drills quietly return. */
 const MIC_SUPPRESS_MS = 60 * 60 * 1000;
 
-/** The same server, and the same default, that useLiveSession reaches for. */
-const TOKEN_SERVER = process.env.EXPO_PUBLIC_TOKEN_SERVER_URL ?? 'http://localhost:8787';
 /** The server refuses larger bodies; sending one would only waste the upload. */
 const MAX_SCORE_BYTES = 2 * 1024 * 1024;
 /**

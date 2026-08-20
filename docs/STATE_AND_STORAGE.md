@@ -13,8 +13,23 @@ fallback would leak one learner's history into another's session.
 Stores: `profile`, `history`, `review`, `drills`, `tutorIntro`, `activity`,
 `topics` (the practice topics a learner's conversations produced — titles,
 sitting dates, and the review-deck ids they drill; strength is never stored,
-it is a projection of the deck), and `friends` (the local friends adapter's
-list and requests, sample-roster preview until a backend exists).
+it is a projection of the deck), `friends` (the local friends adapter's
+list and requests, sample-roster preview until a backend exists), and `journal`.
+
+`journal` is the only store that is meant to be empty. A conversation's recap is
+written there the moment it arrives and deleted the moment its phrases are
+banked, so anything found at launch belongs to a session that was closed in
+between and is banked then. It exists because the order things arrive in leaves a
+gap: the recap ships first, practice follows, and the leave-early fallback that
+covers the difference only runs when the learner taps Done. Reading the recap and
+swiping the app away used to lose the session's phrases outright.
+
+What it does not cover, and cannot from here: a session killed BEFORE the recap.
+The wire's `ConvoView` carries no phrase list, so until the recap the app holds a
+transcript and nothing else, and turning a transcript into review cards is
+curation, which the agent owns. That window needs the agent to redeliver a recap
+to a later session. Same for the learner-model update and the generated drills,
+which are computed agent-side and only ever delivered over the live room.
 
 `apps/mobile/src/profile/store.ts` holds `StoredProfile`:
 

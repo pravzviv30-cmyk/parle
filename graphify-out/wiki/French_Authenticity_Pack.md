@@ -1,13 +1,12 @@
 # French Authenticity Pack
 
-> 21 nodes · cohesion 0.22
+> 20 nodes · cohesion 0.22
 
 ## Key Concepts
 
 - **brain/src/index.ts** (40 connections) — `packages/brain/src/index.ts`
 - **prompt/prompt.test.ts** (20 connections) — `packages/brain/src/prompt/prompt.test.ts`
-- **brain/src/copy.test.ts** (16 connections) — `packages/brain/src/copy.test.ts`
-- **system.ts** (13 connections) — `packages/brain/src/prompt/system.ts`
+- **system.ts** (15 connections) — `packages/brain/src/prompt/system.ts`
 - **authenticity/types.ts** (10 connections) — `packages/brain/src/authenticity/types.ts`
 - **fr.ts** (8 connections) — `packages/brain/src/authenticity/fr.ts`
 - **authenticity/render.ts** (8 connections) — `packages/brain/src/authenticity/render.ts`
@@ -22,24 +21,24 @@
 - **Filler** (2 connections) — `packages/brain/src/authenticity/types.ts`
 - **RegisterDef** (2 connections) — `packages/brain/src/authenticity/types.ts`
 - **SlangEntry** (2 connections) — `packages/brain/src/authenticity/types.ts`
-- **check()** (2 connections) — `packages/brain/src/copy.test.ts`
+- **contextInput()** (2 connections) — `packages/brain/src/prompt/prompt.test.ts`
 - **CONTRACT** (1 connections) — `packages/brain/src/prompt/system.ts`
 - **PERSONA** (1 connections) — `packages/brain/src/prompt/system.ts`
 
 ## Relationships
 
-- [Turn Integration & Copy Rules](Turn_Integration_&_Copy_Rules.md) (17 shared connections)
-- [Contract Schemas & Samples](Contract_Schemas_&_Samples.md) (13 shared connections)
-- [Learner Profile Model](Learner_Profile_Model.md) (10 shared connections)
-- [Playground CLI Commands](Playground_CLI_Commands.md) (6 shared connections)
-- [Drill Generation Prompts](Drill_Generation_Prompts.md) (5 shared connections)
-- [LLM Client Adapters](LLM_Client_Adapters.md) (5 shared connections)
-- [Conversation State Pipeline](Conversation_State_Pipeline.md) (3 shared connections)
-- [Convo Frames & Usage](Convo_Frames_&_Usage.md) (3 shared connections)
-- [Profile Store & Upgrade](Profile_Store_&_Upgrade.md) (3 shared connections)
-- [Difficulty Ladder](Difficulty_Ladder.md) (3 shared connections)
+- [Tutor Copy Rules](Tutor_Copy_Rules.md) (9 shared connections)
+- [Scenario Prompt and Grading](Scenario_Prompt_and_Grading.md) (9 shared connections)
+- [Zod Contract Schemas](Zod_Contract_Schemas.md) (8 shared connections)
+- [Playground Eval Harness](Playground_Eval_Harness.md) (7 shared connections)
+- [Conversation Ladder and Copy Rules](Conversation_Ladder_and_Copy_Rules.md) (7 shared connections)
+- [Learner Profile Model](Learner_Profile_Model.md) (6 shared connections)
+- [Brain Client Contracts](Brain_Client_Contracts.md) (5 shared connections)
+- [Playground Chat Commands](Playground_Chat_Commands.md) (4 shared connections)
+- [App Root and Profile Gate](App_Root_and_Profile_Gate.md) (2 shared connections)
+- [Anthropic and Claude CLI Providers](Anthropic_and_Claude_CLI_Providers.md) (2 shared connections)
 - [Memory Extraction Prompt](Memory_Extraction_Prompt.md) (1 shared connections)
-- [Topic Curation](Topic_Curation.md) (1 shared connections)
+- [Memory Curation](Memory_Curation.md) (1 shared connections)
 
 ## Source Files
 
@@ -47,7 +46,6 @@
 - `packages/brain/src/authenticity/fr.ts`
 - `packages/brain/src/authenticity/render.ts`
 - `packages/brain/src/authenticity/types.ts`
-- `packages/brain/src/copy.test.ts`
 - `packages/brain/src/index.ts`
 - `packages/brain/src/prompt/historyView.ts`
 - `packages/brain/src/prompt/prompt.test.ts`
@@ -56,7 +54,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 119 (100%)
+- EXTRACTED: 109 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

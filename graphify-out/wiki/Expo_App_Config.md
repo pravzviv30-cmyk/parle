@@ -24,7 +24,7 @@
 
 - [iOS App Config](iOS_App_Config.md) (1 shared connections)
 - [Android App Config](Android_App_Config.md) (1 shared connections)
-- [Expo Plugins & File Saving](Expo_Plugins_&_File_Saving.md) (1 shared connections)
+- [Expo Native Plugins](Expo_Native_Plugins.md) (1 shared connections)
 
 ## Source Files
 

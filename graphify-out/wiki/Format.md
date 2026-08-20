@@ -1,6 +1,6 @@
 # Format
 
-> God node · 21 connections · `docs/KNOWN_ISSUES.md`
+> God node · 33 connections · `docs/KNOWN_ISSUES.md`
 
 **Community:** [Known Issues Ledger](Known_Issues_Ledger.md)
 
@@ -18,15 +18,15 @@
 - A1 — A spoken answer has to match the script exactly `EXTRACTED`
 - D2 — /œ/ changes the word but is not marked as meaning-bearing `EXTRACTED`
 - D3 — The orb thinks forever when the answer never comes `EXTRACTED`
+- F1 — One command boots the whole product, waits for health, and reaps its children `EXTRACTED`
+- F2 — The brain runs on the founder's Claude subscription, and the swap to an API key is one env var `EXTRACTED`
+- F3 — The English opener is heard in English, and the scene is heard in French `EXTRACTED`
 - A2 — An empty transcript is graded as a wrong answer `EXTRACTED`
-- A3 — A freeze at the top rung still asks the learner to invent French `EXTRACTED`
-- A4 — A rescue can skip the beat the learner froze on `EXTRACTED`
-- A5 — Two different opening-rung formulas `EXTRACTED`
-- A6 — A focus point vanishes when the worst sound has no drill `EXTRACTED`
-- A7 — A v2 snapshot with no memory crashes the worker `EXTRACTED`
-- B0 — ParleTutor cannot be tested at all `EXTRACTED`
-- B1 — Live pronunciation scoring never receives audio `EXTRACTED`
-- B2 — Speechace phone symbols are assumed to be IPA `EXTRACTED`
+- F4 — The end card's Start button starts the focus drill `EXTRACTED`
+- F5 — Go again goes again, and Review reviews `EXTRACTED`
+- F6 — A topic node the tutor has not finished writing is locked, with honest words `EXTRACTED`
+- F7 — A conversation's phrases survive the app dying before the recap `EXTRACTED`
+- F8 — The token server address has one home in the app `EXTRACTED`
 
 ---
 

@@ -1,74 +1,63 @@
 # Live Failure Handling
 
-> 66 nodes · cohesion 0.06
+> 27 nodes · cohesion 0.13
 
 ## Key Concepts
 
 - **useLiveSession.ts** (43 connections) — `apps/mobile/src/live/useLiveSession.ts`
-- **protocol.ts** (29 connections) — `packages/core/src/protocol/protocol.ts`
 - **useLiveSession()** (18 connections) — `apps/mobile/src/live/useLiveSession.ts`
-- **protocol/index.ts** (16 connections) — `packages/core/src/protocol/index.ts`
-- **tutor.test.ts** (14 connections) — `services/tutor-agent/src/tutor.test.ts`
-- **protocol.test.ts** (13 connections) — `packages/core/src/protocol/protocol.test.ts`
-- **encodeMessage()** (12 connections) — `packages/core/src/protocol/protocol.ts`
-- **ServerMessage** (12 connections) — `packages/core/src/protocol/protocol.ts`
-- **LiveSession** (9 connections) — `apps/mobile/src/live/useLiveSession.ts`
 - **failure.ts** (8 connections) — `apps/mobile/src/live/failure.ts`
-- **decodeClientMessage()** (8 connections) — `packages/core/src/protocol/protocol.ts`
-- **decodeServerMessage()** (8 connections) — `packages/core/src/protocol/protocol.ts`
-- **RecapPayload** (7 connections) — `packages/core/src/protocol/protocol.ts`
-- **ConvoView** (6 connections) — `packages/core/src/protocol/protocol.ts`
 - **authHeaders()** (5 connections) — `apps/mobile/src/auth/adapter.ts`
 - **failureCopy** (5 connections) — `apps/mobile/src/live/failure.ts`
-- **thinking.ts** (5 connections) — `apps/mobile/src/live/thinking.ts`
 - **turns.ts** (5 connections) — `apps/mobile/src/live/turns.ts`
-- **ClientMessage** (5 connections) — `packages/core/src/protocol/protocol.ts`
-- **ConvoPhrase** (5 connections) — `packages/core/src/protocol/protocol.ts`
-- **toLearnerInput()** (5 connections) — `packages/core/src/protocol/protocol.ts`
 - **LiveFailure** (4 connections) — `apps/mobile/src/live/failure.ts`
 - **globals.ts** (4 connections) — `apps/mobile/src/live/globals.ts`
-- **thinking.test.ts** (4 connections) — `apps/mobile/src/live/thinking.test.ts`
-- **thinkingAfter()** (4 connections) — `apps/mobile/src/live/thinking.ts`
-- *... and 41 more nodes in this community*
+- **TurnLine** (4 connections) — `apps/mobile/src/live/turns.ts`
+- **scoreAttempt()** (3 connections) — `apps/mobile/src/DrillScreen.tsx`
+- **classifyFailure()** (3 connections) — `apps/mobile/src/live/failure.ts`
+- **micApiUnavailable()** (3 connections) — `apps/mobile/src/live/failure.ts`
+- **TokenServerError** (3 connections) — `apps/mobile/src/live/failure.ts`
+- **ensureAudioSession()** (3 connections) — `apps/mobile/src/live/globals.ts`
+- **ensureLiveKitGlobals()** (3 connections) — `apps/mobile/src/live/globals.ts`
+- **releaseAudioSession()** (3 connections) — `apps/mobile/src/live/globals.ts`
+- **pushTurn()** (3 connections) — `apps/mobile/src/live/turns.ts`
+- **LiveDiagnostics** (3 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **emptyDiagnostics()** (2 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **trace()** (2 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **COPY** (1 connections) — `apps/mobile/src/live/failure.ts`
+- **.constructor()** (1 connections) — `apps/mobile/src/live/failure.ts`
+- **MAX_TURNS** (1 connections) — `apps/mobile/src/live/turns.ts`
+- **CONNECT_TIMEOUTS** (1 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **LiveStatus** (1 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- *... and 2 more nodes in this community*
 
 ## Relationships
 
-- [Conversation Screen UI](Conversation_Screen_UI.md) (15 shared connections)
-- [Lesson Session Engine](Lesson_Session_Engine.md) (12 shared connections)
-- [Conversation Engine Tests](Conversation_Engine_Tests.md) (6 shared connections)
-- [Navigation & Live Context](Navigation_&_Live_Context.md) (5 shared connections)
-- [Difficulty Ladder](Difficulty_Ladder.md) (5 shared connections)
-- [Tutor Turn Controller](Tutor_Turn_Controller.md) (5 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (4 shared connections)
-- [Drill Types & Fixtures](Drill_Types_&_Fixtures.md) (4 shared connections)
-- [Turn Integration & Copy Rules](Turn_Integration_&_Copy_Rules.md) (4 shared connections)
-- [Utterance Capture](Utterance_Capture.md) (4 shared connections)
-- [Agent Env Preflight](Agent_Env_Preflight.md) (4 shared connections)
-- [Export & History Reports](Export_&_History_Reports.md) (3 shared connections)
+- [Client Agent Wire Protocol](Client_Agent_Wire_Protocol.md) (12 shared connections)
+- [Shared UI Components](Shared_UI_Components.md) (8 shared connections)
+- [Conversation and Recap Screens](Conversation_and_Recap_Screens.md) (4 shared connections)
+- [Prompt and Turn Queue](Prompt_and_Turn_Queue.md) (4 shared connections)
+- [Drill Exercise Screens](Drill_Exercise_Screens.md) (3 shared connections)
+- [Lesson Session Grading](Lesson_Session_Grading.md) (3 shared connections)
+- [Mock Auth Adapter](Mock_Auth_Adapter.md) (2 shared connections)
+- [Drill Session Flow](Drill_Session_Flow.md) (1 shared connections)
+- [Drill Fixtures and Stores](Drill_Fixtures_and_Stores.md) (1 shared connections)
+- [Conversation Ladder and Copy Rules](Conversation_Ladder_and_Copy_Rules.md) (1 shared connections)
+- [Live Session Navigation Context](Live_Session_Navigation_Context.md) (1 shared connections)
 
 ## Source Files
 
-- `PRODUCT.md`
-- `README.md`
-- `apps/mobile/AGENTS.md`
+- `apps/mobile/src/DrillScreen.tsx`
 - `apps/mobile/src/auth/adapter.ts`
 - `apps/mobile/src/live/failure.ts`
 - `apps/mobile/src/live/globals.ts`
-- `apps/mobile/src/live/thinking.test.ts`
-- `apps/mobile/src/live/thinking.ts`
 - `apps/mobile/src/live/turns.ts`
 - `apps/mobile/src/live/useLiveSession.ts`
-- `packages/core/src/protocol/index.ts`
-- `packages/core/src/protocol/protocol.test.ts`
-- `packages/core/src/protocol/protocol.ts`
-- `services/tutor-agent/src/convo.test.ts`
-- `services/tutor-agent/src/tutor.test.ts`
-- `services/tutor-agent/src/tutor.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 205 (96%)
-- INFERRED: 9 (4%)
+- EXTRACTED: 87 (100%)
+- INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

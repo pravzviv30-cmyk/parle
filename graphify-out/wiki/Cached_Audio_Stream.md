@@ -15,8 +15,8 @@
 
 ## Relationships
 
-- [TTS Cache & WAV](TTS_Cache_&_WAV.md) (4 shared connections)
-- [Cached TTS Client](Cached_TTS_Client.md) (3 shared connections)
+- [TTS Cache](TTS_Cache.md) (5 shared connections)
+- [Utterance Audio Capture](Utterance_Audio_Capture.md) (2 shared connections)
 
 ## Source Files
 
