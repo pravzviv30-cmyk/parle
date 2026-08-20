@@ -114,6 +114,7 @@ The keys go into `services/tutor-agent/.env`:
 |---|---|---|
 | `ANTHROPIC_API_KEY` | console.anthropic.com | The tutor brain, routed per activity (`packages/brain/src/llm/routing.ts`): Claude Sonnet 5 answers realtime turns and designs scenes, Claude Opus 5 does the post-session work (learner memory, drill authoring). The default — coaching quality is the product. |
 | `GROQ_API_KEY` | console.groq.com | The $0 fallback brain (`TUTOR_LLM=groq`, Llama 3.3 free tier). Visibly weaker coaching; fine for plumbing work. |
+| *(no key)* | your Claude subscription | `TUTOR_LLM=claude-cli` runs the brain through the `claude` command instead of the API, so the coaching can be judged before buying a key. It splits by who is waiting: post-session memory, curation and drill authoring go to Claude, and realtime turns stay on Groq, because one command-line call measures about 8 to 12 seconds against a sub-second turn budget. Needs `claude` on PATH and `GROQ_API_KEY`. Moving to the API later is `TUTOR_LLM=anthropic` plus a key, and nothing else. |
 | `DEEPGRAM_API_KEY` | console.deepgram.com | French STT ($200 signup credit) |
 | `ELEVEN_API_KEY` + `ELEVEN_VOICE_ID` | elevenlabs.io | The tutor's French voice (free tier) |
 | `SPEECHACE_API_KEY` | speechace.com (optional) | Pronunciation scoring for speak drills via the token server's `/drill/score`. Absent, drills fall back to honest self-report. |

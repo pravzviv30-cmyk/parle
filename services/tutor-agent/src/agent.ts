@@ -68,9 +68,18 @@ import { createTurnTiming, formatTiming, mark } from './timing.ts';
  *          French. The documented zero-budget fallback for key-less setups —
  *          its coaching is visibly weaker, which is why it stopped being the
  *          default.
+ * `claude-cli` — a Claude subscription through the command line. It cannot
+ *          reach this plugin at all (see below), so the scripted path resolves
+ *          to Groq; only the conversation brain gets the subscription, and only
+ *          for the calls that run after the room has closed.
  */
 function tutorLLM() {
-  if (selectedBrain() === 'groq') return openai.LLM.withGroq({ model: 'llama-3.3-70b-versatile' }); // reads GROQ_API_KEY
+  // claude-cli lands here too, and on purpose. This is the LiveKit pipeline's
+  // streaming LLM, not the brain's client: it is constructed by a plugin that
+  // speaks HTTP to a vendor, and there is no shape of it that shells out to a
+  // command line. A subscription cannot serve it, so the scripted lesson's
+  // spoken replies stay on Groq while the conversation brain splits.
+  if (selectedBrain() !== 'anthropic') return openai.LLM.withGroq({ model: 'llama-3.3-70b-versatile' }); // reads GROQ_API_KEY
   return new anthropic.LLM({ model: DEFAULT_ROUTING.turn.model });
 }
 
@@ -271,6 +280,6 @@ preflight();
 // Presence is not health. The keys can all be filled in and still be rejected,
 // and the model named in one of them can have been retired since it was written
 // — both of which land on the learner as that same silent room.
-reportVendors(await verifyVendors(process.env, selectedBrain() === 'groq' ? defaultModel() : ''));
+reportVendors(await verifyVendors(process.env, selectedBrain() === 'anthropic' ? '' : defaultModel()));
 
 cli.runApp(new WorkerOptions({ agent: fileURLToPath(import.meta.url) }));

@@ -4,9 +4,12 @@ import assert from 'node:assert/strict';
 import { voice } from '@livekit/agents';
 import {
   APERO_FRAME,
+  AnthropicBrainClient,
   BrainParseError,
   CAFE_FRAME,
   MockLlmClient,
+  OpenAiCompatBrainClient,
+  SplitBrainClient,
   RECOVERY_LINE,
   assembleRecap,
   createConversation,
@@ -34,6 +37,7 @@ import {
 import {
   CONVO_LINES,
   ParleConversation,
+  brainClient,
   chooseFrame,
   parseStoredProfile,
   toConvoView,
@@ -781,6 +785,61 @@ describe('what a finished session leaves behind', () => {
       ['Ça marche', 'Autre chose'],
       'the first phrases met, in order',
     );
+  });
+
+  test('a post-session brain failure costs quality, not the session', async (t) => {
+    // This became load-bearing when the brain gained a subscription path. An
+    // API key either works or is absent; a CLI login quietly expires, and it
+    // expires on exactly the three calls that run after the learner has stopped
+    // watching. The session they just had must survive all three going down.
+    class DeadBrain extends MockLlmClient {
+      override async extract(): Promise<never> {
+        throw new Error('claude: Invalid API key · Please run /login');
+      }
+      override async curate(): Promise<never> {
+        throw new Error('claude: Invalid API key · Please run /login');
+      }
+      override async drills(): Promise<never> {
+        throw new Error('claude: Invalid API key · Please run /login');
+      }
+    }
+    const { published } = await finishSessionWith(t, new DeadBrain({ turns: [closingTurn()] }));
+
+    const recap = published.find((m) => m.t === 'recap');
+    assert.ok(recap, 'the recap shipped, because it is assembled in code and does not need the model at all');
+    assert.ok(recap.recap.stats.turns > 0, 'and it carries the session that actually happened');
+    assert.deepEqual(
+      recap.recap.phrases.map((p) => p.fr),
+      ['Ça marche', 'Autre chose'],
+      'with every phrase the learner met',
+    );
+
+    const practice = published.find((m) => m.t === 'practice');
+    assert.ok(practice, 'practice still ships, on the deterministic fallback');
+    assert.equal(practice.topics[0]!.titleEn, CAFE_FRAME.titleEn, 'titled by the scene, since nothing curated it');
+  });
+});
+
+describe('which brain the env selects', () => {
+  test('switching to the anthropic key needs no code change', () => {
+    // The promise made to anyone testing on a subscription first: when you are
+    // ready to buy a key, you change one line of .env. If this ever needs a
+    // second edit somewhere, that promise was wrong and this test is where it
+    // should break.
+    const onSubscription = brainClient({ TUTOR_LLM: 'claude-cli', GROQ_API_KEY: 'gq' });
+    assert.ok(onSubscription instanceof SplitBrainClient, 'a subscription splits fast and considered work');
+
+    const onApiKey = brainClient({ TUTOR_LLM: 'anthropic', ANTHROPIC_API_KEY: 'sk-test' });
+    assert.ok(onApiKey instanceof AnthropicBrainClient, 'and TUTOR_LLM alone moves the whole brain onto the API');
+  });
+
+  test('an unset TUTOR_LLM still means anthropic, and an empty one is not a third thing', () => {
+    assert.ok(brainClient({ ANTHROPIC_API_KEY: 'k' }) instanceof AnthropicBrainClient);
+    assert.ok(brainClient({ TUTOR_LLM: '  ', ANTHROPIC_API_KEY: 'k' }) instanceof AnthropicBrainClient);
+  });
+
+  test('groq stays exactly what it was', () => {
+    assert.ok(brainClient({ TUTOR_LLM: 'groq', GROQ_API_KEY: 'gq' }) instanceof OpenAiCompatBrainClient);
   });
 });
 

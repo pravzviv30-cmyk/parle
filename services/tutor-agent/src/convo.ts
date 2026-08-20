@@ -25,8 +25,10 @@ import {
   BrainParseError,
   BrainRefusalError,
   CAFE_FRAME,
+  ClaudeCliBrainClient,
   OpenAiCompatBrainClient,
   RECOVERY_LINE,
+  SplitBrainClient,
   applyCuration,
   applyExtractionToProfile,
   applyNonSpokenInput,
@@ -161,12 +163,32 @@ export function chooseFrame(profile: LearnerProfile): ScenarioFrame {
 /**
  * The brain, selected exactly like the scripted tutor's TUTOR_LLM switch, so
  * one .env flag moves both session shapes between quality tiers together.
- * Claude is the default: coaching quality is the product, and the routed
- * client (brain's routing.ts) already keeps the realtime turns on the fast
- * tier. Groq remains the documented $0 fallback for key-less setups.
+ *
+ * `anthropic` is the default and the shape this is built for: coaching quality
+ *          is the product, and routing.ts already keeps realtime turns on the
+ *          fast tier. Needs ANTHROPIC_API_KEY.
+ * `groq` — the documented $0 fallback for key-less setups.
+ * `claude-cli` — a Claude subscription through the command line, so the
+ *          coaching can be judged before an API key is bought. Split, because
+ *          a CLI call costs about eight seconds: the post-session calls get
+ *          Claude, the learner's turn stays on Groq.
+ *
+ * Exported for one reason worth stating: the promise that moving to the API is
+ * a change of TUTOR_LLM and nothing else is only worth making if a test holds
+ * it, and a private function cannot be held to anything.
  */
-function brainClient(): LlmClient {
-  if (selectedBrain() === 'groq') return new OpenAiCompatBrainClient({ apiKey: process.env.GROQ_API_KEY ?? '' });
+export function brainClient(env: Record<string, string | undefined> = process.env): LlmClient {
+  const brain = selectedBrain(env);
+  if (brain === 'groq') return new OpenAiCompatBrainClient({ apiKey: env.GROQ_API_KEY ?? '' });
+  if (brain === 'claude-cli') {
+    // The subscription answers well and slowly. Give it the three calls that
+    // run once the room has closed, and leave the learner's turn on the fast
+    // one. See SplitBrainClient for why this is wiring and not routing.
+    return new SplitBrainClient({
+      realtime: new OpenAiCompatBrainClient({ apiKey: env.GROQ_API_KEY ?? '' }),
+      considered: new ClaudeCliBrainClient(),
+    });
+  }
   return new AnthropicBrainClient(); // reads ANTHROPIC_API_KEY
 }
 

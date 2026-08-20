@@ -10,7 +10,7 @@
  * misconfigured it.
  */
 
-export type Brain = 'anthropic' | 'groq';
+export type Brain = 'anthropic' | 'groq' | 'claude-cli';
 
 type Env = Record<string, string | undefined>;
 
@@ -27,12 +27,25 @@ type Env = Record<string, string | undefined>;
  */
 export function selectedBrain(env: Env = process.env): Brain {
   const raw = (env.TUTOR_LLM ?? '').trim().toLowerCase();
-  return raw === 'groq' ? 'groq' : 'anthropic';
+  if (raw === 'groq') return 'groq';
+  if (raw === 'claude-cli') return 'claude-cli';
+  return 'anthropic';
 }
 
+/**
+ * Which credential each brain cannot start without.
+ *
+ * `claude-cli` wants GROQ_API_KEY rather than an Anthropic one, and that is not
+ * a mistake: the subscription answers through the `claude` command, which needs
+ * no key at all, but it costs about eight seconds a call and so cannot serve a
+ * realtime turn. The turn stays on Groq. What claude-cli needs beyond this is a
+ * binary on PATH, which is a filesystem question and is checked by the dev
+ * supervisor rather than here.
+ */
 const BRAIN_KEY: Record<Brain, string> = {
   anthropic: 'ANTHROPIC_API_KEY',
   groq: 'GROQ_API_KEY',
+  'claude-cli': 'GROQ_API_KEY',
 };
 
 /** Without these the worker cannot serve a single turn. */
@@ -61,6 +74,12 @@ export function warnings(env: Env = process.env): string[] {
   }
   if (selectedBrain(env) === 'groq') {
     out.push('TUTOR_LLM=groq selects the $0 fallback brain. Its coaching is visibly weaker than Claude’s.');
+  }
+  if (selectedBrain(env) === 'claude-cli') {
+    out.push(
+      'TUTOR_LLM=claude-cli runs memory, curation and drill authoring on your Claude subscription. ' +
+        'Realtime turns stay on Groq, because a command-line call costs seconds a learner would spend in silence.',
+    );
   }
   return out;
 }
@@ -127,7 +146,11 @@ export async function verifyVendors(
 ): Promise<VendorCheck[]> {
   const checks: Promise<VendorCheck | null>[] = [];
 
-  if (selectedBrain(env) === 'groq') {
+  // claude-cli probes Groq, not Anthropic. The subscription needs no key and so
+  // has nothing to verify here, while Groq is genuinely serving its realtime
+  // turns — probing Anthropic instead would send an empty key, take the 401 as
+  // fatal, and refuse to start a worker that was perfectly able to run.
+  if (selectedBrain(env) !== 'anthropic') {
     checks.push(
       probe('Groq', 'https://api.groq.com/openai/v1/models', { Authorization: `Bearer ${env.GROQ_API_KEY ?? ''}` }, fetchFn, (body) => {
         const ids = ((body as { data?: { id?: string }[] }).data ?? []).map((m) => m.id).filter((id): id is string => typeof id === 'string');

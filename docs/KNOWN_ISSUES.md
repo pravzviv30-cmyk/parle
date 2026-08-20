@@ -269,7 +269,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F2 — The brain runs on the founder's Claude subscription, and the swap to an API key is one env var
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/llm/claudeCli.ts:1
 - note: measured twice at 8.96s and 8.32s per `claude -p` call, of which only about two
   seconds is model time and the rest is CLI startup rebuilding a 19k-token system prompt.
