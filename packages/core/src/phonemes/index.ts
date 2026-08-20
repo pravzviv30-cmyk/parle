@@ -9,6 +9,8 @@ export {
   type Difficulty,
 } from './inventory.ts';
 
+export { focusDrillSteps, type FocusStep } from './focusSteps.ts';
+
 export { DRILLS, getDrill, drillsFor, bestDrillFor, type Drill, type DrillKind, type DrillWord, type MinimalPair } from './drills.ts';
 
 export {

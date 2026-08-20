@@ -17,6 +17,17 @@
  *
  * Check 5 is the one that matters. Without it the loop can declare victory by editing a
  * checkbox; with it, the only way to tick a box is to make a named test pass.
+ *
+ * `--fast` answers a different question: **is this commit malformed?** It runs only the
+ * checks that read files rather than running them, so `.githooks/pre-commit` can be
+ * instant. Two things it deliberately does not check:
+ *
+ *   - an open P0 or P1, because /forge files its ledger entries *before* the work. A red
+ *     ledger is the expected state mid-build, and a hook that refused it would make the
+ *     whole forge workflow uncommittable.
+ *   - whether a ticked box names a passing test, because no test ran to name.
+ *
+ * Both are the full gate's job, at push time. Fast mode is a smoke alarm, not the bar.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -31,6 +42,8 @@ const LEDGER_PATH = path.join(ROOT, 'docs', 'KNOWN_ISSUES.md');
 const args = process.argv.slice(2);
 const asJson = args.includes('--json');
 const bless = args.includes('--bless');
+// Skips the two checks that run code rather than reading it. See the header.
+const fast = args.includes('--fast');
 
 /** @type {{check: string, detail: string}[]} */
 const failures = [];
@@ -53,13 +66,15 @@ function run(command, commandArgs) {
 
 // ---------------------------------------------------------------- 1. typecheck
 
-const typecheck = run('npm', ['run', 'typecheck']);
-if (typecheck.code !== 0) {
-  const errors = typecheck.out
-    .split('\n')
-    .filter((l) => /error TS\d+/.test(l))
-    .slice(0, 20);
-  fail('typecheck', errors.length ? errors.join('\n') : typecheck.out.slice(-2000));
+if (!fast) {
+  const typecheck = run('npm', ['run', 'typecheck']);
+  if (typecheck.code !== 0) {
+    const errors = typecheck.out
+      .split('\n')
+      .filter((l) => /error TS\d+/.test(l))
+      .slice(0, 20);
+    fail('typecheck', errors.length ? errors.join('\n') : typecheck.out.slice(-2000));
+  }
 }
 
 // -------------------------------------------------------------------- 2. tests
@@ -70,7 +85,7 @@ const passed = new Set();
 /** @type {Record<string, {tests: number, pass: number, fail: number}>} */
 const counts = {};
 
-for (const pkg of Object.keys(floors)) {
+for (const pkg of fast ? [] : Object.keys(floors)) {
   const result = run('npm', ['test', `--workspace=${pkg}`]);
   const num = (label) => {
     const m = result.out.match(new RegExp(`^ℹ ${label} (\\d+)$`, 'm'));
@@ -137,12 +152,35 @@ for (const file of testFiles(ROOT)) {
 // the agent inherits the session model, the thinking silently moves, and every run still
 // looks exactly the same from the outside. Nothing else in this repo would ever notice.
 
-/** Agent name -> the model it must stay pinned to. Fable thinks, Opus builds. */
+/**
+ * Agent name -> the model it must stay pinned to. Fable thinks, Opus builds.
+ *
+ * The four loop roles came first. The twelve engineers below are the domain team: each
+ * owns a territory of the codebase the way a senior dev owns a subsystem, and /forge
+ * routes a contract to whichever one owns the files it touches. Fable is reserved for
+ * agents whose whole output is a judgement rather than code — scaling-engineer answers
+ * "should we", and the answer is usually no.
+ */
 const AGENT_MODELS = {
+  // the loop
   'design-architect': 'fable',
   'work-judge': 'fable',
   'bug-hunter': 'opus',
   'fix-verifier': 'opus',
+  // the team, builders
+  'frontend-engineer': 'opus',
+  'backend-engineer': 'opus',
+  'data-engineer': 'opus',
+  'auth-engineer': 'opus',
+  'api-engineer': 'opus',
+  'revenue-engineer': 'opus',
+  'performance-engineer': 'opus',
+  'security-engineer': 'opus',
+  'observability-engineer': 'opus',
+  'deploy-engineer': 'opus',
+  // the team, read-only
+  'release-engineer': 'opus',
+  'scaling-engineer': 'fable',
 };
 
 const readOrNull = (file) => {
@@ -178,7 +216,26 @@ for (const [agent, expected] of Object.entries(AGENT_MODELS)) {
   }
 }
 
-for (const command of ['forge', 'bug-sweep']) {
+// A pin only defends an agent the map knows about. Without this, adding a new agent and
+// forgetting to list it above produces exactly the silence this check exists to prevent:
+// the file is there, it dispatches, and it runs on whatever model the session happened to
+// be using. So the directory is the source of truth for *which* agents must be pinned, and
+// the map is the source of truth for *what* they are pinned to.
+let agentFiles = [];
+try {
+  agentFiles = readdirSync(path.join(ROOT, '.claude', 'agents'))
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => f.slice(0, -3));
+} catch {
+  fail('agents', '.claude/agents/ is missing — no agent can be dispatched');
+}
+for (const agent of agentFiles) {
+  if (!(agent in AGENT_MODELS)) {
+    fail('agents', `${agent}: on disk but not pinned in gate.mjs — it would inherit the session model unnoticed`);
+  }
+}
+
+for (const command of ['forge', 'bug-sweep', 'ship']) {
   if (readOrNull(path.join(ROOT, '.claude', 'commands', `${command}.md`)) === null) {
     fail('agents', `.claude/commands/${command}.md is missing — /${command} does not exist`);
   }
@@ -215,12 +272,16 @@ for (const entry of entries) {
   if (entry.verifiedBy.length === 0) fail('goal', `${entry.id}: no verified-by test named`);
 
   if (!entry.done) {
-    if (entry.severity === 'P0' || entry.severity === 'P1') {
+    // Open work is the expected state while /forge builds against its own entries, so the
+    // pre-commit hook must not refuse it. The full gate still does.
+    if (!fast && (entry.severity === 'P0' || entry.severity === 'P1')) {
       fail('goal', `${entry.id} (${entry.severity}) is still open: ${entry.title}`);
     }
     continue;
   }
-  // Ticked. Every test it names must have actually run and actually passed.
+  // Ticked. Every test it names must have actually run and actually passed. In fast mode
+  // nothing ran, so there is no honest way to check this — the full gate does it at push.
+  if (fast) continue;
   for (const title of entry.verifiedBy) {
     if (!passed.has(title)) {
       fail('goal', `${entry.id} is ticked but no passing test is named "${title}" — tick follows the test, not the other way round`);
@@ -231,6 +292,12 @@ for (const entry of entries) {
 // -------------------------------------------------------------------- report
 
 const ok = failures.length === 0;
+
+if (bless && fast) {
+  // Floors are raised from observed counts, and in fast mode nothing was counted.
+  console.error('refusing to bless floors in --fast mode: no suite ran, so there is nothing to raise them to');
+  process.exit(1);
+}
 
 if (bless) {
   // Blessing raises the floors, so it only needs the suites to be sound — an open
@@ -255,9 +322,13 @@ if (asJson) {
   for (const [pkg, c] of Object.entries(counts)) {
     console.log(`  ${c.fail === 0 ? '✔' : '✖'} ${pkg}: ${c.tests} tests, ${c.fail} failing (floor ${floors[pkg]})`);
   }
-  console.log(`  total: ${total} tests`);
+  if (fast) {
+    console.log('  fast: hygiene, agents and the ledger only. No suite ran and no tick was verified.');
+  } else {
+    console.log(`  total: ${total} tests`);
+  }
   if (ok) {
-    console.log('\ngate: green');
+    console.log(fast ? '\ngate: fast checks green' : '\ngate: green');
   } else {
     console.log(`\ngate: ${failures.length} failing check${failures.length === 1 ? '' : 's'}\n`);
     for (const f of failures) console.log(`  [${f.check}] ${f.detail}\n`);

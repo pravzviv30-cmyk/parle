@@ -25,9 +25,31 @@ Do not start editing. Step 2 is where the design comes from, and it is not you.
    Continue the `F` numbering from the highest already there. This happens *before* the work,
    so the gate is watching while you build rather than after.
 
-5. **Build it.** You are the executor. Where an item is a defect rather than new work,
-   dispatch **bug-hunter** instead — that is what it is for. Reproduce before you repair,
-   fix the cause, and write the test named on the `verified-by:` line.
+5. **Route it to whoever owns the files.** Read the contract's *Files to touch* and
+   dispatch the engineer whose territory they fall in. Give it the contract and the ledger
+   entries verbatim. Where an item is a **defect** rather than new work, dispatch
+   **bug-hunter** instead — that is what it is for.
+
+   | Files to touch | Engineer |
+   |---|---|
+   | `apps/mobile/src/` screens, tabs, components, theme, nav | **frontend-engineer** |
+   | `apps/mobile/src/auth/`, `token-server/src/auth.ts` | **auth-engineer** |
+   | any `store.ts`, `storage/scope.ts`, profile migrations | **data-engineer** |
+   | `server.ts` endpoints, `core/src/protocol/`, `brain/src/llm/` | **api-engineer** |
+   | `services/tutor-agent/`, the rest of `token-server/` | **backend-engineer** |
+   | `core/src/metering/`, entitlement writes, anything priced | **revenue-engineer** |
+   | `ttsCache.ts`, `warmCache.ts`, `timing.ts`, cache breakpoints | **performance-engineer** |
+   | rate limits, secrets, CORS, headers, `agentAuth.ts` | **security-engineer** |
+   | `usage.ts` logging, `live/failure.ts`, diagnostics | **observability-engineer** |
+   | `app.json`, `eas.json`, CI, containers | **deploy-engineer** |
+   | `packages/core` pedagogy — ladder, lessons, session, phonemes | **you** |
+
+   Two rules. **Core pedagogy has no specialist on purpose**: `ARCHITECTURE.md` gives the
+   ladder, the matching and the summary exactly one owner, and a second opinion about them
+   is how a repo grows two ladders. And **an engineer edits only its own territory** — where
+   the contract spans several, dispatch each in turn on its own files rather than letting one
+   reach across. Work that turns up outside every territory is a new ledger entry, not a
+   quiet extra edit.
 
 6. **Run `npm run gate`.** From the repo root, never a worktree.
 

@@ -304,7 +304,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F4 — The end card's Start button starts the focus drill
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/SummaryScreen.tsx:113
 - note: the one solid pill on the screen that closes every session is
   `onPress={() => {}}`, and it fronts the product's headline promise of one focus sound
@@ -319,7 +319,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F5 — Go again goes again, and Review reviews
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/nav/RootNavigator.tsx:102
 - note: onAgain and onReview both call nav.goBack(), which matches neither label. Two
   differently labelled buttons with identical behaviour is worse than one button, and

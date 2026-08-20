@@ -62,7 +62,11 @@ function Loading() {
 
 /** The guided lesson, and the end card it finishes on. */
 function LessonRoute() {
-  const nav = useNavigation<{ goBack: () => void; setParams: (p: { textMode?: boolean }) => void }>();
+  const nav = useNavigation<{
+    goBack: () => void;
+    navigate: (screen: keyof RootStackParamList) => void;
+    setParams: (p: { textMode?: boolean }) => void;
+  }>();
   const route = useRoute<RouteProp<RootStackParamList, 'Lesson'>>();
   const textMode = route.params?.textMode ?? false;
   const { user } = useAuth();
@@ -92,6 +96,26 @@ function LessonRoute() {
     void addFromSummary(s);
   }, []);
 
+  /**
+   * Go again means go again. Both of these buttons used to call goBack(), which
+   * matched neither label: "Go again" retreated to the tab that launched the
+   * lesson, and "Review" did the same rather than opening the review deck that
+   * has been sitting in this very stack the whole time.
+   *
+   * The rung is re-read rather than reused, because the session that just ended
+   * has already been recorded and openingRung has moved. Restarting on the
+   * stale value would open the next attempt where the last one began instead of
+   * one below where it finished.
+   */
+  const again = useCallback(() => {
+    setStartRung(null);
+    void lastSummaryFor(CAFE_LESSON.id).then((s) => {
+      setStartRung(asRung(s?.nextStartRung) ?? 1);
+      setSummary(null);
+      setReport(null);
+    });
+  }, []);
+
   if (startRung === null) return <Loading />;
   if (summary) {
     return (
@@ -99,8 +123,8 @@ function LessonRoute() {
         lesson={CAFE_LESSON}
         summary={summary}
         report={report}
-        onAgain={() => nav.goBack()}
-        onReview={() => nav.goBack()}
+        onAgain={again}
+        onReview={() => nav.navigate('Review')}
       />
     );
   }

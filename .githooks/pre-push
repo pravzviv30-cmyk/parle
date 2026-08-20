@@ -1,0 +1,7 @@
+#!/bin/sh
+# The bar: typecheck, every suite, the count floors, the agent pins, and the ledger. This
+# is the one that refuses an open P0 or P1 and refuses a ticked box whose test did not
+# pass. It takes a couple of minutes, which is why it lives here and not on every commit.
+#
+# Pushing a branch that is still mid-forge: git push --no-verify
+exec node "$(git rev-parse --show-toplevel)/scripts/gate.mjs"

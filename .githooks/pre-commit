@@ -1,0 +1,11 @@
+#!/bin/sh
+# Is this commit malformed? A focused .only(), an agent that lost its model pin, a ledger
+# entry the gate's parser cannot read. Reads files, runs nothing, finishes in well under a
+# second.
+#
+# It deliberately does not care about open P0/P1 work: /forge files its ledger entries
+# before it builds, so a red ledger is what a healthy work-in-progress branch looks like.
+# The full bar runs on push instead. See scripts/gate.mjs.
+#
+# Genuinely need to commit past it: git commit --no-verify
+exec node "$(git rev-parse --show-toplevel)/scripts/gate.mjs" --fast

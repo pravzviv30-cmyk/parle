@@ -10,12 +10,13 @@
  * end card that cannot say "9 words" would be coy rather than calm.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { buildEntries, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@parle/core';
+import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@parle/core';
 import { paper, signal, space, type, radius, HAIRLINE } from './theme.ts';
 import { Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
+import { FocusDrillPlayer } from './drill/FocusDrillPlayer.tsx';
 import { RecapPostcard } from './illustrations.tsx';
 import { saveTextFile } from './progress/saveFile.ts';
 
@@ -36,6 +37,7 @@ export function SummaryScreen({
 }) {
   const insets = useSafeAreaInsets();
   const focus = summary.pronunciation.focus;
+  const [drilling, setDrilling] = useState(false);
   const mins = Math.floor(summary.durationSec / 60);
   const secs = Math.round(summary.durationSec % 60);
 
@@ -44,6 +46,10 @@ export function SummaryScreen({
   const exportCards = useCallback(() => {
     void saveTextFile('parle-words.txt', toAnkiTsv(buildEntries(exportWords, LESSONS)), 'text/tab-separated-values');
   }, [exportWords]);
+
+  if (drilling && focus) {
+    return <FocusDrillPlayer drill={focus.drill} onDone={() => setDrilling(false)} />;
+  }
 
   return (
     <View style={[st.root, { paddingTop: insets.top + space(2) }]}>
@@ -107,10 +113,17 @@ export function SummaryScreen({
                 ))}
               </View>
 
-              {/* Not wired yet, exactly as before — the pill is the screen's one
-                  solid action so the drill reads as the recommended next step. */}
+              {/* The screen's one solid action, so the drill reads as the
+                  recommended next step. It opens in place rather than on a
+                  route: a drill is a state this card is in, not somewhere else
+                  the learner has gone. */}
               <View style={{ marginTop: space(4) }}>
-                <PillButton label="Start" onPress={() => {}} icon={<ArrowRight size={16} color={paper.onInk} />} />
+                <PillButton
+                  label="Start"
+                  onPress={() => setDrilling(true)}
+                  disabled={focusDrillSteps(focus.drill).length === 0}
+                  icon={<ArrowRight size={16} color={paper.onInk} />}
+                />
               </View>
             </Card>
           </View>
