@@ -41,11 +41,13 @@ question rather than reaching for a bare `query`, which truncates here:
 
 - `graphify affected "X"` — what breaks if X changes, who calls X
 - `graphify explain "X"` — what X is
-- `graphify query "..." --context call --budget 3000` — how a subsystem works
+- `graphify query "sym1 sym2" --context call --budget 3000` — how named symbols connect
 - `graphify path "A" "B" --undirected` — how two symbols relate
 - `graphify-out/wiki/index.md` — broad architecture, before `GRAPH_REPORT.md`
 
-Always pass `--context call` to `query`. `path` needs `--undirected`. Reading a file directly
+Always pass `--context call` to `query`, and seed it on symbol names rather than a
+sentence: seeding is lexical, so a prose question finds the wrong nodes and comes back
+with no edges at all. `path` needs `--undirected`. Reading a file directly
 is fine — the graph is orientation, not a gate. Note that the docs nodes form a closed island
 with no edges into source, so prose will not route you to a symbol.
 

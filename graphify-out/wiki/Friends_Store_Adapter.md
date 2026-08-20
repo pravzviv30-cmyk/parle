@@ -33,10 +33,10 @@
 
 ## Relationships
 
-- [Auth Context and Friends UI](Auth_Context_and_Friends_UI.md) (16 shared connections)
+- [Add Friends Screen](Add_Friends_Screen.md) (16 shared connections)
 - [App Root and Profile Gate](App_Root_and_Profile_Gate.md) (4 shared connections)
-- [Live Session Navigation Context](Live_Session_Navigation_Context.md) (2 shared connections)
-- [Drill Local Store](Drill_Local_Store.md) (1 shared connections)
+- [Activity Log Store](Activity_Log_Store.md) (2 shared connections)
+- [Generated Drill Store](Generated_Drill_Store.md) (1 shared connections)
 
 ## Source Files
 

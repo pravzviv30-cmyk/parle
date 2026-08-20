@@ -16,7 +16,7 @@
 ## Relationships
 
 - [Expo App Config](Expo_App_Config.md) (1 shared connections)
-- [Drill Exercise Screens](Drill_Exercise_Screens.md) (1 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (1 shared connections)
 - [App Root and Profile Gate](App_Root_and_Profile_Gate.md) (1 shared connections)
 - [Supabase Auth Adapter](Supabase_Auth_Adapter.md) (1 shared connections)
 

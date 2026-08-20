@@ -74,9 +74,14 @@ Both looked like green coverage of a fixed bug and were neither.
 ## What is not covered
 
 `apps/mobile` has a suite now, but a small one, and it only covers logic that can
-be imported without React Native — the pure modules under `src/live/`
-(`thinking.ts`, `turns.ts`, `failure.ts`) and `mockSpeech.ts`. There is no
-renderer and no component test.
+be imported without React Native. Today that is eight files: `copy.test.ts`, the
+pure rules under `src/live/` (`thinking.ts`, `journal.ts`, `serverUrl.ts`), and
+`friends/logic.ts`, `nav/wiring.ts`, `practice/statusLine.ts` and
+`profile/upgrade.ts`.
+
+There is no renderer and no component test. `live/turns.ts`, `live/failure.ts` and
+`mockSpeech.ts` exist and have no suite of their own — they are the obvious next
+candidates for the treatment below.
 
 That shapes how app bugs get fixed: **pull the rule out into a plain module and
 test it there**, rather than leaving it inline and untestable. `thinking.ts` is

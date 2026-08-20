@@ -2,7 +2,7 @@
 
 > God node · 38 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Conversation and Recap Screens](Conversation_and_Recap_Screens.md)
+**Community:** [Paper UI Component Kit](Paper_UI_Component_Kit.md)
 
 ## Connections by Relation
 

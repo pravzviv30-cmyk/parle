@@ -3,7 +3,7 @@
 //
 // Replaces `graphify hook-guard`, whose message is baked into the graphify
 // binary and always demands a bare `graphify query` first. On this repo that
-// is the wrong default: bare `query` truncates (269 nodes found, 67 shown),
+// is the wrong default: bare `query` truncates (304 nodes found, 61 shown),
 // while `affected` / `explain` answer pinpoint questions exactly and
 // `--context call` keeps a subsystem query whole. See CLAUDE.md § graphify.
 //
@@ -27,13 +27,14 @@ const SOURCE_EXTS = new Set([
 
 const ROUTING = [
   'graphify: a knowledge graph covers this repo. Route by question shape rather than',
-  'defaulting to a bare query:',
+  'defaulting to a bare query, and seed on symbol names rather than a sentence:',
   '  what breaks if I change X / who uses X  ->  graphify affected "X"',
   '  what is X                               ->  graphify explain "X"',
-  '  how does <subsystem> work               ->  graphify query "..." --context call --budget 3000',
+  '  how do these symbols connect            ->  graphify query "sym1 sym2" --context call --budget 3000',
   '  relationship between A and B            ->  graphify path "A" "B" --undirected',
   '  broad architecture                      ->  graphify-out/wiki/index.md, then GRAPH_REPORT.md',
-  'Bare `query` truncates on this repo; --context call keeps the result whole. `path`',
+  'Bare `query` truncates on this repo; --context call keeps the result whole. Seeding',
+  'is lexical, so a prose question finds the wrong nodes and returns no edges. `path`',
   'needs --undirected because the graph is undirected. Going straight to the file to',
   'edit or debug specific lines is fine — this is orientation, not a gate.',
 ].join('\n');

@@ -28,14 +28,12 @@
 
 ## Relationships
 
-- [Live Session Navigation Context](Live_Session_Navigation_Context.md) (8 shared connections)
-- [Drill Exercise Screens](Drill_Exercise_Screens.md) (2 shared connections)
+- [Live Session Navigation Context](Live_Session_Navigation_Context.md) (6 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (3 shared connections)
+- [Activity Log Store](Activity_Log_Store.md) (3 shared connections)
+- [Paper UI Component Kit](Paper_UI_Component_Kit.md) (2 shared connections)
 - [App Root and Profile Gate](App_Root_and_Profile_Gate.md) (2 shared connections)
-- [Prompt and Turn Queue](Prompt_and_Turn_Queue.md) (1 shared connections)
-- [Conversation and Recap Screens](Conversation_and_Recap_Screens.md) (1 shared connections)
-- [Drill Session Flow](Drill_Session_Flow.md) (1 shared connections)
-- [Tab Bar Icons](Tab_Bar_Icons.md) (1 shared connections)
-- [Shared UI Components](Shared_UI_Components.md) (1 shared connections)
+- [Drill Grading and Fixtures](Drill_Grading_and_Fixtures.md) (1 shared connections)
 
 ## Source Files
 

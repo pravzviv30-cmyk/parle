@@ -1,6 +1,6 @@
 # Conversation Orchestrator
 
-> 33 nodes · cohesion 0.16
+> 31 nodes · cohesion 0.18
 
 ## Key Concepts
 
@@ -11,13 +11,13 @@
 - **.startScene()** (10 connections) — `services/tutor-agent/src/convo.ts`
 - **.armRescue()** (9 connections) — `services/tutor-agent/src/convo.ts`
 - **.handleClientMessage()** (9 connections) — `services/tutor-agent/src/convo.ts`
-- **supportViewFor()** (8 connections) — `packages/brain/src/engine/conversation.ts`
 - **.clearRescue()** (8 connections) — `services/tutor-agent/src/convo.ts`
 - **.say()** (8 connections) — `services/tutor-agent/src/convo.ts`
 - **.generateDrills()** (7 connections) — `services/tutor-agent/src/convo.ts`
 - **.openScene()** (7 connections) — `services/tutor-agent/src/convo.ts`
 - **.rescue()** (7 connections) — `services/tutor-agent/src/convo.ts`
 - **LearnerTurnInput** (6 connections) — `packages/brain/src/engine/conversation.ts`
+- **.buildFrame()** (6 connections) — `services/tutor-agent/src/convo.ts`
 - **.curateAndDrill()** (6 connections) — `services/tutor-agent/src/convo.ts`
 - **.extractMemory()** (6 connections) — `services/tutor-agent/src/convo.ts`
 - **.publishView()** (6 connections) — `services/tutor-agent/src/convo.ts`
@@ -26,25 +26,25 @@
 - **.speak()** (5 connections) — `services/tutor-agent/src/convo.ts`
 - **.open()** (4 connections) — `services/tutor-agent/src/convo.ts`
 - **.runRescue()** (4 connections) — `services/tutor-agent/src/convo.ts`
-- **sttLanguageFor()** (4 connections) — `services/tutor-agent/src/convo.ts`
 - **.markTiming()** (3 connections) — `services/tutor-agent/src/convo.ts`
 - **.publishError()** (3 connections) — `services/tutor-agent/src/convo.ts`
-- *... and 8 more nodes in this community*
+- **.silenceWindow()** (3 connections) — `services/tutor-agent/src/convo.ts`
+- *... and 6 more nodes in this community*
 
 ## Relationships
 
-- [Learner Profile Model](Learner_Profile_Model.md) (13 shared connections)
-- [Conversation Test Doubles](Conversation_Test_Doubles.md) (7 shared connections)
-- [Tutor Copy Rules](Tutor_Copy_Rules.md) (6 shared connections)
-- [Conversation State and Recap](Conversation_State_and_Recap.md) (5 shared connections)
-- [Playground Eval Harness](Playground_Eval_Harness.md) (4 shared connections)
-- [Playground Chat Commands](Playground_Chat_Commands.md) (3 shared connections)
-- [Conversation Ladder and Copy Rules](Conversation_Ladder_and_Copy_Rules.md) (3 shared connections)
-- [Memory Curation](Memory_Curation.md) (3 shared connections)
+- [Conversation View and Profile Parsing](Conversation_View_and_Profile_Parsing.md) (12 shared connections)
+- [Session Recap Contract Types](Session_Recap_Contract_Types.md) (8 shared connections)
+- [Drill Eval Harness](Drill_Eval_Harness.md) (5 shared connections)
+- [Learner Profile and Support](Learner_Profile_and_Support.md) (5 shared connections)
+- [Topic Curation Prompt](Topic_Curation_Prompt.md) (4 shared connections)
+- [Learner Profile Updates](Learner_Profile_Updates.md) (3 shared connections)
+- [Brain LLM Client Schemas](Brain_LLM_Client_Schemas.md) (2 shared connections)
 - [Client Agent Wire Protocol](Client_Agent_Wire_Protocol.md) (2 shared connections)
-- [Agent Preflight Checks](Agent_Preflight_Checks.md) (2 shared connections)
-- [Brain Client Contracts](Brain_Client_Contracts.md) (1 shared connections)
+- [App Root and Profile Gate](App_Root_and_Profile_Gate.md) (1 shared connections)
+- [Agent Preflight and Env](Agent_Preflight_and_Env.md) (1 shared connections)
 - [Memory Extraction Prompt](Memory_Extraction_Prompt.md) (1 shared connections)
+- [Drill Grading and Fixtures](Drill_Grading_and_Fixtures.md) (1 shared connections)
 
 ## Source Files
 
@@ -53,7 +53,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 137 (99%)
+- EXTRACTED: 128 (99%)
 - INFERRED: 1 (1%)
 - AMBIGUOUS: 0 (0%)
 

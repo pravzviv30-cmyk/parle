@@ -10,8 +10,9 @@ Do not start editing. Step 2 is where the design comes from, and it is not you.
 
 1. **Gather the brief.** Work out what the architect needs to know: the files in play, the
    existing pattern this would follow, anything already broken nearby. Use graphify to orient
-   (`affected` and `explain` for named symbols, `query --context call` for a subsystem, never
-   a bare `query` — it truncates here). Keep it to a brief, not a dump.
+   (`affected` and `explain` for named symbols, `query --context call` seeded on symbol
+   names for how they connect, never a bare `query` and never a prose question — the
+   first truncates and the second seeds on the wrong nodes). Keep it to a brief, not a dump.
 
 2. **Dispatch the design-architect agent.** Give it the request verbatim and the brief. It
    runs on Fable and returns the contract. Write that to `.forge/<slug>/contract.md`, where

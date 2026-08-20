@@ -1,10 +1,10 @@
 # Known Issues Ledger
 
-> 33 nodes · cohesion 0.06
+> 34 nodes · cohesion 0.06
 
 ## Key Concepts
 
-- **Format** (33 connections) — `docs/KNOWN_ISSUES.md`
+- **Format** (34 connections) — `docs/KNOWN_ISSUES.md`
 - **A1 — A spoken answer has to match the script exactly** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **A2 — An empty transcript is graded as a wrong answer** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **A3 — A freeze at the top rung still asks the learner to invent French** (1 connections) — `docs/KNOWN_ISSUES.md`
@@ -28,8 +28,8 @@
 - **F10 — An agent that decides cannot quietly do** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **F11 — /forge routes only to engineers that exist** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **F12 — A malformed agent definition names itself** (1 connections) — `docs/KNOWN_ISSUES.md`
-- **F1 — One command boots the whole product, waits for health, and reaps its children** (1 connections) — `docs/KNOWN_ISSUES.md`
-- *... and 8 more nodes in this community*
+- **F13 — devPlan's brainOf mirrors selectedBrain, and nothing holds the mirror** (1 connections) — `docs/KNOWN_ISSUES.md`
+- *... and 9 more nodes in this community*
 
 ## Relationships
 
@@ -41,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 33 (100%)
+- EXTRACTED: 34 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

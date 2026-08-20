@@ -2,7 +2,7 @@
 
 > God node · 69 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Drill Exercise Screens](Drill_Exercise_Screens.md)
+**Community:** [Drill Screen Views](Drill_Screen_Views.md)
 
 ## Connections by Relation
 

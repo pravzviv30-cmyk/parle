@@ -16,8 +16,15 @@ file that answers your question — not the whole folder, and not the source.
 | What is known to be broken | `docs/KNOWN_ISSUES.md` |
 
 Before finishing any change, run `npm run gate`. It checks typecheck, every
-suite, the per-workspace test-count floors, and that no P0 or P1 in the ledger is
-still open — where a ticked box only counts if the test it names actually passed.
+suite, the per-workspace test-count floors, that every agent is still pinned to
+its model, and that no P0 or P1 in the ledger is still open — where a ticked box
+only counts if the test it names actually passed.
+
+Two git hooks enforce it without being asked: `pre-commit` runs `npm run gate:fast`
+(the file-reading checks only, well under a second) and `pre-push` runs the full
+bar. They live in `.githooks/` and `npm install` points git at them. Fast mode
+deliberately ignores open P0/P1 work, because `/forge` files its ledger entries
+*before* it builds — a red ledger is what a healthy in-progress branch looks like.
 
 ## Think like a senior engineer
 
@@ -37,34 +44,64 @@ senior-level scrutiny before code is written:
 - Nothing ships without a test that fails if the behaviour regresses, and
   `npm run gate` green.
 
+## The team
+
+Sixteen agents work in this repo. Four are **roles in a loop** — `design-architect`
+decides the shape, `bug-hunter` repairs, `fix-verifier` refutes, `work-judge` says
+SHIP. Twelve are **engineers who own a territory** of the codebase. The roster and
+the territories are in `docs/TEAM.md`.
+
+| Want | Run |
+|---|---|
+| Something built properly | `/forge <what you want built>` |
+| To know if it is safe to release | `/ship` |
+| One pass at the ledger's top open item | `/bug-sweep` |
+| A specific specialist | ask for it by name |
+
+`/forge` designs on Fable, routes the build to whichever engineer owns the files
+the contract touches, then judges on Fable until the gate is green.
+
+Two rules hold the team together. **An engineer edits only its own territory** and
+files work outside it, which is what stops three agents editing the same file in
+one round. And **`packages/core` pedagogy has no specialist on purpose**:
+`ARCHITECTURE.md` gives the ladder, the matching and the summary exactly one owner
+each, and a second opinion about them is how a repo grows two ladders.
+
 ## graphify
 
-This project has a knowledge graph at `graphify-out/` — 1939 nodes, 4888 links
-across the source files, grouped into 116 named communities.
+This project has a knowledge graph at `graphify-out/` — 2224 nodes, 5407 links
+across the source files, grouped into 131 named communities.
 
-**Route by the shape of the question.** Reaching for a bare `graphify query` is the
-wrong default here: it truncates. A live-voice question finds 269 nodes and shows 60,
-and the node list it returns carries no edges — so it costs tokens without answering.
+**Route by the shape of the question, and name real symbols.** Reaching for a bare
+`graphify query` is the wrong default here: it truncates. A prose live-voice question
+finds 304 nodes, shows 61, and the node list it returns carries no edges — so it costs
+tokens without answering.
 
 | Question shape | Command |
 |---|---|
 | What breaks if I change X / who uses X | `graphify affected "X"` |
 | What is X | `graphify explain "X"` |
-| How does \<subsystem\> work | `graphify query "..." --context call --budget 3000` |
+| How do these symbols connect | `graphify query "sym1 sym2 sym3" --context call --budget 3000` |
 | Relationship between two symbols | `graphify path "A" "B" --undirected` |
 | Broad architecture | `graphify-out/wiki/index.md`, then `GRAPH_REPORT.md` § Community Hubs |
 
 Rules:
-- **Always pass `--context call`** to `query`. It drops that same live-voice question
-  from 269 nodes to 33 with no truncation, and returns 37 `--calls-->` edges with
-  `file:line` instead of a bare list of names. If a result still says `[!] TRUNCATED`,
-  narrow the context or switch to `affected`/`explain` — do not just raise `--budget`.
+- **Seed `query` on symbol names, never on a sentence.** This is the difference between
+  a useful answer and an empty one, not a style preference. `"how does the live voice
+  session work"` seeds on `Session` from the playground and `session()` from a *test
+  file*, and returns 5 nodes with no edges. `"useLiveSession ParleTutor grantSession"`
+  returns 50 nodes and 52 edges, complete and untruncated.
+- **Always pass `--context call`** to `query`. You get `EDGE a --calls [...]--> b
+  at=file:L123` lines instead of a bare list of names. If a result still says
+  `[!] TRUNCATED`, narrow the context or switch to `affected`/`explain` — do not just
+  raise `--budget`. A result that says it is *over* budget but complete is fine: edges
+  are never dropped once every node fits, so raising `--budget` will not shrink it.
 - **`path` needs `--undirected`.** The graph is built undirected, but `path` defaults
   to a directed search and reports "No directed path found" on edges that do exist.
 - `affected` and `explain` are the precise commands — both cite `file:line`. Prefer
-  them whenever the question names a symbol.
-- Start broad navigation at `graphify-out/wiki/index.md` (110 concept articles, ~1.9k
-  tokens) rather than `GRAPH_REPORT.md` (~5.3k tokens).
+  them whenever the question names a symbol, which is most of the time.
+- Start broad navigation at `graphify-out/wiki/index.md` (141 concept articles, ~2.3k
+  tokens) rather than `GRAPH_REPORT.md` (~5.5k tokens).
 - Going straight to a file to edit or debug specific lines is fine. The graph is for
   orientation, not a gate.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only,
@@ -75,14 +112,15 @@ Rules:
   falls back to filename labels.
 
 Known limits (do not mistake these for working):
-- **Docs do not link to code.** The 69 nodes under `docs/` form a closed island — zero
-  edges into source — so prose cannot route you to a symbol. Closing this needs a
-  `--mode deep` rebuild.
+- **Docs do not link to code.** The 101 nodes under `docs/` form a closed island — zero
+  edges into source, measured — so prose cannot route you to a symbol. Closing this
+  needs a `--mode deep` rebuild.
 - **Theme primitives inflate the hubs.** `space()` from `apps/mobile/src/theme.ts` is
-  the third most-connected node (62 edges), so UI-adjacent traversals pull in the
-  styling layer. `--context call` sidesteps it.
+  now the **most** connected node in the repo (69 edges), so UI-adjacent traversals pull
+  in the styling layer. `--context call` sidesteps it.
 - **Seeding is lexical, not semantic.** Asking "what counts as a *right* answer" seeds
-  on a node named `counts` and on `ArrowRight()`. Name real symbols in queries.
+  on a node named `counts` and on `ArrowRight()`. This is the same trap as the first
+  rule above, and it is the single most common way to waste a query here.
 
 ## Worktrees
 

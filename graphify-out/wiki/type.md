@@ -2,7 +2,7 @@
 
 > God node · 31 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Auth Context and Friends UI](Auth_Context_and_Friends_UI.md)
+**Community:** [Paper UI Component Kit](Paper_UI_Component_Kit.md)
 
 ## Connections by Relation
 

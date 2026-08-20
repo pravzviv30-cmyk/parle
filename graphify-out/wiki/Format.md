@@ -1,6 +1,6 @@
 # Format
 
-> God node · 33 connections · `docs/KNOWN_ISSUES.md`
+> God node · 34 connections · `docs/KNOWN_ISSUES.md`
 
 **Community:** [Known Issues Ledger](Known_Issues_Ledger.md)
 
@@ -25,8 +25,8 @@
 - F4 — The end card's Start button starts the focus drill `EXTRACTED`
 - F5 — Go again goes again, and Review reviews `EXTRACTED`
 - F6 — A topic node the tutor has not finished writing is locked, with honest words `EXTRACTED`
-- F7 — A conversation's phrases survive the app dying before the recap `EXTRACTED`
-- F8 — The token server address has one home in the app `EXTRACTED`
+- F7 — A conversation's phrases survive the app being killed after the recap `EXTRACTED`
+- A3 — A freeze at the top rung still asks the learner to invent French `EXTRACTED`
 
 ---
 

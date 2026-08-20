@@ -6,8 +6,8 @@
 
 - **dev.mjs** (21 connections) — `scripts/dev.mjs`
 - **devPlan.ts** (21 connections) — `services/shared/devPlan.ts`
+- **devPlan.test.ts** (14 connections) — `services/tutor-agent/src/devPlan.test.ts`
 - **main()** (13 connections) — `scripts/dev.mjs`
-- **devPlan.test.ts** (11 connections) — `services/tutor-agent/src/devPlan.test.ts`
 - **bootPlan()** (5 connections) — `services/shared/devPlan.ts`
 - **envGaps()** (5 connections) — `services/shared/devPlan.ts`
 - **launch()** (4 connections) — `scripts/dev.mjs`
@@ -33,7 +33,7 @@
 
 ## Relationships
 
-- No strong cross-community connections detected
+- [Agent Preflight and Env](Agent_Preflight_and_Env.md) (3 shared connections)
 
 ## Source Files
 
@@ -43,7 +43,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 71 (100%)
+- EXTRACTED: 74 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

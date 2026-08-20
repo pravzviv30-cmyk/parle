@@ -34,11 +34,18 @@ which are computed agent-side and only ever delivered over the live room.
 `apps/mobile/src/profile/store.ts` holds `StoredProfile`:
 
 ```ts
-{ version: 2, name, dob, motivation, dailyGoalMin, onboardedAt, brain: LearnerProfile }
+{ version: 3, name, dob, motivation, dailyGoalMin, onboardedAt, username, brain: LearnerProfile }
 ```
 
 `brain` is `@parle/brain`'s learner model, stored verbatim — the app is its
 storage, not its author.
+
+`apps/mobile/src/profile/upgrade.ts` is the app-side forward migration.
+`upgradeStored` takes whatever was on disk and returns a version-3 profile or
+`null` if it cannot be read at all. Version 1 and version 2 records both gain
+`username: null`; a version-3 record keeps the username it already has. That is a
+separate concern from the brain's own `repairProfile`, which repairs the nested
+`brain` field — the outer envelope and the learner model version independently.
 
 ## The brain's learner model
 

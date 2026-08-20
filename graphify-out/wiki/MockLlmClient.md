@@ -2,7 +2,7 @@
 
 > God node · 26 connections · `packages/brain/src/llm/mock.ts`
 
-**Community:** [Brain Client Contracts](Brain_Client_Contracts.md)
+**Community:** [Brain LLM Client Schemas](Brain_LLM_Client_Schemas.md)
 
 ## Connections by Relation
 

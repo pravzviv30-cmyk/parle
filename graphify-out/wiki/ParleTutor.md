@@ -2,7 +2,7 @@
 
 > God node · 24 connections · `services/tutor-agent/src/tutor.ts`
 
-**Community:** [LiveKit Tutor Agent](LiveKit_Tutor_Agent.md)
+**Community:** [Live Tutor Agent](Live_Tutor_Agent.md)
 
 ## Connections by Relation
 

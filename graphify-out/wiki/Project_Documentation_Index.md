@@ -16,15 +16,15 @@
 
 ## Relationships
 
-- [Project Architecture Overview](Project_Architecture_Overview.md) (1 shared connections)
-- [Forge Workflow Doc](Forge_Workflow_Doc.md) (1 shared connections)
+- [Architecture Overview Doc](Architecture_Overview_Doc.md) (1 shared connections)
+- [Forge Command Spec](Forge_Command_Spec.md) (1 shared connections)
 - [Known Issues Ledger](Known_Issues_Ledger.md) (1 shared connections)
-- [Loop and Forge Doc](Loop_and_Forge_Doc.md) (1 shared connections)
-- [Pedagogy Ladder Doc](Pedagogy_Ladder_Doc.md) (1 shared connections)
+- [Bug Loop Doc](Bug_Loop_Doc.md) (1 shared connections)
+- [Pedagogy Doc](Pedagogy_Doc.md) (1 shared connections)
 - [Live Voice Doc](Live_Voice_Doc.md) (1 shared connections)
 - [State and Storage Doc](State_and_Storage_Doc.md) (1 shared connections)
 - [Testing Doc](Testing_Doc.md) (1 shared connections)
-- [Agent Team Roster](Agent_Team_Roster.md) (1 shared connections)
+- [Team Roster Doc](Team_Roster_Doc.md) (1 shared connections)
 
 ## Source Files
 

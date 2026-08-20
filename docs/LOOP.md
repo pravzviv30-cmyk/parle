@@ -18,7 +18,7 @@ npm run gate -- --json
 npm run gate:bless    # raise the test floors after a green run
 ```
 
-`scripts/gate.mjs` checks four things, in order:
+`scripts/gate.mjs` checks five things, in order:
 
 1. **Typecheck** across all six workspaces.
 2. **Tests** — zero failures, *and* no workspace below its floor in
@@ -26,10 +26,14 @@ npm run gate:bless    # raise the test floors after a green run
    that fails to load takes its whole file down silently and still exits 0
    (see TESTING.md).
 3. **Hygiene** — no `.only`, no `.skip`.
-4. **The goal** — `docs/KNOWN_ISSUES.md` has no open P0 or P1, and every ticked
+4. **Agents** — every file in `.claude/agents/` is pinned to a model the gate
+   knows about, and `/forge`, `/bug-sweep` and `/ship` all exist. An agent that
+   loses its `model:` line still dispatches and silently inherits the session
+   model, so nothing else would ever notice (see FORGE.md and TEAM.md).
+5. **The goal** — `docs/KNOWN_ISSUES.md` has no open P0 or P1, and every ticked
    box names a test that actually ran and actually passed.
 
-Check 4 is the one that makes the rest trustworthy. Without it the loop closes an
+Check 5 is the one that makes the rest trustworthy. Without it the loop closes an
 item by editing a checkbox. With it, the only way to tick a box is to make a named
 test pass — and deleting the entry fails the gate too.
 
