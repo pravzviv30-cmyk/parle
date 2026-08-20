@@ -130,23 +130,34 @@ requests them at runtime — a whole-line cache entry would never be hit.
 npm run warm-cache --workspace=@parle/tutor-agent
 ```
 
-Then run the four processes:
+Then start everything with one command:
+
+```bash
+npm run dev
+```
+
+That brings up LiveKit, the token server, the tutor agent and the app together,
+in that order, because each one depends on the one before it. Every line is
+labelled with the process it came from, and Ctrl-C stops all of them.
+
+Two things it does that are worth knowing. It checks both `.env` files *before*
+starting anything, so a missing key is one line on your terminal rather than a
+room that opens and a tutor that never speaks. And if something is already
+running on one of the ports it will reuse it when it recognises it and refuse
+when it does not, naming the port and how to find out what has it.
+
+Starting them by hand still works if you want one process on its own:
 
 ```bash
 ~/.local/bin/livekit-server --dev
-```
-
-```bash
 npm run start --workspace=@parle/token-server
-```
-
-```bash
 npm run dev --workspace=@parle/tutor-agent
-```
-
-```bash
 npm run web
 ```
+
+Forgetting one of those is exactly how the app comes to report that there is no
+server available. Nothing is broken when it says that: the token server is not
+running, the app's health probe fails, and the Tutor tab falls back to Demo.
 
 The home screen runs **Live** when the token server is reachable and the
 session runs over LiveKit; otherwise it shows a small **Demo** label and falls

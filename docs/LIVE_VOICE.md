@@ -3,6 +3,13 @@
 What happens between a learner tapping "start" and a tutor answering them, and
 where every part of it can go wrong.
 
+Four processes have to be running for any of this to happen. `npm run dev`
+starts them in dependency order and stops them together; `scripts/dev.mjs` is
+the supervisor and `services/shared/devPlan.ts` holds the decisions it makes.
+The most common live-path failure by far is not in this document: it is that the
+token server is not running, which surfaces as `server-unreachable` and a Demo
+label on the Tutor tab.
+
 ## The route
 
 ```

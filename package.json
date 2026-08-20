@@ -11,6 +11,7 @@
   "scripts": {
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev": "node --experimental-strip-types scripts/dev.mjs",
     "web": "npm run web --workspace=@parle/mobile",
     "gate": "node scripts/gate.mjs",
     "gate:bless": "node scripts/gate.mjs --bless",

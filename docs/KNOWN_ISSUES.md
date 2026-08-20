@@ -253,7 +253,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F1 — One command boots the whole product, waits for health, and reaps its children
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: scripts/dev.mjs:1
 - note: four hand-started terminals is the whole reason "there is no server available"
   ever happened. README documents the four, `.claude/launch.json` starts only Expo, and
