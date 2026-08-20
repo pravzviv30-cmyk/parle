@@ -22,7 +22,7 @@ app  ──POST /session/start──►  token-server
 app  ──joins the room──────►  LiveKit
                                  └ dispatches the job to the tutor-agent worker
 agent  ─reads the metadata──►  builds ParleTutor or ParleConversation
-       ◄──── audio ─────────►  Deepgram STT (fr) → Claude/Groq → ElevenLabs TTS
+       ◄──── audio ─────────►  Deepgram STT (multi, then fr) → Claude/Groq → ElevenLabs TTS
        ◄──── data channel ──►  the wire protocol below
 agent  ──POST /session/end──►  token-server debits the metered seconds
 ```

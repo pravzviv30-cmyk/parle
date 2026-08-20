@@ -53,7 +53,7 @@ import {
   type Rung,
   type ServerMessage,
 } from '@parle/core';
-import { ParleConversation, parseStoredProfile } from './convo.ts';
+import { ParleConversation, parseStoredProfile, sttLanguageFor } from './convo.ts';
 import { ParleTutor } from './tutor.ts';
 import { createTurnTiming, formatTiming, mark } from './timing.ts';
 
@@ -141,10 +141,24 @@ export default defineAgent({
     // riding the token as an opaque snapshot — tampering with it moves
     // pedagogy, never minutes.
     const voiceless = meta.mode === 'convo-text' || meta.mode === 'lesson-text';
-    const tutor =
-      meta.mode === 'convo' || meta.mode === 'convo-text'
-        ? new ParleConversation(parseStoredProfile(meta.snapshot), { voiceless })
-        : new ParleTutor(lesson, startRung, { voiceless });
+    const isConvo = meta.mode === 'convo' || meta.mode === 'convo-text';
+
+    // Learner French is mangled French, and nova-3 with an explicit fr hint beats
+    // a multilingual default at reading it. The one moment that is not true is a
+    // conversation's opening question, which is asked in English and answered in
+    // English — so a conversation starts multilingual and convo.ts retunes this
+    // to French the moment the scene opens. See sttLanguageFor.
+    const stt = new deepgram.STT({
+      model: 'nova-3',
+      language: sttLanguageFor(isConvo ? 'convo' : 'lesson', 'choosing'),
+    });
+
+    const tutor = isConvo
+      ? new ParleConversation(parseStoredProfile(meta.snapshot), {
+          voiceless,
+          setSttLanguage: (language) => stt.updateOptions({ language }),
+        })
+      : new ParleTutor(lesson, startRung, { voiceless });
     tutor.learnerId = participant.identity;
 
     // The brain marks belong to the conversation; the record and the clock stay
@@ -178,10 +192,7 @@ export default defineAgent({
 
     const session = new voice.AgentSession({
       vad: ctx.proc.userData.vad as silero.VAD,
-      // Learner French is mangled French. Nova-3 with an explicit fr hint beats a
-      // multilingual default; if measured WER on real beginner audio is still bad,
-      // this is the first place to add a second model and reconcile.
-      stt: new deepgram.STT({ model: 'nova-3', language: 'fr' }),
+      stt,
       llm: tutorLLM(),
       // Cached: scripted lesson lines are synthesized once, ever, and replayed
       // from disk. Only free-form replies reach the vendor. See ttsCache.ts.

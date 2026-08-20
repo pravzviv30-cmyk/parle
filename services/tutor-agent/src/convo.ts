@@ -212,6 +212,33 @@ export const CONVO_LINES = {
   },
 } as const;
 
+/**
+ * Which language the recogniser should be listening for.
+ *
+ * The opener is spoken in English on purpose: a brand-new learner must never be
+ * opened at in a language they do not have yet. But the recogniser was pinned to
+ * French for the whole session, so the learner's very first answer — the one
+ * that decides what the entire scene will be about — went to Deepgram as French
+ * and came back as nonsense, and the scenario builder had to guess a topic from
+ * the wreckage.
+ *
+ * So the multilingual window is exactly as wide as the moment English is the
+ * expected answer, and no wider. The scene stays pinned to French because the
+ * comment at the recogniser's construction is right: learner French is mangled
+ * French, and an explicit hint beats a multilingual default at telling mangled
+ * French from English. The scripted lesson never opens in English at all, so it
+ * listens in French from its first word.
+ *
+ * Unconditional rather than a flag: the English opener is unconditional, so a
+ * flag would only preserve the broken pairing as the default.
+ */
+export type SttLanguage = 'fr' | 'multi';
+
+export function sttLanguageFor(kind: 'convo' | 'lesson', phase: ConversationPhase): SttLanguage {
+  if (kind === 'lesson') return 'fr';
+  return phase === 'scene' ? 'fr' : 'multi';
+}
+
 /** How long the scenario builder gets before the fixture scene opens instead. */
 const FRAME_TIMEOUT_MS = 10_000;
 
@@ -237,10 +264,19 @@ const DRILLS_TIMEOUT_MS = 25_000;
  */
 const CONVO_MAX_TURNS = 12;
 
+/** Where a conversation is: choosing a topic, building the scene, or inside it. */
+export type ConversationPhase = 'choosing' | 'starting' | 'scene';
+
 export class ParleConversation extends voice.Agent {
   private state: ConversationState;
   private profile: LearnerProfile;
   private readonly client: LlmClient;
+  /**
+   * Retunes the recogniser mid-session. A no-op by default, and correctly so in
+   * both voiceless mode and every test that is not about the recogniser: there
+   * is nothing listening to retune.
+   */
+  private setSttLanguage: (language: SttLanguage) => void = () => {};
   private publish: Publisher = () => {};
   private silenceTimer?: ReturnType<typeof setTimeout>;
   private startedAt = Date.now();
@@ -250,7 +286,7 @@ export class ParleConversation extends voice.Agent {
    * or inside the scene. The fallback conversation is constructed eagerly so
    * `state` is never null — `starting` only gates which inputs do what.
    */
-  private phase: 'choosing' | 'starting' | 'scene' = 'choosing';
+  private phase: ConversationPhase = 'choosing';
   /** The opening question, kept for `ready` replays and silence re-offers. */
   private lastOpening: Extract<ServerMessage, { t: 'opening' }> | null = null;
   /** The suggestion is offered once; after that, silence on the choosing screen is fine. */
@@ -280,7 +316,10 @@ export class ParleConversation extends voice.Agent {
    * constructor reaches for a real vendor SDK and an API key, which is why
    * every behaviour below went untested: the object could not be built.
    */
-  constructor(profile: LearnerProfile, opts: { voiceless?: boolean; client?: LlmClient } = {}) {
+  constructor(
+    profile: LearnerProfile,
+    opts: { voiceless?: boolean; client?: LlmClient; setSttLanguage?: (language: SttLanguage) => void } = {},
+  ) {
     // The pipeline LLM never generates here; see the header. One line keeps
     // the framework satisfied and makes the intent grep-able.
     super({ instructions: 'You are unused; replies are generated out of band.' });
@@ -291,6 +330,7 @@ export class ParleConversation extends voice.Agent {
       maxTurns: CONVO_MAX_TURNS,
     });
     this.client = opts.client ?? brainClient();
+    if (opts.setSttLanguage) this.setSttLanguage = opts.setSttLanguage;
   }
 
   /** Where the conversation has got to. Read-only, for the worker and for tests. */
@@ -408,6 +448,8 @@ export class ParleConversation extends voice.Agent {
    * cannot cut the scene's first words.
    */
   private openScene(): void {
+    // The learner has chosen, in English, and everything from here is French.
+    this.setSttLanguage(sttLanguageFor('convo', 'scene'));
     const frame = this.state.frame;
     const opening = frame.openingLine;
     const narration = frame.openingNarration;

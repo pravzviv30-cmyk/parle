@@ -39,6 +39,8 @@ import {
   ParleConversation,
   brainClient,
   chooseFrame,
+  sttLanguageFor,
+  type SttLanguage,
   parseStoredProfile,
   toConvoView,
   toRecapPayload,
@@ -356,13 +358,18 @@ class FailingBrain extends MockLlmClient {
  */
 function buildConvo(t: TestContext, opts: { voiceless?: boolean; client?: MockLlmClient } = {}) {
   const client = opts.client ?? new MockLlmClient();
-  const convo = new ParleConversation(createProfile(), { voiceless: opts.voiceless ?? false, client });
+  const sttLanguages: SttLanguage[] = [];
+  const convo = new ParleConversation(createProfile(), {
+    voiceless: opts.voiceless ?? false,
+    client,
+    setSttLanguage: (language) => sttLanguages.push(language),
+  });
   const { session, said } = stubSession();
   Object.defineProperty(convo, 'session', { value: session, configurable: true });
   const published: ServerMessage[] = [];
   convo.attach((message) => published.push(message));
   t.after(() => convo.clearRescue());
-  return { convo, client, session, said, published };
+  return { convo, client, session, said, published, sttLanguages };
 }
 
 /** A tap or a keystroke, as it arrives on the data channel. */
@@ -853,5 +860,36 @@ describe('latency marks', () => {
     await built.convo.settled();
 
     assert.deepEqual(stages, ['brainSent', 'brainParsed', 'sayCalled']);
+  });
+});
+
+
+describe('what language the recogniser is listening for', () => {
+  test('the choosing moment listens in multilingual mode and the scene listens in French', () => {
+    // The opener is asked in English, so the answer arrives in English. Pinned
+    // to French, Deepgram returned nonsense for the one turn that decides what
+    // the whole session will be about.
+    assert.equal(sttLanguageFor('convo', 'choosing'), 'multi');
+    assert.equal(sttLanguageFor('convo', 'starting'), 'multi', 'still English while the scene is being built');
+    assert.equal(sttLanguageFor('convo', 'scene'), 'fr', 'and French from the scene onward');
+  });
+
+  test('the scripted lesson listens in French from its first word', () => {
+    // It never opens in English, so there is no window to widen and widening it
+    // would only cost accuracy on the mangled French it exists to hear.
+    for (const phase of ['choosing', 'starting', 'scene'] as const) {
+      assert.equal(sttLanguageFor('lesson', phase), 'fr');
+    }
+  });
+
+  test('opening the scene returns the recogniser to French', async (t) => {
+    const { sttLanguages } = await inScene(t);
+    assert.deepEqual(sttLanguages, ['fr'], 'retuned exactly once, when the scene opened');
+  });
+
+  test('a learner still choosing has not been retuned yet', (t) => {
+    const built = buildConvo(t);
+    built.convo.open(built.session);
+    assert.deepEqual(built.sttLanguages, [], 'the opening question is still English, so nothing has moved');
   });
 });

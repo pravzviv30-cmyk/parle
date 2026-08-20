@@ -288,7 +288,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F3 — The English opener is heard in English, and the scene is heard in French
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/agent.ts:175
 - note: the opener is spoken in English on purpose, because a brand-new learner must
   never be opened at in a language they do not have yet. But Deepgram is pinned to
