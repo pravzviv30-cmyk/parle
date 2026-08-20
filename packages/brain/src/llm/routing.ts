@@ -17,7 +17,7 @@
 
 export type BrainEffort = 'low' | 'medium' | 'high';
 
-export type BrainActivity = 'turn' | 'frame' | 'extract' | 'drills';
+export type BrainActivity = 'turn' | 'frame' | 'extract' | 'drills' | 'curate';
 
 export interface ModelRoute {
   model: string;
@@ -38,6 +38,14 @@ export type BrainRouting = Record<BrainActivity, ModelRoute>;
 export const DEFAULT_ROUTING: BrainRouting = {
   // The talker. Low effort keeps thinking short and first audio close; the
   // turn object itself is well under 1k tokens.
+  //
+  // Deliberately NOT streamed, and the question will come up: streaming the
+  // turn to start TTS on a partial sceneReply would bypass the code-decides
+  // gates — sanitizeTurn, copyViolations and the speak order (narration →
+  // coach → sceneReply) all need the complete object, and the parts that
+  // stream first are spoken last. Revisit only if measured turn latency
+  // (see tutor-agent's [parle:latency] lines) holds a p50 above ~1.5s after
+  // the TTS streaming work.
   turn: { model: 'claude-sonnet-5', effort: 'low', maxTokens: 3_000, midConversationSystem: false },
   // The learner audibly waits behind the bridge line while the scene is
   // designed — medium effort holds the 3–6 second band.
@@ -47,6 +55,11 @@ export const DEFAULT_ROUTING: BrainRouting = {
   // they get the analyst model at full effort.
   extract: { model: 'claude-opus-5', effort: 'high', maxTokens: 4_000, midConversationSystem: true },
   drills: { model: 'claude-opus-5', effort: 'high', maxTokens: 16_000, midConversationSystem: true },
+  // The practice editor: pick-and-group over material already in hand. Runs
+  // BEFORE drills so the drill author works from the curated keep-list; the
+  // analyst model at high effort would add seconds ahead of that call for
+  // marginal gain on a ranking task.
+  curate: { model: 'claude-sonnet-5', effort: 'medium', maxTokens: 3_000, midConversationSystem: true },
 };
 
 const EFFORTS: readonly BrainEffort[] = ['low', 'medium', 'high'];

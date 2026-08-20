@@ -1,8 +1,13 @@
 /**
- * First launch. The one screen that moves before anything is asked of anyone.
+ * First launch. Two pages now: the welcome, then the why.
  *
- * The motion rules this establishes, because the app had none and the next
- * animated screen must not invent a second language:
+ * Page one says hello and moves; page two says what Parle is and why speaking
+ * out loud is the whole point, in three sentences, because a wall of text at
+ * the door is how apps get deleted. The same paging idiom as TutorIntro and
+ * onboarding: ProgressDots, a back chevron, one pill per page.
+ *
+ * The motion rules this screen established, because the app had none and the
+ * next animated screen must not invent a second language:
  *   - transform and opacity only, always `useNativeDriver: true`
  *   - never animate an SVG attribute (r, d, cx): those cannot cross to the
  *     native driver and drop the whole animation onto the JS thread
@@ -11,22 +16,18 @@
  *     nothing — the scene is the welcome, the movement is the flourish
  */
 
-import { useEffect, useRef } from 'react';
-import { View, Text, Animated, Easing, StyleSheet, AccessibilityInfo } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, Text, Pressable, Animated, Easing, StyleSheet, AccessibilityInfo } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Ellipse, G } from 'react-native-svg';
 import { paper, space, type, STROKE, decorative } from '../theme.ts';
-import { PillButton } from '../components.tsx';
+import { PillButton, ChevronLeft, ProgressDots } from '../components.tsx';
+import { LearnStack } from '../illustrations.tsx';
 
 /** The still art is a 200x150 viewBox drawn at 1.3x. */
 const SCENE_W = 260;
 const SCENE_H = 195;
 
-/**
- * The café table again, but taken apart so the pieces can move independently:
- * the table holds still, the steam drifts, and the two bubbles arrive as if
- * someone just started talking. Same pen, same rules as illustrations.tsx.
- */
 /**
  * The café table again, but taken apart so the pieces can move independently:
  * the table holds still, the steam drifts off the cup, and two bubbles arrive
@@ -119,9 +120,11 @@ function bubbleStyle(v: Animated.Value) {
 
 export function SplashScreen({ onDone }: { onDone: () => void }) {
   const insets = useSafeAreaInsets();
+  const [page, setPage] = useState(0);
   const steam = useRef(new Animated.Value(0)).current;
   const bubbleA = useRef(new Animated.Value(0)).current;
   const bubbleB = useRef(new Animated.Value(0)).current;
+  const settle = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     let cancelled = false;
@@ -135,8 +138,13 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         steam.setValue(0.5);
         bubbleA.setValue(1);
         bubbleB.setValue(1);
+        settle.setValue(1);
         return;
       }
+      // Each page gets one settling entrance; only page one keeps a loop.
+      settle.setValue(0);
+      Animated.timing(settle, { toValue: 1, duration: 380, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      if (page !== 0) return;
       Animated.stagger(180, [
         Animated.timing(bubbleA, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
         Animated.timing(bubbleB, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
@@ -152,29 +160,65 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
 
     return () => {
       cancelled = true;
-      // Never leave a loop running past the screen that started it.
+      // Never leave a loop running past the page that started it.
       loop?.stop();
     };
-  }, [steam, bubbleA, bubbleB]);
+  }, [page, steam, bubbleA, bubbleB, settle]);
+
+  const settled = {
+    opacity: settle,
+    transform: [{ translateY: settle.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+  };
 
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
-      <View style={st.body}>
-        <Scene steam={steam} bubbleA={bubbleA} bubbleB={bubbleB} />
-        <Text style={st.headline} accessibilityRole="header">
-          Bonjour
-        </Text>
-        <Text style={st.subline}>
-          You are going to speak French out loud today. Not read it, not tap it — say it, to someone who answers.
-        </Text>
+    <View style={[st.root, { paddingTop: insets.top + space(3), paddingBottom: insets.bottom + space(6) }]}>
+      <View style={st.topRow}>
+        {page > 0 ? (
+          <Pressable onPress={() => setPage(0)} accessibilityRole="button" accessibilityLabel="Back" style={st.back}>
+            <ChevronLeft />
+          </Pressable>
+        ) : (
+          <View style={st.back} />
+        )}
+        <ProgressDots total={2} index={page} />
+        <View style={st.back} />
       </View>
-      <PillButton label="Let's go" onPress={onDone} />
+
+      {page === 0 ? (
+        <>
+          <Animated.View style={[st.body, settled]}>
+            <Scene steam={steam} bubbleA={bubbleA} bubbleB={bubbleB} />
+            <Text style={st.headline} accessibilityRole="header">
+              Welcome to Parle!
+            </Text>
+            <Text style={st.subline}>Let's get you talking.</Text>
+          </Animated.View>
+          <PillButton label="Let's go" onPress={() => setPage(1)} />
+        </>
+      ) : (
+        <>
+          <Animated.View style={[st.body, settled]}>
+            <LearnStack width={200} />
+            <Text style={st.headline} accessibilityRole="header">
+              Say it and it sticks
+            </Text>
+            <Text style={st.subline}>
+              Parle gets you speaking French out loud from day one, with a tutor that listens and
+              answers. Words you say aloud stay with you far longer than words you only read. A few
+              minutes a day is plenty.
+            </Text>
+          </Animated.View>
+          <PillButton label="Get started" onPress={onDone} />
+        </>
+      )}
     </View>
   );
 }
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(6), justifyContent: 'space-between' },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scene: { width: SCENE_W, height: SCENE_H, alignItems: 'center', justifyContent: 'center' },
   // cup centre sits at viewBox x=70 -> 91px; the steam box is 44 wide, so

@@ -34,6 +34,7 @@ import { SummaryScreen } from '../SummaryScreen.tsx';
 import { ConvoScreen } from '../ConvoScreen.tsx';
 import { DrillScreen } from '../DrillScreen.tsx';
 import { ReviewScreen } from '../ReviewScreen.tsx';
+import { AddFriendsScreen } from '../friends/AddFriendsScreen.tsx';
 import { HomeTab } from '../tabs/HomeTab.tsx';
 import { TutorTab } from '../tabs/TutorTab.tsx';
 import { PracticeTab } from '../tabs/PracticeTab.tsx';
@@ -185,6 +186,7 @@ export function RootNavigator({ onSignOut, onResetProgress }: { onSignOut: () =>
       <Stack.Screen name="Convo" component={ConvoRoute} />
       <Stack.Screen name="Drill" component={DrillRoute} />
       <Stack.Screen name="Review" component={ReviewRoute} />
+      <Stack.Screen name="AddFriends" component={AddFriendsScreen} />
     </Stack.Navigator>
   );
 }

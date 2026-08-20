@@ -10,7 +10,11 @@ gone wrong.
 is deliberate — a store read before the auth gate is a bug, and a silent global
 fallback would leak one learner's history into another's session.
 
-Stores: `profile`, `history`, `review`, `drills`, `tutorIntro`, `activity`.
+Stores: `profile`, `history`, `review`, `drills`, `tutorIntro`, `activity`,
+`topics` (the practice topics a learner's conversations produced — titles,
+sitting dates, and the review-deck ids they drill; strength is never stored,
+it is a projection of the deck), and `friends` (the local friends adapter's
+list and requests, sample-roster preview until a backend exists).
 
 `apps/mobile/src/profile/store.ts` holds `StoredProfile`:
 

@@ -38,7 +38,6 @@ import {
   parseStoredProfile,
   toConvoView,
   toRecapPayload,
-  topicChips,
 } from './convo.ts';
 
 /** A fresh flow-mode café conversation, exactly as ParleConversation builds one. */
@@ -158,9 +157,11 @@ describe('toRecapPayload', () => {
       fixes: recap.fixes,
       phrases: recap.phrases,
       nextFocus: recap.nextFocus,
+      topics: recap.topics,
       cefr: recap.cefr,
       stats: recap.stats,
     });
+    assert.ok(payload.topics.length >= 1, 'the frame topic itself always rides the recap');
     assert.equal(payload.fixes.length, 1, 'the deferred grammar-slip belongs to the recap');
     assert.equal(payload.fixes[0]!.kind, 'grammar-slip');
     assert.equal(payload.phrases[0]!.fr, 'Ça marche');
@@ -242,22 +243,6 @@ describe('chooseFrame', () => {
 });
 
 describe('the choosing moment', () => {
-  test('a fresh learner gets three curated doors and no more', () => {
-    const chips = topicChips(createProfile());
-    assert.equal(chips.length, 3);
-    for (const chip of chips) {
-      assert.ok(chip.label.length > 0 && chip.en.length > 0 && chip.value.length > 0);
-    }
-  });
-
-  test('a returning learner gets their last scene back as a fourth door', () => {
-    const profile = createProfile();
-    profile.preferences.lastScenarios.push(CAFE_FRAME.title);
-    const chips = topicChips(profile);
-    assert.equal(chips.length, 4);
-    assert.equal(chips.at(-1)!.value, CAFE_FRAME.title);
-  });
-
   test('the canned lines obey the learner-copy rules', () => {
     for (const line of Object.values(CONVO_LINES)) {
       for (const text of [line.fr, line.en]) {
@@ -308,9 +293,11 @@ describe('a profile that predates memory', () => {
     assert.deepEqual(profile.memory, { facts: [], opener: null });
     assert.equal(profile.stats.sessions, 4, 'the learning history survives the repair');
     assert.equal(profile.stats.lastRung, 3);
-    // The crash site itself: topicChips reads memory.facts on session open.
-    assert.doesNotThrow(() => topicChips(profile));
-    assert.equal(topicChips(profile).length, 3);
+    // The crash site itself: open() reads memory.opener on session open.
+    const convo = new ParleConversation(profile, { client: new MockLlmClient() });
+    const { session } = stubSession();
+    Object.defineProperty(convo, 'session', { value: session, configurable: true });
+    assert.doesNotThrow(() => convo.open(session));
   });
 
   test('a snapshot with a broken memory field is repaired rather than believed', () => {
@@ -384,11 +371,11 @@ function heard(text: string) {
   return { textContent: text } as never;
 }
 
-/** Open the session and get into the scene the way a learner does: by choosing. */
+/** Open the session and get into the scene the way a learner does: by answering. */
 async function inScene(t: TestContext, opts: { voiceless?: boolean; client?: MockLlmClient } = {}) {
   const built = buildConvo(t, opts);
   built.convo.open(built.session);
-  await built.convo.handleClientMessage(built.session, tapped({ t: 'topic', value: 'Au café' }));
+  await built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Au café' }));
   return built;
 }
 
@@ -410,11 +397,47 @@ describe('the conversation agent, off the worker', () => {
     const { convo, session, client, published, said } = buildConvo(t);
     convo.open(session);
 
-    const topics = published.find((m) => m.t === 'topics');
-    assert.ok(topics, 'the learner has to be asked what they want to talk about');
-    assert.equal(topics.chips.length, 3);
-    assert.deepEqual(said, [CONVO_LINES.opener.fr], 'and asked out loud, first');
+    const opening = published.find((m) => m.t === 'opening');
+    assert.ok(opening, 'the learner has to be asked what they want to talk about');
+    assert.equal(opening.prompt.en, CONVO_LINES.opener.en);
+    assert.deepEqual(said, [CONVO_LINES.opener.en], 'and asked out loud, in English — a new learner has no French yet');
     assert.equal(client.turnRequests.length + client.frameRequests.length, 0, 'nothing cost a round-trip');
+  });
+
+  test('a remembered opener is spoken in its English too', (t) => {
+    const profile = createProfile();
+    profile.memory.opener = { fr: 'Alors, cet entretien ?', en: 'So, how did that interview go?' };
+    const client = new MockLlmClient();
+    const convo = new ParleConversation(profile, { client });
+    const { session, said } = stubSession();
+    Object.defineProperty(convo, 'session', { value: session, configurable: true });
+    const published: ServerMessage[] = [];
+    convo.attach((message) => published.push(message));
+    t.after(() => convo.clearRescue());
+
+    convo.open(session);
+
+    const opening = published.find((m) => m.t === 'opening');
+    assert.ok(opening);
+    assert.equal(opening.prompt.fr, 'Alors, cet entretien ?', 'the French rides along for the screen');
+    assert.deepEqual(said, ['So, how did that interview go?']);
+  });
+
+  test('ready during the choosing moment replays the opening question', async (t) => {
+    const { convo, session, published } = buildConvo(t);
+    convo.open(session);
+    await convo.handleClientMessage(session, tapped({ t: 'ready' }));
+
+    assert.equal(published.filter((m) => m.t === 'opening').length, 2, 'a reconnecting app gets the question again');
+  });
+
+  test('help before the scene gets the spoken suggestion, in English', async (t) => {
+    const { convo, session, said, published } = buildConvo(t);
+    convo.open(session);
+    await convo.handleClientMessage(session, tapped({ t: 'help' }));
+
+    assert.ok(said.includes(CONVO_LINES.suggest.en), 'the suggestion is said out loud');
+    assert.equal(published.filter((m) => m.t === 'opening').length, 2, 'and the question lands again with it');
   });
 
   test('choosing a topic opens a scene the learner can see and hear', async (t) => {
@@ -669,5 +692,107 @@ describe('a brain turn that fails mid-scene', () => {
     const rescued = views(published)[1]!.view;
     assert.deepEqual(rescued.sceneReply, views(published)[0]!.view.sceneReply, 'and it holds the moment they froze on');
     assert.equal(rescued.supportView.kind, 'full-line', 'with the line handed over, no model needed');
+  });
+});
+
+describe('what a finished session leaves behind', () => {
+  const keepable = (fr: string, en: string): NewPhrase => ({
+    fr,
+    frWritten: null,
+    en,
+    enLiteral: null,
+    register: 'familier',
+    note: null,
+  });
+
+  /** One spoken turn whose reply closes the scene, then room for the post-session pipeline. */
+  async function finishSessionWith(t: TestContext, client: MockLlmClient) {
+    const built = await inScene(t, { client });
+    await assert.rejects(() => built.convo.onUserTurnCompleted({} as never, heard('Bonjour, un café')), voice.StopResponse);
+    await built.convo.settled();
+    // The post-session pipeline is fire-and-forget; let its promise chain drain.
+    for (let i = 0; i < 6; i += 1) await new Promise((resolve) => setImmediate(resolve));
+    return built;
+  }
+
+  const closingTurn = () =>
+    sampleTurn({
+      newPhrases: [keepable('Ça marche', 'coming up'), keepable('Autre chose', 'something else')],
+      scene: { beat: 'greet', beatDone: true, sceneDone: true },
+    });
+
+  test('exactly one practice message ships, after the recap, grouped as curated', async (t) => {
+    const client = new MockLlmClient({
+      turns: [closingTurn()],
+      curations: [{ topics: [{ titleEn: 'Ordering at the café', titleFr: 'Au café', phraseFr: ['Ça marche'] }] }],
+    });
+    const { published } = await finishSessionWith(t, client);
+
+    const practice = published.filter((m) => m.t === 'practice');
+    assert.equal(practice.length, 1, 'exactly one practice message per session');
+    assert.ok(
+      published.findIndex((m) => m.t === 'recap') < published.indexOf(practice[0]!),
+      'the recap ships before the practice',
+    );
+    assert.equal(practice[0]!.topics.length, 1);
+    assert.equal(practice[0]!.topics[0]!.titleEn, 'Ordering at the café');
+    assert.deepEqual(
+      practice[0]!.topics[0]!.phrases.map((p) => p.fr),
+      ['Ça marche'],
+      'only the kept phrase becomes practice',
+    );
+  });
+
+  test('drills are authored from the curated keep-list, not everything said', async (t) => {
+    const client = new MockLlmClient({
+      turns: [closingTurn()],
+      curations: [{ topics: [{ titleEn: 'Ordering at the café', titleFr: 'Au café', phraseFr: ['Ça marche'] }] }],
+    });
+    await finishSessionWith(t, client);
+
+    assert.equal(client.curateRequests.length, 1, 'the practice editor was asked once');
+    assert.equal(client.drillsRequests.length, 1, 'then the drill author, once');
+    const request = client.drillsRequests[0]!.request;
+    // The dropped phrase may still ride the "unmastered from before" section —
+    // the turn already folded it into the profile, and that list is the
+    // profile's business. The session keep-list is what curation governs.
+    const todayStart = request.indexOf("Today's phrases:");
+    assert.ok(todayStart >= 0, 'the briefing carries a session section');
+    const profileStart = request.indexOf('Still unmastered from before:');
+    const today = profileStart >= 0 ? request.slice(todayStart, profileStart) : request.slice(todayStart);
+    assert.ok(today.includes('Ça marche'), 'the kept phrase rides the keep-list');
+    assert.ok(!today.includes('Autre chose'), 'the dropped phrase does not');
+  });
+
+  test('a curation failure still ships practice: the code fallback, frame-titled', async (t) => {
+    class NoCuration extends MockLlmClient {
+      override async curate(): Promise<never> {
+        throw new Error('curation outage');
+      }
+    }
+    const client = new NoCuration({ turns: [closingTurn()] });
+    const { published } = await finishSessionWith(t, client);
+
+    const practice = published.find((m) => m.t === 'practice');
+    assert.ok(practice, 'the fallback shipped anyway');
+    assert.equal(practice.topics[0]!.titleEn, CAFE_FRAME.titleEn, 'titled by the scene itself');
+    assert.deepEqual(
+      practice.topics[0]!.phrases.map((p) => p.fr),
+      ['Ça marche', 'Autre chose'],
+      'the first phrases met, in order',
+    );
+  });
+});
+
+describe('latency marks', () => {
+  test('a spoken turn marks brainSent, brainParsed, then sayCalled, in that order', async (t) => {
+    const built = await inScene(t);
+    const stages: string[] = [];
+    built.convo.attachTiming((stage) => stages.push(stage));
+
+    await assert.rejects(() => built.convo.onUserTurnCompleted({} as never, heard('Bonjour, un café')), voice.StopResponse);
+    await built.convo.settled();
+
+    assert.deepEqual(stages, ['brainSent', 'brainParsed', 'sayCalled']);
   });
 });

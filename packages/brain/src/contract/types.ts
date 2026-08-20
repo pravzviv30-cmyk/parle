@@ -55,6 +55,8 @@ export interface SessionRecap {
   phrases: NewPhrase[];
   /** Exactly one thing to work on next. Never a list. */
   nextFocus: string;
+  /** What the conversation was actually about, in order: the scene's own topic first, then everywhere the learner steered. */
+  topics: { fr: string; en: string }[];
   cefr: { estimate: CefrBand; confidence: 'low' | 'medium' | 'high' };
   stats: { turns: number; rescues: number; unassistedRate: number };
 }

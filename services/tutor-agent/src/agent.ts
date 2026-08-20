@@ -55,6 +55,7 @@ import {
 } from '@parle/core';
 import { ParleConversation, parseStoredProfile } from './convo.ts';
 import { ParleTutor } from './tutor.ts';
+import { createTurnTiming, formatTiming, mark } from './timing.ts';
 
 /**
  * The tutor brain, selected by env so the quality/cost trade is a .env change.
@@ -82,7 +83,20 @@ export default defineAgent({
 
   entry: async (ctx: JobContext) => {
     const lesson = CAFE_LESSON;
-    const voiceTts = buildTTS();
+
+    // Latency accounting: one record per turn, marked from the seams this file
+    // already owns (session state changes, the TTS first-audio hook) and printed
+    // when the tutor starts speaking. The brain marks belong to convo.ts and are
+    // simply absent until wired there; formatTiming omits unmarked segments.
+    let turnCount = 1;
+    let timing = createTurnTiming(turnCount);
+
+    const voiceTts = buildTTS({
+      onFirstAudio: ({ hit }) => {
+        mark(timing, 'firstAudio', performance.now());
+        if (timing.cache === null) timing.cache = hit ? 'hit' : 'miss';
+      },
+    });
 
     // Connect before anything is built: the token server signs the lesson, the
     // opening rung and the session mode into the join credential, and the tutor
@@ -124,6 +138,13 @@ export default defineAgent({
         : new ParleTutor(lesson, startRung, { voiceless });
     tutor.learnerId = participant.identity;
 
+    // The brain marks belong to the conversation; the record and the clock stay
+    // here. Reading `timing` through the closure keeps marks landing on the
+    // current turn's record across the per-turn resets below.
+    if (tutor instanceof ParleConversation) {
+      tutor.attachTiming((stage) => mark(timing, stage, performance.now()));
+    }
+
     // Safety net for reconnects and any learner who lands after the first: the
     // metered seconds must land on a real account whoever is in the room.
     const adoptLearner = (p: { identity: string; metadata?: string }) => {
@@ -161,6 +182,15 @@ export default defineAgent({
         // speakerphone mic, cut the tutor off mid-sentence. Requiring real
         // duration plus STT-confirmed words kills those phantom barge-ins.
         interruption: { minDuration: 1200, minWords: 2 },
+        // Pinned rather than defaulted: the framework floor is 500ms, or 300ms
+        // when a streaming detector is in play, and 400ms is the chosen middle
+        // ground between snappy replies and clipping slow finishes.
+        endpointing: { minDelay: 400 },
+        // The semantic turn detector reads the words to judge whether the
+        // learner is done, which protects hesitating beginners from being cut
+        // off mid-thought, so it stays the default. PARLE_TURN_DETECTION=vad
+        // swaps in plain silence-based VAD turn taking for latency experiments.
+        ...(process.env.PARLE_TURN_DETECTION === 'vad' ? { turnDetection: 'vad' as const } : {}),
       },
     });
 
@@ -176,6 +206,14 @@ export default defineAgent({
       if (ev.newState === 'listening') tutor.armRescue(session);
       if (ev.newState === 'speaking' || ev.newState === 'thinking') tutor.clearRescue();
       tutor.sendSpeaking(ev.newState === 'speaking');
+
+      // The tutor's mouth opening closes the turn's books: print the line and
+      // start the next record.
+      if (ev.newState === 'speaking') {
+        mark(timing, 'speaking', performance.now());
+        console.log(formatTiming(timing));
+        timing = createTurnTiming(++turnCount);
+      }
     });
 
     session.on(voice.AgentSessionEventTypes.UserStateChanged, (ev) => {
@@ -184,6 +222,12 @@ export default defineAgent({
       // the timeout alone cannot, and both landing costs the learner a turn.
       if (ev.newState === 'speaking') tutor.setLearnerSpeaking(true);
       if (ev.newState === 'listening' || ev.newState === 'away') tutor.setLearnerSpeaking(false);
+
+      // The learner falling silent is this turn's end of utterance, the moment
+      // every later stage is measured against.
+      if (ev.oldState === 'speaking' && ev.newState === 'listening') {
+        mark(timing, 'eou', performance.now());
+      }
     });
 
     // A learner who closes the app still gets their minutes debited correctly.

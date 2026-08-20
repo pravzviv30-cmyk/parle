@@ -8,6 +8,7 @@
  */
 
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
+import type { Curation } from '../curate/curate.ts';
 import type { DrillBatch } from '../drill/generate.ts';
 import type { SystemBlocks } from '../prompt/system.ts';
 
@@ -49,6 +50,13 @@ export interface BrainDrillsRequest {
   request: string;
 }
 
+export interface BrainCurateRequest {
+  kind: 'curate';
+  system: SystemBlocks;
+  /** The practice-editor briefing: the session's topics and candidate phrases. */
+  request: string;
+}
+
 export interface LlmUsage {
   inputTokens: number;
   outputTokens: number;
@@ -63,6 +71,7 @@ export interface LlmClient {
   frame(request: BrainFrameRequest): Promise<{ frame: ScenarioFrame; usage: LlmUsage }>;
   extract(request: BrainExtractRequest): Promise<{ extraction: MemoryExtraction; usage: LlmUsage }>;
   drills(request: BrainDrillsRequest): Promise<{ batch: DrillBatch; usage: LlmUsage }>;
+  curate(request: BrainCurateRequest): Promise<{ curation: Curation; usage: LlmUsage }>;
 }
 
 /** The model answered, but not with a contract-shaped object, even after a retry. */

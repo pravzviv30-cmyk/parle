@@ -16,6 +16,17 @@
  * its sentence adapter and calls `synthesize()` once per sentence. The cache is
  * therefore sentence-grained, and a recurring sentence hits even when the LLM
  * wraps it in different surroundings.
+ *
+ * Misses reach the vendor over one of two transports, chosen once at
+ * construction. The default is the per-sentence HTTP endpoint: self-contained,
+ * and safe for the standalone warm-cache script, whose process must be free to
+ * exit the moment the last line lands rather than dangle on an idle vendor
+ * socket. Setting PARLE_TTS_MISS_TRANSPORT=ws in the agent's .env routes misses
+ * through the vendor's persistent multi-context websocket instead, sparing each
+ * free-conversation sentence a fresh TLS handshake before its first audio
+ * byte. Either way the caller sees frames as they arrive and the completed line
+ * is teed to disk; a line that aborts (barge-in) or never sees the vendor's
+ * final marker is never cached, and closing the cache closes the vendor socket.
  */
 
 import { createHash, randomUUID } from 'node:crypto';
@@ -38,11 +49,32 @@ export interface CachedTTSOptions {
    * monologues almost never repeat, and caching them only fills the disk.
    */
   maxTextLength?: number;
+  /**
+   * How a cache miss reaches the vendor. Defaults to the environment seam
+   * (PARLE_TTS_MISS_TRANSPORT), which defaults to 'http'; see the file header
+   * for why 'ws' is an opt-in.
+   */
+  missTransport?: 'ws' | 'http';
+  /**
+   * Called once per synthesis, on its first audio frame, with whether that
+   * audio came from disk. Latency telemetry only: it must never affect the
+   * audio, so anything it throws is swallowed.
+   */
+  onFirstAudio?: (info: { hit: boolean }) => void;
 }
+
+/** The options with defaults applied; the telemetry hook stays optional. */
+type ResolvedCachedTTSOptions = Required<Omit<CachedTTSOptions, 'onFirstAudio'>> &
+  Pick<CachedTTSOptions, 'onFirstAudio'>;
 
 const DEFAULT_MAX_TEXT = 220;
 /** Cache-hit audio is emitted in chunks of this many milliseconds. */
 const REPLAY_CHUNK_MS = 100;
+
+/** Anything other than an explicit 'ws' means the safe-everywhere default. */
+function defaultMissTransport(): 'ws' | 'http' {
+  return process.env.PARLE_TTS_MISS_TRANSPORT === 'ws' ? 'ws' : 'http';
+}
 
 /** Cache keys survive harmless whitespace differences but respect punctuation. */
 export function normaliseLine(text: string): string {
@@ -52,7 +84,7 @@ export function normaliseLine(text: string): string {
 export class CachedTTS extends tts.TTS {
   label = 'parle.CachedTTS';
   readonly inner: tts.TTS;
-  readonly opts: Required<CachedTTSOptions>;
+  readonly opts: ResolvedCachedTTSOptions;
   /** Running counters, logged by the agent so cost per session stays visible. */
   hits = 0;
   misses = 0;
@@ -61,7 +93,7 @@ export class CachedTTS extends tts.TTS {
     // Declaring streaming:false makes the framework sentence-split for us.
     super(inner.sampleRate, inner.numChannels, { streaming: false });
     this.inner = inner;
-    this.opts = { maxTextLength: DEFAULT_MAX_TEXT, ...opts };
+    this.opts = { maxTextLength: DEFAULT_MAX_TEXT, missTransport: defaultMissTransport(), ...opts };
     mkdirSync(this.opts.dir, { recursive: true });
   }
 
@@ -90,6 +122,13 @@ export class CachedTTS extends tts.TTS {
     // the cache.
     throw new Error('CachedTTS is sentence-based; wrap it in a StreamAdapter to stream');
   }
+
+  override async close(): Promise<void> {
+    // The ws transport keeps a persistent vendor connection alive inside the
+    // inner TTS; closing the cache must close it, or a finished agent process
+    // would idle on an open socket.
+    await this.inner.close();
+  }
 }
 
 class CachedChunkedStream extends tts.ChunkedStream {
@@ -97,6 +136,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
   readonly #cache: CachedTTS;
   /** Forwarded to the vendor so the session's retry policy applies end to end. */
   readonly #connOptions?: APIConnectOptions;
+  #firstAudioReported = false;
 
   constructor(text: string, cache: CachedTTS, connOptions?: APIConnectOptions, abortSignal?: AbortSignal) {
     super(text, cache, connOptions, abortSignal);
@@ -121,13 +161,29 @@ class CachedChunkedStream extends tts.ChunkedStream {
       }
     }
 
-    await this.#passthrough(path, cacheable);
+    if (this.#cache.opts.missTransport === 'ws') {
+      await this.#missViaStream(path, cacheable);
+    } else {
+      await this.#passthrough(path, cacheable);
+    }
     this.#cache.misses += 1;
+  }
+
+  /** Tell the telemetry hook, if any, that this synthesis just made a sound. */
+  #reportFirstAudio(hit: boolean): void {
+    if (this.#firstAudioReported) return;
+    this.#firstAudioReported = true;
+    try {
+      this.#cache.opts.onFirstAudio?.({ hit });
+    } catch {
+      // Telemetry must never cost the learner audio.
+    }
   }
 
   /** Emit a cached WAV as audio frames, in modest chunks so playout starts fast. */
   #replay(file: Buffer): void {
     const wav = decodeWav(file);
+    this.#reportFirstAudio(true);
     const requestId = randomUUID();
     const perChunk = Math.max(1, Math.round((wav.sampleRate * REPLAY_CHUNK_MS) / 1000)) * wav.channels;
 
@@ -139,20 +195,63 @@ class CachedChunkedStream extends tts.ChunkedStream {
     }
   }
 
-  /** Live synthesis, teeing the audio to disk when the whole line succeeds. */
+  /** Live synthesis over per-sentence HTTP, teeing to disk when the line succeeds. */
   async #passthrough(path: string, cacheable: boolean): Promise<void> {
     const innerStream = this.#cache.inner.synthesize(this.inputText, this.#connOptions, this.abortSignal);
     const collected: AudioFrame[] = [];
 
     for await (const packet of innerStream) {
+      this.#reportFirstAudio(false);
       collected.push(packet.frame);
       this.queue.put(packet);
     }
 
-    // Only a complete, non-empty line is worth keeping. A failed request throws
-    // out of the loop above and nothing is written.
+    // Only a complete, non-empty line is worth keeping. A failed request yields
+    // nothing above and nothing is written.
     if (!cacheable || collected.length === 0) return;
+    this.#writeWav(path, collected);
+  }
 
+  /**
+   * Live synthesis over the vendor's persistent websocket. The framework has
+   * already sentence-split, so the whole input is one push followed by end of
+   * input; frames are forwarded the moment they arrive and teed for the disk
+   * write. Two rules keep barge-ins clean: an abort closes the vendor stream,
+   * which closes its context on the wire so a cut-off line cannot keep
+   * synthesizing into the next turn, and nothing reaches disk unless the
+   * vendor's own final marker arrived, so a truncated line is never replayed.
+   */
+  async #missViaStream(path: string, cacheable: boolean): Promise<void> {
+    const innerStream = this.#cache.inner.stream(this.#connOptions ? { connOptions: this.#connOptions } : undefined);
+    innerStream.pushText(this.inputText);
+    innerStream.endInput();
+
+    const closeInner = () => innerStream.close();
+    if (this.abortSignal.aborted) closeInner();
+    else this.abortSignal.addEventListener('abort', closeInner, { once: true });
+
+    const collected: AudioFrame[] = [];
+    let sawFinal = false;
+    try {
+      for await (const packet of innerStream) {
+        if (packet === tts.SynthesizeStream.END_OF_STREAM) continue;
+        if (this.closed || this.abortSignal.aborted) break;
+        this.#reportFirstAudio(false);
+        collected.push(packet.frame);
+        this.queue.put(packet);
+        sawFinal = packet.final;
+      }
+    } finally {
+      this.abortSignal.removeEventListener('abort', closeInner);
+    }
+
+    if (this.abortSignal.aborted || !sawFinal) return;
+    if (!cacheable || collected.length === 0) return;
+    this.#writeWav(path, collected);
+  }
+
+  /** One WAV per completed line, written atomically so readers never see halves. */
+  #writeWav(path: string, collected: AudioFrame[]): void {
     const first = collected[0]!;
     const total = collected.reduce((n, f) => n + f.data.length, 0);
     const samples = new Int16Array(total);

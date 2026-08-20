@@ -1,4 +1,4 @@
-import { test, describe, beforeEach } from 'node:test';
+import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -16,14 +16,34 @@ import { encodeWav, decodeWav } from './wav.ts';
 const SAMPLE_RATE = 16_000;
 
 /**
- * A fake vendor that "synthesizes" a deterministic ramp so tests can compare
- * PCM byte-for-byte, and counts how often it is called, which is the whole
- * point of the cache.
+ * The deterministic "synthesis" both fake transports share: a ramp derived from
+ * the text, so different lines produce different audio, identical lines produce
+ * identical audio, and tests can compare PCM byte-for-byte across transports.
+ */
+function rampFrames(text: string): AudioFrame[] {
+  const seed = [...text].reduce((n, c) => n + c.charCodeAt(0), 0) % 1000;
+  const frames: AudioFrame[] = [];
+  for (let part = 0; part < 2; part++) {
+    const samples = new Int16Array(160);
+    for (let i = 0; i < samples.length; i++) samples[i] = ((seed + part * 331 + i * 7) % 2000) - 1000;
+    frames.push(new AudioFrame(samples, SAMPLE_RATE, 1, samples.length));
+  }
+  return frames;
+}
+
+/**
+ * A fake vendor with both transports the cache can route a miss through: the
+ * per-sentence HTTP shape (synthesize) and the persistent-stream shape
+ * (stream), counting calls to each, which is how the tests see routing.
  */
 class FakeTTS extends tts.TTS {
   label = 'fake.TTS';
   calls = 0;
+  streamCalls = 0;
   failNext = false;
+  /** When true, streams emit one frame then hold until aborted, like a vendor mid-line. */
+  stallStreams = false;
+  streams: FakeSynthesizeStream[] = [];
 
   constructor() {
     super(SAMPLE_RATE, 1, { streaming: false });
@@ -34,8 +54,11 @@ class FakeTTS extends tts.TTS {
     return new FakeChunkedStream(text, this, this.failNext, connOptions);
   }
 
-  stream(): never {
-    throw new Error('not used');
+  stream(options?: Parameters<tts.TTS['stream']>[0]): FakeSynthesizeStream {
+    this.streamCalls += 1;
+    const stream = new FakeSynthesizeStream(this, options?.connOptions);
+    this.streams.push(stream);
+    return stream;
   }
 }
 
@@ -54,19 +77,53 @@ class FakeChunkedStream extends tts.ChunkedStream {
     // handler), which is not ours to re-test; what the cache must guarantee is
     // identical either way: an incomplete line is never written to disk.
     if (this.#fail) return;
-    // Two frames whose samples are derived from the text, so different lines
-    // produce different audio and identical lines produce identical audio.
-    const seed = [...this.inputText].reduce((n, c) => n + c.charCodeAt(0), 0) % 1000;
-    for (let part = 0; part < 2; part++) {
-      const samples = new Int16Array(160);
-      for (let i = 0; i < samples.length; i++) samples[i] = ((seed + part * 331 + i * 7) % 2000) - 1000;
-      this.queue.put({
-        requestId: 'fake',
-        segmentId: 'fake',
-        frame: new AudioFrame(samples, SAMPLE_RATE, 1, samples.length),
-        final: part === 1,
-      });
+    const frames = rampFrames(this.inputText);
+    frames.forEach((frame, i) => {
+      this.queue.put({ requestId: 'fake', segmentId: 'fake', frame, final: i === frames.length - 1 });
+    });
+  }
+}
+
+/**
+ * The streaming shape mirrors the real plugin where it matters to the cache:
+ * text arrives via pushText/endInput, frames flow out as they are produced,
+ * the last frame of a successful line carries final:true, a failed line simply
+ * ends without one, and close() is what tears down the vendor-side context.
+ */
+class FakeSynthesizeStream extends tts.SynthesizeStream {
+  label = 'fake.SynthesizeStream';
+  /** The observable stand-in for "the ws context was closed on the wire". */
+  closedByCaller = false;
+  readonly #fake: FakeTTS;
+
+  constructor(fake: FakeTTS, connOptions?: Parameters<tts.TTS['synthesize']>[1]) {
+    super(fake, connOptions);
+    this.#fake = fake;
+  }
+
+  override close(): void {
+    this.closedByCaller = true;
+    super.close();
+  }
+
+  protected async run(): Promise<void> {
+    let text = '';
+    for await (const item of this.input) {
+      if (typeof item === 'string') text += item;
     }
+    if (this.#fake.failNext) return;
+    const frames = rampFrames(text);
+    if (this.#fake.stallStreams) {
+      this.queue.put({ requestId: 'fake-ws', segmentId: 'fake-ws', frame: frames[0]!, final: false });
+      await new Promise<void>((resolve) => {
+        if (this.abortController.signal.aborted) return resolve();
+        this.abortController.signal.addEventListener('abort', () => resolve(), { once: true });
+      });
+      return;
+    }
+    frames.forEach((frame, i) => {
+      this.queue.put({ requestId: 'fake-ws', segmentId: 'fake-ws', frame, final: i === frames.length - 1 });
+    });
   }
 }
 
@@ -87,11 +144,21 @@ function synth(cache: CachedTTS, text: string): tts.ChunkedStream {
 let dir: string;
 let fake: FakeTTS;
 let cached: CachedTTS;
+let savedTransportEnv: string | undefined;
 
 beforeEach(() => {
+  // The transport default is an env seam; tests own it so a developer's shell
+  // can never flip which path these assertions exercise.
+  savedTransportEnv = process.env.PARLE_TTS_MISS_TRANSPORT;
+  delete process.env.PARLE_TTS_MISS_TRANSPORT;
   dir = mkdtempSync(join(tmpdir(), 'parle-tts-'));
   fake = new FakeTTS();
   cached = new CachedTTS(fake, { dir, voiceKey: 'test-voice' });
+});
+
+afterEach(() => {
+  if (savedTransportEnv === undefined) delete process.env.PARLE_TTS_MISS_TRANSPORT;
+  else process.env.PARLE_TTS_MISS_TRANSPORT = savedTransportEnv;
 });
 
 describe('wav round trip', () => {
@@ -172,6 +239,107 @@ describe('the cache', () => {
     assert.equal(cached.capabilities.streaming, false);
     assert.equal(cached.sampleRate, SAMPLE_RATE);
     assert.equal(cached.numChannels, 1);
+  });
+});
+
+describe('the miss transport seam', () => {
+  test('http is the default and still synthesizes per sentence', async () => {
+    assert.equal(cached.opts.missTransport, 'http');
+    await pcmOf(synth(cached, 'Bonjour !'));
+    assert.equal(fake.calls, 1, 'the default miss must use the per-sentence path');
+    assert.equal(fake.streamCalls, 0, 'and never open a vendor stream');
+  });
+
+  test('PARLE_TTS_MISS_TRANSPORT=ws opts in via the environment, junk does not', () => {
+    process.env.PARLE_TTS_MISS_TRANSPORT = 'ws';
+    assert.equal(new CachedTTS(fake, { dir, voiceKey: 'test-voice' }).opts.missTransport, 'ws');
+
+    process.env.PARLE_TTS_MISS_TRANSPORT = 'websocket';
+    assert.equal(new CachedTTS(fake, { dir, voiceKey: 'test-voice' }).opts.missTransport, 'http');
+  });
+});
+
+describe('misses over the vendor stream', () => {
+  beforeEach(() => {
+    cached = new CachedTTS(fake, { dir, voiceKey: 'test-voice', missTransport: 'ws' });
+  });
+
+  test('a miss rides the stream, tees to disk, and replays like any hit', async () => {
+    const first = await pcmOf(synth(cached, 'Bonjour !'));
+    assert.equal(fake.streamCalls, 1, 'the miss must use the streaming transport');
+    assert.equal(fake.calls, 0, 'and never the per-sentence path');
+    assert.equal(cached.misses, 1);
+    assert.ok(first.length > 0);
+    assert.equal(readdirSync(dir).length, 1, 'the streamed line is teed to disk');
+
+    const second = await pcmOf(synth(cached, 'Bonjour !'));
+    assert.equal(fake.streamCalls, 1, 'a cached line must not reopen the vendor stream');
+    assert.equal(cached.hits, 1);
+    assert.deepEqual(second, first, 'the replay must match what was streamed');
+  });
+
+  test('a barge-in closes the vendor stream context and caches nothing', async () => {
+    fake.stallStreams = true;
+    const abort = new AbortController();
+    const stream = cached.synthesize('Interrompu en plein vol', NO_RETRY, abort.signal);
+
+    const before = await stream.next();
+    assert.ok(!before.done, 'audio was already flowing when the learner barged in');
+    abort.abort();
+    for await (const packet of stream) void packet; // drain to completion
+
+    const vendorStream = fake.streams[0]!;
+    assert.equal(vendorStream.closedByCaller, true, 'the cache must close the vendor stream on abort');
+    assert.ok(vendorStream.abortSignal.aborted, 'closing tears the context down, not just this iterator');
+    assert.equal(readdirSync(dir).length, 0, 'a barged-in line must never reach the disk cache');
+  });
+
+  test('a stream that never sees the final marker caches nothing, and the retry repairs it', async () => {
+    fake.failNext = true;
+    const pcm = await pcmOf(synth(cached, 'Au revoir'));
+    assert.equal(pcm.length, 0, 'a failed stream produces no audio');
+    assert.equal(readdirSync(dir).length, 0, 'and caches nothing');
+
+    fake.failNext = false;
+    await pcmOf(synth(cached, 'Au revoir'));
+    await pcmOf(synth(cached, 'Au revoir'));
+    assert.equal(cached.hits, 1, 'the successful retry caches and the next request replays it');
+  });
+});
+
+describe('the first-audio hook', () => {
+  test('reports a miss for live synthesis and a hit for the replay', async () => {
+    const seen: { hit: boolean }[] = [];
+    cached = new CachedTTS(fake, { dir, voiceKey: 'test-voice', onFirstAudio: (info) => seen.push(info) });
+    await pcmOf(synth(cached, 'Bonjour !'));
+    await pcmOf(synth(cached, 'Bonjour !'));
+    // One entry per synthesis, not per frame: the first frame is the moment.
+    assert.deepEqual(seen, [{ hit: false }, { hit: true }]);
+  });
+
+  test('fires once on the first streamed frame too', async () => {
+    const seen: { hit: boolean }[] = [];
+    cached = new CachedTTS(fake, {
+      dir,
+      voiceKey: 'test-voice',
+      missTransport: 'ws',
+      onFirstAudio: (info) => seen.push(info),
+    });
+    await pcmOf(synth(cached, 'Bonjour !'));
+    assert.deepEqual(seen, [{ hit: false }]);
+  });
+
+  test('a throwing hook never costs the learner audio', async () => {
+    cached = new CachedTTS(fake, {
+      dir,
+      voiceKey: 'test-voice',
+      onFirstAudio: () => {
+        throw new Error('telemetry bug');
+      },
+    });
+    const pcm = await pcmOf(synth(cached, 'Bonjour !'));
+    assert.ok(pcm.length > 0, 'audio flows even when the hook throws');
+    assert.deepEqual(await pcmOf(synth(cached, 'Bonjour !')), pcm, 'and the replay path survives it too');
   });
 });
 

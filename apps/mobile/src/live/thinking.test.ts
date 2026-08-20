@@ -29,7 +29,7 @@ describe('is the tutor still deciding', () => {
     const answers: ServerMessage[] = [
       { t: 'prompt', prompt: {} as never },
       { t: 'convo', view: {} as never },
-      { t: 'topics', prompt: { fr: 'x', en: 'x' }, chips: [] },
+      { t: 'opening', prompt: { fr: 'x', en: 'x' } },
       { t: 'recap', recap: {} as never, profile: {} },
       { t: 'summary', summary: {} as never },
     ];

@@ -19,8 +19,9 @@
 
 import type { DrillExercise } from '../drill/types.ts';
 import type { ReviewCard } from '../review/scheduler.ts';
+import type { PracticeTopic } from '../topics/topics.ts';
 
-export type NodeKind = 'lesson' | 'phrases' | 'mine';
+export type NodeKind = 'lesson' | 'phrases' | 'mine' | 'topic';
 
 export type NodeState =
   /** Written from conversations the learner has not had yet. */
@@ -176,8 +177,16 @@ function stateForPhrases(keys: readonly string[], deck: readonly ReviewCard[], n
   return cards.length === keys.length ? 'complete' : 'in-progress';
 }
 
+/** "Talked about" counts in words, because mid-app copy never carries numbers. */
+function discussedInWords(times: number): string {
+  if (times <= 1) return 'Talked about once';
+  if (times === 2) return 'Talked about twice';
+  if (times <= 4) return 'Talked about a few times';
+  return 'One of your regulars';
+}
+
 /**
- * Derive the path from the deck and the bank.
+ * Derive the path from the deck, the bank and the learner's own topics.
  *
  * `now` is a parameter for the same reason it is everywhere else in core: a
  * rule about when something is due that cannot be tested across a boundary is
@@ -186,6 +195,7 @@ function stateForPhrases(keys: readonly string[], deck: readonly ReviewCard[], n
 export function buildPath(
   deck: readonly ReviewCard[],
   bank: readonly DrillExercise[],
+  topics: readonly PracticeTopic[],
   opts: PathOptions,
   now: number,
 ): PathUnit[] {
@@ -210,6 +220,26 @@ export function buildPath(
       return { ...node, state: stateForPhrases(node.phraseKeys, deck, now), isNext: false };
     }),
   }));
+
+  // The learner's own topics replace the generic "what you said" node the
+  // moment they exist: one card per topic actually talked about, each a real
+  // door into a drill sitting over that topic's phrases. The generic node
+  // stays only as the pre-topic fallback (old sessions produced drills but no
+  // topics) and as the locked promise before any conversation has happened.
+  const mine = units.find((u) => u.id === 'mine');
+  if (mine !== undefined && topics.length > 0) {
+    mine.nodes = topics.map(
+      (topic): PathNode => ({
+        id: topic.id,
+        title: topic.title.en,
+        sub: discussedInWords(topic.discussed.length),
+        kind: 'topic',
+        phraseKeys: topic.phraseKeys,
+        state: stateForPhrases(topic.phraseKeys, deck, now),
+        isNext: false,
+      }),
+    );
+  }
 
   // Exactly one node carries the primary action: the first thing that is not
   // finished. Anything the scheduler wants back comes first, because a phrase

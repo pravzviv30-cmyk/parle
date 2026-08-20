@@ -123,6 +123,13 @@ export const TurnSchema = z.object({
     /** Phrases the learner produced natively and correctly. */
     usedWell: z.array(z.string()),
   }),
+  /**
+   * Where the learner steered the conversation when they plainly left the
+   * current topic — a short noun phrase in both languages — else null.
+   * Observation only: code records it and the tutor follows the learner;
+   * beats never move because of it.
+   */
+  topicShift: z.object({ en: z.string(), fr: z.string() }).nullable(),
   scene: z.object({
     /** Id of the beat the conversation is on, from the scenario frame. */
     beat: z.string(),

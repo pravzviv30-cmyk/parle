@@ -7,19 +7,26 @@
 
 ## The world
 
-**Paper & ink.** A picture book for adults: pale lilac paper, warm black ink,
-hand-drawn line-art illustrations, a serif that speaks and a sans that stays out
-of the way. Flat white cards on a hairline rule; one solid ink pill per screen.
+**Colourful calm.** A picture book for adults: pale lilac paper, violet-cast
+ink, hand-drawn line-art illustrations, a serif that speaks and a sans that
+stays out of the way. Flat white cards on a hairline rule. Colour does jobs
+now: **violet is identity** (the primary pill, the micro-labels, the monogram),
+**green means go** (your turn to speak, ground already covered), **amber means
+thinking**, **red means the tutor is talking**.
 
 Chosen because the product asks a nervous adult to speak out loud twice a day,
 and the surface that earns that is calm, friendly and professional — easy on the
-eye, easy to come back to. It is the consumer language-app register (the founder
-pointed at Babbel's stack screens) executed with our own pen.
+eye, easy to come back to. The founder picked this direction (option C of three
+mocked) over a symphony.co-style cream/lime skin and over keeping the plain
+ink-on-lilac look.
 
-What did **not** change from the enamel era, because it is behaviour rather than
-surface: one primary action per screen; support colours that visibly cool as
-help is withdrawn; the red live microphone; no scores and no scolding
-mid-session; 44pt touch floors; type that respects the OS reading size.
+What did **not** change, because it is behaviour rather than surface: one
+primary action per screen; support colours that visibly cool as help is
+withdrawn; no scores and no scolding mid-session; 44pt touch floors; type that
+respects the OS reading size. What deliberately DID change: the live microphone
+is **green** now, not red — green means "you speak" everywhere, so the voice
+circle's red can mean "the tutor is speaking" without the two ever reading as
+one signal.
 
 ## Colour
 
@@ -28,14 +35,16 @@ Light, and committed to one paper. Tokens from `apps/mobile/src/theme.ts`:
 | Token | Value | Role |
 |---|---|---|
 | `paper.ground` | `#F3E8F3` | The page — everything sits directly on it |
-| `paper.groundDeep` | `#EAD9EA` | Pressed states, chips, the tab track |
+| `paper.groundDeep` | `#E4D3EE` | Pressed states, chips, the tab track — lavender |
 | `paper.card` | `#FFFFFF` | Card surface, flat |
-| `paper.ink` | `#1A141E` | Near-black ink, a whisper of violet |
-| `paper.inkSoft` | `#5F5566` | Secondary text |
-| `paper.inkFaint` | `#92879A` | Tertiary — counts, placeholders, IPA |
-| `paper.line` | `#DCCEDC` | Hairline rule on the ground |
-| `paper.lineOnCard` | `#EAE0EA` | Hairline divider inside a card |
-| `paper.onInk` | `#FFF9F2` | Text on an ink control — warm, never pure |
+| `paper.ink` | `#241633` | Near-black ink with a real violet cast |
+| `paper.inkSoft` | `#5F4E73` | Secondary text |
+| `paper.inkFaint` | `#94849F` | Tertiary — counts, placeholders, IPA |
+| `paper.line` | `#D9C8E2` | Hairline rule on the ground |
+| `paper.lineOnCard` | `#EAE0F0` | Hairline divider inside a card |
+| `paper.onInk` | `#FBF6FF` | Text on a filled control — violet-white, never pure |
+| `accent.primary` | `#6B3FA0` | The identity violet: primary pill, monogram |
+| `accent.label` | `#8A5BBF` | Micro-labels — the caps line above a card |
 
 ### Support colours still cool as help is withdrawn
 
@@ -44,13 +53,30 @@ Light, and committed to one paper. Tokens from `apps/mobile/src/theme.ts`:
 | 1 Echo | `#FFCD00` | Repeat after the tutor |
 | 2 Cued | `#FF7E2E` | Choose a reply and say it |
 | 3 Prompted | `#6EC4E8` | Say it in your own words |
-| 4 Free | `#1A141E` | Plain ink — no line left to follow |
+| 4 Free | `#241633` | Plain ink — no line left to follow |
 
 ### Signals
 
 Kept out of the rung set so state never reads as a rung:
-`live #FF4B3E` (the microphone) · `good #1E8A5B` · `correspondance #B4008A`
-(both darkened from the enamel era to hold on white cards).
+`live #FF4B3E` (the tutor's voice — red never marks the learner's mic now) ·
+`good #1E8A5B` · `correspondance #B4008A` (the latter two darkened from the
+enamel era to hold on white cards).
+
+### The voice circle speaks traffic lights
+
+`theme.ts`'s `orb` block, taught to every new learner by TutorIntro's final
+page, so these values changing means that page is teaching a lie — change both:
+
+| State | Colour | Caption |
+|---|---|---|
+| Tutor speaking | `orb.speaking` red `#FF4B3E` | Listen |
+| Your turn | `orb.yourTurn` green `#1E8A5B` | Speak |
+| Thinking | `orb.thinking` amber `#E3A800` | One moment |
+
+Amber is darker than rung 1's yellow so the caption under it stays legible on
+lilac. Green is the same green everywhere the learner speaks: the orb's
+your-turn state, the lesson SpeakCircle, the Review button, the path's
+learned marks.
 
 ## Type
 
@@ -76,8 +102,8 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
 
 - **Card** — white, radius 14, one hairline `paper.line` rule, flat. No shadows
   anywhere except the live microphone's glow.
-- **PillButton** — the one primary action: solid ink pill, warm-white label,
-  52pt tall.
+- **PillButton** — the one primary action: solid violet pill (`accent.primary`),
+  warm-white label, 52pt tall.
 - **OutlineButton / GhostButton** — the seconds: white pill with an ink rule, or
   bare text at full touch height.
 - **OptionCard** — a tappable choice: French in the serif, English gloss under,
@@ -86,8 +112,9 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
   white with a 1.5 rule that turns ink on focus; the Home tabs are a soft track
   with a white active pill; onboarding dots stretch the current page.
 - **SpeakCircle** — THE microphone: one 108pt circle used by every speaking
-  surface. Red-ringed when waiting, red-filled (with the app's only shadow)
-  when live, hairline-muted when the tutor holds the floor.
+  surface. Green-ringed when waiting, green-filled (with the app's only shadow)
+  when live — green means "you speak", matching the voice circle —
+  hairline-muted when the tutor holds the floor.
 - **Icons** — authored SVG at the illustration stroke (2.2), ink by default.
   The Google mark is a monochrome line-art G: no brand-colour asset in v1.
 
@@ -102,15 +129,17 @@ suitcase, winged clock, clinking speech bubbles, sprouting word cards, postcard.
 
 ## Structure
 
-A moving welcome on first launch → sign-in gate (Welcome / Create account /
-Sign in) → four onboarding pages → **five icon-only tabs along the bottom**:
+A two-page moving welcome on first launch (the café scene says hello; page two
+says what Parle is and why speaking out loud is the point) → sign-in gate
+(Welcome / Create account / Sign in) → four onboarding pages → **five icon-only
+tabs along the bottom**:
 
 | Tab | What it is |
 |---|---|
 | Home | The level card, the evidence, one way in |
-| Tutor | Free conversation. A one-time intro the first time only |
-| Practice | The path, the guided lesson, the drill bank, the review deck |
-| Leaderboard | Global and Friends. Honest empty state until there is a server |
+| Tutor | Free conversation. A one-time four-page intro whose last page teaches the traffic-light circle, and whose button genuinely starts a conversation |
+| Practice | The path, the guided lesson, the drill bank, the review deck — plus one topic card per conversation subject, projected live from the deck |
+| Leaderboard | Global and Friends. Friends works against clearly-labelled sample users behind an adapter until there is a server; add-friends lives one screen deeper |
 | Profile | Account, support, sign out, the legal footer |
 
 Navigation is React Navigation: a root stack whose first screen is the tab
@@ -131,12 +160,16 @@ browser.
 
 **Chrome is plain English.** Sentence case on buttons; the caps look lives only
 in the micro-`label`. French appears exactly where it is content: tutor lines,
-lesson text, phrases and their glosses, topic chips (fr + en), review fronts,
-register vocabulary — and the single flourish "Bonjour, {name}" on Home, which
-is lesson-one vocabulary. The old FRENCH · ENGLISH paired furniture is retired.
+lesson text, phrases and their glosses, review fronts, register vocabulary —
+and the single flourish "Bonjour, {name}" on Home, which is lesson-one
+vocabulary. The conversation OPENS in English (the spoken question, no menu)
+with the French riding along on screen as exposure. The old FRENCH · ENGLISH
+paired furniture is retired.
 
-Prose rules, unchanged and still enforced by `packages/core/src/copy.test.ts`
-for core content: no em dashes where a learner reads, short plain sentences.
+Prose rules: no em dashes where a learner reads, short plain sentences.
+Enforced twice — `packages/core/src/copy.test.ts` for core content, and
+`apps/mobile/src/copy.test.ts` which walks every non-test app source file and
+fails on an em dash outside comments.
 
 Two hard rules, held from the enamel era:
 
@@ -159,12 +192,15 @@ screen must not invent a second:
 - absolutely-positioned moving pieces are placed in *container* pixels, not in
   the viewBox units the still art is drawn in
 
-Two things move. The **splash** — steam drifting off a café cup, two speech
-bubbles arriving one after the other. And the **VoiceOrb**: three concentric
-ink rings that breathe, offset so they drift rather than pump in unison. Five
-states — idle, speaking, listening, thinking, error — said in ring colour and
-one caption. It carries no shadow; the app's only shadow belongs to the live
-microphone and nothing else may borrow it.
+Two things move. The **welcome** — steam drifting off a café cup, two speech
+bubbles arriving one after the other, then a settling second page. And the
+**voice circle**: two concentric outline rings breathing around one solid
+centre, offset so they drift rather than pump in unison. Five states — idle,
+speaking, listening, thinking, error — said in traffic-light colour (red
+listen, green speak, amber one-moment) and one caption. The founder chose this
+ring shape explicitly over a lit gradient sphere. It carries no shadow; the
+app's only shadow belongs to the live microphone and nothing else may borrow
+it.
 
 Deliberately not driven by audio amplitude. An analyser feeding setState sixty
 times a second is the churn that would force a reanimated dependency, and that

@@ -11,10 +11,11 @@
  *   1. typecheck across every workspace
  *   2. tests: zero failures, and no workspace below its recorded floor
  *   3. hygiene: nothing focused with .only, nothing newly skipped
- *   4. the goal: docs/KNOWN_ISSUES.md has no open P0/P1, and every ticked box names a
+ *   4. agents: the model pins the loops depend on are still in place
+ *   5. the goal: docs/KNOWN_ISSUES.md has no open P0/P1, and every ticked box names a
  *      test that actually ran and actually passed
  *
- * Check 4 is the one that matters. Without it the loop can declare victory by editing a
+ * Check 5 is the one that matters. Without it the loop can declare victory by editing a
  * checkbox; with it, the only way to tick a box is to make a named test pass.
  */
 
@@ -129,7 +130,61 @@ for (const file of testFiles(ROOT)) {
   }
 }
 
-// --------------------------------------------------------------------- 4. goal
+// ------------------------------------------------------------------- 4. agents
+
+// Which model runs which agent is the whole design of /forge and /bug-sweep, and it lives
+// entirely in one line of frontmatter. That line fails quietly: delete `model: fable` and
+// the agent inherits the session model, the thinking silently moves, and every run still
+// looks exactly the same from the outside. Nothing else in this repo would ever notice.
+
+/** Agent name -> the model it must stay pinned to. Fable thinks, Opus builds. */
+const AGENT_MODELS = {
+  'design-architect': 'fable',
+  'work-judge': 'fable',
+  'bug-hunter': 'opus',
+  'fix-verifier': 'opus',
+};
+
+const readOrNull = (file) => {
+  try {
+    return readFileSync(file, 'utf8');
+  } catch {
+    return null;
+  }
+};
+
+/** The frontmatter block only. A `model:` line in the prose body is not a pin. */
+function frontmatter(source) {
+  const block = source.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  return block ? block[1] : null;
+}
+
+for (const [agent, expected] of Object.entries(AGENT_MODELS)) {
+  const source = readOrNull(path.join(ROOT, '.claude', 'agents', `${agent}.md`));
+  if (source === null) {
+    fail('agents', `.claude/agents/${agent}.md is missing — ${agent} cannot be dispatched`);
+    continue;
+  }
+  const head = frontmatter(source);
+  if (head === null) {
+    fail('agents', `${agent}: no frontmatter block, so nothing about it is configured`);
+    continue;
+  }
+  const pinned = head.match(/^model:\s*(\S+)\s*$/m);
+  if (!pinned) {
+    fail('agents', `${agent}: no model pin — it would silently inherit the session model`);
+  } else if (pinned[1] !== expected) {
+    fail('agents', `${agent}: pinned to ${pinned[1]}, expected ${expected}`);
+  }
+}
+
+for (const command of ['forge', 'bug-sweep']) {
+  if (readOrNull(path.join(ROOT, '.claude', 'commands', `${command}.md`)) === null) {
+    fail('agents', `.claude/commands/${command}.md is missing — /${command} does not exist`);
+  }
+}
+
+// --------------------------------------------------------------------- 5. goal
 
 const ledger = readFileSync(LEDGER_PATH, 'utf8');
 /** @type {{id: string, title: string, severity: string, done: boolean, verifiedBy: string[]}[]} */
@@ -182,7 +237,7 @@ if (bless) {
   // ledger item is work still to do, not a reason to leave new tests undefended.
   const blocking = failures.filter((f) => f.check !== 'goal');
   if (blocking.length > 0) {
-    console.error('refusing to bless floors while tests, typecheck or hygiene are red:');
+    console.error('refusing to bless floors while typecheck, tests, hygiene or agents are red:');
     for (const f of blocking) console.error(`  [${f.check}] ${f.detail}`);
     process.exit(1);
   }

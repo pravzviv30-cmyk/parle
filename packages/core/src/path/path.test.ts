@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { buildPath, authoredPhraseKeys, AUTHORED_PATH } from './path.ts';
 import { DRILL_FIXTURES } from '../drill/fixtures.ts';
 import type { ReviewCard } from '../review/scheduler.ts';
+import type { PracticeTopic } from '../topics/topics.ts';
 
 const NOW = new Date(2026, 0, 15, 12).getTime();
 const DAY = 86_400_000;
@@ -41,19 +42,19 @@ describe('the authored graph', () => {
 
 describe('node state follows the deck, not a second store', () => {
   test('an untouched node is available', () => {
-    const units = buildPath([], [], OPTS, NOW);
+    const units = buildPath([], [], [], OPTS, NOW);
     assert.equal(units[0]!.nodes[1]!.state, 'available');
   });
 
   test('some phrases known makes a node in-progress', () => {
-    const units = buildPath([card('phrase:je vais prendre un croissant', NOW + DAY)], [], OPTS, NOW);
+    const units = buildPath([card('phrase:je vais prendre un croissant', NOW + DAY)], [], [], OPTS, NOW);
     const order = units[0]!.nodes.find((n) => n.id === 'cafe:order')!;
     assert.equal(order.state, 'in-progress');
   });
 
   test('all phrases known and nothing due is complete', () => {
     const deck = ["phrase:sur place, s'il vous plaît", 'phrase:je vais prendre un croissant', "phrase:oui, c'est tout, merci", 'phrase:ça sera tout, merci'].map((k) => card(k, NOW + DAY));
-    const units = buildPath(deck, [], OPTS, NOW);
+    const units = buildPath(deck, [], [], OPTS, NOW);
     assert.equal(units[0]!.nodes.find((n) => n.id === 'cafe:order')!.state, 'complete');
   });
 
@@ -61,7 +62,7 @@ describe('node state follows the deck, not a second store', () => {
     // Deliberately not how the reference design behaves: the deck stays the
     // single source of truth, so a node can come back.
     const deck = ["phrase:sur place, s'il vous plaît", 'phrase:je vais prendre un croissant', "phrase:oui, c'est tout, merci", 'phrase:ça sera tout, merci'].map((k) => card(k, NOW - DAY));
-    const units = buildPath(deck, [], OPTS, NOW);
+    const units = buildPath(deck, [], [], OPTS, NOW);
     const order = units[0]!.nodes.find((n) => n.id === 'cafe:order')!;
     // Both true at once, which is the point of keeping them apart.
     assert.equal(order.state, 'needs-review');
@@ -69,8 +70,8 @@ describe('node state follows the deck, not a second store', () => {
   });
 
   test('the guided lesson completes on having been finished, not on the deck', () => {
-    const undone = buildPath([], [], { lessonDone: false }, NOW);
-    const done = buildPath([], [], { lessonDone: true }, NOW);
+    const undone = buildPath([], [], [], { lessonDone: false }, NOW);
+    const done = buildPath([], [], [], { lessonDone: true }, NOW);
     assert.notEqual(undone[0]!.nodes[0]!.state, 'complete');
     assert.equal(done[0]!.nodes[0]!.state, 'complete');
   });
@@ -78,7 +79,7 @@ describe('node state follows the deck, not a second store', () => {
 
 describe('gating', () => {
   test('only the tutor-written node ever locks', () => {
-    const units = buildPath([], [], OPTS, NOW);
+    const units = buildPath([], [], [], OPTS, NOW);
     const locked = units.flatMap((u) => u.nodes).filter((n) => n.state === 'locked');
     assert.equal(locked.length, 1);
     assert.equal(locked[0]!.kind, 'mine');
@@ -87,14 +88,14 @@ describe('gating', () => {
   test('every authored node is open from the very first launch', () => {
     // Principle 1: support is withdrawn as the learner improves, never
     // withheld until they earn it.
-    const units = buildPath([], [], OPTS, NOW);
+    const units = buildPath([], [], [], OPTS, NOW);
     const authored = units.flatMap((u) => u.nodes).filter((n) => n.kind !== 'mine');
     assert.ok(authored.every((n) => n.state !== 'locked'));
   });
 
   test('the tutor-written node unlocks once the tutor has written something', () => {
     const bank = [{ ...DRILL_FIXTURES[0]!, id: 'gen:abc', phraseKey: 'phrase:mine' }];
-    const units = buildPath([], bank, OPTS, NOW);
+    const units = buildPath([], bank, [], OPTS, NOW);
     const mine = units.flatMap((u) => u.nodes).find((n) => n.kind === 'mine')!;
     assert.notEqual(mine.state, 'locked');
   });
@@ -103,7 +104,7 @@ describe('gating', () => {
 describe('exactly one next', () => {
   test('there is never more than one primary action on the map', () => {
     for (const deck of [[], [card('phrase:salut ! ça va ?', NOW - DAY)], [card('phrase:merci beaucoup', NOW + DAY)]]) {
-      const units = buildPath(deck, [], OPTS, NOW);
+      const units = buildPath(deck, [], [], OPTS, NOW);
       const next = units.flatMap((u) => u.nodes).filter((n) => n.isNext);
       assert.equal(next.length, 1, 'exactly one node should carry the action');
     }
@@ -111,15 +112,62 @@ describe('exactly one next', () => {
 
   test('something the scheduler wants back outranks new ground', () => {
     const deck = ['phrase:salut ! ça va ?', 'phrase:ça marche', 'phrase:carrément !'].map((k) => card(k, NOW - DAY));
-    const units = buildPath(deck, [], OPTS, NOW);
+    const units = buildPath(deck, [], [], OPTS, NOW);
     const next = units.flatMap((u) => u.nodes).find((n) => n.isNext)!;
     assert.equal(next.id, 'amis:greet');
   });
 
   test('a fully finished path offers nothing rather than inventing something', () => {
     const deck = authoredPhraseKeys().map((k) => card(k, NOW + 10 * DAY));
-    const units = buildPath(deck, [], { lessonDone: true }, NOW);
+    const units = buildPath(deck, [], [], { lessonDone: true }, NOW);
     const next = units.flatMap((u) => u.nodes).filter((n) => n.isNext);
     assert.equal(next.length, 0);
+  });
+});
+
+describe("topic cards — practice from the learner's own conversations", () => {
+  const topic = (over: Partial<PracticeTopic> = {}): PracticeTopic => ({
+    id: 'topic:ordering-at-the-cafe',
+    title: { fr: 'Au café', en: 'Ordering at the café' },
+    discussed: ['2026-08-19'],
+    phraseKeys: ['phrase:ça marche'],
+    ...over,
+  });
+
+  test('each topic becomes one node in the mine unit, state projected from the deck', () => {
+    const units = buildPath([card('phrase:ça marche', NOW + DAY)], [], [topic()], OPTS, NOW);
+    const mine = units.find((u) => u.id === 'mine')!;
+    assert.equal(mine.nodes.length, 1);
+    const node = mine.nodes[0]!;
+    assert.equal(node.kind, 'topic');
+    assert.equal(node.id, 'topic:ordering-at-the-cafe');
+    assert.equal(node.title, 'Ordering at the café');
+    assert.equal(node.state, 'complete', 'earned and not due — the deck says so');
+    assert.deepEqual([...node.phraseKeys], ['phrase:ça marche']);
+  });
+
+  test('a due phrase pulls its topic back to needs-review', () => {
+    const units = buildPath([card('phrase:ça marche', NOW - 1)], [], [topic()], OPTS, NOW);
+    assert.equal(units.find((u) => u.id === 'mine')!.nodes[0]!.state, 'needs-review');
+  });
+
+  test('with no topics yet, the generic node still stands, locked until a conversation', () => {
+    const units = buildPath([], [], [], OPTS, NOW);
+    const mine = units.find((u) => u.id === 'mine')!;
+    assert.equal(mine.nodes.length, 1);
+    assert.equal(mine.nodes[0]!.id, 'mine:recent');
+    assert.equal(mine.nodes[0]!.state, 'locked');
+  });
+
+  test('how often it came up reads in words, never digits', () => {
+    const rugby = topic({
+      id: 'topic:rugby',
+      title: { fr: 'Le rugby', en: 'Rugby' },
+      discussed: ['a', 'b', 'c', 'd', 'e'],
+    });
+    const units = buildPath([], [], [topic(), rugby], OPTS, NOW);
+    const subs = units.find((u) => u.id === 'mine')!.nodes.map((n) => n.sub);
+    assert.deepEqual(subs, ['Talked about once', 'One of your regulars']);
+    for (const sub of subs) assert.ok(!/\d/.test(sub), `digit leaked into "${sub}"`);
   });
 });

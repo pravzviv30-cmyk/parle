@@ -57,6 +57,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Convo: 'conversation',
       Drill: 'drill',
       Review: 'review',
+      AddFriends: 'add-friends',
     },
   },
 };

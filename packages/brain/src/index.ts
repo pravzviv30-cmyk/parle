@@ -22,6 +22,7 @@ export { renderAuthenticityPack } from './authenticity/render.ts';
 export * from './prompt/system.ts';
 export * from './prompt/turnContext.ts';
 export * from './prompt/extractPrompt.ts';
+export * from './curate/curate.ts';
 export * from './drill/generate.ts';
 export * from './prompt/historyView.ts';
 export * from './prompt/scenarioPrompt.ts';

@@ -82,6 +82,7 @@ export function assembleRecap(
     fixes: dedupeFixes(state.deferred),
     phrases: state.phrases.slice(0, MAX_PHRASES),
     nextFocus: focusFrom(state.errorTags),
+    topics: state.topics.map((t) => ({ fr: t.fr, en: t.en })),
     cefr,
     stats: {
       turns: state.turnCount,

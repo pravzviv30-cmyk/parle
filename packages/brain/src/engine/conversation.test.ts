@@ -5,6 +5,7 @@ import { STUCK_SILENCE_MS, directiveFor } from '@parle/core';
 
 import {
   MAX_ATTEMPTS_PER_BEAT,
+  MAX_SESSION_TOPICS,
   applyNonSpokenInput,
   createConversation,
   integrateTurn,
@@ -399,5 +400,62 @@ describe('narration — the scene-shift channel', () => {
     assert.ok(!view.narration!.fr.includes('—'));
     const remembered = after.history.at(-1)!.text;
     assert.match(remembered, /^\(narration\) /);
+  });
+});
+
+describe('topics — the learner steers, the tutor follows, code remembers', () => {
+  const steer = (en: string, fr: string) => sampleTurn({ topicShift: { en, fr } });
+
+  test("a conversation opens on the frame's own topic", () => {
+    const state = fresh();
+    assert.equal(state.topics.length, 1);
+    assert.equal(state.topics[0]!.en, CAFE_FRAME.titleEn);
+    assert.equal(state.topics[0]!.fr, CAFE_FRAME.title);
+  });
+
+  test('a reported shift is appended with the turn it happened on', () => {
+    const { state } = integrateTurn(fresh(), spoke(), steer('Rugby', 'Le rugby'));
+    assert.equal(state.topics.length, 2);
+    assert.deepEqual(state.topics[1], { en: 'Rugby', fr: 'Le rugby', turn: 1 });
+  });
+
+  test('a null shift leaves the list untouched', () => {
+    const { state } = integrateTurn(fresh(), spoke(), sampleTurn());
+    assert.equal(state.topics.length, 1);
+  });
+
+  test('the same steer twice is recorded once, whatever the casing', () => {
+    let state = fresh();
+    state = integrateTurn(state, spoke(), steer('Rugby', 'Le rugby')).state;
+    state = integrateTurn(state, spoke(), steer('  rugby ', 'Le rugby')).state;
+    assert.equal(state.topics.length, 2);
+  });
+
+  test('an empty steer is dropped rather than recorded as nothing', () => {
+    const { state } = integrateTurn(fresh(), spoke(), steer('   ', ''));
+    assert.equal(state.topics.length, 1);
+  });
+
+  test('the list caps so a chatty model cannot flood the recap', () => {
+    let state = fresh();
+    for (const name of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) {
+      state = integrateTurn(state, spoke(), steer(`Topic ${name}`, `Sujet ${name}`)).state;
+    }
+    assert.equal(state.topics.length, MAX_SESSION_TOPICS);
+  });
+
+  test('a steer never completes a beat by itself', () => {
+    const before = fresh();
+    const { state, view } = integrateTurn(before, spoke(), steer('Rugby', 'Le rugby'));
+    assert.equal(view.advancedBeat, false);
+    assert.equal(state.currentBeat, before.currentBeat);
+  });
+
+  test('a steer rides the next turn context; the frame topic alone does not', () => {
+    const before = prepareTurn(fresh(), spoke());
+    assert.ok(!before.messages.at(-1)!.text.includes('TOPIC:'), 'no steer, no line');
+    const { state } = integrateTurn(fresh(), spoke(), steer('Rugby', 'Le rugby'));
+    const after = prepareTurn(state, spoke());
+    assert.ok(after.messages.at(-1)!.text.includes('TOPIC: they steered the conversation to: Rugby'));
   });
 });

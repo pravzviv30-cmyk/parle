@@ -105,6 +105,8 @@ export interface RecapPayload {
   phrases: ConvoPhrase[];
   /** Exactly one thing to work on next. Never a list. */
   nextFocus: string;
+  /** What the conversation was actually about, in order: the scene first, then every steer. */
+  topics: { fr: string; en: string }[];
   cefr: { estimate: string; confidence: 'low' | 'medium' | 'high' };
   stats: { turns: number; rescues: number; unassistedRate: number };
 }
@@ -124,18 +126,27 @@ export type ServerMessage =
   /** Free conversation: render this turn. The convo analog of `prompt`. */
   | { t: 'convo'; view: ConvoView }
   /**
-   * Free conversation opens here: the tutor asks what to talk about and these
-   * chips are the tappable answers. Speaking a topic works identically — the
-   * chips exist so a learner with no words yet is never staring at a silent
-   * microphone. Replaces nothing; the first `convo` view ends the choosing.
+   * Free conversation opens here: the tutor asks — in English, so a brand-new
+   * learner is never opened at in a language they do not have yet — what the
+   * learner wants to talk about. No menu: whatever they say (or type) becomes
+   * the scene. The French rides along for the screen. The first `convo` view
+   * ends the choosing.
    */
-  | { t: 'topics'; prompt: { fr: string; en: string }; chips: { label: string; en: string; value: string }[] }
+  | { t: 'opening'; prompt: { fr: string; en: string } }
   /**
    * Free conversation is over. Carries the recap, plus the updated learner
    * profile as an opaque blob the app persists and returns next session — the
    * agent owns the shape, the app is just the storage.
    */
   | { t: 'recap'; recap: RecapPayload; profile: unknown }
+  /**
+   * What this session leaves behind in Practice: the topics actually talked
+   * about, each carrying the few phrases worth keeping. Curated agent-side
+   * (the model proposes, code disposes) and sent exactly once per session,
+   * after the recap. The app builds its topic cards and review cards from
+   * this; nothing here is rendered live.
+   */
+  | { t: 'practice'; topics: { titleFr: string; titleEn: string; phrases: ConvoPhrase[] }[] }
   /**
    * Tomorrow's drills are the sentences you spoke today: exercises authored
    * from this session's phrases and errors, already validated agent-side.
@@ -157,8 +168,6 @@ export type ClientMessage =
   | { t: 'choice'; text: string }
   /** Replay the current line in the tutor's voice. Not a ladder event. */
   | { t: 'hear' }
-  /** The learner picked a topic chip. Speaking the topic arrives as speech instead. */
-  | { t: 'topic'; value: string }
   /**
    * "plus lent" — say the line again slowly, and stay slow from here on.
    * Support, never a ladder event: asking to slow down is a healthy act.
@@ -193,8 +202,8 @@ export function decodeClientMessage(payload: Uint8Array): ClientMessage | null {
   return decodeAs<ClientMessage>(payload, CLIENT_TAGS);
 }
 
-const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'topics', 'recap', 'drills', 'error']);
-const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'topic', 'slower', 'english', 'say', 'leave']);
+const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'error']);
+const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower', 'english', 'say', 'leave']);
 
 function decodeAs<T>(payload: Uint8Array, tags: ReadonlySet<string>): T | null {
   try {

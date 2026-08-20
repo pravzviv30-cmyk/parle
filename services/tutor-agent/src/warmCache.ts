@@ -42,10 +42,13 @@ function scriptedLines(): string[] {
       for (const o of turn.options) add(o.text); // offered aloud at rung 2
     }
   }
-  // Free conversation's scripted moments: the opening question, the bridge
-  // into a scene, the silence suggestion, and both fixture scenes' openings
-  // (narration is spoken in English; the multilingual voice handles it).
-  for (const line of Object.values(CONVO_LINES)) add(line.fr);
+  // Free conversation's scripted moments, warmed AS SPOKEN: the opener and
+  // the suggestion are said in English (a new learner is never opened at in
+  // French), the bridge in French. Both fixture scenes' openings too — the
+  // narration is English; the multilingual voice handles it.
+  add(CONVO_LINES.opener.en);
+  add(CONVO_LINES.suggest.en);
+  add(CONVO_LINES.bridge.fr);
   for (const frame of [CAFE_FRAME, APERO_FRAME]) {
     add(frame.openingNarration.en);
     add(frame.openingLine.fr);

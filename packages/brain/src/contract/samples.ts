@@ -45,6 +45,7 @@ export function sampleTurn(overrides: Partial<TutorTurn> = {}): TutorTurn {
     support: sampleSupport(),
     newPhrases: [],
     profileSignals: { errorPatterns: [], usedWell: [] },
+    topicShift: null,
     scene: { beat: 'order-drink', beatDone: false, sceneDone: false },
     ...overrides,
   };

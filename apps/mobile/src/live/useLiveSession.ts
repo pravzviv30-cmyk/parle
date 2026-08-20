@@ -19,6 +19,7 @@ import {
   TOPIC_CLIENT,
   TOPIC_SERVER,
   type ClientMessage,
+  type ConvoPhrase,
   type ConvoView,
   type DrillExercise,
   type RecapPayload,
@@ -126,7 +127,7 @@ function emptyDiagnostics(): LiveDiagnostics {
  */
 const OPENING_TAGS: Record<'lesson' | 'convo', ReadonlySet<string>> = {
   lesson: new Set(['prompt', 'summary']),
-  convo: new Set(['convo', 'topics', 'recap']),
+  convo: new Set(['convo', 'opening', 'recap']),
 };
 
 /** One stable prefix so a developer can filter the console to just this. */
@@ -154,12 +155,19 @@ export interface LiveSession {
   /** Free conversation: the current turn to render. Null on the lesson path. */
   convo: ConvoView | null;
   /**
-   * Free conversation's opening moment: the tutor's spoken question and the
-   * tappable topic chips. Cleared the instant the first scene view arrives.
+   * Free conversation's opening moment: the tutor's spoken question (English,
+   * with the French alongside for the screen). No menu — the learner answers
+   * in their own words. Cleared the instant the first scene view arrives.
    */
-  topics: { prompt: { fr: string; en: string }; chips: { label: string; en: string; value: string }[] } | null;
+  opening: { prompt: { fr: string; en: string } } | null;
   /** Free conversation's end card, plus the updated profile blob to persist. */
   recap: { recap: RecapPayload; profile: unknown } | null;
+  /**
+   * The session's practice leave-behind: the topics actually talked about,
+   * each with its few curated phrases. Arrives once, after the recap. The app
+   * banks it (topic store + review deck); nothing renders it live.
+   */
+  practice: { titleFr: string; titleEn: string; phrases: ConvoPhrase[] }[] | null;
   /**
    * Exercises authored from this session, arriving shortly after the recap.
    * The app persists them into its drill bank; nothing renders them live.
@@ -205,8 +213,6 @@ export interface LiveSession {
    * scored rather than implying a tap sounded good.
    */
   sendChoice: (text: string) => void;
-  /** Choose a conversation topic by tapping its chip. */
-  sendTopic: (value: string) => void;
   /** Ask the tutor to say it again slowly, and to stay slow. */
   sendSlower: () => void;
   /** Ask for the current line in English. */
@@ -229,8 +235,9 @@ export function useLiveSession(
   const [lastTranscript, setLastTranscript] = useState<string | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [convo, setConvo] = useState<ConvoView | null>(null);
-  const [topics, setTopics] = useState<LiveSession['topics']>(null);
+  const [opening, setOpening] = useState<LiveSession['opening']>(null);
   const [recap, setRecap] = useState<{ recap: RecapPayload; profile: unknown } | null>(null);
+  const [practice, setPractice] = useState<LiveSession['practice']>(null);
   const [drills, setDrills] = useState<DrillExercise[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [turns, setTurns] = useState<TurnLine[]>([]);
@@ -475,17 +482,22 @@ export function useLiveSession(
               });
             }
             // The scene has opened; the choosing moment is over. An agent that
-            // never sent topics (an older build, say) is also covered — the app
-            // renders whatever arrives.
-            setTopics(null);
+            // never sent an opening (an older build, say) is also covered — the
+            // app renders whatever arrives.
+            setOpening(null);
             break;
-          case 'topics':
-            setTopics({ prompt: msg.prompt, chips: msg.chips });
+          case 'opening':
+            setOpening({ prompt: msg.prompt });
+            // The opener is SPOKEN in English; the thread shows it the same way
+            // round, with the French alongside as exposure.
             addTurn({ who: 'tutor', fr: msg.prompt.fr, frWritten: null, en: msg.prompt.en });
             break;
           case 'recap':
             setRecap({ recap: msg.recap, profile: msg.profile });
             setStatus({ phase: 'ended' });
+            break;
+          case 'practice':
+            setPractice(msg.topics);
             break;
           case 'drills':
             setDrills(msg.exercises);
@@ -606,8 +618,9 @@ export function useLiveSession(
     lastTranscript,
     summary,
     convo,
-    topics,
+    opening,
     recap,
+    practice,
     drills,
     notice,
     turns,
@@ -621,7 +634,6 @@ export function useLiveSession(
     sendSkip: useCallback(() => send({ t: 'skip' }), [send]),
     sendHear: useCallback(() => send({ t: 'hear' }), [send]),
     sendChoice: useCallback((text: string) => send({ t: 'choice', text }), [send]),
-    sendTopic: useCallback((value: string) => send({ t: 'topic', value }), [send]),
     sendSlower: useCallback(() => send({ t: 'slower' }), [send]),
     sendEnglish: useCallback(() => send({ t: 'english' }), [send]),
     sendSay: useCallback(

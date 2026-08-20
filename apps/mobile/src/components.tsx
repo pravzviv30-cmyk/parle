@@ -20,7 +20,7 @@ import {
   type KeyboardTypeOptions,
 } from 'react-native';
 import Svg, { Path, Circle, G } from 'react-native-svg';
-import { paper, radius, signal, space, type, HAIRLINE, HIT, STROKE, rungColor } from './theme.ts';
+import { accent, paper, radius, signal, space, type, HAIRLINE, HIT, STROKE, rungColor } from './theme.ts';
 import type { Rung } from '@parle/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
@@ -118,8 +118,8 @@ export function Card({
   return <View style={[s.card, padded && s.cardPadded, style]}>{children}</View>;
 }
 
-/** A small caps label above a card or a count. */
-export function Label({ children, color = paper.inkSoft }: { children: React.ReactNode; color?: string }) {
+/** A small caps label above a card or a count. Violet by default: identity work. */
+export function Label({ children, color = accent.label }: { children: React.ReactNode; color?: string }) {
   return <Text style={[type.label, { color }]}>{children}</Text>;
 }
 
@@ -217,7 +217,7 @@ export function Chip({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={gloss ? `${label} — ${gloss}` : label}
+      accessibilityLabel={gloss ? `${label}, ${gloss}` : label}
       style={({ pressed }) => [s.chip, selected && s.chipSelected, pressed && { opacity: 0.75 }]}
     >
       <Text style={[type.bodyStrong, { color: selected ? paper.onInk : paper.ink }]}>{label}</Text>
@@ -257,7 +257,7 @@ export function OptionCard({
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
         accessibilityRole="button"
-        accessibilityLabel={gloss ? `${text} — ${gloss}` : text}
+        accessibilityLabel={gloss ? `${text}, ${gloss}` : text}
         style={s.optionMain}
       >
         <View style={{ flex: 1 }}>
@@ -394,7 +394,8 @@ export function ProgressDots({ total, index }: { total: number; index: number })
 }
 
 /**
- * THE speak control: one red circle, everywhere the learner talks.
+ * THE speak control: one green circle, everywhere the learner talks — green
+ * means "you speak", matching the voice orb's traffic light.
  * `active` while the mic is live; `muted` when the tutor holds the floor.
  */
 export function SpeakCircle({
@@ -416,7 +417,7 @@ export function SpeakCircle({
   size?: number;
   accessibilityLabel: string;
 }) {
-  const iconColor = active ? paper.onInk : muted ? paper.inkFaint : signal.live;
+  const iconColor = active ? paper.onInk : muted ? paper.inkFaint : signal.good;
   return (
     <Pressable
       onPress={onPress}
@@ -515,7 +516,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: space(2),
-    backgroundColor: paper.ink,
+    backgroundColor: accent.primary,
     borderRadius: radius.pill,
     paddingHorizontal: space(6),
   },
@@ -546,7 +547,7 @@ const s = StyleSheet.create({
     paddingVertical: space(2),
     paddingHorizontal: space(3.5),
   },
-  chipSelected: { backgroundColor: paper.ink },
+  chipSelected: { backgroundColor: accent.primary },
   option: {
     minHeight: HIT + 12,
     flexDirection: 'row',
@@ -595,10 +596,10 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: paper.card,
   },
-  speakIdle: { borderWidth: 2, borderColor: signal.live },
+  speakIdle: { borderWidth: 2, borderColor: signal.good },
   speakLive: {
-    backgroundColor: signal.live,
-    shadowColor: signal.live,
+    backgroundColor: signal.good,
+    shadowColor: signal.good,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 16,

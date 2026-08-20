@@ -22,6 +22,7 @@ import { Card, Label, OutlineButton, GhostButton } from '../components.tsx';
 import { PathNodeRow } from '../practice/PathNodeRow.tsx';
 import { loadDeck } from '../review/store.ts';
 import { loadDrillBank } from '../drill/store.ts';
+import { loadTopics } from '../topics/store.ts';
 import { lastSummaryFor } from '../progress/store.ts';
 import { dueCount } from '../review/store.ts';
 import { useLive } from '../app/LiveContext.tsx';
@@ -39,10 +40,10 @@ export function PracticeTab() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void Promise.all([loadDeck(), loadDrillBank(), lastSummaryFor(CAFE_LESSON.id), dueCount()]).then(
-        ([deck, bank, lastLesson, dueNow]) => {
+      void Promise.all([loadDeck(), loadDrillBank(), loadTopics(), lastSummaryFor(CAFE_LESSON.id), dueCount()]).then(
+        ([deck, bank, topics, lastLesson, dueNow]) => {
           if (cancelled) return;
-          setUnits(buildPath(deck, bank, { lessonDone: lastLesson !== null }, Date.now()));
+          setUnits(buildPath(deck, bank, topics, { lessonDone: lastLesson !== null }, Date.now()));
           setDue(dueNow);
         },
       );

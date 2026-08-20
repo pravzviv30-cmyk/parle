@@ -27,6 +27,7 @@ const INSTRUCTION = [
   `- openingSupport: for a learner with no words yet. fullLine is the natural reply to the openingLine; options are two or three short different replies; hintEn is English only, no French words.`,
   `- Pitch the language at the learner's level. The scene stays real either way.`,
   `- cultureNotes: up to three, only when genuinely useful.`,
+  `- The request is a speech transcription and may be rough or oddly spelled. Read it for intent, not spelling.`,
 ].join('\n');
 
 export function buildScenarioInstruction(): string {

@@ -14,14 +14,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { conversationXp, type RecapPayload } from '@parle/core';
-import { paper, signal, space, type, radius, HAIRLINE, HIT } from './theme.ts';
+import { conversationXp, phraseKeyOf, type RecapPayload } from '@parle/core';
+import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from './theme.ts';
 import {
   Card,
   Label,
   PillButton,
   GhostButton,
-  OptionCard,
   StationLine,
   EarGlyph,
   HelpGlyph,
@@ -30,6 +29,8 @@ import {
 import { SupportBlock } from './SessionView.tsx';
 import { RecapScreen } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
+import { addPhrases } from './review/store.ts';
+import { mergeSessionTopics } from './topics/store.ts';
 import { recordActivity } from './progress/activity.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
@@ -97,7 +98,40 @@ export function ConvoScreen({
     if (live.drills) void mergeExercises(live.drills);
   }, [live.drills]);
 
+  // The session's practice leave-behind, banked exactly once: topic cards in
+  // the topic store, the curated phrases into the review deck, staggered so
+  // tomorrow is not a wall. RecapScreen shows all twelve phrases; only these
+  // few become cards — that is curation doing its job.
+  const practiceBankedRef = useRef(false);
+  useEffect(() => {
+    if (!live.practice || practiceBankedRef.current) return;
+    practiceBankedRef.current = true;
+    void mergeSessionTopics(
+      live.practice.map((t) => ({
+        title: { fr: t.titleFr, en: t.titleEn },
+        phraseKeys: t.phrases.map((p) => phraseKeyOf(p.fr)),
+      })),
+    );
+    void addPhrases(
+      live.practice.flatMap((t) => t.phrases),
+      { stagger: true },
+    );
+  }, [live.practice]);
+
   const leaveNow = () => {
+    // Leaving before the practice message landed: bank a minimal version from
+    // the recap (its first few phrases under the session's own topic) so an
+    // early exit never loses what the learner said. The only remaining loss
+    // window is killing the app, same as the drills.
+    if (!practiceBankedRef.current && live.recap) {
+      practiceBankedRef.current = true;
+      const phrases = live.recap.recap.phrases.slice(0, 5);
+      const home = live.recap.recap.topics[0];
+      if (phrases.length > 0 && home !== undefined) {
+        void mergeSessionTopics([{ title: home, phraseKeys: phrases.map((p) => phraseKeyOf(p.fr)) }]);
+        void addPhrases(phrases, { stagger: true });
+      }
+    }
     void live.leave().finally(onExit);
   };
 
@@ -146,10 +180,10 @@ export function ConvoScreen({
 
   const view = live.convo;
 
-  // The choosing moment: the tutor has asked what to talk about and these
-  // chips are the answers a learner with no words yet can still give. Speaking
-  // works identically; the first scene view replaces all of this.
-  if (!view && live.topics) {
+  // The opening moment: the tutor has asked, out loud and in English, what to
+  // talk about. No menu — the circle listens, and whatever the learner says
+  // (or types) becomes the scene. The first scene view replaces all of this.
+  if (!view && live.opening) {
     return (
       <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
         <View style={st.headerRow}>
@@ -164,16 +198,14 @@ export function ConvoScreen({
           </Pressable>
         </View>
         <ScrollView contentContainerStyle={st.chooseScroll} showsVerticalScrollIndicator={false}>
-          <Text style={[fitDisplay(live.topics.prompt.fr), { color: paper.ink, textAlign: 'center' }]}>
-            {live.topics.prompt.fr}
+          <Text style={[fitDisplay(live.opening.prompt.en), { color: paper.ink, textAlign: 'center' }]}>
+            {live.opening.prompt.en}
           </Text>
-          <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
-            {live.topics.prompt.en}
+          <Text style={[type.french, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
+            {live.opening.prompt.fr}
           </Text>
-          <View style={{ marginTop: space(5), gap: space(2.5), alignSelf: 'stretch' }}>
-            {live.topics.chips.map((chip) => (
-              <OptionCard key={chip.value} text={chip.label} gloss={chip.en} onPress={() => live.sendTopic(chip.value)} />
-            ))}
+          <View style={{ marginTop: space(7), marginBottom: space(8), alignItems: 'center' }}>
+            <VoiceOrb state={textMode ? 'idle' : 'listening'} />
           </View>
           {textMode ? (
             <View style={[st.typeRow, { marginTop: space(4) }]}>
@@ -181,7 +213,7 @@ export function ConvoScreen({
                 value={draft}
                 onChangeText={setDraft}
                 onSubmitEditing={sendDraft}
-                placeholder="Or type your own"
+                placeholder="Type what you want to talk about"
                 placeholderTextColor={paper.inkFaint}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -203,7 +235,7 @@ export function ConvoScreen({
             </View>
           ) : (
             <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center', marginTop: space(4) }]}>
-              Or just say it out loud.
+              Anything goes. Say it in English or French, and your tutor takes it from there.
             </Text>
           )}
         </ScrollView>
@@ -415,7 +447,7 @@ const st = StyleSheet.create({
     paddingHorizontal: space(4),
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: paper.ink,
+    backgroundColor: accent.primary,
     borderRadius: radius.pill,
   },
   helpRow: {

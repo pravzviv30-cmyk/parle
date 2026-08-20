@@ -99,6 +99,12 @@ export interface ConversationState {
   usedWell: string[];
   /** Session-local recurring-error counts, for the recap's one next focus. */
   errorTags: Record<string, number>;
+  /**
+   * What the conversation has actually been about, in order: the frame's own
+   * topic first, then everywhere the learner steered. Appended when the model
+   * reports a topicShift; capped, deduped, and never a reason to move a beat.
+   */
+  topics: { en: string; fr: string; turn: number }[];
   turnCount: number;
   finished: boolean;
   startedAt: number;
@@ -196,11 +202,19 @@ export function createConversation(
     phrases: [],
     usedWell: [],
     errorTags: {},
+    topics: [{ en: frame.titleEn, fr: frame.title, turn: 0 }],
     turnCount: 0,
     finished: false,
     startedAt: now,
   };
 }
+
+/**
+ * A session visits only so many topics. Six is generous for twelve turns; the
+ * cap exists so a chatty model reporting a shift every turn cannot flood the
+ * recap and the practice built from it.
+ */
+export const MAX_SESSION_TOPICS = 6;
 
 function learnerMessageFor(input: LearnerTurnInput): string {
   switch (input.type) {
@@ -303,6 +317,8 @@ export function prepareTurn(state: ConversationState, input: LearnerTurnInput): 
     inputKind: inputKindOf(input),
     pace: state.pace,
     lastLanguage: state.lastLanguage,
+    // Only a steer is worth a line: the first entry is the frame's own topic.
+    activeTopic: state.topics.length > 1 ? state.topics[state.topics.length - 1]!.en : null,
   });
 
   return {
@@ -332,6 +348,8 @@ function sanitizeTurn(raw: TutorTurn): TutorTurn {
       return { ...c, why: copyViolations(why).length === 0 ? why : '' };
     }),
     newPhrases: raw.newPhrases.slice(0, 3).map((p) => ({ ...p, en: clean(p.en) })),
+    topicShift:
+      raw.topicShift === null ? null : { en: clean(raw.topicShift.en), fr: clean(raw.topicShift.fr) },
   };
 }
 
@@ -427,6 +445,19 @@ export function integrateTurn(
     errorTags[tag] = (errorTags[tag] ?? 0) + 1;
   }
 
+  // Topics: the learner steering somewhere new is recorded, never resisted.
+  // The model observes the steer; code appends, dedupes and caps. Beats do
+  // not move because of it — the spine above already decided the scene.
+  let topics = state.topics;
+  if (turn.topicShift !== null) {
+    const en = turn.topicShift.en.trim();
+    const key = en.toLowerCase();
+    const known = topics.some((t) => t.en.trim().toLowerCase() === key);
+    if (en.length > 0 && !known && topics.length < MAX_SESSION_TOPICS) {
+      topics = [...topics, { en, fr: turn.topicShift.fr.trim(), turn: turnCount }];
+    }
+  }
+
   const next: ConversationState = {
     ...state,
     ladder,
@@ -447,6 +478,7 @@ export function integrateTurn(
         : null,
     deferred: [...state.deferred, ...deferred],
     phrases,
+    topics,
     usedWell: [...state.usedWell, ...turn.profileSignals.usedWell],
     errorTags,
     turnCount,

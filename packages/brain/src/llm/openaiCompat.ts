@@ -12,9 +12,11 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
 import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from '../contract/schemas.ts';
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
+import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
 import {
   BrainParseError,
+  type BrainCurateRequest,
   type BrainDrillsRequest,
   type BrainExtractRequest,
   type BrainFrameRequest,
@@ -69,7 +71,12 @@ interface ChatCompletion {
   usage?: { prompt_tokens?: number; completion_tokens?: number };
 }
 
-type ContractSchema = typeof TurnSchema | typeof ScenarioFrameSchema | typeof MemoryExtractionSchema | typeof DrillBatchSchema;
+type ContractSchema =
+  | typeof TurnSchema
+  | typeof ScenarioFrameSchema
+  | typeof MemoryExtractionSchema
+  | typeof DrillBatchSchema
+  | typeof CurationSchema;
 
 function jsonSchemaText(schema: ContractSchema): string {
   const format = zodOutputFormat(schema) as { schema?: unknown };
@@ -126,6 +133,17 @@ export class OpenAiCompatBrainClient implements LlmClient {
       jsonSchemaText(DrillBatchSchema),
     );
     return { batch: value as DrillBatch, usage };
+  }
+
+  async curate(request: BrainCurateRequest): Promise<{ curation: Curation; usage: LlmUsage }> {
+    const system = [request.system.persona, request.system.pack].join('\n\n');
+    const { value, usage } = await this.completeJson(
+      system,
+      [{ role: 'user', text: request.request }],
+      CurationSchema,
+      jsonSchemaText(CurationSchema),
+    );
+    return { curation: value as Curation, usage };
   }
 
   private async completeJson(

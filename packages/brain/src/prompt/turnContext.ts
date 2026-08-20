@@ -36,6 +36,8 @@ export interface TurnContextInput {
   pace?: 'normal' | 'slow';
   /** What language their PREVIOUS turn arrived in, when it was not French. */
   lastLanguage?: 'english' | 'mixed' | null;
+  /** Where the learner has steered the conversation, when off the frame's own topic. */
+  activeTopic?: string | null;
 }
 
 const RUNG_NAMES: Record<number, string> = { 1: 'Echo', 2: 'Cued', 3: 'Prompted', 4: 'Free' };
@@ -88,6 +90,14 @@ export function buildTurnContext(input: TurnContextInput): string {
   if (input.lastLanguage === 'english' || input.lastLanguage === 'mixed') {
     lines.push(
       'Their previous turn reached for English. Hand back the French for exactly what they tried to say: support.fullLine is that French. Your reply shows you understood and invites the same moment again, in character.',
+    );
+  }
+
+  if (input.activeTopic != null && input.activeTopic.length > 0) {
+    // The learner steered the scene somewhere of their own. A tutor that drags
+    // them back to the script is the thing this product exists to not be.
+    lines.push(
+      `TOPIC: they steered the conversation to: ${input.activeTopic}. Follow them there in character. Weave the beat's goal back in only when it fits naturally; never fight them back onto the old subject.`,
     );
   }
 

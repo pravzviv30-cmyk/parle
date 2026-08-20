@@ -29,7 +29,7 @@ const INSTRUCTION = [
   `- When you are not sure a thing is real, leave it out. An invented fact is far worse than a missed one.`,
   `- en is one short plain sentence; fr is the same fact in simple French when it translates naturally, else null; happensAround is a loose when ("Tuesday", "next month") or null.`,
   `- Do not repeat facts already on file below. An updated version of one is fine.`,
-  `- openerFr and openerEn: ONE short spoken line to open the NEXT session with, referencing something real from this one, ending in a question they can answer ("Alors, cet entretien, c'était comment ?"). Null when nothing real surfaced. Never reference the scene's fiction.`,
+  `- openerFr and openerEn: ONE short line to open the NEXT session with, referencing something real from this one, ending in a question they can answer. openerEn is the version that will be SPOKEN aloud — write it as natural spoken English ("So, how did that interview go?"), never as a gloss of the French. openerFr is the same opener in simple French, shown on screen. Null when nothing real surfaced. Never reference the scene's fiction.`,
 ].join('\n');
 
 function factLine(fact: MemoryFact): string {

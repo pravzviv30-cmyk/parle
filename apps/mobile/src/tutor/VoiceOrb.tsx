@@ -1,17 +1,23 @@
 /**
- * The orb — the tutor, as an object on the page.
+ * The voice circle — the tutor, as an object on the page.
  *
- * Three concentric rings that breathe. Not a glowing sphere: this world is one
- * pen on pale paper, and the nearest honest translation of a voice interface is
- * ink rings that move rather than a lit surface. It carries NO shadow — the
- * app's only shadow belongs to the live microphone, and an orb that borrowed it
- * would quietly make two things look equally urgent.
+ * Two outline rings that breathe around one solid centre, and the three of
+ * them speak traffic lights: red, the tutor is talking, listen; green, your
+ * turn, speak; amber, it is thinking, one moment. The founder chose this
+ * shape over a lit gradient sphere on purpose — this world is one pen on pale
+ * paper — so keep it rings and a dot. It carries NO shadow: the app's only
+ * shadow belongs to the live microphone, and an orb that borrowed it would
+ * quietly make two things look equally urgent.
+ *
+ * The colour mapping is taught, not just used: TutorIntro's final page walks
+ * a new learner through exactly these three colours. Changing them here means
+ * changing them there, and in theme.ts's `orb` block, together.
  *
  * Built on core `Animated` with no new dependency. Reanimated would force the
  * repo's first babel config for a screen whose JS thread is nearly idle, and
- * Skia is a WASM payload on a target that ships to the browser. Everything here
- * animates transform and opacity only, on the native driver, per the motion
- * vocabulary the splash established.
+ * Skia is a WASM payload on a target that ships to the browser. Everything
+ * here animates transform and opacity only, on the native driver, per the
+ * motion vocabulary the splash established.
  *
  * Deliberately not driven by audio amplitude. An analyser feeding setState at
  * thirty to sixty times a second is exactly the churn that would then require
@@ -21,16 +27,17 @@
 
 import { useEffect, useRef } from 'react';
 import { View, Text, Animated, Easing, StyleSheet, AccessibilityInfo } from 'react-native';
-import { paper, signal, space, type, STROKE } from '../theme.ts';
+import { orb, paper, space, type, STROKE } from '../theme.ts';
 
 export type OrbState = 'idle' | 'speaking' | 'listening' | 'thinking' | 'error';
 
-/** Outermost first. The three sizes the rings hold when still. */
-const RINGS = [132, 108, 84] as const;
+/** Outermost first: the two rings, then the solid centre's diameter. */
+const RINGS = [132, 104] as const;
+const CENTRE = 44;
 
 interface Look {
   /** Ring colours, outermost first. */
-  colors: readonly [string, string, string];
+  rings: readonly [string, string];
   centre: string;
   /** How far each ring travels from rest, as a scale delta. */
   amplitude: number;
@@ -40,56 +47,71 @@ interface Look {
   shimmer: boolean;
   /** What the state is called, under the orb. */
   caption: string;
+  captionColor: string;
 }
 
 const LOOKS: Record<OrbState, Look> = {
   idle: {
-    colors: [paper.line, paper.line, paper.line],
-    centre: paper.inkFaint,
+    rings: [paper.line, paper.line],
+    centre: paper.line,
     amplitude: 0.03,
     period: 3400,
     shimmer: false,
     caption: 'Ready',
+    captionColor: paper.inkFaint,
   },
   speaking: {
-    colors: [paper.ink, paper.ink, paper.line],
-    centre: paper.ink,
+    rings: [orb.speaking, orb.speaking],
+    centre: orb.speaking,
     amplitude: 0.08,
     period: 900,
     shimmer: false,
     caption: 'Listen',
+    captionColor: orb.speaking,
   },
   listening: {
-    colors: [paper.line, paper.line, signal.live],
-    centre: signal.live,
+    rings: [orb.yourTurn, orb.yourTurn],
+    centre: orb.yourTurn,
     amplitude: 0.05,
     period: 1600,
     shimmer: false,
     caption: 'Speak',
+    captionColor: orb.yourTurn,
   },
   thinking: {
-    colors: [paper.inkFaint, paper.inkFaint, paper.inkFaint],
-    centre: paper.inkFaint,
+    rings: [orb.thinking, orb.thinking],
+    centre: orb.thinking,
     amplitude: 0,
     period: 1400,
     shimmer: true,
     caption: 'One moment',
+    captionColor: orb.thinking,
   },
   error: {
-    colors: [paper.line, 'transparent', 'transparent'],
+    rings: [paper.line, 'transparent'],
     centre: 'transparent',
     amplitude: 0,
     period: 0,
     shimmer: false,
     caption: '',
+    captionColor: paper.inkFaint,
   },
 };
 
-export function VoiceOrb({ state, size = RINGS[0] }: { state: OrbState; size?: number }) {
+export function VoiceOrb({
+  state,
+  size = RINGS[0],
+  withCaption = true,
+}: {
+  state: OrbState;
+  size?: number;
+  /** TutorIntro's walkthrough writes its own labels beside mini orbs. */
+  withCaption?: boolean;
+}) {
   const look = LOOKS[state];
-  // One driver per ring so the three can be offset and drift apart rather than
+  // One driver per ring so the two can be offset and drift apart rather than
   // pumping in unison, which reads mechanical.
-  const drivers = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
+  const drivers = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
   const dim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -132,7 +154,7 @@ export function VoiceOrb({ state, size = RINGS[0] }: { state: OrbState; size?: n
           ]),
         );
         running.push(loop);
-        // Each ring starts a beat later than the one outside it.
+        // The inner ring starts a beat after the outer one.
         setTimeout(() => {
           if (!cancelled) loop.start();
         }, i * 400);
@@ -161,7 +183,7 @@ export function VoiceOrb({ state, size = RINGS[0] }: { state: OrbState; size?: n
               width: ring * scale,
               height: ring * scale,
               borderRadius: (ring * scale) / 2,
-              borderColor: look.colors[i],
+              borderColor: look.rings[i],
               opacity: dim,
               transform: [
                 {
@@ -175,11 +197,21 @@ export function VoiceOrb({ state, size = RINGS[0] }: { state: OrbState; size?: n
           ]}
         />
       ))}
-      <View style={[st.centre, { backgroundColor: look.centre }]} />
-      {look.caption ? (
-        <Text style={[type.label, st.caption, { color: state === 'listening' ? signal.live : paper.inkFaint }]}>
-          {look.caption}
-        </Text>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          st.centre,
+          {
+            width: CENTRE * scale,
+            height: CENTRE * scale,
+            borderRadius: (CENTRE * scale) / 2,
+            backgroundColor: look.centre,
+            opacity: dim,
+          },
+        ]}
+      />
+      {withCaption && look.caption ? (
+        <Text style={[type.label, st.caption, { color: look.captionColor }]}>{look.caption}</Text>
       ) : null}
     </View>
   );
@@ -192,6 +224,6 @@ const st = StyleSheet.create({
     borderWidth: STROKE,
     backgroundColor: 'transparent',
   },
-  centre: { width: 7, height: 7, borderRadius: 3.5 },
+  centre: {},
   caption: { position: 'absolute', bottom: -space(6) },
 });

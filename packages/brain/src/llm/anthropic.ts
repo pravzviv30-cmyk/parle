@@ -26,10 +26,12 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
 import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from '../contract/schemas.ts';
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
+import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
 import {
   BrainParseError,
   BrainRefusalError,
+  type BrainCurateRequest,
   type BrainDrillsRequest,
   type BrainExtractRequest,
   type BrainFrameRequest,
@@ -160,6 +162,22 @@ export class AnthropicBrainClient implements LlmClient {
     return { batch: parsed as DrillBatch, usage };
   }
 
+  async curate(request: BrainCurateRequest): Promise<{ curation: Curation; usage: LlmUsage }> {
+    const route = this.routeFor('curate');
+    const params = {
+      model: route.model,
+      max_tokens: route.maxTokens,
+      system: [
+        { type: 'text', text: request.system.persona },
+        { type: 'text', text: request.system.pack, cache_control: { type: 'ephemeral' } },
+      ],
+      messages: [{ role: 'user', content: [{ type: 'text', text: request.request }] }],
+      output_config: outputConfig(CurationSchema, route.effort),
+    };
+    const { parsed, usage } = await this.parseWithRetry(params);
+    return { curation: parsed as Curation, usage };
+  }
+
   private async parseWithRetry(params: Record<string, unknown>): Promise<{ parsed: unknown; usage: LlmUsage }> {
     let lastRaw = '';
     for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -178,7 +196,12 @@ export class AnthropicBrainClient implements LlmClient {
 }
 
 function outputConfig(
-  schema: typeof TurnSchema | typeof ScenarioFrameSchema | typeof MemoryExtractionSchema | typeof DrillBatchSchema,
+  schema:
+    | typeof TurnSchema
+    | typeof ScenarioFrameSchema
+    | typeof MemoryExtractionSchema
+    | typeof DrillBatchSchema
+    | typeof CurationSchema,
   effort: BrainEffort | undefined,
 ): Record<string, unknown> {
   const config: Record<string, unknown> = { format: zodOutputFormat(schema) };

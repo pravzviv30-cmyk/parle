@@ -22,7 +22,7 @@ export function thinkingAfter(thinking: boolean, message: ServerMessage): boolea
     // An answer arrived, in whichever shape this session speaks.
     case 'prompt':
     case 'convo':
-    case 'topics':
+    case 'opening':
     case 'recap':
     case 'summary':
       return false;
@@ -36,8 +36,10 @@ export function thinkingAfter(thinking: boolean, message: ServerMessage): boolea
     case 'speaking':
       return message.speaking ? false : thinking;
 
-    // Feedback rides alongside a prompt, and drills arrive after the recap.
+    // Feedback rides alongside a prompt; practice and drills arrive after the
+    // recap has already ended the wait. None of them is an answer on its own.
     case 'feedback':
+    case 'practice':
     case 'drills':
       return thinking;
   }

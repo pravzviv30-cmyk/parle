@@ -1,15 +1,19 @@
 /**
- * Paper & ink — the design system.
+ * Colourful calm — the design system.
  *
- * The world is a picture book for adults: pale lilac paper, warm black ink,
+ * The world is a picture book for adults: pale lilac paper, violet-cast ink,
  * hand-drawn line-art, a serif that speaks and a sans that stays out of the
- * way. Cards are flat white with a hairline rule, buttons are solid ink pills.
- * Calm, friendly, professional — easy to look at twice a day.
+ * way. Cards are flat white with a hairline rule. Colour does jobs now: violet
+ * is identity (the primary pill, the labels, the monogram), green means go
+ * (your turn to speak), amber means the tutor is thinking, red means it is
+ * talking. Calm, friendly, professional — easy to look at twice a day.
  *
- * What carried over from the enamel system unchanged, because it is behaviour
- * rather than surface: one primary action per screen, the four support colours
- * that cool as the learner climbs, the red live microphone, 44pt touch floors,
- * and type that respects the OS reading size.
+ * What carried over unchanged, because it is behaviour rather than surface:
+ * one primary action per screen, the four support colours that cool as the
+ * learner climbs, 44pt touch floors, and type that respects the OS reading
+ * size. What deliberately changed with this skin: the live microphone is
+ * GREEN now, not red — green means "you speak" everywhere, so the orb's red
+ * can mean "the tutor is speaking" without the two ever reading as one.
  */
 
 import { Platform } from 'react-native';
@@ -18,21 +22,33 @@ export const paper = {
   /** The page itself. Everything sits directly on this. */
   ground: '#F3E8F3',
   /** One step deeper — pressed states, chip fills, the tab track. */
-  groundDeep: '#EAD9EA',
+  groundDeep: '#E4D3EE',
   /** Card surface. Flat white, hairline rule, no shadow. */
   card: '#FFFFFF',
-  /** The ink. Near-black with a whisper of violet so it sits on lilac. */
-  ink: '#1A141E',
+  /** The ink. Near-black with a real violet cast so the page feels of a piece. */
+  ink: '#241633',
   /** Secondary text. */
-  inkSoft: '#5F5566',
+  inkSoft: '#5F4E73',
   /** Tertiary — counts, placeholders, timestamps. */
-  inkFaint: '#92879A',
+  inkFaint: '#94849F',
   /** Hairline rule on the lilac ground. */
-  line: '#DCCEDC',
+  line: '#D9C8E2',
   /** Hairline divider inside a white card. */
-  lineOnCard: '#EAE0EA',
-  /** Text and icons on an ink-filled control. Warm white, never pure. */
-  onInk: '#FFF9F2',
+  lineOnCard: '#EAE0F0',
+  /** Text and icons on a filled control. Warm violet-white, never pure. */
+  onInk: '#FBF6FF',
+} as const;
+
+/**
+ * The identity violet. One accent, three jobs: the primary pill, the micro
+ * labels, the monogram. Everything else keeps to paper and signals, so the
+ * violet stays special.
+ */
+export const accent = {
+  /** The primary action and the monogram. */
+  primary: '#6B3FA0',
+  /** Micro-labels — the caps line above a card. */
+  label: '#8A5BBF',
 } as const;
 
 /**
@@ -44,7 +60,7 @@ export const rungColor: Record<1 | 2 | 3 | 4, string> = {
   1: '#FFCD00',
   2: '#FF7E2E',
   3: '#6EC4E8',
-  4: '#1A141E',
+  4: '#241633',
 };
 
 export const rungLabel: Record<1 | 2 | 3 | 4, string> = {
@@ -60,8 +76,25 @@ export const signal = {
   correspondance: '#B4008A',
   /** A sound that is working — darkened to hold on white cards. */
   good: '#1E8A5B',
-  /** Live microphone. */
+  /** The tutor's voice, live. Red means listen; it never marks the learner's mic. */
   live: '#FF4B3E',
+} as const;
+
+/**
+ * The voice circle speaks traffic lights, and these are its three words:
+ * red, the tutor is talking, listen; green, your turn, speak; amber, it is
+ * thinking, one moment. The intro's final page teaches exactly this mapping,
+ * so these values changing means that page is teaching a lie — change both.
+ * Amber is darker than rung 1's yellow so the caption under it stays legible
+ * on lilac.
+ */
+export const orb = {
+  /** Red — the tutor is speaking. Listen. */
+  speaking: signal.live,
+  /** Green — your turn. Speak. */
+  yourTurn: signal.good,
+  /** Amber — the tutor is thinking. One moment. */
+  thinking: '#E3A800',
 } as const;
 
 export const font = {

@@ -92,3 +92,21 @@ describe('headline and closure', () => {
     assert.equal(recap.cefr.estimate, 'A2');
   });
 });
+
+describe('the recap remembers what you talked about', () => {
+  test('topics ride the recap in order, frame first', () => {
+    const { recap } = assembleRecap(
+      baseState({
+        topics: [
+          { en: 'Ordering at the café', fr: 'Au café', turn: 0 },
+          { en: 'Rugby', fr: 'Le rugby', turn: 4 },
+        ],
+      }),
+      CEFR,
+    );
+    assert.deepEqual(recap.topics, [
+      { fr: 'Au café', en: 'Ordering at the café' },
+      { fr: 'Le rugby', en: 'Rugby' },
+    ]);
+  });
+});

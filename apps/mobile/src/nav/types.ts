@@ -39,4 +39,6 @@ export type RootStackParamList = {
    */
   Drill: { node?: { id: string; title: string; phraseKeys: readonly string[] } } | undefined;
   Review: undefined;
+  /** Search and ask sample profiles to be friends, until friend servers arrive. */
+  AddFriends: undefined;
 };

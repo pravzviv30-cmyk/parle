@@ -59,6 +59,9 @@ export function TutorTab() {
         onDone={() => {
           void markTutorIntroSeen();
           setSeenIntro(true);
+          // The button says "Start talking", so it starts talking. Landing on
+          // this tab's idle screen instead was a promise the app didn't keep.
+          open(false);
         }}
       />
     );
@@ -72,7 +75,7 @@ export function TutorTab() {
         </View>
 
         <Text style={st.headline}>Ready to talk?</Text>
-        <Text style={st.subline}>Your tutor remembers you. Pick a topic and go.</Text>
+        <Text style={st.subline}>Your tutor remembers you. Come ready to chat about anything.</Text>
 
         {!live && (
           <Card style={{ marginTop: space(5) }}>

@@ -18,7 +18,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { paper, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
+import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
 import { Card, Label, OutlineButton, Field } from '../components.tsx';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
 import { Acknowledgements } from '../legal/Acknowledgements.tsx';
@@ -193,7 +193,7 @@ const st = StyleSheet.create({
     height: 96,
     borderRadius: radius.pill,
     borderWidth: 2,
-    borderColor: paper.ink,
+    borderColor: accent.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },

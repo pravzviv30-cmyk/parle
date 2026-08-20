@@ -86,6 +86,8 @@ const CONTRACT = [
   ``,
   `profileSignals. errorPatterns: recurring-error tags in kebab-case with a verbatim example, e.g. "ne-retention", "tu-vous-mixing", "gender-agreement". usedWell: French they produced correctly and naturally, worth crediting.`,
   ``,
+  `topicShift. Null on almost every turn. When the learner plainly steers the conversation to a different subject than the one you were on (their own trip, their job, a new interest), name where they went: a short noun phrase, en and fr. Follow them there in your reply either way, and never pull them back to the old topic. This field only lets the app remember what you actually talked about.`,
+  ``,
   `scene. beat: the id of the beat the conversation is on, from the scene plan. beatDone when its goal has been met. sceneDone when the scene has reached its natural end, and only then.`,
 ].join('\n');
 

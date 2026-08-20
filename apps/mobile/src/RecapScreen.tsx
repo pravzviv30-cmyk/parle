@@ -5,18 +5,17 @@
  * most a handful of gentle fixes, and name exactly one next step. Numbers are
  * allowed here and only here — mid-session copy never carries them.
  *
- * The conversation's new phrases join the review deck the moment this card
- * shows, so the free daily habit inherits what the paid minutes produced.
+ * This card SHOWS everything; it banks nothing. What becomes practice is the
+ * curated few — ConvoScreen banks them from the agent's practice message (or
+ * its own leave fallback), so the deck gets the keepers, not the transcript.
  */
 
-import { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RecapPayload } from '@parle/core';
 import { paper, signal, space, type, HAIRLINE } from './theme.ts';
 import { Card, Label, PillButton } from './components.tsx';
 import { RecapPostcard } from './illustrations.tsx';
-import { addPhrases } from './review/store.ts';
 
 /** Fixes shown on the card. The agent already ranked them; we keep the top few. */
 const MAX_FIXES = 4;
@@ -39,12 +38,6 @@ function registerTag(register: string): string {
 
 export function RecapScreen({ recap, onDone }: { recap: RecapPayload; onDone: () => void }) {
   const insets = useSafeAreaInsets();
-
-  // Fire and forget, the same contract as the lesson path's summary: the deck
-  // write catches up in the background while the card shows.
-  useEffect(() => {
-    void addPhrases(recap.phrases);
-  }, [recap]);
 
   return (
     <View style={[st.root, { paddingTop: insets.top + space(2) }]}>
@@ -113,7 +106,7 @@ export function RecapScreen({ recap, onDone }: { recap: RecapPayload; onDone: ()
                 ))}
               </View>
             </Card>
-            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(2.5) }]}>These joined your review deck.</Text>
+            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(2.5) }]}>The best of these become practice on your path.</Text>
           </View>
         )}
 

@@ -18,13 +18,43 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { paper, space, type } from '../theme.ts';
 import { ChevronLeft, ProgressDots, PillButton, Card, Label } from '../components.tsx';
 import { SpeakBubbles, OnboardWave, RecapPostcard } from '../illustrations.tsx';
+import { VoiceOrb, type OrbState } from './VoiceOrb.tsx';
+
+/**
+ * The final page's lesson: the circle speaks traffic lights. Three live mini
+ * orbs, each in one state, each with the sentence that state means. The same
+ * component the conversation renders, so this page can never drift from the
+ * real thing.
+ */
+function OrbWalkthrough() {
+  const rows: { state: OrbState; title: string; sub: string }[] = [
+    { state: 'speaking', title: 'Red, your tutor is talking', sub: 'Just listen.' },
+    { state: 'listening', title: 'Green, your turn', sub: 'Say it out loud.' },
+    { state: 'thinking', title: 'Yellow, it is thinking', sub: 'One moment.' },
+  ];
+  return (
+    <View style={{ gap: space(3), alignSelf: 'stretch', marginTop: space(5) }}>
+      {rows.map((row) => (
+        <Card key={row.state} style={{ paddingVertical: space(3) }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(4) }}>
+            <VoiceOrb state={row.state} size={56} withCaption={false} />
+            <View style={{ flex: 1 }}>
+              <Text style={[type.bodyStrong, { color: paper.ink }]}>{row.title}</Text>
+              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{row.sub}</Text>
+            </View>
+          </View>
+        </Card>
+      ))}
+    </View>
+  );
+}
 
 const PAGES = [
   {
     key: 'what',
     art: SpeakBubbles,
-    title: 'You will be talking to someone',
-    body: 'Not answering questions. A tutor who asks what you did today, waits for you to say it in French, and replies to what you actually said.',
+    title: "You'll be talking to your tutor",
+    body: 'Not a quiz. Your AI tutor asks about your day, waits while you find the French, and answers what you actually said, like a patient friend who happens to be fluent.',
     note: null,
   },
   {
@@ -39,6 +69,13 @@ const PAGES = [
     art: RecapPostcard,
     title: 'Afterwards it remembers',
     body: 'At the end you get the phrases you used and one sound to work on. Tomorrow your practice is written from what you said today.',
+    note: null,
+  },
+  {
+    key: 'orb',
+    art: null,
+    title: 'The circle runs the room',
+    body: 'One circle tells you whose turn it is, in traffic lights. You never have to guess.',
     note: null,
   },
 ] as const;
@@ -70,11 +107,14 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
       </View>
 
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
-        <View style={st.art}>
-          <Art width={170} />
-        </View>
+        {Art ? (
+          <View style={st.art}>
+            <Art width={170} />
+          </View>
+        ) : null}
         <Text style={st.title}>{page.title}</Text>
         <Text style={st.body}>{page.body}</Text>
+        {page.key === 'orb' ? <OrbWalkthrough /> : null}
         {page.note ? (
           <Card style={{ marginTop: space(5) }}>
             <Label>While you talk</Label>

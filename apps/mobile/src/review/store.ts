@@ -15,6 +15,7 @@ import {
   dueCards,
   mergeCards,
   newCard,
+  staggerNewCards,
   LESSONS,
   type ConvoPhrase,
   type ReviewCard,
@@ -80,10 +81,15 @@ export function addFromSummary(summary: SessionSummary): Promise<void> {
  * Same merge contract as `addFromSummary`: identity is the French line itself,
  * so a phrase the learner is already reviewing keeps its scheduling when a
  * later conversation surfaces it again.
+ *
+ * `stagger` spaces a session's genuinely-new cards (core's rule: the first
+ * few due now, the rest tomorrow) so one conversation never builds a wall of
+ * due cards. Cards already in the deck keep their scheduling either way —
+ * that is `mergeCards`' contract, not this function's choice.
  */
-export async function addPhrases(phrases: readonly ConvoPhrase[]): Promise<void> {
+export async function addPhrases(phrases: readonly ConvoPhrase[], opts: { stagger?: boolean } = {}): Promise<void> {
   const now = Date.now();
-  const incoming = phrases
+  let incoming = phrases
     .filter((p) => p.fr.trim() !== '')
     .map((p) =>
       newCard(
@@ -99,6 +105,7 @@ export async function addPhrases(phrases: readonly ConvoPhrase[]): Promise<void>
       ),
     );
   if (incoming.length === 0) return;
+  if (opts.stagger) incoming = staggerNewCards(incoming, now);
   await serialized(async () => {
     const existing = await loadDeck();
     await saveDeck(mergeCards(existing, incoming));

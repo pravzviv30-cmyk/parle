@@ -78,7 +78,8 @@ const st = StyleSheet.create({
   // The single heavy rule on the screen: this is the one to do now.
   rowNext: { borderWidth: 2, borderColor: paper.ink },
   mark: { width: 14, height: 14, borderRadius: 7 },
-  markDone: { backgroundColor: paper.ink },
+  // Learned reads green — the go colour marking ground already covered.
+  markDone: { backgroundColor: signal.good },
   markReview: { borderWidth: 2, borderColor: signal.correspondance },
   markPart: { borderWidth: 2, borderColor: paper.ink },
   markOpen: { borderWidth: HAIRLINE, borderColor: paper.line },

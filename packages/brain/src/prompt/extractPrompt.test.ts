@@ -33,6 +33,7 @@ describe('the extraction request draws the fiction line', () => {
   test('the opener rules are present', () => {
     const r = request();
     assert.ok(r.includes('openerFr and openerEn'));
+    assert.ok(r.includes('natural spoken English'), 'the memory opener is authored to be SPOKEN in English');
     assert.ok(r.includes(`Never reference the scene's fiction.`));
   });
 });

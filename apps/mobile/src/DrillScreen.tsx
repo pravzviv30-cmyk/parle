@@ -53,7 +53,7 @@ import {
   type TapTranslateExercise,
   drillXp,
 } from '@parle/core';
-import { paper, signal, space, type, radius, font, HAIRLINE, HIT } from './theme.ts';
+import { accent, paper, signal, space, type, radius, font, HAIRLINE, HIT } from './theme.ts';
 import { recordActivity } from './progress/activity.ts';
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
@@ -914,7 +914,7 @@ const ds = StyleSheet.create({
     minHeight: HIT + 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: paper.ink,
+    backgroundColor: accent.primary,
     borderRadius: radius.pill,
     paddingHorizontal: space(6),
   },

@@ -50,10 +50,19 @@ topics `parle.server` and `parle.client`. `decodeServerMessage` never throws —
 malformed frame must not take down a live conversation.
 
 **Agent → app**: `prompt` · `feedback` · `speaking` · `transcript` · `summary` ·
-`convo` · `topics` · `recap` · `drills` · `error`
+`convo` · `opening` · `recap` · `practice` · `drills` · `error`
 
-**App → agent**: `ready` · `help` · `skip` · `choice` · `hear` · `topic` ·
+**App → agent**: `ready` · `help` · `skip` · `choice` · `hear` ·
 `slower` · `english` · `say` · `leave`
+
+A free conversation opens on `opening`: the tutor asks, out loud and in
+English, what the learner wants to talk about — no menu, no chips. Whatever
+they say or type becomes the scene (the agent treats a pre-scene `say` as the
+topic). After the recap, `practice` carries the session's curated leave-behind:
+at most three topics, each with the few phrases worth keeping, chosen by the
+brain's `curate` activity (model proposes, code caps and matches, a
+deterministic fallback ships when the call fails). Drills are then authored
+from that same keep-list, so the two artefacts describe one practice.
 
 `spoke` and `silence` are **not** wire tags. They are engine inputs
 (`core/session/session.ts`). Audio is the media track; silence is timed agent-side.

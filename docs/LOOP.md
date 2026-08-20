@@ -98,6 +98,23 @@ written to be looped interactively:
 
 which is the same discipline as `npm run loop`, with you in the room.
 
+## The other half: building something new
+
+`/bug-sweep` only works on what the ledger already knows is wrong. For work that has not
+been designed yet there is `/forge`, which puts the thinking on Fable and the building
+here, then has Fable judge the result and order revisions until the gate is green:
+
+```
+/forge let a learner replay the last scene without losing their rung
+```
+
+Its two agents — **design-architect** and **work-judge** — are pinned to Fable and have no
+`Edit` or `Write`, the same way fix-verifier is kept from fixing what it reviews. The gate's
+`agents` check exists to notice if one of those pins ever quietly disappears.
+
+See [FORGE.md](FORGE.md), especially the part about why the judge's findings have to land in
+the ledger rather than in a reply.
+
 ## Verifying UI work
 
 The gate cannot see the app. `apps/mobile`'s suite covers only what imports

@@ -12,6 +12,7 @@ re-deriving the architecture from source every time.
 | Where the learner's data lives and what shape it is in | [STATE_AND_STORAGE.md](STATE_AND_STORAGE.md) |
 | How to run and write tests, and the trap that eats whole suites | [TESTING.md](TESTING.md) |
 | The gate, the bug loop, and how to give it a goal it can check | [LOOP.md](LOOP.md) |
+| Building something new: Fable designs, Opus builds, Fable judges | [FORGE.md](FORGE.md) |
 | What is known to be broken right now | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
 
 These deliberately do not repeat what already exists:

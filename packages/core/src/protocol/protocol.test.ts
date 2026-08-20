@@ -114,14 +114,10 @@ describe('round-tripping real session objects', () => {
     assert.deepEqual(decodeServerMessage(encodeMessage(msg)), msg);
   });
 
-  test('the topic-choosing message survives the wire', () => {
+  test('the opening question survives the wire', () => {
     const msg: ServerMessage = {
-      t: 'topics',
+      t: 'opening',
       prompt: { fr: 'Alors, de quoi on parle aujourd’hui ?', en: 'So, what do you want to talk about today?' },
-      chips: [
-        { label: 'Dans la rue', en: 'People you meet in the street', value: 'a chance conversation with a stranger in the street' },
-        { label: 'Au café', en: 'Ordering at the counter', value: 'ordering at a Paris café' },
-      ],
     };
     assert.deepEqual(decodeServerMessage(encodeMessage(msg)), msg);
   });
@@ -145,6 +141,10 @@ describe('round-tripping real session objects', () => {
         ],
         phrases: [{ fr: 'sur place', frWritten: null, en: 'for here', enLiteral: 'on the spot', register: 'neutral', note: null }],
         nextFocus: 'The sound in "un" needs your nose, not the letter n.',
+        topics: [
+          { fr: 'Au café', en: 'Ordering at the café' },
+          { fr: 'Le rugby', en: 'Rugby' },
+        ],
         cefr: { estimate: 'A1', confidence: 'low' },
         stats: { turns: 9, rescues: 1, unassistedRate: 0.6 },
       },
@@ -163,7 +163,6 @@ describe('client messages', () => {
       { t: 'hear' },
       { t: 'leave' },
       { t: 'choice', text: 'Sur place' },
-      { t: 'topic', value: 'a chance conversation in the street' },
       { t: 'slower' },
       { t: 'english' },
       { t: 'say', text: 'Bonjour, un café' },
@@ -180,9 +179,8 @@ describe('client messages', () => {
     // Hearing the line again is support, not an answer — it must never move the
     // ladder or count as a turn.
     assert.equal(toLearnerInput({ t: 'hear' }), null);
-    // Topic choice, pace, translation and typed text are conversation intents;
-    // the scripted session engine has no business seeing them.
-    assert.equal(toLearnerInput({ t: 'topic', value: 'x' }), null);
+    // Pace, translation and typed text are conversation intents; the scripted
+    // session engine has no business seeing them.
     assert.equal(toLearnerInput({ t: 'slower' }), null);
     assert.equal(toLearnerInput({ t: 'english' }), null);
     assert.equal(toLearnerInput({ t: 'say', text: 'x' }), null);

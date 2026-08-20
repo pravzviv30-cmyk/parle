@@ -18,7 +18,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { buildProgressReport, levelFor, type LevelStanding, type ProgressReport } from '@parle/core';
-import { paper, space, type, radius, HIT } from '../theme.ts';
+import { accent, paper, space, type, radius, HIT } from '../theme.ts';
 import { Card, Label, PillButton, StationLine, Stat } from '../components.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
 import { loadHistory } from '../progress/store.ts';
@@ -146,7 +146,7 @@ const st = StyleSheet.create({
     width: HIT,
     height: HIT,
     borderRadius: radius.pill,
-    backgroundColor: paper.ink,
+    backgroundColor: accent.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -27,10 +27,12 @@ import {
   CAFE_FRAME,
   OpenAiCompatBrainClient,
   RECOVERY_LINE,
+  applyCuration,
   applyExtractionToProfile,
   applyNonSpokenInput,
   applyTurnToProfile,
   assembleRecap,
+  buildCurationRequest,
   buildDrillGenerationRequest,
   buildExtractionRequest,
   buildScenarioRequest,
@@ -43,9 +45,11 @@ import {
   prepareTurn,
   supportViewFor,
   type ConversationState,
+  type CuratedTopic,
   type LearnerProfile,
   type LearnerTurnInput,
   type LlmClient,
+  type NewPhrase,
   type ScenarioFrame,
   type SessionRecap,
   type TurnView,
@@ -116,6 +120,7 @@ export function toRecapPayload(recap: SessionRecap): RecapPayload {
     fixes: recap.fixes,
     phrases: recap.phrases,
     nextFocus: recap.nextFocus,
+    topics: recap.topics,
     cefr: recap.cefr,
     stats: recap.stats,
   };
@@ -170,13 +175,18 @@ function brainClient(): LlmClient {
  * opens with zero model calls and (once warmed) zero synthesis. The opener is
  * ISSEN's lesson taken literally: the tutor talks first, within seconds, and
  * asks the learner what they want to talk about.
+ *
+ * The opener and the suggestion are SPOKEN IN ENGLISH: a brand-new learner
+ * must never be opened at in a language they do not have yet. The French rides
+ * along on screen as exposure. The bridge stays French — by then the learner
+ * has answered, and "Ah, très bien" is lesson-zero vocabulary doing its job.
  */
 export const CONVO_LINES = {
   opener: { fr: "Alors, de quoi on parle aujourd'hui ?", en: 'So, what do you want to talk about today?' },
   bridge: { fr: 'Ah, très bien. Alors…', en: 'Ah, very good. So…' },
   suggest: {
-    fr: 'Par exemple, une conversation dans la rue. Ou au café. Touchez une plaque, ou dites-le, simplement.',
-    en: 'For example, a conversation in the street. Or at the café. Tap a plaque, or just say it.',
+    fr: 'Tout marche. Votre journée, vos projets, un café à Paris. Dites-le en anglais ou en français.',
+    en: "Anything goes. Your day, your plans, ordering coffee in Paris. Say it in English or French and we're off.",
   },
 } as const;
 
@@ -193,34 +203,11 @@ const TEXT_SILENCE_MS = 12_000;
 /** How long the post-session memory call gets before its enrichment is dropped. */
 const EXTRACT_TIMEOUT_MS = 8_000;
 
+/** How long the practice curation gets before the code fallback ships instead. */
+const CURATE_TIMEOUT_MS = 10_000;
+
 /** How long drill authoring gets — the biggest post-session call, still bounded. */
 const DRILLS_TIMEOUT_MS = 25_000;
-
-/**
- * The tappable answers to the opening question. Three curated doors, then the
- * most personal extra we hold — a remembered interest beats replaying the
- * last scene — and never more than four, because a wall of choices is its own
- * kind of stranding.
- */
-export function topicChips(profile: LearnerProfile): { label: string; en: string; value: string }[] {
-  const chips = [
-    {
-      label: 'Dans la rue',
-      en: 'A stranger in the street',
-      value: 'A chance conversation with a stranger who bumps into you in a busy street',
-    },
-    { label: 'Au café', en: 'Ordering at the counter', value: 'Ordering at a busy Paris café' },
-    { label: "L'apéro", en: 'Drinks with friends', value: 'A Friday evening apéro with French friends' },
-  ];
-  const interest = profile.memory.facts.filter((f) => f.kind === 'interest').at(-1);
-  const last = profile.preferences.lastScenarios[profile.preferences.lastScenarios.length - 1];
-  if (interest !== undefined) {
-    chips.push({ label: interest.fr ?? interest.en, en: interest.en, value: `A conversation about: ${interest.en}` });
-  } else if (last !== undefined) {
-    chips.push({ label: 'Encore !', en: `Back to: ${last}`, value: last });
-  }
-  return chips;
-}
 
 /**
  * Flow strictness and a 12-turn budget make a framed 3–5 minute scene: coaching
@@ -242,8 +229,8 @@ export class ParleConversation extends voice.Agent {
    * `state` is never null — `starting` only gates which inputs do what.
    */
   private phase: 'choosing' | 'starting' | 'scene' = 'choosing';
-  /** The choosing screen, kept for `ready` replays and silence re-offers. */
-  private lastTopics: Extract<ServerMessage, { t: 'topics' }> | null = null;
+  /** The opening question, kept for `ready` replays and silence re-offers. */
+  private lastOpening: Extract<ServerMessage, { t: 'opening' }> | null = null;
   /** The suggestion is offered once; after that, silence on the choosing screen is fine. */
   private suggested = false;
   /** The last published view, kept for `ready` replays and rescue merging. */
@@ -300,6 +287,18 @@ export class ParleConversation extends voice.Agent {
     this.publish = publish;
   }
 
+  /** Latency marks for the stages this class owns. The worker wires the sink. */
+  private markTiming: (stage: 'brainSent' | 'brainParsed' | 'sayCalled') => void = () => {};
+
+  /**
+   * Wire the per-turn latency record. The record and the clock live with the
+   * worker (agent.ts), which owns the other stages; this class only says when
+   * its own moments happen. Unwired (tests, the playground) they cost nothing.
+   */
+  attachTiming(sink: (stage: 'brainSent' | 'brainParsed' | 'sayCalled') => void): void {
+    this.markTiming = sink;
+  }
+
   /** Drives the microphone control: live while the learner has the floor. */
   sendSpeaking(speaking: boolean): void {
     this.publish({ t: 'speaking', speaking });
@@ -311,19 +310,20 @@ export class ParleConversation extends voice.Agent {
   }
 
   /**
-   * Open the session on the choosing moment: the tutor asks what to talk
-   * about, the chips land on screen, and nothing costs a model call. The
-   * scene itself opens when a topic arrives — spoken or tapped.
+   * Open the session on the choosing moment: the tutor asks — in English, out
+   * loud — what the learner wants to talk about, and nothing costs a model
+   * call. No menu: the scene opens from whatever answer arrives, spoken or
+   * typed, English or French.
    */
   open(session: voice.AgentSession): void {
     void session; // kept for signature parity with ParleTutor; speech goes via this.session
-    // A remembered opener beats the generic question: "Alors, cet entretien ?"
-    // is the moment the tutor stops being an app. One line of live synthesis
-    // per session, pennies, worth every one of them.
+    // A remembered opener beats the generic question: "So, how was that
+    // interview?" is the moment the tutor stops being an app. One line of live
+    // synthesis per session, pennies, worth every one of them.
     const opener = this.profile.memory.opener ?? CONVO_LINES.opener;
-    this.lastTopics = { t: 'topics', prompt: { fr: opener.fr, en: opener.en }, chips: topicChips(this.profile) };
-    this.publish(this.lastTopics);
-    this.say(opener.fr, { allowInterruptions: false });
+    this.lastOpening = { t: 'opening', prompt: { fr: opener.fr, en: opener.en } };
+    this.publish(this.lastOpening);
+    this.say(opener.en, { allowInterruptions: false });
     if (this.voiceless) this.armRescue(this.session);
   }
 
@@ -434,8 +434,8 @@ export class ParleConversation extends voice.Agent {
       if (this.suggested) return generation;
       this.silenceTimer = setTimeout(() => {
         this.suggested = true;
-        this.say(CONVO_LINES.suggest.fr, { allowInterruptions: false });
-        if (this.lastTopics) this.publish(this.lastTopics);
+        this.say(CONVO_LINES.suggest.en, { allowInterruptions: false });
+        if (this.lastOpening) this.publish(this.lastOpening);
       }, window);
       return generation;
     }
@@ -494,27 +494,25 @@ export class ParleConversation extends voice.Agent {
       // the last scene view would hand a reconnecting app a session that no
       // longer exists and swallow its recap and updated profile.
       if (this.ended && this.lastRecap) this.publish(this.lastRecap);
-      else if (this.phase === 'choosing' && this.lastTopics) this.publish(this.lastTopics);
+      else if (this.phase === 'choosing' && this.lastOpening) this.publish(this.lastOpening);
       else if (this.lastView) this.publish({ t: 'convo', view: this.lastView });
       return;
     }
     if (msg.t === 'leave') return void this.finish();
 
-    // Awaited, not fired and forgotten: the scene is the next thing that has to
-    // exist, and a caller (or a test) that waits on this message deserves to be
-    // waiting for the scene rather than for the tick that happens to open it.
-    if (msg.t === 'topic') return this.startScene(msg.value);
-
     // Before the scene exists, every other tap gets the same gentle answer as
-    // silence: a spoken suggestion and the chips again. There is no ladder to
-    // move and no line to replay yet.
+    // silence: a spoken suggestion and the question again. There is no ladder
+    // to move and no line to replay yet. A typed answer IS the topic —
+    // awaited, not fired and forgotten, so a caller (or a test) that waits on
+    // this message is waiting for the scene rather than for the tick that
+    // happens to open it.
     if (this.phase !== 'scene') {
       if (msg.t === 'say') return this.startScene(msg.text);
       if (msg.t === 'help' || msg.t === 'skip') {
         this.clearRescue();
         this.suggested = true;
-        this.say(CONVO_LINES.suggest.fr, { allowInterruptions: false });
-        if (this.lastTopics) this.publish(this.lastTopics);
+        this.say(CONVO_LINES.suggest.en, { allowInterruptions: false });
+        if (this.lastOpening) this.publish(this.lastOpening);
       }
       return;
     }
@@ -623,7 +621,9 @@ export class ParleConversation extends voice.Agent {
     const request = prepareTurn(this.state, input);
     let turn;
     try {
+      this.markTiming('brainSent');
       ({ turn } = await this.client.turn(request));
+      this.markTiming('brainParsed');
     } catch (error) {
       if (this.ended) return; // a failed turn against a finished session is just noise
       if (error instanceof BrainParseError || error instanceof BrainRefusalError) {
@@ -680,6 +680,9 @@ export class ParleConversation extends voice.Agent {
 
   /** Narration, then coach, then the scene reply — outside-in, like a film. */
   private speak(view: TurnView): void {
+    // The recovery line (recover()) deliberately does not mark: a turn that
+    // failed is not a data point about how fast a turn answers.
+    this.markTiming('sayCalled');
     // On the low rungs the line must play out in full: without headphones the
     // learner's microphone hears the tutor, and a VAD "interruption" during a
     // modelled line is almost never the learner talking.
@@ -735,9 +738,53 @@ export class ParleConversation extends voice.Agent {
 
     // Only now, with the recap shipped and the seconds debited, the analyst
     // does its background work. A learner who kills the app first loses this
-    // session's memory and drills, and nothing else.
+    // session's memory, practice topics and drills, and nothing else.
+    // Curation runs BEFORE drills so the drill author works from the curated
+    // keep-list rather than everything the session touched.
     void this.extractMemory(state.turnCount);
-    void this.generateDrills(state.turnCount);
+    void this.curateAndDrill(state);
+  }
+
+  /**
+   * The practice editor, then the drill author, in that order. Exactly one
+   * `practice` message ships per session whatever happens: the model's
+   * grouping when it answers in time, the deterministic code fallback when it
+   * does not. Drills are then authored from the same keep-list, so the two
+   * artefacts describe the same practice instead of two different sessions.
+   */
+  private async curateAndDrill(state: ConversationState): Promise<void> {
+    const curated = await this.curatePractice(state);
+    this.publish({
+      t: 'practice',
+      topics: curated.map((topic) => ({ titleFr: topic.title.fr, titleEn: topic.title.en, phrases: topic.phrases })),
+    });
+    const keepList = curated.flatMap((topic) => topic.phrases);
+    await this.generateDrills(state.turnCount, keepList.length > 0 ? keepList : undefined);
+  }
+
+  /** One curation call with a hard deadline and a pure fallback. */
+  private async curatePractice(state: ConversationState): Promise<CuratedTopic[]> {
+    const sessionTopics = state.topics.map((t) => ({ en: t.en, fr: t.fr }));
+    if (state.turnCount === 0 || state.phrases.length === 0) {
+      return applyCuration(null, state.phrases, sessionTopics);
+    }
+    let deadline: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const request = buildCurationRequest({ topics: sessionTopics, phrases: state.phrases });
+      const timeout = new Promise<never>((_, reject) => {
+        deadline = setTimeout(() => reject(new Error(`no curation after ${CURATE_TIMEOUT_MS}ms`)), CURATE_TIMEOUT_MS);
+      });
+      const { curation } = await Promise.race([
+        this.client.curate({ kind: 'curate', system: buildSystemBlocks(), request }),
+        timeout,
+      ]);
+      return applyCuration(curation, state.phrases, sessionTopics);
+    } catch (error) {
+      console.error('[parle] curation failed; the code fallback ships instead:', error);
+      return applyCuration(null, state.phrases, sessionTopics);
+    } finally {
+      if (deadline !== undefined) clearTimeout(deadline);
+    }
   }
 
   /**
@@ -776,9 +823,11 @@ export class ParleConversation extends voice.Agent {
    * deterministic linter before it ships, because a broken drill teaches
    * broken French and a rejected one costs nothing — fixtures cover the gap.
    */
-  private async generateDrills(turnCount: number): Promise<void> {
+  private async generateDrills(turnCount: number, keepList?: readonly NewPhrase[]): Promise<void> {
     if (turnCount === 0) return;
-    const sessionPhrases = this.state.phrases;
+    // The curated keep-list when curation produced one; everything the session
+    // recorded only as the fallback, so drills match the practice topics.
+    const sessionPhrases = keepList ?? this.state.phrases;
     const profilePhrases = Object.values(this.profile.phrases)
       .filter((p) => !p.mastered)
       .slice(0, 10)
