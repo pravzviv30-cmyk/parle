@@ -23,6 +23,7 @@ import {
   sampleSupport,
   sampleTurn,
   supportViewFor,
+  withLearnerName,
   type BrainFrameRequest,
   type BrainTurnRequest,
   type LearnerProfile,
@@ -303,7 +304,7 @@ describe('a profile that predates memory', () => {
 
     const profile = parseStoredProfile(snapshot);
 
-    assert.deepEqual(profile.memory, { facts: [], opener: null });
+    assert.deepEqual(profile.memory, { facts: [], opener: null, name: null });
     assert.equal(profile.stats.sessions, 4, 'the learning history survives the repair');
     assert.equal(profile.stats.lastRung, 3);
     // The crash site itself: open() reads memory.opener on session open.
@@ -316,7 +317,7 @@ describe('a profile that predates memory', () => {
   test('a snapshot with a broken memory field is repaired rather than believed', () => {
     const snapshot = { ...createProfile(), memory: 'nonsense' } as unknown;
     const profile = parseStoredProfile(snapshot);
-    assert.deepEqual(profile.memory, { facts: [], opener: null });
+    assert.deepEqual(profile.memory, { facts: [], opener: null, name: null });
   });
 
   test('a snapshot missing a field the engine needs still falls back to a fresh profile', () => {
@@ -381,10 +382,13 @@ class MeteredBrain extends MockLlmClient {
  * every time it publishes, so a test that ends without standing the rescue
  * down leaves the tutor patiently rescuing an empty room until the turn cap.
  */
-function buildConvo(t: TestContext, opts: { voiceless?: boolean; client?: MockLlmClient; seedTopic?: unknown } = {}) {
+function buildConvo(
+  t: TestContext,
+  opts: { voiceless?: boolean; client?: MockLlmClient; seedTopic?: unknown; profile?: LearnerProfile } = {},
+) {
   const client = opts.client ?? new MockLlmClient();
   const sttLanguages: SttLanguage[] = [];
-  const convo = new ParleConversation(createProfile(), {
+  const convo = new ParleConversation(opts.profile ?? createProfile(), {
     voiceless: opts.voiceless ?? false,
     client,
     seedTopic: opts.seedTopic,
@@ -409,7 +413,10 @@ function heard(text: string) {
 }
 
 /** Open the session and get into the scene the way a learner does: by answering. */
-async function inScene(t: TestContext, opts: { voiceless?: boolean; client?: MockLlmClient } = {}) {
+async function inScene(
+  t: TestContext,
+  opts: { voiceless?: boolean; client?: MockLlmClient; profile?: LearnerProfile } = {},
+) {
   const built = buildConvo(t, opts);
   built.convo.open(built.session);
   await built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Au café' }));
@@ -515,8 +522,8 @@ describe('the conversation agent, off the worker', () => {
     assert.equal(opened[0]!.view.beat.position, 1);
     // The bridge line is spoken from cache before the scene is designed, so
     // nobody sits in silence while the builder thinks.
-    assert.ok(said.includes(CONVO_LINES.bridge.fr), 'the bridge line lands the moment the topic does');
-    assert.ok(said.indexOf(CONVO_LINES.bridge.fr) < said.indexOf(CAFE_FRAME.openingLine.fr), 'and lands first');
+    assert.ok(said.includes(CONVO_LINES.bridge.spoken), 'the bridge line lands the moment the topic does');
+    assert.ok(said.indexOf(CONVO_LINES.bridge.spoken) < said.indexOf(CAFE_FRAME.openingLine.fr), 'and lands first');
     assert.ok(said.includes(CAFE_FRAME.openingLine.fr), 'and then the character speaks, before the learner has to');
     assert.equal(client.turnRequests.length, 0, 'opening a scene is not a turn');
   });
@@ -626,8 +633,8 @@ describe('a conversation started from a topic card', () => {
     assert.equal(opened.length, 1, 'the scene opened');
     assert.equal(opened[0]!.view.beat.position, 1);
     assert.ok(said.includes(seededOpening(SEED).en), 'the seeded opening is spoken, in English, before anything happens');
-    assert.ok(said.includes(CONVO_LINES.bridge.fr), 'the bridge line still covers the wait for the builder');
-    assert.ok(said.indexOf(seededOpening(SEED).en) < said.indexOf(CONVO_LINES.bridge.fr), 'in that order');
+    assert.ok(said.includes(CONVO_LINES.bridge.spoken), 'the bridge line still covers the wait for the builder');
+    assert.ok(said.indexOf(seededOpening(SEED).en) < said.indexOf(CONVO_LINES.bridge.spoken), 'in that order');
     assert.ok(said.includes(CAFE_FRAME.openingLine.fr), 'and the character speaks first, before the learner has to');
     assert.equal(client.turnRequests.length, 0, 'opening a seeded scene is still not a turn');
   });
@@ -1508,5 +1515,99 @@ describe('background enrichment deadlines', () => {
     assert.equal(postSessionDeadlineMs('extract', { TUTOR_LLM: 'openai' }), 30_000);
     assert.equal(postSessionDeadlineMs('curate', { TUTOR_LLM: 'openai' }), 30_000);
     assert.equal(postSessionDeadlineMs('drills', { TUTOR_LLM: 'openai' }), 90_000);
+  });
+});
+
+/** A brain whose scenario call hangs until the test lets it finish. */
+class HeldFrameBrain extends MockLlmClient {
+  release!: () => void;
+  private readonly gate: Promise<void>;
+  constructor() {
+    super();
+    this.gate = new Promise<void>((resolve) => {
+      this.release = resolve;
+    });
+  }
+  override async frame(request: BrainFrameRequest) {
+    await this.gate;
+    return super.frame(request);
+  }
+}
+
+describe('the tutor knows who it is talking to — G1', () => {
+  test('the tutor greets the learner by name', (t) => {
+    // Onboarding asks what they want to be called and the answer was dropped
+    // at the first hop, so the tutor could not use a name it never had.
+    const { convo, session, said, published } = buildConvo(t, { profile: withLearnerName(createProfile(), 'Sam') });
+    convo.open(session);
+
+    assert.equal(said.length, 1, 'the greeting is one utterance, not two speech handles');
+    assert.match(said[0]!, /Sam/, `the learner was not greeted by name: "${said[0]}"`);
+    assert.ok(
+      said[0]!.includes(CONVO_LINES.opener.en),
+      `the name replaced the question instead of leading it: "${said[0]}"`,
+    );
+    const opening = published.find((m) => m.t === 'opening');
+    assert.ok(opening);
+    assert.match(opening.prompt.en, /Sam/, 'the screen and the voice must agree');
+  });
+
+  test('a learner with no name still gets the ordinary opener', (t) => {
+    const { convo, session, said } = buildConvo(t);
+    convo.open(session);
+    assert.deepEqual(said, [CONVO_LINES.opener.en]);
+  });
+
+  test('a remembered opener carries the name without being rewritten around it', (t) => {
+    // Sessions two and up are greeted by a line the analyst wrote after the
+    // last session, where nobody was waiting on it. Code must not staple a
+    // second greeting onto the front of one that already greets.
+    const profile = withLearnerName(createProfile(), 'Sam');
+    profile.memory.opener = { fr: 'Alors Sam, cet entretien ?', en: 'So Sam, how did that interview go?' };
+    const { convo, session, said } = buildConvo(t, { profile });
+    convo.open(session);
+    assert.deepEqual(said, ['So Sam, how did that interview go?']);
+  });
+
+  test('the name reaches the scene designer, who writes the first line the learner hears', async (t) => {
+    const { client } = await inScene(t, { profile: withLearnerName(createProfile(), 'Sam') });
+    assert.equal(client.frameRequests.length, 1);
+    assert.match(client.frameRequests[0]!.request, /Sam/);
+  });
+});
+
+describe('the wait for a scene — G3 and G4', () => {
+  test('the bridge tells the learner in English that a scene is coming', async (t) => {
+    // The scenario call runs ten to twenty five seconds and the only thing the
+    // learner heard across it was "Ah, très bien. Alors…". The French stays; it
+    // is lesson-zero vocabulary doing its job. What was missing was the line
+    // saying what is happening.
+    const { said } = await inScene(t);
+    const bridge = said.find((line) => line.includes('très bien'));
+    assert.ok(bridge, `the bridge line is gone: ${JSON.stringify(said)}`);
+    assert.match(bridge, /setting the scene|moment/i, `the bridge still explains nothing: "${bridge}"`);
+  });
+
+  test('a topic that arrives during the scene build is still shown as heard', async (t) => {
+    // The drop is right: answering would talk over the opening narration. The
+    // silence was not. "I said it and nothing happened" is the natural reading
+    // of a screen that does not change, so the learner says it again.
+    const client = new HeldFrameBrain();
+    const built = buildConvo(t, { client });
+    built.convo.open(built.session);
+    await built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Au café' }));
+
+    await assert.rejects(
+      () => built.convo.onUserTurnCompleted({} as never, heard('actually about the trees')),
+      voice.StopResponse,
+    );
+    const transcripts = built.published.filter((m) => m.t === 'transcript');
+    assert.ok(
+      transcripts.some((m) => m.text === 'actually about the trees'),
+      'the learner watched their own words vanish',
+    );
+
+    client.release();
+    await new Promise((resolve) => setImmediate(resolve));
   });
 });

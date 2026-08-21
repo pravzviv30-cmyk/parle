@@ -12,6 +12,7 @@
 
 export * from './types.ts';
 export * from './copy.ts';
+export * from './frenchLeak.ts';
 export * from './contract/schemas.ts';
 export * from './contract/types.ts';
 export * from './contract/samples.ts';

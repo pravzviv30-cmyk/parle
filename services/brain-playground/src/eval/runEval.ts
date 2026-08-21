@@ -110,7 +110,7 @@ async function runCase(client: LlmClient, testCase: EvalCase): Promise<CaseResul
   // gets exercised.
   let state = createConversation(
     frame,
-    { cefr: 'A2', confidence: 'medium', watchFor: [], lastRung: null, sessions: 0 },
+    { cefr: 'A2', confidence: 'medium', watchFor: [], lastRung: null, sessions: 0, name: null },
     { strictness: 'balanced', maxTurns: 24 },
   );
 

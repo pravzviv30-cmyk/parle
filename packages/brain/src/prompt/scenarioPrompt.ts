@@ -14,6 +14,8 @@ export interface ScenarioRequestInput {
   learner: {
     cefr: CefrBand;
     watchFor: string[];
+    /** What they asked to be called, or null. The scene may greet them by it. */
+    name?: string | null;
     /** Real account memory, used only when it is relevant to the request. */
     facts?: string[];
     recentScenarios?: string[];
@@ -47,10 +49,11 @@ export function buildScenarioInstruction(): string {
 
 export function buildScenarioRequest(input: ScenarioRequestInput): string {
   const watch = input.learner.watchFor.length > 0 ? ` Recurring trouble: ${input.learner.watchFor.join(', ')}.` : '';
+  const named = input.learner.name != null && input.learner.name.length > 0 ? ` They are called ${input.learner.name}.` : '';
   const lines = [
     INSTRUCTION,
     ``,
-    `LEARNER: CEFR estimate ${input.learner.cefr}.${watch}`,
+    `LEARNER: CEFR estimate ${input.learner.cefr}.${watch}${named}`,
     `LEARNER REQUEST, THE SOURCE OF TRUTH: ${input.request}`,
   ];
   if ((input.learner.facts?.length ?? 0) > 0) {

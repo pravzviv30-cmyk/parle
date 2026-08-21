@@ -57,17 +57,56 @@ export function copyViolations(text: string, opts: { allowDigits?: boolean } = {
 }
 
 /**
+ * How the tutor answers a learner who reached for English.
+ *
+ * Acknowledge first, then hand over the French. The founder's note was that
+ * asking "how would I say this?" got bare French back, which reads as being
+ * corrected rather than answered.
+ *
+ * Acknowledgement, deliberately, and NOT reassurance. The persona already bans
+ * "don't worry" and "take your time" because telling a learner not to worry
+ * tells them there was something to worry about, and that is the exact feeling
+ * this is here to avoid. "Got it" and "Sure" answer the person; "no worries"
+ * would answer a mistake they did not make.
+ *
+ * Four of them, and the name on half, because a warm line said the same way
+ * every time stops being warm by the third turn and a name said every turn is
+ * the thing that reads as a machine.
+ */
+type HandBack = (better: string, name: string | null) => string;
+
+const ENGLISH_HAND_BACK: readonly HandBack[] = [
+  (better, name) => `Got it${name ? `, ${name}` : ''}. In French: "${better}".`,
+  (better) => `Ah, you want that one in French. You would say "${better}".`,
+  (better, name) => `Sure${name ? `, ${name}` : ''}. In French that is "${better}".`,
+  (better) => `That one goes "${better}".`,
+];
+
+/** How many distinct hand-backs exist, so a session can rotate without repeating. */
+export const ENGLISH_HAND_BACK_VARIANTS = ENGLISH_HAND_BACK.length;
+
+/**
  * The safe coach line for each kind of finding, used when the model's own
  * coachLine breaks a copy rule. Warm, short, and honest about the distinction
  * that matters: a blocking error gets "Not quite"; correct-but-textbook phrasing
  * explicitly does not, because the learner was not wrong.
+ *
+ * `variant` is the turn count, not a random draw: `prepareTurn` is byte-stable
+ * for identical state and this stays testable only while it is a function of
+ * the state too.
  */
-export function coachFallbackLine(kind: CoachKind, better: string): string {
+export function coachFallbackLine(
+  kind: CoachKind,
+  better: string,
+  opts: { name?: string | null; variant?: number } = {},
+): string {
   switch (kind) {
     case 'blocking-error':
       return `Not quite. Try "${better}".`;
-    case 'english-to-french':
-      return `In French, you can say "${better}".`;
+    case 'english-to-french': {
+      const variant = Math.abs(Math.trunc(opts.variant ?? 0)) % ENGLISH_HAND_BACK.length;
+      return ENGLISH_HAND_BACK[variant]!(better, opts.name ?? null);
+    }
     case 'textbook-phrasing':
       return `That works, but a local would say "${better}".`;
     case 'register-mismatch':

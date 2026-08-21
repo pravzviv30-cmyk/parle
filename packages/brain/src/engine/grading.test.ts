@@ -30,11 +30,29 @@ describe('assessmentToQuality — the promotion signal', () => {
     assert.equal(assessmentToQuality(assessment({ language: 'mixed' }), []), 'partial');
   });
 
-  test('english, nothing, breakdown, or not understood is poor', () => {
-    assert.equal(assessmentToQuality(assessment({ language: 'english' }), []), 'poor');
+  test('silence and a genuine breakdown still drop the rung', () => {
     assert.equal(assessmentToQuality(assessment({ language: 'none' }), []), 'poor');
     assert.equal(assessmentToQuality(assessment({ comprehensibility: 'breakdown' }), []), 'poor');
     assert.equal(assessmentToQuality(assessment({ understood: false }), []), 'poor');
+  });
+
+  test('reaching for English holds the rung instead of dropping it', () => {
+    // G5. Half-English already held at partial, so English-only dropping was an
+    // inconsistency inside this function. Reaching for words is what a beginner
+    // does; the drop also writes stats.lastRung down, so two polite questions
+    // today opened tomorrow's session a rung lower. The beat is re-invited by
+    // the hand-back loop either way, so the drop bought nothing.
+    assert.equal(assessmentToQuality(assessment({ language: 'english' }), []), 'partial');
+    assert.equal(
+      assessmentToQuality(assessment({ language: 'english', taskAchieved: false }), []),
+      'partial',
+      'asking how to say something never does the scene’s job, and must not be punished for it',
+    );
+    assert.equal(
+      assessmentToQuality(assessment({ language: 'english' }), [sampleCoachItem({ kind: 'blocking-error' })]),
+      'partial',
+      'a blocking error reported alongside English is still the learner reaching, not failing',
+    );
   });
 
   test('a reply that does not do its job is poor even in clear French', () => {
@@ -105,6 +123,34 @@ describe('splitCoach — caps and priority', () => {
     ];
     const { inline, deferred } = splitCoach(items, 'flow');
     assert.equal(inline.length, 1);
+    assert.equal(deferred.length, 1);
+  });
+
+  test('a blocking error never silences the English hand-back', () => {
+    // G7. blocking-error outranks english-to-french and flow allows one inline
+    // finding, so a learner who asked how to say something heard "Not quite"
+    // and never got their answer. The hand-back answers the learner rather than
+    // interrupting them, so it neither spends the budget nor waits for it.
+    const items = [
+      sampleCoachItem({ kind: 'blocking-error', quote: 'a' }),
+      sampleCoachItem({ kind: 'english-to-french', quote: 'b' }),
+    ];
+    const { inline, deferred } = splitCoach(items, 'flow');
+    assert.deepEqual(
+      inline.map((i) => i.kind),
+      ['blocking-error', 'english-to-french'],
+    );
+    assert.equal(deferred.length, 0);
+  });
+
+  test('the exempt hand-back does not spend the budget the other findings share', () => {
+    const items = [
+      sampleCoachItem({ kind: 'english-to-french', quote: 'a' }),
+      sampleCoachItem({ kind: 'textbook-phrasing', quote: 'b' }),
+      sampleCoachItem({ kind: 'textbook-phrasing', quote: 'c' }),
+    ];
+    const { inline, deferred } = splitCoach(items, 'flow');
+    assert.equal(inline.filter((i) => i.kind === 'textbook-phrasing').length, INLINE_CAP.flow);
     assert.equal(deferred.length, 1);
   });
 

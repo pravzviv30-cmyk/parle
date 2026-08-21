@@ -18,6 +18,7 @@ import {
   OpenAiResponsesBrainClient,
   buildScenarioRequest,
   buildSystemBlocks,
+  carriesFrench,
   copyViolations,
   type LlmClient,
   type ScenarioFrame,
@@ -37,21 +38,6 @@ const REQUESTS = [
   'meeting your partner’s French parents for the first time',
   'speaking with my teacher at school about an assignment I do not understand',
 ] as const;
-
-const FRENCH_HINT = /[àâçéèêëîïôùûüœ]/i;
-const WORD = /[A-Za-zÀ-ÖØ-öø-ÿŒœ]+/g;
-const ENGLISH_ACCENTED_WORDS = new Set(['café', 'cafés']);
-
-/**
- * Accents are a useful deterministic leak detector, but the learner may have
- * used an accented loanword such as café, apéro or métro in their English
- * request. Repeating that topic word in the setting is not handing over a
- * French answer. Only accented words the learner did not supply count here.
- */
-function carriesFrench(text: string, request: string): boolean {
-  const allowed = new Set([...ENGLISH_ACCENTED_WORDS, ...(request.match(WORD) ?? []).map((word) => word.toLowerCase())]);
-  return (text.match(WORD) ?? []).some((word) => FRENCH_HINT.test(word) && !allowed.has(word.toLowerCase()));
-}
 
 function checkFrame(frame: ScenarioFrame, request: string): string[] {
   const problems: string[] = [];

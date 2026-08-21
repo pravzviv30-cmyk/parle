@@ -39,6 +39,7 @@ import type {
 } from '../contract/types.ts';
 import type { CefrBand, Strictness } from '../types.ts';
 import { coachFallbackLine, copyViolations, sanitizeLearnerText } from '../copy.ts';
+import { carriesFrench } from '../frenchLeak.ts';
 import { buildSystemBlocks } from '../prompt/system.ts';
 import { buildTurnContext, type TurnInputKind } from '../prompt/turnContext.ts';
 import { historyViewOfTurn } from '../prompt/historyView.ts';
@@ -74,6 +75,8 @@ export interface LearnerSnapshot {
   watchFor: string[];
   lastRung: Rung | null;
   sessions: number;
+  /** What they asked to be called, or null. Validated before it gets here. */
+  name: string | null;
 }
 
 export interface ConversationState {
@@ -183,12 +186,57 @@ export function frameMessage(frame: ScenarioFrame): string {
   return lines.join('\n');
 }
 
+/**
+ * The shortest English setup that still puts someone inside a scene. Below
+ * this a "narration" is a label, not a picture, and the scene effectively
+ * opens on the French line with no preparation at all.
+ */
+const MIN_NARRATION_CHARS = 40;
+
+/**
+ * The opening narration is the only English the learner gets before the scene
+ * starts speaking French at them, and the schema puts no floor under it: a
+ * bare speaker line accepts two words, or English written in French.
+ *
+ * The eval has checked exactly this from the start, offline. Runtime had no
+ * guard at all, so a thin or leaked narration reached a real learner as a
+ * scene that jumped straight into French. Same check, moved to where somebody
+ * is actually listening; the recovery picture is built from the frame's own
+ * English so it still belongs to the scene they asked for.
+ */
+export function repairOpeningNarration(frame: ScenarioFrame, request = ''): ScenarioFrame {
+  const narration = frame.openingNarration;
+  const en = narration.en.trim();
+  const allowed = `${request} ${frame.titleEn}`;
+  const thin = en.length < MIN_NARRATION_CHARS;
+  if (!thin && !carriesFrench(en, allowed)) return frame;
+
+  const who = frame.characters[0]?.name;
+  const composed = [
+    `Imagine the scene: ${frame.titleEn}.`,
+    who ? `You are there, and ${who} is about to speak to you.` : 'You are there, and the conversation begins.',
+  ].join(' ');
+
+  return {
+    ...frame,
+    openingNarration: {
+      ...narration,
+      speaker: 'narration',
+      // Only the spoken half is replaced. The French rides along on screen for
+      // exposure and a leak there is not a leak at all.
+      en: composed,
+      fr: narration.fr.trim().length > 0 ? narration.fr : 'Imaginez la scène. Vous y êtes, et la conversation commence.',
+    },
+  };
+}
+
 export function createConversation(
-  frame: ScenarioFrame,
+  rawFrame: ScenarioFrame,
   learner: LearnerSnapshot,
-  config: { strictness: Strictness; maxTurns: number },
+  config: { strictness: Strictness; maxTurns: number; request?: string },
   now = Date.now(),
 ): ConversationState {
+  const frame = repairOpeningNarration(rawFrame, config.request ?? '');
   const ladder = initialLadder(openingRungFor(learner));
   const beatStatus: Record<string, 'pending' | 'done'> = {};
   for (const beat of frame.beats) beatStatus[beat.id] = 'pending';
@@ -389,7 +437,12 @@ export function prepareTurn(state: ConversationState, input: LearnerTurnInput): 
       forceAdvance: state.forceAdvance,
     },
     strictness: state.strictness,
-    learner: { cefr: state.learner.cefr, confidence: state.learner.confidence, watchFor: state.learner.watchFor },
+    learner: {
+      cefr: state.learner.cefr,
+      confidence: state.learner.confidence,
+      watchFor: state.learner.watchFor,
+      name: state.learner.name,
+    },
     inputKind: inputKindOf(input),
     assistance: state.assistanceDepth === 0 ? 'hidden' : state.assistanceDepth === 1 ? 'hint' : 'full-line',
     pace: state.pace,
@@ -457,13 +510,19 @@ export function integrateTurn(
 
   // The coach line survives only when something actually surfaces inline, and
   // only when it passes the copy rules; otherwise the tested template speaks.
+  //
+  // G7: the hand-back leads whenever it is present. blocking-error outranks it
+  // for the inline slot, which is right for a correction and wrong here — a
+  // learner who asked how to say something was hearing "Not quite. Try …"
+  // instead of an answer. The correction is not lost; it is still in `inline`
+  // and still reaches the card.
   let coachLine: string | null = null;
-  const lead = inline[0];
+  const lead = inline.find((c) => c.kind === 'english-to-french') ?? inline[0];
   if (lead !== undefined) {
     coachLine =
       turn.coachLine !== null && copyViolations(turn.coachLine).length === 0
         ? turn.coachLine
-        : coachFallbackLine(lead.kind, lead.better);
+        : coachFallbackLine(lead.kind, lead.better, { name: state.learner.name, variant: state.turnCount });
   }
 
   // Ladder: spoke turns are graded; silence and help already moved it.
@@ -552,7 +611,12 @@ export function integrateTurn(
     attemptsOnBeat,
     forceAdvance,
     lastSupport: turn.support,
-    assistanceDepth: input.type === 'spoke' ? 0 : state.assistanceDepth,
+    // G6: speaking a real reply resets the earned help. Asking "how do I say
+    // this?" in English is not a real reply — which is exactly why the beat
+    // below does not complete — so binning the card there took the help away
+    // at the moment the learner had just asked for it.
+    assistanceDepth:
+      input.type === 'spoke' && turn.assessment.language !== 'english' ? 0 : state.assistanceDepth,
     lastLanguage:
       input.type === 'spoke' && (turn.assessment.language === 'english' || turn.assessment.language === 'mixed')
         ? turn.assessment.language

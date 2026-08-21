@@ -24,7 +24,19 @@ export function assessmentToQuality(assessment: Assessment, coach: readonly Coac
   const blocked = coach.some((c) => c.kind === 'blocking-error');
   if (!assessment.understood) return 'poor';
   if (assessment.comprehensibility === 'breakdown') return 'poor';
-  if (assessment.language === 'english' || assessment.language === 'none') return 'poor';
+  if (assessment.language === 'none') return 'poor';
+  // G5. Reaching for English holds position; it never drops. Half-English
+  // already held at `partial`, so English-only dropping was an inconsistency
+  // inside this one function, and PEDAGOGY is explicit that asking for help is
+  // never scored against the learner. It costs more than one turn, too: the
+  // drop writes stats.lastRung down, and openingRung reads that to decide
+  // where TOMORROW starts. Two polite questions today opened tomorrow lower.
+  //
+  // Deliberately before taskAchieved: asking how to say something never does
+  // the scene's job, so grading it on that would punish the asking itself. The
+  // beat is re-invited in French either way by the hand-back loop, which is
+  // where the pedagogy actually lives.
+  if (assessment.language === 'english') return 'partial';
   if (blocked || !assessment.taskAchieved) return 'poor';
   if (assessment.comprehensibility === 'strained' || assessment.language === 'mixed') return 'partial';
   return 'good';
@@ -91,9 +103,20 @@ export function splitCoach(
 
   const inline: CoachItem[] = [];
   const deferred: CoachItem[] = [];
+  // G7. The cap is a budget for interruptions, and the hand-back is not one:
+  // it is the answer to a question the learner just asked. It used to lose the
+  // single `flow` slot to a co-occurring blocking error, so someone who asked
+  // how to say something heard "Not quite. Try …" and never got told. It now
+  // neither spends the budget nor waits for it.
+  let spent = 0;
   for (const item of ordered) {
-    if (surfacePolicy(item.kind, strictness) === 'inline' && inline.length < INLINE_CAP[strictness]) {
+    if (surfacePolicy(item.kind, strictness) !== 'inline') {
+      deferred.push(item);
+    } else if (item.kind === 'english-to-french') {
       inline.push(item);
+    } else if (spent < INLINE_CAP[strictness]) {
+      inline.push(item);
+      spent += 1;
     } else {
       deferred.push(item);
     }

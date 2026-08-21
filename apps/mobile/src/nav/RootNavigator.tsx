@@ -15,6 +15,7 @@
  * paths do not diverge, and so no route ever has to carry a summary object.
  */
 
+import { withLearnerName } from '@parle/brain';
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -196,7 +197,10 @@ function ConvoRoute() {
   return (
     <ConvoScreen
       userId={user.id}
-      snapshot={profile.brain}
+      // The name is stored beside the brain profile, not inside it, so this is
+      // where the two are joined. Without it the tutor has no name to use: the
+      // snapshot is the only thing that reaches the agent.
+      snapshot={withLearnerName(profile.brain, profile.name)}
       onRecap={(_recap, blob) => {
         // The agent owns the learner model's shape; the app is its storage.
         if (typeof blob === 'object' && blob !== null) updateBrain(blob as never);

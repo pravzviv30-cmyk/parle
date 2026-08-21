@@ -52,6 +52,15 @@ export interface LearnerProfile {
     facts: RememberedFact[];
     /** Next session's spoken opener, referencing something real, or null. */
     opener: { fr: string; en: string } | null;
+    /**
+     * What they asked to be called at onboarding, or null.
+     *
+     * It lives here rather than on the wire because this is already what the
+     * tutor knows about the learner as a person, and `memory` already rides the
+     * session snapshot — so a name costs no new field on the token, no new
+     * endpoint shape, and no third place to keep the same fact.
+     */
+    name: string | null;
   };
   preferences: { strictness: Strictness; lastScenarios: string[] };
   stats: { sessions: number; totalTurns: number; rescues: number; lastRung: Rung | null };
@@ -74,7 +83,7 @@ export function createProfile(): LearnerProfile {
     cefr: { estimate: 'A0', confidence: 'low', evidence: [] },
     errorPatterns: {},
     phrases: {},
-    memory: { facts: [], opener: null },
+    memory: { facts: [], opener: null, name: null },
     preferences: { strictness: 'balanced', lastScenarios: [] },
     stats: { sessions: 0, totalTurns: 0, rescues: 0, lastRung: null },
   };
@@ -117,9 +126,20 @@ export function repairProfile(stored: unknown): LearnerProfile {
   const migrated = migrateProfile(stored as unknown as LearnerProfile);
   const memory = migrated.memory;
   if (isRecord(memory) && Array.isArray(memory.facts)) {
-    return memory.opener === undefined ? { ...migrated, memory: { ...memory, opener: null } } : migrated;
+    // `opener` and `name` both arrived after version 2 shipped, so neither can
+    // be assumed present. Filling them in beats bumping the version: the
+    // learner keeps their error patterns, phrases and CEFR evidence, which is
+    // the whole reason this function exists rather than createProfile().
+    return {
+      ...migrated,
+      memory: {
+        ...memory,
+        opener: memory.opener === undefined ? null : memory.opener,
+        name: validLearnerName(memory.name),
+      },
+    } as LearnerProfile;
   }
-  return { ...migrated, memory: { facts: [], opener: null } };
+  return { ...migrated, memory: { facts: [], opener: null, name: null } };
 }
 
 /**
@@ -129,7 +149,41 @@ export function repairProfile(stored: unknown): LearnerProfile {
  */
 export function migrateProfile(stored: LearnerProfile | (Omit<LearnerProfile, 'version' | 'memory'> & { version: 1 })): LearnerProfile {
   if (stored.version === 2) return stored;
-  return { ...stored, version: 2, memory: { facts: [], opener: null } };
+  return { ...stored, version: 2, memory: { facts: [], opener: null, name: null } };
+}
+
+/** A name is short, and a name is not a number. */
+const MAX_LEARNER_NAME_CHARS = 24;
+
+/**
+ * The learner's name, kept only when it really is one.
+ *
+ * The same doctrine as the seed topic in the tutor agent: this string is
+ * spoken aloud and interpolated into a coach line, so it is checked where it
+ * is used and not only where it was typed. Digits are refused outright because
+ * `copyViolations` reads a digit outside quotes as a score, and a name that
+ * silently voided every hand-back would be a very quiet bug.
+ *
+ * Dropped, never refused. A learner whose stored name fails this gets the
+ * ordinary unnamed session, which is exactly the session they had before.
+ */
+export function validLearnerName(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > MAX_LEARNER_NAME_CHARS) return null;
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(trimmed)) return null;
+  if (/\d/.test(trimmed)) return null;
+  return trimmed;
+}
+
+/**
+ * Fold the device's stored name into the profile the session rides on. Pure.
+ * The app keeps the name beside the brain profile rather than inside it, so
+ * this is the one place the two are joined before the snapshot leaves.
+ */
+export function withLearnerName(profile: LearnerProfile, name: unknown): LearnerProfile {
+  return { ...profile, memory: { ...profile.memory, name: validLearnerName(name) } };
 }
 
 /**
@@ -179,6 +233,7 @@ export function learnerSnapshotFrom(profile: LearnerProfile): LearnerSnapshot {
     watchFor,
     lastRung: profile.stats.lastRung,
     sessions: profile.stats.sessions,
+    name: validLearnerName(profile.memory.name),
   };
 }
 
