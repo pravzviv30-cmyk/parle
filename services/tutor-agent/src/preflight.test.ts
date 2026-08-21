@@ -147,6 +147,104 @@ describe('preflight', () => {
  * learner still gets a room that opens and stays silent — because Groq retired
  * the model and ElevenLabs stopped honouring the key.
  */
+describe('the voice the tutor is configured to use', () => {
+  /**
+   * Answers by host, or by "host+path" when a vendor is asked two things.
+   * ElevenLabs is asked two: whether the key is good, and what the account can
+   * say. They are different endpoints because only one of them can refuse an
+   * absent key.
+   */
+  function fakeFetch(byRoute: Record<string, { status: number; body?: unknown } | 'throw'>) {
+    return async (url: string) => {
+      const { host, pathname } = new URL(url);
+      const reply = byRoute[host + pathname] ?? byRoute[host];
+      if (reply === undefined) return { ok: true, status: 200, json: async () => ({}) };
+      if (reply === 'throw') throw new Error('ECONNREFUSED');
+      return { ok: reply.status < 400, status: reply.status, json: async () => reply.body ?? {} };
+    };
+  }
+
+  const catalogue = (...ids: string[]) => ({
+    status: 200,
+    body: { voices: ids.map((voice_id) => ({ voice_id, name: `voice-${voice_id}` })) },
+  });
+
+  test('a voice the account does not have is fatal, not a warning', async () => {
+    // What a key rotated onto a NEW account looks like: the key is fine, every
+    // other check passes, and synthesis 404s the first time the tutor opens its
+    // mouth — a room that opens and a tutor that never speaks, which is the one
+    // failure this whole file exists to turn into a line on a terminal.
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      fakeFetch({ 'api.elevenlabs.io': catalogue('someone-elses-voice') }) as never,
+    );
+    const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
+
+    assert.ok(eleven, 'a voice that cannot be synthesized must be reported');
+    assert.equal(eleven.fatal, true);
+    assert.match(eleven.detail, /has no voice "v"/);
+    assert.match(eleven.detail, /someone-elses-voice/, 'and it names what the account can actually use');
+  });
+
+  test('a voice the account does have passes silently', async () => {
+    const checks = await verifyVendors(FULL, '', fakeFetch({ 'api.elevenlabs.io': catalogue('v', 'other') }) as never);
+    assert.equal(checks.find((c) => c.vendor === 'ElevenLabs'), undefined);
+  });
+
+  test('no voice configured is left alone — that is the default voice, and a warning already', async () => {
+    const { ELEVEN_VOICE_ID: _unset, ...noVoice } = FULL;
+    const checks = await verifyVendors(noVoice, '', fakeFetch({ 'api.elevenlabs.io': catalogue('anything') }) as never);
+    assert.equal(checks.find((c) => c.vendor === 'ElevenLabs'), undefined);
+    assert.ok(warnings(noVoice).some((w) => /ELEVEN_VOICE_ID is unset/.test(w)));
+  });
+
+  test('a key that is missing entirely is still caught', () => {
+    // The regression this file exists to remember. /v1/voices answers 200 to a
+    // caller with no key at all — it serves the premade catalogue anonymously —
+    // so authentication cannot be checked there, however well it appears to work
+    // against a fake that returns whatever the test told it to.
+    assert.ok(missingRequired({ ...FULL, ELEVEN_API_KEY: '' }).some((m) => /ELEVEN_API_KEY/.test(m)));
+  });
+
+  test('an unauthenticated catalogue does not vouch for the key', async () => {
+    // Exactly what the live endpoint does: /v1/user refuses, /v1/voices does not.
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      fakeFetch({
+        'api.elevenlabs.io/v1/user': { status: 401 },
+        'api.elevenlabs.io/v1/voices': catalogue('v'),
+      }) as never,
+    );
+    const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
+    assert.ok(eleven, 'the rejected key must still be reported');
+    assert.equal(eleven.fatal, true);
+    assert.match(eleven.detail, /rejected the key/);
+  });
+
+  test('one broken vendor produces one message, not two', async () => {
+    const checks = await verifyVendors(FULL, '', fakeFetch({ 'api.elevenlabs.io': { status: 401 } }) as never);
+    assert.equal(checks.filter((c) => c.vendor === 'ElevenLabs').length, 1);
+  });
+
+  test('a rejected key still reads as a rejected key, not a missing voice', async () => {
+    const checks = await verifyVendors(FULL, '', fakeFetch({ 'api.elevenlabs.io': { status: 401 } }) as never);
+    const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
+    assert.ok(eleven);
+    assert.equal(eleven.fatal, true);
+    assert.match(eleven.detail, /rejected the key/);
+  });
+
+  test('a list this check cannot read is not evidence the voice is missing', async () => {
+    // Better to let a working setup boot than to refuse over a body we did not
+    // understand. The synthesis failure would at least be visible; a worker that
+    // will not start over a parsing disagreement is not.
+    const checks = await verifyVendors(FULL, '', fakeFetch({ 'api.elevenlabs.io': { status: 200, body: {} } }) as never);
+    assert.equal(checks.find((c) => c.vendor === 'ElevenLabs'), undefined);
+  });
+});
+
 describe('verifyVendors', () => {
   const GROQ = { ...FULL, TUTOR_LLM: 'groq', GROQ_API_KEY: 'g' };
 
