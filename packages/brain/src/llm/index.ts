@@ -3,5 +3,6 @@ export * from './mock.ts';
 export * from './routing.ts';
 export * from './anthropic.ts';
 export * from './openaiCompat.ts';
+export * from './openaiResponses.ts';
 export * from './claudeCli.ts';
 export * from './split.ts';

@@ -99,7 +99,7 @@ export const EVAL_CASES: EvalCase[] = [
     id: 'english-fallback',
     scenario: 'cafe',
     input: { type: 'spoke', text: 'How do I say I want a croissant?' },
-    expect: { language: 'english' },
+    expect: { language: 'english', kindsAny: ['english-to-french'], betterMatch: /croissant/i },
     note: 'A learner reaching for help in English must get it warmly, never a scolding.',
   },
   {
@@ -113,14 +113,14 @@ export const EVAL_CASES: EvalCase[] = [
     id: 'english-reach',
     scenario: 'cafe',
     input: { type: 'spoke', text: 'How do I say I want a coffee, please?' },
-    expect: { language: 'english' },
+    expect: { language: 'english', kindsAny: ['english-to-french'], betterMatch: /caf[eé]/i },
     note: 'Reaching for English is reaching for words. The classification is what lets the engine pin the beat and hand the French back.',
   },
   {
     id: 'english-task-done-anyway',
     scenario: 'cafe',
     input: { type: 'spoke', text: 'Can I just have a coffee please?' },
-    expect: { language: 'english' },
+    expect: { language: 'english', kindsAny: ['english-to-french'], betterMatch: /caf[eé]/i },
     note: 'English that does the job is still English: the beat must not complete on it, so the label has to be right.',
   },
   {

@@ -1,6 +1,6 @@
 # Friends Store Adapter
 
-> 50 nodes · cohesion 0.09
+> 50 nodes · cohesion 0.08
 
 ## Key Concepts
 
@@ -11,7 +11,6 @@
 - **friends/types.ts** (9 connections) — `apps/mobile/src/friends/types.ts`
 - **friends/adapter.ts** (8 connections) — `apps/mobile/src/friends/adapter.ts`
 - **fold()** (8 connections) — `apps/mobile/src/friends/logic.ts`
-- **defaultUsername()** (7 connections) — `apps/mobile/src/friends/logic.ts`
 - **FriendEntry** (7 connections) — `apps/mobile/src/friends/types.ts`
 - **mutate()** (6 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **withAccepted()** (6 connections) — `apps/mobile/src/friends/logic.ts`
@@ -29,14 +28,16 @@
 - **FriendsStore** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **loadStore()** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **saveStore()** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
+- **sameName()** (3 connections) — `apps/mobile/src/friends/logic.ts`
 - *... and 25 more nodes in this community*
 
 ## Relationships
 
-- [Add Friends Screen](Add_Friends_Screen.md) (16 shared connections)
-- [App Root and Profile Gate](App_Root_and_Profile_Gate.md) (4 shared connections)
-- [Activity Log Store](Activity_Log_Store.md) (2 shared connections)
-- [Generated Drill Store](Generated_Drill_Store.md) (1 shared connections)
+- [Auth Context And Friends UI](Auth_Context_And_Friends_UI.md) (15 shared connections)
+- [Mobile App Root](Mobile_App_Root.md) (3 shared connections)
+- [Activity History Log](Activity_History_Log.md) (2 shared connections)
+- [Profile Store And Migration](Profile_Store_And_Migration.md) (2 shared connections)
+- [Drill Bank Storage](Drill_Bank_Storage.md) (1 shared connections)
 
 ## Source Files
 
@@ -49,7 +50,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 128 (100%)
+- EXTRACTED: 126 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

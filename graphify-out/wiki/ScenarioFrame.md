@@ -2,7 +2,7 @@
 
 > God node · 24 connections · `packages/brain/src/contract/types.ts`
 
-**Community:** [Brain LLM Client Schemas](Brain_LLM_Client_Schemas.md)
+**Community:** [Brain Client Contracts](Brain_Client_Contracts.md)
 
 ## Connections by Relation
 
@@ -10,8 +10,8 @@
 - contract/types.ts `EXTRACTED`
 
 ### imports
-- conversation.ts `EXTRACTED`
 - convo.ts `EXTRACTED`
+- conversation.ts `EXTRACTED`
 - sessionLoop.ts `EXTRACTED`
 - anthropic.ts `EXTRACTED`
 - claudeCli.ts `EXTRACTED`

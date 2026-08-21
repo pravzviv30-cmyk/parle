@@ -20,6 +20,7 @@ import {
   applyTurn,
   directiveFor,
   initialState as initialLadder,
+  normalise,
   openingRung,
   type LadderDirective,
   type LadderState,
@@ -56,7 +57,14 @@ export type LearnerTurnInput =
  * goes the character resolves it naturally (the barista just brings the
  * coffee) and the conversation continues. Nobody gets stranded on a beat.
  */
-export const MAX_ATTEMPTS_PER_BEAT = 2;
+export const MAX_ATTEMPTS_PER_BEAT = 3;
+
+/**
+ * Assistance is earned inside one exchange. Ordinary turns start hidden; one
+ * genuine rescue reveals only an English hint, and a second rescue may reveal
+ * the learner's line. Speaking resets it immediately.
+ */
+export type AssistanceDepth = 0 | 1 | 2;
 
 /** What the engine needs to know about the learner. The profile owns the rest. */
 export interface LearnerSnapshot {
@@ -85,6 +93,8 @@ export interface ConversationState {
   forceAdvance: boolean;
   /** Support material from the last turn, for instant rescue rendering. */
   lastSupport: SupportMaterial;
+  /** How much of lastSupport the learner has explicitly earned this exchange. */
+  assistanceDepth: AssistanceDepth;
   /**
    * Sticky once the learner asks for slower. A tutor that speeds back up two
    * turns later is the competition's most-cited failure; this never resets
@@ -195,7 +205,10 @@ export function createConversation(
     currentBeat: frame.beats[0]!.id,
     attemptsOnBeat: 0,
     forceAdvance: false,
-    lastSupport: frame.openingSupport,
+    // The scenario builder is a model call too, and can collapse the same two
+    // lines that a turn call can. Turn zero goes through the same guard.
+    lastSupport: learnerSideSupport(frame.openingSupport, frame.openingLine.fr),
+    assistanceDepth: 0,
     pace: 'normal',
     lastLanguage: null,
     deferred: [],
@@ -236,9 +249,57 @@ function beatOf(state: ConversationState): { id: string; goal: string; goalEn: s
   return beat ?? state.frame.beats[state.frame.beats.length - 1]!;
 }
 
+/**
+ * Keep the learner's own line out of the character's mouth.
+ *
+ * A scripted lesson cannot get this wrong: `LessonTurn` holds `tutor` and
+ * `target` as two separate fields, and core's `supportView` only ever reads
+ * `target`. Free conversation has no such separation. One model call authors
+ * both the in-character `sceneReply` and the `support` the learner is handed,
+ * and rung 1 asks it to "say the target line, then invite the learner to repeat
+ * it" — which, to a model that is also playing the barista, reads as permission
+ * to let one line do both jobs. Observed live at Echo: the barista asks
+ * "Bonjour, vous désirez ?" and the card tells the learner to say
+ * "Bonjour, vous désirez ?". Repeating a question back is not a turn in a
+ * conversation; it is the learner being handed the wrong half of the scene.
+ *
+ * So code decides, the way it decides everything else here. Support material
+ * that is only the line just spoken is not the learner's line, whatever the
+ * model called it. The repair spends nothing and invents nothing: it promotes
+ * an option from the same turn, which the contract already defines as a reply
+ * *they* could give, and when no option survives it empties the full line so
+ * the view falls back to the hint.
+ *
+ * The cost of being wrong is deliberately lopsided. Repairing a line that was
+ * genuinely echoable ("Bonne journée !" answered with "Bonne journée !") swaps
+ * one valid reply for another valid reply out of the same turn's material.
+ * Letting the collapse through strands a beginner reading the shopkeeper's
+ * question off a card. Only the second one ends a session.
+ */
+export function learnerSideSupport(support: SupportMaterial, sceneLine: string): SupportMaterial {
+  const scene = normalise(sceneLine);
+  if (scene.length === 0) return support;
+
+  const isSceneLine = (text: string): boolean => normalise(text) === scene;
+  const options = support.options.filter((o) => !isSceneLine(o.fr));
+  if (!isSceneLine(support.fullLine.fr)) return { ...support, options };
+
+  const reply = options[0];
+  const fullLine = reply
+    ? { fr: reply.fr, frWritten: null, en: reply.en }
+    : { fr: '', frWritten: null, en: '' };
+  return { ...support, fullLine, options };
+}
+
 export function supportViewFor(level: SupportLevel, material: SupportMaterial): SupportView {
   switch (level) {
     case 'full-line':
+      // No line left to hand over means `learnerSideSupport` found nothing in
+      // this turn's material it could vouch for as the learner's own. The hint
+      // is the honest floor: English, always their side of the scene, and it
+      // names the goal instead of handing over somebody else's line with
+      // confidence. Guessing here is how the defect got shipped in the first place.
+      if (material.fullLine.fr.trim().length === 0) return { kind: 'hint', hint: material.hintEn };
       return {
         kind: 'full-line',
         line: material.fullLine.fr,
@@ -256,6 +317,19 @@ export function supportViewFor(level: SupportLevel, material: SupportMaterial): 
   }
 }
 
+/** The free tutor's disclosure rule. No ladder rung can reveal help early. */
+export function supportViewForAssistance(depth: AssistanceDepth, material: SupportMaterial): SupportView {
+  if (depth === 0) return { kind: 'none' };
+  if (depth === 1) return { kind: 'hint', hint: material.hintEn };
+  if (material.fullLine.fr.trim().length === 0) return { kind: 'hint', hint: material.hintEn };
+  return {
+    kind: 'full-line',
+    line: material.fullLine.fr,
+    written: material.fullLine.frWritten,
+    gloss: material.fullLine.en,
+  };
+}
+
 /**
  * Handle silence or aide-moi BEFORE any model call. Both run through core's
  * ladder events, so the drop, the rescue flag and the rescues count have one
@@ -271,7 +345,7 @@ export function applyNonSpokenInput(
   if (input.type === 'silence' && input.durationMs < STUCK_SILENCE_MS) {
     return {
       state,
-      view: { rescued: false, rung: state.ladder.rung, supportView: supportViewFor(state.directive.support, state.lastSupport) },
+      view: { rescued: false, rung: state.ladder.rung, supportView: { kind: 'none' } },
     };
   }
 
@@ -282,18 +356,20 @@ export function applyNonSpokenInput(
 
   const { state: ladder, directive } = applyTurn(state.ladder, event);
   const attempts = state.attemptsOnBeat + 1;
+  const assistanceDepth: AssistanceDepth = state.assistanceDepth === 0 ? 1 : 2;
 
   const next: ConversationState = {
     ...state,
     ladder,
     directive,
+    assistanceDepth,
     attemptsOnBeat: attempts,
     forceAdvance: state.forceAdvance || attempts >= MAX_ATTEMPTS_PER_BEAT,
   };
 
   return {
     state: next,
-    view: { rescued: directive.rescued, rung: ladder.rung, supportView: supportViewFor(directive.support, state.lastSupport) },
+    view: { rescued: directive.rescued, rung: ladder.rung, supportView: supportViewForAssistance(assistanceDepth, state.lastSupport) },
   };
 }
 
@@ -315,6 +391,7 @@ export function prepareTurn(state: ConversationState, input: LearnerTurnInput): 
     strictness: state.strictness,
     learner: { cefr: state.learner.cefr, confidence: state.learner.confidence, watchFor: state.learner.watchFor },
     inputKind: inputKindOf(input),
+    assistance: state.assistanceDepth === 0 ? 'hidden' : state.assistanceDepth === 1 ? 'hint' : 'full-line',
     pace: state.pace,
     lastLanguage: state.lastLanguage,
     // Only a steer is worth a line: the first entry is the frame's own topic.
@@ -336,10 +413,13 @@ export function prepareTurn(state: ConversationState, input: LearnerTurnInput): 
 /** Clean model text the learner will read; scene speech may carry digits. */
 function sanitizeTurn(raw: TutorTurn): TutorTurn {
   const clean = (text: string): string => sanitizeLearnerText(text);
+  const sceneReply = { ...raw.sceneReply, fr: clean(raw.sceneReply.fr), en: clean(raw.sceneReply.en) };
   return {
     ...raw,
     coachLine: raw.coachLine === null ? null : clean(raw.coachLine),
-    sceneReply: { ...raw.sceneReply, fr: clean(raw.sceneReply.fr), en: clean(raw.sceneReply.en) },
+    sceneReply,
+    // Checked against the cleaned reply, so a stray dash cannot hide the collapse.
+    support: learnerSideSupport(raw.support, sceneReply.fr),
     narration:
       raw.narration === null ? null : { ...raw.narration, fr: clean(raw.narration.fr), en: clean(raw.narration.en) },
     coach: raw.coach.map((c) => {
@@ -472,6 +552,7 @@ export function integrateTurn(
     attemptsOnBeat,
     forceAdvance,
     lastSupport: turn.support,
+    assistanceDepth: input.type === 'spoke' ? 0 : state.assistanceDepth,
     lastLanguage:
       input.type === 'spoke' && (turn.assessment.language === 'english' || turn.assessment.language === 'mixed')
         ? turn.assessment.language
@@ -496,7 +577,7 @@ export function integrateTurn(
       coachNow: inline,
       narration: turn.narration,
       newPhrases: turn.newPhrases,
-      supportView: supportViewFor(directive.support, turn.support),
+      supportView: supportViewForAssistance(input.type === 'spoke' ? 0 : state.assistanceDepth, turn.support),
       rung: ladder.rung,
       recapDue,
       beat: { id: beat.id, goalEn: beat.goalEn, position, total: beats.length },

@@ -23,9 +23,9 @@
 
 - [Supabase Auth Adapter](Supabase_Auth_Adapter.md) (6 shared connections)
 - [Auth Adapter Interface](Auth_Adapter_Interface.md) (2 shared connections)
-- [App Root and Profile Gate](App_Root_and_Profile_Gate.md) (2 shared connections)
-- [Live Failure Copy and Globals](Live_Failure_Copy_and_Globals.md) (2 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (1 shared connections)
+- [Mobile App Root](Mobile_App_Root.md) (2 shared connections)
+- [Drill Practice Screen](Drill_Practice_Screen.md) (2 shared connections)
+- [Live Failure Classification](Live_Failure_Classification.md) (1 shared connections)
 
 ## Source Files
 

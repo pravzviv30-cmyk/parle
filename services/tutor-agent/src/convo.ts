@@ -27,8 +27,11 @@ import {
   CAFE_FRAME,
   ClaudeCliBrainClient,
   OpenAiCompatBrainClient,
+  OpenAiResponsesBrainClient,
   RECOVERY_LINE,
   SplitBrainClient,
+  ZERO_USAGE,
+  addLlmUsage,
   applyCuration,
   applyExtractionToProfile,
   applyNonSpokenInput,
@@ -45,12 +48,14 @@ import {
   learnerSnapshotFrom,
   repairProfile,
   prepareTurn,
-  supportViewFor,
+  requestFallbackFrame,
+  supportViewForAssistance,
   type ConversationState,
   type CuratedTopic,
   type LearnerProfile,
   type LearnerTurnInput,
   type LlmClient,
+  type LlmUsage,
   type NewPhrase,
   type ScenarioFrame,
   type SessionRecap,
@@ -172,6 +177,12 @@ export function chooseFrame(profile: LearnerProfile): ScenarioFrame {
  *          coaching can be judged before an API key is bought. Split, because
  *          a CLI call costs about eight seconds: the post-session calls get
  *          Claude, the learner's turn stays on Groq.
+ * `claude-cli-all` — the same subscription behind everything, the learner's
+ *          turn included, for development only. It buys coaching quality with
+ *          eight to twelve seconds of dead air per turn, which is why it is not
+ *          the default and why preflight says so out loud. It exists because
+ *          Groq's free tier rate-limits a real session, and a fourth value on
+ *          the one enum beats a second flag that could disagree with it.
  *
  * Exported for one reason worth stating: the promise that moving to the API is
  * a change of TUTOR_LLM and nothing else is only worth making if a test holds
@@ -180,6 +191,16 @@ export function chooseFrame(profile: LearnerProfile): ScenarioFrame {
 export function brainClient(env: Record<string, string | undefined> = process.env): LlmClient {
   const brain = selectedBrain(env);
   if (brain === 'groq') return new OpenAiCompatBrainClient({ apiKey: env.GROQ_API_KEY ?? '' });
+  if (brain === 'openai') {
+    return new OpenAiResponsesBrainClient({
+      apiKey: env.OPENAI_API_KEY,
+      turnModel: env.OPENAI_TURN_MODEL,
+      analystModel: env.OPENAI_ANALYST_MODEL,
+    });
+  }
+  // No split, and no key: the subscription answers everything through the
+  // `claude` binary, and Groq drops out of the session entirely.
+  if (brain === 'claude-cli-all') return new ClaudeCliBrainClient();
   if (brain === 'claude-cli') {
     // The subscription answers well and slowly. Give it the three calls that
     // run once the room has closed, and leave the learner's turn on the fast
@@ -213,6 +234,63 @@ export const CONVO_LINES = {
 } as const;
 
 /**
+ * A topic the learner already talked about, tapped on a practice card and
+ * carried here in the join token's metadata. The token server validated it and
+ * signed it; this file checks it again on arrival, because signed is not the
+ * same as sane and the value goes straight into a line the tutor speaks.
+ */
+export interface SeedTopic {
+  fr: string;
+  en: string;
+}
+
+/** A topic card's title, and nothing longer. The token server's cap, restated. */
+const MAX_SEED_TOPIC_CHARS = 120;
+
+/**
+ * The seed, kept only when it really is one: two strings, both with something
+ * in them once trimmed, both short enough to be a title. Half a seed is no
+ * seed, so a pair that fails either way is dropped whole rather than half
+ * kept — an empty title would put a hole in the tutor's opening line.
+ *
+ * Dropped, never refused: the learner gets the ordinary choosing question,
+ * which is exactly the session they would have had without a card to tap.
+ */
+export function validSeedTopic(value: unknown): SeedTopic | undefined {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const { fr, en } = value as { fr?: unknown; en?: unknown };
+  if (typeof fr !== 'string' || typeof en !== 'string') return undefined;
+  const trimmed: SeedTopic = { fr: fr.trim(), en: en.trim() };
+  if (trimmed.fr.length === 0 || trimmed.en.length === 0) return undefined;
+  if (trimmed.fr.length > MAX_SEED_TOPIC_CHARS || trimmed.en.length > MAX_SEED_TOPIC_CHARS) return undefined;
+  return trimmed;
+}
+
+/** The title as it read on the card, with any full stop of its own removed. */
+function titleOf(text: string): string {
+  return text.trim().replace(/\.+$/, '').trim();
+}
+
+/**
+ * What the tutor says when the session already knows its subject.
+ *
+ * A statement, not a question: the tutor says what is about to happen before it
+ * happens, and someone who just tapped a topic has already answered the
+ * question — asking it again would be the app forgetting what it was told.
+ *
+ * The title leads and the promise follows, which is both how the card read a
+ * moment ago and the one shape that stays grammatical in both languages
+ * whatever the title turns out to be. Threading the title through a preposition
+ * instead would trip over the first French topic that starts with a vowel.
+ */
+export function seededOpening(seed: SeedTopic): { fr: string; en: string } {
+  return {
+    fr: `${titleOf(seed.fr)}. On en reparle.`,
+    en: `${titleOf(seed.en)}. Let's talk about it again.`,
+  };
+}
+
+/**
  * Which language the recogniser should be listening for.
  *
  * The opener is spoken in English on purpose: a brand-new learner must never be
@@ -239,8 +317,80 @@ export function sttLanguageFor(kind: 'convo' | 'lesson', phase: ConversationPhas
   return phase === 'scene' ? 'fr' : 'multi';
 }
 
-/** How long the scenario builder gets before the fixture scene opens instead. */
+/** How long the scenario builder gets before a request-grounded scene opens instead. */
 const FRAME_TIMEOUT_MS = 10_000;
+
+/**
+ * Measured Luna scene calls sit around ten to nineteen seconds. Ten seconds
+ * therefore discarded healthy, request-specific scenes about half the time.
+ * Twenty-five seconds clears the measured tail while still bounding a stuck socket.
+ */
+const OPENAI_FRAME_TIMEOUT_MS = 25_000;
+
+/**
+ * The same deadline when the whole brain is a command-line call, which takes
+ * eight to twelve seconds on its own.
+ *
+ * Ten seconds would lose that race most times it was run, and losing it is not
+ * a visible failure: a simpler request-grounded scene opens instead. The
+ * deadline still follows the brain so a healthy custom scene is not discarded
+ * just because its provider is slower than another one.
+ */
+const CLI_FRAME_TIMEOUT_MS = 30_000;
+
+/** How long the scenario builder gets, given which brain is answering. */
+export function frameDeadlineMs(env: Record<string, string | undefined> = process.env): number {
+  const brain = selectedBrain(env);
+  if (brain === 'claude-cli-all') return CLI_FRAME_TIMEOUT_MS;
+  if (brain === 'openai') return OPENAI_FRAME_TIMEOUT_MS;
+  return FRAME_TIMEOUT_MS;
+}
+
+/**
+ * How long one brain turn gets before the call is treated as hung.
+ *
+ * A wedge detector, not a latency budget, and the difference decides the
+ * numbers. Cutting off a call that was still coming costs the learner their
+ * turn, so the deadline sits at several times the worst healthy call rather than
+ * just above the usual one: fifteen seconds where an API answers in one to
+ * three, forty-five where a command-line call measures eight to twelve.
+ *
+ * More patience than the scene builder gets, which looks backwards until you
+ * see what each one falls back on. The builder has a request-grounded scene
+ * ready and the learner is listening to the bridge line while it works, so
+ * giving up early keeps the session usable. A turn has no equivalent fallback
+ * but the recovery line, and that line is the learner losing the sentence they
+ * just said.
+ */
+const TURN_TIMEOUT_MS = 15_000;
+const CLI_TURN_TIMEOUT_MS = 45_000;
+
+function turnDeadlineMs(env: Record<string, string | undefined> = process.env): number {
+  return selectedBrain(env) === 'claude-cli-all' ? CLI_TURN_TIMEOUT_MS : TURN_TIMEOUT_MS;
+}
+
+/**
+ * A model call, and a promise that it will end.
+ *
+ * Every vendor SDK here can leave a request open indefinitely — a socket that
+ * stays up and says nothing looks exactly like a model that is still thinking.
+ * One helper for both calls that a learner is waiting on, so a hung turn and a
+ * hung scene builder cannot drift into two different ideas of patience.
+ *
+ * The losing timer is always cleared: an unhandled rejection from a settled race
+ * takes the worker down, which strands every learner on it.
+ */
+async function withDeadline<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
+  let deadline: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timeout = new Promise<never>((_, reject) => {
+      deadline = setTimeout(() => reject(new Error(`no ${what} after ${ms}ms`)), ms);
+    });
+    return await Promise.race([work, timeout]);
+  } finally {
+    if (deadline !== undefined) clearTimeout(deadline);
+  }
+}
 
 /**
  * The text-mode silence window. Typing is slower than speaking and a reader
@@ -257,6 +407,34 @@ const CURATE_TIMEOUT_MS = 10_000;
 
 /** How long drill authoring gets — the biggest post-session call, still bounded. */
 const DRILLS_TIMEOUT_MS = 25_000;
+
+/**
+ * Terra's structured post-session calls are intentionally more considered than
+ * a live turn. Live drill evaluation puts a healthy 12-exercise batch at about
+ * sixty-five seconds, so the generic 25-second wedge detector threw away good
+ * practice every time. These calls run after the recap has already shipped;
+ * the wider bounds do not hold up the learner or the room.
+ */
+const OPENAI_EXTRACT_TIMEOUT_MS = 30_000;
+const OPENAI_CURATE_TIMEOUT_MS = 30_000;
+const OPENAI_DRILLS_TIMEOUT_MS = 90_000;
+
+export type PostSessionWork = 'extract' | 'curate' | 'drills';
+
+/** A provider-aware wedge detector for background enrichment calls. */
+export function postSessionDeadlineMs(
+  work: PostSessionWork,
+  env: Record<string, string | undefined> = process.env,
+): number {
+  if (selectedBrain(env) === 'openai') {
+    if (work === 'extract') return OPENAI_EXTRACT_TIMEOUT_MS;
+    if (work === 'curate') return OPENAI_CURATE_TIMEOUT_MS;
+    return OPENAI_DRILLS_TIMEOUT_MS;
+  }
+  if (work === 'extract') return EXTRACT_TIMEOUT_MS;
+  if (work === 'curate') return CURATE_TIMEOUT_MS;
+  return DRILLS_TIMEOUT_MS;
+}
 
 /**
  * Flow strictness and a 12-turn budget make a framed 3–5 minute scene: coaching
@@ -298,6 +476,9 @@ export class ParleConversation extends voice.Agent {
 
   /** Set from the room identity so usage lands on the right account. */
   learnerId = 'anonymous';
+  /** Raw provider-neutral tokens, so development sessions produce real cost evidence. */
+  private modelUsage: LlmUsage = ZERO_USAGE;
+  private modelCalls = 0;
 
   /**
    * Text mode: the same conversation with the voice pipeline dark. Learner
@@ -308,8 +489,25 @@ export class ParleConversation extends voice.Agent {
   private readonly voiceless: boolean;
   /** Every brain turn and every rescue runs through here, one at a time. */
   private readonly queue = new TurnQueue();
+  /**
+   * How long the scenario builder gets. Read once, at construction, from the
+   * same TUTOR_LLM that chose the brain — a slow brain gets a longer deadline
+   * rather than the simpler recovery scene opening before the rich one arrives.
+   */
+  private readonly frameTimeoutMs = frameDeadlineMs();
+  /**
+   * How long one brain turn gets. Read the same way and for the same reason:
+   * a brain that answers in eight seconds must not be called hung at four.
+   */
+  private readonly turnTimeoutMs = turnDeadlineMs();
   /** True between the learner taking the floor and their turn being integrated. */
   private learnerSpeaking = false;
+  /**
+   * The topic this session already knows about, or nothing. Only ever set for a
+   * free conversation: the scripted lesson has its own script and nothing to
+   * choose, so a seed would have nowhere to land.
+   */
+  private readonly seedTopic: SeedTopic | undefined;
 
   /**
    * `client` is the seam a test drives this class through. Without it the
@@ -318,7 +516,17 @@ export class ParleConversation extends voice.Agent {
    */
   constructor(
     profile: LearnerProfile,
-    opts: { voiceless?: boolean; client?: LlmClient; setSttLanguage?: (language: SttLanguage) => void } = {},
+    opts: {
+      voiceless?: boolean;
+      client?: LlmClient;
+      setSttLanguage?: (language: SttLanguage) => void;
+      /**
+       * The topic this session was started on, if it was started from a card.
+       * `unknown` on purpose: the guard, not the caller, decides what a seed
+       * is, so the worker cannot hand this class a half-built one.
+       */
+      seedTopic?: unknown;
+    } = {},
   ) {
     // The pipeline LLM never generates here; see the header. One line keeps
     // the framework satisfied and makes the intent grep-able.
@@ -330,12 +538,30 @@ export class ParleConversation extends voice.Agent {
       maxTurns: CONVO_MAX_TURNS,
     });
     this.client = opts.client ?? brainClient();
+    this.seedTopic = validSeedTopic(opts.seedTopic);
     if (opts.setSttLanguage) this.setSttLanguage = opts.setSttLanguage;
   }
 
   /** Where the conversation has got to. Read-only, for the worker and for tests. */
   get conversationState(): ConversationState {
     return this.state;
+  }
+
+  /** Current model meter, exposed read-only for diagnostics and tests. */
+  get brainMeter(): { calls: number; usage: LlmUsage } {
+    return { calls: this.modelCalls, usage: { ...this.modelUsage } };
+  }
+
+  private recordBrainUsage(activity: 'turn' | 'frame' | 'extract' | 'curate' | 'drills', usage: LlmUsage): void {
+    this.modelCalls += 1;
+    this.modelUsage = addLlmUsage(this.modelUsage, usage);
+    const chargedInput = usage.inputTokens + usage.cacheReadTokens + usage.cacheWriteTokens;
+    if (chargedInput === 0 && usage.outputTokens === 0) return;
+    const totalInput = this.modelUsage.inputTokens + this.modelUsage.cacheReadTokens + this.modelUsage.cacheWriteTokens;
+    console.info(
+      `[parle:brain] ${activity}: ${chargedInput} input (${usage.cacheReadTokens} cached), ${usage.outputTokens} output; ` +
+        `session total ${this.modelCalls} calls, ${totalInput} input, ${this.modelUsage.outputTokens} output`,
+    );
   }
 
   /** Every spoken line funnels through here so text mode can stay silent. */
@@ -376,9 +602,29 @@ export class ParleConversation extends voice.Agent {
    * loud — what the learner wants to talk about, and nothing costs a model
    * call. No menu: the scene opens from whatever answer arrives, spoken or
    * typed, English or French.
+   *
+   * Unless the session already knows: a conversation started from a practice
+   * card skips the question and opens on the topic it was handed.
    */
   open(session: voice.AgentSession): void {
     void session; // kept for signature parity with ParleTutor; speech goes via this.session
+    // A session started from a practice card already has its answer. Asking
+    // again would be the app forgetting what it was just told, so the tutor
+    // says what is about to happen and goes straight to the scene. The opening
+    // is still published, because the app opens a conversation on that message
+    // and would otherwise wait for one that never comes. From there this is the
+    // ordinary path: startScene owns the bridge line, the frame call, the
+    // timeout and the request-grounded fallback, and every one is inherited.
+    if (this.seedTopic) {
+      const seeded = seededOpening(this.seedTopic);
+      this.lastOpening = { t: 'opening', prompt: seeded };
+      this.publish(this.lastOpening);
+      this.say(seeded.en, { allowInterruptions: false });
+      void this.startScene(this.seedTopic.en).catch((error: unknown) => {
+        console.error('[parle] the seeded scene could not be started:', error);
+      });
+      return;
+    }
     // A remembered opener beats the generic question: "So, how was that
     // interview?" is the moment the tutor stops being an app. One line of live
     // synthesis per session, pennies, worth every one of them.
@@ -392,53 +638,112 @@ export class ParleConversation extends voice.Agent {
   /**
    * A topic landed. Say the cached bridge line so the learner is never
    * waiting in silence, design the scene, and open it. The scenario builder
-   * failing — parse error, outage, timeout — falls back to the fixture
-   * alternator: the learner gets a scene either way, always.
+   * failing — parse error, outage, timeout — falls back to a flexible frame
+   * that carries the learner's own request. The learner gets a scene either
+   * way, but never an unrelated café because a provider missed its deadline.
+   *
+   * The tail is guarded separately, and that is the whole of F28. buildFrame's
+   * own catch covers a builder that will not answer; it cannot cover a builder
+   * that answers with something the engine then chokes on — a frame with no
+   * beats, say. That threw between `starting` and `scene`, so the phase never
+   * moved, and every later press early-returned with no log and no publish. The
+   * founder's "I typed it and nothing happened" is partly this: the natural
+   * answer to a screen that will not change is to press Send again, and every
+   * one of those went into the same hole.
    */
   private async startScene(request: string): Promise<void> {
-    if (this.phase !== 'choosing' || this.ended) return;
+    if (this.ended) return;
+    if (this.phase !== 'choosing') {
+      // A duplicate press during a healthy build stays dropped — the scene is
+      // seconds away and two would open on top of each other — but it says so,
+      // because a drop nobody can see is how this took a week to find.
+      console.warn(`[parle] a topic arrived while the session was ${this.phase}; the scene already coming is the one that opens`);
+      return;
+    }
     this.phase = 'starting';
     this.clearRescue();
     this.say(CONVO_LINES.bridge.fr, { allowInterruptions: false });
 
-    let frame = chooseFrame(this.profile);
+    let frame: ScenarioFrame;
     try {
       frame = await this.buildFrame(request);
     } catch (error) {
-      console.error('[parle] scenario build failed; opening on a fixture:', error);
+      frame = requestFallbackFrame(request);
+      console.error('[parle] scenario build failed; opening a simpler scene on the learner request:', error);
+      this.publish({ t: 'error', message: "I've kept your topic. We'll start with a simpler version." });
     }
     if (this.ended) return;
 
-    this.state = createConversation(frame, learnerSnapshotFrom(this.profile), {
-      strictness: 'flow',
-      maxTurns: CONVO_MAX_TURNS,
-    });
-    this.phase = 'scene';
-    this.openScene();
+    try {
+      this.state = createConversation(frame, learnerSnapshotFrom(this.profile), {
+        strictness: 'flow',
+        maxTurns: CONVO_MAX_TURNS,
+      });
+      this.phase = 'scene';
+      this.openScene();
+    } catch (error) {
+      console.error('[parle] the scene could not be opened; handing back the choosing moment:', error);
+      this.returnToChoosing();
+    }
+  }
+
+  /**
+   * Give the learner the question back.
+   *
+   * Not an apology and not an explanation: they asked for something, it is not
+   * there, and the one useful thing left is the moment they were in before —
+   * the question on screen, the question spoken, and a session that will act on
+   * the next thing they say. Never a dead end, which is the invariant this is
+   * here to keep.
+   *
+   * The recogniser goes back to the multilingual window with it. openScene pins
+   * it to French as its first act, so a scene that fell over halfway leaves the
+   * choosing moment listening for the wrong language.
+   */
+  private returnToChoosing(): void {
+    this.phase = 'choosing';
+    this.setSttLanguage(sttLanguageFor('convo', 'choosing'));
+    if (this.seedTopic) {
+      // A session that came from a topic card has no question to go back to:
+      // its opening is a statement about the topic they tapped, and repeating
+      // it would promise the same scene a second time. The ordinary question is
+      // honest about where they now are, and it is something they can answer.
+      this.lastOpening = { t: 'opening', prompt: { fr: CONVO_LINES.opener.fr, en: CONVO_LINES.opener.en } };
+    }
+    if (this.lastOpening) this.publish(this.lastOpening);
+    // The quiet twin: text mode arms its own clock, exactly as `open` does.
+    if (this.voiceless) this.armRescue(this.session);
+    else if (this.lastOpening) this.say(this.lastOpening.prompt.en, { allowInterruptions: false });
   }
 
   /** One frame call with a hard deadline — a learner is audibly waiting. */
   private async buildFrame(request: string): Promise<ScenarioFrame> {
     const snapshot = learnerSnapshotFrom(this.profile);
-    let deadline: ReturnType<typeof setTimeout> | undefined;
-    try {
-      const timeout = new Promise<never>((_, reject) => {
-        deadline = setTimeout(() => reject(new Error(`no frame after ${FRAME_TIMEOUT_MS}ms`)), FRAME_TIMEOUT_MS);
-      });
-      const { frame } = await Promise.race([
-        this.client.frame({
-          kind: 'frame',
-          system: buildSystemBlocks(),
-          request: buildScenarioRequest({ request, learner: { cefr: snapshot.cefr, watchFor: snapshot.watchFor } }),
+    const facts = this.profile.memory.facts.slice(-5).map((fact) => fact.en);
+    const unmasteredPhrases = Object.values(this.profile.phrases)
+      .filter((phrase) => !phrase.mastered)
+      .slice(0, 5)
+      .map((phrase) => `${phrase.fr} (${phrase.en})`);
+    const result = await withDeadline(
+      this.client.frame({
+        kind: 'frame',
+        system: buildSystemBlocks(),
+        request: buildScenarioRequest({
+          request,
+          learner: {
+            cefr: snapshot.cefr,
+            watchFor: snapshot.watchFor,
+            facts,
+            recentScenarios: this.profile.preferences.lastScenarios,
+            unmasteredPhrases,
+          },
         }),
-        timeout,
-      ]);
-      return frame;
-    } finally {
-      // The losing timer must not fire into a settled race — an unhandled
-      // rejection takes the worker down, which strands every learner on it.
-      if (deadline !== undefined) clearTimeout(deadline);
-    }
+      }),
+      this.frameTimeoutMs,
+      'frame',
+    );
+    this.recordBrainUsage('frame', result.usage);
+    return result.frame;
   }
 
   /**
@@ -465,7 +770,7 @@ export class ParleConversation extends voice.Agent {
       coachLine: null,
       coachNow: [],
       narration: { speaker: narration.speaker, fr: narration.fr, frWritten: narration.frWritten, en: narration.en },
-      supportView: supportViewFor(this.state.directive.support, this.state.lastSupport),
+      supportView: supportViewForAssistance(0, this.state.lastSupport),
       rung: this.state.ladder.rung,
       beat: { goalEn: beat.goalEn, position: beatIndex + 1, total: beats.length },
       recapDue: false,
@@ -480,9 +785,10 @@ export class ParleConversation extends voice.Agent {
    * Arm the rescue. Called once the tutor has finished speaking; four silent
    * seconds mean stuck, not thinking, and support renders instantly.
    *
-   * On the choosing screen the same silence gets a gentler answer: one spoken
-   * suggestion, once — after that the chips carry the moment, because a tutor
-   * that keeps prompting an undecided learner is its own kind of pressure.
+   * On the spoken choosing screen the same silence gets a gentler answer: one
+   * spoken suggestion, once. Text mode never does this. Choosing "Unable to
+   * speak" opens a blank reply surface and waits for the learner's own topic;
+   * it must not turn into an example-answer prompt after a timer.
    * While the scenario builder runs, silence is expected and the timer stays
    * dark.
    */
@@ -495,6 +801,7 @@ export class ParleConversation extends voice.Agent {
     if (this.ended || this.phase === 'starting') return generation;
     const window = this.silenceWindow();
     if (this.phase === 'choosing') {
+      if (this.voiceless) return generation;
       if (this.suggested) return generation;
       this.silenceTimer = setTimeout(() => {
         this.suggested = true;
@@ -517,12 +824,24 @@ export class ParleConversation extends voice.Agent {
    *
    * Clearing a timeout cannot unschedule a callback that has already fired, so
    * "the learner answered half a beat after the clock ran out" arrives here with
-   * the rescue already in flight. Two things stop it: they are speaking right
-   * now, or something else has been queued since this wait began — either way
-   * the silence it was going to report is silence that ended.
+   * the rescue already in flight. Three things stop it: they are speaking right
+   * now, a turn is being written for them right now, or something else has been
+   * queued since this wait began.
+   *
+   * The middle one is the newest and the least obvious. The queue counts work
+   * when it is ENQUEUED, so a clock armed after the learner's turn was queued
+   * captures a generation that already includes it — the check below passes,
+   * and the rescue lands behind a turn still in flight. Groq's sub-second turns
+   * meant nothing was ever still running when the clock ran out; a brain that
+   * takes eight to twelve seconds is rescued out of its own thinking time on
+   * every turn. Waiting for the tutor is not being stuck, whatever the brain.
+   *
+   * Standing down is not standing down for good: the turn ends by publishing,
+   * and publishing re-arms.
    */
   async runRescue(generation: number): Promise<void> {
     if (this.ended || this.learnerSpeaking) return;
+    if (this.queue.busy) return;
     await this.queue.runIfCurrent(generation, () => this.rescue({ type: 'silence', durationMs: this.silenceWindow() }));
   }
 
@@ -548,17 +867,54 @@ export class ParleConversation extends voice.Agent {
     this.silenceTimer = undefined;
   }
 
-  /** Handle an intent the learner expressed by tapping rather than speaking. */
+  /**
+   * Handle an intent the learner expressed by tapping rather than speaking.
+   *
+   * Never throws, on purpose. The worker fires this off with `void` for every
+   * frame that lands on the data channel, so one throw in here is an unhandled
+   * rejection on a process that is serving every learner on it — one learner's
+   * mistimed tap taking down everybody else's session. Containment is not
+   * politeness here, it is the blast radius.
+   */
   async handleClientMessage(session: voice.AgentSession, payload: Uint8Array): Promise<void> {
+    try {
+      await this.routeClientMessage(session, payload);
+    } catch (error) {
+      console.error('[parle] a client message could not be handled; the session carries on:', error);
+    }
+  }
+
+  /** What a client message actually does. Wrapped by handleClientMessage. */
+  private async routeClientMessage(session: voice.AgentSession, payload: Uint8Array): Promise<void> {
     const msg = decodeClientMessage(payload);
     if (!msg) return; // a malformed frame must not disturb a live conversation
+
+    if (msg.t === 'typing') {
+      // Typing is presence, not silence. Measured live, a learner writing one
+      // answer was rescued about every twenty seconds, because the only thing
+      // the clock could see was that nobody had spoken — and being told to say
+      // it once more mid-sentence is a remark on hesitating, which the tutor
+      // never makes. So the window restarts from the last keystroke.
+      //
+      // Only ever a restart: if no clock is running, none is started. armRescue
+      // owns when the tutor may wait on a learner (never while the scene is
+      // being built, once only on the choosing screen), and a keystroke must
+      // not be a second opinion about that.
+      if (this.silenceTimer) this.armRescue(this.session);
+      return;
+    }
 
     if (msg.t === 'ready') {
       // After the scene has closed, the recap IS the current state — replaying
       // the last scene view would hand a reconnecting app a session that no
       // longer exists and swallow its recap and updated profile.
       if (this.ended && this.lastRecap) this.publish(this.lastRecap);
-      else if (this.phase === 'choosing' && this.lastOpening) this.publish(this.lastOpening);
+      // Before the scene exists, the opening IS the current state — including
+      // while the builder runs, which is the whole of a seeded session's life
+      // before the scene. An app sends `ready` precisely because it fears it
+      // missed the moment, and answering that with nothing is the fear coming
+      // true.
+      else if (this.phase !== 'scene' && this.lastOpening) this.publish(this.lastOpening);
       else if (this.lastView) this.publish({ t: 'convo', view: this.lastView });
       return;
     }
@@ -583,7 +939,12 @@ export class ParleConversation extends voice.Agent {
 
     if (msg.t === 'hear') {
       // Replay the current support line, uninterruptible so it plays out whole.
-      this.say(this.state.lastSupport.fullLine.fr, { allowInterruptions: false });
+      // An empty line means the brain would not vouch for it as the learner's
+      // own (learnerSideSupport), and the card is showing the English hint
+      // instead. There is nothing to replay: speaking the scene's own line here
+      // would hand back exactly what the brain just took out.
+      const line = this.state.lastSupport.fullLine.fr;
+      if (line.trim().length > 0) this.say(line, { allowInterruptions: false });
       return;
     }
     if (msg.t === 'slower') {
@@ -634,7 +995,9 @@ export class ParleConversation extends voice.Agent {
         // Speech on the choosing screen IS the topic. The transcript shows
         // the learner they were heard; the scene does the rest.
         this.publish({ t: 'transcript', text, final: true });
-        void this.startScene(text);
+        void this.startScene(text).catch((error: unknown) => {
+          console.error('[parle] the spoken topic could not open a scene:', error);
+        });
       } else if (this.phase === 'scene') {
         this.publish({ t: 'transcript', text, final: true });
         await this.queue.run(() => this.runBrainTurn({ type: 'spoke', text }));
@@ -686,7 +1049,15 @@ export class ParleConversation extends voice.Agent {
     let turn;
     try {
       this.markTiming('brainSent');
-      ({ turn } = await this.client.turn(request));
+      // Raced, exactly as the scene builder is. A call that goes out and never
+      // comes back used to sit here forever, and the queue reports itself busy
+      // for as long as it does — so the rescue stood down, no clock ran, and the
+      // learner was left in front of their own sentence with nothing coming.
+      // A timeout lands in the catch below and is treated as what it is: a turn
+      // that failed, indistinguishable downstream from a thrown one.
+      const result = await withDeadline(this.client.turn(request), this.turnTimeoutMs, 'turn');
+      turn = result.turn;
+      this.recordBrainUsage('turn', result.usage);
       this.markTiming('brainParsed');
     } catch (error) {
       if (this.ended) return; // a failed turn against a finished session is just noise
@@ -829,25 +1200,29 @@ export class ParleConversation extends voice.Agent {
   /** One curation call with a hard deadline and a pure fallback. */
   private async curatePractice(state: ConversationState): Promise<CuratedTopic[]> {
     const sessionTopics = state.topics.map((t) => ({ en: t.en, fr: t.fr }));
-    if (state.turnCount === 0 || state.phrases.length === 0) {
+    if (state.turnCount === 0) {
       return applyCuration(null, state.phrases, sessionTopics);
     }
-    let deadline: ReturnType<typeof setTimeout> | undefined;
+    const errorTags = Object.entries(this.profile.errorPatterns)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 3)
+      .map(([tag]) => tag);
     try {
-      const request = buildCurationRequest({ topics: sessionTopics, phrases: state.phrases });
-      const timeout = new Promise<never>((_, reject) => {
-        deadline = setTimeout(() => reject(new Error(`no curation after ${CURATE_TIMEOUT_MS}ms`)), CURATE_TIMEOUT_MS);
+      const request = buildCurationRequest({
+        topics: sessionTopics,
+        phrases: state.phrases,
+        learner: { cefr: this.profile.cefr.estimate, errorTags },
       });
-      const { curation } = await Promise.race([
+      const result = await withDeadline(
         this.client.curate({ kind: 'curate', system: buildSystemBlocks(), request }),
-        timeout,
-      ]);
-      return applyCuration(curation, state.phrases, sessionTopics);
+        postSessionDeadlineMs('curate'),
+        'curation',
+      );
+      this.recordBrainUsage('curate', result.usage);
+      return applyCuration(result.curation, state.phrases, sessionTopics);
     } catch (error) {
       console.error('[parle] curation failed; the code fallback ships instead:', error);
       return applyCuration(null, state.phrases, sessionTopics);
-    } finally {
-      if (deadline !== undefined) clearTimeout(deadline);
     }
   }
 
@@ -861,23 +1236,19 @@ export class ParleConversation extends voice.Agent {
     // An empty session has nothing to remember, and asking would be spend
     // without a question.
     if (turnCount === 0 || this.lastRecap === null) return;
-    let deadline: ReturnType<typeof setTimeout> | undefined;
     try {
       const request = buildExtractionRequest({ history: this.state.history, knownFacts: this.profile.memory.facts });
-      const timeout = new Promise<never>((_, reject) => {
-        deadline = setTimeout(() => reject(new Error(`no extraction after ${EXTRACT_TIMEOUT_MS}ms`)), EXTRACT_TIMEOUT_MS);
-      });
-      const { extraction } = await Promise.race([
+      const result = await withDeadline(
         this.client.extract({ kind: 'extract', system: buildSystemBlocks(), request }),
-        timeout,
-      ]);
-      this.profile = applyExtractionToProfile(this.profile, extraction, new Date().toISOString());
+        postSessionDeadlineMs('extract'),
+        'extraction',
+      );
+      this.recordBrainUsage('extract', result.usage);
+      this.profile = applyExtractionToProfile(this.profile, result.extraction, new Date().toISOString());
       this.lastRecap = { ...this.lastRecap, profile: this.profile };
       this.publish(this.lastRecap);
     } catch (error) {
       console.error('[parle] memory extraction failed; the recap already shipped without it:', error);
-    } finally {
-      if (deadline !== undefined) clearTimeout(deadline);
     }
   }
 
@@ -903,26 +1274,27 @@ export class ParleConversation extends voice.Agent {
       .slice(0, 3)
       .map(([tag]) => tag);
 
-    let deadline: ReturnType<typeof setTimeout> | undefined;
     try {
-      const request = buildDrillGenerationRequest({ sessionPhrases, profilePhrases, errorTags });
-      const timeout = new Promise<never>((_, reject) => {
-        deadline = setTimeout(() => reject(new Error(`no drills after ${DRILLS_TIMEOUT_MS}ms`)), DRILLS_TIMEOUT_MS);
+      const request = buildDrillGenerationRequest({
+        sessionPhrases,
+        profilePhrases,
+        errorTags,
+        topics: this.state.topics.map((topic) => ({ en: topic.en, fr: topic.fr })),
       });
-      const { batch } = await Promise.race([
+      const result = await withDeadline(
         this.client.drills({ kind: 'drills', system: buildSystemBlocks(), request }),
-        timeout,
-      ]);
+        postSessionDeadlineMs('drills'),
+        'drills',
+      );
+      this.recordBrainUsage('drills', result.usage);
 
-      const valid = batch.exercises.filter((exercise) => validateExercise(exercise).ok);
-      const dropped = batch.exercises.length - valid.length;
-      if (dropped > 0) console.warn(`[parle] drill linter rejected ${dropped} of ${batch.exercises.length} exercises`);
+      const valid = result.batch.exercises.filter((exercise) => validateExercise(exercise).ok);
+      const dropped = result.batch.exercises.length - valid.length;
+      if (dropped > 0) console.warn(`[parle] drill linter rejected ${dropped} of ${result.batch.exercises.length} exercises`);
       if (valid.length === 0) return;
       this.publish({ t: 'drills', exercises: valid });
     } catch (error) {
       console.error('[parle] drill generation failed; the fixture bank covers the gap:', error);
-    } finally {
-      if (deadline !== undefined) clearTimeout(deadline);
     }
   }
 }

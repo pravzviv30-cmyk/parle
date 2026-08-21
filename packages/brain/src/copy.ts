@@ -66,6 +66,8 @@ export function coachFallbackLine(kind: CoachKind, better: string): string {
   switch (kind) {
     case 'blocking-error':
       return `Not quite. Try "${better}".`;
+    case 'english-to-french':
+      return `In French, you can say "${better}".`;
     case 'textbook-phrasing':
       return `That works, but a local would say "${better}".`;
     case 'register-mismatch':

@@ -17,38 +17,61 @@
  */
 
 import { Platform } from 'react-native';
+import { ink, papers, accents, paperFor, type Paper, type PaperName } from './palette.ts';
 
+/**
+ * The papers, and which place gets which. Every raw value lives in
+ * `palette.ts`, which imports nothing, because this file imports `Platform`
+ * and the mobile test runner has no react-native. A colour you cannot test is
+ * a colour somebody will change with an eyedropper.
+ */
+export { papers, accents, paperFor };
+export type { Paper, PaperName };
+
+/**
+ * The house paper, spread flat for the thirty-odd modules that read it inside
+ * a `StyleSheet.create` block. Those evaluate once at import and cannot follow
+ * a screen's paper, which is exactly why a screen that wants a different light
+ * sets `backgroundColor` inline on its own root rather than reaching for a
+ * context that could never have reached them.
+ */
 export const paper = {
   /** The page itself. Everything sits directly on this. */
-  ground: '#F3E8F3',
+  ground: papers.house.ground,
   /** One step deeper — pressed states, chip fills, the tab track. */
-  groundDeep: '#E4D3EE',
+  groundDeep: papers.house.groundDeep,
   /** Card surface. Flat white, hairline rule, no shadow. */
-  card: '#FFFFFF',
+  card: ink.card,
   /** The ink. Near-black with a real violet cast so the page feels of a piece. */
-  ink: '#241633',
+  ink: ink.ink,
   /** Secondary text. */
-  inkSoft: '#5F4E73',
+  inkSoft: ink.inkSoft,
   /** Tertiary — counts, placeholders, timestamps. */
-  inkFaint: '#94849F',
+  inkFaint: ink.inkFaint,
   /** Hairline rule on the lilac ground. */
-  line: '#D9C8E2',
+  line: papers.house.line,
   /** Hairline divider inside a white card. */
-  lineOnCard: '#EAE0F0',
+  lineOnCard: ink.lineOnCard,
   /** Text and icons on a filled control. Warm violet-white, never pure. */
-  onInk: '#FBF6FF',
+  onInk: ink.onInk,
 } as const;
 
 /**
  * The identity violet. One accent, three jobs: the primary pill, the micro
  * labels, the monogram. Everything else keeps to paper and signals, so the
  * violet stays special.
+ *
+ * `label` is now the house paper's own accent rather than a lighter violet.
+ * The old `#8A5BBF` read 4.08 against the ground at 11.5pt bold, which is
+ * under the floor for small text; every paper's accent clears 5.0. A screen on
+ * another paper takes that paper's accent instead, which is the one place
+ * colour varies by where you are rather than by what a thing means.
  */
 export const accent = {
   /** The primary action and the monogram. */
-  primary: '#6B3FA0',
+  primary: accents.violet,
   /** Micro-labels — the caps line above a card. */
-  label: '#8A5BBF',
+  label: papers.house.accent,
 } as const;
 
 /**

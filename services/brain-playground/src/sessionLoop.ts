@@ -20,7 +20,7 @@ import {
   integrateTurn,
   learnerSnapshotFrom,
   prepareTurn,
-  supportViewFor,
+  supportViewForAssistance,
   BrainParseError,
   BrainRefusalError,
   type ConversationState,
@@ -49,7 +49,7 @@ export function beginSession(profile: LearnerProfile, frame: ScenarioFrame): { s
     maxTurns: DEFAULT_CONFIG.maxTurns,
   });
   const session: Session = { state, profile, totals: ZERO_USAGE, calls: 0 };
-  const lines = renderOpening(frame, state.ladder.rung, supportViewFor(state.directive.support, state.lastSupport));
+  const lines = renderOpening(frame, state.ladder.rung, supportViewForAssistance(0, state.lastSupport));
   return { session, lines };
 }
 
@@ -61,6 +61,7 @@ export async function runInput(
   session: Session,
   client: LlmClient,
   input: LearnerTurnInput,
+  costModel?: string,
 ): Promise<{ lines: string[]; recapDue: boolean }> {
   const lines: string[] = [];
 
@@ -80,7 +81,7 @@ export async function runInput(
     turn = result.turn;
     session.totals = addUsage(session.totals, result.usage);
     session.calls += 1;
-    usageLine = meta(formatTurnUsage(result.usage, Date.now() - started));
+    usageLine = meta(formatTurnUsage(result.usage, Date.now() - started, costModel));
   } catch (error) {
     if (error instanceof BrainParseError || error instanceof BrainRefusalError) {
       // A failed model turn must never strand the learner mid-scene.
@@ -122,10 +123,24 @@ export async function buildScenario(
   request: string,
 ): Promise<{ frame: ScenarioFrame; usage: LlmUsage }> {
   const snapshot = learnerSnapshotFrom(profile);
+  const facts = profile.memory.facts.slice(-5).map((fact) => fact.en);
+  const unmasteredPhrases = Object.values(profile.phrases)
+    .filter((phrase) => !phrase.mastered)
+    .slice(0, 5)
+    .map((phrase) => `${phrase.fr} (${phrase.en})`);
   const result = await client.frame({
     kind: 'frame',
     system: buildSystemBlocks(),
-    request: buildScenarioRequest({ request, learner: { cefr: snapshot.cefr, watchFor: snapshot.watchFor } }),
+    request: buildScenarioRequest({
+      request,
+      learner: {
+        cefr: snapshot.cefr,
+        watchFor: snapshot.watchFor,
+        facts,
+        recentScenarios: profile.preferences.lastScenarios,
+        unmasteredPhrases,
+      },
+    }),
   });
   return result;
 }

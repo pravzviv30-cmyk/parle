@@ -98,27 +98,29 @@ describe('silence and aide-moi — the rescue, before any model call', () => {
     assert.equal(view.rescued, false);
   });
 
-  test('four seconds of nothing drops a rung and hands over more support instantly', () => {
+  test('four seconds of nothing drops a rung and reveals only an English hint', () => {
     const state = fresh(); // A2 opens at rung 3 (hint)
     const { state: after, view } = applyNonSpokenInput(state, { type: 'silence', durationMs: STUCK_SILENCE_MS });
     assert.equal(after.ladder.rung, 2);
     assert.equal(after.ladder.rescues, 1);
     assert.equal(view.rescued, true);
-    // The support renders instantly from material the last turn already carried —
-    // and a rescue renders the whole line, not the rung's usual scaffolding. The
-    // learner who just froze is handed the answer; the rung drop is for next time.
-    assert.equal(view.supportView.kind, 'full-line');
+    assert.equal(after.assistanceDepth, 1);
+    assert.equal(view.supportView.kind, 'hint');
   });
 
-  test('a rescue never leaves the learner composing French they just could not compose', () => {
-    // The A2 learner opens at rung 3 and freezes. Dropping to rung 2 alone would
-    // hand back options; from rung 4 it would hand back an English hint, which is
-    // the original stranding bug wearing a different hat.
+  test('the first rescue never gives away the answer, whatever the learner level', () => {
     for (const rung of [1, 2, 3, 4] as const) {
       const state = { ...fresh(), ladder: { ...fresh().ladder, rung }, directive: directiveFor(rung) };
       const { view } = applyNonSpokenInput(state, { type: 'silence', durationMs: STUCK_SILENCE_MS });
-      assert.equal(view.supportView.kind, 'full-line', `a freeze at rung ${rung} must be answered with the line`);
+      assert.equal(view.supportView.kind, 'hint', `a freeze at rung ${rung} must reveal only a hint`);
     }
+  });
+
+  test('a second explicit rescue reveals the full line', () => {
+    const first = applyNonSpokenInput(fresh(), { type: 'help' });
+    const second = applyNonSpokenInput(first.state, { type: 'help' });
+    assert.equal(second.state.assistanceDepth, 2);
+    assert.equal(second.view.supportView.kind, 'full-line');
   });
 
   test('the rescued directive reaches the next prepared prompt', () => {
@@ -126,7 +128,8 @@ describe('silence and aide-moi — the rescue, before any model call', () => {
     const { state: after } = applyNonSpokenInput(state, { type: 'silence', durationMs: STUCK_SILENCE_MS });
     const request = prepareTurn(after, { type: 'silence', durationMs: STUCK_SILENCE_MS });
     const context = request.messages[request.messages.length - 1]!.text;
-    assert.match(context, /do not mention that they hesitated/i);
+    assert.match(context, /Never mention the pause/i);
+    assert.match(context, /only support\.hintEn/i);
     const learnerMsg = request.messages[request.messages.length - 2]!;
     assert.equal(learnerMsg.text, '[silence]');
   });
@@ -210,9 +213,10 @@ describe('beats — the conversation always moves', () => {
 
   test(`after ${MAX_ATTEMPTS_PER_BEAT} stuck attempts the scene is forced forward`, () => {
     let state = fresh();
-    state = integrateTurn(state, spoke(), poorTurn()).state;
-    assert.equal(state.forceAdvance, false);
-    state = integrateTurn(state, spoke(), poorTurn()).state;
+    for (let i = 0; i < MAX_ATTEMPTS_PER_BEAT; i += 1) {
+      state = integrateTurn(state, spoke(), poorTurn()).state;
+      if (i < MAX_ATTEMPTS_PER_BEAT - 1) assert.equal(state.forceAdvance, false);
+    }
     assert.equal(state.forceAdvance, true);
 
     const context = prepareTurn(state, spoke()).messages.at(-1)!.text;
@@ -294,10 +298,10 @@ describe('session memory and the recap trigger', () => {
     assert.equal(budget.view.recapDue, true);
   });
 
-  test('support for the next turn renders at the new directive level', () => {
-    let state = fresh(); // rung 3: hint
+  test('ordinary turns never render support, regardless of ladder promotion', () => {
+    let state = fresh();
     const view1 = integrateTurn(state, spoke(), sampleTurn()).view;
-    assert.equal(view1.supportView.kind, 'hint');
+    assert.equal(view1.supportView.kind, 'none');
 
     state = integrateTurn(state, spoke(), sampleTurn()).state;
     state = integrateTurn(state, spoke(), sampleTurn()).state; // promoted to 4
@@ -324,11 +328,12 @@ describe('reaching for English — the hand-back loop', () => {
     assert.equal(after.lastLanguage, 'english');
   });
 
-  test('the next turn context tells the tutor to hand back the French', () => {
+  test('the next turn context requests a French recast after the English attempt', () => {
     const { state: after } = integrateTurn(fresh(), spoke('Can I have a coffee please?'), englishTurn());
     const context = prepareTurn(after, spoke()).messages.at(-1)!.text;
-    assert.match(context, /reached for English/);
-    assert.match(context, /support\.fullLine/);
+    assert.match(context, /previous turn used English/);
+    assert.match(context, /english-to-french/);
+    assert.match(context, /after their attempt/i);
   });
 
   test('still bounded: after the attempt cap the scene moves on regardless', () => {
@@ -457,5 +462,105 @@ describe('topics — the learner steers, the tutor follows, code remembers', () 
     const { state } = integrateTurn(fresh(), spoke(), steer('Rugby', 'Le rugby'));
     const after = prepareTurn(state, spoke());
     assert.ok(after.messages.at(-1)!.text.includes('TOPIC: they steered the conversation to: Rugby'));
+  });
+});
+
+describe('the learner plays themselves — the support card is their line, never the scene’s', () => {
+  /** A turn where the model let one line do both jobs: the barista's question, handed back as the card. */
+  function collapsedTurn(overrides: Partial<TutorTurn> = {}): TutorTurn {
+    return sampleTurn({
+      sceneReply: { speaker: 'Karim', fr: 'Bonjour, vous désirez ?', frWritten: null, en: 'Hello, what would you like?' },
+      support: {
+        fullLine: { fr: 'Bonjour, vous désirez ?', frWritten: null, en: 'Hello, what would you like?' },
+        options: [
+          { fr: 'Bonjour, vous désirez ?', en: 'Hello, what would you like?' },
+          { fr: "Un café, s'il vous plaît", en: 'A coffee, please' },
+        ],
+        hintEn: 'Greet him back and order a drink.',
+      },
+      ...overrides,
+    });
+  }
+
+  test('ordinary turns hide support while repairing the next rescue material', () => {
+    const state = fresh({}, learner({ cefr: 'A0' }));
+    assert.equal(state.ladder.rung, 1, 'this test needs the Echo rung, where the whole line is shown');
+
+    const { state: after, view } = integrateTurn(state, spoke('euh'), collapsedTurn());
+
+    assert.equal(view.supportView.kind, 'none');
+    assert.notEqual(
+      after.lastSupport.fullLine.fr,
+      view.sceneReply.fr,
+      'the card told the learner to say the barista’s own question back to the barista',
+    );
+    // Repaired from material this same turn already carried, never invented.
+    assert.equal(after.lastSupport.fullLine.fr, "Un café, s'il vous plaît");
+  });
+
+  test('the learner level never exposes options before an attempt', () => {
+    const state = fresh({}, learner({ cefr: 'A1' }));
+    assert.equal(state.ladder.rung, 2);
+
+    const { state: after, view } = integrateTurn(state, spoke('euh'), collapsedTurn());
+    assert.equal(view.supportView.kind, 'none');
+    assert.ok(after.lastSupport.options.every((o) => o.fr !== 'Bonjour, vous désirez ?'));
+  });
+
+  test('a repeated rescue with no safe line left falls back to the hint', () => {
+    const state = fresh({}, learner({ cefr: 'A0' }));
+    const turn = collapsedTurn({
+      support: {
+        fullLine: { fr: 'Bonjour, vous désirez ?', frWritten: null, en: 'Hello, what would you like?' },
+        options: [{ fr: 'Bonjour, vous désirez ?', en: 'Hello, what would you like?' }],
+        hintEn: 'Greet him back and order a drink.',
+      },
+    });
+
+    const after = integrateTurn(state, spoke('euh'), turn).state;
+    const first = applyNonSpokenInput(after, { type: 'help' }).state;
+    const { view } = applyNonSpokenInput(first, { type: 'help' });
+    assert.equal(view.supportView.kind, 'hint');
+    assert.equal(view.supportView.kind === 'hint' ? view.supportView.hint : null, 'Greet him back and order a drink.');
+  });
+
+  test('a rescue after a collapsed turn does not replay the scene’s line either', () => {
+    const state = fresh({}, learner({ cefr: 'A0' }));
+    const { state: after } = integrateTurn(state, spoke('euh'), collapsedTurn());
+    assert.notEqual(after.lastSupport.fullLine.fr, 'Bonjour, vous désirez ?');
+
+    const first = applyNonSpokenInput(after, { type: 'help' });
+    assert.equal(first.view.supportView.kind, 'hint');
+    const second = applyNonSpokenInput(first.state, { type: 'help' });
+    assert.equal(second.view.supportView.kind, 'full-line');
+    assert.notEqual(
+      second.view.supportView.kind === 'full-line' ? second.view.supportView.line : null,
+      'Bonjour, vous désirez ?',
+    );
+  });
+
+  test('a genuine reply is left exactly as the model wrote it', () => {
+    const state = fresh({}, learner({ cefr: 'A0' }));
+    const { state: after, view } = integrateTurn(state, spoke('Bonjour'), sampleTurn());
+    assert.deepEqual(after.lastSupport, sampleTurn().support);
+    assert.equal(view.supportView.kind, 'none');
+  });
+
+  test('an opening frame that collapses the two lines is repaired before turn one', () => {
+    const collapsed = {
+      ...CAFE_FRAME,
+      openingSupport: {
+        ...CAFE_FRAME.openingSupport,
+        fullLine: { fr: "Bonjour ! Qu'est-ce que je vous sers ?", frWritten: null, en: 'Hello! What can I get you?' },
+      },
+    };
+    const state = createConversation(collapsed, learner({ cefr: 'A0' }), { strictness: 'balanced', maxTurns: 24 }, 1_000);
+    assert.notEqual(state.lastSupport.fullLine.fr, collapsed.openingLine.fr);
+    assert.equal(state.lastSupport.fullLine.fr, "Un café, s'il vous plaît");
+  });
+
+  test('a well-built frame is untouched', () => {
+    const state = fresh();
+    assert.deepEqual(state.lastSupport, CAFE_FRAME.openingSupport);
   });
 });

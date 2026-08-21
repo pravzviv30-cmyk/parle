@@ -15,8 +15,8 @@
  * themselves, which is most of the reason recasts fail to land.
  */
 
-import { useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, Animated, Easing, AccessibilityInfo } from 'react-native';
 import { paper, signal, space, type, radius, HAIRLINE } from '../theme.ts';
 import type { TurnLine } from '../live/turns.ts';
 
@@ -61,28 +61,69 @@ function Line({ turn }: { turn: TurnLine }) {
 
 export function Transcript({ turns }: { turns: readonly TurnLine[] }) {
   const ref = useRef<ScrollView>(null);
+  // One settling entrance, in the vocabulary the splash established and the
+  // only one this app has: transform and opacity, native driver, nothing
+  // bounces. It lives here rather than at the call site so both places the
+  // thread appears get it, and neither has to remember the numbers.
+  const settle = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let cancelled = false;
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (cancelled) return;
+      if (reduced) {
+        // The final frame. The conversation is the content; the arrival is the
+        // flourish, and nobody should have to sit through a flourish to read.
+        settle.setValue(1);
+        return;
+      }
+      Animated.timing(settle, {
+        toValue: 1,
+        duration: 380,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [settle]);
 
   return (
-    <ScrollView
-      ref={ref}
-      style={st.scroll}
-      contentContainerStyle={st.content}
-      showsVerticalScrollIndicator={false}
-      // A plain ScrollView rather than a FlatList: the list is capped at forty
-      // and windowing would fight the stick-to-bottom below.
-      onContentSizeChange={() => ref.current?.scrollToEnd({ animated: true })}
-      accessibilityLabel="Your conversation so far"
+    <Animated.View
+      style={[
+        st.settleBox,
+        {
+          opacity: settle,
+          transform: [{ translateY: settle.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+        },
+      ]}
     >
-      {turns.map((t) => (
-        <Line key={t.id} turn={t} />
-      ))}
-    </ScrollView>
+      <ScrollView
+        ref={ref}
+        style={st.scroll}
+        contentContainerStyle={st.content}
+        showsVerticalScrollIndicator={false}
+        // A plain ScrollView rather than a FlatList: the list is capped at forty
+        // and windowing would fight the stick-to-bottom below.
+        onContentSizeChange={() => ref.current?.scrollToEnd({ animated: true })}
+        // A learner may be typing into the box below this one while it scrolls.
+        keyboardShouldPersistTaps="handled"
+        accessibilityLabel="Your conversation so far"
+      >
+        {turns.map((t) => (
+          <Line key={t.id} turn={t} />
+        ))}
+      </ScrollView>
+    </Animated.View>
   );
 }
 
 const st = StyleSheet.create({
-  // minHeight 0 is what stops a flex child from refusing to shrink and pushing
-  // the controls off the bottom of the screen.
+  // The entrance wrapper carries the same flex the scroll used to, so adding it
+  // moves nothing: minHeight 0 is what stops a flex child from refusing to
+  // shrink and pushing the controls off the bottom of the screen.
+  settleBox: { flex: 1, minHeight: 0 },
   scroll: { flex: 1, minHeight: 0 },
   // Short conversations sit against the controls instead of stranded at the top.
   content: { flexGrow: 1, justifyContent: 'flex-end', gap: space(3), paddingVertical: space(3) },

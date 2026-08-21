@@ -20,8 +20,10 @@ import {
   APERO_FRAME,
   CAFE_FRAME,
   AnthropicBrainClient,
+  DEFAULT_OPENAI_TURN_MODEL,
   MockLlmClient,
   OpenAiCompatBrainClient,
+  OpenAiResponsesBrainClient,
   applyNonSpokenInput,
   copyViolations,
   createConversation,
@@ -53,8 +55,9 @@ interface CaseResult {
   transcript: string[];
 }
 
-function pickClient(): { client: LlmClient; label: string } {
+function pickClient(): { client: LlmClient; label: string; costModel: string } {
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
   const groqKey = process.env.GROQ_API_KEY;
   const rawEffort = (process.env.BRAIN_EFFORT ?? '').toLowerCase();
   const effort = (['low', 'medium', 'high'] as const).includes(rawEffort as BrainEffort)
@@ -65,18 +68,34 @@ function pickClient(): { client: LlmClient; label: string } {
   if (choice === 'mock') {
     // Pipeline check only: the mock cannot classify anything, so every
     // detection case will report a miss. Hard rules still apply.
-    return { client: new MockLlmClient(), label: 'mock (pipeline check only, expect misses)' };
+    return {
+      client: new MockLlmClient(),
+      label: 'mock (pipeline check only, expect misses)',
+      costModel: DEFAULT_OPENAI_TURN_MODEL,
+    };
+  }
+  if ((choice === 'openai' || (choice === '' && !anthropicKey)) && openaiKey) {
+    return {
+      client: new OpenAiResponsesBrainClient({ apiKey: openaiKey }),
+      label: `${DEFAULT_OPENAI_TURN_MODEL} · OpenAI Responses`,
+      costModel: DEFAULT_OPENAI_TURN_MODEL,
+    };
   }
   if ((choice === 'anthropic' || choice === '') && anthropicKey) {
     return {
       client: new AnthropicBrainClient(effort ? { effort } : {}),
       label: `routed: sonnet talker · opus analyst${effort ? ` · ${effort}` : ''}`,
+      costModel: 'claude-sonnet-5',
     };
   }
   if ((choice === 'groq' || choice === '') && groqKey) {
-    return { client: new OpenAiCompatBrainClient({ apiKey: groqKey }), label: `${defaultModel()} · groq` };
+    return {
+      client: new OpenAiCompatBrainClient({ apiKey: groqKey }),
+      label: `${defaultModel()} · groq`,
+      costModel: defaultModel(),
+    };
   }
-  console.error('The eval needs a real model. Set ANTHROPIC_API_KEY (or GROQ_API_KEY) in services/brain-playground/.env');
+  console.error('The eval needs a real model. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GROQ_API_KEY in services/brain-playground/.env');
   process.exit(2);
 }
 
@@ -135,6 +154,12 @@ function hardRules(testCase: EvalCase, turn: TutorTurn, view: TurnView): string[
     }
   }
   const spoken = `${view.sceneReply.fr} ${view.sceneReply.en} ${view.coachLine ?? ''}`;
+  if (testCase.input.type === 'spoke' && view.supportView.kind !== 'none') {
+    violations.push(`an ordinary learner attempt exposed ${view.supportView.kind} support`);
+  }
+  if (testCase.input.type !== 'spoke' && view.supportView.kind !== 'hint') {
+    violations.push(`the first ${testCase.input.type} rescue should expose only a hint, got ${view.supportView.kind}`);
+  }
   if (testCase.input.type !== 'spoke' && HESITATION_COMMENTARY.test(spoken)) {
     violations.push(`hesitation commentary after ${testCase.input.type}: "${spoken}"`);
   }
@@ -194,7 +219,7 @@ function pad(text: string, width: number): string {
 }
 
 async function main(): Promise<void> {
-  const { client, label } = pickClient();
+  const { client, label, costModel } = pickClient();
   console.log(`\nRunning ${EVAL_CASES.length} cases against ${label}\n`);
 
   // Warm the prompt cache with the first case, then fan out.
@@ -227,7 +252,7 @@ async function main(): Promise<void> {
   console.log(
     `${results.length - hardFailures.length - misses.length} ok · ${misses.length} expectation misses (judgment calls, read the transcripts) · ${hardFailures.length} hard failures`,
   );
-  console.log(`cost: ~$${costUsd(totals).toFixed(2)} for the run\n`);
+  console.log(`cost: ~$${costUsd(totals, costModel).toFixed(2)} for the run\n`);
 
   process.exit(hardFailures.length > 0 ? 1 : 0);
 }

@@ -16,12 +16,13 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, type RouteProp, useRoute } from '@react-navigation/native';
 import { CAFE_LESSON, lessonXp, type ProgressReport, type Rung, type SessionSummary } from '@parle/core';
-import { paper } from '../theme.ts';
+import { paper, space, type } from '../theme.ts';
+import { GhostButton, Label, PillButton } from '../components.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { useLive } from '../app/LiveContext.tsx';
@@ -37,6 +38,7 @@ import { ReviewScreen } from '../ReviewScreen.tsx';
 import { AddFriendsScreen } from '../friends/AddFriendsScreen.tsx';
 import { HomeTab } from '../tabs/HomeTab.tsx';
 import { TutorTab } from '../tabs/TutorTab.tsx';
+import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 import { PracticeTab } from '../tabs/PracticeTab.tsx';
 import { LeaderboardTab } from '../tabs/LeaderboardTab.tsx';
 import { ProfileTab } from '../tabs/ProfileTab.tsx';
@@ -144,12 +146,53 @@ function LessonRoute() {
   );
 }
 
+/**
+ * The conversation, and the honest screen when there is no server to have one
+ * on.
+ *
+ * The gate is the same one LessonRoute has had at `:131`, minus the mock: there
+ * is no offline conversation to fall back to, so this says so and offers the
+ * two doors that matter. Belt and braces over TutorTab's check, because the
+ * server can die in the gap between that probe and this mount, and because
+ * Practice can reach this route too.
+ */
 function ConvoRoute() {
   const nav = useNavigation<{ goBack: () => void }>();
   const route = useRoute<RouteProp<RootStackParamList, 'Convo'>>();
   const { user } = useAuth();
   const { profile, updateBrain } = useProfile();
+  const { live, recheck } = useLive();
+  const [checking, setChecking] = useState(false);
   if (!user) return <Loading />;
+  if (!live) {
+    return (
+      <View style={st.gate}>
+        <Label color={paper.inkFaint}>{TUTOR_OFFLINE.label}</Label>
+        <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>
+          {TUTOR_OFFLINE.headline}
+        </Text>
+        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
+          {TUTOR_OFFLINE.body}
+        </Text>
+        <View style={st.gateAction}>
+          <PillButton
+            label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
+            disabled={checking}
+            onPress={() => {
+              if (checking) return;
+              setChecking(true);
+              // A server that came up while this screen was open flips `live`,
+              // and the conversation mounts underneath the learner's finger.
+              void recheck().finally(() => setChecking(false));
+            }}
+          />
+        </View>
+        <View style={st.gateSecondary}>
+          <GhostButton label={TUTOR_OFFLINE.back} onPress={() => nav.goBack()} />
+        </View>
+      </View>
+    );
+  }
   return (
     <ConvoScreen
       userId={user.id}
@@ -160,6 +203,7 @@ function ConvoRoute() {
       }}
       onExit={() => nav.goBack()}
       startInTextMode={route.params?.textMode ?? false}
+      seedTopic={route.params?.seedTopic}
     />
   );
 }
@@ -169,7 +213,14 @@ function DrillRoute() {
   const route = useRoute<RouteProp<RootStackParamList, 'Drill'>>();
   const { user } = useAuth();
   if (!user) return <Loading />;
-  return <DrillScreen userId={user.id} node={route.params?.node} onDone={() => nav.goBack()} />;
+  return (
+    <DrillScreen
+      userId={user.id}
+      node={route.params?.node}
+      mix={route.params?.mix ?? false}
+      onDone={() => nav.goBack()}
+    />
+  );
 }
 
 function ReviewRoute() {
@@ -217,4 +268,13 @@ export function RootNavigator({ onSignOut, onResetProgress }: { onSignOut: () =>
 
 const st = StyleSheet.create({
   center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center' },
+  gate: {
+    flex: 1,
+    backgroundColor: paper.ground,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: space(8),
+  },
+  gateAction: { marginTop: space(6), alignSelf: 'stretch' },
+  gateSecondary: { marginTop: space(2), alignSelf: 'stretch' },
 });

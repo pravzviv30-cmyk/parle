@@ -1,19 +1,42 @@
 # The pedagogy
 
-The rules a beginner meets. All of them live in `packages/core` and are shared by
-the scripted lesson and free conversation — `packages/brain` imports the ladder
-rather than reimplementing it.
+The rules a beginner meets. The scripted lesson and free tutor share one ladder
+for pace, promotion and rescue counts. They deliberately do **not** share one
+support-disclosure rule: a script may teach by showing its target, while a free
+conversation must let the learner author their own reply first.
 
 ## The four rungs
 
 `packages/core/src/ladder/ladder.ts`. Lower means **more** support.
 
-| rung | name | what the learner sees |
+| rung | name | scripted lesson support |
 |---|---|---|
 | 1 | Echo | the whole French line, with its English meaning |
 | 2 | Cued | two or three French options, said aloud, never tapped silently |
 | 3 | Prompted | an English hint. No French words |
 | 4 | Free | nothing |
+
+In a scripted lesson, whose line is on the card is **the learner's own next line** —
+never the tutor's. Echo means repeat the line you are being handed, not the line
+you just heard: a scene where the barista asks "vous désirez ?" and the card says
+"vous désirez ?" has the learner playing the wrong role. A scripted lesson gets
+this for free, because `LessonTurn` keeps `tutor` and `target` in separate fields.
+Free conversation has one model call writing both, so `learnerSideSupport` in
+`packages/brain/src/engine/conversation.ts` is what stands in for that split.
+
+In free conversation every ordinary turn renders **no support at all**, whatever
+the rung. The rung changes sentence length and pace only. `assistanceDepth` in
+`packages/brain/src/engine/conversation.ts` owns the separate disclosure path:
+
+| depth | when | free-tutor card |
+|---|---|---|
+| 0 | opening and every real learner attempt | nothing |
+| 1 | first explicit help or genuine stuck interval | one English intent hint, no French |
+| 2 | repeated help on the same exchange | the learner's possible French line |
+
+Speaking or typing a real reply resets depth to zero immediately. This is a
+code rule, not a suggestion to the model, so an easy learner level can never
+turn the tutor into an answer prompt.
 
 Movement: two consecutive good turns promote. A `poor` turn drops one. A
 `partial` turn **holds** — dropping there punishes normal beginner performance. A
@@ -25,11 +48,11 @@ is returned unchanged.
 Four seconds of silence (`STUCK_SILENCE_MS`) or an explicit "aide-moi" are the
 same event: the rung drops, `rescues` increments, and `rescued` is set.
 
-**A rescue always renders the full line, whatever the rung.** The drop is for the
-*next* attempt; the turn they just froze on is answered with the answer. A freeze
-at Free that landed on Prompted used to hand back an English hint — asking the
-person who could not compose French a moment ago to compose French again, while
-`RESCUE_PREFIX` simultaneously told the model to give them the line.
+In a scripted lesson, a rescue can still render the known target line. In free
+conversation, the first rescue renders only the English intent hint. A second
+help request on the same exchange may reveal the French line. The tutor itself
+rephrases its own side of the scene and never speaks the learner's answer over
+the card.
 
 A rescue never advances past the thing the learner could not say. Scripted lessons
 re-attempt the same turn; conversation refuses to complete the beat on the model's
@@ -101,6 +124,7 @@ A change that breaks one of these is a bug, however green the tests are.
 - A pronunciation score is **never** invented, implied or displayed unless it came
   from audio measured against a known reference. An unscored session says so.
 - A learner is **never** stranded mid-scene. Every failure has a way forward.
-- A freeze is answered with **the line**, not with a smaller hint.
+- Free conversation always gives the learner the first attempt; its first rescue
+  is a hint, and only repeated help reveals a possible line.
 - No score is ever shown mid-session. Numbers belong on the end card, where they
   can be given context.

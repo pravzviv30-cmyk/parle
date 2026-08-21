@@ -24,6 +24,7 @@ function input(overrides: Partial<DrillGenerationInput> = {}): DrillGenerationIn
     sessionPhrases: [sessionPhrase],
     profilePhrases: [profilePhrase],
     errorTags: ['ne-retention', 'vous-to-friend'],
+    topics: [{ en: 'Ordering at a café', fr: 'Commander au café' }],
     ...overrides,
   };
 }
@@ -117,6 +118,16 @@ describe('the drill batch schema mirrors core', () => {
     assert.throws(() => DrillBatchSchema.parse({ exercises: [nested] }));
   });
 
+  test('fixed-format difficulty is enforced by the structured-output schema', () => {
+    assert.throws(() => DrillBatchSchema.parse({ exercises: [{ ...listenType, difficulty: 'recognition' }] }));
+    assert.throws(() =>
+      DrillBatchSchema.parse({
+        exercises: [{ ...repeatThis, noMicTwin: { ...listenType, difficulty: 'recognition' } }],
+      }),
+    );
+    assert.throws(() => DrillBatchSchema.parse({ exercises: [{ ...tapTranslate, difficulty: 'production' }] }));
+  });
+
   test('survives JSON serialization, the shape it actually arrives in', () => {
     const wire = JSON.parse(JSON.stringify({ exercises: [repeatThis] }));
     assert.deepEqual(DrillBatchSchema.parse(wire).exercises[0], repeatThis);
@@ -131,10 +142,13 @@ describe('the generation request renders its material', () => {
     const errors = request.indexOf('Recurring errors to aim fill-blanks at: ne-retention, vous-to-friend');
     assert.ok(today > -1 && unmastered > -1 && errors > -1);
     assert.ok(today < unmastered && unmastered < errors);
+    assert.ok(request.includes('Discussed topics:\n- Ordering at a café (Commander au café)'));
   });
 
   test('an empty input omits its section entirely', () => {
-    const request = buildDrillGenerationRequest(input({ sessionPhrases: [], profilePhrases: [], errorTags: [] }));
+    const request = buildDrillGenerationRequest(
+      input({ sessionPhrases: [], profilePhrases: [], errorTags: [], topics: [] }),
+    );
     assert.ok(!request.includes("Today's phrases:"));
     assert.ok(!request.includes('Still unmastered from before:'));
     assert.ok(!request.includes('Recurring errors'));

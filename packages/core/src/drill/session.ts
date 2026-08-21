@@ -192,6 +192,59 @@ export function buildDrillSession(
 export const NEW_PHRASES_PER_SESSION = 6;
 
 /**
+ * Reorder a sitting so it alternates between topics instead of blocking them.
+ *
+ * `buildDrillSession` decides WHO plays and this decides only in WHAT ORDER, and
+ * that split is the whole point: the cap, the earned stage and the newcomer rule
+ * are already right, and a second selector beside them would be two answers to
+ * one question. `mixQueue` never adds, drops or re-picks — the output is a
+ * permutation of the input, which `session.test.ts` pins.
+ *
+ * Why it is needed at all: `dueCards` orders by due time, and every card a single
+ * conversation banks is stamped in the same beat. So an unscoped sitting comes
+ * back grouped by the session that produced it, which reads as one topic, then
+ * the next. Interleaving is the thing the retention research is actually confident
+ * about, and it is what Babbel and Duolingo's review surfaces do.
+ *
+ * Deterministic, and takes no clock. A phrase in none of the given groups joins
+ * one shared lane at the back, so a deck with no topics at all comes back
+ * completely unchanged rather than shuffled for no reason.
+ */
+export function mixQueue(
+  queue: readonly DrillExercise[],
+  groups: readonly (readonly string[])[],
+): DrillExercise[] {
+  if (queue.length < 2) return [...queue];
+
+  // One lane per group, in the order the caller gave them, plus one at the back
+  // for anything the groups do not name. First group wins a phrase claimed by
+  // two, so a phrase that came up in two conversations is drilled once, not
+  // twice.
+  const lanes: DrillExercise[][] = groups.map(() => []);
+  const unclaimed: DrillExercise[] = [];
+  for (const exercise of queue) {
+    const home = groups.findIndex((keys) => keys.includes(exercise.phraseKey));
+    if (home === -1) unclaimed.push(exercise);
+    else lanes[home]!.push(exercise);
+  }
+
+  const playing = [...lanes, unclaimed].filter((lane) => lane.length > 0);
+  if (playing.length < 2) return [...queue];
+
+  // Round-robin, within-lane order preserved. A lane that runs dry simply stops
+  // being visited, so the tail is whatever the longest lane still holds rather
+  // than a gap.
+  const mixed: DrillExercise[] = [];
+  for (let round = 0; mixed.length < queue.length; round++) {
+    for (const lane of playing) {
+      const next = lane[round];
+      if (next !== undefined) mixed.push(next);
+    }
+  }
+  return mixed;
+}
+
+/**
  * The bank exercise for a phrase at a stage. When the bank has nothing at the
  * earned stage, fall back to the nearest easier one — extra scaffolding is a
  * smaller wrong than demanding production the learner has not earned — and

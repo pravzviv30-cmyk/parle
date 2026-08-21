@@ -20,7 +20,7 @@
 
 - [Supabase Auth Adapter](Supabase_Auth_Adapter.md) (3 shared connections)
 - [Mock Auth Adapter](Mock_Auth_Adapter.md) (2 shared connections)
-- [Auth Screens Flow](Auth_Screens_Flow.md) (1 shared connections)
+- [Auth Context And Friends UI](Auth_Context_And_Friends_UI.md) (1 shared connections)
 
 ## Source Files
 

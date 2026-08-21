@@ -58,7 +58,14 @@ describe('fixed lines and fallbacks stay clean', () => {
   });
 
   test('every coach fallback template passes and carries the better form', () => {
-    const kinds: CoachKind[] = ['blocking-error', 'grammar-slip', 'textbook-phrasing', 'register-mismatch', 'anglicism'];
+    const kinds: CoachKind[] = [
+      'blocking-error',
+      'english-to-french',
+      'grammar-slip',
+      'textbook-phrasing',
+      'register-mismatch',
+      'anglicism',
+    ];
     for (const kind of kinds) {
       const line = coachFallbackLine(kind, "j'sais pas");
       assert.deepEqual(copyViolations(line), [], `${kind} fallback breaks a copy rule: "${line}"`);
@@ -68,6 +75,12 @@ describe('fixed lines and fallbacks stay clean', () => {
 
   test('a textbook-phrasing fallback never opens with "Not quite" — the learner was not wrong', () => {
     assert.doesNotMatch(coachFallbackLine('textbook-phrasing', 'ça va'), /^not quite/i);
+  });
+
+  test('an English attempt gets a direct French recast without being scolded', () => {
+    const line = coachFallbackLine('english-to-french', 'je voudrais parler du devoir');
+    assert.equal(line, 'In French, you can say "je voudrais parler du devoir".');
+    assert.deepEqual(copyViolations(line), []);
   });
 });
 

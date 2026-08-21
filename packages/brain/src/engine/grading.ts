@@ -33,6 +33,7 @@ export function assessmentToQuality(assessment: Assessment, coach: readonly Coac
 /** Most important first — orders inline coaching and the recap's fix list. */
 export const KIND_PRIORITY: readonly CoachKind[] = [
   'blocking-error',
+  'english-to-french',
   'textbook-phrasing',
   'register-mismatch',
   'anglicism',
@@ -42,6 +43,7 @@ export const KIND_PRIORITY: readonly CoachKind[] = [
 const SURFACE: Record<Strictness, Record<CoachKind, 'inline' | 'recap'>> = {
   flow: {
     'blocking-error': 'inline',
+    'english-to-french': 'inline',
     'textbook-phrasing': 'inline',
     'register-mismatch': 'recap',
     anglicism: 'recap',
@@ -49,6 +51,7 @@ const SURFACE: Record<Strictness, Record<CoachKind, 'inline' | 'recap'>> = {
   },
   balanced: {
     'blocking-error': 'inline',
+    'english-to-french': 'inline',
     'textbook-phrasing': 'inline',
     'register-mismatch': 'inline',
     anglicism: 'inline',
@@ -56,6 +59,7 @@ const SURFACE: Record<Strictness, Record<CoachKind, 'inline' | 'recap'>> = {
   },
   strict: {
     'blocking-error': 'inline',
+    'english-to-french': 'inline',
     'textbook-phrasing': 'inline',
     'register-mismatch': 'inline',
     anglicism: 'inline',

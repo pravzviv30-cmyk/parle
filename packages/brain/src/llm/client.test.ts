@@ -5,7 +5,7 @@ import { AnthropicBrainClient, type ParseCapableSdk } from './anthropic.ts';
 import { OpenAiCompatBrainClient, defaultModel } from './openaiCompat.ts';
 import { MockLlmClient } from './mock.ts';
 import { DEFAULT_ROUTING, resolveRouting, type BrainRouting } from './routing.ts';
-import { BrainParseError, BrainRefusalError, type BrainTurnRequest } from './client.ts';
+import { BrainParseError, BrainRefusalError, addLlmUsage, type BrainTurnRequest } from './client.ts';
 import { createConversation, prepareTurn } from '../engine/conversation.ts';
 import { CAFE_FRAME, APERO_FRAME } from '../fixtures.ts';
 import { sampleTurn } from '../contract/samples.ts';
@@ -52,6 +52,16 @@ function okResponse(parsed: unknown = sampleTurn()): AnyRecord {
 function nullResponse(): AnyRecord {
   return { parsed_output: null, stop_reason: 'end_turn', content: [{ type: 'text', text: 'not json' }], usage: {} };
 }
+
+test('LLM usage accumulates every billable column without provider knowledge', () => {
+  assert.deepEqual(
+    addLlmUsage(
+      { inputTokens: 10, outputTokens: 2, cacheReadTokens: 7, cacheWriteTokens: 1 },
+      { inputTokens: 5, outputTokens: 3, cacheReadTokens: 4, cacheWriteTokens: 2 },
+    ),
+    { inputTokens: 15, outputTokens: 5, cacheReadTokens: 11, cacheWriteTokens: 3 },
+  );
+});
 
 describe('AnthropicBrainClient — request shape', () => {
   test('a turn call rides the talker route: fast model, low effort, no sampling params, no thinking config', async () => {

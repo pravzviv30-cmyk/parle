@@ -104,13 +104,7 @@ export function SupportBlock({
     );
   }
 
-  return (
-    <View style={st.freeBlock}>
-      <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center' }]}>
-        No prompts from here. Answer however you like.
-      </Text>
-    </View>
-  );
+  return null;
 }
 
 export interface SessionViewProps {

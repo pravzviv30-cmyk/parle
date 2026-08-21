@@ -18,6 +18,7 @@
 import { z } from 'zod/v4';
 
 import type { NewPhrase } from '../contract/types.ts';
+import { NewPhraseZ } from '../contract/schemas.ts';
 
 /** Structured-output rules: every field required, nullable never optional. */
 export const CurationSchema = z.object({
@@ -29,6 +30,8 @@ export const CurationSchema = z.object({
       titleFr: z.string(),
       /** Kept phrases, exactly as written in the phrase list, best first. */
       phraseFr: z.array(z.string()),
+      /** Closely related language that creates a small transfer challenge. */
+      extensions: z.array(NewPhraseZ),
     }),
   ),
 });
@@ -46,25 +49,38 @@ export interface CurationInput {
   topics: readonly { en: string; fr: string }[];
   /** Everything the session recorded as worth possibly keeping. */
   phrases: readonly NewPhrase[];
+  learner: { cefr: string; errorTags: readonly string[] };
 }
 
 /** Never more phrases than a learner would genuinely revisit tomorrow. */
 export const MAX_KEPT_PHRASES = 5;
+/** Enough novelty to create transfer, never enough to bury today's learning. */
+export const MAX_EXTENSION_PHRASES = 2;
 /** Never more topic cards than a twelve-turn conversation can honestly earn. */
 export const MAX_CURATED_TOPICS = 3;
 
 const INSTRUCTION = [
-  `The session below has ended. You are choosing what becomes practice. Answer two questions: which of the session's phrases are worth keeping, and which topic does each belong to?`,
+  `The session below has ended. Build tomorrow's practice from what happened, then add a very small amount of useful transfer.`,
   ``,
   `Rules:`,
   `- Keep at most five phrases, the ones this learner would genuinely reach for again. Prefer what they struggled toward or asked for over pleasantries and filler.`,
   `- Group the kept phrases under the topics you actually talked about, listed below. Use those names verbatim when they fit; write a better short name only when none fits.`,
   `- titleEn and titleFr are short noun phrases naming the topic. phraseFr lists each kept phrase EXACTLY as written in the phrase list below, best first.`,
+  `- Across the whole response, add at most two extensions: natural phrases closely related to a discussed topic that did not appear verbatim. Keep them one small step beyond the learner's level and useful in a variation of the same situation.`,
+  `- Each extension uses real spoken French, a natural English meaning, an honest register, and a short usage note only when needed. It must not duplicate a listed phrase.`,
+  `- If the session recorded no keepable phrase, an extension-only topic is allowed. The learner still gets practice grounded in what they discussed.`,
   `- At most three topics. A topic with nothing worth keeping is left out entirely.`,
 ].join('\n');
 
 export function buildCurationRequest(input: CurationInput): string {
-  const lines: string[] = [INSTRUCTION, ``, `TOPICS TALKED ABOUT, IN ORDER`];
+  const errors = input.learner.errorTags.length > 0 ? ` Recurring trouble: ${input.learner.errorTags.join(', ')}.` : '';
+  const lines: string[] = [
+    INSTRUCTION,
+    ``,
+    `LEARNER: ${input.learner.cefr}.${errors}`,
+    ``,
+    `TOPICS TALKED ABOUT, IN ORDER`,
+  ];
   for (const topic of input.topics) lines.push(`- ${topic.en} (${topic.fr})`);
   lines.push(``, `PHRASES THE SESSION RECORDED`);
   for (const phrase of input.phrases) lines.push(`- "${phrase.fr}" = ${phrase.en} [${phrase.register}]`);
@@ -98,10 +114,11 @@ export function applyCuration(
   const topics: CuratedTopic[] = [];
   const claimed = new Set<string>();
   let kept = 0;
+  let extended = 0;
 
   if (raw !== null) {
     for (const proposal of raw.topics) {
-      if (topics.length >= MAX_CURATED_TOPICS || kept >= MAX_KEPT_PHRASES) break;
+      if (topics.length >= MAX_CURATED_TOPICS) break;
       const titleEn = proposal.titleEn.trim();
       const titleFr = proposal.titleFr.trim();
       if (titleEn.length === 0) continue;
@@ -115,6 +132,16 @@ export function applyCuration(
         claimed.add(key);
         phrases.push(match);
         kept += 1;
+      }
+      for (const extension of proposal.extensions) {
+        if (extended >= MAX_EXTENSION_PHRASES) break;
+        const fr = extension.fr.trim();
+        const en = extension.en.trim();
+        const key = keyOf(fr);
+        if (fr.length === 0 || en.length === 0 || claimed.has(key) || byKey.has(key)) continue;
+        claimed.add(key);
+        phrases.push({ ...extension, fr, en });
+        extended += 1;
       }
       // A topic with nothing worth keeping is not a card.
       if (phrases.length > 0) topics.push({ title: { en: titleEn, fr: titleFr.length > 0 ? titleFr : titleEn }, phrases });

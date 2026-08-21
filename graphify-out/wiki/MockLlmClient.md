@@ -1,8 +1,8 @@
 # MockLlmClient
 
-> God node · 26 connections · `packages/brain/src/llm/mock.ts`
+> God node · 27 connections · `packages/brain/src/llm/mock.ts`
 
-**Community:** [Brain LLM Client Schemas](Brain_LLM_Client_Schemas.md)
+**Community:** [Brain Client Contracts](Brain_Client_Contracts.md)
 
 ## Connections by Relation
 
@@ -23,6 +23,7 @@
 - DeadBrain `EXTRACTED`
 - FailingBrain `EXTRACTED`
 - NoCuration `EXTRACTED`
+- NoFrameBrain `EXTRACTED`
 
 ### method
 - .constructor() `EXTRACTED`

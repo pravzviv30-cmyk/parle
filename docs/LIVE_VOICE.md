@@ -18,11 +18,12 @@ app  ──POST /session/start──►  token-server
                                  │   asserted id when neither key is configured)
                                  ├ refuses if the balance cannot cover a viable session
                                  └ signs a LiveKit join token whose metadata carries
-                                     { lessonId, startRung, mode, snapshot, secondsRemaining }
+                                     { lessonId, startRung, mode, snapshot, seedTopic,
+                                       secondsRemaining }
 app  ──joins the room──────►  LiveKit
                                  └ dispatches the job to the tutor-agent worker
 agent  ─reads the metadata──►  builds ParleTutor or ParleConversation
-       ◄──── audio ─────────►  Deepgram STT (multi, then fr) → Claude/Groq → ElevenLabs TTS
+       ◄──── audio ─────────►  Deepgram STT (multi, then fr) → selected brain → ElevenLabs TTS
        ◄──── data channel ──►  the wire protocol below
 agent  ──POST /session/end──►  token-server debits the metered seconds
 ```
@@ -65,11 +66,38 @@ malformed frame must not take down a live conversation.
 A free conversation opens on `opening`: the tutor asks, out loud and in
 English, what the learner wants to talk about — no menu, no chips. Whatever
 they say or type becomes the scene (the agent treats a pre-scene `say` as the
-topic). After the recap, `practice` carries the session's curated leave-behind:
-at most three topics, each with the few phrases worth keeping, chosen by the
-brain's `curate` activity (model proposes, code caps and matches, a
-deterministic fallback ships when the call fails). Drills are then authored
-from that same keep-list, so the two artefacts describe one practice.
+topic).
+
+Choosing `convo-text` never starts an AI suggestion timer on this screen. The
+box stays blank until the learner supplies their own topic. Inside a scene,
+ordinary turns likewise carry no suggested reply. One genuine rescue reveals
+an English hint card; repeated help may reveal a French line.
+
+A conversation started from a practice topic card skips the question. The join
+token carries a `seedTopic`, the opening names the topic instead of asking for
+one, and the scene is built from it straight away. Everything downstream is the
+same code path, including the request-grounded recovery scene when the frame
+call fails.
+
+If the scenario-builder call times out, fails, or returns an invalid frame, the
+agent opens a small request-grounded frame instead. The learner's words remain
+the scene setting and ride every later turn; a provider failure must never turn
+an arbitrary request into the café fixture.
+
+After the recap, `practice` carries the session's curated leave-behind: at most
+three topics, each with the few phrases worth keeping. The curator may add at
+most two closely related, one-step-harder extension phrases so practice tests
+transfer instead of replaying the transcript verbatim. Code caps extensions,
+drops duplicates and matches every claimed session phrase back to the real
+turn. Drills are authored from that same list across six supported formats, so
+the topic cards and exercises describe one practice.
+
+The selected brain is controlled by `TUTOR_LLM`. `openai` uses the Responses
+API with strict schemas, Luna for live turns and scene design and Terra for
+post-session practice work;
+`anthropic` uses the Claude API; `groq` remains the free-tier plumbing option.
+Every successful call contributes its raw input, output and cache tokens to the
+session's `[parle:brain]` log, which is the source of truth for cost estimates.
 
 `spoke` and `silence` are **not** wire tags. They are engine inputs
 (`core/session/session.ts`). Audio is the media track; silence is timed agent-side.

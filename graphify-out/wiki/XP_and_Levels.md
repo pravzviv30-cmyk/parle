@@ -1,4 +1,4 @@
-# XP and Levels
+# XP And Levels
 
 > 21 nodes · cohesion 0.24
 
@@ -28,12 +28,13 @@
 
 ## Relationships
 
-- [Live Session Navigation Context](Live_Session_Navigation_Context.md) (6 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (3 shared connections)
-- [Activity Log Store](Activity_Log_Store.md) (3 shared connections)
-- [Paper UI Component Kit](Paper_UI_Component_Kit.md) (2 shared connections)
-- [App Root and Profile Gate](App_Root_and_Profile_Gate.md) (2 shared connections)
-- [Drill Grading and Fixtures](Drill_Grading_and_Fixtures.md) (1 shared connections)
+- [Root Navigation Stack](Root_Navigation_Stack.md) (5 shared connections)
+- [Conversation Screen Components](Conversation_Screen_Components.md) (4 shared connections)
+- [Activity History Log](Activity_History_Log.md) (2 shared connections)
+- [Drill Practice Screen](Drill_Practice_Screen.md) (2 shared connections)
+- [Mobile App Root](Mobile_App_Root.md) (2 shared connections)
+- [Practice Path Row](Practice_Path_Row.md) (1 shared connections)
+- [Learner Progress Store](Learner_Progress_Store.md) (1 shared connections)
 
 ## Source Files
 

@@ -35,6 +35,8 @@ import { journalRecap } from './journal.ts';
 import { classifyFailure, failureCopy, micApiUnavailable, TokenServerError, type LiveFailure } from './failure.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
 import { thinkingAfter } from './thinking.ts';
+import { micOpensAtConnect } from '../tutor/choosingView.ts';
+import { shouldPingTyping } from '../tutor/typingPing.ts';
 
 
 /**
@@ -192,6 +194,14 @@ export interface LiveSession {
   /** True while the browser refuses playback until it sees a user gesture. */
   audioBlocked: boolean;
   /**
+   * True once this session is publishing a microphone.
+   *
+   * A free conversation connects with it closed and opens it when the learner
+   * taps the circle, so this is what the circle reads to know which of the two
+   * things it is: an invitation, or the learner's own turn.
+   */
+  micOpen: boolean;
+  /**
    * True once the room is open but before the tutor has said anything. The
    * screens render a waiting state rather than an unexplained spinner.
    */
@@ -200,6 +210,12 @@ export interface LiveSession {
   diagnostics: LiveDiagnostics | null;
   /** Restart playback — call from a tap so the gesture satisfies autoplay policy. */
   resumeAudio: () => void;
+  /**
+   * Publish the microphone. Call it from a tap: the circle is where a learner
+   * agrees to be heard, and on the web the gesture is also what the browser
+   * wants before it will hand over a device.
+   */
+  openMic: () => void;
   start: () => Promise<void>;
   sendHelp: () => void;
   sendSkip: () => void;
@@ -219,6 +235,11 @@ export interface LiveSession {
   sendEnglish: () => void;
   /** Text-mode conversation: send a typed learner turn. */
   sendSay: (text: string) => void;
+  /**
+   * "Still here." Presence, not content, and throttled inside the hook so a
+   * caller can hand it every keystroke without thinking about it.
+   */
+  sendTyping: () => void;
   leave: () => Promise<void>;
 }
 
@@ -226,7 +247,17 @@ export function useLiveSession(
   userId: string,
   lessonId: string,
   startRung?: Rung,
-  opts?: { mode?: 'lesson' | 'convo' | 'convo-text' | 'lesson-text'; snapshot?: unknown },
+  opts?: {
+    mode?: 'lesson' | 'convo' | 'convo-text' | 'lesson-text';
+    snapshot?: unknown;
+    /**
+     * What the learner asked to talk about, when a topic card started this.
+     * Both strings, both non-empty, or nothing: the server drops a malformed
+     * seed and opens a generic session rather than refusing, because a bad
+     * hint must never strand anyone, but that is not a reason to send blanks.
+     */
+    seedTopic?: { fr: string; en: string };
+  },
 ): LiveSession {
   const [status, setStatus] = useState<LiveStatus>({ phase: 'idle' });
   const [prompt, setPrompt] = useState<SessionPrompt | null>(null);
@@ -243,6 +274,7 @@ export function useLiveSession(
   const [turns, setTurns] = useState<TurnLine[]>([]);
   const [thinking, setThinking] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
+  const [micOpen, setMicOpen] = useState(false);
   const [waitingForTutor, setWaitingForTutor] = useState(false);
   const [diagnostics, setDiagnostics] = useState<LiveDiagnostics | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -250,6 +282,7 @@ export function useLiveSession(
   // caller wrote the options object inline.
   const mode = opts?.mode;
   const snapshot = opts?.snapshot;
+  const seedTopic = opts?.seedTopic;
   const roomRef = useRef<Room | null>(null);
   const diagRef = useRef<LiveDiagnostics>(emptyDiagnostics());
   // The ready retries plus the give-up timer, so both can be cancelled the
@@ -259,6 +292,9 @@ export function useLiveSession(
   const sessionOpenedRef = useRef(false);
   // Monotonic, so a React key never collides and nothing depends on a clock.
   const turnSeq = useRef(0);
+  // When the app last told the agent the learner is typing. A ref, not state:
+  // it changes on keystrokes and must never cause a render.
+  const typingPingAt = useRef<number | null>(null);
   // The <audio> elements holding the tutor's voice on web. Owned here so they are
   // guaranteed to leave the document when the session does.
   const audioElsRef = useRef<HTMLMediaElement[]>([]);
@@ -286,8 +322,13 @@ export function useLiveSession(
     // TextEncoder types its output over ArrayBufferLike; livekit-client wants a
     // plain ArrayBuffer. The copy is a few dozen bytes once per tap.
     const bytes = Uint8Array.from(encodeMessage(message));
-    void roomRef.current?.localParticipant.publishData(bytes, { topic: TOPIC_CLIENT, reliable: true }).catch(() => {
-      // A lost tap is recoverable; the learner can tap again.
+    void roomRef.current?.localParticipant.publishData(bytes, { topic: TOPIC_CLIENT, reliable: true }).catch((err: unknown) => {
+      // A lost tap is recoverable; the learner can tap again. Silently, though,
+      // it looked exactly like a working app doing nothing, which is the shape
+      // of every report that starts "I pressed it and nothing happened".
+      // ConvoScreen clears its draft before calling this, so a lost `say` also
+      // loses what was typed. Restoring it is Phase 2; saying so is now.
+      trace('publish-failed', { t: message.t, error: String(err) });
     });
   }, []);
 
@@ -321,8 +362,10 @@ export function useLiveSession(
     diagRef.current = emptyDiagnostics();
     heardAgentRef.current = false;
     sessionOpenedRef.current = false;
+    typingPingAt.current = null;
     setTurns([]);
     setThinking(false);
+    setMicOpen(false);
     clearWatchdog();
     try {
       // Checked before anything else: with no microphone API there is nothing to
@@ -343,6 +386,7 @@ export function useLiveSession(
           ...(startRung !== undefined ? { startRung } : {}),
           ...(mode !== undefined ? { mode } : {}),
           ...(snapshot !== undefined ? { snapshot } : {}),
+          ...(seedTopic !== undefined ? { seedTopic } : {}),
         }),
       });
       diagRef.current.tokenStatus = res.status;
@@ -542,8 +586,15 @@ export function useLiveSession(
       diagRef.current.connectMs = Date.now() - connectStartedAt;
       trace('connected', { connectMs: diagRef.current.connectMs });
       if (mode !== 'convo-text') {
-        await room.localParticipant.setMicrophoneEnabled(true);
-        diagRef.current.micPublished = true;
+        // Publishing and playing back are two different permissions and now two
+        // different moments. A free conversation waits for the circle to be
+        // tapped before it opens a microphone; hearing the tutor cannot wait,
+        // because the tutor is about to ask its question out loud.
+        if (micOpensAtConnect(mode)) {
+          await room.localParticipant.setMicrophoneEnabled(true);
+          diagRef.current.micPublished = true;
+          setMicOpen(true);
+        }
         try {
           await room.startAudio();
         } catch {
@@ -594,11 +645,48 @@ export function useLiveSession(
       removeAudioEls();
       fail(classifyFailure(err));
     }
-  }, [userId, lessonId, startRung, mode, snapshot, send, removeAudioEls, clearWatchdog, leave, fail, openingTags, addTurn]);
+  }, [
+    userId,
+    lessonId,
+    startRung,
+    mode,
+    snapshot,
+    seedTopic,
+    send,
+    removeAudioEls,
+    clearWatchdog,
+    leave,
+    fail,
+    openingTags,
+    addTurn,
+  ]);
 
   const resumeAudio = useCallback(() => {
     // Success flips audioBlocked back via AudioPlaybackStatusChanged.
     void roomRef.current?.startAudio().catch(() => {});
+  }, []);
+
+  const openMic = useCallback(() => {
+    const room = roomRef.current;
+    if (room === null || room.localParticipant.isMicrophoneEnabled) return;
+    void room.localParticipant
+      .setMicrophoneEnabled(true)
+      .then(() => {
+        // Kept in step with the diagnostics panel, which reports this. Left
+        // false it would make a healthy tap-to-talk session read as broken to
+        // whoever debugs it next.
+        diagRef.current.micPublished = true;
+        trace('mic-opened');
+        setMicOpen(true);
+      })
+      .catch((err: unknown) => {
+        // Not a dead end and not a terminal screen: the room, the tutor and the
+        // meter are all still running, and the quiet door is on the same screen.
+        trace('mic-open-failed', { error: String(err) });
+        setNotice('Your microphone did not open. You can switch to typing instead.');
+        if (noticeTimer.current) clearTimeout(noticeTimer.current);
+        noticeTimer.current = setTimeout(() => setNotice(null), 8000);
+      });
   }, []);
 
   // Never leave a microphone open past the component that owns it.
@@ -630,9 +718,11 @@ export function useLiveSession(
     turns,
     thinking,
     audioBlocked,
+    micOpen,
     waitingForTutor,
     diagnostics,
     resumeAudio,
+    openMic,
     start,
     sendHelp: useCallback(() => send({ t: 'help' }), [send]),
     sendSkip: useCallback(() => send({ t: 'skip' }), [send]),
@@ -651,6 +741,12 @@ export function useLiveSession(
       },
       [send, addTurn],
     ),
+    sendTyping: useCallback(() => {
+      const now = Date.now();
+      if (!shouldPingTyping(typingPingAt.current, now)) return;
+      typingPingAt.current = now;
+      send({ t: 'typing' });
+    }, [send]),
     leave,
   };
 }

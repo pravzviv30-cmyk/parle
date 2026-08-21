@@ -7,8 +7,10 @@ import {
   AnthropicBrainClient,
   BrainParseError,
   CAFE_FRAME,
+  ClaudeCliBrainClient,
   MockLlmClient,
   OpenAiCompatBrainClient,
+  OpenAiResponsesBrainClient,
   SplitBrainClient,
   RECOVERY_LINE,
   assembleRecap,
@@ -21,6 +23,8 @@ import {
   sampleSupport,
   sampleTurn,
   supportViewFor,
+  type BrainFrameRequest,
+  type BrainTurnRequest,
   type LearnerProfile,
   type NewPhrase,
   type SupportView,
@@ -39,6 +43,9 @@ import {
   ParleConversation,
   brainClient,
   chooseFrame,
+  frameDeadlineMs,
+  postSessionDeadlineMs,
+  seededOpening,
   sttLanguageFor,
   type SttLanguage,
   parseStoredProfile,
@@ -351,17 +358,36 @@ class FailingBrain extends MockLlmClient {
   }
 }
 
+class MeteredBrain extends MockLlmClient {
+  override async frame(request: BrainFrameRequest) {
+    const result = await super.frame(request);
+    return {
+      ...result,
+      usage: { inputTokens: 100, outputTokens: 20, cacheReadTokens: 50, cacheWriteTokens: 0 },
+    };
+  }
+
+  override async turn(request: BrainTurnRequest) {
+    const result = await super.turn(request);
+    return {
+      ...result,
+      usage: { inputTokens: 40, outputTokens: 10, cacheReadTokens: 80, cacheWriteTokens: 5 },
+    };
+  }
+}
+
 /**
  * `t` is not decoration: a text-mode conversation re-arms its silence clock
  * every time it publishes, so a test that ends without standing the rescue
  * down leaves the tutor patiently rescuing an empty room until the turn cap.
  */
-function buildConvo(t: TestContext, opts: { voiceless?: boolean; client?: MockLlmClient } = {}) {
+function buildConvo(t: TestContext, opts: { voiceless?: boolean; client?: MockLlmClient; seedTopic?: unknown } = {}) {
   const client = opts.client ?? new MockLlmClient();
   const sttLanguages: SttLanguage[] = [];
   const convo = new ParleConversation(createProfile(), {
     voiceless: opts.voiceless ?? false,
     client,
+    seedTopic: opts.seedTopic,
     setSttLanguage: (language) => sttLanguages.push(language),
   });
   const { session, said } = stubSession();
@@ -402,6 +428,22 @@ describe('the conversation agent, off the worker', () => {
     const { convo } = buildConvo(t);
     assert.equal(convo.conversationState.turnCount, 0);
     assert.equal(convo.conversationState.finished, false);
+  });
+
+  test('the session meters real model usage instead of guessing a flat cost', async (t) => {
+    t.mock.method(console, 'info', () => {});
+    const { convo, session } = await inScene(t, { client: new MeteredBrain() });
+    assert.deepEqual(convo.brainMeter, {
+      calls: 1,
+      usage: { inputTokens: 100, outputTokens: 20, cacheReadTokens: 50, cacheWriteTokens: 0 },
+    });
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour' }));
+    await convo.settled();
+    assert.deepEqual(convo.brainMeter, {
+      calls: 2,
+      usage: { inputTokens: 140, outputTokens: 30, cacheReadTokens: 130, cacheWriteTokens: 5 },
+    });
   });
 
   test('the session opens on the choosing moment without a single model call', (t) => {
@@ -451,6 +493,19 @@ describe('the conversation agent, off the worker', () => {
     assert.equal(published.filter((m) => m.t === 'opening').length, 2, 'and the question lands again with it');
   });
 
+  test('text mode never fills the topic box with an AI suggestion', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session, said, published, client } = buildConvo(t, { voiceless: true });
+    convo.open(session);
+
+    t.mock.timers.tick(60_000);
+    await convo.settled();
+
+    assert.deepEqual(said, [], 'nothing is spoken in the quiet twin');
+    assert.equal(published.filter((m) => m.t === 'opening').length, 1, 'the question is not republished as a prompt');
+    assert.equal(client.frameRequests.length, 0, 'the AI invents no topic on the learner’s behalf');
+  });
+
   test('choosing a topic opens a scene the learner can see and hear', async (t) => {
     const { client, published, said } = await inScene(t);
 
@@ -464,6 +519,264 @@ describe('the conversation agent, off the worker', () => {
     assert.ok(said.indexOf(CONVO_LINES.bridge.fr) < said.indexOf(CAFE_FRAME.openingLine.fr), 'and lands first');
     assert.ok(said.includes(CAFE_FRAME.openingLine.fr), 'and then the character speaks, before the learner has to');
     assert.equal(client.turnRequests.length, 0, 'opening a scene is not a turn');
+  });
+});
+
+// ─────────────────────────────────── a conversation that already has a topic
+
+/** The topic card's own title, exactly as the learner read it before tapping. */
+const SEED = { fr: 'Commander un café', en: 'Ordering coffee' };
+
+/**
+ * Let the seeded scene finish opening. The mock brain answers with no I/O, so
+ * everything between open() and the first view settles inside a few turns of
+ * the microtask queue; setImmediate lands after all of them.
+ */
+async function sceneSettled(): Promise<void> {
+  for (let i = 0; i < 6; i += 1) await new Promise((resolve) => setImmediate(resolve));
+}
+
+/** A brain that cannot design a scene. The request-grounded fallback is what is left. */
+class NoFrameBrain extends MockLlmClient {
+  override async frame(): Promise<never> {
+    throw new BrainParseError('the scenario came back unreadable', '{}');
+  }
+}
+
+/**
+ * A brain that takes its time, the way a command-line call does — eight to
+ * twelve seconds against a sub-second budget. `release` is a latch rather than
+ * a one-shot: a test that only releases once must not deadlock on the second
+ * call, or the failure it is looking for shows up as a hang instead of a red.
+ */
+class SlowBrain extends MockLlmClient {
+  private released = false;
+  private readonly waiting: (() => void)[] = [];
+  private askedNow: (() => void) | null = null;
+  /** Settles once the brain has been handed something to think about. */
+  readonly asked: Promise<void> = new Promise<void>((resolve) => {
+    this.askedNow = resolve;
+  });
+
+  override async turn(request: BrainTurnRequest) {
+    this.askedNow?.();
+    if (!this.released) await new Promise<void>((resolve) => void this.waiting.push(resolve));
+    return super.turn(request);
+  }
+
+  release(): void {
+    this.released = true;
+    for (const wake of this.waiting.splice(0)) wake();
+  }
+}
+
+/** The same, for the scenario builder: the scene the learner is waiting on. */
+class SlowFrameBrain extends MockLlmClient {
+  private released = false;
+  private readonly waiting: (() => void)[] = [];
+
+  override async frame(request: BrainFrameRequest) {
+    if (!this.released) await new Promise<void>((resolve) => void this.waiting.push(resolve));
+    return super.frame(request);
+  }
+
+  release(): void {
+    this.released = true;
+    for (const wake of this.waiting.splice(0)) wake();
+  }
+}
+
+/** Point TUTOR_LLM somewhere for one test, and put back whatever was there. */
+function withBrainEnv(t: TestContext, value: string): void {
+  const saved = process.env.TUTOR_LLM;
+  process.env.TUTOR_LLM = value;
+  t.after(() => {
+    if (saved === undefined) delete process.env.TUTOR_LLM;
+    else process.env.TUTOR_LLM = saved;
+  });
+}
+
+/**
+ * A frame whose beats never arrived. The builder answered, so buildFrame's own
+ * catch never sees it: what falls over is the tail that opens the scene. That
+ * is the wedge behind "I typed it and nothing happened" — the session moved to
+ * `starting`, stayed there, and dropped every later press without a word.
+ */
+const BEATLESS_FRAME = { ...CAFE_FRAME, beats: [] };
+
+describe('a conversation started from a topic card', () => {
+  test('a session started from a topic card opens its scene on that topic without the choosing question', async (t) => {
+    const { convo, session, client, published, said } = buildConvo(t, { seedTopic: SEED });
+
+    convo.open(session);
+    await sceneSettled();
+
+    const opening = published.find((m) => m.t === 'opening');
+    assert.ok(opening, 'the app opens a conversation on the opening message and would wait forever without one');
+    assert.notEqual(opening.prompt.en, CONVO_LINES.opener.en, 'someone who just tapped the topic is not asked to name it again');
+    assert.ok(opening.prompt.en.includes(SEED.en), `the opening names the topic they tapped: "${opening.prompt.en}"`);
+    assert.ok(opening.prompt.fr.includes(SEED.fr), `and names it in French too: "${opening.prompt.fr}"`);
+    assert.ok(!opening.prompt.en.includes('?'), 'and says what is about to happen rather than asking');
+    assert.equal(published.filter((m) => m.t === 'opening').length, 1, 'one opening, not the seeded one on top of the question');
+
+    assert.equal(client.frameRequests.length, 1, 'the scene was designed straight away, with nothing to wait for');
+    assert.ok(client.frameRequests[0]!.request.includes(SEED.en), 'and designed around the topic, not around a guess');
+
+    const opened = views(published);
+    assert.equal(opened.length, 1, 'the scene opened');
+    assert.equal(opened[0]!.view.beat.position, 1);
+    assert.ok(said.includes(seededOpening(SEED).en), 'the seeded opening is spoken, in English, before anything happens');
+    assert.ok(said.includes(CONVO_LINES.bridge.fr), 'the bridge line still covers the wait for the builder');
+    assert.ok(said.indexOf(seededOpening(SEED).en) < said.indexOf(CONVO_LINES.bridge.fr), 'in that order');
+    assert.ok(said.includes(CAFE_FRAME.openingLine.fr), 'and the character speaks first, before the learner has to');
+    assert.equal(client.turnRequests.length, 0, 'opening a seeded scene is still not a turn');
+  });
+
+  test('a seeded session whose scenario build fails stays on the topic it was given', async (t) => {
+    const { convo, session, published, said } = buildConvo(t, { seedTopic: SEED, client: new NoFrameBrain() });
+
+    convo.open(session);
+    await sceneSettled();
+
+    const opened = views(published);
+    assert.equal(opened.length, 1, 'a builder that cannot answer must not leave the learner on an empty screen');
+    assert.equal(convo.conversationState.frame.titleEn, SEED.en, 'the fallback carries the requested topic instead');
+    assert.ok(!convo.conversationState.frame.setting.toLowerCase().includes('café'), 'no unrelated café fixture leaked in');
+    assert.ok(said.includes(convo.conversationState.frame.openingLine.fr), 'and the fallback character still speaks first');
+    assert.ok(said.includes(seededOpening(SEED).en), 'the tutor still said what was about to happen');
+    assert.ok(
+      published.some((m) => m.t === 'error' && m.message.includes('kept your topic')),
+      'the simpler scene is disclosed rather than pretending the custom build succeeded',
+    );
+  });
+
+  test('a seeded conversation opens the same way for a learner who is typing', async (t) => {
+    const { convo, session, published, said } = buildConvo(t, { seedTopic: SEED, voiceless: true });
+
+    convo.open(session);
+    await sceneSettled();
+
+    const opening = published.find((m) => m.t === 'opening');
+    assert.ok(opening, 'the quiet twin reads the opening it would otherwise have heard');
+    assert.equal(opening.prompt.en, seededOpening(SEED).en);
+    assert.equal(views(published).length, 1, 'and lands in the same scene');
+    assert.deepEqual(said, [], 'with nothing spoken aloud at all');
+  });
+
+  test('a topic that arrives malformed leaves the learner with the ordinary question', async (t) => {
+    // Signed is not sane: the metadata is the server's, but the shape inside it
+    // came from the app, and a seed with nothing in it would put the topic's
+    // name in the tutor's mouth as an empty string.
+    for (const bad of [{ fr: 'Commander un café' }, { fr: 'x', en: '   ' }, { fr: 'x', en: 'y'.repeat(121) }, 'coffee', null]) {
+      const { convo, session, client, published } = buildConvo(t, { seedTopic: bad });
+      convo.open(session);
+      await sceneSettled();
+
+      const opening = published.find((m) => m.t === 'opening');
+      assert.ok(opening, `a bad seed must still open the session: ${JSON.stringify(bad)}`);
+      assert.equal(opening.prompt.en, CONVO_LINES.opener.en, 'on the ordinary question, which is what a generic session is');
+      assert.equal(client.frameRequests.length, 0, 'and no scene is designed until the learner says what they want');
+    }
+  });
+
+  test('a reconnecting app is given the opening again while the scene is still being built', async (t) => {
+    // A seeded session spends its whole pre-scene life building, so a `ready`
+    // that arrives in that window used to be answered with nothing at all —
+    // and `ready` is exactly what an app sends when it fears it missed the
+    // moment.
+    const { convo, session, published } = buildConvo(t, { seedTopic: SEED });
+    convo.open(session);
+    await convo.handleClientMessage(session, tapped({ t: 'ready' }));
+
+    assert.equal(published.filter((m) => m.t === 'opening').length, 2, 'the opening it may have missed lands again');
+    await sceneSettled();
+  });
+
+  test('the seeded opening obeys the learner-copy rules', () => {
+    const seeded = seededOpening({ fr: 'Commander un café', en: 'Ordering coffee' });
+    for (const text of [seeded.fr, seeded.en]) {
+      assert.ok(!text.includes('—'), `em dash in "${text}"`);
+      assert.ok(!/\d/.test(text), `digit in "${text}"`);
+      assert.ok(!/wrong|incorrect|failed|bad/i.test(text), `scold in "${text}"`);
+      assert.ok(text.length < 80, `too long to be a warm opener: "${text}"`);
+    }
+    assert.equal(
+      seededOpening({ fr: 'Commander un café.', en: 'Ordering coffee.' }).en,
+      seeded.en,
+      'a title that already ends in a full stop does not get a second one',
+    );
+  });
+});
+
+describe('a scene that fails to open hands back the choosing moment', () => {
+  test('a failed scene build returns the learner to choosing instead of a dead session', async (t) => {
+    const client = new MockLlmClient({ frames: [BEATLESS_FRAME] });
+    const { convo, session, published } = buildConvo(t, { client });
+    convo.open(session);
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Une soirée à Lyon' }));
+
+    assert.equal(views(published).length, 0, 'half a scene is never published');
+    assert.equal(
+      published.filter((m) => m.t === 'opening').length,
+      2,
+      'the learner is handed the question again rather than a screen that never changes',
+    );
+    assert.equal(convo.conversationState.finished, false, 'and the session is still theirs to use');
+  });
+
+  test('pressing send again after a failed build starts a fresh scene', async (t) => {
+    // The natural answer to a screen that did not move is to press Send again.
+    // That press used to be dropped, silently, for the rest of the session.
+    const client = new MockLlmClient({ frames: [BEATLESS_FRAME, APERO_FRAME] });
+    const { convo, session, published } = buildConvo(t, { client });
+    convo.open(session);
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Une soirée à Lyon' }));
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Une soirée à Lyon' }));
+
+    assert.equal(client.frameRequests.length, 2, 'the second press was heard, not swallowed');
+    assert.equal(views(published).length, 1, 'and a scene opened on it');
+    assert.equal(convo.conversationState.frame.title, APERO_FRAME.title);
+  });
+
+  test('a seeded session whose scene falls over is asked the ordinary question instead', async (t) => {
+    // A session from a topic card opens on a statement, not a question, so
+    // handing that back would promise the same scene twice over. The learner
+    // needs something they can answer.
+    const client = new MockLlmClient({ frames: [BEATLESS_FRAME] });
+    const { convo, session, published, said } = buildConvo(t, { client, seedTopic: SEED });
+
+    convo.open(session);
+    await sceneSettled();
+
+    const openings = published.filter((m) => m.t === 'opening');
+    assert.equal(openings.length, 2, 'the seeded opening, and then the way forward');
+    assert.equal(openings[1]!.prompt.en, CONVO_LINES.opener.en, 'which is a question, and answerable');
+    assert.ok(said.includes(CONVO_LINES.opener.en), 'and it is asked out loud, like every other choosing moment');
+    assert.equal(views(published).length, 0, 'with no half-opened scene underneath it');
+  });
+
+  test('a second press while the scene is still coming leaves a trace instead of vanishing', async (t) => {
+    // A duplicate press during a healthy build stays dropped — the scene is
+    // seconds away and two would open on top of each other — but a drop nobody
+    // can see is how this took a week to find.
+    const client = new SlowFrameBrain();
+    const { convo, session, published } = buildConvo(t, { client });
+    convo.open(session);
+
+    const first = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Une soirée à Lyon' }));
+    await sceneSettled();
+
+    const noted = t.mock.method(console, 'warn', () => {});
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Une soirée à Lyon' }));
+    assert.equal(noted.mock.callCount(), 1, 'the dropped press is on the terminal');
+
+    client.release();
+    await first;
+    await sceneSettled();
+    assert.equal(client.frameRequests.length, 1, 'the scene already coming is the one that opens');
+    assert.equal(views(published).length, 1, 'exactly one scene, not two');
   });
 });
 
@@ -544,6 +857,50 @@ describe('a conversation rescue and a learner answering at the same moment', () 
     assert.ok(views(published).length >= 2, 'the support renders before the model is back');
   });
 
+  test('a slow brain turn is not mistaken for a stuck learner', async (t) => {
+    // The queue bumps its generation when work is ENQUEUED, so a clock armed
+    // after the learner's turn was queued captures a generation that already
+    // counts it, passes runIfCurrent, and rescues them for the tutor's own
+    // thinking time. Groq's sub-second turns hid this; a brain that takes eight
+    // to twelve seconds hits it on every single turn.
+    const client = new SlowBrain();
+    const { convo, session } = await inScene(t, { client });
+
+    const spoken = assert.rejects(
+      () => convo.onUserTurnCompleted({} as never, heard('Bonjour, un café')),
+      voice.StopResponse,
+    );
+    await client.asked; // the brain has the question and is writing
+
+    const generation = convo.armRescue(session);
+    const rescued = convo.runRescue(generation);
+    client.release();
+    await Promise.all([spoken, rescued]);
+    await convo.settled();
+
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'waiting for the tutor is not being stuck');
+    assert.equal(client.turnRequests.length, 1, 'and the tutor is not asked to step in over its own answer');
+    assert.equal(convo.conversationState.turnCount, 1, 'one answer, one turn of the scene');
+  });
+
+  test('the clock starts again once the slow turn has been answered', async (t) => {
+    // Standing down must not stand down for good. A learner who freezes after a
+    // slow reply is still a learner who gets handed the line.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const client = new SlowBrain();
+    const { convo, session } = await inScene(t, { client, voiceless: true });
+
+    const typed = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await client.asked;
+    client.release();
+    await typed;
+    await convo.settled();
+
+    t.mock.timers.tick(12_001);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'the clock the slow turn stood down is running again');
+  });
+
   test('a rescue hands over support without moving the scene on', async (t) => {
     const { convo, session, published } = await inScene(t);
     const opening = views(published)[0]!.view;
@@ -560,7 +917,7 @@ describe('a conversation rescue and a learner answering at the same moment', () 
     assert.equal(instant.narration, null);
     assert.equal(instant.coachLine, null);
     assert.deepEqual(instant.coachNow, []);
-    assert.equal(instant.supportView.kind, 'full-line', 'and they are handed the line, whatever rung they were on');
+    assert.equal(instant.supportView.kind, 'hint', 'and they get a small intent hint, never the answer on the first rescue');
   });
 });
 
@@ -634,6 +991,70 @@ describe('a conversation for someone who cannot speak aloud', () => {
     assert.deepEqual(said, [], 'a learner in a quiet carriage is never made to listen');
     assert.ok(views(published).length >= 2, 'and the whole scene still reaches them on screen');
   });
+
+  test('hear it never replays the scene’s own line back as the learner’s', async (t) => {
+    // The live defect at the edge that speaks. The model let one line do both
+    // jobs: Karim's question, handed back as the line to say. The brain empties
+    // a full line it cannot vouch for, so there is nothing here to replay, and
+    // saying Karim's question would put back exactly what the brain took out.
+    const asked = 'Vous le voulez chaud ou froid ?';
+    const collapsed = sampleTurn({
+      sceneReply: { speaker: 'Karim', fr: asked, frWritten: null, en: 'Do you want it hot or cold?' },
+      support: {
+        fullLine: { fr: asked, frWritten: null, en: 'Do you want it hot or cold?' },
+        options: [{ fr: asked, en: 'Do you want it hot or cold?' }],
+        hintEn: 'Say whether you want it hot or cold.',
+      },
+    });
+    const { convo, session, said } = await inScene(t, { client: new MockLlmClient({ turns: [collapsed] }) });
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café' }));
+    await convo.settled();
+    assert.notEqual(convo.conversationState.lastSupport.fullLine.fr, asked, 'the brain must not keep it either');
+
+    const before = said.length;
+    await convo.handleClientMessage(session, tapped({ t: 'hear' }));
+    assert.deepEqual(said.slice(before), [], 'nothing to replay is silence, never an empty utterance');
+  });
+});
+
+describe('typing is presence, not silence', () => {
+  test('the stuck clock stands down while the learner is typing and restarts when they stop', async (t) => {
+    // Measured live: `1 turns, 4 rescues, 105s`. A learner typing one answer was
+    // rescued about every twenty seconds, because typing counted as silence —
+    // and being told to say it once more mid-sentence is a remark on hesitating.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session, client, published } = await inScene(t, { voiceless: true });
+    const opened = views(published).length;
+
+    for (let i = 0; i < 4; i += 1) {
+      t.mock.timers.tick(8_000);
+      await convo.handleClientMessage(session, tapped({ t: 'typing' }));
+    }
+    await convo.settled();
+
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'somebody who is typing is not stuck');
+    assert.equal(client.turnRequests.length, 0, 'the tutor never steps in over a sentence being written');
+    assert.equal(views(published).length, opened, 'and nothing was pushed at them while they wrote');
+
+    // They stop. The clock is a clock again, from the last keystroke.
+    t.mock.timers.tick(12_001);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'a learner who really froze is still handed the line');
+  });
+
+  test('a keystroke never starts a clock that was not already running', async (t) => {
+    // The ping is presence, not policy: armRescue owns when the clock runs, and
+    // a keystroke while the tutor is still speaking must not start one.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session } = await inScene(t);
+
+    await convo.handleClientMessage(session, tapped({ t: 'typing' }));
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'nothing was counting, so nothing fired');
+  });
 });
 
 describe('a brain turn that fails mid-scene', () => {
@@ -680,6 +1101,88 @@ describe('a brain turn that fails mid-scene', () => {
     assert.equal(convo.conversationState.finished, false, 'a bad turn is not a dead session');
   });
 
+  test('a brain turn that never answers hands back the recovery line instead of hanging', async (t) => {
+    // buildFrame races a deadline and has a fixture to fall back on. A turn
+    // raced nothing at all, so a call that went out and never came back was a
+    // learner sitting in front of their own sentence with no reply and no clock
+    // — the queue reports itself busy for as long as the turn is in flight, and
+    // a busy queue is exactly when the rescue stands down.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    withBrainEnv(t, 'anthropic');
+    const client = new SlowBrain();
+    const { convo, session, published, said } = await inScene(t, { client, voiceless: true });
+
+    const typed = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await client.asked; // the call went out, and this one is never coming back
+
+    t.mock.timers.tick(15_001);
+    await sceneSettled();
+
+    // Asserted before the turn is awaited on purpose: with nothing racing the
+    // call, awaiting it never returns, and a test that hangs says nothing.
+    const notice = published.find((m) => m.t === 'error');
+    assert.ok(notice, 'the learner is told the tutor could not answer, rather than left guessing');
+    assert.equal(notice.message, RECOVERY_LINE, 'in the same words a throw would have produced');
+    assert.equal(convo.conversationState.turnCount, 0, 'and a turn that never happened is not recorded');
+    assert.deepEqual(said, [], 'still nothing aloud, for a learner in a quiet carriage');
+    await typed;
+    await convo.settled();
+
+    // The queue came unbusy on its own — the settled work decrements whether it
+    // resolved or threw — so the clock the hung turn stood down is running.
+    // Settled by hand rather than through the queue: the rescue's own model call
+    // goes to the same brain that is still not answering, and the ladder moves
+    // and the support renders before it, which is the whole point of a rescue.
+    t.mock.timers.tick(12_001);
+    await sceneSettled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'and a learner nobody answered is handed the line');
+    assert.equal(views(published).length, 2, 'with the line rendered from material already in hand');
+  });
+
+  test('a hung turn leaves the conversation usable rather than wedged', async (t) => {
+    // Never strand them mid-scene: the turn that hung is lost, and the next
+    // thing they type has to be served like any other.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    withBrainEnv(t, 'anthropic');
+    const client = new SlowBrain();
+    const { convo, session } = await inScene(t, { client, voiceless: true });
+
+    const hung = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await client.asked;
+    t.mock.timers.tick(15_001);
+    await sceneSettled();
+
+    client.release(); // whatever was wrong with the brain has passed
+    const next = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Un café, s’il vous plaît' }));
+    await sceneSettled();
+
+    assert.equal(convo.conversationState.turnCount, 1, 'their next sentence was answered');
+    assert.equal(convo.conversationState.finished, false, 'and one hung call is not a dead session');
+    await Promise.all([hung, next]);
+  });
+
+  test('the subscription gets longer to answer a turn before it is called hung', async (t) => {
+    // Eight to twelve seconds is what a command-line call costs when it is
+    // working perfectly. A deadline that fires at fifteen would end every single
+    // turn of a claude-cli-all session on the recovery line.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    withBrainEnv(t, 'claude-cli-all');
+    const client = new SlowBrain();
+    const { convo, session, published } = await inScene(t, { client, voiceless: true });
+
+    const typed = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await client.asked;
+
+    t.mock.timers.tick(15_001);
+    await sceneSettled();
+    assert.equal(published.filter((m) => m.t === 'error').length, 0, 'a slow subscription is still answering');
+
+    t.mock.timers.tick(30_000);
+    await sceneSettled();
+    assert.equal(published.filter((m) => m.t === 'error').length, 1, 'but a call that long has hung, and is treated as one');
+    await typed;
+  });
+
   test('a text learner whose turn failed is still on the silence clock', async (t) => {
     t.mock.timers.enable({ apis: ['setTimeout'] });
     const client = new FailingBrain(new Error('socket hang up'));
@@ -697,12 +1200,38 @@ describe('a brain turn that fails mid-scene', () => {
     assert.equal(convo.conversationState.ladder.rescues, 1, 'a learner nobody answered is a stuck learner');
     // The support is rendered from material already in hand, so it lands even
     // with the model still down: the last thing between them and a dead screen.
-    // Asserted as a view that ARRIVED after the failure — an A0 scene already
-    // opens on full-line support, so the support kind alone proves nothing.
+    // Asserted as a view that ARRIVED after the failure, not merely the opening.
     assert.equal(views(published).length, 2, 'the opening view, then the rescue that answered the silence');
     const rescued = views(published)[1]!.view;
     assert.deepEqual(rescued.sceneReply, views(published)[0]!.view.sceneReply, 'and it holds the moment they froze on');
-    assert.equal(rescued.supportView.kind, 'full-line', 'with the line handed over, no model needed');
+    assert.equal(rescued.supportView.kind, 'hint', 'with an instant hint, but no answer handed over');
+  });
+});
+
+describe('a client message that fails does not take the worker with it', () => {
+  test('a client message whose handling fails is contained and logged instead of rejecting unhandled', async (t) => {
+    const { convo, session } = await inScene(t);
+
+    // The worker fires these off with `void`, so one throw here is an unhandled
+    // rejection on a process serving every learner on it. A room that closed
+    // under a replay is enough to cause one.
+    const logged = t.mock.method(console, 'error', () => {});
+    Object.defineProperty(convo, 'session', {
+      value: {
+        say() {
+          throw new Error('the room closed under the reply');
+        },
+      },
+      configurable: true,
+    });
+
+    await assert.doesNotReject(() => convo.handleClientMessage(session, tapped({ t: 'english' })));
+    assert.equal(logged.mock.callCount(), 1, 'and the failure reaches the terminal rather than nowhere');
+
+    Object.defineProperty(convo, 'session', { value: stubSession().session, configurable: true });
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour' }));
+    await convo.settled();
+    assert.equal(convo.conversationState.turnCount, 1, 'and the learner is still in their conversation');
   });
 });
 
@@ -735,7 +1264,9 @@ describe('what a finished session leaves behind', () => {
   test('exactly one practice message ships, after the recap, grouped as curated', async (t) => {
     const client = new MockLlmClient({
       turns: [closingTurn()],
-      curations: [{ topics: [{ titleEn: 'Ordering at the café', titleFr: 'Au café', phraseFr: ['Ça marche'] }] }],
+      curations: [
+        { topics: [{ titleEn: 'Ordering at the café', titleFr: 'Au café', phraseFr: ['Ça marche'], extensions: [] }] },
+      ],
     });
     const { published } = await finishSessionWith(t, client);
 
@@ -757,7 +1288,9 @@ describe('what a finished session leaves behind', () => {
   test('drills are authored from the curated keep-list, not everything said', async (t) => {
     const client = new MockLlmClient({
       turns: [closingTurn()],
-      curations: [{ topics: [{ titleEn: 'Ordering at the café', titleFr: 'Au café', phraseFr: ['Ça marche'] }] }],
+      curations: [
+        { topics: [{ titleEn: 'Ordering at the café', titleFr: 'Au café', phraseFr: ['Ça marche'], extensions: [] }] },
+      ],
     });
     await finishSessionWith(t, client);
 
@@ -840,6 +1373,15 @@ describe('which brain the env selects', () => {
     assert.ok(onApiKey instanceof AnthropicBrainClient, 'and TUTOR_LLM alone moves the whole brain onto the API');
   });
 
+  test('claude-cli-all sends every call, turns included, to the subscription', () => {
+    // The founder's ask, in their words: "Can you not use Claude Subscription
+    // for now for development stage". claude-cli keeps realtime turns on Groq,
+    // which is the free tier that rate-limited them eight times in one session.
+    const whole = brainClient({ TUTOR_LLM: 'claude-cli-all' });
+    assert.ok(whole instanceof ClaudeCliBrainClient, 'every call goes to the command line');
+    assert.ok(!(whole instanceof SplitBrainClient), 'with nothing at all left on the fast tier');
+  });
+
   test('an unset TUTOR_LLM still means anthropic, and an empty one is not a third thing', () => {
     assert.ok(brainClient({ ANTHROPIC_API_KEY: 'k' }) instanceof AnthropicBrainClient);
     assert.ok(brainClient({ TUTOR_LLM: '  ', ANTHROPIC_API_KEY: 'k' }) instanceof AnthropicBrainClient);
@@ -847,6 +1389,12 @@ describe('which brain the env selects', () => {
 
   test('groq stays exactly what it was', () => {
     assert.ok(brainClient({ TUTOR_LLM: 'groq', GROQ_API_KEY: 'gq' }) instanceof OpenAiCompatBrainClient);
+  });
+
+  test('OpenAI uses the Responses client with the normal OpenAI key', () => {
+    assert.ok(
+      brainClient({ TUTOR_LLM: 'openai', OPENAI_API_KEY: 'sk-test' }) instanceof OpenAiResponsesBrainClient,
+    );
   });
 });
 
@@ -891,5 +1439,74 @@ describe('what language the recogniser is listening for', () => {
     const built = buildConvo(t);
     built.convo.open(built.session);
     assert.deepEqual(built.sttLanguages, [], 'the opening question is still English, so nothing has moved');
+  });
+});
+
+describe('how long the scene builder gets before a request-grounded scene opens instead', () => {
+  test('an ordinary brain that goes quiet still opens on the learner request at ten seconds', async (t) => {
+    withBrainEnv(t, 'anthropic');
+    const client = new SlowFrameBrain();
+    const built = buildConvo(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+
+    built.convo.open(built.session);
+    const started = built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Une soirée à Lyon' }));
+    await sceneSettled();
+    t.mock.timers.tick(10_001);
+    await started;
+
+    assert.equal(views(built.published).length, 1, 'a learner is never left watching a builder think');
+    assert.equal(
+      built.convo.conversationState.frame.titleEn,
+      'Une soirée à Lyon',
+      'the fallback keeps the request instead of opening the café fixture',
+    );
+    assert.ok(!built.convo.conversationState.frame.setting.toLowerCase().includes('café'));
+    client.release();
+  });
+
+  test('the scene builder gets a longer deadline when the subscription is the whole brain', async (t) => {
+    assert.equal(frameDeadlineMs({}), 10_000, 'an API brain answers in seconds, and the learner is listening');
+    assert.equal(
+      frameDeadlineMs({ TUTOR_LLM: 'openai' }),
+      25_000,
+      'measured Luna scenes get enough room to finish instead of losing to the ten-second fallback',
+    );
+    assert.equal(frameDeadlineMs({ TUTOR_LLM: 'claude-cli-all' }), 30_000, 'a command-line call takes eight to twelve');
+
+    // And it is the deadline the builder actually races. At ten seconds a
+    // recovery scene used to open over the top of the healthy custom scene;
+    // the wider deadline lets the requested rich scene win instead.
+    withBrainEnv(t, 'claude-cli-all');
+    const client = new SlowFrameBrain({ frames: [APERO_FRAME] });
+    const built = buildConvo(t, { client });
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+
+    built.convo.open(built.session);
+    const started = built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Une soirée à Lyon' }));
+    await sceneSettled();
+    t.mock.timers.tick(10_001);
+    await sceneSettled();
+
+    assert.equal(views(built.published).length, 0, 'the recovery scene does not open over what they asked for');
+
+    client.release();
+    await started;
+    assert.equal(
+      built.convo.conversationState.frame.title,
+      APERO_FRAME.title,
+      'the scene the builder designed is the one that opens',
+    );
+  });
+});
+
+describe('background enrichment deadlines', () => {
+  test('OpenAI gets the measured window without changing other providers', () => {
+    assert.equal(postSessionDeadlineMs('extract', {}), 8_000);
+    assert.equal(postSessionDeadlineMs('curate', {}), 10_000);
+    assert.equal(postSessionDeadlineMs('drills', {}), 25_000);
+    assert.equal(postSessionDeadlineMs('extract', { TUTOR_LLM: 'openai' }), 30_000);
+    assert.equal(postSessionDeadlineMs('curate', { TUTOR_LLM: 'openai' }), 30_000);
+    assert.equal(postSessionDeadlineMs('drills', { TUTOR_LLM: 'openai' }), 90_000);
   });
 });

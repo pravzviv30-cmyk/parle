@@ -135,10 +135,7 @@ export function AddFriendsScreen() {
       >
         {q.trim() === '' ? (
           <Card>
-            <Label>While you wait</Label>
-            <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>
-              Friends find each other by username.
-            </Text>
+            <Text style={[type.bodyStrong, { color: paper.ink }]}>Friends find each other by username.</Text>
             <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
               Real usernames need friend servers, and those are still being built. Until then you can try the whole
               flow with sample profiles. They are marked, so nothing here pretends to be real.
@@ -176,8 +173,7 @@ export function AddFriendsScreen() {
 
             {showInvite && (
               <Card style={hits.length > 0 ? { marginTop: space(4) } : undefined}>
-                <Label>Not a sample</Label>
-                <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>
+                <Text style={[type.bodyStrong, { color: paper.ink }]}>
                   Nobody here is called {typed} yet.
                 </Text>
                 <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>

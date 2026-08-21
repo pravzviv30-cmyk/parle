@@ -2,7 +2,7 @@
 
 > God node · 25 connections · `packages/brain/src/llm/client.ts`
 
-**Community:** [Brain LLM Client Schemas](Brain_LLM_Client_Schemas.md)
+**Community:** [Brain Client Contracts](Brain_Client_Contracts.md)
 
 ## Connections by Relation
 

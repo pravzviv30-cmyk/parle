@@ -1,0 +1,125 @@
+# The free-form tutor brain
+
+This is the operating contract for the rebuilt free tutor and the provider
+decision behind it. Prices were checked on 21 August 2026; verify the linked
+vendor pages again before publishing.
+
+## Product contract
+
+- One tutor, two input modes. `convo` speaks and listens; `convo-text` uses the
+  same scene, transcript, correction engine, learner profile and practice
+  pipeline with audio disabled.
+- The learner chooses the situation in English or French. The current request
+  is binding; account memory can personalize it but cannot replace it.
+- The character speaks first. The learner may answer in French, mixed language
+  or English. Feedback responds to their meaning rather than an exact target.
+- No ordinary turn shows a suggested answer. First help reveals one English
+  intent hint. Repeated help on that exchange may reveal a possible French
+  line. A real reply resets assistance.
+- A French attempt that does not quite work gets one brief natural recast and
+  the scene continues. An English attempt gets the natural French for that
+  meaning after the attempt.
+- Post-session practice is grouped by discussed topic. It keeps a small number
+  of useful phrases, may add at most two closely related transfer phrases, and
+  authors exercises across the six formats the practice engine supports.
+
+The model proposes language. Code owns disclosure, support depth, caps,
+deduplication, topic storage, exercise validation and scene progress. That
+division is what prevents a prompt regression from turning support back into a
+cheat sheet.
+
+## Provider decision
+
+Recommended first production configuration:
+
+```dotenv
+TUTOR_LLM=openai
+OPENAI_API_KEY=your_standard_openai_api_key
+# Optional overrides:
+# OPENAI_TURN_MODEL=gpt-5.6-luna
+# OPENAI_ANALYST_MODEL=gpt-5.6-terra
+```
+
+There is no separate GPT Luna credential. Luna and Terra use the normal OpenAI
+API key. The implementation uses the Responses API with strict JSON schemas:
+Luna handles the calls a learner waits through, the turn and the scene; Terra
+performs memory, curation and drill work once the room has closed. This is the best initial balance of latency, cost and
+contract reliability. If tutor evals show a material live-turn quality gap,
+change only `OPENAI_TURN_MODEL` to Terra and compare again.
+
+Anthropic remains a fully supported A/B route:
+
+```dotenv
+TUTOR_LLM=anthropic
+ANTHROPIC_API_KEY=your_anthropic_api_key
+```
+
+Claude Sonnet 5 is a credible quality-first alternative. It costs more than the
+Luna live route at the current list prices, and the existing Anthropic routing
+also uses Opus for some background work. Keep it as the comparison arm rather
+than making model preference part of the pedagogy. Groq remains useful for
+zero-cost plumbing tests, but rate limits and model churn make it the wrong
+place to judge the tutor's intelligence.
+
+Direct OpenAI Realtime audio is not the chosen migration yet. The current
+cascade produces a trusted transcript plus one structured turn object used by
+corrections, account memory and practice. Replacing STT and TTS together would
+change several variables while the behavior is being repaired. Re-evaluate it
+only after the new brain passes real learner sessions.
+
+Official references:
+
+- [OpenAI model comparison and token prices](https://developers.openai.com/api/docs/models/compare)
+- [OpenAI Responses API](https://developers.openai.com/api/docs/guides/migrate-to-responses)
+- [Anthropic model overview](https://docs.anthropic.com/en/docs/about-claude/models/overview)
+- [Anthropic API pricing](https://docs.anthropic.com/en/docs/about-claude/pricing)
+- [Deepgram pricing](https://deepgram.com/pricing)
+- [ElevenLabs API pricing](https://elevenlabs.io/pricing/api)
+
+## Cost envelope
+
+Current list prices used for planning:
+
+| route | input / million tokens | output / million tokens |
+|---|---:|---:|
+| GPT-5.6 Luna | $0.20 | $1.20 |
+| GPT-5.6 Terra | $2.00 | $12.00 |
+| Claude Haiku 4.5 | $1.00 | $5.00 |
+| Claude Sonnet 5 | $2.00 | $10.00 |
+| Claude Opus 5 | $5.00 | $25.00 |
+
+An illustrative twelve-turn OpenAI session with 90k Luna input / 10k Luna
+output and 15k Terra input / 8k Terra output is about **$0.16 for the brain**
+before cache discounts. This is a planning example, not a billing promise. The
+worker now logs actual input, output and cached tokens for every successful call
+under `[parle:brain]`; collect those lines from real sessions and replace the
+example with measured p50 and p95 usage.
+
+The rest of a ten-minute voice session is roughly:
+
+- Deepgram Nova-3 streaming: about $0.0048 per audio minute at the promotional
+  pay-as-you-go price, or about $0.05 if the whole ten minutes are billed.
+- ElevenLabs Turbo: approximately $0.05 per minute of generated tutor speech.
+  If the tutor speaks for four of ten minutes, that is about $0.20.
+- Self-hosted local LiveKit: no vendor usage charge, excluding the server you
+  eventually host it on.
+
+That makes a useful early planning envelope around **$0.40 per ten-minute voice
+session** for OpenAI brain + current STT + four minutes of Turbo TTS, before tax,
+hosting, pronunciation scoring and vendor-plan effects. Text mode avoids STT and
+TTS, so it is essentially the brain cost. Treat the measured token logs and
+actual tutor speech characters as the publishing forecast.
+
+## Acceptance checks
+
+Do not judge this rebuild only by whether the API returns a response. A release
+candidate should pass recorded scenarios for at least:
+
+- teacher and school topic, café, friends, travel and an unexpected topic steer;
+- correct French, imperfect-but-understandable French, English and mixed input;
+- ordinary turn with no card, first help with hint, repeated help with line;
+- voice and text producing the same correction and topic memory;
+- a finished session producing categorized practice, a transfer phrase and at
+  least three exercise formats across the generated bank;
+- provider timeout, invalid structured output and unavailable post-session work
+  all degrading without stranding the learner.

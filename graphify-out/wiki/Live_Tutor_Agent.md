@@ -25,13 +25,14 @@
 
 ## Relationships
 
-- [Mock Speech Session Screen](Mock_Speech_Session_Screen.md) (8 shared connections)
-- [Lesson Session Engine](Lesson_Session_Engine.md) (8 shared connections)
-- [Client Agent Wire Protocol](Client_Agent_Wire_Protocol.md) (5 shared connections)
-- [Cached TTS Audio Stream](Cached_TTS_Audio_Stream.md) (2 shared connections)
-- [Agent Preflight and Env](Agent_Preflight_and_Env.md) (1 shared connections)
-- [Conversation View and Profile Parsing](Conversation_View_and_Profile_Parsing.md) (1 shared connections)
-- [French Phoneme Mapping](French_Phoneme_Mapping.md) (1 shared connections)
+- [Lesson Turn Grading](Lesson_Turn_Grading.md) (8 shared connections)
+- [Tutor Prompt Building](Tutor_Prompt_Building.md) (6 shared connections)
+- [Client Agent Protocol](Client_Agent_Protocol.md) (5 shared connections)
+- [Mock Speech Session](Mock_Speech_Session.md) (2 shared connections)
+- [TTS Audio Caching](TTS_Audio_Caching.md) (2 shared connections)
+- [Turn Timing Instrumentation](Turn_Timing_Instrumentation.md) (1 shared connections)
+- [Tutor Tab Curation](Tutor_Tab_Curation.md) (1 shared connections)
+- [Token Server Endpoints](Token_Server_Endpoints.md) (1 shared connections)
 
 ## Source Files
 

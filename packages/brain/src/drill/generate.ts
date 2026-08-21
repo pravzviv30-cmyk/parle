@@ -27,12 +27,13 @@ const BASE = {
   id: z.string(),
   /** EXACTLY the review deck's identity: 'phrase:' + the French line, trimmed, lowercased. */
   phraseKey: z.string(),
-  difficulty: z.enum(['recognition', 'production']),
 };
 
 const FillBlankZ = z.object({
   kind: z.literal('fill-blank'),
   ...BASE,
+  /** Options are recognition; a null option list is typed production. */
+  difficulty: z.enum(['recognition', 'production']),
   sentence: z.string(),
   options: z.array(z.string()).nullable(),
   accepted: z.array(z.string()),
@@ -42,6 +43,7 @@ const FillBlankZ = z.object({
 const BestSentenceZ = z.object({
   kind: z.literal('best-sentence'),
   ...BASE,
+  difficulty: z.literal('recognition'),
   prompt: z.string(),
   candidates: z.array(z.object({ fr: z.string(), en: z.string() })),
   correctIndex: z.number(),
@@ -50,6 +52,7 @@ const BestSentenceZ = z.object({
 const AppropriateReplyZ = z.object({
   kind: z.literal('appropriate-reply'),
   ...BASE,
+  difficulty: z.literal('recognition'),
   line: z.object({ speaker: z.string(), fr: z.string(), en: z.string() }),
   options: z.array(z.object({ fr: z.string(), en: z.string() })),
   acceptableIndexes: z.array(z.number()),
@@ -58,6 +61,7 @@ const AppropriateReplyZ = z.object({
 const TapTranslateZ = z.object({
   kind: z.literal('tap-translate'),
   ...BASE,
+  difficulty: z.literal('recognition'),
   en: z.string(),
   tokens: z.array(z.string()),
   accepted: z.array(z.string()),
@@ -66,6 +70,7 @@ const TapTranslateZ = z.object({
 const ListenTypeZ = z.object({
   kind: z.literal('listen-type'),
   ...BASE,
+  difficulty: z.literal('production'),
   fr: z.string(),
   accepted: z.array(z.string()),
 });
@@ -81,6 +86,7 @@ const NonMicExerciseZ = z.discriminatedUnion('kind', [
 const RepeatThisZ = z.object({
   kind: z.literal('repeat-this'),
   ...BASE,
+  difficulty: z.literal('production'),
   reference: z.string(),
   referenceEn: z.string(),
   ipa: z.string().nullable(),
@@ -114,10 +120,12 @@ export interface DrillGenerationInput {
   profilePhrases: readonly { fr: string; frWritten: string | null; en: string }[];
   /** The learner's top recurring error tags, most frequent first. */
   errorTags: readonly string[];
+  /** Topic labels ground situational transfer without inventing a new course. */
+  topics: readonly { en: string; fr: string }[];
 }
 
 const INSTRUCTION = [
-  `Author drill exercises from the material below — the learner's own phrases from today's conversation, plus older ones they have not yet mastered.`,
+  `Author a varied practice set from today's conversation, its small extension phrases, and older language the learner has not mastered.`,
   ``,
   `Rules:`,
   `- 6 to 14 exercises. For each phrase, author the formats it genuinely suits, easiest first: options before typing, typing before speaking. The same phrase may appear in several formats; that is the ramp working.`,
@@ -125,9 +133,11 @@ const INSTRUCTION = [
   `- difficulty: 'recognition' for options and token assembly, 'production' for typed and spoken.`,
   `- accepted: four to eight genuinely-said spoken variants (the ne dropped, on for nous, contractions). Never two entries that differ by one letter. The learner's answer is compared accent-insensitively.`,
   `- fill-blank sentences carry ___ where the answer goes; blank the part the learner gets wrong. Use their recurring errors below to aim these.`,
-  `- tap-translate tokens must assemble at least one accepted answer, with two or three plausible extra tokens.`,
+  `- tap-translate tokens must assemble at least one accepted answer, with two or three plausible extra tokens. Every token must contain a real word; attach punctuation to a word and never emit a standalone punctuation token.`,
   `- best-sentence and appropriate-reply distractors are correct-sounding French that fails the situation, never gibberish.`,
-  `- every repeat-this carries noMicTwin: a listen-type or typed fill-blank of the SAME phrase, same phraseKey, its own id.`,
+  `- Mix formats like a modern language app: meaning choice, dialogue reply, token assembly, typing, listening, and speaking whenever the phrase genuinely supports them. Never make the whole set fill-in-the-blank.`,
+  `- At least one third of the exercises must test transfer: the same phrase or skill in a new but closely related situation. Change the surrounding context, speaker, or intent without changing phraseKey to unrelated language.`,
+  `- every repeat-this carries noMicTwin: a listen-type or typed fill-blank of the SAME phrase, same phraseKey, its own id. listen-type and typed fill-blank are production, including when nested as noMicTwin.`,
   `- English text is English only. No em dash anywhere. No digits. Never "wrong", "incorrect", "bad" or "failed" in any string.`,
 ].join('\n');
 
@@ -138,6 +148,9 @@ function phraseLine(phrase: { fr: string; frWritten: string | null; en: string }
 
 export function buildDrillGenerationRequest(input: DrillGenerationInput): string {
   const lines: string[] = [INSTRUCTION, ``];
+  if (input.topics.length > 0) {
+    lines.push(`Discussed topics:`, ...input.topics.map((topic) => `- ${topic.en} (${topic.fr})`), ``);
+  }
   if (input.sessionPhrases.length > 0) {
     lines.push(`Today's phrases:`, ...input.sessionPhrases.map(phraseLine), ``);
   }

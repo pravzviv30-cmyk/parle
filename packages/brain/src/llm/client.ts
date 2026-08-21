@@ -66,6 +66,16 @@ export interface LlmUsage {
 
 export const ZERO_USAGE: LlmUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
 
+/** Provider-neutral accumulation for per-session cost and cache observability. */
+export function addLlmUsage(a: LlmUsage, b: LlmUsage): LlmUsage {
+  return {
+    inputTokens: a.inputTokens + b.inputTokens,
+    outputTokens: a.outputTokens + b.outputTokens,
+    cacheReadTokens: a.cacheReadTokens + b.cacheReadTokens,
+    cacheWriteTokens: a.cacheWriteTokens + b.cacheWriteTokens,
+  };
+}
+
 export interface LlmClient {
   turn(request: BrainTurnRequest): Promise<{ turn: TutorTurn; usage: LlmUsage }>;
   frame(request: BrainFrameRequest): Promise<{ frame: ScenarioFrame; usage: LlmUsage }>;

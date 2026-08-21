@@ -127,3 +127,72 @@ export const APERO_FRAME: ScenarioFrame = {
 };
 
 export const FIXTURE_FRAMES: readonly ScenarioFrame[] = [CAFE_FRAME, APERO_FRAME];
+
+/**
+ * Keep a failed scenario build on the learner's subject.
+ *
+ * A provider outage, timeout or malformed structured reply leaves us without
+ * enough intelligence to translate an arbitrary request into a rich scene.
+ * It does not leave us without the request itself. This small, deliberately
+ * general frame carries that request into every later turn through
+ * `frameMessage`, so a healthy turn model can still play inside it. The fixed
+ * French is useful in almost any situation and, crucially, never substitutes a
+ * café or another stock scene the learner did not choose.
+ */
+export function requestFallbackFrame(request: string): ScenarioFrame {
+  const cleaned = request.replace(/\s+/g, ' ').trim();
+  const subject = cleaned.length > 0 ? cleaned.slice(0, 240).trim() : 'a conversation of your choice';
+  const titleEn = subject.length <= 96 ? subject : `${subject.slice(0, 93).trimEnd()}...`;
+
+  return {
+    title: 'Conversation sur mesure',
+    titleEn,
+    setting: `The learner chose this exact situation: "${subject}". Stay inside that situation and do not replace it with a stock scene.`,
+    learnerRole: 'Themself, in the exact situation they requested.',
+    characters: [
+      {
+        name: 'Camille',
+        role: "a friendly French-speaking conversation partner who belongs naturally in the learner's requested situation",
+        register: 'courant',
+      },
+    ],
+    registerGuidance:
+      'Natural everyday spoken French. Follow the relationship and setting in the learner request. Keep each turn short and make the first words easy to reuse.',
+    beats: [
+      { id: 'set-the-scene', goal: 'Situer la scène', goalEn: 'Say where you are and what is happening' },
+      { id: 'notice-details', goal: 'Décrire ce qui se passe', goalEn: 'Describe what you notice' },
+      { id: 'react', goal: 'Réagir et donner son avis', goalEn: 'React and share an opinion' },
+      { id: 'keep-talking', goal: 'Poser une question et poursuivre', goalEn: 'Ask a question and keep the exchange going' },
+    ],
+    goalPhrases: [
+      { fr: 'Alors, voilà ce qui se passe', frWritten: null, en: "So, here's what's happening", register: 'courant' },
+      { fr: 'Regarde ça', frWritten: null, en: 'Look at that', register: 'courant' },
+      { fr: "Qu'est-ce que t'en penses ?", frWritten: null, en: 'What do you think?', register: 'familier' },
+      { fr: 'Moi, je trouve ça intéressant', frWritten: null, en: 'I find that interesting', register: 'courant' },
+      { fr: 'Et toi ?', frWritten: null, en: 'And you?', register: 'courant' },
+      { fr: 'Et après, il se passe quoi ?', frWritten: null, en: 'And what happens next?', register: 'familier' },
+    ],
+    openingNarration: {
+      speaker: 'narration',
+      fr: 'Imaginez la situation que vous avez choisie. Vous y êtes. La conversation commence.',
+      frWritten: null,
+      en: `Imagine the situation you chose: ${subject}. You are there, and the conversation begins.`,
+    },
+    openingLine: {
+      speaker: 'Camille',
+      fr: "Alors, raconte. Qu'est-ce qui se passe ?",
+      frWritten: null,
+      en: "So, tell me. What's happening?",
+    },
+    openingSupport: {
+      fullLine: { fr: 'Alors, voilà ce qui se passe', frWritten: null, en: "So, here's what's happening" },
+      options: [
+        { fr: 'Je vais te raconter', en: "I'll tell you" },
+        { fr: 'Regarde autour de toi', en: 'Look around you' },
+        { fr: 'On commence ?', en: 'Shall we start?' },
+      ],
+      hintEn: 'Start by saying where you are and what is happening.',
+    },
+    cultureNotes: [],
+  };
+}

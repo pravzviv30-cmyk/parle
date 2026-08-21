@@ -10,7 +10,9 @@
  * misconfigured it.
  */
 
-export type Brain = 'anthropic' | 'groq' | 'claude-cli';
+import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_TURN_MODEL } from '@parle/brain';
+
+export type Brain = 'anthropic' | 'openai' | 'groq' | 'claude-cli' | 'claude-cli-all';
 
 type Env = Record<string, string | undefined>;
 
@@ -28,12 +30,15 @@ type Env = Record<string, string | undefined>;
 export function selectedBrain(env: Env = process.env): Brain {
   const raw = (env.TUTOR_LLM ?? '').trim().toLowerCase();
   if (raw === 'groq') return 'groq';
+  if (raw === 'openai') return 'openai';
   if (raw === 'claude-cli') return 'claude-cli';
+  if (raw === 'claude-cli-all') return 'claude-cli-all';
   return 'anthropic';
 }
 
 /**
- * Which credential each brain cannot start without.
+ * Which credential each brain cannot start without, and `null` for the one that
+ * needs none.
  *
  * `claude-cli` wants GROQ_API_KEY rather than an Anthropic one, and that is not
  * a mistake: the subscription answers through the `claude` command, which needs
@@ -41,22 +46,29 @@ export function selectedBrain(env: Env = process.env): Brain {
  * realtime turn. The turn stays on Groq. What claude-cli needs beyond this is a
  * binary on PATH, which is a filesystem question and is checked by the dev
  * supervisor rather than here.
+ *
+ * `claude-cli-all` takes the realtime turn too, so Groq drops out of the
+ * picture entirely and there is no credential left to want. Demanding one would
+ * refuse to boot a worker that was perfectly able to run.
  */
-const BRAIN_KEY: Record<Brain, string> = {
+const BRAIN_KEY: Record<Brain, string | null> = {
   anthropic: 'ANTHROPIC_API_KEY',
+  openai: 'OPENAI_API_KEY',
   groq: 'GROQ_API_KEY',
   'claude-cli': 'GROQ_API_KEY',
+  'claude-cli-all': null,
 };
 
 /** Without these the worker cannot serve a single turn. */
 export function missingRequired(env: Env = process.env): string[] {
+  const brainKey = BRAIN_KEY[selectedBrain(env)];
   const required = [
     'LIVEKIT_URL',
     'LIVEKIT_API_KEY',
     'LIVEKIT_API_SECRET',
     'DEEPGRAM_API_KEY',
     'ELEVEN_API_KEY',
-    BRAIN_KEY[selectedBrain(env)],
+    ...(brainKey === null ? [] : [brainKey]),
   ];
   return required.filter((name) => (env[name] ?? '').trim() === '');
 }
@@ -75,10 +87,22 @@ export function warnings(env: Env = process.env): string[] {
   if (selectedBrain(env) === 'groq') {
     out.push('TUTOR_LLM=groq selects the $0 fallback brain. Its coaching is visibly weaker than Claude’s.');
   }
+  if (selectedBrain(env) === 'openai') {
+    out.push(
+      'TUTOR_LLM=openai uses GPT-5.6 Luna for live turns and scene design, and GPT-5.6 Terra for '
+        + 'memory, practice and drill work after the session.',
+    );
+  }
   if (selectedBrain(env) === 'claude-cli') {
     out.push(
       'TUTOR_LLM=claude-cli runs memory, curation and drill authoring on your Claude subscription. ' +
         'Realtime turns stay on Groq, because a command-line call costs seconds a learner would spend in silence.',
+    );
+  }
+  if (selectedBrain(env) === 'claude-cli-all') {
+    out.push(
+      'TUTOR_LLM=claude-cli-all puts your Claude subscription behind every call, the learner’s turn included. ' +
+        'Expect eight to twelve seconds of silence per turn: this is for development only, never for anyone learning.',
     );
   }
   return out;
@@ -150,7 +174,41 @@ export async function verifyVendors(
   // has nothing to verify here, while Groq is genuinely serving its realtime
   // turns — probing Anthropic instead would send an empty key, take the 401 as
   // fatal, and refuse to start a worker that was perfectly able to run.
-  if (selectedBrain(env) !== 'anthropic') {
+  //
+  // claude-cli-all probes neither, for that same reason twice over: it holds no
+  // key for either vendor and calls neither. The one thing it needs is a binary
+  // on PATH, which no HTTP probe can answer.
+  const brain = selectedBrain(env);
+  if (brain === 'claude-cli-all') {
+    // nothing to ask
+  } else if (brain === 'openai') {
+    checks.push(
+      probe(
+        'OpenAI',
+        'https://api.openai.com/v1/models',
+        { Authorization: `Bearer ${env.OPENAI_API_KEY ?? ''}` },
+        fetchFn,
+        (body) => {
+          const ids = ((body as { data?: { id?: string }[] }).data ?? [])
+            .map((entry) => entry.id)
+            .filter((id): id is string => typeof id === 'string');
+          const required = [
+            env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL,
+            env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL,
+          ];
+          const missing = [...new Set(required)].filter((id) => !ids.includes(id));
+          if (missing.length === 0) return null;
+          return {
+            vendor: 'OpenAI',
+            fatal: true,
+            detail:
+              `does not list the configured model${missing.length === 1 ? '' : 's'} ${missing.map((id) => `"${id}"`).join(', ')} for this key.\n` +
+              `          Check OPENAI_TURN_MODEL and OPENAI_ANALYST_MODEL in services/tutor-agent/.env.`,
+          };
+        },
+      ),
+    );
+  } else if (brain !== 'anthropic') {
     checks.push(
       probe('Groq', 'https://api.groq.com/openai/v1/models', { Authorization: `Bearer ${env.GROQ_API_KEY ?? ''}` }, fetchFn, (body) => {
         const ids = ((body as { data?: { id?: string }[] }).data ?? []).map((m) => m.id).filter((id): id is string => typeof id === 'string');

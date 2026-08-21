@@ -17,11 +17,13 @@
 
 ## Relationships
 
-- [Session Recap Contract Types](Session_Recap_Contract_Types.md) (4 shared connections)
-- [Brain LLM Client Schemas](Brain_LLM_Client_Schemas.md) (3 shared connections)
+- [Brain Schemas And Samples](Brain_Schemas_And_Samples.md) (3 shared connections)
+- [Memory Extraction Client](Memory_Extraction_Client.md) (2 shared connections)
 - [Learner Profile Updates](Learner_Profile_Updates.md) (1 shared connections)
-- [Conversation Orchestrator](Conversation_Orchestrator.md) (1 shared connections)
-- [Conversation View and Profile Parsing](Conversation_View_and_Profile_Parsing.md) (1 shared connections)
+- [French Authenticity Pack](French_Authenticity_Pack.md) (1 shared connections)
+- [Brain Client Contracts](Brain_Client_Contracts.md) (1 shared connections)
+- [Live Conversation Orchestrator](Live_Conversation_Orchestrator.md) (1 shared connections)
+- [Tutor Tab Curation](Tutor_Tab_Curation.md) (1 shared connections)
 
 ## Source Files
 

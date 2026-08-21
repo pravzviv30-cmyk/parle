@@ -32,6 +32,8 @@ export interface TurnContextInput {
     watchFor: string[];
   };
   inputKind: TurnInputKind;
+  /** What the UI has earned permission to reveal for this exchange. */
+  assistance: 'hidden' | 'hint' | 'full-line';
   /** Sticky once the learner asks: a slowed-down tutor must stay slowed down. */
   pace?: 'normal' | 'slow';
   /** What language their PREVIOUS turn arrived in, when it was not French. */
@@ -40,7 +42,7 @@ export interface TurnContextInput {
   activeTopic?: string | null;
 }
 
-const RUNG_NAMES: Record<number, string> = { 1: 'Echo', 2: 'Cued', 3: 'Prompted', 4: 'Free' };
+const RUNG_NAMES: Record<number, string> = { 1: 'very supported', 2: 'supported', 3: 'mostly independent', 4: 'independent' };
 
 const STRICTNESS_POLICY: Record<Strictness, string> = {
   flow: 'Inline coaching only for what blocks the scene, plus textbook phrasing. Everything else waits for the recap.',
@@ -51,8 +53,8 @@ const STRICTNESS_POLICY: Record<Strictness, string> = {
 const INPUT_NOTES: Record<TurnInputKind, string | null> = {
   spoke: null,
   silence:
-    'Their turn arrived empty. Treat the bracketed marker as silence, not as words they said, and follow the ladder instruction above.',
-  help: 'They asked for help. A healthy act, never counted against them. Follow the ladder instruction above.',
+    'Their turn arrived empty. Treat the marker as silence, not as speech. Never mention the pause. Rephrase or shorten your last line in character without speaking their answer.',
+  help: 'They asked for help. This is healthy and never a failure. The card supplies the help; stay in character and do not announce the answer.',
 };
 
 export function buildTurnContext(input: TurnContextInput): string {
@@ -60,10 +62,10 @@ export function buildTurnContext(input: TurnContextInput): string {
 
   const lines: string[] = [
     '[CONTEXT FROM THE APP, NOT FROM THE LEARNER]',
-    `LADDER: rung ${directive.rung} of 4 (${RUNG_NAMES[directive.rung]}). ${directive.tutorInstruction}`,
+    `INDEPENDENCE: ${RUNG_NAMES[directive.rung]}. Match sentence length and pace, but never pre-fill the learner's reply.`,
   ];
 
-  let beatLine = `BEAT: ${beat.id} (${beat.goal})`;
+  let beatLine = `SCENE AIM: ${beat.id} (${beat.goal}). This is a flexible anchor, not a required script.`;
   if (beat.forceAdvance) {
     beatLine +=
       '. This beat has taken long enough: your character resolves it naturally now and the scene moves on. Do not re-ask.';
@@ -71,6 +73,20 @@ export function buildTurnContext(input: TurnContextInput): string {
     beatLine += `. Last attempt on this beat: after this reply, carry the scene forward regardless.`;
   }
   lines.push(beatLine);
+
+  if (input.assistance === 'hidden') {
+    lines.push(
+      'ASSISTANCE: hidden. The learner gets the first attempt. Keep support private and do not suggest, list, or model their next reply.',
+    );
+  } else if (input.assistance === 'hint') {
+    lines.push(
+      'ASSISTANCE: the app revealed only support.hintEn on a card. Do not speak support.fullLine or support.options. Rephrase your own line and leave the floor open.',
+    );
+  } else {
+    lines.push(
+      "ASSISTANCE: after repeated help, the app revealed support.fullLine on a card. sceneReply must still be your character's side of the exchange.",
+    );
+  }
 
   lines.push(`STRICTNESS: ${strictness}. ${STRICTNESS_POLICY[strictness]}`);
 
@@ -89,7 +105,7 @@ export function buildTurnContext(input: TurnContextInput): string {
 
   if (input.lastLanguage === 'english' || input.lastLanguage === 'mixed') {
     lines.push(
-      'Their previous turn reached for English. Hand back the French for exactly what they tried to say: support.fullLine is that French. Your reply shows you understood and invites the same moment again, in character.',
+      'Their previous turn used English. Add an english-to-french finding and a short coachLine that gives the natural French for exactly what they meant, then continue in character. This is feedback after their attempt, never a prompt for the next one.',
     );
   }
 

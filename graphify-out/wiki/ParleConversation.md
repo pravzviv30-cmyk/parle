@@ -2,7 +2,7 @@
 
 > God node · 39 connections · `services/tutor-agent/src/convo.ts`
 
-**Community:** [Conversation Orchestrator](Conversation_Orchestrator.md)
+**Community:** [Live Conversation Orchestrator](Live_Conversation_Orchestrator.md)
 
 ## Connections by Relation
 
@@ -16,24 +16,24 @@
 ### method
 - .runBrainTurn() `EXTRACTED`
 - .publish() `EXTRACTED`
-- .finish() `EXTRACTED`
 - .startScene() `EXTRACTED`
+- .finish() `EXTRACTED`
 - .armRescue() `EXTRACTED`
 - .handleClientMessage() `EXTRACTED`
+- .constructor() `EXTRACTED`
 - .say() `EXTRACTED`
 - .clearRescue() `EXTRACTED`
-- .constructor() `EXTRACTED`
 - .openScene() `EXTRACTED`
 - .rescue() `EXTRACTED`
 - .curatePractice() `EXTRACTED`
 - .generateDrills() `EXTRACTED`
+- .open() `EXTRACTED`
 - .buildFrame() `EXTRACTED`
 - .publishView() `EXTRACTED`
 - .curateAndDrill() `EXTRACTED`
 - .extractMemory() `EXTRACTED`
 - .onUserTurnCompleted() `EXTRACTED`
 - .recover() `EXTRACTED`
-- .speak() `EXTRACTED`
 
 ### references
 - [LlmClient](LlmClient.md) `EXTRACTED`

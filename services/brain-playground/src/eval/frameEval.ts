@@ -13,7 +13,9 @@ import process from 'node:process';
 
 import {
   AnthropicBrainClient,
+  DEFAULT_OPENAI_TURN_MODEL,
   OpenAiCompatBrainClient,
+  OpenAiResponsesBrainClient,
   buildScenarioRequest,
   buildSystemBlocks,
   copyViolations,
@@ -23,7 +25,7 @@ import {
 
 import { addUsage, costUsd, ZERO_USAGE } from '../usage.ts';
 
-/** The founder's example first; the rest span transactional to personal. */
+/** The founder's examples first; the rest span transactional to personal. */
 const REQUESTS = [
   'a chance conversation with a stranger who bumps into you in a busy street',
   'ordering at a busy Paris café',
@@ -33,14 +35,28 @@ const REQUESTS = [
   'buying vegetables at an open-air market',
   'small talk with a taxi driver from the airport',
   'meeting your partner’s French parents for the first time',
+  'speaking with my teacher at school about an assignment I do not understand',
 ] as const;
 
 const FRENCH_HINT = /[àâçéèêëîïôùûüœ]/i;
+const WORD = /[A-Za-zÀ-ÖØ-öø-ÿŒœ]+/g;
+const ENGLISH_ACCENTED_WORDS = new Set(['café', 'cafés']);
 
-function checkFrame(frame: ScenarioFrame): string[] {
+/**
+ * Accents are a useful deterministic leak detector, but the learner may have
+ * used an accented loanword such as café, apéro or métro in their English
+ * request. Repeating that topic word in the setting is not handing over a
+ * French answer. Only accented words the learner did not supply count here.
+ */
+function carriesFrench(text: string, request: string): boolean {
+  const allowed = new Set([...ENGLISH_ACCENTED_WORDS, ...(request.match(WORD) ?? []).map((word) => word.toLowerCase())]);
+  return (text.match(WORD) ?? []).some((word) => FRENCH_HINT.test(word) && !allowed.has(word.toLowerCase()));
+}
+
+function checkFrame(frame: ScenarioFrame, request: string): string[] {
   const problems: string[] = [];
 
-  if (frame.beats.length < 3 || frame.beats.length > 6) problems.push(`beats: ${frame.beats.length}, want 3-6`);
+  if (frame.beats.length < 2 || frame.beats.length > 5) problems.push(`beats: ${frame.beats.length}, want 2-5`);
   for (const beat of frame.beats) {
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(beat.id)) problems.push(`beat id not kebab-case: "${beat.id}"`);
     if (beat.goalEn.trim().length === 0) problems.push(`beat ${beat.id} has no English gloss`);
@@ -54,9 +70,11 @@ function checkFrame(frame: ScenarioFrame): string[] {
   const narration = frame.openingNarration;
   if (narration.speaker !== 'narration') problems.push(`narration speaker: "${narration.speaker}"`);
   if (narration.en.trim().length === 0) problems.push('narration has no English');
-  if (FRENCH_HINT.test(narration.en)) problems.push('narration.en carries French');
+  if (carriesFrench(narration.en, request)) problems.push(`narration.en carries French: "${narration.en}"`);
 
-  if (FRENCH_HINT.test(frame.openingSupport.hintEn)) problems.push('hintEn carries French — the hint must never hand over words');
+  if (carriesFrench(frame.openingSupport.hintEn, request)) {
+    problems.push(`hintEn carries French — the hint must never hand over words: "${frame.openingSupport.hintEn}"`);
+  }
   if (frame.cultureNotes.length > 3) problems.push(`cultureNotes: ${frame.cultureNotes.length}, want at most 3`);
 
   for (const text of [narration.en, narration.fr, frame.openingLine.fr, frame.openingSupport.hintEn]) {
@@ -66,15 +84,28 @@ function checkFrame(frame: ScenarioFrame): string[] {
   return problems;
 }
 
-function pickClient(): LlmClient {
-  if (process.env.ANTHROPIC_API_KEY) return new AnthropicBrainClient();
-  if (process.env.GROQ_API_KEY) return new OpenAiCompatBrainClient({ apiKey: process.env.GROQ_API_KEY });
-  console.error('The frame eval needs a real model. Set ANTHROPIC_API_KEY (or GROQ_API_KEY) in services/brain-playground/.env');
+function pickClient(): { client: LlmClient; costModel: string } {
+  const choice = (process.env.BRAIN_LLM ?? '').toLowerCase();
+  if ((choice === 'openai' || (choice === '' && !process.env.ANTHROPIC_API_KEY)) && process.env.OPENAI_API_KEY) {
+    return {
+      client: new OpenAiResponsesBrainClient({ apiKey: process.env.OPENAI_API_KEY }),
+      // Frames are designed by the turn model now, because the learner waits
+      // through them. Pricing them as analyst work overstates the cost ~10x.
+      costModel: DEFAULT_OPENAI_TURN_MODEL,
+    };
+  }
+  if ((choice === 'anthropic' || choice === '') && process.env.ANTHROPIC_API_KEY) {
+    return { client: new AnthropicBrainClient(), costModel: 'claude-sonnet-5' };
+  }
+  if ((choice === 'groq' || choice === '') && process.env.GROQ_API_KEY) {
+    return { client: new OpenAiCompatBrainClient({ apiKey: process.env.GROQ_API_KEY }), costModel: 'groq' };
+  }
+  console.error('The frame eval needs a real model. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GROQ_API_KEY in services/brain-playground/.env');
   process.exit(2);
 }
 
 async function main(): Promise<void> {
-  const client = pickClient();
+  const { client, costModel } = pickClient();
   let failures = 0;
   let usage = ZERO_USAGE;
 
@@ -87,7 +118,7 @@ async function main(): Promise<void> {
         request: buildScenarioRequest({ request, learner: { cefr: 'A1', watchFor: ['ne-retention'] } }),
       });
       usage = addUsage(usage, result.usage);
-      const problems = checkFrame(result.frame);
+      const problems = checkFrame(result.frame, request);
       const seconds = ((Date.now() - started) / 1000).toFixed(1);
       if (problems.length === 0) {
         console.log(`ok    ${request} — "${result.frame.title}" (${seconds}s)`);
@@ -102,7 +133,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(`\n${REQUESTS.length - failures}/${REQUESTS.length} frames hold the contract · ~$${costUsd(usage).toFixed(3)}`);
+  console.log(`\n${REQUESTS.length - failures}/${REQUESTS.length} frames hold the contract · ~$${costUsd(usage, costModel).toFixed(3)}`);
   if (failures > 0) process.exit(1);
 }
 

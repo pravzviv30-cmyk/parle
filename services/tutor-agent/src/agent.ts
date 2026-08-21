@@ -36,7 +36,7 @@ import {
 } from '@livekit/agents';
 import * as anthropic from '@livekit/agents-plugin-anthropic';
 import * as openai from '@livekit/agents-plugin-openai';
-import { DEFAULT_ROUTING, defaultModel } from '@parle/brain';
+import { DEFAULT_OPENAI_TURN_MODEL, DEFAULT_ROUTING, defaultModel } from '@parle/brain';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as silero from '@livekit/agents-plugin-silero';
 import { preflight, reportVendors, selectedBrain, verifyVendors } from './preflight.ts';
@@ -53,7 +53,7 @@ import {
   type Rung,
   type ServerMessage,
 } from '@parle/core';
-import { ParleConversation, parseStoredProfile, sttLanguageFor } from './convo.ts';
+import { ParleConversation, parseStoredProfile, sttLanguageFor, validSeedTopic } from './convo.ts';
 import { ParleTutor } from './tutor.ts';
 import { createTurnTiming, formatTiming, mark } from './timing.ts';
 
@@ -79,7 +79,10 @@ function tutorLLM() {
   // speaks HTTP to a vendor, and there is no shape of it that shells out to a
   // command line. A subscription cannot serve it, so the scripted lesson's
   // spoken replies stay on Groq while the conversation brain splits.
-  if (selectedBrain() !== 'anthropic') return openai.LLM.withGroq({ model: 'llama-3.3-70b-versatile' }); // reads GROQ_API_KEY
+  if (selectedBrain() === 'openai') {
+    return new openai.LLM({ model: process.env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL });
+  }
+  if (selectedBrain() !== 'anthropic') return openai.LLM.withGroq({ model: defaultModel() }); // reads GROQ_API_KEY
   return new anthropic.LLM({ model: DEFAULT_ROUTING.turn.model });
 }
 
@@ -115,7 +118,7 @@ export default defineAgent({
     await ctx.connect();
     const participant = await ctx.waitForParticipant();
 
-    type TokenMeta = { lessonId?: string; startRung?: number; mode?: string; snapshot?: unknown };
+    type TokenMeta = { lessonId?: string; startRung?: number; mode?: string; snapshot?: unknown; seedTopic?: unknown };
     const parseMeta = (raw?: string): TokenMeta => {
       try {
         return raw ? (JSON.parse(raw) as TokenMeta) : {};
@@ -153,9 +156,18 @@ export default defineAgent({
       language: sttLanguageFor(isConvo ? 'convo' : 'lesson', 'choosing'),
     });
 
+    // A topic the learner tapped in Practice, so the conversation opens on it
+    // rather than asking what to talk about. Checked again here for the same
+    // reason as the rung above: the value is server-signed, but the shape
+    // inside it came from the app, and this one ends up in a spoken line.
+    // Meaningful only for a conversation — the scripted lesson has a script,
+    // and nothing for a seed to steer.
+    const seedTopic = validSeedTopic(meta.seedTopic);
+
     const tutor = isConvo
       ? new ParleConversation(parseStoredProfile(meta.snapshot), {
           voiceless,
+          seedTopic,
           setSttLanguage: (language) => stt.updateOptions({ language }),
         })
       : new ParleTutor(lesson, startRung, { voiceless });
@@ -187,7 +199,13 @@ export default defineAgent({
 
     ctx.room.on('dataReceived', (payload: Uint8Array, _participant, _kind, topic?: string) => {
       if (topic !== TOPIC_CLIENT) return;
-      void tutor.handleClientMessage(session, payload);
+      // The belt to handleClientMessage's braces. It contains its own failures,
+      // so this should never fire — but this worker serves every learner on the
+      // process, and an unhandled rejection here ends all of their sessions at
+      // once. A `void` with no catch is that bet, taken on every frame.
+      void tutor.handleClientMessage(session, payload).catch((err: unknown) => {
+        console.error('[parle] a client message failed on its way in', err);
+      });
     });
 
     const session = new voice.AgentSession({
@@ -291,6 +309,6 @@ preflight();
 // Presence is not health. The keys can all be filled in and still be rejected,
 // and the model named in one of them can have been retired since it was written
 // — both of which land on the learner as that same silent room.
-reportVendors(await verifyVendors(process.env, selectedBrain() === 'anthropic' ? '' : defaultModel()));
+reportVendors(await verifyVendors(process.env, selectedBrain() === 'groq' ? defaultModel() : ''));
 
 cli.runApp(new WorkerOptions({ agent: fileURLToPath(import.meta.url) }));

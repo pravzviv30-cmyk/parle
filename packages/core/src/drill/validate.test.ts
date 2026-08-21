@@ -240,8 +240,9 @@ describe('copy rules — the linter reads like the copy tests', () => {
     rejects({ ...goodTypedFill, accepted: ['café', 'café 2'] }, 'digit');
   });
 
-  test('a French-accented English gloss is rejected', () => {
-    rejects({ ...goodFill, en: 'A café, please' }, 'looks French');
+  test('ordinary English café is allowed, but French accented words still trip the gloss check', () => {
+    assert.deepEqual(validateExercise({ ...goodFill, en: 'A café, please' }), { ok: true });
+    rejects({ ...goodFill, en: 'I want un thé, please' }, 'looks French');
   });
 
   test('the French side is allowed its accents, and names are not glosses', () => {

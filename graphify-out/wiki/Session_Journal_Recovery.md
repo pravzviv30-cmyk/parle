@@ -27,15 +27,14 @@
 
 ## Relationships
 
-- [Client Agent Wire Protocol](Client_Agent_Wire_Protocol.md) (5 shared connections)
-- [Discussed Topics Store](Discussed_Topics_Store.md) (5 shared connections)
-- [App Root and Profile Gate](App_Root_and_Profile_Gate.md) (4 shared connections)
+- [Client Agent Protocol](Client_Agent_Protocol.md) (5 shared connections)
+- [Practice Topic Store](Practice_Topic_Store.md) (5 shared connections)
+- [Mobile App Root](Mobile_App_Root.md) (4 shared connections)
 - [Review Deck Store](Review_Deck_Store.md) (3 shared connections)
-- [Live Session Navigation Context](Live_Session_Navigation_Context.md) (3 shared connections)
-- [Live Failure Copy and Globals](Live_Failure_Copy_and_Globals.md) (3 shared connections)
-- [Activity Log Store](Activity_Log_Store.md) (2 shared connections)
-- [Paper UI Component Kit](Paper_UI_Component_Kit.md) (2 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (1 shared connections)
+- [Conversation Screen Components](Conversation_Screen_Components.md) (3 shared connections)
+- [Practice Path Row](Practice_Path_Row.md) (3 shared connections)
+- [Live Failure Classification](Live_Failure_Classification.md) (3 shared connections)
+- [Activity History Log](Activity_History_Log.md) (2 shared connections)
 
 ## Source Files
 

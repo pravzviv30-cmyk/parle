@@ -16,7 +16,7 @@ import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { paper, space, type } from '../theme.ts';
-import { ChevronLeft, ProgressDots, PillButton, Card, Label } from '../components.tsx';
+import { ChevronLeft, ProgressDots, PillButton, Card } from '../components.tsx';
 import { SpeakBubbles, OnboardWave, RecapPostcard } from '../illustrations.tsx';
 import { VoiceOrb, type OrbState } from './VoiceOrb.tsx';
 
@@ -61,8 +61,8 @@ const PAGES = [
     key: 'stuck',
     art: OnboardWave,
     title: 'Getting stuck is planned for',
-    body: 'Say nothing and the tutor steps in and hands you the line. It never comments on the pause, and it never scores you while you are talking.',
-    note: 'Help me out gives you the words. Slower makes the tutor slow down and stay slow. In English tells you what was just said.',
+    body: 'You always get the first attempt. If you get stuck, a small English hint appears without interrupting the scene. The answer stays hidden unless you ask again.',
+    note: 'Help me out reveals a hint. Slower keeps the tutor slow. In English tells you what the tutor just said.',
   },
   {
     key: 'after',
@@ -117,8 +117,7 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
         {page.key === 'orb' ? <OrbWalkthrough /> : null}
         {page.note ? (
           <Card style={{ marginTop: space(5) }}>
-            <Label>While you talk</Label>
-            <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{page.note}</Text>
+            <Text style={[type.bodyStrong, { color: paper.ink }]}>{page.note}</Text>
           </Card>
         ) : null}
       </ScrollView>

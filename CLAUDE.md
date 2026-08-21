@@ -55,6 +55,7 @@ the territories are in `docs/TEAM.md`.
 |---|---|
 | Something built properly | `/forge <what you want built>` |
 | To know if it is safe to release | `/ship` |
+| To know if this belongs on main yet | `/land` |
 | One pass at the ledger's top open item | `/bug-sweep` |
 | A specific specialist | ask for it by name |
 
@@ -69,8 +70,8 @@ each, and a second opinion about them is how a repo grows two ladders.
 
 ## graphify
 
-This project has a knowledge graph at `graphify-out/` — 2224 nodes, 5407 links
-across the source files, grouped into 131 named communities.
+This project has a knowledge graph at `graphify-out/` — 2277 nodes, 5554 links
+across the source files, grouped into 151 named communities.
 
 **Route by the shape of the question, and name real symbols.** Reaching for a bare
 `graphify query` is the wrong default here: it truncates. A prose live-voice question
@@ -100,7 +101,7 @@ Rules:
   to a directed search and reports "No directed path found" on edges that do exist.
 - `affected` and `explain` are the precise commands — both cite `file:line`. Prefer
   them whenever the question names a symbol, which is most of the time.
-- Start broad navigation at `graphify-out/wiki/index.md` (141 concept articles, ~2.3k
+- Start broad navigation at `graphify-out/wiki/index.md` (161 concept articles, ~2.3k
   tokens) rather than `GRAPH_REPORT.md` (~5.5k tokens).
 - Going straight to a file to edit or debug specific lines is fine. The graph is for
   orientation, not a gate.
@@ -121,6 +122,33 @@ Known limits (do not mistake these for working):
 - **Seeding is lexical, not semantic.** Asking "what counts as a *right* answer" seeds
   on a node named `counts` and on `ArrowRight()`. This is the same trap as the first
   rule above, and it is the single most common way to waste a query here.
+
+## Landing work on main
+
+**Decide this yourself, and decide it out loud.** When a piece of work reaches a natural
+stopping point, do not wait to be asked whether it should go to `main`. Run the judgement in
+`.claude/commands/land.md` and say which of the four verdicts it is: **LAND**, **HOLD**,
+**SPLIT** or **ASK**. Landing on a clear LAND is authorised standing work; so is holding.
+Saying nothing is the only wrong answer, because it leaves finished work sitting in a dirty
+tree where the next session can absorb it.
+
+Two of those verdicts are worth more than they look. **SPLIT** is the usual right answer for
+a session that drifted into a second topic, and **HOLD** is nearly always better than a
+marginal LAND: a branch that waits a day costs one person, and half a change on `main` costs
+everyone who pulls.
+
+Three hard stops, and none of them is negotiable by being asked:
+
+- **Never stage what this session did not write.** `git add -A` and `git add .` are
+  forbidden here; two sessions share this tree often enough that the sweep is a real way to
+  publish somebody's half-finished work under your name. Stage explicit paths, and if you
+  cannot tell whose a file is, that is **ASK**.
+- **Never merge while another session is mid-edit.** `git status` showing files you did not
+  touch, or `git worktree list` showing a live worktree, means someone is working. Your own
+  files may still land; theirs never do.
+- **Never `--force`, `--no-verify`, or rebase anything already pushed.** The hooks are the
+  last honest check on the way out; a change that needs them off is a change that is not
+  ready.
 
 ## Worktrees
 

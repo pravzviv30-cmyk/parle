@@ -2,7 +2,7 @@
 
 > God node · 38 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Paper UI Component Kit](Paper_UI_Component_Kit.md)
+**Community:** [Tab Bar Icons](Tab_Bar_Icons.md)
 
 ## Connections by Relation
 
@@ -15,6 +15,7 @@
 - components.tsx `EXTRACTED`
 - App.tsx `EXTRACTED`
 - ConvoScreen.tsx `EXTRACTED`
+- PracticeTab.tsx `EXTRACTED`
 - AddFriendsScreen.tsx `EXTRACTED`
 - LeaderboardTab.tsx `EXTRACTED`
 - SummaryScreen.tsx `EXTRACTED`
@@ -22,14 +23,13 @@
 - ReviewScreen.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
 - SessionView.tsx `EXTRACTED`
-- PracticeTab.tsx `EXTRACTED`
 - ProfileTab.tsx `EXTRACTED`
+- TutorTab.tsx `EXTRACTED`
 - LiveErrorView.tsx `EXTRACTED`
 - LiveSessionScreen.tsx `EXTRACTED`
 - illustrations.tsx `EXTRACTED`
+- PathNodeRow.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`
-- SignUpScreen.tsx `EXTRACTED`
-- FocusDrillPlayer.tsx `EXTRACTED`
 
 ### rationale_for
 - Paper & Ink design world `EXTRACTED`

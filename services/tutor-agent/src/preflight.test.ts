@@ -31,6 +31,17 @@ describe('selectedBrain', () => {
     assert.equal(selectedBrain({ TUTOR_LLM: ' GROQ ' }), 'groq');
   });
 
+  test('selects OpenAI, case and whitespace insensitively', () => {
+    assert.equal(selectedBrain({ TUTOR_LLM: 'openai' }), 'openai');
+    assert.equal(selectedBrain({ TUTOR_LLM: ' OPENAI ' }), 'openai');
+  });
+
+  test('selects the subscription-for-everything brain, case and whitespace insensitively', () => {
+    assert.equal(selectedBrain({ TUTOR_LLM: 'claude-cli' }), 'claude-cli');
+    assert.equal(selectedBrain({ TUTOR_LLM: 'claude-cli-all' }), 'claude-cli-all');
+    assert.equal(selectedBrain({ TUTOR_LLM: ' CLAUDE-CLI-ALL ' }), 'claude-cli-all', 'and is not read as the split one');
+  });
+
   test('an unrecognised value falls back to the default rather than throwing', () => {
     assert.equal(selectedBrain({ TUTOR_LLM: 'llama' }), 'anthropic');
   });
@@ -62,6 +73,22 @@ describe('missingRequired', () => {
     assert.deepEqual(missingRequired({ ...groq, GROQ_API_KEY: 'g' }), []);
   });
 
+  test('OpenAI uses the ordinary OPENAI_API_KEY', () => {
+    const env = { ...FULL, TUTOR_LLM: 'openai', ANTHROPIC_API_KEY: '' };
+    assert.deepEqual(missingRequired(env), ['OPENAI_API_KEY']);
+    assert.deepEqual(missingRequired({ ...env, OPENAI_API_KEY: 'openai-key' }), []);
+  });
+
+  test('claude-cli-all needs no brain key at all, because a binary on PATH is not a credential', () => {
+    // claude-cli still wants GROQ_API_KEY, because Groq is still serving its
+    // realtime turns. claude-cli-all takes those too, so there is nothing left
+    // for a key to buy — and demanding one would refuse to start a worker that
+    // was perfectly able to run.
+    const env = { ...FULL, TUTOR_LLM: 'claude-cli-all', ANTHROPIC_API_KEY: '' };
+    assert.deepEqual(missingRequired(env), []);
+    assert.deepEqual(missingRequired({ ...env, TUTOR_LLM: 'claude-cli' }), ['GROQ_API_KEY']);
+  });
+
   test('ELEVEN_VOICE_ID is not required, because voice.ts has a fallback', () => {
     assert.deepEqual(missingRequired({ ...FULL, ELEVEN_VOICE_ID: '' }), []);
   });
@@ -77,6 +104,21 @@ describe('warnings', () => {
     assert.equal(w.length, 2);
     assert.match(w[0]!, /ELEVEN_VOICE_ID/);
     assert.match(w[1]!, /groq/i);
+  });
+
+  test('claude-cli-all says plainly what it costs, and that it is for development', () => {
+    const w = warnings({ ...FULL, TUTOR_LLM: 'claude-cli-all', ANTHROPIC_API_KEY: '' });
+    assert.equal(w.length, 1);
+    assert.match(w[0]!, /claude-cli-all/);
+    assert.match(w[0]!, /seconds/i, 'the learner will sit through every one of them');
+    assert.match(w[0]!, /development/i, 'and nobody should discover that in production');
+  });
+
+  test('OpenAI names the live and background defaults', () => {
+    const w = warnings({ ...FULL, TUTOR_LLM: 'openai', OPENAI_API_KEY: 'o' });
+    assert.equal(w.length, 1);
+    assert.match(w[0]!, /Luna/);
+    assert.match(w[0]!, /Terra/);
   });
 });
 
@@ -120,6 +162,7 @@ describe('verifyVendors', () => {
   }
 
   const LIVE_MODELS = { data: [{ id: 'openai/gpt-oss-120b' }, { id: 'openai/gpt-oss-20b' }] };
+  const OPENAI_MODELS = { data: [{ id: 'gpt-5.6-luna' }, { id: 'gpt-5.6-terra' }] };
 
   test('a healthy pipeline reports nothing', async () => {
     const checks = await verifyVendors(
@@ -166,6 +209,18 @@ describe('verifyVendors', () => {
     assert.match(checks[0]!.detail, /network/);
   });
 
+  test('claude-cli-all probes no brain vendor, because neither one is serving it', async () => {
+    // The trap: the Groq probe sends whatever GROQ_API_KEY holds, which under
+    // claude-cli-all is nothing. An empty key takes a 401, a 401 is fatal, and
+    // the worker refuses to start over a vendor it was never going to call.
+    const checks = await verifyVendors(
+      { ...FULL, TUTOR_LLM: 'claude-cli-all', ANTHROPIC_API_KEY: '', GROQ_API_KEY: '' },
+      '',
+      fakeFetch({ 'api.groq.com': { status: 401 }, 'api.anthropic.com': { status: 401 } }),
+    );
+    assert.deepEqual(checks, [], 'the voice and the transcription answered, and there was no brain to ask');
+  });
+
   test('the anthropic brain is checked instead when it is the one selected', async () => {
     const checks = await verifyVendors(
       { ...FULL, TUTOR_LLM: 'anthropic' },
@@ -175,6 +230,47 @@ describe('verifyVendors', () => {
     assert.equal(checks.length, 1);
     assert.equal(checks[0]!.vendor, 'Anthropic');
     assert.equal(checks[0]!.fatal, true);
+  });
+
+  test('the OpenAI brain probes OpenAI instead of Anthropic or Groq', async () => {
+    const checks = await verifyVendors(
+      { ...FULL, TUTOR_LLM: 'openai', ANTHROPIC_API_KEY: '', OPENAI_API_KEY: 'o' },
+      '',
+      fakeFetch({ 'api.openai.com': { status: 401 }, 'api.anthropic.com': { status: 200 } }),
+    );
+    assert.equal(checks.length, 1);
+    assert.equal(checks[0]!.vendor, 'OpenAI');
+    assert.equal(checks[0]!.fatal, true);
+  });
+
+  test('OpenAI startup verifies both the live and background models are available to the key', async () => {
+    const env = { ...FULL, TUTOR_LLM: 'openai', ANTHROPIC_API_KEY: '', OPENAI_API_KEY: 'o' };
+    const checks = await verifyVendors(
+      env,
+      '',
+      fakeFetch({ 'api.openai.com': { status: 200, body: OPENAI_MODELS } }),
+    );
+    assert.deepEqual(checks, []);
+  });
+
+  test('OpenAI refuses to register when an override names a model the key cannot use', async () => {
+    const env = {
+      ...FULL,
+      TUTOR_LLM: 'openai',
+      ANTHROPIC_API_KEY: '',
+      OPENAI_API_KEY: 'o',
+      OPENAI_ANALYST_MODEL: 'gpt-made-up',
+    };
+    const checks = await verifyVendors(
+      env,
+      '',
+      fakeFetch({ 'api.openai.com': { status: 200, body: OPENAI_MODELS } }),
+    );
+    assert.equal(checks.length, 1);
+    assert.equal(checks[0]!.vendor, 'OpenAI');
+    assert.equal(checks[0]!.fatal, true);
+    assert.match(checks[0]!.detail, /gpt-made-up/);
+    assert.match(checks[0]!.detail, /OPENAI_ANALYST_MODEL/);
   });
 });
 

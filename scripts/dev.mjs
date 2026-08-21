@@ -168,10 +168,15 @@ async function main() {
     );
   }
 
+  // Both CLI brains need the binary, and claude-cli-all needs it MORE: it serves
+  // every turn rather than only the post-session work, and it asks for no key at
+  // all, so envGaps above has nothing to catch a missing one with. Without this
+  // check the whole stack boots happily and every single turn returns the
+  // recovery line, which reads as a broken tutor rather than a missing tool.
   const brain = (agentEnv.TUTOR_LLM ?? '').trim().toLowerCase();
-  if (brain === 'claude-cli' && !hasClaudeCli()) {
+  if ((brain === 'claude-cli' || brain === 'claude-cli-all') && !hasClaudeCli()) {
     die(
-      `TUTOR_LLM=claude-cli, but the claude command is not on PATH.\n` +
+      `TUTOR_LLM=${brain}, but the claude command is not on PATH.\n` +
         `        Install it, or set TUTOR_LLM=groq in ${AGENT_ENV_FILE.replace(`${ROOT}/`, '')}.`,
     );
   }

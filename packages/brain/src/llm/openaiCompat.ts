@@ -26,17 +26,15 @@ import {
   type LlmUsage,
 } from './client.ts';
 
+// The retry policy, the Retry-After cap and the HTTP shape now live in one
+// module both REST adapters import. See http.ts for why there is only one copy.
+import { realSleep, retryAfterMs, type FetchLike, type SleepLike } from './http.ts';
+
 export interface OpenAiCompatConfig {
   apiKey: string;
   baseUrl?: string;
   model?: string;
 }
-
-type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body: string }) => Promise<{
-  ok: boolean;
-  status: number;
-  json(): Promise<unknown>;
-}>;
 
 const DEFAULT_BASE_URL = 'https://api.groq.com/openai/v1';
 
@@ -86,14 +84,20 @@ function jsonSchemaText(schema: ContractSchema): string {
 export class OpenAiCompatBrainClient implements LlmClient {
   private readonly config: Required<OpenAiCompatConfig>;
   private readonly fetchFn: FetchLike;
+  private readonly sleep: SleepLike;
 
-  constructor(config: OpenAiCompatConfig, fetchFn: FetchLike = globalThis.fetch as unknown as FetchLike) {
+  constructor(
+    config: OpenAiCompatConfig,
+    fetchFn: FetchLike = globalThis.fetch as unknown as FetchLike,
+    sleep: SleepLike = realSleep,
+  ) {
     this.config = {
       apiKey: config.apiKey,
       baseUrl: config.baseUrl ?? DEFAULT_BASE_URL,
       model: config.model ?? defaultModel(),
     };
     this.fetchFn = fetchFn;
+    this.sleep = sleep;
   }
 
   async turn(request: BrainTurnRequest): Promise<{ turn: TutorTurn; usage: LlmUsage }> {
@@ -182,7 +186,17 @@ export class OpenAiCompatBrainClient implements LlmClient {
   }
 
   private async post(messages: { role: string; content: string }[]): Promise<ChatCompletion> {
-    const response = await this.fetchFn(`${this.config.baseUrl}/chat/completions`, {
+    const first = await this.send(messages);
+    if (first.status !== 429) return unwrap(first);
+
+    // Rate limited. Wait the vendor's own number, capped, and ask once more.
+    // Everything else — including a second 429 — falls through unchanged.
+    await this.sleep(retryAfterMs(first.headers?.get('retry-after')));
+    return unwrap(await this.send(messages));
+  }
+
+  private send(messages: { role: string; content: string }[]) {
+    return this.fetchFn(`${this.config.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         authorization: `Bearer ${this.config.apiKey}`,
@@ -194,9 +208,12 @@ export class OpenAiCompatBrainClient implements LlmClient {
         messages,
       }),
     });
-    if (!response.ok) {
-      throw new Error(`Chat completion failed with status ${response.status}`);
-    }
-    return (await response.json()) as ChatCompletion;
   }
+}
+
+async function unwrap(response: Awaited<ReturnType<FetchLike>>): Promise<ChatCompletion> {
+  if (!response.ok) {
+    throw new Error(`Chat completion failed with status ${response.status}`);
+  }
+  return (await response.json()) as ChatCompletion;
 }

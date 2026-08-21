@@ -112,9 +112,11 @@ The keys go into `services/tutor-agent/.env`:
 
 | Key | Where | Powers |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | console.anthropic.com | The tutor brain, routed per activity (`packages/brain/src/llm/routing.ts`): Claude Sonnet 5 answers realtime turns and designs scenes, Claude Opus 5 does the post-session work (learner memory, drill authoring). The default — coaching quality is the product. |
-| `GROQ_API_KEY` | console.groq.com | The $0 fallback brain (`TUTOR_LLM=groq`, Llama 3.3 free tier). Visibly weaker coaching; fine for plumbing work. |
+| `OPENAI_API_KEY` | platform.openai.com | Recommended first production path: `TUTOR_LLM=openai` uses GPT-5.6 Luna for low-latency turns and scene design, and GPT-5.6 Terra for memory and varied practice through strict Responses API schemas. `OPENAI_TURN_MODEL` and `OPENAI_ANALYST_MODEL` are optional overrides; there is no separate Luna key. |
+| `ANTHROPIC_API_KEY` | console.anthropic.com | Alternative production brain: `TUTOR_LLM=anthropic` routes Claude by activity through the same provider-neutral contracts. |
+| `GROQ_API_KEY` | console.groq.com | The $0 fallback brain (`TUTOR_LLM=groq`). Useful for plumbing work; model availability and free-tier limits change, so the worker probes it before accepting learners. |
 | *(no key)* | your Claude subscription | `TUTOR_LLM=claude-cli` runs the brain through the `claude` command instead of the API, so the coaching can be judged before buying a key. It splits by who is waiting: post-session memory, curation and drill authoring go to Claude, and realtime turns stay on Groq, because one command-line call measures about 8 to 12 seconds against a sub-second turn budget. Needs `claude` on PATH and `GROQ_API_KEY`. Moving to the API later is `TUTOR_LLM=anthropic` plus a key, and nothing else. |
+| *(no key)* | your Claude subscription | `TUTOR_LLM=claude-cli-all` sends **every** call to the `claude` command, realtime turns included, and needs no vendor key of any kind. Development only: each turn costs the same 8 to 12 seconds, so the learner waits through it, and the scene builder is given 30 seconds instead of 10 so a slow call does not lose the race and open a fixture scene. Reach for it when Groq's free tier is rate limiting you, or to judge coaching quality with no spend at all. Needs `claude` on PATH. |
 | `DEEPGRAM_API_KEY` | console.deepgram.com | French STT ($200 signup credit) |
 | `ELEVEN_API_KEY` + `ELEVEN_VOICE_ID` | elevenlabs.io | The tutor's French voice (free tier) |
 | `SPEECHACE_API_KEY` | speechace.com (optional) | Pronunciation scoring for speak drills via the token server's `/drill/score`. Absent, drills fall back to honest self-report. |
@@ -182,15 +184,16 @@ repeat-this, with typo-tolerant grading, re-queue-until-correct, the
 recognition→production ramp over the review deck, and the "can't speak now"
 mic swap) · the full UI on iOS, Android and web.
 
-**Built and tested, needs keys to feel:** the conversation upgrade. The session
-opens on "Alors, de quoi on parle aujourd'hui ?" with topic chips; a spoken or
-tapped topic runs the scenario builder (fixture scenes are the fallback, never a
-failure); scenes open with narration ("Imagine the scene…"); English answers get
-the French handed back and the beat re-invited; "plus lent" makes the tutor slow
-and KEEPS it slow; corrections render as quote → better on screen; after the
-recap the analyst extracts what it learned about the learner (next session opens
-with it) and authors tomorrow's drills from today's phrases. Text-mode
-conversation (`sans micro`) is the same brain with the voice pipeline dark.
+**Built and tested, needs keys to feel:** the free conversation tutor. It asks
+what the learner wants to practise, builds that situation, speaks first and
+then waits for the learner's own French, mixed or English reply. Ordinary turns
+never show a suggested answer; the first help reveals only an English hint and
+repeated help may reveal a French line. English attempts receive a natural
+French recast after the attempt. Account memory informs later scenes without
+overriding the current request. After the recap, practice is grouped by the
+topics actually discussed, adds at most two related transfer phrases, and uses
+the six drill formats already implemented. Text mode is the same tutor and
+transcript with only the audio pipeline turned off.
 
 **Built but unverified without a mic + key:** per-utterance audio capture on
 speak drills, scored against the reference text through the token server's

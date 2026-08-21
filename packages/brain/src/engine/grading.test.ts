@@ -43,7 +43,14 @@ describe('assessmentToQuality — the promotion signal', () => {
 });
 
 describe('surface policy — when feedback lands, never whether', () => {
-  const ALL_KINDS: CoachKind[] = ['blocking-error', 'grammar-slip', 'textbook-phrasing', 'register-mismatch', 'anglicism'];
+  const ALL_KINDS: CoachKind[] = [
+    'blocking-error',
+    'english-to-french',
+    'grammar-slip',
+    'textbook-phrasing',
+    'register-mismatch',
+    'anglicism',
+  ];
   const ALL_LEVELS: Strictness[] = ['flow', 'balanced', 'strict'];
 
   test('textbook phrasing surfaces inline at EVERY strictness — this is the product', () => {
@@ -55,6 +62,12 @@ describe('surface policy — when feedback lands, never whether', () => {
   test('blocking errors always surface inline', () => {
     for (const strictness of ALL_LEVELS) {
       assert.equal(surfacePolicy('blocking-error', strictness), 'inline', strictness);
+    }
+  });
+
+  test('English-to-French recasts always surface after the learner attempts', () => {
+    for (const strictness of ALL_LEVELS) {
+      assert.equal(surfacePolicy('english-to-french', strictness), 'inline', strictness);
     }
   });
 

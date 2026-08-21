@@ -16,7 +16,9 @@ interface MtokPrices {
 }
 
 const USD_PER_MTOK: Record<string, MtokPrices> = {
-  'claude-sonnet-5': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
+  'gpt-5.6-luna': { input: 0.2, output: 1.2, cacheRead: 0.02, cacheWrite: 0.2 },
+  'gpt-5.6-terra': { input: 2, output: 12, cacheRead: 0.2, cacheWrite: 2 },
+  'claude-sonnet-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
   'claude-opus-5': { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
 };
 
@@ -50,12 +52,12 @@ function k(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 }
 
-export function formatTurnUsage(usage: LlmUsage, elapsedMs: number): string {
+export function formatTurnUsage(usage: LlmUsage, elapsedMs: number, model: string = DEFAULT_MODEL): string {
   const input = usage.inputTokens + usage.cacheReadTokens + usage.cacheWriteTokens;
   const cached = usage.cacheReadTokens;
-  return `${k(input)} in (${k(cached)} cached) · ${k(usage.outputTokens)} out · ~$${costUsd(usage).toFixed(3)} · ${(elapsedMs / 1000).toFixed(1)}s`;
+  return `${k(input)} in (${k(cached)} cached) · ${k(usage.outputTokens)} out · ~$${costUsd(usage, model).toFixed(3)} · ${(elapsedMs / 1000).toFixed(1)}s`;
 }
 
-export function formatSessionUsage(total: LlmUsage, turns: number): string {
-  return `${turns} model calls · ~$${costUsd(total).toFixed(3)} this session`;
+export function formatSessionUsage(total: LlmUsage, turns: number, model: string = DEFAULT_MODEL): string {
+  return `${turns} model calls · ~$${costUsd(total, model).toFixed(3)} this session`;
 }

@@ -15,7 +15,14 @@ describe('the turn contract round-trips', () => {
   });
 
   test('a coaching turn parses with every kind in the taxonomy', () => {
-    for (const kind of ['blocking-error', 'grammar-slip', 'textbook-phrasing', 'register-mismatch', 'anglicism'] as const) {
+    for (const kind of [
+      'blocking-error',
+      'english-to-french',
+      'grammar-slip',
+      'textbook-phrasing',
+      'register-mismatch',
+      'anglicism',
+    ] as const) {
       const turn = sampleTurn({ coach: [sampleCoachItem({ kind })] });
       assert.equal(TurnSchema.parse(turn).coach[0]!.kind, kind);
     }
@@ -53,6 +60,47 @@ describe('the scenario fixtures satisfy the frame schema', () => {
       const ids = frame.beats.map((b) => b.id);
       assert.equal(new Set(ids).size, ids.length);
     }
+  });
+});
+
+describe('a scene with no beats is refused at the contract — an empty spine wedges the session', () => {
+  test('a scenario with no beats is rejected before it can open', () => {
+    // The beats are the conversation's spine. `createConversation` reads
+    // `beats[0]` and `openScene` reads `beats[beatIndex]` without asking, so an
+    // empty array throws *after* the agent has left the choosing phase and
+    // before it reaches the scene — and a learner stranded in that gap has
+    // every later thing they say dropped in silence, forever.
+    //
+    // Refusing it here means the throw lands inside buildFrame's existing
+    // catch, where the fallback is already sitting. The learner gets a scene.
+    assert.throws(
+      () => ScenarioFrameSchema.parse({ ...CAFE_FRAME, beats: [] }),
+      'a frame with no beats must not parse; if it does, the session wedges where no learner can get out of it',
+    );
+
+    for (const frame of [CAFE_FRAME, APERO_FRAME]) {
+      assert.ok(
+        ScenarioFrameSchema.parse(frame).beats.length >= 1,
+        'the fixture that catch falls back to has to clear the same floor, or the rescue wedges exactly like the thing it is rescuing from',
+      );
+    }
+  });
+
+  test('the floor travels to the model, not just to our own parse', () => {
+    // This is the one place this file breaks its own "no refinements" rule, and
+    // it is only allowed because the constraint survives the trip. The SDK's
+    // schema transform passes minItems through when it is 0 or 1 and demotes
+    // every other value into a prose description — so `.min(1)` is enforced
+    // server-side, while `.min(3)` would quietly become a suggestion and turn a
+    // model slip into a hard parse failure for no gain.
+    const wire = zodOutputFormat(ScenarioFrameSchema) as unknown as {
+      schema: { properties: Record<string, { minItems?: number }> };
+    };
+    assert.equal(
+      wire.schema.properties.beats?.minItems,
+      1,
+      'the beats floor must reach the API in the request, or we are only catching the empty frame after paying for it',
+    );
   });
 });
 

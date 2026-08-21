@@ -172,8 +172,7 @@ export function ProfileTab({ onSignOut, onResetProgress }: { onSignOut: () => vo
 
         {sheet === 'unavailable' && (
           <Card style={{ marginTop: space(5) }}>
-            <Label>Not yet</Label>
-            <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{unavailable}</Text>
+            <Text style={[type.bodyStrong, { color: paper.ink }]}>{unavailable}</Text>
             <View style={{ marginTop: space(3) }}>
               <OutlineButton label="Close" onPress={() => setSheet('none')} />
             </View>

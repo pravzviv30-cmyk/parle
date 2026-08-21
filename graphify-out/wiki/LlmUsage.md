@@ -2,7 +2,7 @@
 
 > God node · 39 connections · `packages/brain/src/llm/client.ts`
 
-**Community:** [Brain LLM Client Schemas](Brain_LLM_Client_Schemas.md)
+**Community:** [Memory Extraction Client](Memory_Extraction_Client.md)
 
 ## Connections by Relation
 

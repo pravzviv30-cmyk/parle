@@ -30,7 +30,55 @@ one signal.
 
 ## Colour
 
-Light, and committed to one paper. Tokens from `apps/mobile/src/theme.ts`:
+Light, and committed to one *lightness*. Every raw value lives in
+`apps/mobile/src/palette.ts`, which imports nothing so that
+`palette.test.ts` can hold it to a contract; `theme.ts` composes its tokens
+from there and its public exports are unchanged.
+
+### Five papers, one light
+
+A paper is a place's light: a ground, one step deeper for chips and pressed
+states, a hairline, and the accent its small type is set in.
+
+| Paper | ground | groundDeep | line | accent | Where |
+|---|---|---|---|---|---|
+| `house` | `#F3E8F3` | `#E4D3EE` | `#D9C8E2` | violet `#6B3FA0` | Everything not about one subject |
+| `sand` | `#FEE7DB` | `#FCCFC1` | `#EFC5B6` | bronze `#8C5800` | The café arc and its recap |
+| `sage` | `#E8EED5` | `#DBDCB2` | `#CFD1A8` | harbour `#00689E` | Entre amis |
+| `lagoon` | `#CFF3EB` | `#AFE4D0` | `#A4D9C6` | iris `#445EB4` | A topic the tutor wrote |
+| `sky` | `#D5EFFE` | `#ABE1F5` | `#A1D6E9` | violet `#6B3FA0` | Practice and its deck |
+
+All five grounds sit at **L\* 93.1**, the lightness the lilac already had, and
+that is the whole safety argument. Contrast is a function of relative
+luminance, luminance is a function of L\*, and the a/b axes do not enter the
+formula. Hold lightness still and every ink keeps the exact ratio it had, on
+every paper: measured drift across the set is under 0.3%. The other two steps
+are computed rather than picked, by the rule that reproduces the original
+lilac trio exactly (groundDeep at L\* 86.6, chroma +8.5, hue −11; line at
+L\* 82.7, chroma +8.1, hue −10).
+
+Papers are **place identity, not mode identity**. `paperFor(id)` pins the
+authored units and hashes learner topics over the rest, stably, because a
+topic that changed colour between two launches reads as a different topic.
+
+### The accents, and the one rule that keeps them safe
+
+The micro-label used to be a lighter violet `#8A5BBF`, which read **4.08**
+against the ground at 11.5pt bold and was under the floor for small text. Each
+paper now carries its own accent at **L\* 42**, all clearing 5.0 on their own
+paper and 4.2 on a filled chip, and all at least a Delta-E of **30** from every
+signal and rung colour. Bronze is bronze rather than the obvious plum because
+the contrast test refused a plum: at Delta-E 24 from `signal.correspondance`,
+the label above a card and the colour meaning "change this" were one colour.
+
+**An accent is typographic; a signal is a mark.** A label, a chip, or a
+drawing's one solid fill may take an accent. A dot, a ring, or anything
+reporting state never may. That separation is what lets colour vary by place
+without any of it reading as a verdict.
+
+### The house paper, unchanged
+
+Tokens from `apps/mobile/src/theme.ts`:
 
 | Token | Value | Role |
 |---|---|---|
@@ -120,12 +168,30 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
 
 ## Illustrations
 
-Authored inline SVG in `src/illustrations.tsx`, one style contract stated in
-the file header: ink stroke 2.2 round-capped, `fill="none"` except tiny solid
+Authored inline SVG in `src/illustrations/`, one style contract stated in
+`pen.tsx`: ink stroke 2.2 round-capped, `fill="none"` except tiny solid
 accents (a beret, a flame, a heart — a tenth of a scene at most), stipple-dot
 shading, deliberately quirky proportions, viewBox 200×150, no second colour —
-the paper shows through. Eight scenes: café hero, name tag, birthday cake,
-suitcase, winged clock, clinking speech bubbles, sprouting word cards, postcard.
+the paper shows through. `src/illustrations.tsx` remains as a one-line barrel,
+so the thirteen screens that import from it did not change.
+
+Fourteen scenes. The original eight: café hero, name tag, birthday cake,
+suitcase, winged clock, clinking speech bubbles, sprouting word cards,
+postcard. Four of those now move. Six are new, and every one of them fills a
+place that previously said "nothing here" in plain text on an empty screen:
+
+| Scene | Where |
+|---|---|
+| `NothingDue` | An empty review deck or drill bank, drawn as a cleared table rather than a dead end |
+| `NobodyYet` | Both leaderboard empty states, one of which is permanent until there is a server |
+| `StillWriting` | A topic the tutor has not finished, which is the only thing the app locks |
+| `Bloom` | A clean session, a finished sitting, a phrase graduating |
+| `OffTheHook` | The token server being unreachable. No red, no cross, no warning triangle |
+| `Phrasebook` | The learner's own lines, kept |
+
+Plus `RewardMark`, which is not a scene: one tick arriving beside a drill
+verdict, in the reserved-height slot the screen already keeps. There is no
+`miss` variant on purpose, because a drawing scolds louder than a word.
 
 ## Structure
 
@@ -180,8 +246,12 @@ Two hard rules, held from the enamel era:
 
 ## Motion
 
-The app had none. It now has exactly one vocabulary, and the next animated
-screen must not invent a second:
+The app had none. It now has exactly one vocabulary, it lives in
+`apps/mobile/src/illustrations/useSceneMotion.ts`, and `src/motion.test.ts`
+enforces it by walking every source file: a timing without `useNativeDriver`,
+an `Animated.spring`, an `Animated.createAnimatedComponent`, or an
+interpolation handed to `r`/`d`/`cx`/`cy`/`width`/`height` all fail the suite.
+The rules themselves are unchanged:
 
 - **transform and opacity only**, always `useNativeDriver: true`
 - **never an SVG attribute** (`r`, `d`, `cx`) — those cannot cross to the
@@ -192,7 +262,19 @@ screen must not invent a second:
 - absolutely-positioned moving pieces are placed in *container* pixels, not in
   the viewBox units the still art is drawn in
 
-Two things move. The **welcome** — steam drifting off a café cup, two speech
+Twelve scenes move now rather than one, and they all move through the same
+hook, so the reduce-motion branch cannot be forgotten and no loop can outlive
+the screen that started it. A scene also stops when its screen is not on top,
+via a `paused` prop rather than `useIsFocused`: five of the places that render
+a scene mount *above* the navigator, where that hook throws.
+
+`illustrations/pen.tsx` adds `Moving`, which places an animated layer from
+viewBox coordinates and sizes it from the scene's own unit. That fixes a real
+bug: the splash drew its café at 260 wide, so the cup's 2.2 stroke rendered at
+2.86px while the steam above it, in its own 44-unit box at width 44, rendered
+at 2.2px. The steam was 23% thinner than the cup it rose from.
+
+Two things moved before. The **welcome** — steam drifting off a café cup, two speech
 bubbles arriving one after the other, then a settling second page. And the
 **voice circle**: two concentric outline rings breathing around one solid
 centre, offset so they drift rather than pump in unison. Five states — idle,

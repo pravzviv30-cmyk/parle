@@ -18,6 +18,7 @@ function contextInput(overrides: Partial<TurnContextInput> = {}): TurnContextInp
     strictness: 'balanced',
     learner: { cefr: 'A2', confidence: 'low', watchFor: ['ne-retention', 'tu-vous-mixing'] },
     inputKind: 'spoke',
+    assistance: 'hidden',
     ...overrides,
   };
 }
@@ -29,7 +30,7 @@ describe('the stable prefix', () => {
 
   test('the persona carries the behavioural commitments', () => {
     const { persona } = buildSystemBlocks();
-    assert.match(persona, /never remark on the learner hesitating/i);
+    assert.match(persona, /never remark on hesitation/i);
     assert.match(persona, /take your time/i, 'should name the exact phrases to avoid');
     assert.match(persona, /are you still there/i);
     assert.match(persona, /never say a score/i);
@@ -38,7 +39,7 @@ describe('the stable prefix', () => {
     assert.match(persona, /real spoken french/i);
     // The dead-end turn is the competitor failure this product exists to avoid:
     // "the AI makes a statement and that's it, which leaves me blank".
-    assert.match(persona, /never leave them with nothing to respond to/i);
+    assert.match(persona, /End with a question or an obvious conversational opening/i);
     assert.match(persona, /one short english clause/i, 'asking for English is an escape hatch, not a mode switch');
   });
 
@@ -63,11 +64,27 @@ describe('the stable prefix', () => {
     ]) {
       assert.ok(contract.includes(field), `contract briefing lost the field "${field}"`);
     }
-    for (const kind of ['blocking-error', 'grammar-slip', 'textbook-phrasing', 'register-mismatch', 'anglicism']) {
+    for (const kind of [
+      'blocking-error',
+      'english-to-french',
+      'grammar-slip',
+      'textbook-phrasing',
+      'register-mismatch',
+      'anglicism',
+    ]) {
       assert.ok(contract.includes(kind), `contract briefing lost the kind "${kind}"`);
     }
     assert.match(contract, /English only/i, 'the hint rule must be explicit');
     assert.ok(contract.includes("J'sais pas"), 'the flagship example belongs in the briefing');
+  });
+
+  test('the contract says support is the learner’s side of the scene, not the tutor’s', () => {
+    // The defect this pins: at Echo the ladder tells the tutor to say the target
+    // line and invite a repeat, which to a model also playing the barista reads
+    // as permission to put its own question on the learner's card.
+    const { contract } = buildSystemBlocks();
+    assert.match(contract, /never (a copy of )?your(s| own| sceneReply)/i, 'support must be marked as theirs, not the tutor’s');
+    assert.match(contract, /answers it|reply .*back to/i, 'fullLine must be named as the answer to the line just said');
   });
 
   test('no em dashes and no volatile tokens anywhere in the prefix', () => {
@@ -83,19 +100,23 @@ describe('the stable prefix', () => {
 });
 
 describe('the per-turn context', () => {
-  test('carries the ladder directive verbatim for every rung', () => {
+  test('uses the ladder only for pacing and never exposes its old answer script', () => {
     for (const rung of [RUNGS.ECHO, RUNGS.CUED, RUNGS.PROMPTED, RUNGS.FREE]) {
       const directive = directiveFor(rung);
       const text = buildTurnContext(contextInput({ directive }));
-      assert.ok(text.includes(directive.tutorInstruction), `rung ${rung} lost its instruction`);
-      assert.ok(text.includes(`rung ${rung} of 4`));
+      assert.match(text, /INDEPENDENCE:/);
+      assert.match(text, /never pre-fill the learner's reply/i);
+      assert.ok(!text.includes(directive.tutorInstruction), `rung ${rung} leaked its old answer script`);
     }
   });
 
-  test('a rescue directive keeps the never-mention-the-pause rule', () => {
-    const text = buildTurnContext(contextInput({ directive: directiveFor(RUNGS.CUED, true), inputKind: 'silence' }));
-    assert.match(text, /do not mention that they hesitated/i);
-    assert.match(text, /treat the bracketed marker as silence/i);
+  test('a rescue keeps the never-mention-the-pause rule and the answer off the voice track', () => {
+    const text = buildTurnContext(
+      contextInput({ directive: directiveFor(RUNGS.CUED, true), inputKind: 'silence', assistance: 'hint' }),
+    );
+    assert.match(text, /Never mention the pause/i);
+    assert.match(text, /Treat the marker as silence/i);
+    assert.match(text, /Do not speak support\.fullLine/i);
   });
 
   test('each strictness gets its own policy line, and textbook phrasing is always inline', () => {
@@ -121,6 +142,36 @@ describe('the per-turn context', () => {
 
   test('is framed as app context, not learner speech', () => {
     assert.match(buildTurnContext(contextInput()), /^\[CONTEXT FROM THE APP, NOT FROM THE LEARNER\]/);
+  });
+
+  test('assistance is progressive and independent of learner level', () => {
+    const hidden = buildTurnContext(contextInput({ assistance: 'hidden' }));
+    const hint = buildTurnContext(contextInput({ assistance: 'hint' }));
+    const line = buildTurnContext(contextInput({ assistance: 'full-line' }));
+    assert.match(hidden, /first attempt/i);
+    assert.match(hint, /only support\.hintEn/i);
+    assert.match(line, /after repeated help/i);
+  });
+
+  test('whenever the whole line is handed over, the context says whose line it is', () => {
+    // full-line is the one assistance tier that puts a whole French sentence on
+    // the learner's card. To a model that is also playing the shopkeeper, "the
+    // app revealed the line" reads as permission to let one line do both jobs,
+    // which is how the barista's own question reached the SAY THIS card. The tier
+    // that hands a line over is the tier that has to name whose line it is.
+    const text = buildTurnContext(contextInput({ assistance: 'full-line' }));
+    assert.match(text, /support\.fullLine/, 'the handover tier must name what the app revealed');
+    assert.match(
+      text,
+      /sceneReply must still be your character's side/i,
+      'the handover tier did not say whose line sceneReply is',
+    );
+  });
+
+  test('an English attempt earns a translation correction after the attempt', () => {
+    const text = buildTurnContext(contextInput({ lastLanguage: 'english' }));
+    assert.match(text, /english-to-french/);
+    assert.match(text, /feedback after their attempt, never a prompt/i);
   });
 });
 
@@ -151,10 +202,31 @@ describe('the scenario request', () => {
       request: "I'm meeting friends at a café in Paris",
       learner: { cefr: 'A2', watchFor: ['ne-retention'] },
     });
-    assert.match(text, /3 to 6 beats/);
+    assert.match(text, /2 to 5 flexible beats/);
     assert.match(text, /English only/i);
+    assert.match(text, /openingNarration[\s\S]*no French words/i);
     assert.ok(text.includes('A2'));
     assert.ok(text.includes("I'm meeting friends at a café in Paris"));
+    assert.match(text, /request is binding/i);
+    assert.match(text, /source of truth/i);
+    assert.match(text, /people, relationship, place, activity, and learning goal/i);
     assert.doesNotMatch(text, /—/);
+  });
+
+  test('carries account-specific memory without letting it override the current request', () => {
+    const text = buildScenarioRequest({
+      request: 'I need to speak to my teacher about an assignment',
+      learner: {
+        cefr: 'A1',
+        watchFor: [],
+        facts: ['Studies physics'],
+        recentScenarios: ['At a café'],
+        unmasteredPhrases: ['Vous pouvez répéter ?'],
+      },
+    });
+    assert.match(text, /Studies physics/);
+    assert.match(text, /At a café/);
+    assert.match(text, /Vous pouvez répéter/);
+    assert.match(text, /Never override the learner's current choice/i);
   });
 });

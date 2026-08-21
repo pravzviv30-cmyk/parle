@@ -16,12 +16,23 @@ function phrase(fr: string, en = 'x'): NewPhrase {
 
 const CAFE = { en: 'Ordering at the café', fr: 'Au café' };
 const RUGBY = { en: 'Rugby', fr: 'Le rugby' };
+const LEARNER = { cefr: 'A1' as const, errorTags: ['word-order'] };
+
+function topic(
+  titleEn: string,
+  titleFr: string,
+  phraseFr: string[],
+  extensions: NewPhrase[] = [],
+) {
+  return { titleEn, titleFr, phraseFr, extensions };
+}
 
 describe('the curation request', () => {
   test('carries the instruction, the topics in order, and every phrase verbatim', () => {
     const r = buildCurationRequest({
       topics: [CAFE, RUGBY],
       phrases: [phrase('Ça marche', 'coming up'), phrase("J'sais pas", "dunno")],
+      learner: LEARNER,
     });
     assert.ok(r.includes('at most five phrases'));
     assert.ok(r.indexOf(CAFE.en) < r.indexOf(RUGBY.en), 'topics keep their order');
@@ -31,7 +42,7 @@ describe('the curation request', () => {
 
   test('the schema holds the shape the prompt promises', () => {
     const parsed = CurationSchema.parse({
-      topics: [{ titleEn: 'Rugby', titleFr: 'Le rugby', phraseFr: ['Ça marche'] }],
+      topics: [topic('Rugby', 'Le rugby', ['Ça marche'])],
     });
     assert.equal(parsed.topics[0]!.phraseFr[0], 'Ça marche');
   });
@@ -42,7 +53,7 @@ describe('applyCuration — code disposes', () => {
 
   test('matches proposals back to real phrases, case-insensitively', () => {
     const out = applyCuration(
-      { topics: [{ titleEn: 'Rugby', titleFr: 'Le rugby', phraseFr: ['  A ', 'B'] }] },
+      { topics: [topic('Rugby', 'Le rugby', ['  A ', 'B'])] },
       session,
       [CAFE],
     );
@@ -55,7 +66,7 @@ describe('applyCuration — code disposes', () => {
 
   test('a phrase the session never recorded is dropped, not invented', () => {
     const out = applyCuration(
-      { topics: [{ titleEn: 'Rugby', titleFr: 'Le rugby', phraseFr: ['zzz', 'a'] }] },
+      { topics: [topic('Rugby', 'Le rugby', ['zzz', 'a'])] },
       session,
       [CAFE],
     );
@@ -69,8 +80,8 @@ describe('applyCuration — code disposes', () => {
     const out = applyCuration(
       {
         topics: [
-          { titleEn: 'One', titleFr: 'Un', phraseFr: ['a'] },
-          { titleEn: 'Two', titleFr: 'Deux', phraseFr: ['a', 'b'] },
+          topic('One', 'Un', ['a']),
+          topic('Two', 'Deux', ['a', 'b']),
         ],
       },
       session,
@@ -83,8 +94,8 @@ describe('applyCuration — code disposes', () => {
     const out = applyCuration(
       {
         topics: [
-          { titleEn: 'One', titleFr: 'Un', phraseFr: ['a', 'b', 'c'] },
-          { titleEn: 'Two', titleFr: 'Deux', phraseFr: ['d', 'e', 'f', 'g'] },
+          topic('One', 'Un', ['a', 'b', 'c']),
+          topic('Two', 'Deux', ['d', 'e', 'f', 'g']),
         ],
       },
       session,
@@ -100,11 +111,11 @@ describe('applyCuration — code disposes', () => {
     const out = applyCuration(
       {
         topics: [
-          { titleEn: 'One', titleFr: 'Un', phraseFr: ['a'] },
-          { titleEn: 'Empty', titleFr: 'Vide', phraseFr: ['zzz'] },
-          { titleEn: 'Two', titleFr: 'Deux', phraseFr: ['b'] },
-          { titleEn: 'Three', titleFr: 'Trois', phraseFr: ['c'] },
-          { titleEn: 'Four', titleFr: 'Quatre', phraseFr: ['d'] },
+          topic('One', 'Un', ['a']),
+          topic('Empty', 'Vide', ['zzz']),
+          topic('Two', 'Deux', ['b']),
+          topic('Three', 'Trois', ['c']),
+          topic('Four', 'Quatre', ['d']),
         ],
       },
       session,
@@ -132,5 +143,47 @@ describe('applyCuration — code disposes', () => {
 
   test('a session with no phrases curates to nothing at all', () => {
     assert.deepEqual(applyCuration(null, [], [CAFE]), []);
+  });
+
+  test('closely related extensions can create practice even when no phrase was taught verbatim', () => {
+    const extension = phrase('Vous pouvez répéter ?', 'Can you repeat?');
+    const out = applyCuration(
+      { topics: [topic('Speaking with a teacher', 'Parler avec un professeur', [], [extension])] },
+      [],
+      [CAFE],
+    );
+
+    assert.equal(out.length, 1);
+    assert.deepEqual(out[0]!.phrases, [extension]);
+  });
+
+  test('extensions are capped and cannot duplicate a session phrase', () => {
+    const out = applyCuration(
+      {
+        topics: [
+          topic('One', 'Un', ['a'], [phrase('a'), phrase('new one'), phrase('new two'), phrase('new three')]),
+        ],
+      },
+      session,
+      [CAFE],
+    );
+
+    assert.deepEqual(out[0]!.phrases.map((p) => p.fr), ['a', 'new one', 'new two']);
+  });
+
+  test('the kept-phrase cap does not hide an extension proposed under a later topic', () => {
+    const out = applyCuration(
+      {
+        topics: [
+          topic('One', 'Un', ['a', 'b', 'c', 'd', 'e']),
+          topic('Two', 'Deux', [], [phrase('transfer line')]),
+        ],
+      },
+      session,
+      [CAFE],
+    );
+
+    assert.equal(out.length, 2);
+    assert.deepEqual(out[1]!.phrases.map((p) => p.fr), ['transfer line']);
   });
 });

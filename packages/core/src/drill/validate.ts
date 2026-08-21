@@ -17,11 +17,11 @@
  * screen with no further review — and accepted answers count as visible, since
  * the miss line quotes them back.
  *
- * The English-gloss check is a heuristic with known limits: it rejects any
- * French-accented character, which also bans honest English loanwords (a gloss
- * may not say "café"; it says "coffee"), and it cannot catch French that
- * happens to carry no accents ("bon", "table"). It is a tripwire, not a proof
- * of English. Character names are exempt — Chloé is Chloé in any language.
+ * The English-gloss check is a heuristic with known limits: it rejects a
+ * French-accented character outside the ordinary English loanword café, and it
+ * cannot catch French that happens to carry no accents ("bon", "table"). It is
+ * a tripwire, not a proof of English. Character names are exempt — Chloé is
+ * Chloé in any language.
  */
 
 import { normalise } from '../lessons/types.ts';
@@ -33,6 +33,9 @@ const EM_DASH = /—/;
 const SCOLD = /\b(wrong|incorrect|bad|failed)\b/i;
 const DIGIT = /[0-9]/;
 const FRENCH_ACCENT = /[àâäæçéèêëìîïòôöœùûüÿ]/i;
+// JavaScript's \b is ASCII-based, so it sees é as non-word and cannot mark the
+// end of café. Use an explicit trailing boundary instead.
+const ENGLISH_LOANWORD = /\bcafés?(?=\s|[.,!?;:]|$)/giu;
 
 interface LabelledString {
   label: string;
@@ -275,7 +278,9 @@ export function validateExercise(exercise: DrillExercise): ValidationResult {
     if (DIGIT.test(text)) reasons.push(`${label} contains a digit: "${text}"`);
   }
   for (const { label, text } of englishGlosses(exercise)) {
-    if (FRENCH_ACCENT.test(text)) reasons.push(`${label} looks French, not English: "${text}"`);
+    if (FRENCH_ACCENT.test(text.replace(ENGLISH_LOANWORD, ''))) {
+      reasons.push(`${label} looks French, not English: "${text}"`);
+    }
   }
 
   return reasons.length === 0 ? { ok: true } : { ok: false, reasons };
