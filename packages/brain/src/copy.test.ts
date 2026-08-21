@@ -2,6 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  ENGLISH_HAND_BACK_VARIANTS,
   RECOVERY_LINE,
   RESCUE_LINE,
   coachFallbackLine,
@@ -79,8 +80,58 @@ describe('fixed lines and fallbacks stay clean', () => {
 
   test('an English attempt gets a direct French recast without being scolded', () => {
     const line = coachFallbackLine('english-to-french', 'je voudrais parler du devoir');
-    assert.equal(line, 'In French, you can say "je voudrais parler du devoir".');
+    assert.ok(line.includes('"je voudrais parler du devoir"'));
+    assert.doesNotMatch(line, /^not quite/i);
     assert.deepEqual(copyViolations(line), []);
+  });
+
+  test('the English hand-back is warm, varied, and passes the copy rules', () => {
+    // G8. The founder's complaint was that asking "how would I say this?" got
+    // bare French back. The model writes this line itself on the good path;
+    // this is the floor under it, so the warmth is guaranteed rather than
+    // hoped for. Variation is keyed on the turn so a session never repeats one.
+    const seen = new Set<string>();
+    for (let variant = 0; variant < ENGLISH_HAND_BACK_VARIANTS; variant += 1) {
+      const line = coachFallbackLine('english-to-french', 'un café, s’il vous plaît', { name: 'Sam', variant });
+      assert.deepEqual(copyViolations(line), [], `variant ${variant} breaks a copy rule: "${line}"`);
+      assert.ok(line.includes('"un café, s’il vous plaît"'), `variant ${variant} lost the French`);
+      assert.ok(!seen.has(line), `variant ${variant} repeats an earlier hand-back: "${line}"`);
+      seen.add(line);
+    }
+    assert.equal(seen.size, ENGLISH_HAND_BACK_VARIANTS);
+  });
+
+  test('the hand-back uses the name sometimes, never every line', () => {
+    const lines = Array.from({ length: ENGLISH_HAND_BACK_VARIANTS }, (_, variant) =>
+      coachFallbackLine('english-to-french', 'je sais pas', { name: 'Sam', variant }),
+    );
+    const named = lines.filter((l) => l.includes('Sam'));
+    assert.ok(named.length > 0, 'the name never appears, so the founder’s ask is unmet');
+    assert.ok(named.length < lines.length, 'the name appears every time, which is what reads as a bot');
+  });
+
+  test('a learner with no name gets the same warmth, unnamed', () => {
+    for (let variant = 0; variant < ENGLISH_HAND_BACK_VARIANTS; variant += 1) {
+      const line = coachFallbackLine('english-to-french', 'je sais pas', { name: null, variant });
+      assert.deepEqual(copyViolations(line), [], `variant ${variant} breaks a copy rule unnamed: "${line}"`);
+      assert.doesNotMatch(line, /\s,|,\s*\./, `variant ${variant} left a comma where the name was: "${line}"`);
+    }
+  });
+
+  test('the hand-back never reassures, because reassurance implies failure', () => {
+    // The persona already bans "don't worry" and "take your time" for exactly
+    // this reason: telling a learner not to worry tells them there was
+    // something to worry about. Acknowledgement instead of reassurance.
+    for (let variant = 0; variant < ENGLISH_HAND_BACK_VARIANTS; variant += 1) {
+      const line = coachFallbackLine('english-to-french', 'je sais pas', { name: 'Sam', variant });
+      assert.doesNotMatch(line, /don'?t worry|no worries|take your time|it'?s (ok|fine|alright)/i, line);
+    }
+  });
+
+  test('an out-of-range variant still returns a clean line', () => {
+    const line = coachFallbackLine('english-to-french', 'je sais pas', { name: 'Sam', variant: 99 });
+    assert.deepEqual(copyViolations(line), []);
+    assert.ok(line.includes('"je sais pas"'));
   });
 });
 

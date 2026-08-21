@@ -30,6 +30,8 @@ export interface TurnContextInput {
     confidence: 'low' | 'medium' | 'high';
     /** Top recurring error tags, most frequent first. */
     watchFor: string[];
+    /** What the learner asked to be called, or null when they have no name here. */
+    name?: string | null;
   };
   inputKind: TurnInputKind;
   /** What the UI has earned permission to reveal for this exchange. */
@@ -95,6 +97,15 @@ export function buildTurnContext(input: TurnContextInput): string {
     learnerLine += ` Watch for: ${learner.watchFor.join(', ')}.`;
   }
   lines.push(learnerLine);
+
+  if (learner.name != null && learner.name.length > 0) {
+    // Per-turn and per-learner, so it belongs here and never in the frozen
+    // prefix. The ceiling matters as much as the name: a tutor that opens
+    // every line with it stops sounding like a person by the third turn.
+    lines.push(
+      `LEARNER NAME: ${learner.name}. Use it the way a person would: the greeting, and a moment that deserves warmth. Not every line, and never twice in one reply.`,
+    );
+  }
 
   if (input.pace === 'slow') {
     // The most-cited complaint about the competition: the learner asks for

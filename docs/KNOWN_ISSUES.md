@@ -754,3 +754,103 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a rate limit with no usable Retry-After still earns one short pause`
 - verified-by: `a second rate limit ends the call exactly as it did before`
 - verified-by: `only the rate limit earns a second try; a bad request fails at once`
+
+### G1 — The tutor never calls the learner by name
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/nav/RootNavigator.tsx:197
+- note: onboarding asks what they want to be called and stores it, and the name is then
+  dropped at the first hop. The conversation route passes only `profile.brain`, so the
+  name is absent from the session snapshot, from the token metadata, from LearnerProfile
+  and from every prompt. The tutor cannot use a name it was never given. The name now
+  rides in `memory`, which is already documented as what the tutor knows about the
+  learner as a person, and is validated at both ends because it reaches a spoken line.
+- verified-by: `the tutor greets the learner by name`
+- verified-by: `a learner with no name still gets the ordinary opener`
+- verified-by: `the turn context carries the learner's name`
+- verified-by: `the scenario request names the learner`
+- verified-by: `a name that is not a name never reaches a spoken line`
+- verified-by: `a profile stored before names survives with a null name`
+
+### G2 — A scene can open on a narration the learner cannot picture
+- severity: P1
+- status: [x]
+- where: packages/brain/src/contract/schemas.ts:211
+- note: openingNarration is a bare speaker line with no minimum length and no language
+  check, so a model that returns two words or French-flavoured English opens the scene
+  on nothing, and the first thing the learner hears is French they were never set up
+  for. The eval already checks exactly this, offline, where nobody is waiting. The check
+  moves into the brain and runs where a learner actually is.
+- verified-by: `a frame whose opening narration is missing is repaired before the scene opens`
+- verified-by: `a frame whose English narration is actually French is repaired`
+- verified-by: `a repaired narration still names the scene the learner asked for`
+
+### G3 — The scene build is ten to twenty five seconds of unexplained French
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:229
+- note: the learner answers in English and hears "Ah, très bien. Alors…" and then
+  nothing, for as long as the scenario call takes. The French is right and stays; what
+  was missing is the line's other job, which is telling them what is happening.
+- verified-by: `the bridge tells the learner in English that a scene is coming`
+
+### G4 — A topic spoken during the scene build vanishes with no trace
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1005
+- note: speech during `starting` is dropped so it cannot talk over the opening narration,
+  which is right, but it is dropped silently. The learner sees nothing happen and says it
+  again. The drop stays; the transcript is now published, so they can see they were heard.
+- verified-by: `a topic that arrives during the scene build is still shown as heard`
+
+### G5 — Reaching for English costs a rung, and tomorrow opens lower
+- severity: P1
+- status: [x]
+- where: packages/brain/src/engine/grading.ts:27
+- note: assessmentToQuality grades an English turn `poor`, which drops a rung, while a
+  half-English turn holds at `partial` — an inconsistency inside one function. PEDAGOGY
+  says asking for help is never scored against the learner, and reaching for English at
+  A0 is normal beginner performance, not failure. The drop also writes stats.lastRung
+  down, so openingRung starts the next session lower: two polite questions today cost a
+  rung tomorrow.
+- verified-by: `reaching for English holds the rung instead of dropping it`
+- verified-by: `silence and a genuine breakdown still drop the rung`
+
+### G6 — A question asked in English throws away earned help
+- severity: P2
+- status: [x]
+- where: packages/brain/src/engine/conversation.ts:555
+- note: assistanceDepth resets on any spoken turn, on the doctrine that speaking a real
+  reply resets it. Asking "how do I say this?" in English is not a real reply — which is
+  precisely why the beat does not complete — so the help the learner already earned is
+  binned at the moment they most need it.
+- verified-by: `earned help survives a question asked in English`
+
+### G7 — A blocking error silences the English hand-back
+- severity: P1
+- status: [x]
+- where: packages/brain/src/engine/grading.ts:74
+- note: blocking-error outranks english-to-french in KIND_PRIORITY and flow allows one
+  inline finding, so when both fire the learner who politely asked how to say something
+  hears "Not quite. Try …" instead of an answer. The hand-back is an acknowledgement of
+  the learner, not a correction that interrupts, so it is exempt from the cap and leads
+  the coach line whenever it is present.
+- verified-by: `a blocking error never silences the English hand-back`
+- verified-by: `the coach line on an English turn leads with the hand-back, not the correction`
+
+### G8 — The contract tells the tutor to skip the acknowledgement
+- severity: P1
+- status: [x]
+- where: packages/brain/src/prompt/system.ts:77
+- note: the coachLine contract said "Name the better French directly", which is an
+  instruction to be terse, and it overrode the warmer persona line because the contract
+  is what describes the output field. So a learner who asked a question in English got
+  bare French back. The contract now asks for the acknowledgement first, varied and
+  never repeated within a session, and the code-side fallback carries the same warmth so
+  the behaviour is guaranteed rather than hoped for. Acknowledgement, not reassurance:
+  "don't worry" is still banned, because it tells a learner there was something to worry
+  about.
+- verified-by: `the contract asks for an acknowledgement before the French`
+- verified-by: `the persona still says reaching for English is never failing`
+- verified-by: `the English hand-back is warm, varied, and passes the copy rules`
+- verified-by: `the hand-back never reassures, because reassurance implies failure`

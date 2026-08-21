@@ -15,11 +15,13 @@ import {
   type LearnerSnapshot,
 } from './conversation.ts';
 import { CAFE_FRAME } from '../fixtures.ts';
+import { copyViolations } from '../copy.ts';
+import { carriesFrench } from '../frenchLeak.ts';
 import { sampleCoachItem, sampleTurn } from '../contract/samples.ts';
 import type { TutorTurn } from '../contract/types.ts';
 
 function learner(overrides: Partial<LearnerSnapshot> = {}): LearnerSnapshot {
-  return { cefr: 'A2', confidence: 'low', watchFor: [], lastRung: null, sessions: 0, ...overrides };
+  return { cefr: 'A2', confidence: 'low', watchFor: [], lastRung: null, sessions: 0, name: null, ...overrides };
 }
 
 function fresh(overrides: { strictness?: 'flow' | 'balanced' | 'strict'; maxTurns?: number } = {}, who = learner()): ConversationState {
@@ -30,10 +32,17 @@ function spoke(text = 'Bonjour !'): { type: 'spoke'; text: string } {
   return { type: 'spoke', text };
 }
 
-/** A turn graded poor: English only, task not achieved. */
+/**
+ * A turn graded poor: they tried in French and it did not do its job.
+ *
+ * This used to be an English turn, which is no longer poor — G5 moved reaching
+ * for English to `partial`, because that is a beginner reaching for words, not
+ * a beginner failing. A French attempt that misses is the honest example of the
+ * thing the ladder is actually for.
+ */
 function poorTurn(overrides: Partial<TutorTurn> = {}): TutorTurn {
   return sampleTurn({
-    assessment: { understood: true, taskAchieved: false, comprehensibility: 'clear', language: 'english', cefrEvidence: null },
+    assessment: { understood: true, taskAchieved: false, comprehensibility: 'clear', language: 'french', cefrEvidence: null },
     ...overrides,
   });
 }
@@ -352,6 +361,43 @@ describe('reaching for English — the hand-back loop', () => {
     assert.doesNotMatch(context, /reached for English/);
   });
 
+  test('earned help survives a question asked in English', () => {
+    // G6. assistanceDepth reset on any spoken turn, on the doctrine that
+    // speaking a real reply resets it. Asking "how do I say this?" in English
+    // is not a real reply — which is exactly why the beat does not complete —
+    // so the help they had already earned was binned at the worst moment.
+    const helped = applyNonSpokenInput(fresh(), { type: 'help' }).state;
+    assert.equal(helped.assistanceDepth, 1);
+    const after = integrateTurn(helped, spoke('How do I say I want a coffee?'), englishTurn()).state;
+    assert.equal(after.assistanceDepth, 1, 'the earned card was thrown away by an English question');
+  });
+
+  test('a real reply in French still resets the earned help', () => {
+    const helped = applyNonSpokenInput(fresh(), { type: 'help' }).state;
+    const after = integrateTurn(helped, spoke('Un café, s’il vous plaît'), sampleTurn()).state;
+    assert.equal(after.assistanceDepth, 0);
+  });
+
+  test('the coach line on an English turn leads with the hand-back, not the correction', () => {
+    // G7. blocking-error wins the single inline slot at flow and is picked as
+    // the lead, so the learner who politely asked how to say something heard
+    // "Not quite. Try …" and never got their answer.
+    const turn = englishTurn({
+      coachLine: null,
+      coach: [
+        sampleCoachItem({ kind: 'blocking-error', quote: 'x', better: 'je voudrais un café' }),
+        sampleCoachItem({ kind: 'english-to-french', quote: 'y', better: 'un café, s’il vous plaît' }),
+      ],
+    });
+    const { view } = integrateTurn(fresh({ strictness: 'flow' }), spoke('How do I ask for a coffee?'), turn);
+    assert.ok(view.coachLine !== null);
+    assert.ok(
+      view.coachLine!.includes('un café, s’il vous plaît'),
+      `the hand-back lost the slot to the correction: "${view.coachLine}"`,
+    );
+    assert.doesNotMatch(view.coachLine!, /^not quite/i);
+  });
+
   test('mixed French-English is remembered for the context but does not pin the beat', () => {
     const mixed = sampleTurn({
       assessment: { understood: true, taskAchieved: true, comprehensibility: 'clear', language: 'mixed', cefrEvidence: null },
@@ -562,5 +608,61 @@ describe('the learner plays themselves — the support card is their line, never
   test('a well-built frame is untouched', () => {
     const state = fresh();
     assert.deepEqual(state.lastSupport, CAFE_FRAME.openingSupport);
+  });
+});
+
+describe('the scene the learner is handed — G2', () => {
+  /** CAFE_FRAME with one deliberately broken opening narration. */
+  function frameWithNarration(en: string) {
+    return { ...CAFE_FRAME, openingNarration: { ...CAFE_FRAME.openingNarration, en } };
+  }
+
+  function opened(en: string, request = 'ordering a coffee in Paris') {
+    return createConversation(frameWithNarration(en), learner(), { strictness: 'flow', maxTurns: 12, request }, 1_000)
+      .frame.openingNarration;
+  }
+
+  test('a healthy narration is left exactly as the model wrote it', () => {
+    const good = 'Imagine the scene. You push open the door of a small cafe and the smell of coffee hits you.';
+    assert.equal(opened(good).en, good);
+  });
+
+  test('a frame whose opening narration is missing is repaired before the scene opens', () => {
+    // The schema accepts a bare line with no floor, so a model that returns
+    // two words opened the scene on nothing and the first thing the learner
+    // heard was French they were never set up for.
+    for (const empty of ['', '   ', 'Bonjour.']) {
+      const repaired = opened(empty);
+      assert.ok(repaired.en.trim().length >= 40, `"${empty}" was left as the spoken setup: "${repaired.en}"`);
+      assert.equal(repaired.speaker, 'narration');
+    }
+  });
+
+  test('a frame whose English narration is actually French is repaired', () => {
+    const leaked = opened('Imaginez la scène. Vous poussez la porte du café et vous vous asseyez à côté de la fenêtre.');
+    assert.doesNotMatch(leaked.en, /Imaginez/, `the French narration was spoken as the English setup: "${leaked.en}"`);
+  });
+
+  test('an accented word the learner themself used is not a French leak', () => {
+    // The same allowance the offline eval makes: repeating the learner's own
+    // loanword back to them is not handing over a French answer.
+    const en = 'Imagine the scene. You are standing at the counter of a busy café and someone turns to you.';
+    assert.equal(opened(en, 'ordering at a busy café in Paris').en, en);
+  });
+
+  test('a repaired narration still names the scene the learner asked for', () => {
+    const repaired = opened('');
+    assert.ok(
+      repaired.en.includes(CAFE_FRAME.titleEn),
+      `the recovery narration lost the scene: "${repaired.en}"`,
+    );
+    assert.deepEqual(copyViolations(repaired.en), []);
+  });
+
+  test('the repair never leaves the narration in French either', () => {
+    // Judged by the same rule the repair uses, not by a bare accent: this
+    // frame is called "At the corner café", and café is an English word.
+    const repaired = opened('Bonjour.');
+    assert.equal(carriesFrench(repaired.en), false, `the recovery narration carries French: "${repaired.en}"`);
   });
 });

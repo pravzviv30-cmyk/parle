@@ -48,7 +48,7 @@ function scriptedLines(): string[] {
   // narration is English; the multilingual voice handles it.
   add(CONVO_LINES.opener.en);
   add(CONVO_LINES.suggest.en);
-  add(CONVO_LINES.bridge.fr);
+  add(CONVO_LINES.bridge.spoken);
   for (const frame of [CAFE_FRAME, APERO_FRAME]) {
     add(frame.openingNarration.en);
     add(frame.openingLine.fr);

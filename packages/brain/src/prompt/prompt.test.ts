@@ -43,6 +43,26 @@ describe('the stable prefix', () => {
     assert.match(persona, /one short english clause/i, 'asking for English is an escape hatch, not a mode switch');
   });
 
+  test('the persona still says reaching for English is never failing', () => {
+    // G8. The rebuild dropped this framing and the tutor got colder with it.
+    // The clause is restored; the "invite the same moment again" half is not,
+    // because the hand-back loop implements that in code now and a repo does
+    // not want two ladders.
+    const { persona } = buildSystemBlocks();
+    assert.match(persona, /reaching for words, never failing/i);
+  });
+
+  test('the contract asks for an acknowledgement before the French', () => {
+    // G8, the root cause. The contract used to say "Name the better French
+    // directly", which is an instruction to be terse, and it beat the warmer
+    // persona line because the contract is what describes the output field.
+    const { contract } = buildSystemBlocks();
+    assert.match(contract, /acknowledg/i, 'the coachLine contract never asks for an acknowledgement');
+    assert.match(contract, /vary/i, 'nothing asks the tutor to vary the acknowledgement');
+    assert.match(contract, /their name/i, 'the contract never mentions using the learner’s name');
+    assert.doesNotMatch(contract, /Name the better French directly/i, 'the terse instruction is still there');
+  });
+
   test('the pack block is exactly the rendered pack — one source of truth', () => {
     assert.equal(buildSystemBlocks().pack, renderAuthenticityPack(FR_PACK));
   });
@@ -173,6 +193,19 @@ describe('the per-turn context', () => {
     assert.match(text, /english-to-french/);
     assert.match(text, /feedback after their attempt, never a prompt/i);
   });
+
+  test("the turn context carries the learner's name", () => {
+    // G1. Per-turn and per-learner, so it belongs here and never in the frozen
+    // prefix, which has to stay byte-identical for the prompt cache to hit.
+    const text = buildTurnContext(contextInput({ learner: { cefr: 'A2', confidence: 'low', watchFor: [], name: 'Sam' } }));
+    assert.match(text, /Sam/);
+    assert.match(text, /not every line/i, 'nothing stops the tutor saying the name every turn');
+  });
+
+  test('a learner with no name adds no name line at all', () => {
+    const text = buildTurnContext(contextInput({ learner: { cefr: 'A2', confidence: 'low', watchFor: [], name: null } }));
+    assert.doesNotMatch(text, /LEARNER NAME/i);
+  });
 });
 
 describe('the history view', () => {
@@ -228,5 +261,21 @@ describe('the scenario request', () => {
     assert.match(text, /At a café/);
     assert.match(text, /Vous pouvez répéter/);
     assert.match(text, /Never override the learner's current choice/i);
+  });
+
+  test('the scenario request names the learner', () => {
+    // G1. The scene designer writes the opening narration and the first line
+    // the learner ever hears; it should know who it is writing for.
+    const text = buildScenarioRequest({
+      request: 'walking with my friends and looking at the trees',
+      learner: { cefr: 'A1', watchFor: [], name: 'Sam' },
+    });
+    assert.match(text, /Sam/);
+  });
+
+  test('an unnamed learner leaves the scenario request exactly as it was', () => {
+    const named = buildScenarioRequest({ request: 'a walk', learner: { cefr: 'A1', watchFor: [], name: null } });
+    const bare = buildScenarioRequest({ request: 'a walk', learner: { cefr: 'A1', watchFor: [] } });
+    assert.equal(named, bare);
   });
 });

@@ -13,6 +13,9 @@ import {
   finishSession,
   learnerSnapshotFrom,
   migrateProfile,
+  repairProfile,
+  validLearnerName,
+  withLearnerName,
   type LearnerProfile,
 } from './profile.ts';
 import { createConversation } from '../engine/conversation.ts';
@@ -115,7 +118,7 @@ describe('finishSession', () => {
   function endedState(strictness: 'flow' | 'balanced' | 'strict' = 'balanced') {
     return createConversation(
       CAFE_FRAME,
-      { cefr: 'A2', confidence: 'low', watchFor: [], lastRung: null, sessions: 0 },
+      { cefr: 'A2', confidence: 'low', watchFor: [], lastRung: null, sessions: 0, name: null },
       { strictness, maxTurns: 24 },
       1_000,
     );
@@ -226,11 +229,53 @@ describe('memory — what the tutor knows about the person', () => {
 
     const migrated = migrateProfile(stored as never);
     assert.equal(migrated.version, 2);
-    assert.deepEqual(migrated.memory, { facts: [], opener: null });
+    assert.deepEqual(migrated.memory, { facts: [], opener: null, name: null });
     assert.equal(migrated.stats.sessions, 7);
     assert.deepEqual(migrated.cefr.evidence, ['A1']);
 
     // Already-current profiles pass through untouched, same object and all.
     assert.equal(migrateProfile(v2), v2);
+  });
+});
+
+describe('the learner name — G1', () => {
+  test('a name that is not a name never reaches a spoken line', () => {
+    // The name is spoken aloud, so it gets the same treatment as the seed
+    // topic: signed is not the same as sane. Dropped, never refused — a
+    // learner with an odd name still gets the ordinary session.
+    assert.equal(validLearnerName('Sam'), 'Sam');
+    assert.equal(validLearnerName('  Marie-Claire  '), 'Marie-Claire');
+    assert.equal(validLearnerName('Zoë'), 'Zoë');
+    assert.equal(validLearnerName(''), null);
+    assert.equal(validLearnerName('   '), null);
+    assert.equal(validLearnerName(null), null);
+    assert.equal(validLearnerName(42), null);
+    assert.equal(validLearnerName('a'.repeat(25)), null, 'a name longer than a name is not one');
+    assert.equal(validLearnerName('Agent 47'), null, 'digits trip the no-scores copy rule when spoken');
+    assert.equal(validLearnerName('Sam'), null, 'control characters never reach a synthesiser');
+    assert.equal(validLearnerName('Sam\nBond'), null, 'a newline is not part of anyone name');
+  });
+
+  test('a profile stored before names survives with a null name', () => {
+    const old = createProfile();
+    const memory = old.memory as { facts: unknown[]; opener: unknown; name?: string | null };
+    delete memory.name;
+    const repaired = repairProfile(old);
+    assert.equal(repaired.memory.name, null);
+    assert.deepEqual(repaired.memory.facts, [], 'repairing the name must not cost the learner their history');
+  });
+
+  test('the name rides in memory, where what the tutor knows about the person lives', () => {
+    const named = withLearnerName(createProfile(), 'Sam');
+    assert.equal(named.memory.name, 'Sam');
+    assert.equal(learnerSnapshotFrom(named).name, 'Sam');
+  });
+
+  test('a rejected name leaves the profile unnamed rather than half named', () => {
+    assert.equal(withLearnerName(createProfile(), 'Agent 47').memory.name, null);
+  });
+
+  test('an unnamed learner reaches the engine with a null name, not a hole', () => {
+    assert.equal(learnerSnapshotFrom(createProfile()).name, null);
   });
 });

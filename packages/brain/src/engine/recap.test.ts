@@ -10,7 +10,7 @@ import { copyViolations } from '../copy.ts';
 function baseState(overrides: Partial<ConversationState> = {}): ConversationState {
   const state = createConversation(
     CAFE_FRAME,
-    { cefr: 'A2', confidence: 'low', watchFor: [], lastRung: null, sessions: 0 },
+    { cefr: 'A2', confidence: 'low', watchFor: [], lastRung: null, sessions: 0, name: null },
     { strictness: 'balanced', maxTurns: 24 },
     1_000,
   );

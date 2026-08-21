@@ -50,6 +50,7 @@ import {
   prepareTurn,
   requestFallbackFrame,
   supportViewForAssistance,
+  validLearnerName,
   type ConversationState,
   type CuratedTopic,
   type LearnerProfile,
@@ -226,7 +227,20 @@ export function brainClient(env: Record<string, string | undefined> = process.en
  */
 export const CONVO_LINES = {
   opener: { fr: "Alors, de quoi on parle aujourd'hui ?", en: 'So, what do you want to talk about today?' },
-  bridge: { fr: 'Ah, très bien. Alors…', en: 'Ah, very good. So…' },
+  /**
+   * fr and en are the pair the screen shows. `spoken` is what the learner
+   * actually hears, and it is the only one of the three that has to do two
+   * jobs: the French stays, because by now they have answered and "Ah, très
+   * bien" is lesson-zero vocabulary earning its place, but designing a scene
+   * takes ten to twenty five seconds and across all of it this was the only
+   * thing they heard. A line that says what is happening is the difference
+   * between waiting and being abandoned.
+   */
+  bridge: {
+    fr: 'Ah, très bien. Alors…',
+    en: 'Ah, very good. So…',
+    spoken: "Ah, très bien. Give me a moment, I'm setting the scene.",
+  },
   suggest: {
     fr: 'Tout marche. Votre journée, vos projets, un café à Paris. Dites-le en anglais ou en français.',
     en: "Anything goes. Your day, your plans, ordering coffee in Paris. Say it in English or French and we're off.",
@@ -264,6 +278,26 @@ export function validSeedTopic(value: unknown): SeedTopic | undefined {
   if (trimmed.fr.length === 0 || trimmed.en.length === 0) return undefined;
   if (trimmed.fr.length > MAX_SEED_TOPIC_CHARS || trimmed.en.length > MAX_SEED_TOPIC_CHARS) return undefined;
   return trimmed;
+}
+
+/**
+ * The opening question, with the learner's name on the front of it.
+ *
+ * Composed in code rather than by the model, because `open()` exists to put a
+ * voice in the room within seconds of joining and a model call here would
+ * spend the whole of that budget saying hello.
+ *
+ * One string, not two `say()` calls: the framework splits sentences inside a
+ * single speech handle, so "Hi Sam." and the question keep their own cache
+ * keys — the question is already warmed, so only the two-word greeting is a
+ * cold miss and it plays first while the warm half streams from disk.
+ */
+export function openerFor(name: string | null): { fr: string; en: string } {
+  if (name === null || name.length === 0) return { fr: CONVO_LINES.opener.fr, en: CONVO_LINES.opener.en };
+  return {
+    fr: `Bonjour ${name}. ${CONVO_LINES.opener.fr}`,
+    en: `Hi ${name}. ${CONVO_LINES.opener.en}`,
+  };
 }
 
 /** The title as it read on the card, with any full stop of its own removed. */
@@ -628,7 +662,10 @@ export class ParleConversation extends voice.Agent {
     // A remembered opener beats the generic question: "So, how was that
     // interview?" is the moment the tutor stops being an app. One line of live
     // synthesis per session, pennies, worth every one of them.
-    const opener = this.profile.memory.opener ?? CONVO_LINES.opener;
+    // A remembered opener is a whole greeting the analyst wrote after the last
+    // session, in its own time, and it already knows the learner's name. Only
+    // the generic question needs one stapled to the front.
+    const opener = this.profile.memory.opener ?? openerFor(validLearnerName(this.profile.memory.name));
     this.lastOpening = { t: 'opening', prompt: { fr: opener.fr, en: opener.en } };
     this.publish(this.lastOpening);
     this.say(opener.en, { allowInterruptions: false });
@@ -662,7 +699,7 @@ export class ParleConversation extends voice.Agent {
     }
     this.phase = 'starting';
     this.clearRescue();
-    this.say(CONVO_LINES.bridge.fr, { allowInterruptions: false });
+    this.say(CONVO_LINES.bridge.spoken, { allowInterruptions: false });
 
     let frame: ScenarioFrame;
     try {
@@ -678,6 +715,9 @@ export class ParleConversation extends voice.Agent {
       this.state = createConversation(frame, learnerSnapshotFrom(this.profile), {
         strictness: 'flow',
         maxTurns: CONVO_MAX_TURNS,
+        // So a loanword the learner themself used is not read as a French leak
+        // when the opening narration is checked.
+        request,
       });
       this.phase = 'scene';
       this.openScene();
@@ -733,6 +773,7 @@ export class ParleConversation extends voice.Agent {
           learner: {
             cefr: snapshot.cefr,
             watchFor: snapshot.watchFor,
+            name: snapshot.name,
             facts,
             recentScenarios: this.profile.preferences.lastScenarios,
             unmasteredPhrases,
@@ -1001,10 +1042,14 @@ export class ParleConversation extends voice.Agent {
       } else if (this.phase === 'scene') {
         this.publish({ t: 'transcript', text, final: true });
         await this.queue.run(() => this.runBrainTurn({ type: 'spoke', text }));
+      } else {
+        // Speech while the scenario builder runs is still dropped: the scene
+        // they asked for is seconds away and answering into it would talk over
+        // the opening narration. But it is no longer dropped in silence. A
+        // screen that does not change reads as "it did not hear me", and the
+        // natural response is to say it again, into the same hole.
+        this.publish({ t: 'transcript', text, final: true });
       }
-      // Speech while the scenario builder runs is dropped: the learner is
-      // watching the bridge moment, and the scene they asked for is seconds
-      // away. Answering into it would talk over the opening narration.
     }
     // Every path out of this hook cancels the pipeline's own reply — the
     // brain already spoke; the unused pipeline LLM must not answer too.
