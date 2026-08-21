@@ -1,7 +1,7 @@
 /**
  * What the tutor is, said once.
  *
- * Three pages, in the onboarding idiom so it feels like the same app rather
+ * Four pages, in the onboarding idiom so it feels like the same app rather
  * than a bolted-on tour: the same ProgressDots, the same back chevron, the same
  * one-question-per-page rhythm.
  *
@@ -30,7 +30,7 @@ function OrbWalkthrough() {
   const rows: { state: OrbState; title: string; sub: string }[] = [
     { state: 'speaking', title: 'Red, your tutor is talking', sub: 'Just listen.' },
     { state: 'listening', title: 'Green, your turn', sub: 'Say it out loud.' },
-    { state: 'thinking', title: 'Yellow, it is thinking', sub: 'One moment.' },
+    { state: 'thinking', title: 'Amber, it is thinking', sub: 'One moment.' },
   ];
   return (
     <View style={{ gap: space(3), alignSelf: 'stretch', marginTop: space(5) }}>

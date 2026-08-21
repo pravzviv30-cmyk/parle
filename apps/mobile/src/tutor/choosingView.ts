@@ -21,7 +21,7 @@ import type { TurnLine } from '../live/turns.ts';
  * assigns straight across. `error` belongs to a session that has already
  * failed, and this screen is never on the screen when that is true.
  */
-export type ChoosingOrb = 'idle' | 'listening' | 'thinking' | 'speaking';
+export type ChoosingOrb = 'ready' | 'idle' | 'listening' | 'thinking' | 'speaking';
 
 export interface ChoosingState {
   /** The quiet twin: this session opened voiceless and stays that way. */
@@ -114,20 +114,27 @@ export const QUIET_DOOR = 'Unable to speak right now?';
 export function choosingView(state: ChoosingState): ChoosingView {
   const { textMode, micOpen, thinking, tutorSpeaking, turns } = state;
 
-  // Thinking outranks everything: the learner has just spoken or typed and
-  // nothing has come back yet, and that is the one thing worth saying.
-  const orb: ChoosingOrb = thinking
-    ? 'thinking'
-    : tutorSpeaking
-      ? 'speaking'
-      : textMode || !micOpen
-        ? 'idle'
-        : 'listening';
-
   // A closed microphone is the only thing a tap can change. It stays tappable
   // while the tutor is still asking, because a learner who is ready before the
   // question ends should not be made to wait for it.
   const orbIsButton = !textMode && !micOpen;
+
+  // Thinking outranks everything: the learner has just spoken or typed and
+  // nothing has come back yet, and that is the one thing worth saying.
+  //
+  // Below that, a circle waiting to be pressed is `ready`, not `idle`. The two
+  // used to be one state, so the primary control of the entire product was
+  // drawn in the hairline colour and captioned in the faintest ink there is.
+  // `idle` now means only what it says: nothing to press, nothing happening.
+  const orb: ChoosingOrb = thinking
+    ? 'thinking'
+    : tutorSpeaking
+      ? 'speaking'
+      : orbIsButton
+        ? 'ready'
+        : textMode || !micOpen
+          ? 'idle'
+          : 'listening';
 
   const orbLabel = orbIsButton
     ? 'Tap the circle when you are ready to talk'

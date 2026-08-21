@@ -13,7 +13,7 @@
  */
 
 import Svg, { Path, Circle, G } from 'react-native-svg';
-import { paper, STROKE } from '../theme.ts';
+import { decorative, paper, STROKE } from '../theme.ts';
 
 export interface TabIconProps {
   size?: number;
@@ -22,7 +22,7 @@ export interface TabIconProps {
 
 function Glyph({ size = 24, color = paper.ink, children }: TabIconProps & { children: React.ReactNode }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
         {children}
       </G>

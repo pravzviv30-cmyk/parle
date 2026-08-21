@@ -99,8 +99,12 @@ export const signal = {
   correspondance: '#B4008A',
   /** A sound that is working — darkened to hold on white cards. */
   good: '#1E8A5B',
-  /** The tutor's voice, live. Red means listen; it never marks the learner's mic. */
-  live: '#FF4B3E',
+  /**
+   * The tutor's voice, live. Red means listen; it never marks the learner's mic.
+   * Darkened from #FF4B3E, which measured 2.79 on the house ground where a mark
+   * that reports state needs 3.
+   */
+  live: '#DE3B2D',
 } as const;
 
 /**
@@ -108,16 +112,33 @@ export const signal = {
  * red, the tutor is talking, listen; green, your turn, speak; amber, it is
  * thinking, one moment. The intro's final page teaches exactly this mapping,
  * so these values changing means that page is teaching a lie — change both.
- * Amber is darker than rung 1's yellow so the caption under it stays legible
- * on lilac.
+ *
+ * Each is a MARK, and a mark that reports state is held to 3 against the paper
+ * it sits on, not to the 4.5 that words are held to. That distinction is the
+ * whole of J2: the amber measured 1.79 and the red 2.79, and the captions were
+ * being set in those same colours, so the word under the orb was the least
+ * legible text in the app. The colours now clear the floor for a mark and the
+ * captions are ink, which is the floor for words. Amber stays well clear of
+ * rung 1's yellow; it sits nearer accents.bronze than anything else in the
+ * palette, which is safe only because bronze is sand's accent and the orb only
+ * ever appears on house.
  */
 export const orb = {
   /** Red — the tutor is speaking. Listen. */
   speaking: signal.live,
   /** Green — your turn. Speak. */
   yourTurn: signal.good,
-  /** Amber — the tutor is thinking. One moment. */
-  thinking: '#E3A800',
+  /** Amber — the tutor is thinking. One moment. Darkened from #E3A800 (1.79). */
+  thinking: '#B07510',
+  /**
+   * Violet — the microphone is closed and the circle is waiting to be pressed.
+   *
+   * Not a fourth traffic light. Waiting to be tapped is not a state report, it
+   * is the primary control of the whole product, so it takes the primary
+   * colour exactly as the pill does. It stops being violet the instant the orb
+   * starts reporting anything.
+   */
+  ready: accent.primary,
 } as const;
 
 export const font = {

@@ -8,8 +8,11 @@
  *   ink pill per screen. Chrome is plain English; French appears only as the
  *   thing being learned.
  * KEPT FROM THE ENAMEL WORLD (behaviour, not surface): one primary action per
- *   screen; the four support colours cooling as help is withdrawn; the red
- *   live microphone; no scores and no scolding mid-session; 44pt floors.
+ *   screen; the four support colours cooling as help is withdrawn; no scores
+ *   and no scolding mid-session; 44pt floors.
+ * CHANGED DELIBERATELY: the live microphone is GREEN. Green means you speak,
+ *   everywhere, which lets the voice circle's red mean the tutor is speaking
+ *   without the two ever reading as one signal.
  * STORY: A welcome that moves, sign in once, four gentle questions, then five
  *   doors along the bottom — Home, Tutor, Practice, Leaderboard, Profile.
  *   Stalling is stepped in for, never commented on.

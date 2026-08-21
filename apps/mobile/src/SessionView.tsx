@@ -157,11 +157,12 @@ export function SessionView(props: SessionViewProps) {
   return (
     <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
       <View style={st.header}>
+        {/* The position is the dot rail below, and only the dot rail. It used
+            to be printed here as "2 / 5" as well, which is the numeric progress
+            ConvoScreen deliberately dropped: a count mid-session is a score,
+            and this surface is the one place a learner is already exposed. */}
         <View style={st.headerRow}>
           <Label>Level {props.cefr}</Label>
-          <Label color={paper.inkFaint}>
-            {prompt.position} / {prompt.total}
-          </Label>
         </View>
         <Text style={[type.heading, { color: paper.ink, marginTop: space(1) }]} numberOfLines={1}>
           {props.lessonTitle}

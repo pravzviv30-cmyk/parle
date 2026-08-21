@@ -6,19 +6,31 @@
  * every signal. Both are arithmetic, so both can be held here rather than in a
  * comment somebody will contradict with an eyedropper in six months.
  *
- * What this deliberately does NOT do is assert that every colour passes WCAG.
- * Four of them do not, and did not before any of this work: inkFaint at 2.91,
- * signal.good at 3.64, the old label violet at 4.08, and orb.thinking at 1.79.
- * Asserting a floor they never met would mean either a red suite on day one or
- * quietly changing a colour the tutor intro teaches a learner by name. So the
- * contract is: hard floors where the app already clears them, and no
- * regression anywhere else. Equal lightness makes the second one free, which
- * turns it into a real tripwire against a sixth paper picked by eye.
+ * What this deliberately does NOT do is assert that every colour passes the
+ * 4.5 floor for text. Two do not: inkFaint at 2.91 and signal.good at 3.64,
+ * both of which are used as marks and as secondary type. Asserting a floor
+ * they never met would mean a red suite on day one.
+ *
+ * The orb colours USED to be listed here as exemptions too, and that was the
+ * mistake J2 fixed. They are marks, and a mark that reports state is held to 3,
+ * not to 4.5 — so the honest thing was never an exemption, it was the right
+ * floor. Amber measured 1.79 and red 2.79 against their own paper. Both are
+ * asserted below now, and the captions that used to be set in them are ink.
+ *
+ * So the contract is: hard floors where the app clears them, the mark floor on
+ * anything that reports state, and no regression anywhere else. Equal lightness
+ * makes the last one free, which turns it into a real tripwire against a sixth
+ * paper picked by eye.
  */
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { papers, accents, ink, paperFor, type Paper } from './palette.ts';
+
+const SRC = new URL('.', import.meta.url).pathname;
 
 // ── colour maths, local to the test, per docs/TESTING.md ──────────────────
 
@@ -87,18 +99,40 @@ function deltaE(one: string, two: string): number {
 const SIGNALS = {
   good: '#1E8A5B',
   correspondance: '#B4008A',
-  live: '#FF4B3E',
-  thinking: '#E3A800',
+  live: '#DE3B2D',
   rung1: '#FFCD00',
   rung2: '#FF7E2E',
   rung3: '#6EC4E8',
+} as const;
+
+/**
+ * The voice circle's three words, which are NOT signals and never were.
+ *
+ * `orb.thinking` sat in the table above for a while and it does not belong
+ * there: `signal.*` are the marks that appear inside a card, beside a label set
+ * in that paper's accent, which is the adjacency the Delta-E rule below exists
+ * to police. The orb is a hundred-point circle that owns its screen and never
+ * shares one with an accent.
+ *
+ * Keeping it in the signals table had a cost, and the cost was the learner. The
+ * only ambers far enough from `accents.bronze` to satisfy that rule sit around
+ * L* 23 and read as dark olive; the one that satisfied it before was light
+ * enough to measure 1.79 against its own paper. Legibility wins, and the orb
+ * gets its own contract instead: the mark floor, and the three lights held
+ * apart from each other and from rung one.
+ */
+const ORB = {
+  speaking: SIGNALS.live,
+  yourTurn: SIGNALS.good,
+  thinking: '#B07510',
+  ready: accents.violet,
 } as const;
 
 const HOUSE = papers.house;
 const ALL = Object.entries(papers) as [string, Paper][];
 
 /** The inks whose ratio must not move when the paper changes. */
-const CARRIED = { ...ink, ...SIGNALS, violet: accents.violet } as Record<string, string>;
+const CARRIED = { ...ink, ...SIGNALS, thinking: ORB.thinking, violet: accents.violet } as Record<string, string>;
 
 describe('every paper is the same light', () => {
   test('all five grounds sit at L* 93.1', () => {
@@ -253,5 +287,55 @@ describe('which place gets which light', () => {
     const ids = ['topic:le-marche', 'topic:mon-travail', 'topic:la-famille', 'topic:les-vacances', 'topic:le-sport'];
     const seen = new Set(ids.map((id) => paperFor(id).ground));
     assert.ok(seen.size > 1, 'the hash put every topic on the same paper');
+  });
+});
+
+describe('the voice circle is legible — J2', () => {
+  /**
+   * A mark that reports state is a graphical object, and the floor for one is
+   * 3 against whatever it sits on. Words are held to 4.5. Conflating the two is
+   * what let "One moment" ship at 1.79: the caption took the mark's colour, so
+   * it quietly inherited the mark's floor.
+   */
+  const MARK_FLOOR = 3;
+
+  test('every orb state is legible as a mark against its own paper', () => {
+    for (const [name, hex] of Object.entries(ORB)) {
+      const ratio = contrast(hex, HOUSE.ground);
+      assert.ok(ratio >= MARK_FLOOR, `orb.${name} is ${ratio.toFixed(2)} on house, below the ${MARK_FLOOR} floor for a mark`);
+    }
+  });
+
+  test('an orb caption is words, so it is held to the floor for words', () => {
+    // The captions are set in ink for exactly this reason. Two of the three
+    // state colours cannot carry text on this paper and never could.
+    assert.ok(contrast(ink.ink, HOUSE.ground) >= 4.5, 'the caption ink itself has to clear the floor for text');
+    assert.ok(
+      contrast(ORB.thinking, HOUSE.ground) < 4.5,
+      'if amber ever clears the text floor this test is stale, not the code',
+    );
+  });
+
+  test('the three traffic lights stay far apart, and none of them is rung one', () => {
+    const lights = [ORB.speaking, ORB.yourTurn, ORB.thinking];
+    for (let i = 0; i < lights.length; i += 1) {
+      for (let j = i + 1; j < lights.length; j += 1) {
+        assert.ok(deltaE(lights[i]!, lights[j]!) >= 30, `two of the tutor's three words are the same colour`);
+      }
+      assert.ok(
+        deltaE(lights[i]!, SIGNALS.rung1) >= 30,
+        `a traffic light reads as rung one's yellow, which lives one screen away`,
+      );
+    }
+  });
+
+  test('the copied orb values still match what theme.ts actually ships', () => {
+    // theme.ts reaches react-native and this suite must never load it, so the
+    // values above are copies. This is what keeps a copy from becoming a lie.
+    const source = readFileSync(join(SRC, 'theme.ts'), 'utf8');
+    for (const [name, hex] of Object.entries(ORB)) {
+      if (name === 'ready') continue; // an alias for accent.primary, asserted elsewhere
+      assert.ok(source.includes(hex), `theme.ts no longer ships ${hex} for orb.${name}; the copy above is stale`);
+    }
   });
 });

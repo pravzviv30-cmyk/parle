@@ -43,7 +43,11 @@ describe('the choosing moment — what the screen decides before a scene exists'
     const before = choosingView(opening);
     assert.equal(before.showQuestion, true, 'before anyone has answered, the question is the whole screen');
     assert.equal(before.showTranscript, false, 'a thread holding only the question the headline already asks is noise');
-    assert.equal(before.orb, 'idle', 'a green circle over a closed microphone tells the learner something untrue');
+    // J1. This was 'idle', which kept the promise below — a closed microphone
+    // is never green — by drawing the primary control of the whole product in
+    // the hairline colour. 'ready' keeps the promise and is visible.
+    assert.equal(before.orb, 'ready', 'a green circle over a closed microphone tells the learner something untrue');
+    assert.notEqual(before.orb, 'listening', 'and it must still never be the green that means the learner is heard');
     assert.equal(before.orbIsButton, true, 'the circle is the way the microphone opens, so it has to be pressable');
     assert.equal(before.helper, TAP_TO_TALK, 'a control with no instruction is a control nobody presses');
 
@@ -134,5 +138,25 @@ describe('the choosing moment — what the screen decides before a scene exists'
       assert.ok(!/—/.test(line), `"${line}" carries an em dash`);
       assert.ok(!/\b(wrong|bad|failed|incorrect)\b/i.test(line), `"${line}" scolds`);
     }
+  });
+});
+
+describe('the circle a learner has to press — J1', () => {
+  test('a closed microphone offers a control, not a hairline', () => {
+    const view = choosingView(opening);
+    assert.equal(view.orbIsButton, true);
+    assert.equal(view.orb, 'ready', 'the one thing a learner must press cannot be drawn as a rule');
+  });
+
+  test('the orb only goes quiet when there is nothing to tap', () => {
+    // Text mode has no microphone to open, so there the circle really is idle.
+    const typing = choosingView({ ...opening, textMode: true });
+    assert.equal(typing.orbIsButton, false);
+    assert.equal(typing.orb, 'idle');
+  });
+
+  test('reporting a state always outranks asking to be pressed', () => {
+    assert.equal(choosingView({ ...opening, thinking: true }).orb, 'thinking');
+    assert.equal(choosingView({ ...opening, tutorSpeaking: true }).orb, 'speaking');
   });
 });

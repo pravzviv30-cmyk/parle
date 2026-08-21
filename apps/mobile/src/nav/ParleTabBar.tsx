@@ -66,6 +66,10 @@ export function ParleTabBar({ state, navigation, insets }: BottomTabBarProps) {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
           if (!focused && !event.defaultPrevented) {
             navigation.navigate(route.name as never);
+            // Five icons, no labels: without this a screen-reader user gets no
+            // signal at all that the whole screen just replaced itself. The
+            // function was written for exactly this and then never called.
+            announceTab(route.name);
           }
         };
 

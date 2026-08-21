@@ -16,7 +16,7 @@
 import { useCallback, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { buildProgressReport, levelFor, type LevelStanding, type ProgressReport } from '@parle/core';
 import { accent, paper, space, type, radius, HIT } from '../theme.ts';
 import { Card, Label, PillButton, StationLine, Stat } from '../components.tsx';
@@ -34,6 +34,11 @@ import { useProfile } from '../app/ProfileContext.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 
 export function HomeTab() {
+  // A bottom tab stays mounted after its first visit, so a looping scene here
+  // keeps animating behind whatever the learner is actually doing. The scene
+  // cannot ask for itself — useIsFocused throws outside a NavigationContainer,
+  // and several scenes render above the navigator — so the tab passes it down.
+  const focused = useIsFocused();
   const insets = useSafeAreaInsets();
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const { profile } = useProfile();
@@ -155,7 +160,7 @@ export function HomeTab() {
         ) : (
           <>
             <View style={st.hero}>
-              <SpeakBubbles width={170} />
+              <SpeakBubbles width={170} paused={!focused} />
             </View>
             <Text style={st.headline}>Nothing here yet</Text>
             <Text style={st.subline}>

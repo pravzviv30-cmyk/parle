@@ -938,3 +938,112 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   already happening. A comment that describes protection the learner does not have is
   worse than no comment.
 - verified-by: `the turn-detection note matches the plugins actually installed`
+
+### J1 — The circle you tap to start talking is drawn in the hairline colour
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tutor/choosingView.ts:119
+- note: a fresh voice session has the microphone closed, so choosingView returned
+  `orb: 'idle'` and `orbIsButton: true` together. The idle look draws its rings and
+  centre in paper.line, the token reserved for hairline rules, with a caption in
+  inkFaint at 2.91. The single thing a learner must press to talk to their tutor was
+  the faintest object in the app. Waiting to be tapped is not a state report, it is
+  the primary control, so it now reads as one.
+- verified-by: `a closed microphone offers a control, not a hairline`
+- verified-by: `the orb only goes quiet when there is nothing to tap`
+- verified-by: `every orb state is legible as a mark against its own paper`
+
+### J2 — Two of the three traffic lights fail the contrast floor for a mark
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/theme.ts:120
+- note: orb.thinking measured 1.79 against the house ground and orb.speaking 2.79,
+  where a graphical object that reports state needs 3. palette.test.ts declared the
+  amber a known exemption rather than asserting it, so nothing would ever have caught
+  it. Both are darkened just enough to clear the floor and keep their word: amber still
+  reads amber, red still reads red, and both stay far from rung one's yellow. Separately
+  the captions leave the state colour for ink, because 3 is the floor for a mark and 4.5
+  is the floor for words, and "Speak" in green measured 3.64.
+- verified-by: `every orb state is legible as a mark against its own paper`
+- verified-by: `an orb caption is words, so it is held to the floor for words`
+- verified-by: `the three traffic lights stay far apart, and none of them is rung one`
+
+### J3 — The intro teaches the thinking colour by the wrong name
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tutor/TutorIntro.tsx:33
+- note: the page that teaches the voice circle called amber "Yellow", while rung one's
+  actual yellow lives one screen away in the same app. The same file's header said three
+  pages and listed four.
+- verified-by: `the intro names the thinking colour what the theme calls it`
+- verified-by: `the intro header counts its own pages`
+
+### J4 — The icon-only tab bar never tells a screen reader the screen changed
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/nav/ParleTabBar.tsx:96
+- note: announceTab was written for exactly this, docblock and all, and then called from
+  nowhere. Five tabs with no labels and no announcement means a screen-reader user gets
+  no signal that the entire screen replaced itself.
+- verified-by: `changing tab announces the destination`
+- verified-by: `staying put announces nothing`
+
+### J5 — A control sits below the touch floor the tokens call a floor
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/components.tsx:585
+- note: theme.ts says HIT is the iOS minimum "enforced on every control", and the
+  segmented tab used HIT - 4. Forty points, in the control that switches Leaderboard
+  between Global and Friends.
+- verified-by: `no control is built below the touch floor`
+
+### J6 — Icon drawings are read aloud to screen readers
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/components.tsx:517
+- note: theme.ts exports `decorative` for exactly this and motion.test.ts enforces it on
+  every illustration, but the icon layer never spread it. Eight drawings across three
+  files, including the microphone, the ear and the chevrons, reach assistive tech as
+  unlabelled images, and on web react-native-svg forwards unknown props straight to the
+  DOM. Same class of bug the token was created to fix, one layer down.
+- verified-by: `every drawing in the app is hidden from assistive technology`
+
+### J7 — Four scene animations keep running on screens nobody is looking at
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.tsx:158
+- note: DESIGN.md says scenes stop via `paused`, and exactly one of seventeen render
+  sites passed it. Bottom-tab screens stay mounted after their first visit, so Home's
+  bubbles, Tutor's bubbles and both of Leaderboard's empty states loop for the rest of
+  the session behind whatever the learner is actually doing.
+- verified-by: `a scene on a tab that is not focused stops moving`
+
+### J8 — The lesson header says the position twice, once as a number
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/SessionView.tsx:161
+- note: the header prints "2 / 5" and then renders the dot rail that says the same
+  thing. ConvoScreen deliberately removed its numeric position for this reason, and
+  DESIGN.md asks for dots rather than numbers, so the two live surfaces disagreed.
+- verified-by: `the lesson header shows its position once, and not as a count`
+
+### J9 — Failure screens explain the failure to an engineer
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/failure.ts:169
+- note: a learner whose session will not start was told about room service offering an
+  address the browser is not allowed to reach, or that the tutor's voice or brain is
+  missing a key. Both are true and neither is theirs. Same information, said the way
+  DESIGN.md asks for: plain, warm, short, and about what they can do next.
+- verified-by: `no failure message explains the plumbing to the learner`
+- verified-by: `every failure still offers a way forward`
+
+### J10 — Three live comments describe the retired red microphone
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/DrillScreen.tsx:551
+- note: the microphone went green when the founder chose this direction, and App.tsx's
+  direction contract, DrillScreen's speak control and the frontend agent's own brief
+  still described it as red. The two documents an agent reads first disagreed with each
+  other about the one signal the product is built on.
+- verified-by: `nothing in the app still calls the live microphone red`

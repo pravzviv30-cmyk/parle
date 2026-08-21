@@ -10,12 +10,12 @@
 
 import { View, Text } from 'react-native';
 import Svg, { Path, Circle, G } from 'react-native-svg';
-import { accent, paper, radius, space, type, HIT, STROKE } from '../theme.ts';
+import { accent, decorative, paper, radius, space, type, HIT, STROKE } from '../theme.ts';
 
 /** A person with a plus beside them — the add-friends mark. */
 export function PersonPlusGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
         <Circle cx={9.4} cy={8.7} r={3.5} />
         <Path d="M3.2 19.9c1.4-3.7 3.9-5.6 6.9-5.6s5.4 1.8 6.8 5.4" />
