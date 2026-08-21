@@ -15,7 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { dueCards, reviewXp, type ReviewCard, type ReviewCardKind, type ReviewGrade } from '@parle/core';
-import { paper, space, type, radius, HAIRLINE, HIT } from './theme.ts';
+import { HAIRLINE, HIT, paper, paperFor, radius, space, type } from './theme.ts';
 import { Card, Label, PillButton, EarGlyph, fitDisplay } from './components.tsx';
 import { NothingDue } from './illustrations.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
@@ -222,9 +222,17 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   );
 }
 
+/**
+ * This place's light: sky. Practice and its deck share one light.
+ * paperFor is how a place asks for its own paper. The house spread in `paper`
+ * cannot follow a screen, because StyleSheet.create evaluates once at import,
+ * so a screen that wants a different light names it here instead.
+ */
+const sheet = paperFor('review');
+
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center' },
+  root: { flex: 1, backgroundColor: sheet.ground, paddingHorizontal: space(5) },
+  center: { flex: 1, backgroundColor: sheet.ground, alignItems: 'center', justifyContent: 'center' },
   centerFill: { flex: 1, justifyContent: 'center' },
   // flex-end: the caps screen title that used to hold the left of this row is
   // gone, and without this the count and the way out slide across to fill it.
@@ -249,11 +257,11 @@ const st = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: sheet.line,
     borderRadius: radius.card,
     paddingVertical: space(2.5),
   },
-  gradePressed: { backgroundColor: paper.groundDeep, borderColor: paper.ink },
+  gradePressed: { backgroundColor: sheet.groundDeep, borderColor: paper.ink },
   // Same height as the grade row, so the card does not jump on the flip.
   flipHint: { minHeight: HIT + 8, justifyContent: 'center' },
 });

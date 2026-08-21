@@ -55,7 +55,7 @@ import {
   type TapTranslateExercise,
   drillXp,
 } from '@parle/core';
-import { accent, paper, signal, space, type, radius, font, HAIRLINE, HIT } from './theme.ts';
+import { HAIRLINE, HIT, accent, font, paper, paperFor, radius, signal, space, type } from './theme.ts';
 import { recordActivity } from './progress/activity.ts';
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
@@ -434,7 +434,7 @@ function ListenTypeView({
           onPress={() => tutorVoice.speak(exercise.fr)}
           accessibilityRole="button"
           accessibilityLabel="Play the French line"
-          style={({ pressed }) => [ds.listenButton, pressed && { backgroundColor: paper.groundDeep }]}
+          style={({ pressed }) => [ds.listenButton, pressed && { backgroundColor: sheet.groundDeep }]}
         >
           <EarGlyph size={22} color={paper.ink} />
           <Text style={[type.button, { color: paper.ink }]}>Hear it</Text>
@@ -894,9 +894,17 @@ export function DrillScreen({
   );
 }
 
+/**
+ * This place's light: sky. Practice and its deck share one light.
+ * paperFor is how a place asks for its own paper. The house spread in `paper`
+ * cannot follow a screen, because StyleSheet.create evaluates once at import,
+ * so a screen that wants a different light names it here instead.
+ */
+const sheet = paperFor('drill');
+
 const ds = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center' },
+  root: { flex: 1, backgroundColor: sheet.ground, paddingHorizontal: space(5) },
+  center: { flex: 1, backgroundColor: sheet.ground, alignItems: 'center', justifyContent: 'center' },
   centerFill: { flex: 1, justifyContent: 'center' },
   // flex-end: the caps screen title that used to hold the left of this row is
   // gone, and without this Leave slides over to fill the space it left.
@@ -917,12 +925,12 @@ const ds = StyleSheet.create({
     gap: space(3),
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: sheet.line,
     borderRadius: radius.card,
     paddingVertical: space(3),
     paddingHorizontal: space(4),
   },
-  choicePressed: { backgroundColor: paper.groundDeep },
+  choicePressed: { backgroundColor: sheet.groundDeep },
 
   // The paper text field, in the Field anatomy. Type styles from the theme,
   // minus lineHeight, which clips single-line TextInputs on iOS.
@@ -930,7 +938,7 @@ const ds = StyleSheet.create({
     minHeight: HIT + 8,
     backgroundColor: paper.card,
     borderWidth: 1.5,
-    borderColor: paper.line,
+    borderColor: sheet.line,
     borderRadius: radius.input,
     paddingVertical: space(3),
     paddingHorizontal: space(4),
@@ -957,7 +965,7 @@ const ds = StyleSheet.create({
     gap: space(2),
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: sheet.line,
     borderRadius: radius.card,
     paddingVertical: space(2),
     paddingHorizontal: space(3),
@@ -968,7 +976,7 @@ const ds = StyleSheet.create({
     minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: paper.groundDeep,
+    backgroundColor: sheet.groundDeep,
     borderRadius: radius.chip,
     paddingVertical: space(1.5),
     paddingHorizontal: space(2.5),
@@ -980,7 +988,7 @@ const ds = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: sheet.line,
     borderRadius: radius.chip,
     paddingVertical: space(2),
     paddingHorizontal: space(3),

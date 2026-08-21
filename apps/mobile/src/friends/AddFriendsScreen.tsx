@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { paper, signal, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { HAIRLINE, HIT, paper, paperFor, signal, space, type } from '../theme.ts';
 import { Card, ChevronLeft, Field, GhostButton, Label } from '../components.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
@@ -239,8 +239,16 @@ export function AddFriendsScreen() {
   );
 }
 
+/**
+ * This place's light: sage. Entre amis.
+ * paperFor is how a place asks for its own paper. The house spread in `paper`
+ * cannot follow a screen, because StyleSheet.create evaluates once at import,
+ * so a screen that wants a different light names it here instead.
+ */
+const sheet = paperFor('amis');
+
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
+  root: { flex: 1, backgroundColor: sheet.ground, paddingHorizontal: space(5) },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   back: {
     width: HIT,
