@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { paper, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { Card, Label, TabBar } from '../components.tsx';
 import { NobodyYet } from '../illustrations.tsx';
@@ -41,6 +41,11 @@ interface Row {
 }
 
 export function LeaderboardTab() {
+  // A bottom tab stays mounted after its first visit, so a looping scene here
+  // keeps animating behind whatever the learner is actually doing. The scene
+  // cannot ask for itself — useIsFocused throws outside a NavigationContainer,
+  // and several scenes render above the navigator — so the tab passes it down.
+  const focused = useIsFocused();
   const insets = useSafeAreaInsets();
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const { user } = useAuth();
@@ -118,7 +123,7 @@ export function LeaderboardTab() {
             {/* The global board is empty until there is a server, so this one
                 has to be charming rather than sorry. */}
             <View style={st.emptyArt}>
-              <NobodyYet width={180} />
+              <NobodyYet width={180} paused={!focused} />
             </View>
             <Card>
             <Text style={[type.bodyStrong, { color: paper.ink }]}>
@@ -133,7 +138,7 @@ export function LeaderboardTab() {
         ) : friendRows.length === 0 ? (
           <>
             <View style={st.emptyArt}>
-              <NobodyYet width={180} />
+              <NobodyYet width={180} paused={!focused} />
             </View>
             <Card>
             <Text style={[type.bodyStrong, { color: paper.ink }]}>

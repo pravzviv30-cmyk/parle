@@ -548,10 +548,11 @@ function RepeatThisView({
             </View>
           </>
         ) : (
-          /* The one speak control made real: hollow at rest, and signal.live
-             red only while the microphone is actually on — the red circle keeps
-             its one meaning, here as in ConvoScreen. Tapping Done grades
-             exactly as I said it does; the recording only ever adds a line. */
+          /* The one speak control made real: hollow at rest, and filled green
+             only while the microphone is actually on. Green means you speak,
+             here as in ConvoScreen; red belongs to the tutor's own voice and
+             never marks the learner's microphone. Tapping Done grades exactly
+             as I said it does; the recording only ever adds a line. */
           <View style={ds.speakBlock}>
             <SpeakCircle
               onPress={() => void toggleRecord()}
@@ -962,7 +963,9 @@ const ds = StyleSheet.create({
     paddingHorizontal: space(3),
   },
   assembledWord: {
-    minHeight: HIT - 8,
+    // A Pressable with a button role that removes the word you tap. It is a
+    // control, so it gets the floor every control gets.
+    minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: paper.groundDeep,

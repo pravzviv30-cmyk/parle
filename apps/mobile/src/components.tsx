@@ -20,7 +20,7 @@ import {
   type KeyboardTypeOptions,
 } from 'react-native';
 import Svg, { Path, Circle, G } from 'react-native-svg';
-import { accent, paper, radius, signal, space, type, HAIRLINE, HIT, STROKE, rungColor } from './theme.ts';
+import { accent, decorative, paper, radius, signal, space, type, HAIRLINE, HIT, STROKE, rungColor } from './theme.ts';
 import type { Rung } from '@parle/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
@@ -28,7 +28,7 @@ import type { Rung } from '@parle/core';
 
 export function ArrowRight({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
         <Path d="M4 12h15.2" />
         <Path d="M13.6 5.8 19.8 12l-6.2 6.2" />
@@ -39,7 +39,7 @@ export function ArrowRight({ size = 18, color = paper.ink }: { size?: number; co
 
 export function ChevronLeft({ size = 22, color = paper.ink }: { size?: number; color?: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       <Path
         d="M14.8 5.2 8 12l6.8 6.8"
         fill="none"
@@ -54,7 +54,7 @@ export function ChevronLeft({ size = 22, color = paper.ink }: { size?: number; c
 
 export function MicGlyph({ size = 30, color = paper.ink }: { size?: number; color?: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
         <Path d="M12 3.2a2.9 2.9 0 0 1 2.9 2.9v5.6a2.9 2.9 0 0 1-5.8 0V6.1A2.9 2.9 0 0 1 12 3.2Z" />
         <Path d="M5.9 11.2a6.1 6.1 0 0 0 12.2 0M12 17.3v3.5" />
@@ -66,7 +66,7 @@ export function MicGlyph({ size = 30, color = paper.ink }: { size?: number; colo
 export function EarGlyph({ size = 26, color = paper.ink }: { size?: number; color?: string }) {
   // Shown while the tutor is speaking: sound arriving, not being captured.
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round">
         <Path d="M4 9.5v5h3.4L12 18.6V5.4L7.4 9.5z" strokeLinejoin="round" />
         <Path d="M15.4 8.6a4.6 4.6 0 0 1 0 6.8M18.2 5.9a8.4 8.4 0 0 1 0 12.2" />
@@ -77,7 +77,7 @@ export function EarGlyph({ size = 26, color = paper.ink }: { size?: number; colo
 
 export function HelpGlyph({ size = 16, color = paper.inkSoft }: { size?: number; color?: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       <Circle cx={12} cy={12} r={9.2} fill="none" stroke={color} strokeWidth={STROKE} />
       <Path
         d="M9.3 9.2a2.8 2.8 0 0 1 5.5.7c0 1.9-2.7 2.2-2.7 4"
@@ -94,7 +94,7 @@ export function HelpGlyph({ size = 16, color = paper.inkSoft }: { size?: number;
 /** A monochrome G in the house line style — no brand-colour asset needed. */
 export function GoogleMark({ size = 20, color = paper.ink }: { size?: number; color?: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round">
         <Path d="M20.4 12.2A8.6 8.6 0 1 1 17.8 6" />
         <Path d="M12.6 12.2h7.8" />
@@ -582,7 +582,9 @@ const s = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    minHeight: HIT - 4,
+    // theme.ts calls HIT the floor "enforced on every control", and this was
+    // the one control built under it.
+    minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,

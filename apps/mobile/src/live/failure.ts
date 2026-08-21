@@ -140,7 +140,7 @@ const COPY: Record<LiveFailure, FailureCopy> = {
   },
   'mic-unavailable': {
     label: 'Microphone unavailable',
-    message: 'This browser will not open a microphone on an insecure address. Open Parle over localhost or https, or carry on by typing.',
+    message: 'Parle cannot open the microphone here. You can have the whole conversation by typing instead.',
     canType: true,
   },
   // The one failure a learner is most likely to meet, and the one that read
@@ -156,17 +156,17 @@ const COPY: Record<LiveFailure, FailureCopy> = {
   },
   'server-refused': {
     label: 'Session refused',
-    message: 'The session server would not start a session for this account. Signing out and back in usually settles it.',
+    message: 'Parle could not start a session for this account. Signing out and back in usually settles it.',
     canType: false,
   },
   signal: {
     label: 'Could not connect',
-    message: 'Parle reached the room service but could not hold the connection. Check your network and try again.',
+    message: 'The connection would not hold. Check your network and try again.',
     canType: false,
   },
   media: {
     label: 'No audio path',
-    message: 'The connection opened but no audio could get through. On a local setup this is usually the room service offering an address your browser is not allowed to reach.',
+    message: 'The connection opened but the sound could not get through. Try again in a moment, or switch to another network.',
     canType: false,
   },
   'agent-absent': {
@@ -176,7 +176,7 @@ const COPY: Record<LiveFailure, FailureCopy> = {
   },
   'agent-silent': {
     label: 'Tutor went quiet',
-    message: 'Your tutor joined and then stopped before saying anything. That usually means its voice or its brain is missing a key. Nothing has been counted against your minutes.',
+    message: 'Your tutor joined and then went quiet before saying anything. This one is on us, not on you. Nothing has been counted against your minutes.',
     canType: false,
   },
   dropped: {
@@ -186,7 +186,7 @@ const COPY: Record<LiveFailure, FailureCopy> = {
   },
   unknown: {
     label: 'Session problem',
-    message: 'Something stopped the session before it started. Try again, and open What happened if it keeps going.',
+    message: 'Something stopped the session before it started. Try again, and if it keeps happening the details below are worth sending us.',
     canType: false,
   },
 };

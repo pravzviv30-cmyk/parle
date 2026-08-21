@@ -29,7 +29,7 @@ import { useEffect, useRef } from 'react';
 import { View, Text, Animated, Easing, StyleSheet, AccessibilityInfo } from 'react-native';
 import { orb, paper, space, type, STROKE, decorative } from '../theme.ts';
 
-export type OrbState = 'idle' | 'speaking' | 'listening' | 'thinking' | 'error';
+export type OrbState = 'ready' | 'idle' | 'speaking' | 'listening' | 'thinking' | 'error';
 
 /** Outermost first: the two rings, then the solid centre's diameter. */
 const RINGS = [132, 104] as const;
@@ -50,7 +50,29 @@ interface Look {
   captionColor: string;
 }
 
+/**
+ * Captions are set in ink, not in the state's own colour.
+ *
+ * A mark that reports state is held to 3 against its paper; words are held to
+ * 4.5. Setting the word in the mark's colour quietly held the word to the
+ * mark's floor, and "One moment" came out at 1.79 and "Speak" at 3.64. The orb
+ * carries the colour, the caption carries the meaning, and both are legible.
+ */
+const CAPTION_INK = paper.ink;
+
 const LOOKS: Record<OrbState, Look> = {
+  ready: {
+    // The one control on the screen, in the colour the primary pill uses. It
+    // was paper.line — the hairline token — which made the thing a learner has
+    // to press the faintest object in the app.
+    rings: [orb.ready, orb.ready],
+    centre: orb.ready,
+    amplitude: 0.04,
+    period: 2600,
+    shimmer: false,
+    caption: 'Tap to talk',
+    captionColor: CAPTION_INK,
+  },
   idle: {
     rings: [paper.line, paper.line],
     centre: paper.line,
@@ -58,7 +80,7 @@ const LOOKS: Record<OrbState, Look> = {
     period: 3400,
     shimmer: false,
     caption: 'Ready',
-    captionColor: paper.inkFaint,
+    captionColor: CAPTION_INK,
   },
   speaking: {
     rings: [orb.speaking, orb.speaking],
@@ -67,7 +89,7 @@ const LOOKS: Record<OrbState, Look> = {
     period: 900,
     shimmer: false,
     caption: 'Listen',
-    captionColor: orb.speaking,
+    captionColor: CAPTION_INK,
   },
   listening: {
     rings: [orb.yourTurn, orb.yourTurn],
@@ -76,7 +98,7 @@ const LOOKS: Record<OrbState, Look> = {
     period: 1600,
     shimmer: false,
     caption: 'Speak',
-    captionColor: orb.yourTurn,
+    captionColor: CAPTION_INK,
   },
   thinking: {
     rings: [orb.thinking, orb.thinking],
@@ -85,7 +107,7 @@ const LOOKS: Record<OrbState, Look> = {
     period: 1400,
     shimmer: true,
     caption: 'One moment',
-    captionColor: orb.thinking,
+    captionColor: CAPTION_INK,
   },
   error: {
     rings: [paper.line, 'transparent'],
@@ -94,7 +116,7 @@ const LOOKS: Record<OrbState, Look> = {
     period: 0,
     shimmer: false,
     caption: '',
-    captionColor: paper.inkFaint,
+    captionColor: CAPTION_INK,
   },
 };
 

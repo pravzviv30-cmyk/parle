@@ -13,7 +13,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { paper, space, type } from '../theme.ts';
 import { PillButton, GhostButton, OutlineButton, Card, Label } from '../components.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
@@ -23,6 +23,11 @@ import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
 import { hasSeenTutorIntro, markTutorIntroSeen } from '../tutor/store.ts';
 
 export function TutorTab() {
+  // A bottom tab stays mounted after its first visit, so a looping scene here
+  // keeps animating behind whatever the learner is actually doing. The scene
+  // cannot ask for itself — useIsFocused throws outside a NavigationContainer,
+  // and several scenes render above the navigator — so the tab passes it down.
+  const focused = useIsFocused();
   const insets = useSafeAreaInsets();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { live, recheck } = useLive();
@@ -94,7 +99,7 @@ export function TutorTab() {
     <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
         <View style={st.hero}>
-          <SpeakBubbles width={190} />
+          <SpeakBubbles width={190} paused={!focused} />
         </View>
 
         <Text style={st.headline}>Ready to talk?</Text>

@@ -106,9 +106,9 @@ Tokens from `apps/mobile/src/theme.ts`:
 ### Signals
 
 Kept out of the rung set so state never reads as a rung:
-`live #FF4B3E` (the tutor's voice — red never marks the learner's mic now) ·
+`live #DE3B2D` (the tutor's voice — red never marks the learner's mic now) ·
 `good #1E8A5B` · `correspondance #B4008A` (the latter two darkened from the
-enamel era to hold on white cards).
+enamel era to hold on white cards; `live` darkened later, see below).
 
 ### The voice circle speaks traffic lights
 
@@ -117,14 +117,35 @@ page, so these values changing means that page is teaching a lie — change both
 
 | State | Colour | Caption |
 |---|---|---|
-| Tutor speaking | `orb.speaking` red `#FF4B3E` | Listen |
+| Waiting to be tapped | `orb.ready` violet `#6B3FA0` | Tap to talk |
+| Tutor speaking | `orb.speaking` red `#DE3B2D` | Listen |
 | Your turn | `orb.yourTurn` green `#1E8A5B` | Speak |
-| Thinking | `orb.thinking` amber `#E3A800` | One moment |
+| Thinking | `orb.thinking` amber `#B07510` | One moment |
 
-Amber is darker than rung 1's yellow so the caption under it stays legible on
-lilac. Green is the same green everywhere the learner speaks: the orb's
-your-turn state, the lesson SpeakCircle, the Review button, the path's
-learned marks.
+**Two floors, not one, and conflating them was a real bug.** A mark that
+reports state is a graphical object and clears **3** against its paper; words
+clear **4.5**. The captions used to be set in the state's own colour, which
+quietly held the word to the mark's floor — so "One moment" shipped at 1.79 and
+"Speak" at 3.64. Captions are ink now; the orb carries the colour and the word
+carries the meaning. Amber and red were darkened to clear the mark floor
+(`#E3A800` measured 1.79, `#FF4B3E` 2.79) and `palette.test.ts` asserts all
+three, plus that no two lights and no light and rung 1 come within Delta-E 30.
+
+`orb.thinking` sits nearer `accents.bronze` than the accent rule would normally
+allow, and that is deliberate: every amber far enough from bronze to satisfy it
+sits around L\* 23 and reads as dark olive. The orb owns its screen and never
+shares one with a paper's accent, so legibility won. `orb.*` are therefore held
+to their own contract in the tests rather than folded into `signal.*`.
+
+**Violet is the fourth state and is not a traffic light.** A closed microphone
+waiting to be tapped is the primary control of the whole product, so it takes
+the primary colour exactly as the pill does. It used to be drawn in `paper.line`
+— the hairline token — which made the one thing a learner must press the
+faintest object in the app. It stops being violet the instant it reports
+anything.
+
+Green is the same green everywhere the learner speaks: the orb's your-turn
+state, the lesson SpeakCircle, the Review button, the path's learned marks.
 
 ## Type
 
@@ -277,9 +298,10 @@ at 2.2px. The steam was 23% thinner than the cup it rose from.
 Two things moved before. The **welcome** — steam drifting off a café cup, two speech
 bubbles arriving one after the other, then a settling second page. And the
 **voice circle**: two concentric outline rings breathing around one solid
-centre, offset so they drift rather than pump in unison. Five states — idle,
-speaking, listening, thinking, error — said in traffic-light colour (red
-listen, green speak, amber one-moment) and one caption. The founder chose this
+centre, offset so they drift rather than pump in unison. Six states — ready,
+idle, speaking, listening, thinking, error — said in traffic-light colour (red
+listen, green speak, amber one-moment), violet for the untapped control, and
+one caption always set in ink. The founder chose this
 ring shape explicitly over a lit gradient sphere. It carries no shadow; the
 app's only shadow belongs to the live microphone and nothing else may borrow
 it.
