@@ -14,7 +14,7 @@
 
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { paper, space, type } from '../theme.ts';
+import { HIT, paper, space, type } from '../theme.ts';
 import { Card, Label, ChevronLeft } from '../components.tsx';
 
 interface Notice {
@@ -80,6 +80,6 @@ export function Acknowledgements({ onBack }: { onBack: () => void }) {
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  back: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingTop: space(3), paddingBottom: space(6) },
 });

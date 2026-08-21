@@ -20,9 +20,10 @@ import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Animated, Easing, StyleSheet, AccessibilityInfo } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Ellipse, G } from 'react-native-svg';
-import { paper, space, type, STROKE, decorative } from '../theme.ts';
+import { HIT, STROKE, decorative, paper, space, type } from '../theme.ts';
 import { PillButton, ChevronLeft, ProgressDots } from '../components.tsx';
 import { LearnStack } from '../illustrations.tsx';
+import { settleIn, useReduceMotion } from '../motion.ts';
 
 /** The still art is a 200x150 viewBox drawn at 1.3x. */
 const SCENE_W = 260;
@@ -125,14 +126,15 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
   const bubbleA = useRef(new Animated.Value(0)).current;
   const bubbleB = useRef(new Animated.Value(0)).current;
   const settle = useRef(new Animated.Value(0)).current;
+  const reduced = useReduceMotion();
 
   useEffect(() => {
     let cancelled = false;
     let loop: Animated.CompositeAnimation | null = null;
 
-    void AccessibilityInfo.isReduceMotionEnabled().then((on) => {
+    const run = () => {
       if (cancelled) return;
-      if (on) {
+      if (reduced) {
         // The final frame, immediately. The scene is the welcome; the drift is
         // only the flourish, and nobody should have to sit through it.
         steam.setValue(0.5);
@@ -143,7 +145,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
       }
       // Each page gets one settling entrance; only page one keeps a loop.
       settle.setValue(0);
-      Animated.timing(settle, { toValue: 1, duration: 380, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      settleIn(settle, false);
       if (page !== 0) return;
       Animated.stagger(180, [
         Animated.timing(bubbleA, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
@@ -156,14 +158,16 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         ]),
       );
       loop.start();
-    });
+    };
+
+    run();
 
     return () => {
       cancelled = true;
       // Never leave a loop running past the page that started it.
       loop?.stop();
     };
-  }, [page, steam, bubbleA, bubbleB, settle]);
+  }, [page, reduced, steam, bubbleA, bubbleB, settle]);
 
   const settled = {
     opacity: settle,
@@ -218,7 +222,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(6), justifyContent: 'space-between' },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  back: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scene: { width: SCENE_W, height: SCENE_H, alignItems: 'center', justifyContent: 'center' },
   // cup centre sits at viewBox x=70 -> 91px; the steam box is 44 wide, so

@@ -31,7 +31,7 @@ export function SettingsRow({
     <View style={[st.row, !first && st.divided]}>
       <View style={{ flex: 1 }}>
         <Text style={[type.bodyStrong, { color: colour }]}>{label}</Text>
-        {value ? <Text style={[type.small, { color: paper.inkFaint, marginTop: 2 }]}>{value}</Text> : null}
+        {value ? <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{value}</Text> : null}
       </View>
       {onPress ? <ArrowRight size={16} color={paper.inkFaint} /> : null}
     </View>

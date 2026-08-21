@@ -244,7 +244,6 @@ const st = StyleSheet.create({
   },
   pairSide: { flex: 1, gap: 2 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(3) },
-  stat: { width: '50%', paddingVertical: space(2.5) },
   wins: {
     borderLeftWidth: HAIRLINE + 1,
     borderLeftColor: signal.good,

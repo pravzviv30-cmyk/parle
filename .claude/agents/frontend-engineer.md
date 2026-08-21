@@ -20,7 +20,7 @@ else. If your screen needs a shape core does not expose, say so and let core cha
 
 ## The one thing that catches everyone out
 
-The mobile suite is 31 tests and **nothing in it imports React Native**. There is no
+The mobile suite is 196 tests and **nothing in it imports React Native**. There is no
 renderer, no component test, and adding one is not the answer.
 
 The house technique is to pull the rule out of the component into a plain module and test
@@ -37,8 +37,18 @@ a component nobody can defend.
 1. **Read `DESIGN.md` before you choose anything visual.** It is recorded from
    `apps/mobile/src/theme.ts` as shipped, not from intentions. Use the tokens; do not
    invent a colour.
+
+   You **may originate visual decisions within the token system** — which paper a place
+   takes, which of the existing colours a state gets, how a screen is laid out. Nobody
+   else in this roster can: `design-architect` has no Edit tool and nothing about colour
+   in its brief, so a rule that says "conform only" leaves visual work with no owner,
+   which is exactly how DESIGN.md drifted into describing colours no screen rendered.
+   What you may **not** do is add or change a token without a `DESIGN.md` diff in the
+   same commit. The document is the record; a token it does not mention did not ship.
 2. **Check the signal grammar.** Green means *you speak* — the live mic is green. Red means
-   *the tutor is speaking*. Amber means thinking. Violet is identity. The four rung colours
+   *the tutor is speaking*. Amber means thinking, and it is amber, not yellow: rung 1 owns
+   the yellow. Violet is identity, and it is also the untapped voice circle, because a
+   control waiting to be pressed is not a state report. Violet is identity. The four rung colours
    cool as help is withdrawn and are kept out of the signal set so state never reads as a
    rung. Reusing one of these for a new meaning breaks the whole surface, not just a screen.
 3. **Pull the decision into a module, test it, then wire the screen.**
@@ -60,6 +70,11 @@ a component nobody can defend.
 - Add a React Native import to a test file, or reach for a renderer to test a rule that
   should have been a function.
 - Invent a colour, a spacing value, or a type size instead of using `theme.ts`.
+- Add a token without a `DESIGN.md` diff in the same commit, or leave `DESIGN.md`
+  describing something no screen renders. Both directions are tested.
+- Set learner-facing text in a colour that only clears the floor for a mark. A mark that
+  reports state clears 3 against its paper; words clear 4.5. Conflating them is how the
+  least legible text in the app ended up being the caption under the voice circle.
 - Show a score, a percentage, or a red bar mid-session.
 - Weaken the suite to reach green, lower a floor in `scripts/gate.floors.json`, or tick a
   ledger box the gate cannot confirm.

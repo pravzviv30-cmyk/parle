@@ -19,6 +19,7 @@ import { useEffect, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, Animated, Easing, AccessibilityInfo } from 'react-native';
 import { paper, signal, space, type, radius, HAIRLINE } from '../theme.ts';
 import type { TurnLine } from '../live/turns.ts';
+import { settleIn, useReduceMotion } from '../motion.ts';
 
 function Recast({ quote, better, betterEn, why }: { quote: string; better: string; betterEn: string; why: string }) {
   return (
@@ -67,27 +68,14 @@ export function Transcript({ turns }: { turns: readonly TurnLine[] }) {
   // thread appears get it, and neither has to remember the numbers.
   const settle = useRef(new Animated.Value(0)).current;
 
+  // The final frame when movement is withheld. The conversation is the content;
+  // the arrival is the flourish, and nobody should sit through a flourish to
+  // read. settleIn owns both halves of that, for every surface.
+  const reduced = useReduceMotion();
   useEffect(() => {
-    let cancelled = false;
-    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
-      if (cancelled) return;
-      if (reduced) {
-        // The final frame. The conversation is the content; the arrival is the
-        // flourish, and nobody should have to sit through a flourish to read.
-        settle.setValue(1);
-        return;
-      }
-      Animated.timing(settle, {
-        toValue: 1,
-        duration: 380,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [settle]);
+    const animation = settleIn(settle, reduced);
+    return () => animation?.stop();
+  }, [settle, reduced]);
 
   return (
     <Animated.View

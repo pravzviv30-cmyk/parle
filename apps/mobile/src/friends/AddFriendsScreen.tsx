@@ -156,7 +156,7 @@ export function AddFriendsScreen() {
                           </Text>
                           {hit.preview && <SampleChip />}
                         </View>
-                        <Text style={[type.small, { color: paper.inkFaint, marginTop: 2 }]}>{hit.username}</Text>
+                        <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{hit.username}</Text>
                       </View>
                       {status === 'add' ? (
                         <GhostButton label="Add" color={paper.ink} onPress={() => void add(hit.username)} />
@@ -202,7 +202,7 @@ export function AddFriendsScreen() {
                       <Text style={[type.bodyStrong, { color: paper.ink }]}>{r.displayName ?? r.username}</Text>
                       {r.preview && <SampleChip />}
                     </View>
-                    <Text style={[type.small, { color: paper.inkSoft, marginTop: 2 }]}>
+                    <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>
                       {r.preview
                         ? 'Asked. Sample friends always say yes in a moment.'
                         : 'Saved. It will be sent when friend servers arrive.'}
@@ -225,7 +225,7 @@ export function AddFriendsScreen() {
                       <Text style={[type.bodyStrong, { color: paper.ink }]}>{r.displayName ?? r.username}</Text>
                       {r.preview && <SampleChip />}
                     </View>
-                    <Text style={[type.small, { color: paper.inkFaint, marginTop: 2 }]}>{r.username}</Text>
+                    <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{r.username}</Text>
                   </View>
                   <GhostButton label="Accept" color={paper.ink} onPress={() => void friends.acceptRequest(r.id)} />
                   <GhostButton label="Decline" onPress={() => void friends.declineRequest(r.id)} />

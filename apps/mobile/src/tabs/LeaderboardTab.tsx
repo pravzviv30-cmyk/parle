@@ -165,7 +165,7 @@ export function LeaderboardTab() {
                     {row.preview && <SampleChip />}
                   </View>
                   {row.username !== null && (
-                    <Text style={[type.small, { color: paper.inkFaint, marginTop: 2 }]}>{row.username}</Text>
+                    <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{row.username}</Text>
                   )}
                 </View>
                 {row.xp !== null ? (

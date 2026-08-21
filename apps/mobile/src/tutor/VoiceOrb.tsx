@@ -28,6 +28,7 @@
 import { useEffect, useRef } from 'react';
 import { View, Text, Animated, Easing, StyleSheet, AccessibilityInfo } from 'react-native';
 import { orb, paper, space, type, STROKE, decorative } from '../theme.ts';
+import { useReduceMotion } from '../motion.ts';
 
 export type OrbState = 'ready' | 'idle' | 'speaking' | 'listening' | 'thinking' | 'error';
 
@@ -144,6 +145,7 @@ export function VoiceOrb({
   // pumping in unison, which reads mechanical.
   const drivers = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
   const dim = useRef(new Animated.Value(1)).current;
+  const reduced = useReduceMotion();
 
   useEffect(() => {
     let cancelled = false;
@@ -154,7 +156,7 @@ export function VoiceOrb({
       running.length = 0;
     };
 
-    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+    const run = () => {
       if (cancelled) return;
       if (reduced || (look.amplitude === 0 && !look.shimmer)) {
         // The final frame. The orb still says which state it is in through
@@ -190,15 +192,19 @@ export function VoiceOrb({
           if (!cancelled) loop.start();
         }, i * 400);
       });
-    });
+    };
+
+    run();
 
     return () => {
       cancelled = true;
       stopAll();
     };
-    // `drivers` and `dim` are refs and never change identity.
+    // `drivers` and `dim` are refs and never change identity. `reduced` is a
+    // dependency because the setting is watched now: a learner who turns
+    // reduce motion on while the orb is breathing is answered at once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
+  }, [state, reduced]);
 
   const scale = size / RINGS[0];
 
