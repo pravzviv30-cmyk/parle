@@ -24,6 +24,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing } from 'react-native';
 import { SETTLE_MS, SETTLE_PX, ARRIVE_MS, STAGGER_MS, restFor } from './timing.ts';
+import { useReduceMotion } from '../motion.ts';
 
 export interface LoopSpec {
   /** Half a cycle, in ms. The driver runs 0 to 1 to 0, forever. */
@@ -78,25 +79,10 @@ export function useSceneMotion(spec: SceneMotionSpec): SceneMotion {
   );
   const settle = useRef(new Animated.Value(0)).current;
 
-  // Watched rather than sampled once: a learner can turn reduce motion on
-  // while the app is open, and a scene that kept drifting would be ignoring
-  // them until the next launch.
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    let live = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((on) => {
-      if (live) setReduced(on);
-    });
-    // react-native-web's support for this event varies by version, so both the
-    // subscribe and the teardown are guarded.
-    const sub = AccessibilityInfo.addEventListener?.('reduceMotionChanged', (on: boolean) => {
-      if (live) setReduced(on);
-    });
-    return () => {
-      live = false;
-      sub?.remove?.();
-    };
-  }, []);
+  // Watched rather than sampled once, and now watched in one place for the
+  // whole app: a learner can turn reduce motion on while something is moving,
+  // which is usually exactly when they do it.
+  const reduced = useReduceMotion();
 
   // Scenes declare their loops inline, so `loopSpecs` is a fresh array on every
   // render. Putting it in the effect's dependencies would tear down and restart

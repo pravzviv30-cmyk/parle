@@ -22,5 +22,5 @@ export { OnboardWave, OnboardCake, OnboardSuitcase, OnboardClock } from './scene
 
 // The six new ones: three empty states, two moments, two rooms.
 export { NothingDue, NobodyYet, StillWriting } from './scenes/empty.tsx';
-export { Bloom, RewardMark } from './scenes/reward.tsx';
-export { OffTheHook, Phrasebook } from './scenes/rooms.tsx';
+export { RewardMark } from './scenes/reward.tsx';
+export { Phrasebook } from './scenes/rooms.tsx';

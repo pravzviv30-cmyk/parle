@@ -534,7 +534,6 @@ const st = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start' },
   leave: { minHeight: HIT, justifyContent: 'center', paddingLeft: space(3) },
   notice: { paddingBottom: space(2) },
-  scroll: { paddingTop: space(3), paddingBottom: space(5), gap: space(5), flexGrow: 1, justifyContent: 'center' },
   // Nothing but the question and the circle yet: they sit in the middle of the
   // screen, exactly as they always have.
   chooseHeadGrow: { flex: 1 },
@@ -549,8 +548,6 @@ const st = StyleSheet.create({
   // stays past it if the circle ever shrinks.
   orbTap: { minWidth: HIT, minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
   quietDoor: { alignItems: 'center', paddingTop: space(2) },
-  sceneBlock: { borderLeftWidth: HAIRLINE + 1, borderLeftColor: paper.line, paddingLeft: space(3.5) },
-  sceneHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   controls: { alignItems: 'center', paddingTop: space(1) },
   typeRow: { flexDirection: 'row', alignSelf: 'stretch', gap: space(2), alignItems: 'center' },
   typeInput: {

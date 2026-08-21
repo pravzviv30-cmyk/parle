@@ -175,7 +175,7 @@ export function OutlineButton({
         {icon}
         <Text style={[type.button, { color: paper.ink }]}>{label}</Text>
       </View>
-      {sub != null && <Text style={[type.small, { color: paper.inkSoft, marginTop: 2 }]}>{sub}</Text>}
+      {sub != null && <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{sub}</Text>}
     </Pressable>
   );
 }
@@ -201,32 +201,6 @@ export function GhostButton({
   );
 }
 
-/** A small choice chip. Learning-content chips keep their English gloss. */
-export function Chip({
-  label,
-  gloss,
-  selected = false,
-  onPress,
-}: {
-  label: string;
-  gloss?: string;
-  selected?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={gloss ? `${label}, ${gloss}` : label}
-      style={({ pressed }) => [s.chip, selected && s.chipSelected, pressed && { opacity: 0.75 }]}
-    >
-      <Text style={[type.bodyStrong, { color: selected ? paper.onInk : paper.ink }]}>{label}</Text>
-      {gloss != null && (
-        <Text style={[type.small, { color: selected ? paper.onInk : paper.inkSoft }]}>{gloss}</Text>
-      )}
-    </Pressable>
-  );
-}
 
 /**
  * A tappable option the learner can choose — the successor of the direction

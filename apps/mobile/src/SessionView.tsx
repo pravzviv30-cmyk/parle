@@ -298,7 +298,6 @@ const st = StyleSheet.create({
   tutorHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   mainCard: { alignItems: 'center' },
   options: { gap: space(2.5) },
-  freeBlock: { paddingVertical: space(6) },
   hear: {
     marginTop: space(3),
     minHeight: HIT,

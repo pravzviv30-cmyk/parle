@@ -1062,3 +1062,39 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   its own, and the table says so. The lock reads both sides, so neither can drift again.
 - verified-by: `at least one screen asks for its own light`
 - verified-by: `DESIGN.md marks every paper no screen renders`
+
+### J12 — One motion vocabulary, implemented four times
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/illustrations/useSceneMotion.ts:87
+- note: DESIGN.md said the motion vocabulary "now has exactly one implementation" and it
+  had four. useSceneMotion, VoiceOrb, Transcript and SplashScreen each called
+  isReduceMotionEnabled and each hand-rolled its own final-frame branch, and three of the
+  four sampled the setting once and never looked again — so a learner who turned reduce
+  motion on mid-session went on being animated at until the next launch. Only the scene
+  hook subscribed, so that one is the one that survived. The 380ms out-cubic settle was
+  copy-pasted in two more places, which is how a vocabulary becomes a dialect.
+- verified-by: `nothing hand-rolls the reduce-motion check any more`
+- verified-by: `the settling entrance has one set of numbers`
+
+### J13 — The tokens exist and the app writes the numbers anyway
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/splash/SplashScreen.tsx:221
+- note: the back chevron is re-implemented in eight files and three of them spelled the
+  touch floor as 44 rather than HIT, in an app whose token file calls that number a
+  floor. `space(0.5)` exists and is used, and nine places wrote a raw 2 beside it.
+- verified-by: `the back chevron never spells the touch floor as a number`
+- verified-by: `the half step is a token, not a two`
+
+### J14 — Three exports nothing ever called, two of them documented as shipping
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/components.tsx:205
+- note: `Chip` was exported with zero call sites and described in DESIGN.md's component
+  list. `Bloom` and `OffTheHook` were drawn, exported through the barrel, and imported by
+  nothing, while DESIGN.md said where each one appears — OffTheHook supposedly for an
+  unreachable token server, on a screen that draws no illustration at all. Five dead
+  styles went with them.
+- verified-by: `the components and scenes nothing imported are gone`
+- verified-by: `every scene the barrel exports is drawn somewhere`

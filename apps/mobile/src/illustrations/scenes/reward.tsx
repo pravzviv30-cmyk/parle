@@ -20,35 +20,6 @@ import { useSceneMotion, arriveStyle } from '../useSceneMotion.ts';
  * A sprig in a small glass, one leaf just opened. For a clean session, for a
  * finished drill sitting, and for a phrase graduating out of the deck.
  */
-export function Bloom({ width = 200, paused = false }: SceneProps) {
-  const { arrivals, settled } = useSceneMotion({ arrivals: 2, paused });
-  const glass = arrivals[0];
-  const leaf = arrivals[1];
-
-  return (
-    <Scene width={width} style={settled}>
-      <Frame width={width}>
-        <Stipple points={[[56, 138], [64, 142], [140, 137], [148, 141]]} />
-      </Frame>
-
-      <Moving box={{ x: 100, y: 108, w: 60, h: 60 }} width={width} style={glass ? arriveStyle(glass) : null}>
-        {/* the glass, listing a little */}
-        <Path d="M80 82h40l-5 44a6 6 0 0 1-6 5H91a6 6 0 0 1-6-5z" transform="rotate(-2 100 106)" />
-        <Path d="M76 82h48" transform="rotate(-2 100 106)" />
-        {/* water line */}
-        <Path d="M84 100h32" transform="rotate(-2 100 106)" />
-        {/* stem, and the leaf that was already there */}
-        <Path d="M102 82c0-24 2-36 7-48" />
-        <Path d="M107 46c-16-2-26-10-30-24 16 0 26 6 32 16" />
-      </Moving>
-
-      {/* the new leaf, opening one beat after the glass settles */}
-      <Moving box={{ x: 120, y: 34, w: 40, h: 36 }} width={width} style={leaf ? arriveStyle(leaf) : null}>
-        <Path d="M109 38c2-14 10-22 24-26-2 16-8 24-20 30" />
-      </Moving>
-    </Scene>
-  );
-}
 
 /**
  * The mark that lands beside a drill verdict.

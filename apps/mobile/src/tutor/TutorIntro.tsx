@@ -15,7 +15,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { paper, space, type } from '../theme.ts';
+import { HIT, paper, space, type } from '../theme.ts';
 import { ChevronLeft, ProgressDots, PillButton, Card } from '../components.tsx';
 import { SpeakBubbles, OnboardWave, RecapPostcard } from '../illustrations.tsx';
 import { VoiceOrb, type OrbState } from './VoiceOrb.tsx';
@@ -130,7 +130,7 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  back: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
   scroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: space(4) },
   art: { alignItems: 'center', marginBottom: space(5) },
   title: { ...type.display, color: paper.ink, textAlign: 'center' },

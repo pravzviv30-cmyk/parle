@@ -184,7 +184,7 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
   bare text at full touch height.
 - **OptionCard** — a tappable choice: French in the serif, English gloss under,
   quiet arrow, optional replay ear. Selection is a heavier ink rule.
-- **Chip, Field, TabBar, ProgressDots** — chips fill `groundDeep`; inputs are
+- **Field, TabBar, ProgressDots** — inputs are
   white with a 1.5 rule that turns ink on focus; the Home tabs are a soft track
   with a white active pill; onboarding dots stretch the current page.
 - **SpeakCircle** — THE microphone: one 108pt circle used by every speaking
@@ -213,8 +213,6 @@ place that previously said "nothing here" in plain text on an empty screen:
 | `NothingDue` | An empty review deck or drill bank, drawn as a cleared table rather than a dead end |
 | `NobodyYet` | Both leaderboard empty states, one of which is permanent until there is a server |
 | `StillWriting` | A topic the tutor has not finished, which is the only thing the app locks |
-| `Bloom` | A clean session, a finished sitting, a phrase graduating |
-| `OffTheHook` | The token server being unreachable. No red, no cross, no warning triangle |
 | `Phrasebook` | The learner's own lines, kept |
 
 Plus `RewardMark`, which is not a scene: one tick arriving beside a drill
@@ -274,9 +272,15 @@ Two hard rules, held from the enamel era:
 
 ## Motion
 
-The app had none. It now has exactly one vocabulary, it lives in
-`apps/mobile/src/illustrations/useSceneMotion.ts`, and `src/motion.test.ts`
-enforces it by walking every source file: a timing without `useNativeDriver`,
+The app had none. It now has exactly one vocabulary. The rules live in
+`apps/mobile/src/motion.ts` — `useReduceMotion` and `settleIn` — and every
+surface reads them from there: the scene hook, the voice orb, the transcript
+and the splash. That sentence used to be here while four files each asked
+`AccessibilityInfo` themselves and three of them sampled it once and never
+looked again, so a learner who turned reduce motion on mid-session went on
+being animated at until the next launch. It is watched now, everywhere.
+`src/motion.test.ts` and `src/surfaceContract.test.ts` enforce this by walking
+every source file: a timing without `useNativeDriver`,
 an `Animated.spring`, an `Animated.createAnimatedComponent`, or an
 interpolation handed to `r`/`d`/`cx`/`cy`/`width`/`height` all fail the suite.
 The rules themselves are unchanged:

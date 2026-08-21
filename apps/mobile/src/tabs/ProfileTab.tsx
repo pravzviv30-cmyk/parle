@@ -147,7 +147,7 @@ export function ProfileTab({ onSignOut, onResetProgress }: { onSignOut: () => vo
             {armed ? 'Press again to erase everything' : 'Reset progress'}
           </Text>
           {!armed && (
-            <Text style={[type.small, { color: paper.inkFaint, marginTop: 2 }]}>
+            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>
               Erases lessons, phrases and the tutor's memory of you.
             </Text>
           )}

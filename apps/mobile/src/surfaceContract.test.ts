@@ -176,3 +176,82 @@ describe('the live microphone is green — J10', () => {
     }
   });
 });
+
+describe('one motion vocabulary, not four — J12', () => {
+  test('nothing hand-rolls the reduce-motion check any more', () => {
+    // DESIGN.md said this had exactly one implementation while it had four,
+    // and three of the four sampled the setting once and never looked again —
+    // so a learner who turned reduce motion on mid-session went on being
+    // animated at until the next launch.
+    for (const { path, body } of SOURCES) {
+      if (path.endsWith('/motion.ts')) continue;
+      assert.ok(
+        !body.includes('isReduceMotionEnabled'),
+        `${path} asks for reduce motion itself instead of using useReduceMotion`,
+      );
+    }
+  });
+
+  test('the settling entrance has one set of numbers', () => {
+    const offenders = SOURCES.filter(
+      ({ path, body }) => !path.endsWith('/motion.ts') && /duration:\s*380\b/.test(body),
+    );
+    assert.deepEqual(
+      offenders.map((o) => o.path),
+      [],
+      'the 380ms settle is copy-pasted again instead of coming from settleIn',
+    );
+  });
+});
+
+describe('the tokens are the vocabulary — J13', () => {
+  test('the back chevron never spells the touch floor as a number', () => {
+    for (const { path, body } of SOURCES) {
+      assert.doesNotMatch(
+        body,
+        /back:\s*\{\s*width:\s*44\b/,
+        `${path} writes 44 where the app has a token that means 44`,
+      );
+    }
+  });
+
+  test('the half step is a token, not a two', () => {
+    for (const { path, body } of SOURCES) {
+      assert.doesNotMatch(body, /marginTop:\s*2\s*[,}]/, `${path} writes a raw 2 where space(0.5) exists`);
+    }
+  });
+});
+
+describe('nothing ships that nothing renders — J14', () => {
+  /** Exports the app used to carry and never called. */
+  const RETIRED = ['Chip', 'Bloom', 'OffTheHook'];
+
+  test('the components and scenes nothing imported are gone', () => {
+    for (const name of RETIRED) {
+      const definers = SOURCES.filter(({ body }) => new RegExp(`export function ${name}\\b`).test(body));
+      assert.deepEqual(definers.map((d) => d.path), [], `${name} is exported again and still has no caller`);
+    }
+  });
+
+  test('every scene the barrel exports is drawn somewhere', () => {
+    const barrel = named('illustrations/index.ts');
+    const exported = [...barrel.matchAll(/export \{([^}]*)\}/g)]
+      .flatMap((m) => m[1]!.split(','))
+      .map((n) => n.trim())
+      .filter(Boolean);
+    assert.ok(exported.length > 0, 'the illustration barrel exports nothing; this test is stale');
+    for (const name of exported) {
+      // Anywhere but the file that defines it. Some of these are building
+      // blocks the other scenes draw with rather than scenes a screen draws.
+      const definer = SOURCES.find(({ body }) =>
+        new RegExp(`export (function|const) ${name}\\b`).test(body),
+      )?.path;
+      // Drawn as an element, or called: the barrel carries hooks and helpers
+      // as well as scenes, and both kinds have to be reached from somewhere.
+      const used = SOURCES.some(
+        ({ path, body }) => path !== definer && new RegExp(`(<${name}\\b|\\b${name}\\()`).test(body),
+      );
+      assert.ok(used, `${name} is exported by the illustration barrel and reached from nowhere`);
+    }
+  });
+});
