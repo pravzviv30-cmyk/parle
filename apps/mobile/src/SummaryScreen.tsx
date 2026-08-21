@@ -14,7 +14,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@parle/core';
-import { paper, signal, space, type, radius, HAIRLINE } from './theme.ts';
+import { HAIRLINE, paper, paperFor, radius, signal, space, type } from './theme.ts';
 import { Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
 import { FocusDrillPlayer } from './drill/FocusDrillPlayer.tsx';
 import { RecapPostcard } from './illustrations.tsx';
@@ -216,8 +216,16 @@ export function SummaryScreen({
   );
 }
 
+/**
+ * This place's light: sand. The cafe lesson ends here, so it ends on the cafe light.
+ * paperFor is how a place asks for its own paper. The house spread in `paper`
+ * cannot follow a screen, because StyleSheet.create evaluates once at import,
+ * so a screen that wants a different light names it here instead.
+ */
+const sheet = paperFor('cafe');
+
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground },
+  root: { flex: 1, backgroundColor: sheet.ground },
   scroll: { paddingHorizontal: space(5), paddingTop: space(3), gap: space(7) },
   postcard: { alignItems: 'center', marginBottom: space(4) },
   divider: {
@@ -246,7 +254,7 @@ const st = StyleSheet.create({
   word: {
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: sheet.line,
     borderRadius: radius.chip,
     paddingVertical: space(1.5),
     paddingHorizontal: space(3),

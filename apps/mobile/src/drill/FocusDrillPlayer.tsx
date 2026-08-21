@@ -31,7 +31,7 @@ import { focusDrillSteps, type Drill } from '@parle/core';
 
 import { Card, Label, PillButton, GhostButton, EarGlyph, ProgressDots } from '../components.tsx';
 import * as tutorVoice from '../speech/tutorVoice.ts';
-import { paper, signal, space, type, radius, HAIRLINE } from '../theme.ts';
+import { HAIRLINE, paper, paperFor, radius, signal, space, type } from '../theme.ts';
 
 export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () => void }) {
   const insets = useSafeAreaInsets();
@@ -120,8 +120,16 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
   );
 }
 
+/**
+ * This place's light: sky. Practice and its deck share one light.
+ * paperFor is how a place asks for its own paper. The house spread in `paper`
+ * cannot follow a screen, because StyleSheet.create evaluates once at import,
+ * so a screen that wants a different light names it here instead.
+ */
+const sheet = paperFor('drill');
+
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5), gap: space(4) },
+  root: { flex: 1, backgroundColor: sheet.ground, paddingHorizontal: space(5), gap: space(4) },
   head: { gap: space(3) },
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space(0) },
   contrast: {
@@ -129,7 +137,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
     gap: space(1),
     borderTopWidth: HAIRLINE,
-    borderTopColor: paper.line,
+    borderTopColor: sheet.line,
     paddingTop: space(4),
     alignSelf: 'stretch',
   },
@@ -143,6 +151,6 @@ const st = StyleSheet.create({
     paddingHorizontal: space(3.5),
     borderRadius: radius.pill,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: sheet.line,
   },
 });

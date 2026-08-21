@@ -37,16 +37,23 @@ from there and its public exports are unchanged.
 
 ### Five papers, one light
 
+**A paper with no caller is not shipped, and this table may not claim it is.**
+For most of this system's life every one of these was decoration: `paperFor`
+had no application caller at all, eighteen of nineteen screens rendered house,
+and the column on the right described places the colour had never reached.
+`palette.test.ts` now reads both sides — which ids the app actually passes to
+`paperFor`, and what this table says — and fails when they disagree.
+
 A paper is a place's light: a ground, one step deeper for chips and pressed
 states, a hairline, and the accent its small type is set in.
 
 | Paper | ground | groundDeep | line | accent | Where |
 |---|---|---|---|---|---|
-| `house` | `#F3E8F3` | `#E4D3EE` | `#D9C8E2` | violet `#6B3FA0` | Everything not about one subject |
-| `sand` | `#FEE7DB` | `#FCCFC1` | `#EFC5B6` | bronze `#8C5800` | The café arc and its recap |
-| `sage` | `#E8EED5` | `#DBDCB2` | `#CFD1A8` | harbour `#00689E` | Entre amis |
-| `lagoon` | `#CFF3EB` | `#AFE4D0` | `#A4D9C6` | iris `#445EB4` | A topic the tutor wrote |
-| `sky` | `#D5EFFE` | `#ABE1F5` | `#A1D6E9` | violet `#6B3FA0` | Practice and its deck |
+| `house` | `#F3E8F3` | `#E4D3EE` | `#D9C8E2` | violet `#6B3FA0` | Everything not about one subject, including the live conversation |
+| `sand` | `#FEE7DB` | `#FCCFC1` | `#EFC5B6` | bronze `#8C5800` | RecapScreen and SummaryScreen: the café arc as the learner just lived it |
+| `sage` | `#E8EED5` | `#DBDCB2` | `#CFD1A8` | harbour `#00689E` | Entre amis: LeaderboardTab and AddFriendsScreen |
+| `lagoon` | `#CFF3EB` | `#AFE4D0` | `#A4D9C6` | iris `#445EB4` | Not shipped: reserved for a topic the tutor wrote, once those have a screen of their own |
+| `sky` | `#D5EFFE` | `#ABE1F5` | `#A1D6E9` | violet `#6B3FA0` | Practice and its deck: PracticeTab, ReviewScreen, DrillScreen, FocusDrillPlayer |
 
 All five grounds sit at **L\* 93.1**, the lightness the lilac already had, and
 that is the whole safety argument. Contrast is a function of relative

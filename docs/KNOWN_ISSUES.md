@@ -1047,3 +1047,18 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   still described it as red. The two documents an agent reads first disagreed with each
   other about the one signal the product is built on.
 - verified-by: `nothing in the app still calls the live microphone red`
+
+### J11 — The five-paper colour system was documented but never rendered
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/palette.ts:121
+- note: paperFor had zero application callers — only its own test — and eighteen of
+  nineteen screens rendered the house lilac. sand, sage and lagoon never reached a
+  screen, and nor did the bronze, harbour and iris accents that belong to them, while
+  DESIGN.md's colour table named the café arc and Entre amis as places they were used.
+  Roughly three hundred and seventy lines of tested arithmetic defending colours
+  nobody could see, and a design document that read as a plan rather than a record.
+  Four of the five ship now; lagoon waits for a tutor-written topic to have a screen of
+  its own, and the table says so. The lock reads both sides, so neither can drift again.
+- verified-by: `at least one screen asks for its own light`
+- verified-by: `DESIGN.md marks every paper no screen renders`

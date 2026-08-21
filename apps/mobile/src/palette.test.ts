@@ -25,12 +25,22 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { papers, accents, ink, paperFor, type Paper } from './palette.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
+
+function walk(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) out.push(...walk(full));
+    else if (/\.tsx?$/.test(entry)) out.push(full);
+  }
+  return out;
+}
 
 // ── colour maths, local to the test, per docs/TESTING.md ──────────────────
 
@@ -336,6 +346,72 @@ describe('the voice circle is legible — J2', () => {
     for (const [name, hex] of Object.entries(ORB)) {
       if (name === 'ready') continue; // an alias for accent.primary, asserted elsewhere
       assert.ok(source.includes(hex), `theme.ts no longer ships ${hex} for orb.${name}; the copy above is stale`);
+    }
+  });
+});
+
+describe('a paper that nothing renders is not shipped — J11', () => {
+  /**
+   * The whole five-paper system had zero application callers while DESIGN.md
+   * described where each one is used, complete with a "Where" column naming
+   * the cafe arc and Entre amis. Roughly three hundred and seventy lines of
+   * tested arithmetic defending colours nobody could see, and a design document
+   * that read as a plan rather than a record.
+   *
+   * This is the lock, in both directions: a paper is shipped when a screen asks
+   * for it by calling paperFor, and DESIGN.md's table has to agree.
+   */
+  const shipped = (() => {
+    const calls = new Set<string>();
+    for (const file of walk(join(SRC))) {
+      if (file.includes('.test.')) continue;
+      for (const m of readFileSync(file, 'utf8').matchAll(/paperFor\(\s*'([^']+)'\s*\)/g)) {
+        calls.add(m[1]!);
+      }
+    }
+    const names = new Set<string>();
+    for (const id of calls) {
+      const resolved = paperFor(id);
+      for (const [name, p] of Object.entries(papers)) {
+        if (p.ground === resolved.ground) names.add(name);
+      }
+    }
+    // House does not go through paperFor and never needed to: it is the flat
+    // `paper` spread in theme.ts that thirty-odd modules read directly, which
+    // is the default light of the whole app.
+    for (const file of walk(join(SRC))) {
+      if (file.includes('.test.')) continue;
+      if (/\bpaper\.ground\b/.test(readFileSync(file, 'utf8'))) {
+        names.add('house');
+        break;
+      }
+    }
+    return names;
+  })();
+
+  const designTable = (() => {
+    const doc = readFileSync(join(SRC, '..', '..', '..', 'DESIGN.md'), 'utf8');
+    const rows = new Map<string, string>();
+    for (const m of doc.matchAll(/^\|\s*`(house|sand|sage|lagoon|sky)`\s*\|(?:[^|]*\|){3}[^|]*\|([^|]*)\|/gm)) {
+      rows.set(m[1]!, m[2]!.trim());
+    }
+    return rows;
+  })();
+
+  test('at least one screen asks for its own light', () => {
+    assert.ok(shipped.size > 1, 'nothing calls paperFor, so the whole system is still decoration');
+  });
+
+  test('DESIGN.md marks every paper no screen renders', () => {
+    assert.equal(designTable.size, Object.keys(papers).length, 'the DESIGN.md paper table no longer lists every paper');
+    for (const name of Object.keys(papers)) {
+      const where = designTable.get(name)!;
+      const claimsUnshipped = /not shipped/i.test(where);
+      if (shipped.has(name)) {
+        assert.ok(!claimsUnshipped, `${name} is rendered by a screen but DESIGN.md says it is not shipped`);
+      } else {
+        assert.ok(claimsUnshipped, `nothing renders ${name}, and DESIGN.md claims it is used: "${where}"`);
+      }
     }
   });
 });

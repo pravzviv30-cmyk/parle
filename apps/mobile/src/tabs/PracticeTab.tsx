@@ -17,7 +17,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { buildPath, CAFE_LESSON, type PathUnit, type PracticeTopic } from '@parle/core';
-import { paper, space, type } from '../theme.ts';
+import { paper, paperFor, space, type } from '../theme.ts';
 import { Card, Label, OutlineButton, GhostButton } from '../components.tsx';
 import { PathNodeRow } from '../practice/PathNodeRow.tsx';
 import { MIX_OFFER, offersMix } from '../practice/mix.ts';
@@ -161,7 +161,15 @@ export function PracticeTab() {
   );
 }
 
+/**
+ * This place's light: sky. Practice and its deck share one light.
+ * paperFor is how a place asks for its own paper. The house spread in `paper`
+ * cannot follow a screen, because StyleSheet.create evaluates once at import,
+ * so a screen that wants a different light names it here instead.
+ */
+const sheet = paperFor('practice');
+
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
+  root: { flex: 1, backgroundColor: sheet.ground, paddingHorizontal: space(5) },
   scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(4) },
 });
