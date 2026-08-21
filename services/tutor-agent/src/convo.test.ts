@@ -45,13 +45,15 @@ import {
   brainClient,
   chooseFrame,
   frameDeadlineMs,
+  parseStoredProfile,
   postSessionDeadlineMs,
   seededOpening,
+  spokenTurn,
   sttLanguageFor,
-  type SttLanguage,
-  parseStoredProfile,
   toConvoView,
   toRecapPayload,
+  turnIsUninterruptible,
+  type SttLanguage,
 } from './convo.ts';
 
 /** A fresh flow-mode café conversation, exactly as ParleConversation builds one. */
@@ -1609,5 +1611,73 @@ describe('the wait for a scene — G3 and G4', () => {
 
     client.release();
     await new Promise((resolve) => setImmediate(resolve));
+  });
+});
+
+describe('one turn, one utterance — H1', () => {
+  function view(overrides: Partial<TurnView> = {}): TurnView {
+    return {
+      sceneReply: { speaker: 'Karim', fr: 'Ça marche, un café !', frWritten: null, en: 'Right, one coffee!' },
+      coachLine: null,
+      coachNow: [],
+      narration: null,
+      newPhrases: [],
+      supportView: { kind: 'none' },
+      rung: 4,
+      rescued: false,
+      advancedBeat: false,
+      reachedForEnglish: false,
+      beat: { goalEn: 'Order a drink', position: 1, total: 3 },
+      recapDue: false,
+      ...overrides,
+    } as TurnView;
+  }
+
+  test('the spoken turn keeps narration, coaching and the scene reply in that order', () => {
+    const text = spokenTurn(
+      view({
+        narration: { speaker: 'narration', fr: 'Le serveur part.', frWritten: null, en: 'The waiter leaves.' },
+        coachLine: 'Got it, Sam. In French: "un café".',
+      }),
+    );
+    assert.equal(text, 'The waiter leaves. Got it, Sam. In French: "un café". Ça marche, un café !');
+  });
+
+  test('a turn with nothing but a scene reply is spoken exactly as it was', () => {
+    assert.equal(spokenTurn(view()), 'Ça marche, un café !');
+  });
+
+  test('every part is closed off, so a sentence already on disk keeps its cache key', () => {
+    // The framework splits sentences inside one handle. A part that ran into
+    // the next would make a new sentence, and a new key for warmed audio.
+    const text = spokenTurn(view({ coachLine: 'Small fix: "à la boulangerie"' }));
+    assert.ok(text.includes('"à la boulangerie". Ça marche'), text);
+  });
+
+  test('a blank coach line adds nothing, not a stray full stop', () => {
+    assert.equal(spokenTurn(view({ coachLine: '   ' })), 'Ça marche, un café !');
+  });
+
+  test('a scene shift is uninterruptible even at a high rung', () => {
+    const shift = view({
+      rung: 4,
+      narration: { speaker: 'narration', fr: 'Le serveur part.', frWritten: null, en: 'The waiter leaves.' },
+    });
+    assert.equal(turnIsUninterruptible(shift), true);
+    assert.equal(turnIsUninterruptible(view({ rung: 4 })), false);
+    assert.equal(turnIsUninterruptible(view({ rung: 2 })), true, 'a beginner still hears the line out');
+  });
+
+  test('one turn is spoken as a single utterance', async (t) => {
+    // Three say() handles were three speaking/listening cycles, which split the
+    // latency record, armed the rescue mid-answer and flickered the orb green
+    // between the tutor's own sentences.
+    const built = await inScene(t);
+    const before = built.said.length;
+    await assert.rejects(
+      () => built.convo.onUserTurnCompleted({} as never, heard('Bonjour, un café')),
+      voice.StopResponse,
+    );
+    assert.equal(built.said.length - before, 1, `the turn was spoken in pieces: ${JSON.stringify(built.said)}`);
   });
 });

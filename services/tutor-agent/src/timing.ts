@@ -72,3 +72,74 @@ export function formatTiming(t: TurnTiming): string {
   if (t.cache !== null) parts.push(`cache=${t.cache}`);
   return `[parle:latency] ${parts.join(' ')}`;
 }
+
+/**
+ * One vendor's own numbers for one stage of a turn.
+ *
+ * The pipeline already measures what Parle was guessing at: time to the voice
+ * vendor's first byte, how long the recogniser took to produce a transcript
+ * after the learner stopped, how long the turn decision itself took. It emits
+ * all of it on an event nothing here subscribed to, so every turn threw the
+ * answer away and the same question got argued about instead.
+ *
+ * Structurally typed on purpose: this module stays import-free, and the shape
+ * below is the subset of the framework's metrics union that says something
+ * about latency.
+ */
+export interface VendorMetrics {
+  type?: string;
+  ttfbMs?: number;
+  durationMs?: number;
+  audioDurationMs?: number;
+  cancelled?: boolean;
+  endOfUtteranceDelayMs?: number;
+  transcriptionDelayMs?: number;
+  onUserTurnCompletedDelayMs?: number;
+}
+
+const VENDOR_FIELDS: Record<string, ReadonlyArray<readonly [label: string, key: keyof VendorMetrics]>> = {
+  tts_metrics: [
+    ['ttfb', 'ttfbMs'],
+    ['synth', 'durationMs'],
+    ['audio', 'audioDurationMs'],
+  ],
+  llm_metrics: [['ttfb', 'ttfbMs']],
+  eou_metrics: [
+    ['eou', 'endOfUtteranceDelayMs'],
+    ['transcript', 'transcriptionDelayMs'],
+    ['hook', 'onUserTurnCompletedDelayMs'],
+  ],
+};
+
+/** Short names, because the label is read next to five others in a log. */
+const VENDOR_STAGE: Record<string, string> = {
+  tts_metrics: 'tts',
+  llm_metrics: 'llm',
+  eou_metrics: 'eou',
+};
+
+/**
+ * One log line per vendor measurement, e.g.
+ *   [parle:metrics] tts ttfb=210ms synth=430ms audio=1900ms
+ * Null when the payload carries nothing about latency, so callers can stay
+ * silent rather than printing an empty line for every VAD tick.
+ *
+ * An `llm` line in a CONVERSATION is itself the finding: that pipeline model is
+ * told it is unused, so any completion it reports was speculative, billed and
+ * discarded (H2).
+ */
+export function formatVendorMetrics(metrics: VendorMetrics): string | null {
+  const stage = VENDOR_STAGE[metrics.type ?? ''];
+  const fields = VENDOR_FIELDS[metrics.type ?? ''];
+  if (stage === undefined || fields === undefined) return null;
+
+  const parts: string[] = [];
+  for (const [label, key] of fields) {
+    const value = metrics[key];
+    if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+    parts.push(`${label}=${Math.round(value)}ms`);
+  }
+  if (parts.length === 0) return null;
+  if (metrics.cancelled === true) parts.push('cancelled');
+  return `[parle:metrics] ${stage} ${parts.join(' ')}`;
+}

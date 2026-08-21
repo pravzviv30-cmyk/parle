@@ -300,6 +300,49 @@ export function openerFor(name: string | null): { fr: string; en: string } {
   };
 }
 
+/**
+ * The tutor's whole answer as one utterance: narration, then coaching, then the
+ * character's line. Outside-in, like a film.
+ *
+ * One string rather than three say() calls, and that is not tidying. Each
+ * speech handle is a full speaking → listening → speaking cycle in the
+ * framework, so a single turn was producing three of them. The latency record
+ * split three ways with only the first carrying its marks, so no usable
+ * per-turn number existed. The rescue clock arms on `listening` and speak() is
+ * fire-and-forget, so a sentence whose first audio byte was slow could fire a
+ * rescue while the tutor was still mid-answer, costing a ladder drop and an
+ * unearned brain turn. And the orb flipped to green "your turn" in the gaps
+ * between the tutor's own sentences.
+ *
+ * The cache is unaffected: the framework splits sentences inside one handle, so
+ * each sentence keeps the key it always had. Which is why every part is closed
+ * off with terminal punctuation first — a part that ran into the next one would
+ * make a new sentence and, with it, a new cache key for a line already on disk.
+ */
+export function spokenTurn(view: TurnView): string {
+  const parts = [view.narration?.en, view.coachLine, view.sceneReply.fr];
+  return parts
+    .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
+    .map((part) => {
+      const text = part.trim();
+      return /[.!?…]$/.test(text) ? text : `${text}.`;
+    })
+    .join(' ');
+}
+
+/**
+ * Whether this turn plays out in full.
+ *
+ * The strictest of the parts wins, because one utterance carries one answer. A
+ * scene shift is never interruptible — a learner who misses the new picture
+ * cannot follow anything said inside it — and on the low rungs nothing is,
+ * because without headphones the microphone hears the tutor and a barge-in
+ * during a modelled line is almost never the learner.
+ */
+export function turnIsUninterruptible(view: TurnView): boolean {
+  return view.narration !== null || view.rung <= 2;
+}
+
 /** The title as it read on the card, with any full stop of its own removed. */
 function titleOf(text: string): string {
   return text.trim().replace(/\.+$/, '').trim();
@@ -1163,15 +1206,7 @@ export class ParleConversation extends voice.Agent {
     // The recovery line (recover()) deliberately does not mark: a turn that
     // failed is not a data point about how fast a turn answers.
     this.markTiming('sayCalled');
-    // On the low rungs the line must play out in full: without headphones the
-    // learner's microphone hears the tutor, and a VAD "interruption" during a
-    // modelled line is almost never the learner talking.
-    const options = view.rung <= 2 ? { allowInterruptions: false } : {};
-    // A scene shift is spoken in English and never interruptible: a learner
-    // who misses the new picture cannot follow anything said inside it.
-    if (view.narration !== null) this.say(view.narration.en, { allowInterruptions: false });
-    if (view.coachLine !== null) this.say(view.coachLine, options);
-    this.say(view.sceneReply.fr, options);
+    this.say(spokenTurn(view), turnIsUninterruptible(view) ? { allowInterruptions: false } : {});
   }
 
   private publishView(view: ConvoView): void {
