@@ -63,7 +63,15 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const cached = buildTTS();
+  // Always HTTP here, whatever the environment says.
+  //
+  // This script exits by letting the event loop drain, and the websocket
+  // transport holds a pooled vendor socket open for up to its 180s inactivity
+  // timeout — so a warm run under PARLE_TTS_MISS_TRANSPORT=ws looks hung for
+  // three minutes. That flag lives in the same .env this file loads, so "set it
+  // on the agent, not on the warm run" was advice that could not be followed.
+  // Pinning it is the fix; the trap is gone rather than documented.
+  const cached = buildTTS({ missTransport: 'http' });
   const lines = scriptedLines();
   console.log(`[warm-cache] ${lines.length} scripted lines, cache dir ${cached.opts.dir}`);
 

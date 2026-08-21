@@ -12,6 +12,7 @@ initializeLogger({ pretty: false, level: 'silent' });
 
 import { CachedTTS, normaliseLine } from './ttsCache.ts';
 import { encodeWav, decodeWav } from './wav.ts';
+import { readFileSync } from 'node:fs';
 
 const SAMPLE_RATE = 16_000;
 
@@ -346,5 +347,16 @@ describe('the first-audio hook', () => {
 describe('normalisation', () => {
   test('collapses whitespace and trims, nothing else', () => {
     assert.equal(normaliseLine('  Un   café,\ns’il vous plaît  '), 'Un café, s’il vous plaît');
+  });
+});
+
+describe('the warm-cache script cannot be hung by an env flag', () => {
+  test('warming pins the transport rather than reading the environment', () => {
+    // PARLE_TTS_MISS_TRANSPORT lives in the same .env warmCache.ts loads, so a
+    // flag meant for the agent reached the script too and held its pooled
+    // socket open past the last line. Reading the source because the script's
+    // main() talks to a vendor.
+    const source = readFileSync(new URL('./warmCache.ts', import.meta.url).pathname, 'utf8');
+    assert.match(source, /buildTTS\(\{[^}]*missTransport:\s*'http'/, 'the warm run no longer pins its transport');
   });
 });
