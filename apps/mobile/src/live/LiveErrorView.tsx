@@ -90,6 +90,9 @@ export function LiveErrorView({
               <Row name="Cause" value={failure} />
               <Row name="Token server" value={diagnostics.tokenServer} />
               <Row name="Token reply" value={show(diagnostics.tokenStatus)} />
+              <Row name="Auth headers" value={diagnostics.authMs === null ? 'not reached' : `${diagnostics.authMs} ms`} />
+              <Row name="Session token" value={diagnostics.tokenMs === null ? 'not reached' : `${diagnostics.tokenMs} ms`} />
+              <Row name="Server phases" value={show(diagnostics.tokenServerTiming)} />
               <Row name="Room service" value={show(diagnostics.livekitUrl)} />
               <Row name="Connected in" value={diagnostics.connectMs === null ? 'not reached' : `${diagnostics.connectMs} ms`} />
               <Row name="Microphone published" value={show(diagnostics.micPublished)} />

@@ -17,12 +17,12 @@ import { useCallback, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { buildProgressReport, levelFor, type LevelStanding, type ProgressReport } from '@parle/core';
+import { buildProgressReport, levelFor, totalXp, type LevelStanding, type ProgressReport } from '@parle/core';
 import { accent, paper, space, type, radius, HIT } from '../theme.ts';
 import { Card, Label, PillButton, StationLine, Stat } from '../components.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
 import { loadHistory } from '../progress/store.ts';
-import { earnedXp, loadActivity } from '../progress/activity.ts';
+import { loadActivity } from '../progress/activity.ts';
 import { todayFrom, type Today } from '../progress/today.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
@@ -55,21 +55,21 @@ export function HomeTab() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void loadHistory().then((h) => {
-        if (!cancelled) setReport(h.length > 0 ? buildProgressReport(h) : null);
-      });
-      void earnedXp().then((xp) => {
-        if (!cancelled) setStanding(levelFor(xp));
-      });
-      void loadActivity().then((entries) => {
-        if (!cancelled) setToday(todayFrom(entries, Date.now()));
-      });
       // The deck and the topics are the only record of what a conversation
       // produced: `recordSession` is called from the end of a guided lesson and
       // nowhere else, so history alone cannot see a learner who only ever talks.
-      void Promise.all([loadDeck(), loadTopics()]).then(([deck, topics]) => {
-        if (!cancelled) setBook(buildPhrasebook(deck, topics, Date.now()));
-      });
+      // All independent reads cross the native storage bridge together. The
+      // activity log is read once and feeds both level and today's evidence.
+      void Promise.all([loadHistory(), loadActivity(), loadDeck(), loadTopics()]).then(
+        ([history, activity, deck, topics]) => {
+          if (cancelled) return;
+          const now = Date.now();
+          setReport(history.length > 0 ? buildProgressReport(history) : null);
+          setStanding(levelFor(totalXp(activity)));
+          setToday(todayFrom(activity, now));
+          setBook(buildPhrasebook(deck, topics, now));
+        },
+      );
       return () => {
         cancelled = true;
       };

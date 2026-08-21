@@ -321,13 +321,16 @@ export function TabBar<K extends string>({
   tabs,
   active,
   onChange,
+  tint = paper.groundDeep,
 }: {
   tabs: readonly { key: K; label: string }[];
   active: K;
   onChange: (key: K) => void;
+  /** The current room's quiet pressed-state colour. */
+  tint?: string;
 }) {
   return (
-    <View style={s.tabTrack} accessibilityRole="tablist">
+    <View style={[s.tabTrack, { backgroundColor: tint }]} accessibilityRole="tablist">
       {tabs.map((tab) => {
         const isActive = tab.key === active;
         return (

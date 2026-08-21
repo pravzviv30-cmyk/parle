@@ -30,6 +30,7 @@ import { Monogram, PersonPlusGlyph, SampleChip } from '../friends/ui.tsx';
 import type { FriendEntry } from '../friends/types.ts';
 
 type Board = 'global' | 'friends';
+const BOARD_ROW_CAP = 50;
 
 interface Row {
   key: string;
@@ -80,17 +81,17 @@ export function LeaderboardTab() {
     preview: false,
     you: true,
   };
-  const rows: Row[] = [
-    you,
-    ...friendRows.map((f) => ({
+  const friendsForBoard: Row[] = friendRows.map((f) => ({
       key: f.id,
       name: f.displayName ?? f.username,
       username: f.username,
       xp: f.xp,
       preview: f.preview,
       you: false,
-    })),
-  ].sort((a, b) => (b.xp ?? 0) - (a.xp ?? 0));
+    }))
+    .sort((a, b) => (b.xp ?? 0) - (a.xp ?? 0))
+    .slice(0, BOARD_ROW_CAP - 1);
+  const rows: Row[] = [you, ...friendsForBoard].sort((a, b) => (b.xp ?? 0) - (a.xp ?? 0));
 
   return (
     <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
@@ -114,6 +115,7 @@ export function LeaderboardTab() {
           ]}
           active={board}
           onChange={setBoard}
+          tint={sheet.groundDeep}
         />
       </View>
 

@@ -58,7 +58,7 @@ import {
 import { HAIRLINE, HIT, accent, font, paper, paperFor, radius, signal, space, type } from './theme.ts';
 import { recordActivity } from './progress/activity.ts';
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
-import { loadDeck, gradeCard } from './review/store.ts';
+import { gradeCards, loadDeck } from './review/store.ts';
 import { RewardMark } from './illustrations.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
 import { loadTopics } from './topics/store.ts';
@@ -665,8 +665,9 @@ export function DrillScreen({
     // navigating, because loadDeck reads storage directly and is not on the
     // review store's write chain. Without it, the screen that comes next can
     // read a deck that predates this sitting.
-    const writes = summary.grades.map(({ phraseKey, grade }) => gradeCard(phraseKey, grade));
-    gradeWritesRef.current = Promise.all(writes).then(() => undefined);
+    gradeWritesRef.current = gradeCards(
+      summary.grades.map(({ phraseKey, grade }) => ({ id: phraseKey, grade })),
+    ).then(() => undefined);
     // What the sitting was worth. Clean answers count double, because getting
     // it right without being shown the spelling is the harder thing.
     void recordActivity('drill', drillXp({ clean: summary.resolved - summary.typos, typoCorrected: summary.typos }));

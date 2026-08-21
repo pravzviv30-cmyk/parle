@@ -111,7 +111,9 @@ export function ConvoScreen({
     const text = draft.trim();
     if (text.length === 0) return;
     setDraft('');
-    live.sendSay(text);
+    void live.sendSay(text).then((sent) => {
+      if (!sent) setDraft((current) => (current.trim().length > 0 ? current : text));
+    });
   };
 
   // Typing is presence. The hook throttles, so this can be handed every letter.

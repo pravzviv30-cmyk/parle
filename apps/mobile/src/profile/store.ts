@@ -10,7 +10,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createProfile, repairProfile, type LearnerProfile } from '@parle/brain';
+import { createProfile, repairProfile, type LearnerProfile } from '@parle/brain/profile';
 import { userKey } from '../storage/scope.ts';
 import { upgradeStored } from './upgrade.ts';
 

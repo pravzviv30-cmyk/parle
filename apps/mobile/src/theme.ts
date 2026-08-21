@@ -80,9 +80,9 @@ export const accent = {
  * semantics predate this skin and survive it.
  */
 export const rungColor: Record<1 | 2 | 3 | 4, string> = {
-  1: '#FFCD00',
-  2: '#FF7E2E',
-  3: '#6EC4E8',
+  1: '#D6A846',
+  2: '#C8794A',
+  3: '#5F95AA',
   4: '#241633',
 };
 
@@ -95,16 +95,12 @@ export const rungLabel: Record<1 | 2 | 3 | 4, string> = {
 
 /** Signal colours, kept out of the rung set so state never reads as a rung. */
 export const signal = {
-  /** Something to change — darkened to hold on white cards. */
-  correspondance: '#B4008A',
-  /** A sound that is working — darkened to hold on white cards. */
-  good: '#1E8A5B',
-  /**
-   * The tutor's voice, live. Red means listen; it never marks the learner's mic.
-   * Darkened from #FF4B3E, which measured 2.79 on the house ground where a mark
-   * that reports state needs 3.
-   */
-  live: '#DE3B2D',
+  /** Something to change, muted plum rather than neon magenta. */
+  correspondance: '#8B5578',
+  /** A sound that is working, muted eucalyptus rather than bright green. */
+  good: '#437A62',
+  /** The tutor's voice. A dusty red keeps "listen" distinct without shouting. */
+  live: '#A9564F',
 } as const;
 
 /**
@@ -128,8 +124,8 @@ export const orb = {
   speaking: signal.live,
   /** Green — your turn. Speak. */
   yourTurn: signal.good,
-  /** Amber — the tutor is thinking. One moment. Darkened from #E3A800 (1.79). */
-  thinking: '#B07510',
+  /** Amber — the tutor is thinking. Muted, but still distinct from green/red. */
+  thinking: '#8A6A2D',
   /**
    * Violet — the microphone is closed and the circle is waiting to be pressed.
    *

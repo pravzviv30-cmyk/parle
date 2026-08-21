@@ -22,6 +22,9 @@
 
 import type { DrillExercise } from '@parle/core';
 
+/** A generous offline bank, bounded so parsing and rendering never grow forever. */
+export const MAX_DRILL_EXERCISES = 160;
+
 /**
  * The bank after `incoming` lands on it. Neither argument is mutated; the
  * caller owns what it does with the result.
@@ -44,5 +47,15 @@ export function mergeExerciseBank(
       merged.push(exercise);
     }
   }
-  return merged;
+  if (merged.length <= MAX_DRILL_EXERCISES) return merged;
+
+  // Authored fixtures are the reliable offline floor. Generated variations are
+  // the part that ages, so retain the newest ones inside the remaining budget.
+  const authored = merged.filter((exercise) => !exercise.id.startsWith('gen:'));
+  const generated = merged.filter((exercise) => exercise.id.startsWith('gen:'));
+  const room = Math.max(0, MAX_DRILL_EXERCISES - authored.length);
+  return [
+    ...authored.slice(0, MAX_DRILL_EXERCISES),
+    ...(room === 0 ? [] : generated.slice(-room)),
+  ];
 }

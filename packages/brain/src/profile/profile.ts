@@ -16,7 +16,8 @@ import { normalise, type Rung } from '@parle/core';
 
 import type { MemoryExtraction, MemoryFact, TutorTurn } from '../contract/types.ts';
 import { CEFR_BANDS, type CefrBand, type RegisterId, type Strictness } from '../types.ts';
-import { normalizeErrorTag, type ConversationState, type LearnerSnapshot } from '../engine/conversation.ts';
+import type { ConversationState, LearnerSnapshot } from '../engine/conversation.ts';
+import { normalizeErrorTag } from './errorTag.ts';
 
 /** A remembered fact plus when it was noted — the eviction order. */
 export type RememberedFact = MemoryFact & { notedAt: string };

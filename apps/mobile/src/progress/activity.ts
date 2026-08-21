@@ -59,8 +59,10 @@ async function read(): Promise<Stored> {
 // so two sittings finishing at once cannot clobber each other.
 let chain: Promise<void> = Promise.resolve();
 
-function write(next: Stored): Promise<void> {
+function mutate(change: (stored: Stored) => Stored | null): Promise<void> {
   chain = chain.then(async () => {
+    const next = change(await read());
+    if (next === null) return;
     try {
       await AsyncStorage.setItem(userKey('activity'), JSON.stringify(next));
     } catch {
@@ -79,8 +81,7 @@ function prune(entries: readonly ActivityEntry[], now: number): ActivityEntry[] 
 /** Record one finished sitting. Fire and forget; nothing waits on it. */
 export async function recordActivity(kind: ActivityKind, xp: number, now = Date.now()): Promise<void> {
   if (xp <= 0) return;
-  const stored = await read();
-  await write({ ...stored, entries: prune([...stored.entries, { at: now, kind, xp }], now) });
+  await mutate((stored) => ({ ...stored, entries: prune([...stored.entries, { at: now, kind, xp }], now) }));
 }
 
 export async function loadActivity(): Promise<ActivityEntry[]> {
@@ -103,13 +104,15 @@ export async function earnedXp(): Promise<number> {
  * credited at the base lesson rate and no more.
  */
 export async function backfillFrom(sessions: readonly { endedAt: number }[], baseXp: number): Promise<void> {
-  const stored = await read();
-  if (stored.backfilled) return;
   const now = Date.now();
   const inherited: ActivityEntry[] = sessions.map((s) => ({ at: s.endedAt, kind: 'lesson' as const, xp: baseXp }));
-  await write({
-    ...stored,
-    backfilled: true,
-    entries: prune([...inherited, ...stored.entries].sort((a, b) => a.at - b.at), now),
-  });
+  await mutate((stored) =>
+    stored.backfilled
+      ? null
+      : {
+          ...stored,
+          backfilled: true,
+          entries: prune([...inherited, ...stored.entries].sort((a, b) => a.at - b.at), now),
+        },
+  );
 }

@@ -7,40 +7,10 @@
  * anything that reaches react-native can never be unit tested. Pulling the raw
  * values down here is what lets `palette.test.ts` hold them to a contract.
  *
- * ## Papers
- *
- * A paper is a place's light: a ground, one step deeper for chips and pressed
- * states, a hairline, and the accent its small type is set in.
- *
- * All five grounds sit at **L* 93.1**, the lightness of the lilac the app
- * already had. That is the whole safety argument, and it is arithmetic rather
- * than taste: WCAG contrast is a function of relative luminance, luminance is a
- * function of L*, and the a/b axes do not enter the formula at all. Hold
- * lightness still and every ink, accent and signal keeps the exact ratio it had
- * on lilac, on every paper. Measured drift across the set is under 0.3%.
- *
- * The other two steps are not picked either. Reverse-engineering the original
- * lilac trio gives one rule that reproduces `#E4D3EE` and `#D9C8E2` exactly:
- *
- *     ground      L* 93.1
- *     groundDeep  L* 86.6, chroma + 8.5, hue - 11
- *     line        L* 82.7, chroma + 8.1, hue - 10
- *
- * So a paper is really a hue and a chroma, and the rest falls out. If you add a
- * sixth, compute it that way and let the test tell you whether you were right.
- *
- * ## Accents
- *
- * One per paper, all at **L* 42**, all at least a Delta-E of 30 from every
- * signal and rung colour. The separation is the point: green means go and red
- * means the tutor is talking, and an accent that drifted into either would make
- * the app lie. They also all clear 5.0 on their own paper, where the label
- * violet they replace sat at 4.08 and failed AA at 11.5pt.
- *
- * One rule keeps them safe, and it is the grammar the app already used:
- * **an accent is typographic, a signal is a mark.** A label, a chip, or the one
- * solid fill inside a drawing may take an accent. A dot, a ring, or anything
- * that reports state never may.
+ * Papers now whisper where the learner is instead of repainting the entire
+ * app. Their hue shifts are deliberately low-chroma and the same violet carries
+ * identity everywhere. State colours are muted too, while retaining accessible
+ * contrast. The tests below this file hold both promises numerically.
  */
 
 /** The ink, the card, and the two colours that are not anybody's paper. */
@@ -75,31 +45,24 @@ export interface Paper {
  * illustration layer wants them by name.
  */
 export const accents = {
-  /** The identity. Unchanged, and still the only violet on Home. */
+  /** The identity, shared across rooms so navigation feels like one product. */
   violet: '#6B3FA0',
-  /**
-   * The family's warmth, and the one that took three tries. A plum here would
-   * have been the obvious pick, and the contrast test refused it: at a
-   * Delta-E of 24 from `signal.correspondance`, the label above a card and the
-   * colour that means "change this" were the same colour. Bronze sits 40 away
-   * from the nearest signal.
-   */
-  bronze: '#8C5800',
-  harbour: '#00689E',
-  iris: '#445EB4',
+  bronze: '#755F50',
+  harbour: '#536B64',
+  iris: '#5C6378',
 } as const;
 
 export const papers = {
   /** Everything that is not about one subject. The app's own light. */
   house: { ground: '#F3E8F3', groundDeep: '#E4D3EE', line: '#D9C8E2', accent: accents.violet },
   /** The cafe arc, and the recap of a conversation that happened there. */
-  sand: { ground: '#FEE7DB', groundDeep: '#FCCFC1', line: '#EFC5B6', accent: accents.bronze },
+  sand: { ground: '#F2EAE6', groundDeep: '#E2D7D2', line: '#D8CCC6', accent: accents.violet },
   /** Entre amis. */
-  sage: { ground: '#E8EED5', groundDeep: '#DBDCB2', line: '#CFD1A8', accent: accents.harbour },
+  sage: { ground: '#EAECE4', groundDeep: '#D7DAD0', line: '#CBCFC5', accent: accents.violet },
   /** A topic the tutor wrote. */
-  lagoon: { ground: '#CFF3EB', groundDeep: '#AFE4D0', line: '#A4D9C6', accent: accents.iris },
+  lagoon: { ground: '#E7EDEB', groundDeep: '#D3DBD8', line: '#C7D0CC', accent: accents.violet },
   /** Practice and its deck. A room rather than a subject, so it keeps violet. */
-  sky: { ground: '#D5EFFE', groundDeep: '#ABE1F5', line: '#A1D6E9', accent: accents.violet },
+  sky: { ground: '#E8ECF2', groundDeep: '#D3D9E1', line: '#C7CFD9', accent: accents.violet },
 } as const satisfies Record<string, Paper>;
 
 export type PaperName = keyof typeof papers;

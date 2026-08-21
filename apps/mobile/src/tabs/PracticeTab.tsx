@@ -16,7 +16,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { buildPath, CAFE_LESSON, type PathUnit, type PracticeTopic } from '@parle/core';
+import { buildPath, CAFE_LESSON, dueCards, type PathUnit, type PracticeTopic } from '@parle/core';
 import { paper, paperFor, space, type } from '../theme.ts';
 import { Card, Label, OutlineButton, GhostButton } from '../components.tsx';
 import { PathNodeRow } from '../practice/PathNodeRow.tsx';
@@ -26,7 +26,6 @@ import { loadDeck } from '../review/store.ts';
 import { loadDrillBank } from '../drill/store.ts';
 import { loadTopics } from '../topics/store.ts';
 import { lastSummaryFor } from '../progress/store.ts';
-import { dueCount } from '../review/store.ts';
 import { useLive } from '../app/LiveContext.tsx';
 
 export function PracticeTab() {
@@ -53,12 +52,12 @@ export function PracticeTab() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void Promise.all([loadDeck(), loadDrillBank(), loadTopics(), lastSummaryFor(CAFE_LESSON.id), dueCount()]).then(
-        ([deck, bank, topics, lastLesson, dueNow]) => {
+      void Promise.all([loadDeck(), loadDrillBank(), loadTopics(), lastSummaryFor(CAFE_LESSON.id)]).then(
+        ([deck, bank, topics, lastLesson]) => {
           if (cancelled) return;
           const now = Date.now();
           setUnits(buildPath(deck, bank, topics, { lessonDone: lastLesson !== null }, now));
-          setDue(dueNow);
+          setDue(dueCards(deck, now).length);
           setTopics(topics);
           setMixOffered(offersMix(deck, topics, now));
         },

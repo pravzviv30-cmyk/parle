@@ -8,7 +8,7 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { LearnerProfile } from '@parle/brain';
+import type { LearnerProfile } from '@parle/brain/profile';
 import { loadProfile, saveProfile, type StoredProfile } from '../profile/store.ts';
 
 interface ProfileValue {

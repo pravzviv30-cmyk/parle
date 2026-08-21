@@ -77,18 +77,25 @@ const LEGACY_KEYS: readonly (readonly [string, string])[] = [
  */
 export async function migrateLegacyStores(uid: string): Promise<void> {
   try {
-    if ((await AsyncStorage.getItem(MIGRATED_MARKER)) !== null) return;
-    for (const [legacy, suffix] of LEGACY_KEYS) {
-      const value = await AsyncStorage.getItem(legacy);
-      if (value !== null) {
-        const target = `parle.u.${uid}.${suffix}`;
-        if ((await AsyncStorage.getItem(target)) === null) {
-          await AsyncStorage.setItem(target, value);
-        }
-        await AsyncStorage.removeItem(legacy);
-      }
-    }
-    await AsyncStorage.setItem(MIGRATED_MARKER, '1');
+    const targets = LEGACY_KEYS.map(([, suffix]) => `parle.u.${uid}.${suffix}`);
+    const keys = [MIGRATED_MARKER, ...LEGACY_KEYS.map(([legacy]) => legacy), ...targets];
+    const values = new Map(await AsyncStorage.multiGet(keys));
+    if (values.get(MIGRATED_MARKER) !== null) return;
+
+    const writes: [string, string][] = [];
+    const removals: string[] = [];
+    LEGACY_KEYS.forEach(([legacy], index) => {
+      const value = values.get(legacy);
+      if (value === null || value === undefined) return;
+      const target = targets[index]!;
+      if (values.get(target) === null) writes.push([target, value]);
+      removals.push(legacy);
+    });
+
+    // Copy first, mark second, delete last. A crash can leave a harmless
+    // duplicate, but never delete the learner's only copy.
+    await AsyncStorage.multiSet([...writes, [MIGRATED_MARKER, '1']]);
+    if (removals.length > 0) await AsyncStorage.multiRemove(removals);
   } catch {
     // Storage unavailable. The learner starts clean; nothing is corrupted.
   }

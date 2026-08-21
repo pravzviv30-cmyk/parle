@@ -45,6 +45,9 @@ import { buildTurnContext, type TurnInputKind } from '../prompt/turnContext.ts';
 import { historyViewOfTurn } from '../prompt/historyView.ts';
 import type { BrainTurnRequest, ChatMessage } from '../llm/client.ts';
 import { assessmentToQuality, splitCoach } from './grading.ts';
+import { normalizeErrorTag } from '../profile/errorTag.ts';
+
+export { normalizeErrorTag } from '../profile/errorTag.ts';
 
 export type LearnerTurnInput =
   | { type: 'spoke'; text: string }
@@ -484,15 +487,6 @@ function sanitizeTurn(raw: TutorTurn): TutorTurn {
     topicShift:
       raw.topicShift === null ? null : { en: clean(raw.topicShift.en), fr: clean(raw.topicShift.fr) },
   };
-}
-
-/** Normalize a model-proposed error tag into a stable kebab key. */
-export function normalizeErrorTag(tag: string): string {
-  return tag
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40);
 }
 
 /**

@@ -91,6 +91,9 @@ export interface LiveDiagnostics {
   tokenServer: string;
   livekitUrl: string | null;
   tokenStatus: number | null;
+  authMs: number | null;
+  tokenMs: number | null;
+  tokenServerTiming: string | null;
   connectMs: number | null;
   micPublished: boolean;
   agentJoined: boolean;
@@ -106,6 +109,9 @@ function emptyDiagnostics(): LiveDiagnostics {
     tokenServer: TOKEN_SERVER,
     livekitUrl: null,
     tokenStatus: null,
+    authMs: null,
+    tokenMs: null,
+    tokenServerTiming: null,
     connectMs: null,
     micPublished: false,
     agentJoined: false,
@@ -234,7 +240,7 @@ export interface LiveSession {
   /** Ask for the current line in English. */
   sendEnglish: () => void;
   /** Text-mode conversation: send a typed learner turn. */
-  sendSay: (text: string) => void;
+  sendSay: (text: string) => Promise<boolean>;
   /**
    * "Still here." Presence, not content, and throttled inside the hook so a
    * caller can hand it every keystroke without thinking about it.
@@ -316,21 +322,27 @@ export function useLiveSession(
     turnSeq.current += 1;
     const id = `t${turnSeq.current}`;
     setTurns((list) => pushTurn(list, line, id));
+    return id;
   }, []);
 
-  const send = useCallback((message: ClientMessage) => {
+  const publish = useCallback(async (message: ClientMessage): Promise<boolean> => {
     // TextEncoder types its output over ArrayBufferLike; livekit-client wants a
     // plain ArrayBuffer. The copy is a few dozen bytes once per tap.
     const bytes = Uint8Array.from(encodeMessage(message));
-    void roomRef.current?.localParticipant.publishData(bytes, { topic: TOPIC_CLIENT, reliable: true }).catch((err: unknown) => {
-      // A lost tap is recoverable; the learner can tap again. Silently, though,
-      // it looked exactly like a working app doing nothing, which is the shape
-      // of every report that starts "I pressed it and nothing happened".
-      // ConvoScreen clears its draft before calling this, so a lost `say` also
-      // loses what was typed. Restoring it is Phase 2; saying so is now.
+    const participant = roomRef.current?.localParticipant;
+    if (!participant) return false;
+    try {
+      await participant.publishData(bytes, { topic: TOPIC_CLIENT, reliable: true });
+      return true;
+    } catch (err: unknown) {
       trace('publish-failed', { t: message.t, error: String(err) });
-    });
+      return false;
+    }
   }, []);
+
+  const send = useCallback((message: ClientMessage) => {
+    void publish(message);
+  }, [publish]);
 
   /**
    * Defined before `start` so the watchdog can use the same exit the learner
@@ -372,11 +384,15 @@ export function useLiveSession(
       // connect for, and the failure deep inside the client would be unreadable.
       if (mode !== 'convo-text' && micApiUnavailable()) throw new Error('navigator.mediaDevices is unavailable');
 
+      const authStartedAt = Date.now();
+      const headers = await authHeaders();
+      diagRef.current.authMs = Date.now() - authStartedAt;
+      const tokenStartedAt = Date.now();
       const res = await fetch(`${TOKEN_SERVER}/session/start`, {
         method: 'POST',
         // The bearer token, when auth is live, lets the server verify the
         // asserted userId instead of trusting it. Mock mode adds nothing.
-        headers: { 'content-type': 'application/json', ...(await authHeaders()) },
+        headers: { 'content-type': 'application/json', ...headers },
         // The token server signs startRung (and, for free conversation, the mode
         // and learner snapshot) into the join credential, so what the session
         // opens as is not something the client can quietly re-assert.
@@ -390,6 +406,8 @@ export function useLiveSession(
         }),
       });
       diagRef.current.tokenStatus = res.status;
+      diagRef.current.tokenMs = Date.now() - tokenStartedAt;
+      diagRef.current.tokenServerTiming = res.headers.get('server-timing');
 
       if (res.status === 402) {
         const body = (await res.json()) as { message?: string };
@@ -400,7 +418,13 @@ export function useLiveSession(
 
       const grant = (await res.json()) as { token: string; livekitUrl: string };
       diagRef.current.livekitUrl = grant.livekitUrl;
-      trace('token', { status: res.status, livekitUrl: grant.livekitUrl });
+      trace('token', {
+        status: res.status,
+        livekitUrl: grant.livekitUrl,
+        authMs: diagRef.current.authMs,
+        tokenMs: diagRef.current.tokenMs,
+        serverTiming: diagRef.current.tokenServerTiming,
+      });
 
       ensureLiveKitGlobals();
       const room = new Room();
@@ -731,15 +755,26 @@ export function useLiveSession(
     sendSlower: useCallback(() => send({ t: 'slower' }), [send]),
     sendEnglish: useCallback(() => send({ t: 'english' }), [send]),
     sendSay: useCallback(
-      (text: string) => {
+      async (text: string) => {
         // The agent transcribes speech back to us but never echoes a TYPED
         // turn, so without this optimistic append the learner's own words
         // simply never appear in text mode.
-        addTurn({ who: 'learner', fr: text, frWritten: null, en: null });
+        const optimisticId = addTurn({ who: 'learner', fr: text, frWritten: null, en: null });
         setThinking(true);
-        send({ t: 'say', text });
+        const sent = await publish({ t: 'say', text });
+        if (sent) return true;
+
+        // Roll back only the turn this send added, and hand the words back to
+        // ConvoScreen through the return value. A network miss must not make a
+        // learner retype a sentence in a language they are still learning.
+        setTurns((list) => list.filter((turn) => turn.id !== optimisticId));
+        setThinking(false);
+        setNotice('That did not send. Your words are back in the box.');
+        if (noticeTimer.current) clearTimeout(noticeTimer.current);
+        noticeTimer.current = setTimeout(() => setNotice(null), 8000);
+        return false;
       },
-      [send, addTurn],
+      [publish, addTurn],
     ),
     sendTyping: useCallback(() => {
       const now = Date.now();

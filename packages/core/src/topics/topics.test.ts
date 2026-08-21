@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   MAX_DISCUSSED_DATES,
+  MAX_STORED_TOPICS,
   STAGGER_DUE_NOW,
   mergeTopics,
   phraseKeyOf,
@@ -68,6 +69,20 @@ describe('mergeTopics', () => {
   test('an empty title is dropped, not stored as topic:', () => {
     const merged = mergeTopics([], [{ title: { fr: '', en: '   ' }, phraseKeys: ['phrase:x'] }], '2026-08-20');
     assert.deepEqual(merged, []);
+  });
+
+  test('the practice path keeps a useful recent window instead of growing forever', () => {
+    let topics: PracticeTopic[] = [];
+    for (let index = 0; index < MAX_STORED_TOPICS + 5; index += 1) {
+      topics = mergeTopics(
+        topics,
+        [{ title: { fr: `Sujet ${index}`, en: `Topic ${index}` }, phraseKeys: [`phrase:${index}`] }],
+        '2026-08-20',
+      );
+    }
+    assert.equal(topics.length, MAX_STORED_TOPICS);
+    assert.equal(topics[0]!.id, 'topic:topic-5');
+    assert.equal(topics.at(-1)!.id, `topic:topic-${MAX_STORED_TOPICS + 4}`);
   });
 
   test('does not mutate its inputs', () => {

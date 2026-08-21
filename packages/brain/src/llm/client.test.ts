@@ -146,7 +146,7 @@ describe('AnthropicBrainClient — request shape', () => {
 
     const params = calls[0]!;
     assert.equal(params.model, DEFAULT_ROUTING.frame.model);
-    assert.equal(params.output_config.effort, 'medium');
+    assert.equal(params.output_config.effort, DEFAULT_ROUTING.frame.effort);
     assert.equal(params.system.length, 2);
     assert.deepEqual(params.system[1].cache_control, { type: 'ephemeral' });
     assert.equal(result.frame.title, APERO_FRAME.title);

@@ -84,13 +84,15 @@ const users = createUserResolver({
   supabaseUrl: process.env.SUPABASE_URL,
 });
 
-function json(res: ServerResponse, status: number, body: unknown): void {
+function json(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
     'content-type': 'application/json',
     'content-length': Buffer.byteLength(payload),
     // The Expo web build runs on a different origin in development.
     'access-control-allow-origin': '*',
+    'timing-allow-origin': '*',
+    ...headers,
   });
   res.end(payload);
 }
@@ -159,10 +161,13 @@ const server = createServer(async (req, res) => {
 
     // What the app calls to begin. Returns credentials, or 402 with the reason.
     if (req.method === 'POST' && url.pathname === '/session/start') {
+      const startedAt = performance.now();
       const body = await readJson(req);
+      const parsedAt = performance.now();
       const asserted = typeof body.userId === 'string' && body.userId ? body.userId : null;
       const lessonId = typeof body.lessonId === 'string' && body.lessonId ? body.lessonId : 'cafe-01';
       const resolved = await users.resolve(req.headers.authorization, asserted);
+      const authorisedAt = performance.now();
       if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
       const userId = resolved.userId;
 
@@ -187,6 +192,7 @@ const server = createServer(async (req, res) => {
       const seedTopic = typeof body.seedTopic === 'object' && body.seedTopic !== null ? body.seedTopic : undefined;
 
       const entitlement = await store.get(userId);
+      const entitledAt = performance.now();
       const result = await grantSession({
         userId,
         lessonId,
@@ -197,11 +203,18 @@ const server = createServer(async (req, res) => {
         ...(snapshot !== undefined ? { snapshot } : {}),
         ...(seedTopic !== undefined ? { seedTopic } : {}),
       });
+      const grantedAt = performance.now();
+      const serverTiming = [
+        `parse;dur=${(parsedAt - startedAt).toFixed(1)}`,
+        `auth;dur=${(authorisedAt - parsedAt).toFixed(1)}`,
+        `entitlement;dur=${(entitledAt - authorisedAt).toFixed(1)}`,
+        `token;dur=${(grantedAt - entitledAt).toFixed(1)}`,
+      ].join(', ');
 
       if (!result.ok) {
-        return json(res, result.status, { error: result.reason, message: result.message, plans: PLANS });
+        return json(res, result.status, { error: result.reason, message: result.message, plans: PLANS }, { 'server-timing': serverTiming });
       }
-      return json(res, 200, { ...result.grant, livekitUrl });
+      return json(res, 200, { ...result.grant, livekitUrl }, { 'server-timing': serverTiming });
     }
 
     // Drill mode's pronunciation check: raw utterance audio in the body, the

@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { DrillExercise, FillBlankExercise, TapTranslateExercise } from '@parle/core';
 
-import { mergeExerciseBank } from './merge.ts';
+import { MAX_DRILL_EXERCISES, mergeExerciseBank } from './merge.ts';
 
 const COFFEE = 'phrase:je voudrais un café';
 const BILL = "phrase:l'addition, s'il vous plaît";
@@ -161,5 +161,17 @@ describe('folding a generated batch into the drill bank — replace, never accum
       before,
       'the merge mutated its input, so the cached bank inside the store changed behind its back',
     );
+  });
+
+  test('generated variations are capped while authored offline drills survive', () => {
+    const authored = fillBlank({ id: 'fixture:coffee' });
+    const generated = Array.from({ length: MAX_DRILL_EXERCISES + 20 }, (_, index) =>
+      fillBlank({ id: `gen:${index}`, phraseKey: `phrase:${index}` }),
+    );
+    const merged = mergeExerciseBank([authored], generated);
+
+    assert.equal(merged.length, MAX_DRILL_EXERCISES);
+    assert.equal(merged[0]!.id, 'fixture:coffee');
+    assert.equal(merged.at(-1)!.id, `gen:${MAX_DRILL_EXERCISES + 19}`);
   });
 });

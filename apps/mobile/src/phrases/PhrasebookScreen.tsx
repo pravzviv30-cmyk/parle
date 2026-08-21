@@ -13,12 +13,12 @@
  */
 
 import { useMemo } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, FlatList, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { paper, papers, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
 import { Label, ChevronLeft, Stat } from '../components.tsx';
 import { Phrasebook as PhrasebookScene } from '../illustrations.tsx';
-import { LESSONS_GROUP, type Hold, type Phrasebook } from './phrasebook.ts';
+import { LESSONS_GROUP, type Hold, type Phrase, type Phrasebook } from './phrasebook.ts';
 
 /** Practice and its deck have their own light, and this is part of that room. */
 const PAPER = papers.sky;
@@ -37,6 +37,14 @@ function Mark({ hold }: { hold: Hold }) {
 
 export function PhrasebookScreen({ book, onDone }: { book: Phrasebook; onDone: () => void }) {
   const insets = useSafeAreaInsets();
+  const rows = useMemo(
+    () =>
+      book.groups.flatMap((group) => [
+        { kind: 'group' as const, id: `group:${group.id}`, groupId: group.id, title: group.title },
+        ...group.phrases.map((phrase) => ({ kind: 'phrase' as const, id: phrase.id, phrase })),
+      ]),
+    [book.groups],
+  );
 
   const subtitle = useMemo(() => {
     if (book.topics === 0) return 'Lines you have said and kept.';
@@ -53,39 +61,53 @@ export function PhrasebookScreen({ book, onDone }: { book: Phrasebook; onDone: (
         <View style={st.back} />
       </View>
 
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
-        <View style={st.hero}>
-          <PhrasebookScene width={190} />
-        </View>
-
-        <Text style={st.headline} accessibilityRole="header">
-          What you can say now
-        </Text>
-        <Text style={st.subline}>{subtitle}</Text>
-
-        <View style={st.stats}>
-          <Stat value={String(book.count)} label="Phrases" />
-          {book.topics > 0 && <Stat value={String(book.topics)} label="Conversations" />}
-        </View>
-
-        {book.groups.map((group) => (
-          <View key={group.id} style={st.group}>
-            <Label color={group.id === LESSONS_GROUP ? paper.inkFaint : PAPER.accent}>{group.title}</Label>
-            <View style={st.card}>
-              {group.phrases.map((phrase, i) => (
-                <View key={phrase.id} style={[st.row, i > 0 && st.divided]}>
-                  <Mark hold={phrase.hold} />
-                  <View style={st.words}>
-                    <Text style={[type.french, { color: paper.ink }]}>{phrase.front}</Text>
-                    <Text style={[type.small, { color: paper.inkSoft }]}>{phrase.back}</Text>
-                  </View>
-                  <Text style={[type.small, { color: paper.inkFaint }]}>{HOLD_LABEL[phrase.hold]}</Text>
-                </View>
-              ))}
+      <FlatList
+        data={rows}
+        keyExtractor={(row) => row.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={st.scroll}
+        initialNumToRender={14}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews
+        ListHeaderComponent={
+          <>
+            <View style={st.hero}>
+              <PhrasebookScene width={190} />
             </View>
-          </View>
-        ))}
-      </ScrollView>
+            <Text style={st.headline} accessibilityRole="header">
+              What you can say now
+            </Text>
+            <Text style={st.subline}>{subtitle}</Text>
+            <View style={st.stats}>
+              <Stat value={String(book.count)} label="Phrases" />
+              {book.topics > 0 && <Stat value={String(book.topics)} label="Conversations" />}
+            </View>
+          </>
+        }
+        renderItem={({ item }) =>
+          item.kind === 'group' ? (
+            <View style={st.group}>
+              <Label color={item.groupId === LESSONS_GROUP ? paper.inkFaint : PAPER.accent}>{item.title}</Label>
+            </View>
+          ) : (
+            <PhraseRow phrase={item.phrase} />
+          )
+        }
+      />
+    </View>
+  );
+}
+
+function PhraseRow({ phrase }: { phrase: Phrase }) {
+  return (
+    <View style={st.card}>
+      <Mark hold={phrase.hold} />
+      <View style={st.words}>
+        <Text style={[type.french, { color: paper.ink }]}>{phrase.front}</Text>
+        <Text style={[type.small, { color: paper.inkSoft }]}>{phrase.back}</Text>
+      </View>
+      <Text style={[type.small, { color: paper.inkFaint }]}>{HOLD_LABEL[phrase.hold]}</Text>
     </View>
   );
 }
@@ -101,16 +123,18 @@ const st = StyleSheet.create({
   headline: { ...type.display, color: paper.ink, textAlign: 'center' },
   subline: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
   stats: { flexDirection: 'row', gap: space(8), marginTop: space(5), justifyContent: 'center' },
-  group: { marginTop: space(7) },
+  group: { marginTop: space(7), marginBottom: space(2) },
   card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(3),
     backgroundColor: paper.card,
     borderRadius: radius.card,
     borderWidth: HAIRLINE,
     borderColor: PAPER.line,
-    marginTop: space(2),
+    padding: space(3.5),
+    marginBottom: space(2),
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), padding: space(3.5) },
-  divided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
   words: { flex: 1, gap: space(0.5) },
   mark: { width: 12, height: 12, borderRadius: 6 },
   steady: { backgroundColor: signal.good },

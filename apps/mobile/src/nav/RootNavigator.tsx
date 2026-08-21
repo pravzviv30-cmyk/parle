@@ -15,8 +15,8 @@
  * paths do not diverge, and so no route ever has to carry a summary object.
  */
 
-import { withLearnerName } from '@parle/brain';
-import { useCallback, useEffect, useState } from 'react';
+import { withLearnerName } from '@parle/brain/profile';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -30,10 +30,8 @@ import { useLive } from '../app/LiveContext.tsx';
 import { lastSummaryFor, recordSession } from '../progress/store.ts';
 import { recordActivity } from '../progress/activity.ts';
 import { addFromSummary } from '../review/store.ts';
-import { LiveSessionScreen } from '../LiveSessionScreen.tsx';
 import { SessionScreen } from '../SessionScreen.tsx';
 import { SummaryScreen } from '../SummaryScreen.tsx';
-import { ConvoScreen } from '../ConvoScreen.tsx';
 import { DrillScreen } from '../DrillScreen.tsx';
 import { ReviewScreen } from '../ReviewScreen.tsx';
 import { AddFriendsScreen } from '../friends/AddFriendsScreen.tsx';
@@ -48,6 +46,18 @@ import type { RootStackParamList, TabParamList } from './types.ts';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// The WebRTC stack is by far the largest optional dependency in the app. Keep
+// it out of the home/practice/profile startup path and load it only when the
+// learner actually opens a live lesson or conversation.
+const LazyLiveSessionScreen = lazy(async () => {
+  const module = await import('../live/LiveScreenModule.ts');
+  return { default: module.LiveSessionScreen };
+});
+const LazyConvoScreen = lazy(async () => {
+  const module = await import('../live/LiveScreenModule.ts');
+  return { default: module.ConvoScreen };
+});
 
 /** A stored rung, trusted only after proving it really is one. Older stored
  * sessions predate `nextStartRung`, so the field can be missing entirely. */
@@ -132,16 +142,18 @@ function LessonRoute() {
     );
   }
   return live && user ? (
-    <LiveSessionScreen
-      key={textMode ? 'live-text' : 'live'}
-      lesson={CAFE_LESSON}
-      userId={user.id}
-      startRung={startRung}
-      textMode={textMode}
-      onRetryAsText={() => nav.setParams({ textMode: true })}
-      onFinish={finish}
-      onExit={() => nav.goBack()}
-    />
+    <Suspense fallback={<Loading />}>
+      <LazyLiveSessionScreen
+        key={textMode ? 'live-text' : 'live'}
+        lesson={CAFE_LESSON}
+        userId={user.id}
+        startRung={startRung}
+        textMode={textMode}
+        onRetryAsText={() => nav.setParams({ textMode: true })}
+        onFinish={finish}
+        onExit={() => nav.goBack()}
+      />
+    </Suspense>
   ) : (
     <SessionScreen key="mock" lesson={CAFE_LESSON} startRung={startRung} onFinish={finish} />
   );
@@ -195,20 +207,22 @@ function ConvoRoute() {
     );
   }
   return (
-    <ConvoScreen
-      userId={user.id}
-      // The name is stored beside the brain profile, not inside it, so this is
-      // where the two are joined. Without it the tutor has no name to use: the
-      // snapshot is the only thing that reaches the agent.
-      snapshot={withLearnerName(profile.brain, profile.name)}
-      onRecap={(_recap, blob) => {
-        // The agent owns the learner model's shape; the app is its storage.
-        if (typeof blob === 'object' && blob !== null) updateBrain(blob as never);
-      }}
-      onExit={() => nav.goBack()}
-      startInTextMode={route.params?.textMode ?? false}
-      seedTopic={route.params?.seedTopic}
-    />
+    <Suspense fallback={<Loading />}>
+      <LazyConvoScreen
+        userId={user.id}
+        // The name is stored beside the brain profile, not inside it, so this is
+        // where the two are joined. Without it the tutor has no name to use: the
+        // snapshot is the only thing that reaches the agent.
+        snapshot={withLearnerName(profile.brain, profile.name)}
+        onRecap={(_recap, blob) => {
+          // The agent owns the learner model's shape; the app is its storage.
+          if (typeof blob === 'object' && blob !== null) updateBrain(blob as never);
+        }}
+        onExit={() => nav.goBack()}
+        startInTextMode={route.params?.textMode ?? false}
+        seedTopic={route.params?.seedTopic}
+      />
+    </Suspense>
   );
 }
 

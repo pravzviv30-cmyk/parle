@@ -22,7 +22,7 @@ import {
   type ReviewGrade,
   type SessionSummary,
 } from '@parle/core';
-import { userKey } from '../storage/scope.ts';
+import { onUserScopeReset, userKey } from '../storage/scope.ts';
 
 /** Resolved per call: the active account can change between calls. */
 const KEY = () => userKey('review');
@@ -34,16 +34,25 @@ const KEY = () => userKey('review');
  * impossible without reaching for anything heavier than a queue of one.
  */
 let writeChain: Promise<unknown> = Promise.resolve();
+const caches = new Map<string, Promise<ReviewCard[]>>();
 
-function serialized<T>(mutation: () => Promise<T>): Promise<T> {
-  const next = writeChain.then(mutation, mutation);
+onUserScopeReset(() => {
+  caches.clear();
+});
+
+function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+  // Bind the account when the work is requested. A sign-out while a background
+  // write is queued must never redirect that write into the next account.
+  const key = KEY();
+  const run = () => mutation(key);
+  const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
 }
 
-export async function loadDeck(): Promise<ReviewCard[]> {
+async function readDeck(key: string): Promise<ReviewCard[]> {
   try {
-    const raw = await AsyncStorage.getItem(KEY());
+    const raw = await AsyncStorage.getItem(key);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as ReviewCard[]) : [];
@@ -53,9 +62,23 @@ export async function loadDeck(): Promise<ReviewCard[]> {
   }
 }
 
-async function saveDeck(deck: readonly ReviewCard[]): Promise<void> {
+function loadDeckFor(key: string): Promise<ReviewCard[]> {
+  const cached = caches.get(key);
+  if (cached) return cached;
+  const pending = readDeck(key);
+  caches.set(key, pending);
+  return pending;
+}
+
+export function loadDeck(): Promise<ReviewCard[]> {
+  return loadDeckFor(KEY());
+}
+
+async function saveDeck(key: string, deck: readonly ReviewCard[]): Promise<void> {
+  const next = [...deck];
+  caches.set(key, Promise.resolve(next));
   try {
-    await AsyncStorage.setItem(KEY(), JSON.stringify(deck));
+    await AsyncStorage.setItem(key, JSON.stringify(next));
   } catch {
     // Storage full or unavailable. The deck still works for this launch.
   }
@@ -68,10 +91,10 @@ async function saveDeck(deck: readonly ReviewCard[]): Promise<void> {
  * scheduling even when a new session produces the same word again.
  */
 export function addFromSummary(summary: SessionSummary): Promise<void> {
-  return serialized(async () => {
-    const existing = await loadDeck();
+  return serialized(async (key) => {
+    const existing = await loadDeckFor(key);
     const incoming = buildCardsFromSummary(summary, LESSONS, Date.now());
-    await saveDeck(mergeCards(existing, incoming));
+    await saveDeck(key, mergeCards(existing, incoming));
   });
 }
 
@@ -106,18 +129,26 @@ export async function addPhrases(phrases: readonly ConvoPhrase[], opts: { stagge
     );
   if (incoming.length === 0) return;
   if (opts.stagger) incoming = staggerNewCards(incoming, now);
-  await serialized(async () => {
-    const existing = await loadDeck();
-    await saveDeck(mergeCards(existing, incoming));
+  await serialized(async (key) => {
+    const existing = await loadDeckFor(key);
+    await saveDeck(key, mergeCards(existing, incoming));
   });
 }
 
 /** Apply one grade to one card, persist, and return the updated deck. */
 export function gradeCard(id: string, grade: ReviewGrade): Promise<ReviewCard[]> {
-  return serialized(async () => {
-    const deck = await loadDeck();
-    const updated = deck.map((c) => (c.id === id ? applyGrade(c, grade, Date.now()) : c));
-    await saveDeck(updated);
+  return gradeCards([{ id, grade }]);
+}
+
+/** Apply a whole sitting in one read and one compact write. */
+export function gradeCards(grades: readonly { id: string; grade: ReviewGrade }[]): Promise<ReviewCard[]> {
+  return serialized(async (key) => {
+    let updated = await loadDeckFor(key);
+    const now = Date.now();
+    for (const { id, grade } of grades) {
+      updated = updated.map((card) => (card.id === id ? applyGrade(card, grade, now) : card));
+    }
+    await saveDeck(key, updated);
     return updated;
   });
 }

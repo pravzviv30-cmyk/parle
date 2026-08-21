@@ -23,6 +23,8 @@ export interface PracticeTopic {
 
 /** A topic remembers this many sittings; older ones age out silently. */
 export const MAX_DISCUSSED_DATES = 10;
+/** Enough variety for Practice without turning one screen into an archive. */
+export const MAX_STORED_TOPICS = 24;
 
 /**
  * Merge identity. Case- and accent-insensitive on the English title, so the
@@ -93,7 +95,7 @@ export function mergeTopics(
       }
     }
   }
-  return merged;
+  return merged.slice(-MAX_STORED_TOPICS);
 }
 
 /** One day, the unit the stagger below deals in. */

@@ -13,6 +13,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "dev": "node --experimental-strip-types scripts/dev.mjs",
     "web": "npm run web --workspace=@parle/mobile",
+    "build:web": "npm run export:web --workspace=@parle/mobile",
     "smoke:tutor": "node --experimental-strip-types scripts/smokeTutor.mjs",
     "gate": "node scripts/gate.mjs",
     "gate:bless": "node scripts/gate.mjs --bless",

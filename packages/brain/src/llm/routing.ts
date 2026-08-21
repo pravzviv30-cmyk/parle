@@ -47,9 +47,10 @@ export const DEFAULT_ROUTING: BrainRouting = {
   // (see tutor-agent's [parle:latency] lines) holds a p50 above ~1.5s after
   // the TTS streaming work.
   turn: { model: 'claude-sonnet-5', effort: 'low', maxTokens: 3_000, midConversationSystem: false },
-  // The learner audibly waits behind the bridge line while the scene is
-  // designed — medium effort holds the 3–6 second band.
-  frame: { model: 'claude-sonnet-5', effort: 'medium', maxTokens: 6_000, midConversationSystem: false },
+  // The learner waits for this object before the scene can open. The contract
+  // and strict schema carry the structure, so low effort is the right latency
+  // trade-off here; 4k covers both reasoning and the roughly 1k-token frame.
+  frame: { model: 'claude-sonnet-5', effort: 'low', maxTokens: 4_000, midConversationSystem: false },
   // Post-session, nobody waiting. What these two write shapes every future
   // session (openers, memory) and every offline rep (accepted answers), so
   // they get the analyst model at full effort.
