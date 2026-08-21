@@ -54,7 +54,9 @@ const SETTINGS_FINGERPRINT = `sl${STREAMING_LATENCY}:st${Math.round(VOICE_SETTIN
  * `hooks` exists for the agent's latency telemetry; the warm-cache script calls
  * this bare. Nothing here may change what the tutor sounds like.
  */
-export function buildTTS(hooks: Pick<CachedTTSOptions, 'onFirstAudio'> = {}): CachedTTS {
+export function buildTTS(
+  hooks: Pick<CachedTTSOptions, 'onFirstAudio'> & Pick<CachedTTSOptions, 'missTransport'> = {},
+): CachedTTS {
   const voiceId = process.env.ELEVEN_VOICE_ID;
   const inner = new elevenlabs.TTS({
     languageCode: 'fr',
