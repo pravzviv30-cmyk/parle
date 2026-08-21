@@ -55,7 +55,8 @@ import {
 } from '@parle/core';
 import { ParleConversation, parseStoredProfile, sttLanguageFor, validSeedTopic } from './convo.ts';
 import { ParleTutor } from './tutor.ts';
-import { createTurnTiming, formatTiming, mark } from './timing.ts';
+import { createTurnTiming, formatTiming, formatVendorMetrics, mark, type VendorMetrics } from './timing.ts';
+import { turnHandlingFor } from './turnHandling.ts';
 
 /**
  * The tutor brain, selected by env so the quality/cost trade is a .env change.
@@ -215,21 +216,12 @@ export default defineAgent({
       // Cached: scripted lesson lines are synthesized once, ever, and replayed
       // from disk. Only free-form replies reach the vendor. See ttsCache.ts.
       tts: voiceTts,
-      turnHandling: {
-        // Defaults (500ms, 0 words) let the tutor's own voice, picked up by a
-        // speakerphone mic, cut the tutor off mid-sentence. Requiring real
-        // duration plus STT-confirmed words kills those phantom barge-ins.
-        interruption: { minDuration: 1200, minWords: 2 },
-        // Pinned rather than defaulted: the framework floor is 500ms, or 300ms
-        // when a streaming detector is in play, and 400ms is the chosen middle
-        // ground between snappy replies and clipping slow finishes.
-        endpointing: { minDelay: 400 },
-        // The semantic turn detector reads the words to judge whether the
-        // learner is done, which protects hesitating beginners from being cut
-        // off mid-thought, so it stays the default. PARLE_TURN_DETECTION=vad
-        // swaps in plain silence-based VAD turn taking for latency experiments.
-        ...(process.env.PARLE_TURN_DETECTION === 'vad' ? { turnDetection: 'vad' as const } : {}),
-      },
+      // Every one of these is a decision with a learner on the other end of it,
+      // so they live in a tested module rather than inline here. See
+      // turnHandling.ts for what each one costs when it is wrong.
+      turnHandling: turnHandlingFor(isConvo ? 'convo' : 'lesson', {
+        turnDetection: process.env.PARLE_TURN_DETECTION,
+      }),
     });
 
     session.on(voice.AgentSessionEventTypes.Error, (ev) => {
@@ -252,6 +244,17 @@ export default defineAgent({
         console.log(formatTiming(timing));
         timing = createTurnTiming(++turnCount);
       }
+    });
+
+    // The pipeline measures the vendors Parle was guessing about: time to the
+    // voice vendor's first byte, how long the recogniser took after the learner
+    // stopped, how long the turn decision itself ran. It has been emitting all
+    // of it to nobody. An `llm` line during a CONVERSATION is a finding in its
+    // own right: that model is told it is unused, so anything it reports was
+    // speculative, billed and thrown away.
+    session.on(voice.AgentSessionEventTypes.MetricsCollected, (ev) => {
+      const line = formatVendorMetrics(ev.metrics as VendorMetrics);
+      if (line !== null) console.log(line);
     });
 
     session.on(voice.AgentSessionEventTypes.UserStateChanged, (ev) => {

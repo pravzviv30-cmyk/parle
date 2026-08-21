@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createTurnTiming, formatTiming, mark } from './timing.ts';
+import { createTurnTiming, formatTiming, formatVendorMetrics, mark } from './timing.ts';
 
 describe('turn timing', () => {
   test('a fully marked turn prints every segment in chronological order', () => {
@@ -62,5 +62,31 @@ describe('turn timing', () => {
     assert.ok(!formatTiming(t).includes('cache='));
     t.cache = 'hit';
     assert.ok(formatTiming(t).endsWith('cache=hit'));
+  });
+});
+
+describe('vendor metrics — H5', () => {
+  test('the metrics line prices each vendor stage and omits what did not happen', () => {
+    assert.equal(
+      formatVendorMetrics({ type: 'tts_metrics', ttfbMs: 210.4, durationMs: 430, audioDurationMs: 1_900 }),
+      '[parle:metrics] tts ttfb=210ms synth=430ms audio=1900ms',
+    );
+    assert.equal(
+      formatVendorMetrics({ type: 'eou_metrics', endOfUtteranceDelayMs: 340, transcriptionDelayMs: 120 }),
+      '[parle:metrics] eou eou=340ms transcript=120ms',
+      'a stage with no measurement is left out, not printed as a zero',
+    );
+    assert.equal(formatVendorMetrics({ type: 'llm_metrics', ttfbMs: 980 }), '[parle:metrics] llm ttfb=980ms');
+  });
+
+  test('a cancelled synthesis says so, because its numbers mean something else', () => {
+    assert.match(formatVendorMetrics({ type: 'tts_metrics', ttfbMs: 90, cancelled: true })!, /cancelled$/);
+  });
+
+  test('a metrics payload with nothing usable in it prints nothing at all', () => {
+    assert.equal(formatVendorMetrics({ type: 'vad_metrics' }), null);
+    assert.equal(formatVendorMetrics({ type: 'tts_metrics' }), null);
+    assert.equal(formatVendorMetrics({}), null);
+    assert.equal(formatVendorMetrics({ type: 'tts_metrics', ttfbMs: Number.NaN }), null);
   });
 });

@@ -854,3 +854,87 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the persona still says reaching for English is never failing`
 - verified-by: `the English hand-back is warm, varied, and passes the copy rules`
 - verified-by: `the hand-back never reassures, because reassurance implies failure`
+
+### H1 — One turn is spoken as three, and everything downstream believes three turns happened
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1161
+- note: speak() issued narration, coachLine and sceneReply as three separate say()
+  handles. The framework returns the session to `listening` at the end of every handle
+  and to `speaking` on the next one's first frame, so one real turn produced three full
+  state cycles. Three consequences, one cause. The [parle:latency] record split three
+  ways with only the first carrying its marks, so no usable per-turn number existed to
+  tune against. The rescue is armed on `listening` and speak() is fire-and-forget, so
+  queue.busy is already false: a mid-turn sentence whose first audio byte took longer
+  than STUCK_SILENCE_MS passed every guard and fired a rescue while the tutor was still
+  talking, costing a ladder drop and an unearned brain turn. And the orb flipped to
+  green "your turn" between the tutor's own sentences. One utterance now, so the
+  framework splits sentences inside a single handle and the cache keys are unchanged.
+- verified-by: `one turn is spoken as a single utterance`
+- verified-by: `the spoken turn keeps narration, coaching and the scene reply in that order`
+- verified-by: `a turn with nothing but a scene reply is spoken exactly as it was`
+- verified-by: `a scene shift is uninterruptible even at a high rung`
+
+### H2 — The conversation pays for a pipeline LLM it told to stay quiet
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:218
+- note: the session is built with a real OpenAI LLM that convo.ts instructs with "You
+  are unused; replies are generated out of band", and turnHandling never set
+  preemptiveGeneration, whose framework default is enabled with up to three attempts
+  per turn. Every final transcript therefore started a real completion against that
+  unused context; the StopResponse thrown from onUserTurnCompleted returns before the
+  framework's reconciliation block, so the handle is cancelled late. In convo mode
+  those completions are billed, never spoken, and contend for the same key as the turn
+  the learner is actually waiting on, which is the 429 that F40 documents reaching a
+  learner as the recovery line. Lesson mode genuinely uses generateReply and keeps it.
+- verified-by: `a conversation never speculatively generates against the unused pipeline LLM`
+- verified-by: `a scripted lesson keeps preemptive generation, which it actually uses`
+
+### H3 — A beginner who speaks over the tutor has their words thrown away
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1168
+- note: modelled lines are uninterruptible at rung 2 and below, which is every A0 and
+  A1 learner, and the framework default discardAudioIfUninterruptible bins the audio
+  rather than buffering it. So the learner most likely to speak at the wrong moment is
+  the one whose sentence is deleted, and they have to say it again with no idea why.
+  The uninterruptible line stays: a speakerphone hears the tutor and a VAD interruption
+  during a modelled line is almost never the learner. Keeping the audio is free.
+- verified-by: `a learner speaking over an uninterruptible line is buffered, never binned`
+
+### H4 — Every free-conversation sentence opens a fresh connection to the voice vendor
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/ttsCache.ts:76
+- note: cache misses default to the per-sentence HTTP endpoint, and the warm cache only
+  covers scripted lesson lines plus four fixed conversation lines, so in free
+  conversation essentially every sentence is a cold vendor round-trip preceded by a TLS
+  handshake. The websocket transport is written, tested and rides a pooled persistent
+  socket; it was simply never switched on, and .env.example does not mention it exists.
+- verified-by: `PARLE_TTS_MISS_TRANSPORT=ws opts in via the environment, junk does not`
+- verified-by: `http is the default and still synthesizes per sentence`
+
+### H5 — The framework measures the turn and nothing reads it
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:242
+- note: the pipeline already computes time to first TTS byte, playback latency,
+  transcription delay and end-of-turn delay, and emits them on MetricsCollected. Parle
+  subscribes to Error, AgentStateChanged and UserStateChanged and not to that one, so
+  the numbers that would say which vendor ate the milliseconds were being thrown away
+  every turn while the same question was answered by guessing.
+- verified-by: `the metrics line prices each vendor stage and omits what did not happen`
+- verified-by: `a metrics payload with nothing usable in it prints nothing at all`
+
+### H6 — The worker documents a turn detector that is not installed
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:227
+- note: the comment says the semantic turn detector reads the words to judge whether the
+  learner has finished and "stays the default", protecting hesitating beginners. No
+  turn-detector plugin is in the package, so the framework has been falling through to
+  plain silence-based VAD all along, and PARLE_TURN_DETECTION=vad selects what was
+  already happening. A comment that describes protection the learner does not have is
+  worse than no comment.
+- verified-by: `the turn-detection note matches the plugins actually installed`
