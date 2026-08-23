@@ -42,21 +42,39 @@ export function userKey(suffix: string): string {
 }
 
 /**
+ * Every per-user key suffix in the app.
+ *
+ * Hand-maintained, and one that is missed here survives a reset — which for a
+ * one-time flag means it never fires again for that learner, ever. Exported so
+ * scope.test.ts can hold this list against every userKey call in the source
+ * and fail the moment a new store forgets to join it.
+ */
+export const USER_KEY_SUFFIXES = [
+  'profile',
+  'history',
+  'review',
+  'drills',
+  'tutorIntro',
+  'activity',
+  'friends',
+  'topics',
+  'journal',
+  'missions',
+  'coachMarks',
+  'soundChecks',
+] as const;
+
+/**
  * Wipe the signed-in account's learning data (profile, history, deck, bank)
  * and drop module caches. The account itself survives; onboarding reruns.
  */
 export async function clearActiveUserData(): Promise<void> {
   if (activeUid === null) return;
   try {
-    await AsyncStorage.multiRemove(
-      // Every per-user key belongs here. One that is missed survives a reset,
-      // which for a one-time flag means it never fires again.
-      ['profile', 'history', 'review', 'drills', 'tutorIntro', 'activity', 'friends', 'topics', 'journal'].map((s) => `parle.u.${activeUid}.${s}`),
-    );
-  } catch {
-    // Storage unavailable; caches still reset so nothing stale shows.
+    await AsyncStorage.multiRemove(USER_KEY_SUFFIXES.map((s) => `parle.u.${activeUid}.${s}`));
+  } finally {
+    for (const hook of resetHooks) hook();
   }
-  for (const hook of resetHooks) hook();
 }
 
 const MIGRATED_MARKER = 'parle.legacyMigrated.v1';

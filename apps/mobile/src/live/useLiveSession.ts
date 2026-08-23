@@ -37,6 +37,7 @@ import { pushTurn, type TurnLine } from './turns.ts';
 import { thinkingAfter } from './thinking.ts';
 import { micOpensAtConnect } from '../tutor/choosingView.ts';
 import { shouldPingTyping } from '../tutor/typingPing.ts';
+import type { ReplayLine } from '../tutor/sceneControls.ts';
 
 
 /**
@@ -225,8 +226,16 @@ export interface LiveSession {
   start: () => Promise<void>;
   sendHelp: () => void;
   sendSkip: () => void;
-  /** Ask the agent to replay the current line in the tutor's voice. */
-  sendHear: () => void;
+  /**
+   * Ask the agent to replay a line in the tutor's voice.
+   *
+   * `'support'` (the default, and what `hear` has always meant) is the line the
+   * learner is being offered to say. `'scene'` is the tutor's own last line,
+   * which is what tapping their bubble asks for. Call it with no argument from
+   * anything that hands its handler straight to a Pressable, because the press
+   * event would arrive here as the line name.
+   */
+  sendHear: (line?: ReplayLine) => void;
   /**
    * Answer a scripted turn by tapping one of its options.
    *
@@ -246,6 +255,26 @@ export interface LiveSession {
    * caller can hand it every keystroke without thinking about it.
    */
   sendTyping: () => void;
+  /**
+   * "Give me a moment." The learner has asked for time, and the agent's silence
+   * clock stands down.
+   *
+   * Not throttled, unlike `sendTyping`: this one comes from a deliberate tap
+   * rather than from every keystroke, and a learner who taps it twice is asking
+   * twice. Nothing about their progress moves because they pressed it, and the
+   * app answers on screen and never aloud.
+   */
+  sendMoment: () => void;
+  /**
+   * Ask the tutor to wrap up, and stay in the room while it does.
+   *
+   * Distinct from `leave`, which publishes the same tag and then immediately
+   * disconnects. That is right for a learner walking out and wrong for one who
+   * pressed a button promising them a recap: the recap is published back over
+   * this room, so tearing it down is closing the door the answer comes through.
+   * The screen already renders the recap in place for exactly this reason.
+   */
+  requestRecap: () => void;
   leave: () => Promise<void>;
 }
 
@@ -263,6 +292,13 @@ export function useLiveSession(
      * hint must never strand anyone, but that is not a reason to send blanks.
      */
     seedTopic?: { fr: string; en: string };
+    /**
+     * Which authored mission this session is, when a mission card started it.
+     * It rides the same pipe `seedTopic` rides, into the join token and on to
+     * the agent, which opens the scene straight from the authored frame. A
+     * session with no mission opens exactly as it always has.
+     */
+    missionId?: string;
   },
 ): LiveSession {
   const [status, setStatus] = useState<LiveStatus>({ phase: 'idle' });
@@ -289,6 +325,7 @@ export function useLiveSession(
   const mode = opts?.mode;
   const snapshot = opts?.snapshot;
   const seedTopic = opts?.seedTopic;
+  const missionId = opts?.missionId;
   const roomRef = useRef<Room | null>(null);
   const diagRef = useRef<LiveDiagnostics>(emptyDiagnostics());
   // The ready retries plus the give-up timer, so both can be cancelled the
@@ -358,6 +395,11 @@ export function useLiveSession(
     await releaseAudioSession();
   }, [send, removeAudioEls, clearWatchdog]);
 
+  /** Send the wrap-up tag and keep the room open for the answer. */
+  const requestRecap = useCallback(() => {
+    send({ t: 'leave' });
+  }, [send]);
+
   const fail = useCallback((failure: LiveFailure) => {
     const copy = failureCopy(failure);
     diagRef.current.lastFailure = failure;
@@ -403,6 +445,7 @@ export function useLiveSession(
           ...(mode !== undefined ? { mode } : {}),
           ...(snapshot !== undefined ? { snapshot } : {}),
           ...(seedTopic !== undefined ? { seedTopic } : {}),
+          ...(missionId !== undefined ? { missionId } : {}),
         }),
       });
       diagRef.current.tokenStatus = res.status;
@@ -676,9 +719,11 @@ export function useLiveSession(
     mode,
     snapshot,
     seedTopic,
+    missionId,
     send,
     removeAudioEls,
     clearWatchdog,
+    requestRecap,
     leave,
     fail,
     openingTags,
@@ -750,7 +795,10 @@ export function useLiveSession(
     start,
     sendHelp: useCallback(() => send({ t: 'help' }), [send]),
     sendSkip: useCallback(() => send({ t: 'skip' }), [send]),
-    sendHear: useCallback(() => send({ t: 'hear' }), [send]),
+    sendHear: useCallback(
+      (line?: ReplayLine) => send(line === undefined ? { t: 'hear' } : { t: 'hear', line }),
+      [send],
+    ),
     sendChoice: useCallback((text: string) => send({ t: 'choice', text }), [send]),
     sendSlower: useCallback(() => send({ t: 'slower' }), [send]),
     sendEnglish: useCallback(() => send({ t: 'english' }), [send]),
@@ -782,6 +830,8 @@ export function useLiveSession(
       typingPingAt.current = now;
       send({ t: 'typing' });
     }, [send]),
+    sendMoment: useCallback(() => send({ t: 'moment' }), [send]),
+    requestRecap,
     leave,
   };
 }

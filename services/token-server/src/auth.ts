@@ -5,8 +5,8 @@
  * for keyless dev, an open door the day accounts exist. This resolver closes
  * it without breaking that dev mode:
  *
- *   SUPABASE_JWT_SECRET set → verify HS256 with the shared secret (legacy projects)
- *   else SUPABASE_URL set   → verify against the project's JWKS (new projects)
+ *   SUPABASE_URL set        → verify against the project's asymmetric JWKS
+ *   else JWT secret set     → verify HS256 in explicit legacy/local setups
  *   else                    → not configured: trust the asserted id, as before
  *
  * When configured, the verified token's `sub` IS the user id and whatever the
@@ -16,7 +16,7 @@
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
 
 export interface VerifierConfig {
-  /** SUPABASE_JWT_SECRET — the legacy shared HS256 secret. Wins when both are set. */
+  /** SUPABASE_JWT_SECRET — legacy/local HS256 fallback when no project URL exists. */
   jwtSecret?: string | undefined;
   /** SUPABASE_URL — the project base URL; its JWKS endpoint is derived. */
   supabaseUrl?: string | undefined;
@@ -38,19 +38,16 @@ export function createUserResolver(
 ): UserResolver {
   let verify: ((token: string) => Promise<string | null>) | null = null;
 
-  if (config.jwtSecret) {
-    const secret = new TextEncoder().encode(config.jwtSecret);
-    verify = async (token) => {
-      const { payload } = await jwtVerify(token, secret);
-      return typeof payload.sub === 'string' && payload.sub !== '' ? payload.sub : null;
-    };
-  } else {
+  if (config.supabaseUrl || options.getKey) {
     // The JWKS fetcher is injectable so tests can hand over a key without a
     // network; production derives it from the project URL.
     const getKey =
       options.getKey ??
       (config.supabaseUrl
-        ? createRemoteJWKSet(new URL(`${config.supabaseUrl.replace(/\/+$/, '')}/auth/v1/.well-known/jwks.json`))
+        ? createRemoteJWKSet(
+            new URL(`${config.supabaseUrl.replace(/\/+$/, '')}/auth/v1/.well-known/jwks.json`),
+            { timeoutDuration: 5_000 },
+          )
         : null);
     if (getKey) {
       verify = async (token) => {
@@ -58,6 +55,12 @@ export function createUserResolver(
         return typeof payload.sub === 'string' && payload.sub !== '' ? payload.sub : null;
       };
     }
+  } else if (config.jwtSecret) {
+    const secret = new TextEncoder().encode(config.jwtSecret);
+    verify = async (token) => {
+      const { payload } = await jwtVerify(token, secret);
+      return typeof payload.sub === 'string' && payload.sub !== '' ? payload.sub : null;
+    };
   }
 
   const active = verify;

@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SessionPrompt } from '@parle/core';
 import { paper, radius, rungColor, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
 import { Card, Label, LineBullet, StationLine, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
+import { TUTOR_NAME } from './tutor/tutorName.ts';
 
 /**
  * What the support block can render. A structural superset of the lesson path's
@@ -191,7 +192,7 @@ export function SessionView(props: SessionViewProps) {
 
         {props.transcript ? (
           <View style={st.heard}>
-            <Label color={paper.inkFaint}>What the tutor heard</Label>
+            <Label color={paper.inkFaint}>{`What ${TUTOR_NAME} heard`}</Label>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>« {props.transcript} »</Text>
           </View>
         ) : null}
@@ -254,7 +255,7 @@ export function SessionView(props: SessionViewProps) {
               active={listening}
               muted={!listening}
               disabled={!props.onMicPress}
-              accessibilityLabel={listening ? 'Speak your answer' : 'The tutor is speaking'}
+              accessibilityLabel={listening ? 'Speak your answer' : `${TUTOR_NAME} is speaking`}
             />
             <Text style={[type.label, { color: listening ? paper.ink : paper.inkFaint, marginTop: space(2) }]}>
               {listening ? 'Speak' : 'Listen'}

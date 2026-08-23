@@ -10,6 +10,7 @@ import {
   type ChoosingState,
 } from './choosingView.ts';
 import { pushTurn, type TurnLine } from '../live/turns.ts';
+import { TUTOR_NAME } from './tutorName.ts';
 
 /** The tutor's question, which the hook puts in the thread the moment it lands. */
 const asked: TurnLine[] = [
@@ -86,7 +87,7 @@ describe('the choosing moment — what the screen decides before a scene exists'
       'the thread opens with the tutor question, so the headline saying it again is the same sentence twice',
     );
     assert.equal(sent.orb, 'thinking', 'amber is the app saying it heard them, and it costs nothing to say it at once');
-    assert.equal(sent.orbLabel, 'Your tutor is thinking', 'a learner who cannot see the amber still gets told');
+    assert.equal(sent.orbLabel, `${TUTOR_NAME} is thinking`, 'a learner who cannot see the amber still gets told');
   });
 
   test('thinking outranks a tutor who has taken the floor back', () => {

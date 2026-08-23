@@ -20,12 +20,10 @@ The cache breakpoints inside `anthropic.ts` are `performance-engineer`'s. Auth h
 
 ## The shape of the API
 
-Four endpoints, all in one `if` chain in `server.ts`, no router: `GET /health`,
-`POST /session/start`, `POST /drill/score`, `POST /session/end`.
-
-Five `fetch` sites exist in the entire repo. Three are the app calling the token server,
-one is the agent calling `/session/end`, one is a local blob read. That is the whole
-network surface. If you are adding a sixth, say why in the contract.
+The token server keeps a deliberately small, router-free `if` chain for health, session
+start/end, drill scoring, account deletion and privacy-filtered product events. Treat the
+endpoint inventory and every `fetch` call as a reviewed network boundary; do not rely on a
+stale fixed count.
 
 ## The rule that matters most
 

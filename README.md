@@ -62,9 +62,9 @@ npm run web
 
 First open: a moving welcome, then create an account (with no Supabase
 configured, accounts live in a local on-device store — any email works, and the
-Google button signs into a dev account instantly), answer the four onboarding
+Google button signs into a dev account instantly), answer the three onboarding
 questions, and land on five tabs along the bottom — Home, Tutor, Practice,
-Leaderboard, Profile.
+My French, Profile.
 
 Go to **Practice** and tap **Start the lesson** — and, this is the point, *say
 nothing for four seconds*. The tutor steps in, drops a rung, and offers you the
@@ -83,17 +83,18 @@ the token server answered, how long the room took to connect, whether the tutor
 joined, and whether it ever said anything. That panel is how you tell an
 environment problem from a bug without reading LiveKit's logs.
 
-### Accounts (optional Supabase)
+### Accounts
 
-Real accounts are one env file away. Create a Supabase project, then in
+Local scripts explicitly enable on-device mock accounts. Any deployed build requires a
+Supabase project: in
 `apps/mobile/.env` set `EXPO_PUBLIC_SUPABASE_URL` and
 `EXPO_PUBLIC_SUPABASE_ANON_KEY` (see `.env.example`). Email/password works
 immediately. For Google sign-in, enable the Google provider in the Supabase
 dashboard and allow-list the redirect URLs you use: your web origin
 (`http://localhost:8090`), `parle://auth/callback` for a dev/store build, and
-the `exp://…/--/auth/callback` URL Expo Go prints. To make the token server
-*verify* users instead of trusting the client, set `SUPABASE_URL` (or the
-legacy `SUPABASE_JWT_SECRET`) in `services/token-server/.env`.
+the `exp://…/--/auth/callback` URL Expo Go prints. The production token server requires
+HTTPS `SUPABASE_URL`, a server-only service-role key, and asymmetric JWKS verification;
+the legacy shared JWT secret is a local compatibility fallback only.
 
 Run the test suite:
 
@@ -162,9 +163,9 @@ Forgetting one of those is exactly how the app comes to report that there is no
 server available. Nothing is broken when it says that: the token server is not
 running, the app's health probe fails, and the Tutor tab falls back to Demo.
 
-The home screen runs **Live** when the token server is reachable and the
-session runs over LiveKit; otherwise it shows a small **Demo** label and falls
-back to the mock pipeline automatically. The agent is authoritative: it owns the
+In explicit local development, the home screen runs **Live** when the token server is
+reachable and otherwise offers the mock pipeline. A deployed build fails closed instead
+of silently crossing into demo identity or billing. The agent is authoritative: it owns the
 ladder and lesson state and the app renders what it is sent over the data
 channel (`packages/core/src/protocol/`). Metering is enforced at token
 issuance — an out-of-minutes learner gets a 402 and the out-of-minutes screen,
@@ -175,14 +176,15 @@ the app does not dodge the meter.
 
 ## What is and isn't wired
 
-**Working, tested, verified in a browser:**
+**Working and covered locally by automated tests:**
 the scaffolding ladder and its silence rescue · phoneme scoring and single-focus
 selection · minimal-pair drill matching · the café lesson · session summary and
 vocabulary · metering, entitlements and cost modelling · **drill mode**
 (fill-blank, best-sentence, appropriate-reply, tap-translate, listen-type,
 repeat-this, with typo-tolerant grading, re-queue-until-correct, the
 recognition→production ramp over the review deck, and the "can't speak now"
-mic swap) · the full UI on iOS, Android and web.
+mic swap). Public web onboarding/auth surfaces have browser evidence; authenticated,
+native microphone, device and live-provider journeys still require release QA.
 
 **Built and tested, needs keys to feel:** the free conversation tutor. It asks
 what the learner wants to practise, builds that situation, speaks first and

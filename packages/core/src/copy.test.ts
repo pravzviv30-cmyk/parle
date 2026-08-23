@@ -7,6 +7,7 @@ import { LESSONS } from './lessons/index.ts';
 import { GOOD_FEEDBACK, missFeedback, typoFeedback } from './drill/session.ts';
 import { DRILL_FIXTURES } from './drill/fixtures.ts';
 import { learnerVisibleStrings } from './drill/validate.ts';
+import { MISSIONS } from './missions/missions.ts';
 
 /**
  * Copy rules for anything a learner reads.
@@ -42,6 +43,41 @@ describe('learner-visible copy stays plain and human', () => {
         check(`drill ${d.id} gloss`, pair.b.gloss);
       }
       for (const item of d.items ?? []) check(`drill ${d.id} gloss`, item.gloss);
+    }
+  });
+
+  test('mission titles, goals and win lines', () => {
+    // A mission's English is the most-read copy in the product: it is on the
+    // chooser card, on Home, and on the card a learner reads at the moment they
+    // finish. The win line gets one extra rule of its own below.
+    for (const mission of MISSIONS) {
+      check(`${mission.id} titleEn`, mission.titleEn);
+      check(`${mission.id} goalEn`, mission.goalEn);
+      check(`${mission.id} winEn`, mission.winEn);
+      check(`${mission.id} learnerRole`, mission.learnerRole);
+      check(`${mission.id} tutorRole`, mission.tutorRole);
+    }
+  });
+
+  test('a win describes what the learner did, and never praises them for it', () => {
+    // PRODUCT.md: the ladder displays evidence, it is not a new incentive, and
+    // a learner is never performed at. "Great job" is the sound of being
+    // assessed by something that was not listening.
+    const PRAISE = /\b(great|amazing|awesome|well done|excellent|perfect|brilliant|congratulations|nice work|good job)\b/i;
+
+    for (const mission of MISSIONS) {
+      assert.ok(
+        !PRAISE.test(mission.winEn),
+        `${mission.id} praises the learner instead of telling them what they did: "${mission.winEn}"`,
+      );
+      assert.ok(
+        !/\d/.test(mission.winEn),
+        `${mission.id} puts a number in front of a learner who just finished: "${mission.winEn}"`,
+      );
+      assert.ok(
+        mission.winEn.trim().length > 0,
+        `${mission.id} has nothing to say at the moment that matters most`,
+      );
     }
   });
 

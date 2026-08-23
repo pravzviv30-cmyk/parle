@@ -143,6 +143,20 @@ export function createMockAdapter(): AuthAdapter {
       };
     },
 
+    async reauthenticateForDeletion(): Promise<AuthResult> {
+      return { ok: true };
+    },
+
+    async deleteAccount(): Promise<AuthResult> {
+      const store = await readStore();
+      if (store.sessionUserId === null) return { ok: false, message: 'There is no signed-in account to delete.' };
+      const users = Object.fromEntries(
+        Object.entries(store.users).filter(([, account]) => account.id !== store.sessionUserId),
+      );
+      await writeStore({ ...store, users, sessionUserId: null });
+      return { ok: true };
+    },
+
     async signOut() {
       const store = await readStore();
       await setSession(store, null);

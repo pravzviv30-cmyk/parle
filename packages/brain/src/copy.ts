@@ -87,39 +87,124 @@ export const ENGLISH_HAND_BACK_VARIANTS = ENGLISH_HAND_BACK.length;
 
 /**
  * The safe coach line for each kind of finding, used when the model's own
- * coachLine breaks a copy rule. Warm, short, and honest about the distinction
- * that matters: a blocking error gets "Not quite"; correct-but-textbook phrasing
- * explicitly does not, because the learner was not wrong.
+ * coachLine breaks a copy rule.
+ *
+ * Every kind is a family now, not a line. The English hand-back was already
+ * four variants with the note that "a warm line said the same way every time
+ * stops being warm by the third turn", and that was as true of the other five,
+ * which were one string each. A learner who hears "Small fix:" every time a
+ * verb slips is not being talked to by a person.
+ *
+ * Warm, short, and honest about the distinction that matters: a blocking error
+ * gets "Not quite"; correct-but-textbook phrasing explicitly does not, in any
+ * variant, because the learner was not wrong. Luc's praise and Luc's
+ * corrections are both small.
  *
  * `variant` is the turn count, not a random draw: `prepareTurn` is byte-stable
  * for identical state and this stays testable only while it is a function of
  * the state too.
  */
+type Fallback = (better: string) => string;
+
+const BLOCKING_ERROR: readonly Fallback[] = [
+  (better) => `Not quite. Try "${better}".`,
+  (better) => `Ah, careful. Here you would say "${better}".`,
+  (better) => `Not quite that one. "${better}" is what you want.`,
+  (better) => `Close. What lands here is "${better}".`,
+];
+
+const TEXTBOOK_PHRASING: readonly Fallback[] = [
+  (better) => `That works, but a local would say "${better}".`,
+  (better) => `Correct. Though nobody really says it that way. "${better}".`,
+  (better) => `You would be understood. What you would hear here is "${better}".`,
+  (better) => `That is the book version. Out loud it goes "${better}".`,
+];
+
+const REGISTER_MISMATCH: readonly Fallback[] = [
+  (better) => `Watch the register here. Try "${better}".`,
+  (better) => `The words are fine, the level is not. "${better}".`,
+  (better) => `With this person it goes "${better}".`,
+  (better) => `Same meaning, different register: "${better}".`,
+];
+
+const ANGLICISM: readonly Fallback[] = [
+  (better) => `In French that comes out as "${better}".`,
+  (better) => `That one is English wearing a French coat. "${better}".`,
+  (better) => `French does not go that way round. "${better}".`,
+  (better) => `We would not build it like that. "${better}".`,
+];
+
+const GRAMMAR_SLIP: readonly Fallback[] = [
+  (better) => `Small fix: "${better}".`,
+  (better) => `Almost. "${better}".`,
+  (better) => `One little thing: "${better}".`,
+  (better) => `Nearly. It wants "${better}".`,
+];
+
+const BY_KIND: Record<Exclude<CoachKind, 'english-to-french'>, readonly Fallback[]> = {
+  'blocking-error': BLOCKING_ERROR,
+  'textbook-phrasing': TEXTBOOK_PHRASING,
+  'register-mismatch': REGISTER_MISMATCH,
+  anglicism: ANGLICISM,
+  'grammar-slip': GRAMMAR_SLIP,
+};
+
+/** Pick a variant from any family, safe for any integer including a negative one. */
+function rotate<T>(family: readonly T[], variant: number | undefined): T {
+  return family[Math.abs(Math.trunc(variant ?? 0)) % family.length]!;
+}
+
+/** How many variants each kind has, so a test can walk every one of them. */
+export function fallbackVariants(kind: CoachKind): number {
+  return kind === 'english-to-french' ? ENGLISH_HAND_BACK.length : BY_KIND[kind].length;
+}
+
 export function coachFallbackLine(
   kind: CoachKind,
   better: string,
   opts: { name?: string | null; variant?: number } = {},
 ): string {
-  switch (kind) {
-    case 'blocking-error':
-      return `Not quite. Try "${better}".`;
-    case 'english-to-french': {
-      const variant = Math.abs(Math.trunc(opts.variant ?? 0)) % ENGLISH_HAND_BACK.length;
-      return ENGLISH_HAND_BACK[variant]!(better, opts.name ?? null);
-    }
-    case 'textbook-phrasing':
-      return `That works, but a local would say "${better}".`;
-    case 'register-mismatch':
-      return `Watch the register here. Try "${better}".`;
-    case 'anglicism':
-      return `In French that comes out as "${better}".`;
-    case 'grammar-slip':
-      return `Small fix: "${better}".`;
+  if (kind === 'english-to-french') {
+    return rotate(ENGLISH_HAND_BACK, opts.variant)(better, opts.name ?? null);
   }
+  return rotate(BY_KIND[kind], opts.variant)(better);
 }
 
 /** Said when the tutor steps in after silence. Same line the scripted product uses. */
 export const RESCUE_LINE = "Let's take that one together.";
 
-/** Shown when a model turn fails entirely. The learner must never see a stack trace. */
-export const RECOVERY_LINE = 'Say that once more for me.';
+/**
+ * Said when a model turn fails entirely. The learner must never see a stack
+ * trace, and they must never be given to understand it was their fault.
+ *
+ * A family rather than a line, for the same reason as everything else here: the
+ * one place a learner is most likely to hear the SAME failure twice is a failure
+ * that repeats, and hearing the identical sentence back is the moment a tutor
+ * stops being a person.
+ *
+ * Three of the four put it on Luc rather than on them, which is not a kindness,
+ * it is what happened. The model failed. Nobody mumbled.
+ */
+const RECOVERY: readonly string[] = [
+  'Say that once more for me.',
+  'One more time, I missed that.',
+  'Tell me that again, I lost it.',
+  'Run that past me again.',
+];
+
+/** How many recovery lines exist, so a session can rotate without repeating. */
+export const RECOVERY_VARIANTS = RECOVERY.length;
+
+/**
+ * The recovery line for this moment. `variant` is the turn count, never random,
+ * for the same byte-stability reason as the coach fallbacks.
+ */
+export function recoveryLine(variant = 0): string {
+  return RECOVERY[Math.abs(Math.trunc(variant)) % RECOVERY.length]!;
+}
+
+/**
+ * The first recovery line, kept as a constant for callers with no turn to count
+ * from. Prefer `recoveryLine(turn)` anywhere a turn is in hand.
+ */
+export const RECOVERY_LINE = RECOVERY[0]!;

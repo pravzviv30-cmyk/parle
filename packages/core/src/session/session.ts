@@ -309,7 +309,7 @@ export function submitTurn(lesson: Lesson, state: SessionState, given: LearnerIn
       pronunciationScore: pronunciation,
       rescued: directive.rescued,
       advanced,
-      message: feedbackMessage(input.type, quality, directive.rescued, pronunciation),
+      message: feedbackMessage(input.type, quality, directive.rescued, pronunciation, next.turnIndex),
     },
   };
 }
@@ -321,13 +321,65 @@ export function submitTurn(lesson: Lesson, state: SessionState, given: LearnerIn
  * session. Numbers belong on the end card where they can be given context;
  * mid-conversation they just make the learner self-conscious about speaking,
  * which is the exact opposite of what this app is for.
+ *
+ * Each outcome is a small family rotated on the turn index, never a random
+ * draw, so a twelve-turn lesson does not say the identical three words twelve
+ * times. That repetition is most of what a learner hears as a machine, and it
+ * is loudest exactly where it hurts most: the line after a rescue, which by
+ * definition arrives when they are already struggling.
+ *
+ * The first entry of each family is the line this shipped with, so nothing that
+ * was already right has been thrown away to make room for variety.
  */
-function feedbackMessage(kind: LearnerInput['type'], quality: TurnQuality, rescued: boolean, pronunciation: number | null): string {
-  if (rescued) return "Let's take that one together.";
-  if (kind === 'skip') return 'No problem. On we go.';
-  if (quality === 'good') return pronunciation !== null && pronunciation >= 90 ? 'Parfait.' : 'Très bien.';
-  if (quality === 'partial') return 'Good. That got the message across.';
-  return 'Not quite. Listen and try it this way.';
+const FEEDBACK = {
+  rescued: [
+    "Let's take that one together.",
+    "Here, I'll start you off.",
+    'This one we do together.',
+  ],
+  skipped: ['No problem. On we go.', 'Fine, next one.', 'We can leave that one.'],
+  excellent: ['Parfait.', 'Voilà.', "C'est exactement ça."],
+  good: ['Très bien.', "C'est ça.", 'Voilà, oui.'],
+  partial: [
+    'Good. That got the message across.',
+    'That lands. The meaning is there.',
+    'Understood, that works.',
+  ],
+  missed: [
+    'Not quite. Listen and try it this way.',
+    'Almost. Listen once more.',
+    'Not quite that. Have a listen.',
+  ],
+} as const satisfies Record<string, readonly string[]>;
+
+/**
+ * Which family answers which outcome, so a test can walk every line of every
+ * one. Exported with its literal keys rather than as a Record, so a test naming
+ * a family that does not exist fails at the compiler rather than at runtime.
+ */
+export const FEEDBACK_FAMILIES: { [K in keyof typeof FEEDBACK]: readonly string[] } = FEEDBACK;
+
+function rotate(family: readonly string[], turn: number): string {
+  return family[Math.abs(Math.trunc(turn)) % family.length]!;
+}
+
+/** Excellent pronunciation earns the warmer word. Kept out of the branch for readability. */
+const EXCELLENT = 90;
+
+function feedbackMessage(
+  kind: LearnerInput['type'],
+  quality: TurnQuality,
+  rescued: boolean,
+  pronunciation: number | null,
+  turn = 0,
+): string {
+  if (rescued) return rotate(FEEDBACK.rescued, turn);
+  if (kind === 'skip') return rotate(FEEDBACK.skipped, turn);
+  if (quality === 'good') {
+    return rotate(pronunciation !== null && pronunciation >= EXCELLENT ? FEEDBACK.excellent : FEEDBACK.good, turn);
+  }
+  if (quality === 'partial') return rotate(FEEDBACK.partial, turn);
+  return rotate(FEEDBACK.missed, turn);
 }
 
 /**

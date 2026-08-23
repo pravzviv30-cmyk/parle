@@ -114,4 +114,16 @@ describe('configured with a JWKS (asymmetric, the new Supabase default)', () => 
     assert.equal(result.ok, false);
     if (!result.ok) assert.equal(result.status, 401);
   });
+
+  test('a project URL keeps verification on JWKS even when a legacy secret is also present', async () => {
+    const project = await generateKeyPair('ES256');
+    const getKey: JWTVerifyGetKey = async () => project.publicKey;
+    const resolver = createUserResolver(
+      { supabaseUrl: 'https://project.supabase.co', jwtSecret: SECRET },
+      { getKey },
+    );
+    const hsToken = await hs256Token('legacy-user');
+    const result = await resolver.resolve(`Bearer ${hsToken}`, null);
+    assert.equal(result.ok, false, 'HS256 must not downgrade a configured asymmetric project');
+  });
 });

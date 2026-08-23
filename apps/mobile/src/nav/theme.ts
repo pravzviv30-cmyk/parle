@@ -49,7 +49,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
           Home: 'home',
           Tutor: 'tutor',
           Practice: 'practice',
-          Leaderboard: 'leaderboard',
+          MyFrench: 'my-french',
           Profile: 'profile',
         },
       },
@@ -57,7 +57,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Convo: 'conversation',
       Drill: 'drill',
       Review: 'review',
-      AddFriends: 'add-friends',
+      SoundCheck: 'sound-check',
     },
   },
 };

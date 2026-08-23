@@ -109,7 +109,7 @@ describe('nothing animates where nobody is looking — J7', () => {
     // Bottom tabs stay mounted after their first visit, so an unpaused loop
     // here runs for the rest of the session behind whatever the learner is
     // actually doing. DESIGN.md says scenes stop; these four did not.
-    for (const name of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx', 'tabs/LeaderboardTab.tsx']) {
+    for (const name of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx']) {
       const body = named(name);
       const scenes = body.match(/<(SpeakBubbles|NobodyYet|HeroCafe|LearnStack|NothingDue)\b[^/>]*\/>/g) ?? [];
       assert.ok(scenes.length > 0, `${name} no longer renders a scene; this test is stale`);

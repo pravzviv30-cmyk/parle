@@ -1,9 +1,8 @@
 /**
  * Entitlement storage.
  *
- * In-memory today, behind an interface, because the shape of the calls matters more
- * right now than where the rows live. Everything here is `async` precisely so that
- * swapping in Postgres is a one-file change rather than a refactor of every caller.
+ * Production uses the Supabase implementation; in-memory and file variants are
+ * explicit local fixtures behind the same async interface.
  *
  * What must NOT move to the client when that swap happens: the entitlement check
  * itself. Metered minutes enforced in the app are a suggestion; enforced at token
@@ -15,10 +14,12 @@ import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { PLANS, rollPeriod, type Entitlement, type Plan } from '@parle/core';
 
 export interface EntitlementStore {
+  /** Claim the one-time trial boundary before a first entitlement is read. */
+  claimTrial(userId: string, installationHash: string, userHash: string): Promise<boolean>;
   get(userId: string): Promise<Entitlement>;
   save(userId: string, entitlement: Entitlement): Promise<void>;
-  /** Record consumed seconds after a session ends. */
-  consume(userId: string, seconds: number): Promise<Entitlement>;
+  /** Record consumed seconds after a session ends. A session id makes retries idempotent. */
+  consume(userId: string, seconds: number, sessionId?: string): Promise<Entitlement>;
 }
 
 /**
@@ -41,13 +42,17 @@ export function developmentEntitlementsEnabled(env: Record<string, string | unde
  * The server only selects this store through developmentEntitlementsEnabled.
  */
 export class DevelopmentEntitlementStore implements EntitlementStore {
+  async claimTrial(_userId: string, _installationHash: string, _userHash: string): Promise<boolean> {
+    return true;
+  }
+
   async get(_userId: string): Promise<Entitlement> {
     return { plan: 'regular', secondsUsed: 0 };
   }
 
   async save(_userId: string, _entitlement: Entitlement): Promise<void> {}
 
-  async consume(_userId: string, seconds: number): Promise<Entitlement> {
+  async consume(_userId: string, seconds: number, _sessionId?: string): Promise<Entitlement> {
     if (!Number.isFinite(seconds) || seconds < 0) {
       throw new RangeError('seconds must be a non-negative number');
     }
@@ -57,6 +62,7 @@ export class DevelopmentEntitlementStore implements EntitlementStore {
 
 export class InMemoryEntitlementStore implements EntitlementStore {
   private readonly rows = new Map<string, Entitlement>();
+  private readonly consumedSessions = new Set<string>();
   // Written out longhand rather than as a constructor parameter property: Node runs
   // this file by stripping types, and parameter properties emit runtime code, so
   // they are rejected outright. Same reason in services/tutor-agent/src/agent.ts.
@@ -64,6 +70,10 @@ export class InMemoryEntitlementStore implements EntitlementStore {
 
   constructor(defaultPlan: Plan = 'trial') {
     this.defaultPlan = defaultPlan;
+  }
+
+  async claimTrial(_userId: string, _installationHash: string, _userHash: string): Promise<boolean> {
+    return true;
   }
 
   async get(userId: string): Promise<Entitlement> {
@@ -85,14 +95,17 @@ export class InMemoryEntitlementStore implements EntitlementStore {
     this.rows.set(userId, entitlement);
   }
 
-  async consume(userId: string, seconds: number): Promise<Entitlement> {
+  async consume(userId: string, seconds: number, sessionId?: string): Promise<Entitlement> {
     if (!Number.isFinite(seconds) || seconds < 0) {
       throw new RangeError('seconds must be a non-negative number');
     }
+    const consumptionKey = sessionId ? `${userId}:${sessionId}` : null;
+    if (consumptionKey && this.consumedSessions.has(consumptionKey)) return this.get(userId);
     const current = await this.get(userId);
     const cap = PLANS[current.plan].secondsPerPeriod;
     const next: Entitlement = { ...current, secondsUsed: Math.min(cap, current.secondsUsed + seconds) };
     this.rows.set(userId, next);
+    if (consumptionKey) this.consumedSessions.add(consumptionKey);
     return next;
   }
 }
@@ -114,11 +127,16 @@ export class FileEntitlementStore implements EntitlementStore {
   private readonly path: string;
   private readonly defaultPlan: Plan;
   private readonly rows: Map<string, Entitlement>;
+  private readonly consumedSessions = new Set<string>();
 
   constructor(path: string, defaultPlan: Plan = 'trial') {
     this.path = path;
     this.defaultPlan = defaultPlan;
     this.rows = new Map(Object.entries(this.#read()));
+  }
+
+  async claimTrial(_userId: string, _installationHash: string, _userHash: string): Promise<boolean> {
+    return true;
   }
 
   async get(userId: string): Promise<Entitlement> {
@@ -138,14 +156,17 @@ export class FileEntitlementStore implements EntitlementStore {
     this.#write();
   }
 
-  async consume(userId: string, seconds: number): Promise<Entitlement> {
+  async consume(userId: string, seconds: number, sessionId?: string): Promise<Entitlement> {
     if (!Number.isFinite(seconds) || seconds < 0) {
       throw new RangeError('seconds must be a non-negative number');
     }
+    const consumptionKey = sessionId ? `${userId}:${sessionId}` : null;
+    if (consumptionKey && this.consumedSessions.has(consumptionKey)) return this.get(userId);
     const current = await this.get(userId);
     const cap = PLANS[current.plan].secondsPerPeriod;
     const next: Entitlement = { ...current, secondsUsed: Math.min(cap, current.secondsUsed + seconds) };
     await this.save(userId, next);
+    if (consumptionKey) this.consumedSessions.add(consumptionKey);
     return next;
   }
 
@@ -170,5 +191,95 @@ export class FileEntitlementStore implements EntitlementStore {
       // this process. Loud, because the next restart will forget it.
       console.error('[parle] ENTITLEMENT_NOT_PERSISTED', err);
     }
+  }
+}
+
+interface SupabaseEntitlementRow {
+  user_id: string;
+  plan: Plan;
+  seconds_used: number;
+  period_end: string | null;
+}
+
+function entitlementFrom(row: SupabaseEntitlementRow): Entitlement {
+  return {
+    plan: row.plan,
+    secondsUsed: row.seconds_used,
+    ...(row.period_end ? { periodEnd: new Date(row.period_end) } : {}),
+  };
+}
+
+/** Durable, atomic production entitlements through Supabase's REST boundary. */
+export class SupabaseEntitlementStore implements EntitlementStore {
+  private readonly baseUrl: string;
+  private readonly serviceRoleKey: string;
+  private readonly request: typeof fetch;
+
+  constructor(baseUrl: string, serviceRoleKey: string, request: typeof fetch = fetch) {
+    this.baseUrl = baseUrl.replace(/\/+$/, '');
+    this.serviceRoleKey = serviceRoleKey;
+    this.request = request;
+  }
+
+  #headers(extra: Record<string, string> = {}): Record<string, string> {
+    return {
+      apikey: this.serviceRoleKey,
+      authorization: `Bearer ${this.serviceRoleKey}`,
+      'content-type': 'application/json',
+      ...extra,
+    };
+  }
+
+  async claimTrial(userId: string, installationHash: string, userHash: string): Promise<boolean> {
+    const response = await this.request(`${this.baseUrl}/rest/v1/rpc/claim_trial`, {
+      method: 'POST',
+      headers: this.#headers(),
+      signal: AbortSignal.timeout(5_000),
+      body: JSON.stringify({
+        p_user_id: userId,
+        p_installation_hash: installationHash,
+        p_user_hash: userHash,
+      }),
+    });
+    if (!response.ok) throw new Error(`trial claim failed (${response.status})`);
+    return (await response.json()) === true;
+  }
+
+  async get(userId: string): Promise<Entitlement> {
+    // A zero-second atomic debit is also the authoritative read: the database
+    // function creates a missing trial and rolls an expired paid period before
+    // returning it. A plain SELECT left an exhausted paid learner exhausted
+    // forever because the roll only used to happen after a session ended.
+    return this.consume(userId, 0);
+  }
+
+  async save(userId: string, entitlement: Entitlement): Promise<void> {
+    const response = await this.request(`${this.baseUrl}/rest/v1/entitlements?on_conflict=user_id`, {
+      method: 'POST',
+      headers: this.#headers({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
+      signal: AbortSignal.timeout(5_000),
+      body: JSON.stringify({
+        user_id: userId,
+        plan: entitlement.plan,
+        seconds_used: entitlement.secondsUsed,
+        period_end: entitlement.periodEnd?.toISOString() ?? null,
+      }),
+    });
+    if (!response.ok) throw new Error(`entitlement write failed (${response.status})`);
+  }
+
+  async consume(userId: string, seconds: number, sessionId?: string): Promise<Entitlement> {
+    if (!Number.isFinite(seconds) || seconds < 0) throw new RangeError('seconds must be a non-negative number');
+    const response = await this.request(`${this.baseUrl}/rest/v1/rpc/consume_entitlement`, {
+      method: 'POST',
+      headers: this.#headers(),
+      signal: AbortSignal.timeout(5_000),
+      body: JSON.stringify({ p_user_id: userId, p_seconds: Math.round(seconds), p_session_id: sessionId ?? null }),
+    });
+    if (!response.ok) throw new Error(`entitlement debit failed (${response.status})`);
+    const body = (await response.json()) as SupabaseEntitlementRow | SupabaseEntitlementRow[];
+    const row = Array.isArray(body) ? body[0] : body;
+    if (!row) throw new Error('entitlement debit returned no row');
+    return entitlementFrom(row);
   }
 }

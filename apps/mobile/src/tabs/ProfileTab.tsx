@@ -7,27 +7,50 @@
  * pale paper with white cards and hairline rules, so the groups become Cards
  * and the section heads become the one place caps live in this system.
  *
- * What is deliberately NOT here, and why: a username, an editable-once-a-
- * fortnight rule, and a real Delete account. All three need a server to be
- * true. There is no database anywhere in this repo, identity is a device-local
- * id, and a username this app cannot make unique is not a username. Showing
- * those rows now would be promising something the app cannot keep, so they
- * arrive with the backend that can enforce them and the screen says so.
+ * A real Delete account is wired through the authenticated token server. The
+ * database rows cascade from auth.users and the app clears the device scope
+ * before signing out, so the row now means exactly what it says.
  */
 
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
-import { Card, Label, OutlineButton, Field } from '../components.tsx';
+import { Card, Label, OptionCard, OutlineButton, Field } from '../components.tsx';
+import { OnboardClock } from '../illustrations.tsx';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
 import { Acknowledgements } from '../legal/Acknowledgements.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
+import { TutorIntro } from '../tutor/TutorIntro.tsx';
+import { TUTOR_INTRO_LINK } from '../tutor/gate.ts';
+import { withDailyGoal } from '../profile/store.ts';
+import type { AuthResult } from '../auth/types.ts';
 
-type Sheet = 'none' | 'name' | 'acknowledgements' | 'unavailable';
+/**
+ * How much a day, asked here instead of on the way to a first conversation.
+ *
+ * It was the fourth onboarding page, which put a preference between a new
+ * account and the first French sentence. Nothing in the app reads it yet, so
+ * asking it before any value had been delivered was pure friction.
+ */
+const GOALS = [
+  { minutes: 5, label: 'Five minutes', gloss: 'A gentle start' },
+  { minutes: 10, label: 'Ten minutes', gloss: 'The steady middle' },
+  { minutes: 15, label: 'Fifteen minutes', gloss: 'Serious momentum' },
+] as const;
 
-export function ProfileTab({ onSignOut, onResetProgress }: { onSignOut: () => void; onResetProgress: () => void }) {
+type Sheet = 'none' | 'name' | 'goal' | 'intro' | 'acknowledgements' | 'delete' | 'unavailable';
+
+export function ProfileTab({
+  onSignOut,
+  onResetProgress,
+  onDeleteAccount,
+}: {
+  onSignOut: () => void;
+  onResetProgress: () => void;
+  onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
+}) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { profile, update } = useProfile();
@@ -35,6 +58,9 @@ export function ProfileTab({ onSignOut, onResetProgress }: { onSignOut: () => vo
   const [draftName, setDraftName] = useState(profile.name ?? '');
   const [armed, setArmed] = useState(false);
   const [unavailable, setUnavailable] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
 
   const firstName = (profile.name ?? '').split(' ')[0] || 'you';
   // Only an email sign-up has a password to change; Google and the device-local
@@ -42,6 +68,95 @@ export function ProfileTab({ onSignOut, onResetProgress }: { onSignOut: () => vo
   const hasPassword = user?.provider === 'password';
 
   if (sheet === 'acknowledgements') return <Acknowledgements onBack={() => setSheet('none')} />;
+
+  // Demoted, not deleted: the intro is still the only place that teaches what
+  // the three colours of the circle mean, and it is one tap from here.
+  if (sheet === 'intro') return <TutorIntro onDone={() => setSheet('none')} />;
+
+  if (sheet === 'delete') {
+    return (
+      <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
+        <Text style={[type.display, { color: paper.ink }]}>Delete your account?</Text>
+        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
+          This permanently removes your sign-in, conversations turned into practice, progress, and remaining minutes. It cannot be undone.
+        </Text>
+        {hasPassword && (
+          <View style={{ marginTop: space(5) }}>
+            <Field
+              label="Confirm with your password"
+              value={deletePassword}
+              onChangeText={setDeletePassword}
+              placeholder="Your password"
+              secure
+              autoComplete="current-password"
+            />
+          </View>
+        )}
+        {user?.provider === 'google' && (
+          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(4) }]}>
+            Google will ask you to sign in again before anything is deleted.
+          </Text>
+        )}
+        {deleteError && <Text style={[type.bodyStrong, { color: signal.correspondance, marginTop: space(4) }]}>{deleteError}</Text>}
+        <View style={{ marginTop: space(7), gap: space(3) }}>
+          <OutlineButton
+            label={deleting ? 'Verifying…' : 'Verify and delete permanently'}
+            disabled={deleting || (hasPassword && deletePassword.length === 0)}
+            onPress={() => {
+              if (deleting) return;
+              setDeleting(true);
+              setDeleteError(null);
+              void onDeleteAccount(hasPassword ? deletePassword : undefined).then((result) => {
+                if (!result.ok) {
+                  setDeleteError(result.message);
+                  setDeleting(false);
+                }
+              });
+            }}
+          />
+          <OutlineButton
+            label="Keep my account"
+            disabled={deleting}
+            onPress={() => {
+              setDeletePassword('');
+              setSheet('none');
+            }}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  if (sheet === 'goal') {
+    return (
+      <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
+        <View style={{ alignItems: 'center', marginBottom: space(5) }}>
+          <OnboardClock width={150} />
+        </View>
+        <Text style={[type.display, { color: paper.ink }]}>How much time each day?</Text>
+        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
+          Small and daily beats big and rare. Change it whenever you like.
+        </Text>
+        <View style={{ marginTop: space(6), gap: space(3) }}>
+          {GOALS.map((g) => (
+            <OptionCard
+              key={g.minutes}
+              text={g.label}
+              gloss={g.gloss}
+              selected={profile.dailyGoalMin === g.minutes}
+              onPress={() => {
+                update(withDailyGoal(profile, g.minutes));
+                setSheet('none');
+              }}
+            />
+          ))}
+        </View>
+        <View style={{ marginTop: space(6) }}>
+          <OutlineButton label="Cancel" onPress={() => setSheet('none')} />
+        </View>
+      </View>
+    );
+  }
 
   if (sheet === 'name') {
     return (
@@ -81,6 +196,11 @@ export function ProfileTab({ onSignOut, onResetProgress }: { onSignOut: () => vo
         <Label>Account</Label>
         <Card style={{ marginTop: space(2.5) }}>
           <SettingsRow first label="Name" value={profile.name ?? 'Not set'} onPress={() => setSheet('name')} />
+          <SettingsRow
+            label="Daily goal"
+            value={profile.dailyGoalMin === null ? 'Not set' : `${profile.dailyGoalMin} minutes a day`}
+            onPress={() => setSheet('goal')}
+          />
           <SettingsRow label="Email" value={user?.email ?? 'Signed in'} />
           {hasPassword && (
             <SettingsRow
@@ -97,20 +217,15 @@ export function ProfileTab({ onSignOut, onResetProgress }: { onSignOut: () => vo
           <SettingsRow
             label="Delete account"
             destructive
-            onPress={() => {
-              setUnavailable(
-                'Deleting an account has to happen on the server that holds it, and Parle does not have one yet. Reset progress below erases everything this device knows about you.',
-              );
-              setSheet('unavailable');
-            }}
+            onPress={() => setSheet('delete')}
           />
         </Card>
 
         <View style={{ marginTop: space(6) }}>
           <Label>Support</Label>
           <Card style={{ marginTop: space(2.5) }}>
+            <SettingsRow first label={TUTOR_INTRO_LINK} onPress={() => setSheet('intro')} />
             <SettingsRow
-              first
               label="Help"
               onPress={() => {
                 setUnavailable('There is no help centre yet. When there is, this is where it will be.');
@@ -165,8 +280,10 @@ export function ProfileTab({ onSignOut, onResetProgress }: { onSignOut: () => vo
             <Text style={[type.label, { color: paper.inkSoft }]}>Acknowledgements</Text>
           </Pressable>
           <Text style={[type.small, { color: paper.inkFaint, marginTop: space(3) }]}>
-            Terms and a privacy policy are not written yet. Parle records your email, your name, your date of birth, and
-            sends what you say to speech and language services so the tutor can answer. Nothing is shared with anyone else.
+            Terms and a privacy policy are not written yet. Parle records your email, your name, and that you said you are
+            old enough, then sends what you say to speech and language services so the tutor can answer. If you joined
+            when Parle asked for a date of birth, that date is still on file and is still yours. Nothing is shared with
+            anyone else.
           </Text>
         </View>
 

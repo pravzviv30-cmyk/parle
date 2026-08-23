@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createSession, currentPrompt, grade, submitTurn, summarise, MAX_ATTEMPTS_PER_TURN, INTELLIGIBLE, type LearnerInput, type SessionState } from './session.ts';
+import { createSession, currentPrompt, grade, submitTurn, summarise, MAX_ATTEMPTS_PER_TURN, INTELLIGIBLE, type LearnerInput, type SessionState, FEEDBACK_FAMILIES } from './session.ts';
 import { CAFE_LESSON } from '../lessons/cafe.ts';
 import { RUNGS, STUCK_SILENCE_MS } from '../ladder/ladder.ts';
 import type { PhonemeObservation } from '../phonemes/scoring.ts';
@@ -30,8 +30,18 @@ describe('what arrives through the speech path but carries no words', () => {
     assert.equal(feedback.rescued, true, 'silence is rescued, never marked wrong');
     assert.equal(after.ladder.rescues, 1);
     assert.equal(after.ladder.rung, RUNGS.CUED, 'one rung of extra support, exactly as a real pause gets');
-    assert.equal(feedback.message, "Let's take that one together.");
-    assert.notEqual(feedback.message, 'Not quite. Listen and try it this way.');
+    // Each outcome is a small family rotated on the turn now, so the assertion
+    // is which family answered, not which words came out of it. The intent is
+    // unchanged and is the whole point of the test: a rescue is a hand offered,
+    // never a telling-off.
+    assert.ok(
+      FEEDBACK_FAMILIES.rescued.includes(feedback.message),
+      `a rescue said something outside the rescue family: "${feedback.message}"`,
+    );
+    assert.ok(
+      !FEEDBACK_FAMILIES.missed.includes(feedback.message),
+      'silence was answered as a miss, which is the thing this test exists to stop',
+    );
   });
 
   test('an empty transcript adds nothing to the record of what was said', () => {
@@ -50,7 +60,14 @@ describe('what arrives through the speech path but carries no words', () => {
     assert.equal(feedback.wordsCorrect, false, 'the line was not complete');
     assert.equal(feedback.quality, 'partial');
     assert.equal(after.ladder.rung, first.state.ladder.rung, 'a near miss never costs a rung');
-    assert.equal(feedback.message, 'Good. That got the message across.');
+    assert.ok(
+      FEEDBACK_FAMILIES.partial.includes(feedback.message),
+      `a near miss said something outside the partial family: "${feedback.message}"`,
+    );
+    assert.ok(
+      !FEEDBACK_FAMILIES.missed.includes(feedback.message),
+      'they got the meaning across and were told they missed',
+    );
   });
 });
 
@@ -192,6 +209,44 @@ describe('the stuck learner — the behaviour the whole product rests on', () =>
     const { feedback } = step(createSession(lesson, RUNGS.FREE), { type: 'help' });
     assert.equal(feedback.rescued, true);
     assert.doesNotMatch(feedback.message, /wrong|no|incorrect/i);
+  });
+
+  test('every line of every feedback family is safe, distinct, and says something', () => {
+    // The sweep below drives real turns, so it only ever samples the variants
+    // those turns happen to land on. This walks all of them: a family exists so
+    // a twelve-turn lesson does not say the identical three words twelve times,
+    // and a variant nobody checked is exactly where a scold gets in.
+    const seen = new Set<string>();
+    for (const [name, family] of Object.entries(FEEDBACK_FAMILIES)) {
+      assert.ok(family.length >= 2, `${name} is not a family, it is one line`);
+      for (const line of family) {
+        assert.doesNotMatch(line, /\d/, `${name} quotes a number: "${line}"`);
+        assert.doesNotMatch(line, /wrong|bad|failed|incorrect/i, `${name} scolds: "${line}"`);
+        assert.doesNotMatch(line, /don'?t worry|take your time/i, `${name} reassures: "${line}"`);
+        assert.ok(line.trim().length > 0, `${name} has an empty line`);
+        assert.ok(!seen.has(line), `"${line}" appears in two families, so the outcome is not legible`);
+        seen.add(line);
+      }
+    }
+  });
+
+  test('the rotation is a function of the turn, so the same turn always says the same thing', () => {
+    const first = step(createSession(lesson), said('Bonjour'));
+    const again = step(createSession(lesson), said('Bonjour'));
+    assert.equal(first.feedback.message, again.feedback.message);
+  });
+
+  test('a run of the same outcome is not a run of the same sentence', () => {
+    // The repetition a learner actually hears as a machine. Twelve turns of
+    // "Très bien." is a machine; the same praise said three ways is a person.
+    let s = createSession(lesson);
+    const said_: string[] = [];
+    for (let i = 0; i < 4; i += 1) {
+      const out = step(s, { type: 'skip' });
+      s = out.state;
+      said_.push(out.feedback.message);
+    }
+    assert.ok(new Set(said_).size > 1, `four skips in a row all said "${said_[0]}"`);
   });
 
   test('no mid-session message ever scolds or quotes a number', () => {

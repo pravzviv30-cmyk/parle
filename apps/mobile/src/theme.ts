@@ -18,6 +18,7 @@
 
 import { Platform } from 'react-native';
 import { ink, papers, accents, paperFor, type Paper, type PaperName } from './palette.ts';
+import { TUTOR_NAME } from './tutor/tutorName.ts';
 
 /**
  * The papers, and which place gets which. Every raw value lives in
@@ -87,7 +88,7 @@ export const rungColor: Record<1 | 2 | 3 | 4, string> = {
 };
 
 export const rungLabel: Record<1 | 2 | 3 | 4, string> = {
-  1: 'Repeat after the tutor',
+  1: `Repeat after ${TUTOR_NAME}`,
   2: 'Choose a reply and say it',
   3: 'Say it in your own words',
   4: 'Free conversation',

@@ -34,6 +34,10 @@ export interface AuthAdapter {
   sendPasswordReset(email: string): Promise<AuthResult>;
   /** Finish a recovery: set the new password on the recovery session. */
   completePasswordReset?(newPassword: string): Promise<AuthResult>;
+  /** Prove account control immediately before the destructive delete call. */
+  reauthenticateForDeletion(secret?: string): Promise<AuthResult>;
+  /** Permanently delete the signed-in identity. The caller clears local state. */
+  deleteAccount(): Promise<AuthResult>;
   signOut(): Promise<void>;
   /** Bearer token for the token server, or null when there is none (mock). */
   getAccessToken(): Promise<string | null>;

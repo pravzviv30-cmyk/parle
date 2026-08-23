@@ -11,6 +11,7 @@
  */
 
 import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_TURN_MODEL } from '@parle/brain';
+import { MODEL, PROBE_LINE, synthesisProbeRequest } from './voice.ts';
 
 export type Brain = 'anthropic' | 'openai' | 'groq' | 'claude-cli' | 'claude-cli-all';
 
@@ -132,7 +133,7 @@ export interface VendorCheck {
 
 type FetchLike = (
   url: string,
-  init?: { method?: string; headers?: Record<string, string> },
+  init?: { method?: string; headers?: Record<string, string>; body?: string },
 ) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
 async function probe(
@@ -160,6 +161,67 @@ async function probe(
   } catch {
     return { vendor, fatal: false, detail: `returned a body this check could not read.` };
   }
+}
+
+/**
+ * Ask the vendor to say one word, in the exact configuration the tutor uses.
+ *
+ * The catalogue check above answers "does this account have this voice". This
+ * one answers the question that actually matters, "is this account allowed to
+ * SAY anything with it", and they are not the same question. A library voice on
+ * a free plan is listed and then refused with 402; an unverified voice/model
+ * pair can be refused too. Either way the catalogue says yes, the worker boots,
+ * and the learner meets a room that opens and a tutor that never speaks.
+ *
+ * Which refusals are fatal follows the rule the rest of this file uses: a
+ * deterministic "no" about the configuration stops the worker, and anything
+ * that might be weather does not. A 402 or a 400 will still be there on the
+ * next boot; a 500 or a 429 will not, and refusing to start over a vendor blip
+ * is its own outage.
+ */
+async function probeSynthesis(voiceId: string, apiKey: string, fetchFn: FetchLike): Promise<VendorCheck | null> {
+  const { url, body } = synthesisProbeRequest(voiceId);
+  let response: { ok: boolean; status: number; json(): Promise<unknown> };
+  try {
+    response = await fetchFn(url, {
+      method: 'POST',
+      headers: { 'xi-api-key': apiKey, 'content-type': 'application/json' },
+      body,
+    });
+  } catch {
+    return { vendor: 'ElevenLabs', fatal: false, detail: `could not be reached — check the network, not the key.` };
+  }
+  if (response.ok) return null;
+  if (response.status >= 500 || response.status === 429) {
+    return {
+      vendor: 'ElevenLabs',
+      fatal: false,
+      detail: `answered HTTP ${response.status} to a test line; treating as a blip rather than a misconfiguration.`,
+    };
+  }
+
+  // The vendor explains itself far better than this file could guess, so say
+  // what it said. An unreadable body is not a reason to stay quiet: the refusal
+  // is the finding, the message is the detail.
+  let said = '';
+  try {
+    const parsed = (await response.json()) as { detail?: { message?: string } | string };
+    const detail = parsed?.detail;
+    said = typeof detail === 'string' ? detail : (detail?.message ?? '');
+  } catch {
+    said = '';
+  }
+
+  return {
+    vendor: 'ElevenLabs',
+    fatal: true,
+    detail:
+      `lists voice "${voiceId}" but refused to speak with it (HTTP ${response.status}).\n` +
+      (said ? `          The vendor said: ${said}\n` : '') +
+      `          The tutor asks for this voice on ${MODEL}, and it is the COMBINATION that is refused.\n` +
+      `          Being in the catalogue is not permission to synthesize. Check the plan allows this\n` +
+      `          voice, and that the vendor lists the voice as verified on this model.`,
+  };
 }
 
 /** Reaches each vendor the selected pipeline needs. Empty means all is well. */
@@ -254,7 +316,7 @@ export async function verifyVendors(
       const auth = await probe('ElevenLabs', 'https://api.elevenlabs.io/v1/user', headers, fetchFn);
       if (auth !== null) return auth;
 
-      return probe('ElevenLabs', 'https://api.elevenlabs.io/v1/voices', headers, fetchFn, (body) => {
+      const catalogue = await probe('ElevenLabs', 'https://api.elevenlabs.io/v1/voices', headers, fetchFn, (body) => {
         const wanted = (env.ELEVEN_VOICE_ID ?? '').trim();
         if (wanted === '') return null; // unset is a warning, not a fault — see warnings()
 
@@ -277,6 +339,14 @@ export async function verifyVendors(
             `          Unset ELEVEN_VOICE_ID for the default voice, or set it to one of: ${named.join(', ')}`,
         };
       });
+      if (catalogue !== null) return catalogue;
+
+      // Asked third and only once the first two are clean, so one broken vendor
+      // still produces one message. Costs `PROBE_LINE` worth of quota per boot,
+      // which is four characters against a tutor that silently cannot speak.
+      const wanted = (env.ELEVEN_VOICE_ID ?? '').trim();
+      if (wanted === '') return null; // the vendor default; nothing of ours to prove
+      return probeSynthesis(wanted, env.ELEVEN_API_KEY ?? '', fetchFn);
     })(),
   );
 

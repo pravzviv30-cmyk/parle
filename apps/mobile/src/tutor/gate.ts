@@ -64,3 +64,61 @@ export function tutorGate(serversAnswered: boolean, textMode = false): TutorGate
   if (!serversAnswered) return { go: false, offline: TUTOR_OFFLINE, heldBack: { textMode } };
   return { go: true, screen: 'Convo', params: { textMode } };
 }
+
+/**
+ * The three doors the tab opens onto.
+ *
+ * The intro used to stand in front of all of them: a four-page explainer that
+ * every learner had to walk through before the tab would show them anything.
+ * A manual read before the thing it describes is a leaflet, and this one sat
+ * between a new account and the first French sentence, which is the one place
+ * nothing is allowed to sit.
+ *
+ * So the doors open immediately, and the intro is demoted rather than deleted:
+ * it is still the only place that teaches the circle's three colours, and it is
+ * one quiet link away from here and from Profile. Deleting it would have taken
+ * that lesson with it.
+ *
+ * Talk freely is last and is still a door. Last because a beginner staring at
+ * "say anything" is a beginner who says nothing, and still a door because the
+ * learner who knows exactly what they want to talk about must not have to walk
+ * through a mission to get there.
+ */
+export type TutorDoorKey = 'resume' | 'missions' | 'free';
+
+export interface TutorDoor {
+  key: TutorDoorKey;
+  label: string;
+  /** One short line under the label. Never a count, never a score. */
+  gloss: string;
+  /** Exactly one door carries the screen's solid action. */
+  primary: boolean;
+}
+
+/** The quiet way back to the explainer, worded the same in both places. */
+export const TUTOR_INTRO_LINK = 'How the circle works';
+
+/**
+ * `resume` is the mission worth offering again, or null when the learner has
+ * never started one. It is a plain title rather than a mission record so this
+ * file stays free of the catalogue.
+ */
+export function tutorDoors(resume: { title: string } | null): TutorDoor[] {
+  const doors: TutorDoor[] = [];
+  if (resume !== null) {
+    doors.push({ key: 'resume', label: 'Continue a recent mission', gloss: resume.title, primary: true });
+  }
+  doors.push({
+    key: 'missions',
+    label: 'Start a practical mission',
+    gloss: 'Order a coffee, ask the way, check into a hotel.',
+    primary: resume === null,
+  });
+  doors.push({
+    key: 'free',
+    label: 'Talk freely about something else',
+    gloss: 'Anything at all. Your tutor follows you.',
+    primary: false,
+  });
+  return doors;
+}

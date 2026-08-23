@@ -51,7 +51,7 @@ states, a hairline, and the accent its small type is set in.
 |---|---|---|---|---|---|
 | `house` | `#F3E8F3` | `#E4D3EE` | `#D9C8E2` | violet `#6B3FA0` | Everything not about one subject, including the live conversation |
 | `sand` | `#FEE7DB` | `#FCCFC1` | `#EFC5B6` | bronze `#8C5800` | RecapScreen and SummaryScreen: the café arc as the learner just lived it |
-| `sage` | `#E8EED5` | `#DBDCB2` | `#CFD1A8` | harbour `#00689E` | Entre amis: LeaderboardTab and AddFriendsScreen |
+| `sage` | `#E8EED5` | `#DBDCB2` | `#CFD1A8` | harbour `#00689E` | Dormant social prototype screens, no longer reachable from primary navigation |
 | `lagoon` | `#CFF3EB` | `#AFE4D0` | `#A4D9C6` | iris `#445EB4` | Not shipped: reserved for a topic the tutor wrote, once those have a screen of their own |
 | `sky` | `#D5EFFE` | `#ABE1F5` | `#A1D6E9` | violet `#6B3FA0` | Practice and its deck: PracticeTab, ReviewScreen, DrillScreen, FocusDrillPlayer |
 
@@ -203,17 +203,29 @@ shading, deliberately quirky proportions, viewBox 200×150, no second colour —
 the paper shows through. `src/illustrations.tsx` remains as a one-line barrel,
 so the thirteen screens that import from it did not change.
 
-Fourteen scenes. The original eight: café hero, name tag, birthday cake,
+Eighteen scenes. The original eight: café hero, name tag, birthday cake,
 suitcase, winged clock, clinking speech bubbles, sprouting word cards,
-postcard. Four of those now move. Six are new, and every one of them fills a
-place that previously said "nothing here" in plain text on an empty screen:
+postcard. Four of those now move. Six fill a place that previously said
+"nothing here" in plain text on an empty screen, and four are the mission
+chooser's postcards:
 
 | Scene | Where |
 |---|---|
 | `NothingDue` | An empty review deck or drill bank, drawn as a cleared table rather than a dead end |
-| `NobodyYet` | Both leaderboard empty states, one of which is permanent until there is a server |
+| `NobodyYet` | The dormant social prototype's empty states; not reachable from the app navigation |
 | `StillWriting` | A topic the tutor has not finished, which is the only thing the app locks |
 | `Phrasebook` | The learner's own lines, kept |
+| `StreetCorner` | Asking the way: a leaning signpost with two boards |
+| `MarketStall` | Buying at a market: a crate of tomatoes under a scalloped awning |
+| `FrontDesk` | Checking in: a desk, an oversized bell, a key on the counter |
+| `EveningIn` | Talking about your day: a window, a moon, a mug on the sill |
+
+The four mission scenes are **still**, and that is the rule rather than an
+omission. Six drawings on one scrolling screen is six loops competing for the
+eye at the moment somebody is trying to choose one of them, and the motion
+vocabulary below is one loop per screen. The other two missions reuse
+`HeroCafe` and `SpeakBubbles`, which do move, because they were already drawn
+and a rushed drawing is worse than a borrowed one.
 
 Plus `RewardMark`, which is not a scene: one tick arriving beside a drill
 verdict, in the reserved-height slot the screen already keeps. There is no
@@ -223,20 +235,24 @@ verdict, in the reserved-height slot the screen already keeps. There is no
 
 A two-page moving welcome on first launch (the café scene says hello; page two
 says what Parle is and why speaking out loud is the point) → sign-in gate
-(Welcome / Create account / Sign in) → four onboarding pages → **five icon-only
-tabs along the bottom**:
+(Welcome / Create account / Sign in) → three onboarding pages (a name, one "I am
+13 or older" confirmation, and why, all of them skippable except the age) → the
+mission chooser, with the café already picked → **five icon-only tabs along the
+bottom**:
 
 | Tab | What it is |
 |---|---|
-| Home | The level card, the evidence, one way in |
-| Tutor | Free conversation. A one-time four-page intro whose last page teaches the traffic-light circle, and whose button genuinely starts a conversation |
+| Home | The level card, the evidence, the next situation to walk into, one way in |
+| Tutor | Three doors: continue a recent mission, start a practical one, or talk freely. The four-page intro that used to stand in front of them is a quiet "How the circle works" link here and in Profile |
 | Practice | The path, the guided lesson, the drill bank, the review deck — plus one topic card per conversation subject, projected live from the deck |
-| Leaderboard | Global and Friends. Friends works against clearly-labelled sample users behind an adapter until there is a server; add-friends lives one screen deeper |
-| Profile | Account, support, sign out, the legal footer |
+| My French | Personal evidence: situations completed, best independence, retained phrases, and honest known-reference sound checks |
+| Profile | Account (including the daily goal and permanent account deletion), support, sign out, the legal footer |
 
 Navigation is React Navigation: a root stack whose first screen is the tab
-navigator, with the lesson, the conversation, drills and review as siblings
-*above* it. That is what hides the tab bar on a metered screen, and what makes
+navigator, with the lesson, the conversation, drills, review and the mission
+chooser as siblings *above* it. The chooser is a stack screen rather than a tab
+because the same surface is needed from three doors: a first run opens on it, a
+Home card pushes it, and the Tutor tab's first two doors lead to it. That is what hides the tab bar on a metered screen, and what makes
 leaving a live session an explicit act rather than a tab switch — a room that
 survives a tab switch is a room the meter is still counting.
 
@@ -247,6 +263,41 @@ ProgressDots' grammar reused.
 On web the app is still a **460pt centred column**, and the navigator mounts
 inside it, so the tab bar is clamped to the column rather than spanning the
 browser.
+
+## Inside a conversation
+
+The scene screen is the orb, the thread, the current turn's support, and one
+row of small ghost controls: **Help me out**, **Give me a moment**, **Slower**,
+**In English**, **Type instead**. They wrap rather than shrink, and each one
+keeps the 44pt floor, because this is the row a learner reaches for one-handed
+while something has gone wrong for them.
+
+Three rules the row now keeps that it did not:
+
+- **Hear it is only drawn when there is a line to hear.** `hear` speaks the
+  support line, so on a hint turn, an options turn or a bare turn the button
+  was pressable and silent. It is hidden instead of being taught to speak the
+  tutor's line, which would hand back exactly what the support ladder withheld.
+- **Replay lives on the tutor's last bubble**, not on a sixth chip. Tapping it
+  plays that line again.
+- **Give me a moment stays enabled while the tutor talks.** Everything else in
+  the row asks for a line and would talk over them. This one asks the clock to
+  wait, and it is answered on screen in the quiet notice slot and never aloud,
+  because a spoken acknowledgement of a pause is a remark on the pause. The
+  line reports the tutor rather than the learner.
+
+**Coach marks** replace the four-page intro: one short note in `groundDeep` at
+`radius.chip`, above the control row, dismissed by tapping it or by using any
+control. At most one on screen, at most one *new* one per conversation, each
+shown once ever. That last pair of rules is what stops three notes becoming the
+manual again, spread out.
+
+**The completion moment** is a card in the support card's own place, so the
+screen keeps its shape. It carries the mission's own sentence about what the
+learner did, one pill (**Keep talking**, with a line under it saying plainly
+that carrying on uses minutes) and one ghost (**Finish and see your recap**).
+No confetti, no score, no percentage, nothing about how well. It arrives on the
+app's one settle and shows exactly once, at the turn the mission completes.
 
 ## Copy
 
@@ -330,7 +381,7 @@ Written down so nobody "fixes" them back:
   support is withdrawn as the learner improves, never withheld until earned.
   The only thing that locks is practice written from conversations the learner
   has not had yet.
-- **Home and the leaderboard may count.** DESIGN.md's rule is that no
+- **Home and My French may count.** DESIGN.md's rule is that no
   *mid-session* message contains a number. Home is not mid-session, so the
   board counts and the tutor still does not — no numerals in watchdog copy, no
   counts in the transcript, dots rather than numbers on progress.

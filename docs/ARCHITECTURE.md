@@ -11,6 +11,7 @@ packages/core/      Pure TypeScript. No network, no mic, no keys.
   phonemes/         The 36-phoneme French inventory, the drills, and scoring
   ladder/           The four-rung scaffolding state machine
   lessons/          "Commander un café", and what counts as a right answer
+  missions/         The six authored situations, and what finishing one means
   session/          Scripted-lesson state: turns, attempts, the end card
   drill/            Typed practice and its grading
   text/             normalise + edit distance, shared by spoken and typed paths
@@ -33,11 +34,17 @@ services/shared/         Vendor adapters (Speechace). Not a workspace
 | Which rung, and when to rescue | `core/ladder/ladder.ts` | anywhere else, ever |
 | What the end card may claim | `core/session/session.ts` `summarise` | the screen rendering it |
 | What the tutor says next | `brain/` (conversation) or `tutor-agent/prompt.ts` (lesson) | core |
+| Which situations exist, and when one is finished | `core/missions/missions.ts` | the agent, the app |
+| What is said inside one | `brain/missions/frames.ts` | core |
 | Whether a session may start | `token-server` at token issuance | the app |
 | How anything looks | `apps/mobile` + DESIGN.md | core |
 
 Metered minutes are enforced **at token issuance**, not in the app. Enforced in
 the client they are a suggestion; without a token there is no room to join.
+In production the token server reads and atomically debits Supabase
+entitlements; it refuses to boot with client-trusted identity, an open agent
+debit endpoint, or volatile balances. The same authenticated boundary accepts
+only allowlisted, content-free product events and performs account deletion.
 
 ## Two paths, one ladder
 

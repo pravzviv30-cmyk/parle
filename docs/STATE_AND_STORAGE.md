@@ -14,7 +14,12 @@ Stores: `profile`, `history`, `review`, `drills`, `tutorIntro`, `activity`,
 `topics` (the practice topics a learner's conversations produced — titles,
 sitting dates, and the review-deck ids they drill; strength is never stored,
 it is a projection of the deck), `friends` (the local friends adapter's
-list and requests, sample-roster preview until a backend exists), and `journal`.
+list and requests, currently dormant while social is outside primary navigation),
+`missions` (a bounded history of mission finishes and their rungs, which is the
+only mission fact stored rather than projected), `soundChecks` (known-reference
+attempt evidence and a single learner-safe focus, never raw audio or a numeric score),
+`coachMarks` (which of the in-conversation controls have been pointed out, one
+key for all of them), and `journal`.
 
 `journal` is the only store that is meant to be empty. A conversation's recap is
 written there the moment it arrives and deleted the moment its phrases are
@@ -34,16 +39,25 @@ which are computed agent-side and only ever delivered over the live room.
 `apps/mobile/src/profile/store.ts` holds `StoredProfile`:
 
 ```ts
-{ version: 3, name, dob, motivation, dailyGoalMin, onboardedAt, username, brain: LearnerProfile }
+{ version: 4, name, dob, ageConfirmed, motivation, dailyGoalMin, onboardedAt, username, brain: LearnerProfile }
 ```
 
 `brain` is `@parle/brain`'s learner model, stored verbatim — the app is its
 storage, not its author.
 
 `apps/mobile/src/profile/upgrade.ts` is the app-side forward migration.
-`upgradeStored` takes whatever was on disk and returns a version-3 profile or
+`upgradeStored` takes whatever was on disk and returns a version-4 profile or
 `null` if it cannot be read at all. Version 1 and version 2 records both gain
-`username: null`; a version-3 record keeps the username it already has. That is a
+`username: null`; a version-3 record keeps the username it already has.
+
+Version 4 stopped asking for a date of birth and asks whether the learner is
+thirteen or over instead. `dob` stays on the type forever and nobody's is
+deleted; new learners simply never have one written down. A stored dob that puts
+the learner at or over the floor derives `ageConfirmed: true`, and everything
+else derives `null` rather than `false`, because false is a statement nobody
+made. `motivation` and `dailyGoalMin` widened to nullable in the same change,
+which was free: neither had a consumer anywhere outside the profile store and
+the onboarding flow. That is a
 separate concern from the brain's own `repairProfile`, which repairs the nested
 `brain` field — the outer envelope and the learner model version independently.
 
@@ -93,14 +107,31 @@ same change.
 
 ## Server side
 
-`services/token-server/src/store.ts` — `EntitlementStore` is three async methods
-so the database, when it arrives, is a one-file change.
+`services/token-server/src/store.ts` — `EntitlementStore` has four async operations:
+one-time trial claim, read, plan save, and idempotent session consumption.
 
-- `InMemoryEntitlementStore` — the default. **A restart returns everyone's
-  minutes**, which makes a balance a property of the server's uptime.
-- `FileEntitlementStore` — used when `ENTITLEMENT_STORE_PATH` is set. JSON,
+- `InMemoryEntitlementStore` — explicit local fallback. **A restart returns everyone's
+  minutes**, so it is refused in production.
+- `FileEntitlementStore` — optional local development JSON,
   written to a sibling and renamed over the target, because rename is atomic and
   a half-written balance file is worse than a stale one.
+- `SupabaseEntitlementStore` — selected when `SUPABASE_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY` are present. Reads and plan changes use PostgREST;
+  consumption uses the atomic `consume_entitlement` database function.
+
+`supabase/migrations/202608220001_parle_learning.sql` creates the durable
+entitlements, privacy-filtered product events and a row-level-secured
+`learner_state` envelope for cross-device sync. Entitlements and events are wired through
+the token server, but the migration is not known to be deployed.
+`202608230001_session_usage_idempotency.sql` adds the unique session debit ledger,
+atomic three-argument consume RPC, pseudonymous trial claims, and exact event validation.
+Device learning stores remain the
+offline-first source until the state sync transport is added; the table is not
+described as active sync before that client exists.
+
+Production refuses to boot if identity is unverified, the tutor-agent debit
+secret is missing, or entitlement storage is volatile. Client-asserted identity exists
+only with the explicit local-development opt-in.
 
 Billing periods roll lazily on read rather than on a cron, so a learner returning
 after their month ends gets their allowance back on arrival.

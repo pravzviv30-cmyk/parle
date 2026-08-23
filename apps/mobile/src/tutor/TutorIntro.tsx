@@ -19,6 +19,7 @@ import { HIT, paper, space, type } from '../theme.ts';
 import { ChevronLeft, ProgressDots, PillButton, Card } from '../components.tsx';
 import { SpeakBubbles, OnboardWave, RecapPostcard } from '../illustrations.tsx';
 import { VoiceOrb, type OrbState } from './VoiceOrb.tsx';
+import { TUTOR_NAME } from './tutorName.ts';
 
 /**
  * The final page's lesson: the circle speaks traffic lights. Three live mini
@@ -28,7 +29,7 @@ import { VoiceOrb, type OrbState } from './VoiceOrb.tsx';
  */
 function OrbWalkthrough() {
   const rows: { state: OrbState; title: string; sub: string }[] = [
-    { state: 'speaking', title: 'Red, your tutor is talking', sub: 'Just listen.' },
+    { state: 'speaking', title: `Red, ${TUTOR_NAME} is talking`, sub: 'Just listen.' },
     { state: 'listening', title: 'Green, your turn', sub: 'Say it out loud.' },
     { state: 'thinking', title: 'Amber, it is thinking', sub: 'One moment.' },
   ];
@@ -53,8 +54,8 @@ const PAGES = [
   {
     key: 'what',
     art: SpeakBubbles,
-    title: "You'll be talking to your tutor",
-    body: 'Not a quiz. Your AI tutor asks about your day, waits while you find the French, and answers what you actually said, like a patient friend who happens to be fluent.',
+    title: `You'll be talking to ${TUTOR_NAME}`,
+    body: `Not a quiz. ${TUTOR_NAME} is from Lyon, he ran a bar there for twenty years, and he is not a teacher. He asks about your day, waits while you find the French, and answers what you actually said.`,
     note: null,
   },
   {
@@ -62,7 +63,7 @@ const PAGES = [
     art: OnboardWave,
     title: 'Getting stuck is planned for',
     body: 'You always get the first attempt. If you get stuck, a small English hint appears without interrupting the scene. The answer stays hidden unless you ask again.',
-    note: 'Help me out reveals a hint. Slower keeps the tutor slow. In English tells you what the tutor just said.',
+    note: `Help me out reveals a hint. Slower keeps ${TUTOR_NAME} slow. In English tells you what he just said.`,
   },
   {
     key: 'after',

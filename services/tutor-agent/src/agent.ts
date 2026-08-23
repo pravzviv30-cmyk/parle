@@ -119,7 +119,16 @@ export default defineAgent({
     await ctx.connect();
     const participant = await ctx.waitForParticipant();
 
-    type TokenMeta = { lessonId?: string; startRung?: number; mode?: string; snapshot?: unknown; seedTopic?: unknown };
+    type TokenMeta = {
+      sessionId?: unknown;
+      secondsRemaining?: unknown;
+      lessonId?: string;
+      startRung?: number;
+      mode?: string;
+      snapshot?: unknown;
+      seedTopic?: unknown;
+      missionId?: unknown;
+    };
     const parseMeta = (raw?: string): TokenMeta => {
       try {
         return raw ? (JSON.parse(raw) as TokenMeta) : {};
@@ -130,9 +139,20 @@ export default defineAgent({
     };
 
     const meta = parseMeta(participant.metadata);
+    if (
+      typeof meta.sessionId !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(meta.sessionId)
+    ) {
+      throw new Error('signed join metadata is missing a valid session id');
+    }
     if (meta.lessonId && meta.lessonId !== lesson.id) {
       console.warn(`[parle] token metadata names lesson ${meta.lessonId}; agent is running ${lesson.id}`);
     }
+    const allowanceRemaining =
+      typeof meta.secondsRemaining === 'number' && Number.isFinite(meta.secondsRemaining)
+        ? Math.max(1, Math.floor(meta.secondsRemaining))
+        : 15 * 60;
+    const maximumSessionSec = Math.min(15 * 60, allowanceRemaining);
     // Clamped, not trusted: the value is server-signed, but a rung outside the
     // ladder would still put createSession into a state that cannot exist.
     const startRung =
@@ -165,14 +185,36 @@ export default defineAgent({
     // and nothing for a seed to steer.
     const seedTopic = validSeedTopic(meta.seedTopic);
 
+    // The mission the learner tapped. Same channel as the seed topic and the
+    // same reasoning about trust: server-signed, but the shape inside came from
+    // the app, so `ParleConversation` resolves it against the frames it
+    // actually has and opens the ordinary choosing question for anything else.
+    //
+    // Reading it here is what makes the whole authored-scene path exist. The
+    // token server signs it and the conversation accepts it, and for a while
+    // this line was missing between them, so every mission tap still paid the
+    // ten-to-twenty-five second scene build and no test could see it: the
+    // mission tests all build ParleConversation directly and never come
+    // through this door.
+    const missionId = meta.missionId;
+
     const tutor = isConvo
       ? new ParleConversation(parseStoredProfile(meta.snapshot), {
           voiceless,
           seedTopic,
+          missionId,
           setSttLanguage: (language) => stt.updateOptions({ language }),
         })
       : new ParleTutor(lesson, startRung, { voiceless });
     tutor.learnerId = participant.identity;
+    tutor.sessionId = meta.sessionId;
+
+    // Join-token expiry only limits replay; it does not eject a connected
+    // participant. This timer is the actual vendor-cost and allowance ceiling.
+    const hardStop = setTimeout(() => {
+      tutor.publishError('That is a good place to stop. Your session has reached its time limit.');
+      void tutor.finish().finally(() => ctx.room.disconnect());
+    }, maximumSessionSec * 1_000);
 
     // The brain marks belong to the conversation; the record and the clock stay
     // here. Reading `timing` through the closure keeps marks landing on the
@@ -181,16 +223,14 @@ export default defineAgent({
       tutor.attachTiming((stage) => mark(timing, stage, performance.now()));
     }
 
-    // Safety net for reconnects and any learner who lands after the first: the
-    // metered seconds must land on a real account whoever is in the room.
-    const adoptLearner = (p: { identity: string; metadata?: string }) => {
-      tutor.learnerId = p.identity;
-      const late = parseMeta(p.metadata);
-      if (late.lessonId && late.lessonId !== lesson.id) {
-        console.warn(`[parle] token metadata names lesson ${late.lessonId}; agent is running ${lesson.id}`);
+    // The first verified participant owns this tutor for its whole lifetime.
+    // A later room participant must never be able to redirect usage or data to
+    // another account by becoming "the latest" identity.
+    ctx.room.on('participantConnected', (p) => {
+      if (p.identity !== tutor.learnerId) {
+        console.warn('[parle] ignored an unexpected participant in a learner-bound room');
       }
-    };
-    ctx.room.on('participantConnected', (p) => adoptLearner(p));
+    });
 
     tutor.attach((message) => {
       void ctx.room.localParticipant
@@ -198,8 +238,9 @@ export default defineAgent({
         .catch((err) => console.error('[parle] failed to publish state', err));
     });
 
-    ctx.room.on('dataReceived', (payload: Uint8Array, _participant, _kind, topic?: string) => {
+    ctx.room.on('dataReceived', (payload: Uint8Array, source, _kind, topic?: string) => {
       if (topic !== TOPIC_CLIENT) return;
+      if (!source || source.identity !== tutor.learnerId) return;
       // The belt to handleClientMessage's braces. It contains its own failures,
       // so this should never fire — but this worker serves every learner on the
       // process, and an unhandled rejection here ends all of their sessions at
@@ -273,6 +314,7 @@ export default defineAgent({
 
     // A learner who closes the app still gets their minutes debited correctly.
     ctx.room.on('disconnected', () => {
+      clearTimeout(hardStop);
       // Cost visibility per session: hits are free lines, misses were billed.
       console.log(`[parle] voice cache: ${voiceTts.hits} replayed free, ${voiceTts.misses} synthesized live`);
       void tutor.finish();
@@ -282,7 +324,10 @@ export default defineAgent({
     // the learner kills the app, the room stays up with the agent alone in it,
     // teaching nobody at full billing. End the session the moment they go.
     ctx.room.on('participantDisconnected', (p) => {
-      if (p.identity === tutor.learnerId) void tutor.finish();
+      if (p.identity === tutor.learnerId) {
+        clearTimeout(hardStop);
+        void tutor.finish().finally(() => ctx.room.disconnect());
+      }
     });
 
     await session.start({ agent: tutor, room: ctx.room });

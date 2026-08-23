@@ -64,10 +64,11 @@ export const GENERATED_PREFIX = 'gen:';
 /**
  * The authored graph.
  *
- * Honest about its own size: the repo contains exactly one lesson and one
- * fixture bank, so this is a short path and pretending otherwise would be a
- * map of empty rooms. It grows where the product actually grows — from what
- * the learner says.
+ * Honest about its own size. It used to hold one lesson and one fixture bank,
+ * and said so rather than drawing a map of empty rooms. It now carries a unit
+ * per authored mission, because a mission's phrases have to have somewhere to
+ * be practised or the card the learner taps opens onto nothing. Past that it
+ * still grows where the product actually grows — from what the learner says.
  */
 interface AuthoredNode {
   id: string;
@@ -146,6 +147,99 @@ export const AUTHORED_PATH: readonly AuthoredUnit[] = [
           "phrase:c'était un truc de ouf",
           "phrase:j'suis crevé, la semaine était longue",
         ],
+      },
+    ],
+  },
+  {
+    id: 'hotel',
+    title: 'À la réception',
+    nodes: [
+      {
+        id: 'hotel:arriving',
+        title: 'Arriving',
+        sub: 'How a check-in opens, and how you thank her',
+        kind: 'phrases',
+        phraseKeys: ["phrase:bonsoir, j'ai une réservation", 'phrase:je vous remercie'],
+      },
+      {
+        id: 'hotel:asking',
+        title: 'Asking about the stay',
+        sub: 'Breakfast, the floor, and the key',
+        kind: 'phrases',
+        phraseKeys: [
+          "phrase:le petit déjeuner, c'est à quelle heure ?",
+          "phrase:c'est à quel étage ?",
+          'phrase:faut laisser la clé quand je sors ?',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'marche',
+    title: 'Au marché',
+    nodes: [
+      {
+        id: 'marche:asking',
+        title: 'Asking at the stall',
+        sub: 'What you want, and what it costs',
+        kind: 'phrases',
+        phraseKeys: [
+          'phrase:bonjour, je voudrais un kilo de tomates',
+          'phrase:elles sont à combien, les tomates ?',
+          'phrase:ça fait combien ?',
+        ],
+      },
+      {
+        id: 'marche:choosing',
+        title: 'Choosing and leaving',
+        sub: 'Those ones, for tonight, and a good weekend',
+        kind: 'phrases',
+        phraseKeys: ["phrase:celles-là, s'il vous plaît", "phrase:c'est pour ce soir", 'phrase:merci, bon week-end !'],
+      },
+    ],
+  },
+  {
+    id: 'chemin',
+    title: 'Demander son chemin',
+    nodes: [
+      {
+        id: 'chemin:stopping',
+        title: 'Stopping someone',
+        sub: 'How to open, and why you are asking',
+        kind: 'phrases',
+        phraseKeys: ['phrase:excusez-moi, je cherche la gare', "phrase:j'suis pas d'ici"],
+      },
+      {
+        id: 'chemin:understanding',
+        title: 'Understanding the answer',
+        sub: 'The lines that stop you nodding at nothing',
+        kind: 'phrases',
+        phraseKeys: [
+          "phrase:plus lentement, s'il vous plaît",
+          "phrase:c'est à gauche ou à droite ?",
+          "phrase:d'accord, je vois",
+          "phrase:c'est loin ?",
+        ],
+      },
+    ],
+  },
+  {
+    id: 'journee',
+    title: 'Ta journée',
+    nodes: [
+      {
+        id: 'journee:telling',
+        title: 'Saying how it went',
+        sub: 'Three answers that cover any day',
+        kind: 'phrases',
+        phraseKeys: ['phrase:ça a été', "phrase:comme d'hab", "phrase:j'ai pas arrêté"],
+      },
+      {
+        id: 'journee:asking-back',
+        title: 'Asking them back',
+        sub: 'The lines that keep a catch-up going',
+        kind: 'phrases',
+        phraseKeys: ['phrase:et toi, ta journée ?', 'phrase:tant mieux', 'phrase:ah mince'],
       },
     ],
   },

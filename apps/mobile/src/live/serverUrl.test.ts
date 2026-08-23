@@ -12,7 +12,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { TOKEN_SERVER } from './serverUrl.ts';
+import { TOKEN_SERVER, selectTokenServerUrl } from './serverUrl.ts';
 
 const SRC = fileURLToPath(new URL('..', import.meta.url));
 
@@ -41,8 +41,20 @@ describe('the token server address', () => {
   });
 
   test('it still resolves to something usable with no env at all', () => {
-    // The keyless local path is the one every new checkout takes first.
+    // The test runner injects the same explicit local flag as the dev scripts.
     assert.match(TOKEN_SERVER, /^https?:\/\//);
     assert.ok(!TOKEN_SERVER.endsWith('/'), 'callers append /health and /session/start, so a trailing slash would double it');
+  });
+
+  test('a deployment refuses a missing or plaintext endpoint', () => {
+    assert.throws(() => selectTokenServerUrl({ nodeEnv: 'production' }), /without a configured token server/);
+    assert.throws(
+      () => selectTokenServerUrl({ nodeEnv: 'production', tokenServerUrl: 'http://api.parle.example' }),
+      /not HTTPS/,
+    );
+    assert.equal(
+      selectTokenServerUrl({ nodeEnv: 'production', tokenServerUrl: 'https://api.parle.example' }),
+      'https://api.parle.example',
+    );
   });
 });

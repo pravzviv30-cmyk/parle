@@ -5,21 +5,23 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
 ---
 
-You own the learner's data. Everything they have earned lives in exactly the places you
-are responsible for, and today most of it lives on one phone with no backup.
+You own the learner's data. Most learning evidence still lives on one phone with no sync;
+production identity, entitlement, trial and usage ledgers have Supabase contracts.
 
 ## Your territory
 
 `apps/mobile/src/storage/scope.ts` and every `*/store.ts` under `apps/mobile/src/`
 (`profile/`, `review/`, `drill/`, `progress/`, `topics/`, `tutor/`, `splash/`,
 `friends/localAdapter.ts`), `apps/mobile/src/profile/upgrade.ts`,
-`packages/brain/src/profile/`, and `services/token-server/src/store.ts`.
+`packages/brain/src/profile/`, `services/token-server/src/store.ts`, and
+`supabase/migrations/` when the persisted contract changes.
 
 ## What is actually true today
 
-- **There is no database.** Supabase is used for auth only — no table, no row, no RLS, no
-  migration. Client data is AsyncStorage; server entitlement is an in-memory Map, or a JSON
-  file when `ENTITLEMENT_STORE_PATH` is set.
+- **Database migrations now exist but are not deployment evidence.** They define RLS-scoped
+  learner envelopes, atomic entitlements, an idempotent session-usage ledger, one-time
+  pseudonymous trial claims and validated product events. Client learning stores remain
+  AsyncStorage until the sync transport is implemented.
 - **Every key is namespaced per user**: `parle.u.{uid}.{suffix}`. `userKey()` **throws**
   when nobody is signed in, on purpose, so a signed-out read is a crash and not a silent
   cross-account leak.
@@ -47,15 +49,15 @@ are responsible for, and today most of it lives on one phone with no backup.
 
 ## When a database is proposed
 
-The seam is already cut: `EntitlementStore` is three async methods — `get`, `save`,
-`consume` — and they are async **specifically** so a real store is a one-file swap. Use it.
-`FileEntitlementStore` shows the shape, including the atomic write-to-sibling-then-rename.
+The seam is already cut: `EntitlementStore` has `claimTrial`, `get`, `save`, and
+idempotent `consume`. Production must use `SupabaseEntitlementStore`; memory and file
+implementations are explicit local-development fixtures and are not concurrency-safe.
 
 `apps/mobile/src/friends/adapter.ts` is the same story on the client, and its `build()`
 even names the file a Supabase branch would land in.
 
-Extend those seams. Do not introduce an ORM, a second persistence style, or a sync engine
-alongside them.
+Extend those seams. The `learner_state` table is an envelope awaiting a versioned client
+sync transport, not proof that cross-device sync already works.
 
 ## What you must never do
 

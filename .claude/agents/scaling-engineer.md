@@ -25,21 +25,17 @@ passes N ms" is an answer. "When we grow" is not.
 These are real, they are in the code, and they are the honest content of any scaling
 conversation about Parle:
 
-- **`InMemoryEntitlementStore` is the default**, so a restart returns everyone's minutes.
-  Two instances would not merely lose state, they would disagree about it — the same learner
-  could spend the same minutes twice. `EntitlementStore` is already three async methods
-  built for a shared backing store, so this is a swap, not a rewrite.
-- **The score budget is a per-process `Map`.** `SCORE_BUDGET_PER_DAY` becomes N times 300
-  the moment there are N instances.
+- **Production now requires Supabase atomic entitlements and Upstash request budgets plus
+  an active-session lease.** The remaining question is live multi-instance verification;
+  memory/file stores remain deliberately local and would still be wrong in production.
 - **LiveKit is a single self-hosted node**, built from source, running in dev mode.
-- **There is no database at all**, so every question about replicas, pooling and sharding is
-  premature by at least one step. The first step is having one.
+- **Database migrations exist but deployment and load evidence do not.** Learner-state sync
+  is not connected, so database replicas or sharding remain premature.
 - **The learner profile round-trips through a JWT**, capped so it fits. That design is what
   removed the need for shared session state, and it is worth protecting.
 
-Note the shape: the first two are correctness bugs under concurrency, not capacity
-problems. **They will bite at two instances, not at scale.** That distinction is the useful
-half of your answer.
+The production controls above solve the design-level concurrency hazards only after their
+live stores and migrations are verified. That distinction is the useful half of your answer.
 
 ## The checks
 

@@ -42,9 +42,33 @@ export interface TurnContextInput {
   lastLanguage?: 'english' | 'mixed' | null;
   /** Where the learner has steered the conversation, when off the frame's own topic. */
   activeTopic?: string | null;
+  /**
+   * A mission whose beats are all done, still running because the learner said
+   * they wanted to keep talking.
+   */
+  missionDone?: boolean;
 }
 
 const RUNG_NAMES: Record<number, string> = { 1: 'very supported', 2: 'supported', 3: 'mostly independent', 4: 'independent' };
+
+/**
+ * How long the tutor's own turn may be, by rung.
+ *
+ * "Match sentence length" on its own was not an instruction, it was a hope: a
+ * model asked to match an abstraction picks its own idea of short, and for an
+ * A0 learner that is still three sentences of French they cannot hold. The rung
+ * already knows how much the learner can carry, so it is what decides.
+ *
+ * Length only. The rung never changes whether the tutor is warm, whether it
+ * reacts before it advances, or whether it corrects. Progression lives in code;
+ * this is the one dimension of language it is allowed to move.
+ */
+const RUNG_LENGTH: Record<number, string> = {
+  1: 'Speak in one short sentence, one idea. Nothing compound, nothing subordinate.',
+  2: 'Speak in one short sentence, one idea. A second only when the first cannot carry it alone.',
+  3: 'Two short sentences at most.',
+  4: 'Say it at whatever length the moment actually wants.',
+};
 
 const STRICTNESS_POLICY: Record<Strictness, string> = {
   flow: 'Inline coaching only for what blocks the scene, plus textbook phrasing. Everything else waits for the recap.',
@@ -64,8 +88,20 @@ export function buildTurnContext(input: TurnContextInput): string {
 
   const lines: string[] = [
     '[CONTEXT FROM THE APP, NOT FROM THE LEARNER]',
-    `INDEPENDENCE: ${RUNG_NAMES[directive.rung]}. Match sentence length and pace, but never pre-fill the learner's reply.`,
+    `INDEPENDENCE: ${RUNG_NAMES[directive.rung]}. ${RUNG_LENGTH[directive.rung]} Match their pace, but never pre-fill the learner's reply.`,
   ];
+
+  if (input.missionDone === true) {
+    // The learner has finished what they came in to do and has chosen to keep
+    // talking. Two things follow, and the second is the one that matters: the
+    // scene stays open, and the tutor does not congratulate. The app has
+    // already said what they did, in their own language, on a card they can
+    // read. A character who stops to praise them turns a conversation into an
+    // assessment, which is the one thing this product refuses to be.
+    lines.push(
+      'SCENE GOAL: already reached. The learner chose to keep talking, so stay in character and follow wherever they take it. Do not announce the achievement, congratulate them, grade them, or wind the scene up on their behalf.',
+    );
+  }
 
   let beatLine = `SCENE AIM: ${beat.id} (${beat.goal}). This is a flexible anchor, not a required script.`;
   if (beat.forceAdvance) {

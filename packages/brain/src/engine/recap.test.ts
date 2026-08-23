@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { assembleRecap } from './recap.ts';
+import { assembleRecap, HEADLINE_FAMILIES } from './recap.ts';
 import { createConversation, type ConversationState } from './conversation.ts';
 import { CAFE_FRAME } from '../fixtures.ts';
 import { sampleCoachItem } from '../contract/samples.ts';
@@ -66,9 +66,39 @@ describe('the recap says one thing, not everything', () => {
 
 describe('headline and closure', () => {
   test('a clean run gets the strongest line', () => {
+    // Which family answered, not which words came out of it. Three sentences
+    // forever is how an end card stops meaning anything, and this is the line a
+    // learner sees most often because most sessions land in the same branch.
     const state = baseState({ turnCount: 8 });
     const { recap } = assembleRecap(state, CEFR);
-    assert.equal(recap.headline, 'You carried that scene.');
+    assert.ok(
+      HEADLINE_FAMILIES.carried.includes(recap.headline),
+      `a carried session said something else: "${recap.headline}"`,
+    );
+  });
+
+  test('every line of every headline family is clean and distinct', () => {
+    const seen = new Set<string>();
+    for (const [name, family] of Object.entries(HEADLINE_FAMILIES)) {
+      assert.ok(family.length >= 2, `${name} is not a family, it is one line`);
+      for (const line of family) {
+        assert.deepEqual(copyViolations(line), [], `${name}: "${line}"`);
+        assert.ok(!seen.has(line), `"${line}" appears in two families, so the outcome is not legible`);
+        seen.add(line);
+      }
+    }
+  });
+
+  test('two sessions of different lengths do not end on the same sentence', () => {
+    const a = assembleRecap(baseState({ turnCount: 8 }), CEFR).recap.headline;
+    const b = assembleRecap(baseState({ turnCount: 9 }), CEFR).recap.headline;
+    assert.notEqual(a, b, 'the end card says the same thing whatever happened');
+  });
+
+  test('the same session always ends the same way', () => {
+    const a = assembleRecap(baseState({ turnCount: 8 }), CEFR).recap.headline;
+    const b = assembleRecap(baseState({ turnCount: 8 }), CEFR).recap.headline;
+    assert.equal(a, b, 'the headline is a random draw, which makes the recap untestable');
   });
 
   test('every headline branch passes the copy rules', () => {

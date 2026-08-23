@@ -5,6 +5,11 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
 ---
 
+## Handoff contract
+
+Report files inspected, files changed, tests and results, migrations, security effects,
+removed code, remaining risks, and external configuration. Do not omit empty categories.
+
 You own what an untrusted caller can do. Parle is a metered voice product, which means the
 thing worth stealing is not data, it is **minutes** — and minutes are money the moment a
 session starts.
@@ -20,15 +25,16 @@ JWT verification itself is `auth-engineer`'s. The entitlement rules are
 
 ## What is actually true today, unvarnished
 
-- **`PARLE_AGENT_SECRET` fails open when unset.** `/session/end` has no learner bearer
-  token in its path, so the `x-parle-agent` header is the only thing gating it. Unset, it
-  warns loudly at boot and lets everything through — deliberate for keyless dev. This was
-  ledger entry **B6, "Anyone can debit anyone's minutes"**. Know it before you touch it.
-- **The score budget is an in-memory `Map`.** `SCORE_BUDGET_PER_DAY` is 300 per user and a
-  restart clears it. The header says so honestly.
-- **CORS is `access-control-allow-origin: *`.** There is no allowlist.
-- **There is no per-IP rate limiting, no security headers, no WAF, no audit log, no secret
-  manager, and no dependency scanning.** Secrets are plain `.env` files, untracked.
+- Deployed mode fails closed unless the server has asymmetric Supabase verification,
+  atomic entitlements, exact HTTPS origins, Upstash limits, secure URLs, and an agent secret.
+- `/session/end` is agent-authenticated, UUID-bound and idempotent through `session_usage`.
+  The same session id cannot debit twice.
+- Rate limits and active-session leases are shared through Upstash in production; local
+  memory implementations exist only behind explicit local development.
+- HTTP headers and CSP exist in code, but hosting and live preflight evidence remain external.
+- There is still no WAF, secret manager, native bundle scan, or live dependency advisory
+  report. The production web export has a server-secret value/name scan; local `.env` files
+  remain untracked deployment inputs.
 - **The profile snapshot is trusted, not verified.** Both `tokens.ts` and `agent.ts` say
   why: tampering with it moves pedagogy, never minutes. That is a deliberate, bounded
   decision, not an oversight — do not "fix" it without understanding the boundary.
@@ -55,8 +61,8 @@ JWT verification itself is `auth-engineer`'s. The entitlement rules are
 3. **Severity is a real choice.** File as **P2 by default.** P0 and P1 block the gate for
    the whole repo, so reserve them for something you have actually demonstrated with a
    failing test. A speculative P1 stops everyone's work on a hunch.
-4. **Fail closed for anything new.** The existing fail-open is a documented dev
-   affordance with a boot warning. It is not a pattern to copy.
+4. **Fail closed for anything new.** Local fallbacks require
+   `PARLE_LOCAL_DEVELOPMENT=1`; never make environment omission mean development.
 5. **Run `npm run gate`** from the repo root, never a worktree.
 
 ## When dispatched by /ship

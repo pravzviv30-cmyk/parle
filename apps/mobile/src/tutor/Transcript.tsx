@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, Animated, Easing, AccessibilityInfo } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
 import { paper, signal, space, type, radius, HAIRLINE } from '../theme.ts';
 import type { TurnLine } from '../live/turns.ts';
 import { settleIn, useReduceMotion } from '../motion.ts';
@@ -32,7 +32,7 @@ function Recast({ quote, better, betterEn, why }: { quote: string; better: strin
   );
 }
 
-function Line({ turn }: { turn: TurnLine }) {
+function Line({ turn, onReplay }: { turn: TurnLine; onReplay?: () => void }) {
   if (turn.who === 'narration') {
     return (
       <View style={st.narration}>
@@ -42,16 +42,36 @@ function Line({ turn }: { turn: TurnLine }) {
   }
 
   const learner = turn.who === 'learner';
+  const body = (
+    <>
+      <Text style={[type.french, { color: paper.ink }]}>{turn.fr}</Text>
+      {turn.frWritten && turn.frWritten !== turn.fr ? (
+        <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{turn.frWritten}</Text>
+      ) : null}
+      {turn.en ? <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{turn.en}</Text> : null}
+    </>
+  );
+
   return (
     <View style={learner ? st.rowRight : st.rowLeft}>
       <View style={{ maxWidth: '82%' }}>
-        <View style={learner ? st.learnerBubble : st.tutorBubble}>
-          <Text style={[type.french, { color: paper.ink }]}>{turn.fr}</Text>
-          {turn.frWritten && turn.frWritten !== turn.fr ? (
-            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{turn.frWritten}</Text>
-          ) : null}
-          {turn.en ? <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{turn.en}</Text> : null}
-        </View>
+        {/* Replay lives on the bubble rather than on a button in the control
+            row, which is how "say that again" is served without a fifth chip
+            competing for the space the learner reaches with one thumb. Only
+            the tutor's own lines: replaying the learner's would be the app
+            reading somebody's French back at them. */}
+        {onReplay ? (
+          <Pressable
+            onPress={onReplay}
+            accessibilityRole="button"
+            accessibilityLabel={`Hear that line again: ${turn.fr}`}
+            style={({ pressed }) => [st.tutorBubble, pressed && { opacity: 0.7 }]}
+          >
+            {body}
+          </Pressable>
+        ) : (
+          <View style={learner ? st.learnerBubble : st.tutorBubble}>{body}</View>
+        )}
         {turn.recasts?.map((r) => (
           <Recast key={r.better} {...r} />
         ))}
@@ -60,7 +80,20 @@ function Line({ turn }: { turn: TurnLine }) {
   );
 }
 
-export function Transcript({ turns }: { turns: readonly TurnLine[] }) {
+export function Transcript({
+  turns,
+  onReplayTutor,
+}: {
+  turns: readonly TurnLine[];
+  /**
+   * Play the tutor's last line again. Given only when there is a voice to
+   * replay and the learner holds the floor, and attached only to the LAST
+   * tutor line, because that is the one `hear` asks the agent for: a bubble
+   * five turns up that spoke a different sentence would be a control that
+   * lied about what it does.
+   */
+  onReplayTutor?: () => void;
+}) {
   const ref = useRef<ScrollView>(null);
   // One settling entrance, in the vocabulary the splash established and the
   // only one this app has: transform and opacity, native driver, nothing
@@ -72,6 +105,9 @@ export function Transcript({ turns }: { turns: readonly TurnLine[] }) {
   // the arrival is the flourish, and nobody should sit through a flourish to
   // read. settleIn owns both halves of that, for every surface.
   const reduced = useReduceMotion();
+  // Which bubble carries the replay. Found by walking back rather than by
+  // index, because the last line in the thread is usually the learner's.
+  const lastTutorId = [...turns].reverse().find((t) => t.who === 'tutor')?.id;
   useEffect(() => {
     const animation = settleIn(settle, reduced);
     return () => animation?.stop();
@@ -100,7 +136,7 @@ export function Transcript({ turns }: { turns: readonly TurnLine[] }) {
         accessibilityLabel="Your conversation so far"
       >
         {turns.map((t) => (
-          <Line key={t.id} turn={t} />
+          <Line key={t.id} turn={t} onReplay={onReplayTutor && t.id === lastTutorId ? onReplayTutor : undefined} />
         ))}
       </ScrollView>
     </Animated.View>

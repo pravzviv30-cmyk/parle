@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { conversationXp, phraseKeyOf, type RecapPayload } from '@parle/core';
 import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from './theme.ts';
@@ -39,6 +39,24 @@ import { VoiceOrb, type OrbState } from './tutor/VoiceOrb.tsx';
 import { Transcript } from './tutor/Transcript.tsx';
 import { QUIET_DOOR, choosingView } from './tutor/choosingView.ts';
 import { enterSubmits, keyPressFrom } from './tutor/enterSubmit.ts';
+import { TUTOR_NAME } from './tutor/tutorName.ts';
+import { sceneControls, typedTurn } from './tutor/sceneControls.ts';
+import { NO_WIN, dismissWin, winAfterTurn, winCard, type WinState } from './tutor/missionWin.ts';
+
+/** How long the finish door waits for the recap before taking the ordinary exit. */
+const RECAP_WAIT_MS = 15_000;
+import {
+  COACH_MARK_TEXT,
+  coachMarksAfter,
+  coachMarksAt,
+  dismissCoachMark,
+  type CoachMarkState,
+} from './tutor/coachMarks.ts';
+import { loadSeenCoachMarks, markCoachMarkSeen } from './tutor/store.ts';
+import { recordMissionCompletion } from './missions/store.ts';
+import { trackProductEvent } from './analytics/track.ts';
+import { MOMENT_ANSWER_MS, momentAnswer } from './practice/statusLine.ts';
+import { settleIn, useReduceMotion } from './motion.ts';
 
 /**
  * The browser wants a gesture before it will play the tutor.
@@ -53,13 +71,79 @@ function ListenPlaque({ onPress }: { onPress: () => void }) {
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="Tap to listen to your tutor"
+      accessibilityLabel={`Tap to listen to ${TUTOR_NAME}`}
       style={({ pressed }) => [st.listen, pressed && { opacity: 0.85 }]}
     >
       <Card style={{ alignItems: 'center' }}>
         <Text style={[type.bodyStrong, { color: paper.ink }]}>Tap to listen</Text>
       </Card>
     </Pressable>
+  );
+}
+
+/**
+ * The mission is finished, said once.
+ *
+ * DESIGN.md asks for a subtle, satisfying completion moment, and subtle is a
+ * constraint rather than a mood: no confetti, no score, no percentage, nothing
+ * that says how well. The line is the mission's own sentence about what the
+ * learner actually did, which is a thing they can check, and the two doors are
+ * both honest about what they cost.
+ *
+ * One primary action. "Keep talking" is the pill because the session is still
+ * running underneath the card and carrying on is the cheaper of the two
+ * decisions to get wrong; the line under it says plainly that it uses minutes,
+ * so continuing is chosen and never assumed. Leaving is the ghost, and the
+ * standing Leave in the header still works, as it must on any metered screen.
+ *
+ * Motion is the app's one settle: transform and opacity, native driver, and the
+ * final frame under reduce motion. The arrival is the flourish; the sentence is
+ * the point, and nobody waits through a flourish to read that they did it.
+ */
+function MissionWin({
+  card,
+  onKeep,
+  onFinish,
+}: {
+  card: { line: string; keepLabel: string; keepSub: string; finishLabel: string };
+  onKeep: () => void;
+  onFinish: () => void;
+}) {
+  const settle = useRef(new Animated.Value(0)).current;
+  const reduced = useReduceMotion();
+  useEffect(() => {
+    const animation = settleIn(settle, reduced);
+    return () => animation?.stop();
+  }, [settle, reduced]);
+
+  return (
+    <Animated.View
+      style={[
+        st.win,
+        {
+          opacity: settle,
+          transform: [{ translateY: settle.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+        },
+      ]}
+    >
+      <Card>
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[fitDisplay(card.line), { color: paper.ink, textAlign: 'center' }]}
+        >
+          {card.line}
+        </Text>
+        <View style={st.winPrimary}>
+          <PillButton label={card.keepLabel} onPress={onKeep} />
+        </View>
+        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2) }]}>
+          {card.keepSub}
+        </Text>
+        <View style={st.winSecondary}>
+          <GhostButton label={card.finishLabel} onPress={onFinish} />
+        </View>
+      </Card>
+    </Animated.View>
   );
 }
 
@@ -70,6 +154,7 @@ export function ConvoScreen({
   onExit,
   startInTextMode = false,
   seedTopic,
+  missionId,
 }: {
   userId: string;
   /** The stored learner model, passed through to the agent opaquely. */
@@ -85,6 +170,15 @@ export function ConvoScreen({
    * A session with no seed opens exactly as it always has.
    */
   seedTopic?: { fr: string; en: string };
+  /**
+   * Which authored mission this is, when a mission card opened it.
+   *
+   * It rides the same pipe `seedTopic` rides, and the agent opens the scene
+   * straight from the authored frame instead of asking a model to write one.
+   * App-side it is also what the win card is drawn from, so a session with no
+   * mission has nothing to finish and never sees one.
+   */
+  missionId?: string;
 }) {
   const insets = useSafeAreaInsets();
   // Text mode is a session property, not a toggle: switching rebuilds the
@@ -94,10 +188,15 @@ export function ConvoScreen({
   const [draft, setDraft] = useState('');
   // Which text input holds the caret, for the ink focus border. Visual only.
   const [focusedInput, setFocusedInput] = useState<'topic' | 'reply' | null>(null);
+  // The learner tapped Type instead during a voice scene. Local to the screen
+  // and deliberately NOT textMode: this opens the box without rebuilding the
+  // session, so the microphone stays live and the scene survives.
+  const [typingOpen, setTypingOpen] = useState(false);
   const live = useLiveSession(userId, 'convo-01', undefined, {
     mode: textMode ? 'convo-text' : 'convo',
     snapshot,
     seedTopic,
+    ...(missionId !== undefined ? { missionId } : {}),
   });
 
   // Connect on mount, and again when the learner switches to text mode after
@@ -108,11 +207,11 @@ export function ConvoScreen({
   }, [textMode]);
 
   const sendDraft = () => {
-    const text = draft.trim();
-    if (text.length === 0) return;
+    const turn = typedTurn(draft);
+    if (turn === null) return;
     setDraft('');
-    void live.sendSay(text).then((sent) => {
-      if (!sent) setDraft((current) => (current.trim().length > 0 ? current : text));
+    void live.sendSay(turn.text).then((sent) => {
+      if (!sent) setDraft((current) => (current.trim().length > 0 ? current : turn.text));
     });
   };
 
@@ -157,6 +256,98 @@ export function ConvoScreen({
   useEffect(() => {
     if (live.drills) void mergeExercises(live.drills);
   }, [live.drills]);
+
+  // ---- The win, the coach marks and the moment.
+  //
+  // All three are transitions rather than values, and none of them can be read
+  // off a single render, which is why the rules are in tutor/missionWin.ts and
+  // tutor/coachMarks.ts and only the wiring is here.
+
+  const [win, setWin] = useState<WinState>(NO_WIN);
+  /**
+   * The learner pressed the door that promises a recap, and is waiting for it.
+   *
+   * It is a state rather than a straight `leaveNow()` because `leave()` publishes
+   * the wrap-up tag and then disconnects, and the recap is published back over
+   * that same room. Tearing it down is closing the door the answer comes
+   * through, so the button promised something it then made impossible.
+   */
+  const [finishing, setFinishing] = useState(false);
+
+  // A recap that never comes must not leave them holding a dead screen. The
+  // ceiling is generous because the agent is assembling a recap and folding a
+  // profile at this point, and short of it the fallback is the ordinary exit,
+  // which still banks what they said.
+  useEffect(() => {
+    if (!finishing || live.recap) return;
+    const bail = setTimeout(() => leaveNow(), RECAP_WAIT_MS);
+    return () => clearTimeout(bail);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finishing, live.recap]);
+  useEffect(() => {
+    const step = winAfterTurn(win, live.convo, missionId);
+    // Written at the flip and nowhere else, with the rung the winning view
+    // carried. Independence is decided by code from that rung, so a record
+    // that guessed it later would be a fabricated claim about how much help
+    // this learner needed.
+    if (step.record) {
+      void recordMissionCompletion(step.record.id, step.record.rung);
+      void trackProductEvent({
+        name: 'mission_completed',
+        properties: { missionId: step.record.id, rung: step.record.rung },
+      });
+    }
+    if (step.state !== win) setWin(step.state);
+  }, [live.convo, win, missionId]);
+
+  const [marks, setMarks] = useState<CoachMarkState>(() => coachMarksAt([]));
+  useEffect(() => {
+    let alive = true;
+    void loadSeenCoachMarks().then((seen) => {
+      // Guarded rather than assigned: the read is a disk hop and a mark could
+      // in principle have appeared while it was in flight. Overwriting the
+      // state then would show that mark twice.
+      if (alive) setMarks((state) => (state.usedItsTurn ? state : coachMarksAt(seen)));
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const sceneOpen = live.convo !== null;
+  const learnerSpoke = live.turns.some((t) => t.who === 'learner');
+  const frenchLanded = (live.convo?.sceneReply.fr ?? '').trim().length > 0;
+  useEffect(() => {
+    setMarks((state) => coachMarksAfter(state, { sceneOpen, learnerSpoke, frenchLanded, voiceControlsShown: !textMode }));
+  }, [sceneOpen, learnerSpoke, frenchLanded, textMode]);
+
+  useEffect(() => {
+    // Remembered the moment it appears, not when it is dismissed: a learner who
+    // read a note and then killed the app has read it.
+    if (marks.showing !== null) void markCoachMarkSeen(marks.showing);
+  }, [marks.showing]);
+
+  const closeMark = () => setMarks(dismissCoachMark);
+
+  // The tap counter for "Give me a moment". A counter rather than a timestamp
+  // because nothing on this screen may read a clock to decide something, and a
+  // learner tapping twice is asking twice.
+  const [momentTaps, setMomentTaps] = useState(0);
+  useEffect(() => {
+    if (momentTaps === 0) return;
+    const timer = setTimeout(() => setMomentTaps(0), MOMENT_ANSWER_MS);
+    return () => clearTimeout(timer);
+  }, [momentTaps]);
+  // The tutor said something: the wait is over and so is the line about it.
+  useEffect(() => {
+    setMomentTaps(0);
+  }, [live.convo]);
+
+  const askForAMoment = () => {
+    live.sendMoment();
+    setMomentTaps((n) => n + 1);
+    closeMark();
+  };
 
   // The session's practice leave-behind, banked exactly once: topic cards in
   // the topic store, the curated phrases into the review deck, staggered so
@@ -370,7 +561,7 @@ export function ConvoScreen({
       <View style={st.center}>
         <ActivityIndicator color={paper.inkSoft} />
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>
-          {live.waitingForTutor ? 'Waiting for your tutor…' : 'One moment…'}
+          {live.waitingForTutor ? `Waiting for ${TUTOR_NAME}…` : 'One moment…'}
         </Text>
         <View style={st.terminalAction}>
           <GhostButton label="Leave" onPress={leaveNow} />
@@ -380,6 +571,13 @@ export function ConvoScreen({
   }
 
   const listening = !live.tutorSpeaking;
+  const controls = sceneControls({
+    supportView: view.supportView,
+    textMode,
+    listening,
+    typingOpen,
+  });
+  const card = win.showing ? winCard(missionId) : null;
   // The orb says one thing at a time, and thinking outranks everything: the
   // learner has just spoken and nothing has come back yet.
   const orbState: OrbState = live.thinking
@@ -428,94 +626,179 @@ export function ConvoScreen({
 
         {/* The conversation so far. Takes what is left and no more — the
             current turn's support and controls below it are what the learner
-            is acting on. */}
-        <Transcript turns={live.turns} />
+            is acting on. Tapping the tutor's last bubble plays it again: the
+            same `hear`, asking for the scene line rather than the support one. */}
+        <Transcript
+          turns={live.turns}
+          onReplayTutor={listening && !textMode ? () => live.sendHear('scene') : undefined}
+        />
 
-        {view.supportView.kind !== 'none' ? (
-          <View style={st.support}>
-            <SupportBlock
-              support={view.supportView}
-              // Replays come from the agent in the premium voice, and only while
-              // the learner holds the floor — a replay must not talk over the
-              // tutor. Text mode has no voice to replay.
-              onHearLine={listening && !textMode ? live.sendHear : undefined}
-            />
-          </View>
-        ) : null}
-
-        <View style={st.controls}>
-          {/* The recast now renders in the thread, attached to the line it
-              corrects, so only the spoken coaching line belongs here. */}
-          {view.coachLine ? (
-            <Text style={[type.bodyStrong, { color: paper.ink, textAlign: 'center', marginBottom: space(2) }]}>
-              {view.coachLine}
-            </Text>
-          ) : null}
-
-          {textMode ? (
-            <View style={st.typeRow}>
-              <TextInput
-                value={draft}
-                onChangeText={changeDraft}
-                onSubmitEditing={sendDraft}
-                onKeyPress={keyDraft}
-                placeholder="Type your reply"
-                placeholderTextColor={paper.inkFaint}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="send"
-                submitBehavior="submit"
-                accessibilityLabel="Type your reply"
-                onFocus={() => setFocusedInput('reply')}
-                onBlur={() => setFocusedInput(null)}
-                style={[st.typeInput, focusedInput === 'reply' && st.typeInputFocused]}
-              />
-              <Pressable
-                onPress={sendDraft}
-                accessibilityRole="button"
-                accessibilityLabel="Send your reply"
-                style={({ pressed }) => [st.typeSend, pressed && { opacity: 0.88 }]}
-              >
-                <Text style={[type.button, { color: paper.onInk }]}>Send</Text>
-              </Pressable>
-            </View>
-          ) : null}
-
-          <View style={st.helpRow}>
-            <Pressable
-              onPress={live.sendHelp}
-              disabled={!listening}
-              accessibilityRole="button"
-              accessibilityLabel="Ask for help with this line"
-              style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
-            >
-              <HelpGlyph size={15} />
-              <Text style={[type.small, { color: paper.inkSoft }]}>Help me out</Text>
-            </Pressable>
-            {!textMode ? (
-              <>
-                <Pressable
-                  onPress={live.sendSlower}
-                  disabled={!listening}
-                  accessibilityRole="button"
-                  accessibilityLabel="Ask the tutor to slow down"
-                  style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
-                >
-                  <Text style={[type.small, { color: paper.inkSoft }]}>Slower</Text>
-                </Pressable>
-                <Pressable
-                  onPress={live.sendEnglish}
-                  disabled={!listening}
-                  accessibilityRole="button"
-                  accessibilityLabel="Ask for it in English"
-                  style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
-                >
-                  <Text style={[type.small, { color: paper.inkSoft }]}>In English</Text>
-                </Pressable>
-              </>
+        {card ? (
+          <MissionWin
+            card={card}
+            onKeep={() => setWin(dismissWin)}
+            onFinish={() => {
+              setWin(dismissWin);
+              setFinishing(true);
+              live.requestRecap();
+            }}
+          />
+        ) : (
+          <>
+            {view.supportView.kind !== 'none' ? (
+              <View style={st.support}>
+                <SupportBlock
+                  support={view.supportView}
+                  // Replays come from the agent in the premium voice, and only while
+                  // the learner holds the floor — a replay must not talk over the
+                  // tutor. Text mode has no voice to replay. And there has to BE a
+                  // line: `hear` speaks the support line, so on a hint turn or an
+                  // options turn this button used to be pressable and silent.
+                  onHearLine={controls.showHearIt ? () => live.sendHear() : undefined}
+                />
+              </View>
             ) : null}
+
+          <View style={st.controls}>
+            {/* The recast now renders in the thread, attached to the line it
+                corrects, so only the spoken coaching line belongs here. */}
+            {view.coachLine ? (
+              <Text style={[type.bodyStrong, { color: paper.ink, textAlign: 'center', marginBottom: space(2) }]}>
+                {view.coachLine}
+              </Text>
+            ) : null}
+
+            {/* The answer to "Give me a moment": on screen, in the calm slot,
+                and never spoken. A spoken acknowledgement of a pause is a
+                remark on the pause. */}
+            {momentTaps > 0 ? (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginBottom: space(2) }]}
+              >
+                {momentAnswer()}
+              </Text>
+            ) : null}
+
+            {/* One contextual note at a time, dismissed by tapping it, and
+                nothing underneath it stops working while it is up. */}
+            {marks.showing ? (
+              <Pressable
+                onPress={closeMark}
+                accessibilityRole="button"
+                accessibilityLabel={`${COACH_MARK_TEXT[marks.showing]} Tap to close.`}
+                style={({ pressed }) => [st.mark, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>
+                  {COACH_MARK_TEXT[marks.showing]}
+                </Text>
+              </Pressable>
+            ) : null}
+
+            {controls.showInput ? (
+              <View style={st.typeRow}>
+                <TextInput
+                  value={draft}
+                  onChangeText={changeDraft}
+                  onSubmitEditing={sendDraft}
+                  onKeyPress={keyDraft}
+                  placeholder="Type your reply"
+                  placeholderTextColor={paper.inkFaint}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="send"
+                  submitBehavior="submit"
+                  accessibilityLabel="Type your reply"
+                  onFocus={() => setFocusedInput('reply')}
+                  onBlur={() => setFocusedInput(null)}
+                  style={[st.typeInput, focusedInput === 'reply' && st.typeInputFocused]}
+                />
+                <Pressable
+                  onPress={sendDraft}
+                  accessibilityRole="button"
+                  accessibilityLabel="Send your reply"
+                  style={({ pressed }) => [st.typeSend, pressed && { opacity: 0.88 }]}
+                >
+                  <Text style={[type.button, { color: paper.onInk }]}>Send</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            <View style={st.helpRow}>
+              <Pressable
+                onPress={() => {
+                  closeMark();
+                  live.sendHelp();
+                }}
+                disabled={!listening}
+                accessibilityRole="button"
+                accessibilityLabel="Ask for help with this line"
+                style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
+              >
+                <HelpGlyph size={15} />
+                <Text style={[type.small, { color: paper.inkSoft }]}>Help me out</Text>
+              </Pressable>
+              {/* Not disabled while the tutor talks, unlike the rest of this row.
+                  Everything else here asks for a line and would talk over them;
+                  this one only asks the clock to wait, and the learner who most
+                  needs it is the one who can already see their turn coming. */}
+              <Pressable
+                onPress={askForAMoment}
+                accessibilityRole="button"
+                accessibilityLabel="Give me a moment"
+                style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
+              >
+                <Text style={[type.small, { color: paper.inkSoft }]}>Give me a moment</Text>
+              </Pressable>
+              {!textMode ? (
+                <>
+                  <Pressable
+                    onPress={() => {
+                      closeMark();
+                      live.sendSlower();
+                    }}
+                    disabled={!listening}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ask ${TUTOR_NAME} to slow down`}
+                    style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
+                  >
+                    <Text style={[type.small, { color: paper.inkSoft }]}>Slower</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      closeMark();
+                      live.sendEnglish();
+                    }}
+                    disabled={!listening}
+                    accessibilityRole="button"
+                    accessibilityLabel="Ask for it in English"
+                    style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
+                  >
+                    <Text style={[type.small, { color: paper.inkSoft }]}>In English</Text>
+                  </Pressable>
+                </>
+              ) : null}
+              {/* The quiet twin, offered where a learner finds out they need it.
+                  It opens the box in place: `say` is already a full typed turn
+                  agent-side, so nothing here rebuilds the session or costs the
+                  learner the scene they are standing in. */}
+              {controls.showTypeInstead ? (
+                <Pressable
+                  onPress={() => {
+                    closeMark();
+                    setTypingOpen(true);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Type your reply instead of saying it"
+                  style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
+                >
+                  <Text style={[type.small, { color: paper.inkSoft }]}>Type instead</Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
-        </View>
+          </>
+        )}
       </View>
     </View>
   );
@@ -580,6 +863,23 @@ const st = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: space(1),
+  },
+  // The completion card sits where the support card would have been, so the
+  // screen keeps its shape and the win does not shove the thread off the top.
+  win: { paddingBottom: space(3) },
+  winPrimary: { marginTop: space(5), alignSelf: 'stretch' },
+  winSecondary: { marginTop: space(3), alignItems: 'center' },
+  // A note, not a dialogue: no border, no shadow, nothing to answer. The touch
+  // floor is here because the whole strip is what dismisses it.
+  mark: {
+    minHeight: HIT,
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+    paddingHorizontal: space(4),
+    paddingVertical: space(2),
+    marginBottom: space(2),
+    backgroundColor: paper.groundDeep,
+    borderRadius: radius.chip,
   },
   helpItem: {
     minHeight: HIT,

@@ -13,8 +13,9 @@
  * CHANGED DELIBERATELY: the live microphone is GREEN. Green means you speak,
  *   everywhere, which lets the voice circle's red mean the tutor is speaking
  *   without the two ever reading as one signal.
- * STORY: A welcome that moves, sign in once, four gentle questions, then five
- *   doors along the bottom — Home, Tutor, Practice, Leaderboard, Profile.
+ * STORY: A welcome that moves, sign in once, three gentle questions, a first
+ *   situation to walk into, then five doors along the bottom — Home, Tutor,
+ *   Practice, My French, Profile.
  *   Stalling is stepped in for, never commented on.
  * MOTION (new, and the whole vocabulary): transform and opacity only, always
  *   on the native driver; never an SVG attribute; one loop plus one settling
@@ -39,6 +40,7 @@ import { AuthProvider, useAuth } from './src/auth/useAuth.tsx';
 import { AuthFlow } from './src/auth/AuthFlow.tsx';
 import { SetNewPasswordScreen } from './src/auth/SetNewPasswordScreen.tsx';
 import type { AuthUser } from './src/auth/types.ts';
+import type { AuthResult } from './src/auth/types.ts';
 import { recoverJournal } from './src/live/journal.ts';
 import { clearActiveUserData, migrateLegacyStores, setActiveUser } from './src/storage/scope.ts';
 import { loadHistory } from './src/progress/store.ts';
@@ -69,6 +71,18 @@ function Loading() {
  */
 function SignedInRoot({ user }: { user: AuthUser }) {
   const [ready, setReady] = useState(false);
+  /**
+   * Did this learner finish onboarding a moment ago, in this launch?
+   *
+   * In memory, and deliberately never written to disk. It decides one thing:
+   * whether the navigator opens on the mission chooser instead of Home, so the
+   * first thing after signing up is choosing something to say rather than
+   * reading a summary of a level nobody has earned yet. A persisted flag would
+   * be one more piece of state that can get stuck; an app killed between the
+   * last onboarding tap and the first frame lands on Home, whose mission card
+   * leads to exactly the same screen.
+   */
+  const [justOnboarded, setJustOnboarded] = useState(false);
   // Bumped to force a remount after a progress reset, so every store re-reads
   // from a now-empty disk instead of holding what it loaded at mount.
   const [generation, setGeneration] = useState(0);
@@ -106,6 +120,26 @@ function SignedInRoot({ user }: { user: AuthUser }) {
     setGeneration((g) => g + 1);
   }, []);
 
+  const deleteAccount = useCallback(async (reauthentication?: string): Promise<AuthResult> => {
+    const reauthenticated = await auth.reauthenticateForDeletion(reauthentication);
+    if (!reauthenticated.ok) return reauthenticated;
+    const result = await auth.deleteAccount();
+    if (!result.ok) return result;
+    // The adapter deliberately leaves the local session available until this
+    // point so the active user namespace can still be resolved and erased.
+    try {
+      await clearActiveUserData();
+    } catch {
+      await auth.signOut();
+      return {
+        ok: false,
+        message: 'Your online account was deleted, but this device could not finish erasing its local copy. Clear the app data before sharing this device.',
+      };
+    }
+    await auth.signOut();
+    return result;
+  }, []);
+
   if (!ready) return <Loading />;
 
   return (
@@ -116,6 +150,10 @@ function SignedInRoot({ user }: { user: AuthUser }) {
           existing={existing}
           onDone={(answers) => {
             const next: StoredProfile = existing === null ? createStoredProfile(answers) : completeProfile(existing, answers);
+            // Brand new, rather than someone answering a question that was
+            // added since they joined. Only the first kind is sent to the
+            // chooser; the second already has a Home worth returning to.
+            setJustOnboarded(existing === null);
             done(next);
           }}
         />
@@ -128,7 +166,12 @@ function SignedInRoot({ user }: { user: AuthUser }) {
           // which auth/oauth.native.ts needs for the OAuth round trip.
           {...(Platform.OS === 'web' ? { linking } : {})}
         >
-          <RootNavigator onSignOut={() => void auth.signOut()} onResetProgress={() => void resetProgress()} />
+          <RootNavigator
+            onSignOut={() => void auth.signOut()}
+            onResetProgress={() => void resetProgress()}
+            onDeleteAccount={deleteAccount}
+            startOnMissions={justOnboarded}
+          />
         </NavigationContainer>
       </LiveProvider>
     </ProfileGate>

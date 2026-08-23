@@ -7,9 +7,8 @@
  * body, and no reason at all for it to trust the network — without a shared
  * secret, anything that can reach the port can drain any account by name.
  *
- * Configured, it is required. Unconfigured, behaviour is exactly what it always
- * was, because the keyless local setup has to keep working; the server says so
- * once at boot rather than leaving it quiet.
+ * Production boot requires the secret. The unconfigured branch exists only for
+ * the server's explicit local-development compatibility mode.
  */
 export function agentDebitAllowed(secret: string | undefined, presented: string | string[] | undefined): boolean {
   if (!secret) return true;

@@ -2,6 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { CAFE_LESSON, directiveFor, RUNGS } from '@parle/core';
+import { buildSystemBlocks } from '@parle/brain';
 import { baseInstructions, buildPrompt, turnInstructions } from './prompt.ts';
 
 const lesson = CAFE_LESSON;
@@ -105,5 +106,42 @@ describe('the assembled prompt', () => {
     // telling them what to convey would contradict the line they were just given.
     const p = buildPrompt(lesson, turn, directiveFor(RUNGS.ECHO));
     assert.doesNotMatch(p, /Tell them in English/);
+  });
+});
+
+describe('one tutor, two pipelines', () => {
+  /**
+   * The scripted lesson and the free conversation are separate prompts because
+   * they are separate pipelines, and that is fine. Two different PEOPLE would
+   * not be: a learner who does a lesson and then a conversation is talking to
+   * the same tutor and would hear it if they were not.
+   *
+   * This couples the two prompts' answers rather than their implementations,
+   * the same way devPlan and preflight are coupled over TUTOR_LLM.
+   */
+  const NAME = /\bLuc\b/;
+
+  test('both prompts introduce the same person', () => {
+    assert.match(baseInstructions(lesson), NAME, 'the scripted lesson tutor is anonymous again');
+    assert.match(buildSystemBlocks().persona, NAME, 'the conversation tutor is anonymous again');
+  });
+
+  test('both say he is not a teacher, because that is the whole posture', () => {
+    assert.match(baseInstructions(lesson), /not a teacher/i);
+    assert.match(buildSystemBlocks().persona, /not a teacher/i);
+  });
+
+  test('both ask him to talk like a person rather than read off a page', () => {
+    for (const [where, text] of [
+      ['lesson', baseInstructions(lesson)],
+      ['conversation', buildSystemBlocks().persona],
+    ] as const) {
+      assert.ok(text.includes('du coup') && text.includes('en fait'), `${where} never asks for the fillers`);
+    }
+  });
+
+  test('neither lets him perform himself at the learner', () => {
+    assert.match(baseInstructions(lesson), /never go on about yourself/i);
+    assert.match(buildSystemBlocks().persona, /never go on about yourself/i);
   });
 });

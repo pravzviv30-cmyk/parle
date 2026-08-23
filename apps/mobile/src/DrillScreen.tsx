@@ -20,7 +20,6 @@
  * one calm line; it has no way to slow, block, or punish.
  */
 
-import { TOKEN_SERVER } from './live/serverUrl.ts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -35,7 +34,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
-import { File } from 'expo-file-system';
 import {
   answerCurrent,
   buildDrillSession,
@@ -51,7 +49,6 @@ import {
   type FillBlankExercise,
   type ListenTypeExercise,
   type RepeatThisExercise,
-  type SessionPhonemeReport,
   type TapTranslateExercise,
   drillXp,
 } from '@parle/core';
@@ -63,16 +60,14 @@ import { RewardMark } from './illustrations.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
 import { loadTopics } from './topics/store.ts';
 import { sittingTitle, topicGroups } from './practice/mix.ts';
-import { authHeaders } from './auth/adapter.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
+import { scoreRecordedAttempt } from './speech/scoreAttempt.ts';
 
 /** How long a feedback line holds the floor before the next exercise deals. */
 const FEEDBACK_MS = 1600;
 /** "Can't speak now" holds for an hour, then spoken drills quietly return. */
 const MIC_SUPPRESS_MS = 60 * 60 * 1000;
 
-/** The server refuses larger bodies; sending one would only waste the upload. */
-const MAX_SCORE_BYTES = 2 * 1024 * 1024;
 /**
  * Web records only on a secure origin with MediaRecorder present; native Expo
  * always ships the recorder. A failed probe is not an error — it just means
@@ -126,25 +121,6 @@ function verdictColor(verdict: DrillVerdict): string {
  * exactly like the self-report flow. At most one learner-safe sentence comes
  * back: the reason behind core's single focus point, never a number.
  */
-async function scoreAttempt(userId: string, uri: string, reference: string): Promise<string | null> {
-  try {
-    // The recorder hands back a file:// path on native and a blob: URL on the
-    // web; expo-file-system's File is native-only, so each side reads its own.
-    const body = Platform.OS === 'web' ? await (await fetch(uri)).blob() : await new File(uri).bytes();
-    const size = body instanceof Uint8Array ? body.byteLength : body.size;
-    if (size === 0 || size > MAX_SCORE_BYTES) return null;
-    const res = await fetch(
-      `${TOKEN_SERVER}/drill/score?userId=${encodeURIComponent(userId)}&reference=${encodeURIComponent(reference)}`,
-      { method: 'POST', headers: { 'content-type': 'application/octet-stream', ...(await authHeaders()) }, body },
-    );
-    if (!res.ok) return null;
-    const data = (await res.json()) as { report?: SessionPhonemeReport };
-    return data.report?.focus?.reason ?? null;
-  } catch {
-    return null;
-  }
-}
-
 // ──────────────────────────────────────────────────────── local card pieces
 // Composed here rather than added to components.tsx: OptionCard wants a gloss,
 // and fill-blank options are bare words by authored design.
@@ -695,7 +671,8 @@ export function DrillScreen({
       const beat = beatRef.current;
       answer(current.reference);
       if (uri === null) return;
-      void scoreAttempt(userId, uri, current.reference).then((reason) => {
+      void scoreRecordedAttempt(userId, uri, current.reference).then((score) => {
+        const reason = score?.report.focus?.reason ?? null;
         if (reason !== null && beatRef.current === beat) setFocusLine(reason);
       });
     },

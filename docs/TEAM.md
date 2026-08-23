@@ -1,8 +1,8 @@
 # The team
 
-Sixteen agents work on this repo. Four of them are **roles in a loop** and twelve are
-**engineers who own a territory**, and the difference matters when you are deciding who to
-call.
+The fleet combines loop roles, subsystem engineers, and product specialists. The
+difference matters when deciding who may build, who coordinates, and who must remain an
+independent reviewer.
 
 The loop roles are about *when*: `design-architect` decides the shape before anything is
 written, `bug-hunter` repairs a defect, `fix-verifier` tries to refute the repair,
@@ -20,7 +20,7 @@ subsystem, and knows the things about those paths that a generalist gets wrong.
 | `backend-engineer` | opus | yes | `services/tutor-agent/`, `services/token-server/` |
 | `data-engineer` | opus | yes | every `store.ts`, `storage/scope.ts`, profile migrations, `EntitlementStore` |
 | `auth-engineer` | opus | yes | `apps/mobile/src/auth/`, `token-server/src/auth.ts` |
-| `api-engineer` | opus | yes | the four endpoints, `core/src/protocol/`, `brain/src/llm/` |
+| `api-engineer` | opus | yes | token-server endpoints, `core/src/protocol/`, `brain/src/llm/` |
 | `revenue-engineer` | opus | yes | `core/src/metering/`, entitlement writes, anything priced |
 | `performance-engineer` | opus | yes | `ttsCache.ts`, `warmCache.ts`, `timing.ts`, prompt-cache breakpoints |
 | `security-engineer` | opus | yes | rate limits, secrets, CORS, headers, `agentAuth.ts` |
@@ -28,11 +28,24 @@ subsystem, and knows the things about those paths that a generalist gets wrong.
 | `deploy-engineer` | opus | yes | `app.json`, `eas.json`, CI, containers |
 | `release-engineer` | opus | **no** | git: branch shape, commit shaping, revert paths |
 | `scaling-engineer` | fable | **no** | nothing. It answers "should we", and usually says no |
+| `product-orchestrator` | opus | yes | phased plan, evidence matrix, ownership, risk and release gates |
+| `repository-archaeologist` | fable | **no** | current-state inventory, duplicates, stale claims, deletion candidates |
+| `data-sync-engineer` | opus | yes | Supabase sync, RLS, offline queue, conflicts, migrations |
+| `voice-platform-engineer` | opus | yes | LiveKit, STT/TTS, reconnects, duration and voice cost ceilings |
+| `tutor-behaviour-engineer` | opus | yes | persona, rescues, recasts, safety and voice/text parity |
+| `learning-science-engineer` | opus | yes | mastery evidence, retrieval, spacing and scaffold fading |
+| `onboarding-ux-engineer` | opus | yes | welcome through first useful French, consent and readiness |
+| `practice-ux-engineer` | opus | yes | review, drills, saved phrases and attempt-before-reveal |
+| `progress-retention-engineer` | opus | yes | honest progress, goals, reminders and return cues |
+| `design-system-engineer` | opus | yes | tokens, components, motion, accessibility and visual QA |
+| `privacy-safety-engineer` | opus | yes | minimisation, consent, retention, deletion and safety policy |
+| `social-systems-engineer` | fable | **no** | approval gate for social, moderation and abuse systems |
+| `qa-release-engineer` | opus | **no** | independent product/security/learning/build release evidence |
 
-`packages/core` pedagogy — the ladder, lesson matching, the session summary — has **no
-specialist on purpose**. [ARCHITECTURE.md](ARCHITECTURE.md) gives each of those decisions
-exactly one owner, and a second opinion about them is how a repo grows two ladders. That
-work stays with whoever is driving, reading [PEDAGOGY.md](PEDAGOGY.md).
+`packages/core` pedagogy — the ladder, lesson matching, and session summary — is owned by
+`learning-science-engineer`. [ARCHITECTURE.md](ARCHITECTURE.md) still gives each decision
+one implementation; the specialist protects that single source rather than creating a
+second ladder.
 
 ## Territory is the point
 
@@ -43,11 +56,12 @@ round and stops a screen quietly re-deciding what counts as a right answer.
 Where a contract spans several territories, `/forge` dispatches each engineer in turn on
 its own files rather than letting one reach across.
 
-## The two that answer rather than build
+## The independent reviewers
 
-`release-engineer` and `scaling-engineer` have no `Edit` and no `Write`, for the same
-reason `design-architect` and `work-judge` do not: an agent that can quietly fix what it
-found has stopped being a second opinion.
+`release-engineer`, `scaling-engineer`, `repository-archaeologist`,
+`social-systems-engineer`, and `qa-release-engineer` have no `Edit` and no `Write`, for the
+same reason `design-architect` and `work-judge` do not: an agent that can quietly fix what
+it found has stopped being a second opinion.
 
 - `release-engineer` returns `LAND` or `HOLD`, with the revert path and what it would not
   undo.
@@ -64,9 +78,9 @@ They ship with instructions rather than infrastructure, and their first answer i
 the seam plus the condition that would justify filling it. That is deliberate. Premature
 infrastructure is a bug you cannot test and a bill you pay monthly.
 
-Note what `scaling-engineer` will tell you first, because it is real today:
-`InMemoryEntitlementStore` and the per-process score budget are **correctness bugs under
-concurrency**, not capacity problems. They bite at two instances, not at scale.
+Note what `scaling-engineer` will tell you first: production's Supabase/Upstash concurrency
+controls require live multi-instance proof; the memory/file implementations are local-only
+fixtures and cannot be treated as a deployable fallback.
 
 ## Calling them
 

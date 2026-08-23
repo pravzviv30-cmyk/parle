@@ -1,9 +1,8 @@
 /**
  * The token server.
  *
- * Two jobs: mint LiveKit room credentials, and refuse to mint them when a learner
- * has run out of minutes. Deliberately small — it holds the API secret and the
- * entitlement gate, and nothing else, so there is very little here to get wrong.
+ * The narrow trust boundary for LiveKit grants, entitlement/session metering,
+ * drill scoring, account deletion, and privacy-filtered product events.
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -15,14 +14,40 @@ import {
   DevelopmentEntitlementStore,
   FileEntitlementStore,
   InMemoryEntitlementStore,
+  SupabaseEntitlementStore,
   developmentEntitlementsEnabled,
   type EntitlementStore,
 } from './store.ts';
 import { grantSession, type TokenConfig } from './tokens.ts';
 import { createUserResolver } from './auth.ts';
 import { agentDebitAllowed } from './agentAuth.ts';
+import { productionConfigurationProblems } from './config.ts';
+import { deleteSupabaseUser, signedInRecently } from './accountDeletion.ts';
+import { insertProductEvent, parseProductEvent } from './productEvents.ts';
+import { applyHttpSecurity, createOriginPolicy } from './httpSecurity.ts';
+import {
+  RATE_LIMITS,
+  clientIp,
+  createRateLimiter,
+  createSessionLeaseStore,
+  installationSignal,
+  privateSignal,
+  type RateLimitRule,
+} from './rateLimit.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
+const originPolicy = createOriginPolicy(process.env);
+const rateLimiter = createRateLimiter(process.env);
+const sessionLeases = createSessionLeaseStore(process.env);
+const trustProxy = process.env.PARLE_TRUST_PROXY === '1';
+const rateLimitSalt = process.env.PARLE_RATE_LIMIT_SALT ?? 'parle-local-development-rate-limit-salt';
+const ACTIVE_SESSION_LEASE_SEC = 30 * 60;
+
+const productionProblems = productionConfigurationProblems(process.env);
+if (productionProblems.length > 0) {
+  console.error(`[parle] Refusing unsafe production configuration: ${productionProblems.join(', ')}.`);
+  process.exit(1);
+}
 
 function requiredEnv(name: string): string {
   const v = process.env[name];
@@ -44,9 +69,8 @@ const config: TokenConfig = {
 const livekitUrl = requiredEnv('LIVEKIT_URL');
 /**
  * Shared with the tutor agent, which is the only legitimate caller of
- * /session/end. Unset, the endpoint behaves exactly as it always has — the
- * keyless dev path stays keyless — but it says so at boot, once, rather than
- * leaving the hole undocumented in a running process.
+ * /session/end. Production boot refuses an unset secret; explicit local
+ * development retains a noisy compatibility path.
  */
 const AGENT_SECRET = process.env.PARLE_AGENT_SECRET;
 if (!AGENT_SECRET) {
@@ -57,7 +81,8 @@ if (!AGENT_SECRET) {
 }
 
 /**
- * File-backed when ENTITLEMENT_STORE_PATH says where, in memory otherwise.
+ * Production configuration validation requires Supabase before this selection.
+ * File and memory branches are explicit local-development fixtures.
  *
  * In memory, a restart hands every learner their minutes back — which is
  * generous until the day it is not, and either way means the balance shown to a
@@ -73,12 +98,14 @@ if (developmentMinutes) {
 
 const store: EntitlementStore = developmentMinutes
   ? new DevelopmentEntitlementStore()
-  : process.env.ENTITLEMENT_STORE_PATH
-    ? new FileEntitlementStore(process.env.ENTITLEMENT_STORE_PATH)
-    : new InMemoryEntitlementStore();
+  : process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? new SupabaseEntitlementStore(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+    : process.env.ENTITLEMENT_STORE_PATH
+      ? new FileEntitlementStore(process.env.ENTITLEMENT_STORE_PATH)
+      : new InMemoryEntitlementStore();
 
-// Optional Supabase verification. Absent, the server trusts asserted userIds
-// exactly as it always has — the keyless dev path.
+// Production requires Supabase JWKS verification. Absent configuration is only
+// reachable through the explicit local-development boot mode.
 const users = createUserResolver({
   jwtSecret: process.env.SUPABASE_JWT_SECRET,
   supabaseUrl: process.env.SUPABASE_URL,
@@ -89,12 +116,37 @@ function json(res: ServerResponse, status: number, body: unknown, headers: Recor
   res.writeHead(status, {
     'content-type': 'application/json',
     'content-length': Buffer.byteLength(payload),
-    // The Expo web build runs on a different origin in development.
-    'access-control-allow-origin': '*',
-    'timing-allow-origin': '*',
     ...headers,
   });
   res.end(payload);
+}
+
+async function withinLimits(
+  req: IncomingMessage,
+  res: ServerResponse,
+  checks: readonly (readonly [RateLimitRule, 'ip' | 'user' | 'installation', string])[],
+): Promise<boolean> {
+  const decisions = await Promise.all(
+    checks.map(([rule, kind, signal]) => rateLimiter.consume(rule, privateSignal(rateLimitSalt, kind, signal))),
+  );
+  const refused = decisions.find((decision) => !decision.allowed);
+  if (!refused) return true;
+  json(
+    res,
+    429,
+    { error: 'request limit reached', message: 'That needs a short pause. Try again soon.' },
+    { 'retry-after': String(refused.retryAfterSec) },
+  );
+  return false;
+}
+
+function ipCheck(req: IncomingMessage, rule: RateLimitRule): readonly [RateLimitRule, 'ip', string] {
+  return [rule, 'ip', clientIp(req, trustProxy)];
+}
+
+function installationChecks(req: IncomingMessage, rule: RateLimitRule): readonly (readonly [RateLimitRule, 'installation', string])[] {
+  const installation = installationSignal(req);
+  return installation ? [[rule, 'installation', installation]] : [];
 }
 
 async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
@@ -121,33 +173,15 @@ async function readAudio(req: IncomingMessage): Promise<Uint8Array> {
   return Buffer.concat(chunks);
 }
 
-/**
- * The scoring budget: per-utterance vendor spend is tiny but not zero, and an
- * unmetered endpoint with a key behind it is an invitation. Generous enough
- * that no honest learner ever meets it. In-memory like the entitlement store,
- * and reset the same way — by a restart, honestly documented as such.
- */
-const SCORE_BUDGET_PER_DAY = 300;
-const scoreCounts = new Map<string, { day: string; used: number }>();
-
-function underScoreBudget(userId: string, now = new Date()): boolean {
-  const day = now.toISOString().slice(0, 10);
-  const entry = scoreCounts.get(userId);
-  if (entry === undefined || entry.day !== day) {
-    scoreCounts.set(userId, { day, used: 1 });
-    return true;
-  }
-  if (entry.used >= SCORE_BUDGET_PER_DAY) return false;
-  entry.used += 1;
-  return true;
-}
-
 const server = createServer(async (req, res) => {
+  if (!applyHttpSecurity(req, res, originPolicy)) {
+    return json(res, 403, { error: 'origin not allowed' });
+  }
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
-      'access-control-allow-origin': '*',
       'access-control-allow-methods': 'GET,POST,OPTIONS',
-      'access-control-allow-headers': 'content-type, authorization',
+      'access-control-allow-headers': 'content-type, authorization, x-parle-installation',
+      'access-control-max-age': '600',
     });
     return res.end();
   }
@@ -161,6 +195,7 @@ const server = createServer(async (req, res) => {
 
     // What the app calls to begin. Returns credentials, or 402 with the reason.
     if (req.method === 'POST' && url.pathname === '/session/start') {
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.sessionIp)]))) return;
       const startedAt = performance.now();
       const body = await readJson(req);
       const parsedAt = performance.now();
@@ -170,6 +205,14 @@ const server = createServer(async (req, res) => {
       const authorisedAt = performance.now();
       if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
       const userId = resolved.userId;
+      const installation = installationSignal(req);
+      if (process.env.NODE_ENV === 'production' && installation === null) {
+        return json(res, 400, { error: 'installation proof required' });
+      }
+      if (!(await withinLimits(req, res, [
+        [RATE_LIMITS.sessionUser, 'user', userId],
+        ...installationChecks(req, RATE_LIMITS.sessionInstallation),
+      ]))) return;
 
       // Session-shape hints the app may send. All optional, all validated: an
       // invalid startRung is dropped (grantSession checks integer 1–4), anything
@@ -179,6 +222,10 @@ const server = createServer(async (req, res) => {
       // channel: shape-checked here, validated in grantSession, and dropped there
       // if it does not hold two sane strings. Never a 400, because a bad hint
       // must not refuse a session; it simply starts generic, as it does today.
+      // missionId is the second passenger on that same channel and obeys the
+      // same rules: a loose string here, validated and signed in grantSession,
+      // resolved against the catalogue by the agent and nowhere else. It has no
+      // say in entitlement, in metered minutes, or in whether a session starts.
       const startRung = typeof body.startRung === 'number' ? body.startRung : undefined;
       const mode =
         body.mode === 'convo'
@@ -190,7 +237,22 @@ const server = createServer(async (req, res) => {
               : ('lesson' as const);
       const snapshot = typeof body.snapshot === 'object' && body.snapshot !== null ? body.snapshot : undefined;
       const seedTopic = typeof body.seedTopic === 'object' && body.seedTopic !== null ? body.seedTopic : undefined;
+      const missionId = typeof body.missionId === 'string' && body.missionId ? body.missionId : undefined;
 
+      if (
+        installation !== null &&
+        !(await store.claimTrial(
+          userId,
+          privateSignal(rateLimitSalt, 'installation', installation),
+          privateSignal(rateLimitSalt, 'user', userId),
+        ))
+      ) {
+        return json(res, 402, {
+          error: 'trial already claimed',
+          message: 'The introductory minutes for this installation have already been used by another account.',
+          plans: PLANS,
+        });
+      }
       const entitlement = await store.get(userId);
       const entitledAt = performance.now();
       const result = await grantSession({
@@ -202,6 +264,7 @@ const server = createServer(async (req, res) => {
         ...(startRung !== undefined ? { startRung } : {}),
         ...(snapshot !== undefined ? { snapshot } : {}),
         ...(seedTopic !== undefined ? { seedTopic } : {}),
+        ...(missionId !== undefined ? { missionId } : {}),
       });
       const grantedAt = performance.now();
       const serverTiming = [
@@ -214,6 +277,15 @@ const server = createServer(async (req, res) => {
       if (!result.ok) {
         return json(res, result.status, { error: result.reason, message: result.message, plans: PLANS }, { 'server-timing': serverTiming });
       }
+      const leaseSignal = privateSignal(rateLimitSalt, 'user', userId);
+      if (!(await sessionLeases.acquire(leaseSignal, result.grant.sessionId, ACTIVE_SESSION_LEASE_SEC))) {
+        return json(
+          res,
+          409,
+          { error: 'session already active', message: 'Your other French session is still active. End it before starting another.' },
+          { 'server-timing': serverTiming },
+        );
+      }
       return json(res, 200, { ...result.grant, livekitUrl }, { 'server-timing': serverTiming });
     }
 
@@ -223,14 +295,16 @@ const server = createServer(async (req, res) => {
     // the phoneme observations plus the ONE focus core selects; the app must
     // never turn this into eleven red bars.
     if (req.method === 'POST' && url.pathname === '/drill/score') {
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.scoringIp)]))) return;
       const reference = url.searchParams.get('reference');
       if (!reference) return json(res, 400, { error: 'reference is required' });
       const resolved = await users.resolve(req.headers.authorization, url.searchParams.get('userId'));
       if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
       const userId = resolved.userId;
-      if (!underScoreBudget(userId)) {
-        return json(res, 429, { error: 'scoring budget reached', message: 'Enough speaking for today. The drills still listen tomorrow.' });
-      }
+      if (!(await withinLimits(req, res, [
+        [RATE_LIMITS.scoringUser, 'user', userId],
+        ...installationChecks(req, RATE_LIMITS.scoringInstallation),
+      ]))) return;
 
       const audio = await readAudio(req);
       if (audio.length === 0) return json(res, 400, { error: 'audio body is required' });
@@ -243,11 +317,52 @@ const server = createServer(async (req, res) => {
       return json(res, 200, { observations, report });
     }
 
+    // Delete the verified caller, never a user id supplied by the client. The
+    // foreign keys in the migration cascade learner state, events and minutes.
+    if (req.method === 'POST' && url.pathname === '/account/delete') {
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.deletionIp)]))) return;
+      const resolved = await users.resolve(req.headers.authorization, null);
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      if (!(await withinLimits(req, res, [[RATE_LIMITS.deletionUser, 'user', resolved.userId]]))) return;
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!supabaseUrl || !serviceRoleKey) {
+        return json(res, 503, { error: 'account deletion is not configured' });
+      }
+      if (!(await signedInRecently(supabaseUrl, serviceRoleKey, resolved.userId))) {
+        return json(res, 403, {
+          error: 'recent authentication required',
+          message: 'Sign in again to confirm it is you, then delete the account within five minutes.',
+        });
+      }
+      await deleteSupabaseUser(supabaseUrl, serviceRoleKey, resolved.userId);
+      return json(res, 200, { deleted: true });
+    }
+
+    if (req.method === 'POST' && url.pathname === '/events') {
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.eventsIp)]))) return;
+      const body = await readJson(req);
+      const resolved = await users.resolve(
+        req.headers.authorization,
+        typeof body.userId === 'string' ? body.userId : null,
+      );
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      if (!(await withinLimits(req, res, [[RATE_LIMITS.eventsUser, 'user', resolved.userId]]))) return;
+      const event = parseProductEvent(body);
+      if (!event) return json(res, 400, { error: 'unsupported product event' });
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      // Local mock development has no database sink and reports that honestly.
+      if (!supabaseUrl || !serviceRoleKey) return json(res, 200, { accepted: false });
+      await insertProductEvent(supabaseUrl, serviceRoleKey, resolved.userId, event);
+      return json(res, 200, { accepted: true });
+    }
+
     // Called when a session ends. Metered seconds are debited here. This one
     // stays body-trusted on purpose: the caller is the tutor agent, server
     // side, using the identity it read out of the signed join token — there is
-    // no learner bearer token in that path. Follow-up: a shared agent secret
-    // would close the debit-a-stranger griefing hole.
+    // no learner bearer token in that path. The shared agent secret authenticates
+    // this service-to-service call outside explicit local development.
     if (req.method === 'POST' && url.pathname === '/session/end') {
       // The caller is the tutor agent, server side, using the identity it read
       // out of the signed join token. A shared secret is what separates that
@@ -258,10 +373,23 @@ const server = createServer(async (req, res) => {
       const body = await readJson(req);
       const userId = typeof body.userId === 'string' ? body.userId : null;
       const seconds = typeof body.seconds === 'number' ? body.seconds : NaN;
-      if (!userId || !Number.isFinite(seconds) || seconds < 0) {
-        return json(res, 400, { error: 'userId and a non-negative seconds value are required' });
+      const sessionId = typeof body.sessionId === 'string' ? body.sessionId : null;
+      if (
+        !userId ||
+        !Number.isInteger(seconds) ||
+        seconds < 0 ||
+        seconds > 900 ||
+        !sessionId ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)
+      ) {
+        return json(res, 400, { error: 'userId, sessionId and whole seconds from 0 to 900 are required' });
       }
-      const updated = await store.consume(userId, seconds);
+      if (!(await withinLimits(req, res, [
+        ipCheck(req, RATE_LIMITS.debitIp),
+        [RATE_LIMITS.debitUser, 'user', userId],
+      ]))) return;
+      const updated = await store.consume(userId, seconds, sessionId);
+      await sessionLeases.release(privateSignal(rateLimitSalt, 'user', userId), sessionId);
       return json(res, 200, { secondsRemaining: secondsRemaining(updated), plan: updated.plan });
     }
 

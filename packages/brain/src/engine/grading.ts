@@ -85,15 +85,64 @@ const SURFACE: Record<Strictness, Record<CoachKind, 'inline' | 'recap'>> = {
  */
 export const INLINE_CAP: Record<Strictness, number> = { flow: 1, balanced: 2, strict: 3 };
 
+/**
+ * How many turns must pass between two coaching interruptions the learner did
+ * not ask for.
+ *
+ * The cap above is a budget PER TURN, which means a budget of one, spent every
+ * turn, is still an interruption every turn. That is what it was: at A0 every
+ * single thing a learner says is textbook French, `textbook-phrasing` surfaces
+ * inline at every strictness because it is the finding this product exists for,
+ * so the model found one every turn and the tutor corrected on every turn. On
+ * the loosest setting. The founder's words for the result were that it "never
+ * just reacts", and no prompt rewrite could have fixed it, because this is code
+ * deciding, not the model.
+ *
+ * So the budget gains its missing second dimension. Nothing becomes ineligible:
+ * `surfacePolicy` is untouched and textbook phrasing still surfaces inline at
+ * every strictness. It simply does not get the slot on consecutive turns, and
+ * what misses the slot is not lost — it joins the recap queue, which already
+ * dedupes and already groups by topic.
+ *
+ * Two is one correction roughly every third turn, which is about the rate a
+ * person corrects someone they are enjoying talking to.
+ */
+export const INLINE_COACH_COOLDOWN_TURNS = 2;
+
+/**
+ * Findings that answer the learner rather than interrupt them, and so are never
+ * held back by the cooldown.
+ *
+ * `english-to-french` is the reply to a question they just asked, and it is
+ * already exempt from the per-turn cap for that reason (G7). `blocking-error`
+ * means the scene did not understand them: withholding it to keep the rhythm
+ * pleasant would strand the learner inside the conversation, which costs more
+ * than the interruption saves. It still spends the per-turn budget.
+ */
+const ANSWERS_RATHER_THAN_INTERRUPTS: ReadonlySet<CoachKind> = new Set<CoachKind>([
+  'english-to-french',
+  'blocking-error',
+]);
+
 export function surfacePolicy(kind: CoachKind, strictness: Strictness): 'inline' | 'recap' {
   return SURFACE[strictness][kind];
 }
 
-/** Split findings into what interrupts now and what waits for the end card. */
+/**
+ * Split findings into what interrupts now and what waits for the end card.
+ *
+ * `turnsSinceInterruption` is how many turns ago the tutor last broke the scene
+ * to coach something the learner did not ask about. The default is "long ago",
+ * so a caller that does not track it behaves exactly as this did before.
+ *
+ * `interrupted` reports back whether this turn spent that budget, so the caller
+ * can restart the clock without re-deriving the rule.
+ */
 export function splitCoach(
   coach: readonly CoachItem[],
   strictness: Strictness,
-): { inline: CoachItem[]; deferred: CoachItem[] } {
+  turnsSinceInterruption: number = Number.POSITIVE_INFINITY,
+): { inline: CoachItem[]; deferred: CoachItem[]; interrupted: boolean } {
   const ordered = [...coach].sort((a, b) => {
     const byKind = KIND_PRIORITY.indexOf(a.kind) - KIND_PRIORITY.indexOf(b.kind);
     if (byKind !== 0) return byKind;
@@ -109,17 +158,23 @@ export function splitCoach(
   // how to say something heard "Not quite. Try …" and never got told. It now
   // neither spends the budget nor waits for it.
   let spent = 0;
+  let interrupted = false;
+  const coolingDown = turnsSinceInterruption < INLINE_COACH_COOLDOWN_TURNS;
+
   for (const item of ordered) {
     if (surfacePolicy(item.kind, strictness) !== 'inline') {
       deferred.push(item);
     } else if (item.kind === 'english-to-french') {
       inline.push(item);
-    } else if (spent < INLINE_CAP[strictness]) {
+    } else if (spent >= INLINE_CAP[strictness]) {
+      deferred.push(item);
+    } else if (coolingDown && !ANSWERS_RATHER_THAN_INTERRUPTS.has(item.kind)) {
+      deferred.push(item);
+    } else {
       inline.push(item);
       spent += 1;
-    } else {
-      deferred.push(item);
+      if (!ANSWERS_RATHER_THAN_INTERRUPTS.has(item.kind)) interrupted = true;
     }
   }
-  return { inline, deferred };
+  return { inline, deferred, interrupted };
 }

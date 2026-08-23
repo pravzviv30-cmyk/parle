@@ -34,15 +34,17 @@ import { SessionScreen } from '../SessionScreen.tsx';
 import { SummaryScreen } from '../SummaryScreen.tsx';
 import { DrillScreen } from '../DrillScreen.tsx';
 import { ReviewScreen } from '../ReviewScreen.tsx';
-import { AddFriendsScreen } from '../friends/AddFriendsScreen.tsx';
+import { MissionsScreen } from '../missions/MissionsScreen.tsx';
 import { HomeTab } from '../tabs/HomeTab.tsx';
 import { TutorTab } from '../tabs/TutorTab.tsx';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 import { PracticeTab } from '../tabs/PracticeTab.tsx';
-import { LeaderboardTab } from '../tabs/LeaderboardTab.tsx';
+import { MyFrenchTab } from '../tabs/MyFrenchTab.tsx';
 import { ProfileTab } from '../tabs/ProfileTab.tsx';
+import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
 import { ParleTabBar } from './ParleTabBar.tsx';
 import type { RootStackParamList, TabParamList } from './types.ts';
+import type { AuthResult } from '../auth/types.ts';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -221,6 +223,12 @@ function ConvoRoute() {
         onExit={() => nav.goBack()}
         startInTextMode={route.params?.textMode ?? false}
         seedTopic={route.params?.seedTopic}
+        // The mission the learner chose, carried through to the join token so
+        // the agent can open its authored scene without a model call. This line
+        // is the whole difference between a mission and an ordinary
+        // conversation: without it the id dies here, every card opens the
+        // model-written path, and nothing downstream can tell.
+        missionId={route.params?.missionId}
       />
     </Suspense>
   );
@@ -246,7 +254,23 @@ function ReviewRoute() {
   return <ReviewScreen onDone={() => nav.goBack()} />;
 }
 
-function Tabs({ onSignOut, onResetProgress }: { onSignOut: () => void; onResetProgress: () => void }) {
+function SoundCheckRoute() {
+  const nav = useNavigation<{ goBack: () => void }>();
+  const route = useRoute<RouteProp<RootStackParamList, 'SoundCheck'>>();
+  const { user } = useAuth();
+  if (!user) return <Loading />;
+  return <SoundCheckScreen userId={user.id} missionId={route.params.missionId} onDone={() => nav.goBack()} />;
+}
+
+function Tabs({
+  onSignOut,
+  onResetProgress,
+  onDeleteAccount,
+}: {
+  onSignOut: () => void;
+  onResetProgress: () => void;
+  onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
+}) {
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: paper.ground } }}
@@ -255,17 +279,35 @@ function Tabs({ onSignOut, onResetProgress }: { onSignOut: () => void; onResetPr
       <Tab.Screen name="Home" component={HomeTab} />
       <Tab.Screen name="Tutor" component={TutorTab} />
       <Tab.Screen name="Practice" component={PracticeTab} />
-      <Tab.Screen name="Leaderboard" component={LeaderboardTab} />
+      <Tab.Screen name="MyFrench" component={MyFrenchTab} />
       <Tab.Screen name="Profile">
-        {() => <ProfileTab onSignOut={onSignOut} onResetProgress={onResetProgress} />}
+        {() => <ProfileTab onSignOut={onSignOut} onResetProgress={onResetProgress} onDeleteAccount={onDeleteAccount} />}
       </Tab.Screen>
     </Tab.Navigator>
   );
 }
 
-export function RootNavigator({ onSignOut, onResetProgress }: { onSignOut: () => void; onResetProgress: () => void }) {
+export function RootNavigator({
+  onSignOut,
+  onResetProgress,
+  onDeleteAccount,
+  startOnMissions = false,
+}: {
+  onSignOut: () => void;
+  onResetProgress: () => void;
+  onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
+  /**
+   * A learner who finished onboarding a second ago opens on the chooser rather
+   * than on Home, so the first thing after signing up is picking something to
+   * say. The flag is held in memory by App.tsx and never written down: an app
+   * killed between the two lands on Home, whose mission card leads here anyway,
+   * and a persisted flag would be one more thing that can get stuck.
+   */
+  startOnMissions?: boolean;
+}) {
   return (
     <Stack.Navigator
+      initialRouteName={startOnMissions ? 'Missions' : 'Tabs'}
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: paper.ground },
@@ -274,12 +316,15 @@ export function RootNavigator({ onSignOut, onResetProgress }: { onSignOut: () =>
         animation: 'fade',
       }}
     >
-      <Stack.Screen name="Tabs">{() => <Tabs onSignOut={onSignOut} onResetProgress={onResetProgress} />}</Stack.Screen>
+      <Stack.Screen name="Tabs">
+        {() => <Tabs onSignOut={onSignOut} onResetProgress={onResetProgress} onDeleteAccount={onDeleteAccount} />}
+      </Stack.Screen>
       <Stack.Screen name="Lesson" component={LessonRoute} />
       <Stack.Screen name="Convo" component={ConvoRoute} />
       <Stack.Screen name="Drill" component={DrillRoute} />
       <Stack.Screen name="Review" component={ReviewRoute} />
-      <Stack.Screen name="AddFriends" component={AddFriendsScreen} />
+      <Stack.Screen name="SoundCheck" component={SoundCheckRoute} />
+      <Stack.Screen name="Missions" component={MissionsScreen} />
     </Stack.Navigator>
   );
 }

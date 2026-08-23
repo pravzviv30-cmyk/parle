@@ -42,10 +42,50 @@ function focusFrom(errorTags: Record<string, number>): string {
   return FOCUS_BY_TAG[tag] ?? `Work on: ${tag.replace(/-/g, ' ')}.`;
 }
 
+/**
+ * The line at the top of the end card, in three families rather than three
+ * lines.
+ *
+ * This is the last thing a learner reads before they close the app, and it is
+ * the one they will see most often, because most sessions land in the same
+ * branch. Three sentences, forever, is how an end card stops meaning anything.
+ * Rotated on the turn count, never randomly, so the same session always ends
+ * the same way and the recap stays testable.
+ *
+ * First entry of each family is the line this shipped with.
+ */
+const HEADLINES = {
+  carried: ['You carried that scene.', 'You held that whole conversation.', 'That one was yours.'],
+  produced: [
+    'Real French came out of you today.',
+    'Real French, out loud, from you.',
+    'You said things today you could not say before.',
+  ],
+  steady: [
+    'Good session. The next one builds on it.',
+    'Good work. We pick this up next time.',
+    'That is a session. The next one goes further.',
+  ],
+} as const satisfies Record<string, readonly string[]>;
+
+/**
+ * The families, so a test can walk every line of every one. Literal keys, not a
+ * Record, so naming a family that does not exist is a compile error.
+ */
+export const HEADLINE_FAMILIES: { [K in keyof typeof HEADLINES]: readonly string[] } = HEADLINES;
+
+/** Sessions long enough to have been carried rather than merely started. */
+const CARRIED_TURNS = 6;
+const WINS_FOR_PRODUCED = 3;
+
 function headlineFor(state: ConversationState, wins: string[]): string {
-  if (state.ladder.rescues === 0 && state.turnCount >= 6) return 'You carried that scene.';
-  if (wins.length >= 3) return 'Real French came out of you today.';
-  return 'Good session. The next one builds on it.';
+  const family =
+    state.ladder.rescues === 0 && state.turnCount >= CARRIED_TURNS
+      ? HEADLINES.carried
+      : wins.length >= WINS_FOR_PRODUCED
+        ? HEADLINES.produced
+        : HEADLINES.steady;
+  return family[Math.abs(Math.trunc(state.turnCount)) % family.length]!;
 }
 
 function dedupeFixes(deferred: readonly CoachItem[]): CoachItem[] {

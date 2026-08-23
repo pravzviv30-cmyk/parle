@@ -15,6 +15,7 @@
  */
 
 import type { TurnLine } from '../live/turns.ts';
+import { TUTOR_NAME } from './tutorName.ts';
 
 /**
  * Deliberately four of VoiceOrb's five states, and a subset of its union so it
@@ -106,7 +107,7 @@ export function micOpensAtConnect(mode: LiveMode | undefined): boolean {
 export const TAP_TO_TALK = 'Tap the circle when you are ready to talk.';
 
 /** What the learner may talk about, which is anything. */
-export const ANYTHING_GOES = 'Anything goes. Say it in English or French, and your tutor takes it from there.';
+export const ANYTHING_GOES = `Anything goes. Say it in English or French, and ${TUTOR_NAME} takes it from there.`;
 
 /** The quiet twin, worded exactly as the tutor tab words it. */
 export const QUIET_DOOR = 'Unable to speak right now?';
@@ -139,12 +140,12 @@ export function choosingView(state: ChoosingState): ChoosingView {
   const orbLabel = orbIsButton
     ? 'Tap the circle when you are ready to talk'
     : orb === 'thinking'
-      ? 'Your tutor is thinking'
+      ? `${TUTOR_NAME} is thinking`
       : orb === 'speaking'
-        ? 'Your tutor is speaking'
+        ? `${TUTOR_NAME} is speaking`
         : orb === 'listening'
           ? 'Your turn to speak'
-          : 'Your tutor is ready';
+          : `${TUTOR_NAME} is ready`;
 
   // Two voices in the thread is the moment the thread becomes worth drawing.
   const answered = turns.some((t) => t.who === 'learner');

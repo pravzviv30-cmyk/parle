@@ -34,6 +34,7 @@ import { scoreUtterance } from './speechace.ts';
 import { reportUsage } from './usage.ts';
 import { TurnQueue } from './queue.ts';
 import { UtteranceTap, audioScoringEnabled, observeEvents, observeFrames } from './utterance.ts';
+import { safetyDecision } from './safety.ts';
 
 /** Anything that can carry a message back to the app. */
 type Publisher = (message: ServerMessage) => void;
@@ -101,6 +102,17 @@ export class ParleTutor extends voice.Agent {
     this.publish({ t: 'error', message });
   }
 
+  /** Handle explicit high-risk content before grading or model context. */
+  private handleSafety(text: string, session?: voice.AgentSession): boolean {
+    const decision = safetyDecision(text);
+    if (decision === null) return false;
+    this.clearRescue();
+    this.publishError(decision.message);
+    if (!this.voiceless && session) session.say(decision.message, { allowInterruptions: false });
+    if (decision.action === 'stop') void this.finish();
+    return true;
+  }
+
   /** Handle an intent the learner expressed by tapping rather than speaking. */
   async handleClientMessage(session: voice.AgentSession, payload: Uint8Array): Promise<void> {
     const msg = decodeClientMessage(payload);
@@ -108,6 +120,7 @@ export class ParleTutor extends voice.Agent {
 
     if (msg.t === 'ready') return this.sendCurrentPrompt();
     if (msg.t === 'leave') return void this.finish();
+    if (msg.t === 'say' && this.handleSafety(msg.text, session)) return;
     if (msg.t === 'hear') {
       // Replay the line to say, uninterruptible so it always plays out whole.
       // Scripted lines come from the TTS cache, so a replay costs nothing.
@@ -233,6 +246,8 @@ export class ParleTutor extends voice.Agent {
       throw new voice.StopResponse();
     }
 
+    if (this.handleSafety(transcript, this.session)) throw new voice.StopResponse();
+
     this.publish({ t: 'transcript', text: transcript, final: true });
 
     const prompt = currentPrompt(this.lesson, this.state);
@@ -315,9 +330,20 @@ export class ParleTutor extends voice.Agent {
       `[parle] session complete — ${summary.turnsCompleted} turns, ${summary.wordsProduced.length} words, ` +
         `${wallClockSec}s, focus=${summary.pronunciation.focus?.phoneme.ipa ?? 'none'}`,
     );
-    await reportUsage({ userId: this.learnerId, seconds: wallClockSec, utterancesScored: summary.utterancesScored });
+    // A room that never delivered a learner turn is an unusable start, not a
+    // product the learner should pay for. Reporting zero still releases the
+    // active-session lease and records the session id exactly once.
+    const billableSeconds = summary.turnsCompleted > 0 ? wallClockSec : 0;
+    await reportUsage({
+      userId: this.learnerId,
+      sessionId: this.sessionId,
+      seconds: billableSeconds,
+      utterancesScored: summary.utterancesScored,
+    });
   }
 
   /** Set from the room identity so usage lands on the right account. */
   learnerId = 'anonymous';
+  /** Signed into the join token; retries with this id can never double-debit. */
+  sessionId = '00000000-0000-4000-8000-000000000000';
 }

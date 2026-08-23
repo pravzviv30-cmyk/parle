@@ -33,24 +33,35 @@ Do not start editing. Step 2 is where the design comes from, and it is not you.
 
    | Files to touch | Engineer |
    |---|---|
+   | programme roadmap, evidence matrix, ownership, risks | **product-orchestrator** |
+   | repository inventory, duplicates, stale claims, deletion candidates | **repository-archaeologist** |
    | `apps/mobile/src/` screens, tabs, components, theme, nav | **frontend-engineer** |
+   | welcome, auth handoff, consent, first useful French | **onboarding-ux-engineer** |
+   | review, drills, saved phrases, attempt/reveal | **practice-ux-engineer** |
+   | progress, goals, reminders, return cues | **progress-retention-engineer** |
+   | theme tokens, components, motion, contrast, visual QA | **design-system-engineer** |
    | `apps/mobile/src/auth/`, `token-server/src/auth.ts` | **auth-engineer** |
    | any `store.ts`, `storage/scope.ts`, profile migrations | **data-engineer** |
+   | Supabase learner sync, RLS, offline queue, conflicts | **data-sync-engineer** |
    | `server.ts` endpoints, `core/src/protocol/`, `brain/src/llm/` | **api-engineer** |
    | `services/tutor-agent/`, the rest of `token-server/` | **backend-engineer** |
+   | LiveKit grants, participants, STT/TTS, reconnect, hard duration | **voice-platform-engineer** |
+   | tutor persona, rescues, recasts, mode parity, safety behaviour | **tutor-behaviour-engineer** |
+   | mastery, retrieval, spacing, scaffold fading, evidence validity | **learning-science-engineer** |
    | `core/src/metering/`, entitlement writes, anything priced | **revenue-engineer** |
    | `ttsCache.ts`, `warmCache.ts`, `timing.ts`, cache breakpoints | **performance-engineer** |
    | rate limits, secrets, CORS, headers, `agentAuth.ts` | **security-engineer** |
+   | consent, retention, deletion, analytics privacy, safety policy | **privacy-safety-engineer** |
+   | friends, leaderboards, sharing, competition | **social-systems-engineer** |
    | `usage.ts` logging, `live/failure.ts`, diagnostics | **observability-engineer** |
    | `app.json`, `eas.json`, CI, containers | **deploy-engineer** |
-   | `packages/core` pedagogy — ladder, lessons, session, phonemes | **you** |
+   | independent final gate, device/build matrix, rollback | **qa-release-engineer** |
 
-   Two rules. **Core pedagogy has no specialist on purpose**: `ARCHITECTURE.md` gives the
-   ladder, the matching and the summary exactly one owner, and a second opinion about them
-   is how a repo grows two ladders. And **an engineer edits only its own territory** — where
-   the contract spans several, dispatch each in turn on its own files rather than letting one
-   reach across. Work that turns up outside every territory is a new ledger entry, not a
-   quiet extra edit.
+   Two rules. **Core pedagogy has one specialist, `learning-science-engineer`**: it protects
+   the canonical implementation rather than creating a second ladder. And **an engineer
+   edits only its own territory** — where the contract spans several, dispatch each in turn
+   on its own files rather than letting one reach across. Work outside every territory is a
+   new ledger entry, not a quiet extra edit.
 
 6. **Run `npm run gate`.** From the repo root, never a worktree.
 

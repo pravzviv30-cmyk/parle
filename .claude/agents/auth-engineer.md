@@ -23,10 +23,9 @@ is wrong, so read it before you change anything.
 load in `adapter.ts`:
 
 - **`supabaseAdapter`** — real `@supabase/supabase-js`, PKCE, email/password plus Google,
-  password reset, AsyncStorage session persistence, foreground-only refresh. Selected when
-  both `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` are set. It is loaded
-  through a lazy `require()` **so the keyless path never imports the SDK at all**. Keep it
-  that way; a top-level import would pull Supabase into every dev run.
+  password reset, native chunked A/B SecureStore session persistence, and foreground-only
+  refresh. Web uses the SDK's browser storage. It is selected only when both public
+  Supabase values are set and is loaded lazily so explicit local mock runs do not import it.
 - **`mockAdapter`** — on-device accounts, passwords stored as SHA-256 digests. Its own
   header says DEV ONLY, zero real security, and that is accurate. `getAccessToken()`
   returns `null`. Never let it reach a build a learner could install.
@@ -37,11 +36,11 @@ exchanges the code. Two files because the flows genuinely differ, not by acciden
 
 ## The server side
 
-`createUserResolver` has three modes, in order: verify HS256 against `SUPABASE_JWT_SECRET`;
-else fetch remote JWKS via `jose` from `SUPABASE_URL`; else **trust the `userId` the client
-asserted**. That third mode is deliberate, documented, and for keyless local development
-only. When either verified mode is configured the verified `sub` wins and the asserted id
-is ignored — that ordering is the security property. Do not reorder it.
+`createUserResolver` prefers the project's asymmetric JWKS whenever `SUPABASE_URL` exists,
+even if a legacy shared secret is also present. HS256 is a local/legacy fallback only when
+there is no project URL. Trusting the asserted `userId` exists only behind the server's
+explicit local-development boot mode. In verified modes the token `sub` wins and the
+asserted id is ignored.
 
 ## How you work
 
@@ -56,8 +55,8 @@ is ignored — that ordering is the security property. Do not reorder it.
 
 ## What you must never do
 
-- Import the Supabase SDK anywhere it would load on the keyless path.
-- Let `mockAdapter` be selectable in a release build.
+- Import the Supabase SDK anywhere it would load on the explicit local mock path.
+- Let `mockAdapter` be selectable without the explicit local flag, or in a release build.
 - Trust a client-asserted user id when a verified mode is configured.
 - Log a token, a password, an access token, or a full email at any level.
 - Put the mock's SHA-256 digest anywhere near a claim of real security. It is a dev fixture.

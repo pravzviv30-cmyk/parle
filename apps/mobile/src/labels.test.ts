@@ -83,7 +83,6 @@ const KEPT = [
   'Say this',
   'Tell them this, in French',
   'The waiter',
-  'What the tutor heard',
   'Your level',
   'What you have',
   'What moved today',
@@ -137,6 +136,15 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
         `${name} still spreads a header row that now holds one thing, so the way out sits under the wrong thumb`,
       );
     }
+  });
+
+  test('the transcript label still says whose hearing it was', () => {
+    // It left KEPT because it carries the tutor's name now and so is
+    // interpolated, and labelsInSource only reads literals. The guarantee is
+    // unchanged and is the honest half of the label: this is what the tutor
+    // HEARD, which is not always what the learner said.
+    const source = readFileSync(join(SRC, 'SessionView.tsx'), 'utf8');
+    assert.match(source, /<Label[^>]*>\{`What \$\{TUTOR_NAME\} heard`\}<\/Label>/, 'the transcript lost its label');
   });
 
   test('every label that names something the screen does not otherwise say is still there', () => {

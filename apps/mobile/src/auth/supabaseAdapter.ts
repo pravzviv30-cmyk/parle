@@ -1,15 +1,19 @@
 /**
- * The real auth backend. Sessions persist in AsyncStorage on native (web uses
- * the SDK's localStorage default), refresh runs only while the app is
+ * The real auth backend. Sessions persist in encrypted SecureStore on native
+ * (web uses the SDK's localStorage default), refresh runs only while the app is
  * foregrounded, and every provider error is translated to a plain sentence
  * before a screen can show it.
  */
 
 import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 import type { AuthAdapter, AuthResult, AuthUser } from './types.ts';
 import { startGoogleSignIn } from './oauth.ts';
+import { TOKEN_SERVER } from '../live/serverUrl.ts';
+import { createSecureSessionStorage } from './secureSessionStorage.ts';
+import { installationId } from './installation.ts';
 
 function toUser(session: Session | null): AuthUser | null {
   const user = session?.user;
@@ -33,9 +37,20 @@ function friendly(message: string | undefined): string {
 }
 
 export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter {
+  const nativeSessionStorage = createSecureSessionStorage(
+    {
+      getItem: (key) => SecureStore.getItemAsync(key),
+      setItem: (key, value) =>
+        SecureStore.setItemAsync(key, value, {
+          keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+        }),
+      removeItem: (key) => SecureStore.deleteItemAsync(key),
+    },
+    AsyncStorage,
+  );
   const client: SupabaseClient = createClient(url, anonKey, {
     auth: {
-      ...(Platform.OS !== 'web' ? { storage: AsyncStorage } : {}),
+      ...(Platform.OS !== 'web' ? { storage: nativeSessionStorage } : {}),
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: Platform.OS === 'web',
@@ -109,8 +124,54 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
       return error ? { ok: false, message: friendly(error.message) } : { ok: true };
     },
 
+    async reauthenticateForDeletion(secret?: string): Promise<AuthResult> {
+      const { data } = await client.auth.getSession();
+      const user = data.session?.user;
+      if (!user) return { ok: false, message: 'Sign in again before deleting your account.' };
+      if (user.app_metadata?.provider === 'google') {
+        const result = await startGoogleSignIn(client);
+        if (Platform.OS === 'web' && result.ok) {
+          return { ok: false, message: 'Finish signing in with Google, then return here and delete the account again.' };
+        }
+        return result;
+      }
+      if (!user.email || !secret) {
+        return { ok: false, message: 'Enter your password to confirm it is you.' };
+      }
+      const { error } = await client.auth.signInWithPassword({ email: user.email, password: secret });
+      return error ? { ok: false, message: friendly(error.message) } : { ok: true };
+    },
+
+    async deleteAccount(): Promise<AuthResult> {
+      const { data } = await client.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return { ok: false, message: 'Sign in again before deleting your account.' };
+      try {
+        const installation = await installationId();
+        const response = await fetch(`${TOKEN_SERVER}/account/delete`, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${token}`, 'x-parle-installation': installation },
+        });
+        const body = (await response.json().catch(() => null)) as { message?: unknown } | null;
+        return response.ok
+          ? { ok: true }
+          : {
+              ok: false,
+              message: typeof body?.message === 'string'
+                ? body.message
+                : 'Your account could not be deleted right now. Nothing was changed.',
+            };
+      } catch {
+        return { ok: false, message: 'The connection dropped. Nothing was deleted. Try again.' };
+      }
+    },
+
     async signOut() {
-      await client.auth.signOut();
+      const { error } = await client.auth.signOut();
+      // A just-deleted account cannot revoke a server session that no longer
+      // exists. Clear the local session as the fallback so deletion never
+      // leaves a ghost signed-in screen on this device.
+      if (error) await client.auth.signOut({ scope: 'local' });
     },
 
     async getAccessToken() {

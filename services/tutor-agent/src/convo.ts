@@ -28,7 +28,7 @@ import {
   ClaudeCliBrainClient,
   OpenAiCompatBrainClient,
   OpenAiResponsesBrainClient,
-  RECOVERY_LINE,
+  recoveryLine,
   SplitBrainClient,
   ZERO_USAGE,
   addLlmUsage,
@@ -61,10 +61,19 @@ import {
   type ScenarioFrame,
   type SessionRecap,
   type TurnView,
+  missionFrame,
 } from '@parle/brain';
-import { STUCK_SILENCE_MS, decodeClientMessage, validateExercise, type ServerMessage } from '@parle/core';
+import { STUCK_SILENCE_MS, decodeClientMessage, validateExercise, type MissionId, type ServerMessage } from '@parle/core';
+/**
+ * The authored mission scenes, reached by file rather than through brain's
+ * barrel because `@parle/brain` does not re-export `missions/` yet and its
+ * package `exports` map admits only `.`, `./llm` and `./profile`. One line in
+ * that barrel turns this back into an ordinary named import from '@parle/brain';
+ * the file lives in brain's territory, so it is filed rather than edited here.
+ */
 
 import { reportUsage } from './usage.ts';
+import { safetyDecision } from './safety.ts';
 
 /**
  * The wire shapes, derived from the protocol's own ServerMessage rather than
@@ -117,6 +126,11 @@ export function toConvoView(view: TurnView): ConvoView {
     rung: view.rung,
     beat: { goalEn: view.beat.goalEn, position: view.beat.position, total: view.beat.total },
     recapDue: view.recapDue,
+    // The win rides the turn that earned it. Required on the wire precisely so
+    // that this mapping cannot quietly forget it: a view built without it would
+    // read as "not yet" for the rest of the session, and the card that says the
+    // learner just did a real thing in French would never come.
+    missionDone: view.missionDone,
   };
 }
 
@@ -281,6 +295,54 @@ export function validSeedTopic(value: unknown): SeedTopic | undefined {
 }
 
 /**
+ * The mission this session was started on, kept only when this build knows it.
+ *
+ * A second passenger on the pipe the seed topic already rides, and checked on
+ * arrival for the same reason: signed is not the same as sane, and the value
+ * decides which scene a learner is dropped into.
+ *
+ * The id space itself is brain's to own, so the check IS `missionFrame` — it
+ * already answers `undefined` for an id this build has never heard of and for
+ * the inherited property names that make an ordinary object lookup dangerous.
+ * Restating that list here would be a second opinion that could disagree.
+ *
+ * Dropped, never refused: an app and an agent ship on different days, so an
+ * unknown id gets the ordinary choosing question, which is exactly the session
+ * the learner would have had without a mission to tap.
+ */
+export function validMissionId(value: unknown): MissionId | undefined {
+  if (typeof value !== 'string') return undefined;
+  const id = value.trim();
+  return missionFrame(id) === undefined ? undefined : (id as MissionId);
+}
+
+/** A title closed off exactly once, whatever punctuation it arrived with. */
+function asSentence(text: string): string {
+  const trimmed = text.trim();
+  return /[.!?…]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+/**
+ * What the tutor says on the way into a mission.
+ *
+ * One short line, and a statement rather than a question: the learner chose
+ * this scene a moment ago, so asking them again would be the app forgetting
+ * what it was told. It is not the bridge line either — the bridge exists to
+ * cover a scenario build, and a mission has none to cover.
+ *
+ * The title leads and the promise follows, the same shape (and the same
+ * argument) as `seededOpening`: that is how the card read a moment ago, and it
+ * stays grammatical in both languages whatever the title turns out to be —
+ * including the one mission whose title is itself a question.
+ */
+export function missionOpening(frame: ScenarioFrame): { fr: string; en: string } {
+  return {
+    fr: `${asSentence(frame.title)} On y va.`,
+    en: `${asSentence(frame.titleEn)} Here we go.`,
+  };
+}
+
+/**
  * The opening question, with the learner's name on the front of it.
  *
  * Composed in code rather than by the model, because `open()` exists to put a
@@ -288,15 +350,28 @@ export function validSeedTopic(value: unknown): SeedTopic | undefined {
  * spend the whole of that budget saying hello.
  *
  * One string, not two `say()` calls: the framework splits sentences inside a
- * single speech handle, so "Hi Sam." and the question keep their own cache
- * keys — the question is already warmed, so only the two-word greeting is a
- * cold miss and it plays first while the warm half streams from disk.
+ * single speech handle, so the greeting and the question keep their own cache
+ * keys. The question is already warmed, so only the greeting is a cold miss,
+ * and it plays first while the warm half streams from disk.
+ *
+ * THE GREETING HAS TO BE LONG ENOUGH TO BE ITS OWN SENTENCE, and that is not a
+ * style note. The framework's splitter takes a `minSentenceLength` of 20
+ * (@livekit/agents basic.js), so "Hi Sam." glued to the question and the pair
+ * took ONE cache key that the warm run had never seen. The warm script splits
+ * with the same tokenizer, so it stored the bare question, and the bare
+ * question is only ever what an unnamed learner hears. Every named learner's
+ * first line of every session was a full cold vendor round trip, at the one
+ * moment a learner is deciding whether this thing works, while the comment
+ * here said the opposite. Measured, not reasoned: the glued form tokenizes to
+ * one chunk, the current form to two, for names from one letter to nine.
  */
 export function openerFor(name: string | null): { fr: string; en: string } {
   if (name === null || name.length === 0) return { fr: CONVO_LINES.opener.fr, en: CONVO_LINES.opener.en };
   return {
+    // The French is shown, never spoken (open() says the English), so only the
+    // spoken half has to clear the splitter's twenty-character floor.
     fr: `Bonjour ${name}. ${CONVO_LINES.opener.fr}`,
-    en: `Hi ${name}. ${CONVO_LINES.opener.en}`,
+    en: `Hi ${name}, good to see you. ${CONVO_LINES.opener.en}`,
   };
 }
 
@@ -476,6 +551,20 @@ async function withDeadline<T>(work: Promise<T>, ms: number, what: string): Prom
  */
 const TEXT_SILENCE_MS = 12_000;
 
+/**
+ * How long "give me a moment" buys, before the ordinary silence policy resumes.
+ *
+ * One constant in one place, and a guess to be tuned by ear in a live session.
+ * The floor under any mis-tuning is that nothing here is a decision about the
+ * learner: what eventually arrives is the ordinary first rescue with its English
+ * intent hint, so the worst case is support landing slightly early or late.
+ *
+ * Bounded rather than open-ended because the alternative is a learner sitting in
+ * front of a scene with nothing coming, which is the one thing this session is
+ * never allowed to do.
+ */
+export const MOMENT_GRACE_MS = 20_000;
+
 /** How long the post-session memory call gets before its enrichment is dropped. */
 const EXTRACT_TIMEOUT_MS = 8_000;
 
@@ -534,6 +623,23 @@ export class ParleConversation extends voice.Agent {
   private setSttLanguage: (language: SttLanguage) => void = () => {};
   private publish: Publisher = () => {};
   private silenceTimer?: ReturnType<typeof setTimeout>;
+  /**
+   * The learner asked for time and has not used it yet.
+   *
+   * It exists because the grace was being destroyed by the very thing it is
+   * there to tolerate. The grace shares the one silence-clock handle, and
+   * `agent.ts` re-arms that clock on every transition to `listening` while
+   * `setLearnerSpeaking(true)` clears it — so a learner who tapped the control
+   * and then shifted in their chair, or started a word and stopped, lost the
+   * whole twenty seconds and was rescued four seconds later anyway. The control
+   * silently did nothing in the exact situation it exists for.
+   *
+   * So a NOISE no longer spends the grace and neither does a re-arm; only the
+   * learner actually taking their turn does, or the grace running out on its
+   * own. That is the distinction the control is making in the first place:
+   * being quiet is not being stuck, and a sound is not an answer.
+   */
+  private momentHeld = false;
   private startedAt = Date.now();
   private ended = false;
   /**
@@ -553,6 +659,8 @@ export class ParleConversation extends voice.Agent {
 
   /** Set from the room identity so usage lands on the right account. */
   learnerId = 'anonymous';
+  /** Signed into the join token; retries with this id can never double-debit. */
+  sessionId = '00000000-0000-4000-8000-000000000000';
   /** Raw provider-neutral tokens, so development sessions produce real cost evidence. */
   private modelUsage: LlmUsage = ZERO_USAGE;
   private modelCalls = 0;
@@ -585,6 +693,11 @@ export class ParleConversation extends voice.Agent {
    * choose, so a seed would have nowhere to land.
    */
   private readonly seedTopic: SeedTopic | undefined;
+  /**
+   * The mission this session was started on, or nothing. Its scene was authored
+   * ahead of time, which is the whole of why a mission opens in seconds.
+   */
+  private readonly missionId: MissionId | undefined;
 
   /**
    * `client` is the seam a test drives this class through. Without it the
@@ -603,6 +716,12 @@ export class ParleConversation extends voice.Agent {
        * is, so the worker cannot hand this class a half-built one.
        */
       seedTopic?: unknown;
+      /**
+       * The mission this session was started on, if it was started from the
+       * chooser. `unknown` for the same reason the seed is: the guard decides
+       * what a mission id is, not the caller.
+       */
+      missionId?: unknown;
     } = {},
   ) {
     // The pipeline LLM never generates here; see the header. One line keeps
@@ -616,6 +735,7 @@ export class ParleConversation extends voice.Agent {
     });
     this.client = opts.client ?? brainClient();
     this.seedTopic = validSeedTopic(opts.seedTopic);
+    this.missionId = validMissionId(opts.missionId);
     if (opts.setSttLanguage) this.setSttLanguage = opts.setSttLanguage;
   }
 
@@ -674,6 +794,18 @@ export class ParleConversation extends voice.Agent {
     this.publish({ t: 'error', message });
   }
 
+  /** Handle explicit high-risk content before it can become model context. */
+  private handleSafety(text: string): boolean {
+    const decision = safetyDecision(text);
+    if (decision === null) return false;
+    this.releaseMoment();
+    this.clearRescue();
+    this.publishError(decision.message);
+    this.say(decision.message, { allowInterruptions: false });
+    if (decision.action === 'stop') void this.finish();
+    return true;
+  }
+
   /**
    * Open the session on the choosing moment: the tutor asks — in English, out
    * loud — what the learner wants to talk about, and nothing costs a model
@@ -685,6 +817,16 @@ export class ParleConversation extends voice.Agent {
    */
   open(session: voice.AgentSession): void {
     void session; // kept for signature parity with ParleTutor; speech goes via this.session
+    // A mission's scene was written before the learner ever tapped it, so there
+    // is nothing to design and nothing to wait for: no scenario call, none of
+    // G3's ten to twenty five seconds of unexplained silence, and no F37 fall
+    // back to a café nobody asked for. This is the mechanism under the promise
+    // that a learner says their first useful French line inside a minute.
+    const mission = this.missionId === undefined ? undefined : missionFrame(this.missionId);
+    if (mission) {
+      this.openMission(mission);
+      return;
+    }
     // A session started from a practice card already has its answer. Asking
     // again would be the app forgetting what it was just told, so the tutor
     // says what is about to happen and goes straight to the scene. The opening
@@ -716,6 +858,44 @@ export class ParleConversation extends voice.Agent {
   }
 
   /**
+   * Open a mission: publish the opening, say one short line, and be in the
+   * scene. `buildFrame` is never called on this path — the frame is authored,
+   * so the model has nothing left to decide about where this conversation
+   * starts. Everything after that is the ordinary scene: `openScene` pins the
+   * recogniser to French, publishes the first view, and (in the quiet twin)
+   * arms the clock, and the tutor still writes every line of the mission live.
+   *
+   * The frame is a setting, not a script. The beats are aims, a learner who
+   * wants to talk about something else can, and nothing here narrows what
+   * anybody may say — only where the scene begins and what finishing it means.
+   *
+   * Guarded like startScene's tail for the same reason F28 records: a frame the
+   * engine chokes on must hand back a moment the learner can act in, never a
+   * screen that will not change.
+   */
+  private openMission(frame: ScenarioFrame): void {
+    const opening = missionOpening(frame);
+    this.lastOpening = { t: 'opening', prompt: opening };
+    this.publish(this.lastOpening);
+    this.say(opening.en, { allowInterruptions: false });
+
+    try {
+      this.state = createConversation(frame, learnerSnapshotFrom(this.profile), {
+        strictness: 'flow',
+        maxTurns: CONVO_MAX_TURNS,
+        // The engine's own flag: finishing every beat of a mission is a win to
+        // be shown, not a session to be closed. Code decides that, not a prompt.
+        mission: true,
+      });
+      this.phase = 'scene';
+      this.openScene();
+    } catch (error) {
+      console.error('[parle] the mission scene could not be opened; handing back the choosing moment:', error);
+      this.returnToChoosing();
+    }
+  }
+
+  /**
    * A topic landed. Say the cached bridge line so the learner is never
    * waiting in silence, design the scene, and open it. The scenario builder
    * failing — parse error, outage, timeout — falls back to a flexible frame
@@ -733,6 +913,7 @@ export class ParleConversation extends voice.Agent {
    */
   private async startScene(request: string): Promise<void> {
     if (this.ended) return;
+    if (this.handleSafety(request)) return;
     if (this.phase !== 'choosing') {
       // A duplicate press during a healthy build stays dropped — the scene is
       // seconds away and two would open on top of each other — but it says so,
@@ -786,8 +967,8 @@ export class ParleConversation extends voice.Agent {
   private returnToChoosing(): void {
     this.phase = 'choosing';
     this.setSttLanguage(sttLanguageFor('convo', 'choosing'));
-    if (this.seedTopic) {
-      // A session that came from a topic card has no question to go back to:
+    if (this.seedTopic || this.missionId) {
+      // A session that came from a topic card or a mission has no question to go back to:
       // its opening is a statement about the topic they tapped, and repeating
       // it would promise the same scene a second time. The ordinary question is
       // honest about where they now are, and it is something they can answer.
@@ -858,6 +1039,9 @@ export class ParleConversation extends voice.Agent {
       rung: this.state.ladder.rung,
       beat: { goalEn: beat.goalEn, position: beatIndex + 1, total: beats.length },
       recapDue: false,
+      // Read off the state rather than written as false: nothing is won before
+      // the learner has said a word, and the engine is the one that says so.
+      missionDone: this.state.missionDone,
     });
     // The narration is spoken in English: the learner must be able to picture
     // the scene before a word of French lands on them.
@@ -877,6 +1061,10 @@ export class ParleConversation extends voice.Agent {
    * dark.
    */
   armRescue(session: voice.AgentSession): number {
+    // A grace already on the clock is not re-decided by anything that happens
+    // while it runs. `agent.ts` calls this on every transition to `listening`,
+    // which for a thinking learner is a stray sound and nothing more.
+    if (this.momentHeld && this.silenceTimer) return this.queue.generation;
     this.clearRescue();
     void session; // kept for signature parity with ParleTutor; speech goes via this.session
     // Captured now, checked when the timer fires. Returned so the caller — and
@@ -938,7 +1126,11 @@ export class ParleConversation extends voice.Agent {
    */
   setLearnerSpeaking(speaking: boolean): void {
     this.learnerSpeaking = speaking;
-    if (speaking) this.clearRescue();
+    // Taking the floor stands the ordinary clock down, but it must not spend a
+    // grace the learner has not used: `runRescue` already stands down on its own
+    // while they hold the floor, so leaving the grace running costs nothing and
+    // keeps the twenty seconds they asked for.
+    if (speaking && !this.momentHeld) this.clearRescue();
   }
 
   /** Settle once every queued turn has been integrated. For tests. */
@@ -949,6 +1141,45 @@ export class ParleConversation extends voice.Agent {
   clearRescue(): void {
     if (this.silenceTimer) clearTimeout(this.silenceTimer);
     this.silenceTimer = undefined;
+  }
+
+  /**
+   * One bounded grace window, and then the ordinary policy again.
+   *
+   * The same handle as the silence clock on purpose, so there is exactly one
+   * timer in this class and everything that already stands a clock down —
+   * taking the floor, typing, answering, leaving — stands this one down too.
+   * A second timer would be a second idea of when the tutor may step in.
+   *
+   * Bounded, and it hands back to `armRescue` rather than to a smaller version
+   * of itself: what eventually comes is the ordinary first rescue with its
+   * English intent hint. Nobody is stranded, which is the invariant, and a
+   * learner may ask again as many times as they like — asking for time is being
+   * present, and presence is what this clock measures.
+   *
+   * The generation is captured by `armRescue` when the grace runs out, exactly
+   * as every other wait captures it: a turn queued while the learner was
+   * thinking makes the wait that follows a wait for the tutor, and `runRescue`
+   * stands down for that on its own.
+   */
+  private deferForAMoment(): void {
+    this.clearRescue();
+    this.momentHeld = true;
+    this.silenceTimer = setTimeout(() => {
+      this.silenceTimer = undefined;
+      this.momentHeld = false;
+      this.armRescue(this.session);
+    }, MOMENT_GRACE_MS);
+  }
+
+  /**
+   * The learner used the time. Anything that is a real turn releases the grace:
+   * speaking, typing, asking for help, or the session ending. A grace nobody
+   * released would be a clock that never comes back, and PEDAGOGY.md's first
+   * invariant is that a learner is never stranded.
+   */
+  private releaseMoment(): void {
+    this.momentHeld = false;
   }
 
   /**
@@ -988,6 +1219,28 @@ export class ParleConversation extends voice.Agent {
       return;
     }
 
+    if (msg.t === 'moment') {
+      // "Give me a moment" is presence, not failure — the argument `typing`
+      // already settled, said in words instead of keystrokes. It defers the
+      // clock and does nothing else: no applyNonSpokenInput, no rung, no rescue
+      // count, and not one word spoken. A learner who asks for time has got
+      // nothing wrong, and a spoken acknowledgement of a pause is a remark on
+      // the pause, which the tutor is told at every rung never to make. The app
+      // answers on screen.
+      //
+      // While the scene is being built the clock is already dark (armRescue
+      // returns early on `starting`), so there is nothing to defer. On the
+      // choosing screen it behaves exactly like a keystroke: a restart if a
+      // clock is running, and never a clock that was not.
+      if (this.phase === 'starting') return;
+      if (this.phase !== 'scene') {
+        if (this.silenceTimer) this.armRescue(this.session);
+        return;
+      }
+      this.deferForAMoment();
+      return;
+    }
+
     if (msg.t === 'ready') {
       // After the scene has closed, the recap IS the current state — replaying
       // the last scene view would hand a reconnecting app a session that no
@@ -1003,6 +1256,7 @@ export class ParleConversation extends voice.Agent {
       return;
     }
     if (msg.t === 'leave') return void this.finish();
+    if (msg.t === 'say' && this.handleSafety(msg.text)) return;
 
     // Before the scene exists, every other tap gets the same gentle answer as
     // silence: a spoken suggestion and the question again. There is no ladder
@@ -1022,6 +1276,16 @@ export class ParleConversation extends voice.Agent {
     }
 
     if (msg.t === 'hear') {
+      if (msg.line === 'scene') {
+        // "Replay last tutor line", served by a field rather than a tag of its
+        // own. This is the learner tapping the tutor's own bubble, where the
+        // line on screen IS the character's, so handing it back is the only
+        // honest answer — the opposite of the SAY THIS card below, and the
+        // reason the two are told apart here rather than merged.
+        const scene = this.lastView?.sceneReply.fr ?? '';
+        if (scene.trim().length > 0) this.say(scene, { allowInterruptions: false });
+        return;
+      }
       // Replay the current support line, uninterruptible so it plays out whole.
       // An empty line means the brain would not vouch for it as the learner's
       // own (learnerSideSupport), and the card is showing the English hint
@@ -1052,6 +1316,7 @@ export class ParleConversation extends voice.Agent {
       // including the queue. Going straight to the engine left the moment
       // unmarked, so a rescue that had already fired still counted as current
       // and folded a second turn into the scene on top of their answer.
+      this.releaseMoment();
       this.clearRescue();
       this.publish({ t: 'transcript', text: msg.text, final: true });
       await this.queue.run(() => this.runBrainTurn({ type: 'spoke', text: msg.text }));
@@ -1063,6 +1328,7 @@ export class ParleConversation extends voice.Agent {
       // Queued for the same reason as the typed turn: asking for help is the
       // learner answering the silence themselves, and it must retire the
       // rescue that was already on its way.
+      this.releaseMoment();
       this.clearRescue();
       await this.queue.run(() => this.rescue({ type: 'help' }));
     }
@@ -1071,10 +1337,12 @@ export class ParleConversation extends voice.Agent {
 
   /** The learner said something. Run it through the brain, speak the answer. */
   override async onUserTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+    this.releaseMoment();
     this.clearRescue();
     this.learnerSpeaking = false;
     const text = (newMessage.textContent ?? '').trim();
     if (text.length > 0 && !this.ended) {
+      if (this.handleSafety(text)) throw new voice.StopResponse();
       if (this.phase === 'choosing') {
         // Speech on the choosing screen IS the topic. The transcript shows
         // the learner they were heard; the scene does the rest.
@@ -1133,6 +1401,7 @@ export class ParleConversation extends voice.Agent {
    * nothing — the learner must never be stranded mid-scene.
    */
   private async runBrainTurn(input: LearnerTurnInput): Promise<void> {
+    if (input.type === 'spoke' && this.handleSafety(input.text)) return;
     const request = prepareTurn(this.state, input);
     let turn;
     try {
@@ -1195,9 +1464,13 @@ export class ParleConversation extends voice.Agent {
    * comes.
    */
   private recover(): void {
-    this.say(RECOVERY_LINE);
+    // Rotated on the turn count so a session that fails twice does not say the
+    // identical sentence twice, which is the moment a tutor stops being a
+    // person. Same line spoken and published, so voice and text agree.
+    const line = recoveryLine(this.state.turnCount);
+    this.say(line);
     if (!this.voiceless) return;
-    this.publishError(RECOVERY_LINE);
+    this.publishError(line);
     this.armRescue(this.session);
   }
 
@@ -1228,6 +1501,7 @@ export class ParleConversation extends voice.Agent {
   async finish(): Promise<void> {
     if (this.ended) return;
     this.ended = true;
+    this.releaseMoment();
     this.clearRescue();
 
     const { recap, state } = assembleRecap(this.state, {
@@ -1249,7 +1523,13 @@ export class ParleConversation extends voice.Agent {
       `[parle] convo complete — ${recap.stats.turns} turns, ${recap.stats.rescues} rescues, ` +
         `${wallClockSec}s, cefr=${recap.cefr.estimate} (${recap.cefr.confidence})`,
     );
-    await reportUsage({ userId: this.learnerId, seconds: wallClockSec, utterancesScored: 0 });
+    const billableSeconds = recap.stats.turns > 0 ? wallClockSec : 0;
+    await reportUsage({
+      userId: this.learnerId,
+      sessionId: this.sessionId,
+      seconds: billableSeconds,
+      utterancesScored: 0,
+    });
 
     // Only now, with the recap shipped and the seconds debited, the analyst
     // does its background work. A learner who kills the app first loses this

@@ -2,6 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { selectedBrain, missingRequired, warnings, preflight, verifyVendors, reportVendors } from './preflight.ts';
+import { MODEL, PROBE_LINE } from './voice.ts';
 
 const FULL = {
   LIVEKIT_URL: 'ws://localhost:7880',
@@ -242,6 +243,114 @@ describe('the voice the tutor is configured to use', () => {
     // will not start over a parsing disagreement is not.
     const checks = await verifyVendors(FULL, '', fakeFetch({ 'api.elevenlabs.io': { status: 200, body: {} } }) as never);
     assert.equal(checks.find((c) => c.vendor === 'ElevenLabs'), undefined);
+  });
+});
+
+describe('being allowed to actually speak, not just to list the voice', () => {
+  /**
+   * The gap this closes. The catalogue check answers "does this account have
+   * this voice"; it does not answer "is this account allowed to say anything
+   * with it", and a free plan refuses library voices at synthesis while listing
+   * them happily. Found by running it: the voice was in the list and the vendor
+   * answered 402 the moment anyone asked it to speak.
+   */
+  const SYNTH = 'api.elevenlabs.io/v1/text-to-speech/v';
+
+  function routedFetch(byRoute: Record<string, { status: number; body?: unknown }>, seen?: { url?: string; init?: unknown }) {
+    return async (url: string, init?: unknown) => {
+      const { host, pathname } = new URL(url);
+      if (pathname.startsWith('/v1/text-to-speech') && seen) {
+        seen.url = url;
+        seen.init = init;
+      }
+      const reply = byRoute[host + pathname] ?? byRoute[host];
+      if (reply === undefined) return { ok: true, status: 200, json: async () => ({}) };
+      return { ok: reply.status < 400, status: reply.status, json: async () => reply.body ?? {} };
+    };
+  }
+
+  const listed = { status: 200, body: { voices: [{ voice_id: 'v', name: 'voice-v' }] } };
+
+  test('a voice the account may list but may not speak with is fatal', async () => {
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      routedFetch({
+        'api.elevenlabs.io': listed,
+        [SYNTH]: {
+          status: 402,
+          body: { detail: { message: 'Free users cannot use library voices via the API.' } },
+        },
+      }) as never,
+    );
+    const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
+    assert.ok(eleven, 'a voice that cannot be synthesized must stop the worker');
+    assert.equal(eleven.fatal, true);
+    assert.match(eleven.detail, /refused to speak with it/);
+    assert.match(eleven.detail, /Free users cannot use library voices/, 'the vendor explains itself better than we can');
+  });
+
+  test('the refusal names the model, because it is the combination that is refused', async () => {
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      routedFetch({ 'api.elevenlabs.io': listed, [SYNTH]: { status: 400 } }) as never,
+    );
+    const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
+    assert.ok(eleven);
+    assert.match(eleven.detail, new RegExp(MODEL), 'a voice is only usable on the models it is verified for');
+  });
+
+  test('the probe asks for exactly what the tutor will ask for', async () => {
+    // A probe that guessed the model, the voice or the language would vouch for
+    // a configuration nobody is going to run.
+    const seen: { url?: string; init?: unknown } = {};
+    await verifyVendors(FULL, '', routedFetch({ 'api.elevenlabs.io': listed }, seen) as never);
+
+    assert.ok(seen.url?.includes('/v1/text-to-speech/v'), 'the configured voice id must be the one probed');
+    const init = seen.init as { method?: string; body?: string };
+    assert.equal(init.method, 'POST');
+    const body = JSON.parse(init.body ?? '{}');
+    assert.equal(body.model_id, MODEL);
+    assert.equal(body.text, PROBE_LINE);
+    assert.ok(body.voice_settings, 'the delivery settings ride along, because they are part of the request');
+  });
+
+  test('the test line stays tiny, because this runs on every worker boot', () => {
+    assert.ok(PROBE_LINE.length <= 8, `PROBE_LINE is ${PROBE_LINE.length} characters and is billed every boot`);
+  });
+
+  test('a vendor blip at synthesis does not refuse to start the worker', async () => {
+    // Same rule the rest of this file follows: a deterministic no about the
+    // configuration stops the worker, weather does not.
+    for (const status of [500, 429]) {
+      const checks = await verifyVendors(
+        FULL,
+        '',
+        routedFetch({ 'api.elevenlabs.io': listed, [SYNTH]: { status } }) as never,
+      );
+      const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
+      assert.equal(eleven?.fatal, false, `HTTP ${status} should be a blip, not a refusal`);
+    }
+  });
+
+  test('a refused voice still produces one message, not two', async () => {
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      routedFetch({ 'api.elevenlabs.io': listed, [SYNTH]: { status: 402 } }) as never,
+    );
+    assert.equal(checks.filter((c) => c.vendor === 'ElevenLabs').length, 1);
+  });
+
+  test('no configured voice means nothing of ours to prove', async () => {
+    // The vendor default is the vendor's problem, and an unset id is already a
+    // warning. Spending quota to probe it would be spending it on nothing.
+    const { ELEVEN_VOICE_ID: _unset, ...noVoice } = FULL;
+    const seen: { url?: string } = {};
+    const checks = await verifyVendors(noVoice, '', routedFetch({ 'api.elevenlabs.io': listed }, seen) as never);
+    assert.equal(checks.find((c) => c.vendor === 'ElevenLabs'), undefined);
+    assert.equal(seen.url, undefined, 'no synthesis request should have been made at all');
   });
 });
 

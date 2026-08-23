@@ -1,7 +1,7 @@
 import { test, describe, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { voice } from '@livekit/agents';
+import { tokenize, voice } from '@livekit/agents';
 import {
   APERO_FRAME,
   AnthropicBrainClient,
@@ -41,10 +41,13 @@ import {
 
 import {
   CONVO_LINES,
+  MOMENT_GRACE_MS,
   ParleConversation,
   brainClient,
   chooseFrame,
   frameDeadlineMs,
+  missionOpening,
+  openerFor,
   parseStoredProfile,
   postSessionDeadlineMs,
   seededOpening,
@@ -53,6 +56,7 @@ import {
   toConvoView,
   toRecapPayload,
   turnIsUninterruptible,
+  validMissionId,
   type SttLanguage,
 } from './convo.ts';
 
@@ -76,6 +80,7 @@ function viewWith(supportView: SupportView): TurnView {
     supportView,
     rung: 2,
     recapDue: false,
+    missionDone: false,
     beat: { id: 'pay', goalEn: 'Pay', position: 4, total: 5 },
     advancedBeat: false,
     reachedForEnglish: false,
@@ -386,7 +391,13 @@ class MeteredBrain extends MockLlmClient {
  */
 function buildConvo(
   t: TestContext,
-  opts: { voiceless?: boolean; client?: MockLlmClient; seedTopic?: unknown; profile?: LearnerProfile } = {},
+  opts: {
+    voiceless?: boolean;
+    client?: MockLlmClient;
+    seedTopic?: unknown;
+    missionId?: unknown;
+    profile?: LearnerProfile;
+  } = {},
 ) {
   const client = opts.client ?? new MockLlmClient();
   const sttLanguages: SttLanguage[] = [];
@@ -394,6 +405,7 @@ function buildConvo(
     voiceless: opts.voiceless ?? false,
     client,
     seedTopic: opts.seedTopic,
+    missionId: opts.missionId,
     setSttLanguage: (language) => sttLanguages.push(language),
   });
   const { session, said } = stubSession();
@@ -1679,5 +1691,328 @@ describe('one turn, one utterance — H1', () => {
       voice.StopResponse,
     );
     assert.equal(built.said.length - before, 1, `the turn was spoken in pieces: ${JSON.stringify(built.said)}`);
+  });
+});
+
+describe('the opener the learner actually hears is the one that was warmed', () => {
+  /**
+   * The trap this pins. `spokenTurn` and `openerFor` both rely on the framework
+   * splitting one say() into sentences, and the splitter has a minimum sentence
+   * length of twenty characters (@livekit/agents tokenize/basic). A greeting
+   * shorter than that does not become its own sentence, it GLUES to the line
+   * after it, and the pair takes a cache key the warm run has never seen.
+   *
+   * "Hi Sam." is eight characters. So the first thing every named learner heard,
+   * every session, was a full cold vendor round trip, at the exact moment
+   * someone is deciding whether this thing works, while the comment above
+   * openerFor said the warm half streamed from disk. The code was wrong and the
+   * record was worse.
+   *
+   * This walks the real tokenizer rather than counting characters, because the
+   * floor is the framework's to move, not ours.
+   */
+  const tokenizer = new tokenize.basic.SentenceTokenizer();
+
+  test('the greeting is its own sentence, so the question keeps its warmed key', () => {
+    // One letter to nine: the fixed part of the greeting has to carry the
+    // length, or a learner called Al pays for a learner called Alexandra.
+    for (const name of ['A', 'Al', 'Sam', 'Alexandra']) {
+      const chunks = tokenizer.tokenize(openerFor(name).en);
+      assert.ok(
+        chunks.includes(CONVO_LINES.opener.en),
+        `for "${name}" the question lost its own cache key, so the warm run cannot reach it: ${JSON.stringify(chunks)}`,
+      );
+    }
+  });
+
+  test('an unnamed learner still gets exactly the warmed line', () => {
+    assert.equal(openerFor(null).en, CONVO_LINES.opener.en);
+    assert.deepEqual(tokenizer.tokenize(openerFor(null).en), [CONVO_LINES.opener.en]);
+  });
+
+  test('every sentence the warm script stores is a sentence the runtime asks for', () => {
+    // The two splitters have to agree or the cache fills with entries nothing
+    // requests. warmCache.ts uses this same tokenizer for exactly this reason.
+    const spoken = openerFor('Sam').en;
+    for (const chunk of tokenizer.tokenize(spoken)) {
+      assert.deepEqual(tokenizer.tokenize(chunk), [chunk], `"${chunk}" splits further at synthesis time`);
+    }
+  });
+});
+
+// ─────────────────────────────────── missions: the scene that was already written
+
+describe('a conversation started from a mission', () => {
+  test('a mission session opens its scene with zero model calls', async (t) => {
+    // The mechanism under the one-minute promise. A mission's frame is authored,
+    // so there is nothing to design: no scenario call, no ten to twenty five
+    // second wait, and no silent fall back to a café nobody asked for.
+    const { convo, session, client, published, said, sttLanguages } = buildConvo(t, { missionId: 'mission:cafe' });
+
+    convo.open(session);
+    await sceneSettled();
+
+    assert.equal(client.frameRequests.length, 0, 'the scene was written in advance, so nothing was designed on the fly');
+    assert.equal(client.turnRequests.length, 0, 'and opening a scene is still not a turn');
+
+    const opening = published.find((m) => m.t === 'opening');
+    assert.ok(opening, 'the app opens a conversation on the opening message and would wait forever without one');
+    assert.notEqual(opening.prompt.en, CONVO_LINES.opener.en, 'somebody who chose a mission is not asked to choose again');
+    assert.equal(published.filter((m) => m.t === 'opening').length, 1, 'one opening, not the mission on top of the question');
+
+    const opened = views(published);
+    assert.equal(opened.length, 1, 'the scene is there already');
+    assert.equal(opened[0]!.view.beat.position, 1, 'on the first beat of the mission');
+    assert.equal(opened[0]!.view.missionDone, false, 'and nothing is won before the learner has said a word');
+
+    assert.equal(convo.conversationState.frame.title, CAFE_FRAME.title, 'the scene is the authored mission, not a guess');
+    assert.equal(convo.conversationState.mission, true, 'and the engine knows this session has something to finish');
+
+    assert.ok(!said.includes(CONVO_LINES.bridge.spoken), 'nobody is asked to wait for a scene that is already written');
+    assert.ok(said.includes(missionOpening(CAFE_FRAME).en), 'one short bridge line says what is about to happen');
+    assert.ok(said.includes(CAFE_FRAME.openingLine.fr), 'and the character speaks first, before the learner has to');
+    assert.deepEqual(sttLanguages, ['fr'], 'the recogniser is listening for French from the first word of the scene');
+  });
+
+  test('an unknown mission id opens the ordinary choosing question', async (t) => {
+    // An app and an agent ship on different days, so an id this worker has never
+    // heard of is normal. It degrades to exactly today's session — never a
+    // throw, and never a café quietly substituted for the mission they picked.
+    for (const bad of ['mission:nope', '__proto__', 'constructor', 'toString', '', '   ', 42, null, undefined]) {
+      const { convo, session, client, published, said } = buildConvo(t, { missionId: bad });
+      convo.open(session);
+      await sceneSettled();
+
+      const opening = published.find((m) => m.t === 'opening');
+      assert.ok(opening, `an id this build does not know must still open the session: ${JSON.stringify(bad)}`);
+      assert.equal(opening.prompt.en, CONVO_LINES.opener.en, 'on the ordinary question, which is what a generic session is');
+      assert.equal(views(published).length, 0, 'no scene is substituted for the one that could not be found');
+      assert.equal(client.frameRequests.length, 0, 'and nothing is designed until the learner says what they want');
+      assert.deepEqual(said, [CONVO_LINES.opener.en], 'the question is asked out loud, in English, exactly as ever');
+    }
+
+    // The control: the degradation is a real branch, not a feature that is missing.
+    const known = buildConvo(t, { missionId: 'mission:amis' });
+    known.convo.open(known.session);
+    await sceneSettled();
+    assert.equal(views(known.published).length, 1, 'an id this build does know opens its scene instead');
+    assert.equal(known.convo.conversationState.frame.title, APERO_FRAME.title);
+  });
+
+  test('a mission id that means nothing here is dropped rather than believed', () => {
+    assert.equal(validMissionId('mission:cafe'), 'mission:cafe');
+    assert.equal(validMissionId(' mission:cafe '), 'mission:cafe', 'a signed value is still trimmed on arrival');
+    assert.equal(validMissionId('__proto__'), undefined, 'the prototype chain is not a mission');
+    assert.equal(validMissionId('mission:nope'), undefined);
+    assert.equal(validMissionId(7), undefined);
+    assert.equal(validMissionId(null), undefined);
+  });
+
+  test('the mission opening obeys the learner-copy rules', () => {
+    for (const frame of [CAFE_FRAME, APERO_FRAME]) {
+      const opening = missionOpening(frame);
+      for (const text of [opening.fr, opening.en]) {
+        assert.ok(!text.includes('—'), `em dash in "${text}"`);
+        assert.ok(!/\d/.test(text), `digit in "${text}"`);
+        assert.ok(!/wrong|incorrect|failed|bad/i.test(text), `scold in "${text}"`);
+        assert.ok(text.length < 80, `too long to be a warm opener: "${text}"`);
+        assert.ok(!/\?\./.test(text), `a title that asks something must not gain a full stop: "${text}"`);
+      }
+    }
+  });
+
+  test('the win rides the turn that earned it, all the way to the wire', async (t) => {
+    // missionDone is a field on the view, not a tag of its own, so it arrives in
+    // the same message as the line it belongs to. Unmapped, it read as `false`
+    // forever and the win could never be shown.
+    const { convo, session, published } = buildConvo(t, { missionId: 'mission:cafe' });
+    convo.open(session);
+    await sceneSettled();
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await convo.settled();
+
+    for (const message of views(published)) {
+      assert.equal(typeof message.view.missionDone, 'boolean', 'every published view says whether this turn was the win');
+      overTheWire(message);
+    }
+  });
+});
+
+// ─────────────────────────────────── "give me a moment": presence, not failure
+
+describe('give me a moment', () => {
+  test('give me a moment defers the rescue clock and counts nothing against the learner', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session, client, published } = await inScene(t);
+    const rung = convo.conversationState.ladder.rung;
+    const opened = views(published).length;
+
+    convo.armRescue(session); // the tutor has finished speaking; the clock is running
+    await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'a learner who asked for time has got nothing wrong');
+    assert.equal(convo.conversationState.ladder.rung, rung, 'the ladder does not move because somebody tapped a button');
+    assert.equal(convo.conversationState.turnCount, 0, 'and no turn of the scene was spent on it');
+    assert.equal(client.turnRequests.length, 0, 'the tutor does not step in over somebody who asked to think');
+    assert.equal(views(published).length, opened, 'nothing new was pushed at them');
+  });
+
+  test('a stray sound does not spend the time the learner asked for', async (t) => {
+    // The defect this pins: the grace shares the one silence-clock handle, and
+    // `agent.ts:250` re-arms that clock on every transition to `listening` while
+    // `setLearnerSpeaking(true)` clears it. So a learner who tapped the control
+    // and then shifted in their chair, or started a word and stopped, lost all
+    // twenty seconds and was rescued four seconds later anyway — the control
+    // doing nothing in the exact situation it exists for, with every test green,
+    // because they all drove the conversation and never the pipeline.
+    //
+    // Driven here as the pipeline actually drives it, in order.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session, client, published } = await inScene(t);
+    const opened = views(published).length;
+
+    convo.armRescue(session);
+    await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+
+    // A noise, not an answer: the floor is taken and handed straight back.
+    convo.setLearnerSpeaking(true);
+    convo.setLearnerSpeaking(false);
+    convo.armRescue(session);
+
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'a sound is not an answer, and it must not cost the learner their time');
+    assert.equal(client.turnRequests.length, 0, 'the tutor still does not step in over somebody who asked to think');
+    assert.equal(views(published).length, opened, 'and nothing was pushed at them');
+
+    // The grace is still bounded. It ends on its own, and the ordinary clock
+    // comes back, because a grace nobody could end would strand them instead.
+    t.mock.timers.tick(MOMENT_GRACE_MS);
+    await convo.settled();
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'the time runs out eventually, and then help arrives');
+  });
+
+  test('after the grace the ordinary rescue policy resumes, so nobody is stranded', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session, published } = await inScene(t);
+
+    convo.armRescue(session);
+    await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+
+    t.mock.timers.tick(MOMENT_GRACE_MS);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'the grace is real for as long as it lasts');
+
+    // And then it is over. The clock the tap deferred is a clock again.
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'nobody is left in front of a scene with nothing coming');
+    const last = views(published).at(-1)!.view;
+    assert.equal(last.supportView.kind, 'hint', 'and what comes is the ordinary first rescue, an English intent hint');
+
+    // Re-tappable, for the same reason typing is: asking for time is presence.
+    convo.armRescue(session);
+    await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+    const rescues = convo.conversationState.ladder.rescues;
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, rescues, 'a second ask is granted, not overruled');
+  });
+
+  test('a moment while the scene is being built changes nothing', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const client = new SlowFrameBrain();
+    const { convo, session, published, said } = buildConvo(t, { seedTopic: SEED, client });
+
+    convo.open(session);
+    await sceneSettled(); // the builder has the request; the clock is already dark
+
+    const spokenBefore = said.length;
+    const seenBefore = published.length;
+    await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+
+    assert.equal(said.length, spokenBefore, 'there is nothing to say about a pause while a scene is being built');
+    assert.equal(published.length, seenBefore, 'and nothing to show either');
+
+    client.release();
+    await sceneSettled();
+
+    t.mock.timers.tick(MOMENT_GRACE_MS + STUCK_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'the tap left no clock of its own behind to fire into the scene');
+
+    // The same tap, once the scene exists, is the one that defers.
+    convo.armRescue(session);
+    await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 0, 'in the scene the grace is granted');
+  });
+
+  test('the moment is answered on screen, never with a spoken remark', async (t) => {
+    // The tutor is instructed at every rung never to remark on hesitation, and a
+    // spoken acknowledgement of a pause is a remark on the pause. The app says
+    // "Take your time." on screen; the room stays quiet.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session, said, published } = await inScene(t);
+
+    convo.armRescue(session);
+    const spokenBefore = said.length;
+    const seenBefore = published.length;
+
+    await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await convo.settled();
+
+    assert.deepEqual(said.slice(spokenBefore), [], 'not one word about the pause, then or four seconds later');
+    assert.equal(published.length, seenBefore, 'and nothing pushed at them either; the answer is the app’s to give');
+  });
+
+  test('a moment on the choosing screen restarts a clock, and never starts one', async (t) => {
+    // Exactly what `typing` settled: armRescue owns when the tutor may wait on a
+    // learner, and a tap must not be a second opinion about that.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session, said } = buildConvo(t, { voiceless: true });
+    convo.open(session);
+
+    await convo.handleClientMessage(session, tapped({ t: 'moment' }));
+    t.mock.timers.tick(60_000);
+    await convo.settled();
+
+    assert.deepEqual(said, [], 'the quiet twin stays quiet');
+    assert.equal(convo.conversationState.turnCount, 0, 'and a tap before the scene exists starts nothing');
+  });
+});
+
+// ─────────────────────────────────── replaying the tutor's own line
+
+describe('replaying a line', () => {
+  test("tapping the tutor's line plays it again", async (t) => {
+    const { convo, session, said, published } = await inScene(t);
+    const scene = views(published).at(-1)!.view.sceneReply.fr;
+
+    const before = said.length;
+    await convo.handleClientMessage(session, tapped({ t: 'hear', line: 'scene' }));
+
+    assert.deepEqual(said.slice(before), [scene], 'the tutor says its own last line again, and only that');
+  });
+
+  test('the say this card still plays the learner’s line, never the character’s', async (t) => {
+    // The K-era rule, unchanged: handing back the scene's own line from the SAY
+    // THIS card undoes exactly what learnerSideSupport took out.
+    const { convo, session, said } = await inScene(t);
+    const support = convo.conversationState.lastSupport.fullLine.fr;
+
+    const before = said.length;
+    await convo.handleClientMessage(session, tapped({ t: 'hear' }));
+
+    assert.deepEqual(said.slice(before), [support], 'a plain hear is the support line, as it has always been');
   });
 });

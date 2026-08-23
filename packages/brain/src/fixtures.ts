@@ -39,7 +39,7 @@ export const CAFE_FRAME: ScenarioFrame = {
     speaker: 'narration',
     fr: 'Imaginez la scène. Vous poussez la porte d’un petit café à Lyon. Derrière le comptoir, le barista lève les yeux vers vous.',
     frWritten: null,
-    en: 'Imagine the scene. You push open the door of a small café in Lyon. Behind the counter, the barista looks up at you.',
+    en: 'You push open the door of a small café in Lyon. It is warm inside and it smells of burnt sugar. Behind the counter, the barista looks up at you.',
   },
   openingLine: {
     speaker: 'Karim',
@@ -98,7 +98,7 @@ export const APERO_FRAME: ScenarioFrame = {
     speaker: 'narration',
     fr: 'Imaginez la scène. Vendredi soir, un balcon à Paris. Votre amie Chloé vous ouvre la porte, un verre à la main.',
     frWritten: null,
-    en: 'Imagine the scene. Friday evening, a balcony in Paris. Your friend Chloé opens the door, glass in hand.',
+    en: 'Friday evening, on a balcony in Paris, with the traffic still going in the street below. Your friend Chloé opens the door with a glass already in her hand.',
   },
   openingLine: {
     speaker: 'Chloé',
@@ -176,7 +176,7 @@ export function requestFallbackFrame(request: string): ScenarioFrame {
       speaker: 'narration',
       fr: 'Imaginez la situation que vous avez choisie. Vous y êtes. La conversation commence.',
       frWritten: null,
-      en: `Imagine the situation you chose: ${subject}. You are there, and the conversation begins.`,
+      en: `You are where you asked to be: ${subject}. Someone turns to you, and it starts.`,
     },
     openingLine: {
       speaker: 'Camille',

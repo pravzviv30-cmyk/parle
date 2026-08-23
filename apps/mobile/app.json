@@ -40,7 +40,8 @@
       "@livekit/react-native-expo-plugin",
       "expo-sharing",
       "expo-audio",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-secure-store"
     ]
   }
 }

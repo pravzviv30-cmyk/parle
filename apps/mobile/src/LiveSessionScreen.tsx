@@ -16,6 +16,7 @@ import { Card, PillButton, GhostButton } from './components.tsx';
 import { SessionView } from './SessionView.tsx';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
+import { TUTOR_NAME } from './tutor/tutorName.ts';
 
 export function LiveSessionScreen({
   lesson,
@@ -101,7 +102,7 @@ export function LiveSessionScreen({
       <View style={st.center}>
         <ActivityIndicator color={paper.inkSoft} />
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>
-          {live.waitingForTutor ? 'Waiting for your tutor…' : 'One moment…'}
+          {live.waitingForTutor ? `Waiting for ${TUTOR_NAME}…` : 'One moment…'}
         </Text>
         <View style={{ marginTop: space(6) }}>
           <GhostButton label="Leave" onPress={leaveNow} />

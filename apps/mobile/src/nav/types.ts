@@ -18,7 +18,7 @@ export type TabParamList = {
   Home: undefined;
   Tutor: undefined;
   Practice: undefined;
-  Leaderboard: undefined;
+  MyFrench: undefined;
   Profile: undefined;
 };
 
@@ -36,8 +36,21 @@ export type RootStackParamList = {
    * languages, and rides the start body into the join token. Plain strings, so
    * navigation state stays serialisable; a malformed one is dropped by the
    * server and the session simply opens generic.
+   *
+   * `missionId` rides the same pipe as `seedTopic`, all the way to the agent,
+   * and names an authored scene the tutor does not have to write first. A
+   * plain string for the same reason: an id this build does not know degrades
+   * to the ordinary conversation rather than failing.
    */
-  Convo: { textMode?: boolean; seedTopic?: { fr: string; en: string } } | undefined;
+  Convo: { textMode?: boolean; seedTopic?: { fr: string; en: string }; missionId?: string } | undefined;
+  /**
+   * The mission chooser. A stack screen rather than a tab or an onboarding
+   * page, because the same surface is needed from three doors: the first run
+   * (which opens straight onto it), Home's mission card, and the Tutor tab.
+   * Inside onboarding it could not exist at all, since onboarding mounts
+   * INSTEAD of the navigator and so has nothing to navigate to.
+   */
+  Missions: { focus?: string } | undefined;
   /**
    * One node of the practice path, or the whole deck when omitted. The node
    * is plain data — id, title and phrase keys — so navigation state stays
@@ -48,6 +61,6 @@ export type RootStackParamList = {
     | { node?: { id: string; title: string; phraseKeys: readonly string[] }; mix?: boolean }
     | undefined;
   Review: undefined;
-  /** Search and ask sample profiles to be friends, until friend servers arrive. */
-  AddFriends: undefined;
+  /** A known-reference pronunciation check after a completed situation. */
+  SoundCheck: { missionId: string };
 };

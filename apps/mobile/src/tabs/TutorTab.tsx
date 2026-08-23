@@ -1,26 +1,37 @@
 /**
- * Tutor — the door to free conversation.
+ * Tutor — three doors, and no manual in front of them.
  *
- * Phase 2 shape: the invitation and the two ways in. The voice orb and the
- * transcript replace this screen's body next; the two routes out of it
- * (spoken, typed) stay exactly as they are.
+ * What was here before: a four-page explainer that every learner had to read
+ * once before the tab would show them anything, and then a single invitation to
+ * "talk about anything". Both are gone from the critical path. The explainer is
+ * a link now, and "anything" is the last of three doors rather than the only
+ * one, because a beginner asked to say anything says nothing.
  *
- * Both are always offered. The typed route in particular used to sit behind a
- * gate that a learner who cannot speak could never pass, which is precisely
- * backwards — it is the one they need most.
+ * The doors themselves are decided in `tutor/gate.ts`, where a test can read
+ * them: which ones exist, in what order, and which single one carries the solid
+ * pill. Continue only appears when there is something to continue.
+ *
+ * Both routes into a conversation are still always offered, spoken and typed.
+ * The typed one in particular used to sit behind a gate a learner who cannot
+ * speak could never pass, which is precisely backwards.
  */
 
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
-import { paper, space, type } from '../theme.ts';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
+import { missionStates, type MissionProgress } from '@parle/core';
+import { paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
 import { PillButton, GhostButton, OutlineButton, Card, Label } from '../components.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
-import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
-import { hasSeenTutorIntro, markTutorIntroSeen } from '../tutor/store.ts';
+import { TUTOR_INTRO_LINK, TUTOR_OFFLINE, tutorDoors, tutorGate } from '../tutor/gate.ts';
+import { markTutorIntroSeen } from '../tutor/store.ts';
+import { TUTOR_NAME } from '../tutor/tutorName.ts';
+import { loadMissionCompletions } from '../missions/store.ts';
+import { missionCompletionsFrom, resumableMission } from '../missions/chooserView.ts';
+import { loadDeck } from '../review/store.ts';
 
 export function TutorTab() {
   // A bottom tab stays mounted after its first visit, so a looping scene here
@@ -32,19 +43,22 @@ export function TutorTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { live, recheck } = useLive();
 
-  // Read here rather than at the app root: the flag only matters to this tab,
-  // and gating higher would flash the bottom nav and hold up Home for a disk
-  // read that nothing else is waiting on.
-  const [seenIntro, setSeenIntro] = useState<boolean | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    void hasSeenTutorIntro().then((seen) => {
-      if (!cancelled) setSeenIntro(seen);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  /** The explainer, on request. It no longer decides anything. */
+  const [showingIntro, setShowingIntro] = useState(false);
+
+  const [resume, setResume] = useState<MissionProgress | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      void Promise.all([loadMissionCompletions(), loadDeck()]).then(([completions, deck]) => {
+        if (cancelled) return;
+        setResume(resumableMission(missionStates(missionCompletionsFrom(completions), deck, Date.now())));
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   // The start that was asked for and did not happen, route included. The Demo
   // mode card is already on the screen saying why; this is what turns it from a
@@ -74,36 +88,46 @@ export function TutorTab() {
     });
   };
 
-  if (seenIntro === null) {
-    return (
-      <View style={st.center}>
-        <ActivityIndicator color={paper.inkFaint} />
-      </View>
-    );
-  }
-  if (!seenIntro) {
+  if (showingIntro) {
     return (
       <TutorIntro
         onDone={() => {
+          // Still remembered, because the flag is what "has read this" means.
+          // Nothing gates on it any more.
           void markTutorIntroSeen();
-          setSeenIntro(true);
-          // The button says "Start talking", so it starts talking. Landing on
-          // this tab's idle screen instead was a promise the app didn't keep.
-          open(false);
+          setShowingIntro(false);
         }}
       />
     );
   }
 
+  const doors = tutorDoors(resume === null ? null : { title: resume.mission.title });
+
+  const enter = (key: string) => {
+    if (key === 'free') {
+      open(false);
+      return;
+    }
+    // Both mission doors open the chooser. Continuing a mission still goes
+    // through it rather than starting the room straight away, because the
+    // chooser is where a learner can see they are about to spend minutes.
+    //
+    // The Continue door carries the mission it named, so the screen leads with
+    // that one. Without it the door glossed itself with one title and the
+    // screen offered whichever mission `suggestedMission` preferred, which for
+    // anyone with a phrase falling due was a different mission entirely.
+    nav.navigate('Missions', key === 'resume' && resume ? { focus: resume.mission.id } : undefined);
+  };
+
   return (
     <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
         <View style={st.hero}>
-          <SpeakBubbles width={190} paused={!focused} />
+          <SpeakBubbles width={150} paused={!focused} />
         </View>
 
         <Text style={st.headline}>Ready to talk?</Text>
-        <Text style={st.subline}>Your tutor remembers you. Come ready to chat about anything.</Text>
+        <Text style={st.subline}>{`${TUTOR_NAME} remembers you. Pick a situation, or just start talking.`}</Text>
 
         {!live && (
           <Card style={{ marginTop: space(5) }}>
@@ -128,9 +152,31 @@ export function TutorTab() {
           </Card>
         )}
 
-        <View style={st.actions}>
-          <PillButton label="Start a conversation" onPress={() => open(false)} disabled={checking} />
+        <View style={st.doors}>
+          {doors.map((door) =>
+            door.primary ? (
+              <View key={door.key}>
+                <PillButton label={door.label} onPress={() => enter(door.key)} disabled={checking} />
+                <Text style={st.doorGloss}>{door.gloss}</Text>
+              </View>
+            ) : (
+              <Pressable
+                key={door.key}
+                onPress={() => enter(door.key)}
+                accessibilityRole="button"
+                accessibilityLabel={`${door.label}. ${door.gloss}`}
+                style={({ pressed }) => [st.door, pressed && { backgroundColor: paper.groundDeep }]}
+              >
+                <Text style={[type.bodyStrong, { color: paper.ink }]}>{door.label}</Text>
+                <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{door.gloss}</Text>
+              </Pressable>
+            ),
+          )}
+        </View>
+
+        <View style={st.quiet}>
           <GhostButton label="Unable to speak right now?" onPress={() => open(true)} />
+          <GhostButton label={TUTOR_INTRO_LINK} onPress={() => setShowingIntro(true)} />
         </View>
       </ScrollView>
     </View>
@@ -139,10 +185,21 @@ export function TutorTab() {
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center' },
-  scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(3) },
-  hero: { alignItems: 'center', marginBottom: space(4) },
+  scroll: { flexGrow: 1, paddingTop: space(4), paddingBottom: space(3) },
+  hero: { alignItems: 'center', marginBottom: space(3) },
   headline: { ...type.display, color: paper.ink, textAlign: 'center' },
   subline: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
-  actions: { marginTop: 'auto', gap: space(3), paddingTop: space(6) },
+  doors: { marginTop: space(6), gap: space(3) },
+  doorGloss: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
+  door: {
+    minHeight: HIT,
+    justifyContent: 'center',
+    backgroundColor: paper.card,
+    borderRadius: radius.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.lineOnCard,
+    paddingVertical: space(3),
+    paddingHorizontal: space(4),
+  },
+  quiet: { marginTop: 'auto', paddingTop: space(6), gap: space(1) },
 });

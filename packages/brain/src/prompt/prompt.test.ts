@@ -37,10 +37,70 @@ describe('the stable prefix', () => {
     assert.match(persona, /never say "wrong"/i);
     assert.match(persona, /intelligent adult/i);
     assert.match(persona, /real spoken french/i);
+    // Two opposite failure modes, and the rule has to hold both off at once.
+    //
     // The dead-end turn is the competitor failure this product exists to avoid:
-    // "the AI makes a statement and that's it, which leaves me blank".
-    assert.match(persona, /End with a question or an obvious conversational opening/i);
+    // "the AI makes a statement and that's it, which leaves me blank". So an
+    // opening is still mandatory, and that half is unchanged.
+    //
+    // The other half was ours. Requiring the opening to BE a question made every
+    // turn end in one, which the founder heard as being interviewed rather than
+    // talked to. So the guarantee is asserted now and the wording is not: leave
+    // an opening every turn, and stop making a question the only way to give one.
+    assert.match(persona, /leave (the learner|them) an obvious opening/i, 'a turn may never dead-end');
+    assert.match(persona, /not always a question/i, 'an opening does not have to be a question');
+    assert.match(persona, /never ask two questions in one turn/i);
     assert.match(persona, /one short english clause/i, 'asking for English is an escape hatch, not a mode switch');
+  });
+
+  test('the persona is a person before it is a policy', () => {
+    // The rewrite this holds. The block used to open "You are a responsive
+    // French conversation tutor for an English-speaking learner" and then list
+    // twenty-two rules, fourteen beginning with "Never". A model handed only
+    // constraints produces constrained output, and that is what "purely
+    // robotic" sounded like. Someone deleting Luc to tidy the prompt should
+    // have to delete this test too.
+    const { persona } = buildSystemBlocks();
+    const opening = persona.slice(0, 400);
+    assert.match(opening, /you are luc/i, 'the tutor has no name in the first thing the model reads');
+    assert.match(persona, /lyon/i, 'he is from somewhere');
+    assert.match(persona, /not a teacher/i, 'the one thing he is explicitly not');
+
+    const firstRule = persona.indexOf('- ');
+    const firstNever = persona.search(/\bNever\b/);
+    assert.ok(firstRule > 0 && firstNever > firstRule, 'the rules arrive before the person again');
+  });
+
+  test('he reacts to the learner before he advances the scene', () => {
+    // "Respond to what they meant" is about parsing. This is about caring, and
+    // its absence is what the founder meant by "it never just reacts".
+    const { persona } = buildSystemBlocks();
+    assert.match(persona, /react before you do anything else/i);
+    assert.match(persona, /answer the person first/i);
+  });
+
+  test('the fillers the pack already teaches are asked for in his own lines', () => {
+    // The pack has carried these from the start and its own principle says they
+    // "belong in the tutor's own lines". Nothing repeated that where the model
+    // would act on it, so the tutor spoke textbook French while teaching that
+    // textbook French is the thing to fix.
+    const { persona } = buildSystemBlocks();
+    for (const filler of ['bah', 'du coup', 'en fait', 'voilà']) {
+      assert.ok(persona.includes(filler), `the persona never asks him to say "${filler}"`);
+    }
+  });
+
+  test('his English stays plain, because it is the channel the beginner relies on', () => {
+    const { persona } = buildSystemBlocks();
+    assert.match(persona, /your english is short and plain/i);
+    assert.match(persona, /never put french words inside it/i);
+  });
+
+  test('he does not perform himself at the learner', () => {
+    // The failure mode a named character invites. A tutor with a biography who
+    // keeps mentioning it is worse company than one with no name at all.
+    const { persona } = buildSystemBlocks();
+    assert.match(persona, /never go on about yourself/i);
   });
 
   test('the persona still says reaching for English is never failing', () => {
@@ -277,5 +337,52 @@ describe('the scenario request', () => {
     const named = buildScenarioRequest({ request: 'a walk', learner: { cefr: 'A1', watchFor: [], name: null } });
     const bare = buildScenarioRequest({ request: 'a walk', learner: { cefr: 'A1', watchFor: [] } });
     assert.equal(named, bare);
+  });
+});
+
+describe('the tutor speaks at the length the learner can carry', () => {
+  test('the bottom rung asks for one short sentence and one idea', () => {
+    // "Match sentence length" on its own was a hope, not an instruction: a model
+    // told to match an abstraction picks its own idea of short, and for someone
+    // who cannot yet compose a French sentence that is still three sentences of
+    // French they cannot hold.
+    for (const rung of [RUNGS.ECHO, RUNGS.CUED] as const) {
+      const context = buildTurnContext(contextInput({ directive: directiveFor(rung) }));
+      const independence = context.split('\n').find((line) => line.startsWith('INDEPENDENCE:'));
+
+      assert.ok(independence, `rung ${rung} has no INDEPENDENCE line at all`);
+      assert.match(independence, /one short sentence/i, `rung ${rung} does not say how long a turn may be`);
+      assert.match(independence, /one idea/i, `rung ${rung} does not cap how much is in it`);
+    }
+  });
+
+  test("the top rung stops constraining the tutor's length", () => {
+    // A fluent learner being fed one-sentence answers is being talked down to.
+    const context = buildTurnContext(contextInput({ directive: directiveFor(RUNGS.FREE) }));
+    const independence = context.split('\n').find((line) => line.startsWith('INDEPENDENCE:'));
+
+    assert.ok(independence);
+    assert.doesNotMatch(independence, /one short sentence/i, 'the top rung must not be held to a beginner ceiling');
+    assert.match(independence, /whatever length/i, 'the top rung should hand the length back to the moment');
+  });
+
+  test('every rung says something about length, and no two rungs say the same thing', () => {
+    const lines = [RUNGS.ECHO, RUNGS.CUED, RUNGS.PROMPTED, RUNGS.FREE].map((rung) => {
+      const context = buildTurnContext(contextInput({ directive: directiveFor(rung) }));
+      return context.split('\n').find((line) => line.startsWith('INDEPENDENCE:')) ?? '';
+    });
+
+    for (const line of lines) assert.notEqual(line.trim(), '', 'a rung with no independence line tells the model nothing');
+    assert.equal(new Set(lines).size, lines.length, 'two rungs give the tutor identical instructions, so one of them is not a rung');
+  });
+
+  test('a finished mission tells the tutor to stay, and never to congratulate', () => {
+    const carrying = buildTurnContext(contextInput({ missionDone: true }));
+    const ordinary = buildTurnContext(contextInput());
+
+    assert.match(carrying, /SCENE GOAL: already reached/, 'the tutor is not told the goal is behind them');
+    assert.match(carrying, /stay in character/i);
+    assert.match(carrying, /Do not announce the achievement/i);
+    assert.doesNotMatch(ordinary, /SCENE GOAL/, 'an unfinished scene must not carry the finished-scene line');
   });
 });

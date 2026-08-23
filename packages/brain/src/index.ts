@@ -17,6 +17,7 @@ export * from './contract/schemas.ts';
 export * from './contract/types.ts';
 export * from './contract/samples.ts';
 export * from './fixtures.ts';
+export * from './missions/frames.ts';
 export * from './authenticity/types.ts';
 export { FR_PACK } from './authenticity/fr.ts';
 export { renderAuthenticityPack } from './authenticity/render.ts';

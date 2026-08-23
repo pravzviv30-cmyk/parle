@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { INLINE_CAP, assessmentToQuality, splitCoach, surfacePolicy } from './grading.ts';
+import { INLINE_CAP, INLINE_COACH_COOLDOWN_TURNS, assessmentToQuality, splitCoach, surfacePolicy } from './grading.ts';
 import { sampleCoachItem, sampleTurn } from '../contract/samples.ts';
 import type { Assessment, CoachKind } from '../contract/types.ts';
 import type { Strictness } from '../types.ts';
@@ -176,5 +176,75 @@ describe('splitCoach — caps and priority', () => {
   test('at strict, grammar slips surface inline within the cap', () => {
     const { inline } = splitCoach([sampleCoachItem({ kind: 'grammar-slip' })], 'strict');
     assert.equal(inline.length, 1);
+  });
+});
+
+describe('splitCoach — the cooldown between interruptions', () => {
+  /**
+   * The bug: INLINE_CAP is a budget per turn, so a budget of one spent every
+   * turn is an interruption every turn. At A0 every utterance is textbook
+   * French and textbook-phrasing surfaces inline at every strictness, so the
+   * tutor corrected on every single turn on its loosest setting. Reported as
+   * "it never just reacts".
+   */
+  const textbook = (quote: string) => sampleCoachItem({ kind: 'textbook-phrasing', quote });
+
+  test('the first finding of a session is never held back', () => {
+    const { inline } = splitCoach([textbook('a')], 'flow');
+    assert.equal(inline.length, 1, 'with no interruption behind it there is nothing to cool down from');
+  });
+
+  test('a second correction on the very next turn waits instead of interrupting again', () => {
+    const { inline, deferred } = splitCoach([textbook('a')], 'flow', 1);
+    assert.equal(inline.length, 0);
+    assert.equal(deferred.length, 1, 'nothing surfaced is still nothing lost');
+  });
+
+  test('the cooldown expires, so coaching resumes rather than stopping', () => {
+    const { inline } = splitCoach([textbook('a')], 'flow', INLINE_COACH_COOLDOWN_TURNS);
+    assert.equal(inline.length, 1);
+  });
+
+  test('a turn that interrupts says so, so the caller can restart the clock', () => {
+    assert.equal(splitCoach([textbook('a')], 'flow').interrupted, true);
+    assert.equal(splitCoach([textbook('a')], 'flow', 1).interrupted, false);
+    assert.equal(splitCoach([], 'flow').interrupted, false);
+  });
+
+  test('a comprehension breakdown is coached even mid-cooldown', () => {
+    // Withholding this to keep the rhythm pleasant strands the learner inside
+    // the scene, which costs more than the interruption saves.
+    const { inline } = splitCoach([sampleCoachItem({ kind: 'blocking-error', quote: 'a' })], 'flow', 1);
+    assert.equal(inline.length, 1);
+  });
+
+  test('an English hand-back is never held back, because it answers a question', () => {
+    const { inline } = splitCoach([sampleCoachItem({ kind: 'english-to-french', quote: 'a' })], 'flow', 1);
+    assert.equal(inline.length, 1);
+  });
+
+  test('answering the learner never buys the tutor silence on the next turn', () => {
+    // Both exempt kinds pass through without spending the budget, so a learner
+    // who asks for help does not thereby lose the next thing worth saying.
+    for (const kind of ['english-to-french', 'blocking-error'] as const) {
+      assert.equal(splitCoach([sampleCoachItem({ kind, quote: 'a' })], 'flow').interrupted, false, kind);
+    }
+  });
+
+  test('the cooldown holds things back without making them ineligible', () => {
+    // surfacePolicy is the product commitment and this must not touch it:
+    // textbook phrasing still surfaces inline at every strictness. The cooldown
+    // is about when, never about whether.
+    for (const strictness of ['flow', 'balanced', 'strict'] as Strictness[]) {
+      assert.equal(surfacePolicy('textbook-phrasing', strictness), 'inline', strictness);
+    }
+  });
+
+  test('a caller that tracks nothing behaves exactly as before', () => {
+    const items = [textbook('a'), textbook('b')];
+    const withoutClock = splitCoach(items, 'balanced');
+    const longAgo = splitCoach(items, 'balanced', Number.POSITIVE_INFINITY);
+    assert.deepEqual(withoutClock.inline, longAgo.inline);
+    assert.deepEqual(withoutClock.deferred, longAgo.deferred);
   });
 });

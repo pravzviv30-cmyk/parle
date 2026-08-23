@@ -155,11 +155,10 @@ for (const file of testFiles(ROOT)) {
 /**
  * Agent name -> the model it must stay pinned to. Fable thinks, Opus builds.
  *
- * The four loop roles came first. The twelve engineers below are the domain team: each
- * owns a territory of the codebase the way a senior dev owns a subsystem, and /forge
- * routes a contract to whichever one owns the files it touches. Fable is reserved for
- * agents whose whole output is a judgement rather than code — scaling-engineer answers
- * "should we", and the answer is usually no.
+ * The four loop roles came first. The subsystem and product specialists below own a
+ * territory the way a senior lead owns a subsystem, and /forge routes a contract to
+ * whichever one owns the files or decision it touches. Fable is reserved for agents whose
+ * whole output is a judgement or map rather than code.
  */
 const AGENT_MODELS = {
   // the loop
@@ -176,11 +175,24 @@ const AGENT_MODELS = {
   'revenue-engineer': 'opus',
   'performance-engineer': 'opus',
   'security-engineer': 'opus',
+  'product-orchestrator': 'opus',
+  'data-sync-engineer': 'opus',
+  'voice-platform-engineer': 'opus',
+  'tutor-behaviour-engineer': 'opus',
+  'learning-science-engineer': 'opus',
+  'onboarding-ux-engineer': 'opus',
+  'practice-ux-engineer': 'opus',
+  'progress-retention-engineer': 'opus',
+  'design-system-engineer': 'opus',
+  'privacy-safety-engineer': 'opus',
   'observability-engineer': 'opus',
   'deploy-engineer': 'opus',
   // the team, read-only
   'release-engineer': 'opus',
   'scaling-engineer': 'fable',
+  'repository-archaeologist': 'fable',
+  'social-systems-engineer': 'fable',
+  'qa-release-engineer': 'opus',
 };
 
 const readOrNull = (file) => {

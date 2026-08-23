@@ -5,8 +5,8 @@
   "type": "module",
   "main": "src/server.ts",
   "scripts": {
-    "dev": "node --experimental-strip-types --watch src/server.ts",
-    "start": "node --experimental-strip-types src/server.ts",
+    "dev": "PARLE_LOCAL_DEVELOPMENT=1 node --experimental-strip-types --watch src/server.ts",
+    "start": "NODE_ENV=production node --experimental-strip-types src/server.ts",
     "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },

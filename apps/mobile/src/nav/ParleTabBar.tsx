@@ -20,13 +20,13 @@ import { View, Pressable, StyleSheet, AccessibilityInfo } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { paper, space, HAIRLINE, HIT } from '../theme.ts';
 import { dueCount } from '../review/store.ts';
-import { HomeIcon, TutorIcon, PracticeIcon, LeaderboardIcon, ProfileIcon, type TabIconProps } from './icons.tsx';
+import { HomeIcon, TutorIcon, PracticeIcon, MyFrenchIcon, ProfileIcon, type TabIconProps } from './icons.tsx';
 
 const ICONS: Record<string, (p: TabIconProps) => React.ReactElement> = {
   Home: HomeIcon,
   Tutor: TutorIcon,
   Practice: PracticeIcon,
-  Leaderboard: LeaderboardIcon,
+  MyFrench: MyFrenchIcon,
   Profile: ProfileIcon,
 };
 
@@ -35,7 +35,7 @@ const LABELS: Record<string, string> = {
   Home: 'Home',
   Tutor: 'Tutor',
   Practice: 'Practice',
-  Leaderboard: 'Leaderboard',
+  MyFrench: 'My French',
   Profile: 'Profile',
 };
 

@@ -26,8 +26,8 @@ are `performance-engineer`.
   Packages point `main` and `types` at `./src/index.ts` and imports carry explicit `.ts`
   extensions. Two consequences: **TypeScript parameter properties are rejected** because
   they emit runtime code, and a missing `.ts` on an import fails at run time, not typecheck.
-- **No router.** Adding an endpoint means extending one `if` chain in `server.ts`. Reaching
-  for Express to avoid that is a parallel invention; the chain is four endpoints long.
+- **No router.** Adding an endpoint means extending the validated `if` chain in `server.ts`.
+  Reaching for Express to avoid that is a parallel invention.
 - **No framework, no middleware, no ORM.** Body caps are 64KB JSON and 2MB audio, applied
   by hand.
 

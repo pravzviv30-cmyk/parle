@@ -24,3 +24,7 @@ export { OnboardWave, OnboardCake, OnboardSuitcase, OnboardClock } from './scene
 export { NothingDue, NobodyYet, StillWriting } from './scenes/empty.tsx';
 export { RewardMark } from './scenes/reward.tsx';
 export { Phrasebook } from './scenes/rooms.tsx';
+
+// Four places, one per mission that did not already have a drawing. The cafe
+// keeps HeroCafe and the evening with friends keeps SpeakBubbles.
+export { StreetCorner, MarketStall, FrontDesk, EveningIn } from './scenes/missions.tsx';

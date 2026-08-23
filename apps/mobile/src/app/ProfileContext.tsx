@@ -10,6 +10,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { LearnerProfile } from '@parle/brain/profile';
 import { loadProfile, saveProfile, type StoredProfile } from '../profile/store.ts';
+import { needsOnboarding } from '../onboarding/answers.ts';
 
 interface ProfileValue {
   profile: StoredProfile;
@@ -73,7 +74,7 @@ export function ProfileGate({
   );
 
   if (profile === 'loading') return null;
-  if (profile === null || profile.name === null) {
+  if (needsOnboarding(profile)) {
     return onboarding(profile, (p) => update(p));
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

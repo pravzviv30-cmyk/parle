@@ -56,3 +56,7 @@ graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
 # /forge keeps each pass's contract and round log here. Same deal: per-run state,
 # not a document. The ledger in docs/KNOWN_ISSUES.md is the part that persists.
 .forge/
+
+# Local web-research captures can contain copied example credentials and are
+# never product source or release evidence.
+.firecrawl/

@@ -1131,3 +1131,428 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   serve, or a text-only worker becomes a separate registration. Filed rather than
   fixed because picking between those is not a call to make in passing.
 - verified-by: `a worker with no usable voice can still serve the typed modes`
+
+### E3 — The French tutor spoke with an American voice, and every check passed
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/voice.ts:1
+- note: the founder's report was that the tutor "sounds purely robotic". Most of it was
+  not in the writing. ELEVEN_VOICE_ID was EXAVITQu4vr4xnSDxMaL, the vendor's premade
+  "Sarah": category premade, accent american, language en, use_case entertainment_tv. She
+  was speaking French because voice.ts pinned languageCode 'fr' over the top of her, and
+  her verified_languages list French only under eleven_multilingual_v2 while voice.ts
+  pinned eleven_turbo_v2_5, where she is verified for English alone. So the tutor ran an
+  unverified voice/model/language combination for its whole life, and no amount of better
+  prompt writing would have fixed the sound of it.
+  The honest repair is a native French voice, and it is not reachable here: every native
+  French voice the vendor offers is a library or cloned voice, a free account is refused
+  both over the API, and the free tier's own premade voices are all English. That is a
+  purchase, not a config change, and it is recorded in .env.example rather than pretended
+  away. What ships instead is the same voice on the model where its French is actually
+  verified, plus the delivery settings retune the flat "neutral" tuning was suppressing.
+  The second half is the reason this is a P1 rather than a settings tweak. preflight
+  checked the voice appeared in /v1/voices and stopped there, but appearing in the
+  catalogue is not permission to synthesize: a library voice on a free plan is listed
+  happily and then refused 402 the moment anything asks it to speak. That combination
+  passed every startup check and reached the learner exactly the way the wrong-account 404
+  in E1 did, as a room that opens and a tutor that never speaks. Confirmed by running it,
+  not by reasoning about it. preflight now asks the vendor to say one word in the exact
+  configuration the tutor will use, because the voice, the model and the language are
+  refused as a combination and a probe that guessed any one of them would vouch for a
+  setup nobody runs. Four characters of quota per boot. Deterministic refusals are fatal;
+  a 500 or a 429 stays a blip, on the same rule the rest of that file follows.
+  Changing the model re-keys the TTS cache, so this lands with a warm-cache run.
+- verified-by: `the model is pinned, not left to the plugin default`
+- verified-by: `a voice the account may list but may not speak with is fatal`
+- verified-by: `the refusal names the model, because it is the combination that is refused`
+- verified-by: `the probe asks for exactly what the tutor will ask for`
+- verified-by: `a vendor blip at synthesis does not refuse to start the worker`
+- verified-by: `a refused voice still produces one message, not two`
+- verified-by: `no configured voice means nothing of ours to prove`
+
+### E4 — A delivery knob could change what the vendor was asked for while the cache replayed the old answer
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/voice.ts:49
+- note: SETTINGS_FINGERPRINT was hand-listed and covered streamingLatency, stability and
+  similarity_boost. The file's whole stated guarantee is that "audio synthesized under one
+  configuration is never replayed under another", and adding style, use_speaker_boost or a
+  language code would have broken it silently: the vendor gets the new request, the disk
+  cache goes on serving audio made under the old one, and the retune is inaudible for every
+  warmed line. Found while adding exactly those knobs. The fingerprint is derived from the
+  settings object now, with keys sorted so declaration order cannot re-key the cache on its
+  own, so it can no longer fall behind what is sent.
+- verified-by: `every delivery knob that is sent is in the cache key, so none can drift`
+- verified-by: `the language the vendor is told to expect is in the cache key too`
+
+### K1 — The tutor corrected on every single turn, on its loosest setting
+- severity: P1
+- status: [x]
+- where: packages/brain/src/engine/grading.ts:86
+- note: the other half of "sounds purely robotic", and the founder put it exactly: it
+  "never just reacts". Not the prompt. The live agent already hardcodes strictness `flow`,
+  the loosest column there is, and `flow` still surfaces `textbook-phrasing` inline because
+  that finding is the product and a test says so by name. The learners are absolute
+  beginners, so every single thing they say IS textbook French. The model found one every
+  turn, the policy surfaced it every turn, and integrateTurn minted a coachLine every turn.
+  INLINE_CAP was already described in its own comment as "a budget for interruptions", and
+  it is — per turn. A budget of one, spent every turn, is still an interruption every turn.
+  The missing dimension was time, so the cooldown is time and nothing else: surfacePolicy is
+  untouched, textbook phrasing is still inline at every strictness, and nothing becomes
+  ineligible. It just does not get the slot on consecutive turns, and what misses the slot
+  is not lost, it joins the recap queue that already dedupes and groups by topic.
+  Two kinds are exempt because they answer the learner rather than interrupt them: the
+  English hand-back, already exempt from the per-turn cap for that reason under G7, and a
+  blocking error, because withholding "the scene did not understand you" to keep the rhythm
+  pleasant strands the learner mid-scene and costs more than the interruption saves. Neither
+  spends the budget either, so asking for help never buys the tutor's silence on the next
+  thing worth saying.
+  The rule and the wiring are tested apart on purpose. splitCoach is a pure function and
+  easy to hold; the state that carries the clock between turns is the half that can be
+  silently absent, so integrateTurn is driven over six and eight real turns as well.
+- verified-by: `the first finding of a session is never held back`
+- verified-by: `a second correction on the very next turn waits instead of interrupting again`
+- verified-by: `the cooldown expires, so coaching resumes rather than stopping`
+- verified-by: `a comprehension breakdown is coached even mid-cooldown`
+- verified-by: `answering the learner never buys the tutor silence on the next turn`
+- verified-by: `the cooldown holds things back without making them ineligible`
+- verified-by: `a caller that tracks nothing behaves exactly as before`
+- verified-by: `a run of textbook turns is not a run of corrections`
+- verified-by: `two consecutive turns never both interrupt`
+- verified-by: `what the cooldown holds back reaches the recap instead`
+
+### K2 — The tutor was a rules list, and said its fixed lines the same way forever
+- severity: P1
+- status: [x]
+- where: packages/brain/src/prompt/system.ts:24
+- note: the rest of "sounds purely robotic", in three parts that share one cause.
+  The persona opened "You are a responsive French conversation tutor for an English-speaking
+  learner" and then listed twenty-two rules, fourteen beginning with "Never". No name, no
+  age, no city, nothing the character liked or would refuse. A model handed only constraints
+  produces constrained output. He is Luc now, fifty-two, from Lyon, ran a bar for twenty
+  years, not a teacher and says so, and the commitments all still stand at the bottom where
+  they belong. Same treatment for the scripted-lesson prompt, because two prompts is a fact
+  of the two pipelines and two different PEOPLE would be a fact the learner can hear.
+  One clause had to be split rather than kept or dropped. "End with a question or an obvious
+  conversational opening" was pinned by a test whose comment records why: the dead-end turn
+  is a competitor failure, "the AI makes a statement and that's it, which leaves me blank".
+  True, and it was also making every single turn end in a question, which is being
+  interviewed. The opening stays mandatory; a question stops being the only way to give one.
+  The test asserts the guarantee now instead of the wording, and keeps the comment.
+  Every fixed learner-facing line became a small family rotated on the turn, never random,
+  because prepareTurn is byte-stable and this has to stay testable. Five of the six coach
+  fallbacks were one string each, while the English hand-back next to them had been four
+  variants since G8 with a note saying "a warm line said the same way every time stops being
+  warm by the third turn". That was equally true of "Small fix:". The recovery line, the
+  scripted-lesson feedback and the recap headline went the same way; three of the four
+  recovery lines put the failure on Luc rather than the learner, which is not a kindness but
+  what actually happened.
+  And the one that looked generated rather than merely fixed: every session opened with the
+  same three words. "Imagine the scene." was in both fixtures, the request fallback and the
+  runtime narration repair, because the scenario prompt's own worked example taught the model
+  to write it. Nothing guarded the most-repeated line in the product. The example is gone,
+  the instruction now asks for a different opening every time and shows three, and a test
+  holds every opening path to it.
+- verified-by: `the persona is a person before it is a policy`
+- verified-by: `he reacts to the learner before he advances the scene`
+- verified-by: `the fillers the pack already teaches are asked for in his own lines`
+- verified-by: `his English stays plain, because it is the channel the beginner relies on`
+- verified-by: `he does not perform himself at the learner`
+- verified-by: `both prompts introduce the same person`
+- verified-by: `neither lets him perform himself at the learner`
+- verified-by: `the persona carries the behavioural commitments`
+- verified-by: `every kind has several ways of being said`
+- verified-by: `no variant repeats another, breaks a copy rule, or loses the French`
+- verified-by: `no variant ever reassures, because reassurance implies failure`
+- verified-by: `textbook phrasing never opens on a correction, in any variant`
+- verified-by: `an out-of-range or negative variant still returns a clean line, for every kind`
+- verified-by: `the rotation is a function of the turn, never a random draw`
+- verified-by: `every line of every feedback family is safe, distinct, and says something`
+- verified-by: `a run of the same outcome is not a run of the same sentence`
+- verified-by: `every line of every headline family is clean and distinct`
+- verified-by: `two sessions of different lengths do not end on the same sentence`
+- verified-by: `every opening path starts on something concrete, not a stock phrase`
+- verified-by: `no two authored openings begin with the same words`
+- verified-by: `the scenario prompt asks for variety instead of demonstrating a formula`
+- verified-by: `the openings the model is shown are examples, not one template`
+
+### K3 — The app introduced a person and then called him "your tutor" twenty times
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tutor/tutorName.ts:1
+- note: the app half of K2, and it would have undercut it. Giving the tutor a name in the
+  prompt while every screen still says "your tutor" is introducing someone and then
+  refusing to use their name, which reads as exactly the distance the whole change is
+  trying to close. He is Luc on every surface where he is a person the learner is talking
+  to: the orb captions, the intro, the choosing screen, the transcript label, the home and
+  tutor tabs, onboarding and the practice status line. The intro's first page now says who
+  he is, because "Luc is thinking" in front of a learner who has never been told who Luc is
+  would be worse than the role.
+  He is deliberately absent from every failure screen. "Luc did not pick up" blames a person
+  for a dead server, and that copy already goes out of its way to say this one is on us, not
+  on you. Same instinct J9 recorded: a learner should never be handed the plumbing, and they
+  should not be handed a scapegoat either.
+  One home for the name rather than twenty literals, on F8's reasoning about the token
+  server address: twenty copies agree about nothing today and would eventually disagree
+  about something, and a half-renamed tutor is a learner being introduced to two people. The
+  walk that proves it is the same shape as F8's.
+- verified-by: `the name is spelled out exactly once in the whole app`
+- verified-by: `it is a name a beginner can say, and not empty`
+- verified-by: `the transcript label still says whose hearing it was`
+- verified-by: `a still-being-written topic says the tutor is writing it`
+- verified-by: `the moment a topic is sent the learner sees their own words and a tutor visibly thinking`
+
+### K4 — The first line of every named learner's session was a cold vendor round trip
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:295
+- note: found by an adversarial review of the K1 to K3 work, and it is the good kind of
+  finding: the code was wrong and the comment above it said so confidently in the other
+  direction. openerFor composed "Hi Sam. " + the warmed question, and the docblock explained
+  that the framework would split them so "only the two-word greeting is a cold miss and it
+  plays first while the warm half streams from disk".
+  It does not split them. The framework's sentence tokenizer takes a minSentenceLength of
+  twenty (@livekit/agents tokenize/basic), "Hi Sam." is eight characters, so it glues to the
+  question and the pair takes ONE cache key. warmCache splits with the same tokenizer, which
+  is the whole reason it uses it, so what it stored was the bare question, and the bare
+  question is only ever what an UNNAMED learner hears. Every named learner therefore paid a
+  full cold synthesis for the first thing they hear in a session, at the exact moment someone
+  is deciding whether the thing works, and the record said they did not.
+  Fixed by making the greeting carry its own length rather than by touching the splitter,
+  whose floor belongs to the framework. The fixed part of the greeting does the work, so a
+  learner called Al is not charged for a learner called Alexandra. Measured over names from
+  one letter to nine. No re-warm needed: the question's own key never changed, which is the
+  point.
+- verified-by: `the greeting is its own sentence, so the question keeps its warmed key`
+- verified-by: `an unnamed learner still gets exactly the warmed line`
+- verified-by: `every sentence the warm script stores is a sentence the runtime asks for`
+
+### F41 — The stored profile reaches v4 without losing anyone's answers
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/profile/upgrade.ts:19
+- note: v4 adds `ageConfirmed: boolean | null`, keeps `dob` forever, and widens `motivation` and `dailyGoalMin` to nullable — a grep proved neither has a consumer outside the store, so the widening is free. A v2/v3 record whose dob makes the learner thirteen or over derives `ageConfirmed: true`; anything else derives null, never false, because false is a statement nobody made. `ageOn` moves to a pure `profile/age.ts` so the chain stays node-testable.
+- verified-by: `a v3 profile with an adult dob arrives at v4 already age-confirmed`
+- verified-by: `a v1 profile still reaches the latest version in one pass, brain intact`
+- verified-by: `no upgrade branch ever drops the dob or invents a confirmation`
+
+### F42 — Onboarding is three pages and none of them is a date of birth
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/OnboardingFlow.tsx:32
+- note: `PAGES = ['name','age','why']`. Name optional but encouraged (empty stores null, never the empty string), one "I am 13 or older" confirmation with the honest refusal line, why skippable. No goal page, no explainer, nothing blocking the first conversation. Pure answer assembly extracted to `onboarding/answers.ts`; the no-DOB rule pinned by a source-text test in the labels.test.ts idiom.
+- verified-by: `a skipped name is stored as null, not as an empty string`
+- verified-by: `onboarding never asks for a date of birth`
+- verified-by: `a learner who cannot confirm their age is told plainly and is not let through`
+
+### F43 — The daily goal lives in Profile now, with one write path
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:175
+- note: the goal question leaves the critical path and becomes an editable Profile row through `withDailyGoal`, the `withUsername` idiom. P2 honestly: nothing in the app reads `dailyGoalMin` today, so a round that ships without this row breaks no promise — it just leaves a preference unaskable until it closes.
+- verified-by: `the daily goal is asked in profile and nowhere in onboarding`
+
+### F44 — Six missions exist in core, and their state is a projection
+- severity: P1
+- status: [x]
+- where: packages/core/src/missions/missions.ts:1
+- note: the catalogue record (id, titles, place, cefr, roles, goal, win line, beat ids, phrase keys, reference phrases, path unit) plus `missionStates` projecting display state from completion records, the review deck and the drill bank — the `lessonDone` precedent, never a second phrase store. Independence is decided by code from the rung the win was earned at. Four new path units (`journee`, `chemin`, `marche`, `hotel`) with drill fixtures so no node opens onto nothing.
+- verified-by: `six missions exist and each names the path unit that practises it`
+- verified-by: `a completed mission whose phrases fall due reads needs-review, never complete`
+- verified-by: `independence comes from the rung the win was earned at, not from the model`
+- verified-by: `every authored path phrase can be drilled the day it appears`
+
+### F45 — Six authored frames, natural adult French, schema-parsed
+- severity: P1
+- status: [x]
+- where: packages/brain/src/missions/frames.ts:1
+- note: `MISSION_FRAMES` in brain because `ScenarioFrameSchema` owns frame validity. Each frame: intentional per-character registers, 2–5 beats, curated goalPhrases, opening support so turn zero costs no model call. Every frame parses through the schema in a test and its English passes the copy rules; the French register table in the catalogue is the reviewer's checklist.
+- verified-by: `every mission frame parses through the scenario frame schema untouched`
+- verified-by: `no mission frame's English copy violates the copy rules`
+- verified-by: `every mission frame opens with support already in hand`
+
+### F46 — Core and brain cannot drift apart about a mission
+- severity: P1
+- status: [x]
+- where: packages/brain/src/missions/agreement.test.ts:1
+- note: the palette.test.ts idiom across the package boundary — brain may import core, so the test reads both sides. This entry is itself the test; it is what makes the F44/F45 duplication safe instead of parallel invention.
+- verified-by: `every core phrase key has a matching goal phrase in its frame`
+- verified-by: `every core beat id appears in its frame, in the same order`
+- verified-by: `every reference phrase is one of its frame's own goal phrases`
+
+### F47 — A mission session opens its scene with zero model calls
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:699
+- note: `missionId` rides the seedTopic pipe (route params, `/session/start` body, token metadata) and `open()` builds the conversation straight from the authored frame — no `buildFrame`, no G3 wait, no F37 fallback on the first-run path. This is the mechanism under the one-minute promise. An unknown id degrades to today's choosing question rather than throwing.
+  Two verified-by lines were added after the fact, because an adversarial pass found this
+  chain broken in the middle with every test green: the route declared the id and dropped
+  it one line later, and the worker never read it off the metadata at all, so the whole
+  authored-scene path was unreachable from the app. A value that has to survive four hops
+  needs something watching each hop, and a test that reads a type or a route object is
+  not one of them.
+- verified-by: `a mission session opens its scene with zero model calls`
+- verified-by: `an unknown mission id opens the ordinary choosing question`
+- verified-by: `the token server signs the mission id into the join metadata`
+- verified-by: `the mission id is forwarded from the route into the live session`
+- verified-by: `the worker reads the mission id off the join metadata`
+
+### F48 — Finishing a mission's beats raises the win and does not end the session
+- severity: P1
+- status: [x]
+- where: packages/brain/src/engine/conversation.ts:584
+- note: for mission sessions only, `allBeatsDone` stops forcing `recapDue` and raises sticky `missionDone` on the view instead; `sceneDone` and the turn ceiling still end every session, so minutes stay bounded. The generated-frame path is untouched — `mission` defaults false and the 66 existing conversation tests must pass unmodified. After the win, the turn context tells the tutor the goal is reached and to stay in the scene without announcing it.
+- verified-by: `finishing the beats of a mission raises the win and does not end the session`
+- verified-by: `a generated-frame session still ends when its beats are done`
+- verified-by: `scene-done and the turn ceiling still end a mission session`
+- verified-by: `after the win the tutor is told the goal is reached, never told to say so`
+
+### F49 — The win card shows once, offers two honest doors, and records the rung
+- severity: P1
+- status: [x]
+- where: packages/core/src/protocol/protocol.ts:76
+- note: `missionDone` is a field on `ConvoView`, not a new tag — it rides the turn it belongs to, an old app ignores it, and a new app reads an old agent's absence as false. App-side `tutor/missionWin.ts` shows the card exactly once at the flip, with the mission's win line, "Keep talking" saying plainly that it uses minutes, and "Finish and see your recap" sending the existing `leave` — `finish()` stays the only recap point, so nothing banks early. The completion record is written here with the view's rung.
+- verified-by: `the win card shows exactly once, at the moment the mission completes`
+- verified-by: `keep talking says it costs minutes`
+- verified-by: `the win records the mission with the rung it was earned at`
+- verified-by: `an old app ignores the mission field and behaves exactly as today`
+
+### F50 — Give me a moment defers the clock and counts nothing
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:985
+- note: new `moment` client tag: in scene it clears the rescue and arms one bounded grace window, after which the ordinary rescue policy resumes — so the help that eventually comes is the ordinary first rescue, and nobody is stranded. Never a ladder event, never a rescue count, never a rung. Re-tappable, the same presence argument as `typing`. The app answers on screen with a quiet line and nothing spoken, because a spoken acknowledgement of a pause is a remark on the pause.
+- verified-by: `give me a moment defers the rescue clock and counts nothing against the learner`
+- verified-by: `after the grace the ordinary rescue policy resumes, so nobody is stranded`
+- verified-by: `a stray sound does not spend the time the learner asked for`
+- verified-by: `a moment while the scene is being built changes nothing`
+- verified-by: `the moment is answered on screen, never with a spoken remark`
+- verified-by: `the learner who asks for time is answered in words they can read`
+
+### F51 — The tutor's line replays on request, typing works mid-scene, and no control is dead
+- severity: P1
+- status: [x]
+- where: packages/core/src/protocol/protocol.ts:169
+- note: `hear` gains `line?: 'support' | 'scene'`; tapping the tutor's bubble replays the scene line, serving "Replay last tutor line" without a new tag — an old agent ignores the field and still speaks. The driver's sketched fallback (plain hear speaking the scene line) is rejected: the K-era rationale at convo.ts:1037 stands, so the app hides Hear it when there is no sayable support line instead of making the button lie. "Type instead" opens the input row in a voice scene and rides the existing `say` path unchanged.
+- verified-by: `tapping the tutor's line plays it again`
+- verified-by: `hear it hides when there is no line the tutor would vouch for`
+- verified-by: `an old agent reads a replay request as a plain hear and still speaks`
+- verified-by: `type instead sends a typed turn through the ordinary path mid-scene`
+
+### F52 — The controls are taught when they matter, and the manual stops gating the door
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tutor/gate.ts:1
+- note: `tutorGate` stops requiring the intro; TutorIntro survives, demoted to links on the Tutor tab and Profile, so J3 and the orb-teaching contract in DESIGN.md are untouched. `tutor/coachMarks.ts` sequences three contextual marks (help, moment, english) under rules that keep it from becoming a second onboarding: one on screen, one new per session, each once ever, never blocking. Seen-state is one key, one new suffix in `clearActiveUserData`.
+- verified-by: `the tutor tab opens its doors without the intro standing in the way`
+- verified-by: `each coach mark shows once, ever, and never two at a time`
+- verified-by: `at most one new coach mark appears per session`
+- verified-by: `the intro is still reachable, and still teaches the circle`
+
+### F53 — A first-ever learner lands on the chooser with the café already chosen
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/nav/RootNavigator.tsx:279
+- note: `MissionsScreen` as a stack screen serving all three doors — first run (in-memory `justOnboarded` flips the initial route; no persisted flag), Home's mission card, and the Tutor tab's three doors, where Talk freely remains supported but is no longer a beginner's only door. The pure `chooserView` owns ordering, the café default, and the promise line, which shows only before the first conversation because a promise about a first line is only honest once.
+- verified-by: `a first-ever learner lands on the chooser with the café already chosen`
+- verified-by: `every mission card routes to a conversation carrying its mission id`
+- verified-by: `the promise line shows only before the first conversation`
+- verified-by: `talk freely is still a door, and not the first one for a beginner`
+
+### F54 — The tutor's sentences match the rung the learner is on
+- severity: P1
+- status: [x]
+- where: packages/brain/src/prompt/turnContext.ts:67
+- note: the INDEPENDENCE line grows explicit per-rung length guidance — one short sentence and one idea at the bottom rungs, natural length at the top — closing M3's "short turns, especially for A0/A1" now that K1–K4 own recasts, cooldowns and variant rotation. Guidance in the prompt, progression in code; the split the schema header names stays exact.
+- verified-by: `the bottom rung asks for one short sentence and one idea`
+- verified-by: `the top rung stops constraining the tutor's length`
+
+
+### F55 — Six missions and a learner never has to understand a number
+- severity: P2
+- status: [ ]
+- where: packages/core/src/missions/missions.ts:244
+- note: found by reading the six authored missions side by side, which is the only place it
+  is visible. Prices, times, floors and quantities are all spoken BY the tutor and nothing is
+  ever required of the learner in return: the café says what it comes to, the market answers
+  "ça fait combien ?", the hotel names a floor and a breakfast time, and in every case the
+  learner's next line works whether or not they caught the number. For an A0 or A1 adult that
+  is the single most common real-world failure, and six situations do not touch it once.
+  Filed rather than fixed because closing it is a pedagogy decision, not an oversight: a beat
+  that requires the learner to repeat back a number they heard is the first place in the
+  product where NOT understanding has a consequence, and PEDAGOGY.md's first invariant is
+  that a learner is never stranded. Doing it well means deciding what the tutor does when the
+  number is missed, and that is a rung and rescue question rather than a content one. The
+  cheapest honest shape, for whoever takes it: give the hotel's take-key beat a line that
+  repeats the floor back, because a floor and a breakfast time are already spoken there.
+  The same reading turned up a second gap worth recording in the same place: repair language
+  exists as exactly two cards across the whole corpus ("pardon, vous pouvez répéter ?" in the
+  café unit and "plus lentement, s'il vous plaît" in chemin), and repair is the most-used
+  move a beginner has.
+- verified-by: `a learner is asked to understand a number at least once across the missions`
+
+### F56 — Two hops of the mission pipe have no tripwire watching them
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:448
+- note: the round's defect class was a value asserted at a declaration and dropped one hop
+  later, and its own fix note says a value surviving four hops needs something watching each
+  hop. Two still had nothing: the spread handing `missionId` from ConvoScreen's props into the
+  start options (ConvoScreen.tsx:198) and the spread putting it into the `/session/start` body
+  (useLiveSession.ts:448). Delete either and every mission tap silently reverts to the
+  ten-to-twenty-five-second model-written scene build, with the whole suite green and nothing
+  anywhere to say so. Found by the judge rather than by a verifier, which is the useful part:
+  every hop that had already bitten somebody had been given a tripwire, and these were simply
+  the hops nobody had reached yet. One source-walk test closes both.
+- verified-by: `the mission id is carried from the screen into the session start body`
+
+### F57 — The two-minute promise is shown to learners and has never been timed
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/missions/chooserView.ts:36
+- note: the contract says the one-minute claim is verified by stopwatch against `npm run dev`
+  and that the round log must say what was measured. The mechanism under it is proven by test
+  (a mission opens its scene with zero model calls, onboarding is three pages, the chooser is
+  one tap), but "You'll say your first useful French line in the next two minutes." is a
+  wall-clock claim shown to every first learner and no wall clock has been read.
+  MEASURED IN PART on 2026-08-22, against the full four-process stack with real vendor keys.
+  An earlier draft of this note said the keys were absent and the worker would not boot. That
+  was wrong, taken from a stale memory rather than from the .env on disk, and the correction
+  belongs here because the claim it excused is the one this entry exists to hold.
+  The machine half is now on the record. Tapping the mission to the scene rendering took
+  SEVENTEEN SECONDS (18:28:00 to `session-opened` at 18:28:17), on a cold Expo dev server with
+  Metro bundling the route inside that window. The agent log for the whole session carries no
+  `frame:` brain call at all, only `turn:` calls, so the ten-to-twenty-five seconds G3 measured
+  is not merely smaller, it does not happen: the opening line came back `cache=hit` with
+  `ttfb=3ms` and `audio→speaking=2ms`.
+  What is still unmeasured is the human half, and it is the half the sentence actually claims.
+  An automated walkthrough types instantly and then pauses for screenshots, so it can prove the
+  app is not the slow part and it cannot prove what a nervous adult does in two minutes. This
+  stays open for a person, at their own pace, with a watch.
+  F36's lesson applies to a number as much as it did to a diagnosis: the record is what a
+  later session trusts, so an unmeasured claim recorded as measured is worse than no record.
+- verified-by: `the record of the first-win promise names the time a stopwatch actually measured`
+
+### F58 — On web, a first-ever learner lands on Home instead of the chooser
+- severity: P2
+- status: [ ]
+- where: apps/mobile/App.tsx:151
+- note: found by running it, not by reading it, and the wiring is entirely correct: `App.tsx`
+  sets `justOnboarded` when a brand-new profile completes (`:135`), passes it (`:151`), and
+  `RootNavigator` uses it as `initialRouteName` (`:291`). It still does not happen on web.
+  `initialRouteName` only applies on the navigator's first mount, and on web the
+  `NavigationContainer` is given a `linking` config, so React Navigation resolves the initial
+  state from the URL instead. Onboarding finishes at `/`, `/` is Tabs, and Tabs wins.
+  This is F53's own defect class one layer down and worth saying plainly: the test asserts the
+  chooser is reachable and the prop is passed, both of which are true, while the platform
+  quietly overrules the prop. Nothing in a test can see a React Navigation precedence rule.
+  Not P1 because the learner is not stranded and barely inconvenienced: Home leads with the
+  mission card, headed NEXT SITUATION, naming Au café du coin with a Start this one button, so
+  the first mission is one tap away and the café is still the one offered. What is lost is the
+  chooser's promise line, which is the sentence F57 is about, and the sense of being handed a
+  choice rather than a default.
+  The fix is a navigation-config decision rather than a patch: either the linking config learns
+  that a just-onboarded learner resolves to Missions, or first-run navigates imperatively after
+  mount instead of relying on an initial route. Worth doing with a device pass, since native
+  and web differ here and only web is wrong.
+- verified-by: `a first-ever learner reaches the chooser on web as well as on native`

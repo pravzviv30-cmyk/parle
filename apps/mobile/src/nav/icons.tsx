@@ -62,11 +62,13 @@ export function PracticeIcon(props: TabIconProps) {
   );
 }
 
-/** Leaderboard — three steps drawn as one unbroken outline. */
-export function LeaderboardIcon(props: TabIconProps) {
+/** My French — an open notebook containing the learner's own lines. */
+export function MyFrenchIcon(props: TabIconProps) {
   return (
     <Glyph {...props}>
-      <Path d="M3 19.4v-3.8h5.6v-5.2h6.9v3.3H21v5.7Z" />
+      <Path d="M3.2 5.2c3.2-.8 6-.3 8.8 1.6v12c-2.8-1.9-5.6-2.4-8.8-1.6Z" />
+      <Path d="M20.8 5.2c-3.2-.8-6-.3-8.8 1.6v12c2.8-1.9 5.6-2.4 8.8-1.6Z" />
+      <Path d="M6.1 9.1c1.2-.1 2.2.1 3.2.6M14.7 9.7c1-.5 2-.7 3.2-.6" />
     </Glyph>
   );
 }

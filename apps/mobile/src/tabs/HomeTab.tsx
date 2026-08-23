@@ -17,9 +17,18 @@ import { useCallback, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { buildProgressReport, levelFor, totalXp, type LevelStanding, type ProgressReport } from '@parle/core';
+import {
+  buildProgressReport,
+  levelFor,
+  missionStates,
+  suggestedMission,
+  totalXp,
+  type LevelStanding,
+  type MissionProgress,
+  type ProgressReport,
+} from '@parle/core';
 import { accent, paper, space, type, radius, HIT } from '../theme.ts';
-import { Card, Label, PillButton, StationLine, Stat } from '../components.tsx';
+import { Card, GhostButton, Label, OutlineButton, PillButton, StationLine, Stat } from '../components.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
 import { loadHistory } from '../progress/store.ts';
 import { loadActivity } from '../progress/activity.ts';
@@ -32,6 +41,10 @@ import { TodayRow } from '../home/TodayRow.tsx';
 import { PhrasebookCard } from '../home/PhrasebookCard.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { useLive } from '../app/LiveContext.tsx';
+import { TUTOR_NAME } from '../tutor/tutorName.ts';
+import { loadMissionCompletions } from '../missions/store.ts';
+import { missionCompletionsFrom, missionStatus } from '../missions/chooserView.ts';
+import { trackProductEvent } from '../analytics/track.ts';
 
 export function HomeTab() {
   // A bottom tab stays mounted after its first visit, so a looping scene here
@@ -40,7 +53,7 @@ export function HomeTab() {
   // and several scenes render above the navigator — so the tab passes it down.
   const focused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const nav = useNavigation<{ navigate: (screen: string) => void }>();
+  const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { profile } = useProfile();
   const { live } = useLive();
 
@@ -49,6 +62,9 @@ export function HomeTab() {
   const [today, setToday] = useState<Today | null>(null);
   const [book, setBook] = useState<Phrasebook | null>(null);
   const [showingPhrases, setShowingPhrases] = useState(false);
+  // The next situation to walk into. Core decides which one; this screen draws
+  // it and offers the door to the rest.
+  const [nextMission, setNextMission] = useState<MissionProgress | null>(null);
 
   // Re-read on every return: finishing a sitting anywhere in the app should be
   // visible here the moment the learner comes back to look.
@@ -60,14 +76,15 @@ export function HomeTab() {
       // nowhere else, so history alone cannot see a learner who only ever talks.
       // All independent reads cross the native storage bridge together. The
       // activity log is read once and feeds both level and today's evidence.
-      void Promise.all([loadHistory(), loadActivity(), loadDeck(), loadTopics()]).then(
-        ([history, activity, deck, topics]) => {
+      void Promise.all([loadHistory(), loadActivity(), loadDeck(), loadTopics(), loadMissionCompletions()]).then(
+        ([history, activity, deck, topics, missions]) => {
           if (cancelled) return;
           const now = Date.now();
           setReport(history.length > 0 ? buildProgressReport(history) : null);
           setStanding(levelFor(totalXp(activity)));
           setToday(todayFrom(activity, now));
           setBook(buildPhrasebook(deck, topics, now));
+          setNextMission(suggestedMission(missionStates(missionCompletionsFrom(missions), deck, now)));
         },
       );
       return () => {
@@ -109,9 +126,38 @@ export function HomeTab() {
             something, which is what stops a daily count becoming a streak. */}
         {today && <TodayRow today={today} />}
 
+        {/* The next situation, and the door to the other five. First in the
+            scroll on purpose: what a learner can go and do today outranks a
+            summary of what they did last week. */}
+        {nextMission && (
+          <Card style={today ? { marginTop: space(5) } : undefined}>
+            <Label>Next situation</Label>
+            <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>{nextMission.mission.title}</Text>
+            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(0.5) }]}>
+              {nextMission.mission.titleEn}
+            </Text>
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
+              {missionStatus(nextMission.state, nextMission.independence)}
+            </Text>
+            <View style={{ marginTop: space(4) }}>
+              <OutlineButton
+                label="Start this one"
+                onPress={() => {
+                  void trackProductEvent({
+                    name: 'mission_started',
+                    properties: { missionId: nextMission.mission.id, entry: 'home' },
+                  });
+                  nav.navigate('Convo', { missionId: nextMission.mission.id });
+                }}
+              />
+            </View>
+            <GhostButton label="See all situations" onPress={() => nav.navigate('Missions')} />
+          </Card>
+        )}
+
         {started && standing ? (
           <>
-            <Card style={today ? { marginTop: space(5) } : undefined}>
+            <Card style={today || nextMission ? { marginTop: space(5) } : undefined}>
               <Label>Your level</Label>
               <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>{standing.name}</Text>
               <View style={{ marginTop: space(3) }}>
@@ -170,7 +216,7 @@ export function HomeTab() {
         )}
 
         <View style={st.actions}>
-          <PillButton label="Talk to your tutor" onPress={() => nav.navigate('Tutor')} />
+          <PillButton label={`Talk to ${TUTOR_NAME}`} onPress={() => nav.navigate('Tutor')} />
         </View>
       </ScrollView>
     </View>

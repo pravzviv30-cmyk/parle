@@ -666,3 +666,166 @@ describe('the scene the learner is handed — G2', () => {
     assert.equal(carriesFrench(repaired.en), false, `the recovery narration carries French: "${repaired.en}"`);
   });
 });
+
+describe('the tutor does not correct on every single turn', () => {
+  /**
+   * The founder's report was that the tutor "never just reacts". The cause was
+   * not the prompt: at A0 every utterance is textbook French, textbook-phrasing
+   * surfaces inline at every strictness because it is the finding this product
+   * exists for, and INLINE_CAP is a budget per turn, so a budget of one was
+   * spent every turn. grading.test.ts holds the rule; this holds the wiring,
+   * which is the half that can be silently absent.
+   */
+  const textbookTurn = (quote: string): TutorTurn =>
+    sampleTurn({
+      coach: [sampleCoachItem({ kind: 'textbook-phrasing', quote, better: 'j’sais pas' })],
+      coachLine: 'A local would say "j’sais pas".',
+    });
+
+  function run(turns: number, start = fresh({ strictness: 'flow' })) {
+    let state = start;
+    const spokenLines: (string | null)[] = [];
+    for (let i = 0; i < turns; i += 1) {
+      const out = integrateTurn(state, spoke(`essai ${i}`), textbookTurn(`quote-${i}`));
+      state = out.state;
+      spokenLines.push(out.view.coachLine);
+    }
+    return { state, spokenLines };
+  }
+
+  test('a run of textbook turns is not a run of corrections', () => {
+    const { spokenLines } = run(6);
+    const corrected = spokenLines.filter((l) => l !== null).length;
+    assert.ok(corrected > 0, 'the product still coaches; this is about rate, not silence');
+    assert.ok(
+      corrected < spokenLines.length,
+      `every one of ${spokenLines.length} turns carried a correction, which is the bug`,
+    );
+  });
+
+  test('two consecutive turns never both interrupt', () => {
+    const { spokenLines } = run(8);
+    for (let i = 1; i < spokenLines.length; i += 1) {
+      assert.ok(
+        spokenLines[i] === null || spokenLines[i - 1] === null,
+        `turns ${i - 1} and ${i} both corrected, so the cooldown is not wired to the state`,
+      );
+    }
+  });
+
+  test('what the cooldown holds back reaches the recap instead', () => {
+    const { state, spokenLines } = run(6);
+    const spoken = spokenLines.filter((l) => l !== null).length;
+    assert.equal(spoken + state.deferred.length, 6, 'every finding is either said now or queued for the end card');
+  });
+
+  test('the clock starts unset, so a session never opens mid-cooldown', () => {
+    assert.equal(fresh().lastInterruptedTurn, null);
+    const { view } = integrateTurn(fresh({ strictness: 'flow' }), spoke(), textbookTurn('a'));
+    assert.notEqual(view.coachLine, null, 'the first finding of a session is said');
+  });
+});
+
+describe('finishing a mission is a win, not closing time', () => {
+  /** Walk a scene to the end of its beats with ordinary good turns. */
+  function throughEveryBeat(start: ConversationState): { state: ConversationState; view: ReturnType<typeof integrateTurn>['view'] } {
+    let state = start;
+    let view = integrateTurn(state, spoke(), sampleTurn()).view;
+    // The line above is only here for its view; the walk itself starts clean.
+    for (const beat of CAFE_FRAME.beats) {
+      const done = integrateTurn(state, spoke(), sampleTurn({ scene: { beat: beat.id, beatDone: true, sceneDone: false } }));
+      state = done.state;
+      view = done.view;
+    }
+    return { state, view };
+  }
+
+  function mission(overrides: { maxTurns?: number } = {}): ConversationState {
+    return createConversation(
+      CAFE_FRAME,
+      learner(),
+      { strictness: 'balanced', maxTurns: overrides.maxTurns ?? 24, mission: true },
+      1_000,
+    );
+  }
+
+  test('finishing the beats of a mission raises the win and does not end the session', () => {
+    const { state, view } = throughEveryBeat(mission());
+
+    assert.equal(view.missionDone, true, 'the learner finished what they came in to do and nothing said so');
+    assert.equal(
+      view.recapDue,
+      false,
+      'ending the session on the turn a beginner first got through a real French exchange takes the achievement away in the same breath as giving it',
+    );
+    assert.equal(state.missionDone, true, 'the win must survive into the next turn, or the card flickers away');
+  });
+
+  test('a generated-frame session still ends when its beats are done', () => {
+    // The path this round did NOT touch. A scene built from a learner's own
+    // request has no authored win line to raise, and every beat done has always
+    // been its ending.
+    const { view } = throughEveryBeat(fresh());
+
+    assert.equal(view.recapDue, true, 'a generated scene must end exactly as it did before missions existed');
+    assert.equal(view.missionDone, false, 'a scene nobody authored cannot raise a win nobody wrote');
+  });
+
+  test('scene-done and the turn ceiling still end a mission session', () => {
+    // Removing every exit would be its own trap: metered minutes have to stay
+    // bounded, and a character who decides the conversation is over is right.
+    //
+    // Driven from a finished mission that is still open, rather than from two
+    // isolated cases, and that is the whole point. Asserting sceneDue on a fresh
+    // scene would pass just as well against an engine that had never heard of
+    // missions, because every beat done used to end the session on its own. The
+    // state this starts from is one the engine could not reach before, so
+    // getting there is half the proof and leaving it is the other half.
+    const open = throughEveryBeat(mission({ maxTurns: 12 }));
+    assert.equal(open.view.recapDue, false, 'the beats are done and the session is still open, or there is nothing here to end');
+
+    const closed = integrateTurn(
+      open.state,
+      spoke(),
+      sampleTurn({ scene: { beat: 'leave', beatDone: false, sceneDone: true } }),
+    );
+    assert.equal(closed.view.recapDue, true, 'a mission whose scene says it is over must still end');
+
+    // The ceiling, from that same open state. There is no beat left to finish,
+    // so nothing but the turn count can close it, which is exactly the case
+    // where a missing ceiling would run the meter until the learner noticed.
+    let running = open.state;
+    let ended = false;
+    for (let i = 0; i < 20 && !ended; i += 1) {
+      const next = integrateTurn(running, spoke(), sampleTurn());
+      running = next.state;
+      ended = next.view.recapDue;
+    }
+
+    assert.equal(ended, true, 'a mission with its beats behind it must still reach an end on its own');
+    assert.ok(
+      running.turnCount >= 12,
+      `the turn ceiling is what ended it, and it ended at turn ${running.turnCount} instead`,
+    );
+  });
+
+  test('after the win the tutor is told the goal is reached, never told to say so', () => {
+    const { state } = throughEveryBeat(mission());
+    const request = prepareTurn(state, spoke('Il fait beau aujourd’hui.'));
+    const context = request.messages.filter((m) => m.role === 'system').map((m) => m.text).join('\n');
+
+    assert.match(context, /SCENE GOAL: already reached/, 'the tutor is not told the scene goal is behind them');
+    assert.match(context, /follow wherever they take it/i, 'the learner who kept talking must be followed, not steered back');
+    assert.match(context, /Do not announce the achievement/i);
+    assert.match(context, /congratulate/i, 'the one thing the tutor must not do has to be said, because the app already said it');
+  });
+
+  test('a mission that nobody finished carries no win', () => {
+    let state = mission();
+    state = integrateTurn(state, spoke(), sampleTurn({ scene: { beat: 'greet', beatDone: true, sceneDone: false } })).state;
+    const view = integrateTurn(state, spoke(), sampleTurn()).view;
+
+    assert.equal(view.missionDone, false, 'one beat out of five is not a mission');
+    assert.equal(view.recapDue, false);
+  });
+});

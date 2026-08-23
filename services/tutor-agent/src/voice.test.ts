@@ -9,7 +9,7 @@ import { initializeLogger } from '@livekit/agents';
 // any plugin TTS is constructed.
 initializeLogger({ pretty: false, level: 'silent' });
 
-import { buildTTS } from './voice.ts';
+import { buildTTS, LANGUAGE_CODE, VOICE_SETTINGS } from './voice.ts';
 
 /**
  * buildTTS reads the environment, so these tests own it for their duration:
@@ -38,13 +38,36 @@ afterEach(() => {
 
 describe('the voice configuration', () => {
   test('the model is pinned, not left to the plugin default', () => {
-    assert.equal(buildTTS().model, 'eleven_turbo_v2_5');
+    assert.equal(buildTTS().model, 'eleven_multilingual_v2');
   });
 
   test('the cache key fingerprints voice, model and delivery settings', () => {
     // Full-string equality on purpose: any settings change must change this key,
     // so audio synthesized under old settings is never replayed under new ones.
-    assert.equal(buildTTS().opts.voiceKey, 'elevenlabs:default:eleven_turbo_v2_5:sl3:st50-sb75');
+    assert.equal(
+      buildTTS().opts.voiceKey,
+      'elevenlabs:default:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true',
+    );
+  });
+
+  test('every delivery knob that is sent is in the cache key, so none can drift', () => {
+    // The bug this replaces: the fingerprint was hand-listed and covered
+    // stability and similarity boost only. Adding style, speaker boost or a
+    // language code changed what the vendor was asked for while the cache went
+    // on replaying audio made under the old answer, which is the one failure
+    // this whole file exists to prevent. The fingerprint is derived from the
+    // settings object now, and this holds it to that.
+    const key = buildTTS().opts.voiceKey;
+    for (const knob of Object.keys(VOICE_SETTINGS)) {
+      assert.ok(key.includes(knob), `${knob} is sent to the vendor but is not in the cache key`);
+    }
+  });
+
+  test('the language the vendor is told to expect is in the cache key too', () => {
+    // Not cosmetic: the plugin appends language_code to every request and the
+    // vendor uses it to enforce the language for text normalization as well as
+    // the model. Two different answers must never share cached audio.
+    assert.match(buildTTS().opts.voiceKey, new RegExp(`lang=${LANGUAGE_CODE ?? 'auto'}`));
   });
 
   test('a configured voice id lands in the cache key', () => {

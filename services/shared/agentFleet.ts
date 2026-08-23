@@ -30,6 +30,9 @@ export const READ_ONLY_AGENTS = [
   'fix-verifier',
   'release-engineer',
   'scaling-engineer',
+  'repository-archaeologist',
+  'social-systems-engineer',
+  'qa-release-engineer',
 ] as const;
 
 export type AgentFrontmatter = {
@@ -125,9 +128,8 @@ export function pinnedAgents(gateSource: string): string[] {
 /**
  * The agent names /forge routes work to, read out of its routing table.
  *
- * The table has one row that names no agent: packages/core pedagogy routes to "you", the
- * session driving /forge, because the ladder and the lesson engine are owned by exactly one
- * place and a specialist second-guessing them is how a repo grows two ladders.
+ * Every routed row names a real specialist. The learning-science specialist protects the
+ * one canonical ladder rather than introducing another implementation.
  */
 export function routedAgents(forgeSource: string): string[] {
   const names = new Set<string>();

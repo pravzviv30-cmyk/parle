@@ -18,3 +18,4 @@ export * from './review/index.ts';
 export * from './drill/index.ts';
 export * from './topics/index.ts';
 export * from './path/index.ts';
+export * from './missions/index.ts';

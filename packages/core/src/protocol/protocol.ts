@@ -95,6 +95,28 @@ export interface ConvoView {
   rung: Rung;
   beat: { goalEn: string; position: number; total: number };
   recapDue: boolean;
+  /**
+   * Every beat of a mission is done: the learner did the real thing they came
+   * for. Sticky once raised, and false for the whole of an ordinary
+   * free-conversation session, which has no mission to finish.
+   *
+   * A field on the turn rather than a tag of its own, deliberately. The win
+   * belongs to the line that earned it, so it must arrive in the same message
+   * as that line — a second message would race the turn it is celebrating, and
+   * would be invisible to an app that had never heard of it anyway.
+   *
+   * Required, not optional, so that every place a view is built has to say
+   * whether this turn was the win. An optional field would let a construction
+   * site drift into silence and read as "not yet" forever.
+   *
+   * The mismatched pair, stated plainly because the type cannot: an agent that
+   * shipped before missions omits the key, and `decodeServerMessage` fills it
+   * in as `false` on the way past, which is exactly right — that session had no
+   * mission. Required here and filled in there, so the app never has to ask
+   * whether a required field is really present. An app that shipped before
+   * missions ignores the key and renders the turn exactly as it does today.
+   */
+  missionDone: boolean;
 }
 
 /** The free-conversation end card. Numbers are allowed here and only here. */
@@ -166,8 +188,25 @@ export type ClientMessage =
   | { t: 'skip' }
   /** The learner chose a rung-2 option and said it aloud. */
   | { t: 'choice'; text: string }
-  /** Replay the current line in the tutor's voice. Not a ladder event. */
-  | { t: 'hear' }
+  /**
+   * Replay a line in the tutor's voice. Not a ladder event, ever: asking to
+   * hear something again is support, not an attempt.
+   *
+   * `line` says which one. `'support'` is the line the learner is being offered
+   * to say; `'scene'` is the tutor's own last line, which is how "replay the
+   * last tutor line" is served without a second tag competing for the wire.
+   *
+   * Optional on purpose, and absent means `'support'` — which is what `hear`
+   * has always meant. An agent that shipped before this field ignores it and
+   * speaks the support line, so a learner asking for the tutor's line back gets
+   * a line rather than silence. Degraded, not dead.
+   *
+   * The other direction is handled in `decodeClientMessage`, which drops a line
+   * name this build does not know. The field decides which text goes to the
+   * voice, so it is unvalidated input reaching the speaker: clamp it at the
+   * boundary, and the request degrades to the plain hear it has always been.
+   */
+  | { t: 'hear'; line?: 'support' | 'scene' }
   /**
    * "plus lent" — say the line again slowly, and stay slow from here on.
    * Support, never a ladder event: asking to slow down is a healthy act.
@@ -190,6 +229,23 @@ export type ClientMessage =
    * log, and the agent has no use for it.
    */
   | { t: 'typing' }
+  /**
+   * "Give me a moment" — the learner has asked for time.
+   *
+   * Presence, not failure. This is the argument `typing` already settled, in
+   * words rather than keystrokes: silence is how the agent decides someone is
+   * stuck, and a learner who says "wait" is the one kind of silence that means
+   * the opposite. It defers the clock and does nothing else.
+   *
+   * Never a ladder event, never a rescue count, never a rung. Nothing about the
+   * learner's progress may move because they tapped it, and nobody may remark
+   * on the pause — on screen or aloud. A learner who asks for time has got
+   * nothing wrong, and a spoken acknowledgement of a pause is a remark on it.
+   *
+   * Payload-free for the same reason `typing` is: the agent's clock only needs
+   * to know the learner is there. What they are thinking about is theirs.
+   */
+  | { t: 'moment' }
   /** The learner left. Ends the session so metered seconds are debited promptly. */
   | { t: 'leave' };
 
@@ -214,15 +270,53 @@ export function encodeMessage(message: ServerMessage | ClientMessage): Uint8Arra
  * one is not, and needs a plan for the mismatched pair.
  */
 export function decodeServerMessage(payload: Uint8Array): ServerMessage | null {
-  return decodeAs<ServerMessage>(payload, SERVER_TAGS);
+  const message = decodeAs<ServerMessage>(payload, SERVER_TAGS);
+  return message === null ? null : asTheAppReadsIt(message);
 }
 
 export function decodeClientMessage(payload: Uint8Array): ClientMessage | null {
-  return decodeAs<ClientMessage>(payload, CLIENT_TAGS);
+  const message = decodeAs<ClientMessage>(payload, CLIENT_TAGS);
+  return message === null ? null : asTheAgentReadsIt(message);
 }
 
 const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'error']);
-const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower', 'english', 'say', 'typing', 'leave']);
+const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower', 'english', 'say', 'typing', 'moment', 'leave']);
+
+/**
+ * Reading a frame is where tolerance lives.
+ *
+ * "Version or tolerate" has two halves and only one of them is a wire change.
+ * The wire half is written into the message types above. This is the other
+ * half: what a reader does with a frame from a peer that is a version behind or
+ * a version ahead. It runs on receipt, on the reader's own side, which is why
+ * it needs no agreement from anybody and costs the sender nothing.
+ *
+ * Two rules, both about a single field rather than a tag, and neither of them
+ * ever drops a frame. A reader that cannot make sense of one field of a message
+ * it otherwise understands still renders the turn, because the learner is
+ * mid-scene and stranding them there is the worse failure by a long way.
+ */
+function asTheAppReadsIt(message: ServerMessage): ServerMessage {
+  // An agent that predates missions sends a view with no `missionDone` key.
+  // `ConvoView` calls the field required, and this is what makes that true:
+  // anything that is not literally `true` reads as `false`. A session with no
+  // mission has no win, so nothing is ever celebrated that was not earned.
+  if (message.t === 'convo' && typeof message.view === 'object' && message.view !== null) {
+    if (message.view.missionDone !== true) message.view.missionDone = false;
+  }
+  return message;
+}
+
+function asTheAgentReadsIt(message: ClientMessage): ClientMessage {
+  // A replay naming a line this build has never heard of is read as the plain
+  // hear it has always been, rather than carried on to the voice. The learner
+  // who tapped replay still gets the support line: degraded, never silence,
+  // and never a control that does nothing.
+  if (message.t === 'hear' && message.line !== undefined && message.line !== 'support' && message.line !== 'scene') {
+    delete message.line;
+  }
+  return message;
+}
 
 function decodeAs<T>(payload: Uint8Array, tags: ReadonlySet<string>): T | null {
   try {

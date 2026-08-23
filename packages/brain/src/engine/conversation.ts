@@ -86,6 +86,23 @@ export interface ConversationState {
   frame: ScenarioFrame;
   strictness: Strictness;
   maxTurns: number;
+  /**
+   * This scene was authored as a mission rather than built from a request.
+   *
+   * It changes exactly one thing: finishing every beat raises a win instead of
+   * ending the session. A learner who has just got through their first real
+   * French exchange should be told so and left standing in the scene, not shown
+   * the door the same second. A generated scene has no win to raise and no
+   * authored line to raise it with, so its behaviour is untouched.
+   */
+  mission: boolean;
+  /**
+   * Sticky once a mission's beats are all done, and never falls back.
+   *
+   * Sticky because the beat pointer keeps moving after the last beat completes,
+   * so a flag recomputed each turn would flicker off and take the win with it.
+   */
+  missionDone: boolean;
   learner: LearnerSnapshot;
   ladder: LadderState;
   /** Governs the NEXT learner turn: how much support the tutor offers. */
@@ -122,6 +139,13 @@ export interface ConversationState {
    */
   topics: { en: string; fr: string; turn: number }[];
   turnCount: number;
+  /**
+   * The turn on which the tutor last broke the scene to coach something the
+   * learner did not ask about, or null if it has not yet. Feeds the cooldown in
+   * splitCoach, which is what stops an A0 learner being corrected on every
+   * single turn.
+   */
+  lastInterruptedTurn: number | null;
   finished: boolean;
   startedAt: number;
 }
@@ -137,6 +161,11 @@ export interface TurnView {
   supportView: SupportView;
   rung: Rung;
   recapDue: boolean;
+  /**
+   * A mission's beats are all done. The learner gets their win and chooses
+   * whether to carry on; nothing here ends the session on its own.
+   */
+  missionDone: boolean;
   beat: { id: string; goalEn: string; position: number; total: number };
   advancedBeat: boolean;
   /**
@@ -215,8 +244,13 @@ export function repairOpeningNarration(frame: ScenarioFrame, request = ''): Scen
   if (!thin && !carriesFrench(en, allowed)) return frame;
 
   const who = frame.characters[0]?.name;
+  // The title leads as its own sentence rather than being threaded through a
+  // preposition, because titleEn is a noun phrase that may already start with
+  // one ("At the corner café"). No stock opener: this is the line that stands in
+  // when the model's own failed, and a learner who hears the same words whenever
+  // something goes wrong learns to recognise the failure.
   const composed = [
-    `Imagine the scene: ${frame.titleEn}.`,
+    `${frame.titleEn}.`,
     who ? `You are there, and ${who} is about to speak to you.` : 'You are there, and the conversation begins.',
   ].join(' ');
 
@@ -228,7 +262,7 @@ export function repairOpeningNarration(frame: ScenarioFrame, request = ''): Scen
       // Only the spoken half is replaced. The French rides along on screen for
       // exposure and a leak there is not a leak at all.
       en: composed,
-      fr: narration.fr.trim().length > 0 ? narration.fr : 'Imaginez la scène. Vous y êtes, et la conversation commence.',
+      fr: narration.fr.trim().length > 0 ? narration.fr : 'Vous y êtes, et la conversation commence.',
     },
   };
 }
@@ -236,7 +270,7 @@ export function repairOpeningNarration(frame: ScenarioFrame, request = ''): Scen
 export function createConversation(
   rawFrame: ScenarioFrame,
   learner: LearnerSnapshot,
-  config: { strictness: Strictness; maxTurns: number; request?: string },
+  config: { strictness: Strictness; maxTurns: number; request?: string; mission?: boolean },
   now = Date.now(),
 ): ConversationState {
   const frame = repairOpeningNarration(rawFrame, config.request ?? '');
@@ -248,6 +282,10 @@ export function createConversation(
     frame,
     strictness: config.strictness,
     maxTurns: config.maxTurns,
+    // Defaulting to false is what keeps every existing caller, and the whole
+    // generated-frame path, behaving exactly as it did.
+    mission: config.mission ?? false,
+    missionDone: false,
     learner,
     ladder,
     directive: directiveFor(ladder.rung),
@@ -268,6 +306,7 @@ export function createConversation(
     errorTags: {},
     topics: [{ en: frame.titleEn, fr: frame.title, turn: 0 }],
     turnCount: 0,
+    lastInterruptedTurn: null,
     finished: false,
     startedAt: now,
   };
@@ -447,6 +486,7 @@ export function prepareTurn(state: ConversationState, input: LearnerTurnInput): 
       name: state.learner.name,
     },
     inputKind: inputKindOf(input),
+    missionDone: state.missionDone,
     assistance: state.assistanceDepth === 0 ? 'hidden' : state.assistanceDepth === 1 ? 'hint' : 'full-line',
     pace: state.pace,
     lastLanguage: state.lastLanguage,
@@ -500,7 +540,11 @@ export function integrateTurn(
   rawTurn: TutorTurn,
 ): { state: ConversationState; view: TurnView } {
   const turn = sanitizeTurn(rawTurn);
-  const { inline, deferred } = splitCoach(turn.coach, state.strictness);
+  // How long since the tutor last interrupted the scene to coach. Infinity on
+  // the first one, so the very first finding of a session is never held back.
+  const turnsSinceInterruption =
+    state.lastInterruptedTurn === null ? Number.POSITIVE_INFINITY : state.turnCount - state.lastInterruptedTurn;
+  const { inline, deferred, interrupted } = splitCoach(turn.coach, state.strictness, turnsSinceInterruption);
 
   // The coach line survives only when something actually surfaces inline, and
   // only when it passes the copy rules; otherwise the tested template speaks.
@@ -564,7 +608,20 @@ export function integrateTurn(
 
   const allBeatsDone = beats.every((b) => beatStatus[b.id] === 'done');
   const turnCount = state.turnCount + 1;
-  const recapDue = turn.scene.sceneDone || allBeatsDone || turnCount >= state.maxTurns;
+
+  // Finishing a mission is a win, not a closing time.
+  //
+  // For a generated scene, every beat done IS the end: nothing was promised
+  // beyond the beats and there is no authored line to mark the moment. For a
+  // mission there is, and ending the session on the exact turn a beginner first
+  // got through a real French exchange would take the achievement away in the
+  // same breath as giving it. So the flag rises and the learner decides.
+  //
+  // The other two exits are untouched deliberately. `sceneDone` is the model
+  // saying the scene itself is over, and the turn ceiling is what keeps metered
+  // minutes bounded; a mission that could never end would be its own trap.
+  const missionDone = state.missionDone || (state.mission && allBeatsDone);
+  const recapDue = turn.scene.sceneDone || (allBeatsDone && !state.mission) || turnCount >= state.maxTurns;
 
   // Session memory: phrases (deduped), credit, recurring-error counts.
   const phrases = [...state.phrases];
@@ -621,6 +678,12 @@ export function integrateTurn(
     usedWell: [...state.usedWell, ...turn.profileSignals.usedWell],
     errorTags,
     turnCount,
+    // Restart the clock only when the scene was actually interrupted. A turn
+    // whose only inline finding answered a question the learner asked does not
+    // spend this budget, so asking for help never buys the tutor's silence on
+    // the next thing worth saying.
+    lastInterruptedTurn: interrupted ? turnCount : state.lastInterruptedTurn,
+    missionDone,
     finished: state.finished,
   };
 
@@ -638,6 +701,7 @@ export function integrateTurn(
       supportView: supportViewForAssistance(input.type === 'spoke' ? 0 : state.assistanceDepth, turn.support),
       rung: ladder.rung,
       recapDue,
+      missionDone,
       beat: { id: beat.id, goalEn: beat.goalEn, position, total: beats.length },
       advancedBeat,
       reachedForEnglish,

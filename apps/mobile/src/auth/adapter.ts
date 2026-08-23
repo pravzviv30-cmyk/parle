@@ -1,21 +1,29 @@
 /**
  * Which auth backend this launch runs on.
  *
- * Supabase when the env names a project, the on-device mock when it does not.
- * The Supabase module is loaded lazily so keyless dev never even imports the
- * SDK — the run-with-no-keys path stays free of its runtime requirements.
+ * Supabase when the env names a project, or the on-device mock only when local
+ * development is explicit. The Supabase module is loaded lazily so the local
+ * mock path stays free of its runtime requirements.
  */
 
 import type { AuthAdapter } from './types.ts';
 import { createMockAdapter } from './mockAdapter.ts';
+import { selectAuthMode } from './authMode.ts';
+import { installationId } from './installation.ts';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 function build(): AuthAdapter {
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  const mode = selectAuthMode({
+    nodeEnv: process.env.NODE_ENV,
+    localDevelopment: process.env.EXPO_PUBLIC_PARLE_LOCAL_DEVELOPMENT,
+    supabaseUrl: SUPABASE_URL,
+    supabaseAnonKey: SUPABASE_ANON_KEY,
+  });
+  if (mode === 'supabase') {
     const { createSupabaseAdapter } = require('./supabaseAdapter.ts') as typeof import('./supabaseAdapter.ts');
-    return createSupabaseAdapter(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return createSupabaseAdapter(SUPABASE_URL!, SUPABASE_ANON_KEY!);
   }
   return createMockAdapter();
 }
@@ -24,10 +32,13 @@ function build(): AuthAdapter {
 export const auth: AuthAdapter = build();
 
 /**
- * Bearer header for token-server calls, or nothing in mock mode — the server
- * without Supabase configured trusts the asserted userId exactly as before.
+ * Bearer and pseudonymous installation headers for token-server calls. Mock
+ * mode has no bearer and is accepted only by the explicit local server mode.
  */
 export async function authHeaders(): Promise<Record<string, string>> {
-  const token = await auth.getAccessToken();
-  return token ? { authorization: `Bearer ${token}` } : {};
+  const [token, installation] = await Promise.all([auth.getAccessToken(), installationId()]);
+  return {
+    ...(token ? { authorization: `Bearer ${token}` } : {}),
+    'x-parle-installation': installation,
+  };
 }

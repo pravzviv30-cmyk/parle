@@ -7,7 +7,8 @@
  * no agent to talk to.
  */
 
-import { AccessToken } from 'livekit-server-sdk';
+import { AccessToken, RoomConfiguration, TrackSource } from 'livekit-server-sdk';
+import { randomUUID } from 'node:crypto';
 import { canStartSession, MIN_VIABLE_SESSION_SEC, secondsRemaining, type Entitlement } from '@parle/core';
 
 export interface TokenConfig {
@@ -19,6 +20,8 @@ export interface TokenConfig {
 
 export interface SessionGrant {
   token: string;
+  /** Server-generated billing and active-room id. */
+  sessionId: string;
   roomName: string;
   identity: string;
   secondsRemaining: number;
@@ -91,6 +94,31 @@ function validSeedTopic(value: unknown): SeedTopic | undefined {
   return trimmed;
 }
 
+/** An id is a key, not a sentence. Anything longer is not one of ours. */
+const MAX_MISSION_ID_CHARS = 64;
+
+/**
+ * A mission the learner chose, carried so the agent can open its authored scene
+ * without asking what to talk about. Shape-checked only: a non-empty key of
+ * sane length and sane characters, trimmed, because that is all this server can
+ * honestly say about it.
+ *
+ * Deliberately NOT checked against the mission catalogue. The token server does
+ * not own which missions exist — the agent resolves the id and degrades to the
+ * ordinary choosing question when it does not know it — and a second copy of
+ * that list here would be a second thing to keep in step.
+ *
+ * Dropped, never refused, and never anywhere near the entitlement decision. A
+ * bad hint costs the learner their opening scene, never their session.
+ */
+function validMissionId(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > MAX_MISSION_ID_CHARS) return undefined;
+  if (!/^[a-zA-Z0-9:._-]+$/.test(trimmed)) return undefined;
+  return trimmed;
+}
+
 export async function grantSession(
   opts: {
     userId: string;
@@ -110,6 +138,12 @@ export async function grantSession(
      * seed is, and it is the place that signs it.
      */
     seedTopic?: unknown;
+    /**
+     * A mission to open on, from the chooser. Validated here for the same
+     * reason the seed is: the place that signs it is the place that decides
+     * what it is. Whether that mission exists is the agent's call, not ours.
+     */
+    missionId?: unknown;
   },
 ): Promise<GrantResult> {
   const decision = canStartSession(opts.entitlement, MIN_VIABLE_SESSION_SEC);
@@ -121,18 +155,25 @@ export async function grantSession(
 
   const startRung = validStartRung(opts.startRung);
   const seedTopic = validSeedTopic(opts.seedTopic);
-  const roomName = roomNameFor(opts.userId, opts.lessonId, opts.now);
+  const missionId = validMissionId(opts.missionId);
+  const sessionId = randomUUID();
+  const roomName = `${roomNameFor(opts.userId, opts.lessonId, opts.now)}-${sessionId.slice(0, 12)}`;
   const at = new AccessToken(opts.config.apiKey, opts.config.apiSecret, {
     identity: opts.userId,
-    ttl: opts.config.ttlSeconds ?? 60 * 60,
+    // The credential only has to survive the join. A connected participant is
+    // not ejected when this expires, and a captured token should have minutes,
+    // not an hour, in which it can be replayed.
+    ttl: opts.config.ttlSeconds ?? 5 * 60,
     // The agent reads these to know which lesson to teach and where the learner
     // left off, so a session never restarts from turn one after an interruption.
     metadata: JSON.stringify({
+      sessionId,
       lessonId: opts.lessonId,
       secondsRemaining: decision.secondsRemaining,
       mode: opts.mode ?? 'lesson',
       ...(startRung !== undefined ? { startRung } : {}),
       ...(seedTopic !== undefined ? { seedTopic } : {}),
+      ...(missionId !== undefined ? { missionId } : {}),
       ...(opts.snapshot !== undefined ? { snapshot: opts.snapshot } : {}),
     }),
   });
@@ -141,15 +182,23 @@ export async function grantSession(
     room: roomName,
     roomJoin: true,
     canPublish: true,
+    canPublishSources: [TrackSource.MICROPHONE],
     canSubscribe: true,
     // The learner publishes audio and their own state events, nothing else.
     canPublishData: true,
+  });
+  at.roomConfig = new RoomConfiguration({
+    name: roomName,
+    maxParticipants: 2,
+    emptyTimeout: 30,
+    departureTimeout: 20,
   });
 
   return {
     ok: true,
     grant: {
       token: await at.toJwt(),
+      sessionId,
       roomName,
       identity: opts.userId,
       secondsRemaining: secondsRemaining(opts.entitlement),
