@@ -1816,6 +1816,17 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   that has been written to disk in a git object cannot be un-leaked. Do not rewrite history to
   "fix" this: nothing was pushed, so there is nothing to rewrite, and force-pushing is
   forbidden here anyway.
+- update 2026-08-26: the repo side is now fully closed. Both branches were deleted after
+  checking they were BEHIND main rather than ahead (the diff main->branch was 15,534
+  insertions against 48,195 deletions — an abandoned lineage main had superseded), then
+  `git reflog expire --expire-unreachable=now --all` and `git gc --prune=now` pruned the
+  objects: 576bc53 and e99d650 are unreachable, the .env.bak blob is unreadable, .git went
+  22M -> 5.1M, fsck is clean and the history scan reports clean. Nothing was ever pushed.
+  This box still does NOT tick. Pruning removes future exposure; it does not un-leak a key
+  that sat in a git object on disk from 2026-08-21 to 2026-08-26. Anything with filesystem
+  access in that window — including any folder-level backup or cloud sync of
+  Documents/StartUps — could hold a copy. Rotating Groq, Deepgram, ElevenLabs and the
+  LiveKit secret is what closes this, and only that.
 - verified-by: `the history walker names the commit and line that introduced a secret`
 - verified-by: `the scanner finds each planted credential shape and never prints the matched value`
 
