@@ -199,11 +199,38 @@ export function privateSignal(salt: string, kind: 'ip' | 'user' | 'installation'
   return createHmac('sha256', salt).update(`${kind}\0${value}`).digest('base64url');
 }
 
+/**
+ * The address a request is budgeted against.
+ *
+ * `x-forwarded-for` is a client-writable header that each proxy **appends** to,
+ * so under one trusted proxy the real peer is the LAST entry and everything to
+ * its left is whatever the caller typed. Reading the first entry — which this
+ * did until F59 — let anyone rotate the header and get a fresh per-IP budget on
+ * every request, which is every per-IP limit in RATE_LIMITS at once.
+ *
+ * Two assumptions come with the fix, and both are deployment facts rather than
+ * code facts:
+ *
+ *   - **Exactly one trusted hop.** A CDN in front of a load balancer appends
+ *     twice, so the last entry is the LB and the learner's address is the
+ *     second from the end. That topology needs a hop count, not this function.
+ *   - **`PARLE_TRUST_PROXY=1` with no proxy in front is a misconfiguration.**
+ *     There is nothing appending, so the last entry is again attacker-chosen
+ *     and the per-IP budget is spoofable. Leave the flag unset unless a proxy
+ *     really is terminating the connection; the socket peer is the honest
+ *     source in that topology and is what this returns.
+ */
 export function clientIp(req: IncomingMessage, trustProxy: boolean): string {
   if (trustProxy) {
     const forwarded = req.headers['x-forwarded-for'];
-    const first = typeof forwarded === 'string' ? forwarded.split(',')[0]?.trim() : null;
-    if (first) return first;
+    // Node folds a repeated header into one string, but the type admits an
+    // array; in both shapes the nearest hop is the final entry.
+    const chain = (Array.isArray(forwarded) ? forwarded.join(',') : (forwarded ?? ''))
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0 && entry.length <= 64);
+    const nearestHop = chain.at(-1);
+    if (nearestHop) return nearestHop;
   }
   return req.socket.remoteAddress ?? 'unknown';
 }
