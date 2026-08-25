@@ -1556,3 +1556,300 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   mount instead of relying on an initial route. Worth doing with a device pass, since native
   and web differ here and only web is wrong.
 - verified-by: `a first-ever learner reaches the chooser on web as well as on native`
+
+### F59 — A client behind the trusted proxy can choose its own rate-limit address
+- severity: P1
+- status: [x]
+- where: services/token-server/src/rateLimit.ts:205
+- note: with PARLE_TRUST_PROXY=1, `clientIp` takes the first x-forwarded-for entry; a standard
+  proxy appends the real address, so the first entry is attacker-supplied and every per-IP
+  limit becomes evadable by header rotation. Take the last entry under one trusted proxy and
+  document the misconfiguration case.
+- verified-by: `a client-supplied forwarded header cannot choose its own rate-limit address behind a trusted proxy`
+
+### F60 — The redis boundary is pinned: failures refuse, keys are hashed
+- severity: P1
+- status: [x]
+- where: services/token-server/src/rateLimit.ts:104
+- note: today a limiter failure propagates to the handler's catch and returns 500, which is
+  fail-closed, and every consume/lease call site passes privateSignal — but neither invariant
+  has a test, so either can silently invert. Pin both.
+- verified-by: `a distributed limiter failure refuses the request instead of granting it`
+- verified-by: `no raw ip, user or installation value reaches a redis key without the deployment-salted hmac`
+
+### F61 — A command-ready two-instance Upstash harness exists and is honest when blocked
+- severity: P1
+- status: [x]
+- where: services/token-server/src/verify/upstashLive.ts:1
+- note: cross-instance limits, lease acquire/conflict/expiry/matched-release and key-shape SCAN
+  need UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN. The deliverable is the harness: two
+  spawned token-server processes sharing one Redis, a complete check inventory, and a BLOCKED
+  non-zero exit naming the missing env vars instead of any claim of success.
+- verified-by: `the upstash harness enumerates every required proof and reports blocked without credentials`
+
+### F62 — Secrets are scanned in files, history and bundles without ever printing a value
+- severity: P1
+- status: [x]
+- where: services/token-server/src/secretScan.ts:1
+- note: no scanner exists; a leaked service-role key or LiveKit secret would ship silently. The
+  scanner detects each credential shape used by this repo's vendors, reports path and line only,
+  and gains --history and --bundles modes.
+- verified-by: `the scanner finds each planted credential shape and never prints the matched value`
+
+### F63 — A command-ready Supabase harness covers all twelve proofs and is honest when blocked
+- severity: P1
+- status: [x]
+- where: services/token-server/src/verify/supabaseLive.ts:1
+- note: RLS isolation, RPC privilege, period roll, debit concurrency, session replay, cross-user
+  session rejection, trial races, the product-event trigger and deletion cascades are made
+  one-command runnable against a disposable project, and refuse to claim anything without
+  credentials.
+- verified-by: `the supabase harness enumerates every required proof and reports blocked without credentials`
+- verified-by: `the supabase harness never prints a key or token it was given`
+
+### F64 — Every migration has a rollback and the disposable-project runbook exists
+- severity: P1
+- status: [x]
+- where: supabase/migrations/202608230001_session_usage_idempotency.sql:1
+- note: no migration has a down-script, so "migration rollback evidence" is currently
+  unwritable; DDL cannot travel over PostgREST from this machine, so apply/rollback/backup/
+  restore live in a paste-in-order runbook the harness points at.
+- verified-by: `every migration ships a rollback that names each object it created`
+
+### F65 — The voice lifecycle is measured live: expiry, caps, leases, hard stop, zero-or-once billing
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/verify/voiceLifecycle.ts:1
+- note: the one area fully provable today. The harness spawns its own token server on a fresh
+  port with a seeded file store, measures token expiry, the participant cap of 2, the 409 lease
+  conflict and its release, disconnect teardown, a hard stop seeded down to 60-90 real seconds,
+  zero debit for a never-joined room, exactly-once debit with a replayed /session/end, room
+  teardown via listRooms, and prints timings and estimated spend.
+- verified-by: `the voice lifecycle harness fails the run when any lifecycle check is skipped`
+- verified-by: `the harness seeds an allowance that lands the hard stop inside ninety seconds`
+
+### F66 — The safety net catches indirect, obfuscated and mixed-language harm, not just keywords
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/safety.ts:34
+- note: the category list already names the right harms but the patterns are a thin literal net
+  with four tests; indirect self-harm phrasing, grooming, coercion, zero-width and punctuation
+  obfuscation and most French variants sail through to the model. Widen the deterministic table
+  and normalisation and leave stop/redirect semantics untouched.
+- verified-by: `indirect, obfuscated and mixed-language harm requests are caught and answered by policy`
+- verified-by: `a redirect keeps the session open and a stop closes it, for every category`
+
+### F67 — The privacy and safety policy exists and the shipped copy matches it
+- severity: P1
+- status: [x]
+- where: docs/PRIVACY_AND_SAFETY.md:1
+- note: antifraud-HMAC retention, analytics consent and opt-out, raw-speech prohibition and the
+  escalation workflow are currently implemented behaviours with no stated policy, which means
+  they can drift without anyone deciding to change them.
+- verified-by: `the privacy and safety policy defines retention, consent, escalation and never claims emergency service`
+
+### F68 — CI runs the gate, the dependency audit and the secret scan on every push
+- severity: P1
+- status: [x]
+- where: .github/workflows/ci.yml:1
+- note: there is no .github directory at all, so nothing guards main against a push from a
+  machine with no hooks installed. One workflow: gate, npm audit at high level, secret scan.
+- verified-by: `ci runs the gate, the dependency audit and the secret scan on every push`
+
+### F69 — Every high and moderate advisory is traced, then fixed or accepted with evidence
+- severity: P1
+- status: [x]
+- where: package.json:1
+- note: npm audit reaches the registry (the evidence doc's blocked claim is stale) and reduces
+  to four roots — adm-zip HIGH, image-size HIGH twice, uuid MODERATE. Trace each to its real
+  runtime or build chain, apply overrides only where a compatible fixed version exists on a
+  reachable chain, record acceptances, and pin the outcome.
+- verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
+
+### F70 — Professional review of the tutor-safety policy is prepared but not yet obtained
+- severity: P2
+- status: [x]
+- where: docs/PRIVACY_AND_SAFETY.md:1
+- note: an external professional review cannot be closed from inside this repo; P2 because an
+  unclosable P1 stops the gate for everyone. The policy doc carries a review package section so
+  the request can go out the day a reviewer is engaged.
+- verified-by: `the policy carries a review package naming scope, corpus and the known limits of the net`
+
+### F71 — Device auth and deletion have a runbook now and a device pass later
+- severity: P2
+- status: [x]
+- where: docs/DEVICE_VERIFICATION.md:1
+- note: no representative iOS or Android build can run on this machine, so Keychain/Keystore
+  persistence, plaintext migration, forced safe sign-in and reauth-before-deletion are blocked;
+  P2 for the same reason as F70. What is provable statically is proven now.
+- verified-by: `no bearer token is written to logs or plain storage by the auth layer`
+
+### F72 — The evidence matrix says measured, blocked or accepted for every area
+- severity: P2
+- status: [x]
+- where: docs/IMPLEMENTATION_EVIDENCE.md:1
+- note: the phase's honesty lives here — every area carries measured (with numbers from the live
+  runs), blocked-on naming the exact env vars, or accepted-with-evidence; the stale
+  audit-blocked claim is corrected and the vendor-cost record from F65 lands.
+- verified-by: `the evidence matrix names a measured or blocked status for every phase one area`
+
+### F73 — claim_trial grants the trial it is meant to refuse
+- severity: P0
+- status: [x]
+- where: supabase/migrations/202608230001_session_usage_idempotency.sql:55
+- note: `insert ... on conflict do nothing returning true into claimed` assigns NULL when the
+  insert affects zero rows, overwriting the `:= false` initialiser. `not NULL` is NULL, an IF on
+  NULL takes neither branch, so control falls through and provisions a fresh trial. Both arms
+  are dead — installation_hash is the PK and first_user_hash is not-null unique — so a second
+  account on one device and one account across devices are both granted. Unbounded vendor spend
+  on the money path. The only existing test asserts the buggy line verbatim
+  (databaseContract.test.ts:52), so it pins the defect rather than catching it. Fix by forward
+  migration with a NULL-safe guard; the live behavioural proof is one of F63's twelve checks.
+- verified-by: `the trial claim refuses a second installation rather than falling through on a null`
+- verified-by: `the contract test rejects the null-unsafe claim_trial guard`
+
+### F74 — consume_entitlement bills a replayed session id every time
+- severity: P0
+- status: [x]
+- where: supabase/migrations/202608230001_session_usage_idempotency.sql:99
+- note: the same NULL-from-RETURNING-INTO trap as F73, in the other money function.
+  `insert into session_usage ... on conflict (session_id) do nothing returning true into
+  recorded` assigns NULL when the row already exists, overwriting the `:= false`
+  initialiser; `not NULL` is NULL, the IF at :101 takes neither branch, and control falls
+  past the whole early-return block into the debit UPDATE at :117. The cross-account guard
+  at :106 is itself NULL-safe but sits inside that unreachable branch, which is why the
+  cross-user session proof fails for the same reason. Proven live against a disposable
+  project: one session id reported three times debited 120s, then 240s, then 540s, with
+  exactly one row in session_usage. databaseContract.test.ts:260 asserted
+  `/if not recorded then/i` and so pinned this defect in place, exactly as :52 pinned F73.
+  Fixed forward by 202608250001_consume_entitlement_null_fix.sql.
+- verified-by: `the session debit bills a replayed session id once rather than falling through on a null`
+
+### F75 — The product-event trigger calls a function PostgreSQL does not have
+- severity: P1
+- status: [x]
+- where: supabase/migrations/202608230001_session_usage_idempotency.sql:152
+- note: `property_count integer := jsonb_object_length(new.properties);` — there is no
+  `jsonb_object_length` in PostgreSQL. `jsonb_array_length` and `jsonb_object_keys` exist;
+  that name does not, and plpgsql binds function calls late, so the migration applies
+  cleanly and only fails at insert time. The trigger is BEFORE INSERT OR UPDATE on
+  product_events, so every write raises 42883 — including the token server's own
+  service-role writes. Proven live: a valid `my_french_opened` event was refused. Analytics
+  is silently and totally dead in any deployment of this schema. Fixed forward by
+  202608250002_product_event_key_count_fix.sql, which counts keys with jsonb_object_keys
+  behind a jsonb_typeof shape guard.
+- verified-by: `the product event trigger counts properties with a function Postgres actually has`
+
+### F76 — A learner who never speaks is billed for the whole session
+- severity: P0
+- status: [x]
+- where: services/tutor-agent/src/tutor.ts:336
+- note: found by the live voice harness, not by reading. The zero-billing guard asks
+  `summary.turnsCompleted === 0`, but `turnsCompleted` is `state.turnIndex`, and the silence
+  rescue applies a `silence` input that advances the turn. So the guard is defeated by the
+  learner saying nothing — which is the exact case it exists for. Measured live: a room the
+  harness never spoke in debited 60s. A learner with a dead microphone, a failed STT
+  provider, or a room they could not hear pays for the full session.
+- verified-by: `a session with no learner turn bills nothing even after a silence rescue`
+
+### F77 — A join credential re-opens a session that has already ended
+- severity: P1
+- status: [x]
+- where: services/token-server/src/tokens.ts:169
+- note: recorded by the live voice harness. The join credential is a five-minute bearer
+  token; ending the session closes the room, but a captured token re-created the closed room
+  in its own name with 279s of ttl still on it. Measured separately: LiveKit validates `exp`
+  with roughly 90s of leeway, accepting credentials 30s past expiry and refusing at 900s, so
+  the five-minute ttl in tokens.ts is a floor on the replay window rather than a ceiling.
+  Room name reuse after a session has been reported is the seam to close.
+- verified-by: `a join credential cannot re-open a room whose session has already been reported`
+
+### F78 — An abandoned room holds a tutor worker for half a minute
+- severity: P2
+- status: [x]
+- where: services/token-server/src/tokens.ts:190
+- note: recorded by the live voice harness. The premise this entry was first filed with was
+  WRONG and the measurement refuted it: dispatch follows a *participant*, so a room nobody
+  joins holds no tutor at all — measured, held 20.1s with emptyTimeout=20 and no tutor
+  dispatched into it, and `never-joined-room-debits-nothing` confirms a grant nobody joins
+  leaves no room behind. Worker occupancy for an abandoned room is therefore 0s, not 30s.
+  The timeout that actually holds a worker is `departureTimeout` (20s shipped, measured
+  20.6s), recorded as the finished-session occupancy. ROOM_LIFECYCLE now carries the shipped
+  numbers, the measurements and the derived costs, and the test fails if a future run ever
+  sees a tutor in an empty room or if the shipped grant and the record stop agreeing.
+- verified-by: `the production empty-room timeout is recorded with its worker-occupancy cost`
+
+### F79 — The replayed-credential refusal is worker-local
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/server.ts:192
+- note: F77 closed the money half of a replayed join credential by having the tutor refuse a
+  session id it has already reported, but that ledger lives in the worker's memory. It closes
+  the replay against the worker that served the original session, which is the whole fleet
+  today and is why this is P2 rather than P1. A second worker, or the same worker after a
+  restart, would not know. The durable answer already exists: `session_usage` records every
+  reported session id, so the join path can consult it. That is a token-server change and was
+  outside the voice engineer's territory, so it is filed rather than reached for. Related:
+  agent.ts keeps a refused replay's job alive on its hardStop timer, costing no vendor spend
+  but holding a worker slot.
+- verified-by: `a reported session id is refused on the join path, not only by the worker that served it`
+
+### F80 — Four live vendor credentials sit in git history on two local branches
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/.env.bak-before-cli-all:11
+- note: found by the F62 scanner on its first history run, which is the argument for having
+  built it. Commit 576bc53 ("WIP: epitaxy pre-switch from codex/freeform-tutor-v2", 2026-08-21)
+  committed a .env backup carrying GROQ_API_KEY, DEEPGRAM_API_KEY, ELEVEN_API_KEY and
+  LIVEKIT_API_SECRET. Verified by sha256 comparison, without reading either value, that all
+  four are byte-identical to the keys configured in services/tutor-agent/.env today: they are
+  live, not historical.
+  Exposure is bounded and that is the only reason this is not higher. The commit is NOT an
+  ancestor of main and is on NO remote branch — `git branch -r --contains` is empty, so
+  nothing reached GitHub. It is kept alive locally by refs/heads/codex/freeform-tutor-v2 and
+  refs/heads/codex/voice-tutor-live-openai. The file is untracked in HEAD and .gitignore:16
+  now covers `**/.env.bak*`, so the hole that made it is closed.
+  P2 is about what this repo can close, not about how much it matters: every repo-side control
+  is already done (scanner, ignore rule, CI step), and the remaining actions — rotating four
+  vendor keys and deciding the fate of two stale branches — are human actions on external
+  services and on branches this session does not own. Rotation is the only real remedy; a key
+  that has been written to disk in a git object cannot be un-leaked. Do not rewrite history to
+  "fix" this: nothing was pushed, so there is nothing to rewrite, and force-pushing is
+  forbidden here anyway.
+- verified-by: `the history walker names the commit and line that introduced a secret`
+- verified-by: `the scanner finds each planted credential shape and never prints the matched value`
+
+### F81 — The evidence contract test pins the mid-phase blocked state after the run it forbade has happened
+- severity: P1
+- status: [x]
+- where: services/token-server/src/verify/evidenceContract.test.ts:198
+- note: filed by work-judge (renumbered from its F80, which was taken by the git-history
+  finding). `a green gate cannot be read as a verified database` asserts the F63 and F73
+  matrix rows must never say measured and requires the literal string "12 of 12 proofs
+  skipped" — written before credentials existed, correct then, inverted now. The ledger
+  records F74 and F75 as proven live against a disposable project, which means the twelve
+  Supabase proofs ran; any honest update of docs/IMPLEMENTATION_EVIDENCE.md to `measured`
+  with the run's numbers turns this test red. It is the same defect class the phase condemned
+  at databaseContract.test.ts:52: a text assertion pinning a state instead of proving one.
+  Rework it to forbid a measured claim only when no run is recorded, and to accept a measured
+  row that carries the live run's numbers.
+- verified-by: `the evidence contract accepts a measured supabase row that carries the live run's numbers`
+- verified-by: `the evidence contract still refuses a measured claim for a proof no run has recorded`
+
+### F82 — The evidence matrix and risk register are frozen mid-phase and contradict the ledger
+- severity: P1
+- status: [x]
+- where: docs/IMPLEMENTATION_EVIDENCE.md:53
+- note: filed by work-judge (renumbered from its F81). Four statements are false as of phase
+  end. F63/F73 say `blocked-on:supabase-schema-not-applied` and "12 of 12 proofs skipped"
+  while the ledger's F74 and F75 record live proofs against a disposable project.
+  "Failed-room billing: a P0 control that does not hold" and the risk register's "None that
+  holds" present F76 as open while it is ticked with `a session with no learner turn bills
+  nothing even after a silence rescue` passing. "An empty room holds a waiting tutor" is
+  asserted as measured in both documents while F78's measurement refuted it. "What is still
+  outstanding" instructs applying three migrations, omitting 202608250001 and 202608250002 —
+  an operator following it deploys with F74 and F75 live, the two defects this phase proved
+  and fixed. Gate counts (1,557; tutor 329; token server 110) are mid-phase numbers against a
+  final 1,570. Depends on F81, which currently makes the F63/F73 correction impossible.
+- verified-by: `the evidence matrix does not call blocked what the ledger has ticked as proven live`
+- verified-by: `the outstanding schema instruction names every migration in the runbook`
