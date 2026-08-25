@@ -29,6 +29,51 @@ export interface SessionGrant {
 
 export type GrantResult = { ok: true; grant: SessionGrant } | { ok: false; status: number; reason: string; message: string };
 
+/**
+ * The room a grant configures, and what each number actually costs.
+ *
+ * Exported rather than written inline because two of these are capacity
+ * decisions with a price, and a price nobody wrote down gets changed by whoever
+ * finds the number inconvenient. Every figure under `measured` came off the
+ * live voice lifecycle harness on this machine, not out of the documentation,
+ * and the two costs below are derived from those figures rather than guessed.
+ *
+ * The guess worth naming, because the ledger made it (F78) and the measurement
+ * refused it: an abandoned room does NOT hold a tutor. Dispatch follows a
+ * PARTICIPANT, so a room with nobody in it gets no tutor — measured, a room
+ * created at `emptyTimeout=20` held 20.1s with none dispatched into it. Parle
+ * never creates a room any other way either: the grant does not create one, and
+ * a grant nobody joins leaves no room at all. So `emptyTimeoutSec` is a
+ * backstop rather than a live cost, and lowering it would buy nothing while
+ * costing a learner on a slow network the room they were about to join.
+ *
+ * `departureTimeoutSec` is the one that holds a worker. The tutor stays in the
+ * room until LiveKit closes it, measured at 20.6s after the learner left, so
+ * every finished session keeps a worker slot for about that long after the
+ * learner has gone. That is the real concurrency ceiling: at N worker slots, a
+ * session every 20 seconds per slot is the floor on turnover, whatever the
+ * sessions themselves cost.
+ */
+export const ROOM_LIFECYCLE = {
+  /** One learner, one tutor, and nobody else, ever. */
+  maxParticipants: 2,
+  /** Seconds LiveKit keeps a room that has nobody in it. */
+  emptyTimeoutSec: 30,
+  /** Seconds LiveKit keeps a room after its last participant leaves. */
+  departureTimeoutSec: 20,
+  /** What the harness watched happen, at the timeouts it ran with. */
+  measured: {
+    /** A room created through the server API and never joined. */
+    emptyRoom: { emptyTimeoutSec: 20, heldSec: 20.1, tutorDispatched: false },
+    /** A room a learner joined and then left, with the tutor still in it. */
+    departedRoom: { departureTimeoutSec: 20, roomGoneAfterSec: 20.6 },
+  },
+  /** Zero, because no tutor is dispatched into a room nobody joined. */
+  workerOccupancySecPerAbandonedRoom: 0,
+  /** The tutor sits in the closing room for the whole departure window. */
+  workerOccupancySecPerFinishedSession: 20,
+} as const;
+
 /** Room names are per-user-per-session so two learners never share a tutor. */
 export function roomNameFor(userId: string, lessonId: string, now = Date.now()): string {
   const safeUser = userId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'anon';
@@ -160,9 +205,17 @@ export async function grantSession(
   const roomName = `${roomNameFor(opts.userId, opts.lessonId, opts.now)}-${sessionId.slice(0, 12)}`;
   const at = new AccessToken(opts.config.apiKey, opts.config.apiSecret, {
     identity: opts.userId,
-    // The credential only has to survive the join. A connected participant is
-    // not ejected when this expires, and a captured token should have minutes,
-    // not an hour, in which it can be replayed.
+    // The credential only has to survive the join and any full reconnect the
+    // session needs after it. A connected participant is not ejected when this
+    // expires, and a captured token should have minutes, not an hour, in which
+    // it can be replayed.
+    //
+    // A floor on that replay window, not a ceiling: LiveKit validates `exp`
+    // with leeway, measured live at roughly 90 seconds (a credential 30s past
+    // expiry was accepted, 900s past was refused). Shortening this does not
+    // close replay and does break a learner whose network drops mid-session, so
+    // the boundary that actually closes it is the tutor refusing a session id
+    // that has already been reported — see tutor.ts (F77).
     ttl: opts.config.ttlSeconds ?? 5 * 60,
     // The agent reads these to know which lesson to teach and where the learner
     // left off, so a session never restarts from turn one after an interruption.
@@ -189,9 +242,9 @@ export async function grantSession(
   });
   at.roomConfig = new RoomConfiguration({
     name: roomName,
-    maxParticipants: 2,
-    emptyTimeout: 30,
-    departureTimeout: 20,
+    maxParticipants: ROOM_LIFECYCLE.maxParticipants,
+    emptyTimeout: ROOM_LIFECYCLE.emptyTimeoutSec,
+    departureTimeout: ROOM_LIFECYCLE.departureTimeoutSec,
   });
 
   return {

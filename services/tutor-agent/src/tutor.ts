@@ -39,6 +39,64 @@ import { safetyDecision } from './safety.ts';
 /** Anything that can carry a message back to the app. */
 type Publisher = (message: ServerMessage) => void;
 
+/**
+ * The session id agent.ts has not written yet.
+ *
+ * Direct unit tests build tutors with no signed room, and `reportUsage` already
+ * refuses to debit against this value. Nothing below treats it as a session
+ * either, so a test tutor can never poison the replay ledger.
+ */
+export const UNSIGNED_SESSION_ID = '00000000-0000-4000-8000-000000000000';
+
+/** What the learner is told when a spent credential re-opens their room. */
+export const REPLAYED_SESSION_MESSAGE = 'That session has already finished. Start a new one whenever you are ready.';
+
+/** How many reported session ids a worker keeps before dropping the oldest. */
+const REPORTED_SESSIONS_KEPT = 10_000;
+
+/**
+ * Sessions this worker has already reported to the token server.
+ *
+ * A join credential is a bearer token with minutes of life still on it once the
+ * session it opened has ended, and LiveKit re-creates a closed room for whoever
+ * presents one — measured live, 279s of ttl left on a room whose session was
+ * already reported (F77). The empty room by itself costs nothing. What costs
+ * money is the tutor dispatched into it, so the tutor is what refuses.
+ *
+ * A session id is signed into the credential and reported exactly once, which
+ * makes "already reported" the honest test for a replay, and it reuses the
+ * ledger seam rather than inventing a second idea of when a session is over.
+ *
+ * Worker-local, and said plainly rather than dressed up: this closes the replay
+ * against the worker that served the session, which is the whole fleet today.
+ * Several workers need the token server's own `session_usage` ledger consulted
+ * on the join path, which is a change to `server.ts` and is filed, not assumed.
+ */
+const reportedSessions = new Set<string>();
+
+/** Record that a session's seconds have been reported and its room is spent. */
+export function noteSessionReported(sessionId: string): void {
+  if (sessionId === UNSIGNED_SESSION_ID) return;
+  reportedSessions.add(sessionId);
+  // Oldest first. An id old enough to fall out of this window is long past the
+  // expiry of any credential that could name it.
+  while (reportedSessions.size > REPORTED_SESSIONS_KEPT) {
+    const oldest = reportedSessions.values().next();
+    if (oldest.done) break;
+    reportedSessions.delete(oldest.value);
+  }
+}
+
+/** Has this worker already reported this session? */
+export function sessionAlreadyReported(sessionId: string): boolean {
+  return sessionId !== UNSIGNED_SESSION_ID && reportedSessions.has(sessionId);
+}
+
+/** Test seam: one test's replay must never be another test's history. */
+export function forgetReportedSessions(): void {
+  reportedSessions.clear();
+}
+
 export class ParleTutor extends voice.Agent {
   private state: SessionState;
   private silenceTimer?: ReturnType<typeof setTimeout>;
@@ -52,6 +110,15 @@ export class ParleTutor extends voice.Agent {
   private readonly queue = new TurnQueue();
   /** True between the learner starting to talk and their turn being applied. */
   private learnerSpeaking = false;
+  /**
+   * Turns the learner actually produced: spoken, typed, tapped, or asked for
+   * help on. Everything except the silence rescue, which is the one input the
+   * agent applies on their behalf. Billing reads this and never the ladder's
+   * turn index — see `finish()`.
+   */
+  private learnerTurns = 0;
+  /** A spent credential re-opened this room, so this tutor never goes on air. */
+  private refused = false;
   /** Keeps a copy of each utterance on its way to the recogniser. */
   private readonly tap = new UtteranceTap();
 
@@ -81,11 +148,14 @@ export class ParleTutor extends voice.Agent {
   /** Wire up the channel back to the app. */
   attach(publish: Publisher): void {
     this.publish = publish;
+    // The refusal is decided when the signed session id lands, which is before
+    // there is any channel back to the app. Say it now or nobody hears it.
+    if (this.refused) this.publishError(REPLAYED_SESSION_MESSAGE);
   }
 
   /** Send the app whatever it should be rendering right now. */
   sendCurrentPrompt(session?: voice.AgentSession): void {
-    if (this.state.finished) return;
+    if (this.refused || this.state.finished) return;
     this.publish({ t: 'prompt', prompt: currentPrompt(this.lesson, this.state) });
     // With no speech there is no AgentStateChanged to start the silence clock,
     // and the moment the turn renders is the moment they have the floor.
@@ -115,6 +185,7 @@ export class ParleTutor extends voice.Agent {
 
   /** Handle an intent the learner expressed by tapping rather than speaking. */
   async handleClientMessage(session: voice.AgentSession, payload: Uint8Array): Promise<void> {
+    if (this.refused) return; // a spent credential gets no lesson, whatever it taps
     const msg = decodeClientMessage(payload);
     if (!msg) return; // a malformed frame must not disturb a live conversation
 
@@ -232,6 +303,7 @@ export class ParleTutor extends voice.Agent {
 
   /** The learner said something. Grade it, move the ladder, re-brief the tutor. */
   override async onUserTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+    if (this.refused) throw new voice.StopResponse();
     this.clearRescue();
     this.learnerSpeaking = false;
     const transcript = newMessage.textContent ?? '';
@@ -287,6 +359,10 @@ export class ParleTutor extends voice.Agent {
   }
 
   private async applyInput(session: voice.AgentSession | undefined, input: Parameters<typeof submitTurn>[2]): Promise<void> {
+    // `silence` is the rescue, which the agent applies on the learner's behalf.
+    // Everything else arrived from their mouth, their keyboard or their thumb,
+    // and that difference is exactly what billing keys off in `finish()`.
+    if (input.type !== 'silence') this.learnerTurns += 1;
     const { state, feedback } = submitTurn(this.lesson, this.state, input);
     this.state = state;
 
@@ -327,13 +403,29 @@ export class ParleTutor extends voice.Agent {
 
     const wallClockSec = Math.round((Date.now() - this.startedAt) / 1000);
     console.log(
-      `[parle] session complete — ${summary.turnsCompleted} turns, ${summary.wordsProduced.length} words, ` +
-        `${wallClockSec}s, focus=${summary.pronunciation.focus?.phoneme.ipa ?? 'none'}`,
+      `[parle] session complete — ${summary.turnsCompleted} turns (${this.learnerTurns} from the learner), ` +
+        `${summary.wordsProduced.length} words, ${wallClockSec}s, ` +
+        `focus=${summary.pronunciation.focus?.phoneme.ipa ?? 'none'}`,
     );
     // A room that never delivered a learner turn is an unusable start, not a
-    // product the learner should pay for. Reporting zero still releases the
-    // active-session lease and records the session id exactly once.
-    const billableSeconds = summary.turnsCompleted > 0 ? wallClockSec : 0;
+    // product the learner should pay for: a dead microphone, a recogniser that
+    // never answered, a room they could not hear. Reporting zero still releases
+    // the active-session lease and records the session id exactly once.
+    //
+    // Counted here rather than read off `summary.turnsCompleted`, which is the
+    // ladder's turn index. The silence rescue applies a `silence` input, and
+    // that advances the index — so this guard used to be defeated by the learner
+    // saying nothing, which is the exact case it exists for. Measured live: a
+    // room the harness never spoke in debited 60s (F76).
+    const billableSeconds = this.learnerTurns > 0 ? wallClockSec : 0;
+    if (billableSeconds === 0) {
+      // Greppable on purpose. If these start appearing in numbers, rooms are
+      // reaching learners unusable and the vendor bill is being paid for them.
+      console.log(`[parle] SESSION_NOT_CHARGED session=${this.sessionId.slice(0, 8)} reason=no-learner-turn`);
+    }
+    // Spent before the call goes out: a crash between here and the debit must
+    // not leave a used credential looking fresh to the next room it opens.
+    noteSessionReported(this.sessionId);
     await reportUsage({
       userId: this.learnerId,
       sessionId: this.sessionId,
@@ -344,6 +436,31 @@ export class ParleTutor extends voice.Agent {
 
   /** Set from the room identity so usage lands on the right account. */
   learnerId = 'anonymous';
+
+  private sessionIdValue = UNSIGNED_SESSION_ID;
+
   /** Signed into the join token; retries with this id can never double-debit. */
-  sessionId = '00000000-0000-4000-8000-000000000000';
+  get sessionId(): string {
+    return this.sessionIdValue;
+  }
+
+  /**
+   * Where the replay check lands, because this is where the signed session id
+   * arrives: agent.ts reads it out of the join credential's metadata and writes
+   * it here before the tutor has said a word or armed a clock.
+   *
+   * A credential whose session has already been reported is spent, and the room
+   * it just re-opened is not a session — so the tutor takes itself off the air
+   * instead of teaching a lesson that can never be charged for.
+   */
+  set sessionId(value: string) {
+    this.sessionIdValue = value;
+    if (!sessionAlreadyReported(value)) return;
+    this.refused = true;
+    // `ended` is what makes finish() a no-op and stops the rescue arming, so
+    // from here nothing can debit, speak, or move the ladder.
+    this.ended = true;
+    this.clearRescue();
+    console.warn(`[parle] refused a replayed join credential for session ${value.slice(0, 8)}`);
+  }
 }

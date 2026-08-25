@@ -59,6 +59,7 @@ import {
   validMissionId,
   type SttLanguage,
 } from './convo.ts';
+import { forgetReportedSessions, noteSessionReported } from './tutor.ts';
 
 /** A fresh flow-mode café conversation, exactly as ParleConversation builds one. */
 function freshState() {
@@ -397,6 +398,8 @@ function buildConvo(
     seedTopic?: unknown;
     missionId?: unknown;
     profile?: LearnerProfile;
+    /** Written before `attach`, exactly as agent.ts writes it. */
+    sessionId?: string;
   } = {},
 ) {
   const client = opts.client ?? new MockLlmClient();
@@ -410,6 +413,10 @@ function buildConvo(
   });
   const { session, said } = stubSession();
   Object.defineProperty(convo, 'session', { value: session, configurable: true });
+  // agent.ts writes the signed session id before it wires the channel back to
+  // the app, and the spent-credential refusal depends on that order: it is
+  // decided at the setter and spoken at `attach`.
+  if (opts.sessionId !== undefined) convo.sessionId = opts.sessionId;
   const published: ServerMessage[] = [];
   convo.attach((message) => published.push(message));
   t.after(() => convo.clearRescue());
@@ -2014,5 +2021,127 @@ describe('replaying a line', () => {
     await convo.handleClientMessage(session, tapped({ t: 'hear' }));
 
     assert.deepEqual(said.slice(before), [support], 'a plain hear is the support line, as it has always been');
+  });
+});
+
+/**
+ * The same money question as `tutor.test.ts`, against the other agent, because
+ * the defect was the same shape in both. `recap.stats.turns` is
+ * `state.turnCount`, and a silence rescue runs a real brain turn through
+ * `integrateTurn`, which advances it — so a conversation nobody could be heard
+ * in billed for its whole wall clock (F76).
+ */
+describe('what a conversation is allowed to bill', () => {
+  /** Catch the debit the conversation sends, with no token server in the room. */
+  function captureDebits() {
+    const debits: { sessionId: string; seconds: number }[] = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = (async (_input: unknown, init?: { body?: unknown }) => {
+      debits.push(JSON.parse(String(init?.body)));
+      return { ok: true, json: async () => ({ secondsRemaining: 600 }) };
+    }) as unknown as typeof fetch;
+    return { debits, restore: () => { globalThis.fetch = real; } };
+  }
+
+  /** Backdate the room's start, or every assertion below reads zero for free. */
+  function ranFor(convo: ParleConversation, seconds: number): void {
+    (convo as unknown as { startedAt: number }).startedAt = Date.now() - seconds * 1_000;
+  }
+
+  /**
+   * A mission scene, which is the one way into a live scene that needs no
+   * learner turn to get there: they tapped the mission before the room existed.
+   * That makes it the honest shape of "the room opened and then reached nobody".
+   */
+  async function missionScene(t: TestContext, sessionId: string) {
+    const built = buildConvo(t, { voiceless: true, missionId: 'mission:cafe', sessionId });
+    built.convo.open(built.session);
+    await sceneSettled();
+    return built;
+  }
+
+  test('a conversation with no learner turn bills nothing even after a silence rescue', async (t) => {
+    const { debits, restore } = captureDebits();
+    try {
+      const { convo, session, client } = await missionScene(t, '66666666-6666-4666-8666-666666666666');
+      ranFor(convo, 60);
+
+      // Four silent seconds. The rescue steps in, in character, through a real
+      // brain turn — which is exactly what used to advance `turnCount` and make
+      // the bill for a learner who never said anything.
+      const generation = convo.armRescue(session);
+      await convo.runRescue(generation);
+      await convo.settled();
+      convo.clearRescue();
+      assert.equal(client.turnRequests.length, 1, 'the rescue really did spend a turn');
+      assert.ok(convo.conversationState.turnCount > 0, 'and really did advance the turn count');
+
+      await convo.finish();
+      assert.equal(debits.length, 1, 'the session is still reported, which is what releases the lease');
+      assert.equal(debits[0]!.seconds, 0, 'a conversation nobody could be heard in is not a product');
+    } finally {
+      restore();
+    }
+  });
+
+  test('a conversation the learner did speak in is billed for its wall clock', async (t) => {
+    const { debits, restore } = captureDebits();
+    try {
+      const { convo, session } = await missionScene(t, '77777777-7777-4777-8777-777777777777');
+      ranFor(convo, 60);
+
+      await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Je voudrais un café' }));
+      await convo.settled();
+      convo.clearRescue();
+
+      await convo.finish();
+      assert.equal(debits.length, 1);
+      assert.equal(debits[0]!.seconds, 60, 'a conversation with a learner turn in it is a conversation');
+    } finally {
+      restore();
+    }
+  });
+});
+
+/**
+ * F77, on the conversation side. A spent credential re-opens the room; what it
+ * must not re-open is the session, because a conversation is the expensive one:
+ * a scene build and a model call per turn.
+ */
+describe('a conversation credential that has already been spent', () => {
+  test('a spent credential opens no scene, so a replayed room costs no model call', async (t) => {
+    const sessionId = '88888888-8888-4888-8888-888888888888';
+    noteSessionReported(sessionId);
+    try {
+      const { convo, session, published, client, said } = buildConvo(t, { voiceless: true, sessionId });
+      convo.open(session);
+      await sceneSettled();
+      await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Au café' }));
+      await sceneSettled();
+      await convo.settled();
+
+      assert.deepEqual(published.filter((m) => m.t === 'opening'), [], 'no opening question');
+      assert.deepEqual(views(published), [], 'no scene');
+      assert.equal(client.frameRequests.length, 0, 'nothing designed');
+      assert.equal(client.turnRequests.length, 0, 'and not one model call against a room that is not a session');
+      assert.deepEqual(said, [], 'nor a word of synthesis');
+      const errors = published.filter((m) => m.t === 'error');
+      assert.equal(errors.length, 1, 'the learner is told, once, in plain words');
+      assert.match(errors[0]!.message, /already finished/i);
+    } finally {
+      forgetReportedSessions();
+    }
+  });
+
+  test('an unreported session id opens the conversation normally', async (t) => {
+    forgetReportedSessions();
+    const { convo, session, published } = buildConvo(t, {
+      voiceless: true,
+      sessionId: '99999999-9999-4999-8999-999999999999',
+    });
+    convo.open(session);
+    await sceneSettled();
+    assert.ok(published.some((m) => m.t === 'opening'), 'a fresh credential gets its conversation');
+    assert.deepEqual(published.filter((m) => m.t === 'error'), []);
   });
 });

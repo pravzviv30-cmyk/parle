@@ -18,6 +18,15 @@
 import { voice, type llm } from '@livekit/agents';
 import { selectedBrain } from './preflight.ts';
 import { TurnQueue } from './queue.ts';
+// One replay ledger for the worker, not one per agent class. Both session
+// shapes are served by the same process and both report to the same endpoint,
+// so a spent credential has to be spent for both of them.
+import {
+  REPLAYED_SESSION_MESSAGE,
+  UNSIGNED_SESSION_ID,
+  noteSessionReported,
+  sessionAlreadyReported,
+} from './tutor.ts';
 
 import {
   APERO_FRAME,
@@ -643,6 +652,15 @@ export class ParleConversation extends voice.Agent {
   private startedAt = Date.now();
   private ended = false;
   /**
+   * Turns the learner actually produced: spoken, typed, or a help/skip tap.
+   * Everything except the silence rescue, which is the one input the agent
+   * applies on their behalf. Billing reads this and never `recap.stats.turns`,
+   * which `integrateTurn` advances for a rescue too — see `finish()`.
+   */
+  private learnerTurns = 0;
+  /** A spent credential re-opened this room, so this tutor never goes on air. */
+  private refused = false;
+  /**
    * Where the session is: choosing a topic, waiting on the scenario builder,
    * or inside the scene. The fallback conversation is constructed eagerly so
    * `state` is never null — `starting` only gates which inputs do what.
@@ -659,8 +677,29 @@ export class ParleConversation extends voice.Agent {
 
   /** Set from the room identity so usage lands on the right account. */
   learnerId = 'anonymous';
+
+  private sessionIdValue = UNSIGNED_SESSION_ID;
+
   /** Signed into the join token; retries with this id can never double-debit. */
-  sessionId = '00000000-0000-4000-8000-000000000000';
+  get sessionId(): string {
+    return this.sessionIdValue;
+  }
+
+  /**
+   * Where the replay check lands, for the same reason and by the same rule as
+   * `ParleTutor`: agent.ts writes the signed session id here before the tutor
+   * opens its mouth, and a credential whose session was already reported is
+   * spent. Refusing here is what stops a re-created room from buying a whole
+   * free conversation — scene build, brain turns, speech and all.
+   */
+  set sessionId(value: string) {
+    this.sessionIdValue = value;
+    if (!sessionAlreadyReported(value)) return;
+    this.refused = true;
+    this.ended = true;
+    this.clearRescue();
+    console.warn(`[parle] refused a replayed join credential for session ${value.slice(0, 8)}`);
+  }
   /** Raw provider-neutral tokens, so development sessions produce real cost evidence. */
   private modelUsage: LlmUsage = ZERO_USAGE;
   private modelCalls = 0;
@@ -770,6 +809,9 @@ export class ParleConversation extends voice.Agent {
   /** Wire up the channel back to the app. */
   attach(publish: Publisher): void {
     this.publish = publish;
+    // The refusal is decided when the signed session id lands, which is before
+    // there is any channel back to the app. Say it now or nobody hears it.
+    if (this.refused) this.publishError(REPLAYED_SESSION_MESSAGE);
   }
 
   /** Latency marks for the stages this class owns. The worker wires the sink. */
@@ -817,6 +859,9 @@ export class ParleConversation extends voice.Agent {
    */
   open(session: voice.AgentSession): void {
     void session; // kept for signature parity with ParleTutor; speech goes via this.session
+    // A spent credential gets no opening line, no scenario call and no scene.
+    // This is the guard that keeps a replayed room from costing model money.
+    if (this.refused) return;
     // A mission's scene was written before the learner ever tapped it, so there
     // is nothing to design and nothing to wait for: no scenario call, none of
     // G3's ten to twenty five seconds of unexplained silence, and no F37 fall
@@ -1201,6 +1246,7 @@ export class ParleConversation extends voice.Agent {
 
   /** What a client message actually does. Wrapped by handleClientMessage. */
   private async routeClientMessage(session: voice.AgentSession, payload: Uint8Array): Promise<void> {
+    if (this.refused) return; // a spent credential gets no conversation, whatever it taps
     const msg = decodeClientMessage(payload);
     if (!msg) return; // a malformed frame must not disturb a live conversation
 
@@ -1257,6 +1303,12 @@ export class ParleConversation extends voice.Agent {
     }
     if (msg.t === 'leave') return void this.finish();
     if (msg.t === 'say' && this.handleSafety(msg.text)) return;
+
+    // A typed line is the learner producing French, in either phase: before the
+    // scene it IS the topic, and inside it it is the turn. `hear`, `slower`,
+    // `english`, `typing` and `moment` are never counted — they are presence,
+    // and none of them produces anything. See `finish()` for what it decides.
+    if (msg.t === 'say') this.learnerTurns += 1;
 
     // Before the scene exists, every other tap gets the same gentle answer as
     // silence: a spoken suggestion and the question again. There is no ladder
@@ -1323,6 +1375,10 @@ export class ParleConversation extends voice.Agent {
       return;
     }
     if (msg.t === 'help' || msg.t === 'skip') {
+      // Counted here rather than with `say` above, because before the scene
+      // exists these two only re-offer the question: nothing moves, nothing is
+      // produced, and a learner who only ever tapped them has had no session.
+      this.learnerTurns += 1;
       // The brain has no skip: a learner reaching for either button is lost,
       // and what a lost learner needs is support, not a hole in the scene.
       // Queued for the same reason as the typed turn: asking for help is the
@@ -1337,12 +1393,17 @@ export class ParleConversation extends voice.Agent {
 
   /** The learner said something. Run it through the brain, speak the answer. */
   override async onUserTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+    if (this.refused) throw new voice.StopResponse();
     this.releaseMoment();
     this.clearRescue();
     this.learnerSpeaking = false;
     const text = (newMessage.textContent ?? '').trim();
     if (text.length > 0 && !this.ended) {
       if (this.handleSafety(text)) throw new voice.StopResponse();
+      // Words came out of the learner and the recogniser read them, whatever
+      // the phase does with them next. That is the whole test for whether this
+      // room reached anybody — see `finish()`.
+      this.learnerTurns += 1;
       if (this.phase === 'choosing') {
         // Speech on the choosing screen IS the topic. The transcript shows
         // the learner they were heard; the scene does the rest.
@@ -1520,10 +1581,21 @@ export class ParleConversation extends voice.Agent {
 
     const wallClockSec = Math.round((Date.now() - this.startedAt) / 1000);
     console.log(
-      `[parle] convo complete — ${recap.stats.turns} turns, ${recap.stats.rescues} rescues, ` +
-        `${wallClockSec}s, cefr=${recap.cefr.estimate} (${recap.cefr.confidence})`,
+      `[parle] convo complete — ${recap.stats.turns} turns (${this.learnerTurns} from the learner), ` +
+        `${recap.stats.rescues} rescues, ${wallClockSec}s, cefr=${recap.cefr.estimate} (${recap.cefr.confidence})`,
     );
-    const billableSeconds = recap.stats.turns > 0 ? wallClockSec : 0;
+    // The same rule as the scripted tutor, for the same reason and with the
+    // same defect underneath: `recap.stats.turns` is `state.turnCount`, and the
+    // silence rescue runs a real brain turn through `integrateTurn`, which
+    // advances it. So a conversation nobody could hear or be heard in used to
+    // bill for its whole wall clock. Learner production is the test (F76).
+    const billableSeconds = this.learnerTurns > 0 ? wallClockSec : 0;
+    if (billableSeconds === 0) {
+      console.log(`[parle] SESSION_NOT_CHARGED session=${this.sessionId.slice(0, 8)} reason=no-learner-turn`);
+    }
+    // Spent before the call goes out: a crash between here and the debit must
+    // not leave a used credential looking fresh to the next room it opens.
+    noteSessionReported(this.sessionId);
     await reportUsage({
       userId: this.learnerId,
       sessionId: this.sessionId,

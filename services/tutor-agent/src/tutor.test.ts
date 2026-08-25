@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { voice } from '@livekit/agents';
 import { CAFE_LESSON, RUNGS, STUCK_SILENCE_MS, encodeMessage, type ClientMessage, type Rung, type ServerMessage } from '@parle/core';
-import { ParleTutor } from './tutor.ts';
+import { ParleTutor, forgetReportedSessions } from './tutor.ts';
 
 /**
  * A stand-in for the LiveKit session.
@@ -26,10 +26,14 @@ function stubSession() {
   return { session: session as never, calls };
 }
 
-function build(startRung: Rung = RUNGS.PROMPTED, options: { voiceless?: boolean } = {}) {
+function build(startRung: Rung = RUNGS.PROMPTED, options: { voiceless?: boolean; sessionId?: string } = {}) {
   const tutor = new ParleTutor(CAFE_LESSON, startRung, options);
   const { session, calls } = stubSession();
   Object.defineProperty(tutor, 'session', { value: session, configurable: true });
+  // In agent.ts the signed session id is written before the channel back to the
+  // app is wired, and the replay refusal below depends on that order: the
+  // refusal is decided at the setter and spoken at `attach`.
+  if (options.sessionId !== undefined) tutor.sessionId = options.sessionId;
   const published: ServerMessage[] = [];
   tutor.attach((message) => published.push(message));
   return { tutor, session, calls, published };
@@ -229,5 +233,200 @@ describe('a lesson for someone who cannot speak aloud', () => {
     const { tutor, session, calls } = build(RUNGS.ECHO, { voiceless: true });
     await tutor.handleClientMessage(session, tapped({ t: 'hear' }));
     assert.equal(calls.said.length, 0);
+  });
+});
+
+/**
+ * Money. Everything here is about what reaches the token server, so the token
+ * server is replaced by a recorder rather than mocked away: `reportUsage`
+ * builds the request itself, and the body it builds is the bill.
+ */
+describe('what a session is allowed to bill', () => {
+  /** Catch the debit the tutor sends, with no token server in the room. */
+  function captureDebits() {
+    const debits: { userId: string; sessionId: string; seconds: number; utterancesScored: number }[] = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = (async (_input: unknown, init?: { body?: unknown }) => {
+      debits.push(JSON.parse(String(init?.body)));
+      return { ok: true, json: async () => ({ secondsRemaining: 600 }) };
+    }) as unknown as typeof fetch;
+    return { debits, restore: () => { globalThis.fetch = real; } };
+  }
+
+  /**
+   * Backdate the room's start so the wall clock is not zero.
+   *
+   * Without it every assertion below reads `seconds: 0` whether the guard works
+   * or not, which is a test that cannot fail. Sixty seconds because sixty is
+   * what the live harness watched being debited for a room nobody spoke in.
+   */
+  function ranFor(tutor: ParleTutor, seconds: number): void {
+    (tutor as unknown as { startedAt: number }).startedAt = Date.now() - seconds * 1_000;
+  }
+
+  /**
+   * One silence rescue, with the clock it re-arms stood back down.
+   *
+   * A text-mode tutor re-arms on every publish, so a test that leaves the timer
+   * running has a tutor quietly rescuing an empty room every four seconds until
+   * the lesson runs out — which then debits, under whatever fetch is installed
+   * by the time it gets there.
+   */
+  async function rescueOnce(tutor: ParleTutor, session: voice.AgentSession): Promise<void> {
+    const generation = tutor.armRescue(session);
+    tutor.clearRescue();
+    await tutor.runRescue(session, generation);
+    await tutor.settled();
+    tutor.clearRescue();
+  }
+
+  test('a session with no learner turn bills nothing even after a silence rescue', async () => {
+    forgetReportedSessions();
+    const { debits, restore } = captureDebits();
+    const { tutor, session } = build(RUNGS.PROMPTED, {
+      voiceless: true,
+      sessionId: '11111111-1111-4111-8111-111111111111',
+    });
+    try {
+      tutor.learnerId = 'a-learner-with-a-dead-microphone';
+      ranFor(tutor, 60);
+
+      // Nobody said a word, so the rescue fires. The ladder re-asks the same
+      // turn for a couple of attempts before it moves on, so drive it until the
+      // turn index moves: that index is what the old guard read as "they took a
+      // turn", and it is the whole of the defect.
+      for (let attempt = 0; attempt < 6 && tutor.sessionState.turnIndex === 0; attempt += 1) {
+        await rescueOnce(tutor, session);
+      }
+      assert.ok(tutor.sessionState.ladder.rescues > 0, 'the learner really was rescued');
+      assert.ok(tutor.sessionState.turnIndex > 0, 'and the rescue really did advance the turn index');
+
+      await tutor.finish();
+
+      assert.equal(debits.length, 1, 'the session is still reported, which is what releases the lease');
+      assert.equal(debits[0]!.seconds, 0, 'but a room that never carried a learner turn is not a product');
+    } finally {
+      tutor.clearRescue();
+      restore();
+    }
+  });
+
+  test('a session the learner did speak in is billed for its wall clock', async () => {
+    forgetReportedSessions();
+    const { debits, restore } = captureDebits();
+    const { tutor, session } = build(RUNGS.PROMPTED, {
+      voiceless: true,
+      sessionId: '22222222-2222-4222-8222-222222222222',
+    });
+    try {
+      ranFor(tutor, 60);
+
+      // The guard has to refuse an unusable room without giving away a real one.
+      await tutor.handleClientMessage(session, tapped({ t: 'say', text: 'un café, s\'il vous plaît' }));
+      await tutor.settled();
+      tutor.clearRescue();
+      await tutor.finish();
+
+      assert.equal(debits.length, 1);
+      assert.equal(debits[0]!.seconds, 60, 'a session with a learner turn in it is a session');
+    } finally {
+      tutor.clearRescue();
+      restore();
+    }
+  });
+
+  test('a room rescued into silence over and over still bills nothing', async () => {
+    forgetReportedSessions();
+    const { debits, restore } = captureDebits();
+    const { tutor, session } = build(RUNGS.PROMPTED, {
+      voiceless: true,
+      sessionId: '55555555-5555-4555-8555-555555555555',
+    });
+    try {
+      ranFor(tutor, 300);
+      for (let i = 0; i < 5; i += 1) await rescueOnce(tutor, session);
+      await tutor.finish();
+
+      assert.equal(debits.length, 1);
+      assert.equal(debits[0]!.seconds, 0, 'five rescues are still nobody speaking');
+    } finally {
+      tutor.clearRescue();
+      restore();
+    }
+  });
+});
+
+/**
+ * F77. The join credential is a five minute bearer token, and LiveKit re-creates
+ * a closed room for whoever presents one: measured live, with 279s of ttl still
+ * on a room whose session had already been reported. The empty room costs
+ * nothing. The tutor dispatched into it is what would cost a free session.
+ */
+describe('a credential that has already been spent', () => {
+  test('a join credential cannot re-open a room whose session has already been reported', async () => {
+    forgetReportedSessions();
+    const debits: { sessionId: string; seconds: number }[] = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = (async (_input: unknown, init?: { body?: unknown }) => {
+      debits.push(JSON.parse(String(init?.body)));
+      return { ok: true, json: async () => ({ secondsRemaining: 600 }) };
+    }) as unknown as typeof fetch;
+
+    const sessionId = '33333333-3333-4333-8333-333333333333';
+    const first = build(RUNGS.PROMPTED, { voiceless: true, sessionId });
+    // Built after the first session has been reported, because that is the
+    // order the attack happens in: the room closes, then the captured
+    // credential opens it again and a second tutor is dispatched into it.
+    let replay: ReturnType<typeof build> | undefined;
+    try {
+      // One real session: the learner answers, it ends, the seconds are reported.
+      await first.tutor.handleClientMessage(first.session, tapped({ t: 'say', text: 'un café, s\'il vous plaît' }));
+      await first.tutor.settled();
+      first.tutor.clearRescue();
+      await first.tutor.finish();
+      assert.equal(debits.length, 1, 'the real session reported exactly once');
+
+      // The same credential presented again, inside its ttl, against the room
+      // LiveKit just re-created. Every way in is tried.
+      replay = build(RUNGS.PROMPTED, { voiceless: true, sessionId });
+      replay.tutor.sendCurrentPrompt(replay.session);
+      await replay.tutor.handleClientMessage(replay.session, tapped({ t: 'ready' }));
+      await replay.tutor.handleClientMessage(replay.session, tapped({ t: 'say', text: 'bonjour' }));
+      await replay.tutor.settled();
+      await replay.tutor.finish();
+
+      assert.equal(debits.length, 1, 'the replay never reached the token server');
+      assert.equal(replay.tutor.sessionState.turnIndex, 0, 'nor moved the ladder');
+      assert.equal(replay.calls.generateReply.length, 0, 'nor spent a model call');
+      assert.equal(replay.calls.said.length, 0, 'nor a word of synthesis');
+      assert.deepEqual(
+        replay.published.filter((m) => m.t === 'prompt'),
+        [],
+        'nor taught a line of the lesson',
+      );
+      const errors = replay.published.filter((m) => m.t === 'error');
+      assert.equal(errors.length, 1, 'and the learner is told, once, in plain words');
+      assert.match(errors[0]!.message, /already finished/i);
+    } finally {
+      first.tutor.clearRescue();
+      replay?.tutor.clearRescue();
+      globalThis.fetch = real;
+      forgetReportedSessions();
+    }
+  });
+
+  test('an unreported session id is served normally, so the guard cannot lock a learner out', () => {
+    forgetReportedSessions();
+    const { tutor, published } = build(RUNGS.PROMPTED, {
+      voiceless: true,
+      sessionId: '44444444-4444-4444-8444-444444444444',
+    });
+    try {
+      tutor.sendCurrentPrompt();
+      assert.ok(published.some((m) => m.t === 'prompt'), 'a fresh credential gets its lesson');
+      assert.deepEqual(published.filter((m) => m.t === 'error'), []);
+    } finally {
+      tutor.clearRescue();
+    }
   });
 });

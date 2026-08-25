@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { FIRST_MISSION, PLANS, type Entitlement } from '@parle/core';
-import { grantSession, roomNameFor, type TokenConfig } from './tokens.ts';
+import { ROOM_LIFECYCLE, grantSession, roomNameFor, type TokenConfig } from './tokens.ts';
 import { DevelopmentEntitlementStore, InMemoryEntitlementStore, developmentEntitlementsEnabled } from './store.ts';
 
 const config: TokenConfig = { apiKey: 'devkey', apiSecret: 'a-secret-long-enough-for-hmac-signing-0123456789' };
@@ -83,6 +83,57 @@ describe('the entitlement gate', () => {
     assert.notEqual(claims.video.roomCreate, true);
     assert.equal(claims.roomConfig.maxParticipants, 2);
     assert.equal(claims.roomConfig.emptyTimeout, 30);
+  });
+
+  /**
+   * F78, filed as a capacity note rather than a defect and closed the way a
+   * capacity note should be: the numbers are written down with what they cost,
+   * so the next person to change one has to change the cost with it — and the
+   * cost is the measured one, not the one the ledger assumed.
+   */
+  test('the production empty-room timeout is recorded with its worker-occupancy cost', async () => {
+    const result = await grantSession({ userId: 'u1', lessonId: 'cafe-01', entitlement: { plan: 'starter', secondsUsed: 0 }, config });
+    assert.ok(result.ok);
+    if (!result.ok) return;
+    const claims = JSON.parse(Buffer.from(result.grant.token.split('.')[1]!, 'base64url').toString('utf8'));
+
+    // What ships and what is written down are the same numbers. A grant that
+    // quietly stopped agreeing with the record is the first thing this catches.
+    assert.equal(claims.roomConfig.emptyTimeout, ROOM_LIFECYCLE.emptyTimeoutSec);
+    assert.equal(claims.roomConfig.departureTimeout, ROOM_LIFECYCLE.departureTimeoutSec);
+    assert.equal(claims.roomConfig.maxParticipants, ROOM_LIFECYCLE.maxParticipants);
+    assert.equal(ROOM_LIFECYCLE.emptyTimeoutSec, 30, 'production keeps an empty room for half a minute');
+
+    const { emptyRoom, departedRoom } = ROOM_LIFECYCLE.measured;
+
+    // The empty-room hold tracks its configured timeout, so the 30 above really
+    // does mean thirty seconds of room and not some shorter number.
+    assert.ok(emptyRoom.heldSec >= emptyRoom.emptyTimeoutSec, 'a room that closed early would make the timeout meaningless');
+    assert.ok(emptyRoom.heldSec < emptyRoom.emptyTimeoutSec + 5, 'and one that overran it by much would mean the record is wrong');
+
+    // The cost of that hold is zero worker seconds, and this is the assertion
+    // that keeps the two halves honest: dispatch follows a participant, so a
+    // room nobody joined holds no tutor. If a future measurement ever sees a
+    // tutor in an empty room, this pair stops agreeing and the run fails.
+    assert.equal(emptyRoom.tutorDispatched, false, 'no tutor is dispatched into a room nobody joined');
+    assert.equal(
+      ROOM_LIFECYCLE.workerOccupancySecPerAbandonedRoom,
+      0,
+      'an abandoned room costs no worker time, because nothing was dispatched into it',
+    );
+
+    // The timeout that does hold a worker is the departure one, and its cost is
+    // the whole window: the tutor stays in the room until LiveKit closes it.
+    assert.ok(departedRoom.roomGoneAfterSec >= departedRoom.departureTimeoutSec, 'the room outlives the learner by the departure window');
+    assert.equal(
+      ROOM_LIFECYCLE.workerOccupancySecPerFinishedSession,
+      ROOM_LIFECYCLE.departureTimeoutSec,
+      'raising the departure timeout raises worker occupancy per session by exactly as much, and the record has to say so',
+    );
+
+    // No vendor minutes either way, which is why this is a capacity note and
+    // not a money defect: nothing to recognise, speak or think about.
+    assert.equal(claims.video.canPublishSources.length, 1, 'nothing but a microphone can ever be published into one of these rooms');
   });
 
   test('the join credential expires after five minutes', async () => {
