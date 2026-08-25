@@ -11,11 +11,12 @@
  *   1. typecheck across every workspace
  *   2. tests: zero failures, and no workspace below its recorded floor
  *   3. hygiene: nothing focused with .only, nothing newly skipped
- *   4. agents: the model pins the loops depend on are still in place
- *   5. the goal: docs/KNOWN_ISSUES.md has no open P0/P1, and every ticked box names a
+ *   4. secrets: no credential shape in any file git is carrying
+ *   5. agents: the model pins the loops depend on are still in place
+ *   6. the goal: docs/KNOWN_ISSUES.md has no open P0/P1, and every ticked box names a
  *      test that actually ran and actually passed
  *
- * Check 5 is the one that matters. Without it the loop can declare victory by editing a
+ * Check 6 is the one that matters. Without it the loop can declare victory by editing a
  * checkbox; with it, the only way to tick a box is to make a named test pass.
  *
  * `--fast` answers a different question: **is this commit malformed?** It runs only the
@@ -28,6 +29,17 @@
  *   - whether a ticked box names a passing test, because no test ran to name.
  *
  * Both are the full gate's job, at push time. Fast mode is a smoke alarm, not the bar.
+ *
+ * The secret scan is in fast mode on purpose. It reads files rather than running them, it
+ * costs about a quarter of a second on this tree, and a leaked key is the one mistake that
+ * is unrecoverable once the commit exists — the fast hook is the last moment it is cheap.
+ *
+ * `--audit` is a third mode, and the only one that touches the network, which is why it is
+ * not part of `npm run gate`: the bar has to be the same offline and on a plane. CI runs it
+ * as its own step via `npm run audit:ci`. It reads the advisory decisions recorded under
+ * `parle.dependencyAudit` in package.json and refuses any high or critical advisory that is
+ * not among them — and equally refuses an acceptance whose advisory has since gone away, so
+ * the record cannot rot into a list of stale excuses.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -38,12 +50,16 @@ import path from 'node:path';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FLOORS_PATH = path.join(ROOT, 'scripts', 'gate.floors.json');
 const LEDGER_PATH = path.join(ROOT, 'docs', 'KNOWN_ISSUES.md');
+const MANIFEST_PATH = path.join(ROOT, 'package.json');
+const SECRET_SCANNER = path.join(ROOT, 'services', 'token-server', 'src', 'secretScan.ts');
 
 const args = process.argv.slice(2);
 const asJson = args.includes('--json');
 const bless = args.includes('--bless');
 // Skips the two checks that run code rather than reading it. See the header.
 const fast = args.includes('--fast');
+// The one mode that needs a network. Its own entry point, never part of the bar.
+const auditOnly = args.includes('--audit');
 
 /** @type {{check: string, detail: string}[]} */
 const failures = [];
@@ -62,6 +78,93 @@ function run(command, commandArgs) {
     const out = `${err.stdout ?? ''}${err.stderr ?? ''}`;
     return { code: typeof err.status === 'number' ? err.status : 1, out };
   }
+}
+
+// --------------------------------------------------------------- 0. the audit
+//
+// Not a check in the list above, and deliberately not reachable from `npm run gate`. It
+// needs the registry, and a bar that only holds when the network does is not a bar.
+//
+// The shape: npm audit reports a row per affected package, but most of those rows are
+// dependants that merely inherit somebody else's advisory. A row is a *root* when its
+// `via` array carries an advisory object rather than only package names, and roots are the
+// only thing a person can actually make a decision about. So the record in package.json is
+// keyed on roots, and this refuses a high or critical root that nobody has decided about.
+
+if (auditOnly) {
+  const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
+  const record = manifest.parle?.dependencyAudit;
+  const decided = record?.advisories ?? [];
+
+  if (!Array.isArray(record?.advisories)) {
+    console.error('audit: package.json has no parle.dependencyAudit.advisories, so nothing has been decided.');
+    process.exit(1);
+  }
+
+  /** npm audit exits non-zero whenever it finds anything, so the exit code is not the signal. */
+  let raw;
+  try {
+    raw = execFileSync('npm', ['audit', '--json'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      // stderr is dropped rather than merged: it carries progress noise that would not parse.
+      stdio: ['ignore', 'pipe', 'ignore'],
+      maxBuffer: 64 * 1024 * 1024,
+    });
+  } catch (err) {
+    raw = typeof err.stdout === 'string' ? err.stdout : '';
+  }
+
+  let report;
+  try {
+    report = JSON.parse(raw);
+  } catch {
+    console.error('audit: npm audit produced no parsable report — treat this as a failure, not as a clean tree.');
+    process.exit(1);
+  }
+  if (!report || typeof report.vulnerabilities !== 'object') {
+    console.error('audit: npm audit reported no vulnerabilities object. Not the same as no vulnerabilities.');
+    process.exit(1);
+  }
+
+  const rows = Object.values(report.vulnerabilities);
+  const isRoot = (row) => Array.isArray(row.via) && row.via.some((entry) => typeof entry === 'object');
+  const roots = new Map(rows.filter(isRoot).map((row) => [row.name, row]));
+
+  const accepted = new Set(decided.filter((d) => d.decision === 'accepted').map((d) => d.module));
+  const fixed = new Set(decided.filter((d) => d.decision === 'fixed').map((d) => d.module));
+  const problems = [];
+
+  for (const [name, row] of roots) {
+    if (row.severity !== 'high' && row.severity !== 'critical') continue;
+    if (accepted.has(name)) continue;
+    problems.push(
+      `${name} (${row.severity}) is not in package.json parle.dependencyAudit.advisories. ` +
+        'Fix it, or record it with a reachability argument and why it cannot be fixed.',
+    );
+  }
+  for (const name of accepted) {
+    if (!roots.has(name)) {
+      problems.push(`${name} is recorded as accepted but npm audit no longer reports it. Remove the acceptance.`);
+    }
+  }
+  for (const name of fixed) {
+    if (roots.has(name)) {
+      problems.push(`${name} is recorded as fixed but npm audit still reports it against this lockfile.`);
+    }
+  }
+
+  const totals = report.metadata?.vulnerabilities ?? {};
+  if (problems.length === 0) {
+    console.log(
+      `audit: ${totals.critical ?? 0} critical, ${totals.high ?? 0} high, ${totals.moderate ?? 0} moderate — ` +
+        `every high root is one of ${[...accepted].join(', ')}, each recorded with a reachability argument.`,
+    );
+    process.exit(0);
+  }
+  console.error(`audit: ${problems.length} unaccepted finding${problems.length === 1 ? '' : 's'}\n`);
+  for (const problem of problems) console.error(`  ${problem}`);
+  process.exit(1);
 }
 
 // ---------------------------------------------------------------- 1. typecheck
@@ -145,7 +248,26 @@ for (const file of testFiles(ROOT)) {
   }
 }
 
-// ------------------------------------------------------------------- 4. agents
+// ------------------------------------------------------------------ 4. secrets
+
+// A file-reading check, so it runs in fast mode too. Everything else the gate catches can
+// be fixed by another commit; a credential that reaches history cannot be taken back, only
+// rotated. The scanner walks what `git ls-files` carries — which is exactly what a push
+// would publish — and reports a path and a line, never the matched value, so this failure
+// is safe to print in a terminal and in CI logs.
+//
+// It runs in a child process with an explicit --experimental-strip-types rather than being
+// imported, because gate.mjs is plain JavaScript and must keep working on the Node 22 floor
+// this repo declares, where type stripping is not yet on by default.
+
+{
+  const scan = run(process.execPath, ['--experimental-strip-types', SECRET_SCANNER]);
+  if (scan.code !== 0) {
+    fail('secrets', scan.out.trim() || `${path.relative(ROOT, SECRET_SCANNER)} refused this tree and said nothing`);
+  }
+}
+
+// ------------------------------------------------------------------- 5. agents
 
 // Which model runs which agent is the whole design of /forge and /bug-sweep, and it lives
 // entirely in one line of frontmatter. That line fails quietly: delete `model: fable` and
@@ -253,7 +375,7 @@ for (const command of ['forge', 'bug-sweep', 'ship']) {
   }
 }
 
-// --------------------------------------------------------------------- 5. goal
+// --------------------------------------------------------------------- 6. goal
 
 const ledger = readFileSync(LEDGER_PATH, 'utf8');
 /** @type {{id: string, title: string, severity: string, done: boolean, verifiedBy: string[]}[]} */
@@ -335,7 +457,7 @@ if (asJson) {
     console.log(`  ${c.fail === 0 ? '✔' : '✖'} ${pkg}: ${c.tests} tests, ${c.fail} failing (floor ${floors[pkg]})`);
   }
   if (fast) {
-    console.log('  fast: hygiene, agents and the ledger only. No suite ran and no tick was verified.');
+    console.log('  fast: hygiene, secrets, agents and the ledger only. No suite ran and no tick was verified.');
   } else {
     console.log(`  total: ${total} tests`);
   }

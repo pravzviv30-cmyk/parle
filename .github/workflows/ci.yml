@@ -1,0 +1,77 @@
+# The bar, running somewhere that is not a laptop.
+#
+# Until now `npm run gate` was enforced by two git hooks and good manners. Hooks live in
+# `.githooks/` and are wired up by `npm install`, which means a clone that was never
+# installed, a push with `--no-verify`, or a machine that skipped postinstall gets no check
+# at all. This workflow is the copy of the bar that nobody can turn off from their own
+# shell.
+#
+# Three steps, in the order that makes a failure readable:
+#
+#   1. the gate         — typecheck, every suite, the count floors, the agent pins, the
+#                         secret scan, and the ledger. Exactly what `pre-push` runs.
+#   2. dependency audit — `npm audit` read against the advisory decisions recorded in
+#                         package.json under `parle.dependencyAudit`. Fails on any high or
+#                         critical advisory nobody has written a reachability argument for,
+#                         and equally on an acceptance that no longer applies.
+#   3. secret scan      — its own step as well as inside the gate, on purpose. If somebody
+#                         ever needs to make the gate faster, this is the one check that
+#                         must survive that decision, and a named step is harder to lose
+#                         than a line inside a script.
+#
+# **This workflow needs no secrets, and must not be given any.** Every suite was measured
+# on 2026-08-25 with dotenv pointed at an empty file: 1547 tests, 0 failures, identical
+# counts to a run with the developer's real `.env` present. A CI job holding a LiveKit
+# secret or a Supabase service-role key is a second place for it to leak, and this one has
+# no reason to hold either. `permissions: contents: read` says the same thing about the
+# GitHub token.
+#
+# Node 24 because that is the version this repo is developed and verified on. `engines`
+# still declares `>=22`, and that floor has never been run — see the ledger.
+
+name: gate
+
+on:
+  push:
+  pull_request:
+
+# A second push supersedes the first. Nothing here is a deployment, so cancelling is free.
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: check out
+        uses: actions/checkout@v4
+
+      - name: node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # `npm ci` and never `npm install`: CI installs the lockfile as written, so a
+      # dependency decision recorded in package-lock.json is the one that gets tested.
+      # It runs from the repository root, which is also the only place the gate is
+      # allowed to run — a worktree has no node_modules of its own and binds the wrong
+      # copy of @anthropic-ai/sdk. See CLAUDE.md.
+      - name: install
+        run: npm ci
+
+      - name: the gate
+        run: npm run gate
+
+      - name: dependency audit
+        run: npm run audit:ci
+
+      - name: secret scan
+        run: npm run scan:secrets
