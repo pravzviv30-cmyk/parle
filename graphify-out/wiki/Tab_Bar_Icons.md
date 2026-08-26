@@ -1,58 +1,43 @@
 # Tab Bar Icons
 
-> 20 nodes · cohesion 0.14
+> 15 nodes · cohesion 0.21
 
 ## Key Concepts
 
-- **paper** (38 connections) — `apps/mobile/src/theme.ts`
-- **ParleTabBar.tsx** (20 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
-- **icons.tsx** (11 connections) — `apps/mobile/src/nav/icons.tsx`
-- **Paper & Ink design world** (5 connections) — `DESIGN.md`
-- **ParleTabBar()** (3 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
-- **Everything spoken must also be readable** (3 connections) — `PRODUCT.md`
+- **ParleTabBar.tsx** (21 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
+- **icons.tsx** (12 connections) — `apps/mobile/src/nav/icons.tsx`
+- **dueCount()** (5 connections) — `apps/mobile/src/review/store.ts`
+- **ParleTabBar()** (4 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
 - **HomeIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
-- **LeaderboardIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
+- **MyFrenchIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **PracticeIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **ProfileIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **TabIconProps** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **TutorIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
-- **Paper colour token set** (2 connections) — `DESIGN.md`
-- **Drill mode and the recognition-to-production ramp** (2 connections) — `README.md`
+- **announceTab()** (2 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
 - **Glyph()** (1 connections) — `apps/mobile/src/nav/icons.tsx`
-- **announceTab()** (1 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
 - **ICONS** (1 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
 - **LABELS** (1 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
 - **st** (1 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
-- **Absent evidence must not be fabricated** (1 connections) — `PRODUCT.md`
 
 ## Relationships
 
-- [Conversation Screen Components](Conversation_Screen_Components.md) (12 shared connections)
-- [Onboarding UI Illustrations](Onboarding_UI_Illustrations.md) (7 shared connections)
-- [Sign In Screens](Sign_In_Screens.md) (6 shared connections)
-- [Shared UI Primitives](Shared_UI_Primitives.md) (6 shared connections)
-- [Root Navigation Stack](Root_Navigation_Stack.md) (5 shared connections)
-- [Practice Mix Offer](Practice_Mix_Offer.md) (3 shared connections)
-- [Auth Context And Friends UI](Auth_Context_And_Friends_UI.md) (3 shared connections)
-- [Review Deck Store](Review_Deck_Store.md) (1 shared connections)
-- [Mobile App Root](Mobile_App_Root.md) (1 shared connections)
-- [Drill Practice Screen](Drill_Practice_Screen.md) (1 shared connections)
-- [Navigation Theme and Fonts](Navigation_Theme_and_Fonts.md) (1 shared connections)
-- [Project Overview Doc](Project_Overview_Doc.md) (1 shared connections)
+- [Auth Screens and Context](Auth_Screens_and_Context.md) (9 shared connections)
+- [Live and Profile Providers](Live_and_Profile_Providers.md) (3 shared connections)
+- [Review Deck Store](Review_Deck_Store.md) (2 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (1 shared connections)
+- [Product Analytics and Today Row](Product_Analytics_and_Today_Row.md) (1 shared connections)
 
 ## Source Files
 
-- `DESIGN.md`
-- `PRODUCT.md`
-- `README.md`
 - `apps/mobile/src/nav/ParleTabBar.tsx`
 - `apps/mobile/src/nav/icons.tsx`
-- `apps/mobile/src/theme.ts`
+- `apps/mobile/src/review/store.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 64 (85%)
-- INFERRED: 11 (15%)
+- EXTRACTED: 33 (87%)
+- INFERRED: 5 (13%)
 - AMBIGUOUS: 0 (0%)
 
 ---

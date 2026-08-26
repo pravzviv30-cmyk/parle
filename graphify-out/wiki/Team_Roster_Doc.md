@@ -8,13 +8,13 @@
 - **Calling them** (1 connections) — `docs/TEAM.md`
 - **Territory is the point** (1 connections) — `docs/TEAM.md`
 - **The gate defends the fleet** (1 connections) — `docs/TEAM.md`
-- **The two that answer rather than build** (1 connections) — `docs/TEAM.md`
+- **The independent reviewers** (1 connections) — `docs/TEAM.md`
 - **Three of them are ahead of the code** (1 connections) — `docs/TEAM.md`
 - **Who owns what** (1 connections) — `docs/TEAM.md`
 
 ## Relationships
 
-- [Project Documentation](Project_Documentation.md) (1 shared connections)
+- [Documentation Index](Documentation_Index.md) (1 shared connections)
 
 ## Source Files
 

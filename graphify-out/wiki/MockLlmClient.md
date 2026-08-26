@@ -1,6 +1,6 @@
 # MockLlmClient
 
-> God node · 27 connections · `packages/brain/src/llm/mock.ts`
+> God node · 31 connections · `packages/brain/src/llm/mock.ts`
 
 **Community:** [Brain Client Contracts](Brain_Client_Contracts.md)
 
@@ -10,7 +10,7 @@
 - mock.ts `EXTRACTED`
 
 ### implements
-- [LlmClient](LlmClient.md) `EXTRACTED`
+- LlmClient `EXTRACTED`
 
 ### imports
 - convo.test.ts `EXTRACTED`
@@ -20,8 +20,12 @@
 - split.test.ts `EXTRACTED`
 
 ### inherits
+- MeteredBrain `EXTRACTED`
 - DeadBrain `EXTRACTED`
 - FailingBrain `EXTRACTED`
+- HeldFrameBrain `EXTRACTED`
+- SlowBrain `EXTRACTED`
+- SlowFrameBrain `EXTRACTED`
 - NoCuration `EXTRACTED`
 - NoFrameBrain `EXTRACTED`
 
@@ -34,16 +38,16 @@
 - .curate() `EXTRACTED`
 
 ### references
-- [ScenarioFrame](ScenarioFrame.md) `EXTRACTED`
-- TutorTurn `EXTRACTED`
-- MemoryExtraction `EXTRACTED`
+- ScenarioFrame `EXTRACTED`
 - BrainTurnRequest `EXTRACTED`
-- DrillBatch `EXTRACTED`
-- Curation `EXTRACTED`
+- TutorTurn `EXTRACTED`
 - BrainFrameRequest `EXTRACTED`
 - BrainExtractRequest `EXTRACTED`
 - BrainDrillsRequest `EXTRACTED`
 - BrainCurateRequest `EXTRACTED`
+- MemoryExtraction `EXTRACTED`
+- DrillBatch `EXTRACTED`
+- Curation `EXTRACTED`
 
 ---
 

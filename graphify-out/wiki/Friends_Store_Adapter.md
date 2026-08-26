@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **localAdapter.ts** (35 connections) — `apps/mobile/src/friends/localAdapter.ts`
+- **localAdapter.ts** (38 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **logic.ts** (23 connections) — `apps/mobile/src/friends/logic.ts`
 - **logic.test.ts** (12 connections) — `apps/mobile/src/friends/logic.test.ts`
 - **FriendsAdapter** (11 connections) — `apps/mobile/src/friends/types.ts`
@@ -16,28 +16,30 @@
 - **withAccepted()** (6 connections) — `apps/mobile/src/friends/logic.ts`
 - **withRequest()** (6 connections) — `apps/mobile/src/friends/logic.ts`
 - **FriendRequest** (6 connections) — `apps/mobile/src/friends/types.ts`
-- **readStore()** (5 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **asUsername()** (5 connections) — `apps/mobile/src/friends/logic.ts`
 - **FriendsState** (5 connections) — `apps/mobile/src/friends/logic.ts`
+- **createLocalAdapter()** (4 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **KEY()** (4 connections) — `apps/mobile/src/friends/localAdapter.ts`
+- **loadStoreFor()** (4 connections) — `apps/mobile/src/friends/localAdapter.ts`
+- **readStore()** (4 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **scheduleSampleAccept()** (4 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **emptyState()** (4 connections) — `apps/mobile/src/friends/logic.ts`
 - **findRosterUser()** (4 connections) — `apps/mobile/src/friends/logic.ts`
 - **searchRoster()** (4 connections) — `apps/mobile/src/friends/logic.ts`
-- **createLocalAdapter()** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **FriendsStore** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **loadStore()** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
-- **saveStore()** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
-- **sameName()** (3 connections) — `apps/mobile/src/friends/logic.ts`
+- **serialized()** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - *... and 25 more nodes in this community*
 
 ## Relationships
 
-- [Auth Context And Friends UI](Auth_Context_And_Friends_UI.md) (15 shared connections)
-- [Mobile App Root](Mobile_App_Root.md) (3 shared connections)
-- [Activity History Log](Activity_History_Log.md) (2 shared connections)
-- [Profile Store And Migration](Profile_Store_And_Migration.md) (2 shared connections)
-- [Drill Bank Storage](Drill_Bank_Storage.md) (1 shared connections)
+- [Auth Screens and Context](Auth_Screens_and_Context.md) (11 shared connections)
+- [Live and Profile Providers](Live_and_Profile_Providers.md) (4 shared connections)
+- [Session Journal Recovery](Session_Journal_Recovery.md) (2 shared connections)
+- [Per-User Storage Scoping](Per-User_Storage_Scoping.md) (2 shared connections)
+- [Tutor Intro and Coach Marks](Tutor_Intro_and_Coach_Marks.md) (2 shared connections)
+- [Profile Gate and Age Check](Profile_Gate_and_Age_Check.md) (2 shared connections)
+- [Store Binding Tests](Store_Binding_Tests.md) (2 shared connections)
 
 ## Source Files
 
@@ -46,11 +48,10 @@
 - `apps/mobile/src/friends/logic.test.ts`
 - `apps/mobile/src/friends/logic.ts`
 - `apps/mobile/src/friends/types.ts`
-- `apps/mobile/src/storage/scope.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 126 (100%)
+- EXTRACTED: 128 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

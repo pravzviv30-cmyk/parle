@@ -1,15 +1,18 @@
 # LiveKit Session Tokens
 
-> 13 nodes · cohesion 0.24
+> 16 nodes · cohesion 0.20
 
 ## Key Concepts
 
-- **tokens.ts** (16 connections) — `services/token-server/src/tokens.ts`
-- **tokens.test.ts** (11 connections) — `services/token-server/src/tokens.test.ts`
-- **grantSession()** (10 connections) — `services/token-server/src/tokens.ts`
+- **tokens.ts** (19 connections) — `services/token-server/src/tokens.ts`
+- **tokens.test.ts** (15 connections) — `services/token-server/src/tokens.test.ts`
+- **grantSession()** (11 connections) — `services/token-server/src/tokens.ts`
+- **developmentEntitlementsEnabled()** (3 connections) — `services/token-server/src/store.ts`
+- **ROOM_LIFECYCLE** (3 connections) — `services/token-server/src/tokens.ts`
 - **roomNameFor()** (3 connections) — `services/token-server/src/tokens.ts`
 - **TokenConfig** (3 connections) — `services/token-server/src/tokens.ts`
 - **metadataFor()** (2 connections) — `services/token-server/src/tokens.test.ts`
+- **validMissionId()** (2 connections) — `services/token-server/src/tokens.ts`
 - **validSeedTopic()** (2 connections) — `services/token-server/src/tokens.ts`
 - **validStartRung()** (2 connections) — `services/token-server/src/tokens.ts`
 - **GrantResult** (1 connections) — `services/token-server/src/tokens.ts`
@@ -20,19 +23,22 @@
 
 ## Relationships
 
-- [Session Cost Metering](Session_Cost_Metering.md) (6 shared connections)
-- [Entitlement Store](Entitlement_Store.md) (4 shared connections)
-- [Token Server Endpoints](Token_Server_Endpoints.md) (4 shared connections)
-- [Practice Path Row](Practice_Path_Row.md) (2 shared connections)
+- [Entitlement Store](Entitlement_Store.md) (6 shared connections)
+- [Metering and Plans](Metering_and_Plans.md) (6 shared connections)
+- [Account Deletion and Agent Auth](Account_Deletion_and_Agent_Auth.md) (5 shared connections)
+- [Tutor Prompt Building](Tutor_Prompt_Building.md) (2 shared connections)
+- [Evidence Contract Ledger](Evidence_Contract_Ledger.md) (2 shared connections)
+- [Product Analytics and Today Row](Product_Analytics_and_Today_Row.md) (1 shared connections)
 
 ## Source Files
 
+- `services/token-server/src/store.ts`
 - `services/token-server/src/tokens.test.ts`
 - `services/token-server/src/tokens.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 35 (100%)
+- EXTRACTED: 46 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

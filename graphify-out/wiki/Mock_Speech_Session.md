@@ -1,13 +1,13 @@
 # Mock Speech Session
 
-> 20 nodes · cohesion 0.17
+> 21 nodes · cohesion 0.16
 
 ## Key Concepts
 
-- **SessionScreen.tsx** (19 connections) — `apps/mobile/src/SessionScreen.tsx`
+- **SessionScreen.tsx** (20 connections) — `apps/mobile/src/SessionScreen.tsx`
+- **tutorVoice.ts** (12 connections) — `apps/mobile/src/speech/tutorVoice.ts`
+- **summarise()** (12 connections) — `packages/core/src/session/session.ts`
 - **mockSpeech.ts** (11 connections) — `apps/mobile/src/mockSpeech.ts`
-- **tutorVoice.ts** (11 connections) — `apps/mobile/src/speech/tutorVoice.ts`
-- **createSession()** (10 connections) — `packages/core/src/session/session.ts`
 - **SessionScreen()** (9 connections) — `apps/mobile/src/SessionScreen.tsx`
 - **mockObservations()** (5 connections) — `apps/mobile/src/mockSpeech.ts`
 - **frenchVoice()** (4 connections) — `apps/mobile/src/speech/tutorVoice.ts`
@@ -24,23 +24,25 @@
 - **LearnerProfile** (1 connections) — `apps/mobile/src/mockSpeech.ts`
 - **Phase** (1 connections) — `apps/mobile/src/SessionScreen.tsx`
 - **stop()** (1 connections) — `apps/mobile/src/speech/tutorVoice.ts`
+- **No streak guilt** (1 connections) — `PRODUCT.md`
 
 ## Relationships
 
-- [Lesson Turn Grading](Lesson_Turn_Grading.md) (9 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (4 shared connections)
-- [French Lesson Content](French_Lesson_Content.md) (2 shared connections)
-- [Practice Path Row](Practice_Path_Row.md) (2 shared connections)
-- [Difficulty Ladder](Difficulty_Ladder.md) (2 shared connections)
-- [Live Tutor Agent](Live_Tutor_Agent.md) (2 shared connections)
-- [Client Agent Protocol](Client_Agent_Protocol.md) (2 shared connections)
-- [Shared UI Primitives](Shared_UI_Primitives.md) (2 shared connections)
-- [Root Navigation Stack](Root_Navigation_Stack.md) (2 shared connections)
-- [Conversation Screen Components](Conversation_Screen_Components.md) (2 shared connections)
-- [Drill Practice Screen](Drill_Practice_Screen.md) (1 shared connections)
+- [Session Grading and Feedback](Session_Grading_and_Feedback.md) (9 shared connections)
+- [Tutor Prompt Building](Tutor_Prompt_Building.md) (5 shared connections)
+- [Auth Screens and Context](Auth_Screens_and_Context.md) (4 shared connections)
+- [Difficulty Ladder](Difficulty_Ladder.md) (3 shared connections)
+- [LiveKit Tutor Agent](LiveKit_Tutor_Agent.md) (3 shared connections)
+- [Attempt Scoring and Drills](Attempt_Scoring_and_Drills.md) (2 shared connections)
+- [Live Session Screen](Live_Session_Screen.md) (2 shared connections)
+- [Live and Profile Providers](Live_and_Profile_Providers.md) (2 shared connections)
+- [Lesson Definitions](Lesson_Definitions.md) (1 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (1 shared connections)
+- [App Agent Protocol](App_Agent_Protocol.md) (1 shared connections)
 
 ## Source Files
 
+- `PRODUCT.md`
 - `apps/mobile/src/SessionScreen.tsx`
 - `apps/mobile/src/mockSpeech.ts`
 - `apps/mobile/src/speech/tutorVoice.ts`
@@ -48,7 +50,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 61 (98%)
+- EXTRACTED: 65 (98%)
 - INFERRED: 1 (2%)
 - AMBIGUOUS: 0 (0%)
 

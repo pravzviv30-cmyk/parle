@@ -1,57 +1,57 @@
 # space()
 
-> God node · 71 connections · `apps/mobile/src/theme.ts`
+> God node · 86 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Sign In Screens](Sign_In_Screens.md)
+**Community:** [Drill Screen Views](Drill_Screen_Views.md)
 
 ## Connections by Relation
 
 ### calls
-- DrillScreen() `EXTRACTED`
 - ConvoScreen() `EXTRACTED`
+- DrillScreen() `EXTRACTED`
+- HomeTab() `EXTRACTED`
+- MyFrenchTab() `EXTRACTED`
+- OutlineButton() `EXTRACTED`
 - PracticeTab() `EXTRACTED`
+- TutorTab() `EXTRACTED`
+- MissionsScreen() `EXTRACTED`
+- SoundCheckScreen() `EXTRACTED`
 - ReviewScreen() `EXTRACTED`
 - Field() `EXTRACTED`
-- AddFriendsScreen() `EXTRACTED`
-- HomeTab() `EXTRACTED`
-- LeaderboardTab() `EXTRACTED`
-- SummaryScreen() `EXTRACTED`
-- TutorTab() `EXTRACTED`
-- SignUpScreen() `EXTRACTED`
-- LiveErrorView() `EXTRACTED`
-- OnboardingFlow() `EXTRACTED`
-- SetNewPasswordScreen() `EXTRACTED`
-- SignInScreen() `EXTRACTED`
-- OptionCard() `EXTRACTED`
-- ConvoRoute() `EXTRACTED`
-- ProfileTab() `EXTRACTED`
 - Stat() `EXTRACTED`
-- FocusDrillPlayer() `EXTRACTED`
+- AddFriendsScreen() `EXTRACTED`
+- OnboardingFlow() `EXTRACTED`
+- SummaryScreen() `EXTRACTED`
+- LeaderboardTab() `EXTRACTED`
+- SignUpScreen() `EXTRACTED`
+- OptionCard() `EXTRACTED`
+- LiveErrorView() `EXTRACTED`
+- ConvoRoute() `EXTRACTED`
 
 ### contains
 - src/theme.ts `EXTRACTED`
 
 ### imports
-- DrillScreen.tsx `EXTRACTED`
-- RootNavigator.tsx `EXTRACTED`
-- components.tsx `EXTRACTED`
 - ConvoScreen.tsx `EXTRACTED`
-- PracticeTab.tsx `EXTRACTED`
-- AddFriendsScreen.tsx `EXTRACTED`
-- LeaderboardTab.tsx `EXTRACTED`
-- SummaryScreen.tsx `EXTRACTED`
+- RootNavigator.tsx `EXTRACTED`
+- DrillScreen.tsx `EXTRACTED`
+- components.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
-- ReviewScreen.tsx `EXTRACTED`
+- MyFrenchTab.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
-- SessionView.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
-- LiveErrorView.tsx `EXTRACTED`
-- LiveSessionScreen.tsx `EXTRACTED`
-- PathNodeRow.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
+- PracticeTab.tsx `EXTRACTED`
+- LeaderboardTab.tsx `EXTRACTED`
+- AddFriendsScreen.tsx `EXTRACTED`
+- MissionsScreen.tsx `EXTRACTED`
+- ReviewScreen.tsx `EXTRACTED`
+- SummaryScreen.tsx `EXTRACTED`
+- SoundCheckScreen.tsx `EXTRACTED`
+- SessionView.tsx `EXTRACTED`
+- PhrasebookScreen.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`
-- SignUpScreen.tsx `EXTRACTED`
-- FocusDrillPlayer.tsx `EXTRACTED`
+- LiveSessionScreen.tsx `EXTRACTED`
 
 ---
 

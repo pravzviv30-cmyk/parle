@@ -1,8 +1,8 @@
 # paper
 
-> God node · 38 connections · `apps/mobile/src/theme.ts`
+> God node · 51 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Tab Bar Icons](Tab_Bar_Icons.md)
+**Community:** [Auth Screens and Context](Auth_Screens_and_Context.md)
 
 ## Connections by Relation
 
@@ -10,25 +10,25 @@
 - src/theme.ts `EXTRACTED`
 
 ### imports
-- DrillScreen.tsx `EXTRACTED`
-- RootNavigator.tsx `EXTRACTED`
-- components.tsx `EXTRACTED`
-- App.tsx `EXTRACTED`
 - ConvoScreen.tsx `EXTRACTED`
-- PracticeTab.tsx `EXTRACTED`
-- AddFriendsScreen.tsx `EXTRACTED`
-- LeaderboardTab.tsx `EXTRACTED`
-- SummaryScreen.tsx `EXTRACTED`
+- RootNavigator.tsx `EXTRACTED`
+- DrillScreen.tsx `EXTRACTED`
+- App.tsx `EXTRACTED`
+- components.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
-- ReviewScreen.tsx `EXTRACTED`
+- MyFrenchTab.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
-- SessionView.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
-- LiveErrorView.tsx `EXTRACTED`
-- LiveSessionScreen.tsx `EXTRACTED`
-- illustrations.tsx `EXTRACTED`
-- PathNodeRow.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
+- PracticeTab.tsx `EXTRACTED`
+- LeaderboardTab.tsx `EXTRACTED`
+- AddFriendsScreen.tsx `EXTRACTED`
+- MissionsScreen.tsx `EXTRACTED`
+- ReviewScreen.tsx `EXTRACTED`
+- SummaryScreen.tsx `EXTRACTED`
+- SoundCheckScreen.tsx `EXTRACTED`
+- SessionView.tsx `EXTRACTED`
+- PhrasebookScreen.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`
 
 ### rationale_for

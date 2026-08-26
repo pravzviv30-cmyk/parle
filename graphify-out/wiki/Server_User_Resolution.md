@@ -16,7 +16,7 @@
 
 ## Relationships
 
-- [Token Server Endpoints](Token_Server_Endpoints.md) (2 shared connections)
+- [Account Deletion and Agent Auth](Account_Deletion_and_Agent_Auth.md) (2 shared connections)
 
 ## Source Files
 

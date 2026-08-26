@@ -70,8 +70,8 @@ each, and a second opinion about them is how a repo grows two ladders.
 
 ## graphify
 
-This project has a knowledge graph at `graphify-out/` — 2277 nodes, 5554 links
-across the source files, grouped into 151 named communities.
+This project has a knowledge graph at `graphify-out/` — 4049 nodes, 9646 links
+across the source files, grouped into 219 named communities.
 
 **Route by the shape of the question, and name real symbols.** Reaching for a bare
 `graphify query` is the wrong default here: it truncates. A prose live-voice question
@@ -113,12 +113,18 @@ Rules:
   falls back to filename labels.
 
 Known limits (do not mistake these for working):
-- **Docs do not link to code.** The 101 nodes under `docs/` form a closed island — zero
-  edges into source, measured — so prose cannot route you to a symbol. Closing this
-  needs a `--mode deep` rebuild.
-- **Theme primitives inflate the hubs.** `space()` from `apps/mobile/src/theme.ts` is
-  now the **most** connected node in the repo (69 edges), so UI-adjacent traversals pull
-  in the styling layer. `--context call` sidesteps it.
+- **Docs do not link to code.** The 305 nodes under `docs/` form a closed island — 307
+  edges among themselves and zero into source, measured — so prose cannot route you to a
+  symbol. Closing this needs a `--mode deep` rebuild. It has grown threefold and now
+  carries the single most connected node in the whole graph, `docs_known_issues_format`
+  at 161 edges, which is the ledger's own format block. Ranking nodes by degree therefore
+  puts a docs node first that cannot reach one line of source: read hub lists source-side
+  or they will point you at prose.
+- **Theme primitives inflate the hubs, but no longer top them.** `space()` from
+  `apps/mobile/src/theme.ts` has grown to 86 edges and yet dropped to fifth source-side,
+  behind `convo.ts` (106), `core/src/index.ts` (101), `convo.test.ts` (92) and
+  `ConvoScreen.tsx` (88). It still pulls the styling layer into UI-adjacent traversals,
+  and `--context call` still sidesteps it.
 - **Seeding is lexical, not semantic.** Asking "what counts as a *right* answer" seeds
   on a node named `counts` and on `ArrowRight()`. This is the same trap as the first
   rule above, and it is the single most common way to waste a query here.

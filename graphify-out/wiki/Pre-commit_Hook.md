@@ -1,4 +1,4 @@
-# Pre-commit Hook
+# Pre-Commit Hook
 
 > 2 nodes · cohesion 1.00
 

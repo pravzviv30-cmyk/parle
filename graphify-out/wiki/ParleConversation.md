@@ -1,8 +1,8 @@
 # ParleConversation
 
-> God node · 39 connections · `services/tutor-agent/src/convo.ts`
+> God node · 55 connections · `services/tutor-agent/src/convo.ts`
 
-**Community:** [Live Conversation Orchestrator](Live_Conversation_Orchestrator.md)
+**Community:** [Conversation Orchestration](Conversation_Orchestration.md)
 
 ## Connections by Relation
 
@@ -12,34 +12,37 @@
 ### imports
 - convo.test.ts `EXTRACTED`
 - agent.ts `EXTRACTED`
+- brainSpend.ts `EXTRACTED`
 
 ### method
 - .runBrainTurn() `EXTRACTED`
+- .finish() `EXTRACTED`
 - .publish() `EXTRACTED`
 - .startScene() `EXTRACTED`
-- .finish() `EXTRACTED`
+- .routeClientMessage() `EXTRACTED`
 - .armRescue() `EXTRACTED`
-- .handleClientMessage() `EXTRACTED`
-- .constructor() `EXTRACTED`
-- .say() `EXTRACTED`
-- .clearRescue() `EXTRACTED`
-- .openScene() `EXTRACTED`
-- .rescue() `EXTRACTED`
 - .curatePractice() `EXTRACTED`
 - .generateDrills() `EXTRACTED`
-- .open() `EXTRACTED`
-- .buildFrame() `EXTRACTED`
-- .publishView() `EXTRACTED`
-- .curateAndDrill() `EXTRACTED`
+- .say() `EXTRACTED`
+- .handleSafety() `EXTRACTED`
+- .clearRescue() `EXTRACTED`
 - .extractMemory() `EXTRACTED`
+- .open() `EXTRACTED`
+- .openMission() `EXTRACTED`
+- .buildFrame() `EXTRACTED`
+- .recordBrainUsage() `EXTRACTED`
+- .constructor() `EXTRACTED`
+- .returnToChoosing() `EXTRACTED`
+- .openScene() `EXTRACTED`
 - .onUserTurnCompleted() `EXTRACTED`
-- .recover() `EXTRACTED`
 
 ### references
-- [LlmClient](LlmClient.md) `EXTRACTED`
-- ConversationState `EXTRACTED`
+- [LlmUsage](LlmUsage.md) `EXTRACTED`
+- LlmClient `EXTRACTED`
 - LearnerProfile `EXTRACTED`
+- ConversationState `EXTRACTED`
 - ServerMessage `EXTRACTED`
+- MissionId `EXTRACTED`
 
 ---
 

@@ -1,18 +1,20 @@
 # Mobile TypeScript Config
 
-> 15 nodes · cohesion 0.13
+> 17 nodes · cohesion 0.12
 
 ## Key Concepts
 
+- **compilerOptions** (6 connections) — `apps/mobile/tsconfig.json`
 - **mobile/tsconfig.json** (5 connections) — `apps/mobile/tsconfig.json`
-- **compilerOptions** (5 connections) — `apps/mobile/tsconfig.json`
 - **include** (4 connections) — `apps/mobile/tsconfig.json`
+- **types** (3 connections) — `apps/mobile/tsconfig.json`
 - **exclude** (3 connections) — `apps/mobile/tsconfig.json`
 - **allowImportingTsExtensions** (1 connections) — `apps/mobile/tsconfig.json`
 - **noEmit** (1 connections) — `apps/mobile/tsconfig.json`
 - **noUncheckedIndexedAccess** (1 connections) — `apps/mobile/tsconfig.json`
 - **strict** (1 connections) — `apps/mobile/tsconfig.json`
 - **extends** (1 connections) — `apps/mobile/tsconfig.json`
+- **node** (1 connections) — `apps/mobile/tsconfig.json`
 - **expo/tsconfig.base** (1 connections) — `apps/mobile/tsconfig.json`
 - **node_modules** (1 connections) — `apps/mobile/tsconfig.json`
 - **../../packages/core/src/**/*.test.ts** (1 connections) — `apps/mobile/tsconfig.json`
@@ -22,7 +24,7 @@
 
 ## Relationships
 
-- No strong cross-community connections detected
+- [Auth Screens and Context](Auth_Screens_and_Context.md) (1 shared connections)
 
 ## Source Files
 
@@ -30,7 +32,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 14 (100%)
+- EXTRACTED: 17 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

@@ -1,15 +1,12 @@
 # Mock Auth Adapter
 
-> 14 nodes · cohesion 0.21
+> 11 nodes · cohesion 0.25
 
 ## Key Concepts
 
 - **mockAdapter.ts** (13 connections) — `apps/mobile/src/auth/mockAdapter.ts`
-- **auth/adapter.ts** (11 connections) — `apps/mobile/src/auth/adapter.ts`
 - **createMockAdapter()** (5 connections) — `apps/mobile/src/auth/mockAdapter.ts`
 - **setSession()** (4 connections) — `apps/mobile/src/auth/mockAdapter.ts`
-- **build()** (3 connections) — `apps/mobile/src/auth/adapter.ts`
-- **auth** (2 connections) — `apps/mobile/src/auth/adapter.ts`
 - **notify()** (2 connections) — `apps/mobile/src/auth/mockAdapter.ts`
 - **emptyStore()** (2 connections) — `apps/mobile/src/auth/mockAdapter.ts`
 - **readStore()** (2 connections) — `apps/mobile/src/auth/mockAdapter.ts`
@@ -21,20 +18,17 @@
 
 ## Relationships
 
-- [Supabase Auth Adapter](Supabase_Auth_Adapter.md) (6 shared connections)
-- [Auth Adapter Interface](Auth_Adapter_Interface.md) (2 shared connections)
-- [Mobile App Root](Mobile_App_Root.md) (2 shared connections)
-- [Drill Practice Screen](Drill_Practice_Screen.md) (2 shared connections)
-- [Live Failure Classification](Live_Failure_Classification.md) (1 shared connections)
+- [Auth Adapters and OAuth](Auth_Adapters_and_OAuth.md) (3 shared connections)
+- [Mobile App Bootstrap](Mobile_App_Bootstrap.md) (3 shared connections)
+- [Auth Adapter Interface](Auth_Adapter_Interface.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/auth/adapter.ts`
 - `apps/mobile/src/auth/mockAdapter.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 32 (100%)
+- EXTRACTED: 21 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

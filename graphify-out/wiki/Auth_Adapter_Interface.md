@@ -1,15 +1,17 @@
 # Auth Adapter Interface
 
-> 11 nodes · cohesion 0.18
+> 13 nodes · cohesion 0.15
 
 ## Key Concepts
 
-- **AuthAdapter** (16 connections) — `apps/mobile/src/auth/types.ts`
+- **AuthAdapter** (18 connections) — `apps/mobile/src/auth/types.ts`
 - **.completePasswordReset()** (1 connections) — `apps/mobile/src/auth/types.ts`
+- **.deleteAccount()** (1 connections) — `apps/mobile/src/auth/types.ts`
 - **.getAccessToken()** (1 connections) — `apps/mobile/src/auth/types.ts`
 - **.getSession()** (1 connections) — `apps/mobile/src/auth/types.ts`
 - **.onAuthStateChange()** (1 connections) — `apps/mobile/src/auth/types.ts`
 - **.onPasswordRecovery()** (1 connections) — `apps/mobile/src/auth/types.ts`
+- **.reauthenticateForDeletion()** (1 connections) — `apps/mobile/src/auth/types.ts`
 - **.sendPasswordReset()** (1 connections) — `apps/mobile/src/auth/types.ts`
 - **.signInWithGoogle()** (1 connections) — `apps/mobile/src/auth/types.ts`
 - **.signInWithPassword()** (1 connections) — `apps/mobile/src/auth/types.ts`
@@ -18,9 +20,10 @@
 
 ## Relationships
 
-- [Supabase Auth Adapter](Supabase_Auth_Adapter.md) (3 shared connections)
-- [Mock Auth Adapter](Mock_Auth_Adapter.md) (2 shared connections)
-- [Auth Context And Friends UI](Auth_Context_And_Friends_UI.md) (1 shared connections)
+- [Auth Adapters and OAuth](Auth_Adapters_and_OAuth.md) (3 shared connections)
+- [Mobile App Bootstrap](Mobile_App_Bootstrap.md) (1 shared connections)
+- [Mock Auth Adapter](Mock_Auth_Adapter.md) (1 shared connections)
+- [Auth Screens and Context](Auth_Screens_and_Context.md) (1 shared connections)
 
 ## Source Files
 
@@ -28,7 +31,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 16 (100%)
+- EXTRACTED: 18 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

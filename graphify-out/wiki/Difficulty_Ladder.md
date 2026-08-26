@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **ladder.ts** (25 connections) — `packages/core/src/ladder/ladder.ts`
+- **ladder.ts** (26 connections) — `packages/core/src/ladder/ladder.ts`
 - **ladder/index.ts** (17 connections) — `packages/core/src/ladder/index.ts`
 - **ladder.test.ts** (17 connections) — `packages/core/src/ladder/ladder.test.ts`
 - **STUCK_SILENCE_MS** (16 connections) — `packages/core/src/ladder/ladder.ts`
@@ -33,18 +33,18 @@
 
 ## Relationships
 
-- [Lesson Turn Grading](Lesson_Turn_Grading.md) (21 shared connections)
-- [Conversation State Machine](Conversation_State_Machine.md) (14 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (5 shared connections)
-- [French Lesson Content](French_Lesson_Content.md) (4 shared connections)
-- [Client Agent Protocol](Client_Agent_Protocol.md) (3 shared connections)
-- [Learner Copy Rules](Learner_Copy_Rules.md) (3 shared connections)
-- [Project Overview Doc](Project_Overview_Doc.md) (3 shared connections)
+- [Session Grading and Feedback](Session_Grading_and_Feedback.md) (17 shared connections)
+- [Conversation State Machine](Conversation_State_Machine.md) (10 shared connections)
+- [Tutor Prompt Building](Tutor_Prompt_Building.md) (8 shared connections)
+- [Lesson Definitions](Lesson_Definitions.md) (4 shared connections)
+- [Scenario and Turn Prompts](Scenario_and_Turn_Prompts.md) (3 shared connections)
 - [French Authenticity Pack](French_Authenticity_Pack.md) (3 shared connections)
-- [Mock Speech Session](Mock_Speech_Session.md) (2 shared connections)
-- [Practice Path Row](Practice_Path_Row.md) (1 shared connections)
-- [Conversation Screen Components](Conversation_Screen_Components.md) (1 shared connections)
-- [Brain Playground CLI](Brain_Playground_CLI.md) (1 shared connections)
+- [Mock Speech Session](Mock_Speech_Session.md) (3 shared connections)
+- [Playground Chat Commands](Playground_Chat_Commands.md) (2 shared connections)
+- [Project Principles And Constraints](Project_Principles_And_Constraints.md) (2 shared connections)
+- [Brain Schemas and Samples](Brain_Schemas_and_Samples.md) (2 shared connections)
+- [Brain Client Activity Metering](Brain_Client_Activity_Metering.md) (2 shared connections)
+- [Session Recap Assembly](Session_Recap_Assembly.md) (2 shared connections)
 
 ## Source Files
 
@@ -57,7 +57,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 116 (92%)
+- EXTRACTED: 117 (92%)
 - INFERRED: 10 (8%)
 - AMBIGUOUS: 0 (0%)
 

@@ -1,8 +1,8 @@
 # LlmUsage
 
-> God node · 39 connections · `packages/brain/src/llm/client.ts`
+> God node · 54 connections · `packages/brain/src/llm/client.ts`
 
-**Community:** [Memory Extraction Client](Memory_Extraction_Client.md)
+**Community:** [Brain Client Contracts](Brain_Client_Contracts.md)
 
 ## Connections by Relation
 
@@ -10,18 +10,26 @@
 - client.ts `EXTRACTED`
 
 ### imports
-- sessionLoop.ts `EXTRACTED`
+- convo.ts `EXTRACTED`
+- openaiResponses.ts `EXTRACTED`
 - anthropic.ts `EXTRACTED`
-- claudeCli.ts `EXTRACTED`
-- runEval.ts `EXTRACTED`
+- sessionLoop.ts `EXTRACTED`
 - openaiCompat.ts `EXTRACTED`
+- runEval.ts `EXTRACTED`
+- claudeCli.ts `EXTRACTED`
 - mock.ts `EXTRACTED`
+- usageAccounting.test.ts `EXTRACTED`
 - split.ts `EXTRACTED`
 - brain-playground/src/usage.ts `EXTRACTED`
+- pricing.ts `EXTRACTED`
+- pricing.test.ts `EXTRACTED`
 
 ### references
-- .ask() `EXTRACTED`
+- [ParleConversation](ParleConversation.md) `EXTRACTED`
+- .complete() `EXTRACTED`
 - .parseWithRetry() `EXTRACTED`
+- .ask() `EXTRACTED`
+- .recordBrainUsage() `EXTRACTED`
 - .completeJson() `EXTRACTED`
 - .turn() `EXTRACTED`
 - .curate() `EXTRACTED`
@@ -33,13 +41,10 @@
 - .extract() `EXTRACTED`
 - .frame() `EXTRACTED`
 - .turn() `EXTRACTED`
-- Session `EXTRACTED`
 - .curate() `EXTRACTED`
 - .drills() `EXTRACTED`
 - .extract() `EXTRACTED`
 - .frame() `EXTRACTED`
-- .turn() `EXTRACTED`
-- .turn() `EXTRACTED`
 
 ---
 

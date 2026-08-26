@@ -1,4 +1,4 @@
-# Pre-push Hook
+# Pre-Push Hook
 
 > 2 nodes · cohesion 1.00
 

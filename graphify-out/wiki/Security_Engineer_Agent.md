@@ -1,10 +1,11 @@
 # Security Engineer Agent
 
-> 8 nodes · cohesion 0.25
+> 9 nodes · cohesion 0.22
 
 ## Key Concepts
 
-- **security-engineer.md** (7 connections) — `.claude/agents/security-engineer.md`
+- **security-engineer.md** (8 connections) — `.claude/agents/security-engineer.md`
+- **Handoff contract** (1 connections) — `.claude/agents/security-engineer.md`
 - **How you work** (1 connections) — `.claude/agents/security-engineer.md`
 - **Product invariants — a change that breaks one of these is wrong, however green** (1 connections) — `.claude/agents/security-engineer.md`
 - **The habits already in the code, which you should extend** (1 connections) — `.claude/agents/security-engineer.md`
@@ -23,7 +24,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 7 (100%)
+- EXTRACTED: 8 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

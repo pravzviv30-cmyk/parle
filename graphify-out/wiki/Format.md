@@ -1,32 +1,32 @@
 # Format
 
-> God node · 43 connections · `docs/KNOWN_ISSUES.md`
+> God node · 161 connections · `docs/KNOWN_ISSUES.md`
 
-**Community:** [Known Issues Ledger](Known_Issues_Ledger.md)
+**Community:** [Live Session Bug Ledger](Live_Session_Bug_Ledger.md)
 
 ## Connections by Relation
 
 ### contains
 - Known issues — the goal file `EXTRACTED`
+- J6 — Icon drawings are read aloud to screen readers `EXTRACTED`
+- J7 — Four scene animations keep running on screens nobody is looking at `EXTRACTED`
+- J8 — The lesson header says the position twice, once as a number `EXTRACTED`
+- J9 — Failure screens explain the failure to an engineer `EXTRACTED`
+- J10 — Three live comments describe the retired red microphone `EXTRACTED`
+- J11 — The five-paper colour system was documented but never rendered `EXTRACTED`
 - B4 — A rescue and a spoken turn can both apply `EXTRACTED`
+- J12 — One motion vocabulary, implemented four times `EXTRACTED`
+- J13 — The tokens exist and the app writes the numbers anyway `EXTRACTED`
+- J14 — Three exports nothing ever called, two of them documented as shipping `EXTRACTED`
+- E1 — A voice id from another account passes preflight and then never speaks `EXTRACTED`
+- E2 — A dead voice key blocks the two modes that need no voice `EXTRACTED`
+- E3 — The French tutor spoke with an American voice, and every check passed `EXTRACTED`
 - B5 — A live lesson has no quiet path `EXTRACTED`
+- E4 — A delivery knob could change what the vendor was asked for while the cache replayed the old answer `EXTRACTED`
+- K1 — The tutor corrected on every single turn, on its loosest setting `EXTRACTED`
+- K2 — The tutor was a rules list, and said its fixed lines the same way forever `EXTRACTED`
 - B6 — Anyone can debit anyone's minutes `EXTRACTED`
-- C1 — The conversation agent's rescue and brain turn have no tests at all `EXTRACTED`
-- C2 — A learner who mangles /œ/ is told nothing, because there is no drill `EXTRACTED`
-- C3 — Nothing proves audio ever reaches the scorer `EXTRACTED`
-- D1 — A failed brain turn in text mode strands the learner in silence `EXTRACTED`
-- A1 — A spoken answer has to match the script exactly `EXTRACTED`
-- D2 — /œ/ changes the word but is not marked as meaning-bearing `EXTRACTED`
-- D3 — The orb thinks forever when the answer never comes `EXTRACTED`
-- F1 — One command boots the whole product, waits for health, and reaps its children `EXTRACTED`
-- F2 — The brain runs on the founder's Claude subscription, and the swap to an API key is one env var `EXTRACTED`
-- F3 — The English opener is heard in English, and the scene is heard in French `EXTRACTED`
-- A2 — An empty transcript is graded as a wrong answer `EXTRACTED`
-- F4 — The end card's Start button starts the focus drill `EXTRACTED`
-- F5 — Go again goes again, and Review reviews `EXTRACTED`
-- F6 — A topic node the tutor has not finished writing is locked, with honest words `EXTRACTED`
-- F7 — A conversation's phrases survive the app being killed after the recap `EXTRACTED`
-- A3 — A freeze at the top rung still asks the learner to invent French `EXTRACTED`
+- K3 — The app introduced a person and then called him "your tutor" twenty times `EXTRACTED`
 
 ---
 
