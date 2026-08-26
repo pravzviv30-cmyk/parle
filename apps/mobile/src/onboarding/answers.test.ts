@@ -1,5 +1,5 @@
 /**
- * The three questions, and the two that are no longer asked.
+ * The three questions, the two that are no longer asked, and the order.
  *
  * Half of this suite is behaviour and half is a source read, which is the
  * `labels.test.ts` and `nav/wiring.test.ts` idiom and is deliberate: apps/mobile
@@ -8,6 +8,11 @@
  * only honest way to hold them here is to read the file. A tripwire that
  * catches the mistake anyone actually makes is worth more than a proof nobody
  * can run.
+ *
+ * One test reads a document instead of a screen. `docs/ONBOARDING.md` counts the
+ * screens a new learner crosses, and a count in prose rots the moment somebody
+ * adds a page, so the count is held to `PAGES` the same way everything else here
+ * is held to the code.
  */
 
 import { test, describe } from 'node:test';
@@ -18,10 +23,13 @@ import { fileURLToPath } from 'node:url';
 import {
   AGE_CONFIRM,
   AGE_DENY,
+  AGE_QUESTION,
   AGE_REFUSAL,
-  MOTIVATIONS,
+  AGE_SUB,
+  NAME_LABEL,
+  NAME_QUESTION,
+  NAME_SKIP_HINT,
   PAGES,
-  WHY_SKIP,
   ageGate,
   answersFrom,
   needsOnboarding,
@@ -29,7 +37,7 @@ import {
   pageAfter,
   pageBefore,
 } from './answers.ts';
-import { createStoredProfile } from '../profile/store.ts';
+import { createStoredProfile, completeProfile } from '../profile/store.ts';
 import { upgradeStored } from '../profile/upgrade.ts';
 
 /** A fixed clock, because a rule about who gets asked must not depend on today. */
@@ -44,7 +52,9 @@ function stripComments(source: string): string {
 }
 
 const FLOW = stripComments(read('./OnboardingFlow.tsx'));
+const RULES = stripComments(read('./answers.ts'));
 const PROFILE_TAB = stripComments(read('../tabs/ProfileTab.tsx'));
+const DOC = read('../../../../docs/ONBOARDING.md');
 
 describe('onboarding — three questions, and nothing that has to be answered', () => {
   test('a skipped name is stored as null, not as an empty string', () => {
@@ -56,7 +66,7 @@ describe('onboarding — three questions, and nothing that has to be answered', 
 
     const skipped = answersFrom({ name: '  ', ageConfirmed: true, motivation: null });
     assert.equal(skipped.name, null, 'the assembled answers carry the skip, not an empty string');
-    assert.equal(skipped.motivation, null, 'a skipped why is null, never a reason invented for them');
+    assert.equal(skipped.motivation, null, 'a question nobody is asked is null, never a reason invented for them');
 
     // And the flow delegates rather than assembling its own: this rule used to
     // live inline as `name: name.trim()`, where nothing could reach it.
@@ -66,7 +76,7 @@ describe('onboarding — three questions, and nothing that has to be answered', 
   });
 
   test('onboarding never asks for a date of birth', () => {
-    assert.deepEqual([...PAGES], ['name', 'age', 'why'], 'the pages are the three that are left');
+    assert.deepEqual([...PAGES], ['age', 'name', 'meet'], 'the pages are the three that are left');
 
     for (const forbidden of [
       'DD/MM/YYYY',
@@ -116,27 +126,83 @@ describe('onboarding — three questions, and nothing that has to be answered', 
       'the goal row has no name a learner could find it by',
     );
   });
+
+  test('the why question is gone from the flow and not from the record', () => {
+    // Dropped because nothing read the answer. The FIELD stays, because stored
+    // records carry one and the profile blob syncs whole: a flow that hardcoded
+    // null here would quietly erase a value on the one path that re-onboards
+    // somebody who already has a record.
+    assert.ok(!PAGES.includes('why' as never), 'the why page is back');
+    for (const forbidden of ['MOTIVATIONS', 'WHY_QUESTION', 'WHY_SKIP', 'OptionCard', 'Why are you learning']) {
+      assert.ok(!FLOW.includes(forbidden), `onboarding is asking why again: ${forbidden}`);
+    }
+
+    const existing = createStoredProfile(answersFrom({ name: 'Ada', ageConfirmed: true, motivation: 'work' }), NOW);
+    assert.equal(existing.motivation, 'work', 'the stored record stopped carrying the field at all');
+
+    const reonboarded = completeProfile(
+      existing,
+      answersFrom({ name: 'Ada', ageConfirmed: true, motivation: existing.motivation }),
+      NOW,
+    );
+    assert.equal(reonboarded.motivation, 'work', 'walking the flow again threw away a stored answer');
+    assert.match(
+      FLOW,
+      /motivation:\s*existing\?\.motivation\s*\?\?\s*null/,
+      'the flow no longer hands back what the record already carried',
+    );
+  });
 });
 
 describe('onboarding — the shape of the walk', () => {
   test('every page has somewhere to go, and the first has nothing behind it', () => {
-    assert.equal(pageBefore('name'), null, 'there is nothing behind the first question');
-    assert.equal(pageAfter('name'), 'age');
-    assert.equal(pageAfter('age'), 'why');
-    assert.equal(pageAfter('why'), null, 'the last page finishes rather than advancing');
-    assert.equal(pageBefore('why'), 'age');
+    assert.equal(pageBefore('age'), null, 'there is nothing behind the first question');
+    assert.equal(pageAfter('age'), 'name');
+    assert.equal(pageAfter('name'), 'meet');
+    assert.equal(pageAfter('meet'), null, 'the last page finishes rather than advancing');
+    assert.equal(pageBefore('meet'), 'name');
   });
 
-  test('the four reasons are still four, and none of them is a default', () => {
-    assert.equal(MOTIVATIONS.length, 4);
-    assert.ok(WHY_SKIP.length > 0, 'the why page lost its way past');
-    const skipped = answersFrom({ name: 'Camille', ageConfirmed: true, motivation: null });
-    assert.equal(skipped.motivation, null);
+  test('age is asked before any personal question', () => {
+    // Minimisation, in the only form that survives a screen reorder: do not
+    // take a detail from somebody you are about to turn away. The gate used to
+    // be second, so a learner who said they were younger than thirteen had
+    // already typed their name into an app that then refused them. Nothing was
+    // ever persisted, and the question had still been asked.
+    assert.equal(PAGES[0], 'age', 'the gate is not the first thing asked');
+    assert.ok(PAGES.indexOf('name') > PAGES.indexOf('age'), 'the name is asked before the gate');
+    assert.match(FLOW, /useState<Page>\('age'\)/, 'the flow opens on a page that is not the gate');
+
+    // And on glass, in the order the pages are rendered: the one text field in
+    // the flow sits between the gate and the last page.
+    const agePage = FLOW.indexOf("page === 'age' &&");
+    const namePage = FLOW.indexOf("page === 'name' &&");
+    const meetPage = FLOW.indexOf("page === 'meet' &&");
+    assert.ok(agePage >= 0 && namePage > agePage, 'the gate is rendered after a personal question');
+    assert.ok(meetPage > namePage, 'the last page is not last');
+    assert.equal((FLOW.match(/<Field/g) ?? []).length, 1, 'onboarding grew a second thing to type into');
+    const field = FLOW.indexOf('<Field');
+    assert.ok(field > namePage && field < meetPage, 'the text field is not on the name page');
+
+    // Nothing before the last page can finish, so a refused learner cannot be
+    // written to disk on the way past.
+    const finishing = FLOW.split('\n').filter((line) => line.includes('onPress={finish}'));
+    assert.equal(finishing.length, 1, 'more than one page can finish onboarding');
+    assert.match(finishing[0] ?? '', /page === 'meet'/, 'a page before the last one finishes onboarding');
+    assert.equal(ageGate(false).go, false, 'and the refusal is still a full stop');
+  });
+
+  test('the name is asked with a label a learner and a screen reader can both read', () => {
+    // It was a placeholder and nothing else, which vanishes the moment somebody
+    // types and was the only name assistive tech had for the input.
+    assert.equal(NAME_LABEL, 'Your name');
+    assert.match(FLOW, /label=\{NAME_LABEL\}/, 'the name field lost its visible label');
+    assert.doesNotMatch(FLOW, /placeholder="Your name"/, 'the label is back to being a placeholder');
   });
 
   test('nothing onboarding says to a learner carries an em dash or a scolding', () => {
-    for (const line of [...MOTIVATIONS.flatMap((m) => [m.label, m.gloss]), AGE_CONFIRM, AGE_DENY, WHY_SKIP]) {
-      assert.ok(!/—/.test(line), `"${line}" carries an em dash`);
+    for (const line of [AGE_QUESTION, AGE_SUB, AGE_CONFIRM, AGE_DENY, NAME_QUESTION, NAME_LABEL, NAME_SKIP_HINT]) {
+      assert.ok(!/[—–]/.test(line), `"${line}" carries an em dash`);
       assert.ok(!/\b(wrong|bad|failed|must)\b/i.test(line), `"${line}" scolds`);
     }
   });
@@ -190,6 +256,39 @@ describe('leaving onboarding — the journey, not the field', () => {
   test('nobody at all is asked', () => {
     assert.equal(needsOnboarding(null), true);
   });
+
+  test('a returning learner is never sent back through onboarding', () => {
+    // Reordering the pages is exactly the kind of change that could quietly
+    // re-onboard everybody, so this holds the rule from both ends: the people
+    // who must never see it again, and the fact that the rule cannot see the
+    // pages at all.
+    const finished = createStoredProfile(answersFrom({ name: 'Camille', ageConfirmed: true, motivation: null }), NOW);
+    assert.equal(needsOnboarding(finished), false, 'somebody who just finished the new flow is asked again');
+
+    // The same record after a round trip through the pre-account upgrade path,
+    // which is what a returning learner's stored profile goes through on launch.
+    const upgraded = upgradeStored({ ...finished }, NOW);
+    assert.ok(upgraded, 'a current record no longer upgrades');
+    assert.equal(needsOnboarding(upgraded), false, 'a launch upgrade re-opens onboarding for a finished learner');
+
+    // And the one this phase could most easily have broken: a learner who
+    // signed in on a new phone, whose profile arrived from the account rather
+    // than from this flow. Phase 2's freshDevice rule waits for exactly this
+    // record; onboarding must not run on top of it.
+    const adopted = upgradeStored(JSON.parse(JSON.stringify(finished)), NOW);
+    assert.ok(adopted);
+    assert.equal(needsOnboarding(adopted), false, 'a profile adopted from the account still opens onboarding');
+    assert.equal(adopted.name, 'Camille', 'and it arrives with what the account was holding');
+
+    // The rule names no page, which is what makes all of the above stable under
+    // a reorder. A guard that mentioned a page would be a guard the next flow
+    // change silently rewrites.
+    const guard = RULES.slice(RULES.indexOf('export function needsOnboarding'));
+    for (const page of PAGES) {
+      assert.ok(!guard.includes(`'${page}'`), `the leaving rule depends on the page named ${page}`);
+    }
+    assert.ok(guard.includes('ageConfirmed'), 'the leaving rule stopped reading the one question nobody may decline');
+  });
 });
 
 describe('the age gate is a gate on screen, not only in the rule', () => {
@@ -205,5 +304,36 @@ describe('the age gate is a gate on screen, not only in the rule', () => {
       /oldEnough !== false/,
       'and it has to be gone once they have answered, or the refusal is a suggestion with a button under it',
     );
+  });
+});
+
+describe('the onboarding doc counts the screens the code shows', () => {
+  test('the onboarding doc claims the same page count the flow renders', () => {
+    // A count written in prose rots the first time somebody adds a page, and a
+    // document that miscounts the flow is worse than no document: it is read
+    // instead of the code.
+    const claim = DOC.match(/Onboarding renders \*\*(\d+) pages\*\*: ([^.]+)\./);
+    assert.ok(claim, 'docs/ONBOARDING.md no longer says how many pages onboarding renders');
+    assert.equal(Number(claim[1]), PAGES.length, `the doc claims ${claim[1]} pages and PAGES holds ${PAGES.length}`);
+    assert.deepEqual(
+      [...(claim[2] ?? '').matchAll(/`([a-z]+)`/g)].map((m) => m[1]),
+      [...PAGES],
+      'the doc names different pages, or names them in a different order',
+    );
+
+    // The screens either side of onboarding are the welcome, the sign-up and the
+    // chooser, so the total moves with the page count and cannot drift alone.
+    const screens = DOC.match(/crosses \*\*(\d+) screens\*\*/);
+    assert.ok(screens, 'the doc stopped counting the screens before the first scene');
+    assert.equal(
+      Number(screens[1]),
+      PAGES.length + 3,
+      'the doc counts screens that no longer match the pages plus the welcome, the sign-up and the chooser',
+    );
+
+    // And it stays honest about what the count is standing in for. Wall-clock
+    // time to first French is F114's device pass, not a claim this repo may make.
+    assert.match(DOC, /cannot be produced on the machine/, 'the doc stopped saying the stopwatch is not run here');
+    assert.match(DOC, /F114/, 'the doc no longer names who owns the measurement it is standing in for');
   });
 });

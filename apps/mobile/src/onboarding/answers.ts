@@ -1,10 +1,30 @@
 /**
  * What onboarding asks, and what it hands over.
  *
- * Three pages now: a name, one age confirmation, and why. The goal page is
- * gone from the first run and lives in Profile, and the date of birth page is
- * gone entirely: a product for teens and adults needs to know that somebody is
- * thirteen, which is one tap, not a date.
+ * Three pages: the age gate, a name, and one page that says what the learner
+ * is about to talk to. The goal page is gone from the first run and lives in
+ * Profile, the date of birth page is gone entirely — a product for teens and
+ * adults needs to know that somebody is thirteen, which is one tap, not a date
+ * — and the why page is gone too.
+ *
+ * ## The order, which is the part that changed
+ *
+ * Age is asked FIRST. It used to be second, behind the name, which meant the
+ * app took a personal detail from a learner it was about to turn away. Nothing
+ * is stored on refusal, so the record was never written, but the question was
+ * still asked and the answer still sat in memory. Asking the gate first is
+ * data minimisation in the only form that survives a screen reorder: do not
+ * open your mouth about somebody you have not decided to serve.
+ *
+ * ## The why page, and why it is not here
+ *
+ * It asked a good question and nothing ever read the answer. `motivation` was
+ * written to storage, defaulted on upgrade, merged by the sync policy and
+ * reported as one analytics boolean, and not one line of the product changed
+ * shape because of it. So it went, and the FIELD stayed: stored records still
+ * carry it, `upgradeStored` still defaults it, the merge policy still merges
+ * it, and this flow simply passes null. If a feature ever wants the answer, it
+ * can ask in Profile with a reader attached, which is the honest order.
  *
  * Everything here is the decision, not the drawing. `OnboardingFlow.tsx` used
  * to hold all of it inline, which meant that "an empty name is stored as an
@@ -25,20 +45,16 @@
  * thirteen is not someone this product is for yet.
  */
 
-/** The three pages, in order. The dots at the top count these. */
-export const PAGES = ['name', 'age', 'why'] as const;
+/**
+ * The three pages, in order. The dots at the top count these, `docs/ONBOARDING.md`
+ * counts them too, and a test holds the doc to this array.
+ */
+export const PAGES = ['age', 'name', 'meet'] as const;
 export type Page = (typeof PAGES)[number];
-
-/** The four reasons, unchanged from the flow that asked for them before. */
-export const MOTIVATIONS = [
-  { tag: 'trip', label: 'A trip coming up', gloss: 'Order, ask, get around' },
-  { tag: 'someone', label: 'Someone I love', gloss: 'Their language, your effort' },
-  { tag: 'work', label: 'For work', gloss: 'Meetings, emails, career' },
-  { tag: 'want', label: 'Because I want to', gloss: 'The best reason there is' },
-] as const;
 
 /** The name page: encouraged, never required. */
 export const NAME_QUESTION = 'What should we call you?';
+export const NAME_LABEL = 'Your name';
 export const NAME_SKIP_HINT = 'You can leave this empty and add it later.';
 
 /** The age page. One tap through, one honest way of saying no. */
@@ -48,17 +64,18 @@ export const AGE_CONFIRM = 'I am 13 or older';
 export const AGE_DENY = 'I am younger than that';
 export const AGE_REFUSAL = 'Parle is for learners thirteen and up. Come back and find us then.';
 
-/** The why page, and its quiet way past. */
-export const WHY_QUESTION = 'Why are you learning French?';
-export const WHY_SKIP = 'Skip this for now';
-
 /** What the pages are holding while the learner fills them in. */
 export interface OnboardingDraft {
   /** Exactly what is in the text field, spaces and all. */
   name: string;
   /** The learner tapped the confirmation. */
   ageConfirmed: boolean;
-  /** The tag they chose, or null if they skipped the page. */
+  /**
+   * Always null from the flow now that the why page is gone. The field is kept
+   * rather than removed because `StoredProfile`, `upgradeStored` and the sync
+   * merge policy all still carry it, and a shape that quietly drops a stored
+   * value on its way past is how a synced record loses a field it was holding.
+   */
   motivation: string | null;
 }
 
@@ -87,8 +104,9 @@ export function answersFrom(draft: OnboardingDraft): OnboardingAnswers {
   return {
     name: nameFrom(draft.name),
     ageConfirmed: draft.ageConfirmed,
-    // A skipped why is a skipped why. The old flow defaulted it to 'want',
-    // which is the app deciding why somebody is here.
+    // Null, because nothing asks any more. Before it was null because they
+    // skipped a page, and before that it was 'want' because a flow defaulted
+    // it, which is the app deciding why somebody is here.
     motivation: draft.motivation,
   };
 }
