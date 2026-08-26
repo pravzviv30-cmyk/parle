@@ -1,7 +1,10 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+
 import { sampleTurn } from '../contract/samples.ts';
+import { TurnSchema } from '../contract/schemas.ts';
 import { CAFE_FRAME } from '../fixtures.ts';
 import type { BrainTurnRequest } from './client.ts';
 import {
@@ -102,7 +105,15 @@ describe('OpenAI Responses brain — the wire it speaks', () => {
     assert.equal((body.text as { format: { type: string; strict: boolean } }).format.type, 'json_schema');
     assert.equal((body.text as { format: { type: string; strict: boolean } }).format.strict, true);
     assert.equal((body.input as { role: string }[]).at(-1)!.role, 'developer');
-    assert.deepEqual(usage, { inputTokens: 100, outputTokens: 50, cacheReadTokens: 20, cacheWriteTokens: 5 });
+    // 100 input_tokens on this API already contains the 20 read and the 5
+    // written, so the uncached remainder is 75. See usageAccounting.test.ts.
+    assert.deepEqual(usage, {
+      inputTokens: 75,
+      outputTokens: 50,
+      cacheReadTokens: 20,
+      cacheWriteTokens: 5,
+      model: DEFAULT_OPENAI_TURN_MODEL,
+    });
   });
 
   test('a refusal remains distinguishable from malformed JSON', async () => {
@@ -253,5 +264,78 @@ describe('a rate-limited OpenAI call waits and tries once more — the learner i
 
     assert.equal(callCount(), 1, 'a rejected request will be rejected again; waiting only spends the learner’s silence');
     assert.deepEqual(waited, [], 'nothing to wait for');
+  });
+});
+
+describe('the prompt cache is pinned, not left to the vendor to guess', () => {
+  test('every responses call pins its cache with a stable per-activity prompt_cache_key', async () => {
+    for (const activity of Object.keys(DEFAULT_ROUTING) as BrainActivity[]) {
+      const first = await bodyFor(activity);
+      const second = await bodyFor(activity);
+
+      assert.equal(
+        typeof first.prompt_cache_key,
+        'string',
+        `${activity} sends a ~4.3k frozen prefix every call; without a key the routing that shares it is a coin toss`,
+      );
+      assert.match(first.prompt_cache_key as string, new RegExp(`^parle-${activity}-[0-9a-f]{6,}$`));
+      assert.equal(
+        first.prompt_cache_key,
+        second.prompt_cache_key,
+        'the point is that two sessions, and two learners, land on the same cached prefix',
+      );
+    }
+  });
+
+  test('two activities that share a prefix still get keys of their own', async () => {
+    const turn = await bodyFor('turn');
+    const frame = await bodyFor('frame');
+
+    assert.notEqual(turn.prompt_cache_key, frame.prompt_cache_key, 'a turn and a frame are different prompt shapes');
+  });
+
+  test('the cache key changes when the frozen prompt changes', async () => {
+    const before = await bodyFor('turn');
+
+    const { client, bodies } = clientOver([responseFor(sampleTurn())]);
+    await client.turn({ ...REQUEST, system: { ...REQUEST.system, persona: 'a different persona entirely' } });
+
+    assert.notEqual(
+      bodies[0]!.prompt_cache_key,
+      before.prompt_cache_key,
+      'a key naming a prefix that no longer exists is worse than no key: it pins traffic to a miss',
+    );
+  });
+
+  test('the realtime turn request changes by exactly one field: prompt_cache_key', async () => {
+    // The founder's constraint on this work was no latency regression, and the
+    // wire is where that is either true or not. Anything else new in this body
+    // — a stream flag, a previous_response_id, a store — is a change to what
+    // the model does, not to how its cache is addressed.
+    const body = await bodyFor('turn');
+    const { prompt_cache_key: key, ...rest } = body;
+
+    assert.deepEqual(rest, {
+      model: DEFAULT_OPENAI_TURN_MODEL,
+      instructions: [REQUEST.system.persona, REQUEST.system.pack, REQUEST.system.contract].join('\n\n'),
+      input: [
+        { role: 'user', content: 'scene' },
+        { role: 'assistant', content: 'Bonjour !' },
+        { role: 'user', content: 'Hello' },
+        { role: 'developer', content: 'private app context' },
+      ],
+      reasoning: { effort: DEFAULT_ROUTING.turn.effort },
+      max_output_tokens: DEFAULT_ROUTING.turn.maxTokens,
+      store: false,
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'parle_tutor_turn',
+          strict: true,
+          schema: (zodOutputFormat(TurnSchema) as { schema?: unknown }).schema,
+        },
+      },
+    });
+    assert.equal(typeof key, 'string');
   });
 });

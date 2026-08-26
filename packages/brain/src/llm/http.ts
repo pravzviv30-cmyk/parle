@@ -24,7 +24,21 @@
  * "how long may a learner stand in silence", and the second one drifts.
  */
 
-export type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body: string }) => Promise<{
+export type FetchLike = (
+  url: string,
+  init: {
+    method: string;
+    headers: Record<string, string>;
+    body: string;
+    /**
+     * Optional so every existing fake still satisfies the type. A learner who
+     * leaves the room, or barges in over the tutor, makes the answer in flight
+     * worthless before it lands — the caller owns that lifetime and this is how
+     * it says so.
+     */
+    signal?: AbortSignal;
+  },
+) => Promise<{
   ok: boolean;
   status: number;
   /** Absent on older fakes; only Retry-After is ever read. */

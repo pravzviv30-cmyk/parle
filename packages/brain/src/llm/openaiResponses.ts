@@ -8,6 +8,8 @@
  * engine's decisions.
  */
 
+import { createHash } from 'node:crypto';
+
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
 import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from '../contract/schemas.ts';
@@ -28,6 +30,9 @@ import {
 } from './client.ts';
 import { realSleep, retryAfterMs, type FetchLike, type SleepLike } from './http.ts';
 import { resolveRouting, type BrainActivity, type BrainEffort, type BrainRouting } from './routing.ts';
+
+/** What `complete` needs from any of the five requests: the prefix, and the abort. */
+type PromptRequest = { system: { persona: string; pack: string; contract: string }; signal?: AbortSignal };
 
 type ContractSchema =
   | typeof TurnSchema
@@ -95,9 +100,16 @@ interface ResponsesPayload {
     content?: { type?: string; text?: string; refusal?: string }[];
   }[];
   usage?: {
+    /**
+     * Includes BOTH cache columns below — this API's documented identity is
+     * `input_tokens = uncached + cached_tokens + cache_write_tokens`. Anthropic
+     * says the opposite, so this is where the two are reconciled.
+     */
     input_tokens?: number;
     output_tokens?: number;
     input_tokens_details?: { cached_tokens?: number; cache_write_tokens?: number };
+    /** Thinking, billed inside output_tokens. Anthropic's key is thinking_tokens. */
+    output_tokens_details?: { reasoning_tokens?: number };
   };
 }
 
@@ -117,6 +129,33 @@ function inputMessages(messages: readonly ChatMessage[]): { role: 'user' | 'assi
     role: message.role === 'system' ? 'developer' : message.role,
     content: message.text,
   }));
+}
+
+/**
+ * The key that pins one activity's frozen prefix to one cache entry.
+ *
+ * Every call carries roughly 4.3k tokens of persona, authenticity pack and
+ * contract that are identical for every learner and every session. That is
+ * exactly what a shared cache is for, and without a key the vendor's routing
+ * decides on its own whether two requests land where the prefix already is.
+ *
+ * Two properties, and both matter:
+ *
+ *   - Stable across sessions and users. Nothing learner-specific goes in — no
+ *     account id, no session id — because sharing the prefix IS the saving.
+ *   - Changes when the prompt changes. The hash covers all three system blocks,
+ *     so editing the persona rotates the key rather than leaving it pointing at
+ *     a prefix that no longer exists. A key naming a stale prefix is worse than
+ *     no key: it pins traffic to a guaranteed miss.
+ *
+ * All three blocks are hashed even for the calls that send only two, so one
+ * build of the system blocks has one identity. The activity segment already
+ * keeps the two prompt shapes apart, and over-rotating on a prompt edit costs a
+ * single cold call at deploy time.
+ */
+function cacheKeyFor(activity: BrainActivity, system: { persona: string; pack: string; contract: string }): string {
+  const digest = createHash('sha256').update(`${system.persona}${system.pack}${system.contract}`).digest('hex').slice(0, 8);
+  return `parle-${activity}-${digest}`;
 }
 
 /**
@@ -164,27 +203,51 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   }
 
   async turn(request: BrainTurnRequest): Promise<{ turn: TutorTurn; usage: LlmUsage }> {
-    const result = await this.complete('turn', instructionsFor(request, true), request.messages, TurnSchema);
+    const result = await this.complete('turn', request, instructionsFor(request, true), request.messages, TurnSchema);
     return { turn: result.value as TutorTurn, usage: result.usage };
   }
 
   async frame(request: BrainFrameRequest): Promise<{ frame: ScenarioFrame; usage: LlmUsage }> {
-    const result = await this.complete('frame', instructionsFor(request, false), [{ role: 'user', text: request.request }], ScenarioFrameSchema);
+    const result = await this.complete(
+      'frame',
+      request,
+      instructionsFor(request, false),
+      [{ role: 'user', text: request.request }],
+      ScenarioFrameSchema,
+    );
     return { frame: result.value as ScenarioFrame, usage: result.usage };
   }
 
   async extract(request: BrainExtractRequest): Promise<{ extraction: MemoryExtraction; usage: LlmUsage }> {
-    const result = await this.complete('extract', instructionsFor(request, false), [{ role: 'user', text: request.request }], MemoryExtractionSchema);
+    const result = await this.complete(
+      'extract',
+      request,
+      instructionsFor(request, false),
+      [{ role: 'user', text: request.request }],
+      MemoryExtractionSchema,
+    );
     return { extraction: result.value as MemoryExtraction, usage: result.usage };
   }
 
   async drills(request: BrainDrillsRequest): Promise<{ batch: DrillBatch; usage: LlmUsage }> {
-    const result = await this.complete('drills', instructionsFor(request, false), [{ role: 'user', text: request.request }], DrillBatchSchema);
+    const result = await this.complete(
+      'drills',
+      request,
+      instructionsFor(request, false),
+      [{ role: 'user', text: request.request }],
+      DrillBatchSchema,
+    );
     return { batch: result.value as DrillBatch, usage: result.usage };
   }
 
   async curate(request: BrainCurateRequest): Promise<{ curation: Curation; usage: LlmUsage }> {
-    const result = await this.complete('curate', instructionsFor(request, false), [{ role: 'user', text: request.request }], CurationSchema);
+    const result = await this.complete(
+      'curate',
+      request,
+      instructionsFor(request, false),
+      [{ role: 'user', text: request.request }],
+      CurationSchema,
+    );
     return { curation: result.value as Curation, usage: result.usage };
   }
 
@@ -200,6 +263,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
 
   private async complete(
     activity: BrainActivity,
+    request: PromptRequest,
     instructions: string,
     messages: readonly ChatMessage[],
     schema: ContractSchema,
@@ -215,6 +279,9 @@ export class OpenAiResponsesBrainClient implements LlmClient {
       ...(route.effort === undefined ? {} : { reasoning: { effort: route.effort } }),
       max_output_tokens: route.maxTokens,
       store: false,
+      // Cache addressing only. Nothing here changes what the model is asked to
+      // do, which is the whole reason it is safe on the realtime path.
+      prompt_cache_key: cacheKeyFor(activity, request.system),
       text: {
         format: {
           type: 'json_schema',
@@ -225,11 +292,13 @@ export class OpenAiResponsesBrainClient implements LlmClient {
       },
     });
 
-    const payload = await this.post(body);
+    const payload = await this.post(body, request.signal);
 
     const content = (payload.output ?? []).flatMap((item) => item.content ?? []);
     const refusal = content.find((part) => part.type === 'refusal')?.refusal;
-    if (refusal !== undefined) throw new BrainRefusalError(refusal);
+    // Billed like any other answer. A declined call the meter never sees is the
+    // same leak as a malformed one, so it leaves by the same door.
+    if (refusal !== undefined) throw new BrainRefusalError(refusal, usageOf(payload, route.model));
     const raw = content
       .filter((part) => part.type === 'output_text')
       .map((part) => part.text ?? '')
@@ -239,18 +308,12 @@ export class OpenAiResponsesBrainClient implements LlmClient {
     try {
       value = schema.parse(JSON.parse(raw));
     } catch {
-      throw new BrainParseError(parseFailure(payload), raw);
+      // Billed all the same, so the usage rides on the error: the call the
+      // meter must not miss is the one that produced nothing.
+      throw new BrainParseError(parseFailure(payload), raw, usageOf(payload, route.model));
     }
 
-    return {
-      value,
-      usage: {
-        inputTokens: payload.usage?.input_tokens ?? 0,
-        outputTokens: payload.usage?.output_tokens ?? 0,
-        cacheReadTokens: payload.usage?.input_tokens_details?.cached_tokens ?? 0,
-        cacheWriteTokens: payload.usage?.input_tokens_details?.cache_write_tokens ?? 0,
-      },
-    };
+    return { value, usage: usageOf(payload, route.model) };
   }
 
   /**
@@ -260,14 +323,14 @@ export class OpenAiResponsesBrainClient implements LlmClient {
    * and a refusal is a 200 that never reaches here — waiting on either would
    * only spend the learner's silence.
    */
-  private async post(body: string): Promise<ResponsesPayload> {
-    const first = await this.send(body);
+  private async post(body: string, signal: AbortSignal | undefined): Promise<ResponsesPayload> {
+    const first = await this.send(body, signal);
     if (first.status !== 429) return unwrap(first);
     await this.sleep(retryAfterMs(first.headers?.get('retry-after')));
-    return unwrap(await this.send(body));
+    return unwrap(await this.send(body, signal));
   }
 
-  private send(body: string): Promise<FetchResponse> {
+  private send(body: string, signal: AbortSignal | undefined): Promise<FetchResponse> {
     return this.fetchFn(`${this.config.baseUrl}/responses`, {
       method: 'POST',
       headers: {
@@ -275,6 +338,34 @@ export class OpenAiResponsesBrainClient implements LlmClient {
         'content-type': 'application/json',
       },
       body,
+      // The caller owns the lifetime: a learner who leaves the room, or barges
+      // in, makes this answer worthless before it lands.
+      ...(signal === undefined ? {} : { signal }),
     });
   }
+}
+
+/**
+ * The neutral bill, with this API's arithmetic undone.
+ *
+ * `input_tokens` here already contains both cache columns, so the uncached
+ * remainder is what is left after subtracting them — that is what keeps the
+ * three buckets disjoint and keeps a consumer that adds all three honest. The
+ * clamp is defensive: a vendor that ever changed its mind should cost us a
+ * wrong number, not a negative one.
+ */
+function usageOf(payload: ResponsesPayload, model: string): LlmUsage {
+  const total = payload.usage?.input_tokens ?? 0;
+  const cacheRead = payload.usage?.input_tokens_details?.cached_tokens ?? 0;
+  const cacheWrite = payload.usage?.input_tokens_details?.cache_write_tokens ?? 0;
+  const reasoning = payload.usage?.output_tokens_details?.reasoning_tokens;
+  return {
+    inputTokens: Math.max(0, total - cacheRead - cacheWrite),
+    outputTokens: payload.usage?.output_tokens ?? 0,
+    cacheReadTokens: cacheRead,
+    cacheWriteTokens: cacheWrite,
+    // Part of outputTokens, never added to it. Absent when unreported.
+    ...(reasoning === undefined ? {} : { reasoningTokens: reasoning }),
+    model,
+  };
 }

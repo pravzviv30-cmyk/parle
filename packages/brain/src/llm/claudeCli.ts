@@ -184,7 +184,15 @@ export class ClaudeCliBrainClient implements LlmClient {
       `Return ONLY one JSON object matching this JSON schema, with no prose and no code fence:\n${schemaText}\n\n` +
       `${request}`;
 
-    const usage: LlmUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
+    // The envelope reports the same disjoint buckets the API does, and no
+    // reasoning breakout at all — so that field stays absent rather than zero.
+    const usage: LlmUsage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      model: route.model,
+    };
     let lastRaw = '';
     let lastError = '';
 
@@ -205,7 +213,7 @@ export class ClaudeCliBrainClient implements LlmClient {
       try {
         envelope = JSON.parse(result.stdout) as CliEnvelope;
       } catch {
-        throw new BrainParseError('The claude command did not return its own JSON envelope.', result.stdout.slice(0, 400));
+        throw new BrainParseError('The claude command did not return its own JSON envelope.', result.stdout.slice(0, 400), usage);
       }
       usage.inputTokens += envelope.usage?.input_tokens ?? 0;
       usage.outputTokens += envelope.usage?.output_tokens ?? 0;
@@ -219,6 +227,6 @@ export class ClaudeCliBrainClient implements LlmClient {
         lastError = error instanceof Error ? error.message.slice(0, 400) : 'unknown parse failure';
       }
     }
-    throw new BrainParseError('The subscription brain did not produce a contract-shaped object.', lastRaw);
+    throw new BrainParseError('The subscription brain did not produce a contract-shaped object.', lastRaw, usage);
   }
 }

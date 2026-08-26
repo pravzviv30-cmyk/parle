@@ -22,6 +22,13 @@ import {
   type LlmUsage,
 } from './client.ts';
 
+/**
+ * A mock bills nothing, so its usage names no model and reports no reasoning
+ * breakout: ZERO_USAGE is four zeros and two absent fields, which is the honest
+ * reading of "no vendor has spoken here". `addLlmUsage` treats an empty side as
+ * unable to disagree, so a running total seeded from one keeps its real stamp.
+ */
+
 /** The honest empty answer: a mock learned nothing about anyone. */
 const NO_MEMORY: MemoryExtraction = { facts: [], openerFr: null, openerEn: null };
 

@@ -60,6 +60,53 @@ const BRAIN_KEY: Record<Brain, string | null> = {
   'claude-cli-all': null,
 };
 
+/**
+ * Every credential name this worker actually looks up.
+ *
+ * Only ever read as a set of NAMES. Nothing here reads, prints or forwards a
+ * value: what a preflight check is allowed to know about a secret is that a
+ * variable by that name is set.
+ */
+export const REAL_KEY_NAMES: readonly string[] = [
+  'LIVEKIT_API_KEY',
+  'LIVEKIT_API_SECRET',
+  'DEEPGRAM_API_KEY',
+  'ELEVEN_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'OPENAI_API_KEY',
+  'GROQ_API_KEY',
+];
+
+/**
+ * Names that look like a credential and are read by nothing.
+ *
+ * A missing key is a loud failure: preflight refuses to start and says which
+ * name is empty. A MISTYPED key is the quiet one. The .env looks full, every
+ * required name may even be present, and the value under the wrong name is a
+ * real credential that will never be used — so the next person to rotate it
+ * rotates the dead one and cannot work out why nothing changed. Worse, a
+ * `.env` that carries `OPEN_AI_KEY` and nothing else reads as "OpenAI is
+ * configured" to every human who opens it, and as an empty account to the
+ * worker.
+ *
+ * Deliberately a short hand-written table rather than an edit-distance guess.
+ * A fuzzy matcher would start volunteering opinions about variables that are
+ * not ours, and being wrong about somebody's unrelated secret is a worse
+ * failure than missing a typo.
+ */
+export const NEAR_MISS_KEYS: Record<string, string> = {
+  OPEN_AI_KEY: 'OPENAI_API_KEY',
+  OPEN_AI_API_KEY: 'OPENAI_API_KEY',
+  OPENAI_KEY: 'OPENAI_API_KEY',
+  ANTHROPIC_KEY: 'ANTHROPIC_API_KEY',
+  CLAUDE_API_KEY: 'ANTHROPIC_API_KEY',
+  GROQ_KEY: 'GROQ_API_KEY',
+  DEEPGRAM_KEY: 'DEEPGRAM_API_KEY',
+  ELEVENLABS_API_KEY: 'ELEVEN_API_KEY',
+  ELEVEN_LABS_API_KEY: 'ELEVEN_API_KEY',
+  ELEVENLABS_KEY: 'ELEVEN_API_KEY',
+};
+
 /** Without these the worker cannot serve a single turn. */
 export function missingRequired(env: Env = process.env): string[] {
   const brainKey = BRAIN_KEY[selectedBrain(env)];
@@ -82,6 +129,13 @@ export function missingRequired(env: Env = process.env): string[] {
  */
 export function warnings(env: Env = process.env): string[] {
   const out: string[] = [];
+  for (const [typo, real] of Object.entries(NEAR_MISS_KEYS)) {
+    if ((env[typo] ?? '').trim() === '') continue;
+    out.push(
+      `${typo} is set and nothing reads it. It looks like ${real}, which is the name the worker uses. ` +
+        `Rename it, or delete it so nobody trusts it.`,
+    );
+  }
   if ((env.ELEVEN_VOICE_ID ?? '').trim() === '') {
     out.push('ELEVEN_VOICE_ID is unset, so the tutor will speak in ElevenLabs’ default voice.');
   }

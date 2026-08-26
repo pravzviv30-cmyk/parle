@@ -2121,23 +2121,23 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F101 — The analyst tax is cut by measurement, not estimate
 - severity: P2
-- status: [ ]
-- where: packages/brain/src/llm/routing.ts:57
-- note: drills at high effort on a 16k budget against the analyst model is ESTIMATED, never
-  measured, at most of a session's spend — roughly $0.20 of analyst work against $0.03 for all
-  twelve conversational turns. F96 to F100 exist so that number can be read instead of guessed.
-  Blocked until the checkpoint runs: one full and one short session on `TUTOR_LLM=openai`, then
-  read the two `[parle:brain:summary]` lines. Decision rules fixed in advance so the evidence can
-  overrule the estimate. If any post-session activity was abandoned during those sessions the
-  split is a floor and the checkpoint is void, because an abandoned call meters zero and biases
-  the drills share downward, and the default answer to a low share is "do not retune". Under 30%
-  of session spend, pin the current values and close with the evidence recorded here. At or over,
-  cut maxTokens to twice the measured p95 of `output_tokens` — NOT of reasoning plus output,
-  since reasoning is billed inside output and adding them would yield a "cut" above today's 16k
-  — and drop effort only if reasoning exceeds 60% of output. P2 deliberately: the full gate fails
-  on any open P0 or P1, and this cannot close until after the checkpoint, so as a P1 it would
-  block every push in between.
-- verified-by: `a drills call at the tuned budget completes without an incomplete max_output_tokens stop`
+- status: [x]
+- where: packages/brain/src/llm/routing.ts:68
+- note: measured, finally, by `services/tutor-agent/src/verify/brainSpend.ts` — two real sessions
+  on the OpenAI brain, `abandoned=0` on both, so the split is a reading and not a floor. A full
+  twelve-turn scene costs $0.1124 and a two-turn visit $0.0542: the short session pays HALF a
+  full one for a sixth of the conversation, because the post-session tax does not care how long
+  the learner stayed. That is the founder's report, measured. The tax is 88.8% of a session and
+  drills alone is 63.7%, against 9.2% for all twelve conversational turns.
+  Both levers this entry pre-committed to then failed, and saying so is the point of having
+  written them down first. Cutting `maxTokens` saves NOTHING: it is a ceiling, not a charge, and
+  drills used 4,934 of 16,000. Dropping effort to medium does save 45% and the deterministic
+  linter rejected five of ten exercises at that setting, which is precisely the quality this cut
+  was forbidden to spend. So the budget is bounded at twice the measured p95 as a runaway guard
+  with the saving honestly stated as zero, effort stays high, and the real cut is filed as F103
+  where the measurement actually pointed.
+- verified-by: `the drills budget keeps at least twice the measured p95 of its output`
+- verified-by: `the drills route keeps the effort its quality was measured at`
 
 ### F102 — Preflight names the credential near-miss
 - severity: P2
@@ -2173,3 +2173,22 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   Three separate attempts to write this entry were themselves rejected for carrying the
   literal byte, which is the entry's own point made three times.
 - verified-by: `every test file is plain text, so the titles the ledger names can be found by grep`
+
+### F104 — Curation runs on the analyst model the routing table says it does not need
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/llm/openaiResponses.ts:78
+- note: found by the F101 checkpoint rather than by reading, which is the argument for having
+  measured. `routing.ts` puts curate on the cheap tier on purpose and says why — "the analyst
+  model at high effort would add seconds ahead of that call for marginal gain on a ranking
+  task" — but the OpenAI adapter's WAITING table asks only "is a learner waiting?", and curate
+  answers no, so it lands on the dear model anyway. Measured cost: $0.0130 a session, 11.6% of
+  the total, for a call that produced 199 output tokens. Nearly all of it is the 4,328-token
+  persona-and-pack prefix at the analyst's $2/Mtok, and the same is true of extract at $0.0152
+  for 294 output tokens. Two things are worth separating here: curate is on the wrong tier
+  against the repo's own stated intent, and both post-session calls pay analyst prices to resend
+  a conversational-tutor persona that an extraction or ranking task arguably never needed. The
+  first looks like a one-line correction and the second is a prompt-shape question. Neither
+  should be flipped on two sessions of cost evidence alone without a curation-quality check,
+  which is why this is filed rather than done.
+- verified-by: `curate is served by the tier routing.ts assigns it`

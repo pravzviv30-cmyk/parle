@@ -1,7 +1,16 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { selectedBrain, missingRequired, warnings, preflight, verifyVendors, reportVendors } from './preflight.ts';
+import {
+  NEAR_MISS_KEYS,
+  REAL_KEY_NAMES,
+  missingRequired,
+  preflight,
+  reportVendors,
+  selectedBrain,
+  verifyVendors,
+  warnings,
+} from './preflight.ts';
 import { MODEL, PROBE_LINE } from './voice.ts';
 
 const FULL = {
@@ -120,6 +129,39 @@ describe('warnings', () => {
     assert.equal(w.length, 1);
     assert.match(w[0]!, /Luna/);
     assert.match(w[0]!, /Terra/);
+  });
+
+  test('preflight names OPEN_AI_KEY as a near-miss of OPENAI_API_KEY', () => {
+    // The live .env carries both. A real-looking value under a name no code
+    // reads is worse than an empty one: everything looks configured, and the
+    // failure it produces is a room that opens and a tutor that never speaks.
+    const w = warnings({ ...FULL, OPEN_AI_KEY: 'sk-looks-real' });
+    assert.equal(w.length, 1);
+    assert.match(w[0]!, /OPEN_AI_KEY/, 'the variable that is set');
+    assert.match(w[0]!, /OPENAI_API_KEY/, 'and the one the worker actually reads');
+    assert.ok(!w[0]!.includes('sk-looks-real'), 'and never the value, which is a credential');
+  });
+
+  test('a near-miss is reported even when the real name is set too', () => {
+    // Both set is the exact shape of the live file, and the tempting reading is
+    // that a working key makes the typo harmless. It does not: the next person
+    // to rotate the key rotates the one nothing reads.
+    const w = warnings({ ...FULL, TUTOR_LLM: 'openai', OPENAI_API_KEY: 'o', OPEN_AI_KEY: 'sk-looks-real' });
+    assert.equal(w.filter((line) => line.includes('OPEN_AI_KEY')).length, 1);
+  });
+
+  test('an empty near-miss is nothing at all, and neither is a name nobody mistypes', () => {
+    assert.deepEqual(warnings({ ...FULL, OPEN_AI_KEY: '   ' }), []);
+    assert.deepEqual(warnings({ ...FULL, SOME_UNRELATED_KEY: 'x' }), []);
+  });
+
+  test('every near-miss points at a name the worker really reads', () => {
+    // A typo table that names a credential nothing looks up would send someone
+    // to rename a variable into another dead end.
+    for (const [typo, real] of Object.entries(NEAR_MISS_KEYS)) {
+      assert.notEqual(typo, real);
+      assert.ok(REAL_KEY_NAMES.includes(real), `${real} must be a name the worker reads`);
+    }
   });
 });
 

@@ -96,8 +96,15 @@ The selected brain is controlled by `TUTOR_LLM`. `openai` uses the Responses
 API with strict schemas, Luna for live turns and scene design and Terra for
 post-session practice work;
 `anthropic` uses the Claude API; `groq` remains the free-tier plumbing option.
-Every successful call contributes its raw input, output and cache tokens to the
-session's `[parle:brain]` log, which is the source of truth for cost estimates.
+Every successful call contributes its tokens to the session's `[parle:brain]`
+log, and every call abandoned at its deadline is named there too. That per-call
+line is a running trace, not the number to quote: the source of truth for what a
+session cost is the single `[parle:brain:summary]` line emitted once the analyst
+calls have joined, which prices each activity from the model that actually
+answered it. Input tokens are normalised per vendor before they are counted, so
+uncached input, cache reads and cache writes are three disjoint buckets whoever
+served the call, and reasoning tokens are reported inside output, never beside
+it.
 
 `spoke` and `silence` are **not** wire tags. They are engine inputs
 (`core/session/session.ts`). Audio is the media track; silence is timed agent-side.

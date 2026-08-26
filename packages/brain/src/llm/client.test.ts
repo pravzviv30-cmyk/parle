@@ -153,6 +153,34 @@ describe('AnthropicBrainClient — request shape', () => {
   });
 });
 
+/**
+ * What the F101 checkpoint measured, so a later edit cannot quietly undercut it.
+ *
+ * Two real sessions on the OpenAI brain: a full twelve-turn scene authored 4,934
+ * output tokens of drills, a short two-turn one 3,666, both at high effort and
+ * both accepted whole by the deterministic linter. The budget is a ceiling, not
+ * a charge, so sizing it down saved nothing — its only job is to bound the
+ * dearest call in the product, and it has to keep real headroom over the work
+ * that actually happens or it turns a cost bound into a truncated batch.
+ */
+const MEASURED_DRILLS_OUTPUT_P95 = 4_934;
+
+describe('the analyst budget respects what the checkpoint measured', () => {
+  test('the drills budget keeps at least twice the measured p95 of its output', () => {
+    assert.ok(
+      DEFAULT_ROUTING.drills.maxTokens >= MEASURED_DRILLS_OUTPUT_P95 * 2,
+      `drills budget ${DEFAULT_ROUTING.drills.maxTokens} leaves less than twice the measured ` +
+        `p95 of ${MEASURED_DRILLS_OUTPUT_P95} output tokens, which truncates real batches to save nothing`,
+    );
+  });
+
+  test('the drills route keeps the effort its quality was measured at', () => {
+    // Not a preference. At medium the same call cost 45% less and the linter
+    // rejected five of ten exercises; the cut was never allowed to buy that.
+    assert.equal(DEFAULT_ROUTING.drills.effort, 'high');
+  });
+});
+
 describe('routing', () => {
   test('the table splits talker from analyst', () => {
     assert.equal(DEFAULT_ROUTING.turn.model, 'claude-sonnet-5');
@@ -197,10 +225,19 @@ describe('AnthropicBrainClient — failure honesty', () => {
     });
   });
 
-  test('usage maps through, cache columns included', async () => {
+  test('usage maps through, cache columns included, stamped with the model that answered', async () => {
     const { sdk } = fakeSdk([okResponse()]);
     const { usage } = await new AnthropicBrainClient({}, sdk).turn(turnRequest());
-    assert.deepEqual(usage, { inputTokens: 100, outputTokens: 50, cacheReadTokens: 80, cacheWriteTokens: 10 });
+    // This vendor's input_tokens already excludes both cache columns, so the
+    // numbers pass through untouched. The stamp is what lets a meter price them
+    // without guessing — see pricing.ts.
+    assert.deepEqual(usage, {
+      inputTokens: 100,
+      outputTokens: 50,
+      cacheReadTokens: 80,
+      cacheWriteTokens: 10,
+      model: DEFAULT_ROUTING.turn.model,
+    });
   });
 });
 

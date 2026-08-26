@@ -55,7 +55,17 @@ export const DEFAULT_ROUTING: BrainRouting = {
   // session (openers, memory) and every offline rep (accepted answers), so
   // they get the analyst model at full effort.
   extract: { model: 'claude-opus-5', effort: 'high', maxTokens: 4_000, midConversationSystem: true },
-  drills: { model: 'claude-opus-5', effort: 'high', maxTokens: 16_000, midConversationSystem: true },
+  // 10k, not 16k, and the saving is exactly zero: max_output_tokens is a
+  // ceiling, not a charge, and the measured checkpoint (F101) never came within
+  // a third of the old number — 4,934 output tokens on a full twelve-turn scene
+  // and 3,666 on a short one, both at this effort. What the lower number buys is
+  // a bound on the worst call in the product: this is the dearest activity on
+  // the dearest model, so an unbounded-looking cap here is the one place a
+  // runaway would actually hurt. Twice the measured p95 leaves the honest work
+  // untouched. Effort stays HIGH deliberately: at medium the same call cost 45%
+  // less and the deterministic linter rejected five of ten exercises, which is
+  // the quality bar this cut was explicitly not allowed to spend.
+  drills: { model: 'claude-opus-5', effort: 'high', maxTokens: 10_000, midConversationSystem: true },
   // The practice editor: pick-and-group over material already in hand. Runs
   // BEFORE drills so the drill author works from the curated keep-list; the
   // analyst model at high effort would add seconds ahead of that call for

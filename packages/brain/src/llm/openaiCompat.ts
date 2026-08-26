@@ -102,7 +102,7 @@ export class OpenAiCompatBrainClient implements LlmClient {
 
   async turn(request: BrainTurnRequest): Promise<{ turn: TutorTurn; usage: LlmUsage }> {
     const system = [request.system.persona, request.system.pack, request.system.contract].join('\n\n');
-    const { value, usage } = await this.completeJson(system, request.messages, TurnSchema, jsonSchemaText(TurnSchema));
+    const { value, usage } = await this.completeJson(system, request.messages, TurnSchema, jsonSchemaText(TurnSchema), request.signal);
     return { turn: value as TutorTurn, usage };
   }
 
@@ -113,6 +113,7 @@ export class OpenAiCompatBrainClient implements LlmClient {
       [{ role: 'user', text: request.request }],
       ScenarioFrameSchema,
       jsonSchemaText(ScenarioFrameSchema),
+      request.signal,
     );
     return { frame: value as ScenarioFrame, usage };
   }
@@ -124,6 +125,7 @@ export class OpenAiCompatBrainClient implements LlmClient {
       [{ role: 'user', text: request.request }],
       MemoryExtractionSchema,
       jsonSchemaText(MemoryExtractionSchema),
+      request.signal,
     );
     return { extraction: value as MemoryExtraction, usage };
   }
@@ -135,6 +137,7 @@ export class OpenAiCompatBrainClient implements LlmClient {
       [{ role: 'user', text: request.request }],
       DrillBatchSchema,
       jsonSchemaText(DrillBatchSchema),
+      request.signal,
     );
     return { batch: value as DrillBatch, usage };
   }
@@ -146,6 +149,7 @@ export class OpenAiCompatBrainClient implements LlmClient {
       [{ role: 'user', text: request.request }],
       CurationSchema,
       jsonSchemaText(CurationSchema),
+      request.signal,
     );
     return { curation: value as Curation, usage };
   }
@@ -155,13 +159,22 @@ export class OpenAiCompatBrainClient implements LlmClient {
     messages: readonly ChatMessage[],
     schema: ContractSchema,
     schemaText: string,
+    signal?: AbortSignal,
   ): Promise<{ value: unknown; usage: LlmUsage }> {
     const wire = [
       { role: 'system', content: `${system}\n\nReturn ONLY one JSON object matching this JSON schema, no prose:\n${schemaText}` },
       ...messages.map((m) => ({ role: m.role, content: m.text })),
     ];
 
-    const usage: LlmUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
+    // No reasoningTokens: this endpoint reports no breakout, and a hard 0 here
+    // would claim the model thought about nothing rather than that nobody said.
+    const usage: LlmUsage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      model: this.config.model,
+    };
     let lastRaw = '';
     let lastError = '';
 
@@ -171,7 +184,7 @@ export class OpenAiCompatBrainClient implements LlmClient {
         { role: 'assistant', content: lastRaw },
         { role: 'user', content: `That was not a valid object (${lastError}). Return ONLY the corrected JSON object.` },
       ];
-      const completion = await this.post(body);
+      const completion = await this.post(body, signal);
       usage.inputTokens += completion.usage?.prompt_tokens ?? 0;
       usage.outputTokens += completion.usage?.completion_tokens ?? 0;
 
@@ -182,20 +195,22 @@ export class OpenAiCompatBrainClient implements LlmClient {
         lastError = error instanceof Error ? error.message.slice(0, 400) : 'unknown parse failure';
       }
     }
-    throw new BrainParseError('The fallback model did not produce a contract-shaped object.', lastRaw);
+    // Two round-trips were billed and there is nothing to show for them, so the
+    // running total rides out on the error rather than vanishing with it.
+    throw new BrainParseError('The fallback model did not produce a contract-shaped object.', lastRaw, usage);
   }
 
-  private async post(messages: { role: string; content: string }[]): Promise<ChatCompletion> {
-    const first = await this.send(messages);
+  private async post(messages: { role: string; content: string }[], signal?: AbortSignal): Promise<ChatCompletion> {
+    const first = await this.send(messages, signal);
     if (first.status !== 429) return unwrap(first);
 
     // Rate limited. Wait the vendor's own number, capped, and ask once more.
     // Everything else — including a second 429 — falls through unchanged.
     await this.sleep(retryAfterMs(first.headers?.get('retry-after')));
-    return unwrap(await this.send(messages));
+    return unwrap(await this.send(messages, signal));
   }
 
-  private send(messages: { role: string; content: string }[]) {
+  private send(messages: { role: string; content: string }[], signal?: AbortSignal) {
     return this.fetchFn(`${this.config.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -207,6 +222,7 @@ export class OpenAiCompatBrainClient implements LlmClient {
         response_format: { type: 'json_object' },
         messages,
       }),
+      ...(signal === undefined ? {} : { signal }),
     });
   }
 }

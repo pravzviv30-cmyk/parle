@@ -29,6 +29,7 @@ import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/typ
 import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
 import {
+  addLlmUsage,
   BrainParseError,
   BrainRefusalError,
   type BrainCurateRequest,
@@ -54,9 +55,15 @@ export interface AnthropicBrainConfig {
   maxTokens?: number;
 }
 
-/** The narrow slice of the SDK the adapter touches — injectable for tests. */
+/**
+ * The narrow slice of the SDK the adapter touches — injectable for tests.
+ *
+ * The second argument is request OPTIONS, not the request body. An AbortSignal
+ * spread into `params` would be serialised into the JSON the vendor parses,
+ * which is a 400 rather than a cancellation.
+ */
 export interface ParseCapableSdk {
-  messages: { parse(params: never): Promise<unknown> };
+  messages: { parse(params: never, options?: { signal?: AbortSignal }): Promise<unknown> };
 }
 
 interface ParsedResponse {
@@ -64,10 +71,18 @@ interface ParsedResponse {
   stop_reason?: string;
   content?: { type: string; text?: string }[];
   usage?: {
+    /** EXCLUDES both cache columns below, unlike OpenAI's. See client.ts. */
     input_tokens?: number;
     output_tokens?: number;
     cache_read_input_tokens?: number;
     cache_creation_input_tokens?: number;
+    /**
+     * Thinking, billed inside output_tokens. Same parent as OpenAI's, different
+     * child key: `thinking_tokens` here, `reasoning_tokens` there. Read
+     * defensively — an older SDK build does not declare it, and a missing
+     * breakout must read as unreported rather than as a measured zero.
+     */
+    output_tokens_details?: { thinking_tokens?: number } | null;
   };
 }
 
@@ -107,7 +122,7 @@ export class AnthropicBrainClient implements LlmClient {
       messages: toProviderMessages(request.messages, route.midConversationSystem),
       output_config: outputConfig(TurnSchema, route.effort),
     };
-    const { parsed, usage } = await this.parseWithRetry(params);
+    const { parsed, usage } = await this.parseWithRetry(params, request.signal);
     return { turn: parsed as TutorTurn, usage };
   }
 
@@ -123,7 +138,7 @@ export class AnthropicBrainClient implements LlmClient {
       messages: [{ role: 'user', content: [{ type: 'text', text: request.request }] }],
       output_config: outputConfig(ScenarioFrameSchema, route.effort),
     };
-    const { parsed, usage } = await this.parseWithRetry(params);
+    const { parsed, usage } = await this.parseWithRetry(params, request.signal);
     return { frame: parsed as ScenarioFrame, usage };
   }
 
@@ -142,7 +157,7 @@ export class AnthropicBrainClient implements LlmClient {
       messages: [{ role: 'user', content: [{ type: 'text', text: request.request }] }],
       output_config: outputConfig(MemoryExtractionSchema, route.effort),
     };
-    const { parsed, usage } = await this.parseWithRetry(params);
+    const { parsed, usage } = await this.parseWithRetry(params, request.signal);
     return { extraction: parsed as MemoryExtraction, usage };
   }
 
@@ -158,7 +173,7 @@ export class AnthropicBrainClient implements LlmClient {
       messages: [{ role: 'user', content: [{ type: 'text', text: request.request }] }],
       output_config: outputConfig(DrillBatchSchema, route.effort),
     };
-    const { parsed, usage } = await this.parseWithRetry(params);
+    const { parsed, usage } = await this.parseWithRetry(params, request.signal);
     return { batch: parsed as DrillBatch, usage };
   }
 
@@ -174,24 +189,53 @@ export class AnthropicBrainClient implements LlmClient {
       messages: [{ role: 'user', content: [{ type: 'text', text: request.request }] }],
       output_config: outputConfig(CurationSchema, route.effort),
     };
-    const { parsed, usage } = await this.parseWithRetry(params);
+    const { parsed, usage } = await this.parseWithRetry(params, request.signal);
     return { curation: parsed as Curation, usage };
   }
 
-  private async parseWithRetry(params: Record<string, unknown>): Promise<{ parsed: unknown; usage: LlmUsage }> {
+  /**
+   * One retry over the whole prompt, and a bill that counts both of them.
+   *
+   * The retry is not a cheap correction: it re-sends every system block and the
+   * entire transcript. Reporting only the last attempt's usage hid a full
+   * prompt's worth of input every time the model fumbled the shape once, and
+   * hid two of them when it fumbled twice — the failure path threw an error
+   * carrying no usage at all, so the most expensive outcome was the one the
+   * session meter never saw. Both attempts are accumulated, and the total rides
+   * out on the error when there is nothing else to hand back.
+   *
+   * The signal goes in the SDK's request OPTIONS. Spreading it into `params`
+   * would put it in the JSON body the vendor parses.
+   */
+  private async parseWithRetry(
+    params: Record<string, unknown>,
+    signal: AbortSignal | undefined,
+  ): Promise<{ parsed: unknown; usage: LlmUsage }> {
+    const model = typeof params.model === 'string' ? params.model : undefined;
+    const options = signal === undefined ? undefined : { signal };
+    let billed: LlmUsage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      ...(model === undefined ? {} : { model }),
+    };
     let lastRaw = '';
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const response = (await this.sdk.messages.parse(params as never)) as ParsedResponse;
-      if (response.stop_reason === 'refusal') throw new BrainRefusalError();
-      const usage = usageOf(response);
+      const response = (await this.sdk.messages.parse(params as never, options)) as ParsedResponse;
+      // Counted BEFORE the refusal is raised, not after. A refusal is the model
+      // declining, which is not a billing question — but it is still a billed
+      // call, and on a retry it is a billed call standing on top of another one.
+      billed = addLlmUsage(billed, usageOf(response, model));
+      if (response.stop_reason === 'refusal') throw new BrainRefusalError(undefined, billed);
       if (response.parsed_output !== null && response.parsed_output !== undefined) {
-        return { parsed: response.parsed_output, usage };
+        return { parsed: response.parsed_output, usage: billed };
       }
       lastRaw = (response.content ?? [])
         .map((block) => (block.type === 'text' ? (block.text ?? '') : ''))
         .join('');
     }
-    throw new BrainParseError('The model did not return a contract-shaped turn.', lastRaw);
+    throw new BrainParseError('The model did not return a contract-shaped turn.', lastRaw, billed);
   }
 }
 
@@ -209,12 +253,21 @@ function outputConfig(
   return config;
 }
 
-function usageOf(response: ParsedResponse): LlmUsage {
+/**
+ * The neutral bill. No arithmetic to undo here: this vendor already reports
+ * `input_tokens` as the uncached remainder, so the three buckets are disjoint
+ * on the wire. OpenAI's are not — see openaiResponses.ts.
+ */
+function usageOf(response: ParsedResponse, model: string | undefined): LlmUsage {
+  const thinking = response.usage?.output_tokens_details?.thinking_tokens;
   return {
     inputTokens: response.usage?.input_tokens ?? 0,
     outputTokens: response.usage?.output_tokens ?? 0,
     cacheReadTokens: response.usage?.cache_read_input_tokens ?? 0,
     cacheWriteTokens: response.usage?.cache_creation_input_tokens ?? 0,
+    // Part of outputTokens, never added to it. Absent when unreported.
+    ...(typeof thinking === 'number' ? { reasoningTokens: thinking } : {}),
+    ...(model === undefined ? {} : { model }),
   };
 }
 

@@ -24,6 +24,10 @@ import {
   sampleTurn,
   supportViewFor,
   withLearnerName,
+  ZERO_USAGE,
+  type BrainCurateRequest,
+  type BrainDrillsRequest,
+  type BrainExtractRequest,
   type BrainFrameRequest,
   type BrainTurnRequest,
   type LearnerProfile,
@@ -45,6 +49,8 @@ import {
   ParleConversation,
   brainClient,
   chooseFrame,
+  emptySpend,
+  formatBrainSummary,
   frameDeadlineMs,
   missionOpening,
   openerFor,
@@ -367,12 +373,22 @@ class FailingBrain extends MockLlmClient {
   }
 }
 
+/**
+ * A brain that bills, the way the real ones do.
+ *
+ * The model stamps are the point of the analyst rows: the live calls answer on
+ * the cheap model and the post-session calls on the dear one, which is what
+ * makes a single session total priced at one rate a wrong number. `drills`
+ * names a model with no row in the price table on purpose — a preview name
+ * nobody has added yet is exactly how an unpriced call reaches production, and
+ * the summary has to say so rather than quietly guess.
+ */
 class MeteredBrain extends MockLlmClient {
   override async frame(request: BrainFrameRequest) {
     const result = await super.frame(request);
     return {
       ...result,
-      usage: { inputTokens: 100, outputTokens: 20, cacheReadTokens: 50, cacheWriteTokens: 0 },
+      usage: { inputTokens: 100, outputTokens: 20, cacheReadTokens: 50, cacheWriteTokens: 0, model: 'gpt-5.6-luna' },
     };
   }
 
@@ -380,9 +396,102 @@ class MeteredBrain extends MockLlmClient {
     const result = await super.turn(request);
     return {
       ...result,
-      usage: { inputTokens: 40, outputTokens: 10, cacheReadTokens: 80, cacheWriteTokens: 5 },
+      usage: {
+        inputTokens: 40,
+        outputTokens: 10,
+        cacheReadTokens: 80,
+        cacheWriteTokens: 5,
+        reasoningTokens: 4,
+        model: 'gpt-5.6-luna',
+      },
     };
   }
+
+  override async extract(request: BrainExtractRequest) {
+    const result = await super.extract(request);
+    return {
+      ...result,
+      usage: { inputTokens: 200, outputTokens: 60, cacheReadTokens: 0, cacheWriteTokens: 0, model: 'gpt-5.6-terra' },
+    };
+  }
+
+  override async curate(request: BrainCurateRequest) {
+    const result = await super.curate(request);
+    return {
+      ...result,
+      usage: { inputTokens: 150, outputTokens: 40, cacheReadTokens: 0, cacheWriteTokens: 0, model: 'gpt-5.6-terra' },
+    };
+  }
+
+  override async drills(request: BrainDrillsRequest) {
+    const result = await super.drills(request);
+    return {
+      ...result,
+      usage: {
+        inputTokens: 800,
+        outputTokens: 300,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        reasoningTokens: 120,
+        model: 'gpt-5.6-terra-preview',
+      },
+    };
+  }
+}
+
+/**
+ * The same bill, with the three post-session calls still thinking.
+ *
+ * `started` counts calls that have gone out but not come back, which is the
+ * window every sequencing question here is asked inside: what has already been
+ * claimed while the analyst is mid-flight.
+ */
+class HeldAnalystBrain extends MeteredBrain {
+  started = 0;
+  private released = false;
+  private readonly waiting: (() => void)[] = [];
+
+  private hold(): Promise<void> {
+    this.started += 1;
+    if (this.released) return Promise.resolve();
+    return new Promise<void>((resolve) => void this.waiting.push(resolve));
+  }
+
+  override async extract(request: BrainExtractRequest) {
+    await this.hold();
+    return super.extract(request);
+  }
+
+  override async curate(request: BrainCurateRequest) {
+    await this.hold();
+    return super.curate(request);
+  }
+
+  override async drills(request: BrainDrillsRequest) {
+    await this.hold();
+    return super.drills(request);
+  }
+
+  release(): void {
+    this.released = true;
+    for (const wake of this.waiting.splice(0)) wake();
+  }
+}
+
+/** A phrase the session is allowed to keep. */
+function keepable(fr: string, en: string): NewPhrase {
+  return { fr, frWritten: null, en, enLiteral: null, register: 'familier', note: null };
+}
+
+/** Catch the debit a conversation sends, with no token server in the room. */
+function captureDebits() {
+  const debits: { sessionId: string; seconds: number }[] = [];
+  const real = globalThis.fetch;
+  globalThis.fetch = (async (_input: unknown, init?: { body?: unknown }) => {
+    debits.push(JSON.parse(String(init?.body)));
+    return { ok: true, json: async () => ({ secondsRemaining: 600 }) };
+  }) as unknown as typeof fetch;
+  return { debits, restore: () => { globalThis.fetch = real; } };
 }
 
 /**
@@ -436,7 +545,7 @@ function heard(text: string) {
 /** Open the session and get into the scene the way a learner does: by answering. */
 async function inScene(
   t: TestContext,
-  opts: { voiceless?: boolean; client?: MockLlmClient; profile?: LearnerProfile } = {},
+  opts: { voiceless?: boolean; client?: MockLlmClient; profile?: LearnerProfile; sessionId?: string } = {},
 ) {
   const built = buildConvo(t, opts);
   built.convo.open(built.session);
@@ -463,14 +572,24 @@ describe('the conversation agent, off the worker', () => {
     const { convo, session } = await inScene(t, { client: new MeteredBrain() });
     assert.deepEqual(convo.brainMeter, {
       calls: 1,
-      usage: { inputTokens: 100, outputTokens: 20, cacheReadTokens: 50, cacheWriteTokens: 0 },
+      usage: { inputTokens: 100, outputTokens: 20, cacheReadTokens: 50, cacheWriteTokens: 0, model: 'gpt-5.6-luna' },
     });
 
     await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour' }));
     await convo.settled();
     assert.deepEqual(convo.brainMeter, {
       calls: 2,
-      usage: { inputTokens: 140, outputTokens: 30, cacheReadTokens: 130, cacheWriteTokens: 5 },
+      usage: {
+        inputTokens: 140,
+        outputTokens: 30,
+        cacheReadTokens: 130,
+        cacheWriteTokens: 5,
+        // Absent on the frame, four on the turn: an unreported breakout is not
+        // a measured zero, and both calls answered on the same model, so the
+        // stamp survives the merge and the total can honestly be priced.
+        reasoningTokens: 4,
+        model: 'gpt-5.6-luna',
+      },
     });
   });
 
@@ -581,12 +700,19 @@ class SlowBrain extends MockLlmClient {
   private released = false;
   private readonly waiting: (() => void)[] = [];
   private askedNow: (() => void) | null = null;
+  /**
+   * The abort handle on each request, captured as it arrives rather than when
+   * it resolves. `turnRequests` is only written when the call comes back, and a
+   * call that never comes back is the whole point of this brain.
+   */
+  readonly signals: (AbortSignal | undefined)[] = [];
   /** Settles once the brain has been handed something to think about. */
   readonly asked: Promise<void> = new Promise<void>((resolve) => {
     this.askedNow = resolve;
   });
 
   override async turn(request: BrainTurnRequest) {
+    this.signals.push(request.signal);
     this.askedNow?.();
     if (!this.released) await new Promise<void>((resolve) => void this.waiting.push(resolve));
     return super.turn(request);
@@ -1264,15 +1390,6 @@ describe('a client message that fails does not take the worker with it', () => {
 });
 
 describe('what a finished session leaves behind', () => {
-  const keepable = (fr: string, en: string): NewPhrase => ({
-    fr,
-    frWritten: null,
-    en,
-    enLiteral: null,
-    register: 'familier',
-    note: null,
-  });
-
   /** One spoken turn whose reply closes the scene, then room for the post-session pipeline. */
   async function finishSessionWith(t: TestContext, client: MockLlmClient) {
     const built = await inScene(t, { client });
@@ -1385,6 +1502,236 @@ describe('what a finished session leaves behind', () => {
     const practice = published.find((m) => m.t === 'practice');
     assert.ok(practice, 'practice still ships, on the deterministic fallback');
     assert.equal(practice.topics[0]!.titleEn, CAFE_FRAME.titleEn, 'titled by the scene, since nothing curated it');
+  });
+});
+
+/**
+ * What a session cost, and what it gave up on.
+ *
+ * Two defects share this block. A missed deadline used to abandon the WAITING
+ * and not the CALL — the request stayed open, the vendor kept billing, and
+ * because the meter sits after the `await` that never returned, the tokens were
+ * never counted either. And the summary that was supposed to make all of it
+ * legible was emitted where the recap ships, which is before the three analyst
+ * calls have even started: the biggest spend of the session, structurally
+ * excluded from the only line that measures it.
+ */
+describe('what a session cost, and what it gave up on', () => {
+  /** A turn that bills and leaves something behind for the analyst to work on. */
+  const spendingTurn = () => sampleTurn({ newPhrases: [keepable('Ça marche', 'coming up')] });
+
+  /** Every console.info line a test captured, in order. */
+  const linesFrom = (mocked: { mock: { calls: { arguments: unknown[] }[] } }) =>
+    mocked.mock.calls.map((call) => String(call.arguments[0]));
+
+  test('a turn that misses turnTimeoutMs aborts the call runBrainTurn started', async (t) => {
+    // The signal has to be the one the PRODUCTION path put on the request. A
+    // test that builds its own request and aborts it proves only that
+    // AbortController works, and would stay green against dead wiring.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    t.mock.method(console, 'warn', () => {});
+    withBrainEnv(t, 'anthropic');
+    const client = new SlowBrain();
+    const { convo, session } = await inScene(t, { client, voiceless: true });
+
+    const typed = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await client.asked;
+    const signal = client.signals[0];
+    assert.ok(signal, 'runBrainTurn handed the brain a way to be stopped');
+    assert.equal(signal.aborted, false, 'and does not use it while the model is still inside its deadline');
+
+    t.mock.timers.tick(15_001);
+    await sceneSettled();
+
+    assert.equal(signal.aborted, true, 'the deadline stops the call, not just the waiting for it');
+
+    client.release();
+    await typed;
+    await convo.settled();
+  });
+
+  test('a turn inside its deadline sees no abort and no added wait', async (t) => {
+    // The founder's constraint: none of this may cost a learner a millisecond.
+    // A happy turn resolves entirely in microtasks, so a `setImmediate` queued
+    // before it has still not run by the time the reply is out. Any real wait
+    // added to this path — a timer, a network call, joining the analyst work —
+    // lets the event loop turn and reddens this line.
+    t.mock.method(console, 'info', () => {});
+    const client = new MeteredBrain();
+    const { convo, session, said } = await inScene(t, { client });
+
+    let loopTurned = false;
+    setImmediate(() => {
+      loopTurned = true;
+    });
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour' }));
+    await convo.settled();
+
+    assert.equal(loopTurned, false, 'the reply was ready before the event loop got another turn');
+    assert.ok(said.length > 0, 'and it really was a reply, not an early return');
+    const request = client.turnRequests.at(-1);
+    assert.ok(request?.signal, 'the call still carries the handle');
+    assert.equal(request.signal.aborted, false, 'a turn that answered in time is never aborted');
+    assert.equal(convo.brainSpend.turn.abandoned, 0, 'and nothing was given up on');
+  });
+
+  test('an abandoned call is counted and named, never silently dropped', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const warned = t.mock.method(console, 'warn', () => {});
+    withBrainEnv(t, 'anthropic');
+    const client = new SlowBrain();
+    const { convo, session } = await inScene(t, { client, voiceless: true });
+
+    const typed = convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await client.asked;
+    t.mock.timers.tick(15_001);
+    await sceneSettled();
+
+    assert.equal(convo.brainSpend.turn.abandoned, 1, 'a call nobody read is still a call somebody paid for');
+    assert.equal(convo.brainSpend.turn.calls, 0, 'and it is not counted as one that answered');
+    assert.ok(
+      linesFrom(warned).includes('[parle:brain] turn abandoned after 15000ms'),
+      'named in the log, with the activity and the bound it broke',
+    );
+
+    client.release();
+    await typed;
+    await convo.settled();
+  });
+
+  test('a billed call that failed to parse still reaches the meter', async (t) => {
+    // The most expensive outcome available: a full prompt in, a full answer
+    // out, a retry on top, and nothing usable at the end. It used to be the one
+    // outcome the meter never saw, because the usage rode an error nobody read.
+    t.mock.method(console, 'info', () => {});
+    const billed = {
+      inputTokens: 900,
+      outputTokens: 120,
+      cacheReadTokens: 400,
+      cacheWriteTokens: 0,
+      model: 'gpt-5.6-luna',
+    };
+    const client = new FailingBrain(new BrainParseError('not a turn', '{', billed));
+    const { convo, session, said } = await inScene(t, { client });
+
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour' }));
+    await convo.settled();
+
+    assert.equal(said.at(-1), RECOVERY_LINE, 'the learner is handed the line, exactly as before');
+    assert.equal(convo.conversationState.turnCount, 0, 'and the turn still did not happen');
+    assert.deepEqual(convo.brainSpend.turn.usage, billed, 'but the money it cost is on the meter');
+    assert.equal(convo.brainSpend.turn.calls, 1);
+  });
+
+  test('the session summary is emitted after the analyst calls, not before', async (t) => {
+    // The sequencing bug this whole line exists to avoid: fired and forgotten,
+    // the analyst calls start AFTER every consumer of finish() has moved on, so
+    // a summary emitted where the recap ships describes a session missing its
+    // three most expensive calls.
+    t.mock.method(console, 'log', () => {});
+    const info = t.mock.method(console, 'info', () => {});
+    const client = new HeldAnalystBrain({ turns: [spendingTurn()] });
+    const { convo, session } = await inScene(t, { client });
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await convo.settled();
+
+    const finishing = convo.finish();
+    await sceneSettled();
+
+    assert.ok(client.started >= 2, 'extraction and curation are both out and still thinking');
+    assert.ok(
+      !linesFrom(info).some((line) => line.startsWith('[parle:brain:summary]')),
+      'and nothing has been claimed about what the session cost yet',
+    );
+
+    client.release();
+    await finishing;
+
+    const summary = linesFrom(info).find((line) => line.startsWith('[parle:brain:summary]'));
+    assert.ok(summary, 'a session says what it cost, once, on the way out');
+    assert.match(summary, /extract calls=1/, 'with the memory call inside it');
+    assert.match(summary, /curate calls=1/, 'and the practice editor');
+    assert.match(summary, /drills calls=1/, 'and the drill author, which is the dearest of the three');
+  });
+
+  test('the minutes debit does not wait on analyst work', async (t) => {
+    // Billing is the one thing here that is not telemetry. It must not slow
+    // down, and it must not fail, because a memory call is being slow.
+    t.mock.method(console, 'log', () => {});
+    t.mock.method(console, 'info', () => {});
+    const { debits, restore } = captureDebits();
+    try {
+      const client = new HeldAnalystBrain({ turns: [spendingTurn()] });
+      const { convo, session } = await inScene(t, {
+        client,
+        // Its own id, and never one another test's ledger assertion depends on:
+        // `finish()` spends the credential, and a spent id is not fresh again.
+        sessionId: 'a8a8a8a8-8a8a-4a8a-8a8a-a8a8a8a8a8a8',
+      });
+      await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+      await convo.settled();
+
+      const finishing = convo.finish();
+      await sceneSettled();
+
+      assert.ok(client.started >= 1, 'the analyst is mid-call');
+      assert.equal(debits.length, 1, 'and the seconds are already debited');
+
+      client.release();
+      await finishing;
+      assert.equal(debits.length, 1, 'still exactly one debit, whatever the analyst does afterwards');
+    } finally {
+      restore();
+    }
+  });
+
+  test('the summary prices each activity from the model the response reported, and names any model it has no price row for', async (t) => {
+    t.mock.method(console, 'log', () => {});
+    const info = t.mock.method(console, 'info', () => {});
+    const client = new MeteredBrain({ turns: [spendingTurn()] });
+    const { convo, session } = await inScene(t, { client });
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await convo.settled();
+    await convo.finish();
+
+    const summary = linesFrom(info).find((line) => line.startsWith('[parle:brain:summary]'));
+    assert.ok(summary);
+
+    // One turn on Luna at $0.2/$1.2/$0.02/$0.25 per Mtok:
+    // (40*0.2 + 10*1.2 + 80*0.02 + 5*0.25) / 1e6 = $0.00002285.
+    assert.match(summary, /turn calls=1 abandoned=0 in=40 cacheRead=80 cacheWrite=5 out=10 reasoning=4 /);
+    assert.match(summary, /turn [^|]*usd=0\.000023 pricedAs=gpt-5\.6-luna/, 'priced from the model that answered');
+    assert.match(summary, /turn [^|]*cacheHit=64%/, '80 cache reads against 125 charged input');
+    assert.ok(!/turn [^|]*unpriced=/.test(summary), 'a model with a row is not reported as a guess');
+
+    // The analyst answered on a name nobody has priced. The number is still
+    // printed, and so is the fact that it is a guess: silently pricing an
+    // unknown model at the talker rate is a tenfold error in the measurement
+    // that decides which brain ships.
+    assert.match(summary, /drills [^|]*pricedAs=claude-opus-5 unpriced=gpt-5\.6-terra-preview/);
+    assert.match(summary, /drills [^|]*reasoning=120/, 'reported, and never added to a cost');
+    assert.match(summary, /extract [^|]*pricedAs=gpt-5\.6-terra/);
+
+    // The head is the sum of the priced rows, never a price of the summed
+    // usage: the session mixed models, so a single total has no honest rate.
+    assert.match(summary, /^\[parle:brain:summary\] session=[0-9a-f]{8} usd=\d\.\d{6} calls=5 abandoned=0 /);
+    assert.match(summary, /cacheHit=/, 'the rate the checkpoint reads to tell whether caching is landing');
+  });
+
+  test('an activity nobody used is left out, and one only ever abandoned is not', () => {
+    // A summary padded with five zero rows is a summary nobody reads. But an
+    // abandoned call carries no usage at all, so "nothing recorded" must not be
+    // the same test as "nothing spent".
+    const spend = emptySpend();
+    spend.drills = { calls: 0, abandoned: 2, usage: ZERO_USAGE };
+    const line = formatBrainSummary(spend, '12345678-abcd-4000-8000-000000000000');
+
+    assert.match(line, /session=12345678 /, 'the same short id every other session log uses');
+    assert.match(line, /drills calls=0 abandoned=2 /);
+    assert.match(line, /drills [^|]*cacheHit=n\/a/, 'nothing charged is not a cache that missed');
+    assert.match(line, /drills [^|]*reasoning=n\/a/, 'and an unreported breakout is not a measured zero');
+    assert.ok(!line.includes('turn calls='), 'an activity the session never used says nothing');
+    assert.ok(!line.includes('frame calls='));
   });
 });
 
@@ -2032,17 +2379,6 @@ describe('replaying a line', () => {
  * in billed for its whole wall clock (F76).
  */
 describe('what a conversation is allowed to bill', () => {
-  /** Catch the debit the conversation sends, with no token server in the room. */
-  function captureDebits() {
-    const debits: { sessionId: string; seconds: number }[] = [];
-    const real = globalThis.fetch;
-    globalThis.fetch = (async (_input: unknown, init?: { body?: unknown }) => {
-      debits.push(JSON.parse(String(init?.body)));
-      return { ok: true, json: async () => ({ secondsRemaining: 600 }) };
-    }) as unknown as typeof fetch;
-    return { debits, restore: () => { globalThis.fetch = real; } };
-  }
-
   /** Backdate the room's start, or every assertion below reads zero for free. */
   function ranFor(convo: ParleConversation, seconds: number): void {
     (convo as unknown as { startedAt: number }).startedAt = Date.now() - seconds * 1_000;

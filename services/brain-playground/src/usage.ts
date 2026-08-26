@@ -1,63 +1,54 @@
 /**
  * Cost visibility per session, in the repo's metering spirit: know what a
- * session costs in week one, not month three. Sticker prices per model;
- * cache reads at a tenth, cache writes at 1.25x. The default is the talker
- * route's model, because every call the playground meters today is a turn or
- * a frame — pass the model explicitly if that ever stops being true.
+ * session costs in week one, not month three.
+ *
+ * The price table and the arithmetic moved to `@parle/brain`'s pricing.ts, next
+ * to the adapters that produce the tokens, because the playground stopped being
+ * the only thing counting. What is left here is presentation: how a turn and a
+ * session read in a terminal.
+ *
+ * Two behaviours changed with the move and both are visible in this file:
+ *
+ *   - There is no default model any more. A usage now carries the model that
+ *     answered it, and a total merged across two models honestly carries none —
+ *     so a cost that could not be priced properly says so instead of quietly
+ *     charging the talker route's rate.
+ *   - The adder is gone. `addLlmUsage` in the brain's client.ts already did
+ *     exactly this job, and two adders are two places for the next column to be
+ *     forgotten. `addUsage` is that function under its old name.
  */
 
-import { DEFAULT_ROUTING, ZERO_USAGE, type LlmUsage } from '@parle/brain';
+import { addLlmUsage, costUsd, priceUsage, USD_PER_MTOK, ZERO_USAGE, type LlmUsage } from '@parle/brain';
 
-interface MtokPrices {
-  input: number;
-  output: number;
-  cacheRead: number;
-  cacheWrite: number;
-}
-
-const USD_PER_MTOK: Record<string, MtokPrices> = {
-  'gpt-5.6-luna': { input: 0.2, output: 1.2, cacheRead: 0.02, cacheWrite: 0.2 },
-  'gpt-5.6-terra': { input: 2, output: 12, cacheRead: 0.2, cacheWrite: 2 },
-  'claude-sonnet-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
-  'claude-opus-5': { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
-};
-
-const DEFAULT_MODEL = DEFAULT_ROUTING.turn.model;
-
-export function addUsage(a: LlmUsage, b: LlmUsage): LlmUsage {
-  return {
-    inputTokens: a.inputTokens + b.inputTokens,
-    outputTokens: a.outputTokens + b.outputTokens,
-    cacheReadTokens: a.cacheReadTokens + b.cacheReadTokens,
-    cacheWriteTokens: a.cacheWriteTokens + b.cacheWriteTokens,
-  };
-}
-
-export { ZERO_USAGE };
-
-export function costUsd(usage: LlmUsage, model: string = DEFAULT_MODEL): number {
-  // An unknown model prices at the dearest tier — overstating a cost is a
-  // nudge to add the row; understating one is a bill.
-  const prices = USD_PER_MTOK[model] ?? USD_PER_MTOK['claude-opus-5']!;
-  return (
-    (usage.inputTokens * prices.input +
-      usage.outputTokens * prices.output +
-      usage.cacheReadTokens * prices.cacheRead +
-      usage.cacheWriteTokens * prices.cacheWrite) /
-    1_000_000
-  );
-}
+export { addLlmUsage, addLlmUsage as addUsage, costUsd, USD_PER_MTOK, ZERO_USAGE };
 
 function k(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 }
 
-export function formatTurnUsage(usage: LlmUsage, elapsedMs: number, model: string = DEFAULT_MODEL): string {
-  const input = usage.inputTokens + usage.cacheReadTokens + usage.cacheWriteTokens;
-  const cached = usage.cacheReadTokens;
-  return `${k(input)} in (${k(cached)} cached) · ${k(usage.outputTokens)} out · ~$${costUsd(usage, model).toFixed(3)} · ${(elapsedMs / 1000).toFixed(1)}s`;
+/**
+ * The marker for a number that is a guess. Short on purpose — it sits inside a
+ * one-line meter, and its job is to stop a wrong figure being read as a right
+ * one, not to explain itself there.
+ */
+function pricedNote(usage: LlmUsage, model?: string): string {
+  const priced = priceUsage(usage, model);
+  if (priced.exact) return '';
+  return ` (unpriced ${priced.unknownModel ?? 'model'}, shown at ${priced.pricedAs} rates)`;
 }
 
-export function formatSessionUsage(total: LlmUsage, turns: number, model: string = DEFAULT_MODEL): string {
-  return `${turns} model calls · ~$${costUsd(total, model).toFixed(3)} this session`;
+export function formatTurnUsage(usage: LlmUsage, elapsedMs: number, model?: string): string {
+  // The three buckets are disjoint on every provider — the adapters normalise
+  // that — so this sum is the input the vendor actually charged for.
+  const input = usage.inputTokens + usage.cacheReadTokens + usage.cacheWriteTokens;
+  const cached = usage.cacheReadTokens;
+  const thought = usage.reasoningTokens === undefined ? '' : ` (${k(usage.reasoningTokens)} thinking)`;
+  return (
+    `${k(input)} in (${k(cached)} cached) · ${k(usage.outputTokens)} out${thought} · ` +
+    `~$${costUsd(usage, model).toFixed(3)}${pricedNote(usage, model)} · ${(elapsedMs / 1000).toFixed(1)}s`
+  );
+}
+
+export function formatSessionUsage(total: LlmUsage, turns: number, model?: string): string {
+  return `${turns} model calls · ~$${costUsd(total, model).toFixed(3)}${pricedNote(total, model)} this session`;
 }

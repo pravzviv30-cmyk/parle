@@ -17,6 +17,11 @@
  * the routing table. Routing answers "which model, at what effort", and that
  * question has one honest answer whoever is serving it. Which provider is
  * serving is a wiring decision, so it lives in the wiring.
+ *
+ * Every method forwards the whole request object rather than picking fields out
+ * of it, which is what makes an abort signal reach the delegate untouched — and
+ * what makes the next field added to a request arrive there too, instead of
+ * being silently dropped by the one client in the chain that had to be edited.
  */
 
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';

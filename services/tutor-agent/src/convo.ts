@@ -57,6 +57,7 @@ import {
   learnerSnapshotFrom,
   repairProfile,
   prepareTurn,
+  priceUsage,
   requestFallbackFrame,
   supportViewForAssistance,
   validLearnerName,
@@ -531,23 +532,54 @@ function turnDeadlineMs(env: Record<string, string | undefined> = process.env): 
 }
 
 /**
- * A model call, and a promise that it will end.
+ * A model call, a promise that it will end, and a way to stop paying for it.
  *
  * Every vendor SDK here can leave a request open indefinitely — a socket that
  * stays up and says nothing looks exactly like a model that is still thinking.
  * One helper for both calls that a learner is waiting on, so a hung turn and a
  * hung scene builder cannot drift into two different ideas of patience.
  *
+ * The race alone was only half of it. Giving up on a promise does not stop the
+ * work behind it: the request stayed open, the model kept generating, the
+ * vendor kept billing, and because `recordBrainUsage` sits after the `await`
+ * that never returned, not one token of it was ever metered. The worst case is
+ * the biggest call — a healthy drill batch runs about sixty-five seconds
+ * against a ninety-second bound, so an unlucky one is a full-price batch nobody
+ * reads and nobody counts. Hence the controller: the deadline aborts the call
+ * as well as abandoning it.
+ *
+ * `work` is a factory rather than a promise because the signal has to reach the
+ * request, and every caller used to build the request first. Taking the factory
+ * is what makes the abort reach the wire instead of stopping here.
+ *
+ * `onAbandoned` fires at the deadline itself, not off the rejection, so the
+ * count is of calls this agent gave up on — never of whichever error happened
+ * to win the race afterwards.
+ *
  * The losing timer is always cleared: an unhandled rejection from a settled race
  * takes the worker down, which strands every learner on it.
  */
-async function withDeadline<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
+async function withDeadline<T>(
+  work: (signal: AbortSignal) => Promise<T>,
+  ms: number,
+  what: string,
+  onAbandoned?: () => void,
+): Promise<T> {
+  const controller = new AbortController();
   let deadline: ReturnType<typeof setTimeout> | undefined;
   try {
     const timeout = new Promise<never>((_, reject) => {
-      deadline = setTimeout(() => reject(new Error(`no ${what} after ${ms}ms`)), ms);
+      deadline = setTimeout(() => {
+        const expired = new Error(`no ${what} after ${ms}ms`);
+        onAbandoned?.();
+        // Abort first: the point of this timer is that the spend stops, and a
+        // rejection handled before the abort leaves the socket open for as
+        // long as the vendor feels like keeping it.
+        controller.abort(expired);
+        reject(expired);
+      }, ms);
     });
-    return await Promise.race([work, timeout]);
+    return await Promise.race([work(controller.signal), timeout]);
   } finally {
     if (deadline !== undefined) clearTimeout(deadline);
   }
@@ -609,6 +641,119 @@ export function postSessionDeadlineMs(
   if (work === 'extract') return EXTRACT_TIMEOUT_MS;
   if (work === 'curate') return CURATE_TIMEOUT_MS;
   return DRILLS_TIMEOUT_MS;
+}
+
+/**
+ * What a session cost, kept where the room cannot take it with it.
+ *
+ * The per-call `[parle:brain]` line is a running commentary and nothing more:
+ * it lives in the worker's stdout for as long as the room does, it is one line
+ * per call in a stream shared with every other session on the worker, and
+ * adding it up by eye is not a measurement. The checkpoint question — is prompt
+ * caching landing, and which activity is actually expensive — needs the totals,
+ * once, at the end, in a shape something can parse.
+ */
+export type BrainActivity = 'turn' | 'frame' | 'extract' | 'curate' | 'drills';
+
+/** The order the summary prints in: the scene, the live turns, then the analyst. */
+const BRAIN_ACTIVITIES: readonly BrainActivity[] = ['frame', 'turn', 'extract', 'curate', 'drills'];
+
+export interface ActivitySpend {
+  /** Calls that came back with a bill — parsed or not, used or not. */
+  calls: number;
+  /**
+   * Calls this agent gave up on at the deadline. Counted separately because
+   * they are the one kind of spend with nothing at all to show for it, and
+   * because a rising count here is the signal that a bound is set too tight.
+   */
+  abandoned: number;
+  usage: LlmUsage;
+}
+
+export type SessionSpend = Record<BrainActivity, ActivitySpend>;
+
+/** A meter with nothing on it yet. */
+export function emptySpend(): SessionSpend {
+  const spend = {} as SessionSpend;
+  for (const activity of BRAIN_ACTIVITIES) spend[activity] = { calls: 0, abandoned: 0, usage: ZERO_USAGE };
+  return spend;
+}
+
+/**
+ * What the vendor charges input on: uncached tokens plus both halves of the
+ * cache. `inputTokens` is UNCACHED input on every adapter, so the three add up
+ * rather than overlapping — the sum is the denominator a cache hit rate means.
+ */
+function chargedInput(usage: LlmUsage): number {
+  return usage.inputTokens + usage.cacheReadTokens + usage.cacheWriteTokens;
+}
+
+/** `n/a` rather than `0%`, because nothing charged is not a cache that missed. */
+function cacheHitRate(usage: LlmUsage): string {
+  const charged = chargedInput(usage);
+  if (charged === 0) return 'n/a';
+  return `${Math.round((usage.cacheReadTokens / charged) * 100)}%`;
+}
+
+/**
+ * Reasoning tokens, or the honest absence of them.
+ *
+ * Absent means the vendor did not break them out, which is not the same as a
+ * measured zero, so it prints as `n/a`. They are never added to a cost either:
+ * both vendors bill thinking inside `output_tokens`, so counting them again
+ * would double-charge the most expensive column in the table.
+ */
+function reasoningOf(usage: LlmUsage): string {
+  return usage.reasoningTokens === undefined ? 'n/a' : String(usage.reasoningTokens);
+}
+
+/** Dollars, at the precision a single session actually costs. */
+function usd(amount: number): string {
+  return amount.toFixed(6);
+}
+
+/**
+ * One line, per activity and in total, priced from the model that answered.
+ *
+ * Pure and exported so the shape can be asserted directly rather than scraped
+ * back out of a console mock. The total is the SUM of the per-activity prices,
+ * never a price of the summed usage: a session mixes a cheap live model with a
+ * dear analyst one, `addLlmUsage` drops the stamp when they disagree, and
+ * pricing a mixed total would fall back to the dearest row and be wrong by an
+ * order of magnitude in exactly the number that decides which brain ships.
+ */
+export function formatBrainSummary(spend: SessionSpend, sessionId: string): string {
+  const segments: string[] = [];
+  let calls = 0;
+  let abandoned = 0;
+  let total = ZERO_USAGE;
+  let dollars = 0;
+
+  for (const activity of BRAIN_ACTIVITIES) {
+    const row = spend[activity];
+    calls += row.calls;
+    abandoned += row.abandoned;
+    total = addLlmUsage(total, row.usage);
+    const priced = priceUsage(row.usage);
+    dollars += priced.usd;
+    // An activity nobody used says nothing. An activity that was only ever
+    // abandoned still has to appear: that is the spend with no usage attached.
+    if (row.calls === 0 && row.abandoned === 0) continue;
+    segments.push(
+      `${activity} calls=${row.calls} abandoned=${row.abandoned} in=${row.usage.inputTokens} ` +
+        `cacheRead=${row.usage.cacheReadTokens} cacheWrite=${row.usage.cacheWriteTokens} ` +
+        `out=${row.usage.outputTokens} reasoning=${reasoningOf(row.usage)} cacheHit=${cacheHitRate(row.usage)} ` +
+        `usd=${usd(priced.usd)} pricedAs=${priced.pricedAs}` +
+        (priced.exact ? '' : ` unpriced=${priced.unknownModel ?? 'none-stamped'}`),
+    );
+  }
+
+  const head =
+    `[parle:brain:summary] session=${sessionId.slice(0, 8)} usd=${usd(dollars)} calls=${calls} ` +
+    `abandoned=${abandoned} in=${total.inputTokens} cacheRead=${total.cacheReadTokens} ` +
+    `cacheWrite=${total.cacheWriteTokens} out=${total.outputTokens} reasoning=${reasoningOf(total)} ` +
+    `cacheHit=${cacheHitRate(total)}`;
+  return segments.length === 0 ? head : `${head} | ${segments.join(' | ')}`;
 }
 
 /**
@@ -703,6 +848,8 @@ export class ParleConversation extends voice.Agent {
   /** Raw provider-neutral tokens, so development sessions produce real cost evidence. */
   private modelUsage: LlmUsage = ZERO_USAGE;
   private modelCalls = 0;
+  /** The same tokens, split by what they bought. What the summary line reads. */
+  private spend: SessionSpend = emptySpend();
 
   /**
    * Text mode: the same conversation with the voice pipeline dark. Learner
@@ -788,16 +935,68 @@ export class ParleConversation extends voice.Agent {
     return { calls: this.modelCalls, usage: { ...this.modelUsage } };
   }
 
-  private recordBrainUsage(activity: 'turn' | 'frame' | 'extract' | 'curate' | 'drills', usage: LlmUsage): void {
+  /** The same meter, split by activity. Read-only, for the summary and for tests. */
+  get brainSpend(): SessionSpend {
+    const copy = {} as SessionSpend;
+    for (const activity of BRAIN_ACTIVITIES) {
+      const row = this.spend[activity];
+      copy[activity] = { calls: row.calls, abandoned: row.abandoned, usage: { ...row.usage } };
+    }
+    return copy;
+  }
+
+  private recordBrainUsage(activity: BrainActivity, usage: LlmUsage): void {
     this.modelCalls += 1;
     this.modelUsage = addLlmUsage(this.modelUsage, usage);
-    const chargedInput = usage.inputTokens + usage.cacheReadTokens + usage.cacheWriteTokens;
-    if (chargedInput === 0 && usage.outputTokens === 0) return;
+    const row = this.spend[activity];
+    this.spend[activity] = { calls: row.calls + 1, abandoned: row.abandoned, usage: addLlmUsage(row.usage, usage) };
+    const charged = chargedInput(usage);
+    if (charged === 0 && usage.outputTokens === 0) return;
     const totalInput = this.modelUsage.inputTokens + this.modelUsage.cacheReadTokens + this.modelUsage.cacheWriteTokens;
     console.info(
-      `[parle:brain] ${activity}: ${chargedInput} input (${usage.cacheReadTokens} cached), ${usage.outputTokens} output; ` +
+      `[parle:brain] ${activity}: ${charged} input (${usage.cacheReadTokens} cached), ${usage.outputTokens} output; ` +
         `session total ${this.modelCalls} calls, ${totalInput} input, ${this.modelUsage.outputTokens} output`,
     );
+  }
+
+  /**
+   * A call this agent gave up on. Named, counted, and never silent.
+   *
+   * The abandonment is the whole of the cost: the request went out, the vendor
+   * answered it or is still answering it, and the only thing that did not
+   * happen is anybody reading the answer. A count that only ever goes up under
+   * one activity is a bound set too tight, which is a question about a number
+   * in this file rather than about the model.
+   */
+  private noteAbandoned(activity: BrainActivity, ms: number): void {
+    const row = this.spend[activity];
+    this.spend[activity] = { ...row, abandoned: row.abandoned + 1 };
+    console.warn(`[parle:brain] ${activity} abandoned after ${ms}ms`);
+  }
+
+  /**
+   * A call that was billed and then thrown away, metered anyway.
+   *
+   * `BrainParseError` is the expensive failure: a full prompt in, a full answer
+   * out, a retry on top of it, and nothing usable at the end. Dropping its
+   * usage made the single most costly outcome the one outcome the meter never
+   * saw. Anything else that throws here (a socket, an abort, an outage) carries
+   * no usage to record and passes through untouched.
+   */
+  private recordFailedCall(activity: BrainActivity, error: unknown): void {
+    if (error instanceof BrainParseError && error.usage !== undefined) this.recordBrainUsage(activity, error.usage);
+  }
+
+  /**
+   * What this session cost, once, on the way out.
+   *
+   * Emitted from `finish()` AFTER the analyst calls have settled. Emitting it
+   * where the recap ships would have excluded extraction, curation and drill
+   * authoring — the three biggest calls the session makes, and the exact spend
+   * this line exists to measure.
+   */
+  private logSpendSummary(): void {
+    console.info(formatBrainSummary(this.spend, this.sessionId));
   }
 
   /** Every spoken line funnels through here so text mode can stay silent. */
@@ -1033,27 +1232,37 @@ export class ParleConversation extends voice.Agent {
       .filter((phrase) => !phrase.mastered)
       .slice(0, 5)
       .map((phrase) => `${phrase.fr} (${phrase.en})`);
-    const result = await withDeadline(
-      this.client.frame({
-        kind: 'frame',
-        system: buildSystemBlocks(),
-        request: buildScenarioRequest({
-          request,
-          learner: {
-            cefr: snapshot.cefr,
-            watchFor: snapshot.watchFor,
-            name: snapshot.name,
-            facts,
-            recentScenarios: this.profile.preferences.lastScenarios,
-            unmasteredPhrases,
-          },
-        }),
-      }),
-      this.frameTimeoutMs,
-      'frame',
-    );
-    this.recordBrainUsage('frame', result.usage);
-    return result.frame;
+    try {
+      const result = await withDeadline(
+        (signal) =>
+          this.client.frame({
+            kind: 'frame',
+            system: buildSystemBlocks(),
+            request: buildScenarioRequest({
+              request,
+              learner: {
+                cefr: snapshot.cefr,
+                watchFor: snapshot.watchFor,
+                name: snapshot.name,
+                facts,
+                recentScenarios: this.profile.preferences.lastScenarios,
+                unmasteredPhrases,
+              },
+            }),
+            signal,
+          }),
+        this.frameTimeoutMs,
+        'frame',
+        () => this.noteAbandoned('frame', this.frameTimeoutMs),
+      );
+      this.recordBrainUsage('frame', result.usage);
+      return result.frame;
+    } catch (error) {
+      // The fallback scene is startScene's business, not this one's. All that
+      // happens here is that a billed failure gets metered on its way past.
+      this.recordFailedCall('frame', error);
+      throw error;
+    }
   }
 
   /**
@@ -1473,11 +1682,20 @@ export class ParleConversation extends voice.Agent {
       // learner was left in front of their own sentence with nothing coming.
       // A timeout lands in the catch below and is treated as what it is: a turn
       // that failed, indistinguishable downstream from a thrown one.
-      const result = await withDeadline(this.client.turn(request), this.turnTimeoutMs, 'turn');
+      const result = await withDeadline(
+        (signal) => this.client.turn({ ...request, signal }),
+        this.turnTimeoutMs,
+        'turn',
+        () => this.noteAbandoned('turn', this.turnTimeoutMs),
+      );
       turn = result.turn;
       this.recordBrainUsage('turn', result.usage);
       this.markTiming('brainParsed');
     } catch (error) {
+      // Metered before anything else decides what to do with it: a billed call
+      // that could not be parsed is still a billed call, and the recovery below
+      // is the same either way.
+      this.recordFailedCall('turn', error);
       if (this.ended) return; // a failed turn against a finished session is just noise
       if (error instanceof BrainParseError || error instanceof BrainRefusalError) {
         this.recover();
@@ -1608,8 +1826,20 @@ export class ParleConversation extends voice.Agent {
     // session's memory, practice topics and drills, and nothing else.
     // Curation runs BEFORE drills so the drill author works from the curated
     // keep-list rather than everything the session touched.
-    void this.extractMemory(state.turnCount);
-    void this.curateAndDrill(state);
+    //
+    // Joined rather than fired and forgotten, and note where the join is: AFTER
+    // `reportUsage`, so the minutes debit never waits on telemetry, and BEFORE
+    // the summary, so the summary includes these three calls. Fired and
+    // forgotten they are also unmeasured — they run after every consumer of
+    // this promise has moved on, and the worker tears the room down on
+    // `finish().finally(...)`, so the biggest spend of the session was
+    // structurally the part no summary could ever see.
+    //
+    // `allSettled`, not `all`: both of these already swallow their own model
+    // failures, and a throw from a publish must not cost the summary that would
+    // have told us what the failed session cost.
+    await Promise.allSettled([this.extractMemory(state.turnCount), this.curateAndDrill(state)]);
+    this.logSpendSummary();
   }
 
   /**
@@ -1645,14 +1875,17 @@ export class ParleConversation extends voice.Agent {
         phrases: state.phrases,
         learner: { cefr: this.profile.cefr.estimate, errorTags },
       });
+      const ms = postSessionDeadlineMs('curate');
       const result = await withDeadline(
-        this.client.curate({ kind: 'curate', system: buildSystemBlocks(), request }),
-        postSessionDeadlineMs('curate'),
+        (signal) => this.client.curate({ kind: 'curate', system: buildSystemBlocks(), request, signal }),
+        ms,
         'curation',
+        () => this.noteAbandoned('curate', ms),
       );
       this.recordBrainUsage('curate', result.usage);
       return applyCuration(result.curation, state.phrases, sessionTopics);
     } catch (error) {
+      this.recordFailedCall('curate', error);
       console.error('[parle] curation failed; the code fallback ships instead:', error);
       return applyCuration(null, state.phrases, sessionTopics);
     }
@@ -1670,16 +1903,19 @@ export class ParleConversation extends voice.Agent {
     if (turnCount === 0 || this.lastRecap === null) return;
     try {
       const request = buildExtractionRequest({ history: this.state.history, knownFacts: this.profile.memory.facts });
+      const ms = postSessionDeadlineMs('extract');
       const result = await withDeadline(
-        this.client.extract({ kind: 'extract', system: buildSystemBlocks(), request }),
-        postSessionDeadlineMs('extract'),
+        (signal) => this.client.extract({ kind: 'extract', system: buildSystemBlocks(), request, signal }),
+        ms,
         'extraction',
+        () => this.noteAbandoned('extract', ms),
       );
       this.recordBrainUsage('extract', result.usage);
       this.profile = applyExtractionToProfile(this.profile, result.extraction, new Date().toISOString());
       this.lastRecap = { ...this.lastRecap, profile: this.profile };
       this.publish(this.lastRecap);
     } catch (error) {
+      this.recordFailedCall('extract', error);
       console.error('[parle] memory extraction failed; the recap already shipped without it:', error);
     }
   }
@@ -1713,10 +1949,12 @@ export class ParleConversation extends voice.Agent {
         errorTags,
         topics: this.state.topics.map((topic) => ({ en: topic.en, fr: topic.fr })),
       });
+      const ms = postSessionDeadlineMs('drills');
       const result = await withDeadline(
-        this.client.drills({ kind: 'drills', system: buildSystemBlocks(), request }),
-        postSessionDeadlineMs('drills'),
+        (signal) => this.client.drills({ kind: 'drills', system: buildSystemBlocks(), request, signal }),
+        ms,
         'drills',
+        () => this.noteAbandoned('drills', ms),
       );
       this.recordBrainUsage('drills', result.usage);
 
@@ -1726,6 +1964,7 @@ export class ParleConversation extends voice.Agent {
       if (valid.length === 0) return;
       this.publish({ t: 'drills', exercises: valid });
     } catch (error) {
+      this.recordFailedCall('drills', error);
       console.error('[parle] drill generation failed; the fixture bank covers the gap:', error);
     }
   }
