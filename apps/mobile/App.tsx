@@ -13,9 +13,11 @@
  * CHANGED DELIBERATELY: the live microphone is GREEN. Green means you speak,
  *   everywhere, which lets the voice circle's red mean the tutor is speaking
  *   without the two ever reading as one signal.
- * STORY: A welcome that moves, sign in once, three gentle questions, a first
- *   situation to walk into, then five doors along the bottom — Home, Tutor,
- *   Practice, My French, Profile.
+ * STORY: One welcome that moves, sign in once, a few gentle questions, a first
+ *   situation to walk into, then five doors along the bottom: Home, Tutor,
+ *   Practice, My French, Profile. One introduction, not three: the welcome is
+ *   the first screen of the auth flow rather than a screen in front of it, and
+ *   nothing runs before sign-in that a device-level flag has to remember.
  *   Stalling is stepped in for, never commented on.
  * MOTION (new, and the whole vocabulary): transform and opacity only, always
  *   on the native driver; never an SVG attribute; one loop plus one settling
@@ -54,8 +56,6 @@ import { loadHistory } from './src/progress/store.ts';
 import { backfillFrom } from './src/progress/activity.ts';
 import { lessonXp } from '@parle/core';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
-import { SplashScreen } from './src/splash/SplashScreen.tsx';
-import { hasSeenSplash, markSplashSeen } from './src/splash/store.ts';
 import { ProfileGate } from './src/app/ProfileContext.tsx';
 import { LiveProvider } from './src/app/LiveContext.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
@@ -262,36 +262,22 @@ function SignedInRoot({ user }: { user: AuthUser }) {
 }
 
 /**
- * The door. Loading holds a spinner, a first-ever launch gets the welcome,
- * signed out shows the auth flow, a password-recovery landing interposes its
- * one screen, and a signed-in user gets the app keyed to their account.
+ * The door. Loading holds a spinner, signed out shows the auth flow (whose own
+ * first screen is the welcome), a password-recovery landing interposes its one
+ * screen, and a signed-in user gets the app keyed to their account.
+ *
+ * Auth status is the only thing that decides what renders here. There used to
+ * be a branch in front of all of it, gated on a device-level flag that
+ * remembered whether this install had ever seen a separate pre-auth welcome.
+ * That was a second introduction and a second piece of state to get stuck, and
+ * it could not answer for the learner rather than the handset, because it ran
+ * where there is no user scope to key anything to. The welcome moved inside the
+ * auth flow and the flag went with it.
  */
 function Gate() {
   const { status, user, recovering, clearRecovery } = useAuth();
-  // Device-level, and checked before auth: the welcome runs ahead of sign-in,
-  // where there is no user scope to key anything to.
-  const [seenSplash, setSeenSplash] = useState<boolean | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    void hasSeenSplash().then((seen) => {
-      if (!cancelled) setSeenSplash(seen);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
-  if (seenSplash === null || status === 'loading') return <Loading />;
-  if (!seenSplash) {
-    return (
-      <SplashScreen
-        onDone={() => {
-          void markSplashSeen();
-          setSeenSplash(true);
-        }}
-      />
-    );
-  }
+  if (status === 'loading') return <Loading />;
   if (status === 'signedIn' && user !== null) {
     if (recovering) return <SetNewPasswordScreen onDone={clearRecovery} />;
     return <SignedInRoot key={user.id} user={user} />;
