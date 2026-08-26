@@ -6,6 +6,11 @@
  * reviewing must cost zero metered minutes, so nothing here may ever grow a
  * network call either. When accounts arrive this file is the only thing that
  * changes.
+ *
+ * The deck does reach the account now, but never from here: a local write is
+ * flagged for the sync engine and the engine hands merged decks back through
+ * `adoptDeck` below. Reviewing itself is still a disk read and a disk write, on
+ * a plane, for free.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,9 +28,13 @@ import {
   type SessionSummary,
 } from '@parle/core';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
 /** Resolved per call: the active account can change between calls. */
 const KEY = () => userKey('review');
+
+/** See progress/activity.ts for why an adopted write does not raise the flag. */
+type WriteOrigin = 'local' | 'adopted';
 
 /**
  * All writers share one key via read-modify-write, and two of them are fired
@@ -62,6 +71,31 @@ async function readDeck(key: string): Promise<ReviewCard[]> {
   }
 }
 
+/**
+ * The deck exactly as the sync engine reads it: the parsed key, or null when
+ * this account has never written one.
+ *
+ * Deliberately not `loadDeckFor`. The cache answers a missing key with an empty
+ * deck, and the merge policy has to be able to tell "no deck here" from "a deck
+ * with nothing in it" — the first has no claim on anything, the second is a
+ * learner who cleared theirs.
+ */
+async function persistedDeck(key: string): Promise<unknown> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as unknown) : null;
+  } catch {
+    // Unreadable is the same as absent here: the fold merges against nothing
+    // and the account's deck is adopted whole, which is what a fresh device does.
+    return null;
+  }
+}
+
+/** The least a card must be to have an identity the merge can carry. */
+function isCard(value: unknown): value is ReviewCard {
+  return typeof value === 'object' && value !== null && typeof (value as ReviewCard).id === 'string';
+}
+
 function loadDeckFor(key: string): Promise<ReviewCard[]> {
   const cached = caches.get(key);
   if (cached) return cached;
@@ -74,11 +108,12 @@ export function loadDeck(): Promise<ReviewCard[]> {
   return loadDeckFor(KEY());
 }
 
-async function saveDeck(key: string, deck: readonly ReviewCard[]): Promise<void> {
+async function saveDeck(key: string, deck: readonly ReviewCard[], origin: WriteOrigin): Promise<void> {
   const next = [...deck];
   caches.set(key, Promise.resolve(next));
   try {
     await AsyncStorage.setItem(key, JSON.stringify(next));
+    if (origin === 'local') markDirty('review');
   } catch {
     // Storage full or unavailable. The deck still works for this launch.
   }
@@ -94,7 +129,7 @@ export function addFromSummary(summary: SessionSummary): Promise<void> {
   return serialized(async (key) => {
     const existing = await loadDeckFor(key);
     const incoming = buildCardsFromSummary(summary, LESSONS, Date.now());
-    await saveDeck(key, mergeCards(existing, incoming));
+    await saveDeck(key, mergeCards(existing, incoming), 'local');
   });
 }
 
@@ -131,7 +166,7 @@ export async function addPhrases(phrases: readonly ConvoPhrase[], opts: { stagge
   if (opts.stagger) incoming = staggerNewCards(incoming, now);
   await serialized(async (key) => {
     const existing = await loadDeckFor(key);
-    await saveDeck(key, mergeCards(existing, incoming));
+    await saveDeck(key, mergeCards(existing, incoming), 'local');
   });
 }
 
@@ -148,7 +183,7 @@ export function gradeCards(grades: readonly { id: string; grade: ReviewGrade }[]
     for (const { id, grade } of grades) {
       updated = updated.map((card) => (card.id === id ? applyGrade(card, grade, now) : card));
     }
-    await saveDeck(key, updated);
+    await saveDeck(key, updated, 'local');
     return updated;
   });
 }
@@ -157,3 +192,41 @@ export function gradeCards(grades: readonly { id: string; grade: ReviewGrade }[]
 export async function dueCount(now = Date.now()): Promise<number> {
   return dueCards(await loadDeck(), now).length;
 }
+
+/**
+ * Fold the account's deck into this device's, on this store's own chain.
+ *
+ * The engine hands over a fold rather than a finished deck, and the difference
+ * is a learner's work. The engine read this key, spent a network round trip on
+ * the pull, and only then adopted; a grade the learner applied in between was
+ * written over by a deck computed before it existed, and — because the grade
+ * left its dirty flag up — pushed to the account and lost on every device. So
+ * the fold is called *here*, inside the chain, between the read and the write,
+ * with the deck this store holds at that instant. Nothing is awaited between
+ * the two, because the chain is the only place in this store where that is
+ * true. Folding is safe rather than clever: core's `mergeDecks` is commutative
+ * and idempotent, so folding a merge into a newer deck cannot lose either side.
+ *
+ * Scheduling is never recomputed here. Whatever due dates and intervals the
+ * merge preserved are written down exactly as they arrived; deciding which of
+ * two cards' scheduling survives is core's job, not this store's.
+ */
+function adoptDeck(fold: SyncFold): Promise<SyncAdoption> {
+  return serialized(async (key) => {
+    const folded = fold(await persistedDeck(key));
+    // Validated the way anything off disk is: the fold merged in a payload
+    // another device wrote, on a build this one has never seen.
+    if (!Array.isArray(folded)) return 'declined';
+    await saveDeck(key, folded.filter(isCard), 'adopted');
+    return 'adopted';
+  });
+}
+
+function registerAdopter(): void {
+  registerSyncAdopter('review', adoptDeck);
+}
+
+// Registered at load, and again whenever the account scope changes: the sync
+// registry is cleared on an account switch, and a module only evaluates once.
+registerAdopter();
+onUserScopeReset(registerAdopter);

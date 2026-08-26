@@ -2,9 +2,14 @@
  * Friends on the device, until there is a server to keep them.
  *
  * Same architecture as drill/store.ts: AsyncStorage under one versioned
- * per-user key, every mutation through one serialized write chain, a
- * load-once cache dropped on account switch. All decisions are made by the
- * pure reducers in logic.ts; this file only reads, writes and notifies.
+ * per-user key, every mutation through one serialized write chain with the key
+ * bound at enqueue, and a load-once cache keyed by that same key and dropped on
+ * account switch. All decisions are made by the pure reducers in logic.ts; this
+ * file only reads, writes and notifies.
+ *
+ * Not synced. The roster behind it is labelled sample profiles, and pushing
+ * those to the account would enshrine fixtures server-side for every device the
+ * learner ever signs in on. See sync/policy.ts for the exclusion.
  *
  * The one piece of theatre: a request to a sample user is auto-accepted about
  * a second later, as if the sample friend said yes — that is what lets the
@@ -45,18 +50,24 @@ const defaultStore = (): FriendsStore => ({ version: 1, friends: [], requests: [
 /** Same shape as drill/store.ts and for the same reason: see that file. */
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: () => Promise<T>): Promise<T> {
-  const next = writeChain.then(mutation, mutation);
+function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+  // Bind the account when the work is requested. A sign-out while a background
+  // write is queued must never redirect that write into the next account, and
+  // this store has a timer in it, so a queued accept can land a whole second
+  // after the switch.
+  const key = KEY();
+  const run = () => mutation(key);
+  const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
 }
 
-let cache: Promise<FriendsStore> | null = null;
+const caches = new Map<string, Promise<FriendsStore>>();
 
 // Per-account truth: drop it the moment the account changes, or the next
 // learner would inherit the last learner's friends.
 onUserScopeReset(() => {
-  cache = null;
+  caches.clear();
 });
 
 const listeners = new Set<() => void>();
@@ -75,9 +86,9 @@ function isStore(value: unknown): value is FriendsStore {
   );
 }
 
-async function readStore(): Promise<FriendsStore> {
+async function readStore(key: string): Promise<FriendsStore> {
   try {
-    const raw = await AsyncStorage.getItem(KEY());
+    const raw = await AsyncStorage.getItem(key);
     if (raw) {
       const parsed: unknown = JSON.parse(raw);
       if (isStore(parsed)) return parsed;
@@ -88,16 +99,23 @@ async function readStore(): Promise<FriendsStore> {
   return defaultStore();
 }
 
-function loadStore(): Promise<FriendsStore> {
-  cache ??= readStore();
-  return cache;
+function loadStoreFor(key: string): Promise<FriendsStore> {
+  const cached = caches.get(key);
+  if (cached) return cached;
+  const pending = readStore(key);
+  caches.set(key, pending);
+  return pending;
 }
 
-async function saveStore(store: FriendsStore): Promise<void> {
+function loadStore(): Promise<FriendsStore> {
+  return loadStoreFor(KEY());
+}
+
+async function saveStore(key: string, store: FriendsStore): Promise<void> {
   // The cache is the truth the moment the write is decided; the disk catches up.
-  cache = Promise.resolve(store);
+  caches.set(key, Promise.resolve(store));
   try {
-    await AsyncStorage.setItem(KEY(), JSON.stringify(store));
+    await AsyncStorage.setItem(key, JSON.stringify(store));
   } catch {
     // Storage full or unavailable. The list still works for this launch.
   }
@@ -105,11 +123,11 @@ async function saveStore(store: FriendsStore): Promise<void> {
 
 /** Run one reducer over the store, persist when it changed, tell the screens. */
 function mutate(reduce: (state: FriendsState) => { state: FriendsState; result: FriendsResult }): Promise<FriendsResult> {
-  return serialized(async () => {
-    const store = await loadStore();
+  return serialized(async (key) => {
+    const store = await loadStoreFor(key);
     const { state, result } = reduce({ friends: store.friends, requests: store.requests });
     if (state.friends !== store.friends || state.requests !== store.requests) {
-      await saveStore({ version: 1, ...state });
+      await saveStore(key, { version: 1, ...state });
       notify();
     }
     return result;

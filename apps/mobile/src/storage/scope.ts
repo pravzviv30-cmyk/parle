@@ -62,6 +62,13 @@ export const USER_KEY_SUFFIXES = [
   'missions',
   'coachMarks',
   'soundChecks',
+  // The sync engine's dirty set. It has to be here even though no `userKey`
+  // call in the source names it — the engine resolves it through an injected
+  // key function, so scope.test.ts's literal scan cannot see it, and
+  // sync/registry.test.ts holds this entry against SYNC_STATE_SUFFIX instead.
+  // A queue that survived a data reset would ask the engine to push namespaces
+  // the learner just cleared.
+  'syncState',
 ] as const;
 
 /**

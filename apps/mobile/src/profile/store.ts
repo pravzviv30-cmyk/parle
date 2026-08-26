@@ -23,7 +23,8 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createProfile, repairProfile, type LearnerProfile } from '@parle/brain/profile';
-import { userKey } from '../storage/scope.ts';
+import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import { ageConfirmedFromDob } from './age.ts';
 import { upgradeStored } from './upgrade.ts';
 
@@ -78,6 +79,50 @@ export interface OnboardingAnswers {
   dailyGoalMin?: 5 | 10 | 15 | null;
 }
 
+/**
+ * Every write to this key, one at a time, with the account bound at enqueue.
+ *
+ * This file had no chain, which is the defect the F83 correction note recorded
+ * in `recordSession`: two read-modify-writes over one key lose one of them, and
+ * this key has two writers now — a finished session saving the brain's model,
+ * and the sync engine folding the account's profile in through `adoptProfile`.
+ * Without the chain the adoption's read and the session's write interleave and
+ * whichever finishes second wins the whole blob.
+ *
+ * The key is resolved when the work is *asked for*, not when it runs, for the
+ * reason review/store.ts states: a sign-out while a write is queued must never
+ * redirect that write into the next learner's account.
+ */
+let writeChain: Promise<unknown> = Promise.resolve();
+
+function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+  const key = KEY();
+  const run = () => mutation(key);
+  const next = writeChain.then(run, run);
+  writeChain = next.catch(() => {});
+  return next;
+}
+
+/**
+ * The profile exactly as the sync engine reads it: the parsed key, or null when
+ * this account has never written one.
+ *
+ * Deliberately *not* `loadProfile`. That upgrades and repairs on the way out,
+ * and the merge policy runs its own version chain over both sides so that two
+ * builds are compared like for like. Handing it an already-upgraded blob would
+ * be this store deciding a schema question the merge owns.
+ */
+async function persistedProfile(key: string): Promise<unknown> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as unknown) : null;
+  } catch {
+    // Unreadable is the same as absent: the fold merges against nothing and the
+    // account's profile is adopted whole, which is what a fresh device does.
+    return null;
+  }
+}
+
 export async function loadProfile(): Promise<StoredProfile | null> {
   try {
     const raw = await AsyncStorage.getItem(KEY());
@@ -96,13 +141,69 @@ export async function loadProfile(): Promise<StoredProfile | null> {
   }
 }
 
-export async function saveProfile(p: StoredProfile): Promise<void> {
-  try {
-    await AsyncStorage.setItem(KEY(), JSON.stringify(p));
-  } catch {
-    // Storage full or unavailable. The profile still holds for this launch.
-  }
+export function saveProfile(p: StoredProfile): Promise<void> {
+  return serialized(async (key) => {
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify(p));
+      markDirty('profile');
+    } catch {
+      // Storage full or unavailable. The profile still holds for this launch.
+    }
+  });
 }
+
+/**
+ * Fold the account's profile into this device's, on this store's own chain.
+ *
+ * The engine hands over a fold rather than a finished profile, because it read
+ * this key before the pull. A conversation that ended during the round trip
+ * wrote the brain's new phrases and error patterns here, and a profile computed
+ * before that conversation was written straight over them — then pushed, because
+ * the save had already raised the dirty flag, so the session's learning was gone
+ * on every device. Calling the fold here, inside the chain, between the read and
+ * the write, is what keeps it: `mergeStoredProfiles` unions phrases and error
+ * patterns by key and is idempotent, so folding a merge into a newer profile
+ * cannot lose either side's learning.
+ *
+ * It is honest about what it still cannot promise. Everything outside those two
+ * unions is taken whole from the evidence-heavier side, so a `cefr` or `memory`
+ * delta written during the cycle can still lose the tiebreak. That is strictly
+ * better than what it replaced, where such a write lost *every* field, and
+ * field-wise merge is Phase 4's job with the rest of the mastery reconciliation.
+ *
+ * The result goes through the same two doors every read goes through:
+ * `upgradeStored` for the schema version and `repairProfile` for the brain. The
+ * merge came from a payload another device wrote, possibly on an older build, so
+ * it gets exactly the scepticism a blob off this device's own disk gets — no
+ * more, and above all no less. An unreadable one is declined rather than
+ * written, because onboarding running again is recoverable and a corrupt profile
+ * reaching the tutor worker is not.
+ *
+ * No `markDirty`: adopting is this device catching up with the account, not a
+ * new local change. See sync/registry.ts.
+ */
+function adoptProfile(fold: SyncFold): Promise<SyncAdoption> {
+  return serialized(async (key) => {
+    const folded = fold(await persistedProfile(key));
+    const upgraded = upgradeStored(folded);
+    if (!upgraded) return 'declined';
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify({ ...upgraded, brain: repairProfile(upgraded.brain) }));
+    } catch {
+      // Storage full or unavailable. The next cycle hands the same fold back.
+    }
+    return 'adopted';
+  });
+}
+
+function registerAdopter(): void {
+  registerSyncAdopter('profile', adoptProfile);
+}
+
+// Registered at load, and again whenever the account scope changes: the sync
+// registry is cleared on an account switch, and a module only evaluates once.
+registerAdopter();
+onUserScopeReset(registerAdopter);
 
 /**
  * What the learner's answers let us say about their age.

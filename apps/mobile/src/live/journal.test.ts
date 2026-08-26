@@ -6,17 +6,32 @@
  * ConvoScreen banks on practice, with a fallback for the learner who taps Done
  * first. Nothing covered the learner who reads the recap and swipes the app
  * away, which is not an exotic way to leave an app.
+ *
+ * The drills were worse still. They arrive last of all, and ConvoScreen merged
+ * them straight into an in-memory bank — so an app closed in that beat lost the
+ * whole batch with nothing anywhere recording that it had ever existed. They now
+ * ride in the same envelope and are banked by the same once-per-launch pass, and
+ * the version 1 journals already sitting on phones are still read rather than
+ * discarded by the upgrade that added the field.
  */
 
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import type { RecapPayload } from '@parle/core';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { DrillExercise, RecapPayload } from '@parle/core';
 
-import { JOURNAL_VERSION, isWorthKeeping, journalFor, recoveryPlan } from './journalRules.ts';
+import { loadDrillBank } from '../drill/store.ts';
+import { loadDeck } from '../review/store.ts';
+import { setActiveUser } from '../storage/scope.ts';
+import { journalDrills, journalRecap, recoverJournal } from './journal.ts';
+import { JOURNAL_VERSION, isWorthKeeping, journalFor, journalWithDrills, recoveryPlan } from './journalRules.ts';
 
 const NOW = new Date(2026, 7, 20, 14).getTime();
 
 const phrase = (fr: string, en: string) => ({ fr, frWritten: null, en, enLiteral: null, register: 'familier', note: null });
+
+const drill = (id: string, phraseKey: string): DrillExercise =>
+  ({ id, phraseKey, kind: 'listen-type', difficulty: 'production', fr: 'Ça marche', accepted: ['ça marche'] }) as DrillExercise;
 
 const recap = (over: Partial<RecapPayload> = {}): RecapPayload => ({
   headline: 'You ordered a coffee.',
@@ -97,5 +112,117 @@ describe('the session journal', () => {
     const plan = recoveryPlan(journalFor(recap({ topics: [] }), NOW));
     assert.equal(plan?.phrases.length, 2);
     assert.deepEqual(plan?.topics, []);
+  });
+});
+
+/**
+ * The store half, which needs a disk.
+ *
+ * AsyncStorage resolves under plain node but has no implementation off a
+ * device, so the module object every store shares is given one here. Same
+ * arrangement as storage/storeBinding.test.ts, and the reason a crash-recovery
+ * promise can be checked at all without a simulator.
+ */
+function installDisk(initial: Record<string, string> = {}): Map<string, string> {
+  const map = new Map<string, string>(Object.entries(initial));
+  const shared = AsyncStorage as unknown as Record<string, unknown>;
+  shared.getItem = (key: string): Promise<string | null> => Promise.resolve(map.get(key) ?? null);
+  shared.setItem = (key: string, value: string): Promise<void> => {
+    map.set(key, value);
+    return Promise.resolve();
+  };
+  shared.removeItem = (key: string): Promise<void> => {
+    map.delete(key);
+    return Promise.resolve();
+  };
+  return map;
+}
+
+let uids = 0;
+const nextUid = (): string => `22222222-2222-4222-8222-${String(++uids).padStart(12, '0')}`;
+
+describe('the drills a conversation leaves behind', () => {
+  test('drills that arrived before the app closed are banked on the next launch', async () => {
+    // The whole point of the outbox: the batch is written down the moment it
+    // arrives, the app dies before anything banks it, and the next launch finds
+    // it and puts it in the bank.
+    const uid = nextUid();
+    const disk = installDisk();
+    setActiveUser(uid);
+
+    await journalRecap(recap(), NOW);
+    await journalDrills([drill('gen:crashed', 'phrase:ça marche')], NOW);
+
+    // The app is gone. Nothing merged the batch, nothing cleared the journal.
+    assert.ok(disk.has(`parle.u.${uid}.journal`), 'the batch was on disk when the app died');
+
+    const banked = await recoverJournal();
+
+    assert.equal(banked, 2, 'the recap phrases were banked too');
+    assert.deepEqual(
+      (await loadDrillBank()).filter((e) => e.id.startsWith('gen:')).map((e) => e.id),
+      ['gen:crashed'],
+      'the batch the tutor authored reached the bank on the launch after the crash',
+    );
+    assert.ok(
+      (await loadDeck()).some((card) => card.id === 'phrase:ça marche'),
+      'and the phrases still bank, because drills did not displace them',
+    );
+    assert.equal(disk.has(`parle.u.${uid}.journal`), false, 'banked, then cleared — never the other order');
+  });
+
+  test('a journal written by the build before this one still banks everything it holds', async () => {
+    // Repair forward, never reinterpret in place. A learner whose app died the
+    // day they updated has a version 1 envelope on disk with no drills field,
+    // and dropping it would lose the session to the upgrade that was meant to
+    // protect it.
+    const uid = nextUid();
+    const disk = installDisk({
+      [`parle.u.${uid}.journal`]: JSON.stringify({
+        version: 1,
+        savedAt: NOW,
+        phrases: [phrase('Autre chose', 'something else')],
+        topics: [{ fr: 'Au café', en: 'Ordering at the café' }],
+      }),
+    });
+    setActiveUser(uid);
+
+    assert.equal(await recoverJournal(), 1, 'the old envelope was read, not discarded');
+    assert.ok((await loadDeck()).some((card) => card.id === 'phrase:autre chose'));
+    assert.equal(disk.has(`parle.u.${uid}.journal`), false);
+  });
+
+  test('a batch that arrives after the recap does not erase the phrases waiting beside it', async () => {
+    const uid = nextUid();
+    const disk = installDisk();
+    setActiveUser(uid);
+
+    await journalRecap(recap(), NOW);
+    await journalDrills([drill('gen:late', 'phrase:ça marche')], NOW);
+
+    const written = JSON.parse(disk.get(`parle.u.${uid}.journal`)!) as { phrases: unknown[]; drills: unknown[] };
+    assert.equal(written.phrases.length, 2, 'the recap phrases are still in the envelope');
+    assert.equal(written.drills.length, 1, 'and so is the batch');
+  });
+
+  test('a recap landing on a journal that already holds drills carries them across', () => {
+    // The ordinary order is recap then drills, so this is usually a no-op. When
+    // it is not, the alternative is a write that silently deletes a batch that
+    // is banked nowhere else.
+    const withDrills = journalWithDrills(null, [drill('gen:first', 'phrase:one')], NOW);
+    assert.equal(isWorthKeeping(withDrills), true, 'a batch with no phrases is still worth keeping');
+    assert.equal(recoveryPlan(withDrills)?.drills.length, 1, 'and worth recovering on its own');
+    assert.deepEqual(recoveryPlan(withDrills)?.phrases, [], 'without inventing a phrase to go with it');
+  });
+
+  test('a batch of drills nobody can identify is not banked at all', () => {
+    const plan = recoveryPlan({
+      version: JOURNAL_VERSION,
+      savedAt: NOW,
+      phrases: [phrase('Ça marche', 'coming up')],
+      topics: [],
+      drills: [drill('gen:good', 'phrase:ça marche'), { id: 'gen:bad' }, 'nonsense'],
+    });
+    assert.deepEqual(plan?.drills.map((d) => d.id), ['gen:good'], 'the readable half still lands');
   });
 });

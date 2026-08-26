@@ -21,7 +21,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { userKey } from '../storage/scope.ts';
+import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
 /** Resolved per call: the active account can change between calls. */
 const KEY = () => userKey('missions');
@@ -48,6 +49,9 @@ interface StoredMissions {
   version: typeof VERSION;
   completions: MissionCompletion[];
 }
+
+/** See progress/activity.ts for why an adopted write does not raise the flag. */
+type WriteOrigin = 'local' | 'adopted';
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
@@ -82,6 +86,22 @@ async function readCompletions(key: string): Promise<MissionCompletion[]> {
   }
 }
 
+/**
+ * The envelope exactly as the sync engine reads it: the parsed key, or null when
+ * this account has never written one.
+ *
+ * Not `readCompletions`, which unwraps to a bare list and answers a missing key
+ * with an empty one. The merge policy works on the shape that is on disk.
+ */
+async function persistedCompletions(key: string): Promise<unknown> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as unknown) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function loadMissionCompletions(): Promise<MissionCompletion[]> {
   return readCompletions(KEY());
 }
@@ -97,11 +117,70 @@ export function recordMissionCompletion(id: string, rung: number, at = Date.now(
       .sort((a, b) => a.at - b.at)
       .slice(-COMPLETIONS_PER_MISSION);
     const completions = [...existing.filter((c) => c.id !== id), ...mine];
-    try {
-      await AsyncStorage.setItem(key, JSON.stringify({ version: VERSION, completions } satisfies StoredMissions));
-    } catch {
-      // Storage full or unavailable. The learner still had the win, the recap
-      // still banks the phrases, and the mission simply reads as new next time.
-    }
+    await saveCompletions(key, completions, 'local');
   });
 }
+
+async function saveCompletions(
+  key: string,
+  completions: readonly MissionCompletion[],
+  origin: WriteOrigin,
+): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify({ version: VERSION, completions: [...completions] } satisfies StoredMissions));
+    if (origin === 'local') markDirty('missions');
+  } catch {
+    // Storage full or unavailable. The learner still had the win, the recap
+    // still banks the phrases, and the mission simply reads as new next time.
+  }
+}
+
+/**
+ * Fold the account's completions into this device's, on this store's own chain.
+ *
+ * The engine hands over a fold rather than a finished set, because it read this
+ * key before the pull: a mission finished during the round trip was written over
+ * by a set computed before the win, and then pushed, so the win was gone on every
+ * device. The fold is called here, inside the chain, between the read and the
+ * write, with the set this store holds at that instant. The union is by
+ * `(mission, finished at)`, so folding twice is the same as folding once.
+ *
+ * The per-mission cap is re-applied rather than trusted from the wire: a merged
+ * set is the union of two devices' rows and can exceed it. Keeping the most
+ * recent by `at` is the same rule `recordMissionCompletion` uses, so a synced
+ * device and a solo one age out the same wins. Missions are visited in sorted id
+ * order because that is the order sync/policy.ts emits, and the disk has to end
+ * up holding what the engine is about to push: a row differing from the account's
+ * by nothing but array order is re-adopted on every cycle, forever. Following the
+ * fold's own order would give the same answer today; stating the order means it
+ * still does if the fold ever stops sorting.
+ */
+function adoptMissionCompletions(fold: SyncFold): Promise<SyncAdoption> {
+  return serialized(async (key) => {
+    const folded = fold(await persistedCompletions(key));
+    if (typeof folded !== 'object' || folded === null) return 'declined';
+    const envelope = folded as Partial<StoredMissions>;
+    if (envelope.version !== VERSION || !Array.isArray(envelope.completions)) return 'declined';
+    const byMission = new Map<string, MissionCompletion[]>();
+    for (const completion of envelope.completions.filter(isCompletion)) {
+      const rows = byMission.get(completion.id) ?? [];
+      rows.push(completion);
+      byMission.set(completion.id, rows);
+    }
+    const completions: MissionCompletion[] = [];
+    for (const id of [...byMission.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
+      completions.push(...(byMission.get(id) ?? []).sort((a, b) => a.at - b.at).slice(-COMPLETIONS_PER_MISSION));
+    }
+    await saveCompletions(key, completions, 'adopted');
+    return 'adopted';
+  });
+}
+
+function registerAdopter(): void {
+  registerSyncAdopter('missions', adoptMissionCompletions);
+}
+
+// Registered at load, and again whenever the account scope changes: the sync
+// registry is cleared on an account switch, and a module only evaluates once.
+registerAdopter();
+onUserScopeReset(registerAdopter);
