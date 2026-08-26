@@ -1,5 +1,6 @@
 import { auth, authHeaders } from '../auth/adapter.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
+import type { SoundCheckKind } from '../soundcheck/model.ts';
 
 /**
  * The five events, and every property any of them may carry.
@@ -19,7 +20,7 @@ export type ProductEvent =
   | { name: 'onboarding_completed'; properties: { personalisedGreeting: boolean } }
   | { name: 'mission_started'; properties: { missionId: string; entry: 'chooser' | 'home' | 'my-french' } }
   | { name: 'mission_completed'; properties: { missionId: string; rung: number } }
-  | { name: 'sound_check_completed'; properties: { missionId: string; kind: string } }
+  | { name: 'sound_check_completed'; properties: { missionId: string; kind: SoundCheckKind } }
   | { name: 'my_french_opened'; properties: { situationsDone: number; linesKept: number } };
 
 /** Fire-and-forget product evidence. No content fields exist in the type. */

@@ -64,3 +64,34 @@ describe('onboarding analytics — F112', () => {
     );
   });
 });
+
+describe('an event property means the same thing to the client and the server — F117', () => {
+  // F116 happened because a client type changed and nothing forced the server's
+  // half. The forcing function that shipped with it pins KEY SETS across all five
+  // events — and would not have caught this, because widening a value domain
+  // leaves the key set identical. `kind: string` accepted anything the client
+  // could invent while productEvents.ts and the trigger enforced a closed enum,
+  // so a fifth SoundCheckKind would have compiled clean and been rejected in
+  // production, silently. The type is the forcing function now.
+  test('a sound check reports one of the kinds the model actually defines', () => {
+    const model = readFileSync(join(HERE, '..', 'soundcheck', 'model.ts'), 'utf8');
+    assert.match(
+      model,
+      /export type SoundCheckKind =/,
+      'SoundCheckKind is the source of truth for what a sound check may report',
+    );
+
+    const line = UNION.split('\n').find((l) => l.includes("name: 'sound_check_completed'"));
+    assert.ok(line, 'ProductEvent no longer has a sound_check_completed variant');
+    assert.match(
+      line,
+      /kind:\s*SoundCheckKind/,
+      'kind must be SoundCheckKind: a bare string compiles clean here and the server refuses it',
+    );
+    assert.doesNotMatch(
+      line,
+      /kind:\s*string/,
+      'a bare string here is how a fifth kind reaches production and is dropped in silence',
+    );
+  });
+});

@@ -2341,3 +2341,23 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   break a server contract while every suite stays green. Phase 3's contract scoped
   analytics/track.ts and stopped there, which is exactly how this got through.
 - verified-by: `onboarding_completed is accepted without motivationAnswered`
+
+### F117 — sound_check_completed had F116's failure mode already armed
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/analytics/track.ts:22
+- note: found by api-engineer while auditing the other four events for the same drift that
+  caused F116, and reported rather than fixed silently because it was outside that contract.
+  The key sets agreed; the VALUE DOMAIN did not. track.ts typed the property as bare
+  `kind: string` while productEvents.ts and the trigger both enforce a closed four-value
+  enum, and the real source is `SoundCheckKind` in soundcheck/model.ts. Nothing was broken —
+  the four values coincided — but adding a fifth kind would have typechecked clean on the
+  client and been silently rejected by both server layers, which is exactly how F116 happened.
+  Closed by importing SoundCheckKind into the union, so a fifth value now fails the client
+  typecheck and forces the server's hand in the same change. One line, and it turns a latent
+  repeat into a compile error.
+  Note what actually found this: not a test, but an engineer told to audit its neighbours after
+  fixing one instance. The forcing function shipped with F116 — `the parser and the trigger
+  require the same properties for every product event` — pins key sets across all five events,
+  and would not have caught this, because a widened value domain keeps the key set identical.
+- verified-by: `a sound check reports one of the kinds the model actually defines`
