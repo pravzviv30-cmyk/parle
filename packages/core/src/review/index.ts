@@ -13,3 +13,5 @@ export {
 } from './scheduler.ts';
 
 export { buildCardsFromSummary } from './cards.ts';
+
+export { mergeDecks, gradesApplied } from './merge.ts';

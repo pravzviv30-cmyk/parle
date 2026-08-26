@@ -9,7 +9,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./llm": "./src/llm/index.ts",
-    "./profile": "./src/profile/profile.ts"
+    "./profile": "./src/profile/profile.ts",
+    "./profile/merge": "./src/profile/merge.ts"
   },
   "scripts": {
     "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",

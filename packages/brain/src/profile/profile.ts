@@ -307,7 +307,13 @@ export function applyTurnToProfile(profile: LearnerProfile, turn: TutorTurn, now
   return next;
 }
 
-function evictStalePatterns(profile: LearnerProfile): void {
+/**
+ * Exported for `merge.ts` alone. Two devices' error patterns union to more
+ * than one device ever holds, so the merge has to re-apply this cap — and a
+ * second copy of the eviction rule would be a second opinion about what the
+ * learner is allowed to forget.
+ */
+export function evictStalePatterns(profile: LearnerProfile): void {
   const entries = Object.entries(profile.errorPatterns);
   if (entries.length <= MAX_ERROR_PATTERNS) return;
   entries
@@ -324,8 +330,11 @@ function evictStalePatterns(profile: LearnerProfile): void {
  *
  * Eviction prefers to forget what was never learned: unmastered before
  * mastered, oldest introduction first within each group.
+ *
+ * Exported for `merge.ts` for the same reason as `evictStalePatterns`: the
+ * merge has to re-apply the cap, and it must be this rule, not a copy of it.
  */
-function evictOverflowPhrases(profile: LearnerProfile): void {
+export function evictOverflowPhrases(profile: LearnerProfile): void {
   const entries = Object.entries(profile.phrases);
   if (entries.length <= MAX_PHRASES) return;
   entries
