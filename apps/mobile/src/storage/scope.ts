@@ -11,9 +11,19 @@
  * sign in on a device inherits that data once (it is theirs — there was only
  * ever one learner per install), then the legacy keys are gone and a marker
  * stops any later account from inheriting anything.
+ *
+ * A handful of keys are genuinely device-level rather than per-account, and
+ * when the screen that read one is deleted the key is left behind on every
+ * phone that has the app. The same seam sweeps those away.
+ *
+ * Not everything a learner leaves behind is a key. Two screens record audio,
+ * and expo-audio writes those recordings into the app's cache as files. Those
+ * files are swept here too — see `clearActiveUserData`.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { sweepAttemptAudio, type AttemptAudioSweepResult } from './attemptAudio.ts';
 
 let activeUid: string | null = null;
 
@@ -72,13 +82,63 @@ export const USER_KEY_SUFFIXES = [
 ] as const;
 
 /**
- * Wipe the signed-in account's learning data (profile, history, deck, bank)
- * and drop module caches. The account itself survives; onboarding reruns.
+ * One greppable line, the shape RECORDING_NOT_DISCARDED already uses. It
+ * carries no path on purpose: that a sweep left something behind is the whole
+ * signal, and a device path is the kind of thing that ends up in a support
+ * ticket.
  */
-export async function clearActiveUserData(): Promise<void> {
-  if (activeUid === null) return;
+export const ATTEMPT_AUDIO_NOT_SWEPT = '[parle] ATTEMPT_AUDIO_NOT_SWEPT';
+
+/**
+ * The two effects a reset has outside AsyncStorage, injected so this policy can
+ * be tested without a device. The defaults are the real ones: the platform pair
+ * in attemptAudio.ts, and the console.
+ */
+export interface ClearHooks {
+  sweepAudio?: () => AttemptAudioSweepResult;
+  alarm?: (line: string) => void;
+}
+
+/**
+ * Wipe the signed-in account's learning data (profile, history, deck, bank),
+ * remove any attempt audio still on the device, and drop module caches. The
+ * account itself survives; onboarding reruns.
+ *
+ * Both doors come through here: the progress reset in ProfileTab, and account
+ * deletion, which deliberately keeps the local session alive until this has run
+ * so the active namespace can still be resolved.
+ *
+ * Three orderings, and each is load-bearing.
+ *
+ * **Audio first.** Every attempt already deletes its own recording
+ * (speech/discardRecording.ts). This is the backstop for the app killed
+ * mid-attempt, for the builds that shipped before that discard existed, and for
+ * whatever path nobody thought of. It runs ahead of the key removal so a
+ * storage failure cannot skip it — the bytes nobody can inspect matter more
+ * than the ones the learner can see are gone.
+ *
+ * **A failed sweep does not break the reset.** It cannot: the learner asked for
+ * their data to go and most of it can. So the sweep is counted rather than
+ * thrown, and a non-zero count leaves ATTEMPT_AUDIO_NOT_SWEPT in the log.
+ * Swallowed is not the same as hidden.
+ *
+ * **A failed key removal still throws, exactly as it did.** App.tsx catches it
+ * on the deletion path and tells the learner plainly that this device could not
+ * finish erasing its local copy. That honesty is an existing property and
+ * nothing here is allowed to quiet it.
+ */
+export async function clearActiveUserData(hooks: ClearHooks = {}): Promise<void> {
+  const uid = activeUid;
+  if (uid === null) return;
   try {
-    await AsyncStorage.multiRemove(USER_KEY_SUFFIXES.map((s) => `parle.u.${activeUid}.${s}`));
+    const sweep = hooks.sweepAudio ?? sweepAttemptAudio;
+    const alarm = hooks.alarm ?? ((line: string): void => console.error(line));
+    try {
+      if (sweep().failed > 0) alarm(ATTEMPT_AUDIO_NOT_SWEPT);
+    } catch {
+      alarm(ATTEMPT_AUDIO_NOT_SWEPT);
+    }
+    await AsyncStorage.multiRemove(USER_KEY_SUFFIXES.map((s) => `parle.u.${uid}.${s}`));
   } finally {
     for (const hook of resetHooks) hook();
   }
@@ -95,6 +155,19 @@ const LEGACY_KEYS: readonly (readonly [string, string])[] = [
 ];
 
 /**
+ * Device-level keys whose reader has been deleted.
+ *
+ * These are not legacy keys, because there is nothing left to inherit.
+ * `parle.seenSplash.v1` recorded that this install had seen the pre-auth
+ * splash; the splash is gone, so the flag now encodes "has seen a screen that
+ * no longer exists". Removing it is the whole migration.
+ *
+ * Exported so scope.test.ts can hold the list against the app source and fail
+ * if anything starts reading a key the sweep deletes.
+ */
+export const RETIRED_DEVICE_KEYS = ['parle.seenSplash.v1'] as const;
+
+/**
  * One-time inheritance of pre-auth device data by the first account.
  * Idempotent: the marker short-circuits, and an existing namespaced value is
  * never overwritten. Copy lands before delete, so a crash between the two
@@ -103,8 +176,26 @@ const LEGACY_KEYS: readonly (readonly [string, string])[] = [
 export async function migrateLegacyStores(uid: string): Promise<void> {
   try {
     const targets = LEGACY_KEYS.map(([, suffix]) => `parle.u.${uid}.${suffix}`);
-    const keys = [MIGRATED_MARKER, ...LEGACY_KEYS.map(([legacy]) => legacy), ...targets];
+    const keys = [
+      MIGRATED_MARKER,
+      ...RETIRED_DEVICE_KEYS,
+      ...LEGACY_KEYS.map(([legacy]) => legacy),
+      ...targets,
+    ];
     const values = new Map(await AsyncStorage.multiGet(keys));
+
+    // Swept ahead of the marker, deliberately. Every device still carrying a
+    // retired key inherited its pre-auth data long ago, so the marker is
+    // already set and a sweep behind it would never run on the only devices
+    // that need one. Idempotent because a key that is gone never reads as
+    // present: after the launch that removes it this costs one entry in the
+    // batch above and no write at all.
+    const retired = RETIRED_DEVICE_KEYS.filter((key) => {
+      const value = values.get(key);
+      return value !== null && value !== undefined;
+    });
+    if (retired.length > 0) await AsyncStorage.multiRemove([...retired]);
+
     if (values.get(MIGRATED_MARKER) !== null) return;
 
     const writes: [string, string][] = [];

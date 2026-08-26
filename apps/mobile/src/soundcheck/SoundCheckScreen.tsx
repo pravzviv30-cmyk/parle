@@ -7,6 +7,7 @@ import { getMission } from '@parle/core';
 import { Card, EarGlyph, GhostButton, Label, PillButton, SpeakCircle, fitDisplay } from '../components.tsx';
 import { HIT, paper, paperFor, space, type } from '../theme.ts';
 import { scoreRecordedAttempt } from '../speech/scoreAttempt.ts';
+import { consumeRecording, discardRecording } from '../speech/discardRecording.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
 import { SELF_GUIDED, nextSoundCheckReference, soundCheckDecision, type SoundCheckDecision } from './model.ts';
 import { loadSoundChecks, recordSoundCheck } from './store.ts';
@@ -75,17 +76,29 @@ export function SoundCheckScreen({
   const toggle = useCallback(async () => {
     if (!reference || phase === 'scoring' || phase === 'loading') return;
     if (phase === 'recording') {
-      let uri: string | null = null;
+      let lost = false;
       try {
         await recorder.stop();
-        uri = recorder.uri;
       } catch {
         // It was still spoken; only assessment goes without.
+        lost = true;
+      }
+      // Where it was written, asked for on its own. A stop that threw can still
+      // have left bytes on disk, and the path is the only way to reach them.
+      let uri: string | null = null;
+      try {
+        uri = recorder.uri;
+      } catch {
+        uri = null;
       }
       void setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => undefined);
-      if (!uri) return selfGuided();
+      if (lost || !uri) {
+        // Nothing here can be assessed, so nothing here should be kept either.
+        discardRecording(uri);
+        return selfGuided();
+      }
       setPhase('scoring');
-      const score = await scoreRecordedAttempt(userId, uri, reference);
+      const score = await consumeRecording(uri, (recorded) => scoreRecordedAttempt(userId, recorded, reference));
       const decision = soundCheckDecision(score?.observations.length ?? 0, score?.report ?? null);
       setResult(decision);
       setPhase('result');

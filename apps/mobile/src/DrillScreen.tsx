@@ -62,6 +62,7 @@ import { loadTopics } from './topics/store.ts';
 import { sittingTitle, topicGroups } from './practice/mix.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 import { scoreRecordedAttempt } from './speech/scoreAttempt.ts';
+import { consumeRecording, discardRecording } from './speech/discardRecording.ts';
 
 /** How long a feedback line holds the floor before the next exercise deals. */
 const FEEDBACK_MS = 1600;
@@ -459,12 +460,27 @@ function RepeatThisView({
     busyRef.current = true;
     try {
       if (mic === 'live') {
-        let uri: string | null = null;
+        let lost = false;
         try {
           await recorder.stop();
-          uri = recorder.uri;
         } catch {
           // A take the recorder lost was still spoken; only scoring goes without.
+          lost = true;
+        }
+        // Where it was written, asked for on its own. A stop that threw can
+        // still have left bytes on disk, and reading the path is the only way
+        // to reach them; if even that fails there is nothing to name.
+        let uri: string | null = null;
+        try {
+          uri = recorder.uri;
+        } catch {
+          uri = null;
+        }
+        if (lost) {
+          // Unscorable, so it travels no further, and unscorable is exactly
+          // when a file would otherwise be left behind for good.
+          discardRecording(uri);
+          uri = null;
         }
         // Hand the audio session back to playback, so Hear it keeps its volume.
         void setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => undefined);
@@ -665,16 +681,19 @@ export function DrillScreen({
   // is even asked — scoring can add one line to the beat, never subtract.
   const spoke = useCallback(
     (uri: string | null) => {
-      if (!session || session.finished || feedback) return;
+      // Both of these mean the take arrived after the beat it belonged to. The
+      // grade is gone either way; the file must not be.
+      if (!session || session.finished || feedback) return discardRecording(uri);
       const current = session.queue[0];
-      if (!current || current.kind !== 'repeat-this') return;
+      if (!current || current.kind !== 'repeat-this') return discardRecording(uri);
       const beat = beatRef.current;
       answer(current.reference);
-      if (uri === null) return;
-      void scoreRecordedAttempt(userId, uri, current.reference).then((score) => {
-        const reason = score?.report.focus?.reason ?? null;
-        if (reason !== null && beatRef.current === beat) setFocusLine(reason);
-      });
+      void consumeRecording(uri, (recorded) => scoreRecordedAttempt(userId, recorded, current.reference)).then(
+        (score) => {
+          const reason = score?.report.focus?.reason ?? null;
+          if (reason !== null && beatRef.current === beat) setFocusLine(reason);
+        },
+      );
     },
     [session, feedback, answer, userId],
   );

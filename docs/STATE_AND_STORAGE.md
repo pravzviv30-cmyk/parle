@@ -17,9 +17,11 @@ it is a projection of the deck), `friends` (the local friends adapter's
 list and requests, currently dormant while social is outside primary navigation),
 `missions` (a bounded history of mission finishes and their rungs, which is the
 only mission fact stored rather than projected), `soundChecks` (known-reference
-attempt evidence and a single learner-safe focus, never raw audio or a numeric score),
-`coachMarks` (which of the in-conversation controls have been pointed out, one
-key for all of them), and `journal`.
+attempt evidence and a single learner-safe focus, never raw audio or a numeric score
+— the recording it was measured from is a file in the cache, not a value in the
+store, and "Attempt audio" below is what happens to it), `coachMarks` (which of the
+in-conversation controls have been pointed out, one key for all of them), and
+`journal`.
 
 `journal` is the only store that is meant to be empty. A conversation's recap is
 written there the moment it arrives and deleted the moment its phrases are
@@ -55,6 +57,88 @@ later session** — which also needs cross-session identity and app-side dedup s
 a redelivered recap is banked once. That is wire-and-agent work, not data-sync
 work, and doing half of it would only narrow a window that Phase 5 removes.
 F92 in `docs/KNOWN_ISSUES.md` keeps it on the books.
+
+### Attempt audio, and the one thing on the phone that is not a key
+
+The stores above are the whole of what a learner leaves in AsyncStorage. They are
+not the whole of what a learner leaves on the phone.
+
+Two screens record. The drill's spoken attempt (`DrillScreen`) and the sound check
+(`soundcheck/SoundCheckScreen`) both go through `expo-audio`, which writes the take
+to a **file in the app's own cache** and hands back its uri —
+`<cache>/ExpoAudio/recording-<uuid>.m4a` on iOS and `<cache>/Audio/recording-<uuid>.m4a`
+on Android, read off the SDK 57 sources rather than guessed. That uri is uploaded to
+be scored, and until F115 that was the end of the story: nothing ever removed the
+file. So "`soundChecks` holds evidence, never raw audio" was true of the store and
+false of the disk, and a learner who deleted their account left their own voice
+behind on the device.
+
+Two things close it, and they are deliberately not the same thing.
+
+**The attempt deletes its own recording.** `speech/discardRecording.ts` owns that.
+`consumeRecording` lets the scorer finish reading the file and only then removes it,
+on every exit: scored, unscored because assessment is off, refused, thrown, or a
+take that arrived after its beat had passed. A discard that fails costs the learner
+nothing and leaves `[parle] RECORDING_NOT_DISCARDED` in the log, because swallowed
+is not the same as hidden.
+
+**The reset sweeps whatever is left.** `clearActiveUserData` empties the two cache
+directories `expo-audio` records into (`storage/attemptAudio.native.ts`) **before**
+it touches a single key, and both doors go through it — the progress reset and
+account deletion. It is the backstop for the three cases per-attempt deletion cannot
+reach: the app killed between `stop()` and the delete, the builds that shipped before
+that discard existed and whose recordings an upgrade does not remove, and whatever
+path nobody thought of.
+
+The **cache root is not swept**, on purpose. `progress/saveFile.native.ts` writes the
+Anki export straight into `<cache>`, and a learner who exported a deck and has not
+opened the share sheet yet would lose it. Only the two audio directories go, and both
+are recreated by `expo-audio` on the next recording.
+
+A sweep that cannot finish does not take the reset down with it. The keys still go,
+the module caches still drop, and `[parle] ATTEMPT_AUDIO_NOT_SWEPT` is what says so.
+A failed **key** removal still throws exactly as it did, and `App.tsx` still tells the
+learner plainly that this device could not finish erasing its local copy.
+
+There is no file to sweep on web: `expo-audio` hands back a `blob:` URL there and
+revoking it is the whole of the cleanup, which is why `storage/attemptAudio.ts` and
+`speech/removeRecording.ts` are the web halves of a Metro platform split.
+
+What is proven and what is not, said plainly. The policy is under test in
+`speech/discardRecording.test.ts` and `storage/scope.test.ts` — the ordering, the
+exit paths, the failure discipline, and that both reset doors call the real sweep
+rather than a test double. The unlink itself is a platform call that no test on a
+laptop can execute, so it is read as source instead. That half is a device check and
+it has not been run on one yet.
+
+### Device-level keys, and the one that retired
+
+Almost everything is per-account. Two keys are not, because they are read before
+anyone is signed in and `userKey()` throws there: `parle.legacyMigrated.v1`, the
+marker that stops a second account inheriting the first one's pre-auth data, and
+`parle.seenSplash.v1`, which recorded that this install had seen the pre-auth
+splash.
+
+A device-level key is the one kind that survives everything a learner can do to
+their own data: it outlives `clearActiveUserData`, it outlives signing out, and it
+outlives deleting the account. So when the screen that reads one is deleted, the
+key does not go with it — it sits on every phone that ever ran the old build,
+readable by nobody.
+
+The splash is gone, so `parle.seenSplash.v1` now encodes "has seen a screen that
+no longer exists". Nothing of value is lost by removing it, and that is the whole
+migration. `RETIRED_DEVICE_KEYS` in `scope.ts` names it and `migrateLegacyStores`
+sweeps it on sign-in, in the same batched read the legacy inheritance already
+does — **before** the `parle.legacyMigrated.v1` short-circuit, deliberately. Every
+device still carrying the flag inherited its pre-auth data long ago and therefore
+already has the marker set, so a sweep behind the marker would run only on the
+devices that do not need one. It is idempotent because a key that is gone never
+reads as present: after the launch that removes it, the sweep costs one entry in a
+batch already being read and no write at all.
+
+The audit that has to happen before a key joins that list is in
+`docs/DELETION_LEDGER.md`, and `scope.test.ts` holds both halves — that the flag is
+actually removed, and that nothing in the app still reads a key the sweep deletes.
 
 ### The sync contract
 
