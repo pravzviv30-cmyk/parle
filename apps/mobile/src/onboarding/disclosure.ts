@@ -43,6 +43,13 @@
  * audio is deleted either: the device recorder still leaves attempt files in
  * the app cache, which `PRIVACY_AND_SAFETY.md` lists under Not true yet, and a
  * first-run screen is the worst place to make a promise the code has not kept.
+ *
+ * F115 closed the recorder half of that gap after this module was written: an
+ * attempt is discarded once scoring is done with it, and a reset sweeps anything
+ * left behind. The mic line still makes no claim about deletion, deliberately.
+ * The fix is proven by test and has never run on a device, and the first run is
+ * not where an unproven promise should make its debut. Revisit when F114's
+ * device pass has actually watched a file disappear.
  */
 
 import { TUTOR_NAME } from '../tutor/tutorName.ts';

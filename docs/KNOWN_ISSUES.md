@@ -2325,3 +2325,19 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   PRIVACY_AND_SAFETY.md's "Not true yet" table listed this row as "Not filed". It is filed now.
 - verified-by: `a recorded attempt is deleted once it has been scored`
 - verified-by: `clearing a learner's data removes any attempt audio left on the device`
+
+### F116 — onboarding_completed is rejected by the server the client no longer agrees with
+- severity: P2
+- status: [x]
+- where: services/token-server/src/productEvents.ts:28
+- note: filed by work-judge on Phase 3. The client union dropped motivationAnswered with the
+  why page, but parseProductEvent and the validate_product_event trigger still demand the
+  exact old key set, so every onboarding_completed since Phase 3 is rejected and the funnel
+  metric silently stops arriving. Declared in PRIVACY_AND_SAFETY.md; needs the parser, the
+  trigger and a forward migration to agree with the client.
+  The lesson is bigger than the bug and belongs here: the three-layer validation is
+  deliberate — client type, server parser, database trigger — and typecheck forces only the
+  client's half. Nothing forces the other two, so a client-side type change can silently
+  break a server contract while every suite stays green. Phase 3's contract scoped
+  analytics/track.ts and stopped there, which is exactly how this got through.
+- verified-by: `onboarding_completed is accepted without motivationAnswered`

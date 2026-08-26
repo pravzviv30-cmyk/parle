@@ -117,7 +117,7 @@ construction, not by good intentions.
 
 | Event | Properties | What it can never carry |
 |---|---|---|
-| `onboarding_completed` | `personalisedGreeting`, one boolean | The name itself, the date, why they are learning |
+| `onboarding_completed` | `personalisedGreeting` alone, one boolean | The name itself, the date, why they are learning |
 | `mission_started` | `missionId`, `entry` | Anything the learner said |
 | `mission_completed` | `missionId`, `rung` | The words that earned the rung |
 | `sound_check_completed` | `missionId`, `kind` | The audio, the focus sentence, any score |
@@ -132,11 +132,22 @@ the trigger and this file, and it is an escalation.
 
 **Removing one is the same three places.** `onboarding_completed` lost
 `motivationAnswered` when the why page left the first run, because a property that
-can only ever be `false` is noise dressed as evidence. The client union in
-`apps/mobile/src/analytics/track.ts` is only one of the three: `parseProductEvent`
-in the token server and the `validate_product_event` trigger both require the exact
-key set, so until all three agree the event is rejected rather than stored, and the
-one event that says a learner finished onboarding quietly stops arriving.
+can only ever be `false` is noise dressed as evidence. All three layers now ask for
+`personalisedGreeting` and nothing else: the client union in
+`apps/mobile/src/analytics/track.ts`, `parseProductEvent` in the token server, and the
+`validate_product_event` trigger, which
+`supabase/migrations/202608270001_onboarding_event_property_fix.sql` brings into line.
+Each of the three still requires the exact key set rather than a subset, so an event
+still carrying the retired key is refused rather than quietly trimmed.
+
+For a while they did not agree. Only the client changed, the parser and the trigger went
+on demanding both keys, and every `onboarding_completed` was rejected rather than stored
+while the funnel reported nothing and nobody saw an error (F116). Two things follow. A
+deployed database keeps rejecting them until somebody pastes that migration by hand,
+because there is no CLI here and DDL does not travel over PostgREST. And a property
+removed in TypeScript is not a property removed from Parle: the compiler holds only the
+client's half of this, so the parser, the trigger and this table are a manual step every
+time.
 
 **What is true today:** the five events fire from seven call sites in the app with
 no consent gate, no opt-out anywhere in the UI, and `public.product_events` rows
@@ -387,7 +398,7 @@ promise already kept.
 | `trial_installations` has no scheduled delete | The 24-month antifraud retention is not enforced by anything | This file, section above |
 | The antifraud identifier is not disclosed to learners | Undisclosed pseudonymous identifier at launch | Risk register, P0 before users |
 | Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified | The privacy text cannot yet describe what they keep | Not filed |
-| Attempt recordings written by the device recorder are never deleted after upload | Raw audio lingers in the app cache and survives account deletion, contradicting the promise above | Ledger F115 |
+| Attempt recordings are deleted in code, but that has never been watched happen on a device | The discard and the reset sweep are proven by test only; a phone has never been checked | Ledger F115 (closed), device proof owed by F114 |
 | The deletion cascade has never run against a live database | "Deletion removes everything" is unproven | Ledger F63 |
 | Device deletion and token hygiene are unproven on a real build | The device half of deletion is unproven | Ledger F71 |
 | No professional review has been obtained | The safety position is unreviewed | Ledger F70 |
