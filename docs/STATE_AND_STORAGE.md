@@ -29,12 +29,107 @@ gap: the recap ships first, practice follows, and the leave-early fallback that
 covers the difference only runs when the learner taps Done. Reading the recap and
 swiping the app away used to lose the session's phrases outright.
 
-What it does not cover, and cannot from here: a session killed BEFORE the recap.
-The wire's `ConvoView` carries no phrase list, so until the recap the app holds a
-transcript and nothing else, and turning a transcript into review cards is
-curation, which the agent owns. That window needs the agent to redeliver a recap
-to a later session. Same for the learner-model update and the generated drills,
-which are computed agent-side and only ever delivered over the live room.
+### The pre-recap window
+
+**Owner: tutor-agent. Closes in Phase 5. Open today, and it is a real loss.**
+
+The journal covers everything after the recap arrives. It cannot cover a session
+killed BEFORE it. The wire's `ConvoView` carries no phrase list, so until the
+recap the app holds a transcript and nothing else, and turning a transcript into
+review cards is curation, which the agent owns. A learner who talks for ten
+minutes and force-quits during the goodbye keeps the minutes they spent and none
+of the phrases they earned.
+
+The agent side of the same window is `finish()` in
+`services/tutor-agent/src/convo.ts` — `void this.extractMemory(...)` and
+`void this.curateAndDrill(...)`, the last two statements in the method. They run
+after the recap ships and the seconds are debited, they are deliberately not
+awaited, and if the room closes first their results are dropped with no error
+anywhere: the learner-model update, the practice topics and the generated drills
+for that session simply never existed. (The ledger cites `convo.ts:1539-1540`;
+Phase 1 moved the lines, and the two `void` calls are what it means.)
+
+Neither half is closable from the app. Both need the same two things: the agent
+persisting a recap server-side, and a **protocol tag that redelivers it into a
+later session** — which also needs cross-session identity and app-side dedup so
+a redelivered recap is banked once. That is wire-and-agent work, not data-sync
+work, and doing half of it would only narrow a window that Phase 5 removes.
+F92 in `docs/KNOWN_ISSUES.md` keeps it on the books.
+
+### The sync contract
+
+Since Phase 2, the account rather than the device is the durable home for ten of
+the twelve stores. `apps/mobile/src/sync/` holds a **state-based reconciler**:
+the stores write to disk locally first, exactly as before, and afterwards a
+background engine pushes the whole current blob to `learner_state` with a
+compare-and-swap on the `revision` column. Losing the swap means another device
+wrote first, so it pulls, merges under a per-domain policy, hands that answer
+to the store's own adopter to **fold into whatever the store holds by then**, and
+pushes again.
+
+The fold is the part worth remembering. Everything the engine computes, it
+computes from a blob it read before a network round trip, so an adopter handed a
+finished value would write over a grade or a banked session that landed in
+between. Instead the store gets a function, calls it inside its own write chain,
+and writes what comes back — read, fold and write with nothing able to land
+between them. It is safe because the merge policies are commutative and
+idempotent, and all but `profile` associative as well.
+
+Local first is not a slogan here. Nothing in `sync/` sits on the path of a
+learner saving anything, and an engine that cannot reach the network is a learner
+who can still study.
+
+Four pieces, and each has one file:
+
+| file | what it owns |
+|---|---|
+| `sync/envelope.ts` | the wire shape `{ v, deviceId, savedAt, data }`, the 128KB ceiling, and reading a payload back safely |
+| `sync/registry.ts` | the seam: stores call `markDirty(ns)` after a write lands, and register the adopter the engine hands a fold to |
+| `sync/backoff.ts` | full-jitter exponential retry, base 1s, cap 60s, injected clock |
+| `sync/engine.ts` | when to reconcile, the compare-and-swap, quarantine, the size refusal |
+| `sync/policy.ts` | **what the answer is** when two devices disagree |
+
+`sync/policy.ts` is the one to read. Ten namespaces under three merge classes:
+
+- **structured** — `profile`, delegated to `@parle/brain`'s `mergeStoredProfiles`.
+- **per-item** — `review` (delegated to core's `mergeDecks`), `drills`, `topics`.
+- **set-union** — `history`, `activity`, `missions`, `soundChecks`, `coachMarks`,
+  `tutorIntro`.
+
+Two are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `journal` is a
+device-local crash buffer whose whole meaning is bank-then-delete, so syncing it
+would re-bank a session another device already banked. `friends` is a dormant
+surface running on labelled sample profiles, and syncing it would write fixtures
+into the account where they would outlive the decision to ship the feature.
+
+Three rules hold the whole thing up:
+
+1. **Every policy is commutative and idempotent by construction.** That is why
+   there is no operation log and no vector clock: a duplicate push, a replayed
+   retry and a reconnect are all no-ops. `policy.test.ts` property-tests it.
+2. **Never push over a payload whose inner schema version is newer than this
+   build writes.** That namespace goes pull-quiet instead. An older app that
+   merged a newer app's blob would drop every field it did not recognise and push
+   the loss to every device.
+3. **Nothing is recomputed.** No mastery, no interval, no CEFR estimate. Merges
+   carry what each side stored; the pedagogy judgements keep their owners.
+
+`revision` lives only in the column, never in the envelope, so there is exactly
+one ordering truth. `202608260001_learner_state_revision.sql` adds it with a
+BEFORE UPDATE trigger that overwrites whatever the client sent with
+`old.revision + 1`, which makes the column monotonic whatever a client believes.
+
+What this does **not** do: it does not merge `cefr`, `memory` or `stats`
+field-wise. Those ride whole with the evidence-heavier side, so two simultaneous
+offline sessions lose the smaller one's deltas to those three fields. Phrases and
+error patterns always survive, because they are unioned. That is the biggest
+accepted loss in the design and field-wise merging is Phase 4.
+
+`npm run verify:sync` runs the whole engine twice as two devices on two real
+accounts against a live project. It proves isolation, forged filters, offline
+replay across a restart, duplicate convergence, two-device conflict convergence
+and quarantine of a corrupt payload — and it says `BLOCKED` rather than passing
+when the credentials are absent.
 
 `apps/mobile/src/profile/store.ts` holds `StoredProfile`:
 
@@ -121,13 +216,20 @@ one-time trial claim, read, plan save, and idempotent session consumption.
 
 `supabase/migrations/202608220001_parle_learning.sql` creates the durable
 entitlements, privacy-filtered product events and a row-level-secured
-`learner_state` envelope for cross-device sync. Entitlements and events are wired through
-the token server, but the migration is not known to be deployed.
+`learner_state` envelope for cross-device sync. `learner_state.namespace` carries
+a check constraint naming the twelve stores, so a namespace that is not on that
+list cannot be written at all — which is also why `syncState`, the engine's own
+dirty set, never leaves the device.
 `202608230001_session_usage_idempotency.sql` adds the unique session debit ledger,
 atomic three-argument consume RPC, pseudonymous trial claims, and exact event validation.
-Device learning stores remain the
-offline-first source until the state sync transport is added; the table is not
-described as active sync before that client exists.
+`202608260001_learner_state_revision.sql` adds the `revision` column and its
+trigger, which is what makes conflict detection possible at all.
+
+The device stores are still the offline-first source of truth and always write
+locally first. `learner_state` is now a real destination rather than an empty
+table: the client is `apps/mobile/src/sync/`, described above, and it reconciles
+under the learner's own JWT so the four own-row RLS policies are the enforcement
+rather than an app-level check.
 
 Production refuses to boot if identity is unverified, the tutor-agent debit
 secret is missing, or entitlement storage is volatile. Client-asserted identity exists

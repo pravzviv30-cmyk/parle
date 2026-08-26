@@ -1864,3 +1864,312 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   final 1,570. Depends on F81, which currently makes the F63/F73 correction impossible.
 - verified-by: `the evidence matrix does not call blocked what the ledger has ticked as proven live`
 - verified-by: `the outstanding schema instruction names every migration in the runbook`
+
+### F83 — Four stores bind the storage key inside the queued write, so a fast account switch can land one learner's data in another's namespace
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/progress/activity.ts:62
+- note: activity, drills, journal and friends resolve userKey() when the queued callback
+  finally runs, against whoever is active by then; review/missions/coachMarks/soundChecks
+  already bind at enqueue with a comment explaining why. A live cross-account defect today,
+  and sync's background retries would widen exactly this window, so it lands first. Fix all
+  four to the review/store.ts discipline and pin it per store.
+- correction 2026-08-26: the entry named four stores and there were SIX. data-engineer found
+  topics/store.ts and progress/store.ts carrying the identical defect while fixing the named
+  four, and fixed all six rather than only what the ledger asked for. progress/store.ts was
+  worse than the others: recordSession was an unserialised read-modify-write with no write
+  chain at all, so adding a second writer would have lost updates outright. drill and friends
+  also moved from a single module cache to one keyed by storage key, because a cache miss
+  after a switch is how a queued write reads the NEXT account's blob and folds one learner's
+  work into it. The lesson for later phases: an audit that enumerates instances is a floor,
+  not a census.
+- verified-by: `a write queued under one account never lands in the next account's storage`
+
+### F84 — learner_state gains a monotonic revision with a paired rollback
+- severity: P1
+- status: [x]
+- where: supabase/migrations/202608260001_learner_state_revision.sql:1
+- note: the table has no ordering primitive, so conflict detection is currently impossible.
+  One column, default 0, CAS via PostgREST equality filter; RLS policies untouched. The
+  rollback-pairing test from F64 must pass unedited.
+- verified-by: `every migration ships a rollback that names each object it created`
+- verified-by: `a stale-revision update changes no rows and a current one advances it by exactly one`
+
+### F85 — A local-first sync engine reconciles the device stores with learner_state under the learner's own token
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/sync/engine.ts:1
+- note: learner_state has zero client callers; this is the client. Bound uid and keys at
+  start, CAS push, pull-merge-retry on conflict, adoption only through store-owned adopters,
+  launch reconcile as backstop, 128KB refusal with diagnostic, and it stays silent in mock
+  auth mode.
+- verified-by: `a duplicate push of the same envelope converges without double-applying anything`
+- verified-by: `a corrupted server envelope is quarantined and never overwrites local data`
+- verified-by: `a push in flight during sign-out never writes under the next account`
+- verified-by: `an envelope over the size cap is refused with a diagnostic and never truncated`
+
+### F86 — Every stored domain has an explicit, convergent conflict policy
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/sync/policy.ts:1
+- note: twelve namespaces, three merge classes, two named exclusions (journal is a
+  device-local crash buffer, friends is dormant sample data), one rule protecting newer
+  schemas from older devices. Every policy commutative and idempotent by construction,
+  property-tested; profile and deck merges delegate to brain and core so mastery is
+  preserved, never recomputed.
+- verified-by: `every synced namespace has an explicit merge policy and every excluded one an explicit reason`
+- verified-by: `two devices that edited the same namespace offline converge to the same merged state`
+- verified-by: `a device never pushes over a payload from a newer app version`
+- verified-by: `merging two profiles keeps every phrase and error pattern and never doubles mastery`
+- verified-by: `merging two decks keeps the scheduling each card earned`
+
+### F87 — The offline queue survives restarts and retries with capped jitter
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/sync/registry.ts:1
+- note: the dirty-set persists under the new user-scoped syncState suffix (cleared by reset,
+  enforced by scope.test.ts); backoff is pure and injected-clock deterministic, base 1s, cap
+  60s, full jitter, reset on success and foreground; offline pauses rather than hammers.
+- verified-by: `a change made offline is pushed after an app restart and reconnect`
+- verified-by: `retries space out exponentially with jitter and never exceed the cap`
+
+### F88 — Generated practice joins the journal, closing the post-arrival loss window
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/journal.ts:1
+- note: drills today are a fire-and-forget in-memory merge with no crash cover; the journal
+  envelope gains a drills field, ConvoScreen journals them on arrival, and recovery banks
+  them through the existing once-per-launch pass. Recap phrases, topics and drills now all
+  survive an app killed mid-processing.
+- verified-by: `drills that arrived before the app closed are banked on the next launch`
+
+### F89 — A returning learner on a fresh device gets their account, not onboarding
+- severity: P1
+- status: [x]
+- where: apps/mobile/App.tsx:90
+- note: with no local profile, ProfileGate would onboard an existing learner into an
+  immediate conflict; a time-boxed pull before setReady adopts the account's state first, and
+  an offline start falls through to onboarding with the later merge favouring the
+  evidence-heavier server profile.
+- verified-by: `a fresh sign-in on a new device adopts the account's synced state instead of onboarding again`
+
+### F90 — Sync diagnostics carry evidence, never learner content
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/sync/diagnostics.ts:1
+- note: namespace, phase, status, attempt, revision and timing in a bounded ring buffer, in
+  the existing [parle] log style; the record type has no field that could hold a phrase, a
+  name or a payload, and a test holds that shape.
+- verified-by: `sync diagnostics never contain payload fields or learner text`
+
+### F91 — Two engines against the real project prove isolation, replay, duplicates, conflict and corruption
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/sync/verify/syncLive.ts:1
+- note: the device-to-device evidence — two engine instances as two devices, two disposable
+  auth users on the live Supabase project: B's token cannot touch A's rows, a forged user
+  filter returns nothing, an offline edit replays across a simulated restart, duplicates
+  converge with one revision advance, conflicting edits converge identically on both sides,
+  and a service-role-planted corrupt payload is quarantined. Honest-blocked with named env
+  vars when credentials are absent, and it never prints a token.
+- verified-by: `the sync harness enumerates every required proof and reports blocked without credentials`
+- verified-by: `the sync harness never prints a key or token it was given`
+
+### F92 — The pre-recap loss window is named, owned and scheduled, not forgotten
+- severity: P2
+- status: [x]
+- where: docs/STATE_AND_STORAGE.md:1
+- note: an app killed before the recap frame still loses that conversation, and the agent's
+  voided recap and practice publishes at convo.ts:1539-1540 fail silently; both need
+  agent-side recap persistence and a redelivery protocol tag, which is wire-and-agent work
+  deferred to Phase 5. P2 because it cannot close in this phase and an unclosable P1 stops
+  the repo. The doc must state the window, its owner and the closing phase.
+- verified-by: `the storage doc names the pre-recap window, its owner and the phase that closes it`
+
+### F93 — Adopting a merge destroys a local write that landed during the pull
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/sync/engine.ts:457
+- note: the engine reads the local blob, awaits the network, then hands the merge to an
+  adopter that overwrites the store — adoptDeck, adoptProfile, adoptHistory (and
+  adoptActivity's entries) all blind-write. A grade, a recorded session or a finished
+  session's profile delta written between the read and the adoption is clobbered on disk;
+  the surviving dirty flag then pushes the clobbered state and the next cycle clears it,
+  so the learner's work is gone everywhere, silently. Concrete: phone holds [A reps:1],
+  tablet pushed [A reps:1, B reps:1]; the learner grades A to reps:2 during the phone's
+  pull; adoptDeck writes [A reps:1, B reps:1] over it. The policies are commutative and
+  idempotent by construction, so the fix is to fold merged state with what the store
+  holds at adoption time rather than replace it.
+- verified-by: `a local write that lands while a merge is being adopted survives the adoption`
+- verified-by: `an adopted merge is folded into the store's current state, never written over it`
+
+### F94 — A straggling adoption after sign-out writes one learner's data under the next account
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/sync/engine.ts:466
+- note: reconcile checks halted before the pull and before the push but not before the
+  adopter call, and adopters resolve userKey() when they run. Sign-out cleanup re-registers
+  every adopter via setActiveUser's reset hooks; if account A's pull (on the un-timeboxed
+  fetch) returns after account B signs in, adoptProfile writes A's merged profile into
+  parle.u.<B>.profile through B's store chain. The push dies at RLS as designed, but the
+  local cross-account write has already happened — F83's defect class at the engine layer.
+  A synchronous halted check immediately before invoking the adopter closes the window,
+  because the cleanup that flips it runs synchronously before the account changes.
+- verified-by: `an adoption that outlives a sign-out never writes under the next account`
+
+### F95 — The revision migration still tells operators the live project drifted when it had simply been applied
+- severity: P2
+- status: [x]
+- where: supabase/migrations/202608260001_learner_state_revision.sql:49
+- note: the operator comment says revision was found live "although no migration in this
+  repo creates it" and the project "drifted from this history somehow". The truth, now
+  recorded in docs/IMPLEMENTATION_EVIDENCE.md, is that this migration had been applied an
+  hour before the probe. The evidence doc was corrected; the SQL file was not, and an
+  operator reading it will distrust a project history that is intact.
+- verified-by: `the revision migration's operator note does not claim a drift the evidence record has withdrawn`
+
+### F96 — LlmUsage means the same thing from every vendor
+- severity: P1
+- status: [x]
+- where: packages/brain/src/llm/openaiResponses.ts:361
+- note: OpenAI's `input_tokens` includes BOTH `cached_tokens` and `cache_write_tokens`;
+  Anthropic's excludes both. convo.ts sums the three buckets to get charged input, which was
+  right for Anthropic and double-counted every cached and cache-written token on the OpenAI
+  path, the one production actually runs. Normalised at the adapter boundary, where the vendor's
+  own convention is known, so the consumer that was already correct never changed. An earlier
+  draft of this fix subtracted only `cached_tokens` and called `cache_write_tokens` a dead read;
+  it is neither dead nor free, and the disjoint-sum test below is what catches that half-fix.
+  `reasoningTokens` and an adapter-stamped `model` join the shape, both optional: a vendor with
+  no breakout says nothing rather than reporting a zero that reads as "thought about nothing".
+- verified-by: `openai input tokens split into three disjoint buckets that sum to the vendor's input_tokens`
+- verified-by: `an anthropic call keeps its three buckets as the vendor already reports them`
+- verified-by: `every adapter reports reasoning tokens under the name its vendor uses`
+- verified-by: `reasoning tokens are priced inside output, never beside it`
+- verified-by: `an unpriced model is named, never silently priced at the dearest tier`
+
+### F97 — A repaired Anthropic call meters both attempts
+- severity: P2
+- status: [x]
+- where: packages/brain/src/llm/anthropic.ts:181
+- note: `parseWithRetry` resends the whole prompt on non-conforming output and returned only the
+  last attempt's usage, so a repaired call under-reported by a full prompt. Worse, when both
+  attempts failed it threw `BrainParseError` carrying no usage at all, so two fully billed calls
+  were metered nowhere. P2 because production runs `TUTOR_LLM=openai` and the OpenAI path has no
+  equivalent loop, but the anthropic swap is a supported one-line change and the meter must not
+  start lying the moment it happens. A refusal was the last door money could leave by: it was
+  raised before the response was counted, so it dropped both its own billed call and the fumbled
+  attempt underneath it. Both adapters now hand the usage out on `BrainRefusalError` the same way
+  they do on `BrainParseError` — a declined answer is still a paid one.
+- verified-by: `a repaired anthropic call reports both attempts' tokens, not just the last`
+- verified-by: `an anthropic call that fails to parse twice still reports both attempts' tokens`
+- verified-by: `a refusal on the retry still reports the attempt it was standing on`
+- verified-by: `an openai refusal carries the usage the call was billed for`
+
+### F98 — OpenAI prompt caching is pinned, not hoped for
+- severity: P1
+- status: [x]
+- where: packages/brain/src/llm/openaiResponses.ts:284
+- note: the Anthropic adapter places three deliberate cache breakpoints; the OpenAI path sent
+  nothing, so hitting the ~4.3k frozen prefix depended on a request happening to land on a warm
+  machine. The key is per-activity and stable ACROSS sessions and learners, because that prefix
+  is identical for every session on the same activity and a per-session key would guarantee a
+  cold write every time. It carries a hash of the frozen blocks, so editing the persona or the
+  pack cannot leave a key describing a prefix that no longer exists. `store` stays false and
+  `previous_response_id` stays absent: server-side state in one vendor, duplicating history we
+  already keep, for no cache benefit the key does not already give. The second test defends the
+  founder's no-latency-regression constraint at the wire: a full-body comparison that fails if
+  any field beyond the cache key ever joins the realtime turn.
+- verified-by: `every responses call pins its cache with a stable per-activity prompt_cache_key`
+- verified-by: `the cache key changes when the frozen prompt changes`
+- verified-by: `the realtime turn request changes by exactly one field: prompt_cache_key`
+
+### F99 — A missed deadline stops the spend, not just the wait
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:544
+- note: `withDeadline` was a bare `Promise.race` with no `AbortController` anywhere in
+  packages/brain/src/llm/, so a timed-out call ran to completion vendor-side, billed in full, and
+  never reached `recordBrainUsage` because that sits after the await. The meter therefore missed
+  exactly the calls that cost the most: drills holds a 90s deadline and the code's own note
+  records healthy batches at ~65s. The signature had to take a factory rather than a promise,
+  because every call site built its promise before `withDeadline` could see it. Aborting a
+  non-streaming request is best-effort, so the abandoned counter is the honest floor, not a
+  guarantee. The second test holds the founder's constraint: the happy path gains no wait.
+- verified-by: `a turn that misses turnTimeoutMs aborts the call runBrainTurn started`
+- verified-by: `a turn inside its deadline sees no abort and no added wait`
+- verified-by: `an abandoned call is counted and named, never silently dropped`
+
+### F100 — What a session cost survives the room
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1841
+- note: the meter was a per-call `console.info` that died with the room, which is why nobody
+  could answer what a session costs. The sequencing was the whole bug: `finish()` awaited the
+  minutes debit and only then fired extract and curate/drills unawaited, so the three analyst
+  calls — the largest spend in the session — ran after every consumer had moved on and the worker
+  tore the room down. They are now joined with `allSettled` BEFORE the summary and AFTER the
+  debit, so telemetry never delays billing and billing never hides telemetry. The total is the
+  sum of per-activity prices, never the price of the summed usage: a session mixes the cheap live
+  model with the dear analyst one, `addLlmUsage` drops the stamp when they disagree, and pricing
+  a mixed total would fall back to the dearest row and be wrong by an order of magnitude in the
+  exact number that decides F101. Corrects the false claim at docs/LIVE_VOICE.md that the raw
+  per-call log is the source of truth for cost.
+- verified-by: `the session summary is emitted after the analyst calls, not before`
+- verified-by: `the minutes debit does not wait on analyst work`
+- verified-by: `a billed call that failed to parse still reaches the meter`
+- verified-by: `the summary prices each activity from the model the response reported, and names any model it has no price row for`
+
+### F101 — The analyst tax is cut by measurement, not estimate
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/llm/routing.ts:57
+- note: drills at high effort on a 16k budget against the analyst model is ESTIMATED, never
+  measured, at most of a session's spend — roughly $0.20 of analyst work against $0.03 for all
+  twelve conversational turns. F96 to F100 exist so that number can be read instead of guessed.
+  Blocked until the checkpoint runs: one full and one short session on `TUTOR_LLM=openai`, then
+  read the two `[parle:brain:summary]` lines. Decision rules fixed in advance so the evidence can
+  overrule the estimate. If any post-session activity was abandoned during those sessions the
+  split is a floor and the checkpoint is void, because an abandoned call meters zero and biases
+  the drills share downward, and the default answer to a low share is "do not retune". Under 30%
+  of session spend, pin the current values and close with the evidence recorded here. At or over,
+  cut maxTokens to twice the measured p95 of `output_tokens` — NOT of reasoning plus output,
+  since reasoning is billed inside output and adding them would yield a "cut" above today's 16k
+  — and drop effort only if reasoning exceeds 60% of output. P2 deliberately: the full gate fails
+  on any open P0 or P1, and this cannot close until after the checkpoint, so as a P1 it would
+  block every push in between.
+- verified-by: `a drills call at the tuned budget completes without an incomplete max_output_tokens stop`
+
+### F102 — Preflight names the credential near-miss
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/preflight.ts:97
+- note: the tutor-agent `.env` carries `OPEN_AI_KEY`, a live-looking value no code reads. A file
+  like that reads as "OpenAI is configured" to every human who opens it and as an empty account
+  to the worker, and the next person to rotate the key rotates the dead one and cannot work out
+  why nothing changed. A short hand-written table rather than an edit-distance guess, because a
+  fuzzy matcher would start volunteering opinions about variables that are not ours. Names only;
+  no value is read, logged or handled. Rotating or deleting the stray value is ops work under
+  F80, not code.
+- verified-by: `preflight names OPEN_AI_KEY as a near-miss of OPENAI_API_KEY`
+- verified-by: `every near-miss points at a name the worker really reads`
+
+### F103 — engine.test.ts carries a raw NUL byte, so grep classifies the suite as binary and its test titles are unsearchable
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/sync/engine.test.ts:72
+- note: filed by work-judge in round 3. The sync fake's rowKey delimiter was a literal NUL
+  inside a template string. Node parses it and every test passes, but `file` reports the
+  suite as data and `grep`/`git grep` return nothing for any title in it — the judge nearly
+  filed a false "tick not backed by a test" against exactly this file, and the repo's
+  tick-follows-test discipline leans on searchable titles. Replaced with the `\u0000`
+  escape: identical to the runtime, searchable to everything else.
+  The guard that pins it taught us something the entry did not anticipate. Written first to
+  reject every C0 control character, it immediately produced a FALSE POSITIVE:
+  packages/brain/src/profile/profile.test.ts holds a literal BEL (U+0007) in a name fixture,
+  deliberately, to assert that control characters never reach a synthesiser — and `file`
+  still calls that suite UTF-8 text while grep reads every title in it. BEL does not break
+  search; NUL does. The guard was narrowed to NUL alone, because a check that fails a working
+  file is a check somebody deletes, and the brain fixture was left exactly as it is.
+  Three separate attempts to write this entry were themselves rejected for carrying the
+  literal byte, which is the entry's own point made three times.
+- verified-by: `every test file is plain text, so the titles the ledger names can be found by grep`
