@@ -58,6 +58,48 @@ function effectiveBody(header: RegExp): string {
   return body;
 }
 
+// ------------------------------------------------------- product event layers
+
+/** The migration that made `onboarding_completed` a one-property event (F116). */
+const ONBOARDING_FIX = '202608270001_onboarding_event_property_fix.sql';
+
+/** Every event name the three validation layers are supposed to agree about. */
+const PRODUCT_EVENTS = [
+  'onboarding_completed',
+  'mission_started',
+  'mission_completed',
+  'sound_check_completed',
+  'my_french_opened',
+] as const;
+
+/** The token server's own copy of the allowlist, read as source rather than executed. */
+const parserSource = readFileSync(path.join(import.meta.dirname, 'productEvents.ts'), 'utf8');
+
+/** One `if new.name = '<event>' then ...` branch of the trigger body, comments removed. */
+function triggerBranch(body: string, event: string): string {
+  const start = body.search(new RegExp(`new\\.name = '${event}'`, 'i'));
+  assert.ok(start >= 0, `the trigger has no branch for ${event}`);
+  const rest = stripComments(body.slice(start));
+  const end = rest.search(/\belsif\b|\belse\b/i);
+  return end > 0 ? rest.slice(0, end) : rest;
+}
+
+/** The keys one trigger branch requires, read from its `?& array[...]`. */
+function requiredKeys(sql: string, what: string): string[] {
+  const list = sql.match(/\?&\s*array\[([^\]]*)\]/);
+  assert.ok(list?.[1], `${what} requires no key set at all`);
+  return [...list[1].matchAll(/'([^']+)'/g)].map((match) => match[1]!).sort();
+}
+
+/** The keys parseProductEvent requires for one event, read from its `exactKeys` call. */
+function parserKeys(event: string): string[] {
+  const start = parserSource.search(new RegExp(`candidate\\.name === '${event}'`));
+  assert.ok(start >= 0, `parseProductEvent has no branch for ${event}`);
+  const list = parserSource.slice(start).match(/exactKeys\(properties, \[([^\]]*)\]\)/);
+  assert.ok(list?.[1], `parseProductEvent's ${event} branch does not name an exact key list`);
+  return [...list[1].matchAll(/'([^']+)'/g)].map((match) => match[1]!).sort();
+}
+
 // ---------------------------------------------------------------- claim_trial
 
 const effectiveClaimTrialBody = (): string => effectiveBody(FUNCTION_HEADERS.claim_trial);
@@ -489,6 +531,63 @@ describe('database security contract — SQL cannot drift quietly', () => {
       SUPABASE_PROOFS.some((proof) => proof.id === 'product-event-trigger'),
       'the Supabase harness carries no live proof of the product event trigger',
     );
+  });
+
+  test('the product event trigger asks onboarding for the one property the client still sends', () => {
+    const body = effectiveBody(FUNCTION_HEADERS.validate_product_event);
+    const branch = triggerBranch(body, 'onboarding_completed');
+
+    // F116. The why page left the first run, so the client union dropped
+    // `motivationAnswered` and sends `{ personalisedGreeting }` alone. Typecheck forced
+    // the client's half of that decision and nothing forced this one, so the database
+    // went on demanding both keys and refused every onboarding_completed — silently,
+    // because the token server turns the write failure into a 500 and
+    // apps/mobile/src/analytics/track.ts swallows it by design.
+    assert.deepEqual(requiredKeys(branch, 'the onboarding_completed branch'), ['personalisedGreeting']);
+    assert.doesNotMatch(branch, /motivationAnswered/i, 'the trigger still demands the retired why-page property');
+    assert.doesNotMatch(stripComments(body), /motivationAnswered/i, 'motivationAnswered survives elsewhere in the trigger');
+    assert.match(branch, /jsonb_typeof\(new\.properties->'personalisedGreeting'\) <> 'boolean'/i);
+
+    // Exact, not a subset. `?&` on its own would accept
+    // { personalisedGreeting, transcript }, and the count is the only thing standing
+    // between an allowlist and a smuggled field.
+    assert.match(branch, /property_count <> 1\b/i, 'the onboarding branch still counts a key set it no longer has');
+
+    // Forward-only, with teeth: 202608250002 keeps the two-key guard it deployed, and
+    // the fix is a later file that replaces the body on top of it rather than a rewrite
+    // of what was already pasted into a project.
+    assert.match(eventFixMigration, /array\['personalisedGreeting', 'motivationAnswered'\]/i);
+    assert.ok(
+      migrationFiles.indexOf(ONBOARDING_FIX) > migrationFiles.indexOf('202608250002_product_event_key_count_fix.sql'),
+      'the onboarding fix does not come after the migration it corrects',
+    );
+
+    const onboardingFix = sqlOf(ONBOARDING_FIX);
+    assert.doesNotMatch(stripComments(onboardingFix), /create trigger|drop trigger/i);
+    assert.doesNotMatch(stripComments(onboardingFix), /drop table|alter table|delete from|truncate/i);
+    assert.match(onboardingFix, /revoke all on function public\.validate_product_event\(\) from public, anon, authenticated/i);
+  });
+
+  test('the parser and the trigger require the same properties for every product event', () => {
+    // The forcing function F116 was missing. Three layers validate a product event on
+    // purpose — client union, parser, trigger — and only the client's is held to the
+    // others by the compiler, so a property removed in TypeScript can leave two SQL and
+    // server allowlists behind it with every suite still green.
+    const body = effectiveBody(FUNCTION_HEADERS.validate_product_event);
+    for (const event of PRODUCT_EVENTS) {
+      const branch = triggerBranch(body, event);
+      const keys = requiredKeys(branch, `the ${event} branch`);
+      assert.deepEqual(
+        keys,
+        parserKeys(event),
+        `${event} names different properties in parseProductEvent and in validate_product_event`,
+      );
+      assert.match(
+        branch,
+        new RegExp(`property_count <> ${keys.length}\\b`),
+        `the ${event} branch counts a different number of properties than it names`,
+      );
+    }
   });
 
   test('every migration ships a rollback that names each object it created', () => {

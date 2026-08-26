@@ -25,8 +25,13 @@ export function parseProductEvent(value: unknown): ProductEvent | null {
   const properties = candidate.properties as Record<string, unknown>;
 
   if (candidate.name === 'onboarding_completed') {
-    if (!exactKeys(properties, ['personalisedGreeting', 'motivationAnswered'])) return null;
-    if (typeof properties.personalisedGreeting !== 'boolean' || typeof properties.motivationAnswered !== 'boolean') return null;
+    // `motivationAnswered` left with the why page. The allowlist stays exact rather
+    // than becoming a subset check: an event still carrying the old key is refused,
+    // not quietly trimmed, because a client sending it is a client out of contract
+    // and the point of this layer is to say so rather than to store something the
+    // database trigger will reject a moment later anyway.
+    if (!exactKeys(properties, ['personalisedGreeting'])) return null;
+    if (typeof properties.personalisedGreeting !== 'boolean') return null;
   } else if (candidate.name === 'mission_started') {
     if (!exactKeys(properties, ['missionId', 'entry'])) return null;
     if (!missionId(properties.missionId) || !['chooser', 'home', 'my-french'].includes(String(properties.entry))) return null;
