@@ -25,6 +25,7 @@
     "scan:secrets:bundles": "node --experimental-strip-types services/token-server/src/secretScan.ts --bundles",
     "verify:voice": "node --experimental-strip-types services/tutor-agent/src/verify/voiceLifecycle.ts",
     "verify:supabase": "node --experimental-strip-types services/token-server/src/verify/supabaseLive.ts",
+    "verify:sync": "node --experimental-strip-types apps/mobile/src/sync/verify/syncLive.ts",
     "verify:upstash": "node --experimental-strip-types services/token-server/src/verify/upstashLive.ts",
     "loop": "node scripts/loop.mjs",
     "hooks": "node scripts/installHooks.mjs",

@@ -29,7 +29,7 @@ import {
 import { SupportBlock } from './SessionView.tsx';
 import { RecapScreen } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
-import { clearJournal } from './live/journal.ts';
+import { clearJournal, journalDrills } from './live/journal.ts';
 import { addPhrases } from './review/store.ts';
 import { mergeSessionTopics } from './topics/store.ts';
 import { recordActivity } from './progress/activity.ts';
@@ -253,8 +253,22 @@ export function ConvoScreen({
     }
   }, [live.recap, onRecap]);
 
+  // Tonight's generated practice, written down before it is merged.
+  //
+  // This arrives seconds AFTER the recap, out of the agent's background work,
+  // and until now it went from the wire into memory and then into the drill
+  // bank with nothing on disk in between. An app closed in that gap lost the
+  // whole set, and nothing ever asked the agent for it again. So it goes into
+  // the session journal first and the merge runs either way — the journal
+  // cannot reject, and if it somehow did, the in-memory path is still the one
+  // the learner is about to use. Recovery banks whatever is left on disk at the
+  // next launch, through the same once-per-launch pass that rescues an unbanked
+  // recap. Merging twice is safe: mergeExerciseBank unions by exercise id.
   useEffect(() => {
-    if (live.drills) void mergeExercises(live.drills);
+    const drills = live.drills;
+    if (!drills) return;
+    const merge = () => void mergeExercises(drills);
+    void journalDrills(drills).then(merge, merge);
   }, [live.drills]);
 
   // ---- The win, the coach marks and the moment.

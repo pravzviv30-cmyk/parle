@@ -28,21 +28,28 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { completeProfile, createStoredProfile, type StoredProfile } from './src/profile/store.ts';
+import { completeProfile, createStoredProfile, loadProfile, type StoredProfile } from './src/profile/store.ts';
 
 import { paper } from './src/theme.ts';
 import { auth } from './src/auth/adapter.ts';
+import { installationId } from './src/auth/installation.ts';
 import { AuthProvider, useAuth } from './src/auth/useAuth.tsx';
 import { AuthFlow } from './src/auth/AuthFlow.tsx';
 import { SetNewPasswordScreen } from './src/auth/SetNewPasswordScreen.tsx';
 import type { AuthUser } from './src/auth/types.ts';
 import type { AuthResult } from './src/auth/types.ts';
 import { recoverJournal } from './src/live/journal.ts';
-import { clearActiveUserData, migrateLegacyStores, setActiveUser } from './src/storage/scope.ts';
+import { clearActiveUserData, migrateLegacyStores, setActiveUser, userKey } from './src/storage/scope.ts';
+import { startSync, type SyncEngine } from './src/sync/engine.ts';
+import { createSyncDiagnostics } from './src/sync/diagnostics.ts';
+import { syncPolicy } from './src/sync/policy.ts';
+import { resetSyncRegistry } from './src/sync/registry.ts';
+import { adoptBeforeReady } from './src/app/freshDevice.ts';
 import { loadHistory } from './src/progress/store.ts';
 import { backfillFrom } from './src/progress/activity.ts';
 import { lessonXp } from '@parle/core';
@@ -60,6 +67,46 @@ function Loading() {
       <ActivityIndicator color={paper.inkFaint} />
     </View>
   );
+}
+
+// Read as literals, because Expo inlines EXPO_PUBLIC_ names at build time and a
+// computed lookup would come back undefined in a real bundle. Same two values
+// auth/adapter.ts reads, deliberately: an app running on the mock adapter has
+// no project to reconcile with, and sync must stay silent there.
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+/**
+ * Assemble the one sync engine for this account, or nothing at all.
+ *
+ * Everything the engine will ever need is resolved here and handed over once:
+ * the account id, the key resolver, the token getter, the device id. That is
+ * the review/store.ts discipline applied to a whole subsystem — a sign-out
+ * while a retry is queued must not be able to redirect that retry into the next
+ * learner's namespace. See src/sync/engine.ts.
+ *
+ * Null when this launch has no project configured, which is the local mock
+ * path. The promise that the app runs with no keys is older than sync.
+ */
+async function startAccountSync(uid: string): Promise<SyncEngine | null> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  const diagnostics = createSyncDiagnostics();
+  return startSync({
+    uid,
+    // A per-install random already on this device. It is not an account, not a
+    // person and not a platform; it only tells two devices apart in an envelope.
+    deviceId: await installationId(),
+    url: SUPABASE_URL,
+    anonKey: SUPABASE_ANON_KEY,
+    // The learner's own bearer, from the adapter that already owns the session.
+    // A second Supabase client here would be a second refresh loop.
+    getAccessToken: () => auth.getAccessToken(),
+    fetch: (url, init) => fetch(url, init),
+    storage: AsyncStorage,
+    keyFor: userKey,
+    policy: syncPolicy,
+    record: diagnostics.record,
+  });
 }
 
 /**
@@ -89,6 +136,7 @@ function SignedInRoot({ user }: { user: AuthUser }) {
 
   useEffect(() => {
     let cancelled = false;
+    let engine: SyncEngine | null = null;
     setActiveUser(user.id);
     void migrateLegacyStores(user.id)
       .then(async () => {
@@ -105,12 +153,47 @@ function SignedInRoot({ user }: { user: AuthUser }) {
         // find nothing here and this costs one read.
         const recovered = await recoverJournal();
         if (recovered > 0) console.info(`[parle] recovered ${recovered} phrases from a session that did not finish banking`);
+
+        // Sync starts here and nowhere else: after the journal has been banked,
+        // so the launch reconcile pushes a device that is already whole, and
+        // inside the effect that owns this account, so the cleanup below is the
+        // only thing that can outlive it.
+        if (cancelled) return;
+        const started = await startAccountSync(user.id);
+        if (cancelled) {
+          started?.stop();
+          return;
+        }
+        engine = started;
+
+        // The one thing worth making a learner wait for. On a device with no
+        // profile, this is somebody who reinstalled or bought a new phone, and
+        // opening onboarding for them would write a beginner over the top of
+        // everything they have done. So the account gets a bounded moment to
+        // answer first. Offline, the box expires and the app opens exactly as
+        // it does today. See src/app/freshDevice.ts for the rule and its tests.
+        const start = await adoptBeforeReady({
+          hasLocalProfile: async () => (await loadProfile()) !== null,
+          pull: started === null ? null : () => started.reconcileAll(),
+        });
+        if (start.waited) console.info(`[parle] fresh device start: ${start.kind}`);
+        // The ordinary launch reconcile, in the background where it belongs. It
+        // is the backstop that makes the dirty set an optimisation rather than
+        // something correctness depends on. Skipped when the fresh device pull
+        // above already ran one.
+        if (started !== null && !start.waited) void started.reconcileAll();
       })
       .then(() => {
         if (!cancelled) setReady(true);
       });
     return () => {
       cancelled = true;
+      // Stop before the scope goes, so nothing in flight can look up a key for
+      // an account that is no longer active. A straggling push is already aimed
+      // at the old uid with the old learner's token and dies at row level
+      // security, which is where it should die.
+      engine?.stop();
+      resetSyncRegistry();
       setActiveUser(null);
     };
   }, [user.id]);
