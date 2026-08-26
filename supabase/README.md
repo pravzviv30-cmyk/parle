@@ -1,6 +1,6 @@
 # Supabase runbook
 
-Everything Parle keeps about a learner lives in five tables and two functions here. This
+Everything Parle keeps about a learner lives in five tables and three functions here. This
 file is how they get applied, backed up, rolled back and proved, by hand, from the SQL
 Editor.
 
@@ -29,6 +29,7 @@ of each before starting the next. Each file is idempotent: every create is
 | 3 | `migrations/202608240001_claim_trial_null_fix.sql` | F73: the NULL-safe refusal guard in `claim_trial`. Replaces one function body, touches no rows |
 | 4 | `migrations/202608250001_consume_entitlement_null_fix.sql` | F74: the same NULL-safe guard in `consume_entitlement`, so a retried session bills once and a foreign session id is refused. Replaces one function body, touches no rows |
 | 5 | `migrations/202608250002_product_event_key_count_fix.sql` | F75: counts event properties with `jsonb_object_keys` instead of `jsonb_object_length`, which does not exist. Replaces one function body, leaves the trigger in place, touches no rows |
+| 6 | `migrations/202608260001_learner_state_revision.sql` | F84: `learner_state.revision`, the ordering primitive the device sync engine compares against, plus the trigger that advances it and stamps `updated_at`. Adds one column with a constant default, changes no policy, touches no payload |
 
 Order is load-bearing in one direction only: everything after 1 names tables and
 functions that 1 creates, so 1 first. Files 3, 4 and 5 are each a single `create or
@@ -38,7 +39,7 @@ is fine, and they do not depend on one another.
 Files 3, 4 and 5 all close the same mistake in three different functions: `insert ...
 on conflict do nothing returning true into <flag>` leaves the flag NULL rather than
 false, and `not NULL` is NULL, so a plpgsql `if` on it takes neither branch. If you are
-adding a sixth migration that writes a guard like this, write `<flag> is not true`.
+adding another migration that writes a guard like this, write `<flag> is not true`.
 
 After the last paste, reload the API schema cache (Settings → API → Reload, or wait a few
 seconds) or PostgREST will keep answering `PGRST205 could not find the table` for tables
@@ -104,14 +105,15 @@ depends on what the earlier ones built.
 
 | Rolling back | Script | Cost |
 |---|---|---|
+| `202608260001_learner_state_revision.sql` | `rollback/202608260001_down.sql` | Every synced device stops being able to write: the compare-and-swap filters on a column that no longer exists, so PostgREST answers 42703 and the push queues instead of landing. Fails closed, loses no learner content, and cannot be undone by re-applying — the counters come back at 0 |
 | `202608250002_product_event_key_count_fix.sql` | `rollback/202608250002_down.sql` | Reopens F75. Every product event write fails again, silently. Refuses to run until you set `parle.reopen_f75` in the same session |
 | `202608250001_consume_entitlement_null_fix.sql` | `rollback/202608250001_down.sql` | Reopens F74. A retried `/session/end` bills a learner twice and a foreign session id merges. Refuses to run until you set `parle.reopen_f74` in the same session |
 | `202608240001_claim_trial_null_fix.sql` | `rollback/202608240001_down.sql` | Reopens F73. Refuses to run until you set `parle.reopen_f73` in the same session |
 | `202608230001_session_usage_idempotency.sql` | `rollback/202608230001_down.sql` | Destroys the exactly-once billing ledger and the antifraud evidence. Restores the two-argument debit |
 | `202608220001_parle_learning.sql` | `rollback/202608220001_down.sql` | Destroys every learner row Parle owns |
 
-The first three rows are the ones to argue with. Each adds no table, no column and no
-row; each only stops one function doing the wrong thing. If something looks broken after
+The three interlocked rows are the ones to argue with. Each adds no table, no column and
+no row; each only stops one function doing the wrong thing. If something looks broken after
 applying one of them, fix forward with a new migration. Rolling one back restores a known
 defect, which is why each script makes you say so out loud in the same paste:
 
@@ -134,7 +136,7 @@ the project has real accounts on it.
 "We can roll back" is a claim, and this is how it becomes evidence. Do it on a disposable
 project, and keep the output:
 
-1. Apply all five migrations. Run the harness. Record: twelve proofs, all passed.
+1. Apply all six migrations. Run the harness. Record: twelve proofs, all passed.
 2. Note the row counts of all five tables (`select count(*) from public.<table>;`).
 3. Take the backup from `## Backup`, and record its timestamp.
 4. Apply `rollback/202608240001_down.sql` with the interlock set. Re-run the harness and
@@ -142,11 +144,11 @@ project, and keep the output:
    evidence the rollback did something, and the evidence F73 was real.
 5. Re-apply `migrations/202608240001_claim_trial_null_fix.sql`. Re-run the harness and
    record twelve passes again.
-6. Apply `rollback/202608250002_down.sql` and `rollback/202608250001_down.sql` with
-   their interlocks set, then `rollback/202608230001_down.sql`, then
-   `rollback/202608220001_down.sql`. Record that the harness now reports the schema as
+6. Apply `rollback/202608260001_down.sql`, then `rollback/202608250002_down.sql` and
+   `rollback/202608250001_down.sql` with their interlocks set, then
+   `rollback/202608230001_down.sql`, then `rollback/202608220001_down.sql`. Record that the harness now reports the schema as
    not applied, naming each missing object.
-7. Re-apply all five migrations, restore from step 3, and record the row counts from
+7. Re-apply all six migrations, restore from step 3, and record the row counts from
    step 2 matching.
 
 Steps 4 and 5 are the cheap half and can be run on their own: they touch one function
