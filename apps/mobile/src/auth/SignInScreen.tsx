@@ -75,7 +75,7 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
           <ChevronLeft />
         </Pressable>
 
-        <Text style={[type.display, { color: paper.ink }]}>Welcome back</Text>
+        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Welcome back</Text>
 
         <View style={{ gap: space(4), marginTop: space(6) }}>
           <Field
