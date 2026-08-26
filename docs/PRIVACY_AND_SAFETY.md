@@ -75,6 +75,40 @@ The rule for anyone extending this: a feature that needs to keep a recording is 
 new consent, a new retention period and a new disclosure, and it is an escalation
 before it is a branch.
 
+### Disclosure at first run
+
+What a learner is told, before they say anything out loud, lives in
+`apps/mobile/src/onboarding/disclosure.ts` as exported constants, and
+`disclosure.test.ts` holds them. It is one module because it feeds three surfaces
+in the order a learner meets them: the welcome subline before an account exists,
+the Meet Luc page immediately before the first scene, and TutorIntro's persona page
+at the door of the tutor. Before it, the first run said nothing about AI at all and
+introduced Luc with a biography. `FIRST_RUN_SURFACES` names the three, and the test
+`every first-run screen reads its AI disclosure from one module` fails if a screen
+stops reading from here and starts writing its own version.
+
+Four rules, each with a test behind it:
+
+- **AI is said plainly**, in the word itself, in the first sentence a learner reads.
+  The persona stays and is introduced as a persona. A character is not a lie;
+  presenting one as a biography to somebody who does not know they are talking to
+  software is.
+- **No person hears you**, said out loud rather than left to be inferred, because it
+  is the same position this file takes in [Escalation and what Parle is
+  not](#escalation-and-what-parle-is-not) and a learner decides what to say before
+  the scene, not after it.
+- **One vendor vocabulary.** The line about where speech goes is the Profile
+  footer's words, character for character, and the test reads both files. Two
+  sentences about one pipeline is how a document and a screen start disagreeing.
+- **No policy that does not exist.** Terms and a privacy policy are not written, so
+  nothing in the first run implies a document, a certification or a guarantee behind
+  it. The microphone line stops at the ask and makes no claim about what happens to
+  the audio, because the attempt recordings in [Not true yet](#not-true-yet) mean
+  this repo cannot honestly make that one yet.
+
+The antifraud identifier is still not disclosed anywhere, including here. When that
+text is written, this module is where it goes.
+
 ## Analytics: consent, opt-out and retention
 
 Parle records five events. They exist so product decisions are made on evidence
@@ -83,7 +117,7 @@ construction, not by good intentions.
 
 | Event | Properties | What it can never carry |
 |---|---|---|
-| `onboarding_completed` | `personalisedGreeting`, `motivationAnswered`, both booleans | The name, the motivation, the date |
+| `onboarding_completed` | `personalisedGreeting`, one boolean | The name itself, the date, why they are learning |
 | `mission_started` | `missionId`, `entry` | Anything the learner said |
 | `mission_completed` | `missionId`, `rung` | The words that earned the rung |
 | `sound_check_completed` | `missionId`, `kind` | The audio, the focus sentence, any score |
@@ -95,6 +129,14 @@ and the `validate_product_event` trigger in PostgreSQL re-checks the same shapes
 a modified client writing straight through PostgREST cannot store a transcript.
 Neither list may grow a free-text property. Adding one is a change to the parser,
 the trigger and this file, and it is an escalation.
+
+**Removing one is the same three places.** `onboarding_completed` lost
+`motivationAnswered` when the why page left the first run, because a property that
+can only ever be `false` is noise dressed as evidence. The client union in
+`apps/mobile/src/analytics/track.ts` is only one of the three: `parseProductEvent`
+in the token server and the `validate_product_event` trigger both require the exact
+key set, so until all three agree the event is rejected rather than stored, and the
+one event that says a learner finished onboarding quietly stops arriving.
 
 **What is true today:** the five events fire from seven call sites in the app with
 no consent gate, no opt-out anywhere in the UI, and `public.product_events` rows
@@ -345,7 +387,7 @@ promise already kept.
 | `trial_installations` has no scheduled delete | The 24-month antifraud retention is not enforced by anything | This file, section above |
 | The antifraud identifier is not disclosed to learners | Undisclosed pseudonymous identifier at launch | Risk register, P0 before users |
 | Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified | The privacy text cannot yet describe what they keep | Not filed |
-| Attempt recordings written by the device recorder are never deleted after upload | Raw audio lingers in the app cache, contradicting the promise above | Not filed |
+| Attempt recordings written by the device recorder are never deleted after upload | Raw audio lingers in the app cache and survives account deletion, contradicting the promise above | Ledger F115 |
 | The deletion cascade has never run against a live database | "Deletion removes everything" is unproven | Ledger F63 |
 | Device deletion and token hygiene are unproven on a real build | The device half of deletion is unproven | Ledger F71 |
 | No professional review has been obtained | The safety position is unreviewed | Ledger F70 |
