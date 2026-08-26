@@ -13,7 +13,7 @@ import {
   OpenAiResponsesBrainClient,
   type OpenAiResponsesConfig,
 } from './openaiResponses.ts';
-import { DEFAULT_ROUTING, resolveRouting, type BrainActivity } from './routing.ts';
+import { DEFAULT_ROUTING, isAnalystActivity, resolveRouting, type BrainActivity } from './routing.ts';
 
 const REQUEST: BrainTurnRequest = {
   kind: 'turn',
@@ -162,10 +162,32 @@ describe('OpenAI Responses brain — which model answers, and how hard it thinks
     );
   });
 
-  test('the three calls that run after the room has closed still go to the analyst', async () => {
-    for (const activity of ['extract', 'drills', 'curate'] as const) {
+  test('the two calls that write load-bearing pedagogy go to the analyst', async () => {
+    for (const activity of ['extract', 'drills'] as const) {
       const body = await bodyFor(activity);
-      assert.equal(body.model, DEFAULT_OPENAI_ANALYST_MODEL, `${activity} runs with nobody waiting and shapes every later session`);
+      assert.equal(body.model, DEFAULT_OPENAI_ANALYST_MODEL, `${activity} shapes every later session, so it gets the careful model`);
+    }
+  });
+
+  test('curation is served by the tier routing.ts assigns it, not by who is waiting', async () => {
+    // F104. "Nobody is waiting" and "this needs the careful model" are different
+    // questions, and this adapter used to answer the second with the first. It
+    // agreed for four activities and was wrong for curate, which routing.ts puts
+    // on the cheap tier on purpose: a ranking task over material already in hand.
+    // Measured, the disagreement cost $0.0130 a session for 199 output tokens.
+    const body = await bodyFor('curate');
+
+    assert.equal(isAnalystActivity('curate'), false, 'routing.ts is the source of truth for the tier');
+    assert.equal(body.model, DEFAULT_OPENAI_TURN_MODEL, 'so curate must be served by the fast, cheap model');
+  });
+
+  test('every activity is served by the tier its route names, with no second table to disagree', async () => {
+    // The invariant that stops F104 recurring: whatever routing.ts decides, the
+    // wire follows. A future adapter-local shortcut fails here, not in a bill.
+    for (const activity of Object.keys(DEFAULT_ROUTING) as BrainActivity[]) {
+      const body = await bodyFor(activity);
+      const expected = isAnalystActivity(activity) ? DEFAULT_OPENAI_ANALYST_MODEL : DEFAULT_OPENAI_TURN_MODEL;
+      assert.equal(body.model, expected, `${activity} must be served by the tier routing.ts assigns it`);
     }
   });
 

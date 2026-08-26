@@ -73,6 +73,28 @@ export const DEFAULT_ROUTING: BrainRouting = {
   curate: { model: 'claude-sonnet-5', effort: 'medium', maxTokens: 3_000, midConversationSystem: true },
 };
 
+/**
+ * The careful tier, named once so a second table cannot disagree with this one.
+ *
+ * The table sorts calls between two tiers, and until F104 the OpenAI adapter
+ * kept its own copy of that sorting keyed on "is a learner waiting?". The two
+ * questions look identical and are not: curate has nobody waiting AND belongs
+ * on the cheap tier, which is exactly the case the duplicate got wrong, at
+ * measured analyst prices for a ranking task.
+ */
+export const ANALYST_TIER_MODEL = 'claude-opus-5';
+
+/**
+ * Whether this activity was routed to the careful tier.
+ *
+ * Adapters that serve a different vendor's two models ask this rather than
+ * re-deciding it: the tier is a routing question and routing.ts already
+ * answered it. Which PROVIDER serves the call stays a wiring decision (split.ts).
+ */
+export function isAnalystActivity(activity: BrainActivity, routing: BrainRouting = DEFAULT_ROUTING): boolean {
+  return routing[activity].model === ANALYST_TIER_MODEL;
+}
+
 const EFFORTS: readonly BrainEffort[] = ['low', 'medium', 'high'];
 
 /**

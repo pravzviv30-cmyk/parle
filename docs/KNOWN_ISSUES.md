@@ -2176,19 +2176,26 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F104 — Curation runs on the analyst model the routing table says it does not need
 - severity: P2
-- status: [ ]
-- where: packages/brain/src/llm/openaiResponses.ts:78
+- status: [x]
+- where: packages/brain/src/llm/openaiResponses.ts:63
 - note: found by the F101 checkpoint rather than by reading, which is the argument for having
   measured. `routing.ts` puts curate on the cheap tier on purpose and says why — "the analyst
   model at high effort would add seconds ahead of that call for marginal gain on a ranking
-  task" — but the OpenAI adapter's WAITING table asks only "is a learner waiting?", and curate
-  answers no, so it lands on the dear model anyway. Measured cost: $0.0130 a session, 11.6% of
-  the total, for a call that produced 199 output tokens. Nearly all of it is the 4,328-token
-  persona-and-pack prefix at the analyst's $2/Mtok, and the same is true of extract at $0.0152
-  for 294 output tokens. Two things are worth separating here: curate is on the wrong tier
-  against the repo's own stated intent, and both post-session calls pay analyst prices to resend
-  a conversational-tutor persona that an extraction or ranking task arguably never needed. The
-  first looks like a one-line correction and the second is a prompt-shape question. Neither
-  should be flipped on two sessions of cost evidence alone without a curation-quality check,
-  which is why this is filed rather than done.
-- verified-by: `curate is served by the tier routing.ts assigns it`
+  task" — but the OpenAI adapter kept its own table keyed on "is a learner waiting?". Those two
+  questions agree for four activities and disagree for exactly one: nobody waits for curate AND
+  curate belongs on the cheap tier. Measured, that cost $0.0130 a session to produce 199 output
+  tokens, about 11% of a session, and the Claude adapter never had the bug because it reads
+  `route.model` straight from the table.
+  Fixed by deleting the duplicate rather than correcting it: `isAnalystActivity` asks routing.ts,
+  so a tier can no longer be decided twice and answered differently. Which PROVIDER serves a call
+  stays a wiring decision and stays in split.ts, which is a genuinely different question.
+  Measured after: curate fell to $0.0021 on a full session and $0.00046 on a short one, 84 and
+  85 per cent, worth about a tenth of a session. Curation succeeded on the cheap tier in both
+  runs with no fall back to the deterministic path, and the drills authored from its keep-list
+  passed the linter with nothing dropped — indirect evidence for the keep-list's quality, which
+  is the evidence this seam actually offers. Session totals are NOT quoted as a before and after
+  here on purpose: drills output swings between 1,872 and 4,934 tokens run to run, so a session
+  total would credit this change with variance it did not cause.
+- verified-by: `curation is served by the tier routing.ts assigns it, not by who is waiting`
+- verified-by: `every activity is served by the tier its route names, with no second table to disagree`
+- verified-by: `the two calls that write load-bearing pedagogy go to the analyst`

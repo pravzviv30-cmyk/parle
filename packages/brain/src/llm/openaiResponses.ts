@@ -29,7 +29,7 @@ import {
   type LlmUsage,
 } from './client.ts';
 import { realSleep, retryAfterMs, type FetchLike, type SleepLike } from './http.ts';
-import { resolveRouting, type BrainActivity, type BrainEffort, type BrainRouting } from './routing.ts';
+import { isAnalystActivity, resolveRouting, type BrainActivity, type BrainEffort, type BrainRouting } from './routing.ts';
 
 /** What `complete` needs from any of the five requests: the prefix, and the abort. */
 type PromptRequest = { system: { persona: string; pack: string; contract: string }; signal?: AbortSignal };
@@ -62,26 +62,20 @@ export const DEFAULT_OPENAI_TURN_MODEL = 'gpt-5.6-luna';
 export const DEFAULT_OPENAI_ANALYST_MODEL = 'gpt-5.6-terra';
 
 /**
- * Which of the two models answers, decided by who is waiting.
+ * Which of the two models answers is asked of routing.ts, not decided here.
  *
- * routing.ts owns effort and size for all five activities and is the single
- * source of truth for both. It cannot own this one: the model names it carries
- * are Claude's, and which provider serves a call is a wiring decision, not a
- * routing one (see split.ts).
+ * This used to be a local table keyed on "is a learner waiting?", which is a
+ * different question from "which tier does this need" and agreed with routing.ts
+ * on four activities out of five. The fifth was curate: nobody waits for it, so
+ * the local table sent it to the analyst, while routing.ts had already put it on
+ * the cheap tier on purpose and said why — a ranking task over material already
+ * in hand gains little from the careful model. Measured, that disagreement cost
+ * $0.0130 a session to produce 199 output tokens, about 11% of a whole session,
+ * and it was invisible until the meter could see per-activity spend (F104).
  *
- * The line drawn here is not a new one. It is exactly SplitBrainClient's: the
- * turn is silence the learner stands in, and the frame is silence behind the
- * bridge line, so both go to the fast model. extract, drills and curate run
- * once the room has closed with nobody waiting, and what they write shapes
- * every later session, so they go to the analyst.
+ * The tier is a routing question and routing.ts owns it. Which PROVIDER serves
+ * a call remains a wiring decision, and that still lives here and in split.ts.
  */
-const WAITING: Record<BrainActivity, boolean> = {
-  turn: true,
-  frame: true,
-  extract: false,
-  drills: false,
-  curate: false,
-};
 
 const FORMAT_NAME: Record<BrainActivity, string> = {
   turn: 'parle_tutor_turn',
@@ -255,7 +249,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   private routeFor(activity: BrainActivity): { model: string; effort: BrainEffort | undefined; maxTokens: number } {
     const route = this.routing[activity];
     return {
-      model: WAITING[activity] ? this.config.turnModel : this.config.analystModel,
+      model: isAnalystActivity(activity, this.routing) ? this.config.analystModel : this.config.turnModel,
       effort: route.effort,
       maxTokens: route.maxTokens,
     };
