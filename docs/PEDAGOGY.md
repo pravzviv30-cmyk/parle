@@ -121,7 +121,7 @@ one is about what the learner has shown.
 | state | what earns it |
 |---|---|
 | introduced | the phrase exists in the deck. Nothing has been shown yet |
-| recalled | they produced it with the answer hidden, at least once |
+| recalled | they produced it with the answer hidden, or reviewed it at all before this shipped |
 | used | they used it correctly in a real conversation, at least once |
 | transferred | they got it right when the situation changed |
 
@@ -130,9 +130,20 @@ came out because the moment needed it. And knowing a line is not the same as
 knowing when to use it, so the phrase that survives a changed situation sits
 highest.
 
-Recall means the answer was hidden first. A card showing its own back and a
-drill with the French among the options are both worth having, and neither is
-proof the learner could produce the phrase unaided, so neither counts here.
+Recall means the answer was hidden first. A drill with the French among the
+options is worth having and is not proof the learner could produce the phrase
+unaided, so it does not earn this.
+
+One deliberate exception, and it is worth naming rather than hiding. Any review
+a card has ever had counts as recall, even one where the answer was showing.
+Without that, everybody who had been reviewing before this shipped would open
+their phrasebook and find it empty, and telling a learner they have shown
+nothing is a worse untruth than counting a review that was easier than the ones
+we ask for now. It reaches past the upgrade in two smaller ways too: a card's
+first sitting is a scaffolded introduction, and a sound is always an
+introduction, so neither is ever asked to produce anything. From here on the
+count is the honest one, because a due card cannot be graded until an attempt
+has been made.
 
 `mastered` is no longer a state. It is a projection: three correct uses in
 conversation, read off the same count, so a flag can never disagree with the
