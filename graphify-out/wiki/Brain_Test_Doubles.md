@@ -32,8 +32,8 @@
 
 ## Relationships
 
-- [Brain Client Contracts](Brain_Client_Contracts.md) (16 shared connections)
-- [Brain Client Activity Metering](Brain_Client_Activity_Metering.md) (6 shared connections)
+- [Brain LLM Client Types](Brain_LLM_Client_Types.md) (16 shared connections)
+- [Conversation Brain Spend](Conversation_Brain_Spend.md) (6 shared connections)
 
 ## Source Files
 

@@ -1,12 +1,11 @@
 # Copy Style Rules
 
-> 28 nodes · cohesion 0.10
+> 27 nodes · cohesion 0.09
 
 ## Key Concepts
 
 - **copy.ts** (33 connections) — `packages/brain/src/copy.ts`
 - **brain/src/copy.test.ts** (24 connections) — `packages/brain/src/copy.test.ts`
-- **copyViolations()** (14 connections) — `packages/brain/src/copy.ts`
 - **coachFallbackLine()** (5 connections) — `packages/brain/src/copy.ts`
 - **RECOVERY_LINE** (4 connections) — `packages/brain/src/copy.ts`
 - **recoveryLine()** (3 connections) — `packages/brain/src/copy.ts`
@@ -29,20 +28,17 @@
 - **RECOVERY** (1 connections) — `packages/brain/src/copy.ts`
 - **RECOVERY_VARIANTS** (1 connections) — `packages/brain/src/copy.ts`
 - **REGISTER_MISMATCH** (1 connections) — `packages/brain/src/copy.ts`
-- *... and 3 more nodes in this community*
+- **SCOLD_RE** (1 connections) — `packages/brain/src/copy.ts`
+- *... and 2 more nodes in this community*
 
 ## Relationships
 
-- [Brain Schemas and Samples](Brain_Schemas_and_Samples.md) (10 shared connections)
-- [Conversation State Machine](Conversation_State_Machine.md) (10 shared connections)
-- [French Authenticity Pack](French_Authenticity_Pack.md) (5 shared connections)
-- [LLM Usage Pricing](LLM_Usage_Pricing.md) (4 shared connections)
-- [Coach Surfacing Policy](Coach_Surfacing_Policy.md) (2 shared connections)
-- [Session Recap Assembly](Session_Recap_Assembly.md) (2 shared connections)
-- [Brain Client Activity Metering](Brain_Client_Activity_Metering.md) (2 shared connections)
-- [Scenario and Turn Prompts](Scenario_and_Turn_Prompts.md) (2 shared connections)
-- [Playground Chat Commands](Playground_Chat_Commands.md) (1 shared connections)
-- [Conversation Orchestration](Conversation_Orchestration.md) (1 shared connections)
+- [Coach Sample Fixtures](Coach_Sample_Fixtures.md) (16 shared connections)
+- [French Authenticity Pack](French_Authenticity_Pack.md) (7 shared connections)
+- [Brain Zod Schemas](Brain_Zod_Schemas.md) (6 shared connections)
+- [Conversation Brain Spend](Conversation_Brain_Spend.md) (2 shared connections)
+- [Playground Chat CLI](Playground_Chat_CLI.md) (1 shared connections)
+- [Conversation Turn Orchestration](Conversation_Turn_Orchestration.md) (1 shared connections)
 
 ## Source Files
 
@@ -51,7 +47,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 75 (100%)
+- EXTRACTED: 65 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

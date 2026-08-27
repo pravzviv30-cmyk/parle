@@ -24,7 +24,7 @@
 
 ## Relationships
 
-- [Auth Screens and Context](Auth_Screens_and_Context.md) (1 shared connections)
+- [Conversation Screen Motion](Conversation_Screen_Motion.md) (1 shared connections)
 
 ## Source Files
 

@@ -1,6 +1,6 @@
 # Difficulty Ladder
 
-> 30 nodes · cohesion 0.14
+> 34 nodes · cohesion 0.12
 
 ## Key Concepts
 
@@ -17,34 +17,34 @@
 - **unassistedRate()** (7 connections) — `packages/core/src/ladder/ladder.ts`
 - **initialState()** (6 connections) — `packages/core/src/ladder/ladder.ts`
 - **Four-rung scaffolding ladder** (6 connections) — `PRODUCT.md`
+- **TurnQuality** (5 connections) — `packages/core/src/ladder/ladder.ts`
 - **Never stranded and never scolded** (5 connections) — `PRODUCT.md`
 - **TurnEvent** (4 connections) — `packages/core/src/ladder/ladder.ts`
+- **Trustworthy pronunciation needs a reference text** (4 connections) — `PRODUCT.md`
 - **Mock speech pipeline runs the full loop with no API keys** (4 connections) — `README.md`
 - **No number and no scolding mid-session** (3 connections) — `DESIGN.md`
 - **clamp()** (3 connections) — `packages/core/src/ladder/ladder.ts`
 - **PROMOTION_STREAK** (3 connections) — `packages/core/src/ladder/ladder.ts`
 - **SupportLevel** (3 connections) — `packages/core/src/ladder/ladder.ts`
+- **Absolute-beginner audience (CEFR A0-A2)** (3 connections) — `PRODUCT.md`
+- **The alignment thesis** (3 connections) — `README.md`
 - **Chrome is plain English, French only where it is content** (2 connections) — `DESIGN.md`
-- **run()** (2 connections) — `packages/core/src/ladder/ladder.test.ts`
-- **Accounts work without Supabase via a local on-device store** (2 connections) — `README.md`
-- **INSTRUCTION_BY_RUNG** (1 connections) — `packages/core/src/ladder/ladder.ts`
-- **SUPPORT_BY_RUNG** (1 connections) — `packages/core/src/ladder/ladder.ts`
-- *... and 5 more nodes in this community*
+- *... and 9 more nodes in this community*
 
 ## Relationships
 
-- [Session Grading and Feedback](Session_Grading_and_Feedback.md) (17 shared connections)
-- [Conversation State Machine](Conversation_State_Machine.md) (10 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (8 shared connections)
-- [Lesson Definitions](Lesson_Definitions.md) (4 shared connections)
-- [Scenario and Turn Prompts](Scenario_and_Turn_Prompts.md) (3 shared connections)
+- [Mock Speech Session Screen](Mock_Speech_Session_Screen.md) (24 shared connections)
+- [Coach Sample Fixtures](Coach_Sample_Fixtures.md) (18 shared connections)
+- [Tutor Prompt Building](Tutor_Prompt_Building.md) (5 shared connections)
 - [French Authenticity Pack](French_Authenticity_Pack.md) (3 shared connections)
-- [Mock Speech Session](Mock_Speech_Session.md) (3 shared connections)
-- [Playground Chat Commands](Playground_Chat_Commands.md) (2 shared connections)
-- [Project Principles And Constraints](Project_Principles_And_Constraints.md) (2 shared connections)
-- [Brain Schemas and Samples](Brain_Schemas_and_Samples.md) (2 shared connections)
-- [Brain Client Activity Metering](Brain_Client_Activity_Metering.md) (2 shared connections)
-- [Session Recap Assembly](Session_Recap_Assembly.md) (2 shared connections)
+- [App Agent Protocol](App_Agent_Protocol.md) (2 shared connections)
+- [Repo Conventions and Thinking Timer](Repo_Conventions_and_Thinking_Timer.md) (2 shared connections)
+- [Parle Tutor Agent](Parle_Tutor_Agent.md) (2 shared connections)
+- [Sign-In UI Components](Sign-In_UI_Components.md) (2 shared connections)
+- [Conversation Brain Spend](Conversation_Brain_Spend.md) (2 shared connections)
+- [Speechace Phoneme Scoring](Speechace_Phoneme_Scoring.md) (2 shared connections)
+- [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
+- [Lesson Definitions Matching](Lesson_Definitions_Matching.md) (1 shared connections)
 
 ## Source Files
 
@@ -57,8 +57,8 @@
 
 ## Audit Trail
 
-- EXTRACTED: 117 (92%)
-- INFERRED: 10 (8%)
+- EXTRACTED: 124 (91%)
+- INFERRED: 12 (9%)
 - AMBIGUOUS: 0 (0%)
 
 ---

@@ -33,14 +33,14 @@
 
 ## Relationships
 
-- [Sync Policy and Identity](Sync_Policy_and_Identity.md) (8 shared connections)
-- [Sync Engine Core](Sync_Engine_Core.md) (3 shared connections)
+- [Activity Sync Policy](Activity_Sync_Policy.md) (8 shared connections)
 - [Learner Profile Merge](Learner_Profile_Merge.md) (2 shared connections)
-- [Profile Gate and Age Check](Profile_Gate_and_Age_Check.md) (2 shared connections)
-- [Review Deck Cards](Review_Deck_Cards.md) (1 shared connections)
-- [Live Sync Policy Engine](Live_Sync_Policy_Engine.md) (1 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (1 shared connections)
-- [Sync Adopter Registry](Sync_Adopter_Registry.md) (1 shared connections)
+- [Sync Engine Lifecycle](Sync_Engine_Lifecycle.md) (2 shared connections)
+- [Sync Engine Types](Sync_Engine_Types.md) (2 shared connections)
+- [Age Check and Profile Upgrade](Age_Check_and_Profile_Upgrade.md) (2 shared connections)
+- [Review Card Merge](Review_Card_Merge.md) (1 shared connections)
+- [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
+- [Sync Envelope Sealing](Sync_Envelope_Sealing.md) (1 shared connections)
 
 ## Source Files
 

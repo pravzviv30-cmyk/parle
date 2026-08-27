@@ -14,7 +14,7 @@
 
 ## Relationships
 
-- [Documentation Index](Documentation_Index.md) (1 shared connections)
+- [Docs Index and Architecture](Docs_Index_and_Architecture.md) (1 shared connections)
 
 ## Source Files
 

@@ -2,7 +2,7 @@
 
 > God node · 29 connections · `apps/mobile/src/storage/scope.ts`
 
-**Community:** [Tutor Intro and Coach Marks](Tutor_Intro_and_Coach_Marks.md)
+**Community:** [Tutor Coach Mark Store](Tutor_Coach_Mark_Store.md)
 
 ## Connections by Relation
 

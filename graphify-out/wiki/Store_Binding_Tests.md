@@ -5,7 +5,7 @@
 ## Key Concepts
 
 - **storeBinding.test.ts** (72 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
-- **setActiveUser()** (6 connections) — `apps/mobile/src/storage/scope.ts`
+- **setActiveUser()** (7 connections) — `apps/mobile/src/storage/scope.ts`
 - **landingOf()** (5 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
 - **SyncedStore** (5 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
 - **QueuedWrite** (3 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
@@ -33,18 +33,18 @@
 
 ## Relationships
 
-- [Per-User Storage Scoping](Per-User_Storage_Scoping.md) (5 shared connections)
-- [Sync Engine Core](Sync_Engine_Core.md) (5 shared connections)
-- [Profile Gate and Age Check](Profile_Gate_and_Age_Check.md) (5 shared connections)
-- [Tutor Intro and Coach Marks](Tutor_Intro_and_Coach_Marks.md) (5 shared connections)
-- [Sync Adopter Registry](Sync_Adopter_Registry.md) (4 shared connections)
-- [Session Journal Recovery](Session_Journal_Recovery.md) (3 shared connections)
+- [Onboarding Profile Store](Onboarding_Profile_Store.md) (5 shared connections)
+- [Tutor Coach Mark Store](Tutor_Coach_Mark_Store.md) (5 shared connections)
+- [User Scope Reset](User_Scope_Reset.md) (4 shared connections)
+- [Sync Engine Types](Sync_Engine_Types.md) (4 shared connections)
+- [Session Journal Storage](Session_Journal_Storage.md) (3 shared connections)
+- [Sync Engine Lifecycle](Sync_Engine_Lifecycle.md) (3 shared connections)
+- [Mission Completion Store](Mission_Completion_Store.md) (3 shared connections)
 - [Review Deck Store](Review_Deck_Store.md) (3 shared connections)
-- [Product Analytics and Today Row](Product_Analytics_and_Today_Row.md) (3 shared connections)
-- [Session Progress History Store](Session_Progress_History_Store.md) (3 shared connections)
-- [Sound Check Model](Sound_Check_Model.md) (3 shared connections)
-- [Drill Bank Store](Drill_Bank_Store.md) (2 shared connections)
-- [Activity Log Store](Activity_Log_Store.md) (2 shared connections)
+- [Mission Chooser View](Mission_Chooser_View.md) (3 shared connections)
+- [Progress History Store](Progress_History_Store.md) (3 shared connections)
+- [Sound Check Store](Sound_Check_Store.md) (3 shared connections)
+- [App Root Bootstrap](App_Root_Bootstrap.md) (2 shared connections)
 
 ## Source Files
 
@@ -53,7 +53,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 87 (100%)
+- EXTRACTED: 88 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

@@ -16,7 +16,7 @@
 
 ## Relationships
 
-- [Brain Client Activity Metering](Brain_Client_Activity_Metering.md) (2 shared connections)
+- [Conversation Brain Spend](Conversation_Brain_Spend.md) (2 shared connections)
 - [Tutor Prompt Building](Tutor_Prompt_Building.md) (2 shared connections)
 
 ## Source Files

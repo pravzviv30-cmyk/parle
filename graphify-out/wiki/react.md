@@ -1,8 +1,8 @@
 # react
 
-> God node · 39 connections · `apps/mobile/tsconfig.json`
+> God node · 38 connections · `apps/mobile/tsconfig.json`
 
-**Community:** [Auth Screens and Context](Auth_Screens_and_Context.md)
+**Community:** [Conversation Screen Motion](Conversation_Screen_Motion.md)
 
 ## Connections by Relation
 
@@ -17,19 +17,19 @@
 - components.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
 - useLiveSession.ts `EXTRACTED`
-- MyFrenchTab.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
+- MyFrenchTab.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
 - ProfileTab.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
+- SoundCheckScreen.tsx `EXTRACTED`
 - LeaderboardTab.tsx `EXTRACTED`
 - AddFriendsScreen.tsx `EXTRACTED`
 - MissionsScreen.tsx `EXTRACTED`
 - ReviewScreen.tsx `EXTRACTED`
 - SummaryScreen.tsx `EXTRACTED`
-- SoundCheckScreen.tsx `EXTRACTED`
 - SessionView.tsx `EXTRACTED`
-- PhrasebookScreen.tsx `EXTRACTED`
+- TutorIntro.tsx `EXTRACTED`
 
 ---
 

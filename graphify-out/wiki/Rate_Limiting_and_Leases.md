@@ -1,21 +1,17 @@
-# Rate Limiting and Leases
+# Rate Limiting And Leases
 
-> 36 nodes · cohesion 0.07
+> 31 nodes · cohesion 0.08
 
 ## Key Concepts
 
 - **rateLimit.ts** (22 connections) — `services/token-server/src/rateLimit.ts`
 - **rateLimit.test.ts** (15 connections) — `services/token-server/src/rateLimit.test.ts`
-- **UpstashSessionLeaseStore** (8 connections) — `services/token-server/src/rateLimit.ts`
 - **MemorySessionLeaseStore** (6 connections) — `services/token-server/src/rateLimit.ts`
 - **MemoryRateLimiter** (5 connections) — `services/token-server/src/rateLimit.ts`
 - **SessionLeaseStore** (5 connections) — `services/token-server/src/rateLimit.ts`
 - **UpstashRateLimiter** (5 connections) — `services/token-server/src/rateLimit.ts`
 - **RateLimiter** (4 connections) — `services/token-server/src/rateLimit.ts`
 - **RateLimitRule** (3 connections) — `services/token-server/src/rateLimit.ts`
-- **.acquire()** (3 connections) — `services/token-server/src/rateLimit.ts`
-- **.#command()** (3 connections) — `services/token-server/src/rateLimit.ts`
-- **.release()** (3 connections) — `services/token-server/src/rateLimit.ts`
 - **createRateLimiter()** (2 connections) — `services/token-server/src/rateLimit.ts`
 - **createSessionLeaseStore()** (2 connections) — `services/token-server/src/rateLimit.ts`
 - **CONSUME_SCRIPT** (1 connections) — `services/token-server/src/rateLimit.ts`
@@ -29,12 +25,16 @@
 - **RateLimitDecision** (1 connections) — `services/token-server/src/rateLimit.ts`
 - **.consume()** (1 connections) — `services/token-server/src/rateLimit.ts`
 - **RELEASE_LEASE_SCRIPT** (1 connections) — `services/token-server/src/rateLimit.ts`
-- *... and 11 more nodes in this community*
+- **.acquire()** (1 connections) — `services/token-server/src/rateLimit.ts`
+- **.release()** (1 connections) — `services/token-server/src/rateLimit.ts`
+- **callArguments()** (1 connections) — `services/token-server/src/rateLimit.test.ts`
+- **isHashedAtSource()** (1 connections) — `services/token-server/src/rateLimit.test.ts`
+- *... and 6 more nodes in this community*
 
 ## Relationships
 
-- [Account Deletion and Agent Auth](Account_Deletion_and_Agent_Auth.md) (9 shared connections)
-- [Upstash Rate Limit Checks](Upstash_Rate_Limit_Checks.md) (7 shared connections)
+- [Server Auth And Account Deletion](Server_Auth_And_Account_Deletion.md) (9 shared connections)
+- [Upstash Lease And Rate Limits](Upstash_Lease_And_Rate_Limits.md) (7 shared connections)
 
 ## Source Files
 
@@ -43,8 +43,8 @@
 
 ## Audit Trail
 
-- EXTRACTED: 60 (97%)
-- INFERRED: 2 (3%)
+- EXTRACTED: 53 (100%)
+- INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

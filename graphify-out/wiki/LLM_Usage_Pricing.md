@@ -1,19 +1,16 @@
 # LLM Usage Pricing
 
-> 39 nodes · cohesion 0.11
+> 30 nodes · cohesion 0.13
 
 ## Key Concepts
 
-- **runEval.ts** (38 connections) — `services/brain-playground/src/eval/runEval.ts`
 - **frameEval.ts** (19 connections) — `services/brain-playground/src/eval/frameEval.ts`
 - **addLlmUsage()** (17 connections) — `packages/brain/src/llm/client.ts`
 - **drillEval.ts** (17 connections) — `services/brain-playground/src/eval/drillEval.ts`
 - **brain-playground/src/usage.ts** (16 connections) — `services/brain-playground/src/usage.ts`
 - **costUsd()** (12 connections) — `packages/brain/src/llm/pricing.ts`
-- **runCase()** (11 connections) — `services/brain-playground/src/eval/runEval.ts`
 - **ZERO_USAGE** (10 connections) — `packages/brain/src/llm/client.ts`
 - **pricing.ts** (10 connections) — `packages/brain/src/llm/pricing.ts`
-- **defaultModel()** (9 connections) — `packages/brain/src/llm/openaiCompat.ts`
 - **buildScenarioRequest()** (8 connections) — `packages/brain/src/prompt/scenarioPrompt.ts`
 - **formatTurnUsage()** (8 connections) — `services/brain-playground/src/usage.ts`
 - **priceUsage()** (7 connections) — `packages/brain/src/llm/pricing.ts`
@@ -21,49 +18,49 @@
 - **main()** (7 connections) — `services/brain-playground/src/eval/drillEval.ts`
 - **main()** (7 connections) — `services/brain-playground/src/eval/frameEval.ts`
 - **carriesFrench()** (6 connections) — `packages/brain/src/frenchLeak.ts`
-- **main()** (6 connections) — `services/brain-playground/src/eval/runEval.ts`
 - **DEFAULT_OPENAI_ANALYST_MODEL** (5 connections) — `packages/brain/src/llm/openaiResponses.ts`
 - **formatSessionUsage()** (5 connections) — `services/brain-playground/src/usage.ts`
 - **checkFrame()** (4 connections) — `services/brain-playground/src/eval/frameEval.ts`
 - **pricedNote()** (4 connections) — `services/brain-playground/src/usage.ts`
+- **mergedModel()** (3 connections) — `packages/brain/src/llm/client.ts`
 - **USD_PER_MTOK** (3 connections) — `packages/brain/src/llm/pricing.ts`
-- **hardRules()** (3 connections) — `services/brain-playground/src/eval/runEval.ts`
-- **pickClient()** (3 connections) — `services/brain-playground/src/eval/runEval.ts`
-- *... and 14 more nodes in this community*
+- **billedNothing()** (2 connections) — `packages/brain/src/llm/client.ts`
+- **pickClient()** (2 connections) — `services/brain-playground/src/eval/drillEval.ts`
+- **pickClient()** (2 connections) — `services/brain-playground/src/eval/frameEval.ts`
+- **k()** (2 connections) — `services/brain-playground/src/usage.ts`
+- **FALLBACK_PRICE_MODEL** (1 connections) — `packages/brain/src/llm/pricing.ts`
+- *... and 5 more nodes in this community*
 
 ## Relationships
 
-- [Brain Client Contracts](Brain_Client_Contracts.md) (19 shared connections)
-- [Playground Chat Commands](Playground_Chat_Commands.md) (17 shared connections)
-- [Conversation State Machine](Conversation_State_Machine.md) (9 shared connections)
-- [Brain Schemas and Samples](Brain_Schemas_and_Samples.md) (8 shared connections)
-- [OpenAI Responses Brain Client](OpenAI_Responses_Brain_Client.md) (8 shared connections)
-- [Brain Client Activity Metering](Brain_Client_Activity_Metering.md) (7 shared connections)
-- [Conversation Orchestration](Conversation_Orchestration.md) (7 shared connections)
-- [French Authenticity Pack](French_Authenticity_Pack.md) (6 shared connections)
-- [OpenAI Compatible HTTP Client](OpenAI_Compatible_HTTP_Client.md) (5 shared connections)
-- [Anthropic Brain Client](Anthropic_Brain_Client.md) (4 shared connections)
-- [Copy Style Rules](Copy_Style_Rules.md) (4 shared connections)
-- [Coach Surfacing Policy](Coach_Surfacing_Policy.md) (3 shared connections)
+- [Brain LLM Client Types](Brain_LLM_Client_Types.md) (20 shared connections)
+- [Playground Chat CLI](Playground_Chat_CLI.md) (13 shared connections)
+- [Coach Sample Fixtures](Coach_Sample_Fixtures.md) (12 shared connections)
+- [French Authenticity Pack](French_Authenticity_Pack.md) (9 shared connections)
+- [Brain Client Config Tests](Brain_Client_Config_Tests.md) (8 shared connections)
+- [Conversation Brain Spend](Conversation_Brain_Spend.md) (7 shared connections)
+- [Brain Contract Methods](Brain_Contract_Methods.md) (2 shared connections)
+- [Topic Curation](Topic_Curation.md) (2 shared connections)
+- [Drill Exercise Validation](Drill_Exercise_Validation.md) (2 shared connections)
+- [Environment Preflight](Environment_Preflight.md) (1 shared connections)
+- [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
 
 ## Source Files
 
 - `packages/brain/src/frenchLeak.ts`
 - `packages/brain/src/llm/client.ts`
-- `packages/brain/src/llm/openaiCompat.ts`
 - `packages/brain/src/llm/openaiResponses.ts`
 - `packages/brain/src/llm/pricing.test.ts`
 - `packages/brain/src/llm/pricing.ts`
 - `packages/brain/src/prompt/scenarioPrompt.ts`
 - `services/brain-playground/src/eval/drillEval.ts`
 - `services/brain-playground/src/eval/frameEval.ts`
-- `services/brain-playground/src/eval/runEval.ts`
 - `services/brain-playground/src/usage.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 185 (99%)
-- INFERRED: 1 (1%)
+- EXTRACTED: 133 (100%)
+- INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---
