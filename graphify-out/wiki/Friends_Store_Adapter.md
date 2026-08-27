@@ -1,6 +1,6 @@
 # Friends Store Adapter
 
-> 50 nodes · cohesion 0.08
+> 51 nodes · cohesion 0.08
 
 ## Key Concepts
 
@@ -18,6 +18,7 @@
 - **FriendRequest** (6 connections) — `apps/mobile/src/friends/types.ts`
 - **asUsername()** (5 connections) — `apps/mobile/src/friends/logic.ts`
 - **FriendsState** (5 connections) — `apps/mobile/src/friends/logic.ts`
+- **activeUserId()** (5 connections) — `apps/mobile/src/storage/scope.ts`
 - **createLocalAdapter()** (4 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **KEY()** (4 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **loadStoreFor()** (4 connections) — `apps/mobile/src/friends/localAdapter.ts`
@@ -28,17 +29,17 @@
 - **searchRoster()** (4 connections) — `apps/mobile/src/friends/logic.ts`
 - **FriendsStore** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
 - **loadStore()** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
-- **serialized()** (3 connections) — `apps/mobile/src/friends/localAdapter.ts`
-- *... and 25 more nodes in this community*
+- *... and 26 more nodes in this community*
 
 ## Relationships
 
-- [Auth Screens And Profile Context](Auth_Screens_And_Profile_Context.md) (15 shared connections)
-- [Session Journal Storage](Session_Journal_Storage.md) (2 shared connections)
-- [User Scope Reset](User_Scope_Reset.md) (2 shared connections)
-- [Tutor Coach Mark Store](Tutor_Coach_Mark_Store.md) (2 shared connections)
-- [Onboarding Profile Store](Onboarding_Profile_Store.md) (2 shared connections)
+- [Friends & Leaderboard UI](Friends_&_Leaderboard_UI.md) (9 shared connections)
+- [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md) (6 shared connections)
+- [User Scope Reset](User_Scope_Reset.md) (3 shared connections)
+- [Topics Store](Topics_Store.md) (2 shared connections)
+- [Profile Store & Gate](Profile_Store_&_Gate.md) (2 shared connections)
 - [Store Binding Tests](Store_Binding_Tests.md) (2 shared connections)
+- [Practice Journal Store](Practice_Journal_Store.md) (2 shared connections)
 
 ## Source Files
 
@@ -47,10 +48,11 @@
 - `apps/mobile/src/friends/logic.test.ts`
 - `apps/mobile/src/friends/logic.ts`
 - `apps/mobile/src/friends/types.ts`
+- `apps/mobile/src/storage/scope.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 128 (100%)
+- EXTRACTED: 131 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

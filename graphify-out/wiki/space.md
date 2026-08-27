@@ -40,13 +40,13 @@
 - OnboardingFlow.tsx `EXTRACTED`
 - MyFrenchTab.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
+- ReviewScreen.tsx `EXTRACTED`
 - ProfileTab.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
 - SoundCheckScreen.tsx `EXTRACTED`
 - LeaderboardTab.tsx `EXTRACTED`
 - AddFriendsScreen.tsx `EXTRACTED`
 - MissionsScreen.tsx `EXTRACTED`
-- ReviewScreen.tsx `EXTRACTED`
 - SummaryScreen.tsx `EXTRACTED`
 - SessionView.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`

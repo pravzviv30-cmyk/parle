@@ -1,13 +1,14 @@
 # Risk Register
 
-> 5 nodes · cohesion 0.40
+> 6 nodes · cohesion 0.33
 
 ## Key Concepts
 
-- **Risk register** (4 connections) — `docs/RISK_REGISTER.md`
+- **Risk register** (5 connections) — `docs/RISK_REGISTER.md`
 - **RISK_REGISTER.md** (2 connections) — `docs/RISK_REGISTER.md`
 - **Abandoned rooms: a risk this register overstated** (1 connections) — `docs/RISK_REGISTER.md`
 - **Failed-room billing: a control this register claimed, lost, and rebuilt** (1 connections) — `docs/RISK_REGISTER.md`
+- **Phase 4 practice: one risk closed, three accepted, one question left open** (1 connections) — `docs/RISK_REGISTER.md`
 - **Trial farming: theoretical no longer** (1 connections) — `docs/RISK_REGISTER.md`
 
 ## Relationships
@@ -20,7 +21,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 5 (100%)
+- EXTRACTED: 6 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

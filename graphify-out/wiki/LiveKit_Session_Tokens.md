@@ -1,12 +1,13 @@
 # LiveKit Session Tokens
 
-> 15 nodes · cohesion 0.22
+> 16 nodes · cohesion 0.20
 
 ## Key Concepts
 
 - **tokens.ts** (19 connections) — `services/token-server/src/tokens.ts`
 - **tokens.test.ts** (15 connections) — `services/token-server/src/tokens.test.ts`
 - **grantSession()** (11 connections) — `services/token-server/src/tokens.ts`
+- **developmentEntitlementsEnabled()** (3 connections) — `services/token-server/src/store.ts`
 - **ROOM_LIFECYCLE** (3 connections) — `services/token-server/src/tokens.ts`
 - **roomNameFor()** (3 connections) — `services/token-server/src/tokens.ts`
 - **TokenConfig** (3 connections) — `services/token-server/src/tokens.ts`
@@ -22,21 +23,22 @@
 
 ## Relationships
 
-- [Session Cost Metering](Session_Cost_Metering.md) (6 shared connections)
 - [Entitlement Store](Entitlement_Store.md) (6 shared connections)
-- [Server Auth And Account Deletion](Server_Auth_And_Account_Deletion.md) (4 shared connections)
+- [Session Metering & Plans](Session_Metering_&_Plans.md) (6 shared connections)
+- [Account Deletion & Admin Auth](Account_Deletion_&_Admin_Auth.md) (5 shared connections)
 - [Path Node Status Line](Path_Node_Status_Line.md) (2 shared connections)
 - [Evidence Ledger Contract](Evidence_Ledger_Contract.md) (2 shared connections)
-- [Mission Chooser View](Mission_Chooser_View.md) (1 shared connections)
+- [Product Event Tracking](Product_Event_Tracking.md) (1 shared connections)
 
 ## Source Files
 
+- `services/token-server/src/store.ts`
 - `services/token-server/src/tokens.test.ts`
 - `services/token-server/src/tokens.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 44 (100%)
+- EXTRACTED: 46 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

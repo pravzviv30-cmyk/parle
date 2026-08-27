@@ -1,72 +1,77 @@
 # Product Event Tracking
 
-> 38 nodes · cohesion 0.10
+> 71 nodes · cohesion 0.08
 
 ## Key Concepts
 
-- **SoundCheckScreen.tsx** (37 connections) — `apps/mobile/src/soundcheck/SoundCheckScreen.tsx`
+- **HomeTab.tsx** (63 connections) — `apps/mobile/src/tabs/HomeTab.tsx`
+- **MyFrenchTab.tsx** (44 connections) — `apps/mobile/src/tabs/MyFrenchTab.tsx`
+- **MissionsScreen.tsx** (36 connections) — `apps/mobile/src/missions/MissionsScreen.tsx`
+- **chooserView.ts** (30 connections) — `apps/mobile/src/missions/chooserView.ts`
+- **Rung** (30 connections) — `packages/core/src/ladder/ladder.ts`
+- **missions.ts** (25 connections) — `packages/core/src/missions/missions.ts`
+- **loadDeck()** (24 connections) — `apps/mobile/src/review/store.ts`
+- **chooserView.test.ts** (23 connections) — `apps/mobile/src/missions/chooserView.test.ts`
+- **missions.test.ts** (21 connections) — `packages/core/src/missions/missions.test.ts`
+- **HomeTab()** (19 connections) — `apps/mobile/src/tabs/HomeTab.tsx`
+- **loadTopics()** (16 connections) — `apps/mobile/src/topics/store.ts`
+- **missions/index.ts** (16 connections) — `packages/core/src/missions/index.ts`
 - **track.ts** (15 connections) — `apps/mobile/src/analytics/track.ts`
-- **model.ts** (13 connections) — `apps/mobile/src/soundcheck/model.ts`
-- **SoundCheckScreen()** (13 connections) — `apps/mobile/src/soundcheck/SoundCheckScreen.tsx`
-- **scoreAttempt.ts** (11 connections) — `apps/mobile/src/speech/scoreAttempt.ts`
+- **missionStates()** (15 connections) — `packages/core/src/missions/missions.ts`
+- **trackProductEvent()** (14 connections) — `apps/mobile/src/analytics/track.ts`
+- **MyFrenchTab()** (14 connections) — `apps/mobile/src/tabs/MyFrenchTab.tsx`
+- **loadMissionCompletions()** (12 connections) — `apps/mobile/src/missions/store.ts`
+- **TutorTab()** (12 connections) — `apps/mobile/src/tabs/TutorTab.tsx`
+- **MissionsScreen()** (11 connections) — `apps/mobile/src/missions/MissionsScreen.tsx`
 - **getMission()** (11 connections) — `packages/core/src/missions/missions.ts`
-- **discardRecording.ts** (10 connections) — `apps/mobile/src/speech/discardRecording.ts`
-- **serverUrl.ts** (9 connections) — `apps/mobile/src/live/serverUrl.ts`
-- **model.test.ts** (9 connections) — `apps/mobile/src/soundcheck/model.test.ts`
-- **authHeaders()** (8 connections) — `apps/mobile/src/auth/adapter.ts`
-- **discardRecording()** (8 connections) — `apps/mobile/src/speech/discardRecording.ts`
-- **SessionPhonemeReport** (8 connections) — `packages/core/src/phonemes/scoring.ts`
-- **TOKEN_SERVER** (7 connections) — `apps/mobile/src/live/serverUrl.ts`
-- **consumeRecording()** (7 connections) — `apps/mobile/src/speech/discardRecording.ts`
-- **scoreRecordedAttempt()** (6 connections) — `apps/mobile/src/speech/scoreAttempt.ts`
-- **serverUrl.test.ts** (5 connections) — `apps/mobile/src/live/serverUrl.test.ts`
-- **SoundCheckEvidence** (5 connections) — `apps/mobile/src/soundcheck/model.ts`
-- **discardRecording.test.ts** (5 connections) — `apps/mobile/src/speech/discardRecording.test.ts`
-- **nextSoundCheckReference()** (4 connections) — `apps/mobile/src/soundcheck/model.ts`
-- **soundCheckDecision** (4 connections) — `apps/mobile/src/soundcheck/model.ts`
-- **SELF_GUIDED** (3 connections) — `apps/mobile/src/soundcheck/model.ts`
-- **SoundCheckKind** (3 connections) — `apps/mobile/src/soundcheck/model.ts`
-- **AttemptScore** (3 connections) — `apps/mobile/src/speech/scoreAttempt.ts`
-- **expo-audio** (3 connections) — `apps/mobile/app.json`
-- **selectTokenServerUrl()** (2 connections) — `apps/mobile/src/live/serverUrl.ts`
-- *... and 13 more nodes in this community*
+- **useLive()** (10 connections) — `apps/mobile/src/app/LiveContext.tsx`
+- **missionCompletionsFrom()** (10 connections) — `apps/mobile/src/missions/chooserView.ts`
+- **loadActivity()** (9 connections) — `apps/mobile/src/progress/activity.ts`
+- **MissionProgress** (9 connections) — `packages/core/src/missions/missions.ts`
+- **buildPhrasebook()** (8 connections) — `apps/mobile/src/phrases/phrasebook.ts`
+- *... and 46 more nodes in this community*
 
 ## Relationships
 
-- [Mission Chooser View](Mission_Chooser_View.md) (14 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (14 shared connections)
-- [Sign-In UI Components](Sign-In_UI_Components.md) (11 shared connections)
-- [Sound Check Store](Sound_Check_Store.md) (9 shared connections)
-- [Conversation Screen Motion](Conversation_Screen_Motion.md) (5 shared connections)
-- [Auth Adapter Modes](Auth_Adapter_Modes.md) (4 shared connections)
-- [Live Failure Classification](Live_Failure_Classification.md) (4 shared connections)
-- [Live Session Navigation](Live_Session_Navigation.md) (4 shared connections)
-- [Path Node Status Line](Path_Node_Status_Line.md) (4 shared connections)
-- [Mock Speech Session Screen](Mock_Speech_Session_Screen.md) (4 shared connections)
-- [supabaseAdapter.ts](supabaseAdapter.ts.md) (2 shared connections)
-- [Pronunciation Drill Bank](Pronunciation_Drill_Bank.md) (2 shared connections)
+- [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md) (57 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (27 shared connections)
+- [Path Node Status Line](Path_Node_Status_Line.md) (15 shared connections)
+- [Mobile App Auth Flow](Mobile_App_Auth_Flow.md) (13 shared connections)
+- [Conversation Screen UI](Conversation_Screen_UI.md) (11 shared connections)
+- [Today Activity Feed](Today_Activity_Feed.md) (11 shared connections)
+- [Phrasebook and Hold Scheduling](Phrasebook_and_Hold_Scheduling.md) (8 shared connections)
+- [Mission Completions Store](Mission_Completions_Store.md) (6 shared connections)
+- [Review Deck Store](Review_Deck_Store.md) (6 shared connections)
+- [Topics Store](Topics_Store.md) (6 shared connections)
+- [Practice Mix Offers](Practice_Mix_Offers.md) (5 shared connections)
+- [Review Scheduler](Review_Scheduler.md) (5 shared connections)
 
 ## Source Files
 
-- `apps/mobile/app.json`
 - `apps/mobile/src/analytics/track.ts`
-- `apps/mobile/src/auth/adapter.ts`
-- `apps/mobile/src/live/serverUrl.test.ts`
-- `apps/mobile/src/live/serverUrl.ts`
-- `apps/mobile/src/soundcheck/SoundCheckScreen.tsx`
-- `apps/mobile/src/soundcheck/model.test.ts`
-- `apps/mobile/src/soundcheck/model.ts`
-- `apps/mobile/src/soundcheck/store.ts`
-- `apps/mobile/src/speech/discardRecording.test.ts`
-- `apps/mobile/src/speech/discardRecording.ts`
-- `apps/mobile/src/speech/removeRecording.ts`
-- `apps/mobile/src/speech/scoreAttempt.ts`
-- `packages/core/src/missions/missions.ts`
-- `packages/core/src/phonemes/scoring.ts`
+- `apps/mobile/src/app/LiveContext.tsx`
+- `apps/mobile/src/live/journal.test.ts`
+- `apps/mobile/src/missions/MissionArt.tsx`
+- `apps/mobile/src/missions/MissionsScreen.tsx`
+- `apps/mobile/src/missions/chooserView.test.ts`
+- `apps/mobile/src/missions/chooserView.ts`
+- `apps/mobile/src/missions/store.ts`
+- `apps/mobile/src/phrases/PhrasebookScreen.tsx`
+- `apps/mobile/src/phrases/phrasebook.ts`
+- `apps/mobile/src/progress/activity.ts`
+- `apps/mobile/src/review/store.ts`
+- `apps/mobile/src/tabs/HomeTab.tsx`
+- `apps/mobile/src/tabs/MyFrenchTab.tsx`
+- `apps/mobile/src/tabs/TutorTab.tsx`
+- `apps/mobile/src/topics/store.ts`
+- `apps/mobile/src/tutor/missionWin.ts`
+- `packages/core/src/ladder/ladder.ts`
+- `packages/core/src/missions/index.ts`
+- `packages/core/src/missions/missions.test.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 155 (100%)
+- EXTRACTED: 445 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

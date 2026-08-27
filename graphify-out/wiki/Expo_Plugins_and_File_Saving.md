@@ -14,10 +14,10 @@
 
 ## Relationships
 
-- [supabaseAdapter.ts](supabaseAdapter.ts.md) (2 shared connections)
-- [Product Event Tracking](Product_Event_Tracking.md) (1 shared connections)
+- [Supabase and Google OAuth](Supabase_and_Google_OAuth.md) (2 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (1 shared connections)
 - [Expo App Config](Expo_App_Config.md) (1 shared connections)
-- [App Root Bootstrap](App_Root_Bootstrap.md) (1 shared connections)
+- [Mobile App Auth Flow](Mobile_App_Auth_Flow.md) (1 shared connections)
 
 ## Source Files
 

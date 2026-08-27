@@ -2,7 +2,7 @@
 
 > God node · 50 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Sign-In UI Components](Sign-In_UI_Components.md)
+**Community:** [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md)
 
 ## Connections by Relation
 
@@ -19,13 +19,13 @@
 - OnboardingFlow.tsx `EXTRACTED`
 - MyFrenchTab.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
+- ReviewScreen.tsx `EXTRACTED`
 - ProfileTab.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
 - SoundCheckScreen.tsx `EXTRACTED`
 - LeaderboardTab.tsx `EXTRACTED`
 - AddFriendsScreen.tsx `EXTRACTED`
 - MissionsScreen.tsx `EXTRACTED`
-- ReviewScreen.tsx `EXTRACTED`
 - SummaryScreen.tsx `EXTRACTED`
 - SessionView.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`

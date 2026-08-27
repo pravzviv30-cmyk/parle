@@ -2,7 +2,7 @@
 
 > God node · 55 connections · `services/tutor-agent/src/convo.ts`
 
-**Community:** [Conversation Turn Orchestration](Conversation_Turn_Orchestration.md)
+**Community:** [Parle Conversation Controller](Parle_Conversation_Controller.md)
 
 ## Connections by Relation
 

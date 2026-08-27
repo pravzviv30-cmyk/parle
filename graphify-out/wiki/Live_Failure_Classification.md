@@ -1,67 +1,78 @@
 # Live Failure Classification
 
-> 43 nodes · cohesion 0.09
+> 86 nodes · cohesion 0.05
 
 ## Key Concepts
 
 - **useLiveSession.ts** (54 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **protocol.ts** (31 connections) — `packages/core/src/protocol/protocol.ts`
 - **useLiveSession()** (21 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **protocol.test.ts** (18 connections) — `packages/core/src/protocol/protocol.test.ts`
+- **protocol/index.ts** (16 connections) — `packages/core/src/protocol/index.ts`
+- **encodeMessage()** (16 connections) — `packages/core/src/protocol/protocol.ts`
 - **choosingView.ts** (15 connections) — `apps/mobile/src/tutor/choosingView.ts`
 - **choosingView.test.ts** (14 connections) — `apps/mobile/src/tutor/choosingView.test.ts`
+- **ConvoPhrase** (12 connections) — `packages/core/src/protocol/protocol.ts`
+- **decodeServerMessage()** (12 connections) — `packages/core/src/protocol/protocol.ts`
+- **RecapPayload** (12 connections) — `packages/core/src/protocol/protocol.ts`
+- **ServerMessage** (12 connections) — `packages/core/src/protocol/protocol.ts`
+- **smokeTutor.mjs** (11 connections) — `scripts/smokeTutor.mjs`
+- **LiveSession** (10 connections) — `apps/mobile/src/live/useLiveSession.ts`
 - **failure.ts** (9 connections) — `apps/mobile/src/live/failure.ts`
+- **decodeClientMessage()** (9 connections) — `packages/core/src/protocol/protocol.ts`
+- **ClientMessage** (8 connections) — `packages/core/src/protocol/protocol.ts`
 - **turns.ts** (7 connections) — `apps/mobile/src/live/turns.ts`
 - **TurnLine** (7 connections) — `apps/mobile/src/live/turns.ts`
+- **ConvoView** (7 connections) — `packages/core/src/protocol/protocol.ts`
+- **TurnFeedback** (7 connections) — `packages/core/src/session/session.ts`
 - **failureCopy** (6 connections) — `apps/mobile/src/live/failure.ts`
 - **failure.test.ts** (6 connections) — `apps/mobile/src/live/failure.test.ts`
+- **TOPIC_SERVER** (6 connections) — `packages/core/src/protocol/protocol.ts`
 - **LiveFailure** (5 connections) — `apps/mobile/src/live/failure.ts`
-- **classifyFailure()** (4 connections) — `apps/mobile/src/live/failure.ts`
-- **TokenServerError** (4 connections) — `apps/mobile/src/live/failure.ts`
-- **globals.ts** (4 connections) — `apps/mobile/src/live/globals.ts`
-- **pushTurn()** (4 connections) — `apps/mobile/src/live/turns.ts`
-- **choosingView** (4 connections) — `apps/mobile/src/tutor/choosingView.ts`
-- **micOpensAtConnect()** (4 connections) — `apps/mobile/src/tutor/choosingView.ts`
-- **typingPing.ts** (4 connections) — `apps/mobile/src/tutor/typingPing.ts`
-- **shouldPingTyping()** (4 connections) — `apps/mobile/src/tutor/typingPing.ts`
-- **micApiUnavailable()** (3 connections) — `apps/mobile/src/live/failure.ts`
-- **ensureAudioSession()** (3 connections) — `apps/mobile/src/live/globals.ts`
-- **ensureLiveKitGlobals()** (3 connections) — `apps/mobile/src/live/globals.ts`
-- **releaseAudioSession()** (3 connections) — `apps/mobile/src/live/globals.ts`
-- **LiveDiagnostics** (3 connections) — `apps/mobile/src/live/useLiveSession.ts`
-- **ChoosingState** (3 connections) — `apps/mobile/src/tutor/choosingView.ts`
-- **QUIET_DOOR** (3 connections) — `apps/mobile/src/tutor/choosingView.ts`
-- *... and 18 more nodes in this community*
+- *... and 61 more nodes in this community*
 
 ## Relationships
 
-- [App Agent Protocol](App_Agent_Protocol.md) (12 shared connections)
-- [Conversation Screen Motion](Conversation_Screen_Motion.md) (10 shared connections)
-- [Sign-In UI Components](Sign-In_UI_Components.md) (8 shared connections)
-- [Path Node Status Line](Path_Node_Status_Line.md) (5 shared connections)
-- [Product Event Tracking](Product_Event_Tracking.md) (4 shared connections)
-- [Session Journal Storage](Session_Journal_Storage.md) (4 shared connections)
-- [Repo Conventions and Thinking Timer](Repo_Conventions_and_Thinking_Timer.md) (3 shared connections)
-- [Mock Speech Session Screen](Mock_Speech_Session_Screen.md) (2 shared connections)
-- [Scene Replay Controls](Scene_Replay_Controls.md) (2 shared connections)
-- [Drill Session Copy Checks](Drill_Session_Copy_Checks.md) (1 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (1 shared connections)
-- [Auth Adapter Modes](Auth_Adapter_Modes.md) (1 shared connections)
+- [Mock Speech Session](Mock_Speech_Session.md) (14 shared connections)
+- [Practice Journal Store](Practice_Journal_Store.md) (12 shared connections)
+- [Conversation Screen UI](Conversation_Screen_UI.md) (11 shared connections)
+- [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md) (10 shared connections)
+- [Tutor Prompt Building](Tutor_Prompt_Building.md) (10 shared connections)
+- [Path Node Status Line](Path_Node_Status_Line.md) (9 shared connections)
+- [Conversation Orchestration](Conversation_Orchestration.md) (8 shared connections)
+- [Scene Support Controls](Scene_Support_Controls.md) (5 shared connections)
+- [Parle Conversation Controller](Parle_Conversation_Controller.md) (5 shared connections)
+- [Tutor Agent Timing](Tutor_Agent_Timing.md) (4 shared connections)
+- [Product Event Tracking](Product_Event_Tracking.md) (3 shared connections)
+- [Difficulty Ladder](Difficulty_Ladder.md) (3 shared connections)
 
 ## Source Files
 
+- `PRODUCT.md`
+- `README.md`
 - `apps/mobile/src/live/failure.test.ts`
 - `apps/mobile/src/live/failure.ts`
 - `apps/mobile/src/live/globals.ts`
+- `apps/mobile/src/live/thinking.test.ts`
+- `apps/mobile/src/live/thinking.ts`
 - `apps/mobile/src/live/turns.ts`
 - `apps/mobile/src/live/useLiveSession.ts`
 - `apps/mobile/src/tutor/choosingView.test.ts`
 - `apps/mobile/src/tutor/choosingView.ts`
+- `apps/mobile/src/tutor/sceneControls.ts`
 - `apps/mobile/src/tutor/typingPing.test.ts`
 - `apps/mobile/src/tutor/typingPing.ts`
+- `packages/core/src/protocol/index.ts`
+- `packages/core/src/protocol/protocol.test.ts`
+- `packages/core/src/protocol/protocol.ts`
+- `packages/core/src/session/session.ts`
+- `scripts/smokeTutor.mjs`
+- `services/tutor-agent/src/convo.test.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 138 (100%)
-- INFERRED: 0 (0%)
+- EXTRACTED: 288 (98%)
+- INFERRED: 5 (2%)
 - AMBIGUOUS: 0 (0%)
 
 ---

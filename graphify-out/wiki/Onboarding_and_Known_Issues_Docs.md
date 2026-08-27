@@ -23,7 +23,7 @@
 - [Android Acceptance Checks](Android_Acceptance_Checks.md) (1 shared connections)
 - [Known Issues Ledger](Known_Issues_Ledger.md) (1 shared connections)
 - [State and Storage Docs](State_and_Storage_Docs.md) (1 shared connections)
-- [Privacy, Safety and Data Retention](Privacy,_Safety_and_Data_Retention.md) (1 shared connections)
+- [Privacy and Safety Policy](Privacy_and_Safety_Policy.md) (1 shared connections)
 
 ## Source Files
 

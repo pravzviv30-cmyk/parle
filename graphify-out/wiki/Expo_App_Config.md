@@ -27,7 +27,7 @@
 
 ## Relationships
 
-- [Android App Icon Config](Android_App_Icon_Config.md) (1 shared connections)
+- [Android App Config](Android_App_Config.md) (1 shared connections)
 - [Expo Plugins and File Saving](Expo_Plugins_and_File_Saving.md) (1 shared connections)
 
 ## Source Files

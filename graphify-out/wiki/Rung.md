@@ -2,7 +2,7 @@
 
 > God node · 30 connections · `packages/core/src/ladder/ladder.ts`
 
-**Community:** [Tutor Prompt Building](Tutor_Prompt_Building.md)
+**Community:** [Product Event Tracking](Product_Event_Tracking.md)
 
 ## Connections by Relation
 
@@ -14,8 +14,8 @@
 - conversation.ts `EXTRACTED`
 - components.tsx `EXTRACTED`
 - useLiveSession.ts `EXTRACTED`
-- session/session.ts `EXTRACTED`
 - profile.ts `EXTRACTED`
+- session/session.ts `EXTRACTED`
 - tutor.ts `EXTRACTED`
 - agent.ts `EXTRACTED`
 - protocol.ts `EXTRACTED`

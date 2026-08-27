@@ -23,13 +23,13 @@
 
 ## Relationships
 
-- [Server Auth And Account Deletion](Server_Auth_And_Account_Deletion.md) (3 shared connections)
-- [Difficulty Ladder](Difficulty_Ladder.md) (2 shared connections)
-- [Mock Speech Session Screen](Mock_Speech_Session_Screen.md) (2 shared connections)
+- [Account Deletion & Admin Auth](Account_Deletion_&_Admin_Auth.md) (3 shared connections)
+- [Tutor Prompt Building](Tutor_Prompt_Building.md) (3 shared connections)
+- [Mock Speech Session](Mock_Speech_Session.md) (2 shared connections)
 - [Path Node Status Line](Path_Node_Status_Line.md) (2 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (2 shared connections)
-- [Parle Tutor Agent](Parle_Tutor_Agent.md) (1 shared connections)
-- [Pronunciation Drill Bank](Pronunciation_Drill_Bank.md) (1 shared connections)
+- [Difficulty Ladder](Difficulty_Ladder.md) (1 shared connections)
+- [Product Principles and Design World](Product_Principles_and_Design_World.md) (1 shared connections)
+- [Pronunciation Drills](Pronunciation_Drills.md) (1 shared connections)
 
 ## Source Files
 

@@ -1,12 +1,16 @@
 # User Scope Reset
 
-> 17 nodes · cohesion 0.18
+> 21 nodes · cohesion 0.16
 
 ## Key Concepts
 
-- **scope.ts** (31 connections) — `apps/mobile/src/storage/scope.ts`
+- **scope.ts** (35 connections) — `apps/mobile/src/storage/scope.ts`
+- **SignedInRoot()** (14 connections) — `apps/mobile/App.tsx`
 - **scope.test.ts** (14 connections) — `apps/mobile/src/storage/scope.test.ts`
+- **setActiveUser()** (13 connections) — `apps/mobile/src/storage/scope.ts`
 - **onUserScopeReset()** (12 connections) — `apps/mobile/src/storage/scope.ts`
+- **clearActiveUserData()** (4 connections) — `apps/mobile/src/storage/scope.ts`
+- **migrateLegacyStores()** (4 connections) — `apps/mobile/src/storage/scope.ts`
 - **USER_KEY_SUFFIXES** (4 connections) — `apps/mobile/src/storage/scope.ts`
 - **attemptAudio.ts** (3 connections) — `apps/mobile/src/storage/attemptAudio.ts`
 - **AttemptAudioSweepResult** (3 connections) — `apps/mobile/src/storage/attemptAudio.ts`
@@ -24,28 +28,29 @@
 
 ## Relationships
 
-- [App Root Bootstrap](App_Root_Bootstrap.md) (5 shared connections)
+- [Topics Store](Topics_Store.md) (6 shared connections)
+- [Profile Store & Gate](Profile_Store_&_Gate.md) (5 shared connections)
+- [Mobile App Auth Flow](Mobile_App_Auth_Flow.md) (5 shared connections)
+- [Practice Journal Store](Practice_Journal_Store.md) (4 shared connections)
 - [Store Binding Tests](Store_Binding_Tests.md) (4 shared connections)
-- [Tutor Coach Mark Store](Tutor_Coach_Mark_Store.md) (4 shared connections)
-- [Session Journal Storage](Session_Journal_Storage.md) (3 shared connections)
-- [Drill Bank Store Merge](Drill_Bank_Store_Merge.md) (2 shared connections)
-- [Friends Store Adapter](Friends_Store_Adapter.md) (2 shared connections)
-- [Mission Completion Store](Mission_Completion_Store.md) (2 shared connections)
-- [Onboarding Profile Store](Onboarding_Profile_Store.md) (2 shared connections)
-- [Activity Log Store](Activity_Log_Store.md) (2 shared connections)
-- [Progress History Store](Progress_History_Store.md) (2 shared connections)
-- [Review Deck Store](Review_Deck_Store.md) (2 shared connections)
-- [Sound Check Store](Sound_Check_Store.md) (2 shared connections)
+- [Session Progress Store](Session_Progress_Store.md) (3 shared connections)
+- [Today Activity Feed](Today_Activity_Feed.md) (3 shared connections)
+- [Store Acknowledgement](Store_Acknowledgement.md) (3 shared connections)
+- [Drill Screen Test Fixtures](Drill_Screen_Test_Fixtures.md) (3 shared connections)
+- [Friends Store Adapter](Friends_Store_Adapter.md) (3 shared connections)
+- [Conversation Screen Tests](Conversation_Screen_Tests.md) (2 shared connections)
+- [Drill Bank Store](Drill_Bank_Store.md) (2 shared connections)
 
 ## Source Files
 
+- `apps/mobile/App.tsx`
 - `apps/mobile/src/storage/attemptAudio.ts`
 - `apps/mobile/src/storage/scope.test.ts`
 - `apps/mobile/src/storage/scope.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 60 (100%)
+- EXTRACTED: 90 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

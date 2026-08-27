@@ -21,12 +21,11 @@
 
 ## Relationships
 
-- [Onboarding Profile Store](Onboarding_Profile_Store.md) (7 shared connections)
-- [Activity Sync Policy](Activity_Sync_Policy.md) (3 shared connections)
-- [Age Gate Answers](Age_Gate_Answers.md) (2 shared connections)
-- [Sync Policy Constants](Sync_Policy_Constants.md) (2 shared connections)
-- [Profile Merge Fields](Profile_Merge_Fields.md) (1 shared connections)
-- [Learner Profile Merge](Learner_Profile_Merge.md) (1 shared connections)
+- [Profile Store & Gate](Profile_Store_&_Gate.md) (8 shared connections)
+- [Namespace Merge Policy](Namespace_Merge_Policy.md) (3 shared connections)
+- [Onboarding Answers](Onboarding_Answers.md) (2 shared connections)
+- [Sync Retention Policy](Sync_Retention_Policy.md) (2 shared connections)
+- [Profile Merge](Profile_Merge.md) (1 shared connections)
 
 ## Source Files
 

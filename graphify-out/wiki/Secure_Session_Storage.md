@@ -25,7 +25,7 @@
 
 ## Relationships
 
-- [supabaseAdapter.ts](supabaseAdapter.ts.md) (3 shared connections)
+- [Supabase and Google OAuth](Supabase_and_Google_OAuth.md) (3 shared connections)
 
 ## Source Files
 

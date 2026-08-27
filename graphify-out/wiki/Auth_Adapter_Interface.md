@@ -21,9 +21,10 @@
 
 ## Relationships
 
-- [supabaseAdapter.ts](supabaseAdapter.ts.md) (3 shared connections)
-- [Auth Adapter Modes](Auth_Adapter_Modes.md) (2 shared connections)
-- [Auth Screens And Profile Context](Auth_Screens_And_Profile_Context.md) (2 shared connections)
+- [Supabase and Google OAuth](Supabase_and_Google_OAuth.md) (3 shared connections)
+- [Mobile App Auth Flow](Mobile_App_Auth_Flow.md) (2 shared connections)
+- [Auth Mode Selection](Auth_Mode_Selection.md) (1 shared connections)
+- [Mock Auth Adapter](Mock_Auth_Adapter.md) (1 shared connections)
 
 ## Source Files
 

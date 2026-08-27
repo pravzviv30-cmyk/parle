@@ -33,10 +33,9 @@
 
 ## Relationships
 
-- [Conversation Brain Spend](Conversation_Brain_Spend.md) (2 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (2 shared connections)
-- [Conversation Turn Orchestration](Conversation_Turn_Orchestration.md) (1 shared connections)
-- [Parle Tutor Agent](Parle_Tutor_Agent.md) (1 shared connections)
+- [Tutor Prompt Building](Tutor_Prompt_Building.md) (3 shared connections)
+- [Conversation Orchestration](Conversation_Orchestration.md) (2 shared connections)
+- [Parle Conversation Controller](Parle_Conversation_Controller.md) (1 shared connections)
 
 ## Source Files
 

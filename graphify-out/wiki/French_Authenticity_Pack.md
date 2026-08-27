@@ -1,19 +1,17 @@
 # French Authenticity Pack
 
-> 47 nodes · cohesion 0.08
+> 39 nodes · cohesion 0.10
 
 ## Key Concepts
 
 - **brain/src/index.ts** (44 connections) — `packages/brain/src/index.ts`
-- **buildSystemBlocks()** (23 connections) — `packages/brain/src/prompt/system.ts`
 - **prompt/prompt.test.ts** (20 connections) — `packages/brain/src/prompt/prompt.test.ts`
 - **src/types.ts** (17 connections) — `packages/brain/src/types.ts`
 - **system.ts** (16 connections) — `packages/brain/src/prompt/system.ts`
 - **turnContext.ts** (15 connections) — `packages/brain/src/prompt/turnContext.ts`
 - **CefrBand** (13 connections) — `packages/brain/src/types.ts`
-- **claudeCli.test.ts** (11 connections) — `packages/brain/src/llm/claudeCli.test.ts`
 - **authenticity/types.ts** (10 connections) — `packages/brain/src/authenticity/types.ts`
-- **Strictness** (10 connections) — `packages/brain/src/types.ts`
+- **LadderDirective** (10 connections) — `packages/core/src/ladder/ladder.ts`
 - **scenarioPrompt.ts** (9 connections) — `packages/brain/src/prompt/scenarioPrompt.ts`
 - **fr.ts** (8 connections) — `packages/brain/src/authenticity/fr.ts`
 - **authenticity/render.ts** (8 connections) — `packages/brain/src/authenticity/render.ts`
@@ -29,22 +27,24 @@
 - **AuthenticityPack** (3 connections) — `packages/brain/src/authenticity/types.ts`
 - **ContrastPair** (2 connections) — `packages/brain/src/authenticity/types.ts`
 - **Filler** (2 connections) — `packages/brain/src/authenticity/types.ts`
-- *... and 22 more nodes in this community*
+- **RegisterDef** (2 connections) — `packages/brain/src/authenticity/types.ts`
+- **SlangEntry** (2 connections) — `packages/brain/src/authenticity/types.ts`
+- *... and 14 more nodes in this community*
 
 ## Relationships
 
-- [Coach Sample Fixtures](Coach_Sample_Fixtures.md) (32 shared connections)
-- [Brain LLM Client Types](Brain_LLM_Client_Types.md) (12 shared connections)
-- [Profile Extraction Updates](Profile_Extraction_Updates.md) (9 shared connections)
-- [Brain Zod Schemas](Brain_Zod_Schemas.md) (9 shared connections)
-- [LLM Usage Pricing](LLM_Usage_Pricing.md) (9 shared connections)
-- [Playground Chat CLI](Playground_Chat_CLI.md) (9 shared connections)
-- [Copy Style Rules](Copy_Style_Rules.md) (7 shared connections)
-- [Profile Merge Fields](Profile_Merge_Fields.md) (6 shared connections)
-- [Brain Client Config Tests](Brain_Client_Config_Tests.md) (4 shared connections)
-- [Brain Contract Methods](Brain_Contract_Methods.md) (4 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (3 shared connections)
-- [Conversation Brain Spend](Conversation_Brain_Spend.md) (3 shared connections)
+- [Session Recap Samples](Session_Recap_Samples.md) (30 shared connections)
+- [Brain Zod Schemas](Brain_Zod_Schemas.md) (15 shared connections)
+- [LLM Usage Pricing](LLM_Usage_Pricing.md) (14 shared connections)
+- [Learner Profile Updates](Learner_Profile_Updates.md) (8 shared connections)
+- [Brain Client Contracts](Brain_Client_Contracts.md) (6 shared connections)
+- [Difficulty Ladder](Difficulty_Ladder.md) (5 shared connections)
+- [Parle Conversation Controller](Parle_Conversation_Controller.md) (4 shared connections)
+- [Mock Speech Session](Mock_Speech_Session.md) (3 shared connections)
+- [Phrase Curation](Phrase_Curation.md) (2 shared connections)
+- [Live Session Hook Tests](Live_Session_Hook_Tests.md) (2 shared connections)
+- [Conversation Orchestration](Conversation_Orchestration.md) (2 shared connections)
+- [Tutor Prompt Building](Tutor_Prompt_Building.md) (2 shared connections)
 
 ## Source Files
 
@@ -54,19 +54,17 @@
 - `packages/brain/src/authenticity/types.ts`
 - `packages/brain/src/engine/conversation.ts`
 - `packages/brain/src/index.ts`
-- `packages/brain/src/llm/claudeCli.test.ts`
-- `packages/brain/src/llm/claudeCli.ts`
-- `packages/brain/src/llm/split.test.ts`
 - `packages/brain/src/prompt/historyView.ts`
 - `packages/brain/src/prompt/prompt.test.ts`
 - `packages/brain/src/prompt/scenarioPrompt.ts`
 - `packages/brain/src/prompt/system.ts`
 - `packages/brain/src/prompt/turnContext.ts`
 - `packages/brain/src/types.ts`
+- `packages/core/src/ladder/ladder.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 207 (100%)
+- EXTRACTED: 176 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

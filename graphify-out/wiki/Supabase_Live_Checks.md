@@ -33,10 +33,10 @@
 
 ## Relationships
 
-- [Supabase Isolation Probe](Supabase_Isolation_Probe.md) (20 shared connections)
+- [Supabase Row Checks](Supabase_Row_Checks.md) (20 shared connections)
 - [Evidence Ledger Contract](Evidence_Ledger_Contract.md) (3 shared connections)
 - [Database Contract Tests](Database_Contract_Tests.md) (2 shared connections)
-- [Audio Recorder Double](Audio_Recorder_Double.md) (1 shared connections)
+- [Audio Recorder Checks](Audio_Recorder_Checks.md) (1 shared connections)
 - [Entitlement Store](Entitlement_Store.md) (1 shared connections)
 
 ## Source Files

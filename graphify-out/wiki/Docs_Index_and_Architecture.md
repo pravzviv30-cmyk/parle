@@ -19,7 +19,7 @@
 - [Playground Architecture](Playground_Architecture.md) (1 shared connections)
 - [Forge Build Loop Doc](Forge_Build_Loop_Doc.md) (1 shared connections)
 - [Agent Loop Overview](Agent_Loop_Overview.md) (1 shared connections)
-- [Live Voice Doc](Live_Voice_Doc.md) (1 shared connections)
+- [Live Voice Path Doc](Live_Voice_Path_Doc.md) (1 shared connections)
 - [Tutor Brain Contract Doc](Tutor_Brain_Contract_Doc.md) (1 shared connections)
 - [Pedagogy Ladder Doc](Pedagogy_Ladder_Doc.md) (1 shared connections)
 - [State and Storage Docs](State_and_Storage_Docs.md) (1 shared connections)

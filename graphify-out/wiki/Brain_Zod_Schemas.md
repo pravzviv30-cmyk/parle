@@ -1,68 +1,69 @@
 # Brain Zod Schemas
 
-> 43 nodes · cohesion 0.08
+> 65 nodes · cohesion 0.05
 
 ## Key Concepts
 
 - **contract/types.ts** (49 connections) — `packages/brain/src/contract/types.ts`
+- **copy.ts** (33 connections) — `packages/brain/src/copy.ts`
 - **schemas.ts** (25 connections) — `packages/brain/src/contract/schemas.ts`
+- **brain/src/copy.test.ts** (24 connections) — `packages/brain/src/copy.test.ts`
 - **src/fixtures.ts** (17 connections) — `packages/brain/src/fixtures.ts`
 - **CAFE_FRAME** (16 connections) — `packages/brain/src/fixtures.ts`
+- **agreement.test.ts** (15 connections) — `packages/brain/src/missions/agreement.test.ts`
 - **frames.ts** (15 connections) — `packages/brain/src/missions/frames.ts`
 - **schemas.test.ts** (13 connections) — `packages/brain/src/contract/schemas.test.ts`
-- **ChatMessage** (10 connections) — `packages/brain/src/llm/client.ts`
-- **extractPrompt.ts** (10 connections) — `packages/brain/src/prompt/extractPrompt.ts`
 - **ScenarioFrameSchema** (9 connections) — `packages/brain/src/contract/schemas.ts`
 - **APERO_FRAME** (9 connections) — `packages/brain/src/fixtures.ts`
 - **TurnSchema** (8 connections) — `packages/brain/src/contract/schemas.ts`
-- **extractPrompt.test.ts** (8 connections) — `packages/brain/src/prompt/extractPrompt.test.ts`
 - **MemoryExtractionSchema** (7 connections) — `packages/brain/src/contract/schemas.ts`
-- **buildExtractionRequest()** (6 connections) — `packages/brain/src/prompt/extractPrompt.ts`
-- **MemoryFact** (5 connections) — `packages/brain/src/contract/types.ts`
+- **CoachKind** (7 connections) — `packages/brain/src/contract/types.ts`
+- **cases.ts** (6 connections) — `services/brain-playground/src/eval/cases.ts`
+- **coachFallbackLine()** (5 connections) — `packages/brain/src/copy.ts`
 - **requestFallbackFrame()** (5 connections) — `packages/brain/src/fixtures.ts`
 - **missionFrame()** (5 connections) — `packages/brain/src/missions/frames.ts`
-- **sessionLoop.test.ts** (5 connections) — `services/brain-playground/src/sessionLoop.test.ts`
+- **RECOVERY_LINE** (4 connections) — `packages/brain/src/copy.ts`
+- **repairOpeningNarration()** (4 connections) — `packages/brain/src/engine/conversation.ts`
 - **src/fixtures.test.ts** (4 connections) — `packages/brain/src/fixtures.test.ts`
-- **ExtractionInput** (4 connections) — `packages/brain/src/prompt/extractPrompt.ts`
 - **NewPhraseZ** (3 connections) — `packages/brain/src/contract/schemas.ts`
+- **recoveryLine()** (3 connections) — `packages/brain/src/copy.ts`
 - **CoachItemZ** (2 connections) — `packages/brain/src/contract/schemas.ts`
 - **MemoryFactZ** (2 connections) — `packages/brain/src/contract/schemas.ts`
-- **SupportZ** (2 connections) — `packages/brain/src/contract/schemas.ts`
-- **MISSION_FRAMES** (2 connections) — `packages/brain/src/missions/frames.ts`
-- *... and 18 more nodes in this community*
+- *... and 40 more nodes in this community*
 
 ## Relationships
 
-- [Brain LLM Client Types](Brain_LLM_Client_Types.md) (31 shared connections)
-- [Coach Sample Fixtures](Coach_Sample_Fixtures.md) (28 shared connections)
-- [Brain Client Config Tests](Brain_Client_Config_Tests.md) (14 shared connections)
-- [French Authenticity Pack](French_Authenticity_Pack.md) (9 shared connections)
-- [Topic Curation](Topic_Curation.md) (8 shared connections)
-- [Conversation Brain Spend](Conversation_Brain_Spend.md) (8 shared connections)
-- [Copy Style Rules](Copy_Style_Rules.md) (6 shared connections)
-- [Profile Extraction Updates](Profile_Extraction_Updates.md) (5 shared connections)
-- [Playground Chat CLI](Playground_Chat_CLI.md) (4 shared connections)
-- [Voice TTS Settings](Voice_TTS_Settings.md) (2 shared connections)
-- [Conversation Turn Orchestration](Conversation_Turn_Orchestration.md) (2 shared connections)
-- [Mission Chooser View](Mission_Chooser_View.md) (1 shared connections)
+- [Session Recap Samples](Session_Recap_Samples.md) (41 shared connections)
+- [Brain Client Contracts](Brain_Client_Contracts.md) (20 shared connections)
+- [French Authenticity Pack](French_Authenticity_Pack.md) (15 shared connections)
+- [Phrase Curation](Phrase_Curation.md) (9 shared connections)
+- [HTTP & OpenAI Transport](HTTP_&_OpenAI_Transport.md) (9 shared connections)
+- [LLM Usage Pricing](LLM_Usage_Pricing.md) (9 shared connections)
+- [Conversation Orchestration](Conversation_Orchestration.md) (9 shared connections)
+- [Anthropic Brain Client](Anthropic_Brain_Client.md) (8 shared connections)
+- [Learner Profile Updates](Learner_Profile_Updates.md) (4 shared connections)
+- [Memory Fact Extraction Prompt](Memory_Fact_Extraction_Prompt.md) (3 shared connections)
+- [Parle Conversation Controller](Parle_Conversation_Controller.md) (3 shared connections)
+- [TTS Voice Cache Config](TTS_Voice_Cache_Config.md) (2 shared connections)
 
 ## Source Files
 
 - `packages/brain/src/contract/schemas.test.ts`
 - `packages/brain/src/contract/schemas.ts`
 - `packages/brain/src/contract/types.ts`
+- `packages/brain/src/copy.test.ts`
+- `packages/brain/src/copy.ts`
+- `packages/brain/src/engine/conversation.ts`
 - `packages/brain/src/fixtures.test.ts`
 - `packages/brain/src/fixtures.ts`
-- `packages/brain/src/llm/client.ts`
+- `packages/brain/src/missions/agreement.test.ts`
 - `packages/brain/src/missions/frames.ts`
-- `packages/brain/src/prompt/extractPrompt.test.ts`
-- `packages/brain/src/prompt/extractPrompt.ts`
-- `services/brain-playground/src/sessionLoop.test.ts`
+- `services/brain-playground/src/eval/cases.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 190 (99%)
-- INFERRED: 1 (1%)
+- EXTRACTED: 239 (100%)
+- INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

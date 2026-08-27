@@ -21,16 +21,13 @@
 
 ## Relationships
 
-- [Product Event Tracking](Product_Event_Tracking.md) (9 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (9 shared connections)
+- [Topics Store](Topics_Store.md) (6 shared connections)
 - [Store Binding Tests](Store_Binding_Tests.md) (3 shared connections)
-- [Mission Chooser View](Mission_Chooser_View.md) (3 shared connections)
+- [Product Event Tracking](Product_Event_Tracking.md) (3 shared connections)
 - [User Scope Reset](User_Scope_Reset.md) (2 shared connections)
-- [Tutor Coach Mark Store](Tutor_Coach_Mark_Store.md) (2 shared connections)
-- [Topics Store](Topics_Store.md) (2 shared connections)
-- [Onboarding Profile Store](Onboarding_Profile_Store.md) (2 shared connections)
-- [Drill Bank Store Merge](Drill_Bank_Store_Merge.md) (1 shared connections)
-- [Mission Completion Store](Mission_Completion_Store.md) (1 shared connections)
-- [Sync Engine Types](Sync_Engine_Types.md) (1 shared connections)
+- [Store Acknowledgement](Store_Acknowledgement.md) (2 shared connections)
+- [Drill Bank Store](Drill_Bank_Store.md) (1 shared connections)
 
 ## Source Files
 

@@ -24,9 +24,8 @@
 
 ## Relationships
 
-- [Sync Engine Types](Sync_Engine_Types.md) (3 shared connections)
-- [Account Sync Runtime](Account_Sync_Runtime.md) (1 shared connections)
-- [Sync Engine Lifecycle](Sync_Engine_Lifecycle.md) (1 shared connections)
+- [Sync Engine Core](Sync_Engine_Core.md) (4 shared connections)
+- [Live Sync Policy](Live_Sync_Policy.md) (1 shared connections)
 
 ## Source Files
 

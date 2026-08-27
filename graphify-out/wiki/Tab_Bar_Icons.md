@@ -24,15 +24,15 @@
 
 ## Relationships
 
-- [Sign-In UI Components](Sign-In_UI_Components.md) (7 shared connections)
-- [Conversation Screen Motion](Conversation_Screen_Motion.md) (3 shared connections)
-- [Auth Screens And Profile Context](Auth_Screens_And_Profile_Context.md) (2 shared connections)
+- [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md) (9 shared connections)
+- [Friends & Leaderboard UI](Friends_&_Leaderboard_UI.md) (2 shared connections)
 - [Review Deck Store](Review_Deck_Store.md) (2 shared connections)
-- [Live Session Navigation](Live_Session_Navigation.md) (2 shared connections)
-- [Scene Illustrations](Scene_Illustrations.md) (2 shared connections)
+- [Mobile App Auth Flow](Mobile_App_Auth_Flow.md) (2 shared connections)
+- [Illustration Scenes](Illustration_Scenes.md) (2 shared connections)
 - [Drill Screen Views](Drill_Screen_Views.md) (1 shared connections)
-- [Mission Chooser View](Mission_Chooser_View.md) (1 shared connections)
-- [Review Card Merge](Review_Card_Merge.md) (1 shared connections)
+- [Product Event Tracking](Product_Event_Tracking.md) (1 shared connections)
+- [Practice Mix Offers](Practice_Mix_Offers.md) (1 shared connections)
+- [Conversation Screen UI](Conversation_Screen_UI.md) (1 shared connections)
 
 ## Source Files
 

@@ -70,8 +70,8 @@ each, and a second opinion about them is how a repo grows two ladders.
 
 ## graphify
 
-This project has a knowledge graph at `graphify-out/` — 4049 nodes, 9646 links
-across the source files, grouped into 219 named communities.
+This project has a knowledge graph at `graphify-out/` — 4309 nodes, 10225 links
+across the source files, grouped into 225 named communities.
 
 **Route by the shape of the question, and name real symbols.** Reaching for a bare
 `graphify query` is the wrong default here: it truncates. A prose live-voice question
@@ -101,8 +101,8 @@ Rules:
   to a directed search and reports "No directed path found" on edges that do exist.
 - `affected` and `explain` are the precise commands — both cite `file:line`. Prefer
   them whenever the question names a symbol, which is most of the time.
-- Start broad navigation at `graphify-out/wiki/index.md` (161 concept articles, ~2.3k
-  tokens) rather than `GRAPH_REPORT.md` (~5.5k tokens).
+- Start broad navigation at `graphify-out/wiki/index.md` (236 concept articles, ~3.9k
+  tokens) rather than `GRAPH_REPORT.md` (~11k tokens).
 - Going straight to a file to edit or debug specific lines is fine. The graph is for
   orientation, not a gate.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only,
@@ -113,17 +113,17 @@ Rules:
   falls back to filename labels.
 
 Known limits (do not mistake these for working):
-- **Docs do not link to code.** The 305 nodes under `docs/` form a closed island — 307
+- **Docs do not link to code.** The 358 nodes under `docs/` form a closed island — 364
   edges among themselves and zero into source, measured — so prose cannot route you to a
-  symbol. Closing this needs a `--mode deep` rebuild. It has grown threefold and now
-  carries the single most connected node in the whole graph, `docs_known_issues_format`
-  at 161 edges, which is the ledger's own format block. Ranking nodes by degree therefore
+  symbol. Closing this needs a `--mode deep` rebuild. It keeps growing and still carries
+  the single most connected node in the whole graph, `docs_known_issues_format` at 188
+  edges, which is the ledger's own format block. Ranking nodes by degree therefore
   puts a docs node first that cannot reach one line of source: read hub lists source-side
   or they will point you at prose.
 - **Theme primitives inflate the hubs, but no longer top them.** `space()` from
-  `apps/mobile/src/theme.ts` has grown to 86 edges and yet dropped to fifth source-side,
-  behind `convo.ts` (106), `core/src/index.ts` (101), `convo.test.ts` (92) and
-  `ConvoScreen.tsx` (88). It still pulls the styling layer into UI-adjacent traversals,
+  `apps/mobile/src/theme.ts` sits at 84 edges and stays fifth source-side, behind
+  `core/src/index.ts` (107), `convo.ts` (106), `convo.test.ts` (92) and
+  `ConvoScreen.tsx` (91). It still pulls the styling layer into UI-adjacent traversals,
   and `--context call` still sidesteps it.
 - **Seeding is lexical, not semantic.** Asking "what counts as a *right* answer" seeds
   on a node named `counts` and on `ArrowRight()`. This is the same trap as the first

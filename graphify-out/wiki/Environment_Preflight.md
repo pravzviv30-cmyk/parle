@@ -1,6 +1,6 @@
 # Environment Preflight
 
-> 26 nodes · cohesion 0.14
+> 25 nodes · cohesion 0.14
 
 ## Key Concepts
 
@@ -11,7 +11,6 @@
 - **verifyVendors()** (6 connections) — `services/tutor-agent/src/preflight.ts`
 - **missingRequired()** (5 connections) — `services/tutor-agent/src/preflight.ts`
 - **warnings()** (4 connections) — `services/tutor-agent/src/preflight.ts`
-- **tutorLLM()** (3 connections) — `services/tutor-agent/src/agent.ts`
 - **frameDeadlineMs()** (3 connections) — `services/tutor-agent/src/convo.ts`
 - **probeSynthesis()** (3 connections) — `services/tutor-agent/src/preflight.ts`
 - **reportVendors()** (3 connections) — `services/tutor-agent/src/preflight.ts`
@@ -29,23 +28,21 @@
 - **fakeFetch()** (1 connections) — `services/tutor-agent/src/preflight.test.ts`
 - **FULL** (1 connections) — `services/tutor-agent/src/preflight.test.ts`
 - **routedFetch()** (1 connections) — `services/tutor-agent/src/preflight.test.ts`
-- *... and 1 more nodes in this community*
+- **VendorCheck** (1 connections) — `services/tutor-agent/src/preflight.ts`
 
 ## Relationships
 
-- [Turn Timing Instrumentation](Turn_Timing_Instrumentation.md) (6 shared connections)
-- [Conversation Brain Spend](Conversation_Brain_Spend.md) (6 shared connections)
-- [Voice TTS Settings](Voice_TTS_Settings.md) (5 shared connections)
+- [Conversation Orchestration](Conversation_Orchestration.md) (6 shared connections)
+- [Tutor Agent Timing](Tutor_Agent_Timing.md) (6 shared connections)
+- [TTS Voice Cache Config](TTS_Voice_Cache_Config.md) (5 shared connections)
 - [Dev Boot Plan](Dev_Boot_Plan.md) (3 shared connections)
-- [Playground Chat CLI](Playground_Chat_CLI.md) (1 shared connections)
 - [LLM Usage Pricing](LLM_Usage_Pricing.md) (1 shared connections)
-- [Brain Client Config Tests](Brain_Client_Config_Tests.md) (1 shared connections)
+- [HTTP & OpenAI Transport](HTTP_&_OpenAI_Transport.md) (1 shared connections)
 - [French Authenticity Pack](French_Authenticity_Pack.md) (1 shared connections)
-- [Brain Contract Methods](Brain_Contract_Methods.md) (1 shared connections)
+- [Parle Conversation Controller](Parle_Conversation_Controller.md) (1 shared connections)
 
 ## Source Files
 
-- `services/tutor-agent/src/agent.ts`
 - `services/tutor-agent/src/convo.ts`
 - `services/tutor-agent/src/preflight.test.ts`
 - `services/tutor-agent/src/preflight.ts`
@@ -53,7 +50,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 69 (100%)
+- EXTRACTED: 67 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

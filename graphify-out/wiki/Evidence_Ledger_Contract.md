@@ -34,7 +34,7 @@
 ## Relationships
 
 - [Supabase Live Checks](Supabase_Live_Checks.md) (3 shared connections)
-- [Upstash Lease And Rate Limits](Upstash_Lease_And_Rate_Limits.md) (3 shared connections)
+- [Upstash Live Checks](Upstash_Live_Checks.md) (3 shared connections)
 - [LiveKit Session Tokens](LiveKit_Session_Tokens.md) (2 shared connections)
 
 ## Source Files
