@@ -590,7 +590,7 @@ async function withDeadline<T>(
  * pauses differently from a speaker, so the four-second voice rule would feel
  * like being hovered over. Twelve seconds of nothing still means stuck.
  */
-const TEXT_SILENCE_MS = 12_000;
+export const TEXT_SILENCE_MS = 12_000;
 
 /**
  * How long "give me a moment" buys, before the ordinary silence policy resumes.
@@ -1035,13 +1035,23 @@ export class ParleConversation extends voice.Agent {
     this.publish({ t: 'error', message });
   }
 
-  /** Handle explicit high-risk content before it can become model context. */
+  /**
+   * Handle explicit high-risk content before it can become model context.
+   *
+   * The words leave on the `safety` frame and not on `error`. They are the same
+   * words either way, but the app renders severity from the tag: an `error` is
+   * a self-clearing notice built for a TTS outage, and a crisis line that
+   * removes itself after eight seconds is worse than not saying it. Sent once,
+   * on one channel, because both ends of this ship from one repo and a doubled
+   * send would give a current app the vanishing toast as well as the surface
+   * that stays.
+   */
   private handleSafety(text: string): boolean {
     const decision = safetyDecision(text);
     if (decision === null) return false;
     this.releaseMoment();
     this.clearRescue();
-    this.publishError(decision.message);
+    this.publish({ t: 'safety', category: decision.category, action: decision.action, message: decision.message });
     this.say(decision.message, { allowInterruptions: false });
     if (decision.action === 'stop') void this.finish();
     return true;

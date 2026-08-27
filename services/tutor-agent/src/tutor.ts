@@ -29,6 +29,12 @@ import {
   type ServerMessage,
   type SessionState,
 } from '@parle/core';
+// One text-mode window for both session shapes, imported rather than restated:
+// two ideas of how long a typed answer may take drift apart within a month, and
+// the learner would feel the difference as two different tutors. The import
+// goes both ways between these files (convo.ts already takes the replay ledger
+// from here) and neither module reads the other while it is being evaluated.
+import { TEXT_SILENCE_MS } from './convo.ts';
 import { buildPrompt } from './prompt.ts';
 import { scoreUtterance } from './speechace.ts';
 import { reportUsage } from './usage.ts';
@@ -172,12 +178,22 @@ export class ParleTutor extends voice.Agent {
     this.publish({ t: 'error', message });
   }
 
-  /** Handle explicit high-risk content before grading or model context. */
+  /**
+   * Handle explicit high-risk content before grading or model context.
+   *
+   * The words leave on the `safety` frame and not on `error`. They are the same
+   * words either way, but the app renders severity from the tag: an `error` is
+   * a self-clearing notice built for a TTS outage, and a crisis line that
+   * removes itself after eight seconds is worse than not saying it. Sent once,
+   * on one channel, because both ends of this ship from one repo and a doubled
+   * send would give a current app the vanishing toast as well as the surface
+   * that stays.
+   */
   private handleSafety(text: string, session?: voice.AgentSession): boolean {
     const decision = safetyDecision(text);
     if (decision === null) return false;
     this.clearRescue();
-    this.publishError(decision.message);
+    this.publish({ t: 'safety', category: decision.category, action: decision.action, message: decision.message });
     if (!this.voiceless && session) session.say(decision.message, { allowInterruptions: false });
     if (decision.action === 'stop') void this.finish();
     return true;
@@ -191,6 +207,20 @@ export class ParleTutor extends voice.Agent {
 
     if (msg.t === 'ready') return this.sendCurrentPrompt();
     if (msg.t === 'leave') return void this.finish();
+
+    if (msg.t === 'typing' || msg.t === 'moment') {
+      // Presence, not silence. Someone typing an answer, or saying they need a
+      // second, is a learner with the floor, and stepping in over them is a
+      // remark on hesitating that this tutor never makes.
+      //
+      // Only ever a restart: if no clock is running, none is started. armRescue
+      // owns when the tutor may wait on a learner at all, and a keystroke must
+      // not be a second opinion about that. This is the answer ParleConversation
+      // already settled on.
+      if (this.silenceTimer) this.armRescue(session);
+      return;
+    }
+
     if (msg.t === 'say' && this.handleSafety(msg.text, session)) return;
     if (msg.t === 'hear') {
       // Replay the line to say, uninterruptible so it always plays out whole.
@@ -232,8 +262,8 @@ export class ParleTutor extends voice.Agent {
   /**
    * Arm the rescue.
    *
-   * Called once the tutor has finished speaking. If the learner has not started
-   * talking within four seconds they are stuck, not thinking, and the ladder drops
+   * Called once the tutor has finished speaking. If nothing has arrived by the
+   * end of the window below they are stuck, not thinking, and the ladder drops
    * a rung so the next prompt carries more support.
    */
   armRescue(session: voice.AgentSession): number {
@@ -243,8 +273,23 @@ export class ParleTutor extends voice.Agent {
     const generation = this.queue.generation;
     if (this.ended) return generation;
 
-    this.silenceTimer = setTimeout(() => void this.runRescue(session, generation), STUCK_SILENCE_MS);
+    this.silenceTimer = setTimeout(() => void this.runRescue(session, generation), this.silenceWindow());
     return generation;
+  }
+
+  /**
+   * How long nothing may happen before the learner is stuck rather than
+   * thinking.
+   *
+   * Four seconds is a voice rule. Typing is slower than speaking, and a learner
+   * composing one sentence was rescued every four seconds by a clock whose only
+   * evidence was that nobody had spoken — which drops a rung, counts a rescue,
+   * and writes the rung tomorrow opens on. Twelve seconds of nothing in a typed
+   * lesson still means stuck, and the answer is the same answer ParleConversation
+   * already gives.
+   */
+  private silenceWindow(): number {
+    return this.voiceless ? TEXT_SILENCE_MS : STUCK_SILENCE_MS;
   }
 
   /**
@@ -259,7 +304,7 @@ export class ParleTutor extends voice.Agent {
   async runRescue(session: voice.AgentSession, generation: number): Promise<void> {
     if (this.ended || this.learnerSpeaking) return;
     await this.queue.runIfCurrent(generation, () =>
-      this.applyInput(session, { type: 'silence', durationMs: STUCK_SILENCE_MS }),
+      this.applyInput(session, { type: 'silence', durationMs: this.silenceWindow() }),
     );
   }
 

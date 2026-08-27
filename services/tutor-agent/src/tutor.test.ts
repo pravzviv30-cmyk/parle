@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { voice } from '@livekit/agents';
 import { CAFE_LESSON, RUNGS, STUCK_SILENCE_MS, encodeMessage, type ClientMessage, type Rung, type ServerMessage } from '@parle/core';
+import { TEXT_SILENCE_MS } from './convo.ts';
 import { ParleTutor, forgetReportedSessions } from './tutor.ts';
 
 /**
@@ -222,11 +223,59 @@ describe('a lesson for someone who cannot speak aloud', () => {
 
     // Nothing speaks, so no AgentStateChanged ever fires to start the clock.
     // Rendering the turn is the moment the learner has the floor.
+    //
+    // The clock is the text one now (F141). Genuine silence still rescues, and
+    // it does it at twelve seconds instead of four, because four is a rule
+    // about speaking and nobody here is speaking. That is the behaviour change,
+    // written into the test that owns the behaviour rather than a new one.
     tutor.sendCurrentPrompt(session);
     t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    assert.equal(tutor.sessionState.ladder.rescues, 0, 'four seconds is not a typed learner going quiet');
+
+    t.mock.timers.tick(TEXT_SILENCE_MS - STUCK_SILENCE_MS);
     await tutor.settled();
 
     assert.equal(tutor.sessionState.ladder.rescues, 1, 'a quiet learner is still a stuck learner');
+  });
+
+  test('a typed lesson waits the text window and typing keeps the clock standing', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { tutor, session } = build(RUNGS.PROMPTED, { voiceless: true });
+
+    // Measured against this class before the fix: a rescue after 4.001s, a
+    // rescue after a typing ping and 4.001s, a rescue after "give me a moment"
+    // and 4.001s. Every one of them drops a rung, counts a rescue and rewrites
+    // the rung tomorrow opens on, for a learner who was in the middle of a
+    // sentence.
+    tutor.sendCurrentPrompt(session);
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await tutor.settled();
+    assert.equal(tutor.sessionState.ladder.rescues, 0, 'typing at human speed is not being stuck');
+
+    // Presence restarts the window from the last keystroke, so eleven more
+    // seconds of writing is still writing, twice over.
+    for (const presence of [{ t: 'typing' }, { t: 'moment' }] as const) {
+      await tutor.handleClientMessage(session, tapped(presence));
+      t.mock.timers.tick(TEXT_SILENCE_MS - 1_000);
+      await tutor.settled();
+      assert.equal(tutor.sessionState.ladder.rescues, 0, `${presence.t} did not stand the clock down`);
+    }
+
+    // And presence is never a clock of its own. With nothing running, a ping
+    // must not start the tutor waiting on a learner who has not been given the
+    // floor.
+    tutor.clearRescue();
+    await tutor.handleClientMessage(session, tapped({ t: 'typing' }));
+    t.mock.timers.tick(TEXT_SILENCE_MS + 1);
+    await tutor.settled();
+    assert.equal(tutor.sessionState.ladder.rescues, 0, 'a keystroke started a wait nothing had armed');
+    assert.equal(tutor.sessionState.turnIndex, 0, 'and none of this moved the lesson');
+
+    // The full window of real silence still rescues.
+    tutor.armRescue(session);
+    t.mock.timers.tick(TEXT_SILENCE_MS + 1);
+    await tutor.settled();
+    assert.equal(tutor.sessionState.ladder.rescues, 1, 'twelve silent seconds is still a stuck learner');
   });
 
   test('asking to hear the line does nothing when there is no voice', async () => {

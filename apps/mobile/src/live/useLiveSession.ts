@@ -35,7 +35,10 @@ import { journalRecap } from './journal.ts';
 import { classifyFailure, failureCopy, micApiUnavailable, TokenServerError, type LiveFailure } from './failure.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
 import { thinkingAfter } from './thinking.ts';
-import { micOpensAtConnect } from '../tutor/choosingView.ts';
+import { opensSession } from './sessionOpened.ts';
+import { afterDismiss } from './safetyState.ts';
+import { micOpensAtConnect, modeCarriesAudio } from '../tutor/choosingView.ts';
+import { stoppedBySafety, type SafetyDecision } from '../tutor/safetyView.ts';
 import { shouldPingTyping } from '../tutor/typingPing.ts';
 import type { ReplayLine } from '../tutor/sceneControls.ts';
 
@@ -123,22 +126,6 @@ function emptyDiagnostics(): LiveDiagnostics {
   };
 }
 
-/**
- * The server messages that mean "there is now a session on screen" — per mode,
- * because the two session shapes render from different messages entirely.
- *
- * Mode-specific on purpose. A first cut used one shared set, and a stale agent
- * answering a conversation request with a lesson `prompt` therefore counted as
- * the conversation having opened: the watchdog stood down and ConvoScreen —
- * which renders `convo`, never `prompt` — span forever anyway. An agent that
- * serves the wrong protocol for the mode it was handed is a real fault and
- * should time out and say so, not be quietly accepted.
- */
-const OPENING_TAGS: Record<'lesson' | 'convo', ReadonlySet<string>> = {
-  lesson: new Set(['prompt', 'summary']),
-  convo: new Set(['convo', 'opening', 'recap']),
-};
-
 /** One stable prefix so a developer can filter the console to just this. */
 function trace(event: string, detail?: Record<string, unknown>): void {
   console.info(`[parle:live] ${event}`, detail ?? {});
@@ -187,6 +174,20 @@ export interface LiveSession {
    * is still live — this renders IN the session, never as a terminal screen.
    */
   notice: string | null;
+  /**
+   * The tutor's safety decision for this session, or null. Never a notice.
+   *
+   * A notice clears itself after eight seconds and is superseded by whatever
+   * arrives next, which is right for a voice hiccup and was catastrophic for a
+   * crisis sentence: the emergency number vanished and the recap card
+   * congratulated the learner on the same tick. This one has no timer at all,
+   * it survives the recap, the summary and the room dropping, and only the
+   * learner can put it away — and only when it is a redirect. What the two
+   * screens draw from it is `tutor/safetyView.ts`.
+   */
+  safety: SafetyDecision | null;
+  /** The learner putting a redirect away. A no-op when the action is 'stop'. */
+  dismissSafety: () => void;
   /**
    * The conversation so far, accumulated on this side because the wire only
    * ever describes the current turn. Empty on the lesson path.
@@ -313,6 +314,7 @@ export function useLiveSession(
   const [practice, setPractice] = useState<LiveSession['practice']>(null);
   const [drills, setDrills] = useState<DrillExercise[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [safety, setSafety] = useState<SafetyDecision | null>(null);
   const [turns, setTurns] = useState<TurnLine[]>([]);
   const [thinking, setThinking] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
@@ -333,6 +335,12 @@ export function useLiveSession(
   const watchdogRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const heardAgentRef = useRef(false);
   const sessionOpenedRef = useRef(false);
+  // The safety decision again, as a ref. The data handler is a closure built
+  // once at connect time and never sees a later render, so a `case` that needs
+  // to know whether this session has been stopped — the recap does, before it
+  // writes anything down — has to read it here. State for the screens, ref for
+  // the wire; the two are only ever assigned together.
+  const safetyRef = useRef<SafetyDecision | null>(null);
   // Monotonic, so a React key never collides and nothing depends on a clock.
   const turnSeq = useRef(0);
   // When the app last told the agent the learner is typing. A ref, not state:
@@ -341,9 +349,6 @@ export function useLiveSession(
   // The <audio> elements holding the tutor's voice on web. Owned here so they are
   // guaranteed to leave the document when the session does.
   const audioElsRef = useRef<HTMLMediaElement[]>([]);
-
-  // 'convo' and 'convo-text' are the same protocol; only the audio differs.
-  const openingTags = mode === 'convo' || mode === 'convo-text' ? OPENING_TAGS.convo : OPENING_TAGS.lesson;
 
   const removeAudioEls = useCallback(() => {
     for (const el of audioElsRef.current) el.remove();
@@ -417,14 +422,23 @@ export function useLiveSession(
     heardAgentRef.current = false;
     sessionOpenedRef.current = false;
     typingPingAt.current = null;
+    // The one thing that clears a stop, and it is not a dismissal: a rebuilt
+    // session is a different session, decided about separately.
+    safetyRef.current = null;
+    setSafety(null);
     setTurns([]);
     setThinking(false);
     setMicOpen(false);
     clearWatchdog();
     try {
-      // Checked before anything else: with no microphone API there is nothing to
-      // connect for, and the failure deep inside the client would be unreadable.
-      if (mode !== 'convo-text' && micApiUnavailable()) throw new Error('navigator.mediaDevices is unavailable');
+      // Checked before anything else, and only for the modes that need one:
+      // with no microphone API a spoken session has nothing to connect for, and
+      // the failure deep inside the client would be unreadable.
+      //
+      // Asked of the mode table rather than as `mode !== 'convo-text'`, which
+      // refused the typed lesson outright on a device with no mediaDevices —
+      // precisely the learner that mode was built for.
+      if (modeCarriesAudio(mode) && micApiUnavailable()) throw new Error('navigator.mediaDevices is unavailable');
 
       const authStartedAt = Date.now();
       const headers = await authHeaders();
@@ -520,9 +534,10 @@ export function useLiveSession(
         }
         // Content, on the other hand, means the session is genuinely under way:
         // there is something on screen and the learner has a session to leave.
-        // `speaking`, `transcript` and `feedback` deliberately do not count —
-        // an agent hung inside its TTS emits `speaking` and nothing more.
-        if (!sessionOpenedRef.current && openingTags.has(msg.t)) {
+        // Which messages those are is `sessionOpened.ts`, per mode, and a safety
+        // decision is one of them in every mode — a stop can be the first frame
+        // there is, and the watchdog must not tear it down.
+        if (!sessionOpenedRef.current && opensSession(mode, msg)) {
           sessionOpenedRef.current = true;
           diagRef.current.sessionOpened = true;
           clearWatchdog();
@@ -603,6 +618,20 @@ export function useLiveSession(
             // round, with the French alongside as exposure.
             addTurn({ who: 'tutor', fr: msg.prompt.fr, frWritten: null, en: msg.prompt.en });
             break;
+          case 'safety':
+            // The tutor's decision about what is being said, and the only piece
+            // of session state with no timer anywhere near it. Deliberately not
+            // a notice: `error` below takes itself away after eight seconds,
+            // which is right for a voice outage and was how an emergency number
+            // came to vanish under a card saying "Good session."
+            //
+            // Nothing else in this switch may clear it, `dismissSafety` clears
+            // only a redirect, and `start` clears it because a rebuilt session
+            // is a new session. Those are the three, and the test enumerates
+            // them. What the screens draw is `tutor/safetyView.ts`.
+            safetyRef.current = msg;
+            setSafety(msg);
+            break;
           case 'recap':
             setRecap({ recap: msg.recap, profile: msg.profile });
             // Written down before anything else, because from here the learner
@@ -615,7 +644,15 @@ export function useLiveSession(
             // Journal the recap alone and those counts are read off an empty
             // profile, so a phrase somebody has genuinely started using arrives
             // in review looking exactly like one they read once.
-            void journalRecap(msg.recap, { profile: msg.profile });
+            //
+            // Unless this session was stopped. A stopped session leaves nothing
+            // behind — the founder was asked and chose that deliberately,
+            // including the ordinary practice from before the disclosure — and
+            // the screens can only withhold what they are handed. This is the
+            // one write they never see: it happens here, before any of them has
+            // the recap, so a screen guarding its own recap would be guarding a
+            // door the words had already gone through.
+            if (!stoppedBySafety(safetyRef.current)) void journalRecap(msg.recap, { profile: msg.profile });
             setStatus({ phase: 'ended' });
             break;
           case 'practice':
@@ -649,17 +686,18 @@ export function useLiveSession(
         });
       });
 
-      // Text mode carries no audio in either direction: no microphone to
+      // A quiet mode carries no audio in either direction: no microphone to
       // request (the whole point — the train carriage, the denied permission)
-      // and nothing the agent will ever speak.
-      if (mode !== 'convo-text') {
+      // and nothing the agent will ever speak. Taking the audio session anyway
+      // is how the typed lesson came to hear a tutor it could not answer.
+      if (modeCarriesAudio(mode)) {
         await ensureAudioSession();
       }
       const connectStartedAt = Date.now();
       await room.connect(grant.livekitUrl, grant.token, CONNECT_TIMEOUTS);
       diagRef.current.connectMs = Date.now() - connectStartedAt;
       trace('connected', { connectMs: diagRef.current.connectMs });
-      if (mode !== 'convo-text') {
+      if (modeCarriesAudio(mode)) {
         // Publishing and playing back are two different permissions and now two
         // different moments. A free conversation waits for the circle to be
         // tapped before it opens a microphone; hearing the tutor cannot wait,
@@ -733,7 +771,6 @@ export function useLiveSession(
     requestRecap,
     leave,
     fail,
-    openingTags,
     addTurn,
   ]);
 
@@ -765,6 +802,21 @@ export function useLiveSession(
       });
   }, []);
 
+  /**
+   * The learner putting a redirect away.
+   *
+   * A stop comes back from `afterDismiss` unchanged and by identity, so this
+   * does not even re-render: there is nothing underneath a stop to carry on
+   * with, and handing the session back would be the surface disappearing under
+   * a thumb.
+   */
+  const dismissSafety = useCallback(() => {
+    const next = afterDismiss(safetyRef.current);
+    if (next === safetyRef.current) return;
+    safetyRef.current = next;
+    setSafety(next);
+  }, []);
+
   // Never leave a microphone open past the component that owns it.
   useEffect(() => {
     return () => {
@@ -791,6 +843,8 @@ export function useLiveSession(
     practice,
     drills,
     notice,
+    safety,
+    dismissSafety,
     turns,
     thinking,
     audioBlocked,

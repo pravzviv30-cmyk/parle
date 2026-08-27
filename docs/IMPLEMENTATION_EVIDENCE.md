@@ -36,6 +36,12 @@ of the list.
   other verdict projected from it, field-wise evidence merge that leaves scheduling alone,
   durable practice batches behind a `durable` or `failed` acknowledgement, retrieval before
   reveal on a due card, and transfer drills feeding the same record. F118 to F131 are closed.
+- The Phase 5 tutor gate passes **1,906 tests, 0 failing**: core 533, brain 351, tutor agent
+  360, token server 125, playground 13, mobile 524. Typecheck is clean in all six workspaces.
+  Floors were blessed to those counts afterwards, so the gate defends them now. This covers
+  slice 1 of Phase 5 only, the six P0s. It is a branch gate and not a release gate: 34 of the
+  40 surveyed tutor gaps are still open, and no part of it has been seen on a device or a
+  deployed database.
 - The Phase 4 practice gate passes **1,865 tests, 0 failing**: core 524, brain 349, tutor agent
   350, token server 124, playground 13, mobile 505. Typecheck is clean in all six workspaces.
   Floors were blessed to those counts afterwards, so the gate defends them now. This is a
@@ -245,6 +251,9 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Full Phase 5 tutor gate, slice 1: **1,906 tests, 0 failing**; core 533, brain 351, tutor agent
+  360, token server 125, playground 13, mobile 524. Typecheck clean in all six workspaces.
+  Run from the repo root on `phase-5-tutor`, after which the floors were blessed to match.
 - Full Phase 4 practice gate: **1,865 tests, 0 failing**; core 524, brain 349, tutor agent
   350, token server 124, playground 13, mobile 505. Typecheck clean in all six workspaces.
   Run from the repo root on `phase-4-practice`, after which the floors were blessed to match.

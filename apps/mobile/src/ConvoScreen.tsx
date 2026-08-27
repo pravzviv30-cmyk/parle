@@ -44,6 +44,9 @@ import { LiveErrorView } from './live/LiveErrorView.tsx';
 import { VoiceOrb, type OrbState } from './tutor/VoiceOrb.tsx';
 import { Transcript } from './tutor/Transcript.tsx';
 import { QUIET_DOOR, choosingView } from './tutor/choosingView.ts';
+import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
+import { waitingView } from './tutor/waitingView.ts';
+import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 import { enterSubmits, keyPressFrom } from './tutor/enterSubmit.ts';
 import { TUTOR_NAME } from './tutor/tutorName.ts';
 import { sceneControls, typedTurn } from './tutor/sceneControls.ts';
@@ -249,6 +252,16 @@ export function ConvoScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textMode]);
 
+  // The tutor stopped this session, and a stopped session leaves nothing
+  // behind. One flag, read by every effect below that would otherwise award,
+  // hand on or write something down. See tutor/safetyView.ts for why it is one
+  // flag and not a decision made five times. The render asks the surface
+  // instead, because that is what narrows the union to the copy it draws, and
+  // `stoppedBySafety` is derived from `safetySurface` so the two cannot
+  // disagree about what happened.
+  const safety = safetySurface(live.safety);
+  const stopped = stoppedBySafety(live.safety);
+
   const sendDraft = () => {
     const turn = typedTurn(draft);
     if (turn === null) return;
@@ -285,7 +298,9 @@ export function ConvoScreen({
   // torn-down room would lose both. onRecap persists; it no longer navigates.
   const bankedRef = useRef(false);
   useEffect(() => {
-    if (!live.recap) return;
+    // A stopped session hands nothing on and earns nothing. The recap is where
+    // both used to happen on the same tick as the emergency number arriving.
+    if (!live.recap || stopped) return;
     onRecap(live.recap.recap, live.recap.profile);
     // The recap arrives twice — once as itself, then again enriched with the
     // learner model — so this is banked exactly once per conversation.
@@ -294,7 +309,7 @@ export function ConvoScreen({
       const { phrases, stats } = live.recap.recap;
       void recordActivity('convo', conversationXp({ phraseCount: phrases.length, unassistedRate: stats.unassistedRate }));
     }
-  }, [live.recap, onRecap]);
+  }, [live.recap, onRecap, stopped]);
 
   // Tonight's generated practice, written down before it is merged.
   //
@@ -309,10 +324,10 @@ export function ConvoScreen({
   // recap. Merging twice is safe: mergeExerciseBank unions by exercise id.
   useEffect(() => {
     const drills = live.drills;
-    if (!drills) return;
+    if (!drills || stopped) return;
     const merge = () => void mergeExercises(drills);
     void journalDrills(drills).then(merge, merge);
-  }, [live.drills]);
+  }, [live.drills, stopped]);
 
   // ---- The win, the coach marks and the moment.
   //
@@ -342,6 +357,9 @@ export function ConvoScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finishing, live.recap]);
   useEffect(() => {
+    // Nothing is completed by a session that was stopped, and a mission written
+    // down here is a congratulation the learner meets later on another screen.
+    if (stopped) return;
     const step = winAfterTurn(win, live.convo, missionId);
     // Written at the flip and nowhere else, with the rung the winning view
     // carried. Independence is decided by code from that rung, so a record
@@ -355,7 +373,7 @@ export function ConvoScreen({
       });
     }
     if (step.state !== win) setWin(step.state);
-  }, [live.convo, win, missionId]);
+  }, [live.convo, win, missionId, stopped]);
 
   const [marks, setMarks] = useState<CoachMarkState>(() => coachMarksAt([]));
   useEffect(() => {
@@ -418,7 +436,10 @@ export function ConvoScreen({
   // acknowledgements rather than on three promises resolving.
   const practiceBankedRef = useRef(false);
   useEffect(() => {
-    if (!live.practice || practiceBankedRef.current) return;
+    // The founder was asked and chose this, cost included: a stopped session
+    // banks nothing, not even the ordinary practice from before the disclosure.
+    // Nothing is written down, which is what the privacy doc promises.
+    if (!live.practice || practiceBankedRef.current || stopped) return;
     practiceBankedRef.current = true;
     void bankPractice(practiceBatch(live.practice.flatMap((t) => t.phrases), {
       topics: live.practice.map((t) => ({
@@ -428,7 +449,7 @@ export function ConvoScreen({
       drills: live.drills,
       profile: live.recap?.profile,
     }));
-  }, [live.practice, live.drills, live.recap]);
+  }, [live.practice, live.drills, live.recap, stopped]);
 
   const leaveNow = () => {
     // Leaving before the practice message landed: bank a minimal version from
@@ -437,7 +458,7 @@ export function ConvoScreen({
     // the ordinary path, because an early exit that clears the journal on a
     // promise resolving is the identical bug one beat earlier. The only
     // remaining loss window is killing the app, same as the drills.
-    if (!practiceBankedRef.current && live.recap) {
+    if (!stopped && !practiceBankedRef.current && live.recap) {
       const phrases = live.recap.recap.phrases.slice(0, 5);
       const home = live.recap.recap.topics[0];
       if (phrases.length > 0 && home !== undefined) {
@@ -451,6 +472,14 @@ export function ConvoScreen({
     }
     void live.leave().finally(onExit);
   };
+
+  // First, and before the recap and every status screen. A stop is normally
+  // followed by the agent leaving the room, which the hook reads as a dropped
+  // connection, so anything ordered above this would take the emergency number
+  // off the screen a moment after it arrived.
+  if (safety.kind === 'stop') {
+    return <SafetyStopView surface={safety} onClose={leaveNow} />;
+  }
 
   if (live.recap) {
     return <RecapScreen recap={live.recap.recap} onDone={leaveNow} />;
@@ -576,6 +605,11 @@ export function ConvoScreen({
               three to ten seconds later. */}
           {choosing.showTranscript ? <Transcript turns={live.turns} /> : null}
 
+          {/* The tutor steered away and said why. It stays until the learner
+              puts it away, unlike the notice below it, which is a hiccup on a
+              timer. */}
+          {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
+
           {live.notice ? (
             <View style={st.notice}>
               <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{live.notice}</Text>
@@ -626,14 +660,23 @@ export function ConvoScreen({
     // An open room and a silent tutor. The hook's watchdog ends this state one
     // way or the other; until it does there are words and a door, which is
     // exactly what a down agent used to look like without either.
+    //
+    // The banner rides in the view model rather than being remembered here.
+    // This is an early return, so everything below it — including the scene's
+    // own banner — never runs, and a redirect published during startScene used
+    // to vanish. See tutor/waitingView.ts.
+    const waiting = waitingView({ waitingForTutor: live.waitingForTutor, safety });
     return (
       <View style={st.center}>
+        {waiting.banner ? (
+          <View style={st.waitingBanner}>
+            <SafetyBanner surface={waiting.banner} onDismiss={live.dismissSafety} />
+          </View>
+        ) : null}
         <ActivityIndicator color={paper.inkSoft} />
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>
-          {live.waitingForTutor ? `Waiting for ${TUTOR_NAME}…` : 'One moment…'}
-        </Text>
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{waiting.headline}</Text>
         <View style={st.terminalAction}>
-          <GhostButton label="Leave" onPress={leaveNow} />
+          <GhostButton label={waiting.leaveLabel} onPress={leaveNow} />
         </View>
       </View>
     );
@@ -686,6 +729,10 @@ export function ConvoScreen({
         <View style={st.orbBlock}>
           <VoiceOrb state={orbState} />
         </View>
+
+        {/* Same banner in the scene as in the choosing moment: a redirect does
+            not end anything, so the conversation carries on underneath it. */}
+        {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
 
         {live.notice ? (
           <View style={st.notice}>
@@ -881,6 +928,10 @@ const st = StyleSheet.create({
   center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
   listen: { minHeight: HIT, paddingHorizontal: space(5), paddingTop: space(3) },
   terminalAction: { marginTop: space(6), alignSelf: 'stretch' },
+  // The waiting screen centres its children, so the banner has to be told to
+  // take the width: a safety sentence shrink-wrapped to its longest word is
+  // unreadable, and this one is the whole reason the branch draws anything.
+  waitingBanner: { alignSelf: 'stretch', marginBottom: space(3) },
   header: { paddingBottom: space(3) },
   // flex-end, not space-between: the caps "Free talk" label that used to hold
   // the left of this row is gone, and without this Leave slides over to fill

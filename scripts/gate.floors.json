@@ -1,8 +1,8 @@
 {
-  "@parle/core": 524,
-  "@parle/brain": 349,
-  "@parle/tutor-agent": 350,
-  "@parle/token-server": 124,
+  "@parle/core": 533,
+  "@parle/brain": 351,
+  "@parle/tutor-agent": 360,
+  "@parle/token-server": 125,
   "@parle/brain-playground": 13,
-  "@parle/mobile": 505
+  "@parle/mobile": 524
 }

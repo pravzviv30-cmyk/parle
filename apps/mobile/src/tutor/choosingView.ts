@@ -83,6 +83,46 @@ export interface ChoosingView {
 /** The four session shapes the live hook knows. */
 export type LiveMode = 'lesson' | 'convo' | 'convo-text' | 'lesson-text';
 
+/** What a session mode does with a microphone and a speaker. */
+export interface ModeCaps {
+  /**
+   * Whether this session carries audio at all, in either direction. False is
+   * the quiet twin: no microphone to request, and nothing the tutor will ever
+   * speak.
+   */
+  carriesAudio: boolean;
+  /** Whether connecting publishes the microphone, or the learner does. */
+  micAtConnect: boolean;
+}
+
+/**
+ * Every mode, and what each one may do.
+ *
+ * A table rather than a chain of `if`s, and `Record<LiveMode, …>` rather than a
+ * partial one, because the chain it replaces ended in `return true`. That
+ * fall-through is how `lesson-text` came to publish a microphone the quiet door
+ * had just promised not to open: the typed lesson was added to `LiveMode`, was
+ * never named in the chain, and inherited the lesson's hot microphone in
+ * silence. With this shape the next mode does not compile until it says what it
+ * is, which is the only kind of reminder that cannot be forgotten.
+ *
+ * The lesson keeps its hot microphone on purpose. A lesson has already been
+ * started deliberately, from a screen that says so, and its first beat is the
+ * learner's line. A free conversation opens closed: the tutor asks out loud and
+ * the circle is where the learner agrees to be heard.
+ */
+export const MODE_CAPS: Record<LiveMode, ModeCaps> = {
+  lesson: { carriesAudio: true, micAtConnect: true },
+  convo: { carriesAudio: true, micAtConnect: false },
+  'convo-text': { carriesAudio: false, micAtConnect: false },
+  'lesson-text': { carriesAudio: false, micAtConnect: false },
+};
+
+/** No mode named is the lesson path, which is what the hook has always done. */
+const UNNAMED: LiveMode = 'lesson';
+
+const capsFor = (mode: LiveMode | undefined): ModeCaps => MODE_CAPS[mode ?? UNNAMED];
+
 /**
  * Does connecting publish the microphone, or does the learner?
  *
@@ -90,17 +130,22 @@ export type LiveMode = 'lesson' | 'convo' | 'convo-text' | 'lesson-text';
  * microphone before the choosing screen had painted a single pixel. Two costs:
  * the learner was live without having agreed to be, and the open microphone
  * heard the tutor asking its own question out loud.
- *
- * The lesson surface keeps its hot microphone on purpose. A lesson has already
- * been started deliberately, from a screen that says so, and its first beat is
- * the learner's line.
  */
 export function micOpensAtConnect(mode: LiveMode | undefined): boolean {
-  // Nothing to publish: the quiet twin carries no audio in either direction.
-  if (mode === 'convo-text') return false;
-  // Tap to talk. The circle is the agreement.
-  if (mode === 'convo') return false;
-  return true;
+  return capsFor(mode).micAtConnect;
+}
+
+/**
+ * Is there any audio in this session, in either direction?
+ *
+ * The question the hook has to ask three times over: whether to look for a
+ * microphone API at all, whether to take the audio session, and whether to
+ * start playback. Asking it as `mode !== 'convo-text'` refused the typed lesson
+ * outright on a device with no microphone, which is precisely the learner that
+ * mode exists for.
+ */
+export function modeCarriesAudio(mode: LiveMode | undefined): boolean {
+  return capsFor(mode).carriesAudio;
 }
 
 /** The one instruction the voice-first screen gives. */

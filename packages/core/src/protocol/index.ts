@@ -5,6 +5,8 @@ export {
   decodeServerMessage,
   decodeClientMessage,
   toLearnerInput,
+  SAFETY_CATEGORIES,
+  type SafetyCategory,
   type ServerMessage,
   type ClientMessage,
   type ConvoSpeakerLine,

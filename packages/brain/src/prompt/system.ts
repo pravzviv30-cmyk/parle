@@ -18,6 +18,13 @@
 
 import { FR_PACK } from '../authenticity/fr.ts';
 import { renderAuthenticityPack } from '../authenticity/render.ts';
+import { SAFETY_CONDUCT } from './safetyConduct.ts';
+
+// The scripted lesson builds its own prompt and needs the same block, so the
+// barrel has to carry it. Re-exported from here rather than added to index.ts
+// so the persona and the conduct that goes with it stay one import away from
+// each other.
+export { SAFETY_CONDUCT } from './safetyConduct.ts';
 
 export interface SystemBlocks {
   persona: string;
@@ -110,7 +117,11 @@ const CONTRACT = [
 /** Build the frozen prefix. Pure and deterministic; tested byte-for-byte. */
 export function buildSystemBlocks(): SystemBlocks {
   return {
-    persona: PERSONA,
+    // The conduct block is part of who he is, not a notice appended to the
+    // product, so it rides in the persona and it rides in the cached prefix.
+    // Adding it rotated the prompt cache key once, which is what a prompt edit
+    // costs and is why nothing volatile is allowed in here.
+    persona: `${PERSONA}\n\n${SAFETY_CONDUCT}`,
     pack: renderAuthenticityPack(FR_PACK),
     contract: CONTRACT,
   };

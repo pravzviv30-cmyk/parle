@@ -1,8 +1,13 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { RUNGS, directiveFor } from '@parle/core';
+import { CAFE_LESSON, RUNGS, directiveFor } from '@parle/core';
 
+// The other shipped prompt. Reached across the workspace on purpose: the claim
+// under test is that both real builders carry one block, and a test that
+// rebuilt either of them here would prove nothing about what ships.
+import { buildPrompt as buildLessonPrompt } from '../../../../services/tutor-agent/src/prompt.ts';
+import { SAFETY_CONDUCT } from './safetyConduct.ts';
 import { buildSystemBlocks } from './system.ts';
 import { buildTurnContext, type TurnContextInput } from './turnContext.ts';
 import { historyViewOfTurn } from './historyView.ts';
@@ -165,6 +170,58 @@ describe('the stable prefix', () => {
     const { contract } = buildSystemBlocks();
     assert.match(contract, /never (a copy of )?your(s| own| sceneReply)/i, 'support must be marked as theirs, not the tutor’s');
     assert.match(contract, /answers it|reply .*back to/i, 'fullLine must be named as the answer to the line just said');
+  });
+
+  test('both shipped prompts carry the one safety conduct block', () => {
+    // F138. PRIVACY_AND_SAFETY.md says judgement lives in the prompt and policy
+    // lives in code. Before this, grepping both shipped prompt sets for
+    // self-harm, crisis, minor, medical or harmful found one hit, and it was
+    // the word "weight" in a coach-finding description.
+    //
+    // A prompt is a string, so this drives the real builders and asserts the
+    // block appears verbatim in what each of them produces. Emptying the
+    // constant fails the first assertion; dropping either include fails one of
+    // the other two.
+    assert.ok(
+      SAFETY_CONDUCT.trim().length > 400,
+      'the safety conduct block has been hollowed out, so both prompts now carry nothing',
+    );
+
+    const { persona } = buildSystemBlocks();
+    assert.ok(persona.includes(SAFETY_CONDUCT), 'the conversation prompt no longer tells the tutor what to do with a disclosure');
+
+    const lesson = buildLessonPrompt(CAFE_LESSON, CAFE_LESSON.turns[0]!, directiveFor(RUNGS.CUED));
+    assert.ok(lesson.includes(SAFETY_CONDUCT), 'the scripted lesson prompt no longer tells the tutor what to do with a disclosure');
+  });
+
+  test('the safety conduct block keeps its copy honest', () => {
+    // Safety copy is design. These are the specific ways this block could be
+    // true and still be wrong.
+    assert.match(SAFETY_CONDUCT, /local emergency number/i, 'the one number that is right everywhere is not named');
+    assert.match(SAFETY_CONDUCT, /step out of the scene/i, 'nothing tells him to stop being a character');
+    assert.match(SAFETY_CONDUCT, /plain English/i, 'a person in trouble is owed the language they can certainly follow');
+    assert.match(SAFETY_CONDUCT, /first time/i, 'nothing stops him waiting to see if they say it again');
+    assert.match(SAFETY_CONDUCT, /nobody is reading/i, 'the honest half is missing: nothing here is monitored');
+    assert.match(SAFETY_CONDUCT, /ce travail va me tuer/i, 'dark vocabulary must be named as practice, or the tutor flinches at French');
+
+    // Never claim somebody is watching or coming. That is the one comfort this
+    // product must not offer, because it is not true.
+    assert.doesNotMatch(
+      SAFETY_CONDUCT,
+      /\b(?:we|someone|somebody|a human|staff|parle)\s+(?:is|are|will be)\s+(?:watching|monitoring|reading|listening|notified)/i,
+      'the block claims somebody is watching the conversation',
+    );
+    assert.doesNotMatch(SAFETY_CONDUCT, /help is (?:on the way|coming)(?! because)/i, 'the block promises help that is not coming');
+
+    // The two phrases the whole product is built to never say, and they are no
+    // more welcome in a crisis than in a pause.
+    assert.doesNotMatch(SAFETY_CONDUCT, /don'?t worry/i);
+    assert.doesNotMatch(SAFETY_CONDUCT, /take your time/i);
+
+    // No scolding, and no em dash. Both are house style, and both matter more
+    // here than anywhere else in the prompt.
+    assert.doesNotMatch(SAFETY_CONDUCT, /\b(?:wrong|incorrect|inappropriate|misbehav\w*|you should not have)\b/i);
+    assert.doesNotMatch(SAFETY_CONDUCT, /—/);
   });
 
   test('no em dashes and no volatile tokens anywhere in the prefix', () => {

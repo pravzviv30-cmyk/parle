@@ -173,12 +173,35 @@ function has(texts: readonly string[], patterns: readonly RegExp[]): boolean {
 
 // ------------------------------------------------------------------ the table
 
+/**
+ * An age claim, and only an age claim.
+ *
+ * The two "years old" branches are unambiguous and carry no tail condition. The
+ * two bare-number branches do, and the condition used to be a list of units to
+ * refuse: everything else was a child. So every noun the list had never heard of
+ * ended a paid session with an accusation — measured, `I'm 5 foot 9`, `I am 3
+ * stops away` and `I am 1 of 3 children` all returned a stop (F132).
+ *
+ * The default is the other way round now. A bare number is an age when it stands
+ * as one: it closes the clause, or it ends the utterance, or it is followed by
+ * one of the few words an age actually takes next. Anything else is a
+ * measurement, and a measurement is not a person.
+ *
+ * The list is short and every word on it is one that cannot be a unit: a
+ * conjunction, a day, or the French for years. `ans` is there because this is a
+ * French app and half of what arrives is code-switched, and "I am 12 ans" is a
+ * child saying their age in both the languages they have. The conjunctions are
+ * there because "I'm 12 and I love French" is the single most likely sentence a
+ * twelve year old types into this product, and an age gate that misses it is
+ * not an age gate.
+ */
+const AGE_STANDS_ALONE = String.raw`(?=\s*(?:[.,!?;:]|$)|\s+(?:and|but|so|today|tomorrow|now|next (?:month|week|year)|ans)\b)`;
+
 const UNDER_13 = [
-  // "I am 12 years old" / "I'm eleven". The bare-number branch refuses the
-  // units a learner actually uses, so "I am 10 minutes late" is not a child.
   /\bi(?:'m| ?am) ?(?:only |just |still )?(?:[0-9]|1[0-2]) ?(?:years?|yrs?)[ -]?old\b/,
-  /\bi(?:'m| ?am) ?(?:only |just |still )?(?:[0-9]|1[0-2])\b(?!\s*(?:minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years? (?:of|late|into)|euros?|dollars?|pounds?|km|kg|kilos?|met(?:er|re)s?|miles?|percent|%|degrees?|o'?clock|am\b|pm\b|people|students?|pages?))/,
-  /\bi(?:'m| ?am) (?:only |just )?(?:six|seven|eight|nine|ten|eleven|twelve)(?: ?years?[ -]?old)?\b(?!\s*(?:minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years? (?:of|late|into)|euros?|dollars?|pounds?|km|kg|kilos?|met(?:er|re)s?|miles?|percent|%|degrees?|o'?clock|am\b|pm\b|people|students?|pages?))/,
+  new RegExp(String.raw`\bi(?:'m| ?am) ?(?:only |just |still )?(?:[0-9]|1[0-2])` + AGE_STANDS_ALONE),
+  /\bi(?:'m| ?am) (?:only |just )?(?:six|seven|eight|nine|ten|eleven|twelve) ?(?:years?|yrs?)[ -]?old\b/,
+  new RegExp(String.raw`\bi(?:'m| ?am) (?:only |just )?(?:six|seven|eight|nine|ten|eleven|twelve)` + AGE_STANDS_ALONE),
   /\bi (?:just )?turned (?:[0-9]|1[0-2]|six|seven|eight|nine|ten|eleven|twelve)\b/,
   /\bmy age is (?:[0-9]|1[0-2])\b/,
   /\bi(?:'m| am) in (?:kindergarten|primary school|elementary school|(?:[1-6](?:st|nd|rd|th)|first|second|third|fourth|fifth|sixth) grade)\b/,
@@ -199,36 +222,106 @@ const MINOR = [
   /\b(?:a|de|age de|agee de) (?:[1-9]|1[0-7]) ans\b/,
 ] as const;
 
-const SEXUAL = [
-  /\b(?:sex|sexes|sexual|sexually|sexy|nude|nudes|naked|porn|porno|pornography|pornographic|erotic|erotica|seduce|seduction|horny|aroused|orgasm|masturbat\w*|fetish|kinky|lingerie|undress|striptease|nsfw|sexting|sext|intimate|make love|sleep with me|have sex)\b/,
-  /\b(?:sexe|sexuel|sexuelle|sexuellement|nue?s?|porno|pornographie|pornographique|erotique|erotisme|seduire|deshabille|deshabiller|coucher avec|faire l'?\s?amour|excitation sexuelle)\b/,
+/**
+ * Sexual content, said outright.
+ *
+ * The bare nudity words stay here rather than moving to NUDITY below, because
+ * "a 13 year old, naked" is a request for child sexual material and nothing
+ * else, and it carries no approach and no concealment to corroborate it.
+ */
+const SEXUAL_EXPLICIT = [
+  /\b(?:sex|sexes|sexual|sexually|sexy|nude|nudes|naked|porn|porno|pornography|pornographic|erotic|erotica|seduce|seduction|horny|aroused|orgasm|masturbat\w*|fetish|kinky|striptease|nsfw|sexting|sext|intimate|make love|sleep with me|have sex)\b/,
+  /\b(?:sexe|sexuel|sexuelle|sexuellement|porno|pornographie|pornographique|erotique|erotisme|seduire|coucher avec|faire l'?\s?amour|excitation sexuelle)\b/,
+  // French bare nudity, carrying the guard `me couper` carries. `nu` is a
+  // domestic word before it is a sexual one: children are naked in the bath,
+  // at the beach, and in the garden, and people go barefoot. Unguarded beside
+  // `enfants` it fired R1, so "mes enfants sont nus dans le bain" told a
+  // parent the tutor cannot help with sexual content involving anyone under 18
+  // (F148). The ordinary continuations are listed and refused, exactly as the
+  // self-harm patterns list the ordinary things a person cuts.
+  /(?<!pieds )(?<!oeil )\bnue?s?\b(?! (?:dans (?:le bain|la baignoire|la piscine|le jardin|l'?\s?eau)|a la plage|sous la douche|pour (?:le bain|la douche|dormir)|comme un ver|pieds))/,
 ] as const;
 
 /**
- * Grooming: the approach, and the concealment that goes with it. Neither half
- * stops a session on its own — "ne le dis pas a maman, c'est une surprise" is
- * an ordinary family scene, and "envoie-moi une photo" is an ordinary message
- * between adults. Together, or either one with a minor in the sentence, they
- * are the pattern this category exists for.
+ * Undressing, which is domestic long before it is sexual.
+ *
+ * Split out of the sexual words for one measured reason: `deshabiller` is what
+ * a French parent does to a small child every evening, and `lingerie` is a
+ * department in a shop. Sitting in the sexual list, either one beside the word
+ * `enfant` accused a learner of requesting child sexual abuse material. Here it
+ * needs an approach or concealment beside it before it means anything.
  */
-const GROOMING_APPROACH = [
-  /\bsend (?:me )?(?:a |some |your )?(?:photo|photos|picture|pictures|pic|pics|selfie|selfies|video|videos)\b/,
-  /\benvoie(?:[- ]?moi)? (?:une |des |ta |tes )?(?:photo|photos|selfie|selfies|video|videos|image|images)\b/,
-  /\bmeet (?:me|up with me)\b[^.?!]{0,20}\b(?:alone|in person|after school|in secret|without your)\b/,
-  /\bretrouve(?:[- ]?moi)?\b[^.?!]{0,20}\b(?:seul|seule|en secret|apres l'?\s?ecole|sans tes parents)\b/,
-  /\bcome (?:to|over to) my (?:house|place|room|hotel|apartment|flat)\b/,
-  /\bviens (?:chez moi|dans ma chambre|a mon hotel|me voir seule?)\b/,
+const NUDITY = [
+  /\b(?:undress|undresses|undressed|undressing|lingerie)\b/,
+  /\b(?:deshabill\w*|sous-vetements)\b/,
+] as const;
+
+/**
+ * An approach that is inherently about the other person's body, privacy, or
+ * being unsupervised. Nobody asks these of a stranger for an ordinary reason,
+ * so a minor in the same sentence is enough on its own.
+ */
+const APPROACH_DIRECT = [
   /\b(?:are|r) (?:you|u) (?:home )?alone\b/,
   /\bes[- ]?tu (?:seul|seule) (?:a la maison|chez toi)\b/,
   /\bwhat are you wearing\b/,
   /\btake off your (?:clothes|shirt|dress|top)\b/,
   /\benleve (?:tes vetements|ton haut|ta robe)\b/,
   /\bturn (?:on|off) your (?:camera|webcam)\b/,
+  // Arranging to be somewhere unwatched with the person you are talking to.
+  // The French twin requires its `moi` where it used to make it optional: the
+  // English half has always needed "meet ME", and without the same object
+  // "on se retrouve a la maison apres l'ecole" — a parent and a child agreeing
+  // where to meet, and a line in the benign corpus — read as the approach.
+  /\bmeet (?:me|up with me)\b[^.?!]{0,20}\b(?:alone|in person|after school|in secret|without your)\b/,
+  /\bretrouve[- ]?moi\b[^.?!]{0,20}\b(?:seul|seule|en secret|apres l'?\s?ecole|sans tes parents)\b/,
+  // The child is the one being asked to send, and what they are being asked for
+  // is a picture of themselves. Three things have to be true at once, and each
+  // one of them was learned from a sentence this got wrong:
+  //
+  //   - Order. "this kid should send me pics" names a minor as the sender;
+  //     "send me a photo of your kids" asks an adult for a family photograph.
+  //   - The object. Without it, a child showing a drawing was a grooming
+  //     approach: `the kids show me their drawings every day` stopped a session
+  //     (F149).
+  //   - Whose child. A parent whose own children message them a picture is a
+  //     parent, so `my kids send me a photo every week` is family life and not
+  //     a case. A sexual object needs none of this care, because a minor beside
+  //     one is R1 and never reaches here.
+  /(?<!\b(?:my|our) )\b(?:child|children|kid|kids|kiddo|minor|preteen|tween|teen|teens|teenager|schoolgirl|schoolboy|pupil)\b[^.?!]{0,40}\b(?:send|sends|show|shows)\b[^.?!]{0,10}\b(?:me|us)\b[^.?!]{0,15}\b(?:photo|photos|picture|pictures|pic|pics|selfie|selfies|video|videos|nude|nudes|naked|body|bra|underwear|knickers|panties)\b/,
+  /(?<!\b(?:mes|mon|ma|nos|notre) )\b(?:enfant|enfants|gamin|gamine|gosse|ado|adolescent|adolescente|collegien|lyceen|ecolier|mineur|mineure)\b[^.?!]{0,40}\bm'?\s?(?:envoie|envoyer|envoies|montre|montrer)\b[^.?!]{0,15}\b(?:photo|photos|selfie|selfies|video|videos|image|images|corps|nue?s?)\b/,
 ] as const;
 
-const GROOMING_SECRECY = [
-  /\b(?:don'?t|do not|never) tell (?:your |ur )?(?:parents|mom|mum|mother|dad|father|family|teacher|anyone|anybody)\b/,
-  /\bne (?:le |en |rien )?(?:dis|parle|raconte)(?: rien| pas)? (?:a )?(?:tes parents|ta mere|ton pere|ta maman|ton papa|ta famille|ton prof|personne)\b/,
+/**
+ * An approach that is ordinary between adults: a photo, an address, an
+ * invitation. On its own it is a message somebody sends a friend every day, so
+ * it only ever counts here beside a minor AND concealment. Arranging to be
+ * somewhere unwatched is not in here; that is above, and it needs no
+ * concealment beside it because being unwatched is the concealment.
+ */
+const APPROACH_REQUEST = [
+  /\bsend (?:me )?(?:a |some |your )?(?:photo|photos|picture|pictures|pic|pics|selfie|selfies|video|videos)\b/,
+  /\benvoie(?:[- ]?moi)? (?:une |des |ta |tes )?(?:photo|photos|selfie|selfies|video|videos|image|images)\b/,
+  /\bcome (?:to|over to) my (?:house|place|room|hotel|apartment|flat)\b/,
+  /\bviens (?:chez moi|dans ma chambre|a mon hotel|me voir seule?)\b/,
+] as const;
+
+/**
+ * Concealment aimed at the people who look after a child. Nobody asks an adult
+ * to keep something from their mother, so this is the one signal in the table
+ * that puts a minor in a sentence that never named one.
+ */
+const GUARDIAN_SECRECY = [
+  /\b(?:don'?t|do not|never) tell (?:your |ur )?(?:parents|mom|mum|mother|dad|father|family|teacher)\b/,
+  /\bne (?:le |en |rien )?(?:dis|parle|raconte)(?: rien| pas)? (?:a )?(?:tes parents|ta mere|ton pere|ta maman|ton papa|ta famille|ton prof)\b/,
+  /\bwithout your (?:parents|mum|mom|dad|family)\b/,
+  /\bsans (?:tes parents|ta mere|ton pere|tes profs)\b/,
+] as const;
+
+/** Everything else two people keep between themselves. Ordinary on its own. */
+const SECRECY_GENERIC = [
+  /\b(?:don'?t|do not|never) tell (?:anyone|anybody)\b/,
+  /\bne (?:le |en |rien )?(?:dis|parle|raconte)(?: rien| pas)? (?:a )?personne\b/,
   /\b(?:it'?s|this is|thats|that'?s) our (?:little )?secret\b/,
   /\bc'?\s?est notre (?:petit )?secret\b/,
   /\bkeep (?:this|it|that) (?:a )?secret\b/,
@@ -237,6 +330,104 @@ const GROOMING_SECRECY = [
   /\bdelete (?:the|our|this|these) (?:message|messages|chat|conversation|photos)\b/,
   /\bsupprime (?:nos|les|ce|cette) (?:message|messages|photos|conversation)\b/,
 ] as const;
+
+/**
+ * School, which is where the people under 18 spend their day. Far too ordinary
+ * to mean anything by itself — an adult learner has a school run and a teacher
+ * has a staff room — so it only implies a minor when an approach is being made
+ * around it.
+ */
+const SCHOOL_CONTEXT = [
+  /\b(?:after|before|at) school\b/,
+  /\byour school\b/,
+  /\b(?:apres|avant|a) l'?\s?ecole\b/,
+  /\b(?:ton|ta) (?:ecole|classe)\b/,
+] as const;
+
+// ------------------------------------------------- the minor-sexual decision
+
+/**
+ * The one category that is a rule table rather than a list, and why.
+ *
+ * It used to be `(minor && sexual) || (minor && approach) || (approach &&
+ * secrecy)`, and the third clause needed no child in the sentence at all.
+ * Measured, `Come to my place. Keep this between us.` and `Viens chez moi,
+ * garde ca pour toi` were both answered with "I cannot help with sexual content
+ * involving anyone under 18", as was `Send me a photo of your kids` (F133).
+ *
+ * Every rule below requires a minor. That is a real reduction in what this
+ * category catches: an approach with concealment and no child named anywhere
+ * no longer stops a session. It was put to the founder and taken deliberately,
+ * because the words this category says accuse a person of one specific thing,
+ * and saying them to someone who has not done it is its own harm. The judgement
+ * half of the net moved to the tutor's own conduct block, which reads a
+ * conversation rather than a sentence.
+ *
+ * The minor can be named or implied, and the implication is narrow: asking
+ * someone to keep this from their mother, or arranging something around their
+ * school day. Nothing else counts.
+ */
+export type MinorSexualRule = 'R1' | 'R2' | 'R3' | 'R4';
+
+interface MinorSexualSignals {
+  /** A person under 18 is named. */
+  minorExplicit: boolean;
+  /** Nobody is named, but only a child has these people to hide things from. */
+  minorImplied: boolean;
+  sexualExplicit: boolean;
+  nudity: boolean;
+  approachDirect: boolean;
+  approachRequest: boolean;
+  guardianSecrecy: boolean;
+  secrecyGeneric: boolean;
+}
+
+function minorSexualSignals(texts: readonly string[]): MinorSexualSignals {
+  const approachDirect = has(texts, APPROACH_DIRECT);
+  const approachRequest = has(texts, APPROACH_REQUEST);
+  const guardianSecrecy = has(texts, GUARDIAN_SECRECY);
+  const schoolContext = has(texts, SCHOOL_CONTEXT);
+  return {
+    minorExplicit: has(texts, MINOR),
+    minorImplied: guardianSecrecy || (schoolContext && (approachDirect || approachRequest)),
+    sexualExplicit: has(texts, SEXUAL_EXPLICIT),
+    nudity: has(texts, NUDITY),
+    approachDirect,
+    approachRequest,
+    guardianSecrecy,
+    secrecyGeneric: has(texts, SECRECY_GENERIC),
+  };
+}
+
+const isMinor = (s: MinorSexualSignals): boolean => s.minorExplicit || s.minorImplied;
+const isSecret = (s: MinorSexualSignals): boolean => s.guardianSecrecy || s.secrecyGeneric;
+
+/**
+ * Four rules, each with a witness of its own in safety.test.ts. Read them as
+ * sentences: a minor and explicit sexual content; a minor and an approach that
+ * is about their body or their being alone; a minor undressing with an approach
+ * or concealment around it; a minor, an everyday approach, and an instruction
+ * to keep it quiet.
+ */
+const MINOR_SEXUAL_RULES: readonly { id: MinorSexualRule; fires: (s: MinorSexualSignals) => boolean }[] = [
+  { id: 'R1', fires: (s) => isMinor(s) && s.sexualExplicit },
+  { id: 'R2', fires: (s) => isMinor(s) && s.approachDirect },
+  { id: 'R3', fires: (s) => isMinor(s) && s.nudity && (s.approachDirect || s.approachRequest || isSecret(s)) },
+  { id: 'R4', fires: (s) => isMinor(s) && s.approachRequest && isSecret(s) },
+];
+
+/**
+ * Which rules an utterance trips, in order.
+ *
+ * Exported for one reason: a rule nothing catches alone is a rule that can be
+ * deleted without a test going red, and this is the category where that must
+ * not be possible. `safetyDecision` reads the same table, so there is no second
+ * opinion here about what a stop is.
+ */
+export function minorSexualRulesFor(input: string): readonly MinorSexualRule[] {
+  const signals = minorSexualSignals(forms(input));
+  return MINOR_SEXUAL_RULES.filter((rule) => rule.fires(signals)).map((rule) => rule.id);
+}
 
 const SELF_HARM = [
   // Explicit, first person. "cut myself" carries the accident guard because a
@@ -391,11 +582,8 @@ export function safetyDecision(input: string): SafetyDecision | null {
       message: 'Parle is not available for anyone under 13. Please stop here and ask a parent or guardian for help.',
     };
   }
-  const minor = has(texts, MINOR);
-  const sexual = has(texts, SEXUAL);
-  const approach = has(texts, GROOMING_APPROACH);
-  const secrecy = has(texts, GROOMING_SECRECY);
-  if ((minor && sexual) || (minor && approach) || (approach && secrecy)) {
+  const minorSexual = minorSexualSignals(texts);
+  if (MINOR_SEXUAL_RULES.some((rule) => rule.fires(minorSexual))) {
     return {
       category: 'minor-sexual',
       action: 'stop',

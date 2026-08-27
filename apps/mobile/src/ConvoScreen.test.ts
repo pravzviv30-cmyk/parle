@@ -257,9 +257,10 @@ describe('the conversation screen no longer banks by hand — F118, F124', () =>
     assert.equal(banks, 2, `${banks} of the two banks on this screen route through the outbox`);
 
     // The practice effect and the early exit, named so a future reader can see
-    // which two callsites this is counting.
-    assert.match(screen, /if \(!live\.practice \|\| practiceBankedRef\.current\) return;[\s\S]{0,200}bankPractice\(/);
-    assert.match(screen, /if \(!practiceBankedRef\.current && live\.recap\)[\s\S]{0,400}bankPractice\(/);
+    // which two callsites this is counting. Both now stand down on a safety
+    // stop as well, which is F137 and is proved properly in tutor/safetyView.test.ts.
+    assert.match(screen, /if \(!live\.practice \|\| practiceBankedRef\.current \|\| stopped\) return;[\s\S]{0,200}bankPractice\(/);
+    assert.match(screen, /if \(!stopped && !practiceBankedRef\.current && live\.recap\)[\s\S]{0,400}bankPractice\(/);
   });
 
   test('the screen never writes to a practice store or clears a journal itself', () => {

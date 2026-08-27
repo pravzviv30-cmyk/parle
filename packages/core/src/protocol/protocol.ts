@@ -133,6 +133,41 @@ export interface RecapPayload {
   stats: { turns: number; rescues: number; unassistedRate: number };
 }
 
+// ────────────────────────────────────────────────────────── safety decisions
+//
+// Why the tutor stopped or steered away. The agent decides this in
+// services/tutor-agent/src/safety.ts, and the eight names are restated here for
+// the same reason brain's shapes are restated above: core cannot import the
+// agent, because the agent imports core.
+//
+// Restated, not duplicated. A test in protocol.test.ts holds this list against
+// the agent's own union, so a ninth category cannot reach the wire without core
+// learning it in the same commit. Moving the union into core and having the
+// agent import it back is the tidier shape and is still open; it needs an edit
+// to the agent that this change does not make.
+
+export type SafetyCategory =
+  | 'under-13'
+  | 'minor-sexual'
+  | 'self-harm'
+  | 'dangerous-instructions'
+  | 'hate-or-harassment'
+  | 'regulated-advice'
+  | 'prompt-injection'
+  | 'emotional-dependency';
+
+/** The same eight, in the order the agent decides them, as a value a reader can walk. */
+export const SAFETY_CATEGORIES: readonly SafetyCategory[] = [
+  'under-13',
+  'minor-sexual',
+  'self-harm',
+  'dangerous-instructions',
+  'hate-or-harassment',
+  'regulated-advice',
+  'prompt-injection',
+  'emotional-dependency',
+];
+
 /** Agent → app. */
 export type ServerMessage =
   /** Render this turn. Sent on every state change, including rescues. */
@@ -175,7 +210,39 @@ export type ServerMessage =
    * The app merges them into its bank; nothing here is rendered live.
    */
   | { t: 'drills'; exercises: DrillExercise[] }
-  /** Something went wrong that the learner needs to know about. */
+  /**
+   * The tutor has stopped or steered away, and the learner is owed the reason
+   * in words that stay on the screen.
+   *
+   * Its own tag rather than a shade of `error`, because the app renders
+   * severity from the tag and from nothing else. An `error` clears itself after
+   * a few seconds, which is right for a TTS outage and wrong for a crisis line.
+   * The one message in this product that has to persist cannot arrive on the
+   * channel built to disappear.
+   *
+   * `action` reports what the agent has already done, not what the app should
+   * do. `stop` means the session is over; `redirect` means the conversation
+   * carries on somewhere safer. `category` is the why, and it is for choosing
+   * the copy and the resources that sit beside the message. It is never a label
+   * to put in front of the learner.
+   *
+   * This frame is the only delivery. Sending the words on `error` as well was
+   * considered and refused: a current app would draw the decision twice, once
+   * as the surface that stays and once as a notice that erases itself, and the
+   * erasing one teaches the learner the message was not important. The agent
+   * and the app ship from this repo together and nothing is deployed yet, so
+   * the skew that argument protects against does not exist. If a floor version
+   * ever does, the answer is a floor check, not a second copy.
+   */
+  | { t: 'safety'; category: SafetyCategory; action: 'stop' | 'redirect'; message: string }
+  /**
+   * Transient pipeline trouble the learner should know about: a TTS outage, a
+   * transcription drop, the sort of thing that usually passes on its own. That
+   * is why the app is free to show it as a notice that clears itself.
+   *
+   * Never a safety decision. Those have to persist and they carry authority
+   * this frame does not, so they go on `safety` above.
+   */
   | { t: 'error'; message: string };
 
 /** App → agent. */
@@ -279,8 +346,9 @@ export function decodeClientMessage(payload: Uint8Array): ClientMessage | null {
   return message === null ? null : asTheAgentReadsIt(message);
 }
 
-const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'error']);
+const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'safety', 'error']);
 const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower', 'english', 'say', 'typing', 'moment', 'leave']);
+const SAFETY_CATEGORY_TAGS: ReadonlySet<string> = new Set(SAFETY_CATEGORIES);
 
 /**
  * Reading a frame is where tolerance lives.
@@ -291,12 +359,18 @@ const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower'
  * a version ahead. It runs on receipt, on the reader's own side, which is why
  * it needs no agreement from anybody and costs the sender nothing.
  *
- * Two rules, both about a single field rather than a tag, and neither of them
- * ever drops a frame. A reader that cannot make sense of one field of a message
- * it otherwise understands still renders the turn, because the learner is
- * mid-scene and stranding them there is the worse failure by a long way.
+ * Most of the rules here are about a single field rather than a tag, and none
+ * of those ever drops a frame. A reader that cannot make sense of one field of
+ * a message it otherwise understands still renders the turn, because the
+ * learner is mid-scene and stranding them there is the worse failure by a long
+ * way.
+ *
+ * The safety rule is the exception, and it goes the other way: a safety
+ * decision this build cannot read is dropped whole rather than repaired. Why
+ * that is the safe answer here and nowhere else is written on
+ * `isReadableSafetyFrame`.
  */
-function asTheAppReadsIt(message: ServerMessage): ServerMessage {
+function asTheAppReadsIt(message: ServerMessage): ServerMessage | null {
   // An agent that predates missions sends a view with no `missionDone` key.
   // `ConvoView` calls the field required, and this is what makes that true:
   // anything that is not literally `true` reads as `false`. A session with no
@@ -304,7 +378,42 @@ function asTheAppReadsIt(message: ServerMessage): ServerMessage {
   if (message.t === 'convo' && typeof message.view === 'object' && message.view !== null) {
     if (message.view.missionDone !== true) message.view.missionDone = false;
   }
+
+  // A safety decision arrives with authority: it ends a session and puts a
+  // notice on the screen that will not clear itself. It is the one frame that
+  // has to be read strictly before any of that is allowed to happen.
+  if (message.t === 'safety' && !isReadableSafetyFrame(message)) return null;
+
   return message;
+}
+
+/**
+ * Is this safety decision one this build can act on?
+ *
+ * Strict where the rest of this file is forgiving, for the reason
+ * `validStartRung()` is strict in the token server: never let unvalidated input
+ * inherit your authority. There is no honest default to fall back on either.
+ * Reading an unknown action as `redirect` would quietly soften a stop, and
+ * reading it as `stop` would end somebody's lesson over a typo.
+ *
+ * Dropping the frame is safe in a way that dropping a turn would never be,
+ * because the frame is not the safety response. By the time it lands the agent
+ * has already said the line aloud and already closed the session. What a
+ * dropped frame costs is the words staying on the screen, not the decision, so
+ * nobody is left in a scene that has a crisis in it.
+ *
+ * Text mode is the one place that is not true, because nothing is said aloud
+ * there. That is the other reason the agent keeps sending the same words on
+ * `error` as well until every app in the wild knows this tag.
+ */
+function isReadableSafetyFrame(frame: Extract<ServerMessage, { t: 'safety' }>): boolean {
+  // The types above are a claim about what the agent meant to send, not a fact
+  // about the bytes, so every field is read here as if it were unknown.
+  const { category, action, message } = frame as { category: unknown; action: unknown; message: unknown };
+  if (typeof category !== 'string' || !SAFETY_CATEGORY_TAGS.has(category)) return false;
+  if (action !== 'stop' && action !== 'redirect') return false;
+  // A notice with nothing written on it is a dead end rather than a warning.
+  return typeof message === 'string' && message.trim() !== '';
 }
 
 function asTheAgentReadsIt(message: ClientMessage): ClientMessage {

@@ -32,6 +32,14 @@ export function thinkingAfter(thinking: boolean, message: ServerMessage): boolea
     case 'error':
       return false;
 
+    // A safety decision is the same, only more so: the tutor has finished
+    // deciding and has said what it decided. On a stop the orb is about to be
+    // replaced by the stop surface anyway; on a redirect the learner keeps the
+    // floor, and an orb still insisting the tutor is thinking would be the one
+    // thing on screen contradicting the sentence next to it.
+    case 'safety':
+      return false;
+
     // Taking the floor is the end of deciding; giving it up is not the start.
     case 'speaking':
       return message.speaking ? false : thinking;
