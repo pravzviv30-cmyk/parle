@@ -140,6 +140,15 @@ export interface SessionViewProps {
    * mode; the mic circle stands down and this takes its place.
    */
   onType?: (text: string) => void;
+  /**
+   * "Still here", while the learner composes.
+   *
+   * The agent counts silence to decide when a learner is stuck, and a typed
+   * learner is silent by definition, so a lesson that sent nothing while the
+   * box filled up was rescued for thinking. Hand it every keystroke: the hook
+   * throttles, and the draft itself never goes on the wire.
+   */
+  onTyping?: () => void;
 }
 
 export function SessionView(props: SessionViewProps) {
@@ -153,6 +162,13 @@ export function SessionView(props: SessionViewProps) {
     if (text.length === 0) return;
     setDraft('');
     props.onType?.(text);
+  };
+
+  // Typing is presence. The hook throttles, so this can be handed every letter.
+  // The same seam ConvoScreen has used since the conversation gained a box.
+  const changeDraft = (text: string) => {
+    setDraft(text);
+    props.onTyping?.();
   };
 
   return (
@@ -227,7 +243,7 @@ export function SessionView(props: SessionViewProps) {
           <View style={st.typeRow}>
             <TextInput
               value={draft}
-              onChangeText={setDraft}
+              onChangeText={changeDraft}
               onSubmitEditing={sendDraft}
               returnKeyType="send"
               submitBehavior="submit"

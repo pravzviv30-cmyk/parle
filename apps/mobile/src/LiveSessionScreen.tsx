@@ -16,7 +16,9 @@ import { Card, PillButton, GhostButton } from './components.tsx';
 import { SessionView } from './SessionView.tsx';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
-import { TUTOR_NAME } from './tutor/tutorName.ts';
+import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
+import { waitingView } from './tutor/waitingView.ts';
+import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 
 export function LiveSessionScreen({
   lesson,
@@ -46,13 +48,29 @@ export function LiveSessionScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A stopped session leaves nothing behind here either, and the two quiet
+  // modes are no exception: a disclosure typed into a lesson is the same
+  // disclosure. See tutor/safetyView.ts.
+  const safety = safetySurface(live.safety);
+  const stopped = stoppedBySafety(live.safety);
+
   useEffect(() => {
-    if (live.summary) onFinish(live.summary);
-  }, [live.summary, onFinish]);
+    // `onFinish` is what puts SummaryScreen on the screen, so withholding it is
+    // what keeps a card counting up what went well away from a stop.
+    if (live.summary && !stopped) onFinish(live.summary);
+  }, [live.summary, onFinish, stopped]);
 
   const leaveNow = () => {
     void live.leave().finally(onExit);
   };
+
+  // First, and before every status screen. A stop is normally followed by the
+  // agent leaving the room, which the hook reads as a dropped connection, and
+  // an error screen must not take the words off the screen a moment after they
+  // arrived.
+  if (safety.kind === 'stop') {
+    return <SafetyStopView surface={safety} onClose={leaveNow} />;
+  }
 
   if (live.status.phase === 'connecting' || live.status.phase === 'idle') {
     return (
@@ -98,14 +116,23 @@ export function LiveSessionScreen({
     // spinner with no words and no way out, which is what a down agent looked
     // like — forever. The hook's watchdog now ends this state either way, and
     // there is a door while it lasts.
+    //
+    // Same early return as the conversation's, and it had the same hole: the
+    // redirect banner is below it, so a redirect the tutor published before its
+    // first line was never drawn at all. The view model carries it now. See
+    // tutor/waitingView.ts.
+    const waiting = waitingView({ waitingForTutor: live.waitingForTutor, safety });
     return (
       <View style={st.center}>
+        {waiting.banner ? (
+          <View style={st.waitingBanner}>
+            <SafetyBanner surface={waiting.banner} onDismiss={live.dismissSafety} />
+          </View>
+        ) : null}
         <ActivityIndicator color={paper.inkSoft} />
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>
-          {live.waitingForTutor ? `Waiting for ${TUTOR_NAME}…` : 'One moment…'}
-        </Text>
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{waiting.headline}</Text>
         <View style={{ marginTop: space(6) }}>
-          <GhostButton label="Leave" onPress={leaveNow} />
+          <GhostButton label={waiting.leaveLabel} onPress={leaveNow} />
         </View>
       </View>
     );
@@ -141,6 +168,13 @@ export function LiveSessionScreen({
           <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
         </Pressable>
       </View>
+      {/* The tutor steered away and said why. It stays until the learner puts
+          it away, unlike the notice above it, which is a hiccup on a timer. */}
+      {safety.kind === 'redirect' ? (
+        <View style={st.banner}>
+          <SafetyBanner surface={safety} onDismiss={live.dismissSafety} />
+        </View>
+      ) : null}
       <SessionView
         lessonTitle={lesson.title}
         cefr={lesson.cefr}
@@ -159,6 +193,10 @@ export function LiveSessionScreen({
         // as an utterance nobody heard rather than one that went well.
         onOptionPress={live.sendChoice}
         onType={textMode ? live.sendSay : undefined}
+        // Typing is presence, and the typed lesson is the one surface that
+        // never sent it: the agent counted the silence and rescued a learner
+        // who was mid-sentence. Throttled inside the hook.
+        onTyping={textMode ? live.sendTyping : undefined}
       />
     </View>
   );
@@ -169,5 +207,10 @@ const st = StyleSheet.create({
   center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
   listen: { minHeight: HIT, paddingHorizontal: space(5), paddingTop: space(3) },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingHorizontal: space(5), paddingTop: space(2) },
+  banner: { paddingHorizontal: space(5), paddingTop: space(2) },
+  // The waiting screen centres its children, so the banner has to be told to
+  // take the width: a safety sentence shrink-wrapped to its longest word is
+  // unreadable, and this one is the whole reason the branch draws anything.
+  waitingBanner: { alignSelf: 'stretch', marginBottom: space(3) },
   leave: { minHeight: HIT, justifyContent: 'center', paddingLeft: space(3) },
 });

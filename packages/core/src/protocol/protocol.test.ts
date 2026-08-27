@@ -1,7 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
-import { decodeClientMessage, decodeServerMessage, encodeMessage, toLearnerInput, type ClientMessage, type ConvoView, type ServerMessage } from './protocol.ts';
+import { decodeClientMessage, decodeServerMessage, encodeMessage, toLearnerInput, SAFETY_CATEGORIES, type ClientMessage, type ConvoView, type ServerMessage } from './protocol.ts';
 import { createSession, currentPrompt, submitTurn, summarise } from '../session/session.ts';
 import { CAFE_LESSON } from '../lessons/cafe.ts';
 
@@ -488,5 +489,158 @@ describe('a learner asking for time is present, not stuck', () => {
       'a torn frame from a phone on a train must not take down a live conversation',
     );
     assert.equal(decodeClientMessage(truncated), null, 'an unparseable frame is dropped, not guessed at');
+  });
+});
+
+describe('a safety decision has its own frame on the wire', () => {
+  /** A self-harm stop, the frame this whole tag exists for. */
+  function safetyFrame(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      t: 'safety',
+      category: 'self-harm',
+      action: 'stop',
+      message: 'I am not the right help for this, but people who are can be reached any time.',
+      ...overrides,
+    };
+  }
+
+  /** Put an arbitrary object on the wire, the way a peer of any version would. */
+  function overTheWire(frame: unknown): ServerMessage | null {
+    return decodeServerMessage(new TextEncoder().encode(JSON.stringify(frame)));
+  }
+
+  test('the safety frame decodes with category, action and message', () => {
+    const decoded = overTheWire(safetyFrame());
+
+    assert.ok(
+      decoded && decoded.t === 'safety',
+      'the crisis line rides its own tag now, so the app can tell it from a TTS blip before it renders a single word',
+    );
+    if (!decoded || decoded.t !== 'safety') return;
+
+    assert.equal(decoded.category, 'self-harm', 'the why survives, because it is what picks the copy and the resources beside the message');
+    assert.equal(decoded.action, 'stop', 'the app has to know the session is already over, not merely troubled');
+    assert.equal(
+      decoded.message,
+      'I am not the right help for this, but people who are can be reached any time.',
+      'the words the learner is owed arrive whole and unedited',
+    );
+
+    // The same words on the old channel are still a notice, and that is the
+    // whole point of splitting them: severity now comes from the tag.
+    const asAnError = decodeServerMessage(encodeMessage({ t: 'error', message: 'The voice dropped out for a second.' }));
+    assert.ok(asAnError && asAnError.t === 'error', 'the pipeline-hiccup channel is untouched');
+    assert.notEqual(decoded.t, asAnError.t, 'a crisis and a hiccup are no longer the same shape on the wire');
+  });
+
+  test('every category and both actions survive the wire', () => {
+    for (const category of SAFETY_CATEGORIES) {
+      for (const action of ['stop', 'redirect'] as const) {
+        const msg: ServerMessage = { t: 'safety', category, action, message: `why: ${category}` };
+        assert.deepEqual(
+          decodeServerMessage(encodeMessage(msg)),
+          msg,
+          `${category}/${action} has to round-trip, or a decision the agent made is not the one the app renders`,
+        );
+      }
+    }
+  });
+
+  test('an unknown category is dropped rather than shown', () => {
+    assert.equal(
+      overTheWire(safetyFrame({ category: 'something-this-build-has-never-heard-of' })),
+      null,
+      'the category chooses the copy and the resources, so one this build cannot read has no rendering it could safely be given',
+    );
+    assert.equal(
+      overTheWire(safetyFrame({ category: 'SELF-HARM' })),
+      null,
+      'the list is matched exactly, never case-folded, so nothing arrives as a near miss of a real category',
+    );
+    assert.equal(overTheWire(safetyFrame({ category: 42 })), null, 'a category that is not even a string is not a category');
+    assert.equal(overTheWire(safetyFrame({ category: undefined })), null, 'a frame with no category at all is not readable either');
+  });
+
+  test('an unknown action is never guessed at', () => {
+    assert.equal(
+      overTheWire(safetyFrame({ action: 'pause' })),
+      null,
+      'there is no honest default here: reading it as redirect would soften a stop, and reading it as stop would end a lesson over a typo',
+    );
+    assert.equal(overTheWire(safetyFrame({ action: 'Stop' })), null, 'the two actions are matched exactly, so a near miss is not quietly promoted');
+    assert.equal(overTheWire(safetyFrame({ action: undefined })), null, 'a decision that does not say what it did is not a decision the app can act on');
+  });
+
+  test('a safety decision with nothing to say is dropped', () => {
+    assert.equal(overTheWire(safetyFrame({ message: undefined })), null, 'the message is the entire point of the frame');
+    assert.equal(
+      overTheWire(safetyFrame({ message: '   ' })),
+      null,
+      'an empty notice that will not clear itself is a dead-end screen, and a learner is never stranded on one',
+    );
+    assert.equal(overTheWire(safetyFrame({ message: 12 })), null, 'a message that is not a string has no words in it');
+  });
+
+  test('a malformed safety frame cannot throw on a screen', () => {
+    const torn = [
+      new TextEncoder().encode('{"t":"safety"'),
+      new TextEncoder().encode('{"t":"safety"}'),
+      new TextEncoder().encode('{"t":"safety","category":null,"action":null,"message":null}'),
+      new TextEncoder().encode('{"t":"safety","category":["self-harm"],"action":["stop"],"message":["hi"]}'),
+      new TextEncoder().encode('{"t":"safetyish","category":"self-harm","action":"stop","message":"hi"}'),
+    ];
+    for (const payload of torn) {
+      assert.doesNotThrow(() => decodeServerMessage(payload), 'a torn frame must not take down a live conversation');
+      assert.equal(decodeServerMessage(payload), null, 'an unreadable safety frame is dropped, not guessed at');
+    }
+  });
+
+  test('a field from a newer agent does not cost the learner the message', () => {
+    const decoded = overTheWire(safetyFrame({ resourceUrl: 'https://example.invalid/help' }));
+    assert.ok(
+      decoded && decoded.t === 'safety',
+      'a field added in some later round must not drop the frame carrying it, or a newer agent silently stops reaching an older app',
+    );
+    if (!decoded || decoded.t !== 'safety') return;
+    assert.equal(decoded.message, safetyFrame().message, 'the words still arrive whole');
+    assert.equal(decoded.action, 'stop', 'and the decision is still the one the agent made');
+  });
+
+  test('the app cannot send itself a safety decision', () => {
+    assert.equal(
+      decodeClientMessage(encodeMessage(safetyFrame() as unknown as ClientMessage)),
+      null,
+      'the tag is the agent’s alone: a safety decision is a server judgement, and a client channel that accepted one would let the phone declare its own crisis',
+    );
+  });
+
+  test('core and the agent name the same safety categories', () => {
+    // The same trick evidence.test.ts uses on brain: core cannot import the
+    // agent, so the pin reads source rather than exports. This is what makes
+    // the restated union in protocol.ts a copy that cannot drift, instead of a
+    // second opinion about what counts as a safety category.
+    const declaredIn = (file: URL, whose: string): string[] => {
+      const union = readFileSync(file, 'utf8').match(/export type SafetyCategory =([\s\S]*?);/);
+      assert.ok(
+        union,
+        `${whose} no longer declares a SafetyCategory union. If it now imports the type from core, that is the tidier shape and this pin has done its job: delete it.`,
+      );
+      return [...union![1]!.matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]!);
+    };
+
+    // Core's own union against core's own list first. The union is erased
+    // before any of this runs, so without reading it back off disk a category
+    // could exist in the type and in nothing the decoder ever checks.
+    assert.deepEqual(
+      declaredIn(new URL('./protocol.ts', import.meta.url), 'protocol.ts'),
+      [...SAFETY_CATEGORIES],
+      'core’s category union and the list the decoder actually checks have drifted apart',
+    );
+
+    assert.deepEqual(
+      [...SAFETY_CATEGORIES],
+      declaredIn(new URL('../../../../services/tutor-agent/src/safety.ts', import.meta.url), 'the agent'),
+      'core and the agent have drifted apart on what a safety category is, so a decision the agent can make is one the wire would drop',
+    );
   });
 });

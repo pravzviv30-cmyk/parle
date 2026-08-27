@@ -294,11 +294,31 @@ does not promise help it cannot send.
 **What happens after a `stop`, exactly:**
 
 1. The rescue timer is cleared, so nothing coaxes the learner back into the scene.
-2. The message is published to the app and spoken, uninterruptible.
-3. The session finishes. The words that triggered it never become model context,
+2. The message goes out on its own `safety` frame, never on `error`, and in the
+   two spoken modes it is said out loud, uninterruptible. `error` is the notice
+   the app takes away after eight seconds, which is right for a voice outage and
+   is how an emergency number used to erase itself.
+3. It stays on the screen. `useLiveSession.ts` holds the decision in state with
+   no timer near it, and nothing clears it: not the recap, not the summary, not
+   the ended phase, not the disconnect that follows. The session watchdog stands
+   down too, so a room torn down behind it cannot replace those words with "the
+   tutor never started".
+4. The surface is the whole screen, in all four modes. `tutor/safetyView.ts`
+   turns a stop into a surface that takes the place of the recap and the
+   summary, with one way out. The two typed modes get the same screen, and there
+   it is the only delivery there is.
+5. The session finishes. The words that triggered it never become model context,
    never reach the brain, never reach analytics, and are never graded.
-4. Nothing is written down. There is no incident record, because there is no
-   transcript to make one from.
+6. Nothing congratulates the learner. The recap is not handed on (`onRecap`),
+   the summary card never opens (`onFinish`), no experience points are awarded
+   (`recordActivity`), and no mission is recorded (`recordMissionCompletion`).
+7. Nothing is written down. The recap is not journalled (`journalRecap`) and no
+   practice is banked (`bankPractice`), so a stopped session leaves nothing
+   behind. That includes the ordinary practice from before the disclosure. It is
+   a real cost, it was put to the founder, and it was taken deliberately: one
+   flag read by every screen is the only version of this simple enough to stay
+   true. There is no incident record either, because there is no transcript to
+   make one from.
 
 That last point is the honest tension in this document. Retaining nothing is the
 strongest privacy position available and it is the one we take, and it also means
@@ -372,12 +392,48 @@ Stated plainly, because a review that starts from an inflated claim is worthless
   whose French is by definition imperfect and whose phrasing is therefore unusual.
 - **Input is truncated at 4,000 characters** and normalisation is lossy by design;
   both are deliberate and both are attack surface.
+- **Every minor-sexual stop requires a minor now**, named or implied, and that is
+  narrower than it was. The rule table in `safety.ts` is `R1` to `R4`, every one
+  of the four needs a child in the sentence before any other signal counts, and
+  the implication is narrow on purpose: somebody asked to keep this from their
+  parents, or an approach arranged around their school day. So an approach with
+  concealment and no child anywhere no longer stops. Measured, both of these
+  stopped a session before and are ordinary French now:
+  `Come to my place. Keep this between us.` and
+  `Viens chez moi, garde ca pour toi`.
+- **An everyday approach now needs concealment beside it.** A photo or an address
+  asked of a named child, with nothing said about hiding it, no longer stops.
+  Measured, these three stopped before and none of them does now:
+  `come to my house, kid`, `send me a photo, kid` and
+  `Send me a photo of your kids`. What still stops on its own is an approach that
+  is about a child's body or their being alone: `meet me alone after school` is
+  caught by `R2`, where the school day beside the approach is what implies the
+  child.
+- **Those five lines are recall this net gave up, deliberately.** The old rule was
+  `(minor && sexual) || (minor && approach) || (approach && secrecy)`, and its
+  last clause needed no child at all, so two adults making plans were told Parle
+  cannot help with sexual content involving anyone under 18. Those words accuse a
+  person of one specific thing, and saying them to somebody who has not done it
+  is its own harm. The judgement that clause was standing in for now sits in the
+  prompt, which reads a conversation rather than a sentence.
 - **There is no model classifier behind it, on purpose.** This repo does not put a
   model between a learner and a stop decision. Judgement lives in the prompt; policy
   lives in code. A reviewer may argue this is the wrong call, and that argument is
   in scope.
-- **The prompt carries the rest.** Everything the regex misses reaches a model whose
-  system prompt tells it how to behave, which is guidance rather than a guarantee.
+- **The prompt carries the rest, and it now says so out loud.** Everything the
+  regex misses reaches a model that is told what to do with a disclosure. That
+  block is `SAFETY_CONDUCT` in `packages/brain/src/prompt/safetyConduct.ts`,
+  written once and rendered into both shipped prompts: the conversation persona
+  in `buildSystemBlocks()`, and the scripted lesson's `baseInstructions()` in
+  `services/tutor-agent/src/prompt.ts`. It tells the tutor to step out of the
+  scene, answer in short plain English, take it seriously the first time, point
+  at a local emergency number or one person they trust, say plainly that nobody
+  is reading the conversation, and let dark vocabulary in a story stay ordinary
+  French. Before it existed this was design rather than code: grepping both
+  shipped prompts for self-harm, suicide, crisis, minor, sexual or harmful
+  returned exactly one hit, and it was the word "minor" describing how heavily a
+  coach finding counts. It is guidance to a model, so it is still not a
+  guarantee.
 
 ### What we are not asking for
 

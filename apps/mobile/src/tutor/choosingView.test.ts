@@ -3,11 +3,14 @@ import { describe, test } from 'node:test';
 
 import {
   ANYTHING_GOES,
+  MODE_CAPS,
   QUIET_DOOR,
   TAP_TO_TALK,
   choosingView,
   micOpensAtConnect,
+  modeCarriesAudio,
   type ChoosingState,
+  type LiveMode,
 } from './choosingView.ts';
 import { pushTurn, type TurnLine } from '../live/turns.ts';
 import { TUTOR_NAME } from './tutorName.ts';
@@ -159,5 +162,63 @@ describe('the circle a learner has to press — J1', () => {
   test('reporting a state always outranks asking to be pressed', () => {
     assert.equal(choosingView({ ...opening, thinking: true }).orb, 'thinking');
     assert.equal(choosingView({ ...opening, tutorSpeaking: true }).orb, 'speaking');
+  });
+});
+
+describe('what each session mode may do with a microphone — F139', () => {
+  /**
+   * Every mode, written out, because the omission is the defect.
+   *
+   * The test this replaces asserted three modes and never `lesson-text`, which
+   * is exactly how a typed lesson came to publish a microphone: the mode was
+   * added to the union, was never named here, and nothing noticed. Naming all
+   * four and then checking the count against the table means the fifth mode
+   * fails this test on the day it is added rather than on the day a learner in
+   * a quiet carriage finds out.
+   */
+  const EXPECTED: Record<LiveMode, { carriesAudio: boolean; micAtConnect: boolean }> = {
+    lesson: { carriesAudio: true, micAtConnect: true },
+    convo: { carriesAudio: true, micAtConnect: false },
+    'convo-text': { carriesAudio: false, micAtConnect: false },
+    'lesson-text': { carriesAudio: false, micAtConnect: false },
+  };
+
+  test("every mode's microphone and audio behaviour matches the mode table", () => {
+    const modes = Object.keys(EXPECTED) as LiveMode[];
+    assert.equal(
+      Object.keys(MODE_CAPS).length,
+      modes.length,
+      'a mode was added to MODE_CAPS and not to this test, which is the omission that shipped the defect',
+    );
+
+    for (const mode of modes) {
+      const want = EXPECTED[mode];
+      assert.equal(
+        micOpensAtConnect(mode),
+        want.micAtConnect,
+        `${mode} ${want.micAtConnect ? 'must publish' : 'must not publish'} a microphone when the room opens`,
+      );
+      assert.equal(
+        modeCarriesAudio(mode),
+        want.carriesAudio,
+        `${mode} ${want.carriesAudio ? 'carries' : 'carries no'} audio, and the hook builds its pipeline from this`,
+      );
+      assert.deepEqual(MODE_CAPS[mode], want, `${mode} declares capabilities the two readers do not agree with`);
+    }
+  });
+
+  test('a mode that carries no audio can never open a microphone', () => {
+    // The invariant underneath the table, so a future edit that sets
+    // micAtConnect on a quiet mode fails here as well as above. Every quiet
+    // path in this product is a promise that nobody has to speak aloud.
+    for (const [mode, caps] of Object.entries(MODE_CAPS)) {
+      if (caps.carriesAudio) continue;
+      assert.equal(caps.micAtConnect, false, `${mode} carries no audio and still opens a microphone`);
+    }
+  });
+
+  test('a session that names no mode is the lesson path, unchanged', () => {
+    assert.equal(micOpensAtConnect(undefined), true, 'the lesson surface lost its hot microphone');
+    assert.equal(modeCarriesAudio(undefined), true, 'the lesson surface lost its voice');
   });
 });

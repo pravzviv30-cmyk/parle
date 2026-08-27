@@ -17,6 +17,7 @@
  * by whatever the model feels like offering.
  */
 
+import { SAFETY_CONDUCT } from '@parle/brain';
 import type { Lesson, LessonTurn, LadderDirective } from '@parle/core';
 
 /**
@@ -63,6 +64,11 @@ export function baseInstructions(lesson: Lesson): string {
     `- Never use an em dash. Use a period or a comma instead.`,
     `- No filler like "simply", "just", "note that", "great question".`,
     `- Talk to them as "you". Sound like a person, not a textbook.`,
+    ``,
+    // The same block the conversation brain carries, imported rather than
+    // restated. A lesson and a conversation are two pipelines, which is fine;
+    // two different answers to a learner in trouble would not be.
+    SAFETY_CONDUCT,
   ].join('\n');
 }
 

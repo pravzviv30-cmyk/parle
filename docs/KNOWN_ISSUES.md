@@ -2566,3 +2566,200 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   corrupt counter should cost one claim about one phrase, never the screen. `merge.ts`
   guards its own path, so every other caller is the exposed one.
 - verified-by: `a null evidence block reads as zero rather than throwing`
+
+### F132 — The under-13 stop fires on an age claim, not on an unlisted noun
+- severity: P0
+- status: [x]
+- where: services/tutor-agent/src/safety.ts:180
+- note: the bare-number branch stops unless the following word is on a unit allowlist, so
+  height, distance and counting — the exact sentences an A0 learner practises — end a paid
+  session with an accusation. The default flips: fire only when the number stands clause-final
+  as an age claim or is followed by a short positive age-continuation list. "I'm 12" still stops.
+- verified-by: `an adult saying a height, a distance or a count is not stopped as a child`
+- verified-by: `a learner who says an age under thirteen is still stopped`
+
+### F133 — minor-sexual becomes a decision table whose every stop rule requires a minor
+- severity: P0
+- status: [x]
+- where: services/tutor-agent/src/safety.ts:398
+- note: `(approach && secrecy)` stops two adults arranging to meet, and `(minor && approach)`
+  stops family small talk; the category's message then accuses them of requesting child sexual
+  content. Named signals combine in a readable rule function; guardian-directed secrecy implies
+  the minor. Existing corpus stays green untouched — that is the bar against loosening.
+- verified-by: `family small talk and adult plans are never answered as child sexual abuse`
+- verified-by: `every minor-sexual rule keeps a stop witness only it catches`
+
+### F134 — A safety decision has its own frame on the wire
+- severity: P0
+- status: [x]
+- where: packages/core/src/protocol/protocol.ts:236
+- note: the crisis message currently rides `error`, which the app documents and renders as a
+  self-clearing pipeline hiccup. `{ t: 'safety'; category; action; message }` joins ServerMessage
+  and SERVER_TAGS, the same seam `opening` and `practice` used, so the client can render severity
+  from the tag instead of guessing from prose.
+- verified-by: `the safety frame decodes with category, action and message`
+
+### F135 — Both agents deliver safety on the safety frame
+- severity: P0
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1045
+- note: `handleSafety` in ParleConversation and ParleTutor publishes the safety frame instead of
+  publishError; spoken modes keep the uninterruptible say. Driven through the real classes with a
+  captured publisher, because the current wiring test greps source text and would pass with
+  publishError emptied out.
+- verified-by: `a safety decision leaves on the safety frame and the error frame carries only hiccups`
+
+### F136 — The hook holds a safety state that nothing erases
+- severity: P0
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:627
+- note: every error today is a notice on an eight-second timer, superseded by the recap in the
+  same tick. The safety state has no timer and survives recap and summary; a stop frame marks the
+  agent heard and stands the watchdog down, so the giveUp path cannot replace the one screen that
+  must persist.
+- verified-by: `a safety stop survives the recap, the summary and the eight second timer`
+
+### F137 — A stop is the whole screen, and no congratulation, XP or banking follows it
+- severity: P0
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:455
+- note: today a learner disclosing suicidal ideation gets a vanishing grey line, then "Good
+  session." and XP. On a stop the surface renders instead of RecapScreen and SummaryScreen in all
+  four modes, including the two where nothing is spoken; recordActivity, onRecap, onFinish,
+  journalling and banking are all withheld; a redirect renders as a banner that stays until
+  dismissed. Copy: the decision message, "This session has ended.", "Close".
+  Closed once F136 landed the state the screens read: the surface rendered nothing while
+  `live.safety` was always undefined, and the one withholding no screen could perform — the
+  journal write inside the hook, before any screen has the recap — is guarded there.
+- verified-by: `a stop is the whole screen and no congratulation, XP or banking follows it`
+- verified-by: `a redirect stays on screen until the learner dismisses it`
+
+### F138 — The judgement half of the safety design exists in both shipped prompts
+- severity: P0
+- status: [x]
+- where: packages/brain/src/prompt/system.ts:28
+- note: PRIVACY_AND_SAFETY.md promises the prompt carries everything the regex misses, and neither
+  shipped prompt says one word about it. One SAFETY_CONDUCT block in
+  packages/brain/src/prompt/safetyConduct.ts, rendered into buildSystemBlocks and the tutor-agent
+  baseInstructions. The test drives both real builders, so an emptied block or a dropped include
+  fails; a companion test holds the block's copy honest.
+- verified-by: `both shipped prompts carry the one safety conduct block`
+- verified-by: `the safety conduct block keeps its copy honest`
+
+### F139 — lesson-text joins the quiet twins in a compiler-enforced mode table
+- severity: P0
+- status: [x]
+- where: apps/mobile/src/tutor/choosingView.ts:98
+- note: micOpensAtConnect falls through to true for lesson-text, publishing a microphone the quiet
+  door promised not to open. MODE_CAPS as Record<LiveMode, caps> makes the next mode fail to
+  compile until it declares itself, and the table-driven test covers all four modes — the omission
+  that let this defect ship.
+- verified-by: `every mode's microphone and audio behaviour matches the mode table`
+
+### F140 — The live hook's audio path reads the mode table
+- severity: P0
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:427
+- note: three hardcoded `mode !== 'convo-text'` checks refuse the typed lesson outright on a device
+  with no mediaDevices — the learner the mode was built for. All three read modeCarriesAudio, so
+  both quiet modes connect with the voice pipeline dark and LIVE_VOICE.md's "no TTS, no STT" claim
+  becomes true as written.
+- verified-by: `both quiet modes connect without a microphone API and never publish one`
+
+### F141 — The typed lesson waits the text window, and presence stands the clock down
+- severity: P0
+- status: [x]
+- where: services/tutor-agent/src/tutor.ts:246
+- note: ParleTutor rescues at four seconds regardless of voiceless and ignores typing and moment,
+  so composing a sentence is graded as stuck every turn and lowers tomorrow's opening rung. It
+  gains ParleConversation's silenceWindow answer and handles both presence frames as clock
+  restarts. The existing test `a typed lesson still rescues a learner who goes quiet` keeps its
+  title and moves to the text window: genuine silence still rescues, at twelve seconds.
+- verified-by: `a typed lesson waits the text window and typing keeps the clock standing`
+
+### F142 — The lesson screen says "still here" while the learner types
+- severity: P0
+- status: [x]
+- where: apps/mobile/src/SessionView.tsx:229
+- note: the agent can only honour typing pings the app sends, and the lesson's draft input sends
+  none — onChangeText sets the draft and nothing else. SessionView gains an onTyping callback wired
+  to the hook's throttled sendTyping, the same seam ConvoScreen already uses.
+- verified-by: `typing in the lesson pings presence at the throttle`
+
+### F143 — The roadmap names the property Phase 5 actually holds
+- severity: P1
+- status: [x]
+- where: docs/DELIVERY_ROADMAP.md:14
+- note: "Three modes" names no triad in the code and four readings produce four scopes; the
+  approved reading is mode parity across the four session modes. The exit criterion is corrected
+  to say so, so the ledger entries that close Phase 5 have a sentence to close against.
+- verified-by: `the roadmap reads mode parity across the four session modes`
+
+### F144 — The privacy doc's stop list matches the delivery the code performs
+- severity: P1
+- status: [x]
+- where: docs/PRIVACY_AND_SAFETY.md:302
+- note: the "What happens after a stop" list says published and spoken; it gains the persistent
+  surface, the withheld congratulation and XP, and that a stopped session leaves nothing behind.
+  The category and copy table is unchanged, so safetyPolicy.test.ts continues to hold
+  learner-facing words against the doc.
+- verified-by: `the privacy doc's stop list matches the delivery the code performs`
+
+### F145 — A redirect that arrives before the first scene view is never drawn
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:658
+- note: the `if (!view)` waiting branch returns before the redirect banner further down, so a
+  safety redirect published during `startScene` leaves the learner on "One moment..." while the
+  sentence the tutor just spoke is never shown. Five of the nine decisions in `safety.ts` are
+  redirects, so this is a live path, not a spare branch. A stop is unaffected because its
+  surface returns earlier. Found by voice-platform-engineer while wiring F136, and it is the
+  hole under F137's second verified-by rather than new work.
+- verified-by: `a redirect is drawn even before the first scene view arrives`
+
+### F146 — DESIGN.md records five colours the app stopped shipping
+- severity: P2
+- status: [ ]
+- where: docs/DESIGN.md:1
+- note: the doc records `signal.live #DE3B2D`, `good #1E8A5B`, `orb.thinking #B07510`,
+  `accent.label #8A5BBF` and rung 1 `#FFCD00`, while `theme.ts` and `palette.ts` ship
+  `#A9564F`, `#437A62`, `#8A6A2D`, `#6B3FA0` and `#D6A846`. `palette.test.ts` pins only the
+  paper table, so nothing catches the drift and anyone designing from the doc picks colours the
+  product does not use. Found by frontend-engineer during Phase 5 slice 1; not introduced by it.
+- verified-by: `every colour DESIGN.md names is a colour the theme ships`
+
+### F147 — The typed lesson eats the first tap when the keyboard is up
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/SessionView.tsx:1
+- note: the screen's `ScrollView` has no `keyboardShouldPersistTaps`, and `SessionView.tsx` is
+  absent from `TYPING_SCREENS` in `keyboardTaps.test.ts` — the same omission-from-the-list shape
+  that let the `lesson-text` microphone bug ship. In a typed lesson with the keyboard open, the
+  first tap on an option card dismisses the keyboard instead of choosing.
+- verified-by: `a typed lesson takes the first tap with the keyboard open`
+
+### F148 — The contract's false-positive tier is missing its two named lines, and the bath sentence still stops
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/safety.test.ts:311
+- note: the contract required the FALSE_POSITIVES tier to hold the survey's exact measured
+  strings including `Mes enfants sont nus dans le bain` and `Turn on your camera and do not
+  tell anyone`, both asserted null. Neither is in the tier, and the first still returns
+  minor-sexual/stop, measured: `enfants` plus `nus` (SEXUAL_EXPLICIT, safety.ts:234) fires R1,
+  so a French parent describing bath time is accused of requesting child sexual abuse material
+  and the session ends with nothing banked. Tune the signal boundary the way `me couper les
+  cheveux` is guarded, keep the minor requirement, keep `a 13 year old, naked` stopping, and
+  restore both lines to the tier.
+- verified-by: `a parent describing bath time is never answered as child sexual abuse`
+
+### F149 — The minor-as-sender pattern reads a child showing anything as a grooming approach
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/safety.ts:273
+- note: the new APPROACH_DIRECT pattern `kid...(send|sends|show|shows)...me` carries no object, so
+  `the kids show me their drawings every day` returns minor-sexual/stop via R2 where the old
+  net returned null, and `my kids send me a photo every week` stops the same way. Family small
+  talk is answered as child sexual abuse, the exact class F133 closed, and the stop now takes
+  the whole screen and discards the session. Constrain the pattern to sexual, photo or body
+  objects; `the schoolgirl should send me pics` must keep its stop witness.
+- verified-by: `a child sending or showing something ordinary is never read as a grooming approach`

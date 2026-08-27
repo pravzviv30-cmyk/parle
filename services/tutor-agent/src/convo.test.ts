@@ -36,6 +36,8 @@ import {
   type TurnView,
 } from '@parle/brain';
 import {
+  CAFE_LESSON,
+  RUNGS,
   STUCK_SILENCE_MS,
   decodeServerMessage,
   encodeMessage,
@@ -65,7 +67,7 @@ import {
   validMissionId,
   type SttLanguage,
 } from './convo.ts';
-import { forgetReportedSessions, noteSessionReported } from './tutor.ts';
+import { ParleTutor, forgetReportedSessions, noteSessionReported } from './tutor.ts';
 
 /** A fresh flow-mode café conversation, exactly as ParleConversation builds one. */
 function freshState() {
@@ -2479,5 +2481,75 @@ describe('a conversation credential that has already been spent', () => {
     await sceneSettled();
     assert.ok(published.some((m) => m.t === 'opening'), 'a fresh credential gets its conversation');
     assert.deepEqual(published.filter((m) => m.t === 'error'), []);
+  });
+});
+
+/**
+ * F135. The words a learner in trouble is owed leave on a channel that keeps
+ * them.
+ *
+ * The old wiring test greps this file's source for `handleSafety` and would
+ * pass with `publishError` emptied to a no-op, so this one drives both real
+ * classes through a captured publisher and reads what actually left.
+ */
+describe('where a safety decision leaves', () => {
+  test('a safety decision leaves on the safety frame and the error frame carries only hiccups', async (t) => {
+    // No token server in the room: a stopped session still reports its seconds.
+    const { restore } = captureDebits();
+    t.after(restore);
+
+    // 1. The free conversation, spoken.
+    const { convo, session, published, said } = await inScene(t);
+    const before = published.length;
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'I want to kill myself' }));
+    await convo.settled();
+
+    const frames = published.slice(before);
+    const safety = frames.filter((m) => m.t === 'safety');
+    assert.equal(safety.length, 1, 'a crisis has to reach the app exactly once');
+    assert.equal(safety[0]!.category, 'self-harm');
+    assert.equal(safety[0]!.action, 'stop');
+    assert.match(safety[0]!.message, /emergency number/i, 'and it has to be the words the policy documents');
+    overTheWire(safety[0]!);
+    assert.deepEqual(
+      frames.filter((m) => m.t === 'error'),
+      [],
+      'not both: a current app would render the persistent surface AND an eight-second toast for one event',
+    );
+    assert.ok(said.includes(safety[0]!.message), 'a spoken session still hears it out loud');
+
+    // The error frame is not gutted, it is just not this. A TTS outage is still
+    // a self-clearing notice, which is what that channel is for.
+    convo.publishError('The voice cut out for a second. Carry on.');
+    const hiccup = published.at(-1);
+    assert.equal(hiccup?.t, 'error', 'ordinary pipeline trouble still has somewhere to go');
+
+    // 2. The scripted lesson, typed, which never speaks at all.
+    forgetReportedSessions();
+    const tutor = new ParleTutor(CAFE_LESSON, RUNGS.PROMPTED, { voiceless: true });
+    const lessonSession = stubSession();
+    Object.defineProperty(tutor, 'session', { value: lessonSession.session, configurable: true });
+    const lessonPublished: ServerMessage[] = [];
+    tutor.attach((message) => lessonPublished.push(message));
+    t.after(() => tutor.clearRescue());
+
+    await tutor.handleClientMessage(lessonSession.session, tapped({ t: 'say', text: 'je veux mourir' }));
+    await tutor.settled();
+
+    const lessonSafety = lessonPublished.filter((m) => m.t === 'safety');
+    assert.equal(lessonSafety.length, 1, 'the scripted lesson owes the same frame');
+    assert.equal(lessonSafety[0]!.category, 'self-harm');
+    assert.equal(lessonSafety[0]!.action, 'stop');
+    assert.deepEqual(
+      lessonPublished.filter((m) => m.t === 'error'),
+      [],
+      'and it does not also arrive as a notice that clears itself',
+    );
+    assert.deepEqual(lessonSession.said, [], 'a typed lesson says nothing out loud, here as everywhere');
+
+    // One person in every mode. Two agents answering the same category with
+    // different words is a difference the learner can feel at the worst
+    // possible moment.
+    assert.equal(lessonSafety[0]!.message, safety[0]!.message, 'the two agents answer a crisis differently');
   });
 });

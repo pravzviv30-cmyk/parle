@@ -147,6 +147,130 @@ function learnerFacingFiles(): string[] {
   return out;
 }
 
+// ------------------------------------------------------ what a stop delivers
+
+/** The wire, the conduct block, and the two prompts it is rendered into. */
+const PROTOCOL_PATH = path.join(REPO, 'packages', 'core', 'src', 'protocol', 'protocol.ts');
+const CONDUCT_PATH = path.join(REPO, 'packages', 'brain', 'src', 'prompt', 'safetyConduct.ts');
+const PERSONA_PROMPT_PATH = path.join(REPO, 'packages', 'brain', 'src', 'prompt', 'system.ts');
+const LESSON_PROMPT_PATH = path.join(SRC, 'prompt.ts');
+const APP = path.join(REPO, 'apps', 'mobile', 'src');
+
+/**
+ * What a stop withholds: the symbol the doc names, and the file that must not
+ * call it while the session is stopped.
+ *
+ * The doc and the app are held against each other here because they drifted
+ * once already. The crisis line used to arrive as a self-clearing notice with a
+ * recap card and experience points landing on the same tick, and the document
+ * described that as the tutor stopping the session.
+ */
+const WITHHELD_ON_STOP = [
+  { symbol: 'onRecap', file: path.join(APP, 'ConvoScreen.tsx') },
+  { symbol: 'recordActivity', file: path.join(APP, 'ConvoScreen.tsx') },
+  { symbol: 'recordMissionCompletion', file: path.join(APP, 'ConvoScreen.tsx') },
+  { symbol: 'bankPractice', file: path.join(APP, 'ConvoScreen.tsx') },
+  { symbol: 'onFinish', file: path.join(APP, 'LiveSessionScreen.tsx') },
+  { symbol: 'journalRecap', file: path.join(APP, 'live', 'useLiveSession.ts') },
+] as const;
+
+/**
+ * The recall the minor-sexual net gave up when every rule came to require a
+ * minor. Each line is run through `safetyDecision` below rather than trusted:
+ * a document that lists what the net no longer catches is worthless the day the
+ * net catches it again and nobody edits the list.
+ */
+const NO_LONGER_STOPPED = [
+  'come to my house, kid',
+  'send me a photo, kid',
+  'Come to my place. Keep this between us.',
+  'Viens chez moi, garde ca pour toi',
+  'Send me a photo of your kids',
+] as const;
+
+/** The line the doc says survived the narrowing, through R2. */
+const STILL_STOPPED = 'meet me alone after school';
+
+/**
+ * A sentence putting the safety message on a channel.
+ *
+ * Three parts on purpose. A sentence only counts as a delivery claim when it
+ * has a verb of delivery AND names `error`, and it passes only when the naming
+ * is a denial. "never on `error`" is the true sentence and has to keep passing;
+ * "published on the `error` frame" is the sentence this file exists to refuse.
+ */
+const DELIVERY_VERB = /\b(?:published|publishes|sent|sends|goes out|go out|arrives|arrive|rides|ride|travels|delivered)\b/i;
+const ON_ERROR = /\bon (?:the |an? |its own )?`?error`?\b/i;
+const NOT_ON_ERROR = /\b(?:never|not|no longer|rather than)\s+(?:on\s+)?(?:the\s+)?`?error`?\b/i;
+
+/**
+ * How far a stop guard may sit from the call it guards.
+ *
+ * Generous, because the call sites carry long comments explaining themselves,
+ * and still bounded: without a bound, a leftover `stopped` from the effect
+ * above would vouch for an unguarded call two screens later.
+ */
+const GUARD_WINDOW = 1500;
+
+/** The frame tags one agent's `handleSafety` publishes, in order. */
+function publishedFrames(file: string): string[] {
+  const source = readFileSync(file, 'utf8');
+  const start = source.indexOf('private handleSafety');
+  assert.ok(start > 0, `${path.basename(file)} no longer handles safety`);
+  const body = source.slice(start, source.indexOf('\n  }', start));
+  return [...body.matchAll(/this\.publish\(\{\s*t:\s*'([a-z]+)'/g)].map((m) => m[1]!);
+}
+
+/**
+ * The calls to `symbol` that no stop guard covers.
+ *
+ * The flag is `stopped` on the two screens and `stoppedBySafety(...)` in the
+ * hook, so one token finds both. A call is guarded when the nearest `stopped`
+ * before it opened the same block: later than the `useEffect(` above it, and
+ * near enough to be that block's own guard.
+ */
+function unguardedCalls(source: string, symbol: string): number[] {
+  const call = new RegExp(String.raw`\b${symbol}\s*\(`, 'g');
+  const lines: number[] = [];
+  let hit: RegExpExecArray | null;
+  while ((hit = call.exec(source)) !== null) {
+    const at = hit.index;
+    const guard = source.lastIndexOf('stopped', at);
+    const block = source.lastIndexOf('useEffect(', at);
+    if (guard >= 0 && guard > block && at - guard <= GUARD_WINDOW) continue;
+    lines.push(source.slice(0, at).split('\n').length);
+  }
+  return lines;
+}
+
+/** How many times `symbol` is called at all, guarded or not. */
+function callCount(source: string, symbol: string): number {
+  return source.match(new RegExp(String.raw`\b${symbol}\s*\(`, 'g'))?.length ?? 0;
+}
+
+/**
+ * The numbered list under "What happens after a `stop`".
+ *
+ * The list rather than the whole section, because the paragraphs around it are
+ * about escalation and would let an emptied list pass on a neighbour's words.
+ */
+function stopList(): string {
+  const escalation = section('## Escalation and what Parle is not');
+  const marker = escalation.indexOf('**What happens after a `stop`');
+  assert.ok(marker >= 0, 'the escalation section no longer says what happens after a stop');
+  const out: string[] = [];
+  for (const line of escalation.slice(marker).split('\n').slice(1)) {
+    if (line.trim() === '') {
+      if (out.length === 0) continue;
+      break;
+    }
+    if (!/^\s*\d+\.\s/.test(line) && !/^\s+\S/.test(line)) break;
+    out.push(line);
+  }
+  assert.ok(out.length >= 4, 'the stop list has lost the steps it is made of');
+  return out.join('\n');
+}
+
 describe('the privacy and safety policy is held against the code', () => {
   test('the privacy and safety policy defines retention, consent, escalation and never claims emergency service', () => {
     for (const heading of REQUIRED_SECTIONS) {
@@ -280,6 +404,94 @@ describe('the privacy and safety policy is held against the code', () => {
     const boundary = section('## The safety boundary');
     assert.match(boundary, /`stop`\*{0,2}\s+ends\s+the\s+session/);
     assert.match(boundary, /`redirect`\*{0,2}\s+answers\s+and\s+leaves\s+the\s+session\s+open/);
+  });
+
+  test("the privacy doc's stop list matches the delivery the code performs", () => {
+    // 1. The channel. The wire declares a frame of its own for this, both
+    //    agents publish on it, and neither of them sends a safety decision as
+    //    the notice that clears itself.
+    assert.match(
+      readFileSync(PROTOCOL_PATH, 'utf8'),
+      /\{\s*t:\s*'safety';[^}]*action:\s*'stop'\s*\|\s*'redirect'/,
+      'packages/core no longer declares a safety frame carrying a stop and a redirect',
+    );
+    for (const agent of ['convo.ts', 'tutor.ts']) {
+      assert.deepEqual(
+        publishedFrames(path.join(SRC, agent)),
+        ['safety'],
+        `${agent} publishes a safety decision on some frame other than 'safety'`,
+      );
+    }
+
+    const stop = stopList();
+    const flat = stop.replace(/\s+/g, ' ');
+
+    // 2. The doc names that frame, and never describes the crisis line
+    //    travelling on `error`.
+    assert.ok(stop.includes('`safety`'), 'the stop list does not name the frame the agents publish on');
+    for (const sentence of stop.split(/(?<=[.!?])\s+/)) {
+      if (!DELIVERY_VERB.test(sentence) || !ON_ERROR.test(sentence)) continue;
+      assert.match(
+        sentence,
+        NOT_ON_ERROR,
+        `the stop list puts the safety message on the error frame: "${sentence.replace(/\s+/g, ' ').trim()}"`,
+      );
+    }
+
+    // 3. The surface. It persists, and it is the screen rather than a line on
+    //    it, in every mode including the two where nothing is spoken.
+    assert.match(flat, /no timer|nothing clears it/i, 'the stop list does not say the message persists');
+    assert.match(flat, /whole screen|entire screen/i, 'the stop list does not say a stop takes the screen');
+    assert.match(flat, /four modes/i, 'the stop list does not say the surface is the same in every mode');
+
+    // 4. What the doc says is withheld is what the app withholds. Both halves,
+    //    because a doc naming a symbol nothing guards is the same lie as a
+    //    guard nobody wrote down.
+    assert.match(flat, /leaves nothing behind/i, 'the stop list no longer promises a stopped session leaves nothing behind');
+    assert.match(flat, /before the disclosure/i, 'the stop list hides the cost: the ordinary practice goes too');
+    for (const { symbol, file } of WITHHELD_ON_STOP) {
+      const where = path.relative(REPO, file);
+      assert.ok(flat.includes(symbol), `the stop list does not say ${symbol} is withheld`);
+      const source = readFileSync(file, 'utf8');
+      assert.ok(callCount(source, symbol) > 0, `${where} no longer calls ${symbol}, so the doc names a withholding that cannot happen`);
+      assert.deepEqual(
+        unguardedCalls(source, symbol),
+        [],
+        `${where} calls ${symbol} with no stop guard, and the doc says a stopped session withholds it`,
+      );
+    }
+
+    // 5. The recall the net gave up, run rather than remembered.
+    const limits = section('### Known limits of a deterministic net').replace(/\s+/g, ' ');
+    for (const line of NO_LONGER_STOPPED) {
+      assert.ok(limits.includes(`\`${line}\``), `the known limits do not quote "${line}" as a line the net gave up`);
+      assert.equal(safetyDecision(line), null, `"${line}" stops again, and the doc says it does not`);
+    }
+    assert.ok(limits.includes(STILL_STOPPED), `the known limits do not name "${STILL_STOPPED}" as the one that survived`);
+    const survivor = safetyDecision(STILL_STOPPED);
+    assert.equal(survivor?.action, 'stop', `"${STILL_STOPPED}" no longer stops, and the doc says it does`);
+    assert.equal(survivor?.category, 'minor-sexual');
+    assert.match(limits, /requires a minor/i, 'the known limits do not admit that every stop rule now needs a minor');
+
+    // 6. The prompt layer, described as shipped because it ships. One block,
+    //    two renders, and the doc names all three.
+    assert.match(readFileSync(CONDUCT_PATH, 'utf8'), /export const SAFETY_CONDUCT/, 'the safety conduct block is gone');
+    for (const file of [PERSONA_PROMPT_PATH, LESSON_PROMPT_PATH]) {
+      assert.match(
+        readFileSync(file, 'utf8'),
+        /SAFETY_CONDUCT/,
+        `${path.relative(REPO, file)} no longer renders the safety conduct block into a shipped prompt`,
+      );
+    }
+    for (const named of [
+      'SAFETY_CONDUCT',
+      'packages/brain/src/prompt/safetyConduct.ts',
+      'buildSystemBlocks()',
+      'baseInstructions()',
+      'services/tutor-agent/src/prompt.ts',
+    ]) {
+      assert.ok(limits.includes(named), `the known limits describe the prompt layer without naming ${named}`);
+    }
   });
 
   test('no shipped copy anywhere tells a learner that Parle is an emergency service', () => {

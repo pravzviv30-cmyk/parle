@@ -9,9 +9,9 @@ deferred.
 | 0. Audit | product-orchestrator, repository-archaeologist | Baseline, map, evidence, fleet, ownership, risks, deletion ledger | Implemented and tested locally |
 | 1. Security P0 | security, privacy-safety, voice, revenue, qa | Live RLS, secure auth, safe config, limits, session lifecycle, reauth, safety foundation | Safety foundation and local integrations implemented; live/external verification pending |
 | 2. Data/infrastructure | data-sync, observability, security | Versioned sync, conflicts, offline retry, privacy-safe analytics, cost alerts | Implemented and tested locally; revision migration measured on a disposable project; live two-device/release verification pending |
-| 3. Onboarding | onboarding UX, design system, privacy-safety | One welcome, useful choices, readiness, contextual mic, returning-user migration | Implemented and tested on `phase-3-onboarding`; local web route proof complete, native/five-viewport QA and migration deployment remain external |
-| 4. Practice | practice UX, learning science, data-sync | Retrieval before reveal, one mastery source, durable batches, transfer | Implemented and tested on `phase-4-practice`; device, screen-reader and Supabase verification pending |
-| 5. Tutor | tutor behaviour, voice, learning science, privacy-safety | Three modes, correction policy, recovery, safety, durable curation | Partially implemented; safety/modes incomplete |
+| 3. Onboarding | onboarding UX, design system, privacy-safety | One welcome, useful choices, readiness, contextual mic, returning-user migration | Built on `phase-3-onboarding` and merged into `main` as `2a86092`; local web route proof complete, native/five-viewport QA and migration deployment remain external |
+| 4. Practice | practice UX, learning science, data-sync | Retrieval before reveal, one mastery source, durable batches, transfer | Built on `phase-4-practice` and merged into `main` as `f943bbe`; that branch is deleted now, so the hash is what finds it. Device, screen-reader and Supabase verification pending |
+| 5. Tutor | tutor behaviour, voice, learning science, privacy-safety | Mode parity across the four session modes (`convo`, `convo-text`, `lesson`, `lesson-text`), correction policy, recovery, safety, durable curation | Six P0s landed and green on `phase-5-tutor`; 34 of 40 surveyed gaps still open, and the six external checks unclaimed |
 | 6. Retention | progress-retention, learning science, design system | Passport, delayed test, less-help replay, honest reminders/story | Designed but intentionally deferred until sync/evidence stabilise |
 | 7. Revenue | revenue, security, privacy-safety | One paid tier, verified receipts/webhooks, restore/lifecycle, fair-use economics | Blocked by product/store credentials; implementation missing |
 | 8. Privacy/release | privacy-safety, qa-release, deploy | Reviewed policies, export/deletion, full device/live/build gate and rollback | Blocked; policies, devices and deployment evidence missing |
@@ -19,18 +19,25 @@ deferred.
 No later phase may be called complete against an unstable security or data contract.
 Cross-territory files are changed sequentially, with a single owner at a time.
 
-## Phase boundary: Phase 3 landed, then Phase 4 branched from it
+## Phase boundary: Phase 3 landed, Phase 4 branched from it, then Phase 4 landed too
 
 That is what happened, in that order. `phase-3-onboarding` was merged into `main` as
-`2a86092`, a merge commit with two parents, so nothing pushed was rebased and `d5cd7a5`,
-`0bb507b` and `0100169` are still in the history under their own hashes. The merged tree
-passed `npm run gate` at 1,791 tests and 0 failing: core 507, brain 348, tutor agent 350,
-token server 124, playground 13, mobile 449. Those six numbers are the floor Phase 4
-started from.
+`2a86092`, a merge commit with two parents, so nothing pushed was rebased and all thirteen
+commits are still in the history under their own hashes, `d5cd7a5`, `0bb507b` and `0100169`
+among them. The merged tree passed `npm run gate` at 1,791 tests and 0 failing: core 507,
+brain 348, tutor agent 350, token server 124, playground 13, mobile 449. Those six numbers
+are the floor Phase 4 started from.
 
-`phase-4-practice` was branched from that exact merge commit, so `git merge-base main
-phase-4-practice` answers `2a86092`. No Phase 4 work had to reintroduce a deleted
-onboarding surface, and no Phase 4 merge spent its first hour reconciling Phase 3.
+`phase-4-practice` was branched from that exact merge commit, so its merge base with `main`
+is `2a86092`. No Phase 4 work had to reintroduce a deleted onboarding surface, and no Phase
+4 merge spent its first hour reconciling Phase 3.
+
+Phase 4 then landed the same way. `phase-4-practice` was merged into `main` as `f943bbe`,
+whose two parents are `2a86092` and `fccb0fe`. Two commits followed on `main`: `d24913f`
+corrected `docs/PEDAGOGY.md`, and `2eac2f2` regenerated the code graph. `main` points at
+`2eac2f2`. The gate that closed Phase 4 is the one in step 5 below, 1,865 tests with none
+failing, and the floors were blessed to match. The branch has since been deleted, so it is
+a hash and not a branch name that finds this work now.
 
 ## Phase 4 execution order, and what was built against it
 
@@ -111,3 +118,34 @@ announcement are written down, and that the screen renders what the view told it
 decides nothing itself. They do not prove that VoiceOver reads the reveal aloud, that the
 keyboard clears the attempt row, or that focus lands where a learner expects it. That is
 device evidence, and nobody has it yet.
+
+## Phase 5: what the exit criterion means, and where it stands
+
+The first exit criterion used to read "three modes". No triad of modes exists in the code.
+`apps/mobile/src/tutor/choosingView.ts` declares four session modes, `convo`, `convo-text`,
+`lesson` and `lesson-text`, and four readings of "three" each produce a different scope, so
+a ledger entry had no sentence to close against. The criterion now reads mode parity across
+the four session modes. That is a property a test can hold rather than a count to argue
+about. `MODE_CAPS` is a `Record<LiveMode, ModeCaps>` over all four, and the test
+`every mode's microphone and audio behaviour matches the mode table` walks the whole
+table, so a fifth mode will not compile until it declares what it may do.
+
+Six P0s are landed and green on `phase-5-tutor`. Between them they cover:
+
+- the under-13 and minor-sexual false positives, repaired
+- safety given its own protocol frame, with a surface that stays up
+- no congratulation, no XP and no banking after a stop
+- the judgement half of the two-layer safety design, written into both shipped prompts
+- `lesson-text`, which no longer publishes a microphone
+- the typed lesson, given the twelve-second text window instead of four
+
+That is all Phase 5 has proved so far. A survey of the phase found 40 gaps and 34 of them
+are still open, 23 at P1 and 11 at P2, across correction policy, recovery, durable curation
+and much of safety. Two are worth naming here, because a table cell cannot hold them:
+
+- **Safety has no escalation or reporting route.** A session can be stopped and nobody is
+  told. This slice did not add one.
+- **The six external checks are unchanged and unclaimed.** Migration 7 deployment and its
+  live verification, a Supabase-authenticated first run, the device and five-viewport
+  accessibility matrix with VoiceOver and TalkBack, the F57 stopwatch, vendor credential
+  rotation, and F79 all stand where the section above leaves them.
