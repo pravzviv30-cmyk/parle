@@ -608,7 +608,14 @@ export function useLiveSession(
             // Written down before anything else, because from here the learner
             // can close the app at any moment and the leave-early fallback only
             // runs when they tap Done. Cleared as soon as banking succeeds.
-            void journalRecap(msg.recap);
+            //
+            // The learner model rides with it. The journal reads one thing off
+            // that blob, which is how often each phrase has been used well in
+            // conversation, and folds it into the batch the deck is built from.
+            // Journal the recap alone and those counts are read off an empty
+            // profile, so a phrase somebody has genuinely started using arrives
+            // in review looking exactly like one they read once.
+            void journalRecap(msg.recap, { profile: msg.profile });
             setStatus({ phase: 'ended' });
             break;
           case 'practice':

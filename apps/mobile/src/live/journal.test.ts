@@ -13,18 +13,36 @@
  * ride in the same envelope and are banked by the same once-per-launch pass, and
  * the version 1 journals already sitting on phones are still read rather than
  * discarded by the upgrade that added the field.
+ *
+ * And the window was narrower than it looked, because closing it depended on
+ * three stores that could not say whether they had written anything. They can
+ * now, and the last section of this file is about the only question that
+ * matters afterwards: when is it safe to delete the only copy of a
+ * conversation. The answer is never on a promise resolving, always on three
+ * acknowledgements, and a batch that is kept is banked again by a later launch
+ * without the learner ever seeing a phrase twice.
  */
 
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { DrillExercise, RecapPayload } from '@parle/core';
+import { evidenceOf, type DrillExercise, type RecapPayload } from '@parle/core';
+import { createProfile } from '@parle/brain/profile';
 
 import { loadDrillBank } from '../drill/store.ts';
-import { loadDeck } from '../review/store.ts';
+import { gradeCards, loadDeck } from '../review/store.ts';
 import { setActiveUser } from '../storage/scope.ts';
-import { journalDrills, journalRecap, recoverJournal } from './journal.ts';
-import { JOURNAL_VERSION, isWorthKeeping, journalFor, journalWithDrills, recoveryPlan } from './journalRules.ts';
+import { loadTopics } from '../topics/store.ts';
+import { bankPractice, journalDrills, journalRecap, recoverJournal } from './journal.ts';
+import {
+  JOURNAL_VERSION,
+  convoUsesFrom,
+  isWorthKeeping,
+  journalFor,
+  journalWithDrills,
+  recoveryPlan,
+  type PracticeBatch,
+} from './journalRules.ts';
 
 const NOW = new Date(2026, 7, 20, 14).getTime();
 
@@ -123,16 +141,30 @@ describe('the session journal', () => {
  * arrangement as storage/storeBinding.test.ts, and the reason a crash-recovery
  * promise can be checked at all without a simulator.
  */
-function installDisk(initial: Record<string, string> = {}): Map<string, string> {
+interface DiskFaults {
+  /** This key has no room. The write is refused, exactly as a full phone does. */
+  full?(key: string): boolean;
+  /** The process died before the delete ran, so the key is still there. */
+  neverDeletes?: boolean;
+  /** Something to do while a read is in flight — a sign-out, say. */
+  during?(key: string): void;
+}
+
+function installDisk(initial: Record<string, string> = {}, faults: DiskFaults = {}): Map<string, string> {
   const map = new Map<string, string>(Object.entries(initial));
   const shared = AsyncStorage as unknown as Record<string, unknown>;
-  shared.getItem = (key: string): Promise<string | null> => Promise.resolve(map.get(key) ?? null);
+  shared.getItem = (key: string): Promise<string | null> => {
+    const value = map.get(key) ?? null;
+    faults.during?.(key);
+    return Promise.resolve(value);
+  };
   shared.setItem = (key: string, value: string): Promise<void> => {
+    if (faults.full?.(key)) return Promise.reject(new Error('QuotaExceededError'));
     map.set(key, value);
     return Promise.resolve();
   };
   shared.removeItem = (key: string): Promise<void> => {
-    map.delete(key);
+    if (faults.neverDeletes !== true) map.delete(key);
     return Promise.resolve();
   };
   return map;
@@ -150,7 +182,7 @@ describe('the drills a conversation leaves behind', () => {
     const disk = installDisk();
     setActiveUser(uid);
 
-    await journalRecap(recap(), NOW);
+    await journalRecap(recap(), { savedAt: NOW });
     await journalDrills([drill('gen:crashed', 'phrase:ça marche')], NOW);
 
     // The app is gone. Nothing merged the batch, nothing cleared the journal.
@@ -197,7 +229,7 @@ describe('the drills a conversation leaves behind', () => {
     const disk = installDisk();
     setActiveUser(uid);
 
-    await journalRecap(recap(), NOW);
+    await journalRecap(recap(), { savedAt: NOW });
     await journalDrills([drill('gen:late', 'phrase:ça marche')], NOW);
 
     const written = JSON.parse(disk.get(`parle.u.${uid}.journal`)!) as { phrases: unknown[]; drills: unknown[] };
@@ -224,5 +256,430 @@ describe('the drills a conversation leaves behind', () => {
       drills: [drill('gen:good', 'phrase:ça marche'), { id: 'gen:bad' }, 'nonsense'],
     });
     assert.deepEqual(plan?.drills.map((d) => d.id), ['gen:good'], 'the readable half still lands');
+  });
+});
+
+/**
+ * When it is safe to delete the only copy of a conversation.
+ *
+ * `bankPractice` is the whole answer, and every test below is one way it can be
+ * wrong. Three stores write, three answer, and the journal goes only if all
+ * three said `durable`. Anything else keeps the batch for a later launch, which
+ * is safe because every merge in the path is by content identity and the
+ * conversation counts fold by max rather than by addition.
+ */
+
+const journalKeyOf = (uid: string): string => `parle.u.${uid}.journal`;
+
+/**
+ * A learner model with the counts the brain kept, in the shape the recap
+ * carries it. Built from `createProfile()` rather than hand-rolled, so this
+ * test cannot drift away from what `repairProfile` accepts.
+ */
+function profileWith(used: Record<string, number>): unknown {
+  const profile = createProfile();
+  for (const [fr, timesUsedWell] of Object.entries(used)) {
+    profile.phrases[fr.toLowerCase()] = {
+      fr,
+      frWritten: null,
+      en: 'used in conversation',
+      register: 'familier',
+      introducedAt: new Date(NOW).toISOString(),
+      timesUsedWell,
+      mastered: false,
+    };
+  }
+  return profile;
+}
+
+/** A conversation that reached the recap and the drills, and was never banked. */
+async function journalledSession(disk: Map<string, string>, uid: string, profile?: unknown): Promise<PracticeBatch> {
+  await journalRecap(recap(), { savedAt: NOW, profile });
+  await journalDrills([drill('gen:one', 'phrase:ça marche')], NOW);
+  const plan = recoveryPlan(JSON.parse(disk.get(journalKeyOf(uid))!));
+  assert.ok(plan, 'the session was journalled before anything tried to bank it');
+  return plan;
+}
+
+/**
+ * The app is closed and opened again: the same disk, and not one byte of any
+ * store's in-memory cache. Dropping the caches is the point — a "next launch"
+ * that still held this launch's cache would prove nothing about what survived.
+ */
+function relaunch(disk: Map<string, string>, uid: string, faults: DiskFaults = {}): Map<string, string> {
+  const next = installDisk(Object.fromEntries(disk), faults);
+  setActiveUser(null);
+  setActiveUser(uid);
+  return next;
+}
+
+/** What one banked conversation looks like, however many times it was banked. */
+async function assertBankedExactlyOnce(where: string): Promise<void> {
+  const deck = await loadDeck();
+  assert.equal(deck.filter((card) => card.id === 'phrase:ça marche').length, 1, `${where}: the deck holds two of the same card`);
+  assert.equal(deck.filter((card) => card.id === 'phrase:autre chose').length, 1, `${where}: the deck holds two of the same card`);
+  const topics = await loadTopics();
+  assert.equal(topics.length, 1, `${where}: the same conversation produced two topics`);
+  assert.deepEqual(topics[0]!.discussed.length, 1, `${where}: one sitting was recorded as two`);
+  assert.equal(
+    (await loadDrillBank()).filter((exercise) => exercise.id === 'gen:one').length,
+    1,
+    `${where}: the bank holds two copies of one drill`,
+  );
+}
+
+describe('banking a conversation, and what it takes to stop keeping it', () => {
+  test('a session journal survives until every practice store acknowledges its write', async () => {
+    // The bug this closes: the stores resolved whether or not they wrote, so a
+    // full phone cleared the journal and the conversation was gone from both
+    // places at once. The drills key is the one with no room here; the journal
+    // must stay for as long as that is true.
+    const uid = nextUid();
+    const disk = installDisk({}, { full: (key) => key === `parle.u.${uid}.drills` });
+    setActiveUser(uid);
+    const batch = await journalledSession(disk, uid);
+
+    assert.equal(await bankPractice(batch), 'kept', 'a bank with a refused write called itself finished');
+    assert.ok(disk.has(journalKeyOf(uid)), 'the only copy of the conversation was deleted anyway');
+    assert.equal(disk.has(`parle.u.${uid}.drills`), false, 'the test disk did not actually refuse the drills');
+    assert.ok(disk.has(`parle.u.${uid}.review`), 'the two stores that could write still wrote');
+
+    // The phone has room again, which is what a later launch usually finds.
+    const after = relaunch(disk, uid);
+    assert.equal(await recoverJournal(), 2, 'the kept batch did not bank on the launch that could take it');
+    assert.equal(after.has(journalKeyOf(uid)), false, 'and only then is the journal gone');
+    await assertBankedExactlyOnce('after a kept batch was banked later');
+  });
+
+  test('a storage-full bank keeps the journal for the next launch', async () => {
+    // One store at a time, because a quota bites one key at a time and any one
+    // of the three going down has to be enough to keep the batch.
+    for (const suffix of ['topics', 'review', 'drills']) {
+      const uid = nextUid();
+      const disk = installDisk({}, { full: (key) => key === `parle.u.${uid}.${suffix}` });
+      setActiveUser(uid);
+      const batch = await journalledSession(disk, uid);
+
+      assert.equal(await bankPractice(batch), 'kept', `${suffix}: a refused write did not keep the batch`);
+      assert.ok(disk.has(journalKeyOf(uid)), `${suffix}: the journal was cleared with the batch unwritten`);
+
+      relaunch(disk, uid);
+      assert.equal(await recoverJournal(), 2, `${suffix}: the retry never happened`);
+      await assertBankedExactlyOnce(`${suffix} after the retry`);
+    }
+  });
+
+  test('a launch that still cannot write keeps the journal for the launch after it', async () => {
+    // The retry is the next launch and nothing else — there is no loop in the
+    // session, because a phone that is out of space this second is out of space
+    // next second. So a launch that finds a journal and still cannot write it
+    // has to leave it exactly where it found it, however many launches that
+    // takes. This is the one that catches a recovery which banks and then
+    // clears regardless, which is what recovery did before this contract.
+    const uid = nextUid();
+    const noRoom = { full: (key: string) => key === `parle.u.${uid}.review` };
+    let disk = installDisk({}, noRoom);
+    setActiveUser(uid);
+    await journalledSession(disk, uid);
+
+    disk = relaunch(disk, uid, noRoom);
+    assert.equal(await recoverJournal(), 0, 'a launch that banked nothing reported work it did not do');
+    assert.ok(disk.has(journalKeyOf(uid)), 'the journal was cleared by a launch that could not write the deck');
+
+    disk = relaunch(disk, uid);
+    assert.equal(await recoverJournal(), 2, 'the batch never banked once the phone had room');
+    assert.equal(disk.has(journalKeyOf(uid)), false);
+    await assertBankedExactlyOnce('after two launches');
+  });
+
+  test('a crash between acknowledgement and clear replays the batch without double banking', async () => {
+    // Every store said durable, and the process died before the delete ran. The
+    // journal is therefore still on disk holding a batch that is already banked,
+    // and the next launch will bank it again. That has to cost nothing: no
+    // second card, no second topic, no second drill, no inflated count, and —
+    // the one that would hurt most — no reset of scheduling the learner earned.
+    const uid = nextUid();
+    const disk = installDisk({}, { neverDeletes: true });
+    setActiveUser(uid);
+    const batch = await journalledSession(disk, uid, profileWith({ 'Ça marche': 2 }));
+
+    assert.equal(await bankPractice(batch), 'banked', 'the practice reached every store, so the bank succeeded');
+    assert.ok(disk.has(journalKeyOf(uid)), 'the crash left the journal behind, which is the whole scenario');
+
+    // A sitting in between, so the replay has something of the learner's to
+    // ruin: a rep, a due date pushed out, and the retrieval that earned them.
+    await gradeCards([{ id: 'phrase:ça marche', grade: 'good', attempt: 'typed' }]);
+    const graded = (await loadDeck()).find((card) => card.id === 'phrase:ça marche')!;
+    assert.equal(graded.reps, 1);
+    assert.equal(evidenceOf(graded).retrievals, 1, 'the store did not carry what earned the grade through to the card');
+
+    const after = relaunch(disk, uid);
+    assert.equal(await recoverJournal(), 2, 'the leftover journal was not banked');
+    assert.equal(after.has(journalKeyOf(uid)), false, 'and this time it cleared');
+
+    await assertBankedExactlyOnce('after the replay');
+    const replayed = (await loadDeck()).find((card) => card.id === 'phrase:ça marche')!;
+    assert.equal(replayed.reps, 1, 'the replay reset scheduling the learner had earned');
+    assert.equal(replayed.due, graded.due, 'the card came back due when it was not');
+    assert.equal(evidenceOf(replayed).retrievals, 1, 'the replay erased a retrieval the learner made');
+    assert.equal(evidenceOf(replayed).convoUses, 2, 'a replayed batch inflated the count of what the learner has used');
+  });
+
+  test('a banked conversation raises used-in-conversation evidence for its phrases', async () => {
+    // The count exists on the brain's side of the wire and used to stop there,
+    // so a phrase someone had genuinely started using looked, in the deck,
+    // exactly like one they had read once.
+    const uid = nextUid();
+    const disk = installDisk();
+    setActiveUser(uid);
+    const batch = await journalledSession(disk, uid, profileWith({ 'Ça marche': 2 }));
+
+    assert.deepEqual(batch.convoUses, [{ fr: 'Ça marche', uses: 2 }], 'the counts did not survive the journal');
+    assert.equal(await bankPractice(batch), 'banked');
+
+    const deck = await loadDeck();
+    assert.equal(evidenceOf(deck.find((card) => card.id === 'phrase:ça marche')!).convoUses, 2);
+    assert.equal(
+      evidenceOf(deck.find((card) => card.id === 'phrase:autre chose')!).convoUses,
+      0,
+      'a phrase the learner never used unprompted was credited with using it',
+    );
+    assert.equal(disk.has(journalKeyOf(uid)), false, 'the counts rode the phrases write, so one acknowledgement covered both');
+  });
+
+  test('two spellings of one phrase raise its card once, to the larger count', async () => {
+    // The learner model keys phrases on the written form when it has one, so
+    // one deck card can be named twice in a single batch. The card takes the
+    // larger of the two rather than whichever happened to be last.
+    const uid = nextUid();
+    installDisk();
+    setActiveUser(uid);
+
+    assert.equal(
+      await bankPractice({
+        batchId: null,
+        phrases: [phrase('Ça marche', 'coming up')],
+        topics: [],
+        drills: [],
+        convoUses: [{ fr: 'Ça marche', uses: 3 }, { fr: 'ça marche', uses: 1 }],
+      }),
+      'banked',
+    );
+
+    const card = (await loadDeck()).find((c) => c.id === 'phrase:ça marche')!;
+    assert.equal(evidenceOf(card).convoUses, 3);
+  });
+
+  test('a crash at any point in banking replays the whole batch exactly once', async () => {
+    // The four places the app can die with a journal still on disk. Each one is
+    // replayed from the beginning by the next launch, because a batch is banked
+    // whole or not at all — there is no half-written marker to reason about.
+    const boundaries: readonly { readonly where: string; got(batch: PracticeBatch): Promise<unknown> }[] = [
+      { where: 'after the topics landed', got: (batch) => bankPractice({ ...batch, phrases: [], drills: [], convoUses: [] }) },
+      { where: 'after the phrases landed', got: (batch) => bankPractice({ ...batch, drills: [] }) },
+      { where: 'after the drills landed', got: (batch) => bankPractice(batch) },
+      { where: 'between the last acknowledgement and the clear', got: (batch) => bankPractice(batch) },
+    ];
+
+    for (const boundary of boundaries) {
+      const uid = nextUid();
+      // Nothing this batch writes ever gets to delete the journal: either the
+      // process died first, or the partial bank had no business clearing it.
+      const disk = installDisk({}, { neverDeletes: true });
+      setActiveUser(uid);
+      const batch = await journalledSession(disk, uid, profileWith({ 'Ça marche': 1 }));
+
+      await boundary.got(batch);
+      assert.ok(disk.has(journalKeyOf(uid)), `${boundary.where}: the journal went before the batch was safe`);
+
+      relaunch(disk, uid);
+      assert.equal(await recoverJournal(), 2, `${boundary.where}: the interrupted batch never finished`);
+      await assertBankedExactlyOnce(boundary.where);
+      const card = (await loadDeck()).find((c) => c.id === 'phrase:ça marche')!;
+      assert.equal(evidenceOf(card).convoUses, 1, `${boundary.where}: the count climbed on a replay`);
+    }
+  });
+
+  test('the same batch delivered twice changes nothing the second time', async () => {
+    // A duplicate delivery is not a crash: the recap arrives twice on an
+    // ordinary session, once plain and once enriched. Idempotence here is
+    // content identity, not a batch name, which is why banking the very same
+    // batch object again is a no-op rather than a second conversation.
+    const uid = nextUid();
+    const disk = installDisk();
+    setActiveUser(uid);
+    const batch = await journalledSession(disk, uid, profileWith({ 'Ça marche': 3 }));
+
+    assert.equal(await bankPractice(batch), 'banked');
+    const first = await loadDeck();
+    assert.equal(await bankPractice(batch), 'banked', 'a second delivery of a banked batch is still banked');
+
+    await assertBankedExactlyOnce('after a duplicate delivery');
+    const second = await loadDeck();
+    assert.deepEqual(second, first, 'the second delivery changed the deck');
+    assert.equal(evidenceOf(second.find((card) => card.id === 'phrase:ça marche')!).convoUses, 3, 'max, not add');
+  });
+
+  test('a conversation is never banked into the account that signed in after it', async () => {
+    // The scope check the journal has always had, held against the new path.
+    // Banking one learner's conversation into the next learner's deck is the
+    // worst thing this file could do, and it is one await away at all times.
+    const mine = nextUid();
+    const theirs = nextUid();
+    setActiveUser(mine);
+    let disk = installDisk();
+    await journalledSession(disk, mine);
+
+    // The account changes while the launch is reading the journal off disk.
+    disk = relaunch(disk, mine, {
+      during: (key) => {
+        if (key === journalKeyOf(mine)) setActiveUser(theirs);
+      },
+    });
+
+    assert.equal(await recoverJournal(), 0, 'a journal was banked for an account that had already gone');
+    assert.equal((await loadDeck()).length, 0, "the next learner's deck holds a conversation they never had");
+    assert.ok(disk.has(journalKeyOf(mine)), 'and nothing was deleted: the journal waits for the launch that can bank it');
+  });
+
+  test('a batch banked straight from the live session clears the journal it was written into', async () => {
+    // The ordinary path, and the one ConvoScreen takes: the recap is journalled
+    // when it arrives, and seconds later the same conversation is banked from
+    // memory, where nothing ever knew the batch's name. A bank with no name to
+    // match on clears the key, exactly as it did before names existed.
+    const uid = nextUid();
+    const disk = installDisk();
+    setActiveUser(uid);
+    await journalRecap(recap(), { savedAt: NOW });
+    assert.ok(disk.has(journalKeyOf(uid)), 'the recap was written down first, which is the whole point');
+
+    const live: PracticeBatch = {
+      batchId: null,
+      phrases: recap().phrases,
+      topics: [{ title: { fr: 'Au café', en: 'Ordering at the café' }, phraseKeys: ['phrase:ça marche'] }],
+      drills: [],
+      convoUses: [],
+    };
+    assert.equal(await bankPractice(live), 'banked');
+    assert.equal(disk.has(journalKeyOf(uid)), false, 'the journal outlived the session that was already banked');
+  });
+
+  test('a bank does not clear a journal a later session wrote', async () => {
+    // The narrow window `batchId` exists for. If a newer recap has landed on the
+    // key while the acknowledgements were coming back, the clear must not take
+    // it: that conversation is banked nowhere.
+    const uid = nextUid();
+    const disk = installDisk();
+    setActiveUser(uid);
+    const batch = await journalledSession(disk, uid);
+    assert.ok(batch.batchId, 'a v3 journal names its batch');
+
+    // The next conversation, written down while the first is still banking.
+    await journalRecap(recap({ phrases: [phrase('À demain', 'see you tomorrow')] }), { savedAt: NOW + 60_000 });
+    assert.equal(await bankPractice(batch), 'banked');
+
+    const left = JSON.parse(disk.get(journalKeyOf(uid))!) as { phrases: { fr: string }[] };
+    assert.deepEqual(left.phrases.map((p) => p.fr), ['À demain'], 'the later session was deleted by the earlier bank');
+  });
+
+  test('a journal from the build before this one banks, and claims no counts it never had', async () => {
+    // Repair forward, never reinterpret in place. A v2 envelope is on every
+    // phone running the previous build and has neither a batch name nor counts;
+    // both of those come back empty rather than invented.
+    const uid = nextUid();
+    const disk = installDisk({
+      [journalKeyOf(uid)]: JSON.stringify({
+        version: 2,
+        savedAt: NOW,
+        phrases: [phrase('Ça marche', 'coming up'), phrase('Autre chose', 'something else')],
+        topics: [{ fr: 'Au café', en: 'Ordering at the café' }],
+        drills: [drill('gen:one', 'phrase:ça marche')],
+      }),
+    });
+    setActiveUser(uid);
+
+    const plan = recoveryPlan(JSON.parse(disk.get(journalKeyOf(uid))!));
+    assert.equal(plan?.batchId, null, 'a name was minted for a batch this build was not there for');
+    assert.deepEqual(plan?.convoUses, []);
+
+    assert.equal(await recoverJournal(), 2, 'the old envelope was read, not discarded');
+    await assertBankedExactlyOnce('a v2 journal');
+    assert.equal(evidenceOf((await loadDeck()).find((card) => card.id === 'phrase:ça marche')!).convoUses, 0);
+    assert.equal(disk.has(journalKeyOf(uid)), false);
+  });
+});
+
+describe('the counts a conversation earned', () => {
+  test('a recap carries the counts off the learner model it arrived with', () => {
+    const uses = convoUsesFrom(profileWith({ 'Ça marche': 3, 'Autre chose': 1 }));
+    assert.deepEqual(
+      [...uses].sort((a, b) => a.fr.localeCompare(b.fr)),
+      [{ fr: 'Autre chose', uses: 1 }, { fr: 'Ça marche', uses: 3 }],
+    );
+  });
+
+  test('a phrase nobody has used yet is not worth carrying', () => {
+    // A zero raises nothing on the way in, so keeping it would be weight in the
+    // envelope with no effect on any card.
+    assert.deepEqual(convoUsesFrom(profileWith({ 'Ça marche': 0 })), []);
+  });
+
+  test('a profile nobody can read costs the counts and nothing else', () => {
+    // Through repairProfile, which answers junk with a fresh profile rather than
+    // a throw. A skipped fold loses nothing that was ever on disk; a throw here
+    // would lose the recap that was on its way to being written down.
+    const junk = [
+      null,
+      undefined,
+      'nonsense',
+      42,
+      { phrases: 'not a record' },
+      { phrases: { a: 5 } },
+      // Plausible counts inside something that is not a learner profile. This
+      // is the case that says repairProfile is the door: read field by field,
+      // these numbers look exactly like evidence.
+      { phrases: { 'ça marche': { fr: 'Ça marche', timesUsedWell: 9 } } },
+    ];
+    for (const blob of junk) {
+      assert.deepEqual(convoUsesFrom(blob), [], `${JSON.stringify(blob)} produced counts out of nothing`);
+    }
+  });
+
+  test('the journal keeps the counts it was given, and the recovery reads them back', () => {
+    const journal = journalFor(recap(), NOW, profileWith({ 'Ça marche': 2 }));
+    assert.deepEqual(journal.convoUses, [{ fr: 'Ça marche', uses: 2 }]);
+    assert.equal(journal.version, 3);
+    assert.match(journal.batchId, /^b[0-9a-z]+\.[0-9a-z]+$/, 'the batch has a name, minted from when it was saved');
+    assert.notEqual(journalFor(recap(), NOW).batchId, journal.batchId, 'two batches saved at once are still two batches');
+
+    const plan = recoveryPlan(journal);
+    assert.deepEqual(plan?.convoUses, [{ fr: 'Ça marche', uses: 2 }]);
+    assert.equal(plan?.batchId, journal.batchId);
+  });
+
+  test('a count nobody can read is dropped, and the rest of the batch is not', () => {
+    const journal = journalFor(recap(), NOW, profileWith({ 'Ça marche': 2 }));
+    const plan = recoveryPlan({ ...journal, convoUses: [...journal.convoUses, { fr: 'Autre chose' }, 'nonsense', { uses: 3 }] });
+    assert.deepEqual(plan?.convoUses, [{ fr: 'Ça marche', uses: 2 }], 'the readable half still lands');
+    assert.equal(plan?.phrases.length, 2, 'and the phrases are untouched by a bad count');
+  });
+
+  test('drills journalled onto an older envelope keep their place and gain a name', () => {
+    // The one path where an envelope written by another build is carried
+    // forward rather than rebuilt, so it is the one that has to repair it.
+    const v2 = {
+      version: 2,
+      savedAt: NOW,
+      phrases: [phrase('Ça marche', 'coming up')],
+      topics: [{ fr: 'Au café', en: 'Ordering at the café' }],
+      drills: [],
+    } as unknown as Parameters<typeof journalWithDrills>[0];
+
+    const carried = journalWithDrills(v2, [drill('gen:late', 'phrase:ça marche')], NOW);
+
+    assert.equal(carried.version, JOURNAL_VERSION);
+    assert.equal(carried.phrases.length, 1, 'the phrases waiting in the old envelope were dropped by the upgrade');
+    assert.match(carried.batchId, /^b/, 'a carried envelope with no name would be cleared by anything');
+    assert.deepEqual(carried.convoUses, []);
   });
 });

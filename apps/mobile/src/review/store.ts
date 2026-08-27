@@ -20,13 +20,17 @@ import {
   dueCards,
   mergeCards,
   newCard,
+  phraseKeyOf,
+  raiseEvidenceTo,
   staggerNewCards,
   LESSONS,
   type ConvoPhrase,
+  type GradeContext,
   type ReviewCard,
   type ReviewGrade,
   type SessionSummary,
 } from '@parle/core';
+import type { PersistAck } from '../storage/ack.ts';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
@@ -108,14 +112,26 @@ export function loadDeck(): Promise<ReviewCard[]> {
   return loadDeckFor(KEY());
 }
 
-async function saveDeck(key: string, deck: readonly ReviewCard[], origin: WriteOrigin): Promise<void> {
+/**
+ * The one place this store touches the disk, and the one place it says so.
+ *
+ * The cache is filled first and stays filled even when the write fails, so a
+ * learner on a full phone keeps reviewing exactly as they did before. What a
+ * failure changes is what anyone downstream is allowed to believe: `markDirty`
+ * is inside the try for the reason the registry states at sync/registry.ts:181
+ * — a flag raised for a write that then failed would push whatever happened to
+ * be on disk, which is the previous value.
+ */
+async function saveDeck(key: string, deck: readonly ReviewCard[], origin: WriteOrigin): Promise<PersistAck> {
   const next = [...deck];
   caches.set(key, Promise.resolve(next));
   try {
     await AsyncStorage.setItem(key, JSON.stringify(next));
     if (origin === 'local') markDirty('review');
+    return 'durable';
   } catch {
     // Storage full or unavailable. The deck still works for this launch.
+    return 'failed';
   }
 }
 
@@ -134,25 +150,75 @@ export function addFromSummary(summary: SessionSummary): Promise<void> {
 }
 
 /**
+ * One phrase's lifetime count of correct natural uses in conversation, as the
+ * brain counted it. A total, never a delta — see `foldConvoUses`.
+ */
+export interface PhraseUse {
+  fr: string;
+  uses: number;
+}
+
+/**
+ * Raise the conversation counter on every card the batch names.
+ *
+ * **Max, not add.** The count arrives as a lifetime total off the learner
+ * model, so a batch banked twice — which is exactly what a crash between
+ * banking and clearing the journal produces — leaves the counter where it
+ * already was. Adding would inflate a learner's evidence every time their
+ * phone died at the wrong moment.
+ *
+ * The arithmetic is core's (`raiseEvidenceTo`), because core owns the record
+ * and a second copy of "how a counter climbs" is how two devices start
+ * disagreeing about what someone knows. A count for a phrase with no card is
+ * simply not applied: there is nothing to hold it, and inventing a card here
+ * would bank a phrase the recap never curated.
+ */
+function foldConvoUses(deck: readonly ReviewCard[], uses: readonly PhraseUse[]): ReviewCard[] {
+  if (uses.length === 0) return [...deck];
+  const floors = new Map<string, number>();
+  for (const use of uses) {
+    // Two entries can name one card: the learner model keys a phrase on its
+    // written form when it has one, and both forms key here to the same id.
+    const id = phraseKeyOf(use.fr);
+    floors.set(id, Math.max(floors.get(id) ?? 0, use.uses));
+  }
+  return deck.map((card) => {
+    const floor = floors.get(card.id);
+    return floor === undefined ? card : raiseEvidenceTo(card, { convoUses: floor });
+  });
+}
+
+/**
  * Fold a free conversation's new phrases into the deck.
  *
  * Same merge contract as `addFromSummary`: identity is the French line itself,
  * so a phrase the learner is already reviewing keeps its scheduling when a
- * later conversation surfaces it again.
+ * later conversation surfaces it again. `phraseKeyOf` is core's one rule for
+ * that id, and the topics a session banks are keyed with it too — two copies of
+ * it is how a topic ends up pointing at cards that do not exist.
  *
  * `stagger` spaces a session's genuinely-new cards (core's rule: the first
  * few due now, the rest tomorrow) so one conversation never builds a wall of
  * due cards. Cards already in the deck keep their scheduling either way —
  * that is `mergeCards`' contract, not this function's choice.
+ *
+ * `convoUses` rides the same write on purpose. The phrases and the counts come
+ * out of one conversation, and splitting them across two writes would mean two
+ * acknowledgements, two ways to half-fail, and a journal that cannot say which
+ * half is safe to drop. One write, one answer.
  */
-export async function addPhrases(phrases: readonly ConvoPhrase[], opts: { stagger?: boolean } = {}): Promise<void> {
+export async function addPhrases(
+  phrases: readonly ConvoPhrase[],
+  opts: { stagger?: boolean; convoUses?: readonly PhraseUse[] } = {},
+): Promise<PersistAck> {
   const now = Date.now();
+  const uses = opts.convoUses ?? [];
   let incoming = phrases
     .filter((p) => p.fr.trim() !== '')
     .map((p) =>
       newCard(
         {
-          id: `phrase:${p.fr.trim().toLowerCase()}`,
+          id: phraseKeyOf(p.fr),
           kind: 'vocab',
           front: p.fr,
           back: p.enLiteral ? `${p.en} (literally: ${p.enLiteral})` : p.en,
@@ -162,26 +228,47 @@ export async function addPhrases(phrases: readonly ConvoPhrase[], opts: { stagge
         now,
       ),
     );
-  if (incoming.length === 0) return;
+  // Nothing to merge and nothing to raise is nothing at risk, so the honest
+  // answer is durable: no disk was asked for anything and none refused.
+  if (incoming.length === 0 && uses.length === 0) return 'durable';
   if (opts.stagger) incoming = staggerNewCards(incoming, now);
-  await serialized(async (key) => {
+  return serialized(async (key) => {
     const existing = await loadDeckFor(key);
-    await saveDeck(key, mergeCards(existing, incoming), 'local');
+    return saveDeck(key, foldConvoUses(mergeCards(existing, incoming), uses), 'local');
   });
 }
 
+/**
+ * What earned a grade, alongside the grade.
+ *
+ * Core's `GradeContext` rather than a shape of this store's own: the review
+ * screen knows whether an attempt came before the answer, a drill knows whether
+ * it changed the situation, and only core decides what either is worth. Every
+ * field is optional, so a caller that knows neither claims neither and grades
+ * exactly as this store always has.
+ */
+export type CardGrade = { id: string; grade: ReviewGrade } & GradeContext;
+
 /** Apply one grade to one card, persist, and return the updated deck. */
-export function gradeCard(id: string, grade: ReviewGrade): Promise<ReviewCard[]> {
-  return gradeCards([{ id, grade }]);
+export function gradeCard(id: string, grade: ReviewGrade, context: GradeContext = {}): Promise<ReviewCard[]> {
+  return gradeCards([{ id, grade, ...context }]);
 }
 
-/** Apply a whole sitting in one read and one compact write. */
-export function gradeCards(grades: readonly { id: string; grade: ReviewGrade }[]): Promise<ReviewCard[]> {
+/**
+ * Apply a whole sitting in one read and one compact write.
+ *
+ * Deliberately not acknowledged. An ordinary review sitting must never wait on
+ * a disk — the screen moves on the beat the learner tapped, and a card that
+ * failed to persist is one card asked again, not a session lost. Durability
+ * acknowledgements are for the outbox, where the alternative is deleting the
+ * only copy of a conversation.
+ */
+export function gradeCards(grades: readonly CardGrade[]): Promise<ReviewCard[]> {
   return serialized(async (key) => {
     let updated = await loadDeckFor(key);
     const now = Date.now();
-    for (const { id, grade } of grades) {
-      updated = updated.map((card) => (card.id === id ? applyGrade(card, grade, now) : card));
+    for (const { id, grade, ...context } of grades) {
+      updated = updated.map((card) => (card.id === id ? applyGrade(card, grade, now, context) : card));
     }
     await saveDeck(key, updated, 'local');
     return updated;

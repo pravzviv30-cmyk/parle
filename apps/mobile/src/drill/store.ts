@@ -19,6 +19,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DRILL_FIXTURES, type DrillExercise } from '@parle/core';
+import type { PersistAck } from '../storage/ack.ts';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import { mergeExerciseBank } from './merge.ts';
@@ -134,14 +135,24 @@ function loadStore(): Promise<DrillStore> {
   return loadStoreFor(KEY());
 }
 
-async function saveStore(key: string, store: DrillStore, origin: WriteOrigin): Promise<void> {
+/**
+ * The one place this store touches the disk, and the one place it says so.
+ *
+ * The cache is filled first and stays filled when the write fails, so a learner
+ * on a full phone drills exactly as they did before. `markDirty` is inside the
+ * try for the registry's own reason (sync/registry.ts:181): a flag raised for a
+ * failed write pushes the previous value to the account as if it were new.
+ */
+async function saveStore(key: string, store: DrillStore, origin: WriteOrigin): Promise<PersistAck> {
   // The cache is the truth the moment the write is decided; the disk catches up.
   caches.set(key, Promise.resolve(store));
   try {
     await AsyncStorage.setItem(key, JSON.stringify(store));
     if (origin === 'local') markDirty('drills');
+    return 'durable';
   } catch {
     // Storage full or unavailable. The bank still works for this launch.
+    return 'failed';
   }
 }
 
@@ -167,14 +178,19 @@ export async function hasGeneratedExercises(): Promise<boolean> {
  *
  * The fold itself is `mergeExerciseBank` in merge.ts — replace, never
  * accumulate, proven there under plain node. This function owns only the disk:
- * read through the cache, fold, write back through the chain.
+ * read through the cache, fold, write back through the chain, and answer with
+ * what the disk actually did. The merged bank used to come back instead, and
+ * nobody read it; what the outbox needs is whether the batch is safe to stop
+ * keeping a copy of.
  */
-export function mergeExercises(incoming: readonly DrillExercise[]): Promise<DrillExercise[]> {
+export function mergeExercises(incoming: readonly DrillExercise[]): Promise<PersistAck> {
+  // An empty batch folds to the bank that is already there, so there is nothing
+  // to write and nothing that can have been lost.
+  if (incoming.length === 0) return Promise.resolve('durable');
   return serialized(async (key) => {
     const store = await loadStoreFor(key);
     const merged = mergeExerciseBank(store.exercises, incoming);
-    await saveStore(key, { ...store, exercises: merged }, 'local');
-    return merged;
+    return saveStore(key, { ...store, exercises: merged }, 'local');
   });
 }
 

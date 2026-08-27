@@ -29,7 +29,7 @@
  * honest. A ratio would not be.
  */
 
-import { phraseKeyOf, type PracticeTopic, type ReviewCard } from '@parle/core';
+import { isDue, isSettled, phraseKeyOf, type PracticeTopic, type ReviewCard } from '@parle/core';
 
 /** How settled a phrase is. The same three words the practice path uses. */
 export type Hold = 'steady' | 'coming-back' | 'new';
@@ -64,15 +64,21 @@ export const LESSONS_GROUP = 'lessons';
 const LESSONS_TITLE = 'From your lessons';
 
 /**
- * Long enough to be a real habit rather than a lucky guess. Matches the
- * scheduler's own sense of a card that has settled.
+ * Which shelf a phrase is on, asked of core rather than decided here.
+ *
+ * This file used to keep its own `STEADY_REPS = 2` and `STEADY_DAYS = 7`
+ * beside the same arithmetic, which made it one of the four places that had an
+ * opinion about whether a learner knew a phrase. `isDue` and `isSettled` are
+ * the only copies of that rule now, so the shelf and the deck cannot drift
+ * apart the way they were free to before.
+ *
+ * The three words the learner reads are unchanged, and so is the order of the
+ * questions: due beats settled, because a phrase the scheduler is asking for
+ * again is not one to display as settled however long its interval grew.
  */
-const STEADY_REPS = 2;
-const STEADY_DAYS = 7;
-
 function holdFor(card: ReviewCard, now: number): Hold {
-  if (card.due <= now) return 'coming-back';
-  if (card.reps >= STEADY_REPS && card.intervalDays >= STEADY_DAYS) return 'steady';
+  if (isDue(card, now)) return 'coming-back';
+  if (isSettled(card, now)) return 'steady';
   return 'new';
 }
 

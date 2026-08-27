@@ -14,7 +14,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { conversationXp, phraseKeyOf, type RecapPayload } from '@parle/core';
+import {
+  conversationXp,
+  phraseKeyOf,
+  type ConvoPhrase,
+  type DrillExercise,
+  type IncomingTopic,
+  type RecapPayload,
+} from '@parle/core';
 import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from './theme.ts';
 import {
   Card,
@@ -29,9 +36,8 @@ import {
 import { SupportBlock } from './SessionView.tsx';
 import { RecapScreen } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
-import { clearJournal, journalDrills } from './live/journal.ts';
-import { addPhrases } from './review/store.ts';
-import { mergeSessionTopics } from './topics/store.ts';
+import { bankPractice, journalDrills } from './live/journal.ts';
+import { convoUsesFrom, type PracticeBatch } from './live/journalRules.ts';
 import { recordActivity } from './progress/activity.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
@@ -42,6 +48,43 @@ import { enterSubmits, keyPressFrom } from './tutor/enterSubmit.ts';
 import { TUTOR_NAME } from './tutor/tutorName.ts';
 import { sceneControls, typedTurn } from './tutor/sceneControls.ts';
 import { NO_WIN, dismissWin, winAfterTurn, winCard, type WinState } from './tutor/missionWin.ts';
+
+/**
+ * Everything one conversation asks the practice stores to keep, in the shape
+ * `bankPractice` takes.
+ *
+ * Both banks on this screen build it: the ordinary one when the practice
+ * message lands, and the minimal one when the learner leaves before it does.
+ * Two shapes here would be two sets of bugs, which is the same reason recovery
+ * assembles this exact batch out of a journal found on disk.
+ *
+ * `batchId` is null on purpose. A name identifies a journal entry, and this
+ * batch is banked straight from a live session rather than recovered from one;
+ * `live/journal.ts` reads an unnamed batch as "clear the key", which is what
+ * banking from the room has always done. What makes a repeat safe is content
+ * identity inside every merge, not this field.
+ *
+ * `convoUses` comes from `convoUsesFrom` rather than a count worked out here.
+ * The brain keeps the tally of correct unprompted uses and `repairProfile` is
+ * the one place a learner model off the wire is made sense of, so a second
+ * reading of that blob in a screen would be a second opinion about what
+ * somebody knows.
+ */
+function practiceBatch(
+  phrases: readonly ConvoPhrase[],
+  parts: { topics: IncomingTopic[]; drills: DrillExercise[] | null; profile: unknown },
+): PracticeBatch {
+  return {
+    batchId: null,
+    phrases: [...phrases],
+    topics: parts.topics,
+    // Drills have a journalled path of their own and normally arrive after
+    // this, so this is usually empty. Carrying them costs nothing and covers
+    // the session where they came first: the bank folds by exercise id.
+    drills: parts.drills ?? [],
+    convoUses: convoUsesFrom(parts.profile),
+  };
+}
 
 /** How long the finish door waits for the recap before taking the ordinary exit. */
 const RECAP_WAIT_MS = 15_000;
@@ -367,31 +410,43 @@ export function ConvoScreen({
   // the topic store, the curated phrases into the review deck, staggered so
   // tomorrow is not a wall. RecapScreen shows all twelve phrases; only these
   // few become cards — that is curation doing its job.
+  //
+  // The ref starts the bank and claims nothing else. It used to stand in for
+  // durability, which is how a phone with a full disk resolved every write,
+  // deleted the journal and left the conversation stored nowhere at all. What
+  // may clear the journal is `bankPractice`, and it decides on three
+  // acknowledgements rather than on three promises resolving.
   const practiceBankedRef = useRef(false);
   useEffect(() => {
     if (!live.practice || practiceBankedRef.current) return;
     practiceBankedRef.current = true;
-    void mergeSessionTopics(
-      live.practice.map((t) => ({
+    void bankPractice(practiceBatch(live.practice.flatMap((t) => t.phrases), {
+      topics: live.practice.map((t) => ({
         title: { fr: t.titleFr, en: t.titleEn },
         phraseKeys: t.phrases.map((p) => phraseKeyOf(p.fr)),
       })),
-    );
-    void addPhrases(live.practice.flatMap((t) => t.phrases), { stagger: true }).then(clearJournal);
-  }, [live.practice]);
+      drills: live.drills,
+      profile: live.recap?.profile,
+    }));
+  }, [live.practice, live.drills, live.recap]);
 
   const leaveNow = () => {
     // Leaving before the practice message landed: bank a minimal version from
     // the recap (its first few phrases under the session's own topic) so an
-    // early exit never loses what the learner said. The only remaining loss
-    // window is killing the app, same as the drills.
+    // early exit never loses what the learner said. Through the same outbox as
+    // the ordinary path, because an early exit that clears the journal on a
+    // promise resolving is the identical bug one beat earlier. The only
+    // remaining loss window is killing the app, same as the drills.
     if (!practiceBankedRef.current && live.recap) {
-      practiceBankedRef.current = true;
       const phrases = live.recap.recap.phrases.slice(0, 5);
       const home = live.recap.recap.topics[0];
       if (phrases.length > 0 && home !== undefined) {
-        void mergeSessionTopics([{ title: home, phraseKeys: phrases.map((p) => phraseKeyOf(p.fr)) }]);
-        void addPhrases(phrases, { stagger: true }).then(clearJournal);
+        practiceBankedRef.current = true;
+        void bankPractice(practiceBatch(phrases, {
+          topics: [{ title: home, phraseKeys: phrases.map((p) => phraseKeyOf(p.fr)) }],
+          drills: live.drills,
+          profile: live.recap.profile,
+        }));
       }
     }
     void live.leave().finally(onExit);

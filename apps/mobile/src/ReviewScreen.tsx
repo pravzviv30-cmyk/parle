@@ -6,53 +6,56 @@
  * scheduler already capped the sitting; this screen just deals the cards.
  *
  * A card is a flat white card on the paper ground: the front struck large in
- * the serif, tap to turn it over, then say how it went. "Again" is not a
- * failure state — the card simply rejoins the end of the sitting, the way a
- * tutor would circle back.
+ * the serif, then say how it went. "Again" is not a failure state — the card
+ * simply rejoins the end of the sitting, the way a tutor would circle back.
+ *
+ * A card meets the learner in one of two ways, and `review/cardView.ts` decides
+ * which from core's own verdict. A genuinely new card, and every sound card, is
+ * an **introduction**: tap to turn it over, hear it whenever hearing it helps.
+ * A card the scheduler has asked back is a **retrieval**: the English is the
+ * prompt, and the French plus everything that would give it away stay off the
+ * screen until the learner says they have had a go. Nothing here decides that
+ * for itself; this file renders a view and holds the keyboard.
+ *
+ * There is no microphone on this screen and there is not going to be one. The
+ * deck works on a plane, costs nothing, and never scores a learner's mouth.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+  AccessibilityInfo,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { dueCards, reviewXp, type ReviewCard, type ReviewCardKind, type ReviewGrade } from '@parle/core';
-import { HAIRLINE, HIT, paper, paperFor, radius, space, type } from './theme.ts';
+import { dueCards, reviewXp, type ReviewCard, type ReviewGrade } from '@parle/core';
+import { HAIRLINE, HIT, font, paper, paperFor, radius, space, type } from './theme.ts';
 import { Card, Label, PillButton, EarGlyph, fitDisplay } from './components.tsx';
 import { NothingDue } from './illustrations.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
+import { CARD_START, SAID_IT, TYPE_IT, cardView, typedAttemptReady, type ReviewTurn } from './review/cardView.ts';
 import { recordActivity } from './progress/activity.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
-
-/** What kind of card this is, said plainly. */
-const KIND_TAG: Record<ReviewCardKind, string> = {
-  vocab: 'Word',
-  phoneme: 'Sound',
-  turn: 'Say it in French',
-};
-
-/**
- * The French to speak aloud for a card, and which face it lives on.
- *
- * Vocab fronts are French; phoneme cards carry their example word in context;
- * turn cards ask for French, so the French is the answer — hearing it before
- * the flip would give the card away.
- */
-function frenchSide(card: ReviewCard): { text: string; frontToo: boolean } | null {
-  switch (card.kind) {
-    case 'vocab':
-      return { text: card.front, frontToo: true };
-    case 'phoneme':
-      return card.context ? { text: card.context, frontToo: true } : null;
-    case 'turn':
-      return { text: card.back, frontToo: false };
-  }
-}
 
 export function ReviewScreen({ onDone }: { onDone: () => void }) {
   const insets = useSafeAreaInsets();
   // The sitting: dealt once on mount. Null while the deck is still loading.
   const [queue, setQueue] = useState<ReviewCard[] | null>(null);
   const [index, setIndex] = useState(0);
-  const [flipped, setFlipped] = useState(false);
+  const [turn, setTurn] = useState<ReviewTurn>(CARD_START);
+  /**
+   * The instant the sitting was dealt, and the only clock this screen reads
+   * while it runs. `dueCards` picked the cards against it, so presentation is
+   * decided against it too: a card that rejoins the end of the sitting after
+   * "Again" is asked for in exactly the way it was asked for the first time.
+   */
+  const dealtAt = useRef(Date.now());
   // Cards recalled without help, counted locally: the deck stores when a
   // card is next due, not how a sitting went, and there is no sitting-end
   // hook to read one from.
@@ -62,7 +65,10 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     let cancelled = false;
     void loadDeck().then((deck) => {
-      if (!cancelled) setQueue(dueCards(deck, Date.now()));
+      if (cancelled) return;
+      const now = Date.now();
+      dealtAt.current = now;
+      setQueue(dueCards(deck, now));
     });
     return () => {
       cancelled = true;
@@ -77,21 +83,32 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   }, []);
 
   const card = queue && index < queue.length ? queue[index]! : null;
+  const view = card ? cardView(card, dealtAt.current, turn) : null;
+
+  // The answer appears without focus moving, so a screen reader is told about
+  // it. Without this the content under the finger silently becomes something
+  // else, which is the reveal not happening at all for anyone not watching.
+  const announce = view?.announce ?? null;
+  useEffect(() => {
+    if (announce !== null) AccessibilityInfo.announceForAccessibility(announce);
+  }, [announce]);
 
   const handleGrade = useCallback(
     (grade: ReviewGrade) => {
-      if (!card) return;
+      if (!card || !view) return;
       tutorVoice.stop();
       // Persist in the background; the sitting itself never waits on a disk.
-      void gradeCard(card.id, grade);
+      // The context is what the view knows and nothing more: an attempt that
+      // came before the answer, or, on an introduction, no claim at all.
+      void gradeCard(card.id, grade, view.gradeContext);
       if (grade === 'good' || grade === 'easy') recalled.current += 1;
       // A missed card rejoins the end of this sitting rather than hiding until
       // its ten-minute retry — the learner meets it again while it is warm.
       if (grade === 'again') setQueue((q) => (q ? [...q, card] : q));
-      setFlipped(false);
+      setTurn(CARD_START);
       setIndex((i) => i + 1);
     },
-    [card],
+    [card, view],
   );
 
   if (queue === null) {
@@ -106,7 +123,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
   // Nothing due, or the sitting is done. Same calm card either way — the
   // deck never announces a backlog and never asks for more than it dealt.
-  if (!card) {
+  if (!card || !view) {
     return (
       <View style={[st.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
         <View style={st.centerFill}>
@@ -125,100 +142,181 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
     );
   }
 
-  const french = frenchSide(card);
-  const showHear = french !== null && (flipped || french.frontToo);
+  // Pulled out of the view because a property narrowed at the JSX is not
+  // narrowed inside the press handler that reads it a line later.
+  const hear = view.hear;
 
-  return (
-    <View style={[st.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
-      <View style={st.headerRow}>
-        <View style={st.headerRight}>
-          <Label color={paper.inkFaint}>{remaining === 1 ? '1 card' : `${remaining} cards`}</Label>
-          {/* A sitting is an offer, not an obligation — the learner can put the
-              deck down mid-card and nothing is lost or counted against them. */}
-          <Pressable
-            onPress={onDone}
-            accessibilityRole="button"
-            accessibilityLabel="Leave the review"
-            style={({ pressed }) => [st.leave, pressed && { opacity: 0.6 }]}
-          >
-            <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
-          </Pressable>
-        </View>
-      </View>
+  const face = (
+    <Card style={st.card}>
+      <Label color={paper.inkFaint}>{view.tag}</Label>
 
-      <View style={st.centerFill}>
-        <Pressable
-          onPress={() => setFlipped((f) => !f)}
-          accessibilityRole="button"
-          accessibilityLabel={flipped ? 'Show the front of the card' : 'Turn the card over'}
-        >
-          <Card style={st.card}>
-            <Label color={paper.inkFaint}>{KIND_TAG[card.kind]}</Label>
-
-            {!flipped ? (
-              <Text style={[fitDisplay(card.front), { color: paper.ink, textAlign: 'center', marginTop: space(4) }]}>
-                {card.front}
-              </Text>
-            ) : (
-              <View style={{ alignSelf: 'stretch', marginTop: space(4) }}>
-                <Text style={[fitDisplay(card.back), { color: paper.ink, textAlign: 'center' }]}>{card.back}</Text>
-                {card.context !== '' && card.context !== card.back && (
-                  <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2.5) }]}>
-                    {card.context}
-                  </Text>
-                )}
-                {card.ipa !== '' && (
-                  <Text style={[type.notation, { color: paper.inkFaint, textAlign: 'center', marginTop: space(2) }]}>
-                    /{card.ipa}/
-                  </Text>
-                )}
-              </View>
-            )}
-
-            {showHear && (
-              <Pressable
-                onPress={(e) => {
-                  e.stopPropagation();
-                  tutorVoice.speak(french.text);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Hear it in French"
-                style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
-              >
-                <EarGlyph size={15} color={paper.inkSoft} />
-                <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
-              </Pressable>
-            )}
-          </Card>
-        </Pressable>
-      </View>
-
-      {flipped ? (
-        <View style={st.grades}>
-          {(
-            [
-              { grade: 'again', label: 'Again' },
-              { grade: 'good', label: 'Got it' },
-              { grade: 'easy', label: 'Easy' },
-            ] as const
-          ).map(({ grade, label }) => (
-            <Pressable
-              key={grade}
-              onPress={() => handleGrade(grade)}
-              accessibilityRole="button"
-              accessibilityLabel={label}
-              style={({ pressed }) => [st.grade, pressed && st.gradePressed]}
-            >
-              <Text style={[type.button, { color: paper.ink }]}>{label}</Text>
-            </Pressable>
-          ))}
+      {view.answer === null ? (
+        <View style={{ alignSelf: 'stretch', marginTop: space(4) }}>
+          <Text style={[fitDisplay(view.prompt), { color: paper.ink, textAlign: 'center' }]}>{view.prompt}</Text>
+          {view.ask !== null && (
+            <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(3) }]}>
+              {view.ask}
+            </Text>
+          )}
         </View>
       ) : (
-        <View style={st.flipHint}>
-          <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center' }]}>Tap to turn it over</Text>
+        <View style={{ alignSelf: 'stretch', marginTop: space(4) }}>
+          <Text style={[fitDisplay(view.answer.text), { color: paper.ink, textAlign: 'center' }]}>
+            {view.answer.text}
+          </Text>
+          {view.answer.context !== '' && (
+            <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2.5) }]}>
+              {view.answer.context}
+            </Text>
+          )}
+          {view.answer.ipa !== '' && (
+            <Text style={[type.notation, { color: paper.inkFaint, textAlign: 'center', marginTop: space(2) }]}>
+              /{view.answer.ipa}/
+            </Text>
+          )}
+          {/* What they typed, given back with nothing attached to it. No tick,
+              no cross, no colour: the app does not mark French, and a learner
+              comparing two lines themselves is the whole point of typing. */}
+          {view.echo !== null && (
+            <View style={{ marginTop: space(3.5), alignItems: 'center' }}>
+              <Label color={paper.inkFaint}>You typed</Label>
+              <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1) }]}>
+                {view.echo}
+              </Text>
+            </View>
+          )}
         </View>
       )}
-    </View>
+
+      {hear !== null && (
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation();
+            tutorVoice.speak(hear);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Hear it in French"
+          style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
+        >
+          <EarGlyph size={15} color={paper.inkSoft} />
+          <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
+        </Pressable>
+      )}
+    </Card>
+  );
+
+  const typedReady = typedAttemptReady(turn.typed);
+  const attempt = (kind: 'typed' | 'said') => {
+    setTurn((t) => ({ ...t, attempt: kind }));
+  };
+
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <View style={[st.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
+        <View style={st.headerRow}>
+          <View style={st.headerRight}>
+            <Label color={paper.inkFaint}>{remaining === 1 ? '1 card' : `${remaining} cards`}</Label>
+            {/* A sitting is an offer, not an obligation — the learner can put the
+                deck down mid-card and nothing is lost or counted against them. */}
+            <Pressable
+              onPress={onDone}
+              accessibilityRole="button"
+              accessibilityLabel="Leave the review"
+              style={({ pressed }) => [st.leave, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={st.centerFill}>
+          {view.flippable ? (
+            <Pressable
+              onPress={() => setTurn((t) => ({ ...t, flipped: !t.flipped }))}
+              accessibilityRole="button"
+              accessibilityLabel={view.revealed ? 'Show the front of the card' : 'Turn the card over'}
+            >
+              {face}
+            </Pressable>
+          ) : (
+            face
+          )}
+        </View>
+
+        <View style={view.mode === 'retrieval' ? st.retrievalFoot : undefined}>
+          {view.grades ? (
+            <View style={st.grades}>
+              {(
+                [
+                  { grade: 'again', label: 'Again' },
+                  { grade: 'good', label: 'Got it' },
+                  { grade: 'easy', label: 'Easy' },
+                ] as const
+              ).map(({ grade, label }) => (
+                <Pressable
+                  key={grade}
+                  onPress={() => handleGrade(grade)}
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  style={({ pressed }) => [st.grade, pressed && st.gradePressed]}
+                >
+                  <Text style={[type.button, { color: paper.ink }]}>{label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : view.asksForAttempt ? (
+            <View style={st.attempt}>
+              {/* Both ways are on screen at once, and neither is the right one.
+                  Typing suits a quiet carriage, saying it suits a kitchen, and
+                  "said" is taken on trust because the alternative is a
+                  microphone this screen is never going to grow. */}
+              <TextInput
+                value={turn.typed}
+                onChangeText={(typed) => setTurn((t) => ({ ...t, typed }))}
+                autoCapitalize="none"
+                autoCorrect={false}
+                spellCheck={false}
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (typedReady) attempt('typed');
+                }}
+                placeholder="Your answer"
+                placeholderTextColor={paper.inkFaint}
+                accessibilityLabel="Your answer in French"
+                style={st.input}
+              />
+              <View style={st.attemptRow}>
+                <Pressable
+                  onPress={() => attempt('typed')}
+                  disabled={!typedReady}
+                  accessibilityRole="button"
+                  accessibilityLabel={TYPE_IT}
+                  style={({ pressed }) => [
+                    st.grade,
+                    !typedReady && st.attemptOff,
+                    pressed && typedReady && st.gradePressed,
+                  ]}
+                >
+                  <Text style={[type.button, { color: paper.ink }]}>{TYPE_IT}</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => attempt('said')}
+                  accessibilityRole="button"
+                  accessibilityLabel={SAID_IT}
+                  style={({ pressed }) => [st.grade, pressed && st.gradePressed]}
+                >
+                  <Text style={[type.button, { color: paper.ink }]}>{SAID_IT}</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <View style={st.flipHint}>
+              <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center' }]}>Tap to turn it over</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -262,6 +360,33 @@ const st = StyleSheet.create({
     paddingVertical: space(2.5),
   },
   gradePressed: { backgroundColor: sheet.groundDeep, borderColor: paper.ink },
+  // The attempt row, built out of the same plate as the grade row so the two
+  // states of the bottom of this screen are the same object doing two jobs.
+  attempt: { gap: space(2.5) },
+  // The attempt block and the grade row swap in place on a retrieval, so the
+  // taller of the two sets the height and the card does not jump at the exact
+  // moment the learner is reading the answer. Same reasoning as flipHint, one
+  // state further along, and derived from the two things it holds rather than
+  // measured off a screenshot.
+  retrievalFoot: { minHeight: (HIT + 8) * 2 + space(2.5), justifyContent: 'flex-end' },
+  attemptRow: { flexDirection: 'row', gap: space(2.5) },
+  attemptOff: { opacity: 0.45 },
+  // The paper text field, in the Field anatomy the drills already use. Type
+  // styles from the theme, minus lineHeight, which clips a single-line
+  // TextInput on iOS.
+  input: {
+    minHeight: HIT + 8,
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: sheet.line,
+    borderRadius: radius.input,
+    paddingHorizontal: space(4),
+    paddingVertical: space(3),
+    color: paper.ink,
+    fontFamily: font.sans,
+    fontSize: 16,
+    textAlign: 'center',
+  },
   // Same height as the grade row, so the card does not jump on the flip.
   flipHint: { minHeight: HIT + 8, justifyContent: 'center' },
 });

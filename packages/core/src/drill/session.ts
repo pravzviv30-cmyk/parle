@@ -77,6 +77,11 @@ export interface AnsweredExercise {
   outcome: DrillOutcome;
   /** Every ask this exercise took, the final one included. */
   attempts: number;
+  /**
+   * The exercise asked this phrase in a changed situation. Present only when
+   * it did, because absent means no everywhere this mark travels.
+   */
+  transfer?: boolean;
 }
 
 export interface DrillSessionState {
@@ -294,10 +299,20 @@ export function answerCurrent(state: DrillSessionState, answer: string | number 
   }
 
   const outcome: DrillOutcome = verdict === 'miss' ? 'unresolved' : verdict;
+  const answered: AnsweredExercise = {
+    id: exercise.id,
+    phraseKey: exercise.phraseKey,
+    outcome,
+    attempts: missesSoFar + 1,
+    // Spread rather than set, so an ordinary exercise records no key at all
+    // and every deck, fixture and assertion written before the mark is
+    // untouched by it.
+    ...(exercise.transfer === true ? { transfer: true } : {}),
+  };
   const next: DrillSessionState = {
     ...state,
     queue: rest,
-    answered: [...state.answered, { id: exercise.id, phraseKey: exercise.phraseKey, outcome, attempts: missesSoFar + 1 }],
+    answered: [...state.answered, answered],
     finished: rest.length === 0,
   };
   return { state: next, feedback: { verdict, closest, message: feedbackMessage(verdict, closest), advanced: true } };
@@ -340,8 +355,12 @@ export interface DrillSummary {
   unresolved: number;
   /** Extra asks the queue absorbed across the finished exercises. */
   retries: number;
-  /** What each drilled phrase tells the scheduler. */
-  grades: { phraseKey: string; grade: ReviewGrade }[];
+  /**
+   * What each drilled phrase tells the scheduler, and whether the sitting
+   * asked it in a changed situation and got it. `transfer` is present only
+   * when it is true, the same rule the mark follows everywhere else.
+   */
+  grades: { phraseKey: string; grade: ReviewGrade; transfer?: boolean }[];
 }
 
 /**
@@ -359,7 +378,7 @@ export function summarise(state: DrillSessionState): DrillSummary {
   let typos = 0;
   let unresolved = 0;
   let retries = 0;
-  const grades = new Map<string, ReviewGrade>();
+  const grades = new Map<string, { grade: ReviewGrade; transfer: boolean }>();
 
   for (const a of state.answered) {
     if (a.outcome === 'unresolved') unresolved += 1;
@@ -368,8 +387,16 @@ export function summarise(state: DrillSessionState): DrillSummary {
       if (a.outcome === 'typo') typos += 1;
     }
     retries += Math.max(0, a.attempts - 1);
-    if (grades.get(a.phraseKey) === 'again') continue;
-    grades.set(a.phraseKey, a.outcome === 'unresolved' ? 'again' : 'good');
+
+    const held = grades.get(a.phraseKey);
+    // A transfer answered correctly stays on the report even when a later
+    // exercise on the same phrase goes wrong. What that is worth is the
+    // scheduler's call, not this report's: an 'again' grade earns no evidence,
+    // so a sitting the phrase lost claims nothing.
+    const transfer = (held?.transfer ?? false) || (a.transfer === true && a.outcome !== 'unresolved');
+    const grade: ReviewGrade =
+      held?.grade === 'again' || a.outcome === 'unresolved' ? 'again' : 'good';
+    grades.set(a.phraseKey, { grade, transfer });
   }
 
   return {
@@ -378,7 +405,9 @@ export function summarise(state: DrillSessionState): DrillSummary {
     typos,
     unresolved,
     retries,
-    grades: [...grades].map(([phraseKey, grade]) => ({ phraseKey, grade })),
+    grades: [...grades].map(([phraseKey, { grade, transfer }]) =>
+      transfer ? { phraseKey, grade, transfer } : { phraseKey, grade },
+    ),
   };
 }
 
@@ -388,11 +417,19 @@ export function summarise(state: DrillSessionState): DrillSummary {
  * Each drilled phrase reschedules the same card the flashcard deck shows,
  * through the existing `applyGrade` — no second scheduler, no forked SM-2.
  * Cards the session never touched pass through untouched.
+ *
+ * A sitting hands over one thing about evidence: whether it changed the
+ * situation. It deliberately does NOT claim a retrieval attempt, and that is a
+ * pedagogy call rather than an oversight. Most drill formats have the French
+ * on screen, in the tokens, among the options or playing in the ear, so a
+ * correct answer there is not proof the learner could produce the phrase
+ * unaided. The one surface that can honestly claim that is the review card
+ * that asks before it reveals, and it says so itself.
  */
 export function applyDrillResults(deck: readonly ReviewCard[], state: DrillSessionState, now: number): ReviewCard[] {
-  const grades = new Map(summarise(state).grades.map((g) => [g.phraseKey, g.grade]));
+  const grades = new Map(summarise(state).grades.map((g) => [g.phraseKey, g]));
   return deck.map((card) => {
-    const grade = grades.get(card.id);
-    return grade === undefined ? card : applyGrade(card, grade, now);
+    const graded = grades.get(card.id);
+    return graded === undefined ? card : applyGrade(card, graded.grade, now, { transfer: graded.transfer === true });
   });
 }

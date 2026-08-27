@@ -282,6 +282,56 @@ describe('one memory system — outcomes feed the existing scheduler', () => {
     assert.equal(applyDrillResults(deck, s, NOW)[0]!.reps, 1);
   });
 
+  test('a correct transfer drill raises transfer evidence on the same phrase record', () => {
+    // Transfer is the same phrase in a changed situation, and getting it right
+    // is the one drill outcome that says the language travelled. It lands on
+    // the phrase's own review card, because the exercise's phraseKey IS the
+    // card id, so there is no second place for it to be true.
+    const deck = [card('phrase:a'), card('phrase:b')];
+    const moved: DrillExercise = { ...optionsEx('a-moved', 'phrase:a'), transfer: true };
+    let s = sessionOf(moved, optionsEx('b-opt', 'phrase:b'));
+    s = answerCurrent(s, 'bonjour').state;
+    s = answerCurrent(s, 'bonjour').state;
+
+    assert.deepEqual(summarise(s).grades, [
+      { phraseKey: 'phrase:a', grade: 'good', transfer: true },
+      { phraseKey: 'phrase:b', grade: 'good' },
+    ]);
+
+    const next = applyDrillResults(deck, s, NOW);
+    assert.equal(next[0]!.id, 'phrase:a', 'the record is the review card, not a drill-side score');
+    assert.equal(next[0]!.evidence?.transfers, 1);
+    assert.equal(next[0]!.evidence?.retrievals, 0, 'a drill shows the French, so it claims no hidden-answer recall');
+    assert.equal(next[1]!.evidence, undefined, 'an unmarked drill of another phrase claimed something');
+
+    // The schedule is the ordinary one. A mark on an exercise changes what the
+    // sitting proved, never when the card comes back.
+    assert.equal(next[0]!.reps, 1);
+    assert.equal(next[0]!.due, NOW + DAY_MS);
+
+    // A transfer exercise the learner did not get claims nothing at all.
+    let lost = sessionOf({ ...optionsEx('a-moved', 'phrase:a'), transfer: true });
+    lost = answerCurrent(lost, 'nope').state;
+    lost = answerCurrent(lost, 'nope').state;
+    assert.equal(applyDrillResults(deck, lost, NOW)[0]!.evidence, undefined);
+  });
+
+  test('a sitting the phrase lost claims no transfer, however it started', () => {
+    // The worse outcome already speaks for a phrase drilled twice. Evidence
+    // follows that grade rather than arguing with it: a sitting that ended in
+    // 'again' has not shown the language travelling anywhere.
+    const mixed: DrillSessionState = {
+      ...sessionOf(),
+      finished: true,
+      answered: [
+        { id: 'e1', phraseKey: 'phrase:a', outcome: 'good', attempts: 1, transfer: true },
+        { id: 'e2', phraseKey: 'phrase:a', outcome: 'unresolved', attempts: 2 },
+      ],
+    };
+    assert.deepEqual(summarise(mixed).grades, [{ phraseKey: 'phrase:a', grade: 'again', transfer: true }]);
+    assert.equal(applyDrillResults([card('phrase:a')], mixed, NOW)[0]!.evidence, undefined);
+  });
+
   test('when one phrase is drilled twice, the worse outcome speaks for it', () => {
     const winThenLose: DrillSessionState = {
       ...sessionOf(),

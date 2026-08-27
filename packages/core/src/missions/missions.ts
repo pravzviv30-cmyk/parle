@@ -30,6 +30,7 @@
  */
 
 import type { Rung } from '../ladder/ladder.ts';
+import { isDue } from '../review/evidence.ts';
 import type { ReviewCard } from '../review/scheduler.ts';
 
 export type MissionId =
@@ -161,12 +162,14 @@ export function independenceFrom(completions: readonly MissionCompletion[]): Ind
  *
  * Mirrors `stateForPhrases` in `path.ts` deliberately: anything the scheduler
  * wants back reads as needing review however long ago the beats were finished,
- * because a phrase slipping away matters more than a finished scene.
+ * because a phrase slipping away matters more than a finished scene. Both read
+ * dueness through `isDue`, so the mirroring is one rule rather than two copies
+ * that agree today.
  */
 function stateFor(mission: Mission, finished: boolean, deck: readonly ReviewCard[], now: number): MissionState {
   const cards = deck.filter((card) => mission.phraseKeys.includes(card.id));
   if (!finished) return cards.length === 0 ? 'new' : 'in-progress';
-  if (cards.some((card) => card.due <= now)) return 'needs-review';
+  if (cards.some((card) => isDue(card, now))) return 'needs-review';
   return cards.length === mission.phraseKeys.length ? 'complete' : 'in-progress';
 }
 

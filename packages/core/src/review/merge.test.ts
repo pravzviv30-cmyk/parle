@@ -2,6 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { mergeDecks, gradesApplied } from './merge.ts';
+import { addEvidence, evidenceOf, NO_EVIDENCE, type PhraseEvidence } from './evidence.ts';
 import { applyGrade, newCard, DEFAULT_EASE, type ReviewCard, type ReviewGrade } from './scheduler.ts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -181,5 +182,274 @@ describe('merging two copies of one deck', () => {
     const climbed = reviewed(fresh, ['good', 'good']);
     assert.deepEqual(mergeDecks([fresh, climbed], [])[0], climbed);
     assert.deepEqual(mergeDecks([climbed, fresh], [])[0], climbed);
+  });
+});
+
+/** Everything the winner decides — the whole card except the one exception. */
+function scheduling(card: ReviewCard): Omit<ReviewCard, 'evidence'> {
+  const { evidence: _counters, ...rest } = card;
+  return rest;
+}
+
+/** What one side counted for a card, all zero when that side never saw it. */
+function countsFor(deck: readonly ReviewCard[], id: string): PhraseEvidence {
+  const held = deck.find((c) => c.id === id);
+  return held === undefined ? NO_EVIDENCE : evidenceOf(held);
+}
+
+/** The same random decks, with counters two devices could honestly disagree about. */
+function withCounters(deck: readonly ReviewCard[], next: () => number): ReviewCard[] {
+  return deck.map((c) =>
+    addEvidence(c, {
+      // Past ten on purpose: 9 and 10 are the pair where a string comparison
+      // and a numeric one disagree, which is where a tiebreak that reads the
+      // counters goes wrong.
+      retrievals: Math.floor(next() * 12),
+      convoUses: Math.floor(next() * 12),
+      transfers: Math.floor(next() * 3),
+    }),
+  );
+}
+
+describe('merging what two devices counted', () => {
+  test('two devices converge evidence counters to the larger count without touching scheduling', () => {
+    const base = card('vocab:parce que');
+    // The phone did the flashcards on the train. The tablet had the actual
+    // conversation that evening, and used the phrase four times in it. Neither
+    // device knows a thing about what the other counted.
+    const phone = addEvidence(reviewed(base, ['good', 'good', 'good']), { retrievals: 3 });
+    const tablet = addEvidence(reviewed(base, ['good'], NOW + 30 * DAY_MS), {
+      retrievals: 1,
+      convoUses: 4,
+      transfers: 2,
+    });
+    // The phone graded more often; the tablet graded later and so is scheduled
+    // further out. The exception must not become a second reason to take the
+    // clock's answer for a field the winner already decided.
+    assert.ok(gradesApplied(phone) > gradesApplied(tablet));
+    assert.ok(tablet.due > phone.due, 'the loser must hold the later schedule or this proves nothing');
+
+    const merged = mergeDecks([phone], [tablet])[0]!;
+
+    // Field-wise larger: not the winner's block, and not a sum either — the
+    // same retrieval counted on both devices is one retrieval.
+    assert.deepEqual(evidenceOf(merged), { retrievals: 3, convoUses: 4, transfers: 2 });
+
+    // And the scheduling is the phone's, whole. Every field the winner decides
+    // is exactly the card it came from, with nothing blended and nothing
+    // recomputed by the exception passing through.
+    assert.deepEqual(scheduling(merged), scheduling(phone));
+    assert.equal(merged.due, phone.due);
+    assert.equal(merged.intervalDays, phone.intervalDays);
+    assert.equal(merged.ease, phone.ease);
+    assert.equal(merged.reps, phone.reps);
+    assert.equal(merged.lapses, phone.lapses);
+
+    // Both directions land on the same card...
+    assert.deepEqual(mergeDecks([tablet], [phone])[0], merged);
+    // ...and once each device has heard it, saying it again moves nothing.
+    const settledPhone = mergeDecks([phone], [merged]);
+    const settledTablet = mergeDecks([tablet], [merged]);
+    assert.ok(same(settledPhone, settledTablet), 'the two devices did not converge');
+    assert.ok(same(settledPhone, mergeDecks(settledPhone, settledTablet)), 'converged, then moved');
+  });
+
+  test('counters on the side that lost the card survive the side that won it', () => {
+    const base = card('vocab:pain');
+    // The phone graded it three times and counted nothing else. The tablet
+    // graded once, and is where the learner actually said the word out loud.
+    const phone = reviewed(base, ['good', 'good', 'good']);
+    const tablet = addEvidence(reviewed(base, ['good']), { convoUses: 2, transfers: 1 });
+    assert.equal(gradesApplied(phone) > gradesApplied(tablet), true);
+    assert.equal(phone.evidence, undefined, 'a grade with no context must claim nothing');
+
+    const merged = mergeDecks([phone], [tablet])[0]!;
+    // The phone won the card outright, by the same rule as before...
+    assert.deepEqual(scheduling(merged), scheduling(phone));
+    // ...and the losing side's counters came with it anyway. They are the one
+    // thing that cannot be re-derived from the card that won.
+    assert.deepEqual(evidenceOf(merged), { retrievals: 0, convoUses: 2, transfers: 1 });
+    assert.deepEqual(mergeDecks([tablet], [phone])[0], merged);
+
+    // Two copies of one id inside a single side fold by the very same rule,
+    // before the two sides ever meet. Half the exception is not the exception.
+    assert.deepEqual(mergeDecks([phone, tablet], [])[0], merged);
+    assert.deepEqual(mergeDecks([tablet, phone], [])[0], merged);
+
+    // A card only one side has ever seen keeps its counters untouched.
+    const alone = addEvidence(card('vocab:œuf'), { convoUses: 5 });
+    assert.deepEqual(mergeDecks([alone], [])[0], alone);
+    assert.deepEqual(mergeDecks([], [alone])[0], alone);
+  });
+
+  test('a deck written before the counters merges without growing a block it never earned', () => {
+    const phone = reviewed(card('vocab:bonjour'), ['good', 'good']);
+    const tablet = card('vocab:bonjour');
+    assert.equal('evidence' in phone, false, 'the fixture already carries a block');
+
+    // Off disk, the way a deck an older build wrote actually arrives.
+    const stored: unknown = JSON.parse(JSON.stringify([phone]));
+    const merged = mergeDecks(stored, [tablet]);
+    assert.equal(merged.length, 1);
+    assert.deepEqual(merged[0], phone, 'the merge invented a block nobody earned');
+    assert.equal('evidence' in merged[0]!, false);
+    assert.deepEqual(evidenceOf(merged[0]!), NO_EVIDENCE);
+
+    // A hand-written block of zeros is the same state as no block, not a third
+    // one — otherwise which device wrote first would decide the bytes.
+    const zeroed = { ...phone, evidence: { retrievals: 0, convoUses: 0, transfers: 0 } };
+    assert.equal('evidence' in mergeDecks([zeroed], [])[0]!, false);
+    assert.ok(same(mergeDecks([zeroed], [phone]), mergeDecks([phone], [zeroed])), 'zeros and absent diverge');
+  });
+
+  test('a malformed evidence block off the wire reads as zero and never throws', () => {
+    const good = reviewed(card('vocab:eau'), ['good', 'good']);
+    const earned = addEvidence(reviewed(card('vocab:eau'), ['good']), { convoUses: 4 });
+    // Each block with what it is worth once read honestly. Everything that is
+    // not a count is worth nothing; a count that is merely untidy still counts.
+    const junk: readonly (readonly [unknown, PhraseEvidence])[] = [
+      [null, NO_EVIDENCE],
+      [42, NO_EVIDENCE],
+      ['lots', NO_EVIDENCE],
+      [[], NO_EVIDENCE],
+      [{}, NO_EVIDENCE],
+      [{ retrievals: NaN, convoUses: -2, transfers: 'three' }, NO_EVIDENCE],
+      [{ retrievals: null, convoUses: Infinity }, NO_EVIDENCE],
+      [{ retrievals: 1.9, nonsense: true }, { retrievals: 1, convoUses: 0, transfers: 0 }],
+    ];
+
+    for (const [block, worth] of junk) {
+      const tampered = { ...good, evidence: block } as unknown as ReviewCard;
+      const label = JSON.stringify(block) ?? 'undefined';
+      // Both in memory and through JSON, because the wire turns a NaN into a
+      // null on the way and null is the shape that used to throw.
+      for (const side of [[tampered], JSON.parse(JSON.stringify([tampered])) as unknown]) {
+        const merged = mergeDecks(side, [])[0]!;
+        assert.deepEqual(scheduling(merged), scheduling(good), `scheduling lost to junk: ${label}`);
+        assert.deepEqual(evidenceOf(merged), worth, label);
+        // The junk did not survive the merge either, so the next reader of
+        // this card cannot be the one it costs.
+        assert.doesNotThrow(() => evidenceOf(merged), label);
+        if (merged.evidence !== undefined) {
+          assert.deepEqual(Object.keys(merged.evidence), ['retrievals', 'convoUses', 'transfers'], label);
+        }
+      }
+
+      // And a bad block on one side never takes the other side's counters
+      // with it: the claim it costs is its own.
+      const both = mergeDecks([tampered], [earned])[0]!;
+      assert.equal(evidenceOf(both).convoUses, 4, `the good side lost its counters to ${label}`);
+      assert.deepEqual(scheduling(both), scheduling(good), label);
+    }
+  });
+
+  test('the tiebreak never reads the counters the merge itself rewrites', () => {
+    // Three copies of one card with identical scheduling, differing in a field
+    // the last-resort tiebreak sorts *after* the counters would, and in
+    // counters that straddle the 9-to-10 boundary. Real enough: one device
+    // learned the pronunciation and the other never did.
+    const base = reviewed(card('vocab:œil'), ['good']);
+    const quiet = addEvidence({ ...base, ipa: '' }, { retrievals: 2 });
+    const middle = addEvidence({ ...base, ipa: 'œj' }, { retrievals: 2 });
+    const loud = addEvidence({ ...base, ipa: 'ɶj' }, { retrievals: 10 });
+
+    // A counter must not decide which card wins. `ɶj` sorts above `œj` sorts
+    // above the empty string, and that is the whole of the decision.
+    assert.equal(mergeDecks([quiet], [middle])[0]?.ipa, 'œj', 'a counter decided which card won');
+    assert.equal(mergeDecks([loud], [middle])[0]?.ipa, 'ɶj');
+    assert.equal(
+      mergeDecks([addEvidence({ ...base, ipa: '' }, { retrievals: 99 })], [middle])[0]?.ipa,
+      'œj',
+      'the loudest counter took the card',
+    );
+
+    // So the merge stays associative even here, where a tiebreak that read the
+    // counters would keep a different card on each side of the bracket.
+    const left = mergeDecks(mergeDecks([quiet], [middle]), [loud]);
+    const right = mergeDecks([quiet], mergeDecks([middle], [loud]));
+    assert.ok(same(left, right), `associative: ${JSON.stringify(left)} vs ${JSON.stringify(right)}`);
+    assert.equal(left[0]?.ipa, 'ɶj');
+    assert.deepEqual(evidenceOf(left[0]!), { retrievals: 10, convoUses: 0, transfers: 0 });
+  });
+
+  test('the evidence exception is commutative, idempotent and associative over random decks', () => {
+    const next = rng(12_260_827);
+    let counted = 0;
+    for (let i = 0; i < 300; i += 1) {
+      const a = withCounters(randomDeck(next), next);
+      const b = withCounters(randomDeck(next), next);
+      const c = withCounters(randomDeck(next), next);
+
+      const ab = mergeDecks(a, b);
+      assert.ok(same(ab, mergeDecks(b, a)), `commutative, round ${i}`);
+      assert.ok(same(ab, mergeDecks(ab, ab)), `idempotent, round ${i}`);
+      assert.ok(same(ab, mergeDecks(ab, a)), `absorbs a, round ${i}`);
+      assert.ok(same(ab, mergeDecks(ab, b)), `absorbs b, round ${i}`);
+      assert.ok(same(mergeDecks(ab, c), mergeDecks(a, mergeDecks(b, c))), `associative, round ${i}`);
+
+      // The algebra above holds just as well for a merge that throws every
+      // counter away, so say what the counters actually came out as.
+      for (const merged of ab) {
+        const left = countsFor(a, merged.id);
+        const right = countsFor(b, merged.id);
+        assert.deepEqual(
+          evidenceOf(merged),
+          {
+            retrievals: Math.max(left.retrievals, right.retrievals),
+            convoUses: Math.max(left.convoUses, right.convoUses),
+            transfers: Math.max(left.transfers, right.transfers),
+          },
+          `counters are the larger of the two, round ${i}`,
+        );
+        if (merged.evidence !== undefined) counted += 1;
+      }
+    }
+    assert.ok(counted > 300, `the random decks carried counters only ${counted} times — the property proved nothing`);
+  });
+
+  test('three devices gossiping in any order converge on the counters as well as the cards', () => {
+    const next = rng(9_140);
+    for (let round = 0; round < 100; round += 1) {
+      const devices = [
+        withCounters(randomDeck(next), next),
+        withCounters(randomDeck(next), next),
+        withCounters(randomDeck(next), next),
+      ];
+      // Every counter any device ever held. Nothing below may go missing.
+      const floor = new Map<string, PhraseEvidence>();
+      for (const deck of devices) {
+        for (const c of deck) {
+          const held = floor.get(c.id) ?? NO_EVIDENCE;
+          const mine = evidenceOf(c);
+          floor.set(c.id, {
+            retrievals: Math.max(held.retrievals, mine.retrievals),
+            convoUses: Math.max(held.convoUses, mine.convoUses),
+            transfers: Math.max(held.transfers, mine.transfers),
+          });
+        }
+      }
+
+      let server: unknown = [];
+      for (let step = 0; step < 24; step += 1) {
+        const i = Math.floor(next() * devices.length);
+        const merged = mergeDecks(devices[i], server);
+        devices[i] = merged;
+        server = merged;
+        if (next() < 0.4) server = mergeDecks(server, merged);
+      }
+      for (let i = 0; i < devices.length; i += 1) {
+        devices[i] = mergeDecks(devices[i], server);
+        server = devices[i];
+      }
+      for (let i = 0; i < devices.length; i += 1) {
+        devices[i] = mergeDecks(devices[i], server);
+      }
+
+      assert.ok(same(devices[0]!, devices[1]!), `devices 0 and 1 agree, round ${round}`);
+      assert.ok(same(devices[1]!, devices[2]!), `devices 1 and 2 agree, round ${round}`);
+      for (const c of devices[0]!) {
+        assert.deepEqual(evidenceOf(c), floor.get(c.id), `a counter went missing in the gossip, round ${round}`);
+      }
+    }
   });
 });

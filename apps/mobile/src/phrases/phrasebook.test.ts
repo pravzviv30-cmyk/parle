@@ -10,7 +10,9 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { phraseKeyOf, type PracticeTopic, type ReviewCard } from '@parle/core';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { SETTLED_DAYS, SETTLED_REPS, isSettled, phraseKeyOf, type PracticeTopic, type ReviewCard } from '@parle/core';
 import { buildPhrasebook, hasPhrases, LESSONS_GROUP } from './phrasebook.ts';
 
 const NOW = Date.parse('2026-08-20T12:00:00.000Z');
@@ -162,5 +164,47 @@ describe('it never invents a denominator', () => {
     const cards = [card({ front: 'un' }), card({ front: 'deux' })];
     const topics = [topic('topic:x', 'X', ['un'])];
     assert.deepEqual(buildPhrasebook(cards, topics, NOW), buildPhrasebook(cards, topics, NOW));
+  });
+});
+
+describe('the shelf is core\'s rule, not a second copy of it', () => {
+  const hold = (over: Partial<ReviewCard>) =>
+    buildPhrasebook([card({ front: 'bonsoir', ...over })], [], NOW).groups[0]?.phrases[0]?.hold;
+
+  test('a phrase settles on the numbers core keeps, wherever core puts them', () => {
+    // Driven off the exported thresholds rather than a 2 and a 7 typed here.
+    // This file used to hold its own pair, which made the phrasebook one of the
+    // four places with an opinion about whether somebody knew a phrase; the
+    // point of moving them was that a change in core reaches this shelf.
+    const notDue = { due: days(1) };
+    assert.equal(hold({ ...notDue, reps: SETTLED_REPS, intervalDays: SETTLED_DAYS }), 'steady');
+    assert.equal(hold({ ...notDue, reps: SETTLED_REPS - 1, intervalDays: SETTLED_DAYS }), 'new', 'one review short is not a habit');
+    assert.equal(hold({ ...notDue, reps: SETTLED_REPS, intervalDays: SETTLED_DAYS - 1 }), 'new', 'one day short is not a habit');
+
+    // And the shelf agrees with the projection it now asks, card for card.
+    // reps starts at one: a card nobody has recalled is not in the phrasebook
+    // at all, which is a different rule and has its own test above.
+    for (const reps of [1, SETTLED_REPS, SETTLED_REPS + 3]) {
+      for (const intervalDays of [0, SETTLED_DAYS - 1, SETTLED_DAYS, SETTLED_DAYS + 13]) {
+        const c = card({ front: 'bonsoir', reps, intervalDays, due: days(1) });
+        const expected = isSettled(c, NOW) ? 'steady' : 'new';
+        assert.equal(hold({ reps, intervalDays, due: days(1) }), expected, `the shelf moved at reps ${reps}, interval ${intervalDays}`);
+      }
+    }
+  });
+
+  test('the three words the learner reads did not change when the rule moved', () => {
+    // A relocation, not new copy. Someone opening the phrasebook the day after
+    // this shipped sees exactly the shelves they saw the day before.
+    // Comments stripped: the header explains what the two thresholds used to
+    // be called, and an explanation of a removal is not the removal undone.
+    const raw = readFileSync(fileURLToPath(new URL('./phrasebook.ts', import.meta.url)), 'utf8');
+    const source = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.match(source, /'steady' \| 'coming-back' \| 'new'/, 'the shelf names changed');
+    assert.ok(!source.includes('STEADY_REPS'), 'the phrasebook keeps its own threshold again');
+    assert.ok(!source.includes('STEADY_DAYS'), 'the phrasebook keeps its own threshold again');
+    assert.doesNotMatch(source, /card\.reps >=|card\.intervalDays >=|card\.due <=/, 'the phrasebook decides dueness itself again');
+    assert.match(source, /isDue\(card, now\)/, 'dueness is no longer asked of core');
+    assert.match(source, /isSettled\(card, now\)/, 'settledness is no longer asked of core');
   });
 });

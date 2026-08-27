@@ -12,7 +12,7 @@
  * have its own store). This module is pure.
  */
 
-import { normalise, type Rung } from '@parle/core';
+import { isMastered, normalise, type Rung } from '@parle/core';
 
 import type { MemoryExtraction, MemoryFact, TutorTurn } from '../contract/types.ts';
 import { CEFR_BANDS, type CefrBand, type RegisterId, type Strictness } from '../types.ts';
@@ -69,8 +69,16 @@ export interface LearnerProfile {
 
 /** How many CEFR readings the estimate looks back over. */
 export const EVIDENCE_WINDOW = 12;
-/** Correct natural uses before a phrase counts as mastered. */
-export const MASTERY_USES = 3;
+/**
+ * Correct natural uses before a phrase counts as mastered.
+ *
+ * The number lives in `packages/core/src/review/evidence.ts` now, beside the
+ * rest of the phrase-evidence record, because the deck and the app project
+ * their own verdicts from the same count and a second copy here would be a
+ * second opinion about what a learner knows. Re-exported so every existing
+ * importer of this module keeps working.
+ */
+export { MASTERY_USES } from '@parle/core';
 /** Recurring-error patterns kept; beyond this the least recently seen goes. */
 export const MAX_ERROR_PATTERNS = 40;
 export const MAX_PHRASES = 200;
@@ -299,7 +307,10 @@ export function applyTurnToProfile(profile: LearnerProfile, turn: TutorTurn, now
     for (const entry of Object.values(next.phrases)) {
       if (normalise(entry.fr) === usedKey || (entry.frWritten !== null && normalise(entry.frWritten) === usedKey)) {
         entry.timesUsedWell += 1;
-        entry.mastered = entry.timesUsedWell >= MASTERY_USES;
+        // Mastery is a projection of the count, recomputed here rather than
+        // decided here. `merge.ts` carries the flag across devices without
+        // recomputing it, so this is the one line that may ever set it.
+        entry.mastered = isMastered(entry.timesUsedWell);
       }
     }
   }

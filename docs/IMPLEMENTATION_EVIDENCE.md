@@ -21,15 +21,26 @@ of the list.
 
 ## Current landing snapshot
 
-- Phases 1 and 2 are on `main`. Phase 2 includes the client sync engine, per-domain conflict
-  policy, restart-safe dirty registry, fresh-device adoption and the revision migration.
-- Phase 3 is implemented on `phase-3-onboarding`: one welcome, three onboarding pages,
+- Phases 1, 2 and 3 are on `main`. Phase 2 includes the client sync engine, per-domain
+  conflict policy, restart-safe dirty registry, fresh-device adoption and the revision
+  migration. Phase 3 was merged as `2a86092`, and `phase-4-practice` was branched from that
+  merge commit.
+- Phase 3 landed from `phase-3-onboarding`: one welcome, three onboarding pages,
   age-first gating, AI/vendor/microphone disclosure, labelled fields and headings, removal of
   the splash/why/duplicate welcome, attempt-audio cleanup, analytics contract repair, and the
   first-run mission-chooser reset. Its source contract is green and a driven local mock-auth
   web journey proved the `/` → onboarding → `/missions` path and one-shot reset; F58 is closed.
 - The Phase 3 landing gate passes **1,791 tests, 0 failing**: core 507, brain 348, tutor agent
   350, token server 124, playground 13, mobile 449. Typecheck is clean in all six workspaces.
+- Phase 4 is implemented on `phase-4-practice`: one phrase-evidence record in core with every
+  other verdict projected from it, field-wise evidence merge that leaves scheduling alone,
+  durable practice batches behind a `durable` or `failed` acknowledgement, retrieval before
+  reveal on a due card, and transfer drills feeding the same record. F118 to F131 are closed.
+- The Phase 4 practice gate passes **1,865 tests, 0 failing**: core 524, brain 349, tutor agent
+  350, token server 124, playground 13, mobile 505. Typecheck is clean in all six workspaces.
+  Floors were blessed to those counts afterwards, so the gate defends them now. This is a
+  branch gate and not a release gate: everything in "What is still outstanding" is still
+  outstanding, and no part of Phase 4 has been seen on a device or a deployed database.
 - `npm run build:web` succeeds. `npm run scan:secrets:bundles` is clean across **23 bundle
   files**, and the current reachable repository history scan is clean. The four vendor keys
   previously found in a local-only object still require rotation; pruning an object does not
@@ -234,8 +245,12 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Full Phase 4 practice gate: **1,865 tests, 0 failing**; core 524, brain 349, tutor agent
+  350, token server 124, playground 13, mobile 505. Typecheck clean in all six workspaces.
+  Run from the repo root on `phase-4-practice`, after which the floors were blessed to match.
 - Full Phase 3 landing gate: **1,791 tests, 0 failing**; core 507, brain 348, tutor agent
   350, token server 124, playground 13, mobile 449. Typecheck clean in all six workspaces.
+  Kept because a gate record with no history to compare against records nothing.
 - `npm run verify:upstash`: 5 of 5 proofs, exit 0.
 - `npm run verify:supabase`: 12 of 12 proofs passed, exit 0, against a disposable project.
 - `npm run verify:voice`: 13 checks, 11 assertions held, 2 measurements recorded, exit 0,

@@ -27,6 +27,15 @@ const BASE = {
   id: z.string(),
   /** EXACTLY the review deck's identity: 'phrase:' + the French line, trimmed, lowercased. */
   phraseKey: z.string(),
+  /**
+   * Whether this exercise asks the phrase in a changed situation. Required
+   * rather than optional, because structured outputs have no optional fields
+   * and because "the model forgot to say" and "no, it does not" must not be
+   * the same value on a mark that becomes evidence. The instruction has always
+   * asked for a third of the set to test transfer; this is where the answer is
+   * recorded instead of guessed at afterwards.
+   */
+  transfer: z.boolean(),
 };
 
 const FillBlankZ = z.object({
@@ -137,6 +146,7 @@ const INSTRUCTION = [
   `- best-sentence and appropriate-reply distractors are correct-sounding French that fails the situation, never gibberish.`,
   `- Mix formats like a modern language app: meaning choice, dialogue reply, token assembly, typing, listening, and speaking whenever the phrase genuinely supports them. Never make the whole set fill-in-the-blank.`,
   `- At least one third of the exercises must test transfer: the same phrase or skill in a new but closely related situation. Change the surrounding context, speaker, or intent without changing phraseKey to unrelated language.`,
+  `- transfer: true on exactly those exercises, false on the rest, noMicTwin included. This mark is what lets a correct answer count as evidence that the language travelled; guessing it later is not possible.`,
   `- every repeat-this carries noMicTwin: a listen-type or typed fill-blank of the SAME phrase, same phraseKey, its own id. listen-type and typed fill-blank are production, including when nested as noMicTwin.`,
   `- English text is English only. No em dash anywhere. No digits. Never "wrong", "incorrect", "bad" or "failed" in any string.`,
 ].join('\n');

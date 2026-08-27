@@ -23,6 +23,8 @@
  * the rest simply wait their turn, unannounced.
  */
 
+import { addEvidence, isDue, type PhraseEvidence } from './evidence.ts';
+
 export type ReviewCardKind = 'vocab' | 'phoneme' | 'turn';
 
 export type ReviewGrade = 'again' | 'good' | 'easy';
@@ -51,6 +53,29 @@ export interface ReviewCard {
   reps: number;
   /** Times the learner pressed "again". Never shown to the learner. */
   lapses: number;
+  /**
+   * What this phrase has been shown to be worth. Monotone counters, and absent
+   * means all zero so a deck written before them stays readable. Read it with
+   * `evidenceOf`, never field by field; see `evidence.ts` for what each count
+   * is allowed to claim.
+   */
+  evidence?: PhraseEvidence;
+}
+
+/**
+ * What earned a grade, when anything did.
+ *
+ * Optional, and an omitted context grades exactly as this scheduler always
+ * has. That matters because the two callers are honest about different things:
+ * the review screen knows an attempt was required before the answer appeared,
+ * a drill knows whether it changed the situation, and a self-graded card in a
+ * quiet moment knows neither and should claim neither.
+ */
+export interface GradeContext {
+  /** How the learner produced the answer BEFORE the card revealed it. */
+  attempt?: 'typed' | 'said';
+  /** The same phrase asked in a changed situation. */
+  transfer?: boolean;
 }
 
 /** A missed card comes back within the same sitting, not tomorrow. */
@@ -98,9 +123,17 @@ export function newCard(fields: Pick<ReviewCard, 'id' | 'kind' | 'front' | 'back
  * slightly gentler slope (ease drops). 'good' walks the classical 1 day, 3
  * days, then multiply-by-ease staircase. 'easy' takes a longer stride and
  * steepens the slope for next time.
+ *
+ * `context` says what earned the grade, and it only ever adds to the card's
+ * evidence — the schedule a grade produces is identical with it and without
+ * it. Keeping the two apart is deliberate: rescheduling is a guess about a
+ * memory, and evidence is a record of something the learner did.
  */
-export function applyGrade(card: ReviewCard, grade: ReviewGrade, now: number): ReviewCard {
+export function applyGrade(card: ReviewCard, grade: ReviewGrade, now: number, context: GradeContext = {}): ReviewCard {
   switch (grade) {
+    // A lapse earns no evidence, whatever the attempt was. Forgetting is
+    // rescheduling rather than failing, and it is equally not proof of
+    // anything: the counters record what came out right.
     case 'again':
       return {
         ...card,
@@ -112,12 +145,15 @@ export function applyGrade(card: ReviewCard, grade: ReviewGrade, now: number): R
 
     case 'good': {
       const intervalDays = goodIntervalDays(card);
-      return {
-        ...card,
-        due: now + intervalDays * DAY_MS,
-        intervalDays,
-        reps: card.reps + 1,
-      };
+      return earned(
+        {
+          ...card,
+          due: now + intervalDays * DAY_MS,
+          intervalDays,
+          reps: card.reps + 1,
+        },
+        context,
+      );
     }
 
     case 'easy': {
@@ -126,15 +162,34 @@ export function applyGrade(card: ReviewCard, grade: ReviewGrade, now: number): R
       // "good" would have, including on the graduation and relearning steps.
       const good = goodIntervalDays(card);
       const intervalDays = Math.max(good + 1, Math.round(good * EASY_BONUS));
-      return {
-        ...card,
-        due: now + intervalDays * DAY_MS,
-        intervalDays,
-        ease: roundEase(card.ease + 0.1),
-        reps: card.reps + 1,
-      };
+      return earned(
+        {
+          ...card,
+          due: now + intervalDays * DAY_MS,
+          intervalDays,
+          ease: roundEase(card.ease + 0.1),
+          reps: card.reps + 1,
+        },
+        context,
+      );
     }
   }
+}
+
+/**
+ * What a correct answer proves, on top of what it schedules.
+ *
+ * One increment each, at most, per grade. An attempt raises recall evidence
+ * because the learner produced the phrase before seeing it; a transfer-marked
+ * exercise raises transfer evidence because the situation had changed. A grade
+ * that carries no context adds nothing and returns the very same object, so
+ * every existing caller keeps the deck it had.
+ */
+function earned(card: ReviewCard, context: GradeContext): ReviewCard {
+  return addEvidence(card, {
+    retrievals: context.attempt === undefined ? 0 : 1,
+    transfers: context.transfer === true ? 1 : 0,
+  });
 }
 
 /**
@@ -156,7 +211,7 @@ function goodIntervalDays(card: ReviewCard): number {
  */
 export function dueCards(cards: readonly ReviewCard[], now: number, cap = DUE_CAP): ReviewCard[] {
   return cards
-    .filter((c) => c.due <= now)
+    .filter((c) => isDue(c, now))
     .sort((a, b) => a.due - b.due || a.addedAt - b.addedAt || a.id.localeCompare(b.id))
     .slice(0, Math.max(0, cap));
 }

@@ -24,32 +24,82 @@ in-conversation controls have been pointed out, one key for all of them), and
 `journal`.
 
 `journal` is the only store that is meant to be empty. A conversation's recap is
-written there the moment it arrives and deleted the moment its phrases are
-banked, so anything found at launch belongs to a session that was closed in
-between and is banked then. It exists because the order things arrive in leaves a
-gap: the recap ships first, practice follows, and the leave-early fallback that
-covers the difference only runs when the learner taps Done. Reading the recap and
-swiping the app away used to lose the session's phrases outright.
+written there the moment it arrives and deleted once every store that took part
+in banking it says the write reached the disk, so anything found at launch
+belongs to a session that was closed in between and is banked then. It exists
+because the order things arrive in leaves a gap: the recap ships first, practice
+follows, and the leave-early fallback that covers the difference only runs when
+the learner taps Done. Reading the recap and swiping the app away used to lose
+the session's phrases outright.
 
-### The post-recap durability gap
+### Banking a conversation, and when the journal is allowed to go
 
-**Owner: data-sync with practice UX. Closes in Phase 4. Open today.**
+A store write answers in one word. `PersistAck` is `durable` or `failed`, and it
+lives in `apps/mobile/src/storage/ack.ts` with the definition spelled out.
+`saveDeck`, `saveTopics` and the drill store's `saveStore` return it, and
+`addPhrases`, `mergeSessionTopics` and `mergeExercises` pass it out to whoever
+asked.
 
-The journal closes the crash window only while its writes and the destination
-stores succeed. Today those stores cannot say that. `ConvoScreen` sets its
-in-memory `practiceBankedRef` before persistence, fires the topic write without
-awaiting it, and clears the journal when `addPhrases` resolves. But the review,
-topic and drill stores deliberately swallow AsyncStorage failures, and their
-promises therefore resolve even when storage is full. The journal writer also
-swallows its own failure. In that case the cache can look correct for this launch
-while the only recoverable disk copy is cleared.
+**`durable` means one thing.** The store's own write chain computed the merged
+value and `AsyncStorage.setItem` for that exact scoped key resolved without
+throwing. That is the strongest honest signal a phone offers. It is not an
+fsync. Nothing below AsyncStorage promises the bytes have reached flash, so a
+device that loses power in the same instant can still lose that write, and no
+word in this codebase claims otherwise. There is no read-back check either,
+because the read would come out of the cache the write just filled and would
+prove only that the cache is fine.
 
-Phase 4 replaces that best-effort handshake with one durable batch/outbox contract:
-a stable batch or session id, journal first, idempotent writes into phrases,
-topics and drills, explicit per-store acknowledgements, and clear only after all
-required acknowledgements have landed. A crash between acknowledgement and clear
-must replay safely; storage-full must keep the batch pending and visible to the
-next retry. F118 records the regression test that closes it.
+**`failed` changes nothing the learner sees.** Every store fills its in-memory
+cache before it touches the disk and keeps serving from it, so a full phone
+reviews and drills exactly as it did. Two things do change. Nobody downstream
+may treat the write as saved, and `markDirty` is not raised, because a dirty
+flag on a failed write pushes the previous value to the account as if it were
+the new one. That is the registry's own rule at `sync/registry.ts:181`.
+
+**One function decides when a conversation is safe.** `bankPractice` in
+`live/journal.ts` writes the topics, then the phrases, then the drills, and
+clears the journal only if all three said `durable`. Any `failed` leaves the
+journal exactly where it is and answers `kept`. All three are tried even after
+one has failed, because a quota bites one key at a time and two thirds of a
+session banked is better than none.
+
+**There is no retry inside the session.** A phone that is out of space this
+second is out of space next second, and a loop would only spend battery proving
+it. The retry is the next launch. `recoverJournal` runs once after the account
+scope resolves, banks through the same `bankPractice`, and clears on the same
+all-durable condition, so a launch that still cannot write leaves the batch for
+the launch after it.
+
+**Replaying is safe because identity is content, not a receipt.** A crash
+between the acknowledgements and the clear leaves a banked batch on disk, and
+the next launch banks it again. That costs nothing: `mergeTopics` folds on the
+topic id, `mergeCards` on the phrase key, `mergeExerciseBank` on the exercise's
+key and kind, and each keeps the row already there, so scheduling the learner
+earned survives untouched. The journal's `batchId` is not what makes this work.
+It has one job, which is to stop a clear from deleting a journal that a later
+session wrote while the acknowledgements were coming back.
+
+**The envelope is version 3.** It adds `batchId` and `convoUses`, which are the
+lifetime counts of correct unprompted use read off the learner model that
+arrives beside the recap. They are read through `repairProfile`, the one door
+for a stored learner model, and a blob it cannot make sense of yields no counts
+rather than a throw. The review store folds them into `evidence.convoUses` by
+max, in the same acknowledged write as the phrases, so one acknowledgement
+covers both and a replayed batch can never inflate what a learner is credited
+with. Version 1 and version 2 journals already on phones are still read.
+
+**Grading is deliberately not acknowledged.** An ordinary review sitting must
+never wait on a disk. The screen moves on the beat the learner tapped, and a
+card that failed to persist is one card asked again, not a session lost.
+Acknowledgements are for the path that deletes the only copy of something.
+
+What is still lost, said plainly. A session killed before the recap, which is
+the next section and is not closable from the app. And a batch on a phone that
+never gets its space back, which stays in the journal, unbanked and unbankable,
+until it does. The proof is in `live/journal.test.ts` and
+`storage/ack.test.ts`: storage-full on each store separately, a crash at each
+boundary, a launch that still cannot write, a duplicate delivery, and an
+account switch mid-recovery.
 
 ### The pre-recap window
 

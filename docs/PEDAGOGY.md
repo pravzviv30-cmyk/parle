@@ -108,6 +108,39 @@ A phoneme with no drill is skipped and the next candidate is taken. Naming a
 problem with no way to fix it is worse than silence — but so is falling silent
 about a problem that *does* have a drill because a different one did not.
 
+## What counts as learned
+
+`packages/core/src/review/evidence.ts`. Every phrase carries one record, and it
+holds three counts: retrievals, uses in conversation, and correct answers to
+drills that changed the situation. The counts only ever go up.
+
+Four states, and a phrase sits at the highest one it has evidence for. These are
+not the support ladder above. That one is about how much help a turn gets, this
+one is about what the learner has shown.
+
+| state | what earns it |
+|---|---|
+| introduced | the phrase exists in the deck. Nothing has been shown yet |
+| recalled | they produced it with the answer hidden, at least once |
+| used | they used it correctly in a real conversation, at least once |
+| transferred | they got it right when the situation changed |
+
+Conversation outranks the flashcard on purpose. Nobody asked for the phrase; it
+came out because the moment needed it. And knowing a line is not the same as
+knowing when to use it, so the phrase that survives a changed situation sits
+highest.
+
+Recall means the answer was hidden first. A card showing its own back and a
+drill with the French among the options are both worth having, and neither is
+proof the learner could produce the phrase unaided, so neither counts here.
+
+`mastered` is no longer a state. It is a projection: three correct uses in
+conversation, read off the same count, so a flag can never disagree with the
+evidence that produced it.
+
+Nothing here decays. What expires is the schedule, not the record, because a
+thing that happened stays happened.
+
 ## Where the next session opens
 
 `openingRung` in `ladder.ts`, one function for both engines. One rung below where
