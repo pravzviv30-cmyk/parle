@@ -33,7 +33,7 @@ import { View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { completeProfile, createStoredProfile, loadProfile, type StoredProfile } from './src/profile/store.ts';
 
@@ -60,6 +60,7 @@ import { ProfileGate } from './src/app/ProfileContext.tsx';
 import { LiveProvider } from './src/app/LiveContext.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
 import { navTheme, linking } from './src/nav/theme.ts';
+import type { RootStackParamList } from './src/nav/types.ts';
 
 function Loading() {
   return (
@@ -130,6 +131,7 @@ function SignedInRoot({ user }: { user: AuthUser }) {
    * leads to exactly the same screen.
    */
   const [justOnboarded, setJustOnboarded] = useState(false);
+  const navigationRef = useNavigationContainerRef<RootStackParamList>();
   // Bumped to force a remount after a progress reset, so every store re-reads
   // from a now-empty disk instead of holding what it loaded at mount.
   const [generation, setGeneration] = useState(0);
@@ -223,6 +225,22 @@ function SignedInRoot({ user }: { user: AuthUser }) {
     return result;
   }, []);
 
+  /**
+   * Linking owns the initial state on web, so `/` resolves to Tabs after the
+   * stack's `initialRouteName` has chosen Missions. Wait until that resolution
+   * is complete, then replace the root exactly once. Native takes the same
+   * path harmlessly, which keeps one first-run rule for both platforms.
+   *
+   * This is deliberately a reset rather than a push. A first run has no screen
+   * behind the chooser, and MissionsScreen already turns its Back control into
+   * an explicit route to Tabs when there is no history to pop.
+   */
+  const openFirstMissionChooser = useCallback(() => {
+    if (!justOnboarded || !navigationRef.isReady()) return;
+    navigationRef.resetRoot({ index: 0, routes: [{ name: 'Missions' }] });
+    setJustOnboarded(false);
+  }, [justOnboarded, navigationRef]);
+
   if (!ready) return <Loading />;
 
   return (
@@ -244,6 +262,8 @@ function SignedInRoot({ user }: { user: AuthUser }) {
     >
       <LiveProvider>
         <NavigationContainer
+          ref={navigationRef}
+          onReady={openFirstMissionChooser}
           theme={navTheme}
           // Web only. A native linking config would claim parle://auth/callback,
           // which auth/oauth.native.ts needs for the OAuth round trip.

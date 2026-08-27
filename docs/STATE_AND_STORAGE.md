@@ -31,6 +31,26 @@ gap: the recap ships first, practice follows, and the leave-early fallback that
 covers the difference only runs when the learner taps Done. Reading the recap and
 swiping the app away used to lose the session's phrases outright.
 
+### The post-recap durability gap
+
+**Owner: data-sync with practice UX. Closes in Phase 4. Open today.**
+
+The journal closes the crash window only while its writes and the destination
+stores succeed. Today those stores cannot say that. `ConvoScreen` sets its
+in-memory `practiceBankedRef` before persistence, fires the topic write without
+awaiting it, and clears the journal when `addPhrases` resolves. But the review,
+topic and drill stores deliberately swallow AsyncStorage failures, and their
+promises therefore resolve even when storage is full. The journal writer also
+swallows its own failure. In that case the cache can look correct for this launch
+while the only recoverable disk copy is cleared.
+
+Phase 4 replaces that best-effort handshake with one durable batch/outbox contract:
+a stable batch or session id, journal first, idempotent writes into phrases,
+topics and drills, explicit per-store acknowledgements, and clear only after all
+required acknowledgements have landed. A crash between acknowledgement and clear
+must replay safely; storage-full must keep the batch pending and visible to the
+next retry. F118 records the regression test that closes it.
+
 ### The pre-recap window
 
 **Owner: tutor-agent. Closes in Phase 5. Open today, and it is a real loss.**

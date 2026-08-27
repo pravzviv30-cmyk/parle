@@ -105,7 +105,8 @@ Two hard behavioural commitments, both derived from confirmed research:
 
 ## Evidence on Hand
 
-Real, in-repo, already built and tested (119 passing tests):
+Real, in-repo, already built and tested. The Phase 3 landing floor is 1,791 passing
+tests across all six workspaces, including 507 in core:
 
 - 36-phoneme French inventory with English-L1 difficulty weighting — `packages/core/src/phonemes/inventory.ts`
 - 15 minimal-pair and articulation drills — `packages/core/src/phonemes/drills.ts`
@@ -114,6 +115,12 @@ Real, in-repo, already built and tested (119 passing tests):
 - Full 12-turn "Commander un café" A0 lesson — `packages/core/src/lessons/cafe.ts`
 - Session engine and summary — `packages/core/src/session/session.ts`
 - Metering and cost model — `packages/core/src/metering/meter.ts`
+- Versioned cross-device state reconciliation with per-domain conflict policies —
+  `apps/mobile/src/sync/`
+- One account-aware onboarding path with AI, privacy and microphone disclosure —
+  `apps/mobile/src/onboarding/`
+- Mission, review and generated-drill practice paths — `packages/core/src/missions/`,
+  `packages/core/src/review/`, `apps/mobile/src/missions/`, `apps/mobile/src/DrillScreen.tsx`
 
 Absent, and must not be fabricated: any user testimonials, learner counts,
 retention figures for this product, App Store presence, press, or funding.

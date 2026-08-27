@@ -4,9 +4,11 @@
 machine this was written on, so every row in [the matrix](#the-matrix) below says
 `not run`. This file is the runbook, not the result. `F71` in
 [KNOWN_ISSUES.md](KNOWN_ISSUES.md) stays open until the matrix is filled in from a
-real device pass and the outcome is recorded here, and `F114` stays open until
+real device pass and the outcome is recorded here. `F114`'s checked ledger entry
+means that this runbook and its static responsive-width contracts exist; it does
+not mean the matrix was run. Release evidence remains pending until
 [the first run on five viewports](#the-first-run-on-five-viewports) has been walked
-on the same hardware.
+and recorded, including F58's authenticated web-first-run assertions.
 
 Owner: `auth-engineer` for the auth steps, `onboarding-ux-engineer` for the
 first-run steps, `qa-release-engineer` for running all of them — independent

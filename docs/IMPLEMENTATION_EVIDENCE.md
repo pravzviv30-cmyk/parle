@@ -1,8 +1,10 @@
 # Implementation evidence
 
-Snapshot date: 2026-08-25, written at the end of Phase 1. This document separates what was
-measured on a machine from what is merely implemented. A passing local test is not proof
-that a migration, a header, a credential, a provider or a store is live.
+Snapshot date: 2026-08-27, refreshed for the Phase 3 landing floor. This document separates
+what was measured on a machine from what is merely implemented. A passing local test is not
+proof that a migration, a header, a credential, a provider or a store is live. The Phase 1
+matrix and run record below remain historical evidence; later snapshots do not rewrite what
+those runs established.
 
 The Phase 1 matrix below is the honest part. Every area carries exactly one of three
 states, and `services/token-server/src/verify/evidenceContract.test.ts` fails the gate if
@@ -17,7 +19,30 @@ one of them ever goes missing or turns into a claim nobody measured.
 A green gate is not evidence for anything on the `blocked-on` list. That is the whole point
 of the list.
 
-## Baseline
+## Current landing snapshot
+
+- Phases 1 and 2 are on `main`. Phase 2 includes the client sync engine, per-domain conflict
+  policy, restart-safe dirty registry, fresh-device adoption and the revision migration.
+- Phase 3 is implemented on `phase-3-onboarding`: one welcome, three onboarding pages,
+  age-first gating, AI/vendor/microphone disclosure, labelled fields and headings, removal of
+  the splash/why/duplicate welcome, attempt-audio cleanup, analytics contract repair, and the
+  candidate first-run mission-chooser reset. Its source contract is green; the authenticated
+  web journey has not been run, so F58 remains open.
+- The Phase 3 landing gate passes **1,791 tests, 0 failing**: core 507, brain 348, tutor agent
+  350, token server 124, playground 13, mobile 449. Typecheck is clean in all six workspaces.
+- `npm run build:web` succeeds. `npm run scan:secrets:bundles` is clean across **23 bundle
+  files**, and the current reachable repository history scan is clean. The four vendor keys
+  previously found in a local-only object still require rotation; pruning an object does not
+  revoke a credential.
+- The public web welcome and sign-up surfaces render with headings and labelled inputs and no
+  desktop horizontal overflow. A complete account creation, authenticated first-run,
+  five-viewport pass, native screen-reader pass and human stopwatch have not been run.
+- All seven migrations and seven rollback scripts pass their static contract. Migration 7,
+  `202608270001_onboarding_event_property_fix.sql`, has never been applied to any project.
+  No schema is production evidence until all seven are applied in order and the live verifier
+  passes there.
+
+## Historical Phase 1 baseline
 
 - The working tree was clean when Phase 1 started. The previous session's work is
   committed at `7d99fb6`. There is no inherited dirty worktree.
@@ -195,33 +220,32 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 | LiveKit least privilege | Measured live | Per-room token, microphone-only publish source, `maxParticipants=2` held against a forged third identity, expiry refused 90s out | Production WSS project. A five-minute join credential is still a replayable bearer token |
 | Account deletion | Measured against a disposable project | `deletion-cascade` passed: four learner tables cascaded to empty and only the pseudonymous antifraud hash survived | Device journeys need builds, and reauth-before-deletion is still F71 |
 | Analytics privacy | Measured against a disposable project, and fixed in between | The trigger rejected every write, including valid ones, until `202608250002`. `product-event-trigger` then passed on all 3 arms, and consent, opt-out and retention are stated in `PRIVACY_AND_SAFETY.md` | A direct-REST bypass attempt from a real client, and the disclosure surfaced in the product rather than in a document |
-| Secret handling | Scanned; one historical leak found and not yet rotated | Working tree clean. History carries 5 critical findings in `576bc53` naming 4 live keys, on local `codex/*` branches only and on no remote | Rotation of all four keys, then a bundle scan after `npm run build:web` |
+| Secret handling | Working tree, reachable history and built bundles scanned; rotation still outstanding | Current scans are clean, including 23 web bundle files. Phase 1 found 5 critical findings in local-only commit `576bc53`, naming 4 live keys; the object is now pruned and was on no remote | Rotation of all four keys. Repository cleanup does not revoke a credential |
 | Dependency security | Traced, one fixed and three accepted | 18 advisories, 0 critical, 7 high, 11 moderate, four roots. `@expo/metro` bumped to 56.0.2; `image-size`, `adm-zip` and `uuid` accepted with reachability arguments in `parle.dependencyAudit` | Runtime instrumentation rather than reading, and a deliberate `adm-zip` bump when the lockfile is next regenerated |
-| Cross-device learner sync | Missing | `learner_state` table is only a server contract | Client transport, envelopes, revisions, conflict policy, offline queue |
+| Cross-device learner sync | Implemented and tested locally | State envelopes, compare-and-swap revisions, per-domain merge policy, restart-safe dirty registry, fresh-device adoption and two-device simulation tests | Run `npm run verify:sync` against a live project and walk convergence on two real app devices |
 | Purchase lifecycle | Missing | Plan economics and entitlement enforcement only | Store products, receipts, webhooks, restore, renew, cancel, refund/revoke |
 | Tutor safety policy | Widened and documented | 153 deterministic patterns over 8 categories, 149 adversarial lines caught, 51 ordinary-French lines left alone, and a written policy with matching shipped copy | Professional review, live report workflow, in-app escalation UI |
-| Onboarding redesign | Partially implemented | Missions, coach marks, sound check and onboarding tests exist | Duplicate welcome removal, age/readiness/AI disclosure, full visual QA |
+| Onboarding redesign | Implemented and tested locally on Phase 3 | One welcome, age-first three-page flow, AI/vendor/mic disclosure, chooser landing, labelled fields/headings, returning-device adoption and audio cleanup | Native and five-viewport visual/accessibility QA, human time-to-first-French measurement, migration 7 deployment |
 | Practice redesign | Partially implemented | Review/drill/topic flows and curation exist | Retrieval-before-reveal across surfaces, durable batch/outbox, transfer flow |
 | Retention system | Partially implemented | My French, daily goal/activity and mission evidence exist | Passport, Tomorrow Test, reduced-help replay, weekly story, notifications |
 | Social systems | Superseded and scheduled for deletion | Fake/stale leaderboard/friend code identified | Removal after reference and persisted-data audit; no launch social backend |
-| Privacy/legal surfaces | Policy written, product surfaces missing | `PRIVACY_AND_SAFETY.md` states retention, consent, escalation and the honest limits | Reviewed privacy/terms in the app, vendor/AI disclosure screens, export and memory controls |
+| Privacy/legal surfaces | Policy plus first-run AI/vendor/mic disclosure implemented | `PRIVACY_AND_SAFETY.md`, shared first-run disclosure copy, Profile data footer and matching tests | Professionally reviewed privacy/terms, complete export and learner memory controls |
 
 ## Current focused verification
 
-- Full repository gate: **1,576 tests, 0 failing**; core 500, brain 306, tutor agent 338,
-  token server 120, playground 13, mobile 299. Typecheck clean in all six workspaces.
+- Full Phase 3 landing gate: **1,791 tests, 0 failing**; core 507, brain 348, tutor agent
+  350, token server 124, playground 13, mobile 449. Typecheck clean in all six workspaces.
 - `npm run verify:upstash`: 5 of 5 proofs, exit 0.
 - `npm run verify:supabase`: 12 of 12 proofs passed, exit 0, against a disposable project.
 - `npm run verify:voice`: 13 checks, 11 assertions held, 2 measurements recorded, exit 0,
   108.5s.
-- `npm run scan:secrets`: working tree clean. `--history`: 5 critical findings in one
-  commit. `--bundles`: blocked on build output.
+- `npm run build:web`: passed. `npm run scan:secrets:bundles`: clean across 23 files.
+  Working-tree and reachable-history scans are clean; external vendor-key rotation remains.
 - `npm run audit:ci`: 0 critical, 7 high, 11 moderate, every high root recorded.
-- Browser QA from the previous phase still stands: first-run and auth at 320, 390 and 1,280
-  pixel widths, no horizontal overflow, compact-screen actions at least 44px, and the
-  release export failing closed without Supabase configuration. Auth fields still have no
-  programmatic labels and auth screens expose no heading roles; that remains a P1
-  accessibility release blocker. Authenticated screens were not traversed.
+- Current browser smoke evidence covers the public welcome and sign-up surfaces at desktop
+  width: headings and programmatic input labels are exposed and there is no horizontal
+  overflow. The earlier 320/390/1,280 observations do not substitute for Phase 3's required
+  five-viewport and native screen-reader run. Authenticated onboarding was not completed.
 
 ## What is still outstanding
 
@@ -234,9 +258,13 @@ Each line names a blocker used in a table above.
 - **`ios-and-android-builds`** — representative device builds for Keychain and Keystore
   persistence, OAuth, microphone, deletion journeys and bundle inspection.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
-  found in commit `576bc53`. All four are still live. The commit is local-only today, and
-  pushing either `codex/*` branch would publish them, so rotate before deciding what to do
-  with those branches.
+  found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
+  rotation, even though the object is no longer reachable and was never pushed.
+- **`phase-3-schema-apply`** — apply all seven migrations, including the onboarding event
+  property fix, then reload the schema cache and run `npm run verify:supabase`.
+- **`phase-3-device-and-human-pass`** — complete the first-run matrix on iOS, Android,
+  narrow/wide web and screen readers, and time a real beginner at their own pace. The static
+  six-screen/six-tap count is not a two-minute measurement.
 
 ### Applying the schema to whatever project ships
 

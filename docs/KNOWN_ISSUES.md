@@ -1536,7 +1536,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F58 — On web, a first-ever learner lands on Home instead of the chooser
 - severity: P2
 - status: [ ]
-- where: apps/mobile/App.tsx:151
+- where: apps/mobile/App.tsx:231
 - note: found by running it, not by reading it, and the wiring is entirely correct: `App.tsx`
   sets `justOnboarded` when a brand-new profile completes (`:135`), passes it (`:151`), and
   `RootNavigator` uses it as `initialRouteName` (`:291`). It still does not happen on web.
@@ -1551,10 +1551,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the first mission is one tap away and the café is still the one offered. What is lost is the
   chooser's promise line, which is the sentence F57 is about, and the sense of being handed a
   choice rather than a default.
-  The fix is a navigation-config decision rather than a patch: either the linking config learns
-  that a just-onboarded learner resolves to Missions, or first-run navigates imperatively after
-  mount instead of relying on an initial route. Worth doing with a device pass, since native
-  and web differ here and only web is wrong.
+  The candidate fix keeps the ordinary linking map and waits for
+  `NavigationContainer.onReady`, the point at which the web URL should have finished
+  resolving. A container ref then resets the root to Missions exactly once for a new learner;
+  Missions also has an explicit `/missions` web path. The source contract is green, but that
+  cannot prove navigation precedence. Keep this issue open until an authenticated new account
+  completes onboarding from `/`, visibly lands on the chooser, can use Back to Tabs, and does
+  not repeat the reset after reload or return. Record that run in F114's matrix.
 - verified-by: `a first-ever learner reaches the chooser on web as well as on native`
 
 ### F59 — A client behind the trusted proxy can choose its own rate-limit address
@@ -2282,12 +2285,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F113 — The choosing screen says the microphone ask out loud
 - severity: P2
-- status: [ ]
-- where: apps/mobile/src/tutor/choosingView.ts:98
-- note: the Meet Luc page sets the expectation and the orb tap is already the agreement, so
-  the requirement is met this phase; the just-in-time line on the choosing screen itself
-  touches ConvoScreen, which a live concurrent session owns right now. Genuinely optional,
-  deferred without pretending otherwise.
+- status: [x]
+- where: apps/mobile/src/missions/chooserView.ts:32
+- note: the Meet Luc page still sets the expectation early. The mission chooser now repeats
+  the operational part at the decision point: the microphone opens only when the learner
+  taps the circle, and typing is available instead. The line expires after the learner's
+  first conversation, just like the first-win promise, so returning learners are not shown
+  first-run permission copy forever.
 - verified-by: `the choosing screen explains the microphone before the first tap`
 
 ### F114 — The five-viewport pass has a runbook now and a device pass later
@@ -2361,3 +2365,42 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   require the same properties for every product event` — pins key sets across all five events,
   and would not have caught this, because a widened value domain keeps the key set identical.
 - verified-by: `a sound check reports one of the kinds the model actually defines`
+
+### F118 — A failed practice write can clear the only recoverable session copy
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/ConvoScreen.tsx:370
+- note: `practiceBankedRef` is set before any store acknowledges durability, topics are
+  fired without awaiting, and `addPhrases(...).then(clearJournal)` treats a resolved promise
+  as a durable deck. `review/store.ts`, `topics/store.ts`, `drill/store.ts` and the journal's
+  own writer swallow AsyncStorage failures, so storage-full can resolve the bank operation,
+  clear the journal, and leave no copy on disk. Recovery repeats the same weak acknowledgement.
+  Phase 4 needs a versioned batch/outbox id, idempotent component writes, an explicit durable
+  acknowledgement from every required store, and a clear only after all acknowledgements.
+- verified-by: `a session journal survives until every practice store acknowledges its write`
+
+### F119 — One phrase has three incompatible answers to whether it is learned
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/profile/profile.ts:72
+- note: the brain sets `mastered` after three correct natural uses; the phrasebook calls a
+  card `steady` after two reviews and a seven-day interval; the practice path calls a node
+  complete when all cards exist and none is due. The scheduler then keeps its own reps,
+  interval and due date. Each is defensible alone and together they can show four different
+  stories about one phrase. Phase 4 must define one phrase-evidence record and make brain,
+  phrasebook, path, scheduler and cross-device profile merge projections of it. If product
+  needs distinct words such as introduced, recalled, used and transferable, name them as
+  distinct evidence states rather than treating them as synonyms for mastered.
+- verified-by: `one phrase has one evidence record behind brain phrasebook path and scheduler`
+
+### F120 — A due production card can reveal its answer before any retrieval attempt
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/ReviewScreen.tsx:150
+- note: a due card can be flipped immediately and self-graded, and vocabulary cards can play
+  the French while still on the front. That is a useful introduction for genuinely new
+  material and weak evidence for something the scheduler says is due. Phase 4 must distinguish
+  new from previously learned content: keep scaffolded introduction for new cards, but require
+  a spoken, typed or explicit mental attempt before a due production answer and its help are
+  revealed. The resulting attempt must feed the same evidence source F119 defines.
+- verified-by: `a due production item requires retrieval before its answer is revealed`

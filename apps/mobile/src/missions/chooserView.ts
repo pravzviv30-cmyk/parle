@@ -35,6 +35,9 @@ import {
 /** Shown before the first conversation, and never again. */
 export const PROMISE = "You'll say your first useful French line in the next two minutes.";
 
+/** The just-in-time permission promise, beside the first scene rather than behind it. */
+export const MICROPHONE_NOTICE = 'The microphone opens only when you tap the circle. You can type instead.';
+
 export const CHOOSER_HEADLINE = 'What do you want to be able to do?';
 export const CHOOSER_SUB = 'Pick a situation. Your tutor plays the other person.';
 
@@ -68,6 +71,8 @@ export interface ChooserView {
   sub: string;
   /** Null once the learner has had a conversation. */
   promise: string | null;
+  /** Null once the learner has already crossed the speaking door. */
+  microphoneNotice: string | null;
   cards: ChooserCard[];
   talkFreely: string;
 }
@@ -144,6 +149,7 @@ export function chooserView(input: ChooserInput): ChooserView {
     headline: CHOOSER_HEADLINE,
     sub: CHOOSER_SUB,
     promise: input.spokenBefore ? null : PROMISE,
+    microphoneNotice: input.spokenBefore ? null : MICROPHONE_NOTICE,
     cards: ordered.map((p, i) => ({
       id: p.mission.id,
       mission: p.mission,

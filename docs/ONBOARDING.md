@@ -75,6 +75,16 @@ typing is there if you cannot speak out loud. Every line comes from
 `onboarding/disclosure.ts`, which also feeds the welcome subline and TutorIntro's
 persona page, so the three cannot drift apart.
 
+**The chooser keeps both first-run promises at the point of action.** A learner
+who has never spoken sees the first-useful-line promise and one just-in-time line:
+the microphone opens only when they tap the circle, and they can type instead.
+Both expire after the first conversation. On web, `NavigationContainer` resolves
+`/` to Home before a stack `initialRouteName` can win, so `App.tsx` waits for
+`onReady` and resets the new learner's root to Missions exactly once. Native uses
+the same rule; the flag is never persisted. This is the implemented mechanism,
+not runtime proof: F58 stays open until the authenticated web journey in
+`DEVICE_VERIFICATION.md` has been observed and recorded.
+
 Net: one page removed, one page added, one screen of splash removed twice over,
 and a learner who now knows what they are talking to before they talk to it.
 
@@ -127,3 +137,4 @@ instead of eight, and that is all it means.
 | Who is asked at all | `apps/mobile/src/app/ProfileContext.tsx` |
 | What is stored afterwards | `apps/mobile/src/profile/store.ts`, [STATE_AND_STORAGE.md](STATE_AND_STORAGE.md) |
 | What the first run promises a learner | [PRIVACY_AND_SAFETY.md](PRIVACY_AND_SAFETY.md) |
+| Why the chooser opens after web linking resolves | `apps/mobile/App.tsx`, `apps/mobile/src/nav/theme.ts` |

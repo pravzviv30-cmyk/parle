@@ -741,8 +741,9 @@ describe('the evidence matrix is honest about what Phase 1 actually proved', () 
     // Every gate this document quotes has to add up. The totals are found rather than
     // listed: pinning "1,557" here is how the document came to carry a mid-phase number
     // in three places while the gate said something else, so the rule is now the
-    // arithmetic and not the value. A count below its own floor is impossible, and says
-    // the number was typed rather than read.
+    // arithmetic and not the value. Floors are monotonic, though, and historical runs
+    // are supposed to fall below today's floor. Only the newest (largest) recorded gate
+    // has to defend the current floor; rewriting old measurements would destroy evidence.
     const floors: Record<string, number> = JSON.parse(readFileSync(FLOORS_PATH, 'utf8'));
     const workspaceOf: Record<string, string> = {
       core: '@parle/core',
@@ -754,6 +755,7 @@ describe('the evidence matrix is honest about what Phase 1 actually proved', () 
     };
     const claims = [...evidence.matchAll(/\*\*([\d,]+) tests/g)];
     assert.ok(claims.length >= 2, 'the document records fewer than two gate runs, so nothing can be compared');
+    const runs: { label: string; total: number; counts: Map<string, number> }[] = [];
     for (const claim of claims) {
       const label = claim[1]!;
       // Bounded to the bullet it lives in, or the next bullet's six numbers join in
@@ -766,14 +768,18 @@ describe('the evidence matrix is honest about what Phase 1 actually proved', () 
       assert.equal(parts.length, 6, `the ${label} gate does not name all six workspaces`);
       const total = parts.reduce((sum, part) => sum + Number(part[2]), 0);
       assert.equal(total, Number(label.replace(/,/g, '')), `the ${label} gate's six workspace counts do not sum to ${label}`);
-      for (const part of parts) {
-        const floor = floors[workspaceOf[part[1]!]!];
-        assert.ok(floor !== undefined, `no floor is recorded for ${part[1]}`);
-        assert.ok(
-          Number(part[2]) >= floor,
-          `the ${label} gate records ${part[1]} at ${part[2]}, below its floor of ${floor} in scripts/gate.floors.json`,
-        );
-      }
+      runs.push({ label, total, counts: new Map(parts.map((part) => [part[1]!, Number(part[2])])) });
+    }
+    const newest = runs.reduce((largest, run) => (run.total > largest.total ? run : largest));
+    for (const [name, workspace] of Object.entries(workspaceOf)) {
+      const floor = floors[workspace];
+      assert.ok(floor !== undefined, `no floor is recorded for ${name}`);
+      const count = newest.counts.get(name);
+      assert.ok(count !== undefined, `the ${newest.label} gate does not record ${name}`);
+      assert.ok(
+        count >= floor,
+        `the newest ${newest.label} gate records ${name} at ${count}, below its current floor of ${floor}`,
+      );
     }
     assert.ok(evidence.includes('1,495'), 'the document no longer records the 1,495-test pre-phase baseline');
   });

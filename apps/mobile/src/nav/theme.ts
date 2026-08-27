@@ -58,6 +58,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Drill: 'drill',
       Review: 'review',
       SoundCheck: 'sound-check',
+      Missions: 'missions',
     },
   },
 };

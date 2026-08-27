@@ -15,7 +15,16 @@ import { fileURLToPath } from 'node:url';
 import { FIRST_MISSION, MISSIONS, missionStates, newCard, type MissionCompletion, type ReviewCard } from '@parle/core';
 
 import { tutorDoors } from '../tutor/gate.ts';
-import { PROMISE, TALK_FREELY, chooserView, hasSpokenBefore, headMissionId, missionStatus, resumableMission } from './chooserView.ts';
+import {
+  MICROPHONE_NOTICE,
+  PROMISE,
+  TALK_FREELY,
+  chooserView,
+  hasSpokenBefore,
+  headMissionId,
+  missionStatus,
+  resumableMission,
+} from './chooserView.ts';
 
 const read = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -62,6 +71,16 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     assert.ok(!app.includes("userKey('justOnboarded')"), 'the first-run flag is persisted, so a reinstall is the only way out of it');
   });
 
+  test('a first-ever learner reaches the chooser on web as well as on native', () => {
+    const app = stripComments(read('../../App.tsx'));
+    assert.match(app, /useNavigationContainerRef<RootStackParamList>/, 'the web URL can still overrule the first-run route');
+    assert.match(app, /onReady=\{openFirstMissionChooser\}/, 'nothing waits for web linking to finish resolving the initial URL');
+    assert.match(app, /navigationRef\.resetRoot\([\s\S]*name:\s*'Missions'/, 'the ready navigator never replaces the URL-selected Home route');
+
+    const links = stripComments(read('../nav/theme.ts'));
+    assert.match(links, /Missions:\s*'missions'/, 'the first-run destination has no web URL');
+  });
+
   test('every mission card routes to a conversation carrying its mission id', () => {
     const view = firstEver();
     for (const card of view.cards) {
@@ -97,6 +116,24 @@ describe('the first-win chooser — what a learner who has never spoken is shown
 
     assert.ok(!/—/.test(PROMISE), 'the promise carries an em dash');
     assert.match(stripComments(read('./MissionsScreen.tsx')), /view\.promise/, 'the screen never draws the promise');
+  });
+
+  test('the choosing screen explains the microphone before the first tap', () => {
+    assert.equal(firstEver().microphoneNotice, MICROPHONE_NOTICE);
+    assert.match(MICROPHONE_NOTICE, /microphone/i, 'the notice never names the permission it is preparing for');
+    assert.match(MICROPHONE_NOTICE, /tap the circle/i, 'the notice does not say when the microphone opens');
+    assert.match(MICROPHONE_NOTICE, /type/i, 'the notice leaves no quiet way through');
+    assert.ok(!/—/.test(MICROPHONE_NOTICE), 'the notice carries an em dash');
+    assert.equal(
+      chooserView({ progress: missionStates([], [], NOW), spokenBefore: true }).microphoneNotice,
+      null,
+      'the chooser repeats first-run permission copy after the learner has spoken',
+    );
+    assert.match(
+      stripComments(read('./MissionsScreen.tsx')),
+      /view\.microphoneNotice/,
+      'the decision exists but the chooser never puts it on glass',
+    );
   });
 
   test('talk freely is still a door, and not the first one for a beginner', () => {
