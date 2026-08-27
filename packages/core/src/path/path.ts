@@ -18,6 +18,7 @@
  */
 
 import type { DrillExercise } from '../drill/types.ts';
+import { isDue } from '../review/evidence.ts';
 import type { ReviewCard } from '../review/scheduler.ts';
 import type { PracticeTopic } from '../topics/topics.ts';
 
@@ -278,11 +279,17 @@ function drillableKeys(keys: readonly string[], bank: readonly DrillExercise[]):
   return keys.filter((key) => bank.some((exercise) => exercise.phraseKey === key));
 }
 
+/**
+ * Completion is unchanged from the day this file was written. What moved is
+ * where "due" is decided: `isDue` in the evidence module, so the map, the
+ * missions list, the deck and the phrasebook cannot end an afternoon
+ * disagreeing about whether a phrase is wanted back.
+ */
 function stateForPhrases(keys: readonly string[], deck: readonly ReviewCard[], now: number): NodeState {
   if (keys.length === 0) return 'available';
   const cards = deck.filter((c) => keys.includes(c.id));
   if (cards.length === 0) return 'available';
-  if (cards.some((c) => c.due <= now)) return cards.length === keys.length ? 'needs-review' : 'in-progress';
+  if (cards.some((c) => isDue(c, now))) return cards.length === keys.length ? 'needs-review' : 'in-progress';
   return cards.length === keys.length ? 'complete' : 'in-progress';
 }
 

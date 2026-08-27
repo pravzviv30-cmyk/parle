@@ -12,6 +12,12 @@
  * same card the flashcard deck shows, so a phrase can never be "known" in one
  * place and "due" in the other.
  *
+ * `transfer` is the other half of that record. The ramp asks for less
+ * scaffolding each sitting; a transfer exercise asks for the same phrase in a
+ * different situation, which is the harder and more useful thing. Marking it
+ * on the exercise is what lets a correct answer count as transfer evidence
+ * without anyone guessing after the fact which exercises were which.
+ *
  * `noMicTwin` exists because "I can't speak right now" is a situation, not a
  * preference to be argued with. Pre-authoring the silent equivalent makes the
  * swap a data lookup mid-session instead of a generator call we may not be able
@@ -30,6 +36,17 @@ interface DrillExerciseBase {
   phraseKey: string;
   /** Recognition means choosing or assembling given French; production means recalling it. */
   difficulty: DrillDifficulty;
+  /**
+   * This exercise asks the same phrase in a changed situation: another speaker,
+   * another intent, another moment. Getting it right is the one drill outcome
+   * that says the language travelled beyond where it was learned, so it feeds
+   * the phrase's evidence record rather than a score.
+   *
+   * Absent means false. Every hand-written fixture and every bank authored
+   * before the mark existed predates it, and reading those as transfer would
+   * be inventing evidence.
+   */
+  transfer?: boolean;
 }
 
 export interface FillBlankExercise extends DrillExerciseBase {

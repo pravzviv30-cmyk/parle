@@ -2369,7 +2369,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F118 — A failed practice write can clear the only recoverable session copy
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/ConvoScreen.tsx:370
 - note: `practiceBankedRef` is set before any store acknowledges durability, topics are
   fired without awaiting, and `addPhrases(...).then(clearJournal)` treats a resolved promise
@@ -2378,11 +2378,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   clear the journal, and leave no copy on disk. Recovery repeats the same weak acknowledgement.
   Phase 4 needs a versioned batch/outbox id, idempotent component writes, an explicit durable
   acknowledgement from every required store, and a clear only after all acknowledgements.
+  Closed by F124: journal v3 carries the batch id and the counts, `bankPractice` requires three
+  durable acknowledgements before the clear, and ConvoScreen's two banks both route through it.
 - verified-by: `a session journal survives until every practice store acknowledges its write`
 
 ### F119 — One phrase has three incompatible answers to whether it is learned
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/profile/profile.ts:72
 - note: the brain sets `mastered` after three correct natural uses; the phrasebook calls a
   card `steady` after two reviews and a seven-day interval; the practice path calls a node
@@ -2396,7 +2398,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F120 — A due production card can reveal its answer before any retrieval attempt
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/ReviewScreen.tsx:150
 - note: a due card can be flipped immediately and self-graded, and vocabulary cards can play
   the French while still on the front. That is a useful introduction for genuinely new
@@ -2404,4 +2406,163 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   new from previously learned content: keep scaffolded introduction for new cards, but require
   a spoken, typed or explicit mental attempt before a due production answer and its help are
   revealed. The resulting attempt must feed the same evidence source F119 defines.
+  Closed by F126 and F127: `review/cardView.ts` obeys core's `presentationOf`, holds the French,
+  its context, its IPA and Hear-it back until Type-it or I-said-it lands, and hands the attempt
+  to `gradeCard` as context so a good or easy grade raises `evidence.retrievals`.
 - verified-by: `a due production item requires retrieval before its answer is revealed`
+
+### F121 — One phrase-evidence record in core, and every verdict is a projection of it
+- severity: P1
+- status: [x]
+- where: packages/core/src/review/evidence.ts:1
+- note: `ReviewCard` gains the monotone `evidence` block; the states introduced, recalled,
+  used and transferred live in one pure module with the only copies of `MASTERY_USES`,
+  `SETTLED_REPS` and `SETTLED_DAYS`; brain (profile.ts:73), phrasebook (phrasebook.ts:73)
+  and path (path.ts:286) import rather than re-decide. Closes the substance of F119.
+  Core, brain, path and the phrasebook are done: `phrasebook.ts` deleted its `STEADY_REPS`
+  and `STEADY_DAYS` and asks `isDue`/`isSettled` instead, with the same three learner-facing
+  words. The core test pins that the verdict is identical on every combination of reps,
+  interval and dueness, and `a phrase settles on the numbers core keeps, wherever core puts
+  them` drives the shelf off the exported thresholds so a change in core reaches it.
+- verified-by: `one phrase has one evidence record behind brain phrasebook path and scheduler`
+
+### F122 — Two decks converge evidence without touching scheduling
+- severity: P1
+- status: [x]
+- where: packages/core/src/review/merge.ts:229
+- note: `winner()` keeps whole-card scheduling; the `evidence` block alone merges field-wise
+  max. Max of monotone counters keeps the merge commutative, idempotent and associative, so
+  the property tests extend rather than weaken. `sync/policy.ts` is untouched, and the
+  `review` namespace already carries whole cards as jsonb, so no migration either.
+  `canonical()` had to stop reading the block: a tiebreak that orders on a field the
+  merge rewrites makes the merge non-associative, proved by `the tiebreak never reads the
+  counters the merge itself rewrites`.
+- verified-by: `two devices converge evidence counters to the larger count without touching scheduling`
+
+### F123 — A store write answers durable or failed instead of swallowing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/review/store.ts:111
+- note: `saveDeck`, `saveTopics` and the drill save return `PersistAck`; public writers
+  propagate it; a failed write still serves this launch from cache and never raises
+  `markDirty`, per the registry's own rule at sync/registry.ts:181.
+- verified-by: `a failed store write answers failed and never raises the dirty flag`
+
+### F124 — The journal clears only after every required store acknowledges
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/journal.ts:99
+- note: journal v3 carries `batchId` and `convoUses`; `bankPractice` requires durable acks
+  from topics, review and drills before `clearJournal`; ConvoScreen.tsx:370 and :383 both
+  route through it and the ref stops claiming durability. Closes the substance of F118.
+  Both halves shipped. `bankPractice` and the ack-gated clear are in `live/journal.ts`, and
+  ConvoScreen's two banks are now one `practiceBatch` builder and two `bankPractice` calls:
+  the practice effect and `leaveNow`'s early exit. `practiceBankedRef` is an initiation guard
+  only and claims nothing about a disk. `ConvoScreen.test.ts` runs both batches against a
+  faulted disk and reads the screen for the three writes that used to bypass the outbox.
+- verified-by: `a session journal survives until every practice store acknowledges its write`
+- verified-by: `a storage-full bank keeps the journal for the next launch`
+
+### F125 — Recovery replays a kept batch without double banking
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/journal.ts:125
+- note: `recoverJournal` uses the same ack-gated clear; a crash between acknowledgement and
+  clear replays idempotently because merges are content-identity and the convoUses fold is
+  max, and earned scheduling survives via `mergeCards`' contract.
+- verified-by: `a crash between acknowledgement and clear replays the batch without double banking`
+
+### F126 — A due production card asks for the attempt before the answer
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/ReviewScreen.tsx:150
+- note: `presentationOf` in core decides introduction versus retrieval; retrieval shows the
+  English side with Type-it and I-said-it, and the French plus Hear-it appear only after an
+  attempt. New cards and phoneme cards keep today's scaffolded introduction. Speech is
+  invited, never forced, never captured. Closes the substance of F120.
+  Shipped in `apps/mobile/src/review/cardView.ts`: the screen renders a view and decides
+  nothing. A vocab retrieval inverts (the English prompts, the French answers), a turn
+  retrieval only gains the gate, and the French, its context, its IPA and Hear-it are withheld
+  together, because the sentence a word came out of gives the word away. A typed answer is
+  echoed back with no verdict, no colour and no mark. The reveal is announced rather than
+  swapped in silently, and the screen holds no microphone, no recorder and no network call.
+- verified-by: `a due production item requires retrieval before its answer is revealed`
+- verified-by: `a genuinely new card keeps its scaffolded introduction`
+
+### F127 — The attempt feeds the evidence record
+- severity: P1
+- status: [x]
+- where: packages/core/src/review/scheduler.ts:102
+- note: `applyGrade` takes optional attempt context; a good or easy grade after a typed or
+  said attempt bumps `evidence.retrievals`; `gradeCards` carries the context through. This
+  is the F120 to F119 feed, in code not copy.
+- verified-by: `a graded retrieval attempt raises recall evidence on its card`
+
+### F128 — Transfer drills record transfer in the same record
+- severity: P1
+- status: [x]
+- where: packages/core/src/drill/types.ts:23
+- note: `transfer?: boolean` on the exercise base, emitted by the generator schema at
+  brain/src/drill/generate.ts:139 whose one-third-transfer instruction already exists; a
+  correct transfer-marked answer bumps `evidence.transfers` through `applyDrillResults`.
+  No parallel score, no generation policy change.
+  The device path is real too: `DrillScreen.tsx` was destructuring the mark away one line
+  before the store, so core recorded transfer and the learner's own card never heard about it.
+  `a transfer drill answered right raises transfer evidence on the phrase the learner owns`
+  runs the real summary through the real store and would fail again on that map.
+- verified-by: `a correct transfer drill raises transfer evidence on the same phrase record`
+
+### F129 — Conversation use enters evidence through the bank
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/journalRules.ts:49
+- note: the journal batch carries `convoUses` read from the recap profile via
+  `repairProfile`; the review store folds it by max in the same acknowledged write as the
+  phrases, so replay cannot inflate it and the brain's `mastered` becomes a projection of
+  the same count.
+  Journal and store shipped, and the named test passes end to end through `bankPractice`.
+  The device path is wired too: `useLiveSession.ts:618` now calls
+  `journalRecap(msg.recap, { profile: msg.profile })`, so the counts come off the real
+  profile rather than an empty one, and `ConvoScreen` builds its batch with `convoUsesFrom`
+  rather than a count worked out on the screen.
+- verified-by: `a banked conversation raises used-in-conversation evidence for its phrases`
+- verified-by: `the counts a conversation earned reach the journal, not just the end card`
+
+### F130 — Docs and floors record Phase 4 from measured results only
+- severity: P1
+- status: [x]
+- where: docs/DELIVERY_ROADMAP.md:22
+- note: the stale phase-boundary section goes (Phase 3 merged at 2a86092), the Phase 4 row
+  and STATE_AND_STORAGE's gap section describe only what shipped and passed, the five
+  external checks are listed as pending in those words, and floors rise solely through
+  `npm run gate:bless` after every suite is green.
+  Shipped. The boundary section records the merge that happened, the Phase 4 row reads as
+  built and tested on `phase-4-practice`, and the pending list carries six external checks
+  rather than five: migration 7 deployment, a Supabase-authenticated first run, the device
+  and five-viewport matrix, the F57 stopwatch, vendor key rotation and F79. The register
+  closes the swallowed-failure risk and records the three Phase 4 accepted and the one it
+  left open. `practice/practiceRecord.test.ts` is a contract rather than a spell-check: it
+  asks the ledger, the outstanding blocker list and DEVICE_VERIFICATION whether a check is
+  still pending, refuses a claim word in any sentence that does not deny it, and looks up
+  every path and code name these sections cite in shipped source. Ten mutations of the
+  docs were tried and all ten failed it. Floors were blessed by the founder afterwards, to
+  core 524, brain 349, tutor agent 350, token server 124, playground 13, mobile 505, and
+  that is what found the last stale claim: `IMPLEMENTATION_EVIDENCE.md` still recorded the
+  Phase 3 landing gate as the newest run, so `the stale audit and baseline claims are gone
+  from the evidence document` went red against the new floors. Both gate records are in
+  that document now, Phase 3 kept beside Phase 4, and this entry's test grew the link the
+  gap needed: a gate the roadmap quotes has to be a gate the evidence document records,
+  with the same six numbers.
+- verified-by: `the roadmap and storage docs match the shipped practice contract`
+
+### F131 — A null evidence block off the wire throws instead of reading as zero
+- severity: P1
+- status: [x]
+- where: packages/core/src/review/evidence.ts:105
+- note: `evidenceOf` returns `NO_EVIDENCE` for `undefined` and then dereferences, so
+  `evidence: null` is a `TypeError` on a screen. `JSON.stringify` renders `NaN` and
+  `Infinity` as `null`, so the wire produces exactly that shape routinely. The function's
+  own comment already promises the opposite: junk reads as zero rather than throwing, and a
+  corrupt counter should cost one claim about one phrase, never the screen. `merge.ts`
+  guards its own path, so every other caller is the exposed one.
+- verified-by: `a null evidence block reads as zero rather than throwing`

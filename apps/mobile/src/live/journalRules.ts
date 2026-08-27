@@ -20,6 +20,19 @@
  * A version 1 journal left by the previous build is still read: it simply has no
  * drills, which is the truth about it rather than a shape to reject.
  *
+ * **Version 3 adds a name for the batch and the conversation counts.** The name
+ * is `batchId`, and it is honest about being small: it is what lets the clear at
+ * the end of banking delete the batch that was banked rather than whatever
+ * happens to be under the key by then. It is NOT what makes banking safe to
+ * repeat — that is content identity, decided by `mergeCards`, `mergeTopics` and
+ * `mergeExerciseBank`, each of which folds on the id a phrase or drill already
+ * has. `convoUses` is the other half of what a conversation earned: the brain
+ * counts a phrase every time the learner uses it correctly without being asked,
+ * and until version 3 that count reached the profile and never reached the deck,
+ * so the review card for a phrase someone had genuinely started using looked
+ * exactly like the card for one they had read once. Version 1 and version 2
+ * envelopes are still read and simply carry neither.
+ *
  * The rules are here rather than in the store for the reason live/thinking.ts
  * exists: apps/mobile has no renderer, so anything worth checking has to be
  * reachable without one. The store is a versioned envelope and a write chain,
@@ -32,9 +45,15 @@
  * curation. Curation is the agent's decision. The app does not get to invent it.
  */
 
-import type { ConvoPhrase, DrillExercise, IncomingTopic, RecapPayload } from '@parle/core';
+import { phraseKeyOf, type ConvoPhrase, type DrillExercise, type IncomingTopic, type RecapPayload } from '@parle/core';
+import { MAX_PHRASES, repairProfile } from '@parle/brain/profile';
 
-export const JOURNAL_VERSION = 2;
+// The store folds these counts into the deck, so the shape is defined where the
+// fold lives. A type-only import: nothing in this file touches a disk, which is
+// what keeps every rule here checkable without a device.
+import type { PhraseUse } from '../review/store.ts';
+
+export const JOURNAL_VERSION = 3;
 
 /**
  * Every envelope version this build can still bank.
@@ -42,14 +61,25 @@ export const JOURNAL_VERSION = 2;
  * Repair forward, never reinterpret in place: a v1 journal is read as itself and
  * the fields it never had come back empty. Dropping v1 would mean the one
  * learner whose app died mid-session on the day they updated loses that session
- * to the upgrade, which is the exact failure this file exists to prevent.
+ * to the upgrade, which is the exact failure this file exists to prevent. The
+ * same now goes for v2, which is on every phone running the build before this
+ * one.
  */
-const READABLE_VERSIONS: readonly number[] = [1, JOURNAL_VERSION];
+const READABLE_VERSIONS: readonly number[] = [1, 2, JOURNAL_VERSION];
 
 export interface SessionJournal {
   version: typeof JOURNAL_VERSION;
   /** When the recap landed. Kept for debugging, never shown to a learner. */
   savedAt: number;
+  /**
+   * This batch's name, minted when the recap is journalled.
+   *
+   * `savedAt` plus a random suffix — no dependency, and no claim to be a UUID.
+   * Its one job is the clear at the end of banking: delete the batch that was
+   * banked, never whatever is under the key by the time the acknowledgements
+   * come back. Banking twice is made safe by content identity, not by this.
+   */
+  batchId: string;
   phrases: ConvoPhrase[];
   topics: { fr: string; en: string }[];
   /**
@@ -59,6 +89,48 @@ export interface SessionJournal {
    * talks for an hour cannot grow this envelope without limit.
    */
   drills: DrillExercise[];
+  /**
+   * Lifetime counts of correct unprompted use, read off the recap's learner
+   * model. Totals rather than deltas, and bounded by `MAX_PHRASES`, which is
+   * the cap the model itself keeps.
+   */
+  convoUses: PhraseUse[];
+}
+
+/**
+ * A name for this batch. `savedAt` first so it sorts, a random tail so two
+ * sessions saved in the same millisecond are still two batches.
+ */
+function mintBatchId(savedAt: number): string {
+  return `b${savedAt.toString(36)}.${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/**
+ * What the learner used well in conversation, off the profile blob the recap
+ * arrived with.
+ *
+ * Through `repairProfile`, because that is the single forward-migration point
+ * for a learner model and this blob came off the wire from a build that may not
+ * be this one. Anything it cannot make sense of comes back as an empty list
+ * rather than a throw: a fold that is skipped loses nothing that was ever on
+ * disk, while a recap that crashed on the way to the journal loses the session.
+ *
+ * Only counts above zero are carried. A zero raises nothing on the way in, so
+ * keeping it would be envelope weight with no effect. If the model somehow
+ * holds more phrases than its own cap, the smallest counts are the ones
+ * dropped: a phrase used once has the least to lose.
+ */
+export function convoUsesFrom(profile: unknown): PhraseUse[] {
+  try {
+    const used = Object.values(repairProfile(profile).phrases)
+      .filter((phrase) => typeof phrase.timesUsedWell === 'number' && phrase.timesUsedWell > 0)
+      .map((phrase) => ({ fr: phrase.fr, uses: Math.floor(phrase.timesUsedWell) }))
+      .filter((use) => typeof use.fr === 'string' && use.fr.trim() !== '');
+    if (used.length <= MAX_PHRASES) return used;
+    return [...used].sort((a, b) => b.uses - a.uses).slice(0, MAX_PHRASES);
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -68,13 +140,15 @@ export interface SessionJournal {
  * the card the learner is looking at right now, and re-showing them a day later
  * would be strange. Phrases, topics and drills are what become practice.
  */
-export function journalFor(recap: RecapPayload, savedAt: number): SessionJournal {
+export function journalFor(recap: RecapPayload, savedAt: number, profile: unknown = null): SessionJournal {
   return {
     version: JOURNAL_VERSION,
     savedAt,
+    batchId: mintBatchId(savedAt),
     phrases: recap.phrases.filter((phrase) => phrase.fr.trim() !== ''),
     topics: recap.topics,
     drills: [],
+    convoUses: convoUsesFrom(profile),
   };
 }
 
@@ -94,11 +168,23 @@ export function journalWithDrills(
   const base: SessionJournal = existing ?? {
     version: JOURNAL_VERSION,
     savedAt,
+    batchId: mintBatchId(savedAt),
     phrases: [],
     topics: [],
     drills: [],
+    convoUses: [],
   };
-  return { ...base, version: JOURNAL_VERSION, drills: [...drills] };
+  // `existing` came off a disk an older build may have written, so the two
+  // fields version 3 added are repaired forward here rather than assumed. A
+  // batch with no name would be cleared by anything; an unreadable count list
+  // reads as no counts.
+  return {
+    ...base,
+    version: JOURNAL_VERSION,
+    batchId: typeof base.batchId === 'string' && base.batchId !== '' ? base.batchId : mintBatchId(savedAt),
+    convoUses: Array.isArray(base.convoUses) ? base.convoUses : [],
+    drills: [...drills],
+  };
 }
 
 /** Whether there is anything in it worth a write, or a recovery. */
@@ -131,6 +217,35 @@ const isDrill = (value: unknown): value is DrillExercise => {
   return typeof drill.id === 'string' && typeof drill.phraseKey === 'string' && typeof drill.kind === 'string';
 };
 
+/** A count is a French line and a number, and nothing off a disk is trusted to be. */
+const isUse = (value: unknown): value is PhraseUse =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as PhraseUse).fr === 'string' &&
+  typeof (value as PhraseUse).uses === 'number' &&
+  Number.isFinite((value as PhraseUse).uses);
+
+/**
+ * Everything one conversation asks the practice stores to keep.
+ *
+ * The shape `bankPractice` takes, and deliberately the shape a recovered
+ * journal produces, so a session banked on the way out of the room and a
+ * session banked at the next launch travel the identical path. Two paths would
+ * be two sets of bugs.
+ */
+export interface PracticeBatch {
+  /**
+   * The journal entry this batch came out of, or null for a batch banked
+   * straight from a live session and for an envelope written before v3. Only
+   * the clear reads it, and only to avoid deleting a batch it did not bank.
+   */
+  batchId: string | null;
+  phrases: ConvoPhrase[];
+  topics: IncomingTopic[];
+  drills: DrillExercise[];
+  convoUses: PhraseUse[];
+}
+
 /**
  * What to do with whatever was found on disk at launch.
  *
@@ -140,9 +255,7 @@ const isDrill = (value: unknown): value is DrillExercise => {
  * than a crash, on the same reasoning as topics/store.ts — the deck underneath
  * lost nothing, and the alternative is an app that will not open.
  */
-export function recoveryPlan(
-  raw: unknown,
-): { phrases: ConvoPhrase[]; topics: IncomingTopic[]; drills: DrillExercise[] } | null {
+export function recoveryPlan(raw: unknown): PracticeBatch | null {
   if (typeof raw !== 'object' || raw === null) return null;
   const candidate = raw as Partial<SessionJournal>;
   if (typeof candidate.version !== 'number' || !READABLE_VERSIONS.includes(candidate.version)) return null;
@@ -151,10 +264,12 @@ export function recoveryPlan(
     ? candidate.phrases.filter(isPhrase).filter((phrase) => phrase.fr.trim() !== '')
     : [];
   const drills = Array.isArray(candidate.drills) ? candidate.drills.filter(isDrill) : [];
+  // Counts alone are not a session. They raise evidence on cards that are
+  // already in the deck, and a journal holding nothing else has nothing to bank.
   if (phrases.length === 0 && drills.length === 0) return null;
 
   const topicList = Array.isArray(candidate.topics) ? candidate.topics.filter(isTopic) : [];
-  const phraseKeys = phrases.map((phrase) => `phrase:${phrase.fr.trim().toLowerCase()}`);
+  const phraseKeys = phrases.map((phrase) => phraseKeyOf(phrase.fr));
 
   // Every recovered phrase goes under the session's first topic, which is the
   // scene itself. That is the same shape the leave-early fallback already banks,
@@ -162,10 +277,15 @@ export function recoveryPlan(
   // than two subtly different ones.
   const home = topicList[0];
   return {
+    // An envelope from before v3 has no name, and says so rather than being
+    // given one now: a name minted at recovery would claim to identify a batch
+    // it was not there for.
+    batchId: typeof candidate.batchId === 'string' && candidate.batchId !== '' ? candidate.batchId : null,
     phrases,
     // A topic with no phrases under it is a heading pointing at nothing, so a
     // drills-only recovery carries no topic at all.
     topics: home === undefined || phraseKeys.length === 0 ? [] : [{ title: home, phraseKeys }],
     drills,
+    convoUses: Array.isArray(candidate.convoUses) ? candidate.convoUses.filter(isUse) : [],
   };
 }

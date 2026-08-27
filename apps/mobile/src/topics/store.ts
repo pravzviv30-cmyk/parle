@@ -16,6 +16,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mergeTopics, type IncomingTopic, type PracticeTopic } from '@parle/core';
+import type { PersistAck } from '../storage/ack.ts';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
@@ -78,12 +79,23 @@ export function loadTopics(): Promise<PracticeTopic[]> {
   return readTopics(KEY());
 }
 
-async function saveTopics(key: string, topics: readonly PracticeTopic[], origin: WriteOrigin): Promise<void> {
+/**
+ * The one place this store touches the disk, and the one place it says so.
+ *
+ * `markDirty` sits inside the try because of the registry's own rule at
+ * sync/registry.ts:181: a flag raised for a write that then failed would push
+ * whatever happened to be on disk, which is the previous value. What the caller
+ * gets back is the same fact in one word, so an outbox can tell a banked
+ * session from a session that only looked banked.
+ */
+async function saveTopics(key: string, topics: readonly PracticeTopic[], origin: WriteOrigin): Promise<PersistAck> {
   try {
     await AsyncStorage.setItem(key, JSON.stringify({ version: VERSION, topics: [...topics] } satisfies StoredTopics));
     if (origin === 'local') markDirty('topics');
+    return 'durable';
   } catch {
     // Storage full or unavailable. The deck still banked the phrases.
+    return 'failed';
   }
 }
 
@@ -91,11 +103,12 @@ async function saveTopics(key: string, topics: readonly PracticeTopic[], origin:
 export function mergeSessionTopics(
   incoming: readonly IncomingTopic[],
   discussedOn = new Date().toISOString().slice(0, 10),
-): Promise<void> {
-  if (incoming.length === 0) return Promise.resolve();
+): Promise<PersistAck> {
+  // No topics is no write, and no write is nothing that can have been lost.
+  if (incoming.length === 0) return Promise.resolve('durable');
   return serialized(async (key) => {
     const existing = await readTopics(key);
-    await saveTopics(key, mergeTopics(existing, incoming, discussedOn), 'local');
+    return saveTopics(key, mergeTopics(existing, incoming, discussedOn), 'local');
   });
 }
 

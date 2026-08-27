@@ -1,6 +1,6 @@
 # Risk register
 
-Updated 2026-08-27 for the Phase 3 landing floor. Every row says whether its control was
+Updated 2026-08-27 for the Phase 4 practice floor. Every row says whether its control was
 **measured**, is **blocked** on a named external thing, or is **accepted** with the
 reasoning written down. Those are the same three states the Phase 1 matrix uses, and
 `docs/IMPLEMENTATION_EVIDENCE.md` carries the numbers behind each one.
@@ -9,10 +9,13 @@ Read every "measured" in the database rows with one qualifier attached: the run 
 a **disposable** project, created for the proofs and thrown away. There is no production
 project yet, so nothing here has been applied to one.
 
-Three rows changed character in this phase. One theoretical risk turned out to be live
+Three rows changed character in Phase 1. One theoretical risk turned out to be live
 (trial farming, F73). One control this register claimed was in place was refuted by
 measurement and then rebuilt (failed-room billing, F76). One risk it carried was refuted
 outright and cost less than it said (abandoned rooms, F78). All three are under the table.
+
+Phase 4 closed a fourth (lost practice, F118) and accepted three new risks in exchange,
+plus one question it left open on purpose. Those are under the table too.
 
 | Risk | Severity | Owner | Control now | Evidence state | Remaining action |
 |---|---|---|---|---|---|
@@ -32,7 +35,7 @@ outright and cost less than it said (abandoned rooms, F78). All three are under 
 | Analytics is silently dead in a deployed schema | P1 | data-sync, privacy-safety | `202608250002` fixes property counting; `202608270001` updates the onboarding property contract after the why page was removed | measured: every write raised 42883 before the first fix; static parser/trigger/client contracts now agree after the second | Apply all seven migrations. A schema without migration 5 loses every event; one without migration 7 loses every onboarding completion |
 | A finished session holds a worker slot | P1 | voice, revenue | `departureTimeout=20` in the production `RoomConfiguration`, recorded with its cost in `ROOM_LIFECYCLE` | measured: the room left `listRooms` 20.6s after the learner, and an abandoned room holds no tutor at all | Decide whether 20s of worker turnover per finished session is the right concurrency ceiling |
 | A client evades per-IP limits by rotating a header | P1 | security | `clientIp` takes the last forwarded entry under one trusted proxy, and the socket peer otherwise | measured: a forged multi-entry header no longer moves the bucket | Prove the hop count against a real topology. `PARLE_TRUST_PROXY=1` with no proxy is still a misconfiguration |
-| Learner loses practice when local persistence fails | P1 | data-sync, practice | Cross-device sync and a device-local session journal exist, with idempotent merge rules | accepted-with-evidence: F118; store writers swallow AsyncStorage failures, so a resolved bank can clear the journal without a durable deck/topic/drill write | Phase 4 durable batch/outbox with explicit acknowledgements, storage-full tests and cross-device retry evidence |
+| Learner loses practice when local persistence fails | P1 | data-sync, practice | Every practice store answers `durable` or `failed`, and `bankPractice` clears the session journal only once topics, phrases and drills have all answered `durable` | measured: F123, F124, F125 and F129 close F118; storage-full on each store separately, a crash at each acknowledgement boundary, a launch that still cannot write, a duplicate delivery and an account switch mid-recovery all keep the batch | Two-device convergence on real devices, and the upgrade window below |
 | Direct analytics write stores content | P1 | privacy-safety, security | Exact PostgreSQL validation trigger, fixed by `202608250002` | measured: `product-event-trigger` refused unsupported and malformed events by name | A bypass attempt from a real client, rather than from the harness |
 | CSP/CORS differs from final domains | P1 | security, deploy | Exact allowlists in code | blocked: final domain not chosen | Replace placeholder domains and capture live headers |
 | Duplicate legacy flows create contradictory UX | P1 | onboarding, practice, design | Phase 3 removed the splash, duplicate auth welcome and unused why page after caller/persisted-key audits | measured locally by source contracts and the green gate | Native/web first-run QA, then land the Phase 3 branch before Phase 4 starts |
@@ -107,3 +110,43 @@ The timeout that does hold a worker is `departureTimeout`, 20s shipped and measu
 in the table above. `ROOM_LIFECYCLE` in `services/token-server/src/tokens.ts` carries the
 shipped numbers, the measured ones and the derived costs, so the next person to argue about
 a timeout argues with a measurement.
+
+## Phase 4 practice: one risk closed, three accepted, one question left open
+
+The persistence row above used to read `accepted-with-evidence: F118`, and what it accepted
+was real. Every practice store caught its own storage failure and returned as though the
+write had landed, so a full phone could resolve a bank, clear the session journal, and keep
+nothing. F123 gave a store write one word to answer with, F124 made the clear wait for three
+of those words, and F125 made the replay safe. The row is measured now, and the banking
+section of `docs/STATE_AND_STORAGE.md` carries the contract in full.
+
+Closing it created three risks. A register that recorded only the good news would be the
+same kind of document this phase spent its time correcting.
+
+**An older build can drop a counter during the upgrade window.** Two devices merge evidence
+field-wise only if both are running Phase 4 code. A device still on the previous build
+merges whole cards, so the losing side's counters leave with the card that lost. Accepted.
+The counters only ever go up and are re-earned by the next retrieval, conversation or
+transfer drill, and no merge touches scheduling in either direction. A learner can lose a
+count. They cannot lose a due date, an interval, or a card.
+
+**`durable` means `AsyncStorage.setItem` resolved, and nothing stronger exists on a phone.**
+There is no fsync under it, no write barrier, and no read-back worth doing, because the read
+would come out of the cache the write just filled. A device that loses power in that instant
+can still lose the write. Accepted, and `apps/mobile/src/storage/ack.ts` says so in those
+words. A durability claim the platform cannot support is worse than an honest one that stops
+short of it.
+
+**The retrieval gate costs the learner one action.** A due card they have recalled before
+now asks for a typed or said attempt before it shows the French. That is the point of the
+change, and it is also friction on one of the most repeated screens in the app. Accepted. If
+retention data ever says the gate is too heavy, the answer is the copy and the affordance,
+never removing the gate. A review that shows the answer first is not a review.
+
+**Open question: `transferred` sits above `used`.** The ladder puts a correct transfer-marked
+drill above a phrase the learner produced unprompted in a real conversation, including when
+the drill is a recognition format with the French already on the screen. That was raised by
+`learning-science-engineer` and accepted as designed, because surviving a changed situation
+is the stronger claim about knowing when to use a phrase. The narrowing is written down here
+in case it is ever wanted: count transfer only from production-difficulty exercises. It is an
+open question rather than a defect, and nothing a learner sees today turns on it.

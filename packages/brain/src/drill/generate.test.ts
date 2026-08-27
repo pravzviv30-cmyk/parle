@@ -30,7 +30,9 @@ function input(overrides: Partial<DrillGenerationInput> = {}): DrillGenerationIn
 }
 
 function base(kind: string) {
-  return { id: `gen:${PHRASE_KEY}:${kind}`, phraseKey: PHRASE_KEY };
+  // `transfer` is required by the schema and false here, which is what an
+  // ordinary exercise looks like: the mark is claimed, never assumed.
+  return { id: `gen:${PHRASE_KEY}:${kind}`, phraseKey: PHRASE_KEY, transfer: false };
 }
 
 const fillBlank = {
@@ -104,6 +106,29 @@ describe('the drill batch schema mirrors core', () => {
     const asCore: DrillExercise[] = parsed.exercises;
     assert.equal(asCore.length, 6);
     assert.equal(new Set(asCore.map((e) => e.kind)).size, 6);
+  });
+
+  test('the transfer mark is required and survives to core', () => {
+    // A batch that forgot the mark is refused rather than read as "no". The
+    // difference matters: absent would silently mean no transfer ever
+    // happened, and a whole learner's transfer evidence would be a typo away
+    // from vanishing without a single error.
+    const { transfer: _dropped, ...markless } = fillBlank;
+    assert.throws(() => DrillBatchSchema.parse({ exercises: [markless] }));
+
+    const parsed = DrillBatchSchema.parse({
+      exercises: [{ ...bestSentence, transfer: true }, fillBlank],
+    });
+    const asCore: DrillExercise[] = parsed.exercises;
+    assert.equal(asCore[0]!.transfer, true, 'the mark did not reach the core exercise');
+    assert.equal(asCore[1]!.transfer, false);
+
+    // The model is told what the mark means, in the same request that asks for
+    // the transfer exercises. An instruction without the field, or a field the
+    // instruction never explains, produces marks nobody can trust.
+    const request = buildDrillGenerationRequest(input());
+    assert.ok(request.includes('At least one third of the exercises must test transfer'));
+    assert.ok(request.includes('transfer: true on exactly those exercises'));
   });
 
   test('an unknown kind is rejected', () => {

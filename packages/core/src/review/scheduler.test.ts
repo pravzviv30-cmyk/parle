@@ -120,6 +120,49 @@ describe('"easy" — confidence is rewarded with distance', () => {
   });
 });
 
+describe('what a grade was earned with', () => {
+  /** Everything a grade schedules. The context may never move any of it. */
+  function scheduleOf(c: ReviewCard) {
+    return { due: c.due, intervalDays: c.intervalDays, ease: c.ease, reps: c.reps, lapses: c.lapses };
+  }
+
+  test('a graded retrieval attempt raises recall evidence on its card', () => {
+    // The review screen asks for the French before it shows the French. A good
+    // grade that followed that attempt is the one thing in the app that proves
+    // the learner produced the phrase unaided, so it is the one thing that
+    // raises recall evidence.
+    const typed = applyGrade(card(), 'good', NOW, { attempt: 'typed' });
+    assert.equal(typed.evidence?.retrievals, 1);
+    const said = applyGrade(typed, 'easy', NOW, { attempt: 'said' });
+    assert.equal(said.evidence?.retrievals, 2, 'counters climb; they are not a flag');
+
+    // Scheduling is untouched by the context. Rescheduling is a guess about a
+    // memory and evidence is a record of something the learner did; a change
+    // that lets one move the other has merged them.
+    assert.deepEqual(scheduleOf(typed), scheduleOf(applyGrade(card(), 'good', NOW)));
+    assert.deepEqual(scheduleOf(said), scheduleOf(applyGrade(typed, 'easy', NOW)));
+
+    // No attempt, no claim. A card self-graded with its own back showing has
+    // shown nothing, and must not be counted as if it had.
+    assert.equal(applyGrade(card(), 'good', NOW).evidence, undefined);
+    assert.equal(applyGrade(card(), 'easy', NOW, {}).evidence, undefined);
+
+    // A lapse claims nothing either, however the learner produced it.
+    assert.equal(applyGrade(typed, 'again', NOW, { attempt: 'said' }).evidence?.retrievals, 1);
+  });
+
+  test('a transfer-marked answer raises transfer evidence, and only that', () => {
+    const moved = applyGrade(card(), 'good', NOW, { transfer: true });
+    assert.equal(moved.evidence?.transfers, 1);
+    assert.equal(moved.evidence?.retrievals, 0, 'a changed situation is not by itself a hidden answer');
+    assert.deepEqual(scheduleOf(moved), scheduleOf(applyGrade(card(), 'good', NOW)));
+
+    // Both at once is one of each, never two of either.
+    const both = applyGrade(card(), 'easy', NOW, { attempt: 'said', transfer: true });
+    assert.deepEqual(both.evidence, { retrievals: 1, convoUses: 0, transfers: 1 });
+  });
+});
+
 describe('purity', () => {
   test('grading returns a new card and leaves the original untouched', () => {
     const before = card();
@@ -127,6 +170,7 @@ describe('purity', () => {
     applyGrade(before, 'again', NOW);
     applyGrade(before, 'good', NOW);
     applyGrade(before, 'easy', NOW);
+    applyGrade(before, 'good', NOW, { attempt: 'typed', transfer: true });
     assert.deepEqual(before, snapshot);
   });
 });

@@ -29,6 +29,11 @@ const SRC = fileURLToPath(new URL('.', import.meta.url));
 const TYPING_SCREENS = [
   'ConvoScreen.tsx',
   'DrillScreen.tsx',
+  // The review deck takes typing now: a due card can be answered in the box
+  // rather than out loud. It has no scroll of its own, so the second test
+  // below passes it over; it is on the list so that the day it grows one,
+  // somebody has to answer this question about it.
+  'ReviewScreen.tsx',
   'auth/SignInScreen.tsx',
   'auth/SignUpScreen.tsx',
   'friends/AddFriendsScreen.tsx',

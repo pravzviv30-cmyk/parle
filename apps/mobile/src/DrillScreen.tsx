@@ -657,8 +657,17 @@ export function DrillScreen({
     // navigating, because loadDeck reads storage directly and is not on the
     // review store's write chain. Without it, the screen that comes next can
     // read a deck that predates this sitting.
+    // `transfer` rides along rather than being destructured away. Core marks a
+    // grade as transfer when the same phrase was asked in a changed situation,
+    // and it is the one thing a drill knows that a review sitting cannot: the
+    // store drops it on the floor if this map does not carry it, and the
+    // learner's evidence record never hears about a drill they got right.
     gradeWritesRef.current = gradeCards(
-      summary.grades.map(({ phraseKey, grade }) => ({ id: phraseKey, grade })),
+      summary.grades.map(({ phraseKey, grade, transfer }) => ({
+        id: phraseKey,
+        grade,
+        ...(transfer === true ? { transfer: true } : {}),
+      })),
     ).then(() => undefined);
     // What the sitting was worth. Clean answers count double, because getting
     // it right without being shown the spelling is the harder thing.

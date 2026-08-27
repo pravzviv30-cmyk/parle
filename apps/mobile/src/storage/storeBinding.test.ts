@@ -168,7 +168,7 @@ interface QueuedWrite {
 const QUEUED_WRITES: readonly QueuedWrite[] = [
   { store: 'progress/activity.ts', suffix: 'activity', write: () => recordActivity('convo', 12) },
   { store: 'drill/store.ts', suffix: 'drills', write: () => mergeExercises([exercise('gen:queued', 'phrase:ça marche')]) },
-  { store: 'live/journal.ts', suffix: 'journal', write: () => journalRecap(recap, 1) },
+  { store: 'live/journal.ts', suffix: 'journal', write: () => journalRecap(recap, { savedAt: 1 }) },
   {
     store: 'friends/localAdapter.ts',
     suffix: 'friends',
