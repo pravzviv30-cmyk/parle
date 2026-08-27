@@ -1535,7 +1535,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F58 — On web, a first-ever learner lands on Home instead of the chooser
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/App.tsx:231
 - note: found by running it, not by reading it, and the wiring is entirely correct: `App.tsx`
   sets `justOnboarded` when a brand-new profile completes (`:135`), passes it (`:151`), and
@@ -1551,13 +1551,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the first mission is one tap away and the café is still the one offered. What is lost is the
   chooser's promise line, which is the sentence F57 is about, and the sense of being handed a
   choice rather than a default.
-  The candidate fix keeps the ordinary linking map and waits for
-  `NavigationContainer.onReady`, the point at which the web URL should have finished
-  resolving. A container ref then resets the root to Missions exactly once for a new learner;
-  Missions also has an explicit `/missions` web path. The source contract is green, but that
-  cannot prove navigation precedence. Keep this issue open until an authenticated new account
-  completes onboarding from `/`, visibly lands on the chooser, can use Back to Tabs, and does
-  not repeat the reset after reload or return. Record that run in F114's matrix.
+  Closed by keeping the ordinary linking map and waiting for
+  `NavigationContainer.onReady`, the point at which the web URL has finished resolving. A
+  container ref resets the root to Missions exactly once for a new learner; Missions also has
+  an explicit `/missions` web path. On 2026-08-27 a driven local-web run created an isolated
+  mock-auth account from `/`, completed all three onboarding steps, visibly landed at
+  `/missions`, used Back to reach `/home`, reloaded without repeating the reset, then returned
+  to Missions and Back normally. That run proves the navigation behavior, not Supabase auth,
+  native behavior or the still-unrun five-viewport matrix.
 - verified-by: `a first-ever learner reaches the chooser on web as well as on native`
 
 ### F59 — A client behind the trusted proxy can choose its own rate-limit address

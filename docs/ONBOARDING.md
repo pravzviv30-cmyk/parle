@@ -82,8 +82,9 @@ Both expire after the first conversation. On web, `NavigationContainer` resolves
 `/` to Home before a stack `initialRouteName` can win, so `App.tsx` waits for
 `onReady` and resets the new learner's root to Missions exactly once. Native uses
 the same rule; the flag is never persisted. This is the implemented mechanism,
-not runtime proof: F58 stays open until the authenticated web journey in
-`DEVICE_VERIFICATION.md` has been observed and recorded.
+and a driven local mock-auth web journey proved the one-shot `/missions` landing
+and Back/reload behavior on 2026-08-27. Supabase, native and five-viewport evidence
+remain separate in `DEVICE_VERIFICATION.md`.
 
 Net: one page removed, one page added, one screen of splash removed twice over,
 and a learner who now knows what they are talking to before they talk to it.

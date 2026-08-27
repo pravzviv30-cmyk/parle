@@ -1,14 +1,15 @@
 # Device verification — auth, session storage, deletion, and the first run
 
-**Status: not run.** No representative iOS or Android build of Parle exists on the
-machine this was written on, so every row in [the matrix](#the-matrix) below says
-`not run`. This file is the runbook, not the result. `F71` in
+**Status: device and five-viewport matrices not run; one local web route check
+recorded.** No representative iOS or Android build of Parle exists on the machine
+this was written on, so every row in [the matrix](#the-matrix) below says `not run`.
+This file is primarily the runbook, not the result. `F71` in
 [KNOWN_ISSUES.md](KNOWN_ISSUES.md) stays open until the matrix is filled in from a
 real device pass and the outcome is recorded here. `F114`'s checked ledger entry
 means that this runbook and its static responsive-width contracts exist; it does
 not mean the matrix was run. Release evidence remains pending until
 [the first run on five viewports](#the-first-run-on-five-viewports) has been walked
-and recorded, including F58's authenticated web-first-run assertions.
+and recorded. F58's narrower web route defect has separate runtime evidence below.
 
 Owner: `auth-engineer` for the auth steps, `onboarding-ux-engineer` for the
 first-run steps, `qa-release-engineer` for running all of them — independent
@@ -474,8 +475,21 @@ is the iOS half of that promise; Android's is the keystore key not being backed 
 Everything from the welcome to the first spoken French, on the screens where it is
 most likely to break. Owner: `onboarding-ux-engineer` for the steps,
 `qa-release-engineer` for running them. `F114` in
-[KNOWN_ISSUES.md](KNOWN_ISSUES.md) closes when this matrix is filled in.
+[KNOWN_ISSUES.md](KNOWN_ISSUES.md) checks the existence of this runbook and its
+static width contracts; release evidence is complete only when this matrix is filled in.
 [ONBOARDING.md](ONBOARDING.md) describes the flow these steps walk.
+
+### Recorded web route check — 2026-08-27
+
+This is a single behavior check, not a completed viewport row. A development build
+at `http://127.0.0.1:8089/` used explicit local mock auth and a synthetic account.
+The driven journey was welcome → create account → age → name → Meet Luc → Choose
+your first scene. It landed visibly at `/missions`, including the first-win promise
+and just-in-time microphone/type notice. Back reached `/home`; reloading stayed at
+`/home`; See all situations returned to `/missions`; Back returned normally to
+`/home`. This closes F58's React Navigation precedence defect. It does not prove a
+Supabase round trip, a production export, native behavior, accessibility, responsive
+layout at the five named sizes or time to first spoken French.
 
 **What is already proven, statically, in the gate.** Four checks read the source of
 every first-run screen and fail if it regresses: `no first-run screen hardcodes a

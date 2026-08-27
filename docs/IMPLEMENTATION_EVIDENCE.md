@@ -26,8 +26,8 @@ of the list.
 - Phase 3 is implemented on `phase-3-onboarding`: one welcome, three onboarding pages,
   age-first gating, AI/vendor/microphone disclosure, labelled fields and headings, removal of
   the splash/why/duplicate welcome, attempt-audio cleanup, analytics contract repair, and the
-  candidate first-run mission-chooser reset. Its source contract is green; the authenticated
-  web journey has not been run, so F58 remains open.
+  first-run mission-chooser reset. Its source contract is green and a driven local mock-auth
+  web journey proved the `/` → onboarding → `/missions` path and one-shot reset; F58 is closed.
 - The Phase 3 landing gate passes **1,791 tests, 0 failing**: core 507, brain 348, tutor agent
   350, token server 124, playground 13, mobile 449. Typecheck is clean in all six workspaces.
 - `npm run build:web` succeeds. `npm run scan:secrets:bundles` is clean across **23 bundle
@@ -35,8 +35,9 @@ of the list.
   previously found in a local-only object still require rotation; pruning an object does not
   revoke a credential.
 - The public web welcome and sign-up surfaces render with headings and labelled inputs and no
-  desktop horizontal overflow. A complete account creation, authenticated first-run,
-  five-viewport pass, native screen-reader pass and human stopwatch have not been run.
+  desktop horizontal overflow. A local mock-auth account completed all three onboarding steps,
+  landed at `/missions`, returned to `/home`, and stayed there across reload. A Supabase-auth
+  run, five-viewport pass, native screen-reader pass and human stopwatch have not been run.
 - All seven migrations and seven rollback scripts pass their static contract. Migration 7,
   `202608270001_onboarding_event_property_fix.sql`, has never been applied to any project.
   No schema is production evidence until all seven are applied in order and the live verifier
