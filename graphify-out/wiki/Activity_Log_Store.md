@@ -26,18 +26,18 @@
 
 ## Relationships
 
-- [Daily Activity and Levels](Daily_Activity_and_Levels.md) (6 shared connections)
-- [Product Analytics and Today Row](Product_Analytics_and_Today_Row.md) (6 shared connections)
-- [Tutor Intro and Coach Marks](Tutor_Intro_and_Coach_Marks.md) (4 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (4 shared connections)
-- [Per-User Storage Scoping](Per-User_Storage_Scoping.md) (3 shared connections)
-- [Sync Adopter Registry](Sync_Adopter_Registry.md) (3 shared connections)
-- [Auth Screens and Context](Auth_Screens_and_Context.md) (3 shared connections)
-- [Sync Engine Tests](Sync_Engine_Tests.md) (2 shared connections)
-- [Mobile App Bootstrap](Mobile_App_Bootstrap.md) (2 shared connections)
-- [Live and Profile Providers](Live_and_Profile_Providers.md) (2 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (5 shared connections)
+- [Today Row Phrasebook](Today_Row_Phrasebook.md) (5 shared connections)
+- [Mission Chooser View](Mission_Chooser_View.md) (4 shared connections)
+- [XP And Levels](XP_And_Levels.md) (3 shared connections)
+- [App Root Bootstrap](App_Root_Bootstrap.md) (3 shared connections)
+- [Auth Screens And Profile Context](Auth_Screens_And_Profile_Context.md) (3 shared connections)
+- [User Scope Reset](User_Scope_Reset.md) (2 shared connections)
+- [Tutor Coach Mark Store](Tutor_Coach_Mark_Store.md) (2 shared connections)
+- [Topics Store](Topics_Store.md) (2 shared connections)
+- [Onboarding Profile Store](Onboarding_Profile_Store.md) (2 shared connections)
 - [Store Binding Tests](Store_Binding_Tests.md) (2 shared connections)
-- [Conversation Screen and Motion](Conversation_Screen_and_Motion.md) (1 shared connections)
+- [Drill Bank Store Merge](Drill_Bank_Store_Merge.md) (1 shared connections)
 
 ## Source Files
 

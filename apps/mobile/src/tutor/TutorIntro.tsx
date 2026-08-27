@@ -10,6 +10,15 @@
  * is instructions. It also names the three controls the conversation actually
  * renders — Help me out, Slower, In English — so it teaches the real UI rather
  * than a general idea of one.
+ *
+ * The first page does not write its own words. Its title and body come from
+ * `onboarding/disclosure.ts`, the same module the welcome subline and the Meet
+ * Luc page read, so the app says what the tutor is once and in one voice. That
+ * page used to open with a biography, from Lyon and twenty years behind a bar,
+ * while nothing anywhere told the learner they were talking to software. Luc
+ * keeps the bar. He is introduced as a character now, which is what he is, and
+ * `disclosure.test.ts` fails if this page tells the life story again without
+ * saying so.
  */
 
 import { useState } from 'react';
@@ -20,6 +29,7 @@ import { ChevronLeft, ProgressDots, PillButton, Card } from '../components.tsx';
 import { SpeakBubbles, OnboardWave, RecapPostcard } from '../illustrations.tsx';
 import { VoiceOrb, type OrbState } from './VoiceOrb.tsx';
 import { TUTOR_NAME } from './tutorName.ts';
+import { PERSONA_BODY, PERSONA_TITLE } from '../onboarding/disclosure.ts';
 
 /**
  * The final page's lesson: the circle speaks traffic lights. Three live mini
@@ -54,8 +64,8 @@ const PAGES = [
   {
     key: 'what',
     art: SpeakBubbles,
-    title: `You'll be talking to ${TUTOR_NAME}`,
-    body: `Not a quiz. ${TUTOR_NAME} is from Lyon, he ran a bar there for twenty years, and he is not a teacher. He asks about your day, waits while you find the French, and answers what you actually said.`,
+    title: PERSONA_TITLE,
+    body: PERSONA_BODY,
     note: null,
   },
   {
@@ -113,7 +123,7 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
             <Art width={170} />
           </View>
         ) : null}
-        <Text style={st.title}>{page.title}</Text>
+        <Text style={st.title} accessibilityRole="header">{page.title}</Text>
         <Text style={st.body}>{page.body}</Text>
         {page.key === 'orb' ? <OrbWalkthrough /> : null}
         {page.note ? (

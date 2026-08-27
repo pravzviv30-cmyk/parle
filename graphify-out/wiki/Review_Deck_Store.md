@@ -1,6 +1,6 @@
 # Review Deck Store
 
-> 18 nodes · cohesion 0.24
+> 19 nodes · cohesion 0.22
 
 ## Key Concepts
 
@@ -8,6 +8,7 @@
 - **addPhrases()** (12 connections) — `apps/mobile/src/review/store.ts`
 - **gradeCards()** (9 connections) — `apps/mobile/src/review/store.ts`
 - **addFromSummary()** (8 connections) — `apps/mobile/src/review/store.ts`
+- **buildCardsFromSummary()** (7 connections) — `packages/core/src/review/cards.ts`
 - **adoptDeck()** (6 connections) — `apps/mobile/src/review/store.ts`
 - **loadDeckFor()** (6 connections) — `apps/mobile/src/review/store.ts`
 - **saveDeck()** (6 connections) — `apps/mobile/src/review/store.ts`
@@ -25,27 +26,28 @@
 
 ## Relationships
 
-- [Review Deck Cards](Review_Deck_Cards.md) (10 shared connections)
-- [Product Analytics and Today Row](Product_Analytics_and_Today_Row.md) (6 shared connections)
-- [Live and Profile Providers](Live_and_Profile_Providers.md) (5 shared connections)
-- [Tutor Intro and Coach Marks](Tutor_Intro_and_Coach_Marks.md) (4 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (4 shared connections)
-- [Session Journal Recovery](Session_Journal_Recovery.md) (4 shared connections)
-- [Sync Adopter Registry](Sync_Adopter_Registry.md) (3 shared connections)
-- [Conversation Screen and Motion](Conversation_Screen_and_Motion.md) (3 shared connections)
-- [Auth Screens and Context](Auth_Screens_and_Context.md) (3 shared connections)
+- [Review Card Merge](Review_Card_Merge.md) (10 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (6 shared connections)
+- [Topic Mix Queue](Topic_Mix_Queue.md) (5 shared connections)
+- [Mission Chooser View](Mission_Chooser_View.md) (5 shared connections)
+- [Session Journal Storage](Session_Journal_Storage.md) (4 shared connections)
+- [Live Session Navigation](Live_Session_Navigation.md) (4 shared connections)
+- [Conversation Screen Motion](Conversation_Screen_Motion.md) (3 shared connections)
 - [Store Binding Tests](Store_Binding_Tests.md) (3 shared connections)
-- [Session Topic Mix](Session_Topic_Mix.md) (2 shared connections)
-- [Per-User Storage Scoping](Per-User_Storage_Scoping.md) (2 shared connections)
+- [Mock Speech Session Screen](Mock_Speech_Session_Screen.md) (2 shared connections)
+- [User Scope Reset](User_Scope_Reset.md) (2 shared connections)
+- [Tutor Coach Mark Store](Tutor_Coach_Mark_Store.md) (2 shared connections)
+- [Topics Store](Topics_Store.md) (2 shared connections)
 
 ## Source Files
 
 - `apps/mobile/src/review/store.ts`
+- `packages/core/src/review/cards.ts`
 - `packages/core/src/review/scheduler.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 91 (97%)
+- EXTRACTED: 96 (97%)
 - INFERRED: 3 (3%)
 - AMBIGUOUS: 0 (0%)
 

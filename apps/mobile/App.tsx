@@ -13,9 +13,11 @@
  * CHANGED DELIBERATELY: the live microphone is GREEN. Green means you speak,
  *   everywhere, which lets the voice circle's red mean the tutor is speaking
  *   without the two ever reading as one signal.
- * STORY: A welcome that moves, sign in once, three gentle questions, a first
- *   situation to walk into, then five doors along the bottom — Home, Tutor,
- *   Practice, My French, Profile.
+ * STORY: One welcome that moves, sign in once, a few gentle questions, a first
+ *   situation to walk into, then five doors along the bottom: Home, Tutor,
+ *   Practice, My French, Profile. One introduction, not three: the welcome is
+ *   the first screen of the auth flow rather than a screen in front of it, and
+ *   nothing runs before sign-in that a device-level flag has to remember.
  *   Stalling is stepped in for, never commented on.
  * MOTION (new, and the whole vocabulary): transform and opacity only, always
  *   on the native driver; never an SVG attribute; one loop plus one settling
@@ -31,7 +33,7 @@ import { View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { completeProfile, createStoredProfile, loadProfile, type StoredProfile } from './src/profile/store.ts';
 
@@ -54,12 +56,11 @@ import { loadHistory } from './src/progress/store.ts';
 import { backfillFrom } from './src/progress/activity.ts';
 import { lessonXp } from '@parle/core';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
-import { SplashScreen } from './src/splash/SplashScreen.tsx';
-import { hasSeenSplash, markSplashSeen } from './src/splash/store.ts';
 import { ProfileGate } from './src/app/ProfileContext.tsx';
 import { LiveProvider } from './src/app/LiveContext.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
 import { navTheme, linking } from './src/nav/theme.ts';
+import type { RootStackParamList } from './src/nav/types.ts';
 
 function Loading() {
   return (
@@ -130,6 +131,7 @@ function SignedInRoot({ user }: { user: AuthUser }) {
    * leads to exactly the same screen.
    */
   const [justOnboarded, setJustOnboarded] = useState(false);
+  const navigationRef = useNavigationContainerRef<RootStackParamList>();
   // Bumped to force a remount after a progress reset, so every store re-reads
   // from a now-empty disk instead of holding what it loaded at mount.
   const [generation, setGeneration] = useState(0);
@@ -223,6 +225,22 @@ function SignedInRoot({ user }: { user: AuthUser }) {
     return result;
   }, []);
 
+  /**
+   * Linking owns the initial state on web, so `/` resolves to Tabs after the
+   * stack's `initialRouteName` has chosen Missions. Wait until that resolution
+   * is complete, then replace the root exactly once. Native takes the same
+   * path harmlessly, which keeps one first-run rule for both platforms.
+   *
+   * This is deliberately a reset rather than a push. A first run has no screen
+   * behind the chooser, and MissionsScreen already turns its Back control into
+   * an explicit route to Tabs when there is no history to pop.
+   */
+  const openFirstMissionChooser = useCallback(() => {
+    if (!justOnboarded || !navigationRef.isReady()) return;
+    navigationRef.resetRoot({ index: 0, routes: [{ name: 'Missions' }] });
+    setJustOnboarded(false);
+  }, [justOnboarded, navigationRef]);
+
   if (!ready) return <Loading />;
 
   return (
@@ -244,6 +262,8 @@ function SignedInRoot({ user }: { user: AuthUser }) {
     >
       <LiveProvider>
         <NavigationContainer
+          ref={navigationRef}
+          onReady={openFirstMissionChooser}
           theme={navTheme}
           // Web only. A native linking config would claim parle://auth/callback,
           // which auth/oauth.native.ts needs for the OAuth round trip.
@@ -262,36 +282,22 @@ function SignedInRoot({ user }: { user: AuthUser }) {
 }
 
 /**
- * The door. Loading holds a spinner, a first-ever launch gets the welcome,
- * signed out shows the auth flow, a password-recovery landing interposes its
- * one screen, and a signed-in user gets the app keyed to their account.
+ * The door. Loading holds a spinner, signed out shows the auth flow (whose own
+ * first screen is the welcome), a password-recovery landing interposes its one
+ * screen, and a signed-in user gets the app keyed to their account.
+ *
+ * Auth status is the only thing that decides what renders here. There used to
+ * be a branch in front of all of it, gated on a device-level flag that
+ * remembered whether this install had ever seen a separate pre-auth welcome.
+ * That was a second introduction and a second piece of state to get stuck, and
+ * it could not answer for the learner rather than the handset, because it ran
+ * where there is no user scope to key anything to. The welcome moved inside the
+ * auth flow and the flag went with it.
  */
 function Gate() {
   const { status, user, recovering, clearRecovery } = useAuth();
-  // Device-level, and checked before auth: the welcome runs ahead of sign-in,
-  // where there is no user scope to key anything to.
-  const [seenSplash, setSeenSplash] = useState<boolean | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    void hasSeenSplash().then((seen) => {
-      if (!cancelled) setSeenSplash(seen);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
-  if (seenSplash === null || status === 'loading') return <Loading />;
-  if (!seenSplash) {
-    return (
-      <SplashScreen
-        onDone={() => {
-          void markSplashSeen();
-          setSeenSplash(true);
-        }}
-      />
-    );
-  }
+  if (status === 'loading') return <Loading />;
   if (status === 'signedIn' && user !== null) {
     if (recovering) return <SetNewPasswordScreen onDone={clearRecovery} />;
     return <SignedInRoot key={user.id} user={user} />;

@@ -24,10 +24,10 @@
 
 ## Relationships
 
-- [Sync Engine Core](Sync_Engine_Core.md) (5 shared connections)
-- [Mobile App Bootstrap](Mobile_App_Bootstrap.md) (2 shared connections)
-- [Per-User Storage Scoping](Per-User_Storage_Scoping.md) (1 shared connections)
-- [Live Sync Policy Engine](Live_Sync_Policy_Engine.md) (1 shared connections)
+- [Sync Engine Types](Sync_Engine_Types.md) (4 shared connections)
+- [App Root Bootstrap](App_Root_Bootstrap.md) (3 shared connections)
+- [Account Sync Runtime](Account_Sync_Runtime.md) (1 shared connections)
+- [Sync Engine Lifecycle](Sync_Engine_Lifecycle.md) (1 shared connections)
 
 ## Source Files
 

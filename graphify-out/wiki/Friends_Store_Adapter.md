@@ -33,12 +33,11 @@
 
 ## Relationships
 
-- [Auth Screens and Context](Auth_Screens_and_Context.md) (11 shared connections)
-- [Live and Profile Providers](Live_and_Profile_Providers.md) (4 shared connections)
-- [Session Journal Recovery](Session_Journal_Recovery.md) (2 shared connections)
-- [Per-User Storage Scoping](Per-User_Storage_Scoping.md) (2 shared connections)
-- [Tutor Intro and Coach Marks](Tutor_Intro_and_Coach_Marks.md) (2 shared connections)
-- [Profile Gate and Age Check](Profile_Gate_and_Age_Check.md) (2 shared connections)
+- [Auth Screens And Profile Context](Auth_Screens_And_Profile_Context.md) (15 shared connections)
+- [Session Journal Storage](Session_Journal_Storage.md) (2 shared connections)
+- [User Scope Reset](User_Scope_Reset.md) (2 shared connections)
+- [Tutor Coach Mark Store](Tutor_Coach_Mark_Store.md) (2 shared connections)
+- [Onboarding Profile Store](Onboarding_Profile_Store.md) (2 shared connections)
 - [Store Binding Tests](Store_Binding_Tests.md) (2 shared connections)
 
 ## Source Files

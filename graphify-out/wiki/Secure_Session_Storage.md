@@ -25,7 +25,7 @@
 
 ## Relationships
 
-- [Auth Adapters and OAuth](Auth_Adapters_and_OAuth.md) (3 shared connections)
+- [supabaseAdapter.ts](supabaseAdapter.ts.md) (3 shared connections)
 
 ## Source Files
 

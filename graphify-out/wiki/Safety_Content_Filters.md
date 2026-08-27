@@ -33,10 +33,10 @@
 
 ## Relationships
 
-- [Brain Client Activity Metering](Brain_Client_Activity_Metering.md) (2 shared connections)
+- [Conversation Brain Spend](Conversation_Brain_Spend.md) (2 shared connections)
 - [Tutor Prompt Building](Tutor_Prompt_Building.md) (2 shared connections)
-- [Conversation Orchestration](Conversation_Orchestration.md) (1 shared connections)
-- [LiveKit Tutor Agent](LiveKit_Tutor_Agent.md) (1 shared connections)
+- [Conversation Turn Orchestration](Conversation_Turn_Orchestration.md) (1 shared connections)
+- [Parle Tutor Agent](Parle_Tutor_Agent.md) (1 shared connections)
 
 ## Source Files
 

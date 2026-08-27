@@ -1,13 +1,14 @@
 # Database Contract Tests
 
-> 29 nodes · cohesion 0.09
+> 34 nodes · cohesion 0.08
 
 ## Key Concepts
 
-- **databaseContract.test.ts** (32 connections) — `services/token-server/src/databaseContract.test.ts`
+- **databaseContract.test.ts** (37 connections) — `services/token-server/src/databaseContract.test.ts`
 - **evaluateSqlGuard()** (5 connections) — `services/token-server/src/databaseContract.test.ts`
 - **branchTaken()** (4 connections) — `services/token-server/src/databaseContract.test.ts`
 - **effectiveBody()** (3 connections) — `services/token-server/src/databaseContract.test.ts`
+- **stripComments()** (3 connections) — `services/token-server/src/databaseContract.test.ts`
 - **and3()** (2 connections) — `services/token-server/src/databaseContract.test.ts`
 - **claimOutcome()** (2 connections) — `services/token-server/src/databaseContract.test.ts`
 - **createdObjects()** (2 connections) — `services/token-server/src/databaseContract.test.ts`
@@ -18,7 +19,7 @@
 - **not3()** (2 connections) — `services/token-server/src/databaseContract.test.ts`
 - **or3()** (2 connections) — `services/token-server/src/databaseContract.test.ts`
 - **sqlOf()** (2 connections) — `services/token-server/src/databaseContract.test.ts`
-- **stripComments()** (2 connections) — `services/token-server/src/databaseContract.test.ts`
+- **triggerBranch()** (2 connections) — `services/token-server/src/databaseContract.test.ts`
 - **CreatedObject** (1 connections) — `services/token-server/src/databaseContract.test.ts`
 - **debitFixMigration** (1 connections) — `services/token-server/src/databaseContract.test.ts`
 - **eventFixMigration** (1 connections) — `services/token-server/src/databaseContract.test.ts`
@@ -28,14 +29,13 @@
 - **migration** (1 connections) — `services/token-server/src/databaseContract.test.ts`
 - **migrationFiles** (1 connections) — `services/token-server/src/databaseContract.test.ts`
 - **MIGRATIONS** (1 connections) — `services/token-server/src/databaseContract.test.ts`
-- **refusalGuard()** (1 connections) — `services/token-server/src/databaseContract.test.ts`
-- *... and 4 more nodes in this community*
+- *... and 9 more nodes in this community*
 
 ## Relationships
 
 - [Supabase Live Checks](Supabase_Live_Checks.md) (2 shared connections)
-- [Metering and Plans](Metering_and_Plans.md) (1 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (1 shared connections)
+- [Session Cost Metering](Session_Cost_Metering.md) (1 shared connections)
+- [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
 
 ## Source Files
 
@@ -43,7 +43,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 41 (98%)
+- EXTRACTED: 47 (98%)
 - INFERRED: 1 (2%)
 - AMBIGUOUS: 0 (0%)
 

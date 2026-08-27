@@ -1535,8 +1535,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F58 — On web, a first-ever learner lands on Home instead of the chooser
 - severity: P2
-- status: [ ]
-- where: apps/mobile/App.tsx:151
+- status: [x]
+- where: apps/mobile/App.tsx:231
 - note: found by running it, not by reading it, and the wiring is entirely correct: `App.tsx`
   sets `justOnboarded` when a brand-new profile completes (`:135`), passes it (`:151`), and
   `RootNavigator` uses it as `initialRouteName` (`:291`). It still does not happen on web.
@@ -1551,10 +1551,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the first mission is one tap away and the café is still the one offered. What is lost is the
   chooser's promise line, which is the sentence F57 is about, and the sense of being handed a
   choice rather than a default.
-  The fix is a navigation-config decision rather than a patch: either the linking config learns
-  that a just-onboarded learner resolves to Missions, or first-run navigates imperatively after
-  mount instead of relying on an initial route. Worth doing with a device pass, since native
-  and web differ here and only web is wrong.
+  Closed by keeping the ordinary linking map and waiting for
+  `NavigationContainer.onReady`, the point at which the web URL has finished resolving. A
+  container ref resets the root to Missions exactly once for a new learner; Missions also has
+  an explicit `/missions` web path. On 2026-08-27 a driven local-web run created an isolated
+  mock-auth account from `/`, completed all three onboarding steps, visibly landed at
+  `/missions`, used Back to reach `/home`, reloaded without repeating the reset, then returned
+  to Missions and Back normally. That run proves the navigation behavior, not Supabase auth,
+  native behavior or the still-unrun five-viewport matrix.
 - verified-by: `a first-ever learner reaches the chooser on web as well as on native`
 
 ### F59 — A client behind the trusted proxy can choose its own rate-limit address
@@ -2199,3 +2203,205 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `curation is served by the tier routing.ts assigns it, not by who is waiting`
 - verified-by: `every activity is served by the tier its route names, with no second table to disagree`
 - verified-by: `the two calls that write load-bearing pedagogy go to the analyst`
+
+### F105 — The app has one product introduction, and the splash is gone
+- severity: P1
+- status: [x]
+- where: apps/mobile/App.tsx:269
+- note: three welcomes collapse to one; Gate goes Loading → AuthFlow → SignedInRoot.
+  SplashScreen and auth/WelcomeScreen are deleted only after re-running the caller audit
+  (sole importers: App.tsx and AuthFlow.tsx, verified 2026-08-26). The café scene and its
+  motion rules move, not die.
+- verified-by: `the app has exactly one product introduction`
+
+### F106 — The retired splash flag is swept, not stranded
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/storage/scope.ts:1
+- note: parle.seenSplash.v1 is device-level and survives account reset; after the splash goes
+  it has no reader. The honest migration is an idempotent removeItem in the existing
+  device-level migration seam, recorded in STATE_AND_STORAGE.md.
+- verified-by: `the retired splash flag is removed by the storage sweep`
+
+### F107 — The first run says the tutor is AI, in the privacy position's own words
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/disclosure.ts:1
+- note: zero first-run mentions of AI today, and TutorIntro presents the persona as a
+  biography. One copy module feeds the welcome subline, the Meet Luc page and the rewritten
+  persona page; tests hold it to "AI" said plainly, no claimed human, and the ProfileTab
+  footer's vendor vocabulary.
+- verified-by: `the first run says the tutor is AI before any conversation`
+- verified-by: `no first-run copy claims a person is listening`
+
+### F108 — Onboarding asks age first and only what changes the experience
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/answers.ts:29
+- note: PAGES becomes age, name, meet. Age gates before any personal data is collected; the
+  why page goes because nothing reads its answer — verified, every motivation reference is
+  storage, upgrade defaults, the flow itself, one analytics boolean and the sync merge
+  policy. The refusal, the null-skip rule and needsOnboarding are preserved unchanged so no
+  returning learner is re-onboarded. The stored field stays.
+- verified-by: `age is asked before any personal question`
+- verified-by: `a returning learner is never sent back through onboarding`
+
+### F109 — Field binds its visible label and announces its error
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/components.tsx:261
+- note: zero label bindings exist in 55 tsx files; the shared primitive is the seam, so one
+  fix repairs sign-up, sign-in, onboarding and Profile without screen edits. Android
+  labelledBy, iOS accessibilityLabel, web aria mappings, error as a polite live region. All
+  three platforms or it fixes one and lies about two.
+- verified-by: `every visible field label is bound to its input for assistive tech`
+- verified-by: `a field error is announced when it appears`
+
+### F110 — First-run screens lead with real headings and uncapped text
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/surfaceContract.test.ts:1
+- note: heading roles exist in 2 of 55 files today. Scope is the first-run surface (welcome,
+  sign up, sign in, three onboarding pages, TutorIntro); the repo-wide sweep of the other ~46
+  files is deliberate follow-up work, not this phase.
+- verified-by: `every first-run screen leads with a heading role`
+- verified-by: `no first-run screen caps font scaling`
+
+### F111 — The onboarding doc counts the same screens the code shows
+- severity: P1
+- status: [x]
+- where: docs/ONBOARDING.md:1
+- note: before/after flow and the screen/tap counts standing in for time-to-first-useful-
+  French, held to PAGES by a test so the doc cannot drift from the flow. Wall-clock
+  measurement belongs to F114's device pass.
+- verified-by: `the onboarding doc claims the same page count the flow renders`
+
+### F112 — Onboarding analytics reports only questions the flow asks
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/analytics/track.ts:5
+- note: with the why page gone, motivationAnswered would be a permanent false; the typed
+  union drops it and the PRIVACY_AND_SAFETY event table is updated in the same change.
+- verified-by: `onboarding_completed reports only questions the flow asks`
+
+### F113 — The choosing screen says the microphone ask out loud
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/missions/chooserView.ts:32
+- note: the Meet Luc page still sets the expectation early. The mission chooser now repeats
+  the operational part at the decision point: the microphone opens only when the learner
+  taps the circle, and typing is available instead. The line expires after the learner's
+  first conversation, just like the first-win promise, so returning learners are not shown
+  first-run permission copy forever.
+- verified-by: `the choosing screen explains the microphone before the first tap`
+
+### F114 — The five-viewport pass has a runbook now and a device pass later
+- severity: P2
+- status: [x]
+- where: docs/DEVICE_VERIFICATION.md:1
+- note: no device or simulator is verified available on this machine, so small iPhone, large
+  iPhone, representative Android, narrow web and wide web follow the F71 pattern — what is
+  provable statically is proven now, the runbook names the rest, including wall-clock
+  time-to-first-useful-French, VoiceOver/TalkBack and web focus order.
+- verified-by: `no first-run screen hardcodes a viewport width`
+
+### F115 — Attempt recordings are left in the app cache and survive account deletion
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/DrillScreen.tsx:465
+- note: found while verifying a restraint in the first-run copy, which deliberately stops at
+  "your phone will ask to use the microphone" and does NOT claim the audio is deleted. It was
+  right not to. DrillScreen:465 and soundcheck/SoundCheckScreen.tsx:81 both record through
+  expo-audio, read `recorder.uri`, hand it up for scoring — and nothing ever deletes the file.
+  There is no deleteAsync, unlink or FileSystem removal anywhere in apps/mobile/src; the only
+  FileSystem call is progress/saveFile.native.ts:11, which writes the Anki export into the
+  cache directory and also never removes it.
+  The consequence is the part that matters: clearActiveUserData clears the twelve AsyncStorage
+  namespaces and account deletion cascades the server rows, but neither touches these files. A
+  learner who deletes their account leaves their voice on the device. That contradicts
+  PRIVACY_AND_SAFETY.md's "raw learner speech is never stored", which docs/STATE_AND_STORAGE.md
+  also relies on when it says soundChecks holds evidence and never audio — true of the store,
+  not of the disk.
+  P2, not P1, on two grounds: the files sit in the app's own sandboxed cache rather than
+  anywhere another app or a server can read, and closing it means editing DrillScreen and
+  SoundCheckScreen, which are outside Phase 3's contract and territory. It is small — delete
+  the file once scoring has consumed it, and sweep the cache in clearActiveUserData — and it
+  should not wait long, because it is a written promise the code does not keep.
+  PRIVACY_AND_SAFETY.md's "Not true yet" table listed this row as "Not filed". It is filed now.
+- verified-by: `a recorded attempt is deleted once it has been scored`
+- verified-by: `clearing a learner's data removes any attempt audio left on the device`
+
+### F116 — onboarding_completed is rejected by the server the client no longer agrees with
+- severity: P2
+- status: [x]
+- where: services/token-server/src/productEvents.ts:28
+- note: filed by work-judge on Phase 3. The client union dropped motivationAnswered with the
+  why page, but parseProductEvent and the validate_product_event trigger still demand the
+  exact old key set, so every onboarding_completed since Phase 3 is rejected and the funnel
+  metric silently stops arriving. Declared in PRIVACY_AND_SAFETY.md; needs the parser, the
+  trigger and a forward migration to agree with the client.
+  The lesson is bigger than the bug and belongs here: the three-layer validation is
+  deliberate — client type, server parser, database trigger — and typecheck forces only the
+  client's half. Nothing forces the other two, so a client-side type change can silently
+  break a server contract while every suite stays green. Phase 3's contract scoped
+  analytics/track.ts and stopped there, which is exactly how this got through.
+- verified-by: `onboarding_completed is accepted without motivationAnswered`
+
+### F117 — sound_check_completed had F116's failure mode already armed
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/analytics/track.ts:22
+- note: found by api-engineer while auditing the other four events for the same drift that
+  caused F116, and reported rather than fixed silently because it was outside that contract.
+  The key sets agreed; the VALUE DOMAIN did not. track.ts typed the property as bare
+  `kind: string` while productEvents.ts and the trigger both enforce a closed four-value
+  enum, and the real source is `SoundCheckKind` in soundcheck/model.ts. Nothing was broken —
+  the four values coincided — but adding a fifth kind would have typechecked clean on the
+  client and been silently rejected by both server layers, which is exactly how F116 happened.
+  Closed by importing SoundCheckKind into the union, so a fifth value now fails the client
+  typecheck and forces the server's hand in the same change. One line, and it turns a latent
+  repeat into a compile error.
+  Note what actually found this: not a test, but an engineer told to audit its neighbours after
+  fixing one instance. The forcing function shipped with F116 — `the parser and the trigger
+  require the same properties for every product event` — pins key sets across all five events,
+  and would not have caught this, because a widened value domain keeps the key set identical.
+- verified-by: `a sound check reports one of the kinds the model actually defines`
+
+### F118 — A failed practice write can clear the only recoverable session copy
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/ConvoScreen.tsx:370
+- note: `practiceBankedRef` is set before any store acknowledges durability, topics are
+  fired without awaiting, and `addPhrases(...).then(clearJournal)` treats a resolved promise
+  as a durable deck. `review/store.ts`, `topics/store.ts`, `drill/store.ts` and the journal's
+  own writer swallow AsyncStorage failures, so storage-full can resolve the bank operation,
+  clear the journal, and leave no copy on disk. Recovery repeats the same weak acknowledgement.
+  Phase 4 needs a versioned batch/outbox id, idempotent component writes, an explicit durable
+  acknowledgement from every required store, and a clear only after all acknowledgements.
+- verified-by: `a session journal survives until every practice store acknowledges its write`
+
+### F119 — One phrase has three incompatible answers to whether it is learned
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/profile/profile.ts:72
+- note: the brain sets `mastered` after three correct natural uses; the phrasebook calls a
+  card `steady` after two reviews and a seven-day interval; the practice path calls a node
+  complete when all cards exist and none is due. The scheduler then keeps its own reps,
+  interval and due date. Each is defensible alone and together they can show four different
+  stories about one phrase. Phase 4 must define one phrase-evidence record and make brain,
+  phrasebook, path, scheduler and cross-device profile merge projections of it. If product
+  needs distinct words such as introduced, recalled, used and transferable, name them as
+  distinct evidence states rather than treating them as synonyms for mastered.
+- verified-by: `one phrase has one evidence record behind brain phrasebook path and scheduler`
+
+### F120 — A due production card can reveal its answer before any retrieval attempt
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/ReviewScreen.tsx:150
+- note: a due card can be flipped immediately and self-graded, and vocabulary cards can play
+  the French while still on the front. That is a useful introduction for genuinely new
+  material and weak evidence for something the scheduler says is due. Phase 4 must distinguish
+  new from previously learned content: keep scaffolded introduction for new cards, but require
+  a spoken, typed or explicit mental attempt before a due production answer and its help are
+  revealed. The resulting attempt must feed the same evidence source F119 defines.
+- verified-by: `a due production item requires retrieval before its answer is revealed`

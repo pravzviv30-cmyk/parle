@@ -74,7 +74,7 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
           <ChevronLeft />
         </Pressable>
 
-        <Text style={[type.display, { color: paper.ink }]}>Create your account</Text>
+        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Create your account</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
           Your progress, your phrases, and your tutor's memory live here.
         </Text>

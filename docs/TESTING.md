@@ -73,15 +73,16 @@ Both looked like green coverage of a fixed bug and were neither.
 
 ## What is not covered
 
-`apps/mobile` has a suite now, but a small one, and it only covers logic that can
-be imported without React Native. Today that is eight files: `copy.test.ts`, the
-pure rules under `src/live/` (`thinking.ts`, `journal.ts`, `serverUrl.ts`), and
-`friends/logic.ts`, `nav/wiring.ts`, `practice/statusLine.ts` and
-`profile/upgrade.ts`.
+`apps/mobile` now has 52 test files and hundreds of assertions across pure rules,
+storage boundaries, sync convergence and source contracts. That is substantial
+coverage of decisions and wiring, but it is still not component coverage: the app
+contains 54 TSX components and no `.test.tsx` renderer test.
 
-There is no renderer and no component test. `live/turns.ts`, `live/failure.ts` and
-`mockSpeech.ts` exist and have no suite of their own — they are the obvious next
-candidates for the treatment below.
+Source-reading tests can prove that a prop, accessibility role or navigation call
+is present. They cannot prove React Navigation precedence, a control's focus order,
+layout at dynamic type, native permission timing, or what a screen reader actually
+announces. F58 is the worked warning: `initialRouteName` was correctly passed and
+the web linking state still overruled it at runtime.
 
 That shapes how app bugs get fixed: **pull the rule out into a plain module and
 test it there**, rather than leaving it inline and untestable. `thinking.ts` is

@@ -1,10 +1,11 @@
 # Auth Adapter Interface
 
-> 13 nodes · cohesion 0.15
+> 14 nodes · cohesion 0.14
 
 ## Key Concepts
 
 - **AuthAdapter** (18 connections) — `apps/mobile/src/auth/types.ts`
+- **AuthContextValue** (3 connections) — `apps/mobile/src/auth/useAuth.tsx`
 - **.completePasswordReset()** (1 connections) — `apps/mobile/src/auth/types.ts`
 - **.deleteAccount()** (1 connections) — `apps/mobile/src/auth/types.ts`
 - **.getAccessToken()** (1 connections) — `apps/mobile/src/auth/types.ts`
@@ -20,18 +21,18 @@
 
 ## Relationships
 
-- [Auth Adapters and OAuth](Auth_Adapters_and_OAuth.md) (3 shared connections)
-- [Mobile App Bootstrap](Mobile_App_Bootstrap.md) (1 shared connections)
-- [Mock Auth Adapter](Mock_Auth_Adapter.md) (1 shared connections)
-- [Auth Screens and Context](Auth_Screens_and_Context.md) (1 shared connections)
+- [supabaseAdapter.ts](supabaseAdapter.ts.md) (3 shared connections)
+- [Auth Adapter Modes](Auth_Adapter_Modes.md) (2 shared connections)
+- [Auth Screens And Profile Context](Auth_Screens_And_Profile_Context.md) (2 shared connections)
 
 ## Source Files
 
 - `apps/mobile/src/auth/types.ts`
+- `apps/mobile/src/auth/useAuth.tsx`
 
 ## Audit Trail
 
-- EXTRACTED: 18 (100%)
+- EXTRACTED: 20 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

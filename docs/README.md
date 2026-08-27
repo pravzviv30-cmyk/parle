@@ -10,6 +10,7 @@ re-deriving the architecture from source every time.
 | How a live session actually works, end to end | [LIVE_VOICE.md](LIVE_VOICE.md) |
 | How the free tutor behaves, which model to use, and what it costs | [TUTOR_BRAIN.md](TUTOR_BRAIN.md) |
 | The ladder, the rescue, and what counts as a right answer | [PEDAGOGY.md](PEDAGOGY.md) |
+| Every screen a new learner crosses before the first French word | [ONBOARDING.md](ONBOARDING.md) |
 | Where the learner's data lives and what shape it is in | [STATE_AND_STORAGE.md](STATE_AND_STORAGE.md) |
 | How to run and write tests, and the trap that eats whole suites | [TESTING.md](TESTING.md) |
 | The gate, the bug loop, and how to give it a goal it can check | [LOOP.md](LOOP.md) |

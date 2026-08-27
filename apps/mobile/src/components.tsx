@@ -7,12 +7,14 @@
  * illustrations use — one pen drew the whole app.
  */
 
-import { useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import {
+  AccessibilityInfo,
   View,
   Text,
   TextInput,
   Pressable,
+  Platform,
   StyleSheet,
   type StyleProp,
   type TextStyle,
@@ -257,7 +259,30 @@ export function OptionCard({
   );
 }
 
-/** A labelled text input with an inline error line. */
+/**
+ * A labelled text input with an inline error line.
+ *
+ * Every form in the app is one of these, so the assistive bindings live here
+ * rather than in eight screens. Three platforms want three mechanisms, and the
+ * spellings below were read off react-native 0.86.2 and react-native-web
+ * 0.21.2 — the pair Expo SDK 57 pins — rather than assumed:
+ *
+ * - Android is the only platform with labelledby, and it resolves the id of
+ *   another element, so the label carries an id and the input names it.
+ * - iOS has no labelledby at all. The name it reads is the label prop, and a
+ *   wrong field folds its error into that name the way OptionRow folds its
+ *   gloss, so someone coming back to a failed field still hears why.
+ * - Web forwards all of it as ARIA. Describedby and invalid are web-only and
+ *   the native typings do not name them, so they travel as a spread.
+ *
+ * `id` not `nativeID`, and `aria-label` not `accessibilityLabel`: react-native
+ * reads the newer spelling first on both platforms and react-native-web still
+ * warns on `nativeID`. The one exception is `accessibilityLiveRegion`, which
+ * Text on native answers to only under that name.
+ *
+ * Announcing the error as it appears is that live region on Android and
+ * `role="alert"` on web. VoiceOver has neither, so iOS is told out loud.
+ */
 export function Field({
   label,
   value,
@@ -290,10 +315,35 @@ export function Field({
   center?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
+  const fieldId = useId();
+  const labelId = `${fieldId}-label`;
+  const errorId = `${fieldId}-error`;
+  // A field with no visible label still has a placeholder, and an input
+  // announced as "text field" and nothing else is the bug this closes.
+  const name = label ?? placeholder;
+
+  useEffect(() => {
+    if (error == null || Platform.OS !== 'ios') return;
+    AccessibilityInfo.announceForAccessibility(error);
+  }, [error]);
+
+  const webError: Record<string, string> | null =
+    error != null && Platform.OS === 'web'
+      ? { 'aria-describedby': errorId, 'aria-invalid': 'true' }
+      : null;
+
   return (
     <View style={{ gap: space(1.5) }}>
-      {label != null && <Label>{label}</Label>}
+      {/* Not <Label>: it takes no id, and Android finds the label by id. */}
+      {label != null && (
+        <Text id={labelId} style={[type.label, { color: accent.label }]}>
+          {label}
+        </Text>
+      )}
       <TextInput
+        {...webError}
+        aria-label={name != null && error != null ? `${name}, ${error}` : name}
+        aria-labelledby={label != null ? labelId : undefined}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -311,7 +361,16 @@ export function Field({
         onBlur={() => setFocused(false)}
         style={[s.field, center && { textAlign: 'center' }, focused && { borderColor: paper.ink }]}
       />
-      {error != null && <Text style={[type.small, { color: signal.correspondance }]}>{error}</Text>}
+      {error != null && (
+        <Text
+          id={errorId}
+          role="alert"
+          accessibilityLiveRegion="polite"
+          style={[type.small, { color: signal.correspondance }]}
+        >
+          {error}
+        </Text>
+      )}
     </View>
   );
 }

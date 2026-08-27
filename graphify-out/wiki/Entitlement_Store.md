@@ -1,6 +1,6 @@
 # Entitlement Store
 
-> 37 nodes · cohesion 0.11
+> 38 nodes · cohesion 0.11
 
 ## Key Concepts
 
@@ -18,6 +18,7 @@
 - **.consume()** (4 connections) — `services/token-server/src/store.ts`
 - **.get()** (4 connections) — `services/token-server/src/store.ts`
 - **.#headers()** (4 connections) — `services/token-server/src/store.ts`
+- **developmentEntitlementsEnabled()** (3 connections) — `services/token-server/src/store.ts`
 - **.constructor()** (3 connections) — `services/token-server/src/store.ts`
 - **.#read()** (3 connections) — `services/token-server/src/store.ts`
 - **.save()** (3 connections) — `services/token-server/src/store.ts`
@@ -28,17 +29,17 @@
 - **.save()** (2 connections) — `services/token-server/src/store.ts`
 - **entitlementFrom()** (2 connections) — `services/token-server/src/store.ts`
 - **.consume()** (2 connections) — `services/token-server/src/store.ts`
-- **.get()** (2 connections) — `services/token-server/src/store.ts`
-- *... and 12 more nodes in this community*
+- *... and 13 more nodes in this community*
 
 ## Relationships
 
-- [Metering and Plans](Metering_and_Plans.md) (9 shared connections)
-- [Account Deletion and Agent Auth](Account_Deletion_and_Agent_Auth.md) (8 shared connections)
+- [Session Cost Metering](Session_Cost_Metering.md) (9 shared connections)
+- [Server Auth And Account Deletion](Server_Auth_And_Account_Deletion.md) (9 shared connections)
 - [LiveKit Session Tokens](LiveKit_Session_Tokens.md) (6 shared connections)
-- [Supabase Live Checks](Supabase_Live_Checks.md) (2 shared connections)
-- [Voice Lifecycle Security Checks](Voice_Lifecycle_Security_Checks.md) (1 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (1 shared connections)
+- [Voice Lifecycle Checks](Voice_Lifecycle_Checks.md) (1 shared connections)
+- [Supabase Isolation Probe](Supabase_Isolation_Probe.md) (1 shared connections)
+- [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
+- [Supabase Live Checks](Supabase_Live_Checks.md) (1 shared connections)
 
 ## Source Files
 
@@ -48,7 +49,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 101 (100%)
+- EXTRACTED: 103 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

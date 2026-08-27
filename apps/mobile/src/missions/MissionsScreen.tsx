@@ -98,6 +98,7 @@ export function MissionsScreen() {
         <Text style={st.headline}>{view.headline}</Text>
         <Text style={st.sub}>{view.sub}</Text>
         {view.promise !== null && <Text style={st.promise}>{view.promise}</Text>}
+        {view.microphoneNotice !== null && <Text style={st.microphoneNotice}>{view.microphoneNotice}</Text>}
 
         {first && (
           <Card style={{ marginTop: space(6) }}>
@@ -151,6 +152,7 @@ const st = StyleSheet.create({
   headline: { ...type.display, color: paper.ink },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
   promise: { ...type.bodyStrong, color: paper.ink, marginTop: space(4) },
+  microphoneNotice: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
   heroArt: { alignItems: 'center', marginBottom: space(3) },
   heroTitle: { ...type.title, color: paper.ink },
   heroSub: { ...type.body, color: paper.inkSoft, marginTop: space(0.5) },

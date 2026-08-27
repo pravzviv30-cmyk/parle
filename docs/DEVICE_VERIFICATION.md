@@ -1,14 +1,20 @@
-# Device verification — iOS and Android auth, session storage and deletion
+# Device verification — auth, session storage, deletion, and the first run
 
-**Status: not run.** No representative iOS or Android build of Parle exists on the
-machine this was written on, so every row in [the matrix](#the-matrix) below says
-`not run`. This file is the runbook, not the result. `F71` in
+**Status: device and five-viewport matrices not run; one local web route check
+recorded.** No representative iOS or Android build of Parle exists on the machine
+this was written on, so every row in [the matrix](#the-matrix) below says `not run`.
+This file is primarily the runbook, not the result. `F71` in
 [KNOWN_ISSUES.md](KNOWN_ISSUES.md) stays open until the matrix is filled in from a
-real device pass and the outcome is recorded here.
+real device pass and the outcome is recorded here. `F114`'s checked ledger entry
+means that this runbook and its static responsive-width contracts exist; it does
+not mean the matrix was run. Release evidence remains pending until
+[the first run on five viewports](#the-first-run-on-five-viewports) has been walked
+and recorded. F58's narrower web route defect has separate runtime evidence below.
 
-Owner: `auth-engineer` for the steps, `qa-release-engineer` for running them —
-independent evidence is the point, and `qa-release-engineer` cannot edit the code
-it is checking.
+Owner: `auth-engineer` for the auth steps, `onboarding-ux-engineer` for the
+first-run steps, `qa-release-engineer` for running all of them — independent
+evidence is the point, and `qa-release-engineer` cannot edit the code it is
+checking.
 
 ## What a device proves that this machine cannot
 
@@ -463,6 +469,139 @@ keystore key stays behind, leaving ciphertext nothing can decrypt.
 **Fail looks like:** a crash, or — much worse — a decryptable session, which would
 mean the session travelled off the original device. `WHEN_UNLOCKED_THIS_DEVICE_ONLY`
 is the iOS half of that promise; Android's is the keystore key not being backed up.
+
+## The first run on five viewports
+
+Everything from the welcome to the first spoken French, on the screens where it is
+most likely to break. Owner: `onboarding-ux-engineer` for the steps,
+`qa-release-engineer` for running them. `F114` in
+[KNOWN_ISSUES.md](KNOWN_ISSUES.md) checks the existence of this runbook and its
+static width contracts; release evidence is complete only when this matrix is filled in.
+[ONBOARDING.md](ONBOARDING.md) describes the flow these steps walk.
+
+### Recorded web route check — 2026-08-27
+
+This is a single behavior check, not a completed viewport row. A development build
+at `http://127.0.0.1:8089/` used explicit local mock auth and a synthetic account.
+The driven journey was welcome → create account → age → name → Meet Luc → Choose
+your first scene. It landed visibly at `/missions`, including the first-win promise
+and just-in-time microphone/type notice. Back reached `/home`; reloading stayed at
+`/home`; See all situations returned to `/missions`; Back returned normally to
+`/home`. This closes F58's React Navigation precedence defect. It does not prove a
+Supabase round trip, a production export, native behavior, accessibility, responsive
+layout at the five named sizes or time to first spoken French.
+
+**What is already proven, statically, in the gate.** Four checks read the source of
+every first-run screen and fail if it regresses: `no first-run screen hardcodes a
+viewport width`, `no first-run screen caps font scaling`, `every first-run screen
+leads with a heading role`, and `every visible field label is bound to its input
+for assistive tech`. They are a walk over text. They cannot see a single one of the
+things below.
+
+**The five viewports.** A build on hardware or a browser at that width, not a
+screenshot tool.
+
+| Id | Viewport | Representative |
+|---|---|---|
+| V-S | Small iPhone | iPhone SE, 375 x 667 pt |
+| V-L | Large iPhone | iPhone Pro Max, 430 x 932 pt |
+| V-A | Android | Pixel-class, ~412 x 915 dp |
+| V-W | Narrow web | Browser at 360 px wide |
+| V-D | Wide web | Browser at 1440 px wide |
+
+| Id | Check | V-S | V-L | V-A | V-W | V-D |
+|---|---|---|---|---|---|---|
+| O1 | Every first-run screen is fully reachable at default text size | not run | not run | not run | not run | not run |
+| O2 | The same at the largest accessibility text size | not run | not run | not run | not run | not run |
+| O3 | Reduce motion shows the café scene's final frame, not an empty box | not run | not run | not run | not run | not run |
+| O4 | The screen reader reads the heading first and the name field by its label | not run | not run | not run | not run | not run |
+| O5 | The keyboard reaches every control, in order, with focus visible | n/a | n/a | n/a | not run | not run |
+| O6 | Time from first launch to the first French spoken aloud | not run | not run | not run | not run | not run |
+
+### O1 — every first-run screen is reachable
+
+Install fresh, or sign out and clear app data. Walk welcome → sign up → age → name
+→ Meet Luc → chooser.
+
+**Expect:** on every screen, the title, the body and the primary action are all
+reachable without the keyboard covering the field, and the primary action is either
+visible or arrived at by scrolling. Meet Luc is the densest page and the one to
+watch.
+
+**Fail looks like:** a pill under the fold with nothing indicating it scrolls, a
+title clipped to one line, or a text field hidden behind the keyboard on V-S.
+
+### O2 — the same at the largest text size
+
+iOS: Settings → Accessibility → Display & Text Size → Larger Text, at maximum.
+Android: Settings → Display → Font size, at maximum. Web: browser zoom at 200%.
+
+**Expect:** every screen scrolls to reveal what grew. Nothing is truncated with an
+ellipsis, and no control becomes unreachable.
+
+**Fail looks like:** two lines of a four-line disclosure, or a Continue pill pushed
+off a screen that does not scroll. This is the step the static check cannot do:
+`no first-run screen caps font scaling` proves only that nothing *asked* the text
+to stay small.
+
+### O3 — reduce motion
+
+iOS: Settings → Accessibility → Motion → Reduce Motion. Android: Settings →
+Accessibility → Remove animations. Web: OS-level reduce motion, then reload.
+
+**Expect:** the welcome still draws the café, steam and all, held at rest. The rule
+is final frame, never nothing. Turn the setting on *while* the welcome is on screen
+and the movement stops without the drawing disappearing.
+
+**Fail looks like:** an empty box where the scene was, or movement that continues.
+
+### O4 — VoiceOver and TalkBack
+
+Turn the screen reader on and walk the same six screens without looking.
+
+**Expect:** each screen announces its title as a heading. The name field is
+announced as "Your name", not as "text field". An error under a field is announced
+when it appears. The Back chevron is announced as "Back".
+
+**Fail looks like:** an unlabelled text field, a heading read as ordinary text, or
+an error that only exists visually. Record which platform, because the three
+mechanisms behind this differ per platform: Android resolves the label by id, iOS
+reads the accessible name, and the web reads ARIA.
+
+### O5 — the keyboard, web only
+
+Tab from a fresh load of the welcome through to the chooser.
+
+**Expect:** every control is reachable in reading order, the focus ring is visible
+on all of them, and nothing traps focus. Enter submits the field it is in.
+
+**Fail looks like:** a pill that can only be clicked, an invisible focus ring, or a
+tab order that jumps backwards.
+
+### O6 — the stopwatch
+
+The number this whole phase is about, and the one thing no test in this repo can
+produce. Start the timer at the first frame after launch on a fresh install. Stop
+it when the learner has said their first French sentence aloud in a scene and the
+tutor has answered.
+
+Run it twice per viewport: once as an unhurried first-time reader, once as somebody
+tapping through as fast as the screens allow. Record both, in seconds, along with
+the network conditions, because a cold token server and a cold model are part of
+what a learner waits through.
+
+**Record it as:**
+
+```
+O6: <viewport> — read: <n>s — rushed: <n>s — network: <wifi|4g|throttled> — build <id>
+```
+
+**Expect:** nothing. There is no target to hold this to yet, and inventing one now
+would be a number chosen to be beaten. The first honest pass sets the baseline, and
+`ONBOARDING.md` records the screen and tap counts in the meantime.
+
+**Fail looks like:** any run where the learner cannot get there at all, which is a
+ledger entry, not a slow number.
 
 ## Recording the result
 

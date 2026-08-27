@@ -1,4 +1,4 @@
-# HTTP Security And CORS
+# HTTP Security and CORS
 
 > 9 nodes · cohesion 0.39
 
@@ -16,7 +16,7 @@
 
 ## Relationships
 
-- [Account Deletion and Agent Auth](Account_Deletion_and_Agent_Auth.md) (4 shared connections)
+- [Server Auth And Account Deletion](Server_Auth_And_Account_Deletion.md) (4 shared connections)
 
 ## Source Files
 

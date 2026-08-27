@@ -30,16 +30,27 @@ of each before starting the next. Each file is idempotent: every create is
 | 4 | `migrations/202608250001_consume_entitlement_null_fix.sql` | F74: the same NULL-safe guard in `consume_entitlement`, so a retried session bills once and a foreign session id is refused. Replaces one function body, touches no rows |
 | 5 | `migrations/202608250002_product_event_key_count_fix.sql` | F75: counts event properties with `jsonb_object_keys` instead of `jsonb_object_length`, which does not exist. Replaces one function body, leaves the trigger in place, touches no rows |
 | 6 | `migrations/202608260001_learner_state_revision.sql` | F84: `learner_state.revision`, the ordering primitive the device sync engine compares against, plus the trigger that advances it and stamps `updated_at`. Adds one column with a constant default, changes no policy, touches no payload |
+| 7 | `migrations/202608270001_onboarding_event_property_fix.sql` | F116: `onboarding_completed` now requires `personalisedGreeting` alone, because the why page left the first run and the client stopped sending `motivationAnswered`. Replaces one function body, leaves the trigger in place, touches no rows |
 
 Order is load-bearing in one direction only: everything after 1 names tables and
-functions that 1 creates, so 1 first. Files 3, 4 and 5 are each a single `create or
+functions that 1 creates, so 1 first. Files 3, 4, 5 and 7 are each a single `create or
 replace function`, so running any of them twice, or running them immediately after 2,
-is fine, and they do not depend on one another.
+is fine. Only 5 and 7 depend on each other, and only in order: both replace
+`validate_product_event`, so 7 has to be the last of the two you paste, which the
+numbering already gives you.
 
 Files 3, 4 and 5 all close the same mistake in three different functions: `insert ...
 on conflict do nothing returning true into <flag>` leaves the flag NULL rather than
 false, and `not NULL` is NULL, so a plpgsql `if` on it takes neither branch. If you are
 adding another migration that writes a guard like this, write `<flag> is not true`.
+
+**File 7 has never been pasted anywhere.** It exists on disk and in the tests, and that is
+all: no project, disposable or otherwise, has been given it, because there is no CLI, no
+Docker and no `psql` here and DDL does not travel over PostgREST. Until somebody pastes it,
+every deployed copy of this schema still runs the 202608250002 trigger, which demands
+`motivationAnswered` and therefore refuses every `onboarding_completed` the current app
+sends. The parser half of F116 ships with the token server and needs no paste; this half
+does.
 
 After the last paste, reload the API schema cache (Settings → API → Reload, or wait a few
 seconds) or PostgREST will keep answering `PGRST205 could not find the table` for tables
@@ -105,6 +116,7 @@ depends on what the earlier ones built.
 
 | Rolling back | Script | Cost |
 |---|---|---|
+| `202608270001_onboarding_event_property_fix.sql` | `rollback/202608270001_down.sql` | Reopens F116. Every `onboarding_completed` is refused again and the funnel goes dark, silently. Refuses to run until you set `parle.reopen_f116` in the same session |
 | `202608260001_learner_state_revision.sql` | `rollback/202608260001_down.sql` | Every synced device stops being able to write: the compare-and-swap filters on a column that no longer exists, so PostgREST answers 42703 and the push queues instead of landing. Fails closed, loses no learner content, and cannot be undone by re-applying — the counters come back at 0 |
 | `202608250002_product_event_key_count_fix.sql` | `rollback/202608250002_down.sql` | Reopens F75. Every product event write fails again, silently. Refuses to run until you set `parle.reopen_f75` in the same session |
 | `202608250001_consume_entitlement_null_fix.sql` | `rollback/202608250001_down.sql` | Reopens F74. A retried `/session/end` bills a learner twice and a foreign session id merges. Refuses to run until you set `parle.reopen_f74` in the same session |
@@ -112,16 +124,22 @@ depends on what the earlier ones built.
 | `202608230001_session_usage_idempotency.sql` | `rollback/202608230001_down.sql` | Destroys the exactly-once billing ledger and the antifraud evidence. Restores the two-argument debit |
 | `202608220001_parle_learning.sql` | `rollback/202608220001_down.sql` | Destroys every learner row Parle owns |
 
-The three interlocked rows are the ones to argue with. Each adds no table, no column and
+The four interlocked rows are the ones to argue with. Each adds no table, no column and
 no row; each only stops one function doing the wrong thing. If something looks broken after
 applying one of them, fix forward with a new migration. Rolling one back restores a known
 defect, which is why each script makes you say so out loud in the same paste:
 
 ```sql
+set local parle.reopen_f116 = 'yes-i-accept-losing-every-onboarding-event';
 set local parle.reopen_f75 = 'yes-i-accept-losing-every-product-event';
 set local parle.reopen_f74 = 'yes-i-accept-double-billing-on-retry';
 set local parle.reopen_f73 = 'yes-i-accept-unbounded-trial-farming';
 ```
+
+`202608270001_down.sql` and `202608250002_down.sql` both replace the same function, so
+apply them newest first like everything else here. Running the F75 one on its own, without
+the F116 one before it, is not a partial rollback — it restores a body that predates both
+fixes and reopens F116 along the way.
 
 `202608240001_down.sql` is the most expensive of the three: it restores a function that
 grants a fresh trial to every device that asks twice, at roughly $2.20 of vendor spend
@@ -136,7 +154,7 @@ the project has real accounts on it.
 "We can roll back" is a claim, and this is how it becomes evidence. Do it on a disposable
 project, and keep the output:
 
-1. Apply all six migrations. Run the harness. Record: twelve proofs, all passed.
+1. Apply all seven migrations. Run the harness. Record: twelve proofs, all passed.
 2. Note the row counts of all five tables (`select count(*) from public.<table>;`).
 3. Take the backup from `## Backup`, and record its timestamp.
 4. Apply `rollback/202608240001_down.sql` with the interlock set. Re-run the harness and
@@ -144,11 +162,12 @@ project, and keep the output:
    evidence the rollback did something, and the evidence F73 was real.
 5. Re-apply `migrations/202608240001_claim_trial_null_fix.sql`. Re-run the harness and
    record twelve passes again.
-6. Apply `rollback/202608260001_down.sql`, then `rollback/202608250002_down.sql` and
+6. Apply `rollback/202608270001_down.sql` with its interlock set, then
+   `rollback/202608260001_down.sql`, then `rollback/202608250002_down.sql` and
    `rollback/202608250001_down.sql` with their interlocks set, then
    `rollback/202608230001_down.sql`, then `rollback/202608220001_down.sql`. Record that the harness now reports the schema as
    not applied, naming each missing object.
-7. Re-apply all six migrations, restore from step 3, and record the row counts from
+7. Re-apply all seven migrations, restore from step 3, and record the row counts from
    step 2 matching.
 
 Steps 4 and 5 are the cheap half and can be run on their own: they touch one function

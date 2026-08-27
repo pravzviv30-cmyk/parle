@@ -13,12 +13,21 @@ export { useSceneMotion, arriveStyle } from './useSceneMotion.ts';
 export type { SceneMotion, LoopSpec } from './useSceneMotion.ts';
 export { unit, place, frameHeight, restFor } from './timing.ts';
 
-// The eight that were already drawn. Four of them now move.
+// Six of the eight that were already drawn. Three of the six move.
+//
+// The missing two left the barrel when Phase 3 collapsed the first run, and
+// both for the same reason: the only screen that drew them is gone.
+// `LearnStack` was splash page two, and `OnboardSuitcase` was the
+// why-are-you-learning-French page, which went because nothing ever read the
+// answer. The drawings are still in `scenes/`, just no longer offered here: a
+// scene is cheap to keep and expensive to redraw, but the barrel is a promise
+// that something renders what it carries, and neither of these had a caller
+// left. J14 in surfaceContract.test.ts is what noticed, and it is what will
+// notice the next one.
 export { HeroCafe } from './scenes/cafe.tsx';
 export { SpeakBubbles } from './scenes/bubbles.tsx';
-export { LearnStack } from './scenes/stack.tsx';
 export { RecapPostcard } from './scenes/postcard.tsx';
-export { OnboardWave, OnboardCake, OnboardSuitcase, OnboardClock } from './scenes/onboarding.tsx';
+export { OnboardWave, OnboardCake, OnboardClock } from './scenes/onboarding.tsx';
 
 // The six new ones: three empty states, two moments, two rooms.
 export { NothingDue, NobodyYet, StillWriting } from './scenes/empty.tsx';

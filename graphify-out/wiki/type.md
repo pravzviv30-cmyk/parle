@@ -1,8 +1,8 @@
 # type
 
-> God node · 38 connections · `apps/mobile/src/theme.ts`
+> God node · 37 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Auth Screens and Context](Auth_Screens_and_Context.md)
+**Community:** [Sign-In UI Components](Sign-In_UI_Components.md)
 
 ## Connections by Relation
 
@@ -15,20 +15,20 @@
 - DrillScreen.tsx `EXTRACTED`
 - components.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
-- MyFrenchTab.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
+- MyFrenchTab.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
 - ProfileTab.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
+- SoundCheckScreen.tsx `EXTRACTED`
 - LeaderboardTab.tsx `EXTRACTED`
 - AddFriendsScreen.tsx `EXTRACTED`
 - MissionsScreen.tsx `EXTRACTED`
 - ReviewScreen.tsx `EXTRACTED`
 - SummaryScreen.tsx `EXTRACTED`
-- SoundCheckScreen.tsx `EXTRACTED`
 - SessionView.tsx `EXTRACTED`
-- PhrasebookScreen.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`
+- PhrasebookScreen.tsx `EXTRACTED`
 - LiveSessionScreen.tsx `EXTRACTED`
 
 ### rationale_for

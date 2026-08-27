@@ -11,7 +11,7 @@ describe('product event privacy boundary', () => {
     assert.notEqual(
       parseProductEvent({
         name: 'onboarding_completed',
-        properties: { personalisedGreeting: true, motivationAnswered: false },
+        properties: { personalisedGreeting: true },
       }),
       null,
     );
@@ -34,6 +34,39 @@ describe('product event privacy boundary', () => {
     assert.equal(parseProductEvent({ name: 'mission_completed', properties: { missionId: 'mission:cafe', rung: '4' } }), null);
     assert.equal(parseProductEvent({ name: 'mission_started', properties: { missionId: 'mission:cafe', entry: 'advert' } }), null);
     assert.equal(parseProductEvent({ name: 'my_french_opened', properties: { situationsDone: -1, linesKept: 2 } }), null);
+  });
+
+  // F116. The client union dropped `motivationAnswered` with the why page and
+  // nothing forced the parser to follow, so every onboarding_completed was refused
+  // and the funnel went dark. These two tests pin both halves of the new contract:
+  // the shape the client actually sends is stored, and the shape it used to send is
+  // refused rather than tolerated. A subset check would have made the first pass and
+  // the second fail silently, which is why `exactKeys` stays exact.
+  test('onboarding_completed is accepted without motivationAnswered', () => {
+    assert.deepEqual(
+      parseProductEvent({ name: 'onboarding_completed', properties: { personalisedGreeting: true } }),
+      { name: 'onboarding_completed', properties: { personalisedGreeting: true } },
+    );
+    assert.deepEqual(
+      parseProductEvent({ name: 'onboarding_completed', properties: { personalisedGreeting: false } }),
+      { name: 'onboarding_completed', properties: { personalisedGreeting: false } },
+    );
+    assert.equal(parseProductEvent({ name: 'onboarding_completed', properties: { personalisedGreeting: 'yes' } }), null);
+    assert.equal(parseProductEvent({ name: 'onboarding_completed', properties: {} }), null);
+  });
+
+  test('onboarding_completed carrying the retired motivationAnswered key is refused, not trimmed', () => {
+    assert.equal(
+      parseProductEvent({
+        name: 'onboarding_completed',
+        properties: { personalisedGreeting: true, motivationAnswered: false },
+      }),
+      null,
+    );
+    assert.equal(
+      parseProductEvent({ name: 'onboarding_completed', properties: { motivationAnswered: true } }),
+      null,
+    );
   });
 
   test('rejects arbitrary event names', () => {
