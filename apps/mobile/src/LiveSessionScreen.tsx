@@ -8,7 +8,7 @@
  * support rather than buttons — saying it aloud is the product.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import type { Lesson, Rung, SessionSummary } from '@parle/core';
 import { paper, space, type, HIT } from './theme.ts';
@@ -16,6 +16,11 @@ import { Card, PillButton, GhostButton } from './components.tsx';
 import { SessionView } from './SessionView.tsx';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
+import { connectionLine } from './live/connectionLine.ts';
+import { takeTypedDoor, typedDoorFor } from './live/typedDoor.ts';
+import { useProfile } from './app/ProfileContext.tsx';
+import { isUnderAgeStop } from './profile/age.ts';
+import { withAgeStop } from './profile/store.ts';
 import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
 import { waitingView } from './tutor/waitingView.ts';
 import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
@@ -37,9 +42,17 @@ export function LiveSessionScreen({
   onExit: () => void;
   /** Open with the voice pipeline dark: the lesson is read and typed, never spoken. */
   textMode?: boolean;
-  /** Reopen this lesson typed. Absent means the caller cannot offer that. */
-  onRetryAsText?: () => void;
+  /**
+   * Reopen this lesson typed, from cold.
+   *
+   * Required, because it is the fallback and a fallback nobody passed is a
+   * button that does nothing. It is only reached when the room is already gone:
+   * with a room open the quiet door is taken in place, and this whole rebuild,
+   * with its second token and its second grant, never happens.
+   */
+  onRetryAsText: () => void;
 }) {
+  const { profile, update } = useProfile();
   const live = useLiveSession(userId, lesson.id, startRung, textMode ? { mode: 'lesson-text' } : undefined);
 
   // Connect on mount. The hook tears the room down on unmount.
@@ -48,11 +61,38 @@ export function LiveSessionScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * The learner is typing: the lesson opened that way, or the room went quiet
+   * around them. `voiceless` is the room's own answer and is the only thing
+   * that knows about the second case.
+   */
+  const typing = textMode || live.voiceless;
+
+  /**
+   * The quiet door, which the lesson now has on the same terms as the
+   * conversation. It goes quiet in the room that is already open; the cold
+   * rebuild is kept for the session that never had one.
+   */
+  const goQuiet = () => {
+    if (takeTypedDoor(live) === 'needs-a-new-session') onRetryAsText();
+  };
+
   // A stopped session leaves nothing behind here either, and the two quiet
   // modes are no exception: a disclosure typed into a lesson is the same
   // disclosure. See tutor/safetyView.ts.
   const safety = safetySurface(live.safety);
   const stopped = stoppedBySafety(live.safety);
+
+  // The one stop that outlives its session. A disclosure typed into a lesson is
+  // the same disclosure, so this screen writes it down exactly as the
+  // conversation does, and the navigator reads it back on the next launch.
+  const ageStopWrittenRef = useRef(false);
+  useEffect(() => {
+    if (ageStopWrittenRef.current || !isUnderAgeStop(live.safety)) return;
+    ageStopWrittenRef.current = true;
+    update(withAgeStop(profile));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live.safety]);
 
   useEffect(() => {
     // `onFinish` is what puts SummaryScreen on the screen, so withholding it is
@@ -98,15 +138,18 @@ export function LiveSessionScreen({
   if (live.status.phase === 'error') {
     // A learner whose microphone was refused is exactly the learner who needs
     // the typed route, and the four failures that carry canType are the ones
-    // where typing is a real way out. This used to be the conversation's
-    // privilege alone.
+    // where typing is a real way out. Which those are, and whether the offer is
+    // real, is `typedDoorFor` rather than a condition each screen writes out.
+    //
+    // Back leaves the room. A blocking failure with a typed door keeps the room
+    // open on purpose so that door has somewhere to go.
     return (
       <LiveErrorView
         failure={live.status.failure}
         message={live.status.message}
         diagnostics={live.diagnostics}
-        onBack={onExit}
-        onType={textMode ? undefined : () => onRetryAsText?.()}
+        onBack={leaveNow}
+        onType={typedDoorFor(live.status.failure, { typing }) ? goQuiet : null}
       />
     );
   }
@@ -155,9 +198,12 @@ export function LiveSessionScreen({
         </Pressable>
       )}
       <View style={st.topRow}>
-        {/* Transient trouble from the agent (a voice hiccup). The session is
-            still live; this clears itself. */}
-        <Text style={[type.small, { color: paper.inkSoft, flex: 1 }]}>{live.notice ?? ''}</Text>
+        {/* Transient trouble from the agent (a voice hiccup), which clears
+            itself, or a connection being rebuilt, which does not and must not
+            be given a timer. One line at a time: live/connectionLine.ts. */}
+        <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, flex: 1 }]}>
+          {connectionLine({ reconnecting: live.reconnecting, notice: live.notice }).text ?? ''}
+        </Text>
         {/* Metered minutes must always have a door. */}
         <Pressable
           onPress={leaveNow}
@@ -185,18 +231,18 @@ export function LiveSessionScreen({
         onHelp={live.sendHelp}
         // Replays come from the agent in the premium voice, and only while the
         // learner holds the floor — a replay must not talk over the tutor.
-        onHearLine={!live.tutorSpeaking && !textMode ? live.sendHear : undefined}
+        onHearLine={!live.tutorSpeaking && !typing ? live.sendHear : undefined}
         // Saying it aloud is still the product, and the cards are still
         // read-along support while the learner has a voice to use. But a
         // carriage full of strangers is not a reason to finish a lesson having
         // said nothing: a tap is an answer, graded like any other, and counted
         // as an utterance nobody heard rather than one that went well.
         onOptionPress={live.sendChoice}
-        onType={textMode ? live.sendSay : undefined}
+        onType={typing ? live.sendSay : undefined}
         // Typing is presence, and the typed lesson is the one surface that
         // never sent it: the agent counted the silence and rescued a learner
         // who was mid-sentence. Throttled inside the hook.
-        onTyping={textMode ? live.sendTyping : undefined}
+        onTyping={typing ? live.sendTyping : undefined}
       />
     </View>
   );

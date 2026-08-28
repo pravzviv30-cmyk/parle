@@ -70,6 +70,7 @@ import {
   type NewPhrase,
   type ScenarioFrame,
   type SessionRecap,
+  type Strictness,
   type TurnView,
   missionFrame,
 } from '@parle/brain';
@@ -83,7 +84,7 @@ import { STUCK_SILENCE_MS, decodeClientMessage, validateExercise, type MissionId
  */
 
 import { reportUsage } from './usage.ts';
-import { safetyDecision } from './safety.ts';
+import { outputGuard, recordSafetyDecision, safetyDecision } from './safety.ts';
 
 /**
  * The wire shapes, derived from the protocol's own ServerMessage rather than
@@ -94,8 +95,24 @@ import { safetyDecision } from './safety.ts';
 export type ConvoView = Extract<ServerMessage, { t: 'convo' }>['view'];
 export type RecapPayload = Extract<ServerMessage, { t: 'recap' }>['recap'];
 
-/** Anything that can carry a message back to the app. */
-type Publisher = (message: ServerMessage) => void;
+/**
+ * Anything that can carry a message back to the app.
+ *
+ * The return value is optional and almost every caller ignores it. One does
+ * not: a stop closes the room straight after the message, and closing it before
+ * a reliable data frame has flushed would take the crisis line with it. So a
+ * publisher that knows when its frame has landed may say so, and `closeAfterStop`
+ * is the only place that waits.
+ */
+type Publisher = (message: ServerMessage) => void | Promise<void>;
+
+/**
+ * The half of the framework's SpeechHandle this file uses.
+ *
+ * Structural rather than imported: `voice` does not re-export SpeechHandle, and
+ * in text mode and in tests there is no handle at all.
+ */
+type SpokenLine = { waitForPlayout: () => Promise<void> } | undefined;
 
 // ─────────────────────────────────────────────── pure mapping helpers
 
@@ -188,6 +205,37 @@ export function chooseFrame(profile: LearnerProfile): ScenarioFrame {
   return last === CAFE_FRAME.title ? APERO_FRAME : CAFE_FRAME;
 }
 
+/** The three the engine builds a coaching policy for. */
+const STRICTNESSES: readonly Strictness[] = ['flow', 'balanced', 'strict'];
+
+/**
+ * How much this learner asked to be corrected.
+ *
+ * Every scene this agent opens used to be built on the literal `'flow'`, so two
+ * of the three policies `grading.ts` builds and tests never ran anywhere a
+ * learner could hear them, and the eval and production disagreed about the
+ * product. The preference already survives a session — `finishSession` refuses
+ * to write it back precisely so it stays a setting rather than a log — and this
+ * is the read that makes it mean something.
+ *
+ * Fresh profiles say `balanced`, from `createProfile`, so the live default is
+ * one step firmer than it was. That change was approved on its own terms, and it
+ * is still bounded: `INLINE_CAP` caps findings per turn, and K1's cooldown caps
+ * uninvited interruptions per session, so `balanced` widens what may be said and
+ * not how often the scene is broken into.
+ *
+ * Guarded rather than trusted, for the same reason the seed topic and the
+ * mission id are. The profile rides the join credential: it is server-signed,
+ * but the shape inside it came off a device, and a strictness the policy tables
+ * have no row for is not a pedagogy difference, it is a `TypeError` in the first
+ * turn of somebody's session. Anything unreadable lands where a brand new
+ * learner lands.
+ */
+export function strictnessOf(profile: LearnerProfile): Strictness {
+  const stored: unknown = profile.preferences?.strictness;
+  return STRICTNESSES.find((known) => known === stored) ?? 'balanced';
+}
+
 // ─────────────────────────────────────────────── the voice agent
 
 /**
@@ -268,6 +316,18 @@ export const CONVO_LINES = {
   suggest: {
     fr: 'Tout marche. Votre journée, vos projets, un café à Paris. Dites-le en anglais ou en français.',
     en: "Anything goes. Your day, your plans, ordering coffee in Paris. Say it in English or French and we're off.",
+  },
+  /**
+   * What the scene says instead, when the output guard takes a tutor line out.
+   *
+   * The learner did nothing, so nothing is said to them about it: no apology,
+   * no notice, no hint that anything was removed. It hands the floor straight
+   * back, because the one thing a suppressed line must never do is leave
+   * somebody sitting in front of a scene that has stopped answering.
+   */
+  carryOn: {
+    fr: "On continue. Vas-y, je t'écoute.",
+    en: "Let's keep going. Go ahead, I'm listening.",
   },
 } as const;
 
@@ -757,8 +817,9 @@ export function formatBrainSummary(spend: SessionSpend, sessionId: string): stri
 }
 
 /**
- * Flow strictness and a 12-turn budget make a framed 3–5 minute scene: coaching
- * mostly waits for the recap, and the beat cap keeps the scene moving.
+ * A 12-turn budget makes a framed 3–5 minute scene, and the beat cap keeps it
+ * moving. How much of it is coaching is the learner's, not this file's: see
+ * `strictnessOf`.
  */
 const CONVO_MAX_TURNS = 12;
 
@@ -856,8 +917,11 @@ export class ParleConversation extends voice.Agent {
    * turns arrive as typed `say` messages, the tutor's lines render instead of
    * sounding, and the silence rescue runs on a reader's clock. Everything
    * pedagogical is identical — that is the point.
+   *
+   * Not readonly, because the learner may change their mind. The `mode` frame
+   * flips exactly this, mid-scene, and nothing else moves: see `setVoiceless`.
    */
-  private readonly voiceless: boolean;
+  private voiceless: boolean;
   /** Every brain turn and every rescue runs through here, one at a time. */
   private readonly queue = new TurnQueue();
   /**
@@ -916,7 +980,7 @@ export class ParleConversation extends voice.Agent {
     this.profile = profile;
     this.voiceless = opts.voiceless ?? false;
     this.state = createConversation(chooseFrame(profile), learnerSnapshotFrom(profile), {
-      strictness: 'flow',
+      strictness: strictnessOf(profile),
       maxTurns: CONVO_MAX_TURNS,
     });
     this.client = opts.client ?? brainClient();
@@ -999,10 +1063,69 @@ export class ParleConversation extends voice.Agent {
     console.info(formatBrainSummary(this.spend, this.sessionId));
   }
 
-  /** Every spoken line funnels through here so text mode can stay silent. */
-  private say(text: string, options: { allowInterruptions?: boolean } = {}): void {
-    if (this.voiceless) return;
-    this.session.say(text, options);
+  /**
+   * Every spoken line funnels through here so text mode can stay silent.
+   *
+   * The handle comes back so one caller can wait on the words: a stop closes
+   * the room, and it must not close it over the top of the only sentence that
+   * mattered. Text mode returns nothing, which is the honest answer there.
+   */
+  private say(text: string, options: { allowInterruptions?: boolean } = {}): SpokenLine {
+    if (this.voiceless) return undefined;
+    return this.session.say(text, options);
+  }
+
+  /**
+   * Go quiet, or come back to voice, without leaving the scene.
+   *
+   * The whole switch is this flag, which is why it is a switch at all rather
+   * than a new session: `say` already funnels every spoken line through it and
+   * `silenceWindow` already reads it, so flipping it silences the tutor and
+   * moves the clock onto a reader's pace in one move. The conversation, the
+   * ladder, the beat and the meter carry on from exactly where they were —
+   * which is the difference between switching mode and starting again.
+   *
+   * Nothing is torn down and nothing is interrupted. A line already on its way
+   * out finishes: cutting the tutor off mid-word to honour a control the
+   * learner tapped while listening would be a worse answer than the half second
+   * it saves. Nothing NEW is spoken after this returns.
+   *
+   * The clock is re-armed only if one was already running, the same rule
+   * `typing` keeps: `armRescue` owns whether the tutor may be waiting on a
+   * learner at all, and a mode switch must not be a second opinion about that.
+   * Re-armed rather than left alone because the two windows are different
+   * lengths, and a learner who switches to text to start typing would otherwise
+   * be rescued four seconds later, mid-sentence, by a voice clock.
+   *
+   * Silent, on purpose. Nobody is told the tutor noticed.
+   */
+  setVoiceless(voiceless: boolean): void {
+    if (this.voiceless === voiceless) return;
+    this.voiceless = voiceless;
+    if (this.silenceTimer) this.armRescue(this.session);
+  }
+
+  /**
+   * The worker's own room close, wired by agent.ts. Unwired (tests, the
+   * playground) it costs nothing.
+   *
+   * The tutor does not disconnect anything itself. It owns one judgement — that
+   * this session is over and the learner has heard why — and the worker owns
+   * the room, exactly as it already does for the hard stop and for a learner
+   * who walks away.
+   */
+  private closeRoom: () => void = () => {};
+
+  /**
+   * Wire the room's disconnect.
+   *
+   * After a stop the session will neither hear nor answer, and until this
+   * existed the microphone stayed published and the recogniser kept
+   * transcribing into it. Nothing downstream reads those words, so the only
+   * thing they cost is the learner's belief that somebody is still listening.
+   */
+  attachRoomClose(close: () => void): void {
+    this.closeRoom = close;
   }
 
   /** Wire up the channel back to the app. */
@@ -1051,10 +1174,97 @@ export class ParleConversation extends voice.Agent {
     if (decision === null) return false;
     this.releaseMoment();
     this.clearRescue();
-    this.publish({ t: 'safety', category: decision.category, action: decision.action, message: decision.message });
-    this.say(decision.message, { allowInterruptions: false });
-    if (decision.action === 'stop') void this.finish();
+    recordSafetyDecision({
+      sessionId: this.sessionId,
+      category: decision.category,
+      action: decision.action,
+      rule: decision.rule,
+      mode: 'convo',
+      voiceless: this.voiceless,
+    });
+    const delivered = this.publish({ t: 'safety', category: decision.category, action: decision.action, message: decision.message });
+    const spoken = this.say(decision.message, { allowInterruptions: false });
+    if (decision.action === 'stop') void this.closeAfterStop(delivered, spoken);
     return true;
+  }
+
+  /**
+   * A stop, all the way through: the words, then the room.
+   *
+   * `finish()` is started and deliberately not awaited. It debits the seconds
+   * and then runs the analyst, which is up to a minute and a half of
+   * post-session model work — and a microphone that stays published for a
+   * minute and a half after the tutor has said it cannot help is the whole of
+   * this defect. The books still close on their own; the room does not wait for
+   * them.
+   *
+   * What the room does wait for is delivery. In a spoken session that is the
+   * speech handle. In a typed one there is no speech at all, so the reliable
+   * data frame is the only delivery there is, and disconnecting before it
+   * flushes would take the message with it.
+   */
+  private async closeAfterStop(delivered: void | Promise<void>, spoken: SpokenLine): Promise<void> {
+    void this.finish();
+    try {
+      await delivered;
+      await spoken?.waitForPlayout();
+    } catch (error) {
+      // A line that could not finish playing is still a line that was said, and
+      // a room that stays open is worse than one that closes a beat early.
+      console.warn('[parle] the stop message did not settle cleanly; closing the room anyway:', error);
+    }
+    this.closeRoom();
+  }
+
+  /**
+   * What the tutor is about to say, checked before the learner hears it.
+   *
+   * `safetyDecision` reads learner input and nothing read the model's own
+   * lines, so a scene reply, a coach line, a narration and the remembered
+   * opener were spoken exactly as they arrived. This is the other half.
+   *
+   * The consequence is a substitution and never a stop: the learner did
+   * nothing, and a session that ends because the model misbehaved punishes the
+   * wrong person. `null` back means the line is fine, which is nearly always.
+   */
+  private guardLine(line: string, surface: string): boolean {
+    const finding = outputGuard(line);
+    if (finding === null) return true;
+    recordSafetyDecision({
+      sessionId: this.sessionId,
+      category: finding.category,
+      action: 'suppress',
+      rule: finding.rule,
+      mode: 'convo',
+      voiceless: this.voiceless,
+    });
+    console.warn(`[parle] a tutor ${surface} failed the output guard and was replaced`);
+    return false;
+  }
+
+  /**
+   * One turn's three tutor surfaces, each checked on its own.
+   *
+   * Checked per surface rather than on the joined utterance, because the
+   * answers differ: a coach line and a narration can simply go, and the scene
+   * reply cannot — something has to be said or the scene stops answering. The
+   * engine state is untouched, so the model's own line stays in the history the
+   * next turn is built from. That is a real limit and it is the brain's to
+   * close, not this file's.
+   */
+  private guardView(view: TurnView): TurnView {
+    const sceneOk = this.guardLine(`${view.sceneReply.fr} ${view.sceneReply.en}`, 'scene reply');
+    const coachOk = view.coachLine === null || this.guardLine(view.coachLine, 'coach line');
+    const narrationOk = view.narration === null || this.guardLine(`${view.narration.fr} ${view.narration.en}`, 'narration');
+    if (sceneOk && coachOk && narrationOk) return view;
+    return {
+      ...view,
+      sceneReply: sceneOk
+        ? view.sceneReply
+        : { ...view.sceneReply, fr: CONVO_LINES.carryOn.fr, frWritten: null, en: CONVO_LINES.carryOn.en },
+      coachLine: coachOk ? view.coachLine : null,
+      narration: narrationOk ? view.narration : null,
+    };
   }
 
   /**
@@ -1089,14 +1299,28 @@ export class ParleConversation extends voice.Agent {
     // ordinary path: startScene owns the bridge line, the frame call, the
     // timeout and the request-grounded fallback, and every one is inherited.
     if (this.seedTopic) {
-      const seeded = seededOpening(this.seedTopic);
-      this.lastOpening = { t: 'opening', prompt: seeded };
-      this.publish(this.lastOpening);
-      this.say(seeded.en, { allowInterruptions: false });
-      void this.startScene(this.seedTopic.en).catch((error: unknown) => {
-        console.error('[parle] the seeded scene could not be started:', error);
-      });
-      return;
+      // Checked here, ahead of the publish and ahead of the speech. startScene
+      // checks the same text, but it is called last on this path, so the tutor
+      // said the topic out loud and the app rendered it before anything read
+      // it. The title comes off a practice card, which is the learner's own
+      // past session played back at them, so the one thing it must not do is
+      // be spoken before it is read.
+      if (this.handleSafety(this.seedTopic.en)) {
+        // A stop has already closed the session. A redirect has not, and a
+        // redirect with no opening after it is a screen that never changes —
+        // so the seeded scene is dropped and the ordinary choosing question
+        // takes its place, exactly as an invalid seed would have done.
+        if (this.ended) return;
+      } else {
+        const seeded = seededOpening(this.seedTopic);
+        this.lastOpening = { t: 'opening', prompt: seeded };
+        this.publish(this.lastOpening);
+        this.say(seeded.en, { allowInterruptions: false });
+        void this.startScene(this.seedTopic.en).catch((error: unknown) => {
+          console.error('[parle] the seeded scene could not be started:', error);
+        });
+        return;
+      }
     }
     // A remembered opener beats the generic question: "So, how was that
     // interview?" is the moment the tutor stops being an app. One line of live
@@ -1104,7 +1328,17 @@ export class ParleConversation extends voice.Agent {
     // A remembered opener is a whole greeting the analyst wrote after the last
     // session, in its own time, and it already knows the learner's name. Only
     // the generic question needs one stapled to the front.
-    const opener = this.profile.memory.opener ?? openerFor(validLearnerName(this.profile.memory.name));
+    const remembered = this.profile.memory.opener;
+    // The remembered opener is the sharpest edge of the tampered-profile hole:
+    // a whole greeting written by a model last session, stored on the device,
+    // and handed back to the worker in the join token. It arrives as data and
+    // leaves as speech, so it is read before it is either. A greeting that
+    // fails falls back to the ordinary question, which is the session the
+    // learner would have had anyway.
+    const opener =
+      remembered && this.guardLine(`${remembered.fr} ${remembered.en}`, 'remembered opener')
+        ? remembered
+        : openerFor(validLearnerName(this.profile.memory.name));
     this.lastOpening = { t: 'opening', prompt: { fr: opener.fr, en: opener.en } };
     this.publish(this.lastOpening);
     this.say(opener.en, { allowInterruptions: false });
@@ -1135,7 +1369,7 @@ export class ParleConversation extends voice.Agent {
 
     try {
       this.state = createConversation(frame, learnerSnapshotFrom(this.profile), {
-        strictness: 'flow',
+        strictness: strictnessOf(this.profile),
         maxTurns: CONVO_MAX_TURNS,
         // The engine's own flag: finishing every beat of a mission is a win to
         // be shown, not a session to be closed. Code decides that, not a prompt.
@@ -1191,7 +1425,7 @@ export class ParleConversation extends voice.Agent {
 
     try {
       this.state = createConversation(frame, learnerSnapshotFrom(this.profile), {
-        strictness: 'flow',
+        strictness: strictnessOf(this.profile),
         maxTurns: CONVO_MAX_TURNS,
         // So a loanword the learner themself used is not read as a French leak
         // when the opening narration is checked.
@@ -1285,7 +1519,17 @@ export class ParleConversation extends voice.Agent {
     // The learner has chosen, in English, and everything from here is French.
     this.setSttLanguage(sttLanguageFor('convo', 'scene'));
     const frame = this.state.frame;
-    const opening = frame.openingLine;
+    // The frame is the scenario builder's answer, so its opening line and its
+    // narration are model text like any other. A frame the builder wrote around
+    // an injected request lands here.
+    const openingOk = this.guardLine(`${frame.openingLine.fr} ${frame.openingLine.en}`, 'scene opening');
+    const opening = openingOk
+      ? frame.openingLine
+      : { ...frame.openingLine, fr: CONVO_LINES.carryOn.fr, frWritten: null, en: CONVO_LINES.carryOn.en };
+    const narrationOk = this.guardLine(
+      `${frame.openingNarration.fr} ${frame.openingNarration.en}`,
+      'scene opening narration',
+    );
     const narration = frame.openingNarration;
     const beats = frame.beats;
     const beatIndex = Math.max(
@@ -1298,7 +1542,9 @@ export class ParleConversation extends voice.Agent {
       sceneReply: { speaker: opening.speaker, fr: opening.fr, frWritten: opening.frWritten, en: opening.en },
       coachLine: null,
       coachNow: [],
-      narration: { speaker: narration.speaker, fr: narration.fr, frWritten: narration.frWritten, en: narration.en },
+      narration: narrationOk
+        ? { speaker: narration.speaker, fr: narration.fr, frWritten: narration.frWritten, en: narration.en }
+        : null,
       supportView: supportViewForAssistance(0, this.state.lastSupport),
       rung: this.state.ladder.rung,
       beat: { goalEn: beat.goalEn, position: beatIndex + 1, total: beats.length },
@@ -1308,8 +1554,9 @@ export class ParleConversation extends voice.Agent {
       missionDone: this.state.missionDone,
     });
     // The narration is spoken in English: the learner must be able to picture
-    // the scene before a word of French lands on them.
-    this.say(narration.en, { allowInterruptions: false });
+    // the scene before a word of French lands on them. A suppressed narration
+    // is simply not said — the scene still opens, on its opening line.
+    if (narrationOk) this.say(narration.en, { allowInterruptions: false });
     this.say(opening.fr, { allowInterruptions: false });
   }
 
@@ -1468,6 +1715,15 @@ export class ParleConversation extends voice.Agent {
     if (this.refused) return; // a spent credential gets no conversation, whatever it taps
     const msg = decodeClientMessage(payload);
     if (!msg) return; // a malformed frame must not disturb a live conversation
+
+    if (msg.t === 'mode') {
+      // Handled before the phase branches below, because it is true in all of
+      // them: a learner can board a quiet train while choosing a topic just as
+      // easily as mid-scene, and the protocol already refused any frame whose
+      // `voiceless` was not a boolean.
+      this.setVoiceless(msg.voiceless);
+      return;
+    }
 
     if (msg.t === 'typing') {
       // Typing is presence, not silence. Measured live, a learner writing one
@@ -1729,8 +1985,12 @@ export class ParleConversation extends voice.Agent {
     this.state = state;
     this.profile = applyTurnToProfile(this.profile, turn, new Date().toISOString());
 
-    this.publishView(toConvoView(view));
-    this.speak(view);
+    // Guarded once, before both, so the screen and the speaker can never carry
+    // different words. Two checks would be two chances to disagree at the exact
+    // moment agreement matters.
+    const guarded = this.guardView(view);
+    this.publishView(toConvoView(guarded));
+    this.speak(guarded);
 
     if (view.recapDue) await this.finish();
   }
@@ -1869,11 +2129,40 @@ export class ParleConversation extends voice.Agent {
     await this.generateDrills(state.turnCount, keepList.length > 0 ? keepList : undefined);
   }
 
+  /**
+   * The French this learner already produces unprompted.
+   *
+   * Curation's keep list is five slots wide, and a slot spent re-teaching a
+   * phrase the learner has already said naturally is the one thing they need
+   * least. `applyCuration` refuses these whatever the model proposes, and the
+   * request lists them as evidence so it stops being asked blind — but only the
+   * agent side can read the record, so this is where the answer comes from.
+   *
+   * `timesUsedWell` IS the evidence record's `convoUses`: the brain's count is
+   * what `evidenceStateOf` reads to call a card `used`, and `MASTERY_USES` moved
+   * into `packages/core/src/review/evidence.ts` so the deck and the phrase book
+   * cannot hold two opinions of it. One correct natural use is the threshold
+   * there and the threshold here.
+   *
+   * Honest about what it cannot see: the deck itself lives on the phone, so a
+   * card promoted to `transferred` by a transfer drill without ever being
+   * spoken in a conversation is invisible from in here. That under-matches, and
+   * under-matching costs a re-taught phrase the learner already had — the safe
+   * direction, and the reverse of the trade `applyTurnToProfile` makes about
+   * credit, because this is about a practice slot and that is about mastery.
+   */
+  private knownPhrases(): string[] {
+    return Object.values(this.profile.phrases)
+      .filter((phrase) => phrase.timesUsedWell >= 1)
+      .map((phrase) => phrase.fr);
+  }
+
   /** One curation call with a hard deadline and a pure fallback. */
   private async curatePractice(state: ConversationState): Promise<CuratedTopic[]> {
     const sessionTopics = state.topics.map((t) => ({ en: t.en, fr: t.fr }));
+    const known = this.knownPhrases();
     if (state.turnCount === 0) {
-      return applyCuration(null, state.phrases, sessionTopics);
+      return applyCuration(null, state.phrases, sessionTopics, known);
     }
     const errorTags = Object.entries(this.profile.errorPatterns)
       .sort((a, b) => b[1].count - a[1].count)
@@ -1884,6 +2173,7 @@ export class ParleConversation extends voice.Agent {
         topics: sessionTopics,
         phrases: state.phrases,
         learner: { cefr: this.profile.cefr.estimate, errorTags },
+        knownPhrases: known,
       });
       const ms = postSessionDeadlineMs('curate');
       const result = await withDeadline(
@@ -1893,11 +2183,11 @@ export class ParleConversation extends voice.Agent {
         () => this.noteAbandoned('curate', ms),
       );
       this.recordBrainUsage('curate', result.usage);
-      return applyCuration(result.curation, state.phrases, sessionTopics);
+      return applyCuration(result.curation, state.phrases, sessionTopics, known);
     } catch (error) {
       this.recordFailedCall('curate', error);
       console.error('[parle] curation failed; the code fallback ships instead:', error);
-      return applyCuration(null, state.phrases, sessionTopics);
+      return applyCuration(null, state.phrases, sessionTopics, known);
     }
   }
 

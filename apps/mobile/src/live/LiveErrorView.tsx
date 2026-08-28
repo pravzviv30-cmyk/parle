@@ -46,13 +46,28 @@ export function LiveErrorView({
   failure: LiveFailure;
   message: string;
   diagnostics: LiveDiagnostics | null;
+  /**
+   * Leave. Both live screens hand this their own `leaveNow`, because a blocking
+   * failure that keeps a typed door open also keeps the ROOM open for it, and
+   * walking away from an open room leaves a meter running behind a dead screen.
+   */
   onBack: () => void;
-  /** Provided only where typing is possible — the conversation, not the lesson. */
-  onType?: () => void;
+  /**
+   * The typed door, or null where this failure has none.
+   *
+   * Required and explicitly nullable rather than optional, and that is the
+   * whole point of the type. Four failures say in their own sentence that the
+   * learner can keep going by typing, and the button under them is drawn only
+   * when this is a function — so a screen that simply forgot the prop rendered
+   * the promise with nothing to press and nothing anywhere could tell. Both
+   * callers compute it from `typedDoorFor`, which is the one rule about when
+   * the offer is real.
+   */
+  onType: (() => void) | null;
 }) {
   const [open, setOpen] = useState(false);
   const copy = failureCopy(failure);
-  const canType = copy.canType && onType !== undefined;
+  const canType = copy.canType && onType !== null;
 
   return (
     <View style={st.center}>

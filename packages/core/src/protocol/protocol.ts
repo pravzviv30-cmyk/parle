@@ -168,6 +168,44 @@ export const SAFETY_CATEGORIES: readonly SafetyCategory[] = [
   'emotional-dependency',
 ];
 
+// ─────────────────────────────────────────────────────── pipeline error kinds
+//
+// What broke, in the words of the thing that broke.
+//
+// The agent does not classify these itself. Its pipeline hands it an error event
+// carrying a five-way discriminated union, and every arm of it already has a
+// `type` and a `recoverable` flag the vendor adapter set: `stt_error`,
+// `tts_error`, `llm_error`, `realtime_model_error`, `interruption_detection_error`.
+// See the handler on AgentSessionEventTypes.Error in services/tutor-agent/src/agent.ts.
+//
+// The five names are used verbatim rather than translated into something
+// prettier, for one reason worth more than the spelling: the agent's mapping is
+// then the field itself, with no table in the middle to get wrong, and a sixth
+// kind the pipeline learns fails to compile instead of arriving as a silent
+// miscategorisation of one of these five.
+//
+// The app cares because the halves of the pipeline fail differently, and the way
+// forward is different for each. A transcription outage means the learner cannot
+// be heard, and the answer is the quiet twin. A voice outage means they will not
+// hear the tutor, and the answer is the line on the screen. One unclassified
+// sentence cannot be asked which of those just happened.
+
+export type ErrorKind =
+  | 'stt_error'
+  | 'tts_error'
+  | 'llm_error'
+  | 'realtime_model_error'
+  | 'interruption_detection_error';
+
+/** The same five, as a value a reader can walk. */
+export const ERROR_KINDS: readonly ErrorKind[] = [
+  'stt_error',
+  'tts_error',
+  'llm_error',
+  'realtime_model_error',
+  'interruption_detection_error',
+];
+
 /** Agent → app. */
 export type ServerMessage =
   /** Render this turn. Sent on every state change, including rescues. */
@@ -242,8 +280,24 @@ export type ServerMessage =
    *
    * Never a safety decision. Those have to persist and they carry authority
    * this frame does not, so they go on `safety` above.
+   *
+   * `kind` says what failed and `recoverable` says whether it is expected to
+   * pass, so the app can choose its severity and its way forward from the frame
+   * instead of reading the sentence and guessing. Both are optional and both
+   * stay optional, which is the entire point of adding them this way: an agent
+   * that predates them sends a bare `error`, it still decodes, and it still
+   * renders exactly as it does today. An error that is not a pipeline failure at
+   * all, such as a session reaching its time limit, leaves `kind` off for the
+   * same reason and reads the same way.
+   *
+   * The other direction is handled in `asTheAppReadsIt`, and it is the opposite
+   * of the safety rule on purpose: a kind this build has never heard of is
+   * dropped from the frame, never with the frame. The learner is owed the notice
+   * whatever label it came with, and unlike `safety` there is no authority here
+   * for unread input to inherit. Losing the label costs a nicer rendering;
+   * losing the frame costs the learner the only sign that anything is wrong.
    */
-  | { t: 'error'; message: string };
+  | { t: 'error'; message: string; kind?: ErrorKind; recoverable?: boolean };
 
 /** App → agent. */
 export type ClientMessage =
@@ -313,6 +367,34 @@ export type ClientMessage =
    * to know the learner is there. What they are thinking about is theirs.
    */
   | { t: 'moment' }
+  /**
+   * Go voiceless, or come back to voice, without leaving the room.
+   *
+   * Until now the quiet twin cost a whole session. Mode was fixed when the grant
+   * was minted, so a learner who boarded a quiet train, or whose transcription
+   * vendor dropped out mid-scene, had to end the conversation and start another
+   * one to stop speaking. Ending the scene to avoid speaking is a strand with
+   * extra steps, and this tag is what removes it. `true` means the learner is
+   * typing and listening only; `false` means voice is back.
+   *
+   * Both agent classes already carry a `voiceless` flag, set once from the
+   * session mode, so this flips something that exists rather than introducing a
+   * second idea of what mode means. It says nothing about the ladder, nothing
+   * about metered minutes and nothing about the scene: the conversation carries
+   * on from exactly where it was, which is the difference between switching mode
+   * and starting again.
+   *
+   * Read strictly in `asTheAgentReadsIt`, and that is the part worth arguing
+   * over, because strict is not this file's habit. There is no honest default
+   * for a `voiceless` that is not a boolean. Reading it as `true` silences a
+   * learner who wanted to speak, and reading it as `false` keeps talking at one
+   * who asked for quiet, which is as close as this product gets to making
+   * somebody speak aloud. So an unreadable frame moves nothing, and the mode the
+   * learner already has keeps working in both directions. Nobody is stranded by
+   * a dropped frame; they are simply still where they were, and the control can
+   * be tapped again.
+   */
+  | { t: 'mode'; voiceless: boolean }
   /** The learner left. Ends the session so metered seconds are debited promptly. */
   | { t: 'leave' };
 
@@ -347,8 +429,9 @@ export function decodeClientMessage(payload: Uint8Array): ClientMessage | null {
 }
 
 const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'safety', 'error']);
-const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower', 'english', 'say', 'typing', 'moment', 'leave']);
+const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower', 'english', 'say', 'typing', 'moment', 'mode', 'leave']);
 const SAFETY_CATEGORY_TAGS: ReadonlySet<string> = new Set(SAFETY_CATEGORIES);
+const ERROR_KIND_TAGS: ReadonlySet<string> = new Set(ERROR_KINDS);
 
 /**
  * Reading a frame is where tolerance lives.
@@ -365,10 +448,12 @@ const SAFETY_CATEGORY_TAGS: ReadonlySet<string> = new Set(SAFETY_CATEGORIES);
  * learner is mid-scene and stranding them there is the worse failure by a long
  * way.
  *
- * The safety rule is the exception, and it goes the other way: a safety
- * decision this build cannot read is dropped whole rather than repaired. Why
- * that is the safe answer here and nowhere else is written on
- * `isReadableSafetyFrame`.
+ * Two rules are the exception and go the other way, dropping the frame rather
+ * than repairing it, and both are frames whose unread field would decide
+ * something on the learner's behalf. A safety decision this build cannot read is
+ * dropped whole; so is a mode switch that does not say which mode. The arguments
+ * are on `isReadableSafetyFrame` and on the `mode` tag, and they are the same
+ * argument: there is no honest default, so there is nothing to repair towards.
  */
 function asTheAppReadsIt(message: ServerMessage): ServerMessage | null {
   // An agent that predates missions sends a view with no `missionDone` key.
@@ -383,6 +468,23 @@ function asTheAppReadsIt(message: ServerMessage): ServerMessage | null {
   // notice on the screen that will not clear itself. It is the one frame that
   // has to be read strictly before any of that is allowed to happen.
   if (message.t === 'safety' && !isReadableSafetyFrame(message)) return null;
+
+  // An error keeps its words and loses only what this build cannot read. An
+  // agent one version ahead classifies a failure this app has never heard of,
+  // and the learner still gets told something went wrong: the label is a
+  // rendering hint, so a missing one costs a nicer notice and nothing else.
+  // Deleting rather than leaving the unknown value in place matters, because
+  // `kind` is typed as a value from a closed set and the app is entitled to
+  // switch on it exhaustively.
+  if (message.t === 'error') {
+    const frame = message as { kind?: unknown; recoverable?: unknown };
+    if (frame.kind !== undefined && !(typeof frame.kind === 'string' && ERROR_KIND_TAGS.has(frame.kind))) {
+      delete frame.kind;
+    }
+    if (frame.recoverable !== undefined && typeof frame.recoverable !== 'boolean') {
+      delete frame.recoverable;
+    }
+  }
 
   return message;
 }
@@ -416,7 +518,7 @@ function isReadableSafetyFrame(frame: Extract<ServerMessage, { t: 'safety' }>): 
   return typeof message === 'string' && message.trim() !== '';
 }
 
-function asTheAgentReadsIt(message: ClientMessage): ClientMessage {
+function asTheAgentReadsIt(message: ClientMessage): ClientMessage | null {
   // A replay naming a line this build has never heard of is read as the plain
   // hear it has always been, rather than carried on to the voice. The learner
   // who tapped replay still gets the support line: degraded, never silence,
@@ -424,6 +526,15 @@ function asTheAgentReadsIt(message: ClientMessage): ClientMessage {
   if (message.t === 'hear' && message.line !== undefined && message.line !== 'support' && message.line !== 'scene') {
     delete message.line;
   }
+
+  // A mode switch that does not say which mode is dropped whole, the way a
+  // safety decision is on the other side of the wire, and for the same reason:
+  // both defaults available here are a decision about the learner's voice that
+  // the learner did not make. See the tag for the argument. This is the only
+  // client frame read that strictly, because it is the only one where guessing
+  // wrong either takes the learner's voice away or keeps talking at them.
+  if (message.t === 'mode' && typeof (message as { voiceless: unknown }).voiceless !== 'boolean') return null;
+
   return message;
 }
 

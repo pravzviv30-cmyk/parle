@@ -32,6 +32,47 @@ follows, and the leave-early fallback that covers the difference only runs when
 the learner taps Done. Reading the recap and swiping the app away used to lose
 the session's phrases outright.
 
+### The age stop, and exactly how strong it is
+
+`profile` is at **version 5**, and the field version 5 added is `ageStopAt`: the
+millisecond moment a session ended because the learner said, in a scene, that they
+are under thirteen. Null until one lands, null again once they pass the age gate.
+`upgradeStored` writes null on every branch below 5, because nothing that happened
+before the field existed can be read as a stop after the fact, and junk in the slot
+reads as null for the same reason every other field in that chain reads junk as an
+unanswered question.
+
+Three named doors and nothing else touches it. `withAgeStop` writes it,
+`withAgeGatePassed` clears it, `ageStopStanding` reads it, and `entryFor` in
+`onboarding/answers.ts` turns it into one of three launch destinations —
+`onboarding`, `age-gate`, `app`. What it buys is the thing the boundary did not
+have before: a stop used to last exactly one session, so a child could tap start
+and be in another scene seconds later.
+
+**Its ceiling, said plainly, because it is smaller than it looks.** This is a fact
+about a device, not about an account. `mergeStoredProfiles` drops it from every
+merge (`PROFILE_DEVICE_FIELDS` in `@parle/brain`) so the account copy never carries
+it, and `adoptProfile` keeps this device's own across a sync fold so a cycle cannot
+clear it. The consequences are the honest ones: **a reinstall clears it, and a second
+phone never learns about it.** That is the same strength the age gate already had,
+and it was accepted deliberately rather than waiting for the strong shape, which is a
+server-side account flag needing durable server storage and an authenticated write
+path from the agent — and Supabase deployment is still an unclaimed external check, so
+that shape could not be verified end to end.
+
+The merge drops the field rather than choosing a side, and the reason is worth keeping.
+Riding with the evidence-heavier side would let a child's busier phone merge the door
+back open. Treating it as an answered question, where a non-null beats a null, is worse:
+clearing the stop is a write of null, so once one device had synced a stop no device
+could ever clear it again and the only way back into the product would be a reinstall.
+A stop that cannot be lifted is a ban, and this one is answered by one tap on the age
+gate by design.
+
+Two numbers move together with this. `StoredProfile.version` and the `writes:` field of
+the `profile` row in `sync/policy.ts` are the same schema version; a build whose store
+has moved past its own declaration calls its own merge output a newer schema and goes
+pull-quiet on every profile cycle, silently. `profile/ageStop.test.ts` holds them equal.
+
 ### Banking a conversation, and when the journal is allowed to go
 
 A store write answers in one word. `PersistAck` is `durable` or `failed`, and it
@@ -112,16 +153,35 @@ review cards is curation, which the agent owns. A learner who talks for ten
 minutes and force-quits during the goodbye keeps the minutes they spent and none
 of the phrases they earned.
 
-The agent side of the same window is `finish()` in
-`services/tutor-agent/src/convo.ts` — `void this.extractMemory(...)` and
-`void this.curateAndDrill(...)`, the last two statements in the method. They run
-after the recap ships and the seconds are debited, they are deliberately not
-awaited, and if the room closes first their results are dropped with no error
-anywhere: the learner-model update, the practice topics and the generated drills
-for that session simply never existed. (The ledger cites `convo.ts:1539-1540`;
-Phase 1 moved the lines, and the two `void` calls are what it means.)
+**The agent side used to be worse and no longer is.** `finish()` in
+`services/tutor-agent/src/convo.ts` ends with
 
-Neither half is closable from the app. Both need the same two things: the agent
+```ts
+await Promise.allSettled([this.extractMemory(state.turnCount), this.curateAndDrill(state)]);
+this.logSpendSummary();
+```
+
+and where that join sits is the whole of it. It is *after* `reportUsage`, so the
+minutes debit never waits on analyst work, and *before* `logSpendSummary`, so the
+biggest spend of the session is inside the summary instead of running after every
+reader of it has moved on. The worker holds the room open for it: `agent.ts`
+disconnects on `finish().finally(...)`, never ahead of it. Both calls were
+`void`ed and unawaited until F101 closed that, and a document that still describes
+the `void` sends the next engineer to fix a fixed thing and walk past the loss
+that is actually there.
+
+**What remains is a delivery window, which is a different thing.** `extractMemory`
+and `curateAndDrill` publish three frames into the room — `practice`, `drills`,
+and a second `recap` carrying the enriched profile. Nothing on the agent stores
+them and nothing redelivers them. `lastRecap` is replayed when a reconnecting app
+sends `ready`, but only inside the same live room, and there is no equivalent for
+`practice` or `drills` at all. So a learner who force-quits after the recap has
+that session's topics, drills and learner-model update computed, paid for, and
+published into a room they have already left. That is the `participantDisconnected`
+path, which is the path that calls `finish()` in the first place: the work runs
+precisely because they are gone, and lands nowhere because they are gone.
+
+Neither window is closable from the app. Both need the same two things: the agent
 persisting a recap server-side, and a **protocol tag that redelivers it into a
 later session** — which also needs cross-session identity and app-side dedup so
 a redelivered recap is banked once. That is wire-and-agent work, not data-sync

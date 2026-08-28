@@ -9,6 +9,7 @@
     "eval": "node --experimental-strip-types src/eval/runEval.ts",
     "eval:frames": "node --experimental-strip-types src/eval/frameEval.ts",
     "eval:drills": "node --experimental-strip-types src/eval/drillEval.ts",
+    "eval:curation": "node --experimental-strip-types src/eval/curationEval.ts",
     "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },

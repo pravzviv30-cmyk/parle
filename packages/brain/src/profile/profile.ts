@@ -106,18 +106,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * Take whatever came back off a device — or off the wire — and return a profile
  * the engine can actually run on.
  *
- * Validation is deliberately loose, because a tampered profile only affects
- * pedagogy and never minutes. What it is strict about is the fields the engine
- * dereferences the moment a session opens: those must exist, or a stranger's
- * malformed blob takes the worker down instead of quietly degrading to a fresh
- * profile.
+ * Validation is loose about learning history, because a tampered count only
+ * affects pedagogy and never minutes. It is strict about two other things.
  *
- * `memory` is the one that bites. It arrived after version 2 was already on
- * devices, so `migrateProfile` — which only fills it in for version 1 — hands a
- * version-2 profile without it straight back, and the first thing that reads
- * `profile.memory.facts` throws. Repairing just that field keeps the learner's
- * error patterns, phrases and CEFR evidence, which is the whole point of not
- * simply starting over.
+ * The first is the fields the engine dereferences the moment a session opens:
+ * those must exist, or a stranger's malformed blob takes the worker down
+ * instead of quietly degrading to a fresh profile.
+ *
+ * The second is every string in `memory`, because none of them stays in the
+ * learner model. `memory.opener` *is* the sentence the tutor speaks first
+ * (`convo.ts` reads it before any model call), and `memory.facts` ride into the
+ * scene prompt. A profile arrives off the join credential, so those three
+ * fields are the only place a stored blob gets to choose words that reach a
+ * synthesiser or a system prompt — which is exactly the treatment the name
+ * already had, and they now get it too.
+ *
+ * `memory` is also the field that bites on shape. It arrived after version 2
+ * was already on devices, so `migrateProfile` — which only fills it in for
+ * version 1 — hands a version-2 profile without it straight back, and the first
+ * thing that reads `profile.memory.facts` throws. Repairing just that field
+ * keeps the learner's error patterns, phrases and CEFR evidence, which is the
+ * whole point of not simply starting over.
  */
 export function repairProfile(stored: unknown): LearnerProfile {
   if (
@@ -139,11 +148,15 @@ export function repairProfile(stored: unknown): LearnerProfile {
     // be assumed present. Filling them in beats bumping the version: the
     // learner keeps their error patterns, phrases and CEFR evidence, which is
     // the whole reason this function exists rather than createProfile().
+    //
+    // Unknown keys are carried through untouched: a newer build may keep more
+    // here, and an older one repairing a profile must not be how that is lost.
     return {
       ...migrated,
       memory: {
         ...memory,
-        opener: memory.opener === undefined ? null : memory.opener,
+        facts: validRememberedFacts(memory.facts),
+        opener: validOpener(memory.opener),
         name: validLearnerName(memory.name),
       },
     } as LearnerProfile;
@@ -163,6 +176,32 @@ export function migrateProfile(stored: LearnerProfile | (Omit<LearnerProfile, 'v
 
 /** A name is short, and a name is not a number. */
 const MAX_LEARNER_NAME_CHARS = 24;
+/**
+ * A remembered sentence is a sentence. The seed topic's cap in `convo.ts`,
+ * restated for the same reason it exists there: the string is spoken or put in
+ * front of a model, and a stored blob does not get to choose how much of the
+ * prompt it owns.
+ */
+const MAX_MEMORY_TEXT_CHARS = 120;
+
+/**
+ * The shared core of every stored string this module lets through to a
+ * synthesiser or a system prompt: it is a string, it has something in it once
+ * trimmed, it is short enough to be what it claims to be, and it carries no
+ * control character.
+ *
+ * One function rather than one per field, because three copies of "is it sane"
+ * are three chances to disagree about it — and the fields differ only in how
+ * long they are allowed to be, plus the digit rule that belongs to names alone.
+ */
+function sayableText(value: unknown, maxChars: number): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > maxChars) return null;
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(trimmed)) return null;
+  return trimmed;
+}
 
 /**
  * The learner's name, kept only when it really is one.
@@ -177,13 +216,66 @@ const MAX_LEARNER_NAME_CHARS = 24;
  * ordinary unnamed session, which is exactly the session they had before.
  */
 export function validLearnerName(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  if (trimmed.length === 0 || trimmed.length > MAX_LEARNER_NAME_CHARS) return null;
-  // eslint-disable-next-line no-control-regex
-  if (/[\u0000-\u001f\u007f]/.test(trimmed)) return null;
+  const trimmed = sayableText(value, MAX_LEARNER_NAME_CHARS);
+  if (trimmed === null) return null;
   if (/\d/.test(trimmed)) return null;
   return trimmed;
+}
+
+/**
+ * Next session's opener, kept only when both halves of it survive.
+ *
+ * This is the one stored string the tutor speaks before any model call, so it
+ * gets the name's treatment: type, length, no control characters. Digits are
+ * *not* refused here. The name rule exists because `copyViolations` reads a
+ * bare digit as a score in coach copy, and an opener that mentions a date the
+ * learner really told the tutor is the whole point of having one.
+ *
+ * Half an opener is no opener, the same rule `applyExtractionToProfile` already
+ * applies to the model's own version: a missing gloss would put the learner in
+ * front of French the screen cannot explain.
+ *
+ * Dropped, never refused. A profile whose opener fails this gets the ordinary
+ * greeting, which is exactly the session a first-time learner gets.
+ */
+function validOpener(value: unknown): { fr: string; en: string } | null {
+  if (!isRecord(value)) return null;
+  const fr = sayableText(value.fr, MAX_MEMORY_TEXT_CHARS);
+  const en = sayableText(value.en, MAX_MEMORY_TEXT_CHARS);
+  if (fr === null || en === null) return null;
+  return { fr, en };
+}
+
+const FACT_KINDS: ReadonlySet<string> = new Set(['interest', 'life-event', 'goal', 'preference']);
+
+/**
+ * What the tutor is told it knows about this person, kept only where each
+ * remembered sentence really is one.
+ *
+ * These reach the scene prompt verbatim, which makes the array the widest
+ * channel a stored profile has into the model. A fact that fails is dropped
+ * rather than emptied, because an empty sentence in that list is a hole the
+ * tutor would try to fill. `fr` and `happensAround` may fail on their own and
+ * fall back to null, since the fact still says something without them. The
+ * count is capped by the same rule the extraction uses, so a blob carrying ten
+ * thousand facts cannot outgrow the join credential either.
+ */
+function validRememberedFacts(value: readonly unknown[]): RememberedFact[] {
+  const kept: RememberedFact[] = [];
+  for (const raw of value) {
+    if (!isRecord(raw)) continue;
+    if (typeof raw.kind !== 'string' || !FACT_KINDS.has(raw.kind)) continue;
+    const en = sayableText(raw.en, MAX_MEMORY_TEXT_CHARS);
+    if (en === null) continue;
+    kept.push({
+      kind: raw.kind as MemoryFact['kind'],
+      fr: sayableText(raw.fr, MAX_MEMORY_TEXT_CHARS),
+      en,
+      happensAround: sayableText(raw.happensAround, MAX_MEMORY_TEXT_CHARS),
+      notedAt: sayableText(raw.notedAt, MAX_MEMORY_TEXT_CHARS) ?? '',
+    });
+  }
+  return kept.slice(-MAX_MEMORY_FACTS);
 }
 
 /**
@@ -251,6 +343,57 @@ function phraseKey(fr: string, frWritten: string | null): string {
 }
 
 /**
+ * What this turn's coaching named, normalised once.
+ *
+ * `quoted` is what the model says the learner got wrong — the verbatim
+ * fragment handed back to them. `named` is that plus the form offered instead,
+ * which the *tutor* produced, not the learner.
+ *
+ * Both matter, for different reasons, and the difference is why this returns
+ * two lists rather than one. See `applyTurnToProfile`.
+ */
+function coachedThisTurn(turn: TutorTurn): { quoted: string[]; named: string[] } {
+  const quoted: string[] = [];
+  const named: string[] = [];
+  for (const item of turn.coach) {
+    const quote = normalise(item.quote);
+    if (quote.length > 0) {
+      quoted.push(quote);
+      named.push(quote);
+    }
+    for (const offered of [item.better, item.betterWritten]) {
+      if (offered === null) continue;
+      const key = normalise(offered);
+      if (key.length > 0) named.push(key);
+    }
+  }
+  return { quoted, named };
+}
+
+/**
+ * Was any of these forms named in that coaching?
+ *
+ * Matched on whole normalised words rather than equality, because a coach item
+ * quotes a *fragment* of what the learner said: an exact comparison would miss
+ * the phrase sitting inside a quote of the whole sentence, which is the common
+ * case. Padding both sides with a space keeps "on" from matching inside
+ * "bonjour" — normalise() has already reduced everything to space-separated
+ * words, so a word boundary is a space.
+ *
+ * Over-matching costs one turn's credit; under-matching mints mastery nobody
+ * earned. The doubt goes this way on purpose.
+ */
+function namedInCoaching(coached: readonly string[], ...forms: readonly (string | null)[]): boolean {
+  for (const form of forms) {
+    if (form === null) continue;
+    const needle = normalise(form);
+    if (needle.length === 0) continue;
+    if (coached.some((text) => ` ${text} `.includes(` ${needle} `))) return true;
+  }
+  return false;
+}
+
+/**
  * Fold one turn's proposals into the profile. Pure — returns a new profile.
  */
 export function applyTurnToProfile(profile: LearnerProfile, turn: TutorTurn, now: string): LearnerProfile {
@@ -264,6 +407,12 @@ export function applyTurnToProfile(profile: LearnerProfile, turn: TutorTurn, now
   };
 
   next.stats.totalTurns += 1;
+
+  // The turn's own verdict on the learner's French, read once. The engine
+  // already picks the verdict the tutor *speaks* (`lead` in conversation.ts);
+  // this is that same call made about the record, at the one place credit is
+  // minted, so the mouth and the phrase book cannot disagree about a turn.
+  const { quoted, named } = coachedThisTurn(turn);
 
   const reading = turn.assessment.cefrEvidence;
   if (reading !== null) {
@@ -286,6 +435,15 @@ export function applyTurnToProfile(profile: LearnerProfile, turn: TutorTurn, now
   for (const phrase of turn.newPhrases) {
     const key = phraseKey(phrase.fr, phrase.frWritten);
     if (key.length === 0 || next.phrases[key]) continue;
+    // A fragment the coach just quoted back is, by the model's own account,
+    // what the learner got wrong. It never enters the phrase book, because
+    // once it is in there it can collect credit and be projected as mastered —
+    // an error the learner would then be handed back to review as French.
+    //
+    // Only `quoted`, deliberately, not `named`: the corrected form IS the
+    // phrase worth keeping, and introducing it costs nothing, since a new entry
+    // starts at zero uses and the credit loop below refuses it this turn.
+    if (namedInCoaching(quoted, phrase.fr, phrase.frWritten)) continue;
     next.phrases[key] = {
       fr: phrase.fr,
       frWritten: phrase.frWritten,
@@ -306,6 +464,23 @@ export function applyTurnToProfile(profile: LearnerProfile, turn: TutorTurn, now
     if (usedKey.length === 0) continue;
     for (const entry of Object.values(next.phrases)) {
       if (normalise(entry.fr) === usedKey || (entry.frWritten !== null && normalise(entry.frWritten) === usedKey)) {
+        // One turn, one verdict. A single model call can hand back a correction
+        // and claim the same phrase was used well, and nothing downstream can
+        // tell the two apart afterwards: this count is the brain's half of the
+        // canonical phrase-evidence record, so three such turns write `mastered`
+        // onto French the tutor spent those same three turns fixing.
+        //
+        // The quote is excluded because crediting it would have code agreeing
+        // with two opposite verdicts about one utterance. The offered form is
+        // excluded because the tutor said it, not the learner — repeating a line
+        // that was just modelled is not the natural, unprompted production that
+        // `convoUses` is the only counter allowed to claim.
+        //
+        // Checked against the stored entry's own spellings as well as the string
+        // the model sent, since the two often disagree (the coach quotes the
+        // written form, `usedWell` names the spoken one) and an exclusion that
+        // missed on spelling would be no exclusion at all.
+        if (namedInCoaching(named, used, entry.fr, entry.frWritten)) continue;
         entry.timesUsedWell += 1;
         // Mastery is a projection of the count, recomputed here rather than
         // decided here. `merge.ts` carries the flag across devices without
@@ -387,7 +562,12 @@ export function finishSession(profile: LearnerProfile, state: ConversationState)
   next.stats.sessions += 1;
   next.stats.rescues += state.ladder.rescues;
   next.stats.lastRung = state.ladder.rung;
-  next.preferences.strictness = state.strictness;
+  // `preferences.strictness` is deliberately not written here. It is the
+  // learner's choice, and a session runs on whatever the agent decided this
+  // time — a rescue-heavy scene, a default, later a dial. Copying the session's
+  // value back made the stored preference a log of the last session instead of
+  // a setting, so the one field a dial needs erased itself every time a session
+  // ended. Sessions read this; only the learner writes it.
   next.preferences.lastScenarios = [
     state.frame.title,
     ...next.preferences.lastScenarios.filter((t) => t !== state.frame.title),

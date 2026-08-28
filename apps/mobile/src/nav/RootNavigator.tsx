@@ -29,7 +29,7 @@ import { useProfile } from '../app/ProfileContext.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { lastSummaryFor, recordSession } from '../progress/store.ts';
 import { recordActivity } from '../progress/activity.ts';
-import { addFromSummary } from '../review/store.ts';
+import { bankLesson } from '../live/journal.ts';
 import { SessionScreen } from '../SessionScreen.tsx';
 import { SummaryScreen } from '../SummaryScreen.tsx';
 import { DrillScreen } from '../DrillScreen.tsx';
@@ -107,8 +107,13 @@ function LessonRoute() {
     setSummary(s);
     void recordSession(s).then(setReport);
     void recordActivity('lesson', lessonXp({ wordsProduced: s.wordsProduced, unassistedRate: s.unassistedRate }));
-    // The session's words become review cards, same fire-and-forget contract.
-    void addFromSummary(s);
+    // The session's words become review cards, through the outbox the
+    // conversation has used since Phase 4. `addFromSummary` still compiles and
+    // still writes, and that is exactly the trap: it awaited the disk's answer
+    // and dropped it, so a learner who finished a lesson with a full phone lost
+    // the whole deck without a word. Only `bankLesson` keeps the summary for
+    // the next launch to try again.
+    void bankLesson(s);
   }, []);
 
   /**

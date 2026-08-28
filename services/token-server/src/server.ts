@@ -42,6 +42,15 @@ const sessionLeases = createSessionLeaseStore(process.env);
 const trustProxy = process.env.PARLE_TRUST_PROXY === '1';
 const rateLimitSalt = process.env.PARLE_RATE_LIMIT_SALT ?? 'parle-local-development-rate-limit-salt';
 const ACTIVE_SESSION_LEASE_SEC = 30 * 60;
+/**
+ * The shape a session id has to have before it is allowed to match a lease.
+ *
+ * One definition, because two endpoints now decide something on the strength of
+ * this value and a session id that is only checked on one of them is not
+ * checked at all. Validate before you act on it, the same habit
+ * `validStartRung()` keeps on the way in.
+ */
+const sessionIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const productionProblems = productionConfigurationProblems(process.env);
 if (productionProblems.length > 0) {
@@ -380,7 +389,7 @@ const server = createServer(async (req, res) => {
         seconds < 0 ||
         seconds > 900 ||
         !sessionId ||
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)
+        !sessionIdPattern.test(sessionId)
       ) {
         return json(res, 400, { error: 'userId, sessionId and whole seconds from 0 to 900 are required' });
       }
@@ -391,6 +400,63 @@ const server = createServer(async (req, res) => {
       const updated = await store.consume(userId, seconds, sessionId);
       await sessionLeases.release(privateSignal(rateLimitSalt, 'user', userId), sessionId);
       return json(res, 200, { secondsRemaining: secondsRemaining(updated), plan: updated.plan });
+    }
+
+    // The other way a session ends: the tutor never turned up.
+    //
+    // A grant takes a thirty-minute lease so one account cannot run two sessions
+    // at once, and until now only /session/end gave it back. Only the agent
+    // calls that, so an agent that never joins leaves the lease standing, and
+    // the learner is refused their own next attempt for half an hour by a
+    // session that never happened. They are told nothing was counted against
+    // their minutes, which is true, and then locked out anyway. That is a
+    // strand, and the way out of it has to be something the app can do itself.
+    //
+    // So this is the one lease call a learner makes, and it is authenticated as
+    // the account rather than with the shared agent secret: agentAuth is the
+    // wrong door for a caller who has no agent identity to prove, and handing
+    // the app that secret would be handing it the debit endpoint too.
+    //
+    // It releases and does nothing else. It never debits, never extends a lease,
+    // never mints a token and never reads or writes entitlement. That narrowness
+    // is the whole reason it is safe to expose to a client.
+    //
+    // The named risk, accepted: a caller holding an account's own bearer token
+    // and a sessionId from that account's own grant can free that lease while an
+    // agent is still alive and start again. The cost is one account making its
+    // own concurrency worse, and defending it further would mean asking the
+    // agent, which is the thing that is missing in the case this exists for.
+    // What is not accepted is freeing somebody else's lease, and two things stop
+    // that: the key is derived from the caller the auth layer verified and never
+    // from the body, and the store's release is a compare-and-delete on the
+    // sessionId, so a lease held by any other session survives untouched.
+    if (req.method === 'POST' && url.pathname === '/session/abandon') {
+      // The session budget rather than a new rule, and not the debit one either.
+      // An abandon can only follow a start, so no caller can reach this more
+      // often than it can begin a session, which is the bound that matters.
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.sessionIp)]))) return;
+      const body = await readJson(req);
+      // In unconfigured local development the asserted id is trusted exactly as
+      // it is for a start, so nothing about that mode moves. The sessionId match
+      // below is what still stands between one caller and another's lease.
+      const asserted = typeof body.userId === 'string' && body.userId ? body.userId : null;
+      const resolved = await users.resolve(req.headers.authorization, asserted);
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      const userId = resolved.userId;
+      if (!(await withinLimits(req, res, [[RATE_LIMITS.sessionUser, 'user', userId]]))) return;
+
+      const sessionId = typeof body.sessionId === 'string' ? body.sessionId : null;
+      if (!sessionId || !sessionIdPattern.test(sessionId)) {
+        return json(res, 400, { error: 'sessionId is required' });
+      }
+      await sessionLeases.release(privateSignal(rateLimitSalt, 'user', userId), sessionId);
+      // The same answer whatever the store found, and deliberately not a report
+      // of whether a lease was there. A learner tapping Back twice, or one whose
+      // agent did arrive and already ended the session, is not looking at an
+      // error: the lease is gone either way and the next start will work. An
+      // honest 200 also refuses to become an oracle for whether some account has
+      // a session open, which a 404 here would quietly be.
+      return json(res, 200, { ok: true });
     }
 
     return json(res, 404, { error: 'not found' });

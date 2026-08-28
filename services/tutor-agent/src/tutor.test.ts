@@ -36,7 +36,9 @@ function build(startRung: Rung = RUNGS.PROMPTED, options: { voiceless?: boolean;
   // refusal is decided at the setter and spoken at `attach`.
   if (options.sessionId !== undefined) tutor.sessionId = options.sessionId;
   const published: ServerMessage[] = [];
-  tutor.attach((message) => published.push(message));
+  tutor.attach((message) => {
+    published.push(message);
+  });
   return { tutor, session, calls, published };
 }
 
@@ -477,5 +479,61 @@ describe('a credential that has already been spent', () => {
     } finally {
       tutor.clearRescue();
     }
+  });
+});
+
+/**
+ * F154. A tapped option is an answer, and every answer passes the boundary.
+ *
+ * The guard covered `say` only. Ten lines further down, `choice || say`
+ * publishes the text as a transcript and hands it to `submitTurn`, so a tapped
+ * option's free text reached the transcript, the ladder and the model unread.
+ * It is the scripted lesson that carries this, and in the scripted lesson
+ * tapping is the ordinary way to answer: a learner on a train taps every turn.
+ *
+ * Driven through the real class with a captured publisher, because a test that
+ * greps for the guard would pass with `handleSafety` emptied out.
+ */
+describe('a tapped option passes the safety boundary', () => {
+  test("a tapped option's text passes the safety boundary before grading or publishing", async () => {
+    const { tutor, session, calls, published } = build(RUNGS.CUED);
+    try {
+      await tutor.handleClientMessage(session, tapped({ t: 'choice', text: 'I want to kill myself' }));
+      await tutor.settled();
+
+      // 1. The learner is answered, on the frame the app keeps.
+      const safety = published.filter((m) => m.t === 'safety');
+      assert.equal(safety.length, 1, 'a crisis tapped into a scripted lesson reaches the app exactly once');
+      assert.equal(safety[0]!.category, 'self-harm');
+      assert.equal(safety[0]!.action, 'stop');
+
+      // 2. Nothing else happened to those words. No transcript, so they never
+      //    reached the screen or the model; no turn, so the ladder never graded
+      //    them; no reply, so the tutor did not answer them in character.
+      assert.deepEqual(published.filter((m) => m.t === 'transcript'), [], 'the words were published before they were read');
+      assert.equal(tutor.sessionState.turnIndex, 0, 'a disclosure was graded as a French answer');
+      assert.equal(tutor.sessionState.ladder.rung, RUNGS.CUED, 'the ladder moved on a disclosure');
+      assert.deepEqual(calls.generateReply, [], 'the model was asked to answer it in character');
+
+      // 3. And the session is over, exactly as it is for a typed disclosure.
+      assert.ok(published.some((m) => m.t === 'summary'), 'a stop leaves the session running');
+    } finally {
+      tutor.clearRescue();
+    }
+  });
+
+  test('an ordinary tap is still an ordinary answer', () => {
+    // The guard is one condition wider, not one mode narrower. If this stops
+    // passing, the fix above took the tap with it.
+    const { tutor, session, calls, published } = build(RUNGS.CUED);
+    return tutor
+      .handleClientMessage(session, tapped({ t: 'choice', text: 'Bonjour' }))
+      .then(() => tutor.settled())
+      .then(() => {
+        assert.deepEqual(published.filter((m) => m.t === 'safety'), [], 'an ordinary tap was answered as a crisis');
+        assert.equal(tutor.sessionState.turnIndex, 1, 'the ordinary tap stopped counting');
+        assert.equal(calls.generateReply.length, 1);
+      })
+      .finally(() => tutor.clearRescue());
   });
 });

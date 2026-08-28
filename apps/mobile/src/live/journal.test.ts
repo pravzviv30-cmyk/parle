@@ -26,16 +26,17 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { evidenceOf, type DrillExercise, type RecapPayload } from '@parle/core';
+import { evidenceOf, phraseKeyOf, type DrillExercise, type RecapPayload, type SessionSummary } from '@parle/core';
 import { createProfile } from '@parle/brain/profile';
 
 import { loadDrillBank } from '../drill/store.ts';
 import { gradeCards, loadDeck } from '../review/store.ts';
 import { setActiveUser } from '../storage/scope.ts';
 import { loadTopics } from '../topics/store.ts';
-import { bankPractice, journalDrills, journalRecap, recoverJournal } from './journal.ts';
+import { bankLesson, bankPractice, journalDrills, journalPractice, journalRecap, recoverJournal } from './journal.ts';
 import {
   JOURNAL_VERSION,
+  MAX_RECOVERED_PHRASES,
   convoUsesFrom,
   isWorthKeeping,
   journalFor,
@@ -648,7 +649,7 @@ describe('the counts a conversation earned', () => {
   test('the journal keeps the counts it was given, and the recovery reads them back', () => {
     const journal = journalFor(recap(), NOW, profileWith({ 'Ça marche': 2 }));
     assert.deepEqual(journal.convoUses, [{ fr: 'Ça marche', uses: 2 }]);
-    assert.equal(journal.version, 3);
+    assert.equal(journal.version, JOURNAL_VERSION);
     assert.match(journal.batchId, /^b[0-9a-z]+\.[0-9a-z]+$/, 'the batch has a name, minted from when it was saved');
     assert.notEqual(journalFor(recap(), NOW).batchId, journal.batchId, 'two batches saved at once are still two batches');
 
@@ -681,5 +682,336 @@ describe('the counts a conversation earned', () => {
     assert.equal(carried.phrases.length, 1, 'the phrases waiting in the old envelope were dropped by the upgrade');
     assert.match(carried.batchId, /^b/, 'a carried envelope with no name would be cleared by anything');
     assert.deepEqual(carried.convoUses, []);
+  });
+});
+
+/**
+ * A lesson deck the disk refused, and the summary that earned it.
+ *
+ * `cafe-01` and `t1-greet` are real content, so `buildCardsFromSummary` produces
+ * a real card rather than an empty list that would let a broken retry look like
+ * a working one.
+ */
+const lessonSummary = (lessonId = 'cafe-01'): SessionSummary => ({
+  lessonId,
+  durationSec: 120,
+  pronunciation: { stats: [], focus: null, overall: 0, wins: [] },
+  pronunciationStatus: 'unavailable' as SessionSummary['pronunciationStatus'],
+  unassistedRate: 0.5,
+  wordsProduced: [],
+  longestTurnSec: 0,
+  speakingShare: 0.5,
+  turnsCompleted: 4,
+  rescues: 0,
+  utterancesScored: 0,
+  struggledTurnIds: ['t1-greet'],
+  nextStartRung: 1 as SessionSummary['nextStartRung'],
+});
+
+/**
+ * Whether the batch on disk is worth surviving the disk.
+ *
+ * Phase 4 proved a conversation outlives the app that had it. What it never
+ * asked was what the surviving batch contains, and the answer was: everything
+ * the recap said, ungrouped, uncurated and unedited. So the crash path handed a
+ * learner the twelve-card flood that the practice editor exists to prevent, and
+ * did it by being reliable.
+ */
+describe('what the crash path is allowed to bank', () => {
+  const dozen = (): RecapPayload =>
+    recap({
+      phrases: Array.from({ length: 12 }, (_, i) => phrase(`Phrase ${'abcdefghijkl'[i]}`, `line ${i}`)),
+    });
+
+  test('a recovered journal banks at most what curation would have kept', async () => {
+    const uid = nextUid();
+    const disk = installDisk();
+    setActiveUser(uid);
+    await journalRecap(dozen(), { savedAt: NOW });
+
+    const plan = recoveryPlan(JSON.parse(disk.get(journalKeyOf(uid))!));
+    assert.equal(plan?.phrases.length, MAX_RECOVERED_PHRASES, 'the crash path banked the uncurated set');
+    assert.equal(MAX_RECOVERED_PHRASES, 5, "and not curation's own cap of five");
+    assert.deepEqual(
+      plan?.phrases.map((p) => p.fr),
+      ['Phrase a', 'Phrase b', 'Phrase c', 'Phrase d', 'Phrase e'],
+      'the phrases met first are the ones kept, exactly as the leave-early fallback keeps them',
+    );
+    assert.equal(
+      plan?.topics[0]?.phraseKeys.length,
+      MAX_RECOVERED_PHRASES,
+      'the topic still points at cards the recovery did not bank',
+    );
+
+    // End to end, because a cap that only holds inside the plan is not a cap.
+    relaunch(disk, uid);
+    assert.equal(await recoverJournal(), MAX_RECOVERED_PHRASES);
+    assert.equal((await loadDeck()).length, MAX_RECOVERED_PHRASES, 'the learner woke up to a wall of cards');
+
+    // The same cap on the envelope every phone was running before this build,
+    // which has no curated grouping in it and never will.
+    const v3 = recoveryPlan({
+      version: 3,
+      savedAt: NOW,
+      batchId: 'b-old',
+      phrases: dozen().phrases,
+      topics: dozen().topics,
+      drills: [],
+      convoUses: [],
+    });
+    assert.equal(v3?.phrases.length, MAX_RECOVERED_PHRASES, 'an older envelope escaped the cap');
+  });
+
+  test('a batch the practice editor did edit is banked whole, cap and all', async () => {
+    // The cap is a stand-in for curation, not a second opinion about it. A
+    // curated batch runs to seven — five kept plus two authored extensions —
+    // and capping it would drop the extensions, which are the one thing in the
+    // batch that exists nowhere else.
+    const uid = nextUid();
+    const disk = installDisk();
+    setActiveUser(uid);
+    await journalRecap(dozen(), { savedAt: NOW });
+
+    const curated = dozen().phrases.slice(0, 7);
+    await journalPractice(
+      {
+        batchId: null,
+        phrases: curated,
+        topics: [{ title: { fr: 'Au café', en: 'Ordering at the café' }, phraseKeys: curated.map((p) => phraseKeyOf(p.fr)) }],
+        drills: [],
+        convoUses: [],
+      },
+      NOW,
+    );
+
+    const plan = recoveryPlan(JSON.parse(disk.get(journalKeyOf(uid))!));
+    assert.equal(plan?.phrases.length, 7, "the cap overruled the editor it is standing in for");
+  });
+});
+
+/**
+ * What a retry is allowed to deliver.
+ *
+ * Phase 4 made the batch survive the disk. It did not make the batch the right
+ * one: only the recap and the drills were ever written down, so a bank that
+ * failed came back at the next launch as a bigger, differently grouped set than
+ * the session had curated, and the tutor's authored extensions — which the
+ * recap never carried — were lost with no record that they had existed.
+ */
+describe('the curated batch, and the retry that has to match it', () => {
+  const EXTENSION = phrase('On y va', 'Off we go');
+
+  /** A session curated into two topics, one of them carrying an extension. */
+  const curatedBatch = (): PracticeBatch => ({
+    batchId: null,
+    phrases: [phrase('Ça marche', 'coming up'), phrase('Autre chose', 'something else'), EXTENSION],
+    topics: [
+      { title: { fr: 'Au café', en: 'Ordering at the café' }, phraseKeys: ['phrase:ça marche'] },
+      { title: { fr: 'Partir', en: 'Leaving' }, phraseKeys: ['phrase:autre chose', 'phrase:on y va'] },
+    ],
+    drills: [],
+    convoUses: [],
+  });
+
+  test('a curated batch that fails to bank is banked identically on the next launch', async () => {
+    const uid = nextUid();
+    // The recap wrote down everything the conversation touched, including two
+    // phrases curation went on to drop.
+    const disk = installDisk({}, { full: (key) => key === `parle.u.${uid}.drills` });
+    setActiveUser(uid);
+    await journalRecap(
+      recap({
+        phrases: [
+          phrase('Ça marche', 'coming up'),
+          phrase('Autre chose', 'something else'),
+          phrase('Bof', 'meh'),
+          phrase('Tant pis', 'never mind'),
+        ],
+      }),
+      { savedAt: NOW },
+    );
+    const named = await journalPractice({ ...curatedBatch(), drills: [drill('gen:one', 'phrase:ça marche')] }, NOW);
+    assert.ok(named.batchId, 'the curated batch took the name the recap already had, so the clear can match on it');
+
+    const onDisk = JSON.parse(disk.get(journalKeyOf(uid))!) as { phrases: { fr: string }[]; curated: unknown[] };
+    assert.deepEqual(
+      onDisk.phrases.map((p) => p.fr),
+      ['Ça marche', 'Autre chose', 'On y va'],
+      'the disk still held the pre-curation set, so the retry would bank different content',
+    );
+    assert.equal(onDisk.curated.length, 2, 'and the grouping curation decided on was recorded nowhere');
+
+    // The drills key has no room, so nothing may be deleted.
+    assert.equal(await bankPractice(named), 'kept');
+    assert.ok(disk.has(journalKeyOf(uid)), 'the only copy of the curated batch was deleted anyway');
+
+    // The launch after the crash, on a phone with room again.
+    const after = relaunch(disk, uid);
+    const plan = recoveryPlan(JSON.parse(after.get(journalKeyOf(uid))!))!;
+    assert.deepEqual(plan.phrases.map((p) => p.fr), ['Ça marche', 'Autre chose', 'On y va']);
+    assert.deepEqual(plan.topics, curatedBatch().topics, 'the replay regrouped the batch it was meant to repeat');
+
+    assert.equal(await recoverJournal(), 3);
+    assert.equal(after.has(journalKeyOf(uid)), false, 'and only then is the journal gone');
+
+    const deck = await loadDeck();
+    assert.deepEqual(
+      deck.map((card) => card.id).sort(),
+      ['phrase:autre chose', 'phrase:on y va', 'phrase:ça marche'],
+      'the retry banked the recap instead of what the session curated',
+    );
+    assert.equal(
+      deck.some((card) => card.id === 'phrase:bof'),
+      false,
+      'a phrase curation dropped came back through the crash path',
+    );
+    const topics = await loadTopics();
+    assert.deepEqual(topics.map((t) => t.title.en), ['Ordering at the café', 'Leaving']);
+    assert.deepEqual(topics[1]!.phraseKeys, ['phrase:autre chose', 'phrase:on y va'], 'the grouping did not survive the replay');
+
+    // Proven, not assumed: deliver the very same batch a third time and nothing
+    // may move. Identity is the French line itself, in every merge in the path.
+    const before = await loadDeck();
+    assert.equal(await bankPractice(plan), 'banked');
+    assert.deepEqual(await loadDeck(), before, 'the third delivery changed the deck');
+    assert.equal((await loadTopics()).length, 2, 'the same conversation produced four topics');
+    assert.deepEqual((await loadTopics())[0]!.discussed.length, 1, 'one sitting was recorded as two');
+  });
+
+  test('nothing that lands after curation puts the uncurated batch back', async () => {
+    // The recap arrives twice, and the second one races the practice message:
+    // the agent runs memory extraction and curation concurrently, so the
+    // enriched recap can land on a key curation has already edited. It carries
+    // the same phrases the first one did, and writing them back would
+    // un-curate a batch seconds before it banks. Drills land after it too.
+    const uid = nextUid();
+    const disk = installDisk();
+    setActiveUser(uid);
+    const full = recap({
+      phrases: [phrase('Ça marche', 'coming up'), phrase('Autre chose', 'something else'), phrase('Bof', 'meh')],
+    });
+    await journalRecap(full, { savedAt: NOW });
+    await journalPractice(curatedBatch(), NOW);
+
+    // The enriched recap, arriving late, bringing the counts and nothing else
+    // this envelope should take.
+    await journalRecap(full, { savedAt: NOW, profile: profileWith({ 'Ça marche': 2 }) });
+    await journalDrills([drill('gen:late', 'phrase:ça marche')], NOW);
+
+    const plan = recoveryPlan(JSON.parse(disk.get(journalKeyOf(uid))!))!;
+    assert.deepEqual(
+      plan.phrases.map((p) => p.fr),
+      ['Ça marche', 'Autre chose', 'On y va'],
+      'a late recap put the uncurated set back on disk',
+    );
+    assert.deepEqual(plan.topics, curatedBatch().topics, 'and threw away the grouping curation decided on');
+    assert.deepEqual(plan.convoUses, [{ fr: 'Ça marche', uses: 2 }], 'the counts the late recap existed to deliver were dropped');
+    assert.deepEqual(plan.drills.map((d) => d.id), ['gen:late']);
+  });
+
+  test('a sign-out mid-bank costs the journal entry, never the screen', async () => {
+    // `serialized` binds the account by calling `userKey()`, which throws by
+    // design when nobody is signed in — synchronously, so a `.catch()` on the
+    // returned promise would miss it and the caller's effect would be left
+    // holding an exception on the beat a session ends.
+    installDisk();
+    setActiveUser(null);
+    const batch = curatedBatch();
+    assert.deepEqual(await journalPractice(batch, NOW), batch, 'the batch came back named by a journal nobody wrote');
+    assert.equal(await bankLesson(lessonSummary()), 'failed');
+  });
+
+  test('journalling the curated batch does not lose the drills or the counts beside it', async () => {
+    // Drills and counts reach the journal by other routes and arrive in any
+    // order, so a write that knows neither must not be able to erase either.
+    const uid = nextUid();
+    const disk = installDisk();
+    setActiveUser(uid);
+    await journalRecap(recap(), { savedAt: NOW, profile: profileWith({ 'Ça marche': 2 }) });
+    await journalDrills([drill('gen:one', 'phrase:ça marche')], NOW);
+
+    await journalPractice(curatedBatch(), NOW);
+
+    const plan = recoveryPlan(JSON.parse(disk.get(journalKeyOf(uid))!))!;
+    assert.deepEqual(plan.drills.map((d) => d.id), ['gen:one']);
+    assert.deepEqual(plan.convoUses, [{ fr: 'Ça marche', uses: 2 }]);
+  });
+});
+
+/**
+ * The scripted lesson, on the outbox the conversation already had.
+ *
+ * `addFromSummary` awaited a durability answer and threw it away, so a learner
+ * who finished a lesson on a full phone lost the whole deck without a word,
+ * while a conversation in the same second was journalled and retried. Nothing
+ * about a lesson makes it worth less.
+ */
+describe('a lesson deck and the disk that refused it', () => {
+  test('a lesson deck that fails to save is kept and retried, not dropped', async () => {
+    const uid = nextUid();
+    const disk = installDisk({}, { full: (key) => key === `parle.u.${uid}.review` });
+    setActiveUser(uid);
+
+    assert.equal(await bankLesson(lessonSummary()), 'failed', 'a refused deck write called itself finished');
+    assert.ok(disk.has(journalKeyOf(uid)), 'the lesson was lost with nothing on disk saying it had been earned');
+
+    // A conversation ends before the phone has room. Its recap lands on the same
+    // key, and must not take the waiting lesson with it.
+    await journalRecap(recap(), { savedAt: NOW });
+    assert.equal(
+      (recoveryPlan(JSON.parse(disk.get(journalKeyOf(uid))!))?.lessons ?? []).length,
+      1,
+      'the next conversation wrote over a lesson nothing else was holding',
+    );
+
+    const after = relaunch(disk, uid);
+    await recoverJournal();
+
+    assert.ok(
+      (await loadDeck()).some((card) => card.id === 'turn:cafe-01:t1-greet'),
+      'the lesson deck never reached the deck on the launch that could take it',
+    );
+    assert.equal(after.has(journalKeyOf(uid)), false, 'banked, then cleared — never the other order');
+  });
+
+  test('a lesson that saves touches the journal not at all', async () => {
+    // The key is where an unbanked conversation waits. An ordinary lesson has
+    // no business writing to it, and a lesson that journalled every time would
+    // be one more way to overwrite a session nobody has banked.
+    const uid = nextUid();
+    const disk = installDisk();
+    setActiveUser(uid);
+
+    assert.equal(await bankLesson(lessonSummary()), 'durable');
+    assert.equal(disk.has(journalKeyOf(uid)), false);
+    assert.ok((await loadDeck()).some((card) => card.id === 'turn:cafe-01:t1-greet'));
+  });
+
+  test('the same lesson refused twice is one deck to bank, not two', async () => {
+    const uid = nextUid();
+    const disk = installDisk({}, { full: (key) => key === `parle.u.${uid}.review` });
+    setActiveUser(uid);
+
+    await bankLesson(lessonSummary());
+    await bankLesson(lessonSummary());
+    await bankLesson(lessonSummary('cafe-02'));
+
+    const plan = recoveryPlan(JSON.parse(disk.get(journalKeyOf(uid))!))!;
+    assert.deepEqual(
+      (plan.lessons ?? []).map((l) => l.lessonId),
+      ['cafe-01', 'cafe-02'],
+      'one lesson was kept twice, or one was lost',
+    );
+  });
+
+  test('a lesson nobody can read is dropped, and the rest of the batch is not', () => {
+    // Same reasoning as every other guard here: a launch that crashes on a
+    // half-written lesson takes the conversation sitting beside it down too.
+    const plan = recoveryPlan({
+      ...journalFor(recap(), NOW),
+      lessons: [lessonSummary(), { lessonId: 'cafe-01' }, 'nonsense', null],
+    });
+    assert.equal((plan?.lessons ?? []).length, 1, 'the readable half still lands');
+    assert.equal(plan?.phrases.length, 2, 'and the phrases are untouched by a bad lesson');
   });
 });

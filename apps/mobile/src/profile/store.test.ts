@@ -29,7 +29,8 @@ describe('a new profile — what the app writes down about someone who just join
     const profile = createStoredProfile({ name: 'Camille', ageConfirmed: true, motivation: 'travel' }, NOW);
     assert.equal(profile.dob, null, 'the product stopped asking for a date, so there is none to keep');
     assert.equal(profile.ageConfirmed, true, 'what they actually told us is that they are old enough');
-    assert.equal(profile.version, 4);
+    assert.equal(profile.version, 5);
+    assert.equal(profile.ageStopAt, null, 'nobody arrives already stopped');
   });
 
   test('a learner who skipped the questions is stored as having skipped them', () => {

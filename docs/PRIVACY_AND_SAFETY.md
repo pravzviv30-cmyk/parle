@@ -26,6 +26,7 @@ Every durable store, with the retention that governs it. A row whose retention s
 |---|---|---|---|---|
 | Email, name, sign-in provider | Supabase `auth.users` | There is no account without them | Life of the account | Account deletion |
 | Age confirmation, and a date of birth for learners who joined when Parle asked | Device, `parle.u.<uid>.profile` | The 13+ gate, which is a gate and not a field | Life of the account on that device | Reset progress, account deletion |
+| The moment a session stopped because the learner said they are under thirteen | Device, `parle.u.<uid>.profile`, field `ageStopAt` | Keep the tutor doors shut until the age gate is answered again | Life of the account on that device, cleared the moment they pass the gate | Passing the age gate, reset progress, reinstall, account deletion |
 | Learning state: history, review deck, journal phrases, missions, topics, drills, sound-check evidence | Device, `parle.u.<uid>.*`, and `public.learner_state` once sync ships | It is the product | Life of the account | Reset progress, account deletion, cascade |
 | Five content-free product events | `public.product_events` | Product decisions | 13 months from `occurred_at` | Scheduled delete, cascade |
 | Seconds of voice per session | `public.session_usage` | Bill each session at most once | 24 months from `reported_at` | Scheduled delete, cascade |
@@ -33,6 +34,7 @@ Every durable store, with the retention that governs it. A row whose retention s
 | Two salted antifraud HMACs | `public.trial_installations` | One free trial per installation | 24 months from `claimed_at` | Scheduled delete only, never account deletion |
 | Rate-limit counters and session leases | Upstash, `parle:*` | Abuse and cost limits | The window TTL, 60 seconds to 24 hours | Key expiry |
 | A random installation id | Device, `parle.installation.v1` | The input the antifraud HMAC is made from | Until app data is cleared | Clearing app data, uninstall |
+| One content-free line per safety decision | Agent host logs, worker stdout | Know how often the boundary fires, and on which rule | Not true yet: whatever the host keeps, and nothing here sets it | Nothing in this repo |
 | Synthesised tutor lines as WAV | Agent host disk, TTS cache | A voice vendor should be paid once per line | Indefinite, tutor speech only | Deleting the cache directory |
 | Learner utterance audio | Never written anywhere | See the next section | Never written anywhere | Nothing to remove |
 
@@ -278,6 +280,80 @@ learner who cannot say they are thirteen is refused without a retry dressed up a
 second chance. A learner who says mid-session that they are under 13 hits the same
 `stop`.
 
+### An under-13 stop is remembered on this device
+
+That stop used to last exactly one session, so a child could tap start and be in
+another scene seconds later. Now the account remembers it. The moment is stored
+as `profile.ageStopAt`, and while it is set the tutor doors stay shut and the
+app opens on the age gate instead. One tap on the gate reopens them.
+
+Clearing the stop is a write of `null`, and nothing is kept in its place. There
+is no "was once stopped" field, because a field nobody reads is a note about a
+child kept for no reason.
+
+The words on that gate are `AGE_RETURN_TITLE` and `AGE_RETURN_SUB` in
+`apps/mobile/src/onboarding/answers.ts`:
+
+> Parle is made for learners thirteen and up. Everything you have learned is still here.
+
+It does not say what the learner said, and it does not apologise. Telling a child
+what they were caught at is not kindness, the boundary is sometimes wrong about
+an adult, and the boundary is not a mistake to be sorry for.
+
+**The ceiling, plainly, because it is smaller than it looks.** This is a fact
+about a device and not about an account. `mergeStoredProfiles` drops the field
+from every merge through `PROFILE_DEVICE_FIELDS`, so the account copy always
+reads null, and `adoptProfile` keeps this device's own across a sync fold, so a
+sync cycle cannot clear it either. **A reinstall clears it, and so does a second
+phone.**
+
+Dropping it rather than syncing it is the part that looks like a bug, so here is
+the reasoning. Riding with the evidence-heavier side would let a child's busier
+phone merge the door back open. Treating it as an answered question, where a
+non-null value beats a null one, is worse in the other direction: clearing the
+stop is a write of null, so once one device had synced a stop, no device could
+ever clear it again and the only way back would be a reinstall. A stop that
+cannot be lifted is a ban rather than a gate.
+
+The strong shape is a server-side account flag. It needs durable server storage
+and an authenticated write path from the agent to the server, and Supabase
+deployment is still an unclaimed external check, so it could not be verified end
+to end. The founder accepted this ceiling explicitly rather than wait for it. It
+is listed again in [Not true yet](#not-true-yet).
+
+### The tutor's own words are checked too
+
+`safetyDecision` reads the learner. `outputGuard`, in the same file, reads the
+tutor, on every line the conversation agent is about to publish: the scene
+reply, the coach line, the narration, the scene opening, the scene opening
+narration, and the remembered opener the analyst wrote last session and the
+device handed back in the join token.
+
+Its rules are deliberately not the input net's, and each thing left out is left
+out to protect a learner:
+
+- **No under-13 branch and no bare-number branch.** Those patterns are for a
+  learner disclosing their own age. A scene character saying "j'ai douze ans" is
+  a character, and every scene with a child in it would lose its lines.
+- **No self-harm branch.** `SAFETY_CONDUCT` tells the tutor to step out of the
+  scene and answer a crisis disclosure as itself. A self-harm rule pointed at
+  the output would suppress exactly that answer and put a cheerful "let us keep
+  going" where it should have been.
+- **No regulated-advice branch.** A scene at the doctor is one of the most
+  ordinary French lessons there is.
+- **No standalone explicit-sexual branch.** Its French half carries a bare `nu`,
+  so it would eat "les arbres sont nus en hiver". Explicit language still stops
+  where it already works, inside the minor-sexual rules, which need a minor in
+  the sentence beside it.
+
+The consequence is a substitution and never a stop. A line that fails is
+replaced with a neutral continuation and the scene carries on, so a learner is
+never stranded because the model misbehaved, and **the learner is told nothing
+about it.** They did nothing.
+
+The scripted lesson agent has no guard of its own today. That gap is in
+[Not true yet](#not-true-yet) rather than left to be discovered.
+
 ## Escalation and what Parle is not
 
 **Parle is not an emergency service.** It is not a crisis line, not a counselling
@@ -314,13 +390,24 @@ does not promise help it cannot send.
    (`recordActivity`), and no mission is recorded (`recordMissionCompletion`).
 7. Nothing is written down. The recap is not journalled (`journalRecap`) and no
    practice is banked (`bankPractice`), so a stopped session leaves nothing
-   behind. That includes the ordinary practice from before the disclosure. It is
-   a real cost, it was put to the founder, and it was taken deliberately: one
-   flag read by every screen is the only version of this simple enough to stay
-   true. There is no incident record either, because there is no transcript to
-   make one from.
+   behind on the device. That includes the ordinary practice from before the
+   disclosure. It is a real cost, it was put to the founder, and it was taken
+   deliberately: one flag read by every screen is the only version of this
+   simple enough to stay true. There is no incident record either, because there
+   is no transcript to make one from.
+8. The room closes. `closeAfterStop` waits for the message to land, waits for the
+   speech to finish playing where there is speech, and then disconnects, so the
+   microphone stops being published and the recogniser stops transcribing into a
+   session that will neither hear nor answer.
+9. The worker does not stop with it, and this is the part the list used to leave
+   out. `closeAfterStop` starts `finish()` without waiting for it, so the seconds
+   are still debited and extract, curate and drill generation still run and
+   publish into a room that is closing. Whatever arrives in time is thrown away
+   by the guards in points 6 and 7, so the learner sees none of it, and it is
+   still model work paid for on a session that ended. That is ledger F189, and it
+   is a founder decision rather than an engineering one.
 
-That last point is the honest tension in this document. Retaining nothing is the
+Point 7 is the honest tension in this document. Retaining nothing is the
 strongest privacy position available and it is the one we take, and it also means
 Parle has nothing to escalate *with*. We accept that trade knowingly: a language
 app that quietly builds a file on what its learners said in distress is a worse
@@ -336,6 +423,41 @@ safety report, any law-enforcement or legal request, any new vendor that would
 receive learner speech or text, any new category of sensitive data, and any
 retention period longer than the ones in this file. Those are founder and legal
 decisions. An engineer who finds one of them in a ticket stops and asks.
+
+### What a safety decision leaves behind
+
+One line on the worker's stdout, beside `SESSION_NOT_CHARGED`, written by
+`recordSafetyDecision` in `services/tutor-agent/src/safety.ts`:
+
+```
+[parle] SAFETY_DECISION session=7f3c1a20 category=minor-sexual action=stop rule=R2 mode=convo voiceless=false
+```
+
+Six fields and no seventh: the first eight characters of the session id, the
+category, the action, the id of the rule that fired, which of the two tutors
+decided, and whether the session was typed rather than spoken. `action=suppress`
+is the output guard replacing a line the tutor was about to say.
+
+**The learner's words are not in it, and neither is a hash of them.** A hash is
+not anonymity here. What a frightened person types into a language app is a
+small enough space to enumerate, so a stored digest is the sentence with one
+step in front of it. The record carries what a decision was made of and nothing
+it was made about.
+
+Two other shapes were considered and refused, and neither is coming back. A
+sixth analytics event is out because this file allows exactly five and adding one
+is a founder escalation. A server-side counter is out because it is new storage
+for a question `grep` already answers.
+
+**Nothing watches this line.** It is read after the fact, by whoever can read the
+worker's logs, to answer how often the boundary fires and on which rule. Nobody
+is alerted, nobody is on call, and no session is looked at because of it. It
+changes nothing above: there is still no escalation route and no reporting
+route, and a log line is not the start of one.
+
+How long it is kept is the log host's answer and not ours. Nothing in this repo
+sets a retention for worker logs, and that is in [Not true yet](#not-true-yet)
+with the rest.
 
 ## Review package for an external professional
 
@@ -458,4 +580,8 @@ promise already kept.
 | The deletion cascade has never run against a live database | "Deletion removes everything" is unproven | Ledger F63 |
 | Device deletion and token hygiene are unproven on a real build | The device half of deletion is unproven | Ledger F71 |
 | No professional review has been obtained | The safety position is unreviewed | Ledger F70 |
+| An under-13 stop is remembered on the device that saw it, not on the account | A reinstall clears it, and a second phone never learns about it | This file, section above; founder accepted |
+| Worker logs have no stated retention | The safety record is kept for as long as the host keeps logs, which nothing here sets | This file, section above |
+| A stop does not stop the worker's post-session model work | Extract, curate and drills still run and publish into a room that is closing | Ledger F189 |
+| The scripted lesson agent's own lines pass no output guard | `outputGuard` covers the conversation agent only | Not filed |
 | No reviewed privacy policy or terms exist | The app says so honestly and must keep saying so | Deletion ledger |

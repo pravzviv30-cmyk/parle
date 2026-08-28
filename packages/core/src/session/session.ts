@@ -69,6 +69,11 @@ export interface SessionState {
    * comes back tomorrow as a quiet re-ask instead of a red mark today.
    */
   struggledTurnIds: string[];
+  /**
+   * Lesson turns since the tutor last stopped to correct a miss out loud.
+   * Starts long ago, so the first miss of a session is always answered.
+   */
+  turnsSinceCorrection: number;
   learnerSpeakingSec: number;
   longestTurnSec: number;
   utterancesScored: number;
@@ -125,6 +130,7 @@ export function createSession(lesson: Lesson, startRung: Rung = lesson.openingRu
     transcript: [],
     wordsProduced: new Set(),
     struggledTurnIds: [],
+    turnsSinceCorrection: Number.POSITIVE_INFINITY,
     learnerSpeakingSec: 0,
     longestTurnSec: 0,
     utterancesScored: 0,
@@ -212,6 +218,32 @@ function wordsFrom(transcript: string): string[] {
  */
 export const MAX_ATTEMPTS_PER_TURN = 2;
 
+/**
+ * How many lesson turns must pass between two corrections the learner did not
+ * ask for.
+ *
+ * This is K1's answer, carried across from the conversation. There the tutor
+ * corrected on every single turn on its loosest setting, because a budget of one
+ * correction per turn, spent every turn, is still a correction every turn: the
+ * missing dimension was time. The scripted lesson had the identical shape and
+ * never received the fix, so six missed turns earned six corrections, and a
+ * beginner corrected on everything stops talking.
+ *
+ * This declaration is the number. The conversation reads it too:
+ * `packages/brain/src/engine/grading.ts` re-exports it as
+ * `INLINE_COACH_COOLDOWN_TURNS`, which is the name K1 gave it, and brain
+ * already depends on core so the dependency runs the right way round. It used
+ * to be a second literal there with a comment and a test holding the two copies
+ * equal, which worked but was a test standing in for a type system: change it
+ * here and both modes move, or neither does.
+ *
+ * Nothing becomes ineligible. A miss held back still costs the rung, still
+ * re-attempts the turn, and still joins `struggledTurnIds` — the review deck that
+ * already brings the line back tomorrow as a quiet re-ask. Only the interruption
+ * waits.
+ */
+export const CORRECTION_COOLDOWN_TURNS = 2;
+
 export function submitTurn(lesson: Lesson, state: SessionState, given: LearnerInput): { state: SessionState; feedback: TurnFeedback } {
   const turn = lesson.turns[Math.min(state.turnIndex, lesson.turns.length - 1)]!;
 
@@ -293,6 +325,14 @@ export function submitTurn(lesson: Lesson, state: SessionState, given: LearnerIn
   // double miss on one line does not queue the same card twice.
   if (wantsRetry && !next.struggledTurnIds.includes(turn.id)) next.struggledTurnIds.push(turn.id);
 
+  // The correction is the only thing said here that breaks the scene, so it is
+  // the only thing on a clock. A rescue is never a correction, and neither is
+  // handing over the line on the way past it: both answer the learner instead of
+  // interrupting them, so neither is held back and neither spends the budget.
+  const missed = !directive.rescued && input.type === 'spoke' && quality === 'poor';
+  const correcting = missed && !advanced && state.turnsSinceCorrection >= CORRECTION_COOLDOWN_TURNS;
+  next.turnsSinceCorrection = correcting ? 0 : state.turnsSinceCorrection + (advanced ? 1 : 0);
+
   next.attemptsOnTurn = advanced ? 0 : attempts;
   if (advanced) next.turnIndex = state.turnIndex + 1;
 
@@ -309,7 +349,16 @@ export function submitTurn(lesson: Lesson, state: SessionState, given: LearnerIn
       pronunciationScore: pronunciation,
       rescued: directive.rescued,
       advanced,
-      message: feedbackMessage(input.type, quality, directive.rescued, pronunciation, next.turnIndex),
+      message: feedbackMessage({
+        kind: input.type,
+        quality,
+        rescued: directive.rescued,
+        pronunciation,
+        turn: next.turnIndex,
+        advanced,
+        line: turn.target,
+        correcting,
+      }),
     },
   };
 }
@@ -350,7 +399,47 @@ const FEEDBACK = {
     'Almost. Listen once more.',
     'Not quite that. Have a listen.',
   ],
+  /**
+   * A miss inside the cooldown, where the same line is coming round again.
+   *
+   * The turn still repeats and the ladder still hands over more support, so the
+   * learner is not left wondering what happened; what they do not get is a
+   * second "Not quite" in a row. Silence would have been the closer copy of
+   * K1 — there the held-back finding simply waits for the recap — but on screen
+   * silence reads as nothing having happened at all, and a learner mid-scene
+   * needs the way forward said out loud.
+   */
+  again: [
+    "Let's have another go at that one.",
+    'One more time on this one.',
+    'We can take that one again.',
+  ],
 } as const satisfies Record<string, readonly string[]>;
+
+/**
+ * What the tutor says when the lesson moves past a line the learner did not
+ * manage.
+ *
+ * The attempts for this turn are spent, so the engine has already moved on and
+ * the next thing the learner hears is the tutor's next question. Copy that asks
+ * them to listen once more and have another go is asking for a retry that will
+ * never come, and it leaves them answering a turn that is no longer there.
+ *
+ * So this family does what a human tutor does on the way past: says the line
+ * once, and carries on. The line is the whole point, which is why these are
+ * written with it rather than around it, in the shape brain's copy families
+ * already use.
+ */
+type ModelledLine = (line: string) => string;
+
+const MOVED_ON: readonly ModelledLine[] = [
+  (line) => `It goes "${line}". On to the next one.`,
+  (line) => `The line here is "${line}". Let's carry on.`,
+  (line) => `Here it is: "${line}". We keep going.`,
+];
+
+/** Every variant, so a test can walk all of them with a real line. */
+export const MOVED_ON_LINES: readonly ModelledLine[] = MOVED_ON;
 
 /**
  * Which family answers which outcome, so a test can walk every line of every
@@ -359,27 +448,45 @@ const FEEDBACK = {
  */
 export const FEEDBACK_FAMILIES: { [K in keyof typeof FEEDBACK]: readonly string[] } = FEEDBACK;
 
-function rotate(family: readonly string[], turn: number): string {
+/** Pick a variant of any family, safe for any integer including a negative one. */
+function rotate<T>(family: readonly T[], turn: number): T {
   return family[Math.abs(Math.trunc(turn)) % family.length]!;
 }
 
 /** Excellent pronunciation earns the warmer word. Kept out of the branch for readability. */
 const EXCELLENT = 90;
 
-function feedbackMessage(
-  kind: LearnerInput['type'],
-  quality: TurnQuality,
-  rescued: boolean,
-  pronunciation: number | null,
-  turn = 0,
-): string {
+function feedbackMessage(outcome: {
+  kind: LearnerInput['type'];
+  quality: TurnQuality;
+  rescued: boolean;
+  pronunciation: number | null;
+  /** Which variant of the family to use, and the turn the learner is now on. */
+  turn: number;
+  /** Did the lesson move on, or is this same line coming round again? */
+  advanced: boolean;
+  /** The line this turn was aiming for, said back on the way past it. */
+  line: string;
+  /** Whether a correction is due, or the tutor is still inside the cooldown. */
+  correcting: boolean;
+}): string {
+  const { kind, quality, rescued, pronunciation, turn, advanced, line, correcting } = outcome;
+
+  // The lesson has gone past a line they did not manage. Nothing said here may
+  // ask for another attempt, because there will not be one. A skip is left out:
+  // they chose to leave that line, and being read it back would answer a
+  // question they did not ask.
+  if (advanced && kind !== 'skip' && (rescued || quality === 'poor')) return rotate(MOVED_ON, turn)(line);
+
   if (rescued) return rotate(FEEDBACK.rescued, turn);
   if (kind === 'skip') return rotate(FEEDBACK.skipped, turn);
   if (quality === 'good') {
     return rotate(pronunciation !== null && pronunciation >= EXCELLENT ? FEEDBACK.excellent : FEEDBACK.good, turn);
   }
   if (quality === 'partial') return rotate(FEEDBACK.partial, turn);
-  return rotate(FEEDBACK.missed, turn);
+  // The same line is coming round again, so this is the one place a correction
+  // belongs — and the one place it is on a clock. See CORRECTION_COOLDOWN_TURNS.
+  return correcting ? rotate(FEEDBACK.missed, turn) : rotate(FEEDBACK.again, turn);
 }
 
 /**

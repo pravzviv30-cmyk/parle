@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { decodeClientMessage, decodeServerMessage, encodeMessage, toLearnerInput, SAFETY_CATEGORIES, type ClientMessage, type ConvoView, type ServerMessage } from './protocol.ts';
+import { decodeClientMessage, decodeServerMessage, encodeMessage, toLearnerInput, ERROR_KINDS, SAFETY_CATEGORIES, type ClientMessage, type ConvoView, type ServerMessage } from './protocol.ts';
 import { createSession, currentPrompt, submitTurn, summarise } from '../session/session.ts';
 import { CAFE_LESSON } from '../lessons/cafe.ts';
 
@@ -199,6 +199,8 @@ describe('client messages', () => {
       { t: 'typing' },
       { t: 'moment' },
       { t: 'hear', line: 'scene' },
+      { t: 'mode', voiceless: true },
+      { t: 'mode', voiceless: false },
     ] as const) {
       assert.deepEqual(decodeClientMessage(encodeMessage(msg)), msg);
     }
@@ -219,6 +221,10 @@ describe('client messages', () => {
     assert.equal(toLearnerInput({ t: 'say', text: 'x' }), null);
     // Asking for time is a request, not an attempt at anything.
     assert.equal(toLearnerInput({ t: 'moment' }), null);
+    // Choosing to type instead of speak is not an answer either, and it must
+    // never cost a learner a rung for having gone quiet.
+    assert.equal(toLearnerInput({ t: 'mode', voiceless: true }), null);
+    assert.equal(toLearnerInput({ t: 'mode', voiceless: false }), null);
   });
 });
 
@@ -642,5 +648,144 @@ describe('a safety decision has its own frame on the wire', () => {
       declaredIn(new URL('../../../../services/tutor-agent/src/safety.ts', import.meta.url), 'the agent'),
       'core and the agent have drifted apart on what a safety category is, so a decision the agent can make is one the wire would drop',
     );
+  });
+});
+
+describe('going quiet is a switch, not a new session', () => {
+  /** Put an arbitrary object on the client channel, the way a peer of any version would. */
+  function fromTheApp(frame: unknown): ClientMessage | null {
+    return decodeClientMessage(new TextEncoder().encode(JSON.stringify(frame)));
+  }
+
+  test('the mode frame decodes and an unknown mode value is refused', () => {
+    // Both directions, because coming back to voice is the half that is easy to
+    // forget and the half a learner needs when the train empties out.
+    for (const voiceless of [true, false]) {
+      assert.deepEqual(
+        decodeClientMessage(encodeMessage({ t: 'mode', voiceless })),
+        { t: 'mode', voiceless },
+        'without this tag the quiet twin costs a whole new session, which is the strand it exists to remove',
+      );
+    }
+
+    // Read strictly, unlike the rest of this side of the wire. Neither default
+    // is honest: true takes the voice off a learner who wanted to speak, and
+    // false keeps talking at one who asked for quiet.
+    for (const voiceless of ['true', 'false', 1, 0, null, 'yes', {}, [], 'voiceless']) {
+      assert.equal(
+        fromTheApp({ t: 'mode', voiceless }),
+        null,
+        `a mode frame carrying ${JSON.stringify(voiceless)} says nothing about which mode, and guessing decides the learner's voice for them`,
+      );
+    }
+    assert.equal(fromTheApp({ t: 'mode' }), null, 'a switch that does not say which way it is switching is not a switch');
+
+    // A dropped frame costs the tap, never the session: the mode the learner
+    // already has still works, both paths are still open, and the control can be
+    // tapped again.
+    assert.deepEqual(
+      decodeClientMessage(encodeMessage({ t: 'mode', voiceless: true })),
+      { t: 'mode', voiceless: true },
+      'the refusals above must not be the decoder having lost the tag altogether',
+    );
+
+    // The mirror of the safety rule, one channel over. The agent decides what is
+    // said aloud; it does not get to decide that the learner has gone quiet.
+    assert.equal(
+      decodeServerMessage(encodeMessage({ t: 'mode', voiceless: true } as unknown as ServerMessage)),
+      null,
+      'the tag is the learner’s alone: an agent that could send it could silence somebody who never asked to be silenced',
+    );
+  });
+
+  test('switching mode says nothing about the ladder, the scene or the minutes', () => {
+    // The frame carries one field and nothing else can ride along on it. A rung,
+    // a transcript or a seconds count arriving here would be the client telling
+    // the agent something the agent is authoritative about.
+    const decoded = decodeClientMessage(encodeMessage({ t: 'mode', voiceless: true }));
+    assert.ok(decoded, 'the frame has to decode at all for the shape assertion to mean anything');
+    assert.deepEqual(Object.keys(decoded), ['t', 'voiceless'], 'mode is a switch, not a place to smuggle session state');
+    assert.equal(new TextDecoder().decode(encodeMessage({ t: 'mode', voiceless: false })), '{"t":"mode","voiceless":false}');
+  });
+});
+
+describe('an error says what failed, and an old one still says something', () => {
+  /** Put an arbitrary object on the server channel, the way a peer of any version would. */
+  function overTheWire(frame: unknown): ServerMessage | null {
+    return decodeServerMessage(new TextEncoder().encode(JSON.stringify(frame)));
+  }
+
+  test('an error frame carries its kind and recoverability and old frames still decode', () => {
+    for (const kind of ERROR_KINDS) {
+      for (const recoverable of [true, false]) {
+        const msg: ServerMessage = { t: 'error', message: 'The tutor lost its voice for a moment.', kind, recoverable };
+        assert.deepEqual(
+          decodeServerMessage(encodeMessage(msg)),
+          msg,
+          `${kind}/${recoverable} has to round-trip, or the app is back to reading severity out of a sentence`,
+        );
+      }
+    }
+
+    // The whole reason these are optional. An agent that shipped before this
+    // round sends a bare error, and it arrives exactly as it always did.
+    const old = overTheWire({ t: 'error', message: 'The voice cut out for a second. Carry on.' });
+    assert.ok(old && old.t === 'error', 'an agent one version behind must keep reaching the learner');
+    if (!old || old.t !== 'error') return;
+    assert.equal(old.message, 'The voice cut out for a second. Carry on.');
+    assert.deepEqual(
+      Object.keys(old),
+      ['t', 'message'],
+      'nothing is invented for a frame that did not say: a made-up kind or recoverability is a claim the agent never made',
+    );
+
+    // And the direction after that. A kind this build has never heard of costs
+    // the label, never the notice, because the frame carries no authority for
+    // unread input to inherit and the learner still needs telling.
+    const ahead = overTheWire({ t: 'error', message: 'Something went wrong.', kind: 'quantum_flux_error', recoverable: true });
+    assert.ok(ahead && ahead.t === 'error', 'a newer agent’s classification must not cost an older app the message');
+    if (!ahead || ahead.t !== 'error') return;
+    assert.equal(ahead.message, 'Something went wrong.', 'the words still arrive whole');
+    assert.equal(ahead.kind, undefined, 'a kind outside the closed set is dropped, so the app can switch on it exhaustively');
+    assert.equal(ahead.recoverable, true, 'the field it could read is still read');
+
+    // Recoverability is never coerced. "no" and 0 are both truthy or falsy in
+    // some reading, and both readings are a guess about whether to tell the
+    // learner this will pass.
+    for (const recoverable of ['true', 'no', 0, 1, null, {}]) {
+      const fuzzy = overTheWire({ t: 'error', message: 'Something went wrong.', kind: 'tts_error', recoverable });
+      assert.ok(fuzzy && fuzzy.t === 'error');
+      if (!fuzzy || fuzzy.t !== 'error') return;
+      assert.equal(fuzzy.recoverable, undefined, `${JSON.stringify(recoverable)} is not a yes or a no, and neither is a safe reading of it`);
+      assert.equal(fuzzy.kind, 'tts_error', 'the field it could read survives the one it could not');
+    }
+
+    // Still not a safety decision. A classified error is a notice that clears
+    // itself, and no amount of kind or recoverability promotes it.
+    const classified = decodeServerMessage(encodeMessage({ t: 'error', message: 'Transcription dropped.', kind: 'stt_error', recoverable: false }));
+    assert.ok(classified && classified.t === 'error', 'the kinds describe the pipeline, never a judgement about the learner');
+    assert.ok(!ERROR_KINDS.some((kind) => (SAFETY_CATEGORIES as readonly string[]).includes(kind)), 'the two vocabularies must not overlap');
+  });
+
+  test('core’s error kinds and the list the decoder checks cannot drift', () => {
+    // The same trick the safety pin uses, for the same reason: the union is
+    // erased before any of this runs, so without reading it back off disk a kind
+    // could exist in the type, be sent by an agent that compiled against it, and
+    // be silently dropped by a decoder that only ever checks the list.
+    const source = readFileSync(new URL('./protocol.ts', import.meta.url), 'utf8');
+    const union = source.match(/export type ErrorKind =([\s\S]*?);/);
+    assert.ok(union, 'protocol.ts no longer declares an ErrorKind union');
+    assert.deepEqual(
+      [...union![1]!.matchAll(/'([a-z0-9_-]+)'/g)].map((m) => m[1]!),
+      [...ERROR_KINDS],
+      'the kind union and the list the decoder actually checks have drifted apart',
+    );
+
+    // Named from the pipeline's own discriminants so the agent's mapping is the
+    // field itself. Every one ends in _error because every one of them is the
+    // `type` of an error the vendor adapter raised.
+    for (const kind of ERROR_KINDS) {
+      assert.match(kind, /^[a-z_]+_error$/, `${kind} is not a name the pipeline actually uses`);
+    }
   });
 });

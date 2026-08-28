@@ -16,9 +16,25 @@ vendor pages again before publishing.
 - No ordinary turn shows a suggested answer. First help reveals one English
   intent hint. Repeated help on that exchange may reveal a possible French
   line. A real reply resets assistance.
-- A French attempt that does not quite work gets one brief natural recast and
-  the scene continues. An English attempt gets the natural French for that
-  meaning after the attempt.
+- A French attempt that does not quite work gets a brief natural recast and the
+  scene continues. Not on every attempt. An uninvited correction keeps a
+  cooldown of 2 turns, because at A0 almost every sentence a learner produces
+  has something worth saying about it, and a tutor who says all of it is running
+  a drill rather than a conversation. What misses the slot is not dropped: it
+  joins the recap. Two findings never wait, at any setting. A blocking error
+  means the scene did not understand them, and holding it back to keep the
+  rhythm pleasant strands them mid-conversation. The other is the answer to a
+  question they asked, which is not an interruption at all.
+- How much else surfaces mid-scene is the learner's setting, not a constant.
+  Flow, balanced and strict move only *when* a finding lands, never whether it
+  lands, and a new learner starts on balanced. Correct-but-textbook phrasing
+  surfaces mid-scene at every setting, because telling people what locals
+  actually say is the product.
+- An English attempt gets the natural French for that meaning after the attempt.
+- Each turn gets one verdict, and it is the code's. The spoken coach line has to
+  describe the finding the tutor surfaced, the end card never celebrates a
+  phrase the session corrected, and a learner who was right is never told they
+  were not.
 - Post-session practice is grouped by discussed topic. It keeps a small number
   of useful phrases, may add at most two closely related transfer phrases, and
   authors exercises across the six formats the practice engine supports.
@@ -58,7 +74,7 @@ Claude Sonnet 5 is a credible quality-first alternative. It costs more than the
 Luna live route at the current list prices, and the existing Anthropic routing
 also uses Opus for some background work. Keep it as the comparison arm rather
 than making model preference part of the pedagogy. Groq remains useful for
-zero-cost plumbing tests, but rate limits and model churn make it the wrong
+zero-cost plumbing tests, but rate limits and model churn make it a poor
 place to judge the tutor's intelligence.
 
 Direct OpenAI Realtime audio is not the chosen migration yet. The current

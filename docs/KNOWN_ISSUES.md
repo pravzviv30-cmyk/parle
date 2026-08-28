@@ -2763,3 +2763,414 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the whole screen and discards the session. Constrain the pattern to sexual, photo or body
   objects; `the schoolgirl should send me pics` must keep its stop witness.
 - verified-by: `a child sending or showing something ordinary is never read as a grooming approach`
+
+### F150 — The wire learns a mid-session mode switch
+- severity: P1
+- status: [x]
+- where: packages/core/src/protocol/protocol.ts:350
+- note: the quiet-twin fix and the vendor-failure typed door both need the client to tell the
+  agent to go voiceless without a new room; `mode` joins CLIENT_TAGS the way `safety` joined
+  SERVER_TAGS.
+- verified-by: `the mode frame decodes and an unknown mode value is refused`
+
+### F151 — The error frame says what failed and whether it will pass
+- severity: P1
+- status: [x]
+- where: packages/core/src/protocol/protocol.ts:246
+- note: every vendor failure is one unclassified sentence; optional `kind` and `recoverable`
+  fields let the client render severity from the frame instead of guessing from prose, and old
+  frames still decode.
+- verified-by: `an error frame carries its kind and recoverability and old frames still decode`
+
+### F152 — An abandoned grant releases its lease
+- severity: P1
+- status: [x]
+- where: services/token-server/src/server.ts:44
+- note: only /session/end releases the lease and only the agent calls it, so an agent that
+  never arrives locks the account for thirty minutes; /session/abandon releases on account auth
+  plus sessionId match, riding the store's existing matched release.
+- verified-by: `an abandoned grant releases the lease so the next start succeeds`
+
+### F153 — Every safety decision leaves a content-free record
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1049
+- note: slice 1 rewrote two matchers and nobody can say how often either fires; a stdout line
+  beside SESSION_NOT_CHARGED carries category, action, rule id, mode, and never the learner's
+  words. Sequenced first in TB-1 so the rest of this slice's safety work is observable as it
+  lands.
+- verified-by: `a safety decision is recorded with category, action and rule, never the learner's words`
+
+### F154 — A tapped option passes the safety boundary
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/tutor.ts:224
+- note: the guard covers `say` only, then :238 grades `choice || say`, so a choice frame's free
+  text reaches the transcript, grading and the model unchecked in the mode that carries the
+  whole scripted lesson.
+- verified-by: `a tapped option's text passes the safety boundary before grading or publishing`
+
+### F155 — What the tutor says passes a guard before the learner hears it
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1108
+- note: safetyDecision runs only on learner input; sceneReply, coachLine, narration and the
+  persisted opener are spoken unchecked. outputGuard reuses the signal library with its own
+  rules and its own consequence: suppress and substitute a neutral continuation, never a stop,
+  never a stranded scene.
+- verified-by: `a model line that fails the output guard is replaced and the scene continues`
+- verified-by: `an ordinary tutor line passes the output guard untouched`
+
+### F156 — A tampered profile cannot choose the tutor's first words
+- severity: P1
+- status: [x]
+- where: packages/brain/src/profile/profile.ts:146
+- note: repairProfile passes opener and facts through untouched while validating a name two
+  lines later; both gain the validLearnerName treatment of type, length and control characters.
+- verified-by: `a tampered profile cannot choose what the tutor speaks first`
+
+### F157 — The scene builder treats the request as content
+- severity: P1
+- status: [x]
+- where: packages/brain/src/prompt/scenarioPrompt.ts:67
+- note: the one prompt that elevates learner text above its instructions gets a delimiter and an
+  explicit data-not-instruction rule; the request stays binding for people, place and goal. The
+  test drives the real builder, whose output is the shipped artifact.
+- verified-by: `the scene builder is told the request is content, not instruction`
+
+### F158 — An under-13 stop is remembered by the account
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/profile/upgrade.ts:89
+- note: the stop ends one session and a child is back in a scene seconds later; a v5 profile
+  field written on the stop closes the tutor doors and routes back through the age gate, with
+  warm copy and no scolding. Reinstall clears it; that ceiling is named, not hidden, and the
+  founder accepted it rather than wait for Supabase.
+- verified-by: `an under-13 stop closes the tutor doors until the age gate is passed again`
+
+### F159 — A stop closes the room once the message has landed
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1049
+- note: after a stop the microphone is still published and STT still transcribes into a session
+  that will neither hear nor answer; the room disconnects after delivery settles, on the seam
+  agent.ts already uses.
+- verified-by: `after a stop the room closes once the message has landed`
+
+### F160 — The seeded opening is checked before it is spoken
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1094
+- note: the seed topic is published and spoken before startScene's safety check reads it; the
+  check moves ahead of the publish.
+- verified-by: `the seeded opening is checked before it is published or spoken`
+
+### F161 — The voice and the transcript surface the same finding
+- severity: P1
+- status: [x]
+- where: packages/brain/src/engine/conversation.ts:561
+- note: the model's coachLine ships whenever its style is clean, even when it corrects a
+  different finding than the one the code surfaced, and can tell a correct learner "Not quite";
+  a line inconsistent with the lead falls back to the code's own copy family for that kind.
+- verified-by: `the spoken coach line describes the finding the code surfaced`
+- verified-by: `correct-but-textbook phrasing is never told not quite`
+
+### F162 — The scripted lesson caps its corrections in code
+- severity: P1
+- status: [x]
+- where: packages/core/src/session/session.ts:369
+- note: six misses earn six corrections, the exact shape K1 fixed in the conversation and never
+  carried across; feedbackMessage gains a cooldown whose constant is pinned to K1's value by
+  comment and by contract, so core grows no second ladder.
+- verified-by: `six missed turns do not earn six corrections`
+
+### F163 — A corrected phrase earns no credit in the same turn
+- severity: P1
+- status: [x]
+- where: packages/brain/src/profile/profile.ts:256
+- note: one model call can mint a correction and a usedWell credit for the same phrase, and
+  three such turns write mastered into Phase 4's canonical evidence; applyTurnToProfile, the
+  single credit choke point, excludes phrases named in the turn's coach findings.
+- verified-by: `a phrase corrected this turn earns no mastery credit this turn`
+
+### F164 — Live sessions run the learner's stored strictness
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:919
+- note: three call sites hardcode flow, so two of the three built policies never run and
+  production disagrees with the eval; all three read the parsed profile's preference. Fresh
+  profiles default to balanced, a live behaviour change the founder approved explicitly, still
+  capped by K1's cooldown and reversible in one line.
+- verified-by: `a live session runs the learner's stored strictness, not a hardcoded one`
+
+### F165 — Finishing a session keeps the learner's strictness choice
+- severity: P1
+- status: [x]
+- where: packages/brain/src/profile/profile.ts:390
+- note: finishSession writes the session's strictness over the stored preference, destroying the
+  one field a future dial needs; the write-back is removed and the preference survives a session
+  untouched.
+- verified-by: `finishing a session leaves the strictness preference as the learner set it`
+
+### F166 — The learner can turn the strictness dial
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:1
+- note: the dial is built, tested and unreachable; one SettingsRow with three plain options
+  writes the preference F165 now preserves and F164 now honours. Copy is warm and honest about
+  what each setting does.
+- verified-by: `the profile tab turns the strictness dial and the store keeps the choice`
+
+### F167 — Feedback never asks for a retry the lesson will not give
+- severity: P2
+- status: [x]
+- where: packages/core/src/session/session.ts:290
+- note: feedbackMessage never learns the turn advanced, so it says listen and try again while
+  the engine moves on; it receives advanced and the moved-on family models the line and moves
+  forward.
+- verified-by: `feedback copy never asks for a retry the lesson will not give`
+
+### F168 — The tutor doc describes the cooldown the engine keeps
+- severity: P2
+- status: [x]
+- where: docs/TUTOR_BRAIN.md:19
+- note: the operating contract still promises a recast on every not-quite attempt, which K1
+  deliberately stopped; the doc states the cooldown. Source-reading test, load-bearing because
+  doc-code agreement is the finding.
+- verified-by: `the tutor doc describes the cooldown the engine keeps`
+
+### F169 — The crash path banks what curation would keep
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/journalRules.ts:258
+- note: recoveryPlan banks the uncurated twelve, delivering by crash exactly the card flood
+  curation exists to prevent; recovery applies curation's own cap of five.
+- verified-by: `a recovered journal banks at most what curation would have kept`
+
+### F170 — The curated batch is journalled and replays identically
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/journal.ts:186
+- note: only the recap and drills reach the journal, so a failed bank retries different, larger
+  content and the tutor's authored extensions vanish without record; journalPractice writes the
+  curated batch before banking, and the replay lands on the same rows. The
+  identity-is-the-French-line merge prevents double banking, proven not assumed.
+- verified-by: `a curated batch that fails to bank is banked identically on the next launch`
+
+### F171 — Extensions pass a content check before becoming cards
+- severity: P1
+- status: [x]
+- where: packages/brain/src/curate/curate.ts:136
+- note: a model-authored phrase the learner never heard goes straight onto a review card while
+  drills from the same keep-list pass a linter; extensions pass carriesFrench and the copy
+  rules, and rejections are counted like drill rejections.
+- verified-by: `an extension that fails the content check never becomes a card`
+
+### F172 — The scripted lesson hears the durability answer
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/review/store.ts:144
+- note: addFromSummary awaits the PersistAck and throws it away, so a full store silently loses
+  a lesson's cards that a conversation would journal and retry; the ack is returned and the
+  caller keeps a failed deck for retry on the existing journal seam.
+- verified-by: `a lesson deck that fails to save is kept and retried, not dropped`
+
+### F173 — Curation spends no slot on what the learner already uses
+- severity: P2
+- status: [x]
+- where: packages/brain/src/curate/curate.ts:47
+- note: CurationInput carries cefr and error tags only, so a keep slot can re-teach a phrase the
+  evidence record calls used; the input gains a known-phrases list and applyCuration skips them
+  in code, with the supply line added agent-side in TB-2.
+- verified-by: `curation is told what the learner already uses and spends no slot on it`
+
+### F174 — Curation gets an eval
+- severity: P2
+- status: [ ]
+- where: services/brain-playground/package.json:9
+- note: Phase 4 proved the batch survives the disk and nothing proves it is worth surviving;
+  eval:curation follows the drillEval template and scores keeps against drops so the exit
+  criterion has a measurement to regress against.
+- verified-by: `the curation eval scores keeps against drops and runs from the playground`
+
+### F175 — The storage doc describes the publish that exists
+- severity: P2
+- status: [x]
+- where: docs/STATE_AND_STORAGE.md:115
+- note: the doc still describes a fire-and-forget finish() that F101 replaced with an awaited
+  allSettled, sending the next engineer to fix a fixed thing and past the loss that remains; one
+  block correction covers both survey findings. Source-reading test, load-bearing because doc
+  accuracy is the finding.
+- verified-by: `the storage doc describes the awaited publish and the loss window that remains`
+
+### F176 — The client rides a reconnect instead of dying of it
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:677
+- note: no reconnect event is subscribed and ready is never re-sent, so the agent's replay path
+  has never once been triggered and a blip at minute eight loses the session; the hook
+  subscribes all three events, re-sends ready on Reconnected, and shows an honest reconnecting
+  state. Closes both survey faces of this gap.
+- verified-by: `a reconnect re-sends ready and the session resumes instead of ending`
+
+### F177 — Giving up on an absent tutor frees the account
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:724
+- note: the agent-absent give-up leaves the lease held with no process able to release it, and
+  the refusal copy blames sign-in; giveUp calls /session/abandon for agent-absent only, so
+  trying again now succeeds.
+- verified-by: `giving up on an absent tutor frees the account to try again now`
+
+### F178 — A dropped session makes no false promise
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/failure.ts:184
+- note: the copy says progress is saved and nothing is saved before the recap; it becomes
+  honest, warm and short, and tells the learner the one useful thing, that a fresh session is
+  the way back.
+- verified-by: `the dropped-session message promises nothing the code does not do`
+
+### F179 — A vendor failure is named honestly and offers the typed door
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:271
+- note: the handler discards the union's type and recoverable fields, so a dead STT reads as a
+  passing voice blip while the meter runs; recoverable stays a quiet notice, unrecoverable names
+  what is true and offers the switch to typing that F181 builds, and each classified failure is
+  logged.
+- verified-by: `an unrecoverable vendor failure is named honestly and offers the typed door`
+- verified-by: `a recoverable blip stays a quiet notice`
+
+### F180 — The agents honour a mid-session switch to text
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1524
+- note: both classes handle the mode frame by flipping the voiceless flag that already governs
+  say() and the silence window; the in-flight utterance finishes, nothing new is spoken, the
+  scene and the meter continue.
+- verified-by: `a mode frame turns the agent voiceless mid-session without ending the scene`
+
+### F181 — The hook switches to text without a new room
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:188
+- note: switchToText unpublishes the microphone, sends the mode frame and keeps the room, so the
+  switch needs no grant and cannot meet the lease; the old rebuild path remains for cold starts
+  only.
+- verified-by: `switching to text keeps the room, stops the microphone and needs no new grant`
+
+### F182 — The quiet door mid-scene keeps the scene
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:250
+- note: the door built for a learner who discovers mid-question they cannot speak currently
+  rebuilds the session into a 409 from their own lease; it calls switchToText on the typingOpen
+  seam, no remount, no refusal screen. View-model test, because F145 proved a source grep passes
+  over a dead render path.
+- verified-by: `the quiet door mid-scene keeps the scene and is never refused by the lease`
+
+### F183 — The privacy doc matches the new safety behaviour
+- severity: P1
+- status: [x]
+- where: docs/PRIVACY_AND_SAFETY.md:300
+- note: the doc gains the record's exact contents and exclusions, the under-13 account memory
+  and its reinstall ceiling, the output guard, and the closed room, and reaffirms that no
+  escalation or reporting route exists; safetyPolicy.test.ts keeps holding code against doc.
+- verified-by: `the privacy doc matches the record kept, the memory added and the gate that closes`
+
+### F184 — The roadmap row records what Phase 5 proved
+- severity: P1
+- status: [x]
+- where: docs/DELIVERY_ROADMAP.md:14
+- note: the Phase 5 row moves from six-P0s-landed to complete-pending-external, naming the five
+  properties as held locally and the six external checks as still unclaimed by anyone.
+- verified-by: `the roadmap row records what phase five proved and what stays external`
+
+### F185 — The end card can congratulate a learner for the phrase it just corrected
+- severity: P2
+- status: [x]
+- where: packages/brain/src/engine/conversation.ts:678
+- note: `state.usedWell` accumulates `turn.profileSignals.usedWell` raw, with no coaching filter,
+  and `recap.ts:111` turns it into the end card's wins. F163 closed this at the evidence choke
+  point so nothing inflates the canonical record, but the recap reads its own accumulator, so
+  the learner can still be praised on the end card for a phrase the same turn corrected. Same
+  one-turn-one-verdict family as F161 and F163, third mouth. Display rather than evidence, so
+  it inflates nothing, but it is the contradiction the learner can actually see. Found by
+  learning-science-engineer while closing F163.
+- verified-by: `the end card never celebrates a phrase the session corrected`
+
+### F186 — The correction cooldown is one decision kept in two places
+- severity: P2
+- status: [x]
+- where: packages/brain/src/engine/grading.ts:110
+- note: F162 carried K1's `INLINE_COACH_COOLDOWN_TURNS` into `packages/core/src/session/session.ts`
+  as `CORRECTION_COOLDOWN_TURNS`, pinned by comment and by a test that fails on drift, because
+  core cannot import brain. But brain already imports `@parle/core`, so the dependency runs the
+  other way: move the constant into core and have `grading.ts` re-export it, and the pin becomes
+  mechanical rather than a test on a literal. One decision, one home, no new package. Found by
+  bug-hunter while closing F162, and correctly not built from core's side.
+- verified-by: `the correction cooldown has one home and both modes read it`
+
+### F187 — A rescue line is either dead or lost, and nothing says which
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/copy.ts:174
+- note: `RESCUE_LINE` duplicates core's `FEEDBACK.rescued[0]`, and its only reference anywhere in
+  the repo is its own test at `copy.test.ts:137`. Either the live path lost its rescue line or
+  the constant is dead weight that a copy test keeps looking alive. A constant whose only caller
+  is the test that checks it proves nothing about the product. Found by bug-hunter while closing
+  F167; it could not tell which without entering brain's territory.
+- verified-by: `every rescue line the copy module ships is reachable from a live path`
+
+### F188 — The French hate list has no passive twin, so a call to exterminate matches nothing
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/safety.ts:1
+- note: English `HATE_OR_HARASSMENT` carries `(?:should be|deserve to be) (?:killed|gassed|...)`
+  and the French half has no equivalent, so `Les juifs devraient etre extermines` matches nothing
+  and reaches the model as ordinary practice. Found by tutor-behaviour-engineer while building
+  the output guard's ordinary-lines corpus; it correctly left it alone, because closing it
+  changes input stop behaviour and no TB-1 entry authorised that. Fixing it must keep the false
+  positives slice 1 closed shut: an ordinary French sentence about war, history or a film is not
+  a call for harm.
+- verified-by: `a call for harm in French is caught the way its English twin is`
+
+### F189 — A stopped session still pays a model for work nobody will receive
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/convo.ts:1049
+- note: `closeAfterStop` deliberately does not await `finish()`, so after a safety stop the agent
+  still runs extract, curate and drill generation, and publishes their results into a room that
+  has closed. The learner is billed model time for output nobody receives, and
+  `PRIVACY_AND_SAFETY.md`'s stop list says a stopped session leaves nothing behind, which is
+  true of the device and not of the worker. Either the work is skipped on a stop or the doc
+  stops claiming it. Found by tutor-behaviour-engineer, correctly left as a founder and
+  policy decision rather than changed unilaterally.
+- verified-by: `a stopped session starts no post-session model work`
+
+### F190 — The pipeline log prefixes have two homes and no way to keep them equal
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/agent.ts:271
+- note: `PIPELINE_ALARM_PREFIX` and `PIPELINE_LOG_PREFIX` are exported from
+  `apps/mobile/src/live/failure.ts` and repeated as literals in `agent.ts`, because `failure.ts`
+  imports `livekit-client` and pulling a browser SDK into the worker to reuse two strings is the
+  wrong trade. The reasoning is right and the result is still two copies of one decision, with
+  nothing failing if they drift, so a grep that finds the app's alarms silently misses the
+  worker's. `packages/core` is the shared leaf both already depend on. Same shape as F186.
+  Found by backend-engineer, correctly flagged rather than solved by importing across a boundary.
+- verified-by: `the pipeline log prefixes have one home and both sides read it`
+
+### F193 — The scripted lesson agent's own lines pass no output guard
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/tutor.ts:224
+- note: `PRIVACY_AND_SAFETY.md`'s not-true-yet table names the gap honestly and its ledger
+  column says "Not filed", but `KNOWN_ISSUES.md` is where this repo keeps what is known to be
+  broken, and a doc row is not greppable as an open item. `outputGuard` runs on
+  `ParleConversation`'s four surfaces and not on `ParleTutor`'s, so a lesson's model line
+  reaches the learner unchecked. `safetyPolicy.test.ts` already pins `guardedAgents()` to
+  `convo.ts` alone, so closing this means extending the guard and updating that pin together.
+  Found by work-judge at the slice 2 boundary.
+- verified-by: `the scripted lesson agent's own lines pass the output guard`

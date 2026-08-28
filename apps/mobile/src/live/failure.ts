@@ -13,6 +13,7 @@
  */
 
 import { ConnectionError, ConnectionErrorReason, DeviceUnsupportedError, MediaDeviceFailure } from 'livekit-client';
+import type { ErrorKind } from '@parle/core';
 
 export type LiveFailure =
   /** The browser or OS refused the microphone. */
@@ -37,6 +38,17 @@ export type LiveFailure =
   | 'agent-silent'
   /** Was live, then the connection went away. */
   | 'dropped'
+  // The four below are mid-session, and none of them is the connection's fault:
+  // the room is fine and one half of the tutor's pipeline is not. They are named
+  // for what the learner can no longer do, never for the vendor that broke.
+  /** Transcription is down. The tutor cannot hear the learner. */
+  | 'tutor-deaf'
+  /** Speech is down. The tutor's voice is gone. */
+  | 'tutor-mute'
+  /** The tutor cannot produce a reply at all. Typing does not help. */
+  | 'tutor-stalled'
+  /** Turn-taking is down. The tutor will not notice being cut in on. */
+  | 'tutor-talks-over'
   | 'unknown';
 
 /** Thrown by the hook when the token server answers with something unusable. */
@@ -179,10 +191,38 @@ const COPY: Record<LiveFailure, FailureCopy> = {
     message: 'Your tutor joined and then went quiet before saying anything. This one is on us, not on you. Nothing has been counted against your minutes.',
     canType: false,
   },
+  // "Your progress is saved." was the opposite of what happens. The journal
+  // covers everything AFTER the recap arrives and a session killed before it
+  // leaves nothing behind — the pre-recap window in docs/STATE_AND_STORAGE.md.
+  // A learner read that line, believed the conversation was banked, and stopped.
+  // Say the loss plainly and give them the one move that works.
   dropped: {
     label: 'Connection lost',
-    message: 'The connection dropped. Your progress is saved.',
+    message: 'The connection dropped and this session could not be saved. Start a fresh one when you are ready.',
     canType: false,
+  },
+  'tutor-deaf': {
+    label: 'Tutor cannot hear',
+    message: 'The tutor cannot hear right now. You can keep going by typing, or leave and come back later.',
+    canType: true,
+  },
+  'tutor-mute': {
+    label: 'Tutor cannot speak',
+    message: 'The tutor cannot speak right now. You can keep going by typing, or leave and come back later.',
+    canType: true,
+  },
+  // No typed door on purpose. The half that is down is the half that writes the
+  // reply, and typing reaches the same one, so offering it would be a promise
+  // the app cannot keep. Practice is on-device and completely unaffected.
+  'tutor-stalled': {
+    label: 'Tutor unavailable',
+    message: 'The tutor cannot carry on right now. Practice works offline, so you can pick that up and come back to this later.',
+    canType: false,
+  },
+  'tutor-talks-over': {
+    label: 'Tutor talks over you',
+    message: 'The tutor cannot tell when you start speaking. You can keep going by typing, or leave and come back later.',
+    canType: true,
   },
   unknown: {
     label: 'Session problem',
@@ -193,4 +233,171 @@ const COPY: Record<LiveFailure, FailureCopy> = {
 
 export function failureCopy(failure: LiveFailure): FailureCopy {
   return COPY[failure] ?? COPY.unknown;
+}
+
+// ────────────────────────────────────────────── the tutor's pipeline, mid-session
+//
+// Everything above classifies an exception thrown while a session was being
+// STARTED. This half classifies a frame that arrives while one is running: the
+// agent's `error` message, which now carries the vendor's own `kind` and its
+// `recoverable` flag (see ERROR_KINDS in @parle/core).
+//
+// It exists because one sentence was answering for all five. A Deepgram outage
+// meant the tutor could not HEAR, and the learner was told its VOICE had gone —
+// so they kept talking to something that would never answer, while the meter
+// ran. Naming the failure by what the learner can no longer do is the whole fix;
+// naming it by the vendor that broke would be the same mistake in nicer words.
+//
+// Two decisions are worth stating, because both are the cautious direction:
+//
+//   - A missing `recoverable` is treated as recoverable. An older agent sends a
+//     bare `error`, and so does a session hitting its time limit. Taking the
+//     screen away from a learner on a guess is worse than a notice that clears.
+//   - A missing `kind` keeps the agent's own sentence. It is the only honest
+//     thing left to show, and it is exactly what the app does today.
+
+/** The parts of an `error` frame this classification reads. Nothing else. */
+export interface PipelineErrorFrame {
+  /** The agent's sentence. Written by us, never anything the learner said. */
+  message: string;
+  kind?: ErrorKind;
+  recoverable?: boolean;
+}
+
+/**
+ * What the app should do about it.
+ *
+ * A union rather than a struct with a severity field, so that rendering a dead
+ * pipeline as a self-clearing notice is not something a caller can do by
+ * forgetting an `if`. That forgetting is the bug: the handler discarded the type
+ * and the flag, and a dead recogniser read as a passing blip.
+ */
+export type PipelineOutcome =
+  /**
+   * The learner cannot feel this one, so do not interrupt them. A typed session
+   * carries no audio in either direction, which makes every audio failure in it
+   * invisible by construction. Still logged.
+   */
+  | { severity: 'silent'; log: string }
+  /**
+   * The room, the microphone and the meter are all still running. Show the
+   * sentence the way a notice is shown, and let it clear itself. Never a door,
+   * because there is nothing to escape.
+   */
+  | { severity: 'notice'; message: string; log: string }
+  /**
+   * The session cannot go on as it is. Hand this to the same failure screen
+   * every other live failure lands on: `failureCopy(failure)` has the words and
+   * the `canType` flag, and a `canType` failure needs the screen to be given its
+   * typed door, or the sentence promises a way out that is not on the screen.
+   */
+  | { severity: 'blocking'; failure: LiveFailure; log: string };
+
+/**
+ * Which failure each vendor kind is, in the learner's terms.
+ *
+ * `Record<ErrorKind, …>` on purpose: a sixth kind added to the protocol does not
+ * compile until it says what the learner has lost, rather than quietly inheriting
+ * a generic line.
+ */
+const KIND_FAILURE: Record<ErrorKind, LiveFailure> = {
+  stt_error: 'tutor-deaf',
+  tts_error: 'tutor-mute',
+  // Both of these are the reply itself failing. One is the text model, one is a
+  // model that hears and answers in a single piece; the learner loses the same
+  // thing either way, and the log line keeps which it was.
+  llm_error: 'tutor-stalled',
+  realtime_model_error: 'tutor-stalled',
+  interruption_detection_error: 'tutor-talks-over',
+};
+
+/** The quiet version. One short line, no door, nothing to act on. */
+const KIND_NOTICE: Record<ErrorKind, string> = {
+  stt_error: 'The tutor did not catch that. Give it a moment and try again.',
+  tts_error: 'The tutor lost its voice for a moment. It should be back shortly.',
+  llm_error: 'The tutor lost its thread for a moment. It should pick the conversation back up.',
+  realtime_model_error: 'The tutor dropped out for a moment. Give it a second to come back.',
+  interruption_detection_error: 'The tutor may talk over you for a moment. Carry on as you were.',
+};
+
+/**
+ * Kinds that can only reach a learner who is listening and speaking.
+ *
+ * In a typed session there is no audio in either direction, so a dead recogniser
+ * or a dead voice changes nothing the learner can see. Telling them the tutor
+ * cannot hear them, while they type, would be both alarming and untrue.
+ */
+const AUDIO_ONLY: ReadonlySet<ErrorKind> = new Set<ErrorKind>([
+  'stt_error',
+  'tts_error',
+  'interruption_detection_error',
+]);
+
+/** The ordinary per-event line, same channel as the rest of the live trace. */
+export const PIPELINE_LOG_PREFIX = '[parle:live] pipeline';
+
+/**
+ * The stable alarm string. A vendor half of the tutor is down and not coming
+ * back on its own. Renaming this breaks whoever is grepping for it during an
+ * incident, which is the only time it matters.
+ */
+export const PIPELINE_ALARM_PREFIX = '[parle] TUTOR_PIPELINE_DOWN';
+
+/**
+ * One greppable line, prefix included.
+ *
+ * What goes in it: what broke, whether it is coming back, which kind of session
+ * it happened in, and what the learner was shown. What never goes in it: the
+ * frame's sentence, anything transcribed, anything said. Absent fields are left
+ * out rather than printed as a guess, which is diagnostics.ts's rule and
+ * timing.ts's before it.
+ */
+function pipelineLog(
+  kind: ErrorKind | undefined,
+  recoverable: boolean | undefined,
+  spoken: boolean,
+  shown: PipelineOutcome['severity'],
+): string {
+  const parts: string[] = [];
+  if (kind !== undefined) parts.push(`kind=${kind}`);
+  if (recoverable !== undefined) parts.push(`recoverable=${recoverable ? 'yes' : 'no'}`);
+  parts.push(`mode=${spoken ? 'spoken' : 'typed'}`);
+  parts.push(`shown=${shown}`);
+  // The alarm is about the vendor, not about who saw it: a dead recogniser is
+  // worth grepping for even in a typed session where nobody was hurt, and
+  // `shown=silent` on the same line says so.
+  const prefix = recoverable === false ? PIPELINE_ALARM_PREFIX : PIPELINE_LOG_PREFIX;
+  return `${prefix} ${parts.join(' ')}`;
+}
+
+/**
+ * Classify one `error` frame.
+ *
+ * `spoken` is whether this session carries audio at all — `modeCarriesAudio(mode)`
+ * at the call site. It is a required argument rather than a default because
+ * getting it wrong is how a typed learner gets told their microphone failed.
+ */
+export function classifyPipelineError(
+  frame: PipelineErrorFrame,
+  { spoken }: { spoken: boolean },
+): PipelineOutcome {
+  const { kind, recoverable } = frame;
+  const log = (shown: PipelineOutcome['severity']): string => pipelineLog(kind, recoverable, spoken, shown);
+
+  if (kind !== undefined && !spoken && AUDIO_ONLY.has(kind)) {
+    return { severity: 'silent', log: log('silent') };
+  }
+
+  if (recoverable === false) {
+    // No kind means an agent older than ERROR_KINDS, or a failure outside the
+    // five. Either way something has ended the tutor's side of this, and
+    // 'tutor-stalled' is the one line true of all of them.
+    return { severity: 'blocking', failure: kind === undefined ? 'tutor-stalled' : KIND_FAILURE[kind], log: log('blocking') };
+  }
+
+  return {
+    severity: 'notice',
+    message: kind === undefined ? frame.message : KIND_NOTICE[kind],
+    log: log('notice'),
+  };
 }

@@ -7,6 +7,8 @@ export {
   toLearnerInput,
   SAFETY_CATEGORIES,
   type SafetyCategory,
+  ERROR_KINDS,
+  type ErrorKind,
   type ServerMessage,
   type ClientMessage,
   type ConvoSpeakerLine,
