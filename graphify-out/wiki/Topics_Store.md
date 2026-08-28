@@ -33,18 +33,18 @@
 
 ## Relationships
 
-- [Store Acknowledgement](Store_Acknowledgement.md) (11 shared connections)
-- [Drill Bank Store](Drill_Bank_Store.md) (8 shared connections)
-- [Practice Journal Store](Practice_Journal_Store.md) (7 shared connections)
+- [Drill Store](Drill_Store.md) (10 shared connections)
+- [Activity Log Store](Activity_Log_Store.md) (10 shared connections)
+- [Conversation Screen Tests](Conversation_Screen_Tests.md) (8 shared connections)
+- [Sync Engine Core](Sync_Engine_Core.md) (7 shared connections)
 - [Store Binding Tests](Store_Binding_Tests.md) (7 shared connections)
-- [Mission Completions Store](Mission_Completions_Store.md) (6 shared connections)
-- [Profile Store & Gate](Profile_Store_&_Gate.md) (6 shared connections)
-- [Today Activity Feed](Today_Activity_Feed.md) (6 shared connections)
-- [Session Progress Store](Session_Progress_Store.md) (6 shared connections)
+- [Mission Completion Store](Mission_Completion_Store.md) (6 shared connections)
+- [Profile Store and Context](Profile_Store_and_Context.md) (6 shared connections)
+- [Session Progress History](Session_Progress_History.md) (6 shared connections)
 - [Review Deck Store](Review_Deck_Store.md) (6 shared connections)
 - [Sound Check Store](Sound_Check_Store.md) (6 shared connections)
 - [User Scope Reset](User_Scope_Reset.md) (6 shared connections)
-- [Product Event Tracking](Product_Event_Tracking.md) (6 shared connections)
+- [Drill Chooser View](Drill_Chooser_View.md) (6 shared connections)
 
 ## Source Files
 

@@ -33,9 +33,9 @@
 
 ## Relationships
 
-- [Sync Engine Core](Sync_Engine_Core.md) (4 shared connections)
-- [Mobile App Auth Flow](Mobile_App_Auth_Flow.md) (2 shared connections)
-- [Auth Mode Selection](Auth_Mode_Selection.md) (1 shared connections)
+- [App Root Wiring](App_Root_Wiring.md) (3 shared connections)
+- [Sync Engine Core](Sync_Engine_Core.md) (3 shared connections)
+- [Review Engine Tests](Review_Engine_Tests.md) (1 shared connections)
 
 ## Source Files
 

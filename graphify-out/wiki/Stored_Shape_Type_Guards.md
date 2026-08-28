@@ -16,7 +16,7 @@
 ## Relationships
 
 - [Namespace Merge Policy](Namespace_Merge_Policy.md) (8 shared connections)
-- [State Merge Helpers](State_Merge_Helpers.md) (7 shared connections)
+- [Merge Helper Utilities](Merge_Helper_Utilities.md) (7 shared connections)
 
 ## Source Files
 

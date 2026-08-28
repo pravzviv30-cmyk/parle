@@ -1,6 +1,6 @@
 # Voice Lifecycle Checks
 
-> 68 nodes · cohesion 0.07
+> 66 nodes · cohesion 0.08
 
 ## Key Concepts
 
@@ -27,26 +27,25 @@
 - **readStore()** (5 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **recordEmptyRoomHold()** (5 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **recordRejoinInsideTtl()** (5 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
-- **CostModel** (4 connections) — `packages/core/src/metering/meter.ts`
 - **checkConcurrentStart()** (4 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
-- *... and 43 more nodes in this community*
+- **mintToken()** (4 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
+- *... and 41 more nodes in this community*
 
 ## Relationships
 
-- [Session Metering & Plans](Session_Metering_&_Plans.md) (6 shared connections)
-- [Live Failure Classification](Live_Failure_Classification.md) (3 shared connections)
+- [Session Metering and Plans](Session_Metering_and_Plans.md) (6 shared connections)
+- [Client Server Protocol](Client_Server_Protocol.md) (3 shared connections)
 - [Path Node Status Line](Path_Node_Status_Line.md) (2 shared connections)
 - [Entitlement Store](Entitlement_Store.md) (1 shared connections)
 
 ## Source Files
 
-- `packages/core/src/metering/meter.ts`
 - `services/tutor-agent/src/verify/voiceLifecycle.test.ts`
 - `services/tutor-agent/src/verify/voiceLifecycle.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 182 (100%)
+- EXTRACTED: 179 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

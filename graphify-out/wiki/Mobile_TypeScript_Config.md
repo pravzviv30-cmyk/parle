@@ -24,7 +24,7 @@
 
 ## Relationships
 
-- [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md) (1 shared connections)
+- [Auth Screens](Auth_Screens.md) (1 shared connections)
 
 ## Source Files
 

@@ -30,10 +30,10 @@
 
 ## Relationships
 
-- [Review Scheduler](Review_Scheduler.md) (7 shared connections)
-- [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md) (6 shared connections)
-- [Mastery Evidence](Mastery_Evidence.md) (5 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (3 shared connections)
+- [Spaced Repetition Scheduler](Spaced_Repetition_Scheduler.md) (7 shared connections)
+- [UI Component Primitives](UI_Component_Primitives.md) (6 shared connections)
+- [Mastery Evidence Tracking](Mastery_Evidence_Tracking.md) (5 shared connections)
+- [Auth Screens](Auth_Screens.md) (3 shared connections)
 - [Path Node Status Line](Path_Node_Status_Line.md) (2 shared connections)
 
 ## Source Files

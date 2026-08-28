@@ -1,22 +1,24 @@
 # space()
 
-> God node · 84 connections · `apps/mobile/src/theme.ts`
+> God node · 88 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Drill Screen Views](Drill_Screen_Views.md)
+**Community:** [Auth Screens](Auth_Screens.md)
 
 ## Connections by Relation
 
 ### calls
-- ConvoScreen() `EXTRACTED`
+- [ConvoScreen()](ConvoScreen.md) `EXTRACTED`
 - DrillScreen() `EXTRACTED`
 - HomeTab() `EXTRACTED`
 - MyFrenchTab() `EXTRACTED`
+- LiveSessionScreen() `EXTRACTED`
 - SoundCheckScreen() `EXTRACTED`
 - OutlineButton() `EXTRACTED`
 - PracticeTab() `EXTRACTED`
 - TutorTab() `EXTRACTED`
 - MissionsScreen() `EXTRACTED`
 - ReviewScreen() `EXTRACTED`
+- ProfileTab() `EXTRACTED`
 - Field() `EXTRACTED`
 - Stat() `EXTRACTED`
 - AddFriendsScreen() `EXTRACTED`
@@ -25,8 +27,6 @@
 - LeaderboardTab() `EXTRACTED`
 - SignUpScreen() `EXTRACTED`
 - LiveErrorView() `EXTRACTED`
-- ConvoRoute() `EXTRACTED`
-- PathNodeRow() `EXTRACTED`
 
 ### contains
 - src/theme.ts `EXTRACTED`
@@ -38,10 +38,11 @@
 - components.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
 - MyFrenchTab.tsx `EXTRACTED`
+- LiveSessionScreen.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
 - ReviewScreen.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
 - SoundCheckScreen.tsx `EXTRACTED`
 - LeaderboardTab.tsx `EXTRACTED`
@@ -51,7 +52,6 @@
 - SessionView.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`
 - PhrasebookScreen.tsx `EXTRACTED`
-- LiveSessionScreen.tsx `EXTRACTED`
 
 ---
 

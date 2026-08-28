@@ -1,12 +1,13 @@
 # First Run Disclosure
 
-> 26 nodes · cohesion 0.15
+> 27 nodes · cohesion 0.14
 
 ## Key Concepts
 
 - **OnboardingFlow.tsx** (47 connections) — `apps/mobile/src/onboarding/OnboardingFlow.tsx`
 - **disclosure.test.ts** (25 connections) — `apps/mobile/src/onboarding/disclosure.test.ts`
 - **disclosure.ts** (21 connections) — `apps/mobile/src/onboarding/disclosure.ts`
+- **FIRST_RUN_SURFACES** (3 connections) — `apps/mobile/src/onboarding/disclosure.ts`
 - **MEET_AI** (3 connections) — `apps/mobile/src/onboarding/disclosure.ts`
 - **MEET_MIC** (3 connections) — `apps/mobile/src/onboarding/disclosure.ts`
 - **MEET_MORE** (3 connections) — `apps/mobile/src/onboarding/disclosure.ts`
@@ -28,20 +29,20 @@
 - **claimsAHumanListener()** (1 connections) — `apps/mobile/src/onboarding/disclosure.test.ts`
 - **HUMAN_CLAIMS** (1 connections) — `apps/mobile/src/onboarding/disclosure.test.ts`
 - **squash()** (1 connections) — `apps/mobile/src/onboarding/disclosure.test.ts`
-- **SRC** (1 connections) — `apps/mobile/src/onboarding/disclosure.test.ts`
-- *... and 1 more nodes in this community*
+- *... and 2 more nodes in this community*
 
 ## Relationships
 
-- [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md) (17 shared connections)
-- [Onboarding Answers](Onboarding_Answers.md) (14 shared connections)
+- [Onboarding Age Gate](Onboarding_Age_Gate.md) (16 shared connections)
+- [UI Component Primitives](UI_Component_Primitives.md) (10 shared connections)
+- [Auth Screens](Auth_Screens.md) (8 shared connections)
 - [Path Node Status Line](Path_Node_Status_Line.md) (6 shared connections)
-- [Analytics Surface Contract](Analytics_Surface_Contract.md) (4 shared connections)
-- [Illustration Scenes](Illustration_Scenes.md) (3 shared connections)
-- [Profile Store & Gate](Profile_Store_&_Gate.md) (2 shared connections)
-- [Product Event Tracking](Product_Event_Tracking.md) (2 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (1 shared connections)
-- [Mobile App Auth Flow](Mobile_App_Auth_Flow.md) (1 shared connections)
+- [App Surface Contract](App_Surface_Contract.md) (2 shared connections)
+- [Illustration Scenes](Illustration_Scenes.md) (2 shared connections)
+- [Profile Store and Context](Profile_Store_and_Context.md) (2 shared connections)
+- [Drill Chooser View](Drill_Chooser_View.md) (1 shared connections)
+- [App Root Wiring](App_Root_Wiring.md) (1 shared connections)
+- [Microphone Sound Check](Microphone_Sound_Check.md) (1 shared connections)
 
 ## Source Files
 
@@ -51,7 +52,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 98 (100%)
+- EXTRACTED: 99 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

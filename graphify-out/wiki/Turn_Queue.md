@@ -16,8 +16,8 @@
 
 ## Relationships
 
-- [Conversation Orchestration](Conversation_Orchestration.md) (2 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (2 shared connections)
+- [Conversation View Model](Conversation_View_Model.md) (2 shared connections)
+- [Thinking and Session Reporting](Thinking_and_Session_Reporting.md) (2 shared connections)
 
 ## Source Files
 

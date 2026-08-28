@@ -35,7 +35,7 @@
 
 - [Supabase Live Checks](Supabase_Live_Checks.md) (3 shared connections)
 - [Upstash Live Checks](Upstash_Live_Checks.md) (3 shared connections)
-- [LiveKit Session Tokens](LiveKit_Session_Tokens.md) (2 shared connections)
+- [Session Token Grants](Session_Token_Grants.md) (2 shared connections)
 
 ## Source Files
 

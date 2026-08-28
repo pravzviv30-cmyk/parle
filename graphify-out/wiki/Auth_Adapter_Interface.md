@@ -21,9 +21,9 @@
 
 ## Relationships
 
-- [Supabase and Google OAuth](Supabase_and_Google_OAuth.md) (3 shared connections)
-- [Mobile App Auth Flow](Mobile_App_Auth_Flow.md) (2 shared connections)
-- [Auth Mode Selection](Auth_Mode_Selection.md) (1 shared connections)
+- [Supabase Auth & OAuth](Supabase_Auth_&_OAuth.md) (3 shared connections)
+- [React Context Providers](React_Context_Providers.md) (2 shared connections)
+- [Auth Mode & Installation](Auth_Mode_&_Installation.md) (1 shared connections)
 - [Mock Auth Adapter](Mock_Auth_Adapter.md) (1 shared connections)
 
 ## Source Files

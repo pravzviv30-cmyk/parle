@@ -1,58 +1,58 @@
 # Live Session Hook Tests
 
-> 21 nodes · cohesion 0.13
+> 41 nodes · cohesion 0.06
 
 ## Key Concepts
 
-- **createProfile()** (24 connections) — `packages/brain/src/profile/profile.ts`
-- **useLiveSession.test.ts** (19 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
-- **profileStore.ts** (11 connections) — `services/brain-playground/src/profileStore.ts`
-- **loadProfile()** (6 connections) — `services/brain-playground/src/profileStore.ts`
-- **profileStore.test.ts** (6 connections) — `services/brain-playground/src/profileStore.test.ts`
-- **resetProfile()** (5 connections) — `services/brain-playground/src/profileStore.ts`
-- **saveProfile()** (5 connections) — `services/brain-playground/src/profileStore.ts`
-- **profileWith()** (2 connections) — `apps/mobile/src/ConvoScreen.test.ts`
-- **profileWith()** (2 connections) — `apps/mobile/src/live/journal.test.ts`
-- **makeTheCall()** (2 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **useLiveSession.test.ts** (70 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **fragment()** (4 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **run()** (4 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **asJs()** (3 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **fragmentAt()** (3 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **makeTheCall()** (3 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **deliver()** (2 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **fragments()** (2 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **insideOf()** (2 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
 - **phrase()** (2 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
 - **profileWith()** (2 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
 - **recap()** (2 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **RECONNECT_HANDLERS** (2 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **runAsync()** (2 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **ABANDON** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **AsyncFunction** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **AUDIO_BLOCKS** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **constant()** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **DISMISS** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **EVERY_FAILURE** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **GIVE_UP** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **hook** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
 - **installDisk()** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
 - **journalCall()** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
-- **NOW** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
-- **read()** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
-- **recapCase()** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
-- **DEFAULT_PROFILE_PATH** (1 connections) — `services/brain-playground/src/profileStore.ts`
-- **SERVICE_ROOT** (1 connections) — `services/brain-playground/src/profileStore.ts`
-- **dir** (1 connections) — `services/brain-playground/src/profileStore.test.ts`
+- **MIC_API_GUARD** (1 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- *... and 16 more nodes in this community*
 
 ## Relationships
 
-- [LLM Usage Pricing](LLM_Usage_Pricing.md) (9 shared connections)
-- [Practice Journal Store](Practice_Journal_Store.md) (7 shared connections)
-- [Learner Profile Updates](Learner_Profile_Updates.md) (6 shared connections)
-- [Profile Merge Tests](Profile_Merge_Tests.md) (3 shared connections)
-- [Conversation Screen Tests](Conversation_Screen_Tests.md) (2 shared connections)
-- [User Scope Reset](User_Scope_Reset.md) (2 shared connections)
-- [Profile Store & Gate](Profile_Store_&_Gate.md) (2 shared connections)
-- [Conversation Orchestration](Conversation_Orchestration.md) (2 shared connections)
-- [Parle Conversation Controller](Parle_Conversation_Controller.md) (2 shared connections)
-- [French Authenticity Pack](French_Authenticity_Pack.md) (2 shared connections)
-- [Live Failure Classification](Live_Failure_Classification.md) (1 shared connections)
+- [Session Turns and Views](Session_Turns_and_Views.md) (7 shared connections)
+- [Conversation Screen Tests](Conversation_Screen_Tests.md) (6 shared connections)
+- [Live Session Hook](Live_Session_Hook.md) (5 shared connections)
+- [Conversation Screen UI](Conversation_Screen_UI.md) (3 shared connections)
+- [Client Server Protocol](Client_Server_Protocol.md) (2 shared connections)
+- [Profile Merge Tests](Profile_Merge_Tests.md) (2 shared connections)
+- [Live Failure Classification](Live_Failure_Classification.md) (2 shared connections)
+- [Thinking and Session Reporting](Thinking_and_Session_Reporting.md) (1 shared connections)
+- [App Root Wiring](App_Root_Wiring.md) (1 shared connections)
 - [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
+- [Learner Profile Updates](Learner_Profile_Updates.md) (1 shared connections)
+- [User Scope Reset](User_Scope_Reset.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/ConvoScreen.test.ts`
-- `apps/mobile/src/live/journal.test.ts`
 - `apps/mobile/src/live/useLiveSession.test.ts`
-- `packages/brain/src/profile/profile.ts`
-- `services/brain-playground/src/profileStore.test.ts`
-- `services/brain-playground/src/profileStore.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 67 (99%)
+- EXTRACTED: 80 (99%)
 - INFERRED: 1 (1%)
 - AMBIGUOUS: 0 (0%)
 

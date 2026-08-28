@@ -33,11 +33,11 @@
 
 ## Relationships
 
-- [Session Metering & Plans](Session_Metering_&_Plans.md) (9 shared connections)
-- [Account Deletion & Admin Auth](Account_Deletion_&_Admin_Auth.md) (8 shared connections)
-- [LiveKit Session Tokens](LiveKit_Session_Tokens.md) (6 shared connections)
+- [Session Metering and Plans](Session_Metering_and_Plans.md) (9 shared connections)
+- [Account Deletion and Events](Account_Deletion_and_Events.md) (8 shared connections)
+- [Session Token Grants](Session_Token_Grants.md) (6 shared connections)
 - [Voice Lifecycle Checks](Voice_Lifecycle_Checks.md) (1 shared connections)
-- [Supabase Row Checks](Supabase_Row_Checks.md) (1 shared connections)
+- [Supabase Test Fakes](Supabase_Test_Fakes.md) (1 shared connections)
 - [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
 - [Supabase Live Checks](Supabase_Live_Checks.md) (1 shared connections)
 

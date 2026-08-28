@@ -34,7 +34,7 @@
 ## Relationships
 
 - [Supabase Live Checks](Supabase_Live_Checks.md) (2 shared connections)
-- [Session Metering & Plans](Session_Metering_&_Plans.md) (1 shared connections)
+- [Session Metering and Plans](Session_Metering_and_Plans.md) (1 shared connections)
 - [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
 
 ## Source Files

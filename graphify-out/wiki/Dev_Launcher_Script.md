@@ -1,11 +1,15 @@
 # Dev Launcher Script
 
-> 19 nodes · cohesion 0.20
+> 40 nodes · cohesion 0.09
 
 ## Key Concepts
 
 - **dev.mjs** (21 connections) — `scripts/dev.mjs`
+- **devPlan.ts** (21 connections) — `services/shared/devPlan.ts`
+- **devPlan.test.ts** (14 connections) — `services/tutor-agent/src/devPlan.test.ts`
 - **main()** (13 connections) — `scripts/dev.mjs`
+- **bootPlan()** (5 connections) — `services/shared/devPlan.ts`
+- **envGaps()** (5 connections) — `services/shared/devPlan.ts`
 - **launch()** (4 connections) — `scripts/dev.mjs`
 - **say()** (4 connections) — `scripts/dev.mjs`
 - **shutdown()** (4 connections) — `scripts/dev.mjs`
@@ -18,24 +22,28 @@
 - **waitForReady()** (3 connections) — `scripts/dev.mjs`
 - **die()** (2 connections) — `scripts/dev.mjs`
 - **hasClaudeCli()** (2 connections) — `scripts/dev.mjs`
+- **BootStep** (2 connections) — `services/shared/devPlan.ts`
+- **brainOf()** (2 connections) — `services/shared/devPlan.ts`
+- **ProbeResult** (2 connections) — `services/shared/devPlan.ts`
+- **stepFor()** (2 connections) — `services/tutor-agent/src/devPlan.test.ts`
 - **AGENT_ENV_FILE** (1 connections) — `scripts/dev.mjs`
 - **children** (1 connections) — `scripts/dev.mjs`
 - **COLOURS** (1 connections) — `scripts/dev.mjs`
-- **ROOT** (1 connections) — `scripts/dev.mjs`
-- **TOKEN_ENV_FILE** (1 connections) — `scripts/dev.mjs`
+- *... and 15 more nodes in this community*
 
 ## Relationships
 
-- [Dev Boot Plan](Dev_Boot_Plan.md) (11 shared connections)
+- [Environment Preflight Probe](Environment_Preflight_Probe.md) (3 shared connections)
 
 ## Source Files
 
 - `scripts/dev.mjs`
 - `services/shared/devPlan.ts`
+- `services/tutor-agent/src/devPlan.test.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 45 (100%)
+- EXTRACTED: 74 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

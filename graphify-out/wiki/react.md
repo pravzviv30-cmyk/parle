@@ -1,35 +1,25 @@
-# react
+# React
 
-> God node · 38 connections · `apps/mobile/tsconfig.json`
+> 2 nodes · cohesion 1.00
 
-**Community:** [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md)
+## Key Concepts
 
-## Connections by Relation
+- **react** (2 connections) — `apps/mobile/package.json`
+- **react** (1 connections) — `apps/mobile/package.json`
 
-### extends
-- types `EXTRACTED`
+## Relationships
 
-### imports_from
-- ConvoScreen.tsx `EXTRACTED`
-- RootNavigator.tsx `EXTRACTED`
-- DrillScreen.tsx `EXTRACTED`
-- App.tsx `EXTRACTED`
-- components.tsx `EXTRACTED`
-- HomeTab.tsx `EXTRACTED`
-- useLiveSession.ts `EXTRACTED`
-- OnboardingFlow.tsx `EXTRACTED`
-- MyFrenchTab.tsx `EXTRACTED`
-- TutorTab.tsx `EXTRACTED`
-- ReviewScreen.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
-- PracticeTab.tsx `EXTRACTED`
-- SoundCheckScreen.tsx `EXTRACTED`
-- LeaderboardTab.tsx `EXTRACTED`
-- AddFriendsScreen.tsx `EXTRACTED`
-- MissionsScreen.tsx `EXTRACTED`
-- SummaryScreen.tsx `EXTRACTED`
-- SessionView.tsx `EXTRACTED`
-- TutorIntro.tsx `EXTRACTED`
+- [Mobile Dependencies](Mobile_Dependencies.md) (1 shared connections)
+
+## Source Files
+
+- `apps/mobile/package.json`
+
+## Audit Trail
+
+- EXTRACTED: 2 (100%)
+- INFERRED: 0 (0%)
+- AMBIGUOUS: 0 (0%)
 
 ---
 
