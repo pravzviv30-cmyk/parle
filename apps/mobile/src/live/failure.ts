@@ -25,8 +25,14 @@ export type LiveFailure =
   | 'mic-unavailable'
   /** The token server did not answer. */
   | 'server-unreachable'
-  /** The token server answered, and said no. */
+  /** The token server answered, and said no for a reason we cannot act on. */
   | 'server-refused'
+  /** Refused for now: too many starts in too short a window. */
+  | 'rate-limited'
+  /** Refused because this learner already has a session open somewhere else. */
+  | 'session-elsewhere'
+  /** Refused because nobody is signed in. */
+  | 'sign-in-required'
   /** Reached the room service, but the signal connection failed. */
   | 'signal'
   /** Signalled fine, but no audio path could be established. Usually ICE. */
@@ -73,7 +79,27 @@ export function classifyFailure(err: unknown): LiveFailure {
 
   if (err instanceof TokenServerError) {
     // 5xx means it is there and broken; 4xx means it is there and refusing.
-    return err.status >= 500 ? 'server-unreachable' : 'server-refused';
+    // "Refusing" was one bucket, and it told a rate-limited learner, a learner
+    // with a session open on another device, and a signed-out learner all the
+    // same thing: sign out and back in. Wrong for the first two, and for the
+    // second it is the move that loses them the session they still had.
+    //
+    // Only the status is read. The reply carries a sentence of its own and it
+    // is deliberately thrown away: everything below comes from the closed table
+    // in this file, so nothing a learner reads can be changed by a deploy of
+    // something else. The out-of-minutes 402 never arrives here at all; the
+    // hook answers it with the paywall before this is reached.
+    if (err.status >= 500) return 'server-unreachable';
+    switch (err.status) {
+      case 401:
+        return 'sign-in-required';
+      case 409:
+        return 'session-elsewhere';
+      case 429:
+        return 'rate-limited';
+      default:
+        return 'server-refused';
+    }
   }
 
   if (err instanceof ConnectionError) {
@@ -157,6 +183,49 @@ const COPY: Record<LiveFailure, FailureCopy> = {
   'server-refused': {
     label: 'Session refused',
     message: 'Parle could not start a session for this account. Signing out and back in usually settles it.',
+    canType: false,
+  },
+  // The three refusals below used to share the line above, and sign out and
+  // back in is the right advice for none of them. Each says what happened and
+  // the one move that ends it.
+  //
+  // All three keep typing closed, and that is a decision rather than a copy of
+  // the line above. A typed conversation asks this same service for this same
+  // credential: it is counted by the same limit, held off by the same
+  // one-session-per-learner lease, and refused by the same signed-in check. An
+  // offer to type here would fail one tap later, which is a worse place to
+  // find out than this screen.
+  'rate-limited': {
+    label: 'A short wait',
+    message: 'Parle needs a short pause before it can start another session. Try again in a minute or two.',
+    canType: false,
+  },
+  // Two learners meet this one, and the first draft only spoke to one of them.
+  //
+  // The lease is taken when the token is granted and kept for thirty minutes,
+  // and the only thing that gives it back early is the tutor reporting the end
+  // of a session it actually ran. So a learner who leaves during connect, which
+  // the connecting screen invites them to do, holds a lease on a session that
+  // never opened, dispatched no tutor, and has nothing to end. Telling that
+  // learner to end it somewhere else is an instruction with no "somewhere
+  // else" in it, and with typing closed it was the only move on the screen.
+  //
+  // The second sentence keeps the real fix for the learner who does have
+  // another device. The third is for the one who does not: the wait is named
+  // as the lease's own length rather than a hopeful minute, and it points at
+  // practice, which is on-device and reached by the Back this screen always
+  // draws.
+  'session-elsewhere': {
+    label: 'Session already open',
+    // One string literal, not a concatenation: the surface walk in
+    // surfaceContract.test.ts reads these messages with a `message: '...'`
+    // regex, and a second half on its own line would never be walked at all.
+    message: 'Parle still has a French session open for you. If it is on another device, end it there and try again. If you just left one here, it clears itself within half an hour, and practice works offline until then.',
+    canType: false,
+  },
+  'sign-in-required': {
+    label: 'Signed out',
+    message: 'Parle cannot start a session while you are signed out. Sign in again and your progress is right where you left it.',
     canType: false,
   },
   signal: {

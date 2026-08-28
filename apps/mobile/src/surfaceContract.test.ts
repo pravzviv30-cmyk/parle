@@ -43,6 +43,24 @@ function stripComments(source: string): string {
 const SOURCES = walk(SRC).map((path) => ({ path, body: stripComments(readFileSync(path, 'utf8')) }));
 const named = (name: string) => SOURCES.find((f) => f.path.endsWith(name))!.body;
 
+/**
+ * `first` is written before `second`, with both proven present first.
+ *
+ * Every ordering claim in this file goes through here, because the obvious
+ * spelling of one is a trap. `indexOf` answers -1 for something that is not
+ * there, and -1 sorts before every real position, so `a.indexOf(x) <
+ * a.indexOf(y)` passes most confidently in the one case it exists to catch:
+ * `x` deleted outright. That is how the flag raised before a network probe went
+ * missing under a green suite.
+ */
+function writtenBefore(text: string, first: string, second: string, why: string): void {
+  const at = text.indexOf(first);
+  const then = text.indexOf(second);
+  assert.notEqual(at, -1, `${why}; \`${first}\` is not there at all`);
+  assert.notEqual(then, -1, `${why}; \`${second}\` is not there at all`);
+  assert.ok(at < then, `${why}; \`${first}\` comes after \`${second}\``);
+}
+
 describe('the tutor intro teaches what the app actually does — J3', () => {
   const intro = named('tutor/TutorIntro.tsx');
   // The page count is a claim made in the file header, so this one check reads
@@ -74,8 +92,12 @@ describe('the tab bar can be used without seeing it — J4', () => {
 
   test('staying put announces nothing', () => {
     const guard = bar.slice(bar.indexOf('const onPress'), bar.indexOf('return (', bar.indexOf('const onPress')));
-    assert.ok(
-      guard.indexOf('!focused') < guard.indexOf('announceTab'),
+    // Guarded, because a bare index comparison here reads as passing the moment
+    // `!focused` is deleted, which is the whole of the bug it guards.
+    writtenBefore(
+      guard,
+      '!focused',
+      'announceTab',
       'a tap on the tab you are already on must not announce anything',
     );
   });
@@ -546,5 +568,116 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
       );
       assert.doesNotMatch(body, /\d\s*(vw|vh)\b/, `${where} uses a browser viewport unit, which native has no answer for`);
     }
+  });
+});
+
+describe('a tap that starts with a network probe — F154', () => {
+  // Ceiling: this reads the tab as text. It cannot prove a second tap did
+  // nothing on a device; it proves the guard and the acknowledgement are inside
+  // the two handlers that fire the probe, which is where they were missing.
+  const tab = named('tabs/PracticeTab.tsx');
+  const bodyOf = (opens: string): string => {
+    const from = tab.indexOf(opens);
+    assert.notEqual(from, -1, `${opens} is gone from PracticeTab; this test is stale`);
+    const to = tab.indexOf('\n  };\n', from);
+    assert.notEqual(to, -1, `${opens} no longer closes at component level`);
+    return tab.slice(from, to);
+  };
+
+  test('a practice tap during the probe is acknowledged and never doubled', () => {
+    // Both call sites fired recheck() and navigated with no flag at all, so for
+    // up to a second and a half the tap did nothing visible and a second tap
+    // queued a second navigation. TutorTab already solved this; the tab was the
+    // one place it had not been copied to.
+    for (const [name, opens] of [
+      ['the lesson row', 'const open = ('],
+      ['talk again', 'const talkAgain = ('],
+    ] as const) {
+      const body = bodyOf(opens);
+      assert.match(body, /recheck\(\)/, `${name} no longer probes, so this test is stale`);
+      assert.match(body, /if \(checking\) return;/, `${name} lets a second tap queue a second navigation`);
+      assert.match(body, /setChecking\(false\)/, `${name} never lets go, so one probe disables the tab for good`);
+      // The probe cannot reject today, but a handler that would strand the tab
+      // if it ever did is a handler that will.
+      assert.match(
+        body,
+        /\.then\(go, go\)/,
+        `${name} clears its flag on success only, so a probe that threw would leave the tab dead`,
+      );
+    }
+
+    // The acknowledgement itself, in the gate's own words rather than a second
+    // vocabulary for the same wait.
+    assert.match(tab, /TUTOR_OFFLINE/, 'the tab writes its own word for checking instead of the gate\'s');
+    assert.match(tab, /\{TUTOR_OFFLINE\.checking\}/, 'nothing on the tab says a probe is running');
+    assert.match(
+      tab,
+      /\{checking && \([\s\S]{0,200}accessibilityLiveRegion="polite"[\s\S]{0,200}TUTOR_OFFLINE\.checking/,
+      'the acknowledgement is either not a live region or not tied to the flag, so it is invisible to a screen reader or never goes away',
+    );
+    // And the one control on the tab that can show a disabled state does.
+    assert.match(
+      tab,
+      /<GhostButton\s+label="Unable to speak right now\?"\s+disabled=\{checking\}/,
+      'the quiet door stays live-looking while the probe it would start is already running',
+    );
+  });
+
+  test('the checking flag is raised before the probe, not merely consulted', () => {
+    // Separated out and guarded, because the claim above it used to be spelled
+    // `body.indexOf('setChecking(true)') < body.indexOf('recheck()')`. That is
+    // true of a handler that never raises the flag at all: -1 is less than the
+    // position of the probe. Deleting both raises left the guard, the Checking
+    // line and the disabled door all inert under a green suite, which is F154
+    // back in full wearing a tick.
+    //
+    // So the raise is proven present first, then placed: consulted by the guard,
+    // raised, and only then the network is touched. Read as three positions in
+    // one handler, because a flag raised inside `.then` is a flag raised after
+    // the second and a half it exists to cover.
+    for (const [name, opens] of [
+      ['the lesson row', 'const open = ('],
+      ['talk again', 'const talkAgain = ('],
+    ] as const) {
+      const body = bodyOf(opens);
+      assert.ok(
+        body.includes('setChecking(true)'),
+        `${name} never raises the checking flag, so the tap it starts says nothing for as long as the probe runs`,
+      );
+      assert.ok(body.includes('recheck()'), `${name} no longer probes, so this test is stale`);
+      writtenBefore(
+        body,
+        'if (checking) return;',
+        'setChecking(true)',
+        `${name} raises the flag before it has checked whether one is already up`,
+      );
+      writtenBefore(
+        body,
+        'setChecking(true)',
+        'recheck()',
+        `${name} probes before it says it is probing, so the tap is dead while it runs`,
+      );
+      // Raised once. Twice would mean one of them sits in a callback, which is
+      // the same silence in a different place.
+      assert.equal(
+        (body.match(/setChecking\(true\)/g) ?? []).length,
+        1,
+        `${name} raises the checking flag more than once, so one of the raises is not the one guarding the probe`,
+      );
+    }
+  });
+});
+
+describe('a ghost control can be busy — F152 hand-off', () => {
+  // GhostButton was the only button in the set with no disabled state, which is
+  // why Forgot password stayed tappable while the screen it sits on was busy.
+  // Held here because it is a claim about the design system, not about a screen.
+  const ghost = named('components.tsx').match(/export function GhostButton\(\{[\s\S]*?\n\}\n/)![0];
+
+  test('a ghost button can be turned off, and looks it', () => {
+    assert.match(ghost, /disabled\?: boolean/, 'GhostButton cannot be disabled');
+    assert.match(ghost, /disabled=\{disabled\}/, 'GhostButton stays tappable while disabled');
+    assert.match(ghost, /pressed && !disabled/, 'a disabled GhostButton still flashes when pressed');
+    assert.match(ghost, /disabled \? paper\.inkFaint/, 'a disabled GhostButton looks live');
   });
 });

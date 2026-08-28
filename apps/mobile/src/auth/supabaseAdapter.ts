@@ -1,8 +1,13 @@
 /**
  * The real auth backend. Sessions persist in encrypted SecureStore on native
  * (web uses the SDK's localStorage default), refresh runs only while the app is
- * foregrounded, and every provider error is translated to a plain sentence
- * before a screen can show it.
+ * foregrounded, and every provider error is translated by `friendly.ts` to a
+ * plain sentence before a screen can show it.
+ *
+ * The whole error goes to `friendly` — code, weak-password reasons and message
+ * together — because GoTrue's code is stable and its English is not. This file
+ * owns no translation of its own and must not grow one: a second mapping here
+ * is how the raw provider message got back onto a screen the first time.
  */
 
 import { AppState, Platform } from 'react-native';
@@ -11,6 +16,7 @@ import * as SecureStore from 'expo-secure-store';
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 import type { AuthAdapter, AuthResult, AuthUser } from './types.ts';
 import { startGoogleSignIn } from './oauth.ts';
+import { friendly, deletionFailure } from './friendly.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { createSecureSessionStorage } from './secureSessionStorage.ts';
 import { installationId } from './installation.ts';
@@ -23,17 +29,6 @@ function toUser(session: Session | null): AuthUser | null {
     email: user.email ?? null,
     provider: user.app_metadata?.provider === 'google' ? 'google' : 'password',
   };
-}
-
-/** Provider errors, translated. Never a code, never a scold. */
-function friendly(message: string | undefined): string {
-  const m = (message ?? '').toLowerCase();
-  if (m.includes('invalid login credentials')) return 'That email and password do not match an account.';
-  if (m.includes('already registered')) return 'That email already has an account. Sign in instead.';
-  if (m.includes('rate limit')) return 'Too many tries in a row. Give it a minute, then try again.';
-  if (m.includes('network')) return 'The connection dropped. Check your internet and try again.';
-  if (m.includes('email not confirmed')) return 'That email has not been confirmed yet. Check your inbox for the confirmation link.';
-  return message && message.length < 120 ? message : 'Something went sideways. Try again in a moment.';
 }
 
 export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter {
@@ -93,7 +88,7 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
 
     async signUpWithPassword(email, password): Promise<AuthResult> {
       const { data, error } = await client.auth.signUp({ email, password });
-      if (error) return { ok: false, message: friendly(error.message) };
+      if (error) return { ok: false, message: friendly(error) };
       if (!data.session) {
         // The project requires email confirmation; say what happens next.
         return { ok: true, message: 'Almost there. Check your email for a confirmation link, then sign in.' };
@@ -103,7 +98,7 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
 
     async signInWithPassword(email, password): Promise<AuthResult> {
       const { error } = await client.auth.signInWithPassword({ email, password });
-      return error ? { ok: false, message: friendly(error.message) } : { ok: true };
+      return error ? { ok: false, message: friendly(error) } : { ok: true };
     },
 
     signInWithGoogle(): Promise<AuthResult> {
@@ -115,13 +110,13 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
         ...(Platform.OS === 'web' ? { redirectTo: window.location.origin } : {}),
       });
       return error
-        ? { ok: false, message: friendly(error.message) }
+        ? { ok: false, message: friendly(error) }
         : { ok: true, message: 'Check your email for a reset link.' };
     },
 
     async completePasswordReset(newPassword): Promise<AuthResult> {
       const { error } = await client.auth.updateUser({ password: newPassword });
-      return error ? { ok: false, message: friendly(error.message) } : { ok: true };
+      return error ? { ok: false, message: friendly(error) } : { ok: true };
     },
 
     async reauthenticateForDeletion(secret?: string): Promise<AuthResult> {
@@ -139,28 +134,25 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
         return { ok: false, message: 'Enter your password to confirm it is you.' };
       }
       const { error } = await client.auth.signInWithPassword({ email: user.email, password: secret });
-      return error ? { ok: false, message: friendly(error.message) } : { ok: true };
+      return error ? { ok: false, message: friendly(error) } : { ok: true };
     },
 
     async deleteAccount(): Promise<AuthResult> {
       const { data } = await client.auth.getSession();
       const token = data.session?.access_token;
-      if (!token) return { ok: false, message: 'Sign in again before deleting your account.' };
+      // No bearer is the same conversation as a refused one, so it uses the
+      // same words rather than a second copy of them.
+      if (!token) return { ok: false, message: deletionFailure(401) };
       try {
         const installation = await installationId();
         const response = await fetch(`${TOKEN_SERVER}/account/delete`, {
           method: 'POST',
           headers: { authorization: `Bearer ${token}`, 'x-parle-installation': installation },
         });
-        const body = (await response.json().catch(() => null)) as { message?: unknown } | null;
-        return response.ok
-          ? { ok: true }
-          : {
-              ok: false,
-              message: typeof body?.message === 'string'
-                ? body.message
-                : 'Your account could not be deleted right now. Nothing was changed.',
-            };
+        // The response body is never read. It is written for an operator, it
+        // can carry a database error, and the same route can be answered by a
+        // proxy that knows nothing about this product. The status says enough.
+        return response.ok ? { ok: true } : { ok: false, message: deletionFailure(response.status) };
       } catch {
         return { ok: false, message: 'The connection dropped. Nothing was deleted. Try again.' };
       }

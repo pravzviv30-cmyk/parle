@@ -40,6 +40,7 @@ import { bankPractice, journalDrills } from './live/journal.ts';
 import { convoUsesFrom, type PracticeBatch } from './live/journalRules.ts';
 import { recordActivity } from './progress/activity.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
+import { CONNECTING_TICK_MS, connectingTick, connectingView } from './live/connectingView.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
 import { VoiceOrb, type OrbState } from './tutor/VoiceOrb.tsx';
 import { Transcript } from './tutor/Transcript.tsx';
@@ -51,6 +52,7 @@ import { enterSubmits, keyPressFrom } from './tutor/enterSubmit.ts';
 import { TUTOR_NAME } from './tutor/tutorName.ts';
 import { sceneControls, typedTurn } from './tutor/sceneControls.ts';
 import { NO_WIN, dismissWin, winAfterTurn, winCard, type WinState } from './tutor/missionWin.ts';
+import { recapWait } from './tutor/recapWait.ts';
 
 /**
  * Everything one conversation asks the practice stores to keep, in the shape
@@ -251,6 +253,31 @@ export function ConvoScreen({
     void live.start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textMode]);
+
+  // How long this connect has been running, for the copy that grows with it.
+  // The interval lives only while the connecting branch IS the whole screen and
+  // is cleared the moment the room opens or the screen goes away, so nothing
+  // ticks behind a conversation. `connectingTick` hands back the number already
+  // held while the stage is unchanged, so React bails out of the render: a
+  // twenty five second wait costs two renders, not twenty five.
+  const [connectingMs, setConnectingMs] = useState(0);
+  // Read off `phase` rather than spelled out twice: the stop surface has to be
+  // returned above every status branch, and safetyView.test.ts proves that by
+  // finding the first mention of the connecting phase in the file. A hook that
+  // spells the branch's own condition out up here moves that mark and makes the
+  // ordering test read a line that is not a branch.
+  const phase = live.status.phase;
+  const awaitingRoom = phase === 'connecting' || phase === 'idle';
+  useEffect(() => {
+    if (!awaitingRoom) return;
+    // A fresh attempt gets a fresh clock. The conversation reconnects when the
+    // learner takes the quiet door, and without this the second attempt opened
+    // on the first one's oldest sentence.
+    setConnectingMs(0);
+    const from = Date.now();
+    const tick = setInterval(() => setConnectingMs((prev) => connectingTick(prev, Date.now() - from)), CONNECTING_TICK_MS);
+    return () => clearInterval(tick);
+  }, [awaitingRoom]);
 
   // The tutor stopped this session, and a stopped session leaves nothing
   // behind. One flag, read by every effect below that would otherwise award,
@@ -486,10 +513,25 @@ export function ConvoScreen({
   }
 
   if (live.status.phase === 'connecting' || live.status.phase === 'idle') {
+    // The longest silence in the product, and it used to be one unchanging
+    // sentence with no door, returned above every control this screen owns.
+    // The words and the way out are both the view model's now. Leaving here is
+    // safe: `leave()` takes the session number with it, so an attempt still
+    // waiting on a token stands down rather than opening a room for a screen
+    // that has gone. See live/connectingView.ts and live/startOwnership.ts.
+    const connecting = connectingView(connectingMs);
     return (
       <View style={st.center}>
         <ActivityIndicator color={paper.inkSoft} />
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>Reaching the server…</Text>
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[type.small, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}
+        >
+          {connecting.headline}
+        </Text>
+        <View style={st.terminalAction}>
+          <GhostButton label={connecting.leaveLabel} onPress={leaveNow} />
+        </View>
       </View>
     );
   }
@@ -677,6 +719,32 @@ export function ConvoScreen({
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{waiting.headline}</Text>
         <View style={st.terminalAction}>
           <GhostButton label={waiting.leaveLabel} onPress={leaveNow} />
+        </View>
+      </View>
+    );
+  }
+
+  // Finish promised a recap. Until it lands, this is what the promise looks
+  // like: the scene steps aside rather than sitting there inviting another
+  // sentence out of somebody who has just ended the conversation. The fifteen
+  // second bail above is the floor under this, and the door is the same exit.
+  // See tutor/recapWait.ts.
+  const finishWait = recapWait({ finishing, recapArrived: live.recap !== null });
+  if (finishWait) {
+    return (
+      <View style={st.center}>
+        <ActivityIndicator color={paper.inkSoft} />
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[type.bodyStrong, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}
+        >
+          {finishWait.headline}
+        </Text>
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
+          {finishWait.note}
+        </Text>
+        <View style={st.terminalAction}>
+          <GhostButton label={finishWait.leaveLabel} onPress={leaveNow} />
         </View>
       </View>
     );

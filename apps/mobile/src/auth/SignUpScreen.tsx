@@ -10,6 +10,8 @@ import { paper, space, type, signal, HIT } from '../theme.ts';
 import { PillButton, OutlineButton, Field, ChevronLeft, GoogleMark } from '../components.tsx';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail, PASSWORD_MIN, passwordTooShort } from './validate.ts';
+import { authButtonLabel, type AuthAction } from './busyLabel.ts';
+import { passwordHint } from './passwordHint.ts';
 
 export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignIn: () => void }) {
   const insets = useSafeAreaInsets();
@@ -22,9 +24,17 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [formOk, setFormOk] = useState(false);
-  const [busy, setBusy] = useState(false);
+  // One flag, naming the request that is running: everything greys, and only
+  // the button that started it changes its words.
+  const [pending, setPending] = useState<AuthAction | null>(null);
+  const busy = pending !== null;
+  // Recomputed on every keystroke, which is the point: the rule is on screen
+  // while it is being met, not only after it has been broken.
+  const hint = passwordHint(password);
 
   const submit = async () => {
+    // The keyboard's return key cannot be greyed out, so the guard is here too.
+    if (busy) return;
     const emailProblem = looksLikeEmail(email) ? null : 'That does not look like an email address.';
     const passwordProblem = passwordTooShort(password) ? `Passwords need at least ${PASSWORD_MIN} characters.` : null;
     const confirmProblem = confirm === password ? null : 'The two passwords are not the same yet.';
@@ -33,9 +43,9 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
     setConfirmError(confirmProblem);
     setFormMessage(null);
     if (emailProblem || passwordProblem || confirmProblem) return;
-    setBusy(true);
+    setPending('createAccount');
     const result = await adapter.signUpWithPassword(email.trim(), password);
-    setBusy(false);
+    setPending(null);
     if (result.ok) {
       // Signed straight in unless the project requires email confirmation;
       // either way the message says what happens next.
@@ -50,9 +60,10 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
   };
 
   const google = async () => {
-    setBusy(true);
+    if (busy) return;
+    setPending('google');
     const result = await adapter.signInWithGoogle();
-    setBusy(false);
+    setPending(null);
     if (!result.ok) {
       setFormOk(false);
       setFormMessage(result.message);
@@ -90,16 +101,27 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
             error={emailError}
             returnKeyType="next"
           />
-          <Field
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            placeholder={`At least ${PASSWORD_MIN} characters`}
-            secure
-            autoComplete="new-password"
-            error={passwordError}
-            returnKeyType="next"
-          />
+          <View style={{ gap: space(1.5) }}>
+            <Field
+              label="Password"
+              value={password}
+              onChangeText={(v) => {
+                setPassword(v);
+                // The complaint is from the last submit. Once they are typing
+                // again it is stale, and the hint below says the same thing
+                // without the red.
+                if (passwordError) setPasswordError(null);
+              }}
+              placeholder="Choose a password"
+              secure
+              autoComplete="new-password"
+              error={passwordError}
+              returnKeyType="next"
+            />
+            {passwordError == null && (
+              <Text style={[type.small, { color: hint.met ? signal.good : paper.inkSoft }]}>{hint.text}</Text>
+            )}
+          </View>
           <Field
             label="Confirm password"
             value={confirm}
@@ -120,9 +142,13 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
         )}
 
         <View style={{ gap: space(3), marginTop: space(6) }}>
-          <PillButton label="Create account" onPress={() => void submit()} disabled={busy} />
+          <PillButton
+            label={authButtonLabel('createAccount', pending === 'createAccount')}
+            onPress={() => void submit()}
+            disabled={busy}
+          />
           <OutlineButton
-            label="Continue with Google"
+            label={authButtonLabel('google', pending === 'google')}
             onPress={() => void google()}
             disabled={busy}
             icon={<GoogleMark size={18} />}

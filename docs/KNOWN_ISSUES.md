@@ -2763,3 +2763,217 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the whole screen and discards the session. Constrain the pattern to sexual, photo or body
   objects; `the schoolgirl should send me pics` must keep its stop witness.
 - verified-by: `a child sending or showing something ordinary is never read as a grooming approach`
+
+### F150 — A refused session start gives the server's true advice, not sign-out advice
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/failure.ts:76
+- note: classifyFailure folds every 4xx into server-refused, so a 429 rate limit, a 409
+  second-session conflict and a 401 signed-out start all tell the learner to sign out and
+  back in, which is wrong for all three and actively harmful for the 409. Three new
+  variants map from the status the TokenServerError already carries; the copy is
+  client-authored inside the existing closed record, never rendered from the server body.
+- verified-by: `a rate limited start asks for a short wait, not a sign out`
+- verified-by: `a second session elsewhere is told to end it, not to sign out`
+- verified-by: `a signed out start says to sign in`
+
+### F151 — The connect wait has a door and words that change
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/LiveSessionScreen.tsx:75
+- note: both live screens' connecting branch is a spinner and one static line with no
+  Leave, over a cold start that can reach twenty five seconds; the adjacent waiting
+  branch already had exactly this fixed via tutor/waitingView.ts. A pure
+  live/connectingView.ts stages the copy by elapsed time and always returns the door;
+  both screens render its answer. The executor must verify leave() is safe against an
+  in-flight token fetch before wiring the door.
+- verified-by: `the connect wait changes its words as it grows old`
+- verified-by: `every connecting stage keeps a way out`
+- verified-by: `both live screens draw the connecting wait from the view model, door included`
+
+### F152 — A busy auth screen says what it is doing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/SignInScreen.tsx:112
+- note: submit and Google set disabled and nothing else on all three auth screens, and
+  the Forgot password ghost stays tappable while busy because GhostButton has no
+  disabled prop at all. Busy relabels follow the ProfileTab "Verifying…" precedent;
+  GhostButton gains disabled in components.tsx matching PillButton's shape.
+- verified-by: `a busy auth button says what it is doing`
+- verified-by: `forgot password cannot be tapped while the screen is busy`
+
+### F153 — A provider error never reaches the learner raw
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/supabaseAdapter.ts:36
+- note: three leaks. friendly() renders any unmapped GoTrue message under 120 characters
+  verbatim; deleteAccount renders the token server's JSON body.message unchecked; and
+  the Google failure tells a learner to check the Supabase provider setup, which is ops
+  advice naming a vendor. friendly() is extracted to auth/friendly.ts with a closed
+  fallthrough, deletion failures speak the app's own words with the raw detail logged
+  for the developer, and the Google copy points at what the learner can actually do.
+- verified-by: `an unmapped provider error never reaches the learner raw`
+- verified-by: `the known provider errors keep their translations`
+- verified-by: `account deletion failure speaks the app's words, not the server's`
+- verified-by: `the google error tells the learner what to do, not which vendor to configure`
+
+### F154 — A practice tap acknowledges the probe and cannot double
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/PracticeTab.tsx:73
+- note: the lesson row and talk-again fire recheck() then navigate with no checking
+  flag, so the tap is dead for up to a second and a half and a second tap queues a
+  second navigation. TutorTab.tsx:78 already solved this with a checking guard and the
+  gate's own "Checking" copy; the tab mirrors it at both call sites.
+- verified-by: `a practice tap during the probe is acknowledged and never doubled`
+
+### F155 — Finish says a recap is coming
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:756
+- note: tapping Finish dismisses the win card, sets finishing, and renders nothing on
+  it, so the learner watches the ordinary scene in silence for up to fifteen seconds
+  before the bail fires. A tiny pure tutor/recapWait.ts owns the predicate and the
+  copy; the screen shows the line with a spinner while it holds, and the existing bail
+  and Leave stay as they are.
+- verified-by: `the finish wait says a recap is coming and keeps the door`
+- verified-by: `the convo screen shows the recap wait while finishing`
+
+### F156 — The password requirement is visible while it is being met
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/SignUpScreen.tsx:97
+- note: the eight-character rule lives only in a placeholder that vanishes on the first
+  keystroke and a post-submit error. A pure passwordHint(value) renders one line under
+  the field that flips to a met state as the learner types. One requirement exists, so
+  one line, not a checklist. validate.ts gets its first tests in the same round.
+- verified-by: `the password hint updates as the requirement is met`
+- verified-by: `the email and password checks catch what would certainly bounce and nothing more`
+
+### F157 — Set-new-password errors sit beside their fields
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/SetNewPasswordScreen.tsx:70
+- note: both of this screen's errors are field-specific, too short and mismatch, and
+  both render in a loose banner while the two Fields never receive their error prop.
+  Field already carries the announcement plumbing; the errors move onto it. SignIn's
+  banner stays, because a credentials mismatch belongs to the pair, not a field.
+- verified-by: `set new password errors sit beside their fields`
+
+### F158 — The empty drill bank draws the scene the scene file promises it
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/DrillScreen.tsx:771
+- note: illustrations/scenes/empty.tsx says NothingDue serves the empty review deck and
+  the empty drill bank; the drill's empty branch renders a bare Card, breaking the
+  file's own promise. Draw the scene, keep the copy.
+- verified-by: `the empty drill bank draws the nothing due scene`
+
+### F159 — A friend search that slugs to nothing still says something
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/friends/AddFriendsScreen.tsx:99
+- note: the zero-result card keys off asUsername(q) being non-empty, so a query that
+  slugs to the empty string leaves a completely blank result area. A pure helper in
+  friends/logic.ts decides the line; the ordinary zero-result path already echoes the
+  term and offers an action, and is untouched.
+- verified-by: `a search that slugs to nothing still says something`
+
+### F160 — The session conflict advice is false for the learner who just abandoned their own connect
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/failure.ts:205
+- note: leave during connect (the door F151 added, invited by the 12 s copy) discards a
+  grant the server has already leased for thirty minutes (server.ts:281, released only by
+  the agent-gated /session/end). The retry gets 409, and session-elsewhere says "End it
+  there, then come back and start again" with canType false — an instruction that cannot
+  succeed when the only session is the one they abandoned, and no other move on the
+  screen. The copy must offer an honest fallback for the single-device case, without
+  promising a wait shorter than the lease the server actually keeps.
+- verified-by: `a session conflict on this device offers an honest way forward`
+
+### F161 — F154's only verified-by passes with the acknowledgement deleted
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/surfaceContract.test.ts:578
+- note: the ordering assertion is indexOf('setChecking(true)') < indexOf('recheck()'),
+  and indexOf returns -1 when absent, so deleting both setChecking(true) calls in
+  PracticeTab.tsx leaves the whole suite green while the guard, the Checking copy and the
+  disabled state all go inert — F154 restored in full under a passing test. Assert the
+  setter exists before comparing positions.
+- verified-by: `the checking flag is raised before the probe, not merely consulted`
+
+### F162 — F151's screen walk never pins the elapsed clock to the view model
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/connectingView.test.ts:124
+- note: the test asserts connectingView( is called in the branch but not what it is
+  called with, so freezing both call sites to connectingView(0) keeps all four tests
+  green while the learner is back to one unchanging sentence for twenty five seconds,
+  which is F151 verbatim. Pin the argument the way recapWait.test.ts:57 already does.
+- verified-by: `both live screens hand the view model the elapsed clock, not a constant`
+
+### F163 — The rate limited deletion promises a minute the server does not keep
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/friendly.ts:65
+- note: deletionFailure(429) says "Give it a minute, then try again", but the deletion
+  windows are three per user and twenty per address per day (rateLimit.ts:253-254), so a
+  learner who obeys is refused for up to twenty four hours while being told a minute.
+  New copy in a contract whose purpose is honest words must not state a false wait.
+- verified-by: `a rate limited deletion does not promise a shorter wait than the server keeps`
+
+### F164 — Typing the current password on the reset screen gets a generic and a loop
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/friendly.ts:48
+- note: GoTrue's same_password refusal ("New password should be different from the old
+  password.") matches no branch and becomes "Something went sideways. Try again in a
+  moment." — advice that can never succeed for the learner resetting to the password the
+  account already has, on the very screen F157 rewrote. Add the mapping and pin the raw
+  string in the fixtures.
+- verified-by: `typing the current password on the reset screen says to choose a different one`
+
+### F165 — A grant nobody joins holds the session lease for half an hour
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/server.ts:281
+- note: the lease is acquired at token grant, before anyone joins, and released only by
+  /session/end, which the app cannot call; a grant abandoned by the F151 stand-down path
+  dispatches no tutor, so nothing releases it and every retry 409s for up to thirty
+  minutes. Root cause of F160. Token-server territory, outside this contract: acquire on
+  participant join, shorten the unjoined lease, or give the learner-authenticated path a
+  release. Route to voice-platform with its own contract.
+- verified-by: `a grant nobody joins does not hold the session lease for half an hour`
+
+### F166 — Nothing pins the adapter to friendly.ts, so F153's leak can silently return
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/friendly.test.ts:66
+- note: with friendly.ts intact but the HEAD supabaseAdapter.ts (local translator, leak
+  open), both F153 headline tests still pass; nothing asserts the adapter imports
+  friendly.ts or owns no translator of its own. A re-added local friendly() ships the
+  raw-GoTrue leak under a green suite. Add the source-walk pair the deletion test
+  already uses.
+- verified-by: `the adapter translates through friendly.ts and owns no translator of its own`
+
+### F167 — The character-class password refusal is mislabelled as too short
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/friendly.ts:46
+- note: "Password should contain at least one character of each: ..." contains both
+  "password" and "at least", so a learner whose project sets password_required_characters
+  is told to type a longer password that will fail again at any length. Narrow the match
+  or route on the AuthApiError code the adapter already holds.
+- verified-by: `a password refused for missing character classes is not called too short`
+
+### F168 — The out-of-minutes screen renders the token server's own sentence
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/live/useLiveSession.ts:531
+- note: the 402 branch renders body.message raw, which today can be "The introductory
+  minutes for this installation have already been used by another account." — an internal
+  noun and an accusation, the class F153 closed on the auth side. Parked by this
+  contract's out-of-scope list (the plans payload is revenue-engineer work); filed so the
+  revenue contract inherits it rather than losing it.
+- verified-by: `the out of minutes screen speaks the app's words, not the server's`

@@ -91,6 +91,54 @@ export function searchRoster(q: string): RosterUser[] {
   );
 }
 
+/**
+ * What the result area says when a search turns up nobody.
+ *
+ * There were two of these and only one was written down. The screen decided the
+ * zero-result card by asking whether `asUsername(q)` was non-empty, which is a
+ * good question with a bad silent answer: a query of "!!!" or an emoji slugs
+ * away to nothing, matches no sample name, and left the learner looking at a
+ * completely blank space under a search box they had just typed into.
+ *
+ * So both answers live here. The ordinary one is unchanged, and the screen
+ * still owns its copy: this only says which card, and which name to echo.
+ */
+export type SearchMiss =
+  /** Nobody by that name, but the name is one a username could be. */
+  | { kind: 'invite'; username: string }
+  /** Nothing typed could be a username at all, so there is nothing to offer. */
+  | { kind: 'unusable'; headline: string; body: string };
+
+/**
+ * The line for a query no username could ever match.
+ *
+ * It reports the rule rather than the mistake. "Invalid" tells a learner they
+ * did something wrong; this tells them what will work, which is the only part
+ * of it they can act on. The list is the exact set `asUsername` keeps.
+ */
+export const SEARCH_UNUSABLE = {
+  headline: 'Nothing here matches that.',
+  body: 'Usernames are made of letters, numbers, dots, dashes and underscores.',
+} as const;
+
+/**
+ * What to show under a search, given what was typed and which usernames came
+ * back. Null means the results speak for themselves, or the box is empty and
+ * the screen has its own opening card for that.
+ */
+export function searchMiss(q: string, hits: readonly string[]): SearchMiss | null {
+  if (q.trim() === '') return null;
+  const username = asUsername(q);
+  if (username === '') {
+    // A query can slug to nothing and still match a display name, because the
+    // roster search folds accents rather than stripping them. Those hits are
+    // the answer; there is nothing missing to explain.
+    return hits.length > 0 ? null : { kind: 'unusable', ...SEARCH_UNUSABLE };
+  }
+  if (hits.some((h) => fold(h) === username)) return null;
+  return { kind: 'invite', username };
+}
+
 // ──────────────────────────────────────────────────────────────────── reducers
 
 export interface RequestInput {

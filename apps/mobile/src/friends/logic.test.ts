@@ -1,8 +1,12 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { readFileSync } from 'node:fs';
+
 import {
+  SEARCH_UNUSABLE,
   asUsername,
+  searchMiss,
   defaultUsername,
   emptyState,
   searchRoster,
@@ -176,5 +180,75 @@ describe('what typed text is worth as a username', () => {
     assert.equal(asUsername('  Théo.Lyon '), 'theo.lyon');
     assert.equal(asUsername('marie curie!'), 'mariecurie');
     assert.equal(asUsername('***'), '');
+  });
+});
+
+describe('a search that finds nobody — F159', () => {
+  /**
+   * Ceiling: the last block of this test reads AddFriendsScreen.tsx as text,
+   * because there is no renderer here (docs/TESTING.md). It proves the screen
+   * asks this module and draws both answers. It cannot prove either one landed
+   * on a pixel.
+   */
+  const screen = readFileSync(new URL('./AddFriendsScreen.tsx', import.meta.url).pathname, 'utf8');
+
+  test('a search that slugs to nothing still says something', () => {
+    // The bug. "!!!" and "🙂" are perfectly reasonable things to type by
+    // accident, they match no roster name, and asUsername strips them to the
+    // empty string. The invite card keyed off that string being non-empty, so
+    // the whole result area went blank: no hits, no card, nothing at all.
+    for (const typed of ['!!!', '🙂', '??', '#@%']) {
+      assert.equal(asUsername(typed), '', `${typed} still slugs to something; this case is stale`);
+      assert.equal(searchRoster(typed).length, 0, `${typed} matches a sample profile; this case is stale`);
+      const miss = searchMiss(typed, []);
+      assert.notEqual(miss, null, `"${typed}" leaves the learner staring at a blank screen, which is F159 exactly`);
+      assert.equal(miss?.kind, 'unusable');
+      assert.equal(miss?.kind === 'unusable' ? miss.headline : '', SEARCH_UNUSABLE.headline);
+      assert.equal(miss?.kind === 'unusable' ? miss.body : '', SEARCH_UNUSABLE.body);
+    }
+
+    // It says what WILL work, rather than what the learner did wrong, and it
+    // describes the rule this module actually enforces.
+    assert.match(SEARCH_UNUSABLE.body, /letters/i, 'the line does not say what a username is made of');
+    for (const line of [SEARCH_UNUSABLE.headline, SEARCH_UNUSABLE.body]) {
+      assert.ok(!/—/.test(line), `"${line}" carries an em dash`);
+      assert.ok(!/\d/.test(line), `"${line}" carries a number`);
+      assert.ok(
+        !/invalid|illegal|not allowed|you (?:can ?not|must)|error/i.test(line),
+        `"${line}" tells the learner off for what they typed`,
+      );
+    }
+    for (const allowed of ['.', '_', '-']) {
+      assert.equal(asUsername(`a${allowed}b`), `a${allowed}b`, `${allowed} is not actually allowed in a username`);
+    }
+
+    // Nothing else moves. The ordinary zero-result path still echoes the term
+    // and still offers the action, an exact match still shows no card at all,
+    // and an empty box is still the screen's own opening card rather than this.
+    assert.deepEqual(searchMiss('  ', []), null, 'an untouched search box grew a complaint');
+    assert.deepEqual(searchMiss('', []), null);
+    assert.deepEqual(searchMiss('nobody', []), { kind: 'invite', username: 'nobody' });
+    assert.deepEqual(searchMiss('Théo', ['theo.lyon']), { kind: 'invite', username: 'theo' });
+    assert.deepEqual(searchMiss('theo.lyon', ['theo.lyon']), null, 'the invite card sat on top of the person it found');
+    // A query that slugs to nothing but still matches a name has its hits to
+    // show, so it needs no line of its own. Today's sample roster cannot
+    // produce that pair, because everything a folded roster name is made of
+    // survives asUsername. A real friend server whose display names are not
+    // Latin can, which is exactly the sort of thing that gets found in
+    // production rather than here.
+    assert.deepEqual(searchMiss('!!!', ['theo.lyon']), null, 'a card said nothing was found above the thing it found');
+
+    // The wiring: the screen asks the module rather than testing a string for
+    // emptiness, and it draws both answers.
+    assert.match(screen, /searchMiss\(/, 'the screen still decides this for itself');
+    assert.doesNotMatch(
+      screen,
+      /const showInvite = typed !== ''/,
+      'the screen keeps the emptiness test that produced the blank area',
+    );
+    assert.match(screen, /miss\?\.kind === 'invite'/, 'the screen lost the ordinary zero-result card');
+    assert.match(screen, /miss\?\.kind === 'unusable'/, 'the unusable answer has no card of its own');
+    assert.match(screen, /\{miss\.headline\}/, 'the unusable answer is decided and then never drawn');
+    assert.match(screen, /\{miss\.body\}/, 'the second line never reaches the screen');
   });
 });

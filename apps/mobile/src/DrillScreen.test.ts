@@ -15,6 +15,9 @@
  *
  * So this runs the real summary through the real store against a disk, and then
  * reads the screen to check the map that used to drop it.
+ *
+ * That made it the file that reads DrillScreen's source, so the second block is
+ * here too: a claim the drill screen's own markup has to keep.
  */
 
 import { describe, test } from 'node:test';
@@ -171,5 +174,64 @@ describe('a drill sitting reaches the deck with everything it proved — F128', 
     assert.ok(map.length > 0, 'persistGrades moved; this test is reading the wrong thing');
     assert.match(map, /\{\s*phraseKey,\s*grade,\s*transfer\s*\}/, 'the screen destructures the transfer mark away again');
     assert.match(map, /transfer === true \? \{ transfer: true \} : \{\}/, 'the screen sends transfer: false, which is a claim of its own');
+  });
+});
+
+/**
+ * The scene file promises itself to two screens and only reached one — F158.
+ *
+ * `illustrations/scenes/empty.tsx` says in its own words that `NothingDue` is
+ * "for an empty review deck and an empty drill bank, both of which mean the
+ * learner is finished rather than that something is missing". The review deck
+ * drew it. The drill bank rendered a bare card on lilac, which is the dead end
+ * the scene exists to avoid, and nothing anywhere would have said so.
+ *
+ * There is no renderer in this suite, so the check reads the branch out of the
+ * source the same way `surfaceContract.test.ts` reads its own. Bodies this size
+ * are matched through `assert.ok` rather than `assert.match`, because a failing
+ * `match` prints the whole thirty-thousand-character file at whoever broke it.
+ */
+describe('the empty drill bank draws the scene the scene file promises it — F158', () => {
+  const screen = stripComments(read('./DrillScreen.tsx'));
+
+  /**
+   * The built-empty branch alone. The end card sits directly under it, renders
+   * the same kind of Card, and has a different job, so slicing matters: a match
+   * anywhere in the file would pass with the drawing in the wrong branch.
+   */
+  const emptyBranch = (() => {
+    const from = screen.indexOf('if (session.finished && session.answered.length === 0)');
+    assert.ok(from > 0, 'the built-empty branch moved; this test is reading the wrong thing');
+    const to = screen.indexOf('if (session.finished) {', from);
+    assert.ok(to > from, 'the end card no longer follows the empty branch; this test is stale');
+    return screen.slice(from, to);
+  })();
+
+  test('the empty drill bank draws the nothing due scene', () => {
+    assert.ok(
+      /import \{[^}]*\bNothingDue\b[^}]*\} from '\.\/illustrations\.tsx'/.test(screen),
+      'the drill screen does not import the scene',
+    );
+    assert.ok(/<NothingDue\b[^/>]*\/>/.test(emptyBranch), 'the empty drill bank still renders a bare card');
+    assert.ok(
+      emptyBranch.indexOf('<NothingDue') < emptyBranch.indexOf('<Card>'),
+      'the scene sits above the card on the review deck and has to sit above it here',
+    );
+    // The item is the missing drawing, not a rewrite. The copy stays put.
+    assert.ok(emptyBranch.includes('Nothing to review.'), 'the copy changed; F158 is about the drawing');
+    assert.ok(emptyBranch.includes('Your next session adds more.'), 'the copy changed; F158 is about the drawing');
+  });
+
+  test('both surfaces the scene claims actually draw it', () => {
+    // Read from the promise rather than from a list written here, so a scene
+    // that stops naming its second home stops being held to it. Raw, because
+    // the promise IS a comment and stripping it is what hid the gap.
+    const promise = read('./illustrations/scenes/empty.tsx');
+    assert.ok(
+      /empty review deck and an empty drill bank/.test(promise),
+      'the scene no longer claims both surfaces; this test is stale',
+    );
+    assert.ok(/<NothingDue\b/.test(stripComments(read('./ReviewScreen.tsx'))), 'the review deck stopped drawing it');
+    assert.ok(/<NothingDue\b/.test(screen), 'the drill bank stopped drawing it');
   });
 });

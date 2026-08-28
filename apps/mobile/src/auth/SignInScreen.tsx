@@ -10,6 +10,7 @@ import { paper, space, type, signal, HIT } from '../theme.ts';
 import { PillButton, OutlineButton, GhostButton, Field, ChevronLeft, GoogleMark } from '../components.tsx';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail } from './validate.ts';
+import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 
 export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; onCreateAccount: () => void }) {
   const insets = useSafeAreaInsets();
@@ -19,16 +20,23 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
   const [emailError, setEmailError] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [formOk, setFormOk] = useState(false);
-  const [busy, setBusy] = useState(false);
+  // One flag for the screen, and it names the request that is running. Every
+  // button greys while anything is in flight, because two sign-ins at once is
+  // the bug underneath; only the button that started it changes its words.
+  const [pending, setPending] = useState<AuthAction | null>(null);
+  const busy = pending !== null;
 
   const submit = async () => {
+    // The keyboard's return key is not a button and cannot be greyed out, so
+    // the guard is here rather than only on the pill.
+    if (busy) return;
     const emailProblem = looksLikeEmail(email) ? null : 'That does not look like an email address.';
     setEmailError(emailProblem);
     setFormMessage(null);
     if (emailProblem) return;
-    setBusy(true);
+    setPending('signIn');
     const result = await adapter.signInWithPassword(email.trim(), password);
-    setBusy(false);
+    setPending(null);
     if (!result.ok) {
       setFormOk(false);
       setFormMessage(result.message);
@@ -36,9 +44,10 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
   };
 
   const google = async () => {
-    setBusy(true);
+    if (busy) return;
+    setPending('google');
     const result = await adapter.signInWithGoogle();
-    setBusy(false);
+    setPending(null);
     if (!result.ok) {
       setFormOk(false);
       setFormMessage(result.message);
@@ -46,6 +55,7 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
   };
 
   const forgot = async () => {
+    if (busy) return;
     const emailProblem = looksLikeEmail(email) ? null : 'Type your email above first, then tap this again.';
     setEmailError(null);
     if (emailProblem) {
@@ -53,9 +63,9 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
       setFormMessage(emailProblem);
       return;
     }
-    setBusy(true);
+    setPending('sendReset');
     const result = await adapter.sendPasswordReset(email.trim());
-    setBusy(false);
+    setPending(null);
     setFormOk(result.ok);
     setFormMessage(result.ok ? result.message ?? 'Check your email for a reset link.' : result.message);
   };
@@ -100,7 +110,11 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
           />
         </View>
 
-        <GhostButton label="Forgot password?" onPress={() => void forgot()} />
+        <GhostButton
+          label={authButtonLabel('sendReset', pending === 'sendReset')}
+          onPress={() => void forgot()}
+          disabled={busy}
+        />
 
         {formMessage != null && (
           <Text style={[type.body, { color: formOk ? signal.good : signal.correspondance, marginBottom: space(2) }]}>
@@ -109,9 +123,9 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
         )}
 
         <View style={{ gap: space(3) }}>
-          <PillButton label="Sign in" onPress={() => void submit()} disabled={busy} />
+          <PillButton label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} disabled={busy} />
           <OutlineButton
-            label="Continue with Google"
+            label={authButtonLabel('google', pending === 'google')}
             onPress={() => void google()}
             disabled={busy}
             icon={<GoogleMark size={18} />}

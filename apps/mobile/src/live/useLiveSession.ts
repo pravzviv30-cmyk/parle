@@ -34,6 +34,7 @@ import { authHeaders } from '../auth/adapter.ts';
 import { journalRecap } from './journal.ts';
 import { classifyFailure, failureCopy, micApiUnavailable, TokenServerError, type LiveFailure } from './failure.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
+import { nextStart, standDown, startStillOwns, NO_START } from './startOwnership.ts';
 import { thinkingAfter } from './thinking.ts';
 import { opensSession } from './sessionOpened.ts';
 import { afterDismiss } from './safetyState.ts';
@@ -330,6 +331,12 @@ export function useLiveSession(
   const missionId = opts?.missionId;
   const roomRef = useRef<Room | null>(null);
   const diagRef = useRef<LiveDiagnostics>(emptyDiagnostics());
+  // Which attempt at starting owns the session. Bumped by leaving, by unmount
+  // and by every new start, so an attempt still waiting on a token can find out
+  // that it has been abandoned and give back what it built instead of handing a
+  // live room to a screen that is gone. See startOwnership.ts for what it costs
+  // when it does not.
+  const startGenRef = useRef(NO_START);
   // The ready retries plus the give-up timer, so both can be cancelled the
   // instant the agent speaks — or the screen goes away.
   const watchdogRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -392,6 +399,12 @@ export function useLiveSession(
    * take this path and not simply render an error over a live room.
    */
   const leave = useCallback(async () => {
+    // First, because everything below only tears down what has been built so
+    // far. A start still waiting on a token has built nothing yet and would
+    // sail straight past all of it, open a room a minute later, and leave the
+    // tutor teaching an empty call at full price. This is the line that tells
+    // it the session is no longer its to open.
+    startGenRef.current = nextStart(startGenRef.current);
     clearWatchdog();
     send({ t: 'leave' });
     await roomRef.current?.disconnect();
@@ -415,6 +428,35 @@ export function useLiveSession(
   }, []);
 
   const start = useCallback(async () => {
+    // This attempt's claim on the session, taken before anything else so that a
+    // start beginning while an older one is still in flight owns the session
+    // from here and the older one cannot write over it.
+    const generation = nextStart(startGenRef.current);
+    startGenRef.current = generation;
+    /** Is this still the start the screen is waiting for? */
+    const owns = (): boolean => startStillOwns(generation, startGenRef.current);
+    // What this attempt has built, and therefore what it owes back if it turns
+    // out nobody is waiting for it. Locals, not refs: the refs belong to
+    // whoever owns the session now.
+    let opened: Room | null = null;
+    let audioSession = false;
+    /**
+     * Stop here if the learner has left, the screen has gone, or another start
+     * has taken over. True means the caller must return, and by then everything
+     * this attempt built has been given back.
+     */
+    const abandoned = async (): Promise<boolean> => {
+      const plan = standDown(generation, startGenRef.current, { room: opened !== null, audioSession });
+      if (plan === null) return false;
+      trace('start-abandoned', { generation, current: startGenRef.current, ...plan });
+      // Disconnecting is what stops the meter, and it stops the local tracks
+      // with it, so the microphone closes here too. Neither call may throw:
+      // this path exists to clean up, and a throw would put an error screen in
+      // front of a learner who has already walked away.
+      if (plan.disconnectRoom) await opened?.disconnect().catch(() => {});
+      if (plan.releaseAudioSession) await releaseAudioSession().catch(() => {});
+      return true;
+    };
     setStatus({ phase: 'connecting' });
     setWaitingForTutor(false);
     setDiagnostics(null);
@@ -429,6 +471,16 @@ export function useLiveSession(
     setTurns([]);
     setThinking(false);
     setMicOpen(false);
+    // A start that lands on top of a session that already opened takes the old
+    // room with it. Nobody else will: the slot below is about to be overwritten,
+    // and a room with no reference left to it is a room nobody disconnects while
+    // the tutor keeps teaching it. ConvoScreen restarts exactly this way when a
+    // learner switches to typing. The old room's own handlers are already deaf
+    // by now, because the generation moved above.
+    const previous = roomRef.current;
+    roomRef.current = null;
+    if (previous !== null) void previous.disconnect().catch(() => {});
+    removeAudioEls();
     clearWatchdog();
     try {
       // Checked before anything else, and only for the modes that need one:
@@ -442,6 +494,9 @@ export function useLiveSession(
 
       const authStartedAt = Date.now();
       const headers = await authHeaders();
+      // Checked before the diagnostics are written, not after: the diagnostics
+      // describe the session on screen, and this attempt may no longer be it.
+      if (await abandoned()) return;
       diagRef.current.authMs = Date.now() - authStartedAt;
       const tokenStartedAt = Date.now();
       const res = await fetch(`${TOKEN_SERVER}/session/start`, {
@@ -462,18 +517,26 @@ export function useLiveSession(
           ...(missionId !== undefined ? { missionId } : {}),
         }),
       });
+      // The long wait, and the one this guard was built for. A cold start can
+      // sit here for twenty five seconds, which is ample time to give up and
+      // walk out, and the grant that arrives afterwards must not become a room.
+      if (await abandoned()) return;
       diagRef.current.tokenStatus = res.status;
       diagRef.current.tokenMs = Date.now() - tokenStartedAt;
       diagRef.current.tokenServerTiming = res.headers.get('server-timing');
 
       if (res.status === 402) {
         const body = (await res.json()) as { message?: string };
+        if (await abandoned()) return;
         setStatus({ phase: 'out-of-minutes', message: body.message ?? 'You are out of minutes.' });
         return;
       }
       if (!res.ok) throw new TokenServerError(res.status);
 
       const grant = (await res.json()) as { token: string; livekitUrl: string };
+      // The last gate before a room exists at all. Everything past here has to
+      // be given back rather than simply skipped.
+      if (await abandoned()) return;
       diagRef.current.livekitUrl = grant.livekitUrl;
       trace('token', {
         status: res.status,
@@ -485,12 +548,21 @@ export function useLiveSession(
 
       ensureLiveKitGlobals();
       const room = new Room();
+      // Held twice on purpose. `roomRef` is the session's room, read by every
+      // control on the screen; `opened` is this attempt's room, and it is the
+      // one that gets disconnected if this attempt turns out to be over. They
+      // are the same object right up until a newer start replaces the ref.
+      opened = room;
       roomRef.current = room;
 
       // The tutor's voice arrives as a remote audio track. livekit-client never
       // auto-plays: without an explicit attach the session is a one-way call —
       // the learner is heard and hears nothing back.
       room.on(RoomEvent.TrackSubscribed, (track) => {
+        // A voice from a session nobody is in must never reach the document. It
+        // would play over whatever the learner is doing now, from a tutor they
+        // cannot answer.
+        if (!owns()) return;
         if (track.kind !== Track.Kind.Audio) return;
         diagRef.current.audioTrackSubscribed = true;
         // On native the WebRTC session routes remote audio itself; the DOM path
@@ -501,6 +573,9 @@ export function useLiveSession(
         document.body.appendChild(el);
         audioElsRef.current.push(el);
       });
+      // Deliberately NOT gated on `owns`, unlike the rest of them. This one only
+      // ever removes, and disconnecting an abandoned room is exactly when its
+      // elements need taking out of the document.
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
         if (typeof document === 'undefined') return;
         for (const el of track.detach()) {
@@ -511,6 +586,10 @@ export function useLiveSession(
       // Whether anyone else is in the room at all. The difference between "the
       // tutor is thinking" and "the tutor was never dispatched" is exactly this.
       room.on(RoomEvent.ParticipantConnected, (participant) => {
+        // A tutor walking into an abandoned room is not proof of life for the
+        // session on screen, and the watchdog reads this to decide which of the
+        // two silences it is looking at.
+        if (!owns()) return;
         diagRef.current.agentJoined = true;
         trace('participant-joined', { identity: participant.identity });
       });
@@ -518,10 +597,16 @@ export function useLiveSession(
       // token fetch can outlive it and the browser then blocks playback. Surface
       // that as a tap-to-listen affordance rather than playing silence.
       room.on(RoomEvent.AudioPlaybackStatusChanged, () => {
+        if (!owns()) return;
         setAudioBlocked(!room.canPlaybackAudio);
       });
 
       room.on(RoomEvent.DataReceived, (payload, _participant, _kind, topic) => {
+        // Nothing an abandoned session says may reach the screen or the disk. A
+        // recap is the sharp end of that: it is journalled the moment it
+        // arrives, and a recap for a session the learner never had would land
+        // in their review deck as practice they never did.
+        if (!owns()) return;
         if (topic !== TOPIC_SERVER) return;
         const msg = decodeServerMessage(payload);
         if (!msg) return;
@@ -675,6 +760,11 @@ export function useLiveSession(
       });
 
       room.on(RoomEvent.Disconnected, () => {
+        // An abandoned room is disconnected on purpose, by the attempt that
+        // built it, and that is not a drop. Without this line, tidying one up
+        // would paint "The connection dropped" over the session the learner is
+        // in now.
+        if (!owns()) return;
         // If the summary already arrived this is a normal ending, and an earlier
         // error (a denied microphone, say) already explains itself — this handler
         // only covers the drop nobody else accounted for.
@@ -693,8 +783,18 @@ export function useLiveSession(
       if (modeCarriesAudio(mode)) {
         await ensureAudioSession();
       }
+      // Asked of the same mode table the block above asks, so the record of
+      // what this attempt took cannot drift from what it took. `leave` runs
+      // `releaseAudioSession` too early to catch this one: it fires while the
+      // session is still being taken, finds nothing started, and returns.
+      audioSession = modeCarriesAudio(mode);
+      if (await abandoned()) return;
       const connectStartedAt = Date.now();
       await room.connect(grant.livekitUrl, grant.token, CONNECT_TIMEOUTS);
+      // The room is up. From here an abandoned attempt is not a tidy-up but a
+      // bill: the tutor is dispatched into a connected room, teaches nobody,
+      // and the minutes come off the learner's allowance.
+      if (await abandoned()) return;
       diagRef.current.connectMs = Date.now() - connectStartedAt;
       trace('connected', { connectMs: diagRef.current.connectMs });
       if (modeCarriesAudio(mode)) {
@@ -714,6 +814,10 @@ export function useLiveSession(
           setAudioBlocked(!room.canPlaybackAudio);
         }
       }
+      // The last gate, and the only one with nothing after it: from here to the
+      // armed watchdog is a single tick, so a session cannot go live without
+      // something watching it.
+      if (await abandoned()) return;
       setStatus({ phase: 'live' });
 
       // The room is open. Now find out whether anyone is home.
@@ -748,6 +852,12 @@ export function useLiveSession(
         }, SESSION_OPEN_TIMEOUT_MS),
       ];
     } catch (err) {
+      // An attempt that has already been taken over cannot fail on screen. The
+      // usual way in is the learner leaving mid-connect: `leave` disconnects the
+      // room, livekit reports the connection as cancelled, and it arrives here
+      // as an error the learner would otherwise have been shown on their way
+      // out. Give back what this attempt built, and say nothing.
+      if (await abandoned()) return;
       // A half-started session must not stay half-started: without this the room
       // stays open behind the error screen, the agent keeps teaching an empty
       // call, and the meter keeps counting.
@@ -820,6 +930,10 @@ export function useLiveSession(
   // Never leave a microphone open past the component that owns it.
   useEffect(() => {
     return () => {
+      // The screen can be popped by navigation as well as by the door, and a
+      // start in flight has to hear about it either way. Same reason as `leave`:
+      // without this, the room arrives after the screen has gone.
+      startGenRef.current = nextStart(startGenRef.current);
       for (const t of watchdogRef.current) clearTimeout(t);
       watchdogRef.current = [];
       void roomRef.current?.disconnect();

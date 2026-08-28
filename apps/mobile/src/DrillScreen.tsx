@@ -56,7 +56,7 @@ import { HAIRLINE, HIT, accent, font, paper, paperFor, radius, signal, space, ty
 import { recordActivity } from './progress/activity.ts';
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
 import { gradeCards, loadDeck } from './review/store.ts';
-import { RewardMark } from './illustrations.tsx';
+import { NothingDue, RewardMark } from './illustrations.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
 import { loadTopics } from './topics/store.ts';
 import { sittingTitle, topicGroups } from './practice/mix.ts';
@@ -772,6 +772,14 @@ export function DrillScreen({
     return (
       <View style={[ds.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
         <View style={ds.centerFill}>
+          {/* An empty bank is the good outcome, not a dead end, so it gets the
+              cleared table — the same scene, width and spacing the review deck
+              uses, because these two screens say the same thing. No `paused`:
+              this is a stack route above the tabs with nothing pushed over it,
+              so unlike a tab it is either focused or unmounted. */}
+          <View style={{ alignItems: 'center', marginBottom: space(5) }}>
+            <NothingDue width={190} />
+          </View>
           <Card>
             <Text style={[type.title, { color: paper.ink }]}>Nothing to review.</Text>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>

@@ -8,13 +8,14 @@
  * support rather than buttons — saying it aloud is the product.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import type { Lesson, Rung, SessionSummary } from '@parle/core';
 import { paper, space, type, HIT } from './theme.ts';
 import { Card, PillButton, GhostButton } from './components.tsx';
 import { SessionView } from './SessionView.tsx';
 import { useLiveSession } from './live/useLiveSession.ts';
+import { CONNECTING_TICK_MS, connectingTick, connectingView } from './live/connectingView.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
 import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
 import { waitingView } from './tutor/waitingView.ts';
@@ -48,6 +49,31 @@ export function LiveSessionScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // How long the connect has been running, for the copy that grows with it.
+  // The interval exists only while the connecting branch is the whole screen
+  // and is cleared the moment the room opens or the screen goes away, so
+  // nothing ticks behind a live session. `connectingTick` returns the number
+  // already held while the stage is unchanged, so React bails out of the render
+  // and a twenty five second wait costs two of them. See live/connectingView.ts.
+  const [connectingMs, setConnectingMs] = useState(0);
+  // Read off `phase` rather than spelled out twice: the stop surface has to be
+  // returned above every status branch, and safetyView.test.ts proves that by
+  // finding the first mention of the connecting phase in the file. A hook that
+  // spells the branch's own condition out up here moves that mark and makes the
+  // ordering test read a line that is not a branch.
+  const phase = live.status.phase;
+  const awaitingRoom = phase === 'connecting' || phase === 'idle';
+  useEffect(() => {
+    if (!awaitingRoom) return;
+    // A fresh attempt gets a fresh clock. The conversation reconnects when the
+    // learner takes the quiet door, and without this the second attempt opened
+    // on the first one's oldest sentence.
+    setConnectingMs(0);
+    const from = Date.now();
+    const tick = setInterval(() => setConnectingMs((prev) => connectingTick(prev, Date.now() - from)), CONNECTING_TICK_MS);
+    return () => clearInterval(tick);
+  }, [awaitingRoom]);
+
   // A stopped session leaves nothing behind here either, and the two quiet
   // modes are no exception: a disclosure typed into a lesson is the same
   // disclosure. See tutor/safetyView.ts.
@@ -73,10 +99,25 @@ export function LiveSessionScreen({
   }
 
   if (live.status.phase === 'connecting' || live.status.phase === 'idle') {
+    // One sentence for up to twenty five seconds, and no way out of the branch
+    // that returns above every control this screen owns. Both halves are the
+    // view model's now. Leaving mid-connect is safe: `leave()` takes the
+    // session number with it, so the attempt still waiting on a token stands
+    // down and gives back the room it was about to open. See
+    // live/startOwnership.ts.
+    const connecting = connectingView(connectingMs);
     return (
       <View style={st.center}>
         <ActivityIndicator color={paper.inkSoft} />
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>Reaching the server…</Text>
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[type.small, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}
+        >
+          {connecting.headline}
+        </Text>
+        <View style={{ marginTop: space(6) }}>
+          <GhostButton label={connecting.leaveLabel} onPress={leaveNow} />
+        </View>
       </View>
     );
   }
