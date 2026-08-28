@@ -182,7 +182,18 @@ describe('a safety decision, as a surface — F137', () => {
     }
 
     // The eight-second notice stays exactly as it is, for error frames only.
-    assert.match(convo, /\{live\.notice \?/, 'the transient notice was removed along with the safety copy');
+    // It reaches the screen through `connectionLine` now, which is the same
+    // slot sharing its space with a connection being rebuilt; what matters here
+    // is that neither of those is what a safety message is ever drawn as.
+    assert.match(
+      convo,
+      /connectionLine\(\{ reconnecting: live\.reconnecting, notice: live\.notice \}\)/,
+      'the transient notice was removed along with the safety copy',
+    );
+    assert.ok(
+      !/SafetyBanner[\s\S]{0,80}st\.notice/.test(convo),
+      'a safety message is being drawn in the slot that clears itself after eight seconds',
+    );
   });
 
   test('both actions are surfaces, and nothing else is', () => {

@@ -11,7 +11,7 @@ deferred.
 | 2. Data/infrastructure | data-sync, observability, security | Versioned sync, conflicts, offline retry, privacy-safe analytics, cost alerts | Implemented and tested locally; revision migration measured on a disposable project; live two-device/release verification pending |
 | 3. Onboarding | onboarding UX, design system, privacy-safety | One welcome, useful choices, readiness, contextual mic, returning-user migration | Built on `phase-3-onboarding` and merged into `main` as `2a86092`; local web route proof complete, native/five-viewport QA and migration deployment remain external |
 | 4. Practice | practice UX, learning science, data-sync | Retrieval before reveal, one mastery source, durable batches, transfer | Built on `phase-4-practice` and merged into `main` as `f943bbe`; that branch is deleted now, so the hash is what finds it. Device, screen-reader and Supabase verification pending |
-| 5. Tutor | tutor behaviour, voice, learning science, privacy-safety | Mode parity across the four session modes (`convo`, `convo-text`, `lesson`, `lesson-text`), correction policy, recovery, safety, durable curation | Six P0s landed and green on `phase-5-tutor`; 34 of 40 surveyed gaps still open, and the six external checks unclaimed |
+| 5. Tutor | tutor behaviour, voice, learning science, privacy-safety | Mode parity across the four session modes (`convo`, `convo-text`, `lesson`, `lesson-text`), correction policy, recovery, safety, durable curation | All five properties held locally and tested; every P0 and P1 closed. Six P2s stay open by choice, and the six external checks are unclaimed by anyone, so this is not a release |
 | 6. Retention | progress-retention, learning science, design system | Passport, delayed test, less-help replay, honest reminders/story | Designed but intentionally deferred until sync/evidence stabilise |
 | 7. Revenue | revenue, security, privacy-safety | One paid tier, verified receipts/webhooks, restore/lifecycle, fair-use economics | Blocked by product/store credentials; implementation missing |
 | 8. Privacy/release | privacy-safety, qa-release, deploy | Reviewed policies, export/deletion, full device/live/build gate and rollback | Blocked; policies, devices and deployment evidence missing |
@@ -130,7 +130,23 @@ about. `MODE_CAPS` is a `Record<LiveMode, ModeCaps>` over all four, and the test
 `every mode's microphone and audio behaviour matches the mode table` walks the whole
 table, so a fifth mode will not compile until it declares what it may do.
 
-Six P0s are landed and green on `phase-5-tutor`. Between them they cover:
+Phase 5 is held locally. Every P0 and every P1 in the range this phase filed is closed
+against a named test that passes, and the gate stands at 2,003 tests with none failing.
+
+Slice 1 was the six P0s, merged to `main`. Slice 2 was the rest of the survey, and between
+the two every one of the five properties has code and a test behind it: mode parity across
+the four session modes, correction policy, recovery, safety, and durable curation.
+
+Six things stay open on purpose, all P2, none of them load-bearing for the criterion. The
+curation eval has no measurement yet, so half of durable curation is proven only by the
+batch surviving and not by the batch being worth surviving. A rescue line in the copy module
+is reachable only from its own test, and nobody has established whether it is dead or lost.
+A stopped session still pays for post-session model work nobody receives, which is a founder
+decision rather than an engineering one. The pipeline log prefixes have two homes and nothing
+fails if they drift. `DESIGN.md` records five colours the app stopped shipping. And a typed
+lesson still eats the first tap when the keyboard is up.
+
+Slice 1 covered:
 
 - the under-13 and minor-sexual false positives, repaired
 - safety given its own protocol frame, with a surface that stays up

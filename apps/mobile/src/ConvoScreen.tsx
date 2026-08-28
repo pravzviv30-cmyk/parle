@@ -36,12 +36,17 @@ import {
 import { SupportBlock } from './SessionView.tsx';
 import { RecapScreen } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
-import { bankPractice, journalDrills } from './live/journal.ts';
-import { convoUsesFrom, type PracticeBatch } from './live/journalRules.ts';
+import { bankPractice, journalDrills, journalPractice } from './live/journal.ts';
+import { MAX_RECOVERED_PHRASES, convoUsesFrom, type PracticeBatch } from './live/journalRules.ts';
 import { recordActivity } from './progress/activity.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { CONNECTING_TICK_MS, connectingTick, connectingView } from './live/connectingView.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
+import { connectionLine } from './live/connectionLine.ts';
+import { takeTypedDoor, typedDoorFor } from './live/typedDoor.ts';
+import { useProfile } from './app/ProfileContext.tsx';
+import { isUnderAgeStop } from './profile/age.ts';
+import { withAgeStop } from './profile/store.ts';
 import { VoiceOrb, type OrbState } from './tutor/VoiceOrb.tsx';
 import { Transcript } from './tutor/Transcript.tsx';
 import { QUIET_DOOR, choosingView } from './tutor/choosingView.ts';
@@ -229,30 +234,58 @@ export function ConvoScreen({
   missionId?: string;
 }) {
   const insets = useSafeAreaInsets();
-  // Text mode is a session property, not a toggle: switching rebuilds the
-  // session (the agent must open voiceless). It flips exactly once, from the
-  // denied-microphone screen.
-  const [textMode, setTextMode] = useState(startInTextMode);
+  const { profile, update } = useProfile();
+  // The mode this session CONNECTS in, and the only thing a rebuild can change.
+  // It starts as the learner asked for it and flips exactly once, in the one
+  // case the quiet door cannot be taken in place: a session that failed before
+  // it ever had a room. Whether the learner is typing RIGHT NOW is
+  // `live.voiceless`, which belongs to the room and is read below.
+  const [openedTyped, setOpenedTyped] = useState(startInTextMode);
   const [draft, setDraft] = useState('');
   // Which text input holds the caret, for the ink focus border. Visual only.
   const [focusedInput, setFocusedInput] = useState<'topic' | 'reply' | null>(null);
   // The learner tapped Type instead during a voice scene. Local to the screen
-  // and deliberately NOT textMode: this opens the box without rebuilding the
+  // and deliberately NOT the quiet door: this opens the box without asking the
   // session, so the microphone stays live and the scene survives.
   const [typingOpen, setTypingOpen] = useState(false);
   const live = useLiveSession(userId, 'convo-01', undefined, {
-    mode: textMode ? 'convo-text' : 'convo',
+    mode: openedTyped ? 'convo-text' : 'convo',
     snapshot,
     seedTopic,
     ...(missionId !== undefined ? { missionId } : {}),
   });
 
-  // Connect on mount, and again when the learner switches to text mode after
-  // a denied microphone. The hook tears the room down on unmount.
+  // Connect on mount, and again only in the one case a session has to be built
+  // from cold to be typed. The hook tears the room down on unmount.
   useEffect(() => {
     void live.start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textMode]);
+  }, [openedTyped]);
+
+  /**
+   * The learner is typing: they opened this way, or they took the quiet door
+   * mid-scene and the room went quiet around them.
+   *
+   * One value read from the room rather than a second copy of it on the screen.
+   * A closed microphone means two different things here, and `voiceless` is the
+   * only field that tells them apart: nobody has tapped the circle yet, or
+   * somebody has chosen not to speak.
+   */
+  const typing = openedTyped || live.voiceless;
+
+  /**
+   * Take the quiet door, wherever the learner found it.
+   *
+   * This is F201. It used to be `setTextMode(true)`, which the connect effect
+   * above read as a new session, so the app asked the token server for a second
+   * grant while this learner's own lease was still standing and the door led
+   * straight into a refusal. `switchToText` goes quiet in the room that is
+   * already open: same scene, same meter, no grant. The rebuild is kept for the
+   * one case it is still right for, which is a session that never connected.
+   */
+  const goQuiet = () => {
+    if (takeTypedDoor(live) === 'needs-a-new-session') setOpenedTyped(true);
+  };
 
   // How long this connect has been running, for the copy that grows with it.
   // The interval lives only while the connecting branch IS the whole screen and
@@ -288,6 +321,20 @@ export function ConvoScreen({
   // disagree about what happened.
   const safety = safetySurface(live.safety);
   const stopped = stoppedBySafety(live.safety);
+
+  // One stop out of the eight is also a fact about the account, and until now
+  // it lasted exactly one session: a child said they were eleven, lost that
+  // session, tapped start, and was in another scene seconds later. Written once,
+  // from the frame, and read back by the navigator on the next launch. Nothing
+  // here clears or reads the safety state itself; `isUnderAgeStop` is the one
+  // reader of that decision and it lives in profile/age.ts.
+  const ageStopWrittenRef = useRef(false);
+  useEffect(() => {
+    if (ageStopWrittenRef.current || !isUnderAgeStop(live.safety)) return;
+    ageStopWrittenRef.current = true;
+    update(withAgeStop(profile));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live.safety]);
 
   const sendDraft = () => {
     const turn = typedTurn(draft);
@@ -420,8 +467,8 @@ export function ConvoScreen({
   const learnerSpoke = live.turns.some((t) => t.who === 'learner');
   const frenchLanded = (live.convo?.sceneReply.fr ?? '').trim().length > 0;
   useEffect(() => {
-    setMarks((state) => coachMarksAfter(state, { sceneOpen, learnerSpoke, frenchLanded, voiceControlsShown: !textMode }));
-  }, [sceneOpen, learnerSpoke, frenchLanded, textMode]);
+    setMarks((state) => coachMarksAfter(state, { sceneOpen, learnerSpoke, frenchLanded, voiceControlsShown: !typing }));
+  }, [sceneOpen, learnerSpoke, frenchLanded, typing]);
 
   useEffect(() => {
     // Remembered the moment it appears, not when it is dismissed: a learner who
@@ -468,14 +515,18 @@ export function ConvoScreen({
     // Nothing is written down, which is what the privacy doc promises.
     if (!live.practice || practiceBankedRef.current || stopped) return;
     practiceBankedRef.current = true;
-    void bankPractice(practiceBatch(live.practice.flatMap((t) => t.phrases), {
+    // Journal first, then bank what the journal named. The batch that comes
+    // back carries the id of the entry now on disk, and handing THAT to the
+    // bank is what stops the clear at the end of a successful bank deleting a
+    // journal this batch did not write. `journalPractice` never rejects.
+    void journalPractice(practiceBatch(live.practice.flatMap((t) => t.phrases), {
       topics: live.practice.map((t) => ({
         title: { fr: t.titleFr, en: t.titleEn },
         phraseKeys: t.phrases.map((p) => phraseKeyOf(p.fr)),
       })),
       drills: live.drills,
       profile: live.recap?.profile,
-    }));
+    })).then(bankPractice);
   }, [live.practice, live.drills, live.recap, stopped]);
 
   const leaveNow = () => {
@@ -486,15 +537,18 @@ export function ConvoScreen({
     // promise resolving is the identical bug one beat earlier. The only
     // remaining loss window is killing the app, same as the drills.
     if (!stopped && !practiceBankedRef.current && live.recap) {
-      const phrases = live.recap.recap.phrases.slice(0, 5);
+      // The same cap the crash path uses, named rather than typed twice: a
+      // learner who leaves early and a learner whose phone dies wake up to the
+      // same few cards, and two literals is how those two drift apart.
+      const phrases = live.recap.recap.phrases.slice(0, MAX_RECOVERED_PHRASES);
       const home = live.recap.recap.topics[0];
       if (phrases.length > 0 && home !== undefined) {
         practiceBankedRef.current = true;
-        void bankPractice(practiceBatch(phrases, {
+        void journalPractice(practiceBatch(phrases, {
           topics: [{ title: home, phraseKeys: phrases.map((p) => phraseKeyOf(p.fr)) }],
           drills: live.drills,
           profile: live.recap.profile,
-        }));
+        })).then(bankPractice);
       }
     }
     void live.leave().finally(onExit);
@@ -553,15 +607,20 @@ export function ConvoScreen({
   if (live.status.phase === 'error') {
     // A microphone problem is a situation, not a dead end: the same tutor, the
     // same scene, typed instead of spoken. Which failures those are is the
-    // taxonomy's business now, rather than a regex over the rendered sentence.
-    // Already typing means typing is no longer an offer worth making.
+    // taxonomy's business, rather than a regex over the rendered sentence, and
+    // whether the door is offered at all is `typedDoorFor` rather than a
+    // condition written out twice on two screens.
+    //
+    // Back leaves the room rather than walking away from it. A blocking failure
+    // with a typed door deliberately keeps the room open so that door has
+    // somewhere to go, so this is the one exit that has to close it.
     return (
       <LiveErrorView
         failure={live.status.failure}
         message={live.status.message}
         diagnostics={live.diagnostics}
-        onBack={onExit}
-        onType={textMode ? undefined : () => setTextMode(true)}
+        onBack={leaveNow}
+        onType={typedDoorFor(live.status.failure, { typing }) ? goQuiet : null}
       />
     );
   }
@@ -573,12 +632,13 @@ export function ConvoScreen({
   // (or types) becomes the scene. The first scene view replaces all of this.
   if (!view && live.opening) {
     const choosing = choosingView({
-      textMode,
+      textMode: typing,
       micOpen: live.micOpen,
       thinking: live.thinking,
       tutorSpeaking: live.tutorSpeaking,
       turns: live.turns,
     });
+    const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
     return (
       <View style={st.shell}>
         {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} /> : null}
@@ -652,9 +712,14 @@ export function ConvoScreen({
               timer. */}
           {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
 
-          {live.notice ? (
+          {/* The quiet slot: a vendor hiccup on its own timer, or a connection
+              being rebuilt, which has no timer and must not be given one. See
+              live/connectionLine.ts for which wins and why. */}
+          {line.text ? (
             <View style={st.notice}>
-              <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{live.notice}</Text>
+              <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>
+                {line.text}
+              </Text>
             </View>
           ) : null}
 
@@ -687,10 +752,11 @@ export function ConvoScreen({
             </View>
           ) : choosing.showQuietDoor ? (
             // The quiet twin, offered where a learner finds out they need it:
-            // on a train, mid-question, not two screens back. Flipping rebuilds
-            // the session voiceless and the tutor asks again.
+            // on a train, mid-question, not two screens back. It goes quiet in
+            // the room that is already open, so the tutor does not start again
+            // and the account's own lease is never asked a second question.
             <View style={st.quietDoor}>
-              <GhostButton label={QUIET_DOOR} onPress={() => setTextMode(true)} />
+              <GhostButton label={QUIET_DOOR} onPress={goQuiet} />
             </View>
           ) : null}
         </View>
@@ -753,18 +819,19 @@ export function ConvoScreen({
   const listening = !live.tutorSpeaking;
   const controls = sceneControls({
     supportView: view.supportView,
-    textMode,
+    textMode: typing,
     listening,
     typingOpen,
   });
   const card = win.showing ? winCard(missionId) : null;
+  const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
   // The orb says one thing at a time, and thinking outranks everything: the
   // learner has just spoken and nothing has come back yet.
   const orbState: OrbState = live.thinking
     ? 'thinking'
     : live.tutorSpeaking
       ? 'speaking'
-      : textMode
+      : typing
         ? 'idle'
         : 'listening';
 
@@ -802,9 +869,15 @@ export function ConvoScreen({
             not end anything, so the conversation carries on underneath it. */}
         {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
 
-        {live.notice ? (
+        {/* The same quiet slot as the choosing moment. A rebuilt connection is
+            not a notice and gets no timer: eight seconds of silence explained,
+            and then the explanation gone while the silence carried on, is what
+            this replaces. */}
+        {line.text ? (
           <View style={st.notice}>
-            <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{live.notice}</Text>
+            <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>
+              {line.text}
+            </Text>
           </View>
         ) : null}
 
@@ -814,7 +887,7 @@ export function ConvoScreen({
             same `hear`, asking for the scene line rather than the support one. */}
         <Transcript
           turns={live.turns}
-          onReplayTutor={listening && !textMode ? () => live.sendHear('scene') : undefined}
+          onReplayTutor={listening && !typing ? () => live.sendHear('scene') : undefined}
         />
 
         {card ? (
@@ -934,7 +1007,7 @@ export function ConvoScreen({
               >
                 <Text style={[type.small, { color: paper.inkSoft }]}>Give me a moment</Text>
               </Pressable>
-              {!textMode ? (
+              {!typing ? (
                 <>
                   <Pressable
                     onPress={() => {

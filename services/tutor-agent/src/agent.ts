@@ -232,10 +232,27 @@ export default defineAgent({
       }
     });
 
-    tutor.attach((message) => {
-      void ctx.room.localParticipant
+    // The one channel back to the app. The tutor's frames go down it, and so do
+    // the worker's own.
+    //
+    // The promise is returned rather than dropped: `publishData` settles when
+    // the frame has actually left, and a safety stop waits for that before the
+    // room closes. In a typed session nothing is spoken, so the reliable data
+    // frame is the only delivery there is, and disconnecting a tick early would
+    // take the crisis line with it.
+    const publish = (message: ServerMessage) =>
+      ctx.room.localParticipant
         ?.publishData(encodeMessage(message), { topic: TOPIC_SERVER, reliable: true })
         .catch((err) => console.error('[parle] failed to publish state', err));
+
+    tutor.attach(publish);
+
+    // A stop ends the session, and the room is the worker's to close — the same
+    // division as the hard stop above and the learner who walks away below. The
+    // tutor owns the judgement that this is over; it disconnects nothing itself.
+    tutor.attachRoomClose(() => {
+      clearTimeout(hardStop);
+      void ctx.room.disconnect();
     });
 
     ctx.room.on('dataReceived', (payload: Uint8Array, source, _kind, topic?: string) => {
@@ -269,7 +286,47 @@ export default defineAgent({
       // A TTS outage without this handler is indistinguishable from silence:
       // prompts keep flowing and the learner hears nothing. Tell them plainly.
       console.error('[parle] pipeline error:', ev.error);
-      tutor.publishError('The tutor lost its voice for a moment. Give it a second, or leave and come back.');
+
+      // Which half broke, and whether it is coming back. Every arm of the
+      // pipeline's error union already carries both (events.ts: STTError,
+      // TTSError, LLMError, RealtimeModelError, InterruptionDetectionError), so
+      // this is the field itself and not a translation table — a sixth kind the
+      // SDK learns fails to compile here rather than arriving as a silent
+      // miscategorisation of one of the five.
+      //
+      // Passing them on is the whole fix. One sentence used to answer for all
+      // five, and a Deepgram outage told the learner the tutor's VOICE had gone
+      // when what it had lost was its ears: they kept talking to something that
+      // could not hear them while the meter ran. The agent does not decide what
+      // that reads as; it reports what the vendor said and the app names it
+      // (classifyPipelineError in apps/mobile/src/live/failure.ts).
+      const kind = ev.error.type;
+      const recoverable = ev.error.recoverable;
+
+      // The line somebody greps at two in the morning. `TUTOR_PIPELINE_DOWN` is
+      // an interface, not a log message: a vendor half of the tutor is down and
+      // not coming back on its own. The prefixes are repeated from failure.ts
+      // rather than imported, because that file reaches for livekit-client and
+      // a browser SDK has no business inside the worker.
+      //
+      // What goes in: what broke, whether it is coming back, and which kind of
+      // session it happened in. What never goes in: the frame's sentence, and
+      // anything the learner said. The vendor's own error is logged above, on
+      // its own line, so this one stays clean enough to paste anywhere.
+      const prefix = recoverable ? '[parle:live] pipeline' : '[parle] TUTOR_PIPELINE_DOWN';
+      console.error(
+        `${prefix} kind=${kind} recoverable=${recoverable ? 'yes' : 'no'} mode=${voiceless ? 'typed' : 'spoken'}`,
+      );
+
+      // The sentence stays what it has always been. With `kind` on the frame the
+      // app never renders it, and an app that predates the field still shows the
+      // notice it shows today rather than a new string it was never tested with.
+      void publish({
+        t: 'error',
+        message: 'The tutor lost its voice for a moment. Give it a second, or leave and come back.',
+        kind,
+        recoverable,
+      });
     });
 
     session.on(voice.AgentSessionEventTypes.AgentStateChanged, (ev) => {

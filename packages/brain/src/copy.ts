@@ -170,6 +170,46 @@ export function coachFallbackLine(
   return rotate(BY_KIND[kind], opts.variant)(better);
 }
 
+/**
+ * The two kinds where the learner's own French was not wrong.
+ *
+ * `textbook-phrasing` means they said something correct that a local would say
+ * differently, and `english-to-french` means they asked a question. Neither is
+ * a mistake, which is why neither fallback family above ever lands like one.
+ *
+ * The families are the tested half of that promise; this set is the half that
+ * applies to a line the model wrote. Kept beside them so the rule has one home
+ * rather than a copy in the engine that can drift from the copy here.
+ */
+export const NOTHING_WAS_WRONG: ReadonlySet<CoachKind> = new Set<CoachKind>([
+  'textbook-phrasing',
+  'english-to-french',
+]);
+
+/**
+ * Ways of saying "your attempt failed" that `copyViolations` allows.
+ *
+ * These are not scolds and the rules above are right to let them through: "Not
+ * quite" is the tutor's hardest landing and belongs on a blocking error. What
+ * they are is a verdict, and a verdict is only ever the code's to give — so the
+ * engine checks this against the kind of finding it actually surfaced, and no
+ * caller should use it without one.
+ *
+ * "almost" and "nearly" are in here even though `grammar-slip` uses both, which
+ * is exactly the point: the question is never whether a phrase is allowed, only
+ * whether it agrees with this turn's verdict. A textbook line reading "that is
+ * almost it" would be a false positive and would cost one warm model sentence,
+ * replaced by a warm written one. Telling a correct learner they nearly got it
+ * costs their willingness to speak. The doubt goes the cheaper way.
+ */
+const LANDS_AS_CORRECTION_RE =
+  /\b(not quite|not right|not correct|not it|that is not|that['’]s not|almost|nearly|try again|a mistake|an error)\b/i;
+
+/** Does this line tell the learner their attempt failed? */
+export function landsAsCorrection(text: string): boolean {
+  return LANDS_AS_CORRECTION_RE.test(text);
+}
+
 /** Said when the tutor steps in after silence. Same line the scripted product uses. */
 export const RESCUE_LINE = "Let's take that one together.";
 

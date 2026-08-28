@@ -19,6 +19,25 @@
  * because neither is on the critical path any more — the goal is asked in
  * Profile now, and both may honestly be unanswered. Nothing outside this file
  * and the onboarding flow reads either one.
+ *
+ * Version 5 is the one that remembers. The tutor's safety policy can end a
+ * session because the learner said in a scene that they are under thirteen,
+ * and until now that stop lasted exactly one session: the learner tapped start
+ * and was in another scene seconds later, which made the product's one hard
+ * boundary a per-utterance speed bump. `ageStopAt` is the moment that stop
+ * landed, and it is a single nullable number rather than anything richer for
+ * two reasons. It has to answer one question — is a stop standing — and it has
+ * to be bounded, because a profile field that grows per session is a profile
+ * that eventually will not fit anywhere it is sent.
+ *
+ * Its ceiling is named rather than hidden. It is a fact about this device: the
+ * merge drops it, `adoptProfile` keeps this device's own across a fold, and so
+ * a reinstall clears it and a second phone never learns about it. That is the
+ * same strength the age gate already had, and it is what the founder accepted
+ * rather than wait for the strong shape, which is a server-side account flag
+ * needing durable server storage and an authenticated write path from the
+ * agent. `docs/STATE_AND_STORAGE.md` records the ceiling where a learner's data
+ * is described.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -32,7 +51,7 @@ import { upgradeStored } from './upgrade.ts';
 const KEY = () => userKey('profile');
 
 export interface StoredProfile {
-  version: 4;
+  version: 5;
   /** What they asked to be called. Null when they skipped the question. */
   name: string | null;
   /**
@@ -48,6 +67,14 @@ export interface StoredProfile {
    * statement only the learner can make, and one they are never let past.
    */
   ageConfirmed: boolean | null;
+  /**
+   * When a session ended because the learner said they are under thirteen, as
+   * a millisecond epoch. Null until one does, and null again once they pass
+   * the age gate. Written by `withAgeStop`, cleared by `withAgeGatePassed`,
+   * and read by `ageStopStanding` in `profile/age.ts` — three named doors
+   * rather than a field anything may set, because this one closes the tutor.
+   */
+  ageStopAt: number | null;
   /** Why they came, as the tag chosen during onboarding. Null when skipped. */
   motivation: string | null;
   /** The daily practice promise, set in Profile. Null until they pick one. */
@@ -184,11 +211,20 @@ export function saveProfile(p: StoredProfile): Promise<void> {
  */
 function adoptProfile(fold: SyncFold): Promise<SyncAdoption> {
   return serialized(async (key) => {
-    const folded = fold(await persistedProfile(key));
+    const persisted = await persistedProfile(key);
+    const folded = fold(persisted);
     const upgraded = upgradeStored(folded);
     if (!upgraded) return 'declined';
+    // The one field an adoption may not touch. `ageStopAt` says a session ended
+    // on THIS device because the learner said in a scene that they are under
+    // thirteen, and the merge drops it from the account copy on purpose (see
+    // `PROFILE_DEVICE_FIELDS` in @parle/brain). Dropped from the account and
+    // then adopted back would clear the stop on the first sync cycle after it
+    // landed, which is the whole defect this field exists to fix, arriving by a
+    // different door. So the device keeps its own, whatever the account says.
+    const own = upgradeStored(persisted)?.ageStopAt ?? null;
     try {
-      await AsyncStorage.setItem(key, JSON.stringify({ ...upgraded, brain: repairProfile(upgraded.brain) }));
+      await AsyncStorage.setItem(key, JSON.stringify({ ...upgraded, ageStopAt: own, brain: repairProfile(upgraded.brain) }));
     } catch {
       // Storage full or unavailable. The next cycle hands the same fold back.
     }
@@ -220,7 +256,7 @@ function confirmedFrom(answers: OnboardingAnswers, now: Date): boolean | null {
 
 export function createStoredProfile(answers: OnboardingAnswers, now = Date.now()): StoredProfile {
   return {
-    version: 4,
+    version: 5,
     name: answers.name,
     // Data minimisation, discharged without touching one stored record: from
     // v4 on nobody is asked for a date, so nobody has one written down. While
@@ -228,6 +264,9 @@ export function createStoredProfile(answers: OnboardingAnswers, now = Date.now()
     // answer the age question on the line below — and then it is let go.
     dob: null,
     ageConfirmed: confirmedFrom(answers, new Date(now)),
+    // Nobody arrives already stopped. A learner reaching this function is one
+    // the age gate has just let through.
+    ageStopAt: null,
     motivation: answers.motivation,
     dailyGoalMin: answers.dailyGoalMin ?? null,
     onboardedAt: now,
@@ -244,14 +283,45 @@ export function createStoredProfile(answers: OnboardingAnswers, now = Date.now()
  */
 export function completeProfile(existing: StoredProfile, answers: OnboardingAnswers, now = Date.now()): StoredProfile {
   const dob = answers.dob ?? existing.dob;
-  return {
+  const confirmed = existing.ageConfirmed ?? confirmedFrom({ ...answers, dob }, new Date(now));
+  const answered: StoredProfile = {
     ...existing,
     name: answers.name,
     dob,
-    ageConfirmed: existing.ageConfirmed ?? confirmedFrom({ ...answers, dob }, new Date(now)),
+    ageConfirmed: confirmed,
     motivation: answers.motivation,
     dailyGoalMin: answers.dailyGoalMin ?? existing.dailyGoalMin,
   };
+  // Tapping through the age page is passing the age gate, wherever the page was
+  // reached from. A learner sent back here by a stop is answering the same
+  // question in the same words, so it clears through the same door the
+  // standalone gate uses rather than a second rule that could disagree with it.
+  return answers.ageConfirmed === true ? withAgeGatePassed(answered) : answered;
+}
+
+/**
+ * Remember that a session ended because the learner said they are under
+ * thirteen.
+ *
+ * Idempotent in the way that matters: a second stop overwrites the moment and
+ * changes nothing else, so a child who meets the boundary twice is not recorded
+ * twice and nothing accumulates. `frontend-engineer` calls this from the live
+ * screens when `isUnderAgeStop` is true of the safety frame, and the ordinary
+ * `update` on the profile context is the whole of the write.
+ */
+export function withAgeStop(existing: StoredProfile, now = Date.now()): StoredProfile {
+  return { ...existing, ageStopAt: now };
+}
+
+/**
+ * The learner has said, again, that they are thirteen or over.
+ *
+ * The doors open and the stop is forgotten. It is deliberately not kept as
+ * history: nothing in the product reads "this learner was once stopped", and a
+ * field nobody reads is a record of a child kept for no reason.
+ */
+export function withAgeGatePassed(existing: StoredProfile): StoredProfile {
+  return { ...existing, ageStopAt: null };
 }
 
 /**

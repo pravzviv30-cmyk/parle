@@ -1,8 +1,8 @@
 # paper
 
-> God node · 50 connections · `apps/mobile/src/theme.ts`
+> God node · 52 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md)
+**Community:** [UI Component Primitives](UI_Component_Primitives.md)
 
 ## Connections by Relation
 
@@ -13,14 +13,15 @@
 - ConvoScreen.tsx `EXTRACTED`
 - RootNavigator.tsx `EXTRACTED`
 - DrillScreen.tsx `EXTRACTED`
-- App.tsx `EXTRACTED`
 - components.tsx `EXTRACTED`
+- App.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
 - MyFrenchTab.tsx `EXTRACTED`
+- LiveSessionScreen.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
 - ReviewScreen.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
 - SoundCheckScreen.tsx `EXTRACTED`
 - LeaderboardTab.tsx `EXTRACTED`
@@ -29,7 +30,6 @@
 - SummaryScreen.tsx `EXTRACTED`
 - SessionView.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`
-- PhrasebookScreen.tsx `EXTRACTED`
 
 ### rationale_for
 - Paper & Ink design world `EXTRACTED`

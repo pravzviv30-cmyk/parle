@@ -1,8 +1,8 @@
 # type
 
-> God node · 37 connections · `apps/mobile/src/theme.ts`
+> God node · 39 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md)
+**Community:** [UI Component Primitives](UI_Component_Primitives.md)
 
 ## Connections by Relation
 
@@ -16,10 +16,11 @@
 - components.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
 - MyFrenchTab.tsx `EXTRACTED`
+- LiveSessionScreen.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
 - ReviewScreen.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
 - SoundCheckScreen.tsx `EXTRACTED`
 - LeaderboardTab.tsx `EXTRACTED`
@@ -29,7 +30,6 @@
 - SessionView.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`
 - PhrasebookScreen.tsx `EXTRACTED`
-- LiveSessionScreen.tsx `EXTRACTED`
 
 ### rationale_for
 - Fraunces speaks, DM Sans is furniture `EXTRACTED`

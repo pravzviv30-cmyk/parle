@@ -17,15 +17,18 @@ describe('safety is a code boundary, not prompt advice', () => {
   });
 
   test('scripted typed and spoken answers are guarded before grading', () => {
-    assert.match(tutor, /msg\.t === 'say' && this\.handleSafety\(msg\.text, session\)/);
+    assert.match(tutor, /\(msg\.t === 'say' \|\| msg\.t === 'choice'\) && this\.handleSafety\(msg\.text, session\)/);
     const spokenGuard = tutor.indexOf('this.handleSafety(transcript, this.session)');
     const grading = tutor.indexOf('scoreUtterance({', spokenGuard);
     assert.ok(spokenGuard > 0 && grading > spokenGuard);
   });
 
   test('stop decisions end the session so crisis handling is never metered as more roleplay', () => {
-    assert.match(convo, /decision\.action === 'stop'\) void this\.finish\(\)/);
-    assert.match(tutor, /decision\.action === 'stop'\) void this\.finish\(\)/);
+    // `closeAfterStop` finishes the session and then closes the room. The
+    // behaviour both halves of that promise is held to lives in convo.test.ts,
+    // which drives the real classes; this file only checks the wire is there.
+    assert.match(convo, /decision\.action === 'stop'\) void this\.closeAfterStop\(/);
+    assert.match(tutor, /decision\.action === 'stop'\) void this\.closeAfterStop\(/);
   });
 });
 

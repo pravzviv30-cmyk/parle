@@ -28,10 +28,10 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { DrillExercise, RecapPayload } from '@parle/core';
+import type { DrillExercise, RecapPayload, SessionSummary } from '@parle/core';
 
 import { mergeExercises } from '../drill/store.ts';
-import { addPhrases } from '../review/store.ts';
+import { addFromSummary, addPhrases } from '../review/store.ts';
 import type { PersistAck } from '../storage/ack.ts';
 import { activeUserId, userKey } from '../storage/scope.ts';
 import { mergeSessionTopics } from '../topics/store.ts';
@@ -39,6 +39,9 @@ import {
   isWorthKeeping,
   journalFor,
   journalWithDrills,
+  journalWithLesson,
+  journalWithPractice,
+  journalWithRecap,
   recoveryPlan,
   type PracticeBatch,
   type SessionJournal,
@@ -101,13 +104,9 @@ export function journalRecap(
   const journal = journalFor(recap, savedAt, opts.profile ?? null);
   if (!isWorthKeeping(journal)) return Promise.resolve();
   return serialized(async (key) => {
-    // Drills already on disk are carried across. The recap arrives before them
-    // in the ordinary order, so this is usually a no-op — but when it is not,
-    // the alternative is this write silently deleting a batch that was banked
-    // nowhere else.
-    const existing = await readJournal(key);
-    const drills = Array.isArray(existing?.drills) ? existing.drills : [];
-    await write(key, { ...journal, drills });
+    // What survives a recap landing on a key that is not empty is a rule, not a
+    // storage detail, so it lives in journalRules.ts with the rest of them.
+    await write(key, journalWithRecap(await readJournal(key), recap, savedAt, opts.profile ?? null));
   });
 }
 
@@ -127,6 +126,75 @@ export function journalDrills(drills: readonly DrillExercise[], savedAt = Date.n
     if (!isWorthKeeping(journal)) return;
     await write(key, journal);
   });
+}
+
+/**
+ * Write the curated batch down, and hand back the batch that names it.
+ *
+ * Called immediately before banking, and the reason is the retry. The journal
+ * up to this point holds what the RECAP said, which is every phrase the
+ * conversation touched; the app is about to bank what CURATION said, which is a
+ * few of them, grouped, plus extensions the recap never carried. A bank that
+ * fails leaves the first of those on disk and the next launch banks it — so the
+ * learner's retry delivered more cards, in different groups, than the session
+ * had decided on, and the tutor's authored phrases were lost with nothing
+ * anywhere recording that they had existed.
+ *
+ * Returns the batch with the journal entry's name on it, which is what makes
+ * the clear at the end of banking safe. A batch banked straight from the room
+ * has no name and clears the key unconditionally; that was right while the room
+ * wrote nothing down, and is wrong the moment it does. Hand the returned batch
+ * to `bankPractice` and nothing else.
+ *
+ * Never throws and never rejects, and the `try` covers both: `serialized` binds
+ * the account by calling `userKey()` on the spot, which throws by design the
+ * instant nobody is signed in. That throw is synchronous, so a `.catch()` on
+ * the returned promise would miss it and leave the caller's effect holding an
+ * exception. A journal that cannot be written is a retry the learner does not
+ * get, not a session that fails on screen, and the batch comes back unnamed so
+ * the bank behaves exactly as it did before this write existed.
+ */
+export async function journalPractice(batch: PracticeBatch, savedAt = Date.now()): Promise<PracticeBatch> {
+  try {
+    return await serialized(async (key) => {
+      const journal = journalWithPractice(await readJournal(key), batch, savedAt);
+      if (!isWorthKeeping(journal)) return batch;
+      await write(key, journal);
+      return { ...batch, batchId: journal.batchId };
+    });
+  } catch {
+    return batch;
+  }
+}
+
+/**
+ * Put a scripted lesson's cards in the deck, and keep them if the disk refuses.
+ *
+ * The conversation path has had an outbox since Phase 4 and the lesson path had
+ * nothing: `addFromSummary` awaited an acknowledgement and dropped it, so a
+ * learner who finished a lesson with a full phone lost the whole deck without a
+ * word. This is that outbox, reused rather than rebuilt — same key, same
+ * once-per-launch recovery, same rule about when it is safe to delete the only
+ * copy of something.
+ *
+ * The summary is journalled only when the write actually failed. The ordinary
+ * lesson writes its cards and touches this key not at all, which matters
+ * because the key is also where an unbanked conversation waits.
+ */
+export async function bankLesson(summary: SessionSummary): Promise<PersistAck> {
+  const ack = await acknowledged(() => addFromSummary(summary));
+  if (ack === 'durable') return ack;
+  try {
+    // `serialized` throws rather than rejects when nobody is signed in, which
+    // is why this is a try and not a `.catch()`. Nothing is kept in that case,
+    // and nothing can be: there is no account to keep it under.
+    await serialized(async (key) => {
+      await write(key, journalWithLesson(await readJournal(key), summary, Date.now()));
+    });
+  } catch {
+    // Nothing more to try. The caller already knows the deck did not land.
+  }
+  return ack;
 }
 
 /**
@@ -189,8 +257,16 @@ export async function bankPractice(batch: PracticeBatch): Promise<'banked' | 'ke
   // one acknowledgement to reason about.
   const phrases = await acknowledged(() => addPhrases(batch.phrases, { stagger: true, convoUses: batch.convoUses }));
   const drills = await acknowledged(() => mergeExercises(batch.drills));
+  // A lesson deck riding in the same envelope, which only ever happens on a
+  // recovered batch. Every one is tried even after one has failed, on the same
+  // reasoning as the three stores: the journal is kept either way, and
+  // `mergeCards` lands a redelivery on the rows it already wrote.
+  let lessons: PersistAck = 'durable';
+  for (const summary of batch.lessons ?? []) {
+    if ((await acknowledged(() => addFromSummary(summary))) === 'failed') lessons = 'failed';
+  }
 
-  if (topics === 'failed' || phrases === 'failed' || drills === 'failed') return 'kept';
+  if (topics === 'failed' || phrases === 'failed' || drills === 'failed' || lessons === 'failed') return 'kept';
 
   // A clear that fails is not a bank that failed: the practice is on disk, and
   // the next launch replays a batch that every store already holds.

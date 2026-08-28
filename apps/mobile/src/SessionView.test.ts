@@ -61,8 +61,18 @@ describe('the lesson says the learner is still here — F142', () => {
     // typing frame here would be a second throttle to keep in step.
     assert.match(
       screen,
-      /onTyping=\{textMode \? live\.sendTyping : undefined\}/,
+      /onTyping=\{typing \? live\.sendTyping : undefined\}/,
       'the typed lesson does not send presence, so the agent still counts it as silence',
+    );
+    // `typing` rather than the prop, because a lesson can go quiet mid-session
+    // now: the learner takes the typed door, the room stays, and the prop this
+    // screen was opened with is still false. Reading the prop alone would leave
+    // that learner typing into a session that counts them as silent, which is
+    // this test's own defect arriving through the other door.
+    assert.match(
+      screen,
+      /const typing = textMode \|\| live\.voiceless;/,
+      'the lesson decides it is typed from the prop alone, so the quiet door leaves it counting silence',
     );
     assert.ok(!screen.includes("{ t: 'typing' }"), 'the lesson publishes a typing frame itself instead of through the hook');
     assert.match(convo, /live\.sendTyping\(\);/, 'this test is reading for the seam the conversation uses and cannot find it');

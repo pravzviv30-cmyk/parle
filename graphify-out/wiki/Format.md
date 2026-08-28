@@ -1,8 +1,8 @@
 # Format
 
-> God node · 188 connections · `docs/KNOWN_ISSUES.md`
+> God node · 248 connections · `docs/KNOWN_ISSUES.md`
 
-**Community:** [Known Issues Ledger](Known_Issues_Ledger.md)
+**Community:** [Tutor Defect Ledger](Tutor_Defect_Ledger.md)
 
 ## Connections by Relation
 

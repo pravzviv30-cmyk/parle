@@ -253,14 +253,34 @@ describe('the conversation screen no longer banks by hand — F118, F124', () =>
   const screen = stripComments(read('./ConvoScreen.tsx'));
 
   test('both ways out of a conversation go through bankPractice', () => {
-    const banks = (screen.match(/bankPractice\(practiceBatch\(/g) ?? []).length;
-    assert.equal(banks, 2, `${banks} of the two banks on this screen route through the outbox`);
+    // Journalled first, then banked, and the bank is handed the batch the
+    // JOURNAL returned rather than the one the screen built. That return value
+    // carries the name of the entry now on disk, and the name is what stops a
+    // successful bank clearing a journal this batch did not write.
+    const banks = (screen.match(/journalPractice\(practiceBatch\([\s\S]*?\)\)\.then\(bankPractice\)/g) ?? []).length;
+    assert.equal(banks, 2, `${banks} of the two banks on this screen journal before they bank`);
+    assert.ok(
+      !/bankPractice\(practiceBatch\(/.test(screen),
+      'a bank on this screen still takes the screen\'s own batch, which carries no journal name',
+    );
+    assert.ok(
+      !/\.then\(\(\) => bankPractice/.test(screen),
+      'the journal is being waited on and then ignored, which is the unnamed batch again',
+    );
 
     // The practice effect and the early exit, named so a future reader can see
     // which two callsites this is counting. Both now stand down on a safety
     // stop as well, which is F137 and is proved properly in tutor/safetyView.test.ts.
-    assert.match(screen, /if \(!live\.practice \|\| practiceBankedRef\.current \|\| stopped\) return;[\s\S]{0,200}bankPractice\(/);
-    assert.match(screen, /if \(!stopped && !practiceBankedRef\.current && live\.recap\)[\s\S]{0,400}bankPractice\(/);
+    assert.match(screen, /if \(!live\.practice \|\| practiceBankedRef\.current \|\| stopped\) return;[\s\S]{0,200}journalPractice\(/);
+    assert.match(screen, /if \(!stopped && !practiceBankedRef\.current && live\.recap\)[\s\S]{0,400}journalPractice\(/);
+
+    // And the early exit takes the same few phrases the crash path recovers,
+    // from the same named cap rather than a second literal five.
+    assert.match(
+      screen,
+      /phrases\.slice\(0, MAX_RECOVERED_PHRASES\)/,
+      'the early exit types its own cap, so the two paths can drift apart',
+    );
   });
 
   test('the screen never writes to a practice store or clears a journal itself', () => {

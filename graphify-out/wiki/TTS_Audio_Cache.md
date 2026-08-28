@@ -1,6 +1,6 @@
 # TTS Audio Cache
 
-> 57 nodes · cohesion 0.06
+> 58 nodes · cohesion 0.06
 
 ## Key Concepts
 
@@ -29,12 +29,13 @@
 - **.capture()** (4 connections) — `services/tutor-agent/src/utterance.ts`
 - **FakeChunkedStream** (3 connections) — `services/tutor-agent/src/ttsCache.test.ts`
 - **rampFrames()** (3 connections) — `services/tutor-agent/src/ttsCache.test.ts`
-- *... and 32 more nodes in this community*
+- *... and 33 more nodes in this community*
 
 ## Relationships
 
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (7 shared connections)
-- [TTS Voice Cache Config](TTS_Voice_Cache_Config.md) (3 shared connections)
+- [Thinking and Session Reporting](Thinking_and_Session_Reporting.md) (5 shared connections)
+- [Environment Preflight Probe](Environment_Preflight_Probe.md) (3 shared connections)
+- [Parle Tutor Agent](Parle_Tutor_Agent.md) (2 shared connections)
 
 ## Source Files
 
@@ -47,7 +48,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 106 (99%)
+- EXTRACTED: 107 (99%)
 - INFERRED: 1 (1%)
 - AMBIGUOUS: 0 (0%)
 

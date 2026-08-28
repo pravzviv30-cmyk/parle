@@ -32,12 +32,14 @@ import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { RecapPayload, ServerMessage } from '@parle/core';
+import { RoomEvent } from 'livekit-client';
+import { decodeClientMessage, encodeMessage, type RecapPayload, type ServerMessage } from '@parle/core';
 import { createProfile } from '@parle/brain/profile';
 
 import { setActiveUser } from '../storage/scope.ts';
 import { journalRecap } from './journal.ts';
 import { recoveryPlan } from './journalRules.ts';
+import { classifyPipelineError, failureCopy, type LiveFailure } from './failure.ts';
 import { afterDismiss } from './safetyState.ts';
 import { opensSession } from './sessionOpened.ts';
 import { micOpensAtConnect, modeCarriesAudio, type LiveMode } from '../tutor/choosingView.ts';
@@ -245,11 +247,15 @@ function asJs(source: string): string {
   return wrapped.slice(wrapped.indexOf('{') + 1, wrapped.lastIndexOf('}'));
 }
 
-/** Run a fragment with every free name it may use supplied by hand. */
-function run(source: string, world: Record<string, unknown>): void {
+/**
+ * Run a fragment with every free name it may use supplied by hand, and hand
+ * back whatever it returned. Most fragments return nothing; `switchToText`
+ * returns the one thing its caller has to decide on.
+ */
+function run(source: string, world: Record<string, unknown>): unknown {
   const names = Object.keys(world);
-  const fn = new Function(...names, `"use strict";\n${asJs(source)}`) as (...args: unknown[]) => void;
-  fn(...names.map((name) => world[name]));
+  const fn = new Function(...names, `"use strict";\n${asJs(source)}`) as (...args: unknown[]) => unknown;
+  return fn(...names.map((name) => world[name]));
 }
 
 const AsyncFunction = Object.getPrototypeOf(async (): Promise<void> => {}).constructor as new (
@@ -321,15 +327,35 @@ interface Seen {
   summaries: unknown[];
   journalled: unknown[][];
   timers: Timer[];
+  /** Failures routed to the screen every other live failure lands on. */
+  failed: LiveFailure[];
+  /** Every line the handler put on the console, level and all. */
+  logs: string[];
+  /** How many times it left the room, which is what stops the meter. */
+  left: number;
 }
 
 /** Everything the message handler's switch reaches for: the rules real, the edges faked. */
-function switchWorld(decided: SafetyDecision | null = null): {
+function switchWorld(
+  decided: SafetyDecision | null = null,
+  session: { mode?: LiveMode; voiceless?: boolean } = {},
+): {
   world: Record<string, unknown>;
   seen: Seen;
   safetyRef: { current: SafetyDecision | null };
 } {
-  const seen: Seen = { safety: [], notices: [], statuses: [], recaps: [], summaries: [], journalled: [], timers: [] };
+  const seen: Seen = {
+    safety: [],
+    notices: [],
+    statuses: [],
+    recaps: [],
+    summaries: [],
+    journalled: [],
+    timers: [],
+    failed: [],
+    logs: [],
+    left: 0,
+  };
   const safetyRef = { current: decided };
   const noop = (): void => {};
   const world: Record<string, unknown> = {
@@ -360,11 +386,33 @@ function switchWorld(decided: SafetyDecision | null = null): {
     },
     setTimeout: (fire: () => void, ms: number) => seen.timers.push({ ms, fire }),
     clearTimeout: noop,
+    // The session this handler is running inside. Both are read by the `error`
+    // case, and both are real: which failures a learner can feel depends on the
+    // mode they were granted AND on whether they have since taken the quiet
+    // door, and the classification is the same one failure.ts publishes.
+    mode: session.mode ?? 'convo',
+    voicelessRef: { current: session.voiceless ?? false },
+    modeCarriesAudio,
+    classifyPipelineError,
+    failureCopy,
+    fail: (failure: LiveFailure) => seen.failed.push(failure),
+    leave: () => {
+      seen.left += 1;
+      return Promise.resolve();
+    },
+    // Shadows the global, so the lines are collected rather than printed and
+    // the level each one went out at is part of the assertion.
+    console: {
+      warn: (line: string) => seen.logs.push(`warn ${line}`),
+      info: (line: string) => seen.logs.push(`info ${line}`),
+    },
   };
   return { world, seen, safetyRef };
 }
 
-const deliver = (world: Record<string, unknown>, msg: unknown): void => run(SWITCH, { ...world, msg });
+const deliver = (world: Record<string, unknown>, msg: unknown): void => {
+  run(SWITCH, { ...world, msg });
+};
 
 describe('the safety decision the hook holds — F136', () => {
   test('a safety stop survives the recap, the summary and the eight second timer', () => {
@@ -519,7 +567,9 @@ describe("the hook's audio path, per mode — F140", () => {
 
       // The guard that runs before anything else, on a device with no
       // microphone API at all. This is the learner the quiet modes exist for.
-      const guard = (): void => run(MIC_API_GUARD, { mode, modeCarriesAudio, micApiUnavailable: () => true });
+      const guard = (): void => {
+        run(MIC_API_GUARD, { mode, modeCarriesAudio, micApiUnavailable: () => true });
+      };
       if (want.audio) assert.throws(guard, /mediaDevices/, `${mode}: a spoken session with no microphone API must not connect`);
       else assert.doesNotThrow(guard, `${mode}: refused on a device with no microphone, and it never wanted one`);
 
@@ -562,5 +612,482 @@ describe("the hook's audio path, per mode — F140", () => {
       assert.equal(diagRef.current.micPublished, want.mic, `${mode}: the diagnostics disagree with the microphone`);
       assert.deepEqual(micOpen, want.mic ? [true] : [], `${mode}: the circle is told a microphone opened that did not`);
     }
+  });
+});
+
+/* ------------------------------------------------------------------------- *
+ * Wave 2: a blip, an absent tutor, the quiet door, and a dead pipeline.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * The three events livekit-client publishes on the way through an outage, each
+ * lifted with its handler and made a statement again.
+ *
+ * `fragment` throws if the hook stops subscribing to one of them, which is the
+ * first half of what F195 is about: the handler that was missing was missing
+ * entirely, and nothing anywhere said so.
+ */
+const RECONNECT_HANDLERS = ['SignalReconnecting', 'Reconnecting', 'Reconnected']
+  .map((event) => `${fragment(hook, `room.on(RoomEvent.${event}, () => {`)});`)
+  .join('\n');
+
+const DISCONNECTED_HANDLER = `${fragment(hook, 'room.on(RoomEvent.Disconnected, () => {')});`;
+const GIVE_UP = fragment(hook, 'const giveUp = (failure: LiveFailure) => {');
+const ABANDON = fragment(hook, 'async function abandonSession(userId: string, sessionId: string): Promise<void> {');
+const SWITCH_TO_TEXT = insideOf(hook, 'const switchToText = useCallback((): boolean => {');
+const OPEN_MIC = insideOf(hook, 'const openMic = useCallback(() => {');
+
+/** A real account and a real grant's session, both shaped as the server insists. */
+const UID = '44444444-4444-4444-8444-000000000002';
+const SESSION_ID = '55555555-5555-4555-8555-000000000003';
+
+/**
+ * Every failure the hook can reach, listed once. The `satisfies` is what makes
+ * a seventeenth failure a typecheck error here rather than a silent hole: the
+ * lease question has to be answered for it too.
+ */
+const EVERY_FAILURE = Object.keys({
+  'mic-denied': true,
+  'mic-missing': true,
+  'mic-in-use': true,
+  'mic-unavailable': true,
+  'server-unreachable': true,
+  'server-refused': true,
+  // Added on main by the connect-and-refusal work while this branch was open.
+  // The exhaustive map is the point: a new failure has to be answered here.
+  'rate-limited': true,
+  'session-elsewhere': true,
+  'sign-in-required': true,
+  signal: true,
+  media: true,
+  'agent-absent': true,
+  'agent-silent': true,
+  dropped: true,
+  'tutor-deaf': true,
+  'tutor-mute': true,
+  'tutor-stalled': true,
+  'tutor-talks-over': true,
+  unknown: true,
+} satisfies Record<LiveFailure, true>) as LiveFailure[];
+
+describe('a blip in the middle of a session — F195', () => {
+  test('a reconnect re-sends ready and the session resumes instead of ending', () => {
+    // Subscribe exactly as the hook subscribes, against livekit-client's own
+    // event names. A renamed or dropped event is a handler that never runs
+    // again, and the only symptom would be the bug this closes coming back.
+    const subscribed = new Map<string, () => void>();
+    const sent: unknown[] = [];
+    const reconnecting: boolean[] = [];
+    const ended: unknown[] = [];
+    const voicelessRef = { current: false };
+
+    const wire = (voiceless: boolean): void => {
+      subscribed.clear();
+      sent.length = 0;
+      reconnecting.length = 0;
+      voicelessRef.current = voiceless;
+      run(RECONNECT_HANDLERS, {
+        room: { on: (event: string, handler: () => void) => subscribed.set(event, handler) },
+        RoomEvent,
+        trace: () => {},
+        setReconnecting: (v: boolean) => reconnecting.push(v),
+        send: (m: unknown) => sent.push(m),
+        voicelessRef,
+        // The ownership guard main added while this branch was open. A reconnect
+        // belongs to the session on screen, so it answers true here; the tests
+        // that prove a stale start cannot act live in startOwnership.test.ts.
+        owns: () => true,
+        // Supplied so that a handler which ever reaches for one of these is a
+        // failure here. A blip is not an ending, it does not stand the watchdog
+        // down, and — slice 1's rule — it cannot touch the safety decision.
+        fail: (failure: LiveFailure) => ended.push(failure),
+        setStatus: (s: unknown) => ended.push(s),
+        clearWatchdog: () => ended.push('clearWatchdog'),
+        setSafety: (s: unknown) => ended.push(s),
+      });
+    };
+
+    wire(false);
+    assert.deepEqual(
+      [...subscribed.keys()],
+      [RoomEvent.SignalReconnecting, RoomEvent.Reconnecting, RoomEvent.Reconnected],
+      'the hook does not subscribe to all three reconnect events, so a blip is invisible until the client gives up',
+    );
+
+    subscribed.get(RoomEvent.SignalReconnecting)!();
+    assert.deepEqual(reconnecting, [true], 'the signal channel went away and the screen carried on looking live');
+    assert.deepEqual(sent, [], 'nothing can be published while the signal channel is down, so nothing should try');
+
+    subscribed.get(RoomEvent.Reconnecting)!();
+    assert.deepEqual(reconnecting, [true, true], 'the whole connection went away and the screen still said nothing');
+
+    subscribed.get(RoomEvent.Reconnected)!();
+    assert.deepEqual(reconnecting, [true, true, false], 'the connection came back and the screen is still apologising for it');
+    assert.deepEqual(
+      sent,
+      [{ t: 'ready' }],
+      'nothing re-sent ready, so the agent replay path built for exactly this is never triggered and the session is lost',
+    );
+    // And it is a frame the agent will actually read, not merely an object.
+    assert.deepEqual(decodeClientMessage(encodeMessage(sent[0] as never)), { t: 'ready' });
+
+    // The quiet door, taken before the blip. The agent holds its own voiceless
+    // flag, but the frame that set it may have been published into the outage
+    // that caused this, and a tutor talking aloud at somebody who asked for
+    // quiet is the one half of this pair that waiting does not fix.
+    wire(true);
+    subscribed.get(RoomEvent.Reconnected)!();
+    assert.deepEqual(
+      sent,
+      [{ t: 'ready' }, { t: 'mode', voiceless: true }],
+      'a session that had gone quiet came back speaking, because only ready was re-sent',
+    );
+    assert.deepEqual(decodeClientMessage(encodeMessage(sent[1] as never)), { t: 'mode', voiceless: true });
+
+    assert.deepEqual(ended, [], 'a reconnect ended the session, stood the watchdog down, or wrote the safety state');
+
+    // The drop is still a drop. livekit-client only reaches Disconnected once it
+    // has given up reconnecting, and that is still the one path to an error.
+    let dropped: unknown = null;
+    const disconnect = new Map<string, () => void>();
+    run(DISCONNECTED_HANDLER, {
+      room: { on: (event: string, handler: () => void) => disconnect.set(event, handler) },
+      RoomEvent,
+      owns: () => true,
+      clearWatchdog: () => {},
+      setReconnecting: () => {},
+      setStatus: (update: (s: unknown) => unknown) => {
+        dropped = update({ phase: 'live' });
+      },
+      failureCopy,
+    });
+    disconnect.get(RoomEvent.Disconnected)!();
+    assert.deepEqual(
+      dropped,
+      { phase: 'error', failure: 'dropped', message: failureCopy('dropped').message, canType: failureCopy('dropped').canType },
+      'a connection that never came back no longer tells the learner anything',
+    );
+  });
+});
+
+describe('the tutor that never arrived — F196', () => {
+  test('giving up on an absent tutor frees the account to try again now', async () => {
+    // The give-up path, once for every failure it can be handed. Only one of
+    // them may hand the lease back: 'agent-silent' means an agent IS in the room
+    // and may still be holding the floor, and freeing a lease out from under a
+    // live session is how one account comes to run two.
+    for (const failure of EVERY_FAILURE) {
+      const abandoned: unknown[][] = [];
+      const left: number[] = [];
+      const failed: LiveFailure[] = [];
+      run(`${GIVE_UP};\ngiveUp(which);`, {
+        which: failure,
+        abandonSession: (...args: unknown[]) => {
+          abandoned.push(args);
+          return Promise.resolve();
+        },
+        userId: UID,
+        grant: { token: 'jwt', livekitUrl: 'wss://example', sessionId: SESSION_ID },
+        leave: () => {
+          left.push(1);
+          return Promise.resolve();
+        },
+        fail: (f: LiveFailure) => failed.push(f),
+      });
+
+      assert.deepEqual(failed, [failure], `${failure}: the learner is no longer told what happened`);
+      assert.deepEqual(left, [1], `${failure}: the room is left open behind the error screen, and the meter is still counting`);
+      if (failure === 'agent-absent') {
+        assert.deepEqual(
+          abandoned,
+          [[UID, SESSION_ID]],
+          'the tutor never came, and the account is still locked out of its own next attempt for thirty minutes',
+        );
+      } else {
+        assert.deepEqual(abandoned, [], `${failure}: released a lease that may still belong to a live session`);
+      }
+    }
+
+    // The release itself. It is the one lease call the app makes, so what it
+    // sends is worth pinning: the account's own bearer token, the sessionId the
+    // server compares before it releases anything, and nothing else at all.
+    const calls: { url: string; init: Record<string, unknown> }[] = [];
+    await runAsync(`${ABANDON}\nreturn abandonSession(userId, sessionId);`, {
+      userId: UID,
+      sessionId: SESSION_ID,
+      TOKEN_SERVER: 'https://tokens.example',
+      authHeaders: () => Promise.resolve({ authorization: 'Bearer account-token' }),
+      fetch: (url: string, init: Record<string, unknown>) => {
+        calls.push({ url, init });
+        return Promise.resolve({ status: 200 });
+      },
+      trace: () => {},
+    });
+
+    assert.equal(calls.length, 1, 'the lease is never handed back, so the learner is refused by their own dead session');
+    assert.equal(calls[0]!.url, 'https://tokens.example/session/abandon');
+    assert.equal(calls[0]!.init.method, 'POST');
+    assert.deepEqual(
+      JSON.parse(calls[0]!.init.body as string),
+      { userId: UID, sessionId: SESSION_ID },
+      'the sessionId is what the server compares before releasing, and without it nothing is freed',
+    );
+    assert.equal(
+      (calls[0]!.init.headers as Record<string, string>).authorization,
+      'Bearer account-token',
+      'the release is authenticated as the account, or the server cannot tell whose lease this is',
+    );
+    assert.doesNotMatch(
+      ABANDON,
+      /session\/end|seconds|debit|x-parle-agent|AGENT_SECRET/,
+      'this call releases a lease and does nothing else, which is the whole reason it is safe to make from a phone',
+    );
+
+    // The sessionId comes off the grant, and the grant has to carry it. This
+    // hop is a cast, so the source is the only place it can be checked.
+    assert.match(
+      hook,
+      /const grant = \(await res\.json\(\)\) as \{ token: string; livekitUrl: string; sessionId: string \}/,
+      'the grant stopped carrying the sessionId, so the release has nothing to name and frees nothing',
+    );
+
+    // And a release that itself fails is swallowed. It runs while the learner is
+    // already reading an error, and a second one would only make the first wrong.
+    await runAsync(`${ABANDON}\nreturn abandonSession(userId, sessionId);`, {
+      userId: UID,
+      sessionId: SESSION_ID,
+      TOKEN_SERVER: 'https://tokens.example',
+      authHeaders: () => Promise.resolve({}),
+      fetch: () => Promise.reject(new TypeError('Failed to fetch')),
+      trace: () => {},
+    });
+  });
+});
+
+describe('the quiet door, mid-session — F200', () => {
+  test('switching to text keeps the room, stops the microphone and needs no new grant', () => {
+    const published: boolean[] = [];
+    const sent: unknown[] = [];
+    const micOpen: boolean[] = [];
+    const voiceless: boolean[] = [];
+    const voicelessRef = { current: false };
+    const diagRef = { current: { micPublished: true } };
+    const statuses: unknown[] = [];
+    const room = {
+      localParticipant: {
+        setMicrophoneEnabled: (on: boolean) => {
+          published.push(on);
+          return Promise.resolve();
+        },
+      },
+    };
+    const roomRef: { current: unknown } = { current: room };
+
+    const switched = run(SWITCH_TO_TEXT, {
+      roomRef,
+      voicelessRef,
+      setVoiceless: (v: boolean) => voiceless.push(v),
+      diagRef,
+      setMicOpen: (v: boolean) => micOpen.push(v),
+      send: (m: unknown) => sent.push(m),
+      setStatus: (update: (s: unknown) => unknown) => statuses.push(update),
+      trace: () => {},
+    });
+
+    assert.equal(switched, true, 'the switch reported failure in a room that was right there, and the caller will rebuild');
+    assert.equal(roomRef.current, room, 'the room was torn down, which is the rebuild this exists to replace');
+    assert.deepEqual(published, [false], 'the microphone is still publishing after the learner asked to stop speaking');
+    assert.deepEqual(micOpen, [false], 'the circle still reads as an open microphone');
+    assert.equal(diagRef.current.micPublished, false, 'the diagnostics still claim a microphone nobody is speaking into');
+    assert.equal(voicelessRef.current, true, 'the handler cannot tell this session has gone quiet, so it will still shout about audio');
+    assert.deepEqual(voiceless, [true], 'the screens were never told, so the typed row never appears');
+
+    assert.deepEqual(sent, [{ t: 'mode', voiceless: true }], 'the agent was never told, so the tutor keeps speaking at a learner who is typing');
+    assert.deepEqual(
+      decodeClientMessage(encodeMessage(sent[0] as never)),
+      { t: 'mode', voiceless: true },
+      'the agent reads this frame strictly and would drop it, and a dropped frame moves nothing',
+    );
+
+    // The whole point: no token, no grant, no second room. The rebuild this
+    // replaces asked the token server for a session while the first one's
+    // thirty-minute lease was still standing, and the learner was refused for
+    // taking a door the app had just offered them.
+    assert.doesNotMatch(
+      SWITCH_TO_TEXT,
+      /fetch\(|TOKEN_SERVER|session\/start|new Room\(|\.connect\(|start\(\)/,
+      'the switch asks for a new grant, and the lease it is already holding will refuse it',
+    );
+
+    // The error screen is cleared on the way through, because a blocking vendor
+    // failure leaves the room open exactly so this door works.
+    assert.equal(statuses.length, 1, 'the screen is left on the failure it just offered a way out of');
+    const update = statuses[0] as (s: unknown) => unknown;
+    assert.deepEqual(
+      update({ phase: 'error', failure: 'tutor-deaf', message: 'x', canType: true }),
+      { phase: 'live' },
+      'the learner tapped "Continue by typing" and stayed on the error screen they were escaping',
+    );
+    const live = { phase: 'live' };
+    assert.equal(update(live), live, 'a session that was already live was re-rendered for nothing');
+
+    // A microphone that will not close is not a reason to keep the learner
+    // speaking into it: the frame still goes, and the switch still happened.
+    const stubborn: unknown[] = [];
+    const refused = run(SWITCH_TO_TEXT, {
+      roomRef: {
+        current: {
+          localParticipant: { setMicrophoneEnabled: () => Promise.reject(new Error('device busy')) },
+        },
+      },
+      voicelessRef: { current: false },
+      setVoiceless: () => {},
+      diagRef: { current: { micPublished: true } },
+      setMicOpen: () => {},
+      send: (m: unknown) => stubborn.push(m),
+      setStatus: () => {},
+      trace: () => {},
+    });
+    assert.equal(refused, true, 'a microphone that would not close took the quiet door away with it');
+    assert.deepEqual(stubborn, [{ t: 'mode', voiceless: true }]);
+
+    // No room at all: a session that failed before it ever connected. Nothing
+    // here can help, and saying so is what lets the caller open a typed session
+    // properly instead of believing this one carried on.
+    const orphan: unknown[] = [];
+    const cold = run(SWITCH_TO_TEXT, {
+      roomRef: { current: null },
+      voicelessRef: { current: false },
+      setVoiceless: () => {},
+      diagRef: { current: { micPublished: false } },
+      setMicOpen: () => {},
+      send: (m: unknown) => orphan.push(m),
+      setStatus: () => {},
+      trace: () => {},
+    });
+    assert.equal(cold, false, 'the switch claimed a session that does not exist, and the caller will never rebuild one');
+    assert.deepEqual(orphan, [], 'a mode frame was published into a room that is not there');
+  });
+
+  test('tapping the circle after the quiet door asks the tutor to speak again', async () => {
+    // Publishing a microphone IS asking to speak. A tutor left voiceless would
+    // answer in silence for the rest of the session, with nothing on the screen
+    // to say why, which is the quiet door as a one-way trip.
+    const openMicWorld = (voicelessRef: { current: boolean }, sent: unknown[]): Record<string, unknown> => ({
+      roomRef: {
+        current: {
+          localParticipant: {
+            isMicrophoneEnabled: false,
+            setMicrophoneEnabled: () => Promise.resolve(),
+          },
+        },
+      },
+      diagRef: { current: { micPublished: false } },
+      trace: () => {},
+      setMicOpen: () => {},
+      voicelessRef,
+      setVoiceless: () => {},
+      send: (m: unknown) => sent.push(m),
+      setNotice: () => {},
+      noticeTimer: { current: null as unknown },
+      setTimeout: () => 0,
+      clearTimeout: () => {},
+    });
+
+    const back: unknown[] = [];
+    const quiet = { current: true };
+    run(OPEN_MIC, openMicWorld(quiet, back));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.deepEqual(back, [{ t: 'mode', voiceless: false }], 'the learner went back to speaking and the tutor stayed silent for good');
+    assert.equal(quiet.current, false, 'the session still believes it is quiet, so an audio failure it can feel would be hidden');
+
+    const ordinary: unknown[] = [];
+    const speaking = { current: false };
+    run(OPEN_MIC, openMicWorld(speaking, ordinary));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.deepEqual(ordinary, [], 'an ordinary first tap now publishes a mode frame nobody asked for');
+  });
+});
+
+describe('half the tutor stops working mid-session — F198, the rendering half', () => {
+  test('a dead pipeline reaches the failure screen and a blip stays in the session', () => {
+    const frame = (kind: string | undefined, recoverable: boolean | undefined) => ({
+      t: 'error',
+      message: 'The tutor lost its voice for a moment.',
+      ...(kind !== undefined ? { kind } : {}),
+      ...(recoverable !== undefined ? { recoverable } : {}),
+    });
+
+    // A dead recogniser, in a spoken conversation. The learner is talking to
+    // something that will never answer while the meter runs, and a notice that
+    // clears itself after eight seconds is exactly the frame this replaces.
+    const deaf = switchWorld();
+    deliver(deaf.world, frame('stt_error', false));
+    assert.deepEqual(deaf.seen.failed, ['tutor-deaf'], 'a dead pipeline is still shown as a passing blip');
+    assert.deepEqual(deaf.seen.notices, [], 'the outage went out as a notice, which takes itself away and leaves the learner talking to nothing');
+    assert.deepEqual(deaf.seen.timers, [], 'an outage was given the notice timer, and it will clear itself off the screen');
+    assert.equal(deaf.seen.left, 0, 'the room was closed on a failure the learner can carry on typing through');
+    assert.deepEqual(
+      deaf.seen.logs,
+      ['warn [parle] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=spoken shown=blocking'],
+      'a vendor half of the tutor went down and the alarm line is not on the console at the level that gets noticed',
+    );
+
+    // The reply itself failing. There is no typed door onto the same wall, so
+    // there is nothing left to stay in the room for, and a room the learner
+    // cannot use is a room the meter must not go on counting.
+    const stalled = switchWorld();
+    deliver(stalled.world, frame('llm_error', false));
+    assert.deepEqual(stalled.seen.failed, ['tutor-stalled']);
+    assert.equal(failureCopy('tutor-stalled').canType, false, 'this test is no longer about the failure with no way forward');
+    assert.equal(stalled.seen.left, 1, 'the tutor cannot answer and the room is still open, still connected, and still being charged for');
+
+    // A blip. The room, the microphone and the meter are all still running, and
+    // replacing the session with a dead-end screen would lose the conversation.
+    const blip = switchWorld();
+    deliver(blip.world, frame('tts_error', true));
+    assert.deepEqual(blip.seen.failed, [], 'a hiccup that is coming back took the whole session away');
+    assert.equal(blip.seen.left, 0, 'a hiccup that is coming back ended the room');
+    assert.equal(blip.seen.notices.length, 1, 'the learner was told nothing at all about a voice that just went');
+    assert.notEqual(blip.seen.notices[0], frame('tts_error', true).message, 'the agent sentence is shown raw, so all five kinds still read alike');
+    assert.deepEqual(blip.seen.timers.map((t) => t.ms), [8000], 'the notice no longer clears itself, and that part was right');
+    assert.deepEqual(blip.seen.logs, ['info [parle:live] pipeline kind=tts_error recoverable=yes mode=spoken shown=notice']);
+
+    // A typed session carries no audio in either direction, so an audio failure
+    // in one is invisible by construction. Telling somebody who is typing that
+    // their microphone failed is the whole reason `spoken` is not defaulted.
+    const typed = switchWorld(null, { mode: 'convo-text' });
+    deliver(typed.world, frame('stt_error', false));
+    assert.deepEqual(typed.seen.failed, [], 'a learner who is typing was shown a microphone failure they cannot possibly have');
+    assert.deepEqual(typed.seen.notices, [], 'a learner who is typing was interrupted by a failure they cannot feel');
+    assert.equal(typed.seen.left, 0, 'a typed session was ended by an audio failure that cannot reach it');
+    assert.deepEqual(typed.seen.logs, ['info [parle] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=typed shown=silent']);
+
+    // And the same thing again for a session that STARTED spoken and has since
+    // taken the quiet door. This is the learner who took that door because the
+    // tutor went deaf; the next frame from the same dead vendor must not take
+    // the conversation they moved to away from them.
+    const switched = switchWorld(null, { mode: 'convo', voiceless: true });
+    deliver(switched.world, frame('stt_error', false));
+    assert.deepEqual(
+      switched.seen.failed,
+      [],
+      'a learner who took the quiet door was thrown out by the very outage they took it for',
+    );
+    assert.deepEqual(switched.seen.notices, []);
+    assert.deepEqual(switched.seen.logs, ['info [parle] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=typed shown=silent']);
+
+    // An agent older than the kinds sends neither field, and a session hitting
+    // its time limit sends a bare error too. Both keep today's behaviour.
+    const bare = switchWorld();
+    deliver(bare.world, frame(undefined, undefined));
+    assert.deepEqual(bare.seen.failed, [], 'a frame with nothing to classify took the session away on a guess');
+    assert.deepEqual(bare.seen.notices, [frame(undefined, undefined).message], 'the only honest sentence available is no longer shown');
+
+    // A kind with no flag is not a licence to guess either.
+    const unsure = switchWorld();
+    deliver(unsure.world, frame('stt_error', undefined));
+    assert.deepEqual(unsure.seen.failed, [], 'a missing recoverable flag was read as an outage, and a live conversation was lost to it');
+    assert.equal(unsure.seen.notices.length, 1);
   });
 });

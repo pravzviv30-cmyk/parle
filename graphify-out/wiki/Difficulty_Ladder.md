@@ -1,6 +1,6 @@
 # Difficulty Ladder
 
-> 31 nodes · cohesion 0.14
+> 30 nodes · cohesion 0.14
 
 ## Key Concepts
 
@@ -10,8 +10,7 @@
 - **STUCK_SILENCE_MS** (16 connections) — `packages/core/src/ladder/ladder.ts`
 - **applyTurn()** (13 connections) — `packages/core/src/ladder/ladder.ts`
 - **directiveFor()** (13 connections) — `packages/core/src/ladder/ladder.ts`
-- **cafe.ts** (10 connections) — `packages/core/src/lessons/cafe.ts`
-- **RUNGS** (9 connections) — `packages/core/src/ladder/ladder.ts`
+- **RUNGS** (10 connections) — `packages/core/src/ladder/ladder.ts`
 - **LadderState** (7 connections) — `packages/core/src/ladder/ladder.ts`
 - **nextSessionRung()** (7 connections) — `packages/core/src/ladder/ladder.ts`
 - **openingRung()** (7 connections) — `packages/core/src/ladder/ladder.ts`
@@ -29,22 +28,23 @@
 - **run()** (2 connections) — `packages/core/src/ladder/ladder.test.ts`
 - **Accounts work without Supabase via a local on-device store** (2 connections) — `README.md`
 - **INSTRUCTION_BY_RUNG** (1 connections) — `packages/core/src/ladder/ladder.ts`
-- *... and 6 more nodes in this community*
+- **SUPPORT_BY_RUNG** (1 connections) — `packages/core/src/ladder/ladder.ts`
+- *... and 5 more nodes in this community*
 
 ## Relationships
 
-- [Mock Speech Session](Mock_Speech_Session.md) (20 shared connections)
-- [Session Recap Samples](Session_Recap_Samples.md) (17 shared connections)
-- [Lesson Definitions](Lesson_Definitions.md) (6 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (6 shared connections)
-- [French Authenticity Pack](French_Authenticity_Pack.md) (5 shared connections)
-- [Product Event Tracking](Product_Event_Tracking.md) (3 shared connections)
-- [Live Failure Classification](Live_Failure_Classification.md) (3 shared connections)
-- [Product Principles and Design World](Product_Principles_and_Design_World.md) (3 shared connections)
-- [LLM Usage Pricing](LLM_Usage_Pricing.md) (2 shared connections)
-- [Conversation Orchestration](Conversation_Orchestration.md) (2 shared connections)
+- [Session and Attempt Scoring](Session_and_Attempt_Scoring.md) (21 shared connections)
+- [Coach Sample Fixtures](Coach_Sample_Fixtures.md) (15 shared connections)
+- [Lesson Definitions](Lesson_Definitions.md) (4 shared connections)
+- [Repo Design Principles](Repo_Design_Principles.md) (4 shared connections)
+- [Drill Chooser View](Drill_Chooser_View.md) (3 shared connections)
+- [French Authenticity Pack](French_Authenticity_Pack.md) (3 shared connections)
+- [Thinking and Session Reporting](Thinking_and_Session_Reporting.md) (3 shared connections)
+- [Tutor Evaluation Cases](Tutor_Evaluation_Cases.md) (2 shared connections)
+- [Tutor Agent Prompt](Tutor_Agent_Prompt.md) (2 shared connections)
+- [Conversation Engine Tests](Conversation_Engine_Tests.md) (2 shared connections)
+- [UI Component Primitives](UI_Component_Primitives.md) (2 shared connections)
 - [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
-- [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md) (1 shared connections)
 
 ## Source Files
 
@@ -54,11 +54,10 @@
 - `packages/core/src/ladder/index.ts`
 - `packages/core/src/ladder/ladder.test.ts`
 - `packages/core/src/ladder/ladder.ts`
-- `packages/core/src/lessons/cafe.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 128 (93%)
+- EXTRACTED: 121 (93%)
 - INFERRED: 9 (7%)
 - AMBIGUOUS: 0 (0%)
 

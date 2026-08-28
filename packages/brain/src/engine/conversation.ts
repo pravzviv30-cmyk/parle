@@ -38,7 +38,13 @@ import type {
   TutorTurn,
 } from '../contract/types.ts';
 import type { CefrBand, Strictness } from '../types.ts';
-import { coachFallbackLine, copyViolations, sanitizeLearnerText } from '../copy.ts';
+import {
+  NOTHING_WAS_WRONG,
+  coachFallbackLine,
+  copyViolations,
+  landsAsCorrection,
+  sanitizeLearnerText,
+} from '../copy.ts';
 import { carriesFrench } from '../frenchLeak.ts';
 import { buildSystemBlocks } from '../prompt/system.ts';
 import { buildTurnContext, type TurnInputKind } from '../prompt/turnContext.ts';
@@ -130,6 +136,19 @@ export interface ConversationState {
   deferred: CoachItem[];
   phrases: NewPhrase[];
   usedWell: string[];
+  /**
+   * Every fragment this session's coaching has quoted back at the learner,
+   * normalised once on the way in.
+   *
+   * Kept for the whole session rather than the turn, because it answers a
+   * question about the whole session: did the tutor ever hand this phrase back
+   * as the thing that did not work? The end card must not celebrate one that it
+   * did, whichever turn it happened on. Inline findings are not kept anywhere
+   * else — `deferred` holds only what waited for the recap — so without this
+   * the record of what was corrected out loud is gone by the time the card is
+   * built.
+   */
+  correctedForms: string[];
   /** Session-local recurring-error counts, for the recap's one next focus. */
   errorTags: Record<string, number>;
   /**
@@ -303,6 +322,7 @@ export function createConversation(
     deferred: [],
     phrases: [],
     usedWell: [],
+    correctedForms: [],
     errorTags: {},
     topics: [{ en: frame.titleEn, fr: frame.title, turn: 0 }],
     turnCount: 0,
@@ -530,6 +550,90 @@ function sanitizeTurn(raw: TutorTurn): TutorTurn {
 }
 
 /**
+ * What this turn's coaching named, normalised once.
+ *
+ * `quoted` is what the model says the learner got wrong — the verbatim fragment
+ * handed back to them. `named` is that plus the form offered instead, which the
+ * *tutor* produced, not the learner. Two lists because the two exclusions they
+ * feed have different lifetimes: a quote is wrong for the rest of the session,
+ * while an offered form is only "not the learner's own words" in the same
+ * breath it was modelled in.
+ *
+ * `applyTurnToProfile` in profile/profile.ts holds a private copy of this pair
+ * and of `namedInCoaching`, because that file was closed to edits when these
+ * moved here. The two must not drift: one turn gets one verdict, and the record
+ * and the end card have to be reading the same one. Exported so that copy can
+ * become an import.
+ */
+export function coachedForms(turn: TutorTurn): { quoted: string[]; named: string[] } {
+  const quoted: string[] = [];
+  const named: string[] = [];
+  for (const item of turn.coach) {
+    const quote = normalise(item.quote);
+    if (quote.length > 0) {
+      quoted.push(quote);
+      named.push(quote);
+    }
+    for (const offered of [item.better, item.betterWritten]) {
+      if (offered === null) continue;
+      const key = normalise(offered);
+      if (key.length > 0) named.push(key);
+    }
+  }
+  return { quoted, named };
+}
+
+/**
+ * Was any of these forms named in that coaching?
+ *
+ * Matched on whole normalised words rather than equality, because a coach item
+ * quotes a *fragment* of what the learner said: an exact comparison would miss
+ * the phrase sitting inside a quote of the whole sentence, which is the common
+ * case. Padding both sides with a space keeps "on" from matching inside
+ * "bonjour" — normalise() has already reduced everything to space-separated
+ * words, so a word boundary is a space.
+ *
+ * Over-matching costs one line off an end card; under-matching congratulates
+ * somebody on the phrase they were just corrected for. The doubt goes this way
+ * on purpose, the same way it does where credit is minted.
+ */
+export function namedInCoaching(coached: readonly string[], ...forms: readonly (string | null)[]): boolean {
+  for (const form of forms) {
+    if (form === null) continue;
+    const needle = normalise(form);
+    if (needle.length === 0) continue;
+    if (coached.some((text) => ` ${text} `.includes(` ${needle} `))) return true;
+  }
+  return false;
+}
+
+/**
+ * Does the model's own coach line describe the finding the code surfaced?
+ *
+ * The engine already picks one verdict per turn — `lead`, below — and the line
+ * the learner hears is supposed to be that verdict said out loud. It was not
+ * checked against it: any line that read cleanly shipped, so a turn whose lead
+ * finding was a textbook phrasing could be spoken as "Not quite", and a turn
+ * that surfaced one correction could be spoken as a different one.
+ *
+ * Two questions, both about agreement rather than taste. Does it land as a
+ * correction on a kind where nothing was wrong? And does it actually hand over
+ * the form this finding offers? A line that says neither the offered spoken
+ * form nor its written twin is coaching something else, whatever it is coaching.
+ *
+ * A finding with no offered form at all is exempt from the second question:
+ * there is nothing for the line to name, and demanding it would force the
+ * fallback to quote an empty string at the learner.
+ */
+function coachLineFits(line: string, lead: CoachItem): boolean {
+  if (copyViolations(line).length > 0) return false;
+  if (NOTHING_WAS_WRONG.has(lead.kind) && landsAsCorrection(line)) return false;
+  const offered = [lead.better, lead.betterWritten].filter((form) => normalise(form ?? '').length > 0);
+  if (offered.length === 0) return true;
+  return namedInCoaching([normalise(line)], ...offered);
+}
+
+/**
  * Fold the model's answer into the state and decide everything: ladder
  * movement (spoke turns only — silence and help moved it before the call),
  * inline-vs-recap coaching, beat progress, and whether the recap is due.
@@ -547,7 +651,16 @@ export function integrateTurn(
   const { inline, deferred, interrupted } = splitCoach(turn.coach, state.strictness, turnsSinceInterruption);
 
   // The coach line survives only when something actually surfaces inline, and
-  // only when it passes the copy rules; otherwise the tested template speaks.
+  // only when it agrees with that finding; otherwise the tested template speaks.
+  //
+  // F180: agreement, not just clean copy. Passing the copy rules was the whole
+  // test, so the one sentence the learner actually hears was the one part of the
+  // turn the model still decided on its own — it could correct a finding the
+  // code did not surface, or tell a learner who said something correct that it
+  // was not quite right. The verdict is picked once, here, and every mouth
+  // repeats it. Nothing is lost when the line is refused: the finding is still
+  // in `inline`, still reaches the card, and `coachFallbackLine` is four written
+  // variants per kind rather than one stock sentence.
   //
   // G7: the hand-back leads whenever it is present. blocking-error outranks it
   // for the inline slot, which is right for a correction and wrong here — a
@@ -558,7 +671,7 @@ export function integrateTurn(
   const lead = inline.find((c) => c.kind === 'english-to-french') ?? inline[0];
   if (lead !== undefined) {
     coachLine =
-      turn.coachLine !== null && copyViolations(turn.coachLine).length === 0
+      turn.coachLine !== null && coachLineFits(turn.coachLine, lead)
         ? turn.coachLine
         : coachFallbackLine(lead.kind, lead.better, { name: state.learner.name, variant: state.turnCount });
   }
@@ -628,6 +741,34 @@ export function integrateTurn(
   for (const p of turn.newPhrases) {
     if (!phrases.some((existing) => existing.fr === p.fr)) phrases.push(p);
   }
+  // F204, and the same one-turn-one-verdict rule as the coach line above, said
+  // to the third mouth. `usedWell` is what the end card celebrates, and it was
+  // accumulated raw — so a single model call could hand back a correction and
+  // claim the same phrase was used well, and the card would print the praise
+  // under the fix. The evidence side of this is already closed where credit is
+  // minted; this is display, so it inflates nothing, but it is the contradiction
+  // the learner can actually see.
+  //
+  // Two exclusions with two lifetimes, exactly as the two lists mean. `named`
+  // covers this turn: the quote is what the model just said was wrong, and the
+  // offered form is what the tutor said, not the learner, so repeating a line
+  // modelled a second ago is not the unprompted production a win claims.
+  // `correctedForms` covers the session: a fragment the tutor ever handed back
+  // is not a win on the card later either.
+  //
+  // A phrase the learner ADOPTS after a correction is deliberately still a win.
+  // Only the quoted form is remembered for the session, never the offered one,
+  // so saying the better line under their own steam on a later turn counts —
+  // which is the product working, and the last thing to hide from them.
+  const { quoted, named } = coachedForms(turn);
+  const correctedForms = [...state.correctedForms];
+  for (const form of quoted) {
+    if (!correctedForms.includes(form)) correctedForms.push(form);
+  }
+  const usedWell = turn.profileSignals.usedWell.filter(
+    (used) => !namedInCoaching(named, used) && !namedInCoaching(state.correctedForms, used),
+  );
+
   const errorTags = { ...state.errorTags };
   for (const pattern of turn.profileSignals.errorPatterns) {
     const tag = normalizeErrorTag(pattern.tag);
@@ -675,7 +816,8 @@ export function integrateTurn(
     deferred: [...state.deferred, ...deferred],
     phrases,
     topics,
-    usedWell: [...state.usedWell, ...turn.profileSignals.usedWell],
+    usedWell: [...state.usedWell, ...usedWell],
+    correctedForms,
     errorTags,
     turnCount,
     // Restart the clock only when the scene was actually interrupted. A turn

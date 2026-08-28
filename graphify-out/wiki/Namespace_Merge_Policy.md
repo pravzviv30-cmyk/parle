@@ -1,10 +1,11 @@
 # Namespace Merge Policy
 
-> 17 nodes · cohesion 0.12
+> 18 nodes · cohesion 0.12
 
 ## Key Concepts
 
-- **policy.ts** (72 connections) — `apps/mobile/src/sync/policy.ts`
+- **policy.ts** (73 connections) — `apps/mobile/src/sync/policy.ts`
+- **mergeProfile()** (3 connections) — `apps/mobile/src/sync/policy.ts`
 - **isSeen()** (2 connections) — `apps/mobile/src/sync/policy.ts`
 - **mergeReview()** (2 connections) — `apps/mobile/src/sync/policy.ts`
 - **mergeTutorIntro()** (2 connections) — `apps/mobile/src/sync/policy.ts`
@@ -24,18 +25,18 @@
 
 ## Relationships
 
-- [State Merge Helpers](State_Merge_Helpers.md) (18 shared connections)
+- [Merge Helper Utilities](Merge_Helper_Utilities.md) (18 shared connections)
 - [Stored Shape Type Guards](Stored_Shape_Type_Guards.md) (8 shared connections)
-- [Sync Engine Core](Sync_Engine_Core.md) (7 shared connections)
 - [Sync Retention Policy](Sync_Retention_Policy.md) (7 shared connections)
-- [Practice Mix Offers](Practice_Mix_Offers.md) (3 shared connections)
-- [Age Check and Profile Upgrade](Age_Check_and_Profile_Upgrade.md) (3 shared connections)
-- [Profile Merge](Profile_Merge.md) (2 shared connections)
-- [Review Deck Merging](Review_Deck_Merging.md) (2 shared connections)
-- [Drill Exercise Bank Merge](Drill_Exercise_Bank_Merge.md) (2 shared connections)
-- [Mobile App Auth Flow](Mobile_App_Auth_Flow.md) (2 shared connections)
-- [Live Sync Policy](Live_Sync_Policy.md) (2 shared connections)
-- [Practice Journal Store](Practice_Journal_Store.md) (1 shared connections)
+- [Sync Engine Core](Sync_Engine_Core.md) (4 shared connections)
+- [Review Engine Tests](Review_Engine_Tests.md) (3 shared connections)
+- [Profile Merge](Profile_Merge.md) (3 shared connections)
+- [Drill Exercise Merge](Drill_Exercise_Merge.md) (3 shared connections)
+- [Age Gate & Profile Upgrade](Age_Gate_&_Profile_Upgrade.md) (3 shared connections)
+- [Review Deck Merge](Review_Deck_Merge.md) (2 shared connections)
+- [Topic Merging & Staggering](Topic_Merging_&_Staggering.md) (2 shared connections)
+- [Path Node Status Line](Path_Node_Status_Line.md) (2 shared connections)
+- [App Root Wiring](App_Root_Wiring.md) (2 shared connections)
 
 ## Source Files
 
@@ -43,7 +44,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 75 (99%)
+- EXTRACTED: 78 (99%)
 - INFERRED: 1 (1%)
 - AMBIGUOUS: 0 (0%)
 

@@ -18,8 +18,8 @@
 
 ## Relationships
 
-- [Supabase and Google OAuth](Supabase_and_Google_OAuth.md) (3 shared connections)
-- [Auth Mode Selection](Auth_Mode_Selection.md) (3 shared connections)
+- [Supabase Auth & OAuth](Supabase_Auth_&_OAuth.md) (3 shared connections)
+- [Auth Mode & Installation](Auth_Mode_&_Installation.md) (3 shared connections)
 - [Auth Adapter Interface](Auth_Adapter_Interface.md) (1 shared connections)
 
 ## Source Files

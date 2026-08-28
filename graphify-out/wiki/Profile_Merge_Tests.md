@@ -1,10 +1,12 @@
 # Profile Merge Tests
 
-> 17 nodes · cohesion 0.13
+> 19 nodes · cohesion 0.13
 
 ## Key Concepts
 
+- **createProfile()** (27 connections) — `packages/brain/src/profile/profile.ts`
 - **profile/merge.test.ts** (25 connections) — `packages/brain/src/profile/merge.test.ts`
+- **freshState()** (5 connections) — `services/tutor-agent/src/convo.test.ts`
 - **brain()** (3 connections) — `packages/brain/src/profile/merge.test.ts`
 - **randomStored()** (3 connections) — `packages/brain/src/profile/merge.test.ts`
 - **stored()** (3 connections) — `packages/brain/src/profile/merge.test.ts`
@@ -25,19 +27,27 @@
 ## Relationships
 
 - [Profile Merge](Profile_Merge.md) (7 shared connections)
-- [Live Session Hook Tests](Live_Session_Hook_Tests.md) (3 shared connections)
-- [Learner Profile Updates](Learner_Profile_Updates.md) (3 shared connections)
-- [LLM Usage Pricing](LLM_Usage_Pricing.md) (1 shared connections)
-- [Mastery Evidence](Mastery_Evidence.md) (1 shared connections)
+- [Learner Profile Updates](Learner_Profile_Updates.md) (7 shared connections)
+- [Brain Playground CLI](Brain_Playground_CLI.md) (6 shared connections)
+- [Conversation Engine Tests](Conversation_Engine_Tests.md) (5 shared connections)
+- [Conversation Screen Tests](Conversation_Screen_Tests.md) (4 shared connections)
+- [Live Session Hook Tests](Live_Session_Hook_Tests.md) (2 shared connections)
+- [Profile Store and Context](Profile_Store_and_Context.md) (2 shared connections)
+- [Brain Spend Metering](Brain_Spend_Metering.md) (2 shared connections)
+- [Coach Sample Fixtures](Coach_Sample_Fixtures.md) (2 shared connections)
+- [Mastery Evidence Tracking](Mastery_Evidence_Tracking.md) (1 shared connections)
+- [Tutor Strictness Setting](Tutor_Strictness_Setting.md) (1 shared connections)
 
 ## Source Files
 
 - `packages/brain/src/profile/merge.test.ts`
 - `packages/brain/src/profile/merge.ts`
+- `packages/brain/src/profile/profile.ts`
+- `services/tutor-agent/src/convo.test.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 33 (100%)
+- EXTRACTED: 61 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

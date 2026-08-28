@@ -16,7 +16,7 @@
  *      people what locals actually say is the product.
  */
 
-import type { TurnQuality } from '@parle/core';
+import { CORRECTION_COOLDOWN_TURNS, type TurnQuality } from '@parle/core';
 import type { Assessment, CoachItem, CoachKind } from '../contract/types.ts';
 import type { Strictness } from '../types.ts';
 
@@ -106,8 +106,17 @@ export const INLINE_CAP: Record<Strictness, number> = { flow: 1, balanced: 2, st
  *
  * Two is one correction roughly every third turn, which is about the rate a
  * person corrects someone they are enjoying talking to.
+ *
+ * The number itself lives in `packages/core/src/session/session.ts` as
+ * `CORRECTION_COOLDOWN_TURNS`, because the scripted lesson takes the same
+ * decision and one decision does not get two homes. It was a second literal
+ * here, held level by a comment and a test asserting `2` in both files; that
+ * caught drift but only after somebody wrote it. Brain already depends on core,
+ * so the pin is mechanical now: one declaration, two readers. Re-exported under
+ * this name so every existing importer keeps working, and because the
+ * conversation calls it an interruption where the lesson calls it a correction.
  */
-export const INLINE_COACH_COOLDOWN_TURNS = 2;
+export const INLINE_COACH_COOLDOWN_TURNS = CORRECTION_COOLDOWN_TURNS;
 
 /**
  * Findings that answer the learner rather than interrupt them, and so are never

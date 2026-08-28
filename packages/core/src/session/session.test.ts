@@ -1,7 +1,20 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createSession, currentPrompt, grade, submitTurn, summarise, MAX_ATTEMPTS_PER_TURN, INTELLIGIBLE, type LearnerInput, type SessionState, FEEDBACK_FAMILIES } from './session.ts';
+import {
+  createSession,
+  currentPrompt,
+  grade,
+  submitTurn,
+  summarise,
+  MAX_ATTEMPTS_PER_TURN,
+  INTELLIGIBLE,
+  CORRECTION_COOLDOWN_TURNS,
+  MOVED_ON_LINES,
+  type LearnerInput,
+  type SessionState,
+  FEEDBACK_FAMILIES,
+} from './session.ts';
 import { CAFE_LESSON } from '../lessons/cafe.ts';
 import { RUNGS, STUCK_SILENCE_MS } from '../ladder/ladder.ts';
 import type { PhonemeObservation } from '../phonemes/scoring.ts';
@@ -14,6 +27,28 @@ function said(text: string, score = 95, durationSec = 2): LearnerInput {
 }
 
 const stuck: LearnerInput = { type: 'silence', durationMs: STUCK_SILENCE_MS };
+
+/** A confident answer that is not the line, on any turn of this lesson. */
+function wrong(): LearnerInput {
+  return { type: 'spoke', transcript: 'un éléphant', durationSec: 2, phonemes: [] };
+}
+
+/**
+ * Walk `count` lesson turns of nothing but misses, keeping every line the tutor
+ * said, grouped by the lesson turn it was said on.
+ */
+function missEveryTurn(count: number): { saidOnTurn: string[][]; state: SessionState } {
+  let s = createSession(lesson);
+  const saidOnTurn: string[][] = Array.from({ length: count }, () => []);
+  let guard = 0;
+  while (s.turnIndex < count && !s.finished && guard++ < count * MAX_ATTEMPTS_PER_TURN + 4) {
+    const on = s.turnIndex;
+    const out = step(s, wrong());
+    saidOnTurn[on]!.push(out.feedback.message);
+    s = out.state;
+  }
+  return { saidOnTurn, state: s };
+}
 
 function step(state: SessionState, input: LearnerInput) {
   return submitTurn(lesson, state, input);
@@ -257,6 +292,131 @@ describe('the stuck learner — the behaviour the whole product rests on', () =>
       s = state;
       assert.doesNotMatch(feedback.message, /\d/, `message quotes a number: "${feedback.message}"`);
       assert.doesNotMatch(feedback.message, /wrong|bad|failed|incorrect/i, `message scolds: "${feedback.message}"`);
+    }
+  });
+});
+
+describe('a beginner who keeps missing the line', () => {
+  test('six missed turns do not earn six corrections', () => {
+    // The shape K1 already ruled out in conversation: a correction budget of one
+    // per turn, spent on every turn, is still a correction on every turn. A
+    // beginner corrected on everything stops talking.
+    const { saidOnTurn, state } = missEveryTurn(6);
+    const corrected = saidOnTurn.map((lines) => lines.some((line) => FEEDBACK_FAMILIES.missed.includes(line)));
+
+    assert.ok(
+      corrected.filter(Boolean).length < saidOnTurn.length,
+      `all ${saidOnTurn.length} missed turns were corrected out loud: ${JSON.stringify(saidOnTurn)}`,
+    );
+    for (let i = 1; i < corrected.length; i += 1) {
+      assert.ok(
+        !(corrected[i] && corrected[i - 1]),
+        `turns ${i} and ${i + 1} both broke the scene to correct, which is the rhythm K1 already ruled out`,
+      );
+    }
+    assert.equal(
+      state.struggledTurnIds.length,
+      6,
+      'a correction held back must still reach the review deck, or staying quiet loses the miss',
+    );
+    for (const lines of saidOnTurn) {
+      for (const line of lines) {
+        assert.ok(line.trim().length > 0, 'a miss answered with nothing at all leaves the learner mid-scene');
+      }
+    }
+  });
+
+  test('the first thing they get wrong is answered, never held back', () => {
+    // The cooldown is about the second correction and the third. A learner whose
+    // very first miss goes unremarked has been left to guess what happened.
+    const { feedback } = step(createSession(lesson), wrong());
+    assert.ok(
+      FEEDBACK_FAMILIES.missed.includes(feedback.message),
+      `the first miss of the session was held back: "${feedback.message}"`,
+    );
+  });
+
+  test('a learner still inside the cooldown is told the line is coming round again', () => {
+    const first = step(createSession(lesson), wrong()); // corrected, and the clock starts
+    const second = step(first.state, wrong()); // same turn, attempts spent, lesson moves on
+    const held = step(second.state, wrong()); // next turn, missed again, too soon to correct
+
+    assert.ok(
+      FEEDBACK_FAMILIES.again.includes(held.feedback.message),
+      `a held-back miss said something outside the family for it: "${held.feedback.message}"`,
+    );
+    assert.equal(held.feedback.advanced, false, 'holding the correction must not also skip the turn');
+    assert.equal(currentPrompt(lesson, held.state).position, 2, 'they are still on the line they just missed');
+    assert.equal(
+      currentPrompt(lesson, held.state).support.kind,
+      'full-line',
+      'the correction waits, but the support the rung owes them does not',
+    );
+  });
+
+  test('a learner is corrected no more often here than in conversation', () => {
+    // K1 settled this number for the live conversation, and the scripted lesson
+    // used to keep its own copy of it. It does not any more: this declaration is
+    // the number, and packages/brain/src/engine/grading.ts re-exports it as
+    // INLINE_COACH_COOLDOWN_TURNS (F205). So changing it here changes both modes
+    // at once, which is what makes it one decision rather than two that agree.
+    assert.equal(
+      CORRECTION_COOLDOWN_TURNS,
+      2,
+      'K1 settled this for both modes; brain reads this declaration, so a change here is a change to the live conversation too',
+    );
+  });
+});
+
+describe('feedback when the lesson has already left the line behind', () => {
+  test('feedback copy never asks for a retry the lesson will not give', () => {
+    const line = lesson.turns[0]!.target;
+
+    // Two misses spends the attempts, so the engine moves on and the next thing
+    // the learner hears is the tutor's next question, not another go at this one.
+    const first = step(createSession(lesson), wrong());
+    assert.equal(first.feedback.advanced, false, 'the first miss really does get another go');
+    const missed = step(first.state, wrong());
+    assert.equal(missed.feedback.advanced, true, 'the second miss really does move the lesson on');
+
+    // A learner who froze twice is in exactly the same place.
+    const frozeOnce = step(createSession(lesson), stuck);
+    const froze = step(frozeOnce.state, stuck);
+    assert.equal(froze.feedback.advanced, true, 'the second freeze really does move the lesson on');
+
+    for (const { feedback } of [missed, froze]) {
+      assert.doesNotMatch(
+        feedback.message,
+        /listen|try it|try again|another go|once more|have a go|together/i,
+        `the lesson has left "${line}" behind and the copy still asks for another attempt: "${feedback.message}"`,
+      );
+      assert.ok(
+        !FEEDBACK_FAMILIES.missed.includes(feedback.message),
+        `the retry copy was used on a turn that is over: "${feedback.message}"`,
+      );
+      assert.ok(
+        feedback.message.includes(line),
+        `moving past "${line}" without ever saying it leaves the learner with nothing: "${feedback.message}"`,
+      );
+    }
+  });
+
+  test('every line said on the way past a missed turn hands the line over and asks for nothing', () => {
+    // The sweep above only lands on whichever variant those two turns rotate to.
+    // A variant nobody checked is exactly where a request for a retry gets back in.
+    const target = "Un café, s'il vous plaît";
+    const seen = new Set<string>();
+    assert.ok(MOVED_ON_LINES.length >= 2, 'moving on is not a family, it is one line said every time');
+
+    for (const variant of MOVED_ON_LINES) {
+      const said = variant(target);
+      assert.ok(said.includes(target), `the lesson moved on without ever saying the line: "${said}"`);
+      assert.doesNotMatch(said, /listen|try it|try again|another go|once more|have a go/i, `asks for a retry: "${said}"`);
+      assert.doesNotMatch(said, /\d/, `quotes a number: "${said}"`);
+      assert.doesNotMatch(said, /wrong|bad|failed|incorrect/i, `scolds: "${said}"`);
+      assert.doesNotMatch(said, /don'?t worry|take your time/i, `reassures: "${said}"`);
+      assert.ok(!seen.has(said), `"${said}" appears twice, so the family is not a family`);
+      seen.add(said);
     }
   });
 });

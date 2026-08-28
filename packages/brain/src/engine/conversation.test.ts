@@ -1,5 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { STUCK_SILENCE_MS, directiveFor } from '@parle/core';
 
@@ -14,8 +15,10 @@ import {
   type ConversationState,
   type LearnerSnapshot,
 } from './conversation.ts';
+import { INLINE_COACH_COOLDOWN_TURNS } from './grading.ts';
+import { assembleRecap } from './recap.ts';
 import { CAFE_FRAME } from '../fixtures.ts';
-import { copyViolations } from '../copy.ts';
+import { coachFallbackLine, copyViolations, fallbackVariants, landsAsCorrection } from '../copy.ts';
 import { carriesFrench } from '../frenchLeak.ts';
 import { sampleCoachItem, sampleTurn } from '../contract/samples.ts';
 import type { TutorTurn } from '../contract/types.ts';
@@ -827,5 +830,225 @@ describe('finishing a mission is a win, not closing time', () => {
 
     assert.equal(view.missionDone, false, 'one beat out of five is not a mission');
     assert.equal(view.recapDue, false);
+  });
+});
+
+/**
+ * One turn, one verdict, and every mouth repeats it.
+ *
+ * The engine already picks the verdict — `lead` in conversation.ts — and the
+ * credit side was closed where credit is minted. These are the other two
+ * mouths: the sentence the learner hears now, and the card they read at the
+ * end. A turn that surfaces one finding and speaks another is the tutor
+ * disagreeing with itself out loud, and a card that praises the phrase the
+ * session corrected is the same disagreement where the learner can see it.
+ */
+describe('the tutor says one thing about a turn', () => {
+  /** The finding the code surfaces: a real blocking error, with a real fix. */
+  const blocking = () =>
+    sampleCoachItem({
+      kind: 'blocking-error',
+      quote: 'au la boulangerie',
+      better: 'à la boulangerie',
+      betterWritten: null,
+    });
+
+  test('the spoken coach line describes the finding the code surfaced', () => {
+    // A clean, warm, perfectly written sentence about a DIFFERENT correction.
+    // Nothing here breaks a copy rule, which is why it used to ship.
+    const wandered = integrateTurn(
+      fresh(),
+      spoke('Je vais au la boulangerie'),
+      sampleTurn({ coach: [blocking()], coachLine: 'Ah, careful. Here you would say "j\'sais pas".' }),
+    );
+
+    assert.equal(wandered.view.coachNow[0]!.kind, 'blocking-error', 'the code surfaced the bakery slip');
+    assert.notEqual(
+      wandered.view.coachLine,
+      'Ah, careful. Here you would say "j\'sais pas".',
+      'a line about a finding the code did not surface must not reach the learner',
+    );
+    assert.match(
+      wandered.view.coachLine!,
+      /à la boulangerie/,
+      'the fallback speaks the finding the code actually surfaced',
+    );
+    assert.doesNotMatch(wandered.view.coachLine!, /sais pas/, 'and only that one');
+
+    // The same finding, described. This is the common case and it must survive
+    // untouched, or the model has been silenced rather than held to the verdict.
+    const agreed = integrateTurn(
+      fresh(),
+      spoke('Je vais au la boulangerie'),
+      sampleTurn({ coach: [blocking()], coachLine: 'Not quite. We say "à la boulangerie" here.' }),
+    );
+    assert.equal(agreed.view.coachLine, 'Not quite. We say "à la boulangerie" here.');
+  });
+
+  test('the written form counts as describing the finding, and accents never decide it', () => {
+    const item = sampleCoachItem({
+      kind: 'blocking-error',
+      quote: 'je ne sais pas',
+      better: 'j’sais pas',
+      betterWritten: 'je sais pas',
+    });
+    // The model quoted the written twin, unaccented, the way a transcript would.
+    const written = integrateTurn(
+      fresh(),
+      spoke('Je ne sais pas'),
+      sampleTurn({ coach: [item], coachLine: 'Not quite. Out loud it is "je sais pas".' }),
+    );
+    assert.equal(written.view.coachLine, 'Not quite. Out loud it is "je sais pas".');
+  });
+
+  test('a finding with nothing to offer still gets a line', () => {
+    // `better` is required by the schema but may be empty. Demanding the line
+    // name it would hand the learner a fallback quoting an empty string.
+    const bare = sampleCoachItem({ kind: 'blocking-error', quote: 'euh', better: '', betterWritten: null });
+    const { view } = integrateTurn(
+      fresh(),
+      spoke('euh'),
+      sampleTurn({ coach: [bare], coachLine: 'Careful, that one did not land.' }),
+    );
+    assert.equal(view.coachLine, 'Careful, that one did not land.');
+  });
+
+  test('correct-but-textbook phrasing is never told not quite', () => {
+    // The learner said something CORRECT. The model names the right phrase and
+    // breaks no copy rule; it simply calls a correct sentence a miss.
+    const textbook = sampleCoachItem({ kind: 'textbook-phrasing', quote: 'Je ne sais pas', better: 'j’sais pas' });
+    const { view } = integrateTurn(
+      fresh(),
+      spoke('Je ne sais pas'),
+      sampleTurn({ coach: [textbook], coachLine: 'Not quite. Try "j’sais pas".' }),
+    );
+    assert.equal(view.coachNow[0]!.kind, 'textbook-phrasing');
+    assert.notEqual(view.coachLine, 'Not quite. Try "j’sais pas".');
+    assert.doesNotMatch(view.coachLine!, /not quite/i, 'nothing correct is ever called a miss');
+    assert.match(view.coachLine!, /sais pas/, 'the better phrasing is still handed over');
+
+    // The same rule for the learner who asked a question rather than made a
+    // mistake. G7 fixed which finding leads; this is what it may be told.
+    const asked = sampleCoachItem({ kind: 'english-to-french', quote: 'how do I ask for the bill', better: "l'addition" });
+    const answer = integrateTurn(
+      fresh(),
+      spoke('how do I ask for the bill'),
+      sampleTurn({ coach: [asked], coachLine: 'Almost. You want "l\'addition".' }),
+    );
+    assert.doesNotMatch(answer.view.coachLine!, /almost/i, 'asking a question is not nearly getting it right');
+    assert.match(answer.view.coachLine!, /addition/);
+
+    // And every written variant of both families keeps the same promise, so a
+    // turn count landing on a different one cannot quietly break it.
+    for (const kind of ['textbook-phrasing', 'english-to-french'] as const) {
+      for (let variant = 0; variant < fallbackVariants(kind); variant += 1) {
+        const line = coachFallbackLine(kind, 'j’sais pas', { name: 'Sam', variant });
+        assert.equal(landsAsCorrection(line), false, `${kind} variant ${variant} lands as a correction: ${line}`);
+      }
+    }
+  });
+
+  test('the end card never celebrates a phrase the session corrected', () => {
+    const corrected = sampleCoachItem({
+      kind: 'textbook-phrasing',
+      quote: 'Je ne sais pas',
+      better: 'J’sais pas',
+      betterWritten: 'Je sais pas',
+    });
+
+    // Turn one: the model corrects the phrase and claims it as a win in the
+    // same breath, naming both the learner's words and its own offered form.
+    let state = integrateTurn(
+      fresh(),
+      spoke('Je ne sais pas'),
+      sampleTurn({
+        coach: [corrected],
+        profileSignals: { errorPatterns: [], usedWell: ['Je ne sais pas', 'J’sais pas', 'Bonjour'] },
+      }),
+    ).state;
+    assert.deepEqual(state.usedWell, ['Bonjour'], 'neither the quote nor the offered line is a win this turn');
+
+    // Turns later, with no coaching at all, the same phrase is claimed again.
+    // The session corrected it, so it is not a win then either.
+    // The same correction again, one turn later. K1's cooldown defers this one
+    // rather than interrupting twice, which is what puts it on the end card at
+    // all — `recap.fixes` reads `state.deferred`, so a correction that only ever
+    // led inline never reaches the card and this test would be asserting the
+    // wrong channel. Deferred or inline, the win stays suppressed.
+    state = integrateTurn(
+      state,
+      spoke('Je ne sais pas'),
+      sampleTurn({
+        coach: [corrected],
+        profileSignals: { errorPatterns: [], usedWell: ['je ne sais pas'] },
+      }),
+    ).state;
+
+    // But the learner ADOPTING the correction is exactly what a win is for.
+    state = integrateTurn(
+      state,
+      spoke('J’sais pas'),
+      sampleTurn({ profileSignals: { errorPatterns: [], usedWell: ['J’sais pas'] } }),
+    ).state;
+
+    const { recap } = assembleRecap(state, { estimate: 'A2', confidence: 'low' });
+    assert.deepEqual(recap.wins, ['Bonjour', 'J’sais pas']);
+    assert.ok(
+      recap.fixes.some((fix) => fix.quote === 'Je ne sais pas'),
+      'the card still lists the fix, which is the half that was never in doubt',
+    );
+    for (const win of recap.wins) {
+      assert.ok(
+        !recap.fixes.some((fix) => fix.quote.toLowerCase() === win.toLowerCase()),
+        `the card celebrates "${win}" and corrects it in the same breath`,
+      );
+    }
+  });
+
+  test('a quote inside a longer sentence still blocks the win it contradicts', () => {
+    // Coach items quote a fragment of a whole utterance, which is why the match
+    // is whole-word containment rather than equality. Equality would have let
+    // this through.
+    const item = sampleCoachItem({
+      kind: 'grammar-slip',
+      quote: 'je vais au la boulangerie ce matin',
+      better: 'je vais à la boulangerie ce matin',
+      betterWritten: null,
+    });
+    const { state } = integrateTurn(
+      fresh(),
+      spoke('Je vais au la boulangerie ce matin'),
+      sampleTurn({ coach: [item], profileSignals: { errorPatterns: [], usedWell: ['au la boulangerie'] } }),
+    );
+    assert.deepEqual(state.usedWell, []);
+  });
+});
+
+describe('the operating contract says what the engine does', () => {
+  test('the tutor doc describes the cooldown the engine keeps', () => {
+    const doc = readFileSync(new URL('../../../../docs/TUTOR_BRAIN.md', import.meta.url), 'utf8');
+
+    // The promise K1 broke on purpose. A recast on every not-quite attempt is a
+    // correction every turn, which is the behaviour the cooldown exists to stop.
+    assert.doesNotMatch(
+      doc,
+      /gets one brief natural recast and\s*\n?\s*the scene continues/,
+      'the doc still promises a recast on every attempt, which the engine stopped doing',
+    );
+    assert.match(doc, /cooldown/i, 'the contract has to name the rule the engine actually keeps');
+    assert.match(
+      doc,
+      new RegExp(`${INLINE_COACH_COOLDOWN_TURNS}`),
+      'and the number of turns it waits, so the doc and the constant cannot drift',
+    );
+    assert.match(doc, /recap/i, 'what misses the slot is not lost, and the contract has to say where it goes');
+    // Blocking errors and hand-backs are exempt: withholding either strands the
+    // learner mid-scene. A doc that described only the cooldown would be a doc
+    // somebody implements a silent tutor from.
+    assert.match(doc, /blocking/i);
+
+    // The doc is prose about the product, so it lives by the product's own copy
+    // rules like everything else a person reads.
+    assert.equal(copyViolations(doc, { allowDigits: true }).length, 0, 'the doc breaks the house copy rules');
   });
 });

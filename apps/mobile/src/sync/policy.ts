@@ -508,7 +508,10 @@ export const SYNC_POLICIES: readonly NamespacePolicy[] = [
   {
     namespace: 'profile',
     merges: 'structured',
-    writes: 4,
+    // Moves with `StoredProfile.version`. v5 added `ageStopAt`; left at 4 this
+    // build would call its own merge output a newer schema and go pull-quiet on
+    // every profile cycle, forever.
+    writes: 5,
     rule: 'phrases and error patterns union with max counts and mastered ORed; the rest whole from the evidence-heavier side',
     merge: mergeProfile,
   },

@@ -136,16 +136,25 @@ async function saveDeck(key: string, deck: readonly ReviewCard[], origin: WriteO
 }
 
 /**
- * Fold a finished session's cards into the deck.
+ * Fold a finished session's cards into the deck, and say whether it landed.
  *
  * Merge, never replace: a card the learner has been reviewing keeps its
  * scheduling even when a new session produces the same word again.
+ *
+ * The acknowledgement is returned rather than swallowed, which is the whole
+ * difference between the scripted path and the conversation one. This function
+ * has always awaited a `PersistAck` and thrown it away, so a learner who
+ * finished a lesson on a full phone watched the cards animate onto the Practice
+ * tab and lost every one of them, silently, while a conversation in the same
+ * second was journalled and banked at the next launch. Nothing here retries —
+ * that is `bankLesson` in live/journal.ts, on the outbox that already exists —
+ * but nothing downstream can retry a failure it was never told about.
  */
-export function addFromSummary(summary: SessionSummary): Promise<void> {
+export function addFromSummary(summary: SessionSummary): Promise<PersistAck> {
   return serialized(async (key) => {
     const existing = await loadDeckFor(key);
     const incoming = buildCardsFromSummary(summary, LESSONS, Date.now());
-    await saveDeck(key, mergeCards(existing, incoming), 'local');
+    return saveDeck(key, mergeCards(existing, incoming), 'local');
   });
 }
 

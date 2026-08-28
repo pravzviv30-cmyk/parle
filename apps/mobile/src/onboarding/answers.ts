@@ -43,7 +43,19 @@
  * is let through, and it refuses in plain words with no scolding and no second
  * chance dressed up as a retry, because a learner who cannot say they are
  * thirteen is not someone this product is for yet.
+ *
+ * ## The second door into the gate
+ *
+ * That gate has two doors now. The first is this flow, once. The second is a
+ * learner whose account is carrying an age stop — the tutor ended a session
+ * because they said in a scene that they are under thirteen, and
+ * `profile/store.ts` wrote it down. `entryFor` is where the two are ordered,
+ * and it is one function rather than two booleans on purpose: the gate lives
+ * inside onboarding, so anything that asks the questions separately can show
+ * the standalone gate to somebody who has never seen onboarding at all.
  */
+
+import { ageStopStanding } from '../profile/age.ts';
 
 /**
  * The three pages, in order. The dots at the top count these, `docs/ONBOARDING.md`
@@ -63,6 +75,23 @@ export const AGE_SUB = 'Parle is made for teens and adults.';
 export const AGE_CONFIRM = 'I am 13 or older';
 export const AGE_DENY = 'I am younger than that';
 export const AGE_REFUSAL = 'Parle is for learners thirteen and up. Come back and find us then.';
+
+/**
+ * The same page, reached the second way: a session ended because the learner
+ * said in a scene that they are under thirteen, and the account remembered it.
+ *
+ * Two things this copy will not do. It will not say what happened, because a
+ * child who meets this boundary should not be made to feel caught, and because
+ * the classifier is sometimes wrong and an adult reading an accusation over a
+ * misheard sentence is worse. And it will not apologise, because the boundary
+ * is not a mistake. What it does say is the one thing anyone on either side of
+ * it actually wants to know: nothing of theirs has been taken away.
+ *
+ * The buttons and the refusal are the ones above, unchanged. There is exactly
+ * one age gate; this is a second door into it, not a second gate.
+ */
+export const AGE_RETURN_TITLE = 'Before we carry on';
+export const AGE_RETURN_SUB = 'Parle is made for learners thirteen and up. Everything you have learned is still here.';
 
 /** What the pages are holding while the learner fills them in. */
 export interface OnboardingDraft {
@@ -133,6 +162,30 @@ export function pageAfter(page: Page): Page | null {
 export function pageBefore(page: Page): Page | null {
   const index = PAGES.indexOf(page);
   return index > 0 ? (PAGES[index - 1] ?? null) : null;
+}
+
+/**
+ * The three things a launch can be, in the order the navigator has to try them.
+ *
+ * `frontend-engineer` wires this in `nav/RootNavigator.tsx`; it is here because
+ * apps/mobile has no renderer, so a routing rule inside a component is a rule
+ * nothing can ask a question about. The order is the whole value of returning
+ * one answer instead of two booleans: onboarding contains the age gate, so a
+ * navigator that asked the two questions separately could show the standalone
+ * gate to somebody who has never seen any of it.
+ *
+ * `'age-gate'` is the new one. It is not a smaller onboarding: the learner keeps
+ * their name, their goal, their history and everything the tutor knows about
+ * them, and the only thing between them and the app is the one question they
+ * are being asked again. See AGE_RETURN_TITLE for the copy and for why it does
+ * not say what happened.
+ */
+export type Entry = 'onboarding' | 'age-gate' | 'app';
+
+/** What this launch shows first. */
+export function entryFor(profile: { name: string | null; ageConfirmed: boolean | null; ageStopAt: number | null } | null): Entry {
+  if (needsOnboarding(profile)) return 'onboarding';
+  return ageStopStanding(profile) ? 'age-gate' : 'app';
 }
 
 /**

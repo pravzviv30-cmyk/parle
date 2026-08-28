@@ -1,5 +1,14 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+import {
+  CAFE_LESSON,
+  CORRECTION_COOLDOWN_TURNS,
+  createSession,
+  submitTurn,
+  type LearnerInput,
+} from '@parle/core';
 
 import { INLINE_CAP, INLINE_COACH_COOLDOWN_TURNS, assessmentToQuality, splitCoach, surfacePolicy } from './grading.ts';
 import { sampleCoachItem, sampleTurn } from '../contract/samples.ts';
@@ -246,5 +255,64 @@ describe('splitCoach — the cooldown between interruptions', () => {
     const longAgo = splitCoach(items, 'balanced', Number.POSITIVE_INFINITY);
     assert.deepEqual(withoutClock.inline, longAgo.inline);
     assert.deepEqual(withoutClock.deferred, longAgo.deferred);
+  });
+
+  /**
+   * F205. How often a learner is interrupted is one decision, and it was taken
+   * twice: this module declared `2` and `packages/core/src/session/session.ts`
+   * declared `2` again, held level by a comment and by a test asserting the
+   * literal in both files. That caught drift, but only after somebody had
+   * written it, which is a test standing in for a type system.
+   *
+   * Core is the shared leaf and brain already depends on it, so the number went
+   * home to core and this module re-exports it. The pin is mechanical now, and
+   * this test is what says so: one declaration, and both modes are driven by it
+   * rather than by a number that happens to look the same.
+   */
+  test('the correction cooldown has one home and both modes read it', () => {
+    assert.equal(INLINE_COACH_COOLDOWN_TURNS, CORRECTION_COOLDOWN_TURNS);
+
+    // One home. A re-typed literal here is exactly the drift the old pinning
+    // test existed to catch, and this catches it before the values differ
+    // rather than after.
+    const source = readFileSync(new URL('./grading.ts', import.meta.url), 'utf8');
+    const declared = source.match(/^export const INLINE_COACH_COOLDOWN_TURNS = (.+);$/m)?.[1];
+    assert.equal(
+      declared,
+      'CORRECTION_COOLDOWN_TURNS',
+      'the conversation is declaring its own cooldown again instead of reading core’s',
+    );
+
+    // The conversation reads it: one turn short of the cooldown holds the
+    // interruption back, and the cooldown itself lets it through.
+    assert.equal(splitCoach([textbook('a')], 'flow', CORRECTION_COOLDOWN_TURNS - 1).inline.length, 0);
+    assert.equal(splitCoach([textbook('a')], 'flow', CORRECTION_COOLDOWN_TURNS).inline.length, 1);
+
+    // And the scripted lesson reads the same one. Driven through core's own
+    // engine rather than asserted about it: a learner who misses every line,
+    // and the rule that decides whether each miss is answered out loud.
+    const wrong: LearnerInput = { type: 'spoke', transcript: 'un éléphant', durationSec: 2, phonemes: [] };
+    let state = createSession(CAFE_LESSON);
+    let corrections = 0;
+    let held = 0;
+    for (let guard = 0; guard < 20 && !state.finished; guard += 1) {
+      const waited = state.turnsSinceCorrection;
+      const { state: next, feedback } = submitTurn(CAFE_LESSON, state, wrong);
+      // Only a miss that is getting the same line again is a candidate: a turn
+      // the lesson has already moved past answers the learner instead.
+      if (feedback.quality === 'poor' && !feedback.advanced && !feedback.rescued) {
+        const corrected = next.turnsSinceCorrection === 0;
+        assert.equal(
+          corrected,
+          waited >= CORRECTION_COOLDOWN_TURNS,
+          `the lesson corrected on its own schedule: waited ${waited}, cooldown ${CORRECTION_COOLDOWN_TURNS}`,
+        );
+        if (corrected) corrections += 1;
+        else held += 1;
+      }
+      state = next;
+    }
+    assert.ok(corrections >= 2, `only ${corrections} corrections, so the schedule was never exercised twice`);
+    assert.ok(held >= 1, 'no correction was ever held back, so the cooldown proved nothing here');
   });
 });

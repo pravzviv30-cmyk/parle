@@ -40,10 +40,26 @@ import { scoreUtterance } from './speechace.ts';
 import { reportUsage } from './usage.ts';
 import { TurnQueue } from './queue.ts';
 import { UtteranceTap, audioScoringEnabled, observeEvents, observeFrames } from './utterance.ts';
-import { safetyDecision } from './safety.ts';
+import { recordSafetyDecision, safetyDecision } from './safety.ts';
 
-/** Anything that can carry a message back to the app. */
-type Publisher = (message: ServerMessage) => void;
+/**
+ * Anything that can carry a message back to the app.
+ *
+ * The return value is optional and almost every caller ignores it. One does
+ * not: a stop closes the room straight after the message, and closing it before
+ * a reliable data frame has flushed would take the crisis line with it. So a
+ * publisher that knows when its frame has landed may say so, and
+ * `closeAfterStop` is the only place that waits.
+ */
+type Publisher = (message: ServerMessage) => void | Promise<void>;
+
+/**
+ * The half of the framework's SpeechHandle this file uses.
+ *
+ * Structural rather than imported: `voice` does not re-export SpeechHandle, and
+ * in text mode and in tests there is no handle at all.
+ */
+type SpokenLine = { waitForPlayout: () => Promise<void> } | undefined;
 
 /**
  * The session id agent.ts has not written yet.
@@ -135,8 +151,11 @@ export class ParleTutor extends voice.Agent {
    * target, the support view — so a typed lesson needs no model call and no TTS
    * to be a lesson. The ladder, the rescue and the summary are the same code;
    * only the delivery changes. A learner on a quiet train is still a learner.
+   *
+   * Not readonly, because the learner may change their mind. The `mode` frame
+   * flips exactly this, mid-lesson, and nothing else moves: see `setVoiceless`.
    */
-  private readonly voiceless: boolean;
+  private voiceless: boolean;
 
   constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean } = {}) {
     const state = createSession(lesson, startRung);
@@ -193,10 +212,56 @@ export class ParleTutor extends voice.Agent {
     const decision = safetyDecision(text);
     if (decision === null) return false;
     this.clearRescue();
-    this.publish({ t: 'safety', category: decision.category, action: decision.action, message: decision.message });
-    if (!this.voiceless && session) session.say(decision.message, { allowInterruptions: false });
-    if (decision.action === 'stop') void this.finish();
+    recordSafetyDecision({
+      sessionId: this.sessionId,
+      category: decision.category,
+      action: decision.action,
+      rule: decision.rule,
+      mode: 'lesson',
+      voiceless: this.voiceless,
+    });
+    const delivered = this.publish({ t: 'safety', category: decision.category, action: decision.action, message: decision.message });
+    const spoken = !this.voiceless && session ? session.say(decision.message, { allowInterruptions: false }) : undefined;
+    if (decision.action === 'stop') void this.closeAfterStop(delivered, spoken);
     return true;
+  }
+
+  /**
+   * A stop, all the way through: the words, then the room.
+   *
+   * The same sequence as the conversation agent's, for the same reason and in
+   * the same order, because the two tutors have to be one person at the worst
+   * moment of somebody's day. After a stop this session will neither hear nor
+   * answer, and until the room closed the microphone stayed published and the
+   * recogniser kept transcribing into it.
+   *
+   * `finish()` is started and not awaited: it debits the seconds, and the room
+   * should not wait on a billing round trip to stop listening. Delivery is
+   * waited on, because it is the point. In a spoken lesson that is the speech
+   * handle; in a typed one the reliable data frame is the only delivery there
+   * is, and disconnecting before it flushes would take the message with it.
+   */
+  private async closeAfterStop(delivered: void | Promise<void>, spoken: SpokenLine): Promise<void> {
+    void this.finish();
+    try {
+      await delivered;
+      await spoken?.waitForPlayout();
+    } catch (error) {
+      console.warn('[parle] the stop message did not settle cleanly; closing the room anyway:', error);
+    }
+    this.closeRoom();
+  }
+
+  /**
+   * The worker's own room close, wired by agent.ts. Unwired (tests) it costs
+   * nothing. The tutor never disconnects anything itself; it owns the judgement
+   * that the session is over, and the worker owns the room.
+   */
+  private closeRoom: () => void = () => {};
+
+  /** Wire the room's disconnect. See `closeAfterStop` for when it is called. */
+  attachRoomClose(close: () => void): void {
+    this.closeRoom = close;
   }
 
   /** Handle an intent the learner expressed by tapping rather than speaking. */
@@ -207,6 +272,7 @@ export class ParleTutor extends voice.Agent {
 
     if (msg.t === 'ready') return this.sendCurrentPrompt();
     if (msg.t === 'leave') return void this.finish();
+    if (msg.t === 'mode') return this.setVoiceless(session, msg.voiceless);
 
     if (msg.t === 'typing' || msg.t === 'moment') {
       // Presence, not silence. Someone typing an answer, or saying they need a
@@ -221,7 +287,12 @@ export class ParleTutor extends voice.Agent {
       return;
     }
 
-    if (msg.t === 'say' && this.handleSafety(msg.text, session)) return;
+    // Both, and not `say` alone. Ten lines down, `choice || say` publishes the
+    // text as a transcript and grades it, so a tapped option's words reached
+    // the transcript, the ladder and the model unread — in the mode that
+    // carries the whole scripted lesson, where tapping IS how a learner
+    // answers. One guard, and it covers every way an answer arrives.
+    if ((msg.t === 'say' || msg.t === 'choice') && this.handleSafety(msg.text, session)) return;
     if (msg.t === 'hear') {
       // Replay the line to say, uninterruptible so it always plays out whole.
       // Scripted lines come from the TTS cache, so a replay costs nothing.
@@ -245,6 +316,27 @@ export class ParleTutor extends voice.Agent {
 
     const input = toLearnerInput(msg);
     if (input) await this.enqueue(session, input);
+  }
+
+  /**
+   * Go quiet, or come back to voice, without leaving the lesson.
+   *
+   * The conversation agent's `setVoiceless`, said in this class's words, and
+   * deliberately the same three moves: flip the one flag every spoken line and
+   * the silence clock already read, re-arm a clock that was already running so
+   * the learner is measured on the pace they are now working at, and say
+   * nothing about it. The two tutors have to be one person, and a control that
+   * behaved differently depending on which one you were talking to would be two.
+   *
+   * Nothing is torn down and nothing is interrupted. A line already on its way
+   * out finishes; nothing new is spoken after this returns. The rung, the turn
+   * and the metered seconds carry on untouched, because changing how a lesson
+   * reaches you is not a thing you can get wrong.
+   */
+  setVoiceless(session: voice.AgentSession, voiceless: boolean): void {
+    if (this.voiceless === voiceless) return;
+    this.voiceless = voiceless;
+    if (this.silenceTimer) this.armRescue(session);
   }
 
   /**

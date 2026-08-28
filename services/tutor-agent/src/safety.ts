@@ -58,6 +58,17 @@ export interface SafetyDecision {
   /** Stop closes the learning session; redirect leaves a new safe topic open. */
   action: 'stop' | 'redirect';
   message: string;
+  /**
+   * Which named rule decided this, where the category has named rules, and
+   * `null` where it is a flat pattern list.
+   *
+   * Only `minor-sexual` has a rule table, and it is the one category whose
+   * words accuse a person of something specific. `recordSafetyDecision` prints
+   * this, so a live worker can say which of R1 to R4 is actually carrying the
+   * category and which is dead weight. Joined with `+` when more than one
+   * fires, because "R1+R3" and "R1" are different facts about the net.
+   */
+  rule: string | null;
 }
 
 // ---------------------------------------------------------------- normalising
@@ -499,6 +510,63 @@ const DANGEROUS = [
   /\bje veux (?:tuer|empoisonner|blesser|agresser) (?:quelqu'?\s?un|mon |ma |son |sa )\b/,
 ] as const;
 
+/**
+ * The people a call for harm names, in both languages.
+ *
+ * One list rather than two because half of what arrives here is code-switched,
+ * and `HATE_PASSIVE_CALL` below is the pattern that reads it: "the jews
+ * devraient etre extermines" is one sentence with the hate in the French half.
+ * The two active patterns keep the lists they shipped with; widening those is a
+ * different change from closing this gap, and nobody asked for it.
+ */
+const HATE_TARGET_GROUP = String.raw`(?:juifs|juives|musulmans|musulmanes|arabes|noirs|noires|asiatiques|gays|homosexuels|lesbiennes|immigres|immigrees|migrants|refugies|refugiees|etrangers|roms|tsiganes|jews|muslims|arabs|blacks|asians|lesbians|homosexuals|immigrants|refugees|foreigners|gypsies)`;
+
+/**
+ * "should be" and "deserve to be", in French, and nothing else.
+ *
+ * The tense list is the whole guard and it is short on purpose. The conditional
+ * `devraient etre` and `meritent d'etre` are calls; the subjunctive `soient` is
+ * the same call after `il faut que`. The imperfect `devaient etre` is a report
+ * of what someone else decided — "dans le musee, on explique comment les juifs
+ * devaient etre deportes" is a history lesson, and it is the most likely French
+ * sentence in this whole shape. `ont ete`, `auraient du etre` and `est mort`
+ * are out for the same reason: a war, a film and a memorial all say them.
+ */
+const HATE_CALL_MODAL = String.raw`(?:(?:devraient|devrait|doivent|doit|meritent|merite|meriteraient|meriterait)\b[^.?!]{0,12}\betre|soient|soit)`;
+
+/** What is being called for. Every one of these is done to people, by people. */
+const HATE_ATROCITY = String.raw`(?:tuees?|tues?|exterminees?|extermines?|gazees?|gazes?|pendues?|pendus?|fusillees?|fusilles?|deportees?|deportes?|abattues?|abattus?|lynchees?|lynches?|massacrees?|massacres?|eliminees?|elimines?|brulees?|brules?)`;
+
+/**
+ * A call for harm the way French actually says it: the group first, the verb
+ * passive.
+ *
+ * F207. The English half above carries `(?:should be|deserve to be) killed`, and
+ * the French half carried only the active `exterminer les juifs`, so "Les juifs
+ * devraient etre extermines" matched nothing at all and reached the model as
+ * ordinary practice. This is that missing twin.
+ *
+ * It is narrower than its English twin in exactly one way, and the narrowing is
+ * the point. The English pattern needs no subject, so "in the film the villain
+ * should be killed" trips it; French cannot afford that, because ordinary French
+ * practice is full of people being killed — a war museum, a film plot, the news,
+ * a nest of rats. So this one requires the target to be a class of people. The
+ * cost is honest and written down: "ils devraient etre extermines" with the
+ * group named in an earlier sentence is not caught here, because a bare pronoun
+ * cannot tell a group of people from the cockroaches in the kitchen, and this
+ * file does not accuse when it cannot tell. Judgement about a conversation lives
+ * in the tutor's conduct block, which reads more than one sentence.
+ */
+const HATE_PASSIVE_CALL = new RegExp(
+  String.raw`\b(?:tous |toutes |all )?(?:les|ces|des|the|those) ` +
+    HATE_TARGET_GROUP +
+    String.raw`\b[^.?!]{0,25}\b` +
+    HATE_CALL_MODAL +
+    String.raw`\b[^.?!]{0,12}\b` +
+    HATE_ATROCITY +
+    String.raw`\b`,
+);
+
 const HATE_OR_HARASSMENT = [
   /\b(?:write|say|tell|give|generate|make|compose) (?:me )?(?:a |an |some )?(?:racist|homophobic|transphobic|antisemitic|islamophobic|xenophobic|sexist|misogynist(?:ic)?|hateful|nazi) (?:insult|insults|slur|slurs|joke|jokes|message|messages|rant|poem|song|speech|text|comment)\b/,
   /\bhelp me (?:bully|harass|threaten|humiliate|intimidate|blackmail|extort|stalk|dox|doxx|spy on|scare|get revenge on|ruin|harceler|menacer|humilier|intimider|espionner|traquer)\b/,
@@ -509,6 +577,7 @@ const HATE_OR_HARASSMENT = [
   /\becris(?:[- ]?moi)? (?:une |des |un )?(?:insulte|insultes|blague|blagues|message|texte|chanson)s? (?:raciste|racistes|homophobe|homophobes|sexiste|sexistes|antisemite|antisemites|haineux|haineuse)\b/,
   /\bcomment (?:harceler|menacer|humilier|intimider|faire chanter|traquer) (?:quelqu'?\s?un|mon|ma|son|sa|le|la|les)\b/,
   /\b(?:tuer|exterminer|gazer|deporter) (?:tous )?les (?:juifs|musulmans|arabes|noirs|gays|immigres|refugies)\b/,
+  HATE_PASSIVE_CALL,
 ] as const;
 
 const REGULATED = [
@@ -521,7 +590,14 @@ const REGULATED = [
   /\b(?:dans quelle action investir|ou investir mon argent|placement garanti)\b/,
 ] as const;
 
-const PROMPT_INJECTION = [
+/**
+ * Injection that indicts whoever writes it.
+ *
+ * Split from the ambient half below so the output guard can use this one alone.
+ * Nothing about the input net changes: `PROMPT_INJECTION` is the two halves
+ * concatenated and `safetyDecision` still reads that.
+ */
+const INJECTION_DIRECTIVE = [
   /\bignore (?:all |any |the |your )?(?:previous|prior|above|earlier|preceding|system|initial|these)? ?(?:instructions|instruction|prompts?|rules|guidelines|directives)\b/,
   /\bdisregard (?:all |any |your |the )?(?:previous |prior |above )?(?:instructions|rules|prompts?|guidelines)\b/,
   /\bforget (?:all |everything |about )?(?:you were told|your (?:instructions|rules|prompt|training)|previous instructions|the rules)\b/,
@@ -529,11 +605,9 @@ const PROMPT_INJECTION = [
   /\bwhat (?:is|are) your (?:system )?(?:prompt|instructions|rules|guidelines)\b/,
   /\brepeat (?:everything|the text|all of the text|what is) (?:above|before this)\b/,
   /\bjailbreak\b/,
-  /\b(?:dan|developer|god|debug) mode\b/,
   /\bdo anything now\b/,
   /\byou are now (?:free|unrestricted|unfiltered|uncensored|dan|a different)\b/,
   /\byou are (?:no longer|not) (?:an? )?(?:ai|assistant|tutor|french tutor)\b/,
-  /\bwithout any (?:restrictions|filters|rules|censorship|limits)\b/,
   /\b(?:pretend|act as if|imagine) (?:that )?you (?:have no|had no|don'?t have) (?:rules|restrictions|filters|guidelines|limits|safety)\b/,
   /\bbypass (?:your |the |all )?(?:rules|filters|safety|restrictions|guidelines)\b/,
   /\bnew instructions\s*:/,
@@ -546,10 +620,34 @@ const PROMPT_INJECTION = [
   /\bcontourne (?:tes|les) (?:regles|restrictions|filtres|limites)\b/,
   /\btu n'?(?:es|as) plus (?:un |une |de )?(?:ia|assistant|tuteur|prof|regles|limites|restrictions)\b/,
   /\bfais comme si tu n'avais (?:aucune|pas de) (?:regle|regles|limite|limites|restriction|restrictions)\b/,
+] as const;
+
+/**
+ * Injection that is also ordinary language.
+ *
+ * "No rules, no filters, no restrictions" is how somebody asks a model to drop
+ * its guardrails, and it is equally how a French speaker describes a museum
+ * pass, a garden gate and a photograph. Measured against the ordinary-tutor-line
+ * corpus in safety.test.ts, all three of `L'acces au jardin est libre, sans
+ * restriction`, `Le musee est gratuit et sans aucune restriction` and `You can
+ * wander through the whole museum without any restrictions` were suppressed as
+ * prompt injection before this split existed. `god mode` and `sans aucun filtre`
+ * are here for the same reason: a game and a photograph.
+ *
+ * Coming from the learner, all of it still redirects, and a redirect costs one
+ * sentence. Coming from the tutor it would silently swallow the line, so the
+ * output guard leaves this half alone.
+ */
+const INJECTION_AMBIENT = [
+  /\b(?:dan|developer|god|debug) mode\b/,
+  /\bwithout any (?:restrictions|filters|rules|censorship|limits)\b/,
   /\bmode (?:developpeur|sans restriction|debug)\b/,
   /\bsans (?:aucun |aucune )?(?:censure|restrictions?)\b/,
   /\bsans aucun filtre\b/,
 ] as const;
+
+/** What the input net reads: both halves, unchanged in reach. */
+const PROMPT_INJECTION = [...INJECTION_DIRECTIVE, ...INJECTION_AMBIENT] as const;
 
 const DEPENDENCY = [
   /\b(?:be|act as|pretend to be|play|become) my (?:boyfriend|girlfriend|lover|wife|husband|partner|romantic partner|soulmate)\b/,
@@ -580,14 +678,17 @@ export function safetyDecision(input: string): SafetyDecision | null {
       category: 'under-13',
       action: 'stop',
       message: 'Parle is not available for anyone under 13. Please stop here and ask a parent or guardian for help.',
+      rule: null,
     };
   }
   const minorSexual = minorSexualSignals(texts);
-  if (MINOR_SEXUAL_RULES.some((rule) => rule.fires(minorSexual))) {
+  const matchedRules = MINOR_SEXUAL_RULES.filter((rule) => rule.fires(minorSexual)).map((rule) => rule.id);
+  if (matchedRules.length > 0) {
     return {
       category: 'minor-sexual',
       action: 'stop',
       message: 'I cannot help with sexual content involving anyone under 18.',
+      rule: matchedRules.join('+'),
     };
   }
   if (has(texts, SELF_HARM)) {
@@ -595,6 +696,7 @@ export function safetyDecision(input: string): SafetyDecision | null {
       category: 'self-harm',
       action: 'stop',
       message: 'I cannot provide crisis support. If you might act now, call your local emergency number. If you can, contact someone you trust and stay with them.',
+      rule: null,
     };
   }
   if (has(texts, DANGEROUS)) {
@@ -602,6 +704,7 @@ export function safetyDecision(input: string): SafetyDecision | null {
       category: 'dangerous-instructions',
       action: 'redirect',
       message: 'I cannot help with instructions that could hurt someone. We can practise a different French situation.',
+      rule: null,
     };
   }
   if (has(texts, HATE_OR_HARASSMENT)) {
@@ -609,6 +712,7 @@ export function safetyDecision(input: string): SafetyDecision | null {
       category: 'hate-or-harassment',
       action: 'redirect',
       message: 'I cannot help create hateful, threatening, or harassing content. We can choose another situation.',
+      rule: null,
     };
   }
   if (has(texts, REGULATED)) {
@@ -616,6 +720,7 @@ export function safetyDecision(input: string): SafetyDecision | null {
       category: 'regulated-advice',
       action: 'redirect',
       message: 'I can help you practise the French, but I cannot give medical, legal, or financial advice. Please ask a qualified professional.',
+      rule: null,
     };
   }
   if (has(texts, PROMPT_INJECTION)) {
@@ -623,6 +728,7 @@ export function safetyDecision(input: string): SafetyDecision | null {
       category: 'prompt-injection',
       action: 'redirect',
       message: 'I cannot show or change hidden instructions. We can keep practising French.',
+      rule: null,
     };
   }
   if (has(texts, DEPENDENCY)) {
@@ -630,7 +736,172 @@ export function safetyDecision(input: string): SafetyDecision | null {
       category: 'emotional-dependency',
       action: 'redirect',
       message: 'I am your French practice tutor, not a romantic partner or a replacement for people in your life.',
+      rule: null,
     };
   }
   return null;
+}
+
+// -------------------------------------------------------------- the output side
+
+/**
+ * The same signal library, pointed the other way: at what the tutor is about to
+ * say rather than at what the learner just said.
+ *
+ * Everything above this line reads learner input and decides whether the
+ * session can continue. Nothing above it ever read a tutor line, so the scene
+ * reply, the coach line, the narration and the remembered opener were spoken
+ * and published exactly as the model wrote them. The remembered opener is the
+ * sharpest edge of that: it is a whole greeting the analyst wrote last session,
+ * stored on the learner's device, and handed back to the worker in the join
+ * token. It arrives as data and leaves as speech.
+ *
+ * Three things are deliberately different here, and each one is a decision
+ * rather than an oversight:
+ *
+ * 1. **The consequence is suppression, never a stop.** A learner must never be
+ *    stranded mid-scene because the model misbehaved. A line that fails is
+ *    replaced with a neutral continuation and the conversation carries on; the
+ *    learner did nothing, so nothing is said to them about it.
+ * 2. **There is no under-13 branch and no bare-number branch.** Those patterns
+ *    exist to catch a learner disclosing their own age. A scene character
+ *    saying "j'ai douze ans" is a character, and stopping the whole net on it
+ *    would suppress an ordinary line every time a scene has a child in it.
+ * 3. **Self-harm and regulated advice are deliberately out.** `SAFETY_CONDUCT`
+ *    tells the tutor that when somebody discloses a crisis it steps out of the
+ *    scene and answers as itself. Running SELF_HARM over the output would
+ *    suppress exactly that answer and replace a crisis response with "let's
+ *    keep going", which is the worst thing this file could do. REGULATED is out
+ *    for a smaller reason with the same shape: "est-ce que j'ai le cancer" is a
+ *    line the patient says in a chez-le-medecin scene, and that scene is one of
+ *    the most ordinary French lessons there is.
+ *
+ * SEXUAL_EXPLICIT is not a rule of its own either, and this one is measured
+ * rather than argued: its French half carries bare `nu`, so "les arbres sont
+ * nus en hiver" is an ordinary narration that would be suppressed. It stays
+ * where it already works, inside the minor-sexual rules, where a minor has to
+ * be in the sentence with it.
+ */
+export type OutputRule = 'O1' | 'O2' | 'O3' | 'O4';
+
+export interface OutputFinding {
+  /** Reported with the same vocabulary as an input decision, so one grep finds both. */
+  category: SafetyCategory;
+  rule: OutputRule;
+}
+
+/**
+ * The objects that make an instruction dangerous.
+ *
+ * O2 needs one of these beside the instruction shape, and that is not belt and
+ * braces. DANGEROUS carries `recipe to make`, which is a sentence a cooking
+ * scene says out loud — "the recipe to make crepes" tripped the guard before
+ * this list existed. An instruction with no weapon in it is a recipe.
+ */
+const DANGEROUS_OBJECT = [
+  /\b(?:bomb|bombs|bombe|bombes|explosive|explosives|explosif|explosifs|ied|grenade|grenades|napalm|thermite|molotov|ricin|anthrax|sarin|nerve agent|gaz toxique|poison|poisons|empoisonner|meth|methamphetamine|fentanyl|chloroform|chloroforme|silencer|silencieux|weapon|weapons|arme|armes|firearm|firearms|gun|guns|fusil|pistolet)\b/,
+] as const;
+
+/**
+ * Four rules, in the order they are decided. Each names the category it reports
+ * under, so the stdout record reads in the same vocabulary as an input decision
+ * and one grep answers "how often does the tutor itself trip the net".
+ */
+/**
+ * A tutor line reciting its own configuration.
+ *
+ * Output-only, and the one place the output guard needs a pattern the input net
+ * does not have. Everything PROMPT_INJECTION knows about a system prompt is
+ * request-shaped — "show me your system prompt" — because that is what a learner
+ * types. The failure on this side is the answer, not the question, and "my
+ * system prompt says I am a warm barman from Lyon" matched nothing at all.
+ *
+ * Safe to state this plainly because it is unsayable in the product: a French
+ * tutor in a cafe scene has no reason to utter the words "system prompt" in
+ * either language, ever.
+ */
+const OUTPUT_PROMPT_LEAK = [
+  /\b(?:my|your|the|its) (?:system prompt|system message|initial prompt|hidden instructions|original instructions|hidden rules)\b/,
+  /\b(?:mon|ton|son|le) (?:prompt systeme|message systeme|prompt initial|instructions systeme|instructions cachees)\b/,
+  /\bi (?:was|have been|am) programmed to\b/,
+  /\bj'?\s?ai ete programme pour\b/,
+] as const;
+
+const OUTPUT_RULES: readonly {
+  id: OutputRule;
+  category: SafetyCategory;
+  fires: (texts: readonly string[]) => boolean;
+}[] = [
+  {
+    id: 'O1',
+    category: 'minor-sexual',
+    fires: (texts) => {
+      const signals = minorSexualSignals(texts);
+      return MINOR_SEXUAL_RULES.some((rule) => rule.fires(signals));
+    },
+  },
+  { id: 'O2', category: 'dangerous-instructions', fires: (texts) => has(texts, DANGEROUS) && has(texts, DANGEROUS_OBJECT) },
+  { id: 'O3', category: 'hate-or-harassment', fires: (texts) => has(texts, HATE_OR_HARASSMENT) },
+  { id: 'O4', category: 'prompt-injection', fires: (texts) => has(texts, INJECTION_DIRECTIVE) || has(texts, OUTPUT_PROMPT_LEAK) },
+];
+
+/**
+ * Whether a line the tutor is about to say may be said.
+ *
+ * `null` is the answer for an ordinary tutor line, and an ordinary tutor line
+ * is nearly all of them: the corpus in safety.test.ts is what holds that claim
+ * up, and it is large on purpose. Slice 1's lesson was that a matcher's false
+ * positive rate has to be bounded by tests rather than hoped about, and the
+ * cost of a false positive here is a scene line a learner never hears.
+ */
+export function outputGuard(line: string): OutputFinding | null {
+  const texts = forms(line);
+  if (texts.length === 0 || texts[0]?.length === 0) return null;
+  const hit = OUTPUT_RULES.find((rule) => rule.fires(texts));
+  return hit === undefined ? null : { category: hit.category, rule: hit.id };
+}
+
+// ------------------------------------------------------------------ the record
+
+/** Which agent decided. The two tutors answer identically and are counted apart. */
+export type SafetyMode = 'convo' | 'lesson';
+
+export interface SafetyRecord {
+  sessionId: string;
+  category: SafetyCategory;
+  /** `suppress` is the output guard: a tutor line replaced, no session touched. */
+  action: SafetyDecision['action'] | 'suppress';
+  rule: string | null;
+  mode: SafetyMode;
+  voiceless: boolean;
+}
+
+/**
+ * One content-free stdout line per safety decision.
+ *
+ * Two matchers were rewritten in slice 1 and nobody could say how often either
+ * of them fires in the wild — not which category, not which rule, not whether
+ * the rewrite that was supposed to stop accusing the innocent actually did. A
+ * greppable line beside `SESSION_NOT_CHARGED` answers all of that from the
+ * worker's own logs.
+ *
+ * **The learner's words are never in it, and neither is a hash of them.** A
+ * hash is not anonymity: the input space of "what a frightened person types
+ * into a language app" is small enough to enumerate, so a stored digest is the
+ * sentence with an extra step. The record carries what a decision is made of
+ * and nothing a decision was made about.
+ *
+ * Two alternatives were considered and refused. An analytics product event is
+ * out because `docs/PRIVACY_AND_SAFETY.md` allows exactly five and adding a
+ * sixth is a founder escalation, not an engineering choice. A server-side
+ * counter is out because it is new storage for a question `grep` answers. Both
+ * of those also imply an escalation route, and there is none: nobody is reading
+ * these lines as they happen, the conduct block says so to the learner's face,
+ * and this slice must not start suggesting otherwise.
+ */
+export function recordSafetyDecision(record: SafetyRecord): void {
+  console.log(
+    `[parle] SAFETY_DECISION session=${record.sessionId.slice(0, 8)} category=${record.category} ` +
+      `action=${record.action} rule=${record.rule ?? 'none'} mode=${record.mode} voiceless=${record.voiceless}`,
+  );
 }

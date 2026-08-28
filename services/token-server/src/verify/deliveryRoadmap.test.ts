@@ -261,3 +261,77 @@ describe('the delivery roadmap names the property Phase 5 actually holds', () =>
     assert.ok(modeParityProblems(criteriaFor(fixtureRoadmap('Three modes, safety'), 5), modes).length > 0);
   });
 });
+
+/**
+ * What the Phase 5 row is allowed to claim, judged against the ledger.
+ *
+ * The rule is deliberately not "the row says complete". Pinning a state is the
+ * mistake this file's own head warns about: it turns an honest correction red.
+ * Instead the ledger is the authority. Count what Phase 5 filed and what is
+ * still open at P0 or P1, and the row may claim the properties are held only
+ * while that count is zero. Reopen an entry and this goes red with a message
+ * naming it, which is a document to fix rather than a test to edit.
+ *
+ * The second half is the one that matters more. Six checks have never been run
+ * by anybody, and every phase before this one has been tempted to let a green
+ * gate stand in for them. A roadmap that says "complete" without saying "and
+ * nobody has seen this on a device" is the overclaim the whole ledger exists to
+ * stop, so the row has to carry the limit in the same breath as the claim.
+ */
+const KNOWN_ISSUES_PATH = path.join(ROOT, 'docs', 'KNOWN_ISSUES.md');
+
+/** Every Phase 5 entry, with its severity and whether it is closed. */
+function phaseFiveEntries(ledger: string): { id: string; severity: string; closed: boolean }[] {
+  const out: { id: string; severity: string; closed: boolean }[] = [];
+  for (const block of ledger.split(/\n(?=### )/)) {
+    const id = /^### (F1(?:3[2-9]|[4-9][0-9])) — /.exec(block)?.[1];
+    if (id === undefined) continue;
+    out.push({
+      id,
+      severity: /^- severity: (P[012])/m.exec(block)?.[1] ?? 'P2',
+      closed: /^- status: \[x\]/m.test(block),
+    });
+  }
+  return out;
+}
+
+describe('the roadmap row records what Phase 5 proved', () => {
+  test('the roadmap row records what phase five proved and what stays external', () => {
+    const ledger = readFileSync(KNOWN_ISSUES_PATH, 'utf8');
+    const entries = phaseFiveEntries(ledger);
+    assert.ok(entries.length >= 30, `only ${entries.length} Phase 5 entries found, so the ledger cannot be the authority here`);
+
+    const row = phaseRows(roadmap).find((candidate) => candidate.phase.startsWith('5.'));
+    assert.ok(row, 'the roadmap has no row for phase 5');
+    const status = row.status.replace(/\s+/g, ' ').trim();
+    assert.ok(status.length > 0, 'the Phase 5 row has no status cell to read');
+
+    // 1. The claim tracks the ledger, in both directions. F203 is excluded from
+    //    its own evidence: it is the entry that writes this row, so it is open
+    //    for as long as the row is being written and closed the moment it is
+    //    right. Counting it would make the rule unsatisfiable.
+    const blocking = entries.filter((e) => !e.closed && e.severity !== 'P2' && e.id !== 'F203');
+    const claimsHeld = /held locally|all five properties/i.test(status);
+    if (blocking.length > 0) {
+      assert.ok(
+        !claimsHeld,
+        `the row says Phase 5 is held while ${blocking.map((e) => `${e.id} (${e.severity})`).join(', ')} ${blocking.length === 1 ? 'is' : 'are'} still open`,
+      );
+    } else {
+      assert.ok(claimsHeld, 'every Phase 5 P0 and P1 is closed and the row does not say the properties are held');
+    }
+
+    // 2. Open P2s are not hidden. A row that mentions none while some exist is
+    //    a row somebody reads as finished.
+    const restP2 = entries.filter((e) => !e.closed && e.severity === 'P2' && e.id !== 'F203');
+    if (restP2.length > 0) {
+      assert.match(status, /P2/, `${restP2.length} Phase 5 P2s are open and the status cell does not admit any`);
+    }
+
+    // 3. The external checks are named as nobody's, in the row itself, not only
+    //    in a section further down that a table reader never reaches.
+    assert.match(status, /external/i, 'the status cell does not mention the external checks at all');
+    assert.match(status, /unclaimed|not (?:been )?run|pending/i, 'the row mentions the external checks without saying nobody has run them');
+    assert.doesNotMatch(status, /\brelease\b(?!\s*$)|shipped|ready to ship/i, 'the row reads as a release, and no part of Phase 5 has been seen on a device');
+  });
+});

@@ -1,6 +1,6 @@
 # Illustration Scenes
 
-> 54 nodes · cohesion 0.14
+> 55 nodes · cohesion 0.14
 
 ## Key Concepts
 
@@ -29,21 +29,24 @@
 - **arriveStyle()** (10 connections) — `apps/mobile/src/illustrations/useSceneMotion.ts`
 - **SpeakBubbles()** (9 connections) — `apps/mobile/src/illustrations/scenes/bubbles.tsx`
 - **RecapPostcard()** (8 connections) — `apps/mobile/src/illustrations/scenes/postcard.tsx`
-- *... and 29 more nodes in this community*
+- *... and 30 more nodes in this community*
 
 ## Relationships
 
-- [Auth Screens & UI Primitives](Auth_Screens_&_UI_Primitives.md) (30 shared connections)
-- [Product Event Tracking](Product_Event_Tracking.md) (5 shared connections)
-- [Friends & Leaderboard UI](Friends_&_Leaderboard_UI.md) (3 shared connections)
-- [First Run Disclosure](First_Run_Disclosure.md) (3 shared connections)
-- [Conversation Screen UI](Conversation_Screen_UI.md) (3 shared connections)
-- [Tab Bar Icons](Tab_Bar_Icons.md) (2 shared connections)
+- [UI Component Primitives](UI_Component_Primitives.md) (27 shared connections)
+- [Auth Screens](Auth_Screens.md) (10 shared connections)
+- [Drill Chooser View](Drill_Chooser_View.md) (5 shared connections)
+- [Onboarding Age Gate](Onboarding_Age_Gate.md) (2 shared connections)
+- [First Run Disclosure](First_Run_Disclosure.md) (2 shared connections)
+- [React Context Providers](React_Context_Providers.md) (2 shared connections)
 - [Path Node Status Line](Path_Node_Status_Line.md) (2 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (1 shared connections)
+- [Tutor Tab Gate](Tutor_Tab_Gate.md) (1 shared connections)
+- [Drill Screen UI](Drill_Screen_UI.md) (1 shared connections)
+- [Tab Bar Icons](Tab_Bar_Icons.md) (1 shared connections)
 
 ## Source Files
 
+- `DESIGN.md`
 - `apps/mobile/src/illustrations/index.ts`
 - `apps/mobile/src/illustrations/pen.tsx`
 - `apps/mobile/src/illustrations/scenes/bubbles.tsx`
@@ -59,11 +62,12 @@
 - `apps/mobile/src/illustrations/timing.ts`
 - `apps/mobile/src/illustrations/useSceneMotion.ts`
 - `apps/mobile/src/missions/MissionArt.tsx`
+- `apps/mobile/src/theme.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 247 (99%)
-- INFERRED: 3 (1%)
+- EXTRACTED: 251 (98%)
+- INFERRED: 4 (2%)
 - AMBIGUOUS: 0 (0%)
 
 ---

@@ -32,7 +32,14 @@ import {
 import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from './globals.ts';
 import { authHeaders } from '../auth/adapter.ts';
 import { journalRecap } from './journal.ts';
-import { classifyFailure, failureCopy, micApiUnavailable, TokenServerError, type LiveFailure } from './failure.ts';
+import {
+  classifyFailure,
+  classifyPipelineError,
+  failureCopy,
+  micApiUnavailable,
+  TokenServerError,
+  type LiveFailure,
+} from './failure.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
 import { nextStart, standDown, startStillOwns, NO_START } from './startOwnership.ts';
 import { thinkingAfter } from './thinking.ts';
@@ -85,6 +92,35 @@ const READY_RETRIES_MS = [1500, 3500, 6500];
 
 /** Give up on the signal connection well before the learner does. */
 const CONNECT_TIMEOUTS = { peerConnectionTimeout: 12000, websocketTimeout: 8000 };
+
+/**
+ * Hand the account's session lease back when the tutor never turned up.
+ *
+ * A grant takes a thirty-minute lease so one account cannot run two sessions at
+ * once, and only the agent's /session/end gives it back. An agent that never
+ * joined can never call it, so the learner was told the truth — nothing was
+ * counted against their minutes — and then refused their own next attempt for
+ * half an hour by a session that never happened, with a screen blaming their
+ * sign-in. This is the one lease call the app makes, and it is the way out.
+ *
+ * Fire and forget, and deliberately silent on failure. It runs while the
+ * learner is already being shown an error, so its own network trouble has
+ * nothing useful to add: the lease lapses on its own TTL either way, and the
+ * only thing a second error screen could do is make the first one wrong.
+ */
+async function abandonSession(userId: string, sessionId: string): Promise<void> {
+  try {
+    const headers = await authHeaders();
+    const res = await fetch(`${TOKEN_SERVER}/session/abandon`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...headers },
+      body: JSON.stringify({ userId, sessionId }),
+    });
+    trace('abandoned', { status: res.status });
+  } catch (err: unknown) {
+    trace('abandon-failed', { error: String(err) });
+  }
+}
 
 /**
  * Everything worth knowing about why a session did or did not start, collected
@@ -211,6 +247,25 @@ export interface LiveSession {
    */
   micOpen: boolean;
   /**
+   * True once this session has gone quiet, in the room it is already in.
+   *
+   * Not the same question as `micOpen`, which is false for a whole spoken
+   * conversation until the circle is tapped. This one says the learner has
+   * chosen to type: the microphone is down and the tutor has been asked to stop
+   * speaking. The screens read it to draw the typed row without needing to
+   * remember, on their own, which of the two things a closed microphone means.
+   */
+  voiceless: boolean;
+  /**
+   * True while livekit-client is putting a dropped connection back together.
+   *
+   * A blip is not a failure, and until now it was rendered as nothing at all:
+   * the room went quiet, the tutor stopped answering, and the screen carried on
+   * looking live. The learner deserves to know the difference between the tutor
+   * thinking and the network being away.
+   */
+  reconnecting: boolean;
+  /**
    * True once the room is open but before the tutor has said anything. The
    * screens render a waiting state rather than an unexplained spinner.
    */
@@ -225,6 +280,26 @@ export interface LiveSession {
    * wants before it will hand over a device.
    */
   openMic: () => void;
+  /**
+   * Go quiet without leaving the room.
+   *
+   * The quiet twin used to cost a whole session: mode was fixed when the grant
+   * was minted, so a learner who boarded a train, or whose transcription vendor
+   * dropped out mid-scene, had to end the conversation and start another one to
+   * stop speaking — and was then refused by their own thirty-minute lease. This
+   * takes the microphone down, tells the agent to stop speaking, and keeps
+   * everything else: the same room, the same scene, the same meter, no grant.
+   *
+   * Returns true when the switch happened in this room, and false when there is
+   * no room to switch in — a session that failed before it connected, say. False
+   * is the caller's cue to use the cold-start path and open a typed session from
+   * scratch, which is the only case that still needs one.
+   *
+   * The mode frame itself is fire and forget. The agent reads `voiceless`
+   * strictly and a frame it cannot read moves nothing, so a lost one leaves the
+   * learner exactly where they were with the control still there to tap again.
+   */
+  switchToText: () => boolean;
   start: () => Promise<void>;
   sendHelp: () => void;
   sendSkip: () => void;
@@ -320,6 +395,8 @@ export function useLiveSession(
   const [thinking, setThinking] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [micOpen, setMicOpen] = useState(false);
+  const [voiceless, setVoiceless] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
   const [waitingForTutor, setWaitingForTutor] = useState(false);
   const [diagnostics, setDiagnostics] = useState<LiveDiagnostics | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -348,6 +425,11 @@ export function useLiveSession(
   // writes anything down — has to read it here. State for the screens, ref for
   // the wire; the two are only ever assigned together.
   const safetyRef = useRef<SafetyDecision | null>(null);
+  // Voiceless again, as a ref, for the same reason: the data handler is built
+  // once at connect time, and the `error` case has to know whether this learner
+  // is still listening before it decides an audio failure is worth their
+  // attention. State for the screens, ref for the wire, assigned together.
+  const voicelessRef = useRef(false);
   // Monotonic, so a React key never collides and nothing depends on a clock.
   const turnSeq = useRef(0);
   // When the app last told the agent the learner is typing. A ref, not state:
@@ -423,6 +505,8 @@ export function useLiveSession(
     diagRef.current.lastFailure = failure;
     setDiagnostics({ ...diagRef.current });
     setWaitingForTutor(false);
+    // Whatever this is, it is not a connection coming back.
+    setReconnecting(false);
     trace('failed', { failure, ...diagRef.current });
     setStatus({ phase: 'error', failure, message: copy.message, canType: copy.canType });
   }, []);
@@ -471,6 +555,12 @@ export function useLiveSession(
     setTurns([]);
     setThinking(false);
     setMicOpen(false);
+    setReconnecting(false);
+    // A rebuilt session opens as whatever its mode says, and the mode is signed
+    // into the grant. Carrying the last session's quiet across would be the app
+    // asserting a mode the token server never granted.
+    voicelessRef.current = false;
+    setVoiceless(false);
     // A start that lands on top of a session that already opened takes the old
     // room with it. Nobody else will: the slot below is about to be overwritten,
     // and a room with no reference left to it is a room nobody disconnects while
@@ -533,7 +623,10 @@ export function useLiveSession(
       }
       if (!res.ok) throw new TokenServerError(res.status);
 
-      const grant = (await res.json()) as { token: string; livekitUrl: string };
+      // sessionId rides along because the lease is keyed on it: it is what
+      // /session/abandon compares against before releasing anything, which is
+      // what stops one caller freeing another's session.
+      const grant = (await res.json()) as { token: string; livekitUrl: string; sessionId: string };
       // The last gate before a room exists at all. Everything past here has to
       // be given back rather than simply skipped.
       if (await abandoned()) return;
@@ -746,16 +839,41 @@ export function useLiveSession(
           case 'drills':
             setDrills(msg.exercises);
             break;
-          case 'error':
-            // The agent reports pipeline hiccups (a TTS outage, say) that usually
-            // pass. The room, the microphone and the meter are all still running,
-            // so this must never replace the session with a dead-end screen — it
-            // surfaces inside the session and clears itself. The learner can
-            // always leave through the session's own exit.
-            setNotice(msg.message);
+          case 'error': {
+            // Most of these are hiccups that pass: the room, the microphone and
+            // the meter are all still running, and replacing a live session with
+            // a dead-end screen over a blip loses the conversation the learner
+            // was having. Some of them are not. The frame now carries the
+            // vendor's own kind and its recoverable flag, and which of the three
+            // this is belongs to failure.ts, as a union rather than a flag, so
+            // that showing a dead pipeline as a self-clearing notice is not
+            // something this handler can do by forgetting an `if`.
+            //
+            // `spoken` is what the learner can actually feel, not what the mode
+            // was granted as: a session that has taken the quiet door has no
+            // audio in either direction any more, and telling somebody who is
+            // typing that the tutor cannot hear them is the exact lie this
+            // classification exists to stop.
+            const outcome = classifyPipelineError(msg, {
+              spoken: modeCarriesAudio(mode) && !voicelessRef.current,
+            });
+            if (outcome.severity === 'blocking') {
+              console.warn(outcome.log);
+              // A room the learner cannot use is a room the meter must not go on
+              // counting. Where typing is a real answer the room is worth
+              // keeping — it is the room `switchToText` carries on in — and
+              // where it is not, the only honest move is to leave.
+              if (!failureCopy(outcome.failure).canType) void leave().catch(() => {});
+              fail(outcome.failure);
+              break;
+            }
+            console.info(outcome.log);
+            if (outcome.severity === 'silent') break;
+            setNotice(outcome.message);
             if (noticeTimer.current) clearTimeout(noticeTimer.current);
             noticeTimer.current = setTimeout(() => setNotice(null), 8000);
             break;
+          }
         }
       });
 
@@ -768,12 +886,58 @@ export function useLiveSession(
         // If the summary already arrived this is a normal ending, and an earlier
         // error (a denied microphone, say) already explains itself — this handler
         // only covers the drop nobody else accounted for.
+        //
+        // Reached only once livekit-client has given up reconnecting. The three
+        // handlers below are everything before that point, and they are why a
+        // blip at minute eight is now a pause rather than a lost session.
         clearWatchdog();
+        setReconnecting(false);
         setStatus((s) => {
           if (s.phase === 'ended' || s.phase === 'error') return s;
           const copy = failureCopy('dropped');
           return { phase: 'error', failure: 'dropped', message: copy.message, canType: copy.canType };
         });
+      });
+
+      // A blip, and the three states livekit-client publishes on the way through
+      // it. None of them is a failure: the client is already rebuilding the
+      // connection, and the session on the other side is still there. What was
+      // missing was any sign of it — the room went quiet, the tutor stopped
+      // answering, and the screen carried on looking live while the learner
+      // wondered what they had done.
+      //
+      // The signal channel alone. Media is still flowing, so the learner may
+      // still be able to hear the tutor; what has gone is the path everything
+      // else in this file rides on, including every frame the agent sends.
+      room.on(RoomEvent.SignalReconnecting, () => {
+        trace('signal-reconnecting');
+        setReconnecting(true);
+      });
+      // The whole connection, media included. This is the one the learner feels.
+      room.on(RoomEvent.Reconnecting, () => {
+        trace('reconnecting');
+        setReconnecting(true);
+      });
+      // Back. The room is the same room and the agent is the same agent, but
+      // everything published during the gap is gone: LiveKit does not queue data
+      // for a participant who was not there to receive it, so whatever state the
+      // agent pushed while we were away was pushed into nothing.
+      //
+      // `ready` is how this app asks for that state again, and both agent classes
+      // answer it by republishing where the session actually is. The replay path
+      // has existed on the agent side all along and had never once been
+      // triggered, because nothing ever sent a second `ready`.
+      //
+      // The mode frame rides with it when this session has gone quiet. The agent
+      // holds its own voiceless flag and a reconnect does not touch it, but the
+      // frame that set it may have been published into the outage that caused
+      // this, and a tutor talking aloud at someone who asked for quiet is the one
+      // failure of this pair that cannot be undone by waiting.
+      room.on(RoomEvent.Reconnected, () => {
+        trace('reconnected');
+        setReconnecting(false);
+        send({ t: 'ready' });
+        if (voicelessRef.current) send({ t: 'mode', voiceless: true });
       });
 
       // A quiet mode carries no audio in either direction: no microphone to
@@ -826,6 +990,15 @@ export function useLiveSession(
       // Leaving properly rather than just rendering an error over a live room:
       // an abandoned room is a room the meter is still counting.
       const giveUp = (failure: LiveFailure) => {
+        // The tutor never arrived, so no agent exists that could ever call
+        // /session/end, and the account's lease would stand for thirty minutes
+        // over a session that never happened. The learner is told nothing was
+        // counted against their minutes, taps Back, tries again, and is refused
+        // by themselves. This is the release, and it is the only failure that
+        // gets it: 'agent-silent' means an agent IS in the room and may still be
+        // holding the floor, and freeing a lease out from under a live session
+        // is how one account comes to run two.
+        if (failure === 'agent-absent') void abandonSession(userId, grant.sessionId);
         void leave().catch(() => {});
         fail(failure);
       };
@@ -901,6 +1074,14 @@ export function useLiveSession(
         diagRef.current.micPublished = true;
         trace('mic-opened');
         setMicOpen(true);
+        // Coming back from the quiet door. Publishing a microphone IS asking to
+        // speak, and a tutor left voiceless would answer in silence for the rest
+        // of the session with nothing on screen to say why.
+        if (voicelessRef.current) {
+          voicelessRef.current = false;
+          setVoiceless(false);
+          send({ t: 'mode', voiceless: false });
+        }
       })
       .catch((err: unknown) => {
         // Not a dead end and not a terminal screen: the room, the tutor and the
@@ -910,7 +1091,45 @@ export function useLiveSession(
         if (noticeTimer.current) clearTimeout(noticeTimer.current);
         noticeTimer.current = setTimeout(() => setNotice(null), 8000);
       });
-  }, []);
+  }, [send]);
+
+  /**
+   * The quiet door, taken in the room the learner is already in.
+   *
+   * Three things, and deliberately not a fourth: the microphone goes down, the
+   * agent is told to stop speaking, and the screens are told which of the two
+   * kinds of closed microphone this is. No token is fetched, no room is built
+   * and no grant is asked for, which is the whole point — the rebuild this
+   * replaces asked the token server for a second session while the first one's
+   * thirty-minute lease was still standing, and got the learner refused by
+   * themselves for taking a door the app had just offered them.
+   *
+   * The error screen is cleared on the way through, because a blocking vendor
+   * failure leaves the room open exactly so this door works: the learner tapped
+   * "Continue by typing" and the session they are continuing is this one.
+   */
+  const switchToText = useCallback((): boolean => {
+    const room = roomRef.current;
+    // No room means a session that failed before it connected. Nothing here can
+    // help, and saying so is what lets the caller open a typed session properly
+    // instead of believing this one carried on.
+    if (room === null) return false;
+    voicelessRef.current = true;
+    setVoiceless(true);
+    // Fire and forget in both directions. The agent reads `voiceless` strictly,
+    // so a frame it cannot read moves nothing and the control is still there to
+    // tap again; and a microphone that will not close is not a reason to keep
+    // the learner speaking into it.
+    void room.localParticipant.setMicrophoneEnabled(false).catch((err: unknown) => {
+      trace('mic-close-failed', { error: String(err) });
+    });
+    diagRef.current.micPublished = false;
+    setMicOpen(false);
+    send({ t: 'mode', voiceless: true });
+    setStatus((s) => (s.phase === 'error' ? { phase: 'live' } : s));
+    trace('switched-to-text');
+    return true;
+  }, [send]);
 
   /**
    * The learner putting a redirect away.
@@ -963,10 +1182,13 @@ export function useLiveSession(
     thinking,
     audioBlocked,
     micOpen,
+    voiceless,
+    reconnecting,
     waitingForTutor,
     diagnostics,
     resumeAudio,
     openMic,
+    switchToText,
     start,
     sendHelp: useCallback(() => send({ t: 'help' }), [send]),
     sendSkip: useCallback(() => send({ t: 'skip' }), [send]),

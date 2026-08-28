@@ -306,6 +306,12 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     setMicOpen: () => {},
     setAudioBlocked: () => {},
     setNotice: () => {},
+    // Added to `start` by the Phase 5 reconnect and quiet-door work. The lifted
+    // fragment names them, so the world has to hand them over or the run dies
+    // with a ReferenceError rather than a failed assertion.
+    setReconnecting: () => {},
+    setVoiceless: () => {},
+    voicelessRef: { current: false },
     setPrompt: () => {},
     setFeedback: () => {},
     setTutorSpeaking: () => {},

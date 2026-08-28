@@ -7,13 +7,22 @@
  * doors can share one copy — the onboarding page that asks, and the upgrade
  * chain that has to read an old date of birth off disk under plain node.
  *
- * The one judgement in this file is `ageConfirmedFromDob`, and its return type
- * is the whole argument: `true | null`, never false. A stored date that puts
- * the learner at thirteen or over is them having answered. Anything else — no
- * date, a mangled date, a date that reads young — is a question nobody asked
+ * The first judgement in this file is `ageConfirmedFromDob`, and its return
+ * type is the whole argument: `true | null`, never false. A stored date that
+ * puts the learner at thirteen or over is them having answered. Anything else —
+ * no date, a mangled date, a date that reads young — is a question nobody asked
  * them, and null is the only honest word for that. Writing false would be the
  * app putting a denial in the learner's mouth.
+ *
+ * The second is `isUnderAgeStop`, and it is a different question with the same
+ * discipline. The tutor's safety policy, not this app, decides that a learner
+ * has said in a scene that they are under thirteen. All this file does is
+ * recognise that one decision out of the eight the wire can carry, so the one
+ * place that recognises it is a function a test can call rather than a
+ * condition inside a screen.
  */
+
+import type { SafetyCategory } from '@parle/core';
 
 /** Youngest learner the product is made for. */
 export const MIN_AGE = 13;
@@ -48,4 +57,44 @@ export function ageOn(iso: string, now: Date): number {
 export function ageConfirmedFromDob(dob: string | null | undefined, now: Date): true | null {
   if (typeof dob !== 'string') return null;
   return ageOn(dob, now) >= MIN_AGE ? true : null;
+}
+
+/**
+ * The safety decision this account has to remember, as it arrives on the wire.
+ *
+ * Only the fields that decide are named, so any caller holding a safety frame
+ * fits: `tutor/safetyView.ts`'s `SafetyDecision`, a raw `ServerMessage`, or a
+ * test's own object.
+ */
+export interface AgeStopCandidate {
+  category: SafetyCategory;
+  action: 'stop' | 'redirect';
+}
+
+/**
+ * Is this the one decision the account is required to remember?
+ *
+ * Both halves matter. `under-13` is the category and `stop` is the action, and
+ * a redirect in that category — which the policy does not produce today, but
+ * could — is the tutor steering the conversation, not the product closing its
+ * doors. Every other stop, including the two that also end a session, ends that
+ * session and nothing more; none of them is a statement about whether this
+ * learner is who Parle is for.
+ */
+export function isUnderAgeStop(safety: AgeStopCandidate | null | undefined): boolean {
+  if (!safety) return false;
+  return safety.action === 'stop' && safety.category === 'under-13';
+}
+
+/**
+ * Is a stop still standing between this learner and the tutor?
+ *
+ * Reads the one stored field and nothing else, so the answer is the same on
+ * every surface that asks. `ageConfirmed` is deliberately not consulted here:
+ * a learner who tapped the confirmation and then said in a scene that they are
+ * eleven has done both of those things, and the doors close on the second one
+ * without the app calling the first one a lie.
+ */
+export function ageStopStanding(profile: { ageStopAt: number | null } | null | undefined): boolean {
+  return typeof profile?.ageStopAt === 'number';
 }

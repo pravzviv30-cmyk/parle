@@ -49,7 +49,7 @@ describe('the profile version chain', () => {
   test('a v1 profile still reaches the latest version in one pass, brain intact', () => {
     const upgraded = upgradeStored({ version: 1, motivation: 'travel', onboardedAt: 123, brain: { seen: 1 } }, NOW);
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 4, 'the chain runs direct to the latest version, never a step at a time');
+    assert.equal(upgraded.version, 5, 'the chain runs direct to the latest version, never a step at a time');
     assert.equal(upgraded.name, null, 'v1 never asked for a name');
     assert.equal(upgraded.dob, null);
     assert.equal(upgraded.ageConfirmed, null, 'v1 never asked about age either, so nothing is claimed on the learner behalf');
@@ -79,7 +79,7 @@ describe('the profile version chain', () => {
     };
     const upgraded = upgradeStored(v2, NOW);
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 4);
+    assert.equal(upgraded.version, 5);
     assert.equal(upgraded.name, 'Camille');
     assert.equal(upgraded.dob, ADULT_DOB, 'the date they typed is theirs and stays');
     assert.equal(upgraded.motivation, 'work');
@@ -102,7 +102,7 @@ describe('the profile version chain', () => {
     };
     const upgraded = upgradeStored(v3, NOW);
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 4);
+    assert.equal(upgraded.version, 5);
     assert.equal(upgraded.username, 'camille.4821');
     assert.equal(upgraded.name, 'Camille');
   });
@@ -113,7 +113,7 @@ describe('the profile version chain', () => {
       NOW,
     );
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 4);
+    assert.equal(upgraded.version, 5);
     assert.equal(
       upgraded.ageConfirmed,
       true,
@@ -146,7 +146,7 @@ describe('the profile version chain', () => {
     };
     const upgraded = upgradeStored(v4, NOW);
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 4);
+    assert.equal(upgraded.version, 5);
     assert.equal(upgraded.ageConfirmed, true, 'a tap on the confirmation is an answer, and it survives every later read');
     assert.equal(upgraded.dob, null, 'a v4 learner was never asked for a date, and none is invented for them');
     assert.equal(upgraded.motivation, null, 'a skipped question stays skipped');

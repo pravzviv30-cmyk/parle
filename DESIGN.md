@@ -235,10 +235,16 @@ verdict, in the reserved-height slot the screen already keeps. There is no
 
 A two-page moving welcome on first launch (the café scene says hello; page two
 says what Parle is and why speaking out loud is the point) → sign-in gate
-(Welcome / Create account / Sign in) → three onboarding pages (a name, one "I am
-13 or older" confirmation, and why, all of them skippable except the age) → the
-mission chooser, with the café already picked → **five icon-only tabs along the
-bottom**:
+(Welcome / Create account / Sign in) → three onboarding pages (the age gate
+first, then a name, then one page saying what the tutor is; everything but the
+age is skippable) → the mission chooser, with the café already picked → **five
+icon-only tabs along the bottom**:
+
+That age gate has a second door. A session the tutor ended because the learner
+said in a scene that they are under thirteen is remembered by the account, and
+the next launch shows the same page again with two lines changed: it says
+nothing about what happened, and it says that everything they have learned is
+still there. Passing it is one tap and nothing else is asked twice.
 
 | Tab | What it is |
 |---|---|
@@ -246,7 +252,7 @@ bottom**:
 | Tutor | Three doors: continue a recent mission, start a practical one, or talk freely. The four-page intro that used to stand in front of them is a quiet "How the circle works" link here and in Profile |
 | Practice | The path, the guided lesson, the drill bank, the review deck — plus one topic card per conversation subject, projected live from the deck |
 | My French | Personal evidence: situations completed, best independence, retained phrases, and honest known-reference sound checks |
-| Profile | Account (including the daily goal and permanent account deletion), support, sign out, the legal footer |
+| Profile | Account (the daily goal, how much the tutor corrects, and permanent account deletion), support, sign out, the legal footer |
 
 Navigation is React Navigation: a root stack whose first screen is the tab
 navigator, with the lesson, the conversation, drills, review and the mission
@@ -285,6 +291,20 @@ Three rules the row now keeps that it did not:
   wait, and it is answered on screen in the quiet notice slot and never aloud,
   because a spoken acknowledgement of a pause is a remark on the pause. The
   line reports the tutor rather than the learner.
+
+**One quiet line at a time**, in the slot above the control row. A voice hiccup
+goes there and clears itself after eight seconds; a connection being rebuilt
+goes there and does not, because a blip outlives eight seconds easily and the
+one sentence explaining a dead room must not disappear while the room is still
+dead. When both are true the reconnect is what shows. Neither is ever how a
+safety message is drawn.
+
+**The quiet door is taken where the learner is standing.** "Unable to speak
+right now?" and "Continue by typing" both go quiet in the room that is already
+open: the microphone goes down, the tutor stops speaking, and the scene, the
+meter and the thread all stay. It used to rebuild the session, which asked the
+account for a second grant while the first was still running and answered the
+learner with a refusal.
 
 **Coach marks** replace the four-page intro: one short note in `groundDeep` at
 `radius.chip`, above the control row, dismissed by tapping it or by using any

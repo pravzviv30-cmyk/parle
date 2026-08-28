@@ -1,6 +1,6 @@
 # Store Binding Tests
 
-> 25 nodes · cohesion 0.09
+> 26 nodes · cohesion 0.09
 
 ## Key Concepts
 
@@ -9,6 +9,7 @@
 - **SyncedStore** (5 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
 - **QueuedWrite** (3 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
 - **nextUid()** (2 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
+- **phraseKeysOnDisk()** (2 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
 - **.seed()** (2 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
 - **.write()** (2 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
 - **brainPhrase()** (1 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
@@ -28,22 +29,22 @@
 - **.during()** (1 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
 - **.read()** (1 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
 - **.survived()** (1 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
-- **syncPolicy** (1 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
+- *... and 1 more nodes in this community*
 
 ## Relationships
 
 - [Topics Store](Topics_Store.md) (7 shared connections)
-- [Store Acknowledgement](Store_Acknowledgement.md) (5 shared connections)
-- [Profile Store & Gate](Profile_Store_&_Gate.md) (5 shared connections)
-- [User Scope Reset](User_Scope_Reset.md) (4 shared connections)
-- [Product Event Tracking](Product_Event_Tracking.md) (4 shared connections)
-- [Practice Journal Store](Practice_Journal_Store.md) (3 shared connections)
+- [Profile Store and Context](Profile_Store_and_Context.md) (5 shared connections)
+- [Conversation Screen Tests](Conversation_Screen_Tests.md) (4 shared connections)
+- [Activity Log Store](Activity_Log_Store.md) (4 shared connections)
+- [Drill Chooser View](Drill_Chooser_View.md) (4 shared connections)
 - [Sync Engine Core](Sync_Engine_Core.md) (3 shared connections)
-- [Session Progress Store](Session_Progress_Store.md) (3 shared connections)
-- [Sound Check Store](Sound_Check_Store.md) (3 shared connections)
-- [Review Deck Store](Review_Deck_Store.md) (2 shared connections)
-- [Path Node Status Line](Path_Node_Status_Line.md) (2 shared connections)
-- [Drill Bank Store](Drill_Bank_Store.md) (2 shared connections)
+- [Drill Store](Drill_Store.md) (3 shared connections)
+- [Review Deck Store](Review_Deck_Store.md) (3 shared connections)
+- [Session Progress History](Session_Progress_History.md) (3 shared connections)
+- [Export and History Reports](Export_and_History_Reports.md) (2 shared connections)
+- [App Root Wiring](App_Root_Wiring.md) (2 shared connections)
+- [User Scope Reset](User_Scope_Reset.md) (2 shared connections)
 
 ## Source Files
 
@@ -51,7 +52,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 82 (100%)
+- EXTRACTED: 83 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

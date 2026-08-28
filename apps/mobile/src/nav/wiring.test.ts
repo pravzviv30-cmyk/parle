@@ -20,6 +20,12 @@ import { fileURLToPath } from 'node:url';
 
 const read = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
+/** Comments may say anything; only what compiles is wiring. */
+function strip(source: string): string {
+  const noBlocks = source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+  return noBlocks.replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
+}
+
 /** The props block passed to SummaryScreen inside the lesson route. */
 function summaryScreenProps(source: string): string {
   const open = source.indexOf('<SummaryScreen');
@@ -169,5 +175,73 @@ describe('the last two hops of the mission pipe', () => {
       'and the session has to put it in the body, or the token server signs a mission nobody sent',
     );
     assert.match(body, /seedTopic/, 'beside the seed topic that already rode this pipe');
+  });
+});
+
+describe('the under-13 stop reaches the account and the next launch', () => {
+  test('a stop is written by the live screens and read by the gate', () => {
+    // F177 built all four pieces and proved them together in
+    // profile/ageStop.test.ts. What that cannot prove is that the app calls
+    // any of them: a field written by nothing and read by nothing passes every
+    // test in that file. This is the delivery, and the delivery is the defect
+    // this entry exists for, because the stop lasting one session is exactly
+    // what a stored flag nobody reads looks like from the outside.
+    for (const [name, screen] of [
+      ['the conversation', strip(read('../ConvoScreen.tsx'))],
+      ['the lesson', strip(read('../LiveSessionScreen.tsx'))],
+    ] as const) {
+      assert.match(
+        screen,
+        /!isUnderAgeStop\(live\.safety\)\) return;[\s\S]{0,120}update\(withAgeStop\(profile\)\)/,
+        `${name} meets the one stop that outlives its session and writes nothing down`,
+      );
+      // Once. A child who meets the boundary twice is not recorded twice, and
+      // a re-render is not a second disclosure.
+      assert.match(screen, /ageStopWrittenRef\.current \|\| !isUnderAgeStop/, `${name} rewrites the stop on every render`);
+      // And it reads the frame through the one reader rather than matching on
+      // a category string of its own.
+      assert.ok(!/'under-13'/.test(screen), `${name} recognises the category itself, which is a second opinion about a child`);
+    }
+
+    // The gate. One value, not two booleans: the age gate lives INSIDE
+    // onboarding, so a navigator that asked the two questions separately could
+    // show the standalone gate to somebody who has never seen onboarding.
+    const gate = strip(read('../app/ProfileContext.tsx'));
+    assert.match(gate, /const entry = entryFor\(profile\);/, 'the gate decides what a launch is by hand again');
+    assert.ok(!gate.includes('needsOnboarding'), 'the gate asks the two-way question the age stop cannot fit into');
+    assert.match(gate, /entry === 'onboarding'/, 'a learner with no record no longer reaches onboarding');
+    assert.match(
+      gate,
+      /entry === 'age-gate'[\s\S]{0,600}<AgeGateScreen onPass=\{\(\) => update\(withAgeGatePassed\(profile\)\)\}/,
+      'a stopped account either never reaches the gate, or passing it does not open the doors',
+    );
+
+    // The gate itself is the age page, reached the second way. Same pills, same
+    // refusal, different two lines, and nothing else asked again.
+    const page = strip(read('../onboarding/AgeGateScreen.tsx'));
+    for (const same of ['AGE_CONFIRM', 'AGE_DENY', 'ageGate(false).refusal']) {
+      assert.ok(page.includes(same), `the return gate does not use the onboarding page's ${same}`);
+    }
+    assert.ok(page.includes('AGE_RETURN_TITLE') && page.includes('AGE_RETURN_SUB'), 'the return gate asks in the first-run words');
+    assert.ok(!page.includes('AGE_QUESTION') && !page.includes('AGE_SUB'), 'the return gate reads as a first run');
+    for (const asked of ['<Field', 'NAME_', 'PAGES', 'ProgressDots', 'dailyGoal']) {
+      assert.ok(!page.includes(asked), `the return gate asks for ${asked} again, and the learner keeps everything`);
+    }
+    assert.match(page, /accessibilityRole="header"/, 'the gate has no heading for a screen reader to find');
+  });
+});
+
+describe('the lesson deck goes through the outbox too', () => {
+  test('a finished lesson is banked where a full phone can be retried', () => {
+    // `addFromSummary` awaits the disk and drops the answer, so a learner who
+    // finished a lesson with no room left lost the whole deck without a word.
+    // It still compiles, which is the trap: only `bankLesson` keeps the summary
+    // for the next launch to try again.
+    const navigator = strip(read('./RootNavigator.tsx'));
+    assert.match(navigator, /void bankLesson\(s\);/, 'the lesson banks its cards outside the outbox again');
+    assert.ok(
+      !/addFromSummary/.test(navigator),
+      'the navigator still reaches the raw deck write, which answers and then swallows a failure',
+    );
   });
 });

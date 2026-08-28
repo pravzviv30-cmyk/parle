@@ -25,6 +25,15 @@ import { useProfile } from '../app/ProfileContext.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
 import { TUTOR_INTRO_LINK } from '../tutor/gate.ts';
 import { withDailyGoal } from '../profile/store.ts';
+import {
+  STRICTNESS_OPTIONS,
+  STRICTNESS_ROW,
+  STRICTNESS_SUB,
+  STRICTNESS_TITLE,
+  strictnessLabel,
+  strictnessOf,
+  withStrictness,
+} from '../tutor/strictness.ts';
 import type { AuthResult } from '../auth/types.ts';
 
 /**
@@ -40,7 +49,7 @@ const GOALS = [
   { minutes: 15, label: 'Fifteen minutes', gloss: 'Serious momentum' },
 ] as const;
 
-type Sheet = 'none' | 'name' | 'goal' | 'intro' | 'acknowledgements' | 'delete' | 'unavailable';
+type Sheet = 'none' | 'name' | 'goal' | 'strictness' | 'intro' | 'acknowledgements' | 'delete' | 'unavailable';
 
 export function ProfileTab({
   onSignOut,
@@ -158,6 +167,41 @@ export function ProfileTab({
     );
   }
 
+  /**
+   * How much the tutor corrects, which the learner has never been able to say.
+   *
+   * The three policies have been in the brain since the engine was written and
+   * the eval measures all three, but the field was overwritten by every session
+   * that finished, so it was a log rather than a preference and nothing offered
+   * it. Same shape as the goal sheet, because it is the same kind of question:
+   * three options, one tap, and nothing to fail.
+   */
+  if (sheet === 'strictness') {
+    return (
+      <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
+        <Text style={[type.display, { color: paper.ink }]}>{STRICTNESS_TITLE}</Text>
+        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{STRICTNESS_SUB}</Text>
+        <View style={{ marginTop: space(6), gap: space(3) }}>
+          {STRICTNESS_OPTIONS.map((option) => (
+            <OptionCard
+              key={option.value}
+              text={option.label}
+              gloss={option.gloss}
+              selected={strictnessOf(profile) === option.value}
+              onPress={() => {
+                update(withStrictness(profile, option.value));
+                setSheet('none');
+              }}
+            />
+          ))}
+        </View>
+        <View style={{ marginTop: space(6) }}>
+          <OutlineButton label="Cancel" onPress={() => setSheet('none')} />
+        </View>
+      </View>
+    );
+  }
+
   if (sheet === 'name') {
     return (
       <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
@@ -201,6 +245,7 @@ export function ProfileTab({
             value={profile.dailyGoalMin === null ? 'Not set' : `${profile.dailyGoalMin} minutes a day`}
             onPress={() => setSheet('goal')}
           />
+          <SettingsRow label={STRICTNESS_ROW} value={strictnessLabel(profile)} onPress={() => setSheet('strictness')} />
           <SettingsRow label="Email" value={user?.email ?? 'Signed in'} />
           {hasPassword && (
             <SettingsRow

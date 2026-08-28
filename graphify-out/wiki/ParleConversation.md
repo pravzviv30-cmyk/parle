@@ -1,8 +1,8 @@
 # ParleConversation
 
-> God node · 55 connections · `services/tutor-agent/src/convo.ts`
+> God node · 62 connections · `services/tutor-agent/src/convo.ts`
 
-**Community:** [Parle Conversation Controller](Parle_Conversation_Controller.md)
+**Community:** [Conversation Orchestration](Conversation_Orchestration.md)
 
 ## Connections by Relation
 
@@ -16,25 +16,25 @@
 
 ### method
 - .runBrainTurn() `EXTRACTED`
-- .finish() `EXTRACTED`
 - .publish() `EXTRACTED`
 - .startScene() `EXTRACTED`
 - .routeClientMessage() `EXTRACTED`
+- .finish() `EXTRACTED`
+- .handleSafety() `EXTRACTED`
 - .armRescue() `EXTRACTED`
 - .curatePractice() `EXTRACTED`
+- .open() `EXTRACTED`
+- .clearRescue() `EXTRACTED`
 - .generateDrills() `EXTRACTED`
 - .say() `EXTRACTED`
-- .handleSafety() `EXTRACTED`
-- .clearRescue() `EXTRACTED`
-- .extractMemory() `EXTRACTED`
-- .open() `EXTRACTED`
 - .openMission() `EXTRACTED`
-- .buildFrame() `EXTRACTED`
+- .extractMemory() `EXTRACTED`
 - .recordBrainUsage() `EXTRACTED`
+- .buildFrame() `EXTRACTED`
 - .constructor() `EXTRACTED`
-- .returnToChoosing() `EXTRACTED`
 - .openScene() `EXTRACTED`
-- .onUserTurnCompleted() `EXTRACTED`
+- .returnToChoosing() `EXTRACTED`
+- .recordFailedCall() `EXTRACTED`
 
 ### references
 - [LlmUsage](LlmUsage.md) `EXTRACTED`

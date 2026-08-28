@@ -25,7 +25,7 @@
 
 ## Relationships
 
-- [Supabase and Google OAuth](Supabase_and_Google_OAuth.md) (3 shared connections)
+- [Supabase Auth & OAuth](Supabase_Auth_&_OAuth.md) (3 shared connections)
 
 ## Source Files
 

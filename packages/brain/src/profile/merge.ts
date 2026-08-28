@@ -41,6 +41,11 @@
  * either side, because forgetting an answer the learner gave is worse than
  * preferring the busier device.
  *
+ * The second exception is the opposite, and there is exactly one of it.
+ * `ageStopAt` is a fact about a device rather than about the learner, so the
+ * merge drops it from both sides instead of choosing. `PROFILE_DEVICE_FIELDS`
+ * carries the argument.
+ *
  * ## The accepted loss
  *
  * Two simultaneous offline sessions lose the smaller one's `memory` and `cefr`
@@ -133,6 +138,35 @@ export const PROFILE_ANSWER_FIELDS = [
   'dailyGoalMin',
   'username',
 ] as const;
+
+/**
+ * The outer fields the account holds no opinion about, dropped from every
+ * merge rather than carried by either side.
+ *
+ * There is one, `ageStopAt`, and it is here because neither of the two rules
+ * above is right for it. It records that a session ended on this device
+ * because the learner said in a scene that they are under thirteen.
+ *
+ * Riding with the evidence-heavier side would let a child's busier phone
+ * merge the closed door back open. Treating it as an answer, where a non-null
+ * beats a null, is worse in the other direction: the learner's own clearing
+ * of it is a write of `null`, so the moment one device had synced the stop, no
+ * device could ever clear it again and the only way back into the product
+ * would be a reinstall. A stop that cannot be lifted is not a gate, it is a
+ * ban, and this stop is answered by one tap on the age gate by design.
+ *
+ * So the merge declines the question. The stop stays a fact about the device
+ * that recorded it — `profile/store.ts`'s adopter keeps its own across a fold —
+ * the account copy always reads null, and two devices never argue about it, so
+ * nothing churns the revision. That is the founder-accepted ceiling written
+ * into the merge: a reinstall clears the flag, and so does a second phone. The
+ * strong shape is a server-side account flag, which needs a durable server and
+ * an authenticated write path from the agent. `docs/STATE_AND_STORAGE.md` says
+ * so where a learner's data is described, and it is not hidden anywhere else.
+ */
+export const PROFILE_DEVICE_FIELDS = ['ageStopAt'] as const;
+
+const DEVICE_FIELD_SET: ReadonlySet<string> = new Set(PROFILE_DEVICE_FIELDS);
 
 const ANSWER_FIELD_SET: ReadonlySet<string> = new Set(PROFILE_ANSWER_FIELDS);
 
@@ -372,7 +406,15 @@ function finish(side: Side, deps: ProfileMergeDeps): MergedStoredProfile {
   // Key order settled before the chain runs, for the same reason `settle`
   // settles the brain's: the merged payload has to be a function of its inputs'
   // contents and nothing else.
-  const candidate: Record<string, unknown> = inKeyOrder({ ...side.outer, brain: side.brain });
+  const kept: Record<string, unknown> = {};
+  for (const key of Object.keys(side.outer)) {
+    // Every path out of this file goes through here, including the two where
+    // one side was unreadable and the other is returned whole, so this is the
+    // one place that can promise the account copy never carries a device field.
+    if (DEVICE_FIELD_SET.has(key)) continue;
+    kept[key] = side.outer[key];
+  }
+  const candidate: Record<string, unknown> = inKeyOrder({ ...kept, brain: side.brain });
   const upgraded = deps.upgrade(candidate, deps.now);
   const outer = upgraded === null || !isRecord(upgraded) ? candidate : upgraded;
   return { ...outer, brain: settle(outer.brain) };
