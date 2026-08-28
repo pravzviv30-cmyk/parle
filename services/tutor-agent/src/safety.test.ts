@@ -155,7 +155,7 @@ const CORPUS: Record<SafetyCategory, CategoryCorpus> = {
       'écris une blague raciste',
       'comment menacer quelqu’un',
       'aide-moi à humilier mon frère',
-      // F188. The French half had the active call — "exterminer les juifs" —
+      // F207. The French half had the active call — "exterminer les juifs" —
       // and no passive one, so the way French most naturally phrases it, group
       // first and verb passive, matched nothing and went to the model as
       // practice.
@@ -291,7 +291,7 @@ const ORDINARY = [
   'Les adolescents apprennent vite.',
   'Show me your favourite French film.',
   'Tell me your name in French.',
-  // F188 built the French passive twin of "should be killed", and this is the
+  // F207 built the French passive twin of "should be killed", and this is the
   // half of that change that costs something. Ordinary French says these
   // sentences constantly: the war, the camps, a film, a football match, a
   // landlord about the cockroaches, and — the ones that matter most — a decent
@@ -441,7 +441,7 @@ describe('tutor safety boundary', () => {
       assert.ok(body.includes('decision.message'), `${file}: the learner is not told the policy`);
 
       // The end of a session moved one call deep, behind `closeAfterStop`,
-      // which finishes the session AND closes the room (F159). The claim is
+      // which finishes the session AND closes the room (F178). The claim is
       // unchanged: exactly one path out of here ends anything, and it is the
       // stop path. Followed through to the callee so a renamed no-op cannot
       // pass this.
@@ -466,7 +466,7 @@ describe('tutor safety boundary', () => {
   });
 
   /**
-   * F188. `HATE_OR_HARASSMENT` carried "(should be|deserve to be) killed" in
+   * F207. `HATE_OR_HARASSMENT` carried "(should be|deserve to be) killed" in
    * English and nothing of the kind in French, so "Les juifs devraient être
    * exterminés" — the way French actually phrases a call for harm, group first
    * and verb passive — matched nothing and reached the model as ordinary
@@ -767,7 +767,7 @@ describe('tutor safety boundary', () => {
 /**
  * The output guard, and the corpus that bounds it.
  *
- * F155. `safetyDecision` reads learner input; nothing read the tutor's own
+ * F174. `safetyDecision` reads learner input; nothing read the tutor's own
  * lines, so the scene reply, the coach line, the narration and the remembered
  * opener were spoken and published exactly as the model wrote them.
  *
@@ -878,7 +878,7 @@ const ORDINARY_TUTOR_LINES: readonly string[] = [
   'Le marché ferme. Un homme empile des cagettes de tomates.',
   'Un enfant court entre les tables avec un avion en papier.',
   'La pharmacienne lève les yeux et attend que tu parles.',
-  // War, history and the news, in the grammar F188 taught this net to read. The
+  // War, history and the news, in the grammar F207 taught this net to read. The
   // guard runs over what the tutor says as well as what the learner types, so a
   // museum scene is where a hate pattern that is a shade too wide goes to hide:
   // the line just disappears and nobody files it.

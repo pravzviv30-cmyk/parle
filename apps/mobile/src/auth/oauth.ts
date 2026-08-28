@@ -6,6 +6,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AuthResult } from './types.ts';
+import { GOOGLE_START_FAILED } from './friendly.ts';
 
 export async function startGoogleSignIn(client: SupabaseClient): Promise<AuthResult> {
   const { error } = await client.auth.signInWithOAuth({
@@ -15,6 +16,6 @@ export async function startGoogleSignIn(client: SupabaseClient): Promise<AuthRes
   // On success the browser is already navigating away; this return is for the
   // error path only.
   return error
-    ? { ok: false, message: 'Google sign in could not start. Check the Supabase Google provider setup.' }
+    ? { ok: false, message: GOOGLE_START_FAILED }
     : { ok: true };
 }

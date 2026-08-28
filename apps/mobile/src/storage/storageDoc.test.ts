@@ -6,7 +6,7 @@
  * from the storage is worse than none, because it is read *instead of* the code
  * and it is believed.
  *
- * The drift F175 names is the expensive kind. The pre-recap section described
+ * The drift F194 names is the expensive kind. The pre-recap section described
  * `finish()` as ending in two `void`ed, unawaited analyst calls whose results
  * were dropped when the room closed. F101 replaced that with an awaited
  * `Promise.allSettled`, and the worker now holds the room open for it. So an

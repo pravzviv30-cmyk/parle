@@ -1,5 +1,5 @@
 /**
- * The quiet door, mid-scene — F182.
+ * The quiet door, mid-scene — F201.
  *
  * The defect is not that the door was missing. It was on the screen, worded
  * exactly right, in both places a learner would look for it. What it did was
@@ -64,6 +64,11 @@ const EVERY_FAILURE = Object.keys({
   'mic-unavailable': true,
   'server-unreachable': true,
   'server-refused': true,
+  // Added on main by the connect-and-refusal work while this branch was open.
+  // The exhaustive map is the point: a new failure has to be answered here.
+  'rate-limited': true,
+  'session-elsewhere': true,
+  'sign-in-required': true,
   signal: true,
   media: true,
   'agent-absent': true,
@@ -100,7 +105,7 @@ function noRoom(): { switchToText: () => boolean; asked: () => number } {
   };
 }
 
-describe('the quiet door, taken where the learner is standing — F182', () => {
+describe('the quiet door, taken where the learner is standing — F201', () => {
   test('the quiet door mid-scene keeps the scene and is never refused by the lease', () => {
     // 1. The rule. A room that can go quiet does, and the caller is told so in
     //    a word rather than a boolean it could read either way round.

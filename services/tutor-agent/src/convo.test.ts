@@ -2562,7 +2562,7 @@ describe('where a safety decision leaves', () => {
 });
 
 /**
- * F153. Every safety decision leaves a content-free record.
+ * F172. Every safety decision leaves a content-free record.
  *
  * Slice 1 rewrote two matchers and nobody could say how often either of them
  * fires in the wild: not which category, not which rule, not whether the
@@ -2641,7 +2641,7 @@ describe('a safety decision leaves a record', () => {
 });
 
 /**
- * F155. What the tutor says passes a guard before the learner hears it.
+ * F174. What the tutor says passes a guard before the learner hears it.
  *
  * `safetyDecision` ran on learner input only. The scene reply, the coach line,
  * the narration and the remembered opener were spoken and published exactly as
@@ -2671,7 +2671,7 @@ describe('what the tutor says is guarded on its way out', () => {
       // The coach line only survives `integrateTurn` when a coach item earns
       // it, which is the engine's rule and not this test's.
       coach: [sampleCoachItem({ kind: 'textbook-phrasing' })],
-      // The line has to agree with the lead finding, or F161 refuses it in the
+      // The line has to agree with the lead finding, or F180 refuses it in the
       // engine and hands over `coachFallbackLine` before the guard is reached —
       // safe, but it would leave this test proving nothing about the guard. It
       // names the offered form so the engine keeps it, and carries the leak so
@@ -2758,7 +2758,7 @@ describe('what the tutor says is guarded on its way out', () => {
 });
 
 /**
- * F159. A stop closes the room once the message has landed.
+ * F178. A stop closes the room once the message has landed.
  *
  * After a stop the microphone is still published and the recogniser still
  * transcribes into a session that will neither hear nor answer. Nothing
@@ -2905,7 +2905,7 @@ describe('a stop closes the room', () => {
 });
 
 /**
- * F160. The seeded opening is checked before it is spoken.
+ * F179. The seeded opening is checked before it is spoken.
  *
  * A session started from a practice card carries a title the learner's own past
  * session produced. It was published and said out loud, and only then did
@@ -2962,7 +2962,7 @@ describe('the seeded opening', () => {
 });
 
 /**
- * F164. The strictness a live session actually runs on.
+ * F183. The strictness a live session actually runs on.
  *
  * All three doors into a scene were built on the literal `'flow'`, so two of
  * the three policies `grading.ts` builds and tests never ran anywhere a learner
@@ -3094,7 +3094,7 @@ describe('the strictness a live session runs on', () => {
 });
 
 /**
- * F180. The learner switches to text halfway through, and is still in the scene.
+ * F199. The learner switches to text halfway through, and is still in the scene.
  *
  * The client half already ships: `switchToText` publishes the frame, and the
  * microphone coming back publishes it the other way. The agents ignored it, so

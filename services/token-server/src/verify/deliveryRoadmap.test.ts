@@ -306,11 +306,11 @@ describe('the roadmap row records what Phase 5 proved', () => {
     const status = row.status.replace(/\s+/g, ' ').trim();
     assert.ok(status.length > 0, 'the Phase 5 row has no status cell to read');
 
-    // 1. The claim tracks the ledger, in both directions. F184 is excluded from
+    // 1. The claim tracks the ledger, in both directions. F203 is excluded from
     //    its own evidence: it is the entry that writes this row, so it is open
     //    for as long as the row is being written and closed the moment it is
     //    right. Counting it would make the rule unsatisfiable.
-    const blocking = entries.filter((e) => !e.closed && e.severity !== 'P2' && e.id !== 'F184');
+    const blocking = entries.filter((e) => !e.closed && e.severity !== 'P2' && e.id !== 'F203');
     const claimsHeld = /held locally|all five properties/i.test(status);
     if (blocking.length > 0) {
       assert.ok(
@@ -323,7 +323,7 @@ describe('the roadmap row records what Phase 5 proved', () => {
 
     // 2. Open P2s are not hidden. A row that mentions none while some exist is
     //    a row somebody reads as finished.
-    const restP2 = entries.filter((e) => !e.closed && e.severity === 'P2' && e.id !== 'F184');
+    const restP2 = entries.filter((e) => !e.closed && e.severity === 'P2' && e.id !== 'F203');
     if (restP2.length > 0) {
       assert.match(status, /P2/, `${restP2.length} Phase 5 P2s are open and the status cell does not admit any`);
     }

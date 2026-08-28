@@ -96,7 +96,7 @@ describe('applyTurnToProfile', () => {
     assert.equal(profile.cefr.evidence.length, EVIDENCE_WINDOW);
   });
 
-  // F163. One model call can mint a correction and a credit for the same
+  // F182. One model call can mint a correction and a credit for the same
   // phrase. Nothing downstream can tell those apart afterwards: this count is
   // the brain's half of the canonical phrase-evidence record in core, so three
   // contradictory turns used to write `mastered` onto French the tutor spent
@@ -249,7 +249,7 @@ describe('finishSession', () => {
     assert.deepEqual(next.preferences.lastScenarios, ['Au café du coin']);
   });
 
-  // F165. finishSession used to copy the session's strictness back over the
+  // F184. finishSession used to copy the session's strictness back over the
   // stored preference, which made the field a log of the last session instead
   // of a setting — so the one field a strictness dial needs erased itself every
   // time a session ended, and any dial built on it would have looked broken.
@@ -367,7 +367,7 @@ describe('memory — what the tutor knows about the person', () => {
     assert.equal(profile.memory.facts[0]!.en, 'Fact number d', 'the three oldest were evicted');
   });
 
-  // F156. `repairProfile` is where a profile arrives off the join credential,
+  // F175. `repairProfile` is where a profile arrives off the join credential,
   // and it validated the name while passing the opener and the facts straight
   // through. Those are not inert: memory.opener IS the sentence the tutor
   // speaks first, before any model call, and memory.facts ride verbatim into

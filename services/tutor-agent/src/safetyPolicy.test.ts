@@ -848,14 +848,14 @@ describe('the privacy and safety policy is held against the code', () => {
     for (const agent of ['convo.ts', 'tutor.ts']) {
       const closer = closerBody(agent);
       assert.match(closer, /this\.closeRoom\(\)/, `${agent}: a stop no longer closes the room`);
-      // F189, held as it is rather than as we would like it. The doc says the
+      // F208, held as it is rather than as we would like it. The doc says the
       // post-session work still runs; the day it stops running, this fails and
       // the doc gets corrected instead of drifting into a nicer claim.
-      assert.match(closer, /void this\.finish\(\)/, `${agent}: the stop path now waits on finish(), so the doc's F189 paragraph is out of date`);
-      assert.doesNotMatch(closer, /await this\.finish\(\)/, `${agent}: the stop path now awaits finish(), so the doc's F189 paragraph is out of date`);
+      assert.match(closer, /void this\.finish\(\)/, `${agent}: the stop path now waits on finish(), so the doc's F208 paragraph is out of date`);
+      assert.doesNotMatch(closer, /await this\.finish\(\)/, `${agent}: the stop path now awaits finish(), so the doc's F208 paragraph is out of date`);
     }
     assert.match(stop, /extract, curate and drill generation still run/, 'the stop list claims a cleanliness the worker does not have');
-    assert.ok(stop.includes('F189'), 'the stop list does not name the ledger entry that owns the work a stop does not stop');
+    assert.ok(stop.includes('F208'), 'the stop list does not name the ledger entry that owns the work a stop does not stop');
   });
 
   test('no shipped copy anywhere tells a learner that Parle is an emergency service', () => {

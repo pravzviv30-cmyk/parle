@@ -624,7 +624,7 @@ describe("the hook's audio path, per mode — F140", () => {
  * lifted with its handler and made a statement again.
  *
  * `fragment` throws if the hook stops subscribing to one of them, which is the
- * first half of what F176 is about: the handler that was missing was missing
+ * first half of what F195 is about: the handler that was missing was missing
  * entirely, and nothing anywhere said so.
  */
 const RECONNECT_HANDLERS = ['SignalReconnecting', 'Reconnecting', 'Reconnected']
@@ -653,6 +653,11 @@ const EVERY_FAILURE = Object.keys({
   'mic-unavailable': true,
   'server-unreachable': true,
   'server-refused': true,
+  // Added on main by the connect-and-refusal work while this branch was open.
+  // The exhaustive map is the point: a new failure has to be answered here.
+  'rate-limited': true,
+  'session-elsewhere': true,
+  'sign-in-required': true,
   signal: true,
   media: true,
   'agent-absent': true,
@@ -665,7 +670,7 @@ const EVERY_FAILURE = Object.keys({
   unknown: true,
 } satisfies Record<LiveFailure, true>) as LiveFailure[];
 
-describe('a blip in the middle of a session — F176', () => {
+describe('a blip in the middle of a session — F195', () => {
   test('a reconnect re-sends ready and the session resumes instead of ending', () => {
     // Subscribe exactly as the hook subscribes, against livekit-client's own
     // event names. A renamed or dropped event is a handler that never runs
@@ -688,6 +693,10 @@ describe('a blip in the middle of a session — F176', () => {
         setReconnecting: (v: boolean) => reconnecting.push(v),
         send: (m: unknown) => sent.push(m),
         voicelessRef,
+        // The ownership guard main added while this branch was open. A reconnect
+        // belongs to the session on screen, so it answers true here; the tests
+        // that prove a stale start cannot act live in startOwnership.test.ts.
+        owns: () => true,
         // Supplied so that a handler which ever reaches for one of these is a
         // failure here. A blip is not an ending, it does not stand the watchdog
         // down, and — slice 1's rule — it cannot touch the safety decision.
@@ -744,6 +753,7 @@ describe('a blip in the middle of a session — F176', () => {
     run(DISCONNECTED_HANDLER, {
       room: { on: (event: string, handler: () => void) => disconnect.set(event, handler) },
       RoomEvent,
+      owns: () => true,
       clearWatchdog: () => {},
       setReconnecting: () => {},
       setStatus: (update: (s: unknown) => unknown) => {
@@ -760,7 +770,7 @@ describe('a blip in the middle of a session — F176', () => {
   });
 });
 
-describe('the tutor that never arrived — F177', () => {
+describe('the tutor that never arrived — F196', () => {
   test('giving up on an absent tutor frees the account to try again now', async () => {
     // The give-up path, once for every failure it can be handed. Only one of
     // them may hand the lease back: 'agent-silent' means an agent IS in the room
@@ -854,7 +864,7 @@ describe('the tutor that never arrived — F177', () => {
   });
 });
 
-describe('the quiet door, mid-session — F181', () => {
+describe('the quiet door, mid-session — F200', () => {
   test('switching to text keeps the room, stops the microphone and needs no new grant', () => {
     const published: boolean[] = [];
     const sent: unknown[] = [];
@@ -999,7 +1009,7 @@ describe('the quiet door, mid-session — F181', () => {
   });
 });
 
-describe('half the tutor stops working mid-session — F179, the rendering half', () => {
+describe('half the tutor stops working mid-session — F198, the rendering half', () => {
   test('a dead pipeline reaches the failure screen and a blip stays in the session', () => {
     const frame = (kind: string | undefined, recoverable: boolean | undefined) => ({
       t: 'error',

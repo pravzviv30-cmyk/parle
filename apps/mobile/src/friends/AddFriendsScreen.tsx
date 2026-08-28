@@ -21,7 +21,7 @@ import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { withUsername } from '../profile/store.ts';
 import { friends } from './adapter.ts';
-import { asUsername, defaultUsername } from './logic.ts';
+import { defaultUsername, searchMiss } from './logic.ts';
 import { SampleChip } from './ui.tsx';
 import type { FriendEntry, FriendRequest } from './types.ts';
 
@@ -95,8 +95,10 @@ export function AddFriendsScreen() {
     if (result.message) setNote({ text: result.message, ok: result.ok });
   };
 
-  const typed = asUsername(q);
-  const showInvite = typed !== '' && !hits.some((h) => h.username === typed);
+  // What the result area says when the search finds nobody. It used to be one
+  // emptiness test written here, and it had a silent answer: a query that slugs
+  // away to nothing left this whole area blank. See friends/logic.ts.
+  const miss = searchMiss(q, hits.map((h) => h.username));
   const outgoing = requestRows.filter((r) => r.direction === 'outgoing');
   const incoming = requestRows.filter((r) => r.direction === 'incoming');
 
@@ -171,21 +173,31 @@ export function AddFriendsScreen() {
               </Card>
             )}
 
-            {showInvite && (
+            {miss?.kind === 'invite' && (
               <Card style={hits.length > 0 ? { marginTop: space(4) } : undefined}>
                 <Text style={[type.bodyStrong, { color: paper.ink }]}>
-                  Nobody here is called {typed} yet.
+                  Nobody here is called {miss.username} yet.
                 </Text>
                 <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
                   You can leave them a request anyway. It will wait here and go out when friend servers arrive.
                 </Text>
-                {statusFor(typed) === 'add' ? (
+                {statusFor(miss.username) === 'add' ? (
                   <View style={{ alignSelf: 'flex-start', marginTop: space(1) }}>
-                    <GhostButton label="Save the request" color={paper.ink} onPress={() => void add(typed)} />
+                    <GhostButton label="Save the request" color={paper.ink} onPress={() => void add(miss.username)} />
                   </View>
                 ) : (
                   <Text style={[type.small, { color: paper.inkFaint, marginTop: space(2) }]}>Saved and waiting.</Text>
                 )}
+              </Card>
+            )}
+
+            {/* Nothing typed here could be a username, so there is no request
+                to offer. The line says what a username is made of rather than
+                what was wrong with the search. */}
+            {miss?.kind === 'unusable' && (
+              <Card>
+                <Text style={[type.bodyStrong, { color: paper.ink }]}>{miss.headline}</Text>
+                <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{miss.body}</Text>
               </Card>
             )}
           </>

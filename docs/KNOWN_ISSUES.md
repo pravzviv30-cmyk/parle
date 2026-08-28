@@ -2764,7 +2764,221 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   objects; `the schoolgirl should send me pics` must keep its stop witness.
 - verified-by: `a child sending or showing something ordinary is never read as a grooming approach`
 
-### F150 — The wire learns a mid-session mode switch
+### F150 — A refused session start gives the server's true advice, not sign-out advice
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/failure.ts:76
+- note: classifyFailure folds every 4xx into server-refused, so a 429 rate limit, a 409
+  second-session conflict and a 401 signed-out start all tell the learner to sign out and
+  back in, which is wrong for all three and actively harmful for the 409. Three new
+  variants map from the status the TokenServerError already carries; the copy is
+  client-authored inside the existing closed record, never rendered from the server body.
+- verified-by: `a rate limited start asks for a short wait, not a sign out`
+- verified-by: `a second session elsewhere is told to end it, not to sign out`
+- verified-by: `a signed out start says to sign in`
+
+### F151 — The connect wait has a door and words that change
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/LiveSessionScreen.tsx:75
+- note: both live screens' connecting branch is a spinner and one static line with no
+  Leave, over a cold start that can reach twenty five seconds; the adjacent waiting
+  branch already had exactly this fixed via tutor/waitingView.ts. A pure
+  live/connectingView.ts stages the copy by elapsed time and always returns the door;
+  both screens render its answer. The executor must verify leave() is safe against an
+  in-flight token fetch before wiring the door.
+- verified-by: `the connect wait changes its words as it grows old`
+- verified-by: `every connecting stage keeps a way out`
+- verified-by: `both live screens draw the connecting wait from the view model, door included`
+
+### F152 — A busy auth screen says what it is doing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/SignInScreen.tsx:112
+- note: submit and Google set disabled and nothing else on all three auth screens, and
+  the Forgot password ghost stays tappable while busy because GhostButton has no
+  disabled prop at all. Busy relabels follow the ProfileTab "Verifying…" precedent;
+  GhostButton gains disabled in components.tsx matching PillButton's shape.
+- verified-by: `a busy auth button says what it is doing`
+- verified-by: `forgot password cannot be tapped while the screen is busy`
+
+### F153 — A provider error never reaches the learner raw
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/supabaseAdapter.ts:36
+- note: three leaks. friendly() renders any unmapped GoTrue message under 120 characters
+  verbatim; deleteAccount renders the token server's JSON body.message unchecked; and
+  the Google failure tells a learner to check the Supabase provider setup, which is ops
+  advice naming a vendor. friendly() is extracted to auth/friendly.ts with a closed
+  fallthrough, deletion failures speak the app's own words with the raw detail logged
+  for the developer, and the Google copy points at what the learner can actually do.
+- verified-by: `an unmapped provider error never reaches the learner raw`
+- verified-by: `the known provider errors keep their translations`
+- verified-by: `account deletion failure speaks the app's words, not the server's`
+- verified-by: `the google error tells the learner what to do, not which vendor to configure`
+
+### F154 — A practice tap acknowledges the probe and cannot double
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/PracticeTab.tsx:73
+- note: the lesson row and talk-again fire recheck() then navigate with no checking
+  flag, so the tap is dead for up to a second and a half and a second tap queues a
+  second navigation. TutorTab.tsx:78 already solved this with a checking guard and the
+  gate's own "Checking" copy; the tab mirrors it at both call sites.
+- verified-by: `a practice tap during the probe is acknowledged and never doubled`
+
+### F155 — Finish says a recap is coming
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:756
+- note: tapping Finish dismisses the win card, sets finishing, and renders nothing on
+  it, so the learner watches the ordinary scene in silence for up to fifteen seconds
+  before the bail fires. A tiny pure tutor/recapWait.ts owns the predicate and the
+  copy; the screen shows the line with a spinner while it holds, and the existing bail
+  and Leave stay as they are.
+- verified-by: `the finish wait says a recap is coming and keeps the door`
+- verified-by: `the convo screen shows the recap wait while finishing`
+
+### F156 — The password requirement is visible while it is being met
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/SignUpScreen.tsx:97
+- note: the eight-character rule lives only in a placeholder that vanishes on the first
+  keystroke and a post-submit error. A pure passwordHint(value) renders one line under
+  the field that flips to a met state as the learner types. One requirement exists, so
+  one line, not a checklist. validate.ts gets its first tests in the same round.
+- verified-by: `the password hint updates as the requirement is met`
+- verified-by: `the email and password checks catch what would certainly bounce and nothing more`
+
+### F157 — Set-new-password errors sit beside their fields
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/SetNewPasswordScreen.tsx:70
+- note: both of this screen's errors are field-specific, too short and mismatch, and
+  both render in a loose banner while the two Fields never receive their error prop.
+  Field already carries the announcement plumbing; the errors move onto it. SignIn's
+  banner stays, because a credentials mismatch belongs to the pair, not a field.
+- verified-by: `set new password errors sit beside their fields`
+
+### F158 — The empty drill bank draws the scene the scene file promises it
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/DrillScreen.tsx:771
+- note: illustrations/scenes/empty.tsx says NothingDue serves the empty review deck and
+  the empty drill bank; the drill's empty branch renders a bare Card, breaking the
+  file's own promise. Draw the scene, keep the copy.
+- verified-by: `the empty drill bank draws the nothing due scene`
+
+### F159 — A friend search that slugs to nothing still says something
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/friends/AddFriendsScreen.tsx:99
+- note: the zero-result card keys off asUsername(q) being non-empty, so a query that
+  slugs to the empty string leaves a completely blank result area. A pure helper in
+  friends/logic.ts decides the line; the ordinary zero-result path already echoes the
+  term and offers an action, and is untouched.
+- verified-by: `a search that slugs to nothing still says something`
+
+### F160 — The session conflict advice is false for the learner who just abandoned their own connect
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/failure.ts:205
+- note: leave during connect (the door F151 added, invited by the 12 s copy) discards a
+  grant the server has already leased for thirty minutes (server.ts:281, released only by
+  the agent-gated /session/end). The retry gets 409, and session-elsewhere says "End it
+  there, then come back and start again" with canType false — an instruction that cannot
+  succeed when the only session is the one they abandoned, and no other move on the
+  screen. The copy must offer an honest fallback for the single-device case, without
+  promising a wait shorter than the lease the server actually keeps.
+- verified-by: `a session conflict on this device offers an honest way forward`
+
+### F161 — F154's only verified-by passes with the acknowledgement deleted
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/surfaceContract.test.ts:578
+- note: the ordering assertion is indexOf('setChecking(true)') < indexOf('recheck()'),
+  and indexOf returns -1 when absent, so deleting both setChecking(true) calls in
+  PracticeTab.tsx leaves the whole suite green while the guard, the Checking copy and the
+  disabled state all go inert — F154 restored in full under a passing test. Assert the
+  setter exists before comparing positions.
+- verified-by: `the checking flag is raised before the probe, not merely consulted`
+
+### F162 — F151's screen walk never pins the elapsed clock to the view model
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/connectingView.test.ts:124
+- note: the test asserts connectingView( is called in the branch but not what it is
+  called with, so freezing both call sites to connectingView(0) keeps all four tests
+  green while the learner is back to one unchanging sentence for twenty five seconds,
+  which is F151 verbatim. Pin the argument the way recapWait.test.ts:57 already does.
+- verified-by: `both live screens hand the view model the elapsed clock, not a constant`
+
+### F163 — The rate limited deletion promises a minute the server does not keep
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/friendly.ts:65
+- note: deletionFailure(429) says "Give it a minute, then try again", but the deletion
+  windows are three per user and twenty per address per day (rateLimit.ts:253-254), so a
+  learner who obeys is refused for up to twenty four hours while being told a minute.
+  New copy in a contract whose purpose is honest words must not state a false wait.
+- verified-by: `a rate limited deletion does not promise a shorter wait than the server keeps`
+
+### F164 — Typing the current password on the reset screen gets a generic and a loop
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/friendly.ts:48
+- note: GoTrue's same_password refusal ("New password should be different from the old
+  password.") matches no branch and becomes "Something went sideways. Try again in a
+  moment." — advice that can never succeed for the learner resetting to the password the
+  account already has, on the very screen F157 rewrote. Add the mapping and pin the raw
+  string in the fixtures.
+- verified-by: `typing the current password on the reset screen says to choose a different one`
+
+### F165 — A grant nobody joins holds the session lease for half an hour
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/server.ts:281
+- note: the lease is acquired at token grant, before anyone joins, and released only by
+  /session/end, which the app cannot call; a grant abandoned by the F151 stand-down path
+  dispatches no tutor, so nothing releases it and every retry 409s for up to thirty
+  minutes. Root cause of F160. Token-server territory, outside this contract: acquire on
+  participant join, shorten the unjoined lease, or give the learner-authenticated path a
+  release. Route to voice-platform with its own contract.
+- verified-by: `a grant nobody joins does not hold the session lease for half an hour`
+
+### F166 — Nothing pins the adapter to friendly.ts, so F153's leak can silently return
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/friendly.test.ts:66
+- note: with friendly.ts intact but the HEAD supabaseAdapter.ts (local translator, leak
+  open), both F153 headline tests still pass; nothing asserts the adapter imports
+  friendly.ts or owns no translator of its own. A re-added local friendly() ships the
+  raw-GoTrue leak under a green suite. Add the source-walk pair the deletion test
+  already uses.
+- verified-by: `the adapter translates through friendly.ts and owns no translator of its own`
+
+### F167 — The character-class password refusal is mislabelled as too short
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/friendly.ts:46
+- note: "Password should contain at least one character of each: ..." contains both
+  "password" and "at least", so a learner whose project sets password_required_characters
+  is told to type a longer password that will fail again at any length. Narrow the match
+  or route on the AuthApiError code the adapter already holds.
+- verified-by: `a password refused for missing character classes is not called too short`
+
+### F168 — The out-of-minutes screen renders the token server's own sentence
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/live/useLiveSession.ts:531
+- note: the 402 branch renders body.message raw, which today can be "The introductory
+  minutes for this installation have already been used by another account." — an internal
+  noun and an accusation, the class F153 closed on the auth side. Parked by this
+  contract's out-of-scope list (the plans payload is revenue-engineer work); filed so the
+  revenue contract inherits it rather than losing it.
+- verified-by: `the out of minutes screen speaks the app's words, not the server's`
+
+### F169 — The wire learns a mid-session mode switch
 - severity: P1
 - status: [x]
 - where: packages/core/src/protocol/protocol.ts:350
@@ -2773,7 +2987,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   SERVER_TAGS.
 - verified-by: `the mode frame decodes and an unknown mode value is refused`
 
-### F151 — The error frame says what failed and whether it will pass
+### F170 — The error frame says what failed and whether it will pass
 - severity: P1
 - status: [x]
 - where: packages/core/src/protocol/protocol.ts:246
@@ -2782,7 +2996,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   frames still decode.
 - verified-by: `an error frame carries its kind and recoverability and old frames still decode`
 
-### F152 — An abandoned grant releases its lease
+### F171 — An abandoned grant releases its lease
 - severity: P1
 - status: [x]
 - where: services/token-server/src/server.ts:44
@@ -2791,7 +3005,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   plus sessionId match, riding the store's existing matched release.
 - verified-by: `an abandoned grant releases the lease so the next start succeeds`
 
-### F153 — Every safety decision leaves a content-free record
+### F172 — Every safety decision leaves a content-free record
 - severity: P1
 - status: [x]
 - where: services/tutor-agent/src/convo.ts:1049
@@ -2801,7 +3015,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   lands.
 - verified-by: `a safety decision is recorded with category, action and rule, never the learner's words`
 
-### F154 — A tapped option passes the safety boundary
+### F173 — A tapped option passes the safety boundary
 - severity: P1
 - status: [x]
 - where: services/tutor-agent/src/tutor.ts:224
@@ -2810,7 +3024,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   whole scripted lesson.
 - verified-by: `a tapped option's text passes the safety boundary before grading or publishing`
 
-### F155 — What the tutor says passes a guard before the learner hears it
+### F174 — What the tutor says passes a guard before the learner hears it
 - severity: P1
 - status: [x]
 - where: services/tutor-agent/src/convo.ts:1108
@@ -2821,7 +3035,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a model line that fails the output guard is replaced and the scene continues`
 - verified-by: `an ordinary tutor line passes the output guard untouched`
 
-### F156 — A tampered profile cannot choose the tutor's first words
+### F175 — A tampered profile cannot choose the tutor's first words
 - severity: P1
 - status: [x]
 - where: packages/brain/src/profile/profile.ts:146
@@ -2829,7 +3043,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   lines later; both gain the validLearnerName treatment of type, length and control characters.
 - verified-by: `a tampered profile cannot choose what the tutor speaks first`
 
-### F157 — The scene builder treats the request as content
+### F176 — The scene builder treats the request as content
 - severity: P1
 - status: [x]
 - where: packages/brain/src/prompt/scenarioPrompt.ts:67
@@ -2838,7 +3052,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   test drives the real builder, whose output is the shipped artifact.
 - verified-by: `the scene builder is told the request is content, not instruction`
 
-### F158 — An under-13 stop is remembered by the account
+### F177 — An under-13 stop is remembered by the account
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/profile/upgrade.ts:89
@@ -2848,7 +3062,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   founder accepted it rather than wait for Supabase.
 - verified-by: `an under-13 stop closes the tutor doors until the age gate is passed again`
 
-### F159 — A stop closes the room once the message has landed
+### F178 — A stop closes the room once the message has landed
 - severity: P2
 - status: [x]
 - where: services/tutor-agent/src/convo.ts:1049
@@ -2857,7 +3071,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   agent.ts already uses.
 - verified-by: `after a stop the room closes once the message has landed`
 
-### F160 — The seeded opening is checked before it is spoken
+### F179 — The seeded opening is checked before it is spoken
 - severity: P2
 - status: [x]
 - where: services/tutor-agent/src/convo.ts:1094
@@ -2865,7 +3079,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   check moves ahead of the publish.
 - verified-by: `the seeded opening is checked before it is published or spoken`
 
-### F161 — The voice and the transcript surface the same finding
+### F180 — The voice and the transcript surface the same finding
 - severity: P1
 - status: [x]
 - where: packages/brain/src/engine/conversation.ts:561
@@ -2875,7 +3089,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the spoken coach line describes the finding the code surfaced`
 - verified-by: `correct-but-textbook phrasing is never told not quite`
 
-### F162 — The scripted lesson caps its corrections in code
+### F181 — The scripted lesson caps its corrections in code
 - severity: P1
 - status: [x]
 - where: packages/core/src/session/session.ts:369
@@ -2884,7 +3098,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   comment and by contract, so core grows no second ladder.
 - verified-by: `six missed turns do not earn six corrections`
 
-### F163 — A corrected phrase earns no credit in the same turn
+### F182 — A corrected phrase earns no credit in the same turn
 - severity: P1
 - status: [x]
 - where: packages/brain/src/profile/profile.ts:256
@@ -2893,7 +3107,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   single credit choke point, excludes phrases named in the turn's coach findings.
 - verified-by: `a phrase corrected this turn earns no mastery credit this turn`
 
-### F164 — Live sessions run the learner's stored strictness
+### F183 — Live sessions run the learner's stored strictness
 - severity: P1
 - status: [x]
 - where: services/tutor-agent/src/convo.ts:919
@@ -2903,7 +3117,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   capped by K1's cooldown and reversible in one line.
 - verified-by: `a live session runs the learner's stored strictness, not a hardcoded one`
 
-### F165 — Finishing a session keeps the learner's strictness choice
+### F184 — Finishing a session keeps the learner's strictness choice
 - severity: P1
 - status: [x]
 - where: packages/brain/src/profile/profile.ts:390
@@ -2912,16 +3126,16 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   untouched.
 - verified-by: `finishing a session leaves the strictness preference as the learner set it`
 
-### F166 — The learner can turn the strictness dial
+### F185 — The learner can turn the strictness dial
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:1
 - note: the dial is built, tested and unreachable; one SettingsRow with three plain options
-  writes the preference F165 now preserves and F164 now honours. Copy is warm and honest about
+  writes the preference F184 now preserves and F183 now honours. Copy is warm and honest about
   what each setting does.
 - verified-by: `the profile tab turns the strictness dial and the store keeps the choice`
 
-### F167 — Feedback never asks for a retry the lesson will not give
+### F186 — Feedback never asks for a retry the lesson will not give
 - severity: P2
 - status: [x]
 - where: packages/core/src/session/session.ts:290
@@ -2930,7 +3144,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   forward.
 - verified-by: `feedback copy never asks for a retry the lesson will not give`
 
-### F168 — The tutor doc describes the cooldown the engine keeps
+### F187 — The tutor doc describes the cooldown the engine keeps
 - severity: P2
 - status: [x]
 - where: docs/TUTOR_BRAIN.md:19
@@ -2939,7 +3153,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   doc-code agreement is the finding.
 - verified-by: `the tutor doc describes the cooldown the engine keeps`
 
-### F169 — The crash path banks what curation would keep
+### F188 — The crash path banks what curation would keep
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/live/journalRules.ts:258
@@ -2947,7 +3161,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   curation exists to prevent; recovery applies curation's own cap of five.
 - verified-by: `a recovered journal banks at most what curation would have kept`
 
-### F170 — The curated batch is journalled and replays identically
+### F189 — The curated batch is journalled and replays identically
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/live/journal.ts:186
@@ -2957,7 +3171,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   identity-is-the-French-line merge prevents double banking, proven not assumed.
 - verified-by: `a curated batch that fails to bank is banked identically on the next launch`
 
-### F171 — Extensions pass a content check before becoming cards
+### F190 — Extensions pass a content check before becoming cards
 - severity: P1
 - status: [x]
 - where: packages/brain/src/curate/curate.ts:136
@@ -2966,7 +3180,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   rules, and rejections are counted like drill rejections.
 - verified-by: `an extension that fails the content check never becomes a card`
 
-### F172 — The scripted lesson hears the durability answer
+### F191 — The scripted lesson hears the durability answer
 - severity: P2
 - status: [x]
 - where: apps/mobile/src/review/store.ts:144
@@ -2975,7 +3189,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   caller keeps a failed deck for retry on the existing journal seam.
 - verified-by: `a lesson deck that fails to save is kept and retried, not dropped`
 
-### F173 — Curation spends no slot on what the learner already uses
+### F192 — Curation spends no slot on what the learner already uses
 - severity: P2
 - status: [x]
 - where: packages/brain/src/curate/curate.ts:47
@@ -2984,7 +3198,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   in code, with the supply line added agent-side in TB-2.
 - verified-by: `curation is told what the learner already uses and spends no slot on it`
 
-### F174 — Curation gets an eval
+### F193 — Curation gets an eval
 - severity: P2
 - status: [ ]
 - where: services/brain-playground/package.json:9
@@ -2993,7 +3207,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   criterion has a measurement to regress against.
 - verified-by: `the curation eval scores keeps against drops and runs from the playground`
 
-### F175 — The storage doc describes the publish that exists
+### F194 — The storage doc describes the publish that exists
 - severity: P2
 - status: [x]
 - where: docs/STATE_AND_STORAGE.md:115
@@ -3003,7 +3217,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   accuracy is the finding.
 - verified-by: `the storage doc describes the awaited publish and the loss window that remains`
 
-### F176 — The client rides a reconnect instead of dying of it
+### F195 — The client rides a reconnect instead of dying of it
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/live/useLiveSession.ts:677
@@ -3013,7 +3227,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   state. Closes both survey faces of this gap.
 - verified-by: `a reconnect re-sends ready and the session resumes instead of ending`
 
-### F177 — Giving up on an absent tutor frees the account
+### F196 — Giving up on an absent tutor frees the account
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/live/useLiveSession.ts:724
@@ -3022,7 +3236,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   trying again now succeeds.
 - verified-by: `giving up on an absent tutor frees the account to try again now`
 
-### F178 — A dropped session makes no false promise
+### F197 — A dropped session makes no false promise
 - severity: P2
 - status: [x]
 - where: apps/mobile/src/live/failure.ts:184
@@ -3031,18 +3245,18 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the way back.
 - verified-by: `the dropped-session message promises nothing the code does not do`
 
-### F179 — A vendor failure is named honestly and offers the typed door
+### F198 — A vendor failure is named honestly and offers the typed door
 - severity: P1
 - status: [x]
 - where: services/tutor-agent/src/agent.ts:271
 - note: the handler discards the union's type and recoverable fields, so a dead STT reads as a
   passing voice blip while the meter runs; recoverable stays a quiet notice, unrecoverable names
-  what is true and offers the switch to typing that F181 builds, and each classified failure is
+  what is true and offers the switch to typing that F200 builds, and each classified failure is
   logged.
 - verified-by: `an unrecoverable vendor failure is named honestly and offers the typed door`
 - verified-by: `a recoverable blip stays a quiet notice`
 
-### F180 — The agents honour a mid-session switch to text
+### F199 — The agents honour a mid-session switch to text
 - severity: P1
 - status: [x]
 - where: services/tutor-agent/src/convo.ts:1524
@@ -3051,7 +3265,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   scene and the meter continue.
 - verified-by: `a mode frame turns the agent voiceless mid-session without ending the scene`
 
-### F181 — The hook switches to text without a new room
+### F200 — The hook switches to text without a new room
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/live/useLiveSession.ts:188
@@ -3060,7 +3274,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   only.
 - verified-by: `switching to text keeps the room, stops the microphone and needs no new grant`
 
-### F182 — The quiet door mid-scene keeps the scene
+### F201 — The quiet door mid-scene keeps the scene
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/ConvoScreen.tsx:250
@@ -3070,7 +3284,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   over a dead render path.
 - verified-by: `the quiet door mid-scene keeps the scene and is never refused by the lease`
 
-### F183 — The privacy doc matches the new safety behaviour
+### F202 — The privacy doc matches the new safety behaviour
 - severity: P1
 - status: [x]
 - where: docs/PRIVACY_AND_SAFETY.md:300
@@ -3079,7 +3293,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   escalation or reporting route exists; safetyPolicy.test.ts keeps holding code against doc.
 - verified-by: `the privacy doc matches the record kept, the memory added and the gate that closes`
 
-### F184 — The roadmap row records what Phase 5 proved
+### F203 — The roadmap row records what Phase 5 proved
 - severity: P1
 - status: [x]
 - where: docs/DELIVERY_ROADMAP.md:14
@@ -3087,32 +3301,32 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   properties as held locally and the six external checks as still unclaimed by anyone.
 - verified-by: `the roadmap row records what phase five proved and what stays external`
 
-### F185 — The end card can congratulate a learner for the phrase it just corrected
+### F204 — The end card can congratulate a learner for the phrase it just corrected
 - severity: P2
 - status: [x]
 - where: packages/brain/src/engine/conversation.ts:678
 - note: `state.usedWell` accumulates `turn.profileSignals.usedWell` raw, with no coaching filter,
-  and `recap.ts:111` turns it into the end card's wins. F163 closed this at the evidence choke
+  and `recap.ts:111` turns it into the end card's wins. F182 closed this at the evidence choke
   point so nothing inflates the canonical record, but the recap reads its own accumulator, so
   the learner can still be praised on the end card for a phrase the same turn corrected. Same
-  one-turn-one-verdict family as F161 and F163, third mouth. Display rather than evidence, so
+  one-turn-one-verdict family as F180 and F182, third mouth. Display rather than evidence, so
   it inflates nothing, but it is the contradiction the learner can actually see. Found by
-  learning-science-engineer while closing F163.
+  learning-science-engineer while closing F182.
 - verified-by: `the end card never celebrates a phrase the session corrected`
 
-### F186 — The correction cooldown is one decision kept in two places
+### F205 — The correction cooldown is one decision kept in two places
 - severity: P2
 - status: [x]
 - where: packages/brain/src/engine/grading.ts:110
-- note: F162 carried K1's `INLINE_COACH_COOLDOWN_TURNS` into `packages/core/src/session/session.ts`
+- note: F181 carried K1's `INLINE_COACH_COOLDOWN_TURNS` into `packages/core/src/session/session.ts`
   as `CORRECTION_COOLDOWN_TURNS`, pinned by comment and by a test that fails on drift, because
   core cannot import brain. But brain already imports `@parle/core`, so the dependency runs the
   other way: move the constant into core and have `grading.ts` re-export it, and the pin becomes
   mechanical rather than a test on a literal. One decision, one home, no new package. Found by
-  bug-hunter while closing F162, and correctly not built from core's side.
+  bug-hunter while closing F181, and correctly not built from core's side.
 - verified-by: `the correction cooldown has one home and both modes read it`
 
-### F187 — A rescue line is either dead or lost, and nothing says which
+### F206 — A rescue line is either dead or lost, and nothing says which
 - severity: P2
 - status: [ ]
 - where: packages/brain/src/copy.ts:174
@@ -3120,10 +3334,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the repo is its own test at `copy.test.ts:137`. Either the live path lost its rescue line or
   the constant is dead weight that a copy test keeps looking alive. A constant whose only caller
   is the test that checks it proves nothing about the product. Found by bug-hunter while closing
-  F167; it could not tell which without entering brain's territory.
+  F186; it could not tell which without entering brain's territory.
 - verified-by: `every rescue line the copy module ships is reachable from a live path`
 
-### F188 — The French hate list has no passive twin, so a call to exterminate matches nothing
+### F207 — The French hate list has no passive twin, so a call to exterminate matches nothing
 - severity: P1
 - status: [x]
 - where: services/tutor-agent/src/safety.ts:1
@@ -3136,7 +3350,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   a call for harm.
 - verified-by: `a call for harm in French is caught the way its English twin is`
 
-### F189 — A stopped session still pays a model for work nobody will receive
+### F208 — A stopped session still pays a model for work nobody will receive
 - severity: P2
 - status: [ ]
 - where: services/tutor-agent/src/convo.ts:1049
@@ -3149,7 +3363,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   policy decision rather than changed unilaterally.
 - verified-by: `a stopped session starts no post-session model work`
 
-### F190 — The pipeline log prefixes have two homes and no way to keep them equal
+### F209 — The pipeline log prefixes have two homes and no way to keep them equal
 - severity: P2
 - status: [ ]
 - where: services/tutor-agent/src/agent.ts:271
@@ -3158,11 +3372,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   imports `livekit-client` and pulling a browser SDK into the worker to reuse two strings is the
   wrong trade. The reasoning is right and the result is still two copies of one decision, with
   nothing failing if they drift, so a grep that finds the app's alarms silently misses the
-  worker's. `packages/core` is the shared leaf both already depend on. Same shape as F186.
+  worker's. `packages/core` is the shared leaf both already depend on. Same shape as F205.
   Found by backend-engineer, correctly flagged rather than solved by importing across a boundary.
 - verified-by: `the pipeline log prefixes have one home and both sides read it`
 
-### F193 — The scripted lesson agent's own lines pass no output guard
+### F210 — The scripted lesson agent's own lines pass no output guard
 - severity: P2
 - status: [ ]
 - where: services/tutor-agent/src/tutor.ts:224

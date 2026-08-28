@@ -258,7 +258,7 @@ describe('splitCoach — the cooldown between interruptions', () => {
   });
 
   /**
-   * F186. How often a learner is interrupted is one decision, and it was taken
+   * F205. How often a learner is interrupted is one decision, and it was taken
    * twice: this module declared `2` and `packages/core/src/session/session.ts`
    * declared `2` again, held level by a comment and by a test asserting the
    * literal in both files. That caught drift, but only after somebody had

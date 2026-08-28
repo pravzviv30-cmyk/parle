@@ -358,7 +358,7 @@ describe('a beginner who keeps missing the line', () => {
     // K1 settled this number for the live conversation, and the scripted lesson
     // used to keep its own copy of it. It does not any more: this declaration is
     // the number, and packages/brain/src/engine/grading.ts re-exports it as
-    // INLINE_COACH_COOLDOWN_TURNS (F186). So changing it here changes both modes
+    // INLINE_COACH_COOLDOWN_TURNS (F205). So changing it here changes both modes
     // at once, which is what makes it one decision rather than two that agree.
     assert.equal(
       CORRECTION_COOLDOWN_TURNS,

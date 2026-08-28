@@ -483,7 +483,7 @@ describe('a credential that has already been spent', () => {
 });
 
 /**
- * F154. A tapped option is an answer, and every answer passes the boundary.
+ * F173. A tapped option is an answer, and every answer passes the boundary.
  *
  * The guard covered `say` only. Ten lines further down, `choice || say`
  * publishes the text as a transcript and hands it to `submitTurn`, so a tapped

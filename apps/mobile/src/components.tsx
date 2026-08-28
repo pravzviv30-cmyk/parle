@@ -182,23 +182,41 @@ export function OutlineButton({
   );
 }
 
-/** A quiet inline action — text only, full touch height. */
+/**
+ * A quiet inline action — text only, full touch height.
+ *
+ * Disabled is said in ink, not in opacity. OutlineButton can afford
+ * `opacity: 0.45` because a white pill with an ink rule still reads as a
+ * control after it fades; a bare word has no shape to fall back on, and
+ * inkSoft at 0.45 measures 2.0 against the lilac ground — it would not look
+ * unavailable, it would look gone. So this borrows PillButton's meaning, the
+ * faint ink, in the one surface a text button has. It overrides the caller's
+ * `color` on purpose: five screens pass full `paper.ink`, and a dead control
+ * drawn in the live colour is the bug this closes rather than a variant of it.
+ *
+ * No `accessibilityState` here, and none in PillButton or OutlineButton
+ * either: Pressable already folds its own `disabled` into that state, and the
+ * prop wins over anything spelled out alongside it.
+ */
 export function GhostButton({
   label,
   onPress,
+  disabled = false,
   color = paper.inkSoft,
 }: {
   label: string;
   onPress: () => void;
+  disabled?: boolean;
   color?: string;
 }) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
-      style={({ pressed }) => [s.ghost, pressed && { opacity: 0.55 }]}
+      style={({ pressed }) => [s.ghost, pressed && !disabled && { opacity: 0.55 }]}
     >
-      <Text style={[type.bodyStrong, { color }]}>{label}</Text>
+      <Text style={[type.bodyStrong, { color: disabled ? paper.inkFaint : color }]}>{label}</Text>
     </Pressable>
   );
 }

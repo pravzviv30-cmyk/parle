@@ -541,7 +541,7 @@ const HATE_ATROCITY = String.raw`(?:tuees?|tues?|exterminees?|extermines?|gazees
  * A call for harm the way French actually says it: the group first, the verb
  * passive.
  *
- * F188. The English half above carries `(?:should be|deserve to be) killed`, and
+ * F207. The English half above carries `(?:should be|deserve to be) killed`, and
  * the French half carried only the active `exterminer les juifs`, so "Les juifs
  * devraient etre extermines" matched nothing at all and reached the model as
  * ordinary practice. This is that missing twin.

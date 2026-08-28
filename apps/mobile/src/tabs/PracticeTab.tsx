@@ -27,6 +27,7 @@ import { loadDrillBank } from '../drill/store.ts';
 import { loadTopics } from '../topics/store.ts';
 import { lastSummaryFor } from '../progress/store.ts';
 import { useLive } from '../app/LiveContext.tsx';
+import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 
 export function PracticeTab() {
   const insets = useSafeAreaInsets();
@@ -46,6 +47,11 @@ export function PracticeTab() {
   // Recomputed on every focus alongside everything else, which is the whole of
   // the daily refresh: the offer answers to today's due state, not to a clock.
   const [mixOffered, setMixOffered] = useState(false);
+  // A probe is in flight. Both doors below run one before they navigate, and
+  // both used to fire it with no flag at all: the tap did nothing visible for
+  // up to a second and a half, and a second tap queued a second navigation.
+  // TutorTab already carried this guard and this word for it.
+  const [checking, setChecking] = useState(false);
 
   // Rebuilt on every return: a sitting that just finished must be visible on
   // the map the moment the learner lands back on it.
@@ -70,9 +76,21 @@ export function PracticeTab() {
 
   const open = (node: { id: string; kind: string; title: string; phraseKeys: readonly string[] }, textMode = false) => {
     if (node.kind === 'lesson') {
-      void recheck().then(() => nav.navigate('Lesson', textMode ? { textMode: true } : undefined));
+      // One probe in flight is enough; two would open two lessons.
+      if (checking) return;
+      setChecking(true);
+      // Either way, the same way: the Lesson route is gated, so a learner whose
+      // servers are down lands on honest words rather than on a tap that
+      // appeared to do nothing. `go` is passed twice so a probe that ever threw
+      // still lets go of the flag instead of retiring the tab.
+      const go = () => {
+        setChecking(false);
+        nav.navigate('Lesson', textMode ? { textMode: true } : undefined);
+      };
+      void recheck().then(go, go);
       return;
     }
+    // A drill is local. Nothing to probe, so nothing to wait for.
     nav.navigate('Drill', { node: { id: node.id, title: node.title, phraseKeys: node.phraseKeys } });
   };
 
@@ -87,8 +105,14 @@ export function PracticeTab() {
    * written.
    */
   const talkAgain = (node: { id: string }) => {
+    if (checking) return;
     const seed = seedTopicFor(node.id, topics);
-    void recheck().then(() => nav.navigate('Convo', seed ? { seedTopic: seed } : {}));
+    setChecking(true);
+    const go = () => {
+      setChecking(false);
+      nav.navigate('Convo', seed ? { seedTopic: seed } : {});
+    };
+    void recheck().then(go, go);
   };
 
   const lessonNode = units?.flatMap((u) => u.nodes).find((n) => n.kind === 'lesson') ?? null;
@@ -96,6 +120,17 @@ export function PracticeTab() {
   return (
     <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
       <Text style={[type.title, { color: paper.ink }]}>Practice</Text>
+      {/* The receipt for a tap that has to wait on the network. The gate's own
+          word, so the tab and the tutor card do not grow two vocabularies for
+          the same second and a half. */}
+      {checking && (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}
+        >
+          {TUTOR_OFFLINE.checking}
+        </Text>
+      )}
 
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
         {mixOffered && (
@@ -142,6 +177,7 @@ export function PracticeTab() {
           <View style={{ marginBottom: space(6) }}>
             <GhostButton
               label="Unable to speak right now?"
+              disabled={checking}
               onPress={() => open(lessonNode, true)}
             />
           </View>

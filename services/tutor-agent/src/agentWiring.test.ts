@@ -59,7 +59,7 @@ describe('the vendor failure the worker reports', () => {
   });
 
   test('the error frame carries what broke and whether it is coming back', () => {
-    // The two lines that are the whole of F179. Without them the handler
+    // The two lines that are the whole of F198. Without them the handler
     // discards the union's own discriminant, and a dead recogniser reaches the
     // app as one sentence about the tutor's voice.
     assert.match(CODE, /const kind = ev\.error\.type;/, 'the kind is thrown away, so the app has to guess from a sentence');

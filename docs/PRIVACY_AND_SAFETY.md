@@ -404,7 +404,7 @@ does not promise help it cannot send.
    are still debited and extract, curate and drill generation still run and
    publish into a room that is closing. Whatever arrives in time is thrown away
    by the guards in points 6 and 7, so the learner sees none of it, and it is
-   still model work paid for on a session that ended. That is ledger F189, and it
+   still model work paid for on a session that ended. That is ledger F208, and it
    is a founder decision rather than an engineering one.
 
 Point 7 is the honest tension in this document. Retaining nothing is the
@@ -582,6 +582,6 @@ promise already kept.
 | No professional review has been obtained | The safety position is unreviewed | Ledger F70 |
 | An under-13 stop is remembered on the device that saw it, not on the account | A reinstall clears it, and a second phone never learns about it | This file, section above; founder accepted |
 | Worker logs have no stated retention | The safety record is kept for as long as the host keeps logs, which nothing here sets | This file, section above |
-| A stop does not stop the worker's post-session model work | Extract, curate and drills still run and publish into a room that is closing | Ledger F189 |
+| A stop does not stop the worker's post-session model work | Extract, curate and drills still run and publish into a room that is closing | Ledger F208 |
 | The scripted lesson agent's own lines pass no output guard | `outputGuard` covers the conversation agent only | Not filed |
 | No reviewed privacy policy or terms exist | The app says so honestly and must keep saying so | Deletion ledger |

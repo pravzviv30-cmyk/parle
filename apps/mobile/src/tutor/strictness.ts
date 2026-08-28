@@ -6,8 +6,8 @@
  * profile carries the chosen one at `preferences.strictness`. What did not
  * exist was a way to turn it: the field was written by the session that had
  * just finished, so it was a log of the last conversation rather than a
- * preference, and no screen in the app had ever offered it. F165 stopped the
- * write-back, F164 makes the agent read the stored value, and this is the third
+ * preference, and no screen in the app had ever offered it. F184 stopped the
+ * write-back, F183 makes the agent read the stored value, and this is the third
  * piece: somewhere to say what you want.
  *
  * The three names are the product's own, not new ones invented for a screen.

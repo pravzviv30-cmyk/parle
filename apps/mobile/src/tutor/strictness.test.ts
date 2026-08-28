@@ -1,12 +1,12 @@
 /**
- * The strictness dial — F166.
+ * The strictness dial — F185.
  *
  * Three coaching policies have been in the brain since the engine was written.
  * The eval measures all three. Every learner profile carries the chosen one.
  * And no learner has ever been able to choose: the field was overwritten by
  * whichever session had just finished, so it was a log of the last conversation
- * rather than a preference, and no screen in the app offered it. F165 stopped
- * the write-back and F164 makes the agent read what is stored; this is the part
+ * rather than a preference, and no screen in the app offered it. F184 stopped
+ * the write-back and F183 makes the agent read what is stored; this is the part
  * a person can touch.
  *
  * Two halves, and the second is the one worth stating. A settings row that

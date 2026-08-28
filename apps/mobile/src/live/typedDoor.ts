@@ -20,7 +20,7 @@
  * The second one is not decoration. `LiveErrorView` draws the button only when
  * it is handed a handler, so a screen that forgets to pass one renders a
  * sentence saying "you can keep going by typing" above a screen with no way to
- * type. That is the same false promise F178 removed from the copy, wearing a
+ * type. That is the same false promise F197 removed from the copy, wearing a
  * different hat.
  */
 

@@ -653,7 +653,7 @@ export function integrateTurn(
   // The coach line survives only when something actually surfaces inline, and
   // only when it agrees with that finding; otherwise the tested template speaks.
   //
-  // F161: agreement, not just clean copy. Passing the copy rules was the whole
+  // F180: agreement, not just clean copy. Passing the copy rules was the whole
   // test, so the one sentence the learner actually hears was the one part of the
   // turn the model still decided on its own — it could correct a finding the
   // code did not surface, or tell a learner who said something correct that it
@@ -741,7 +741,7 @@ export function integrateTurn(
   for (const p of turn.newPhrases) {
     if (!phrases.some((existing) => existing.fr === p.fr)) phrases.push(p);
   }
-  // F185, and the same one-turn-one-verdict rule as the coach line above, said
+  // F204, and the same one-turn-one-verdict rule as the coach line above, said
   // to the third mouth. `usedWell` is what the end card celebrates, and it was
   // accumulated raw — so a single model call could hand back a correction and
   // claim the same phrase was used well, and the card would print the praise
