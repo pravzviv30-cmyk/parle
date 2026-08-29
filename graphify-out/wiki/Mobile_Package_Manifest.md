@@ -19,8 +19,8 @@
 
 ## Relationships
 
-- [Mobile Dependencies](Mobile_Dependencies.md) (1 shared connections)
-- [Mobile NPM Scripts](Mobile_NPM_Scripts.md) (1 shared connections)
+- [Mobile App Dependencies](Mobile_App_Dependencies.md) (1 shared connections)
+- [Mobile npm Scripts](Mobile_npm_Scripts.md) (1 shared connections)
 
 ## Source Files
 

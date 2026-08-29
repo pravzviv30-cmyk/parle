@@ -22,13 +22,13 @@
 
 ## Relationships
 
-- [UI Component Primitives](UI_Component_Primitives.md) (6 shared connections)
-- [Auth Screens](Auth_Screens.md) (3 shared connections)
+- [Paper UI Primitives](Paper_UI_Primitives.md) (7 shared connections)
+- [Live Session React Context](Live_Session_React_Context.md) (3 shared connections)
 - [Review Deck Store](Review_Deck_Store.md) (2 shared connections)
-- [React Context Providers](React_Context_Providers.md) (2 shared connections)
-- [Illustration Scenes](Illustration_Scenes.md) (1 shared connections)
-- [Drill Chooser View](Drill_Chooser_View.md) (1 shared connections)
-- [Spaced Repetition Scheduler](Spaced_Repetition_Scheduler.md) (1 shared connections)
+- [Motion And Transcript UI](Motion_And_Transcript_UI.md) (1 shared connections)
+- [Drill Screen And Tracking](Drill_Screen_And_Tracking.md) (1 shared connections)
+- [Mobile App Shell And Auth Flow](Mobile_App_Shell_And_Auth_Flow.md) (1 shared connections)
+- [Phrasebook Mix Offers](Phrasebook_Mix_Offers.md) (1 shared connections)
 
 ## Source Files
 

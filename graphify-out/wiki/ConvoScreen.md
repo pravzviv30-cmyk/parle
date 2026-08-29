@@ -1,8 +1,8 @@
 # ConvoScreen()
 
-> God node · 38 connections · `apps/mobile/src/ConvoScreen.tsx`
+> God node · 42 connections · `apps/mobile/src/ConvoScreen.tsx`
 
-**Community:** [Conversation Screen UI](Conversation_Screen_UI.md)
+**Community:** [Conversation Screen And Profile](Conversation_Screen_And_Profile.md)
 
 ## Connections by Relation
 
@@ -19,14 +19,14 @@
 - stoppedBySafety() `EXTRACTED`
 - safetySurface `EXTRACTED`
 - journalPractice() `EXTRACTED`
+- connectingTick() `EXTRACTED`
 - recordMissionCompletion() `EXTRACTED`
 - markCoachMarkSeen() `EXTRACTED`
+- connectingView `EXTRACTED`
 - typedDoorFor() `EXTRACTED`
 - takeTypedDoor() `EXTRACTED`
 - isUnderAgeStop() `EXTRACTED`
 - withAgeStop() `EXTRACTED`
-- conversationXp() `EXTRACTED`
-- loadSeenCoachMarks() `EXTRACTED`
 
 ### contains
 - ConvoScreen.tsx `EXTRACTED`

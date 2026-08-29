@@ -18,8 +18,7 @@
 
 ## Relationships
 
-- [Supabase Auth & OAuth](Supabase_Auth_&_OAuth.md) (3 shared connections)
-- [Auth Mode & Installation](Auth_Mode_&_Installation.md) (3 shared connections)
+- [Auth Adapter And Modes](Auth_Adapter_And_Modes.md) (6 shared connections)
 - [Auth Adapter Interface](Auth_Adapter_Interface.md) (1 shared connections)
 
 ## Source Files

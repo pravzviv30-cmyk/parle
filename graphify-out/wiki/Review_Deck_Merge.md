@@ -21,11 +21,9 @@
 
 ## Relationships
 
-- [Spaced Repetition Scheduler](Spaced_Repetition_Scheduler.md) (6 shared connections)
-- [Mastery Evidence Tracking](Mastery_Evidence_Tracking.md) (6 shared connections)
-- [Review Merge Tests](Review_Merge_Tests.md) (3 shared connections)
-- [Namespace Merge Policy](Namespace_Merge_Policy.md) (2 shared connections)
-- [Sync Retention Policy](Sync_Retention_Policy.md) (1 shared connections)
+- [Review Cards And Evidence](Review_Cards_And_Evidence.md) (15 shared connections)
+- [Activity Sync Policy](Activity_Sync_Policy.md) (2 shared connections)
+- [Sync Retention Policy Limits](Sync_Retention_Policy_Limits.md) (1 shared connections)
 
 ## Source Files
 

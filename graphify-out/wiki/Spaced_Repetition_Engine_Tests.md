@@ -1,0 +1,60 @@
+# Spaced Repetition Engine Tests
+
+> 36 nodes · cohesion 0.09
+
+## Key Concepts
+
+- **engine.test.ts** (38 connections) — `apps/mobile/src/sync/engine.test.ts`
+- **envelope.ts** (23 connections) — `apps/mobile/src/sync/envelope.ts`
+- **envelope.test.ts** (12 connections) — `apps/mobile/src/sync/envelope.test.ts`
+- **readEnvelope()** (10 connections) — `apps/mobile/src/sync/envelope.ts`
+- **sameData()** (9 connections) — `apps/mobile/src/sync/envelope.ts`
+- **envelopeBytes()** (6 connections) — `apps/mobile/src/sync/envelope.ts`
+- **sealEnvelope()** (6 connections) — `apps/mobile/src/sync/envelope.ts`
+- **parseJson()** (5 connections) — `apps/mobile/src/sync/envelope.ts`
+- **engineFor()** (4 connections) — `apps/mobile/src/sync/engine.test.ts`
+- **innerVersion()** (4 connections) — `apps/mobile/src/sync/envelope.ts`
+- **MAX_ENVELOPE_BYTES** (4 connections) — `apps/mobile/src/sync/envelope.ts`
+- **serialise()** (4 connections) — `apps/mobile/src/sync/envelope.ts`
+- **isRecord()** (3 connections) — `apps/mobile/src/sync/envelope.ts`
+- **utf8Bytes()** (3 connections) — `apps/mobile/src/sync/envelope.ts`
+- **foldingStore()** (2 connections) — `apps/mobile/src/sync/engine.test.ts`
+- **keyFor()** (2 connections) — `apps/mobile/src/sync/engine.test.ts`
+- **manualScheduler()** (2 connections) — `apps/mobile/src/sync/engine.test.ts`
+- **payloadOf()** (2 connections) — `apps/mobile/src/sync/engine.test.ts`
+- **tick()** (2 connections) — `apps/mobile/src/sync/engine.test.ts`
+- **until()** (2 connections) — `apps/mobile/src/sync/engine.test.ts`
+- **ENVELOPE_VERSION** (2 connections) — `apps/mobile/src/sync/envelope.ts`
+- **Card** (1 connections) — `apps/mobile/src/sync/engine.test.ts`
+- **createRest()** (1 connections) — `apps/mobile/src/sync/engine.test.ts`
+- **createStorage()** (1 connections) — `apps/mobile/src/sync/engine.test.ts`
+- **deckPolicy** (1 connections) — `apps/mobile/src/sync/engine.test.ts`
+- *... and 11 more nodes in this community*
+
+## Relationships
+
+- [Sync Engine Types](Sync_Engine_Types.md) (19 shared connections)
+- [Learner State Sync Engine](Learner_State_Sync_Engine.md) (8 shared connections)
+- [Activity Sync Policy](Activity_Sync_Policy.md) (5 shared connections)
+- [Sync Engine Reconciliation](Sync_Engine_Reconciliation.md) (4 shared connections)
+- [Acknowledged Persistence Stores](Acknowledged_Persistence_Stores.md) (4 shared connections)
+- [Store Binding Integration Tests](Store_Binding_Integration_Tests.md) (2 shared connections)
+- [Sync Retention Policy Limits](Sync_Retention_Policy_Limits.md) (2 shared connections)
+- [Sync Diagnostics And Alarms](Sync_Diagnostics_And_Alarms.md) (1 shared connections)
+- [Tutor Onboarding Marks Store](Tutor_Onboarding_Marks_Store.md) (1 shared connections)
+
+## Source Files
+
+- `apps/mobile/src/sync/engine.test.ts`
+- `apps/mobile/src/sync/envelope.test.ts`
+- `apps/mobile/src/sync/envelope.ts`
+
+## Audit Trail
+
+- EXTRACTED: 103 (100%)
+- INFERRED: 0 (0%)
+- AMBIGUOUS: 0 (0%)
+
+---
+
+*Part of the graphify knowledge wiki. See [index](index.md) to navigate.*

@@ -25,7 +25,7 @@
 
 ## Relationships
 
-- [Supabase Auth & OAuth](Supabase_Auth_&_OAuth.md) (3 shared connections)
+- [Auth Adapter And Modes](Auth_Adapter_And_Modes.md) (3 shared connections)
 
 ## Source Files
 

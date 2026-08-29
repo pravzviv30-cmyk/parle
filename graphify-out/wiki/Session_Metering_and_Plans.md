@@ -1,6 +1,6 @@
-# Session Metering and Plans
+# Session Metering And Plans
 
-> 29 nodes · cohesion 0.15
+> 27 nodes · cohesion 0.17
 
 ## Key Concepts
 
@@ -16,7 +16,6 @@
 - **estimateSessionCost()** (5 connections) — `packages/core/src/metering/meter.ts`
 - **planMargin()** (5 connections) — `packages/core/src/metering/meter.ts`
 - **Metered minutes enforced from v1** (5 connections) — `PRODUCT.md`
-- **CostModel** (4 connections) — `packages/core/src/metering/meter.ts`
 - **recordUsage()** (4 connections) — `packages/core/src/metering/meter.ts`
 - **Cascaded STT to LLM to TTS voice pipeline** (4 connections) — `PRODUCT.md`
 - **Metering enforced at token issuance** (3 connections) — `README.md`
@@ -28,17 +27,18 @@
 - **StartDecision** (2 connections) — `packages/core/src/metering/meter.ts`
 - **StartRefusal** (2 connections) — `packages/core/src/metering/meter.ts`
 - **Learner-accented French breaks ordinary STT** (2 connections) — `PRODUCT.md`
-- **SpendInput** (2 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
-- *... and 4 more nodes in this community*
+- **fresh()** (1 connections) — `packages/core/src/metering/meter.test.ts`
+- **Risk 1: STT on real learner French** (1 connections) — `README.md`
+- *... and 2 more nodes in this community*
 
 ## Relationships
 
-- [Entitlement Store](Entitlement_Store.md) (9 shared connections)
+- [Entitlement Plan Store](Entitlement_Plan_Store.md) (9 shared connections)
+- [Voice Session Lifecycle Checks](Voice_Session_Lifecycle_Checks.md) (6 shared connections)
 - [Session Token Grants](Session_Token_Grants.md) (6 shared connections)
-- [Voice Lifecycle Checks](Voice_Lifecycle_Checks.md) (6 shared connections)
-- [Account Deletion and Events](Account_Deletion_and_Events.md) (3 shared connections)
-- [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
-- [Database Contract Tests](Database_Contract_Tests.md) (1 shared connections)
+- [Account Deletion And Product Events](Account_Deletion_And_Product_Events.md) (3 shared connections)
+- [Status Line & Tutor Name](Status_Line_&_Tutor_Name.md) (1 shared connections)
+- [Database Migration Contract Tests](Database_Migration_Contract_Tests.md) (1 shared connections)
 
 ## Source Files
 
@@ -47,12 +47,11 @@
 - `packages/core/src/metering/index.ts`
 - `packages/core/src/metering/meter.test.ts`
 - `packages/core/src/metering/meter.ts`
-- `services/tutor-agent/src/verify/voiceLifecycle.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 79 (91%)
-- INFERRED: 8 (9%)
+- EXTRACTED: 76 (90%)
+- INFERRED: 8 (10%)
 - AMBIGUOUS: 0 (0%)
 
 ---

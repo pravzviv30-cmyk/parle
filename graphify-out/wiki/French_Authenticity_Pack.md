@@ -12,8 +12,8 @@
 - **CefrBand** (13 connections) — `packages/brain/src/types.ts`
 - **scenarioPrompt.ts** (11 connections) — `packages/brain/src/prompt/scenarioPrompt.ts`
 - **buildScenarioRequest()** (11 connections) — `packages/brain/src/prompt/scenarioPrompt.ts`
-- **Strictness** (11 connections) — `packages/brain/src/types.ts`
 - **authenticity/types.ts** (10 connections) — `packages/brain/src/authenticity/types.ts`
+- **LadderDirective** (10 connections) — `packages/core/src/ladder/ladder.ts`
 - **fr.ts** (8 connections) — `packages/brain/src/authenticity/fr.ts`
 - **authenticity/render.ts** (8 connections) — `packages/brain/src/authenticity/render.ts`
 - **RegisterId** (8 connections) — `packages/brain/src/types.ts`
@@ -33,18 +33,18 @@
 
 ## Relationships
 
-- [Coach Sample Fixtures](Coach_Sample_Fixtures.md) (34 shared connections)
-- [Brain Playground CLI](Brain_Playground_CLI.md) (13 shared connections)
-- [Claude CLI and Pricing](Claude_CLI_and_Pricing.md) (10 shared connections)
-- [Learner Profile Updates](Learner_Profile_Updates.md) (9 shared connections)
-- [Zod Contract Schemas](Zod_Contract_Schemas.md) (8 shared connections)
-- [Brain LLM Client Types](Brain_LLM_Client_Types.md) (5 shared connections)
-- [Tutor Agent Prompt](Tutor_Agent_Prompt.md) (5 shared connections)
-- [Topic Curation](Topic_Curation.md) (4 shared connections)
-- [Conversation View Model](Conversation_View_Model.md) (3 shared connections)
-- [Difficulty Ladder](Difficulty_Ladder.md) (3 shared connections)
-- [Playground Commands](Playground_Commands.md) (2 shared connections)
-- [Tutor Evaluation Cases](Tutor_Evaluation_Cases.md) (2 shared connections)
+- [Coach Output Samples And Checks](Coach_Output_Samples_And_Checks.md) (27 shared connections)
+- [Claude CLI Run And Usage](Claude_CLI_Run_And_Usage.md) (12 shared connections)
+- [Brain Playground Chat CLI](Brain_Playground_Chat_CLI.md) (11 shared connections)
+- [Brain Contract Zod Schemas](Brain_Contract_Zod_Schemas.md) (10 shared connections)
+- [Coach Copy Rules](Coach_Copy_Rules.md) (8 shared connections)
+- [Learner Profile Updates](Learner_Profile_Updates.md) (8 shared connections)
+- [Agent Prompt And Turn Queue](Agent_Prompt_And_Turn_Queue.md) (6 shared connections)
+- [Difficulty Ladder State](Difficulty_Ladder_State.md) (5 shared connections)
+- [Claude CLI Brain Client](Claude_CLI_Brain_Client.md) (4 shared connections)
+- [Topic Curation Pipeline](Topic_Curation_Pipeline.md) (3 shared connections)
+- [Conversation Flow Orchestration](Conversation_Flow_Orchestration.md) (3 shared connections)
+- [Session Domain Types](Session_Domain_Types.md) (2 shared connections)
 
 ## Source Files
 
@@ -62,6 +62,7 @@
 - `packages/brain/src/prompt/system.ts`
 - `packages/brain/src/prompt/turnContext.ts`
 - `packages/brain/src/types.ts`
+- `packages/core/src/ladder/ladder.ts`
 
 ## Audit Trail
 

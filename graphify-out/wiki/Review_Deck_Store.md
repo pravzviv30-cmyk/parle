@@ -1,6 +1,6 @@
 # Review Deck Store
 
-> 19 nodes · cohesion 0.21
+> 20 nodes · cohesion 0.21
 
 ## Key Concepts
 
@@ -12,6 +12,7 @@
 - **loadDeckFor()** (6 connections) — `apps/mobile/src/review/store.ts`
 - **saveDeck()** (6 connections) — `apps/mobile/src/review/store.ts`
 - **serialized()** (6 connections) — `apps/mobile/src/review/store.ts`
+- **mergeCards()** (6 connections) — `packages/core/src/review/scheduler.ts`
 - **foldConvoUses()** (4 connections) — `apps/mobile/src/review/store.ts`
 - **gradeCard()** (4 connections) — `apps/mobile/src/review/store.ts`
 - **KEY()** (4 connections) — `apps/mobile/src/review/store.ts`
@@ -26,26 +27,27 @@
 
 ## Relationships
 
-- [Conversation Screen Tests](Conversation_Screen_Tests.md) (12 shared connections)
-- [Spaced Repetition Scheduler](Spaced_Repetition_Scheduler.md) (11 shared connections)
-- [Topics Store](Topics_Store.md) (6 shared connections)
-- [Drill Chooser View](Drill_Chooser_View.md) (6 shared connections)
-- [Phrasebook and Mix](Phrasebook_and_Mix.md) (5 shared connections)
-- [Drill Store](Drill_Store.md) (4 shared connections)
-- [Drill Screen UI](Drill_Screen_UI.md) (3 shared connections)
-- [Store Binding Tests](Store_Binding_Tests.md) (3 shared connections)
-- [Mastery Evidence Tracking](Mastery_Evidence_Tracking.md) (2 shared connections)
-- [Topic Merging & Staggering](Topic_Merging_&_Staggering.md) (2 shared connections)
-- [User Scope Reset](User_Scope_Reset.md) (2 shared connections)
-- [Activity Log Store](Activity_Log_Store.md) (2 shared connections)
+- [Review Cards And Evidence](Review_Cards_And_Evidence.md) (14 shared connections)
+- [Session Journal Recovery](Session_Journal_Recovery.md) (9 shared connections)
+- [Live Session React Context](Live_Session_React_Context.md) (7 shared connections)
+- [Phrasebook Mix Offers](Phrasebook_Mix_Offers.md) (6 shared connections)
+- [Acknowledged Persistence Stores](Acknowledged_Persistence_Stores.md) (6 shared connections)
+- [Tutor Onboarding Marks Store](Tutor_Onboarding_Marks_Store.md) (4 shared connections)
+- [Session Domain Types](Session_Domain_Types.md) (3 shared connections)
+- [Paper UI Primitives](Paper_UI_Primitives.md) (3 shared connections)
+- [Store Binding Integration Tests](Store_Binding_Integration_Tests.md) (3 shared connections)
+- [User Scope Data Reset](User_Scope_Data_Reset.md) (2 shared connections)
+- [Drill Screen And Tracking](Drill_Screen_And_Tracking.md) (2 shared connections)
+- [Drill Screen Tests](Drill_Screen_Tests.md) (2 shared connections)
 
 ## Source Files
 
 - `apps/mobile/src/review/store.ts`
+- `packages/core/src/review/scheduler.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 104 (97%)
+- EXTRACTED: 107 (97%)
 - INFERRED: 3 (3%)
 - AMBIGUOUS: 0 (0%)
 

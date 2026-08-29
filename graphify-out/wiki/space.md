@@ -2,7 +2,7 @@
 
 > God node · 88 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Auth Screens](Auth_Screens.md)
+**Community:** [Drill Screen And Tracking](Drill_Screen_And_Tracking.md)
 
 ## Connections by Relation
 
@@ -14,19 +14,19 @@
 - LiveSessionScreen() `EXTRACTED`
 - SoundCheckScreen() `EXTRACTED`
 - OutlineButton() `EXTRACTED`
+- ReviewScreen() `EXTRACTED`
 - PracticeTab() `EXTRACTED`
 - TutorTab() `EXTRACTED`
 - MissionsScreen() `EXTRACTED`
-- ReviewScreen() `EXTRACTED`
 - ProfileTab() `EXTRACTED`
+- SignUpScreen() `EXTRACTED`
 - Field() `EXTRACTED`
+- ConvoRoute() `EXTRACTED`
 - Stat() `EXTRACTED`
 - AddFriendsScreen() `EXTRACTED`
 - OnboardingFlow() `EXTRACTED`
 - SummaryScreen() `EXTRACTED`
 - LeaderboardTab() `EXTRACTED`
-- SignUpScreen() `EXTRACTED`
-- LiveErrorView() `EXTRACTED`
 
 ### contains
 - src/theme.ts `EXTRACTED`
@@ -37,9 +37,9 @@
 - DrillScreen.tsx `EXTRACTED`
 - components.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
+- MyFrenchTab.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
 - ProfileTab.tsx `EXTRACTED`
-- MyFrenchTab.tsx `EXTRACTED`
 - LiveSessionScreen.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
 - ReviewScreen.tsx `EXTRACTED`

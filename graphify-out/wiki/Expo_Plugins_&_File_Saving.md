@@ -1,11 +1,10 @@
 # Expo Plugins & File Saving
 
-> 9 nodes · cohesion 0.22
+> 8 nodes · cohesion 0.25
 
 ## Key Concepts
 
 - **plugins** (7 connections) — `apps/mobile/app.json`
-- **expo-audio** (3 connections) — `apps/mobile/app.json`
 - **saveFile.native.ts** (2 connections) — `apps/mobile/src/progress/saveFile.native.ts`
 - **expo-font** (2 connections) — `apps/mobile/app.json`
 - **expo-secure-store** (2 connections) — `apps/mobile/app.json`
@@ -16,11 +15,11 @@
 
 ## Relationships
 
-- [Supabase Auth & OAuth](Supabase_Auth_&_OAuth.md) (2 shared connections)
+- [Drill Screen And Tracking](Drill_Screen_And_Tracking.md) (1 shared connections)
 - [Expo App Config](Expo_App_Config.md) (1 shared connections)
-- [Drill Screen UI](Drill_Screen_UI.md) (1 shared connections)
-- [Microphone Sound Check](Microphone_Sound_Check.md) (1 shared connections)
-- [App Root Wiring](App_Root_Wiring.md) (1 shared connections)
+- [Mobile App Shell And Auth Flow](Mobile_App_Shell_And_Auth_Flow.md) (1 shared connections)
+- [Auth Adapter And Modes](Auth_Adapter_And_Modes.md) (1 shared connections)
+- [Friendly Error Copy](Friendly_Error_Copy.md) (1 shared connections)
 
 ## Source Files
 
@@ -29,7 +28,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 14 (100%)
+- EXTRACTED: 12 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

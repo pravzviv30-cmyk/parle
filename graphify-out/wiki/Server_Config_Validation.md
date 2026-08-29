@@ -13,7 +13,7 @@
 
 ## Relationships
 
-- [Account Deletion and Events](Account_Deletion_and_Events.md) (2 shared connections)
+- [Account Deletion And Product Events](Account_Deletion_And_Product_Events.md) (2 shared connections)
 
 ## Source Files
 

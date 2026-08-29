@@ -5,7 +5,7 @@
 ## Key Concepts
 
 - **drill/types.ts** (20 connections) — `packages/core/src/drill/types.ts`
-- **validate.test.ts** (20 connections) — `packages/core/src/drill/validate.test.ts`
+- **drill/validate.test.ts** (20 connections) — `packages/core/src/drill/validate.test.ts`
 - **drill/grading.test.ts** (12 connections) — `packages/core/src/drill/grading.test.ts`
 - **FillBlankExercise** (9 connections) — `packages/core/src/drill/types.ts`
 - **TapTranslateExercise** (8 connections) — `packages/core/src/drill/types.ts`
@@ -29,14 +29,14 @@
 
 ## Relationships
 
-- [Drill Grading](Drill_Grading.md) (12 shared connections)
-- [Drill Fixtures and Validation](Drill_Fixtures_and_Validation.md) (8 shared connections)
-- [Drill Screen UI](Drill_Screen_UI.md) (6 shared connections)
-- [Drill Session Building](Drill_Session_Building.md) (5 shared connections)
-- [Drill Exercise Merge](Drill_Exercise_Merge.md) (4 shared connections)
-- [Authored Learning Path](Authored_Learning_Path.md) (1 shared connections)
-- [Client Server Protocol](Client_Server_Protocol.md) (1 shared connections)
-- [Phrasebook and Mix](Phrasebook_and_Mix.md) (1 shared connections)
+- [Drill Session Grading](Drill_Session_Grading.md) (14 shared connections)
+- [Drill Exercise Bank Merge](Drill_Exercise_Bank_Merge.md) (6 shared connections)
+- [Drill Batch Validation](Drill_Batch_Validation.md) (6 shared connections)
+- [Drill Screen And Tracking](Drill_Screen_And_Tracking.md) (6 shared connections)
+- [Free Text Drill Grading](Free_Text_Drill_Grading.md) (3 shared connections)
+- [Talk Again And Authored Path](Talk_Again_And_Authored_Path.md) (1 shared connections)
+- [App Agent Wire Protocol](App_Agent_Wire_Protocol.md) (1 shared connections)
+- [Phrasebook Mix Offers](Phrasebook_Mix_Offers.md) (1 shared connections)
 
 ## Source Files
 
