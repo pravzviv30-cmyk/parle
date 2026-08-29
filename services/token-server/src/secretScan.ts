@@ -123,17 +123,67 @@ function isHumanPhrase(value: string): boolean {
 }
 
 /**
+ * A camelCase name, read as the sequence of words a person actually typed.
+ *
+ * This is `isHumanPhrase` one level down. That helper forgives a stand-in
+ * because a person joined short words with dashes; this one forgives a variable
+ * name because a person joined short words with capital letters. Same idea,
+ * same evidence: a name is built from words, and a credential is a random draw.
+ *
+ * Three properties separate `agentSecretForThisRun` from thirty-two letters of
+ * base64, and all three are facts about English rather than guesses:
+ *
+ *  1. **A case rhythm.** Splitting at each capital gives whole words, so there
+ *     is at least one boundary. A single unbroken run of letters long enough to
+ *     reach a pattern's minimum is not a name, it is a value.
+ *  2. **Every word carries a vowel**, or is a short all-caps acronym like `URL`.
+ *     A random draw produces vowel-free runs constantly; English does not.
+ *  3. **No word has five consonants in a row.** `strength` has four and is
+ *     about the worst English offers.
+ *
+ * Measured against the 658 multi-word identifiers this repo actually contains,
+ * this keeps 648 of them quiet, and scanning every tracked file and the whole
+ * git history produces no new finding at all. The handful it would newly report
+ * are the vowel-free unit suffix — `connectingMs`, `conversationXp` — none of
+ * which has ever appeared as the value of a credential assignment.
+ *
+ * What it cannot do: tell a *single* dictionary word from a one-word password.
+ * So a connection URL whose password is one English word is reported, and so is
+ * a value like `configuration.livekit.apiSecret`, whose capture stops at the
+ * first dot and leaves one long word behind. Both are deliberate, and this
+ * comment is written without either shape spelled out because the scanner reads
+ * its own source. A false positive costs someone thirty seconds; a false
+ * negative costs a key.
+ */
+function isCamelCaseName(value: string): boolean {
+  // Strictly narrower than the rule this replaced, which forgave every
+  // `^[a-z][A-Za-z]*$`. Nothing newly *quiet* can get in through here.
+  if (!/^[a-z][A-Za-z]*$/.test(value)) return false;
+  const words = value.split(/(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/);
+  if (words.length < 2) return false;
+  return words.every(
+    (word) => /^[A-Z]{2,5}$/.test(word) || (/[aeiouy]/i.test(word) && !/[^aeiouy]{5}/i.test(word)),
+  );
+}
+
+/**
  * Code that *refers* to a credential rather than being one. Anchored patterns
  * like `PARLE_AGENT_SECRET: agentSecret` and
  * `PARLE_RATE_LIMIT_SALT: randomBytes(36).toString(...)` are the shape of a
  * server wiring itself up correctly, and flagging them is how a scanner teaches
  * people to ignore it. No issued credential contains a bracket, and none is a
- * digit-free camelCase word.
+ * dotted path.
+ *
+ * The third rule used to forgive *any* digit-free run of letters, which meant
+ * `LIVEKIT_API_SECRET=` followed by thirty-two lower-case-leading letters was
+ * never reported at all — and roughly one random base64 draw in 478 comes out
+ * that way, so the scanner's own tests failed once in a few hundred runs
+ * (F215). It now has to read as words, not merely as letters.
  */
 function isCodeReference(value: string): boolean {
   if (/[()[\]]/.test(value)) return true;
   if (/^[A-Za-z_$][\w$]*(?:\??\.[A-Za-z_$][\w$]*)+$/.test(value)) return true;
-  return /^[a-z][A-Za-z]*$/.test(value);
+  return isCamelCaseName(value);
 }
 
 function isPlaceholder(value: string): boolean {

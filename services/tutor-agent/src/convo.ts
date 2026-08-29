@@ -74,7 +74,14 @@ import {
   type TurnView,
   missionFrame,
 } from '@parle/brain';
-import { STUCK_SILENCE_MS, decodeClientMessage, validateExercise, type MissionId, type ServerMessage } from '@parle/core';
+import {
+  STUCK_SILENCE_MS,
+  decodeClientMessage,
+  validateExercise,
+  type MissionId,
+  type Rung,
+  type ServerMessage,
+} from '@parle/core';
 /**
  * The authored mission scenes, reached by file rather than through brain's
  * barrel because `@parle/brain` does not re-export `missions/` yet and its
@@ -948,6 +955,16 @@ export class ParleConversation extends voice.Agent {
    * ahead of time, which is the whole of why a mission opens in seconds.
    */
   private readonly missionId: MissionId | undefined;
+  /**
+   * The rung this session was asked to open on, or nothing.
+   *
+   * Set only when the learner is replaying a mission they have already
+   * finished: core's `replayRung` decides the raise, the token server signs it
+   * and agent.ts clamps it, so by the time it lands here it is a `Rung` and
+   * this class re-decides nothing about it. Consumed in `openMission` alone —
+   * see there for why it is deliberately not read anywhere else.
+   */
+  private readonly startRung: Rung | undefined;
 
   /**
    * `client` is the seam a test drives this class through. Without it the
@@ -972,6 +989,13 @@ export class ParleConversation extends voice.Agent {
        * what a mission id is, not the caller.
        */
       missionId?: unknown;
+      /**
+       * Open a replayed mission on this rung instead of the ordinary opening.
+       * A `Rung` and not `unknown`, unlike the two above: this value is decided
+       * before it gets here — agent.ts clamps the signed number into the
+       * ladder — so there is nothing left for a guard on this side to decide.
+       */
+      startRung?: Rung;
     } = {},
   ) {
     // The pipeline LLM never generates here; see the header. One line keeps
@@ -986,6 +1010,9 @@ export class ParleConversation extends voice.Agent {
     this.client = opts.client ?? brainClient();
     this.seedTopic = validSeedTopic(opts.seedTopic);
     this.missionId = validMissionId(opts.missionId);
+    // Held, not applied. The placeholder state built just above is the scene
+    // nobody is in yet, and every real scene is built again when it opens.
+    this.startRung = opts.startRung;
     if (opts.setSttLanguage) this.setSttLanguage = opts.setSttLanguage;
   }
 
@@ -1374,6 +1401,21 @@ export class ParleConversation extends voice.Agent {
         // The engine's own flag: finishing every beat of a mission is a win to
         // be shown, not a session to be closed. Code decides that, not a prompt.
         mission: true,
+        // The only place this is read. A learner walking back into a mission
+        // they have already finished should get less help than last time, and
+        // core's `replayRung` is what decided how much less — this line is the
+        // last hop of that decision, not a second opinion about it.
+        //
+        // Spread rather than passed, so a session with nothing to replay sends
+        // no field at all and the engine's ordinary opening rule answers, which
+        // is exactly today's behaviour for every mission opened for the first
+        // time.
+        //
+        // The two sibling `createConversation` calls — the placeholder in the
+        // constructor and the scene in `startScene` — deliberately do not get
+        // this. That is what makes a rung riding somebody's token unable to
+        // stiffen a conversation nobody asked to replay.
+        ...(this.startRung !== undefined ? { startRung: this.startRung } : {}),
       });
       this.phase = 'scene';
       this.openScene();

@@ -14,11 +14,10 @@
 
 ## Relationships
 
-- [Microphone Sound Check](Microphone_Sound_Check.md) (2 shared connections)
-- [React Context Providers](React_Context_Providers.md) (2 shared connections)
-- [Supabase Auth & OAuth](Supabase_Auth_&_OAuth.md) (2 shared connections)
-- [Live Session Hook](Live_Session_Hook.md) (2 shared connections)
-- [Session and Attempt Scoring](Session_and_Attempt_Scoring.md) (2 shared connections)
+- [Drill Screen And Tracking](Drill_Screen_And_Tracking.md) (4 shared connections)
+- [Live Session React Context](Live_Session_React_Context.md) (2 shared connections)
+- [Auth Adapter And Modes](Auth_Adapter_And_Modes.md) (2 shared connections)
+- [Audio Session Globals And Safety](Audio_Session_Globals_And_Safety.md) (2 shared connections)
 
 ## Source Files
 

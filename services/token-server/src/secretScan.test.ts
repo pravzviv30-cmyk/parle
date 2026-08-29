@@ -26,6 +26,7 @@ import {
   scanDiffStream,
   scanLine,
   scanText,
+  SECRET_PATTERNS,
 } from './secretScan.ts';
 
 /** A high-variety token of the requested length. Never the same twice. */
@@ -41,6 +42,39 @@ function token(length: number, alphabet: 'base64url' | 'hex' | 'upper' = 'base64
     if (candidate.length === length && new Set(candidate).size >= 8) return candidate;
   }
   throw new Error('could not build a high-variety sample token');
+}
+
+/**
+ * A credential built only from letters — the shape the scanner was once blind
+ * to, because a value with no digit in it reads like a variable name.
+ *
+ * Consonants only, and never a vowel, so the sample can never be mistaken for
+ * the English words a real identifier is built from. That is what makes this a
+ * *deterministic* probe of the blind spot: the content is random every run, but
+ * the property under test is fixed, so the case is exercised on every run
+ * rather than whenever a random base64 draw happens to come out all letters.
+ *
+ * `token()` above is deliberately left free to draw anything, including a draw
+ * that reads as words. Measured over ten million draws against the shipped
+ * scanner, a 32-character sample now goes unreported once in 312,500 runs,
+ * down from once in 475 before F215 was fixed. That remainder is the scanner
+ * making a defensible call on a genuinely word-shaped value, not a blind spot,
+ * and narrowing the generator to dodge it would test less than this does.
+ */
+const CONSONANTS = 'bcdfghjklmnpqrstvwxz';
+function letters(length: number): string {
+  for (let attempt = 0; attempt < 32; attempt += 1) {
+    const raw = randomBytes(length * 2);
+    let candidate = '';
+    for (let index = 0; index < length; index += 1) {
+      const letter = CONSONANTS[(raw[index * 2] ?? 0) % CONSONANTS.length] ?? 'b';
+      // The first character stays lower case: that is the half of the shape a
+      // scanner is most tempted to forgive.
+      candidate += index > 0 && (raw[index * 2 + 1] ?? 0) % 2 === 0 ? letter.toUpperCase() : letter;
+    }
+    if (new Set(candidate).size >= 8) return candidate;
+  }
+  throw new Error('could not build a letters-only sample credential');
 }
 
 function jwt(role: string): string {
@@ -222,6 +256,98 @@ describe('the secret scanner — shapes found, values never spoken', () => {
       assert.ok(!outcome.lines.join('\n').includes('clean'));
     } finally {
       rmSync(empty, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('the secret scanner — a credential that reads like a name', () => {
+  /**
+   * The six shapes recognised by their variable name rather than by a vendor
+   * prefix, each with the line that plants a credential in that position. These
+   * are the only patterns that consult `isCodeReference`, so these are the only
+   * ones an identifier-shaped value can hide behind.
+   */
+  const anchoredPlants = (value: string): { id: string; line: string }[] => [
+    { id: 'livekit-credential', line: `LIVEKIT_API_SECRET=${value}` },
+    { id: 'deepgram-key', line: `DEEPGRAM_API_KEY=${value}` },
+    { id: 'upstash-token', line: `UPSTASH_REDIS_REST_TOKEN=${value}` },
+    { id: 'assigned-server-secret', line: `PARLE_AGENT_SECRET=${value}` },
+    { id: 'url-embedded-credential', line: `redis://default:${value}@eu2-parle.upstash.io:6379` },
+    { id: 'hardcoded-bearer', line: `  authorization: 'Bearer ${value}',` },
+  ];
+
+  test('a credential of only letters is still found behind its variable name', () => {
+    // A new context-anchored pattern without a sample here would be a silent
+    // reopening of the blind spot, so the corpus and the library check each other.
+    assert.deepEqual(
+      anchoredPlants('unused').map((plant) => plant.id).sort(),
+      SECRET_PATTERNS.filter((pattern) => pattern.contextAnchored).map((pattern) => pattern.id).sort(),
+      'every pattern that trusts isCodeReference needs an all-letters sample',
+    );
+
+    // The value measured as missed: thirty-two letters, not one digit, first
+    // character lower case. Built from the alphabet so this file carries no
+    // credential-shaped literal of its own.
+    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+    const asMeasured = `${alphabet}${alphabet.slice(0, 6).toUpperCase()}`;
+
+    for (const value of [asMeasured, letters(32), letters(48)]) {
+      assert.match(
+        value,
+        /^[a-z][A-Za-z]*$/,
+        'the sample has to be the letters-only shape, or this test is checking nothing',
+      );
+      for (const { id, line } of anchoredPlants(value)) {
+        assert.ok(
+          scanLine(line).includes(id),
+          `${id}: a credential of only letters must not be read as a variable name`,
+        );
+      }
+    }
+  });
+
+  test('a dotted code reference is still not a finding', () => {
+    // Each entry is a real wiring shape from this repo's own harnesses. The
+    // same position is then given an actual credential, so the quiet above is a
+    // judgement about the value and never a pattern that simply does not fire.
+    const wiredUp: { id: string; reference: string; line: (value: string) => string }[] = [
+      {
+        id: 'assigned-server-secret',
+        reference: 'config.secrets.agentSecret',
+        line: (value) => `        PARLE_AGENT_SECRET: ${value},`,
+      },
+      {
+        id: 'assigned-server-secret',
+        reference: 'config?.secrets?.agentSecret',
+        line: (value) => `        PARLE_AGENT_SECRET: ${value},`,
+      },
+      {
+        id: 'assigned-server-secret',
+        reference: 'agentSecretForThisRun',
+        line: (value) => `        PARLE_AGENT_SECRET: ${value},`,
+      },
+      {
+        id: 'assigned-server-secret',
+        reference: "randomBytes(36).toString('base64url')",
+        line: (value) => `        PARLE_RATE_LIMIT_SALT: ${value},`,
+      },
+      {
+        id: 'livekit-credential',
+        reference: 'livekitSecretForTheHarness',
+        line: (value) => `        LIVEKIT_API_SECRET: ${value},`,
+      },
+    ];
+
+    for (const { id, reference, line } of wiredUp) {
+      assert.deepEqual(
+        scanLine(line(reference)),
+        [],
+        `${id}: code that names a credential is not a credential, and a scanner that says otherwise gets switched off`,
+      );
+      assert.ok(
+        scanLine(line(letters(32))).includes(id),
+        `${id}: the same position must still report a real credential, or the quiet above is a blind spot`,
+      );
     }
   });
 });

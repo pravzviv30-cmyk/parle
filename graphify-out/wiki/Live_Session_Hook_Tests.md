@@ -33,18 +33,16 @@
 
 ## Relationships
 
-- [Session Turns and Views](Session_Turns_and_Views.md) (7 shared connections)
-- [Conversation Screen Tests](Conversation_Screen_Tests.md) (6 shared connections)
-- [Live Session Hook](Live_Session_Hook.md) (5 shared connections)
-- [Conversation Screen UI](Conversation_Screen_UI.md) (3 shared connections)
-- [Client Server Protocol](Client_Server_Protocol.md) (2 shared connections)
-- [Profile Merge Tests](Profile_Merge_Tests.md) (2 shared connections)
-- [Live Failure Classification](Live_Failure_Classification.md) (2 shared connections)
-- [Thinking and Session Reporting](Thinking_and_Session_Reporting.md) (1 shared connections)
-- [App Root Wiring](App_Root_Wiring.md) (1 shared connections)
-- [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
+- [Audio Session Globals And Safety](Audio_Session_Globals_And_Safety.md) (9 shared connections)
+- [Session Journal Recovery](Session_Journal_Recovery.md) (5 shared connections)
+- [Pipeline Failure Classification](Pipeline_Failure_Classification.md) (5 shared connections)
+- [App Agent Wire Protocol](App_Agent_Wire_Protocol.md) (3 shared connections)
+- [Conversation Screen And Profile](Conversation_Screen_And_Profile.md) (3 shared connections)
+- [Brain Playground Chat CLI](Brain_Playground_Chat_CLI.md) (2 shared connections)
+- [User Scope Data Reset](User_Scope_Data_Reset.md) (2 shared connections)
+- [Session Domain Types](Session_Domain_Types.md) (1 shared connections)
+- [Status Line & Tutor Name](Status_Line_&_Tutor_Name.md) (1 shared connections)
 - [Learner Profile Updates](Learner_Profile_Updates.md) (1 shared connections)
-- [User Scope Reset](User_Scope_Reset.md) (1 shared connections)
 
 ## Source Files
 

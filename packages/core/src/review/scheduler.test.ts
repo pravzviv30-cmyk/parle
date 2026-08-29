@@ -1,7 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { applyGrade, dueCards, mergeCards, newCard, AGAIN_RETRY_MS, DEFAULT_EASE, DUE_CAP, MIN_EASE, type ReviewCard } from './scheduler.ts';
+import { applyGrade, dueCards, firstReturn, mergeCards, newCard, AGAIN_RETRY_MS, DEFAULT_EASE, DUE_CAP, MIN_EASE, type ReviewCard } from './scheduler.ts';
+import { presentationOf } from './evidence.ts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const NOW = 1_700_000_000_000;
@@ -234,5 +235,80 @@ describe('mergeCards — a re-encountered word never loses its history', () => {
   test('duplicates within the incoming batch itself collapse to one', () => {
     const merged = mergeCards([], [card({ id: 'vocab:merci' }), card({ id: 'vocab:merci' })]);
     assert.equal(merged.length, 1);
+  });
+});
+
+describe('firstReturn — the delayed test, named', () => {
+  test('a card back from its first one-day interval is a first return and nothing else is', () => {
+    // The substrate was always there: the graduation staircase sends a first
+    // success out exactly one day. What was missing was a name for the card
+    // that comes back, so a screen can say what it is without re-deriving it
+    // from two fields and getting a different answer than the next screen.
+    const firstSuccess = applyGrade(card(), 'good', NOW);
+    assert.equal(firstSuccess.intervalDays, 1, 'the substrate this reads: a first success is already scheduled for tomorrow');
+    assert.equal(firstReturn(firstSuccess, NOW + DAY_MS), true, 'a day later that card is the first thing in the deck that survived a night');
+
+    // Not yet due is not a return. Looking at the deck tonight is a look.
+    assert.equal(firstReturn(firstSuccess, NOW + DAY_MS - 1), false, 'a card seen before its due date has not come back yet, so nothing was tested');
+
+    // "Easy" strides two days, so it is never this card. Claiming a one-day
+    // memory of a two-day gap would be a false claim about the same evidence.
+    const easyFirst = applyGrade(card(), 'easy', NOW);
+    assert.equal(easyFirst.intervalDays, 2, 'easy takes a longer stride even on the graduation step');
+    assert.equal(firstReturn(easyFirst, NOW + 2 * DAY_MS), false, 'a two-day gap is a different test, and this predicate names only the one-day one');
+
+    // A second success strides three days, and is a second return regardless.
+    const secondSuccess = applyGrade(firstSuccess, 'good', NOW + DAY_MS);
+    assert.equal(secondSuccess.reps, 2);
+    assert.equal(firstReturn(secondSuccess, NOW + 4 * DAY_MS), false, 'the weekend test is not the first one');
+
+    // A relearned lapse lands back on a one-day interval, but its reps say it
+    // has been right before: its own first return happened weeks ago.
+    const relearned = applyGrade(card({ reps: 4, intervalDays: 0, lapses: 1 }), 'good', NOW);
+    assert.equal(relearned.intervalDays, 1, 'relearning graduates back to tomorrow, which is why reps and not the interval does the excluding');
+    assert.equal(relearned.reps, 5);
+    assert.equal(firstReturn(relearned, NOW + DAY_MS), false, 'a fifth success rescheduled to tomorrow is not a first anything');
+
+    // A sound is copied, never produced from a prompt, so it is never a test.
+    const sound = applyGrade(card({ kind: 'phoneme' }), 'good', NOW);
+    assert.equal(sound.intervalDays, 1);
+    assert.equal(sound.reps, 1);
+    assert.equal(firstReturn(sound, NOW + DAY_MS), false, 'a phoneme card is a listening exercise on any day, and listening again proves no recall');
+  });
+
+  test('a card missed before it was ever right still has a first return', () => {
+    // "Again" leaves reps at zero, so the "good" that follows is genuinely this
+    // card's first success and lands on the same one-day interval as any other.
+    // Lapses are deliberately not part of the predicate: the claim is that a
+    // memory is a day old, not that the learner's record of it is clean.
+    const missedThenLearned = applyGrade(applyGrade(card(), 'again', NOW), 'good', NOW);
+    assert.equal(missedThenLearned.reps, 1);
+    assert.equal(missedThenLearned.intervalDays, 1);
+    assert.equal(missedThenLearned.lapses, 1, 'the miss is still on the record, and still not what this predicate reads');
+    assert.equal(firstReturn(missedThenLearned, NOW + DAY_MS), true, 'a first success is a first success whether or not it was missed first');
+  });
+
+  test('everything it names is a card presentationOf would ask for', () => {
+    // The sound rule is inherited from `presentationOf`, never copied. Two
+    // copies is how a deck starts demanding a phoneme on one screen while
+    // treating it as listening on another, and both screens sound certain.
+    const clock = NOW + DAY_MS;
+    const deck = [
+      applyGrade(card({ id: 'vocab' }), 'good', NOW),
+      applyGrade(card({ id: 'sound', kind: 'phoneme' }), 'good', NOW),
+      applyGrade(card({ id: 'turn', kind: 'turn' }), 'good', NOW),
+      applyGrade(card({ id: 'easy' }), 'easy', NOW),
+      applyGrade(card({ id: 'relearned', reps: 4, intervalDays: 0, lapses: 1 }), 'good', NOW),
+      card({ id: 'new' }),
+    ];
+    for (const c of deck) {
+      if (!firstReturn(c, clock)) continue;
+      assert.equal(presentationOf(c, clock), 'retrieval', `${c.id} was named a first return, so the deck must ask for it before revealing it`);
+    }
+    assert.deepEqual(
+      deck.filter((c) => firstReturn(c, clock)).map((c) => c.id),
+      ['vocab', 'turn'],
+      'spoken and written cards return the same way; a sound never does',
+    );
   });
 });

@@ -1,6 +1,6 @@
 # Learner Profile Updates
 
-> 27 nodes · cohesion 0.16
+> 28 nodes · cohesion 0.15
 
 ## Key Concepts
 
@@ -8,10 +8,10 @@
 - **profile.test.ts** (29 connections) — `packages/brain/src/profile/profile.test.ts`
 - **repairProfile()** (19 connections) — `packages/brain/src/profile/profile.ts`
 - **applyTurnToProfile()** (14 connections) — `packages/brain/src/profile/profile.ts`
-- **learnerSnapshotFrom()** (13 connections) — `packages/brain/src/profile/profile.ts`
 - **finishSession()** (9 connections) — `packages/brain/src/profile/profile.ts`
 - **validLearnerName()** (8 connections) — `packages/brain/src/profile/profile.ts`
 - **withLearnerName()** (6 connections) — `packages/brain/src/profile/profile.ts`
+- **normalizeErrorTag()** (5 connections) — `packages/brain/src/profile/errorTag.ts`
 - **applyExtractionToProfile()** (5 connections) — `packages/brain/src/profile/profile.ts`
 - **migrateProfile()** (5 connections) — `packages/brain/src/profile/profile.ts`
 - **isRecord()** (4 connections) — `packages/brain/src/profile/profile.ts`
@@ -19,6 +19,7 @@
 - **sayableText()** (4 connections) — `packages/brain/src/profile/profile.ts`
 - **validOpener()** (4 connections) — `packages/brain/src/profile/profile.ts`
 - **validRememberedFacts()** (4 connections) — `packages/brain/src/profile/profile.ts`
+- **errorTag.ts** (3 connections) — `packages/brain/src/profile/errorTag.ts`
 - **coachedThisTurn()** (3 connections) — `packages/brain/src/profile/profile.ts`
 - **MAX_ERROR_PATTERNS** (3 connections) — `packages/brain/src/profile/profile.ts`
 - **namedInCoaching()** (3 connections) — `packages/brain/src/profile/profile.ts`
@@ -28,32 +29,32 @@
 - **MAX_MEMORY_FACTS** (2 connections) — `packages/brain/src/profile/profile.ts`
 - **modeOf()** (2 connections) — `packages/brain/src/profile/profile.ts`
 - **endedState()** (2 connections) — `packages/brain/src/profile/profile.test.ts`
-- **taughtTurn()** (2 connections) — `packages/brain/src/profile/profile.test.ts`
-- *... and 2 more nodes in this community*
+- *... and 3 more nodes in this community*
 
 ## Relationships
 
-- [Coach Sample Fixtures](Coach_Sample_Fixtures.md) (12 shared connections)
-- [Brain Playground CLI](Brain_Playground_CLI.md) (11 shared connections)
-- [French Authenticity Pack](French_Authenticity_Pack.md) (9 shared connections)
-- [Profile Merge](Profile_Merge.md) (9 shared connections)
-- [Profile Merge Tests](Profile_Merge_Tests.md) (7 shared connections)
-- [Conversation View Model](Conversation_View_Model.md) (7 shared connections)
-- [Drill Fixtures and Validation](Drill_Fixtures_and_Validation.md) (6 shared connections)
-- [Conversation Screen Tests](Conversation_Screen_Tests.md) (6 shared connections)
-- [Profile Store and Context](Profile_Store_and_Context.md) (5 shared connections)
-- [Conversation Orchestration](Conversation_Orchestration.md) (5 shared connections)
-- [Zod Contract Schemas](Zod_Contract_Schemas.md) (4 shared connections)
-- [Conversation Engine Tests](Conversation_Engine_Tests.md) (4 shared connections)
+- [Coach Output Samples And Checks](Coach_Output_Samples_And_Checks.md) (12 shared connections)
+- [Profile Merge Rules](Profile_Merge_Rules.md) (12 shared connections)
+- [Brain Playground Chat CLI](Brain_Playground_Chat_CLI.md) (12 shared connections)
+- [French Authenticity Pack](French_Authenticity_Pack.md) (8 shared connections)
+- [Onboarding Profile Store](Onboarding_Profile_Store.md) (8 shared connections)
+- [Conversation Flow Orchestration](Conversation_Flow_Orchestration.md) (8 shared connections)
+- [Drill Batch Validation](Drill_Batch_Validation.md) (6 shared connections)
+- [Brain Contract Zod Schemas](Brain_Contract_Zod_Schemas.md) (5 shared connections)
+- [Session Journal Recovery](Session_Journal_Recovery.md) (4 shared connections)
+- [Live Conversation Controller](Live_Conversation_Controller.md) (4 shared connections)
+- [Review Cards And Evidence](Review_Cards_And_Evidence.md) (3 shared connections)
+- [Claude CLI Brain Client](Claude_CLI_Brain_Client.md) (3 shared connections)
 
 ## Source Files
 
+- `packages/brain/src/profile/errorTag.ts`
 - `packages/brain/src/profile/profile.test.ts`
 - `packages/brain/src/profile/profile.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 157 (100%)
+- EXTRACTED: 151 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

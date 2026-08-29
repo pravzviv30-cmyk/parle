@@ -18,8 +18,7 @@
 
 ## Relationships
 
-- [Live Session Hook](Live_Session_Hook.md) (2 shared connections)
-- [Conversation Screen UI](Conversation_Screen_UI.md) (1 shared connections)
+- [Audio Session Globals And Safety](Audio_Session_Globals_And_Safety.md) (3 shared connections)
 
 ## Source Files
 

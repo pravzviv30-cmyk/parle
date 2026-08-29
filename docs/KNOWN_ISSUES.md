@@ -3388,3 +3388,155 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `convo.ts` alone, so closing this means extending the guard and updating that pin together.
   Found by work-judge at the slice 2 boundary.
 - verified-by: `the scripted lesson agent's own lines pass the output guard`
+
+### F211 — The roadmap's Phase 5 section contradicts the ledger it summarises
+- severity: P1
+- status: [x]
+- where: docs/DELIVERY_ROADMAP.md:149
+- note: lines 149-167 are slice-1 text left in place after slice 2 landed. They claim 34 gaps
+  open with 23 at P1 while the opening of the same section, and the ledger, say every P0 and
+  P1 is closed. The two paragraphs cannot both be true, and the wrong one is the one a reader
+  reaches last.
+- verified-by: `the phase five narrative agrees with the ledger it summarises`
+
+### F212 — The evidence snapshot records Phase 3 as the last landing
+- severity: P1
+- status: [x]
+- where: docs/IMPLEMENTATION_EVIDENCE.md:24
+- note: the header says refreshed for the Phase 3 landing floor and the snapshot's lead
+  sentence says Phases 1, 2 and 3 are on `main`, while Phases 4 and 5 landed as `f943bbe` and
+  `1b37b81`. The document that separates measured from claimed is itself two landings behind,
+  and neither later merge hash appears anywhere in it.
+- verified-by: `the landing snapshot names every merge the roadmap records`
+
+### F213 — The risk register stops at Phase 4
+- severity: P2
+- status: [x]
+- where: docs/RISK_REGISTER.md:3
+- note: Phase 5 accepted six P2 risks by choice, one of them a founder decision about money
+  (F208) and one a safety gap (F210), and the register that exists to record accepted risks
+  names none of them. Its own philosophy says a register that records only the good news is
+  the document this repo spends its time correcting.
+- verified-by: `the risk register records what phase five accepted`
+
+### F214 — The mobile floor defends 46 fewer tests than main carries
+- severity: P2
+- status: [x]
+- where: scripts/gate.floors.json:7
+- note: floors were blessed at the Phase 5 branch gate (mobile 556) and the loading-feedback
+  landing raised main's mobile count to 602 without a re-bless, so 46 tests could vanish
+  silently. The new equality test holds the recorded landing gate and the floors together so a
+  landing can never leave the floors behind again; the bless on a green gate is the work.
+- verified-by: `the newest recorded gate is the floor the gate defends`
+
+### F215 — A credential of only letters is invisible to the secret scanner
+- severity: P1
+- status: [x]
+- where: services/token-server/src/secretScan.ts:136
+- note: `isCodeReference` calls any value matching `/^[a-z][A-Za-z]*$/` a code identifier, and
+  `scanLine` skips it for every context-anchored pattern. `LIVEKIT_API_SECRET=` followed by
+  thirty-two letters beginning in lower case is not reported at all. The six patterns this
+  silences are exactly the repo's live vendor credentials: livekit-credential, deepgram-key,
+  upstash-token, assigned-server-secret, url-embedded-credential and hardcoded-bearer, which
+  are the same four keys F80 is still waiting to rotate. The rule earns its keep against a
+  real code reference like `authorization: bearerTokenFromRequest`, so deleting it is not the
+  fix; it needs a test that separates an identifier from a credential. It also makes the gate
+  flaky, because `plantedSamples()` generates genuine random tokens and roughly one base64url
+  draw in 480 is all letters starting lower case. Found when the pre-push hook refused a push
+  and the same suite passed on the next run.
+- verified-by: `a credential of only letters is still found behind its variable name`
+- verified-by: `a dotted code reference is still not a finding`
+
+### F216 — Three guilt ban lists become one importable union
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/copy/guilt.ts:1
+- note: the no-guilt rule is enforced by three tests with three different contents, and the gate
+  cannot see a ban list getting shorter. One exported union imported by every guilt-sensitive copy
+  test makes shortening it fail several suites at once, and 6a's three new surfaces land behind it.
+- verified-by: `the shared ban list still carries every word each surface ever banned`
+
+### F217 — The passport is a pure projection of mission progress
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/progress/passport.ts:1
+- note: one stamp per scene completed unaided, three states read off Independence, best-ever by
+  construction so a tired replay cannot cost a stamp; no counts, no digits, no banned word in any
+  stamp copy; nothing rendered at zero stamps; a needs-review mission keeps its stamp because
+  evidence does not decay.
+- verified-by: `a stamp is earned at best-ever independence and a lower replay cannot remove it`
+- verified-by: `with no stamps the passport adds nothing to the screen`
+- verified-by: `a mission the scheduler wants back keeps its stamp`
+
+### F218 — My French draws the stamps
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/MyFrenchTab.tsx:130
+- note: the situations list consumes stampsFrom; a stamped row gets a filled signal.good mark,
+  not-yet stays the hairline treatment because a thing that has not happened is not a state worth
+  signalling. Held by a source-walking contract test, since apps/mobile has no renderer tests.
+- verified-by: `the My French screen draws a stamp only for a scene finished unaided`
+
+### F219 — Core names a card's first return
+- severity: P1
+- status: [x]
+- where: packages/core/src/review/scheduler.ts:255
+- note: reps 1, intervalDays 1, due, and never a phoneme is exactly a first success coming back;
+  relearned lapses and easy-first cards are excluded by the arithmetic. dueCards stays
+  byte-identical so mix.ts and the due count cannot move.
+- verified-by: `a card back from its first one-day interval is a first return and nothing else is`
+
+### F220 — The review sitting says the tomorrow test out loud
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/review/cardView.ts:1
+- note: a stable partition of the already-capped sitting floats first-return cards to the front and
+  one quiet opener names why they are back; membership is dueCards' alone, so the cap and
+  overdue-first rules cannot be starved from here. Copy held against the shared ban list.
+- verified-by: `the tomorrow test never changes which cards are in the sitting, only the order`
+- verified-by: `the sitting opener carries no digit and no banned word`
+
+### F221 — replayRung answers the replay question the ladder does not
+- severity: P1
+- status: [x]
+- where: packages/core/src/missions/missions.ts:198
+- note: openingRung opens one rung below for a cold session; a deliberate replay of a finished
+  scene opens one rung up, clamped at the top, null when there is nothing to replay. Two questions,
+  two functions, one file that already owns independence.
+- verified-by: `a deliberate replay opens one rung up and never past the top`
+
+### F222 — The conversation engine accepts a requested opening rung
+- severity: P1
+- status: [x]
+- where: packages/brain/src/engine/conversation.ts:325
+- note: createConversation's config gains startRung, clamped, overriding openingRungFor only when
+  present; every existing caller passes nothing and behaves exactly as today. This is the missing
+  hop the prior proposal called finished.
+- verified-by: `a requested start rung pins where the scene opens and its absence changes nothing`
+
+### F223 — The agent threads the signed rung into the mission scene only
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:202
+- note: the already-clamped startRung rides ParleConversation's opts and is consumed in openMission
+  alone, so a stray rung can never stiffen a generic scene; the scripted-lesson branch is untouched.
+- verified-by: `the signed start rung reaches the mission conversation and a generic scene ignores it`
+
+### F224 — A finished mission replays with less help and says so once
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:264
+- note: the navigator loads completions for a mission route, computes replayRung, and ConvoScreen
+  forwards it where undefined sits today; replayNote renders "Less help this time." only when the
+  rung actually rises, so a learner already at the top is told nothing false.
+- verified-by: `a finished mission replays with less help and says so once`
+- verified-by: `the replay note appears only when the rung rises`
+
+### F225 — Phase 6's exit criterion gets definitions and an honest status
+- severity: P1
+- status: [x]
+- where: docs/DELIVERY_ROADMAP.md:15
+- note: the four nouns stay, each built noun is defined against the symbol that implements it, the
+  status cell records 6a built and 6b still deferred, and the landing records the gate and blesses
+  the floors as one act per evidenceContract. The Phase 5 precedent, followed rather than reinvented.
+- verified-by: `the Phase 6 criterion keeps all four nouns and each built noun names real source`

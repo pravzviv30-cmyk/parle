@@ -2,7 +2,7 @@
 
 > God node · 32 connections · `packages/core/src/drill/types.ts`
 
-**Community:** [Drill Exercise Merge](Drill_Exercise_Merge.md)
+**Community:** [Drill Exercise Bank Merge](Drill_Exercise_Bank_Merge.md)
 
 ## Connections by Relation
 
@@ -28,7 +28,7 @@
 - path.ts `EXTRACTED`
 - DrillScreen.test.ts `EXTRACTED`
 - drill/validate.ts `EXTRACTED`
-- validate.test.ts `EXTRACTED`
+- drill/validate.test.ts `EXTRACTED`
 - generate.test.ts `EXTRACTED`
 
 ### re_exports

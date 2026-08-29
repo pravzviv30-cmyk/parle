@@ -1,4 +1,4 @@
-# Mobile NPM Scripts
+# Mobile npm Scripts
 
 > 8 nodes · cohesion 0.25
 

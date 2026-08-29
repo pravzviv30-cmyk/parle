@@ -23,7 +23,7 @@
  * the rest simply wait their turn, unannounced.
  */
 
-import { addEvidence, isDue, type PhraseEvidence } from './evidence.ts';
+import { addEvidence, isDue, presentationOf, type PhraseEvidence } from './evidence.ts';
 
 export type ReviewCardKind = 'vocab' | 'phoneme' | 'turn';
 
@@ -214,6 +214,46 @@ export function dueCards(cards: readonly ReviewCard[], now: number, cap = DUE_CA
     .filter((c) => isDue(c, now))
     .sort((a, b) => a.due - b.due || a.addedAt - b.addedAt || a.id.localeCompare(b.id))
     .slice(0, Math.max(0, cap));
+}
+
+/**
+ * A card the learner first got right yesterday, back for its first real test.
+ *
+ * Naming, not scheduling. `GRADUATION_INTERVALS_DAYS` has always sent a first
+ * success out one day, so this card already existed and already arrived on
+ * time; nothing said what it was. It is the one thing in the deck that a
+ * sitting cannot fake — a phrase that survived a night's sleep rather than a
+ * minute's echo — and reading `reps` and `intervalDays` separately at each
+ * call site is how two screens end up making that claim about different cards.
+ *
+ * Nothing here reschedules anything, and `dueCards` is untouched: this is a
+ * question asked about a card, not a new way to pick one.
+ *
+ * The arithmetic does most of the excluding, which is why this is a
+ * comparison and a reused rule rather than a list of special cases.
+ *
+ * `reps === 1` is the first success and only the first. A lapse leaves reps
+ * intact, so a relearned card comes back to a one-day interval carrying reps
+ * of three or five, and its own first return was weeks ago.
+ *
+ * `intervalDays === 1` is the one-day stride and only that. An "easy" first
+ * success strides two days and a second success strides three, and a claim
+ * about a one-day memory would be false of both.
+ *
+ * `presentationOf` decides the rest, and deliberately is not re-implemented
+ * here. A phoneme card is a listening exercise on every day of its life, so it
+ * is never a test of recall; a card seen before its due date is a look rather
+ * than a return. Both rules already live in `evidence.ts`, and a second copy
+ * of either is how a deck starts demanding a sound on one screen while
+ * treating it as listening on another.
+ *
+ * What is deliberately absent is `lapses`. A card missed once before it was
+ * ever right, then answered, has had exactly one success and gets its first
+ * return like any other. The claim is that a memory is a day old, not that the
+ * learner's record of it is clean.
+ */
+export function firstReturn(card: ReviewCard, now: number): boolean {
+  return card.reps === 1 && card.intervalDays === 1 && presentationOf(card, now) === 'retrieval';
 }
 
 /**

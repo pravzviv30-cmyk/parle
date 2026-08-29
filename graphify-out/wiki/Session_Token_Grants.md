@@ -23,12 +23,12 @@
 
 ## Relationships
 
-- [Entitlement Store](Entitlement_Store.md) (6 shared connections)
-- [Session Metering and Plans](Session_Metering_and_Plans.md) (6 shared connections)
-- [Account Deletion and Events](Account_Deletion_and_Events.md) (5 shared connections)
-- [Path Node Status Line](Path_Node_Status_Line.md) (2 shared connections)
-- [Evidence Ledger Contract](Evidence_Ledger_Contract.md) (2 shared connections)
-- [Drill Chooser View](Drill_Chooser_View.md) (1 shared connections)
+- [Entitlement Plan Store](Entitlement_Plan_Store.md) (6 shared connections)
+- [Session Metering And Plans](Session_Metering_And_Plans.md) (6 shared connections)
+- [Account Deletion And Product Events](Account_Deletion_And_Product_Events.md) (5 shared connections)
+- [Status Line & Tutor Name](Status_Line_&_Tutor_Name.md) (2 shared connections)
+- [Gate Evidence Contract](Gate_Evidence_Contract.md) (2 shared connections)
+- [Mission Chooser View](Mission_Chooser_View.md) (1 shared connections)
 
 ## Source Files
 

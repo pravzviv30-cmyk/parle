@@ -23,6 +23,7 @@
 import {
   FIRST_MISSION,
   getMission,
+  replayRung,
   suggestedMission,
   type Independence,
   type Mission,
@@ -212,4 +213,88 @@ export function missionCompletionsFrom(
     out.push({ id: mission.id, at: record.at, rung: record.rung as Rung });
   }
   return out;
+}
+
+/**
+ * What a replay says about itself, and nothing else.
+ *
+ * No number, no scale, no comparison with anybody. "Less help this time" is the
+ * whole of what changed: the scene opens a rung higher, so the support that was
+ * there last time is not. A learner who reads nothing still gets the thing
+ * itself, because the rung is doing the work and this only names it.
+ */
+export const LESS_HELP = 'Less help this time.';
+
+/**
+ * A scene this learner has finished before, and where a fresh attempt at it
+ * opens.
+ *
+ * Two rungs, kept together on purpose. `startRung` is what the session ASKS
+ * for; `lastRung` is what actually happened last time, and it is the only thing
+ * the note below can honestly be measured against. Split them across two props
+ * and the screen ends up comparing the session it got with the session it
+ * requested, which always agrees with itself.
+ */
+export interface MissionReplay {
+  /** The rung this mission last finished on. */
+  lastRung: Rung;
+  /** One rung up from it, clamped at the top by core. */
+  startRung: Rung;
+}
+
+/**
+ * The replay a mission route is, or null when it is not one.
+ *
+ * The most recent finish of THIS mission, not the best ever — `missionStates`
+ * reads `lastRung` the same way, off the latest record by `at`, and the two
+ * have to agree because they are answering the same question. It is read
+ * straight from the stored records rather than through the projection because
+ * the projection also needs the review deck and a clock to say what STATE a
+ * mission is in, and none of that is being asked here.
+ *
+ * The raise itself is core's `replayRung` and is never recomputed: the ladder
+ * has four rungs and does not grow a fifth in a screen. Records are laundered
+ * through `missionCompletionsFrom` first, so a row naming a mission this build
+ * has never heard of, or a rung outside the ladder, simply is not a replay.
+ */
+export function missionReplay(
+  missionId: string | undefined,
+  stored: readonly { id: string; at: number; rung: number }[],
+): MissionReplay | null {
+  if (missionId === undefined) return null;
+  const mine = missionCompletionsFrom(stored).filter((done) => done.id === missionId);
+  if (mine.length === 0) return null;
+  const lastRung = mine.reduce((latest, done) => (done.at >= latest.at ? done : latest)).rung;
+  const startRung = replayRung(lastRung);
+  return startRung === null ? null : { lastRung, startRung };
+}
+
+/**
+ * The one line a replay is allowed to say about itself, or null.
+ *
+ * Null is the important answer. A learner who last finished on rung 4 has no
+ * help left to withdraw, so `replayRung` hands back 4 again and the scene opens
+ * exactly where it did before: telling them there is less help this time would
+ * be a straightforward lie, and this app does not ship those.
+ *
+ * `openedRung` is the rung the OPENING VIEW published, not the rung the app
+ * asked the token server for. Those are different facts. The engine clamps what
+ * it is given and can refuse it outright and open where it always opens, in
+ * which case nothing rose and there is nothing to say. Reading our own request
+ * back would be the app believing itself instead of looking, and it would be
+ * right up until the first time it mattered.
+ *
+ * Said once. The learner's first turn retires it, because by then the note is
+ * describing a moment that has passed, and a line that lingers reads as a
+ * running commentary on how much help somebody is getting.
+ */
+export function replayNote(input: {
+  replay: MissionReplay | null;
+  /** Off the opening publish. Null until the scene has actually opened. */
+  openedRung: Rung | null;
+  spokenThisSession: boolean;
+}): string | null {
+  if (input.replay === null || input.openedRung === null) return null;
+  if (input.spokenThisSession) return null;
+  return input.openedRung > input.replay.lastRung ? LESS_HELP : null;
 }

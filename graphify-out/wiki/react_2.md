@@ -2,7 +2,7 @@
 
 > God node · 40 connections · `apps/mobile/tsconfig.json`
 
-**Community:** [Auth Screens](Auth_Screens.md)
+**Community:** [Mobile App Shell And Auth Flow](Mobile_App_Shell_And_Auth_Flow.md)
 
 ## Connections by Relation
 
@@ -14,12 +14,12 @@
 - RootNavigator.tsx `EXTRACTED`
 - DrillScreen.tsx `EXTRACTED`
 - components.tsx `EXTRACTED`
-- App.tsx `EXTRACTED`
 - useLiveSession.ts `EXTRACTED`
+- App.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
+- MyFrenchTab.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
 - ProfileTab.tsx `EXTRACTED`
-- MyFrenchTab.tsx `EXTRACTED`
 - LiveSessionScreen.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
 - ReviewScreen.tsx `EXTRACTED`

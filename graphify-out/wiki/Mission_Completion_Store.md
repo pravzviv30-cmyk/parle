@@ -1,10 +1,11 @@
 # Mission Completion Store
 
-> 17 nodes · cohesion 0.20
+> 18 nodes · cohesion 0.18
 
 ## Key Concepts
 
-- **missions/store.ts** (30 connections) — `apps/mobile/src/missions/store.ts`
+- **missions/store.ts** (31 connections) — `apps/mobile/src/missions/store.ts`
+- **SyncAdoption** (12 connections) — `apps/mobile/src/sync/registry.ts`
 - **recordMissionCompletion()** (7 connections) — `apps/mobile/src/missions/store.ts`
 - **adoptMissionCompletions()** (6 connections) — `apps/mobile/src/missions/store.ts`
 - **KEY()** (4 connections) — `apps/mobile/src/missions/store.ts`
@@ -24,24 +25,29 @@
 
 ## Relationships
 
-- [Topics Store](Topics_Store.md) (6 shared connections)
-- [Drill Chooser View](Drill_Chooser_View.md) (6 shared connections)
-- [Conversation Screen UI](Conversation_Screen_UI.md) (3 shared connections)
-- [User Scope Reset](User_Scope_Reset.md) (2 shared connections)
-- [Activity Log Store](Activity_Log_Store.md) (2 shared connections)
-- [Store Binding Tests](Store_Binding_Tests.md) (2 shared connections)
-- [Sync Engine Core](Sync_Engine_Core.md) (1 shared connections)
-- [Tutor Tab Gate](Tutor_Tab_Gate.md) (1 shared connections)
+- [Tutor Onboarding Marks Store](Tutor_Onboarding_Marks_Store.md) (5 shared connections)
+- [Live Session React Context](Live_Session_React_Context.md) (5 shared connections)
+- [Acknowledged Persistence Stores](Acknowledged_Persistence_Stores.md) (3 shared connections)
+- [Conversation Screen And Profile](Conversation_Screen_And_Profile.md) (3 shared connections)
+- [Sync Engine Types](Sync_Engine_Types.md) (3 shared connections)
+- [User Scope Data Reset](User_Scope_Data_Reset.md) (2 shared connections)
+- [Drill Bank Store](Drill_Bank_Store.md) (2 shared connections)
+- [Store Binding Integration Tests](Store_Binding_Integration_Tests.md) (2 shared connections)
+- [Phrasebook Screen And Storage](Phrasebook_Screen_And_Storage.md) (2 shared connections)
+- [Paper UI Primitives](Paper_UI_Primitives.md) (1 shared connections)
+- [Mission Chooser View](Mission_Chooser_View.md) (1 shared connections)
+- [Onboarding Profile Store](Onboarding_Profile_Store.md) (1 shared connections)
 
 ## Source Files
 
 - `apps/mobile/src/missions/history.test.ts`
 - `apps/mobile/src/missions/store.ts`
+- `apps/mobile/src/sync/registry.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 46 (92%)
-- INFERRED: 4 (8%)
+- EXTRACTED: 58 (94%)
+- INFERRED: 4 (6%)
 - AMBIGUOUS: 0 (0%)
 
 ---

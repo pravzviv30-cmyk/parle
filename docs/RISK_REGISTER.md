@@ -1,6 +1,6 @@
 # Risk register
 
-Updated 2026-08-27 for the Phase 4 practice floor. Every row says whether its control was
+Updated 2026-08-29 for the Phase 5 tutor landing. Every row says whether its control was
 **measured**, is **blocked** on a named external thing, or is **accepted** with the
 reasoning written down. Those are the same three states the Phase 1 matrix uses, and
 `docs/IMPLEMENTATION_EVIDENCE.md` carries the numbers behind each one.
@@ -16,6 +16,9 @@ outright and cost less than it said (abandoned rooms, F78). All three are under 
 
 Phase 4 closed a fourth (lost practice, F118) and accepted three new risks in exchange,
 plus one question it left open on purpose. Those are under the table too.
+
+Phase 5 repaired two safety defects and then chose to leave six P2 risks open, one of them a
+founder decision about money. Those are under the table as well, in the last section.
 
 | Risk | Severity | Owner | Control now | Evidence state | Remaining action |
 |---|---|---|---|---|---|
@@ -150,3 +153,58 @@ the drill is a recognition format with the French already on the screen. That wa
 is the stronger claim about knowing when to use a phrase. The narrowing is written down here
 in case it is ever wanted: count transfer only from production-difficulty exercises. It is an
 open question rather than a defect, and nothing a learner sees today turns on it.
+
+## Phase 5 tutor: two repairs, and six risks kept open on purpose
+
+Two things this register would otherwise still be describing wrongly were repaired.
+
+**The safety boundary was stopping ordinary talk.** The deterministic pre-model boundary
+treated a learner saying how old they were, and ordinary minor-sexual-education language, as
+unsafe. A false positive in a safety stop is not a harmless conservatism: it ends the session
+of the learner it was written to protect. The patterns now separate the disclosure from the
+risk, and the adversarial and ordinary-French corpora above are what hold that apart.
+
+**A stopped session used to end like a finished one.** Congratulation, XP and a banked batch
+all followed a safety stop, which told a learner the session had gone well. After a stop
+there is now no congratulation, no XP and nothing banked on the device.
+
+Six risks stay open by choice, all P2, none of them load-bearing for the Phase 5 exit
+criterion. They are named here because a register that records only the good news is the
+same kind of document this repo keeps having to correct.
+
+- **F208, a stopped session still pays a model for work nobody receives.** After a safety
+  stop the worker still runs extract, curate and drill generation and publishes the results
+  into a room that has closed. The learner is billed model time for output nobody sees, and
+  the stop list in `docs/PRIVACY_AND_SAFETY.md` is true of the device and not of the worker.
+  Accepted as a founder decision about money and about what that document may claim, rather
+  than changed unilaterally by the engineer who found it.
+- **F193, durable curation has no eval.** Phase 4 proved a batch survives the disk. Nothing
+  yet scores whether the batch was worth surviving, so half of durable curation is held by
+  persistence rather than by quality. Accepted until an eval exists to regress against.
+- **F206, a rescue line is either dead or lost.** `RESCUE_LINE` in brain's copy module is
+  reachable only from its own test. Either the live path lost its rescue line or the constant
+  is dead weight a copy test keeps looking alive. Accepted because nobody has yet established
+  which, and guessing would either delete working copy or hide a missing line.
+- **F209, the pipeline log prefixes have two homes.** Nothing fails if they drift, so a grep
+  that finds the app's alarms can silently miss the worker's. Accepted because the cheap fix,
+  importing a browser SDK into the worker, is the worse trade.
+- **F146, `docs/DESIGN.md` records five colours the app stopped shipping.** Anyone designing
+  from the document picks colours the product does not use. Accepted as documentation drift
+  with no learner-visible effect today.
+- **F147, a typed lesson eats the first tap when the keyboard is up.** The first tap on an
+  option card dismisses the keyboard instead of choosing the option. Accepted as one lost tap
+  in one mode, and it is the same omission-from-a-list shape that let a typed lesson publish
+  a microphone, so it stays filed rather than forgotten.
+
+One more was filed alongside them and gets its own line, because it is a safety gap and not
+a cosmetic one.
+
+- **F210, the scripted lesson agent's own lines pass no output guard.** `outputGuard` runs on
+  the conversation surfaces and not on the lesson one, so a lesson's model line reaches the
+  learner unchecked. The deterministic boundary on the way in still runs, and the prompts
+  still carry the judgement half of the design. What is missing is the check on the way out.
+  Open, and named here rather than left to a document row that nobody can grep.
+
+None of these six is an external check, and none of them changes what the tutor-safety row
+above says. The deterministic boundary is measured, the professional review is still blocked
+on `external-safety-reviewer`, and there is still no in-app escalation or reporting route.

@@ -1,6 +1,6 @@
 # Anthropic Brain Client
 
-> 12 nodes · cohesion 0.38
+> 13 nodes · cohesion 0.33
 
 ## Key Concepts
 
@@ -13,21 +13,19 @@
 - **.extract()** (7 connections) — `packages/brain/src/llm/anthropic.ts`
 - **.frame()** (7 connections) — `packages/brain/src/llm/anthropic.ts`
 - **outputConfig()** (6 connections) — `packages/brain/src/llm/anthropic.ts`
+- **.constructor()** (2 connections) — `packages/brain/src/llm/anthropic.ts`
 - **parse()** (2 connections) — `packages/brain/src/llm/anthropic.ts`
 - **toProviderMessages()** (2 connections) — `packages/brain/src/llm/anthropic.ts`
 - **usageOf()** (2 connections) — `packages/brain/src/llm/anthropic.ts`
 
 ## Relationships
 
-- [Brain LLM Client Types](Brain_LLM_Client_Types.md) (22 shared connections)
-- [HTTP Retry Client](HTTP_Retry_Client.md) (4 shared connections)
-- [Claude CLI and Pricing](Claude_CLI_and_Pricing.md) (4 shared connections)
-- [Coach Sample Fixtures](Coach_Sample_Fixtures.md) (1 shared connections)
-- [Brain Playground CLI](Brain_Playground_CLI.md) (1 shared connections)
-- [Topic Curation](Topic_Curation.md) (1 shared connections)
-- [Tutor Evaluation Cases](Tutor_Evaluation_Cases.md) (1 shared connections)
-- [Conversation View Model](Conversation_View_Model.md) (1 shared connections)
-- [Conversation Engine Tests](Conversation_Engine_Tests.md) (1 shared connections)
+- [Claude CLI Brain Client](Claude_CLI_Brain_Client.md) (17 shared connections)
+- [Brain Contract Zod Schemas](Brain_Contract_Zod_Schemas.md) (10 shared connections)
+- [Claude CLI Run And Usage](Claude_CLI_Run_And_Usage.md) (5 shared connections)
+- [Conversation Flow Orchestration](Conversation_Flow_Orchestration.md) (2 shared connections)
+- [Brain Playground Chat CLI](Brain_Playground_Chat_CLI.md) (1 shared connections)
+- [Topic Curation Pipeline](Topic_Curation_Pipeline.md) (1 shared connections)
 
 ## Source Files
 
@@ -35,7 +33,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 61 (100%)
+- EXTRACTED: 62 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

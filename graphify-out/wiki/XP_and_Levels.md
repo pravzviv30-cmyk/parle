@@ -1,6 +1,6 @@
-# XP and Levels
+# XP And Levels
 
-> 21 nodes · cohesion 0.24
+> 20 nodes · cohesion 0.25
 
 ## Key Concepts
 
@@ -14,7 +14,6 @@
 - **reviewXp()** (6 connections) — `packages/core/src/levels/levels.ts`
 - **clamp()** (5 connections) — `packages/core/src/levels/levels.ts`
 - **levelFor()** (5 connections) — `packages/core/src/levels/levels.ts`
-- **localDayKey()** (4 connections) — `packages/core/src/levels/levels.ts`
 - **DAILY_XP_CAP** (3 connections) — `packages/core/src/levels/levels.ts`
 - **DatedXp** (3 connections) — `packages/core/src/levels/levels.ts`
 - **LEVEL_NAMES** (3 connections) — `packages/core/src/levels/levels.ts`
@@ -28,17 +27,14 @@
 
 ## Relationships
 
-- [Drill Chooser View](Drill_Chooser_View.md) (6 shared connections)
-- [Activity Log Store](Activity_Log_Store.md) (3 shared connections)
-- [Conversation Screen UI](Conversation_Screen_UI.md) (2 shared connections)
-- [Drill Screen UI](Drill_Screen_UI.md) (2 shared connections)
-- [App Root Wiring](App_Root_Wiring.md) (2 shared connections)
-- [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
-- [Session Progress History](Session_Progress_History.md) (1 shared connections)
-- [React Context Providers](React_Context_Providers.md) (1 shared connections)
-- [Today Activity Row](Today_Activity_Row.md) (1 shared connections)
-- [Auth Screens](Auth_Screens.md) (1 shared connections)
-- [UI Component Primitives](UI_Component_Primitives.md) (1 shared connections)
+- [Phrasebook Screen And Storage](Phrasebook_Screen_And_Storage.md) (8 shared connections)
+- [Live Session React Context](Live_Session_React_Context.md) (6 shared connections)
+- [Conversation Screen And Profile](Conversation_Screen_And_Profile.md) (2 shared connections)
+- [Status Line & Tutor Name](Status_Line_&_Tutor_Name.md) (1 shared connections)
+- [Drill Screen And Tracking](Drill_Screen_And_Tracking.md) (1 shared connections)
+- [User Scope Data Reset](User_Scope_Data_Reset.md) (1 shared connections)
+- [Mobile App Shell And Auth Flow](Mobile_App_Shell_And_Auth_Flow.md) (1 shared connections)
+- [Paper UI Primitives](Paper_UI_Primitives.md) (1 shared connections)
 
 ## Source Files
 
@@ -48,7 +44,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 71 (100%)
+- EXTRACTED: 69 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

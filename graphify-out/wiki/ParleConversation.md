@@ -1,8 +1,8 @@
 # ParleConversation
 
-> God node · 62 connections · `services/tutor-agent/src/convo.ts`
+> God node · 63 connections · `services/tutor-agent/src/convo.ts`
 
-**Community:** [Conversation Orchestration](Conversation_Orchestration.md)
+**Community:** [Live Conversation Controller](Live_Conversation_Controller.md)
 
 ## Connections by Relation
 
@@ -29,15 +29,16 @@
 - .say() `EXTRACTED`
 - .openMission() `EXTRACTED`
 - .extractMemory() `EXTRACTED`
+- .constructor() `EXTRACTED`
 - .recordBrainUsage() `EXTRACTED`
 - .buildFrame() `EXTRACTED`
-- .constructor() `EXTRACTED`
 - .openScene() `EXTRACTED`
 - .returnToChoosing() `EXTRACTED`
 - .recordFailedCall() `EXTRACTED`
 
 ### references
 - [LlmUsage](LlmUsage.md) `EXTRACTED`
+- [Rung](Rung.md) `EXTRACTED`
 - LlmClient `EXTRACTED`
 - LearnerProfile `EXTRACTED`
 - ConversationState `EXTRACTED`

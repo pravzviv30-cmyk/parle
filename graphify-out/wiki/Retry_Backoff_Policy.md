@@ -24,8 +24,9 @@
 
 ## Relationships
 
-- [Sync Engine Core](Sync_Engine_Core.md) (4 shared connections)
-- [Sync Policy and Live Checks](Sync_Policy_and_Live_Checks.md) (1 shared connections)
+- [Sync Engine Types](Sync_Engine_Types.md) (3 shared connections)
+- [Learner State Sync Engine](Learner_State_Sync_Engine.md) (1 shared connections)
+- [Sync Engine Reconciliation](Sync_Engine_Reconciliation.md) (1 shared connections)
 
 ## Source Files
 

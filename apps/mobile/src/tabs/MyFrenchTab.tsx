@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { missionStates, type MissionProgress } from '@parle/core';
 
 import { Card, Label, OutlineButton, PillButton, Stat } from '../components.tsx';
-import { paper, radius, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { paper, radius, signal, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
 import { buildPhrasebook, type Phrasebook } from '../phrases/phrasebook.ts';
@@ -16,6 +16,10 @@ import { MissionArt } from '../missions/MissionArt.tsx';
 import { loadSoundChecks } from '../soundcheck/store.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { trackProductEvent } from '../analytics/track.ts';
+import { hasStamps, isStamped, stampLabel, stampsFrom } from '../progress/passport.ts';
+
+/** The stamp mark, at TodayRow's size, because it is TodayRow's mark. */
+const MARK = 10;
 
 function latestCheck(missionId: string, checks: readonly SoundCheckEvidence[]): SoundCheckEvidence | null {
   return checks
@@ -31,7 +35,15 @@ function checkLine(check: SoundCheckEvidence | null): string | null {
   return 'Last check did not return enough evidence';
 }
 
-/** Durable, personal evidence replaces the placeholder social leaderboard. */
+/**
+ * Durable, personal evidence replaces the placeholder social leaderboard.
+ *
+ * The marks down the situations list are the passport, and every judgement in
+ * them is made in `progress/passport.ts`. This file asks `isStamped` and picks a
+ * style; it never asks what rung anybody reached. That is the whole reason the
+ * module exists, and a ternary on `independence` here would be a second ladder
+ * one screen away from the first.
+ */
 export function MyFrenchTab() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
@@ -72,6 +84,14 @@ export function MyFrenchTab() {
   const finished = missions.filter((item) => item.timesFinished > 0).length;
   const independent = missions.filter((item) => item.independence === 'on-your-own').length;
 
+  // Keyed rather than indexed: `stampsFrom` answers in the order it was given,
+  // and a lookup by id stays right the first time somebody filters this list.
+  const stamps = stampsFrom(missions);
+  const stampByMission = new Map(stamps.map((stamp) => [stamp.missionId, stamp]));
+  // Nothing is drawn until one has been earned. A rail of empty marks is a
+  // quota, which is the thing progress/today.ts refuses to render.
+  const showStamps = hasStamps(stamps);
+
   return (
     <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
@@ -101,11 +121,19 @@ export function MyFrenchTab() {
           <Label color={paper.inkFaint}>Your situations</Label>
           {missions.map((item) => {
             const check = latestCheck(item.mission.id, checks);
+            const stamp = stampByMission.get(item.mission.id);
             return (
               <View key={item.mission.id} style={st.mission}>
                 <View style={st.art}>
                   <MissionArt place={item.mission.place} width={74} paused />
                 </View>
+                {showStamps && stamp && (
+                  <View
+                    style={[st.stampMark, isStamped(stamp) ? st.stampEarned : st.stampNotYet]}
+                    accessibilityRole="image"
+                    accessibilityLabel={stampLabel(stamp)}
+                  />
+                )}
                 <View style={st.words}>
                   <Text style={[type.bodyStrong, { color: paper.ink }]}>{item.mission.title}</Text>
                   <Text style={[type.small, { color: paper.inkSoft }]}>{item.mission.titleEn}</Text>
@@ -161,6 +189,12 @@ const st = StyleSheet.create({
     borderColor: paper.lineOnCard,
   },
   art: { width: 78, alignItems: 'center' },
+  // TodayRow's two marks, the same size and the same grammar: filled means the
+  // learner produced French, and a hairline is not a colour, because a thing
+  // that has not happened is not a state worth signalling.
+  stampMark: { width: MARK, height: MARK, borderRadius: MARK / 2 },
+  stampEarned: { backgroundColor: signal.good },
+  stampNotYet: { borderWidth: HAIRLINE + 0.4, borderColor: paper.line },
   words: { flex: 1 },
   check: { color: paper.ink, marginTop: space(1.5) },
   smallAction: { minWidth: HIT, minHeight: HIT, alignItems: 'center', justifyContent: 'center' },

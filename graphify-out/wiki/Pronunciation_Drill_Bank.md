@@ -33,14 +33,17 @@
 
 ## Relationships
 
-- [Session and Attempt Scoring](Session_and_Attempt_Scoring.md) (9 shared connections)
-- [Lesson Definitions](Lesson_Definitions.md) (8 shared connections)
-- [Export and History Reports](Export_and_History_Reports.md) (6 shared connections)
-- [UI Component Primitives](UI_Component_Primitives.md) (6 shared connections)
-- [Drill Fixtures and Validation](Drill_Fixtures_and_Validation.md) (4 shared connections)
-- [Account Deletion and Events](Account_Deletion_and_Events.md) (2 shared connections)
-- [Repo Design Principles](Repo_Design_Principles.md) (2 shared connections)
-- [Path Node Status Line](Path_Node_Status_Line.md) (1 shared connections)
+- [Cafe Lesson Definitions](Cafe_Lesson_Definitions.md) (8 shared connections)
+- [Practice Data Export & History](Practice_Data_Export_&_History.md) (6 shared connections)
+- [Pronunciation Session Feedback](Pronunciation_Session_Feedback.md) (6 shared connections)
+- [Paper UI Primitives](Paper_UI_Primitives.md) (5 shared connections)
+- [Drill Exercise Bank Merge](Drill_Exercise_Bank_Merge.md) (4 shared connections)
+- [Product Principles & Design World](Product_Principles_&_Design_World.md) (2 shared connections)
+- [Drill Screen And Tracking](Drill_Screen_And_Tracking.md) (2 shared connections)
+- [Account Deletion And Product Events](Account_Deletion_And_Product_Events.md) (2 shared connections)
+- [Status Line & Tutor Name](Status_Line_&_Tutor_Name.md) (1 shared connections)
+- [Mock Speech And Session Screen](Mock_Speech_And_Session_Screen.md) (1 shared connections)
+- [Pronunciation Scoring & IPA](Pronunciation_Scoring_&_IPA.md) (1 shared connections)
 
 ## Source Files
 
