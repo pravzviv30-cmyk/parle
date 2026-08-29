@@ -36,7 +36,7 @@
   },
   "parle": {
     "dependencyAudit": {
-      "reviewed": "2026-08-25",
+      "reviewed": "2026-08-30",
       "auditFailsAbove": "moderate",
       "note": "Every advisory npm audit reports is listed here exactly once, keyed on the vulnerable package rather than on the dependants that inherit it. `npm run audit:ci` refuses any high or critical advisory whose package is not on this list, and refuses an accepted entry whose advisory has gone away, so the record cannot rot in either direction. `lockedAt` is the version package-lock.json carries today; ciContract.test.ts pins it, so a later install cannot move one of these without a person re-reading the reachability argument.",
       "advisories": [
@@ -52,19 +52,6 @@
           "chain": "expo -> @expo/cli -> @expo/metro -> metro -> image-size",
           "reachability": "build time only, but genuinely executed: this is the bundler behind `npm run web` and `npm run build:web`, and it reads every image asset in the repo.",
           "resolution": "@expo/metro 56.0.0 pinned metro 0.84.4, which depends on image-size. 56.0.2 pins metro 0.84.5, which dropped image-size altogether. ~56.0.0 is the range expo already declares, so 56.0.2 needed no override — only a lockfile that was not stale. `npm update @expo/metro` moved exactly one version and added nothing else; the full suite and a real `npm run build:web` both pass on 0.84.5."
-        },
-        {
-          "module": "image-size",
-          "severity": "high",
-          "decision": "accepted",
-          "lockedAt": "1.2.1",
-          "advisories": [
-            "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr",
-            "https://github.com/advisories/GHSA-5p2g-fcmc-qvqq"
-          ],
-          "chain": "@react-native/community-cli-plugin -> metro@0.84.4 -> image-size",
-          "reachability": "not reached. Every script in apps/mobile runs `expo`, never the React Native community CLI, and the Expo bundler chain is on metro 0.84.5 with no image-size. The residual copy is held by a CLI plugin this repo does not invoke. Even when reached the input is a repo-controlled image asset, not learner input.",
-          "why": "There is no fixed image-size to move to: the advisory range is <=2.0.2 and 2.0.2 is the newest version published. The only way to drop this copy is a full lockfile regeneration, which was measured and rejected — see the adm-zip entry."
         },
         {
           "module": "adm-zip",
