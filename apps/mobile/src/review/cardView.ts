@@ -20,6 +20,11 @@
  * another. This module answers the next question down: given that verdict and
  * what the learner has done so far, what is on the card.
  *
+ * `sittingView` at the foot of the file is the same arrangement one level up.
+ * The set of cards is the deck's, arrived at by rules about what is due and how
+ * many a sitting may hold; the order they are met in, and the one line that
+ * says why, are this file's.
+ *
  * ## The inversion
  *
  * A vocabulary card fronts the French and glosses it on the back, because
@@ -48,6 +53,7 @@
  */
 
 import {
+  firstReturn,
   presentationOf,
   type CardPresentation,
   type GradeContext,
@@ -239,4 +245,80 @@ export function cardView(card: ReviewCard, now: number, turn: ReviewTurn = CARD_
  */
 export function typedAttemptReady(typed: string): boolean {
   return typed.trim() !== '';
+}
+
+/** The sitting, in the order it will be dealt, and the line that opens it. */
+export interface SittingView {
+  /** Exactly the cards handed in, first returns first. Never more, never fewer. */
+  cards: ReviewCard[];
+  /** The line naming why the front of the sitting is what it is, or null. */
+  opener: string | null;
+}
+
+/**
+ * Why these cards are at the front, in two sentences and no numbers.
+ *
+ * "On purpose" is the whole job: it turns a repeat that looks like an accident
+ * into the design. The second sentence is the reason a spaced deck works, put
+ * as something still ahead of the learner rather than a verdict on what they
+ * have done, because at this point they have not answered anything yet. No
+ * count, no praise, and nothing that says a phrase went missing: the schedule
+ * came round again, which is not the same as a memory being lost.
+ */
+export const SITTING_OPENER =
+  'Some of these are back on purpose. Getting them right again is what makes them stay.';
+
+/**
+ * The sitting, ordered. `dealt` is the set; this only decides the sequence.
+ *
+ * `GRADUATION_INTERVALS_DAYS` has sent a first success back tomorrow since the
+ * scheduler was written, and nothing ever said so. That card is the one thing a
+ * sitting cannot fake: a phrase that survived a night's sleep rather than a
+ * minute's echo. The learner met it somewhere in the middle of a queue with no
+ * way of knowing it was the point of the whole deck.
+ *
+ * ## It reorders. It never re-selects.
+ *
+ * `dealt` is whatever the deck's own selection already returned, and what
+ * happens to it is a stable partition: every card is pushed to exactly one of
+ * two lists and the two are joined. The cards out are therefore the cards in,
+ * and each group keeps the order it arrived in, so the longest-overdue-first
+ * sort survives inside both halves rather than being replaced by a second
+ * opinion about it.
+ *
+ * That is the entire safety argument and it is deliberately structural. The
+ * selection puts the memories closest to fading first and stops at a cap,
+ * because a sitting that grows without limit is the backlog wall that makes
+ * people delete the app. A version of this that chose its own cards would let
+ * twenty first returns push out cards that are genuinely fading, and it would
+ * do it on exactly the deck where that hurts most: the one somebody came back
+ * to after a fortnight away. Nothing in this module knows what due, capped or
+ * overdue mean, which is why nothing in this module can starve them.
+ *
+ * `firstReturn` is core's and is not re-implemented here. It composes
+ * `presentationOf`, so a sound card and a card looked at before its day is up
+ * are already excluded, by the same rule `cardView` reads one card at a time.
+ *
+ * ## What the opener is allowed to claim
+ *
+ * That the cards are back to be tested. Nothing else. `reps` of one on a
+ * one-day stride names a card the scheduler *sent* back; the evidence that the
+ * memory actually held is the grade that follows, which the deck records as a
+ * retrieval only when an attempt came first. Congratulating anybody here would
+ * be marking a test before it was taken.
+ *
+ * It cannot say "yesterday" either, however much it wants to. A card is due
+ * from the moment its day is up, so a learner returning after a week away meets
+ * a first return whose one day was six days ago. The interval is one day; the
+ * gap is whatever the learner's life was.
+ *
+ * One line, and null when there is nothing to name. A sentence on every sitting
+ * is furniture, and a count of how many came back is the score wall this screen
+ * exists to refuse.
+ */
+export function sittingView(dealt: readonly ReviewCard[], now: number): SittingView {
+  const back: ReviewCard[] = [];
+  const rest: ReviewCard[] = [];
+  for (const card of dealt) (firstReturn(card, now) ? back : rest).push(card);
+  return { cards: [...back, ...rest], opener: back.length === 0 ? null : SITTING_OPENER };
 }

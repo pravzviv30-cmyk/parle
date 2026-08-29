@@ -10,6 +10,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { todayFrom, hasToday, SITTINGS_IN_A_DAY } from './today.ts';
+import { guiltIn } from '../copy/guilt.ts';
 import type { ActivityEntry } from './activity.ts';
 
 /** A local-time moment, so the day boundary under test is the learner's. */
@@ -107,24 +108,14 @@ describe('it cannot become a streak', () => {
   });
 
   test('no copy threatens, scolds, or asks the learner to protect anything', () => {
-    const BANNED = [
-      'streak',
-      'missed',
-      'lost',
-      'lose',
-      'break',
-      'keep it up',
-      'don\'t',
-      'do not',
-      'again tomorrow or',
-      'failed',
-      'behind',
-    ];
+    // The eleven words that used to sit here now live in copy/guilt.ts, with
+    // the mix offer's four folded in, because three private lists meant the
+    // shortest of them was the real rule (F216). Same matching as before,
+    // substring rather than word boundary, plus `owe` which Home never had.
     for (const c of CASES) {
-      const copy = `${c.headline} ${c.sub}`.toLowerCase();
-      for (const word of BANNED) {
-        assert.ok(!copy.includes(word), `"${copy.trim()}" contains "${word}"`);
-      }
+      const copy = `${c.headline} ${c.sub}`;
+      const word = guiltIn(copy);
+      assert.equal(word, undefined, `"${copy.trim()}" contains "${word}"`);
     }
   });
 

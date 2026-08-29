@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { STUCK_SILENCE_MS, directiveFor } from '@parle/core';
+import { STUCK_SILENCE_MS, directiveFor, replayRung, type Rung } from '@parle/core';
 
 import {
   MAX_ATTEMPTS_PER_BEAT,
@@ -74,6 +74,115 @@ describe('createConversation', () => {
     assert.ok(state.history[0]!.text.includes(CAFE_FRAME.openingLine.fr));
     assert.deepEqual(state.lastSupport, CAFE_FRAME.openingSupport);
     assert.equal(state.currentBeat, 'greet');
+  });
+});
+
+describe('a requested opening rung', () => {
+  /**
+   * The scene the app asks for, built the way every existing caller builds one.
+   * `startRung` is the only thing that varies, and leaving it out has to be the
+   * same call it was before this argument existed.
+   */
+  function opensAt(who: LearnerSnapshot, startRung?: Rung): ConversationState {
+    return createConversation(
+      CAFE_FRAME,
+      who,
+      { strictness: 'balanced', maxTurns: 24, ...(startRung === undefined ? {} : { startRung }) },
+      1_000,
+    );
+  }
+
+  test('a requested start rung pins where the scene opens and its absence changes nothing', () => {
+    // Someone who finished their last session on rung 3. A cold open hands them
+    // rung 2 on purpose: arriving rusty at the very edge of your ability is how
+    // a session dies in its first minute.
+    const who = learner({ cefr: 'A2', lastRung: 3, sessions: 4 });
+    assert.equal(openingRungFor(who), 2);
+
+    // Half one: the request decides. Rung 4 opens at rung 4, and the directive
+    // the tutor carries into the first turn is rung 4's directive.
+    const asked = opensAt(who, 4);
+    assert.equal(asked.ladder.rung, 4, 'a requested rung of 4 must open the scene at 4');
+    assert.deepEqual(asked.directive, directiveFor(4));
+
+    // Half two: no request is today, exactly. The rung is the cold-open rule's
+    // answer; an absent key and an undefined one are the same call; and the
+    // request moves the ladder and nothing else in the whole state.
+    const cold = opensAt(who);
+    assert.equal(cold.ladder.rung, openingRungFor(who));
+    assert.deepEqual(
+      createConversation(CAFE_FRAME, who, { strictness: 'balanced', maxTurns: 24, startRung: undefined }, 1_000),
+      cold,
+    );
+
+    const { ladder: askedLadder, directive: askedDirective, ...askedRest } = asked;
+    const { ladder: coldLadder, directive: coldDirective, ...coldRest } = cold;
+    assert.deepEqual(askedRest, coldRest, 'a requested rung must touch the ladder and leave the rest of the scene alone');
+    assert.notDeepEqual(askedLadder, coldLadder);
+    assert.notDeepEqual(askedDirective, coldDirective);
+  });
+
+  test('a requested rung replaces the cold-open rule instead of feeding it', () => {
+    // The trap this hop exists for, and the only way it fails silently.
+    //
+    // `openingRung` opens one rung BELOW the last finish. `replayRung` asks for
+    // one ABOVE it. Let the request fall through the first instead of replacing
+    // it and the +1 is spent undoing the -1: the learner replays at exactly the
+    // rung they already finished on, every wire between the tap and the scene
+    // still looks connected, and nothing anywhere says the replay got no harder.
+    for (const finished of [1, 2, 3, 4] as const) {
+      const who = learner({ cefr: 'A2', lastRung: finished, sessions: 4 });
+      const raised = replayRung(finished);
+      assert.notEqual(raised, null);
+
+      // What the scene would open on if the request were handed to openingRung.
+      const decremented = openingRungFor({ ...who, lastRung: raised });
+      const state = opensAt(who, raised!);
+
+      assert.equal(state.ladder.rung, raised, `a scene finished at rung ${finished} must replay at rung ${raised}`);
+      assert.notEqual(
+        state.ladder.rung,
+        decremented,
+        `a requested rung of ${raised} opened at ${decremented}: the request reached openingRung instead of replacing it`,
+      );
+    }
+  });
+
+  test('a rung the ladder does not have is refused, not invented', () => {
+    // This value arrives over a wire. The token server validates it and the
+    // agent clamps it, and this is still the last line before a learner sees
+    // it. Anything that is not one of the four rungs is not a rung, and the
+    // honest answer to one is the rung this learner would have got anyway —
+    // never a guess, because the guess at the top of the range is the one that
+    // hands a beginner no support at all.
+    const who = learner({ cefr: 'A2', lastRung: 3, sessions: 4 });
+    for (const bogus of [0, 5, 9, -1, 2.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      const state = opensAt(who, bogus as Rung);
+      assert.equal(state.ladder.rung, openingRungFor(who), `${bogus} is not a rung and must not open a scene`);
+    }
+  });
+
+  test('an ambitious replay is still rescuable at the rung it opened on', () => {
+    const who = learner({ cefr: 'A2', lastRung: 3, sessions: 4 });
+    const state = opensAt(who, 4);
+
+    // A short pause is still thinking, whatever rung the scene opened on.
+    const thinking = applyNonSpokenInput(state, { type: 'silence', durationMs: STUCK_SILENCE_MS - 1 });
+    assert.equal(thinking.view.rescued, false);
+    assert.equal(thinking.state.ladder.rung, 4);
+
+    // Four seconds is still stuck, and the rescue is the same rescue: the rung
+    // drops, the directive says rescued, and the line is there immediately.
+    const { state: rescued, view } = applyNonSpokenInput(state, { type: 'silence', durationMs: STUCK_SILENCE_MS });
+    assert.equal(view.rescued, true);
+    assert.equal(rescued.ladder.rung, 3, 'the ladder still adapts downward from a raised opening rung');
+    assert.equal(rescued.directive.rescued, true);
+    assert.equal(view.supportView.kind, 'hint');
+
+    // And a turn that missed drops it too. Opening high changes where the
+    // session starts, never whether it can come back down.
+    const { state: dropped } = integrateTurn(state, spoke('euh, je... coffee'), poorTurn());
+    assert.equal(dropped.ladder.rung, 3);
   });
 });
 

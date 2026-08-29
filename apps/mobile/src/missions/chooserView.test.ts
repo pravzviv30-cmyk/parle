@@ -12,17 +12,29 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { FIRST_MISSION, MISSIONS, missionStates, newCard, type MissionCompletion, type ReviewCard } from '@parle/core';
+import {
+  FIRST_MISSION,
+  MISSIONS,
+  missionStates,
+  newCard,
+  replayRung,
+  type MissionCompletion,
+  type ReviewCard,
+} from '@parle/core';
 
+import { guiltIn } from '../copy/guilt.ts';
 import { tutorDoors } from '../tutor/gate.ts';
 import {
+  LESS_HELP,
   MICROPHONE_NOTICE,
   PROMISE,
   TALK_FREELY,
   chooserView,
   hasSpokenBefore,
   headMissionId,
+  missionReplay,
   missionStatus,
+  replayNote,
   resumableMission,
 } from './chooserView.ts';
 
@@ -230,5 +242,124 @@ describe('a door that names a mission opens onto that mission', () => {
 
     assert.equal(view.cards[0]?.id, headMissionId({ progress, spokenBefore: true }));
     assert.equal(view.cards.length, progress.length, 'and nothing is dropped from the list');
+  });
+});
+
+describe('walking back into a scene you have already finished', () => {
+  const DAY = 86_400_000;
+  /** The props block passed to the conversation screen inside the route. */
+  function convoScreenProps(navigator: string): string {
+    const open = navigator.indexOf('<LazyConvoScreen');
+    assert.ok(open >= 0, 'the conversation route still renders the conversation screen');
+    return navigator.slice(open, navigator.indexOf('/>', open));
+  }
+
+  test('a finished mission replays with less help and says so once', () => {
+    // Exactly the records missions/store.ts keeps: plain id, epoch, plain rung,
+    // a short history per mission rather than one row overwritten.
+    const stored = [
+      { id: 'mission:cafe', at: NOW - 3 * DAY, rung: 1 },
+      { id: 'mission:cafe', at: NOW - DAY, rung: 2 },
+      { id: 'mission:hotel', at: NOW, rung: 4 },
+    ];
+
+    const replay = missionReplay('mission:cafe', stored);
+    assert.deepEqual(
+      replay,
+      { lastRung: 2, startRung: 3 },
+      'the replay is pitched off the most recent finish of THIS mission, one rung up',
+    );
+    assert.equal(replay?.startRung, replayRung(2), 'the raise and its ceiling are core’s, not a second copy kept here');
+
+    // The claim is read off what the session actually opened on, which is the
+    // rung the opening view publishes. Said once: the learner’s first turn
+    // retires it, so a note about how this replay began does not follow them
+    // through a scene it has stopped describing.
+    assert.equal(replayNote({ replay, openedRung: 3, spokenThisSession: false }), LESS_HELP);
+    assert.equal(
+      replayNote({ replay, openedRung: 3, spokenThisSession: true }),
+      null,
+      'the opening note is still on screen after the learner has answered',
+    );
+
+    // The delivery, which is where every hop of this pipe has broken before: a
+    // rule that decides correctly and is wired to nothing passes its own suite.
+    const navigator = stripComments(read('../nav/RootNavigator.tsx'));
+    assert.match(navigator, /loadMissionCompletions\(\)/, 'the route never reads what this learner has finished');
+    assert.match(
+      navigator,
+      /missionReplay\(missionId, stored\)/,
+      'the route works the replay out by hand instead of asking the rule',
+    );
+    assert.match(
+      convoScreenProps(navigator),
+      /replay=\{replayRead\.replay\}/,
+      'the replay is computed in the navigator and dies there',
+    );
+
+    const screen = stripComments(read('../ConvoScreen.tsx'));
+    const call = screen.slice(screen.indexOf('useLiveSession('), screen.indexOf('useLiveSession(') + 400);
+    assert.match(
+      call,
+      /useLiveSession\(userId, 'convo-01', replay\?\.startRung,/,
+      'the requested rung has to reach the join token, or the replay opens exactly where every session opens',
+    );
+    assert.match(screen, /replayNote\(\{/, 'the screen decides for itself when the note is true');
+    assert.ok(!screen.includes(LESS_HELP), 'the line is spelled out in the screen, where the rule cannot hold it');
+    assert.match(
+      screen,
+      /replayLine \? \([\s\S]{0,300}\{replayLine\}/,
+      'the note is worked out and never reaches glass',
+    );
+  });
+
+  test('the replay note appears only when the rung rises', () => {
+    // Rung 4 is already no support at all, so a replay of it withdraws nothing.
+    // Saying less help this time to somebody who had none last time is a plain
+    // untruth, and it is the only reason this rule is a function.
+    const atTheTop = missionReplay('mission:cafe', [{ id: 'mission:cafe', at: NOW, rung: 4 }]);
+    assert.deepEqual(atTheTop, { lastRung: 4, startRung: 4 }, 'the top rung replays as itself');
+    assert.equal(
+      replayNote({ replay: atTheTop, openedRung: 4, spokenThisSession: false }),
+      null,
+      'a learner already at the top is told help was withdrawn that was never there',
+    );
+
+    // Nothing finished is nothing to replay, and an ordinary conversation is
+    // not a replay of anything.
+    assert.equal(missionReplay('mission:cafe', []), null);
+    assert.equal(missionReplay(undefined, [{ id: 'mission:cafe', at: NOW, rung: 2 }]), null);
+    assert.equal(replayNote({ replay: null, openedRung: 3, spokenThisSession: false }), null);
+
+    const replay = missionReplay('mission:cafe', [{ id: 'mission:cafe', at: NOW, rung: 2 }]);
+    // The engine may refuse the rung we asked for and open where it always
+    // opens. The note is read off the opening publish rather than off the value
+    // we sent, so the app never talks about a session it did not get.
+    assert.equal(
+      replayNote({ replay, openedRung: 1, spokenThisSession: false }),
+      null,
+      'a scene that opened below the last finish still claims less help',
+    );
+    assert.equal(
+      replayNote({ replay, openedRung: 2, spokenThisSession: false }),
+      null,
+      'a scene that opened exactly where the last one finished still claims less help',
+    );
+    assert.equal(
+      replayNote({ replay, openedRung: null, spokenThisSession: false }),
+      null,
+      'the note is claimed before there is an opening view to read it off',
+    );
+    assert.equal(replayNote({ replay, openedRung: 3, spokenThisSession: false }), LESS_HELP);
+
+    // A record written by a build that knew a mission or a ladder this one does
+    // not is dropped rather than raised from.
+    assert.equal(missionReplay('mission:nope', [{ id: 'mission:nope', at: NOW, rung: 2 }]), null);
+    assert.equal(missionReplay('mission:cafe', [{ id: 'mission:cafe', at: NOW, rung: 9 }]), null);
+
+    // And the sentence itself, held against the one shared list.
+    assert.equal(guiltIn(LESS_HELP), undefined, `"${LESS_HELP}" says a word the app promised never to say`);
+    assert.ok(!/\d/.test(LESS_HELP), 'the note carries a number');
+    assert.ok(!/[—%]/.test(LESS_HELP), 'the note carries an em dash or a percentage');
   });
 });

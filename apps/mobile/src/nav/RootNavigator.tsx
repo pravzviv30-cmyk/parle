@@ -35,6 +35,8 @@ import { SummaryScreen } from '../SummaryScreen.tsx';
 import { DrillScreen } from '../DrillScreen.tsx';
 import { ReviewScreen } from '../ReviewScreen.tsx';
 import { MissionsScreen } from '../missions/MissionsScreen.tsx';
+import { missionReplay, type MissionReplay } from '../missions/chooserView.ts';
+import { loadMissionCompletions } from '../missions/store.ts';
 import { HomeTab } from '../tabs/HomeTab.tsx';
 import { TutorTab } from '../tabs/TutorTab.tsx';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
@@ -183,6 +185,43 @@ function ConvoRoute() {
   const { profile, updateBrain } = useProfile();
   const { live, recheck } = useLive();
   const [checking, setChecking] = useState(false);
+  const missionId = route.params?.missionId;
+
+  /**
+   * Whether this route is a replay, and where the replay opens.
+   *
+   * Loaded here rather than in the screen for the same reason LessonRoute loads
+   * its rung at :94: the value has to be known BEFORE the room is asked for,
+   * because it is signed into the join token and a session cannot change the
+   * rung it opened on afterwards. The wrapper object is the difference between
+   * "read, and there is no replay" and "not read yet", which a bare null
+   * cannot tell apart. An ordinary conversation has nothing to read and starts
+   * settled, so nothing waits on a disk it was never going to touch.
+   */
+  const [replayRead, setReplayRead] = useState<{ replay: MissionReplay | null } | null>(
+    missionId === undefined ? { replay: null } : null,
+  );
+  useEffect(() => {
+    let cancelled = false;
+    const settle = (replay: MissionReplay | null) => {
+      if (!cancelled) setReplayRead({ replay });
+    };
+    if (missionId === undefined) {
+      settle(null);
+      return;
+    }
+    void loadMissionCompletions().then(
+      (stored) => settle(missionReplay(missionId, stored)),
+      // A disk that will not answer is not a reason to keep somebody out of a
+      // conversation. No replay, no note, and the scene opens exactly as it
+      // does for a mission nobody has finished.
+      () => settle(null),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [missionId]);
+
   if (!user) return <Loading />;
   if (!live) {
     return (
@@ -213,6 +252,10 @@ function ConvoRoute() {
       </View>
     );
   }
+  // After the offline gate on purpose: a learner with no server to talk to gets
+  // the honest screen at once rather than a spinner over a disk read that
+  // cannot help them.
+  if (!replayRead) return <Loading />;
   return (
     <Suspense fallback={<Loading />}>
       <LazyConvoScreen
@@ -234,6 +277,10 @@ function ConvoRoute() {
         // conversation: without it the id dies here, every card opens the
         // model-written path, and nothing downstream can tell.
         missionId={route.params?.missionId}
+        // Finished before, so this attempt opens a rung higher than the last
+        // one ended. Null for a first attempt and for every conversation that
+        // is not a mission, which is the whole of today's behaviour.
+        replay={replayRead.replay}
       />
     </Suspense>
   );

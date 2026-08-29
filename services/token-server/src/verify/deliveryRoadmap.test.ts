@@ -482,3 +482,447 @@ describe('the Phase 5 narrative agrees with the ledger', () => {
     );
   });
 });
+
+/**
+ * Phase 6's exit criterion, read against the code it describes.
+ *
+ * The criterion is four nouns and nothing else: "Passport, delayed test, less-help replay,
+ * honest reminders/story". Three of them were built in slice 6a and the fourth has no line
+ * of code anywhere, which is exactly the moment an exit criterion gets quietly shortened —
+ * the failure mode the Phase 5 rule at the head of this file already names.
+ *
+ * So this rule does two things at once, and neither of them is "the document says built".
+ *
+ *   1. **The nouns stay.** All four have to be in the criterion cell, including the one
+ *      nobody built. Dropping it would make the phase smaller without anybody deciding to.
+ *
+ *   2. **A built noun names real source.** Each noun carries a definition, and a definition
+ *      that claims code cites the symbols in the file that declares them. Those symbols are
+ *      checked against the file, not against a list typed into this test: delete
+ *      `firstReturn` and this goes red naming it, which is a document to fix rather than a
+ *      test to edit. That is the Phase 5 precedent, where the mode names come out of the
+ *      `LiveMode` union rather than out of a constant here.
+ *
+ * `declares` is deliberately stricter than "the word appears in the file". `independenceFrom`
+ * is named in a comment at the top of `passport.ts` and is declared in `missions.ts`, so a
+ * word search would let the passport claim to implement it. A declaration is what a document
+ * is allowed to point at, and the refutations below prove that distinction is real.
+ *
+ * The unbuilt noun is judged in both directions, because "not built" is a claim about the
+ * repository and claims about the repository rot. `slice6bEvidence` looks for the two things
+ * slice 6b would have to add — a notifications dependency in a workspace manifest, and a
+ * module whose own name is a story or a reminder — and the definition has to agree with what
+ * it finds. Build 6b and this goes red until the document catches up.
+ */
+
+/** Phase 6's four nouns, written out. Shortening this list is the thing being defended. */
+const PHASE_SIX_NOUNS = ['Passport', 'delayed test', 'less-help replay', 'honest reminders/story'] as const;
+
+/**
+ * Phase 6's ledger ids, written out rather than inferred from a range.
+ * `evidenceContract.test.ts` and `practiceRecord.test.ts` both make this choice, for the
+ * reason they both give: a phase is a fixed historical thing, and "everything after F215"
+ * silently adopts whatever the next phase files.
+ */
+const PHASE_SIX_LEDGER = [
+  'F216', 'F217', 'F218', 'F219', 'F220',
+  'F221', 'F222', 'F223', 'F224', 'F225',
+] as const;
+
+/** Case and punctuation dropped, so "honest reminders/story" can find "Honest reminders / story". */
+const nounKey = (text: string): string => text.toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+/** The `## Phase 6` narrative section, whitespace intact. */
+function phaseSixSection(markdown: string): string {
+  const start = markdown.search(/^## Phase 6\b/m);
+  assert.notEqual(start, -1, 'the roadmap has no Phase 6 narrative section, so there is nothing to judge');
+  const rest = markdown.slice(start);
+  const end = rest.indexOf('\n## ', 1);
+  return end === -1 ? rest : rest.slice(0, end);
+}
+
+interface NounDefinition {
+  /** The bolded lead of the bullet, which is what names the noun. */
+  lead: string;
+  /** The whole bullet, whitespace-flattened. */
+  body: string;
+}
+
+/** One bullet per noun, from the definitions subsection alone. */
+function nounDefinitions(section: string): NounDefinition[] {
+  const at = section.indexOf('### What each noun means');
+  assert.notEqual(at, -1, 'the Phase 6 section no longer defines its nouns, so the criterion means whatever a reader decides');
+  const rest = section.slice(at);
+  const end = rest.indexOf('\n### ', 1);
+  const body = end === -1 ? rest : rest.slice(0, end);
+  return body
+    .split(/\n[ \t]*-[ \t]+(?=\*\*)/)
+    .slice(1)
+    .map((chunk) => {
+      const flat = chunk.replace(/\s+/g, ' ').trim();
+      return { lead: /^\*\*(.+?)\*\*/.exec(flat)?.[1] ?? '', body: flat };
+    });
+}
+
+/** A minimal definitions section the rule can be run against, read by the real parser. */
+function fixtureDefinitions(...bullets: string[]): string {
+  return ['## Phase 6: a fixture', '', '### What each noun means', '', ...bullets, ''].join('\n');
+}
+
+/**
+ * A claim of the shape "`a`, `b` and `c` in `path/to/file.ts`", anywhere in a definition.
+ *
+ * Free prose around it on purpose. A definition that has to be written in a fixed grammar
+ * stops being a definition and becomes a form, and the thing worth checking is only the
+ * join between a symbol and the file that is supposed to declare it.
+ */
+const IMPLEMENTATION_CLAUSE = /((?:`[^`\n]+`(?:,\s+|\s+and\s+))*`[^`\n]+`)\s+in\s+`([^`\n]+)`/g;
+
+function implementationClauses(body: string): { symbols: string[]; file: string }[] {
+  return [...body.matchAll(IMPLEMENTATION_CLAUSE)].map((hit) => ({
+    symbols: [...hit[1]!.matchAll(/`([^`\n]+)`/g)].map((symbol) => symbol[1]!),
+    file: hit[2]!,
+  }));
+}
+
+/**
+ * Whether a file declares a name, rather than merely mentioning it.
+ *
+ * Five shapes, because the code Phase 6a touched uses all five: a keyword declaration, a
+ * re-export list, a class field with a modifier, an optional property in a config type, and
+ * a method with a body. A call and a comment are neither, which is the whole point.
+ */
+function declares(source: string, symbol: string): boolean {
+  if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(symbol)) return false;
+  const patterns = [
+    `\\b(?:export\\s+)?(?:default\\s+)?(?:abstract\\s+)?(?:async\\s+)?(?:function|const|let|var|class|interface|type|enum)\\s+${symbol}\\b`,
+    `export\\s*(?:type\\s*)?\\{[^}]*\\b${symbol}\\b[^}]*\\}`,
+    `^[ \\t]*(?:(?:private|public|protected|readonly|static)[ \\t]+)+${symbol}[ \\t]*\\??[ \\t]*:`,
+    `^[ \\t]*${symbol}\\?[ \\t]*:`,
+    `^[ \\t]*(?:(?:private|public|protected|static|async|override)[ \\t]+)*${symbol}[ \\t]*\\([^\\n]*\\)[^\\n]*\\{`,
+  ];
+  return patterns.some((pattern) => new RegExp(pattern, 'm').test(source));
+}
+
+/**
+ * Everything in this repository that would exist if slice 6b had been started.
+ *
+ * Taken as inputs rather than read here, so the rule can be run against a tree this file
+ * controls. A green result nobody can refute is not evidence of anything.
+ */
+function slice6bEvidence(files: readonly string[], read: (file: string) => string): string[] {
+  const found: string[] = [];
+  for (const file of files) {
+    const base = path.basename(file);
+    if (base === 'package.json') {
+      let manifest: Record<string, Record<string, string> | undefined>;
+      try {
+        manifest = JSON.parse(read(file));
+      } catch {
+        continue;
+      }
+      for (const field of ['dependencies', 'devDependencies', 'peerDependencies']) {
+        for (const dependency of Object.keys(manifest[field] ?? {})) {
+          if (/notification/i.test(dependency)) found.push(`${file} depends on ${dependency}`);
+        }
+      }
+      continue;
+    }
+    if (!/\.tsx?$/.test(base) || /\.test\.tsx?$/.test(base)) continue;
+    // Split on separators and on camel humps, so `weeklyStory.ts` is a story module and
+    // `history.ts` is not. A substring search cannot tell those two apart.
+    const words = base.replace(/\.tsx?$/, '').split(/[^A-Za-z0-9]+|(?<=[a-z0-9])(?=[A-Z])/);
+    if (words.some((word) => /^(?:stor(?:y|ies)|notifications?|reminders?)$/i.test(word))) {
+      found.push(`${file} is a slice 6b module`);
+    }
+  }
+  return found;
+}
+
+/** Every file this repository ships, repo-relative, excluding the obvious noise. */
+function repoFiles(dir: string, prefix = ''): string[] {
+  const skip = new Set(['node_modules', 'dist', 'build', 'coverage', '.expo', 'android', 'ios', 'graphify-out']);
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name.startsWith('.') || skip.has(entry.name)) continue;
+    const rel = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+    if (entry.isDirectory()) out.push(...repoFiles(path.join(dir, entry.name), rel));
+    else out.push(rel);
+  }
+  return out;
+}
+
+/**
+ * Every reason the Phase 6 criterion and its definitions do not describe this repository.
+ *
+ * A list rather than inline assertions, for the reason the head of this file gives twice
+ * over: a rule that can only be run against the one document on disk cannot prove that a
+ * green result was earned.
+ */
+function phaseSixProblems(
+  criteria: string,
+  section: string,
+  read: (file: string) => string | null,
+  slice6b: readonly string[],
+): string[] {
+  const problems: string[] = [];
+  const definitions = nounDefinitions(section);
+
+  for (const noun of PHASE_SIX_NOUNS) {
+    if (!criteria.toLowerCase().includes(noun.toLowerCase())) {
+      problems.push(`the criterion no longer names "${noun}", so the phase quietly got smaller`);
+    }
+    const matching = definitions.filter((definition) => nounKey(definition.lead) === nounKey(noun));
+    if (matching.length !== 1) {
+      problems.push(`"${noun}" has ${matching.length} definitions, and a noun nobody defined is a noun nobody can close`);
+    }
+  }
+  for (const definition of definitions) {
+    if (!PHASE_SIX_NOUNS.some((noun) => nounKey(noun) === nounKey(definition.lead))) {
+      problems.push(`the definitions name "${definition.lead}", which is not one of the criterion's nouns`);
+    }
+  }
+
+  for (const definition of definitions) {
+    const unbuilt = /\bnot built\b/i.test(definition.body);
+    const built = /\bbuilt\b/i.test(definition.body.replace(/\bnot built\b/gi, ' '));
+    if (built === unbuilt) {
+      problems.push(`"${definition.lead}" says neither that it is built nor that it is not, or says both`);
+      continue;
+    }
+
+    const clauses = implementationClauses(definition.body);
+    if (!built) {
+      if (clauses.length > 0) {
+        problems.push(`"${definition.lead}" is not built and cites ${clauses[0]!.file} anyway`);
+      }
+      continue;
+    }
+    if (clauses.length === 0) {
+      problems.push(`"${definition.lead}" claims to be built and names no source at all`);
+      continue;
+    }
+    for (const clause of clauses) {
+      const source = read(clause.file);
+      if (source === null) {
+        problems.push(`"${definition.lead}" names ${clause.file}, and no such file is in this repo`);
+        continue;
+      }
+      for (const symbol of clause.symbols) {
+        if (!declares(source, symbol)) {
+          problems.push(`"${definition.lead}" says \`${symbol}\` is in ${clause.file}, which declares no such thing`);
+        }
+      }
+    }
+  }
+
+  // The unbuilt noun, judged against the tree rather than against itself. This is the half
+  // that stops "not built" from becoming a sentence nobody rereads.
+  const reminders = definitions.find((definition) => /reminder/i.test(definition.lead));
+  if (reminders === undefined) {
+    problems.push('no definition names the reminders and story noun at all');
+  } else {
+    const claimsBuilt = !/\bnot built\b/i.test(reminders.body);
+    if (claimsBuilt && slice6b.length === 0) {
+      problems.push('the reminders and story noun claims to be built and nothing in this repository implements it');
+    }
+    if (!claimsBuilt && slice6b.length > 0) {
+      problems.push(`the reminders and story noun says it is not built, and this repository has ${slice6b.join(', ')}`);
+    }
+  }
+
+  return problems;
+}
+
+describe('the delivery roadmap defines what Phase 6 shipped and what it did not', () => {
+  test('the Phase 6 criterion keeps all four nouns and each built noun names real source', () => {
+    const criteria = criteriaFor(roadmap, 6);
+    const section = phaseSixSection(roadmap);
+    const read = (file: string): string | null => {
+      try {
+        return readFileSync(path.join(ROOT, file), 'utf8');
+      } catch {
+        return null;
+      }
+    };
+    const files = repoFiles(ROOT);
+    const slice6b = slice6bEvidence(files, (file) => readFileSync(path.join(ROOT, file), 'utf8'));
+
+    // 1. The documents as they stand.
+    assert.deepEqual(
+      phaseSixProblems(criteria, section, read, slice6b),
+      [],
+      'the Phase 6 criterion and its definitions do not describe the code this repository ships',
+    );
+
+    // 2. The rule is not vacuous. A definitions section that had drifted into prose would
+    //    pass every check above by having nothing left to check.
+    const clauses = nounDefinitions(section).flatMap((definition) => implementationClauses(definition.body));
+    const symbols = clauses.flatMap((clause) => clause.symbols);
+    assert.ok(clauses.length >= 8, `only ${clauses.length} definitions name a source file, so this rule is judging almost nothing`);
+    assert.ok(symbols.length >= 12, `only ${symbols.length} symbols are named across the definitions`);
+    assert.ok(
+      new Set(clauses.map((clause) => clause.file)).size >= 6,
+      'the definitions point at fewer than six files, so a whole noun has stopped naming its code',
+    );
+
+    // 3. And 6b really is absent, measured rather than asserted. If this ever finds
+    //    something, rule 1 above has already said the document is the thing to change.
+    assert.ok(files.length > 100, `only ${files.length} files were walked, so the slice 6b probe saw almost nothing`);
+
+    // ── the refutations ────────────────────────────────────────────────────────────────
+    // Each one is a document somebody could plausibly write, and each has to be refused.
+
+    // 4. The unbuilt noun dropped. The sentence still reads well, the phase is smaller, and
+    //    this is the cheapest way there is to pass an exit criterion.
+    const shortened = phaseSixProblems('Passport, delayed test, less-help replay', section, read, slice6b);
+    assert.ok(
+      shortened.some((problem) => problem.includes('"honest reminders/story"') && problem.includes('quietly got smaller')),
+      'the criterion was allowed to drop the noun nobody built',
+    );
+
+    // 5. A symbol the file only mentions. `independenceFrom` is named in a comment at the
+    //    top of `passport.ts` and declared in `missions.ts`, so a word search would accept
+    //    this and a declaration check must not.
+    const borrowed = phaseSixProblems(
+      criteria,
+      fixtureDefinitions('- **Passport.** Built in 6a. In code: `independenceFrom` in `apps/mobile/src/progress/passport.ts`.'),
+      read,
+      slice6b,
+    );
+    assert.ok(
+      borrowed.some((problem) => problem.includes('`independenceFrom`') && problem.includes('declares no such thing')),
+      'a definition claiming a symbol its own file only mentions in a comment was accepted',
+    );
+    assert.ok(
+      readFileSync(path.join(ROOT, 'apps', 'mobile', 'src', 'progress', 'passport.ts'), 'utf8').includes('independenceFrom'),
+      'passport.ts no longer mentions independenceFrom, so refutation 5 is proving nothing',
+    );
+
+    // 6. A file that does not exist. A definition may not be kept true by a typo.
+    const missing = phaseSixProblems(
+      criteria,
+      fixtureDefinitions('- **Passport.** Built in 6a. In code: `stampsFrom` in `apps/mobile/src/progress/stamps.ts`.'),
+      read,
+      slice6b,
+    );
+    assert.ok(
+      missing.some((problem) => problem.includes('no such file is in this repo')),
+      'a definition pointing at a file this repo does not have was accepted',
+    );
+
+    // 7. A noun that claims to be built and names nothing. This is the state the criterion
+    //    was in before F225: four nouns, no definitions, and nothing to close against.
+    const bare = phaseSixProblems(criteria, fixtureDefinitions('- **Passport.** Built in 6a. It works well.'), read, slice6b);
+    assert.ok(
+      bare.some((problem) => problem.includes('names no source at all')),
+      'a noun claiming to be built while naming no code was accepted',
+    );
+
+    // 8. And the other direction: an unbuilt noun that cites code anyway.
+    const contradictory = phaseSixProblems(
+      criteria,
+      fixtureDefinitions('- **Honest reminders / story.** Not built. In code: `stampsFrom` in `apps/mobile/src/progress/passport.ts`.'),
+      read,
+      slice6b,
+    );
+    assert.ok(
+      contradictory.some((problem) => problem.includes('is not built and cites')),
+      'a noun that says it is not built and then names its implementation was accepted',
+    );
+
+    // 9. The reminders noun claiming to be built while nothing implements it, which is the
+    //    overclaim this whole entry exists to stop.
+    const overclaimed = phaseSixProblems(
+      criteria,
+      fixtureDefinitions('- **Honest reminders / story.** Built in 6a. It reminds people honestly.'),
+      read,
+      slice6b,
+    );
+    assert.ok(
+      overclaimed.some((problem) => problem.includes('nothing in this repository implements it')),
+      'the unbuilt noun was allowed to claim it shipped',
+    );
+
+    // 10. And the direction that will actually happen one day: 6b gets built and the
+    //     document still says it did not. The tree moves here, not the sentence.
+    assert.ok(
+      phaseSixProblems(criteria, section, read, ['apps/mobile/package.json depends on expo-notifications']).some(
+        (problem) => problem.includes('says it is not built'),
+      ),
+      'the document kept its "not built" claim while the repository had shipped it',
+    );
+
+    // 11. The probe itself, run over a tree this test controls. A story module and a
+    //     notifications dependency are found; `history.ts` is not a story.
+    assert.deepEqual(
+      slice6bEvidence(['apps/mobile/src/progress/history.ts', 'apps/mobile/src/progress/passport.ts'], () => ''),
+      [],
+      'the slice 6b probe mistook an ordinary module for a story or a reminder',
+    );
+    assert.equal(slice6bEvidence(['apps/mobile/src/story/weeklyStory.ts'], () => '').length, 1);
+    assert.equal(slice6bEvidence(['apps/mobile/src/notifications.ts'], () => '').length, 1);
+    assert.equal(
+      slice6bEvidence(['apps/mobile/package.json'], () => JSON.stringify({ dependencies: { 'expo-notifications': '~0.1.0' } })).length,
+      1,
+    );
+    assert.deepEqual(slice6bEvidence(['apps/mobile/package.json'], () => 'not json at all'), []);
+
+    // 12. And `declares` is stricter than a word search, proven on strings rather than on
+    //     the tree, so the distinction rule 5 depends on is nailed down here.
+    assert.ok(declares('export function firstReturn(card: ReviewCard): boolean {', 'firstReturn'));
+    assert.ok(declares('export const LESS_HELP = "Less help this time.";', 'LESS_HELP'));
+    assert.ok(declares('export interface Stamp {', 'Stamp'));
+    assert.ok(declares('    startRung?: Rung;', 'startRung'));
+    assert.ok(declares('  private readonly startRung: Rung | undefined;', 'startRung'));
+    assert.ok(declares('  private openMission(frame: ScenarioFrame): void {', 'openMission'));
+    assert.ok(declares('export { firstReturn, dueCards } from "./scheduler.ts";', 'firstReturn'));
+    assert.ok(!declares('      this.openMission(mission);', 'openMission'));
+    assert.ok(!declares(' * already owned: `independenceFrom` says how much help was', 'independenceFrom'));
+    assert.ok(!declares('  const stamps = stampsFrom(progress);', 'stampsFrom'));
+    assert.ok(!declares('export type StampState = (typeof STAMP_STATES)[number];', 'Stamp'));
+  });
+
+  test('the phase six row says what is built and what is not', () => {
+    const ledgerText = readFileSync(KNOWN_ISSUES_PATH, 'utf8');
+    const entries = new Map(
+      ledgerText.split(/\n(?=### )/).flatMap((block) => {
+        const id = /^### (F\d+) — /.exec(block)?.[1];
+        return id === undefined
+          ? []
+          : [[id, { severity: /^- severity: (P[012])/m.exec(block)?.[1] ?? 'P2', closed: /^- status: \[x\]/m.test(block) }] as const];
+      }),
+    );
+    for (const id of PHASE_SIX_LEDGER) {
+      assert.ok(entries.has(id), `${id} is gone from the ledger, so the Phase 6 row cannot be judged against it`);
+    }
+
+    const row = phaseRows(roadmap).find((candidate) => candidate.phase.startsWith('6.'));
+    assert.ok(row, 'the roadmap has no row for phase 6');
+    const status = row.status.replace(/\s+/g, ' ').trim();
+
+    // 1. The claim tracks the ledger, in both directions. F225 is excluded from its own
+    //    evidence for the reason F203 is: it is the entry that writes this row, so counting
+    //    it would make the rule unsatisfiable. Phase 5 set that precedent above.
+    const blocking = PHASE_SIX_LEDGER.filter(
+      (id) => id !== 'F225' && entries.get(id)!.closed === false && entries.get(id)!.severity !== 'P2',
+    );
+    const claimsBuilt = /\b6a is built\b|\bslice 6a is built\b/i.test(status);
+    if (blocking.length > 0) {
+      assert.ok(!claimsBuilt, `the row says 6a is built while ${blocking.join(', ')} is still open`);
+    } else {
+      assert.ok(claimsBuilt, 'every Phase 6 P0 and P1 is closed and the row does not say slice 6a is built');
+    }
+
+    // 2. The half that is not built is named in the row itself, not only in a section
+    //    further down that a table reader never reaches.
+    assert.match(status, /6b/i, 'the status cell never mentions slice 6b, so a reader takes the phase for finished');
+    assert.match(status, /is not built|not built at all/i, 'the row does not say that slice 6b is unbuilt');
+
+    // 3. And nothing is claimed that nobody did. This branch has not landed and no part of
+    //    it has been seen on a device.
+    assert.doesNotMatch(status, /merged (?:in)?to `main`/i, 'the row claims a merge that has not happened');
+    assert.doesNotMatch(status, /\brelease\b|\bshipped\b|ready to ship/i, 'the row reads as a release');
+    assert.match(status, /device/i, 'the row does not say that none of this has been seen on a device');
+  });
+});

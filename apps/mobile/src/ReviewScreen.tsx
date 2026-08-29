@@ -39,7 +39,15 @@ import { HAIRLINE, HIT, font, paper, paperFor, radius, space, type } from './the
 import { Card, Label, PillButton, EarGlyph, fitDisplay } from './components.tsx';
 import { NothingDue } from './illustrations.tsx';
 import { loadDeck, gradeCard } from './review/store.ts';
-import { CARD_START, SAID_IT, TYPE_IT, cardView, typedAttemptReady, type ReviewTurn } from './review/cardView.ts';
+import {
+  CARD_START,
+  SAID_IT,
+  TYPE_IT,
+  cardView,
+  sittingView,
+  typedAttemptReady,
+  type ReviewTurn,
+} from './review/cardView.ts';
 import { recordActivity } from './progress/activity.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 
@@ -49,6 +57,13 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   const [queue, setQueue] = useState<ReviewCard[] | null>(null);
   const [index, setIndex] = useState(0);
   const [turn, setTurn] = useState<ReviewTurn>(CARD_START);
+  /**
+   * The line that opens the sitting, or null when there is nothing to open it
+   * with. Held here rather than recomputed per card because it is a fact about
+   * how the sitting was dealt, and a card that rejoins the end after "Again"
+   * must not be able to bring it back.
+   */
+  const [opener, setOpener] = useState<string | null>(null);
   /**
    * The instant the sitting was dealt, and the only clock this screen reads
    * while it runs. `dueCards` picked the cards against it, so presentation is
@@ -68,7 +83,14 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       if (cancelled) return;
       const now = Date.now();
       dealtAt.current = now;
-      setQueue(dueCards(deck, now));
+      // Which cards are in the sitting is the deck's decision and stays the
+      // deck's: `sittingView` is handed what `dueCards` chose, floats the ones
+      // back for their first real test to the front, and returns the same
+      // cards in a different order. It has no way to select, so the cap and
+      // the longest-overdue-first rule cannot be starved from here.
+      const sitting = sittingView(dueCards(deck, now), now);
+      setQueue(sitting.cards);
+      setOpener(sitting.opener);
     });
     return () => {
       cancelled = true;
@@ -228,6 +250,13 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
             </Pressable>
           </View>
         </View>
+
+        {/* One quiet line, at the head of the sitting and nowhere else. It
+            names why the front of the queue looks repetitive; it is not a
+            verdict on anything, because nothing has been answered yet. */}
+        {opener !== null && index === 0 && (
+          <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(3) }]}>{opener}</Text>
+        )}
 
         <View style={st.centerFill}>
           {view.flippable ? (

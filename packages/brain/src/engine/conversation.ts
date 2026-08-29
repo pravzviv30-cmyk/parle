@@ -216,6 +216,42 @@ export function openingRungFor(learner: LearnerSnapshot): Rung {
   return openingRung({ cefrBase: BASE_RUNG_BY_CEFR[learner.cefr], lastRung: learner.lastRung });
 }
 
+/**
+ * The four rungs as a total table, so a value that arrived over a wire is
+ * checked against the ladder itself rather than against a range written down a
+ * second time. Same shape as `RAISED_BY_RUNG` in core's missions: the compiler
+ * checks the keys against `Rung`, and there is no cast to be wrong about.
+ */
+const REQUESTABLE_RUNG: Record<Rung, Rung> = { 1: 1, 2: 2, 3: 3, 4: 4 };
+
+/**
+ * Where THIS scene opens, which is not the question `openingRungFor` answers.
+ *
+ * That one is the cold open and stays exactly as it is: one rung BELOW where
+ * the learner last finished, because arriving rusty at the very edge of your
+ * ability is how a session dies in its first minute. Walking back into a scene
+ * you have already finished is the opposite question — the point of the replay
+ * is less help than last time — and core's `replayRung` answers it by going one
+ * rung UP.
+ *
+ * So a request REPLACES the cold-open rule rather than feeding it. Feeding it
+ * is the silent failure this hop exists to avoid: `openingRung` would spend the
+ * replay's +1 undoing its own -1, the learner would replay at exactly the rung
+ * they already finished on, and every wire from the tap to the scene would
+ * still look connected.
+ *
+ * Anything that is not one of the four rungs is refused rather than snapped
+ * into range. The token server validates this value and the agent clamps it, so
+ * this is the last line rather than the first, and at the last line the honest
+ * answer to a number nobody recognises is the rung this learner would have got
+ * anyway. A guess would land at the top of the range and hand a beginner no
+ * support at all on the strength of a bug somewhere upstream.
+ */
+function sceneOpensAt(learner: LearnerSnapshot, requested: Rung | undefined): Rung {
+  if (requested === undefined) return openingRungFor(learner);
+  return REQUESTABLE_RUNG[requested] ?? openingRungFor(learner);
+}
+
 /** The scene plan as the model sees it — message zero of every session. */
 export function frameMessage(frame: ScenarioFrame): string {
   const lines: string[] = [
@@ -289,11 +325,26 @@ export function repairOpeningNarration(frame: ScenarioFrame, request = ''): Scen
 export function createConversation(
   rawFrame: ScenarioFrame,
   learner: LearnerSnapshot,
-  config: { strictness: Strictness; maxTurns: number; request?: string; mission?: boolean },
+  config: {
+    strictness: Strictness;
+    maxTurns: number;
+    request?: string;
+    mission?: boolean;
+    /**
+     * Open this scene on a named rung instead of the cold-open rule's answer.
+     *
+     * Absent for every caller that does not ask, which is all of them today,
+     * and absent is exactly today's behaviour. Present when the app is replaying
+     * a mission the learner has already finished and wants it to offer less
+     * help than last time. See `sceneOpensAt`: a request replaces the rule, it
+     * never feeds it.
+     */
+    startRung?: Rung;
+  },
   now = Date.now(),
 ): ConversationState {
   const frame = repairOpeningNarration(rawFrame, config.request ?? '');
-  const ladder = initialLadder(openingRungFor(learner));
+  const ladder = initialLadder(sceneOpensAt(learner, config.startRung));
   const beatStatus: Record<string, 'pending' | 'done'> = {};
   for (const beat of frame.beats) beatStatus[beat.id] = 'pending';
 

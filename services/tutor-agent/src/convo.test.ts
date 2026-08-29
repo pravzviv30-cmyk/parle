@@ -1,5 +1,7 @@
 import { test, describe, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import { tokenize, voice } from '@livekit/agents';
 import {
@@ -19,6 +21,7 @@ import {
   finishSession,
   integrateTurn,
   learnerSnapshotFrom,
+  openingRungFor,
   sampleCoachItem,
   sampleSupport,
   sampleTurn,
@@ -42,6 +45,7 @@ import {
   decodeServerMessage,
   encodeMessage,
   type ClientMessage,
+  type Rung,
   type ServerMessage,
 } from '@parle/core';
 
@@ -510,6 +514,12 @@ function buildConvo(
     seedTopic?: unknown;
     missionId?: unknown;
     profile?: LearnerProfile;
+    /**
+     * The rung the token was signed for, already clamped by agent.ts. A `Rung`
+     * here and not `unknown`, because unlike the seed and the mission id this
+     * value is decided before it reaches the class: see agent.ts's clamp.
+     */
+    startRung?: Rung;
     /** Written before `attach`, exactly as agent.ts writes it. */
     sessionId?: string;
   } = {},
@@ -521,6 +531,7 @@ function buildConvo(
     client,
     seedTopic: opts.seedTopic,
     missionId: opts.missionId,
+    startRung: opts.startRung,
     setSttLanguage: (language) => sttLanguages.push(language),
   });
   const { session, said } = stubSession();
@@ -2196,6 +2207,89 @@ describe('a conversation started from a mission', () => {
       assert.equal(typeof message.view.missionDone, 'boolean', 'every published view says whether this turn was the win');
       overTheWire(message);
     }
+  });
+
+  test('the signed start rung reaches the mission conversation and a generic scene ignores it', async (t) => {
+    // Replaying a mission you have already finished should offer LESS help than
+    // last time. core's `replayRung` decides that, the token server signs it and
+    // agent.ts clamps it, and for a while the value died here: the worker handed
+    // it to ParleTutor, the scripted-lesson branch, and missions run as convo.
+    // So every wire from the tap to the scene looked connected and the learner
+    // replayed at exactly the support they had before.
+    //
+    // The rung is threaded in one place on purpose — the mission open. A generic
+    // scene must be unmoved by it, which is the second half below: a stray rung
+    // riding a token can never quietly stiffen a conversation nobody replayed.
+    const raised: Rung = RUNGS.PROMPTED;
+    const profile = createProfile();
+    const coldOpen = openingRungFor(learnerSnapshotFrom(profile));
+    assert.notEqual(raised, coldOpen, 'the two halves only mean something if the rungs differ');
+
+    // Half one: the mission opens where core said to.
+    const replay = buildConvo(t, { profile, missionId: 'mission:cafe', startRung: raised });
+    replay.convo.open(replay.session);
+    await sceneSettled();
+
+    assert.equal(
+      replay.convo.conversationState.ladder.rung,
+      raised,
+      'the replayed mission opens on the raised rung, not on the rung it would have opened at cold',
+    );
+    // Not routed through the cold-open rule, which subtracts one: that decrement
+    // is the silent failure this entry exists to avoid, and it is invisible
+    // unless a test names the number it expects.
+    assert.notEqual(
+      replay.convo.conversationState.ladder.rung,
+      coldOpen,
+      'a request replaces the cold-open rule; it must never be fed back into it',
+    );
+    // And it reaches the app on the opening view already published, so nothing
+    // downstream needs a second channel to learn where this scene started.
+    const opened = views(replay.published);
+    assert.equal(opened.length, 1, 'the mission scene is open');
+    assert.equal(opened[0]!.view.rung, raised, 'the app is told the rung this scene actually opened on');
+
+    // Half two: the same signed rung, on a session that is not a mission.
+    const generic = buildConvo(t, { profile, startRung: raised });
+    generic.convo.open(generic.session);
+    assert.equal(
+      generic.convo.conversationState.ladder.rung,
+      coldOpen,
+      'the placeholder state a conversation is built with is not stiffened either',
+    );
+
+    await generic.convo.handleClientMessage(generic.session, tapped({ t: 'say', text: 'Au café' }));
+    await sceneSettled();
+
+    assert.equal(
+      generic.convo.conversationState.frame.title,
+      CAFE_FRAME.title,
+      'the generic scene did open, so the rung below is a real scene and not an empty one',
+    );
+    assert.equal(
+      generic.convo.conversationState.ladder.rung,
+      coldOpen,
+      'a scene the learner asked for opens exactly where it would have anyway',
+    );
+    const genericOpened = views(generic.published);
+    assert.equal(genericOpened.at(-1)!.view.rung, coldOpen, 'and the app is told the ordinary rung, not the requested one');
+
+    // And the worker actually hands it over. A tripwire, in the joinMeta.test.ts
+    // idiom and for its reason: importing agent.ts runs preflight and gives the
+    // process to cli.runApp, so it cannot be driven. It is also exactly the door
+    // this bug lived behind — every assertion above builds ParleConversation
+    // directly and every one of them passed while the worker gave the rung to
+    // the scripted-lesson branch alone.
+    const agentSource = readFileSync(fileURLToPath(new URL('./agent.ts', import.meta.url)), 'utf8');
+    const code = agentSource
+      .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+      .replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
+    const convoBranch = code.slice(code.indexOf('new ParleConversation('), code.indexOf('new ParleTutor('));
+    assert.ok(convoBranch.length > 0, 'agent.ts still builds one of the two agents; this tripwire has gone stale');
+    assert.match(convoBranch, /\bstartRung\b/, 'the worker hands the signed rung to the conversation, not only to the lesson');
+    // The scripted lesson is untouched by this entry: it already got the rung
+    // and its behaviour must not move.
+    assert.match(code, /new ParleTutor\(lesson, startRung, \{ voiceless \}\)/, 'the scripted-lesson branch still gets it too');
   });
 });
 

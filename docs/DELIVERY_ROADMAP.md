@@ -12,7 +12,7 @@ deferred.
 | 3. Onboarding | onboarding UX, design system, privacy-safety | One welcome, useful choices, readiness, contextual mic, returning-user migration | Built on `phase-3-onboarding` and merged into `main` as `2a86092`; local web route proof complete, native/five-viewport QA and migration deployment remain external |
 | 4. Practice | practice UX, learning science, data-sync | Retrieval before reveal, one mastery source, durable batches, transfer | Built on `phase-4-practice` and merged into `main` as `f943bbe`; that branch is deleted now, so the hash is what finds it. Device, screen-reader and Supabase verification pending |
 | 5. Tutor | tutor behaviour, voice, learning science, privacy-safety | Mode parity across the four session modes (`convo`, `convo-text`, `lesson`, `lesson-text`), correction policy, recovery, safety, durable curation | Built on `phase-5-tutor` and merged into `main` as `1b37b81`. All five properties held locally and tested; every P0 and P1 closed. Six P2s stay open by choice, and the six external checks are unclaimed by anyone, so this is not a release |
-| 6. Retention | progress-retention, learning science, design system | Passport, delayed test, less-help replay, honest reminders/story | Designed but intentionally deferred until sync/evidence stabilise |
+| 6. Retention | progress-retention, learning science, design system | Passport, delayed test, less-help replay, honest reminders/story | Slice 6a is built on `phase-6-retention` and has not landed: the passport, the delayed test and the less-help replay each have code and a named test, and F216 to F225 are closed. Slice 6b, the honest reminders and the weekly story, is not built at all and stays designed but intentionally deferred. Nothing in this phase has been seen on a device or a deployed database, and the six external checks stay unclaimed |
 | 7. Revenue | revenue, security, privacy-safety | One paid tier, verified receipts/webhooks, restore/lifecycle, fair-use economics | Blocked by product/store credentials; implementation missing |
 | 8. Privacy/release | privacy-safety, qa-release, deploy | Reviewed policies, export/deletion, full device/live/build gate and rollback | Blocked; policies, devices and deployment evidence missing |
 
@@ -170,3 +170,75 @@ cannot hold them:
   live verification, a Supabase-authenticated first run, the device and five-viewport
   accessibility matrix with VoiceOver and TalkBack, the F57 stopwatch, vendor credential
   rotation, and F79 all stand where the section above leaves them.
+
+## Phase 6: what the exit criterion means, and where it stands
+
+The criterion is four nouns — Passport, delayed test, less-help replay, honest
+reminders/story — and all four stay in the row. Three of them now have code. The fourth has
+none at all, and dropping it would be the cheapest possible way to pass the criterion, so it
+stays in the sentence and is named here as unbuilt.
+
+This is the Phase 5 precedent above, applied again rather than reinvented. A noun every
+reader expands differently is a criterion nobody can close against, so each built noun is
+defined against the symbols that implement it, and
+`services/token-server/src/verify/deliveryRoadmap.test.ts` reads those symbols out of the
+source files this section names. Delete `firstReturn` and the test says this document went
+stale, which makes it a document to fix rather than a test to edit. The definitions below are
+what may be argued with. The source is not.
+
+Slice 6a is held locally and has not landed. Every entry this phase filed, F216 to F225, is
+closed against a named test that passes, and the gate on `phase-6-retention` read 2,090 tests
+with none failing. `docs/IMPLEMENTATION_EVIDENCE.md` is where that run is written down, and
+the floors were blessed to it in the same act, because a floor that lags a landing is a floor
+that would let a whole suite stop loading without anybody noticing.
+
+### What each noun means
+
+- **Passport.** Built in 6a. One stamp per situation the learner has finished without help,
+  three states, and no numbers anywhere. In code: `stampsFrom`, `Stamp`, `STAMP_STATES`,
+  `isStamped`, `hasStamps` and `stampLabel` in `apps/mobile/src/progress/passport.ts`, drawn
+  by `MyFrenchTab` in `apps/mobile/src/tabs/MyFrenchTab.tsx`. It is a projection over
+  `independenceFrom` taken at best ever, so there is no stored passport, no new sync domain,
+  and nothing a tired replay can take away. `hasStamps` is true only when at least one stamp
+  reads `on-your-own`, so a learner with nothing yet is shown nothing rather than a row of
+  empty slots.
+
+- **Delayed test.** Built in 6a. The sitting asks for yesterday's first successes again, and
+  says so once. In code: `firstReturn` in `packages/core/src/review/scheduler.ts`, with
+  `sittingView`, `SittingView` and `SITTING_OPENER` in `apps/mobile/src/review/cardView.ts`,
+  rendered by `ReviewScreen` in `apps/mobile/src/ReviewScreen.tsx`. It is a stable partition
+  of the cards the sitting had already chosen: membership never changes, only order, so the
+  cap and the overdue-first rule cannot be starved from here.
+
+  What this noun may not claim is the reason it needed a definition. `firstReturn` names a
+  card the scheduler **sent** back a day after its first success. It is not evidence that the
+  memory held. The evidence of survival is the grade that follows, which `applyGrade` in
+  `packages/core/src/review/scheduler.ts` records as a retrieval only when the review screen
+  passed an attempt with it. A criterion that read `firstReturn` alone as "a phrase survived a
+  night" would be counting cards shown, which is the engagement proxy the product brief rules
+  out. So the noun is the question being asked, and the answer lives in the grade.
+
+- **Less-help replay.** Built in 6a. Going back into a scene already finished opens it one
+  rung higher, and the learner is told once. In code: `replayRung` in
+  `packages/core/src/missions/missions.ts`; `createConversation` in
+  `packages/brain/src/engine/conversation.ts`, whose config now takes a clamped `startRung`;
+  `openMission` in `services/tutor-agent/src/convo.ts`, the only place that consumes it;
+  `missionReplay`, `replayNote` and `LESS_HELP` in
+  `apps/mobile/src/missions/chooserView.ts`, delivered by `RootNavigator` in
+  `apps/mobile/src/nav/RootNavigator.tsx` and `ConvoScreen` in
+  `apps/mobile/src/ConvoScreen.tsx`. `replayNote` writes the line only when the rung actually
+  rises, so a learner already at the top is told nothing false.
+
+- **Honest reminders / story.** Not built. This is slice 6b and none of it is started: no
+  notification permission is ever asked for, nothing is ever scheduled, and no weekly story
+  module exists in any workspace. It stays designed but intentionally deferred, and it stays
+  in the criterion, because a phase that quietly drops its fourth noun reads as finished.
+
+### What Phase 6a did not verify
+
+Everything above was measured on this machine, by tests, against source. No stamp has been
+seen on a phone, no delayed test has been sat by a person, and no replay has been spoken to.
+The six external checks the Phase 4 and Phase 5 sections leave standing are unchanged and
+still unclaimed: migration 7's deployment and its live verification, a Supabase-authenticated
+first run, the device and five-viewport accessibility matrix with VoiceOver and TalkBack, the
+F57 stopwatch, vendor credential rotation, and F79.

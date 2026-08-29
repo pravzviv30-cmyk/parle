@@ -5,6 +5,7 @@ export {
   missionPhraseKeys,
   missionStates,
   independenceFrom,
+  replayRung,
   suggestedMission,
 } from './missions.ts';
 export type {

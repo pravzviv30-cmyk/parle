@@ -203,6 +203,14 @@ export default defineAgent({
           voiceless,
           seedTopic,
           missionId,
+          // The same clamped rung the scripted lesson below already got, now
+          // reaching the branch a mission actually runs on. It rode this far
+          // and then died here: missions are conversations, so handing it only
+          // to ParleTutor meant a learner replaying a finished mission got
+          // exactly the help they had last time, with every wire in between
+          // looking connected. ParleConversation reads it when it opens a
+          // mission and nowhere else.
+          startRung,
           setSttLanguage: (language) => stt.updateOptions({ language }),
         })
       : new ParleTutor(lesson, startRung, { voiceless });

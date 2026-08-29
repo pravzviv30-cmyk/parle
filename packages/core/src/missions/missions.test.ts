@@ -8,6 +8,7 @@ import {
   missionPhraseKeys,
   missionStates,
   independenceFrom,
+  replayRung,
   suggestedMission,
   type MissionCompletion,
 } from './missions.ts';
@@ -15,6 +16,7 @@ import { AUTHORED_PATH, authoredPhraseKeys } from '../path/path.ts';
 import { DRILL_FIXTURES } from '../drill/fixtures.ts';
 import { phraseKeyOf } from '../topics/topics.ts';
 import type { ReviewCard } from '../review/scheduler.ts';
+import { openingRung, RUNGS } from '../ladder/ladder.ts';
 
 const NOW = new Date(2026, 0, 15, 12).getTime();
 const DAY = 86_400_000;
@@ -181,6 +183,45 @@ describe('what the learner has actually done — projected, never stored twice',
     const progress = missionStates(climbed, [], NOW).find((p) => p.mission.id === 'mission:cafe');
     assert.equal(progress?.timesFinished, 2);
     assert.equal(progress?.lastRung, 1, 'the most recent rung is still reported, because Round 2 wants to say "less help than last time"');
+  });
+
+  test('a deliberate replay opens one rung up and never past the top', () => {
+    // Choosing to walk back into a scene you have already finished is a request
+    // for less help than last time, so the offer goes up rather than down.
+    assert.equal(replayRung(1), 2, 'a replay after the Echo rung is offered the Cued rung, not Echo again');
+    assert.equal(replayRung(2), 3);
+    assert.equal(replayRung(3), 4, 'one below the top is offered the top');
+
+    assert.equal(
+      replayRung(4),
+      4,
+      'rung 4 is already no support at all, so there is nothing left to withdraw and the ladder has no rung 5',
+    );
+
+    assert.equal(replayRung(null), null, 'a scene nobody has finished has no replay to open, so there is no rung to name');
+  });
+
+  test('the replay rung and the cold-open rung answer different questions in opposite directions', () => {
+    // The whole reason this is a second function. openingRung deliberately opens
+    // one BELOW where the learner finished, because arriving rusty at the edge of
+    // your ability is how a session dies in its first thirty seconds. A replay is
+    // not a cold open, and collapsing the two would silently pick one answer for
+    // both questions.
+    const lastRung = 3 as const;
+
+    assert.equal(openingRung({ cefrBase: RUNGS.FREE, lastRung }), 2, 'a cold session comes back a little rusty');
+    assert.equal(replayRung(lastRung), 4, 'a deliberate replay asks for less help than last time');
+  });
+
+  test('a replay is offered off the most recent rung while independence stays on the best ever', () => {
+    // The asymmetry that makes raising the rung safe. A tired evening at rung 1
+    // lowers what the next replay offers and costs the learner nothing they have
+    // already earned, so there is no reason to avoid the tired evening.
+    const climbed = [finished('mission:cafe', 4, NOW - 5 * DAY), finished('mission:cafe', 1, NOW - DAY)];
+    const progress = missionStates(climbed, [], NOW).find((p) => p.mission.id === 'mission:cafe');
+
+    assert.equal(replayRung(progress?.lastRung ?? null), 2, 'the replay is pitched off what happened last, because that is this attempt');
+    assert.equal(progress?.independence, 'on-your-own', 'independence still reads the best they ever managed, so nothing was lost');
   });
 
   test('one mission is offered first, and anything due comes before new ground', () => {

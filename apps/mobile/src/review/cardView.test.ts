@@ -23,9 +23,19 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { applyGrade, evidenceOf, presentationOf, type ReviewCard } from '@parle/core';
+import { applyGrade, dueCards, evidenceOf, firstReturn, presentationOf, DUE_CAP, type ReviewCard } from '@parle/core';
 
-import { CARD_START, RETRIEVAL_ASK, SAID_IT, TYPE_IT, cardView, typedAttemptReady } from './cardView.ts';
+import { guiltIn } from '../copy/guilt.ts';
+import {
+  CARD_START,
+  RETRIEVAL_ASK,
+  SAID_IT,
+  SITTING_OPENER,
+  TYPE_IT,
+  cardView,
+  sittingView,
+  typedAttemptReady,
+} from './cardView.ts';
 
 const NOW = Date.parse('2026-08-20T12:00:00.000Z');
 const DAY = 86_400_000;
@@ -383,7 +393,179 @@ describe('the review sitting on screen', () => {
     ]) {
       assert.ok(!screen.includes(reach), `the review screen reaches for ${reach}; the deck works on a plane and stays free`);
     }
-    // And nothing on it turns the sitting into a score wall either.
+    // And nothing on it turns the sitting into a score wall either. This regex
+    // stays private on purpose and does not import copy/guilt.ts: it reads the
+    // screen's *source* for a progress surface, which is a check on what the
+    // component is made of, not on what it says to a learner. Pointing it at
+    // the ban list would stop it catching a <ProgressBar> that renders no words
+    // at all. Two guards, two jobs. Do not finish the job (F216).
     assert.doesNotMatch(screen, /ProgressBar|percent|streak/i, 'the review screen grew a progress surface');
+  });
+});
+
+/**
+ * F220. The scheduler has always sent a first success back tomorrow, and the
+ * learner met that card in the middle of a queue with no idea it was the point.
+ *
+ * These two are the ledger's names. The first is the one that matters, and what
+ * it is really asking is whether this feature can starve the deck: `dueCards`
+ * sorts longest-overdue first and stops at `DUE_CAP`, and a version of the
+ * float that picked its own cards would let twenty cards that are back from
+ * yesterday push out cards that are genuinely fading. The guarantee is in two
+ * halves and needs both — `sittingView` is a permutation of whatever list it is
+ * handed, and the screen hands it `dueCards`' own output. Neither half is worth
+ * anything alone, so the last test here reads the screen for the second.
+ */
+describe('the delayed test, said out loud — F220', () => {
+  const ids = (cards: readonly ReviewCard[]): string[] => cards.map((c) => c.id);
+
+  /**
+   * More due cards than the cap, where every card back for its first test is
+   * the *least* overdue in the deck and so falls outside it.
+   *
+   * This is the shape the whole rule exists for. Anything that selects rather
+   * than reorders pulls `back:` cards into a sitting they were not dealt into,
+   * and each one it pulls in costs an older card its place.
+   */
+  function backlog(): ReviewCard[] {
+    const cards: ReviewCard[] = [];
+    for (let i = 0; i < 22; i += 1) cards.push(card({ id: `old:${i}`, due: NOW - (40 - i) * DAY }));
+    for (let i = 0; i < 5; i += 1) {
+      cards.push(card({ id: `back:${i}`, due: NOW - (5 - i) * 60_000, reps: 1, intervalDays: 1 }));
+    }
+    return cards;
+  }
+
+  /** mulberry32. Deterministic, so a failure below is reproducible on Tuesday. */
+  function rng(seed: number): () => number {
+    let state = seed >>> 0;
+    return () => {
+      state = (state + 0x6d2b79f5) >>> 0;
+      let t = state;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
+    };
+  }
+
+  test('the tomorrow test never changes which cards are in the sitting, only the order', () => {
+    // 1. The starvation shape. The cards that are back sit outside the cap, and
+    // the only honest outcome is that they stay outside it.
+    const dealt = dueCards(backlog(), NOW);
+    assert.equal(dealt.length, DUE_CAP, 'the fixture no longer overflows the cap, so it cannot catch a re-selection');
+    assert.ok(dealt.every((c) => !firstReturn(c, NOW)), 'the fixture no longer keeps the first returns outside the cap');
+
+    const starved = sittingView(dealt, NOW);
+    assert.deepEqual(
+      ids(starved.cards),
+      ids(dealt),
+      'a sitting with nothing back from yesterday came out in a different order anyway',
+    );
+    assert.ok(
+      !starved.cards.some((c) => c.id.startsWith('back:')),
+      'the float reached past the cap for cards the scheduler had not dealt; twenty of those starve the overdue',
+    );
+
+    // 2. The float itself, on a sitting that does hold them. Note the eight-day
+    // gap on a one-day interval: a learner who skipped a week still meets a
+    // genuine first return, which is why nothing here may say "yesterday".
+    const mixed = [
+      card({ id: 'due:a', due: NOW - 9 * DAY }),
+      card({ id: 'back:a', due: NOW - 8 * DAY, reps: 1, intervalDays: 1 }),
+      card({ id: 'due:b', due: NOW - 7 * DAY }),
+      card({ id: 'back:b', due: NOW - 6 * DAY, reps: 1, intervalDays: 1 }),
+      card({ id: 'due:c', due: NOW - 5 * DAY }),
+    ];
+    const sitting = dueCards(mixed, NOW);
+    const floated = sittingView(sitting, NOW);
+
+    assert.deepEqual([...ids(floated.cards)].sort(), [...ids(sitting)].sort(), 'floating changed the sitting itself');
+    assert.deepEqual(
+      ids(floated.cards),
+      ['back:a', 'back:b', 'due:a', 'due:b', 'due:c'],
+      'the cards back from yesterday are not at the front, or one of the two groups lost its overdue-first order',
+    );
+
+    // 3. And it is a permutation of whatever it is handed, not of these two
+    // fixtures. Every card is pushed to exactly one of two lists and the lists
+    // are joined, so this cannot come out any other way; fifty shuffled decks
+    // is how that is stated as a fact rather than hoped for.
+    const next = rng(0xf220);
+    for (let round = 0; round < 50; round += 1) {
+      const list = Array.from({ length: 1 + Math.floor(next() * 25) }, (_unused, i) =>
+        next() < 0.4
+          ? card({ id: `r${round}:${i}`, due: NOW - Math.floor(next() * 6) * DAY, reps: 1, intervalDays: 1 })
+          : card({ id: `r${round}:${i}`, due: NOW - Math.floor(next() * 30) * DAY }),
+      );
+      const out = sittingView(list, NOW);
+      assert.deepEqual([...ids(out.cards)].sort(), [...ids(list)].sort(), `round ${round} changed which cards are in the sitting`);
+    }
+
+    // 4. And the module has no way to select even if somebody tries. Reordering
+    // is safe because nothing here knows what due, capped or overdue mean.
+    const source = stripComments(read('./cardView.ts'));
+    for (const selector of ['dueCards', 'isDue', 'DUE_CAP']) {
+      assert.ok(!source.includes(selector), `cardView.ts reaches for ${selector}; membership is dueCards' alone`);
+    }
+  });
+
+  test('the sitting opener carries no digit and no banned word', () => {
+    // The ban list is the shared union from F216, imported rather than
+    // re-listed, so a word removed to let this sentence through fails several
+    // suites at once. Checked first that the matcher is the real one.
+    assert.equal(guiltIn('you broke your streak'), 'streak', 'this is not the shared ban list any more');
+
+    assert.equal(guiltIn(SITTING_OPENER), undefined, `the sitting opener says "${guiltIn(SITTING_OPENER) ?? ''}"`);
+    assert.doesNotMatch(SITTING_OPENER, /\d/, 'the opener counts what is back, which is the score wall in one line');
+    assert.doesNotMatch(SITTING_OPENER, /[—–]/, 'house copy uses no em dash');
+
+    // And it may not claim the retrieval already succeeded. A first return is a
+    // card the scheduler *sent* back; the evidence the memory held is the grade
+    // that follows it, which the deck records only when an attempt came first.
+    assert.doesNotMatch(
+      SITTING_OPENER,
+      /\b(remembered|recalled|proved|nailed|mastered|knew|got them|well done)\b/i,
+      'the opener congratulates the learner for a test they have not taken yet',
+    );
+
+    // The screen prints the constant and never its own words.
+    const spoken = sittingView([card({ reps: 1, intervalDays: 1 })], NOW).opener;
+    assert.equal(spoken, SITTING_OPENER, 'the sitting opens with something other than the line under test');
+  });
+
+  test('the opener arrives with the cards it is about, and stays quiet otherwise', () => {
+    // A line on every sitting is furniture, and furniture is what a learner
+    // stops reading. It names the front of the sitting or it is not there.
+    assert.equal(sittingView([], NOW).opener, null, 'an empty sitting announced something');
+    assert.deepEqual(sittingView([], NOW).cards, [], 'an empty sitting came back holding a card');
+    assert.equal(sittingView([card()], NOW).opener, null, 'an ordinary due card was announced as a first return');
+    assert.equal(
+      sittingView([card({ kind: 'phoneme', id: 'phoneme:ʁ', reps: 1, intervalDays: 1 })], NOW).opener,
+      null,
+      'a sound card was called a test of recall; it is a listening exercise on every day of its life',
+    );
+    assert.equal(
+      sittingView([card({ reps: 1, intervalDays: 1, due: NOW + DAY })], NOW).opener,
+      null,
+      'a card seen before its due date has not come back yet, so nothing was tested',
+    );
+    assert.equal(sittingView([card({ reps: 1, intervalDays: 1 })], NOW).opener, SITTING_OPENER, 'the one card that is back was not named');
+  });
+
+  test('the screen deals the sitting through the view and picks nothing itself', () => {
+    // The other half of the guarantee. `sittingView` is a permutation of its
+    // argument; this is what pins the argument to the set `dueCards` chose.
+    const screen = stripComments(read('../ReviewScreen.tsx'));
+    assert.match(
+      screen,
+      /sittingView\(dueCards\(deck, now\), now\)/,
+      'the sitting is ordered against something other than the cards dueCards dealt',
+    );
+    assert.doesNotMatch(screen, /firstReturn/, 'the screen decides for itself which cards are back, which is a second copy of the rule');
+    // Still the one clock, still no microphone, still nothing counted at the
+    // learner. The opener is a sentence, not a tally.
+    const body = screen.slice(screen.indexOf('export function ReviewScreen'));
+    assert.equal((body.match(/Date\.now\(\)/g) ?? []).length, 2, 'the opener brought a third clock read with it');
+    assert.match(screen, /\{opener\}/, 'nothing on the screen prints the line');
   });
 });

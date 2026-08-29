@@ -158,6 +158,48 @@ export function independenceFrom(completions: readonly MissionCompletion[]): Ind
 }
 
 /**
+ * One rung up, with the top rung as its own answer.
+ *
+ * A table rather than `Math.min(4, rung + 1)` so the ceiling is checked by the
+ * compiler against `Rung` itself and there is no cast to be wrong about. The
+ * ladder has four rungs and never grows a fifth by arithmetic.
+ */
+const RAISED_BY_RUNG: Record<Rung, Rung> = {
+  1: 2,
+  2: 3,
+  3: 4,
+  4: 4,
+};
+
+/**
+ * The rung a deliberate replay of a finished scene opens on.
+ *
+ * One rung UP from the last finish, which is the opposite of `openingRung` in
+ * `ladder/ladder.ts`, and deliberately so. Two questions, two answers. A cold
+ * session opens one rung BELOW where the learner left off, because arriving
+ * rusty at the edge of your ability is how a session dies in its first thirty
+ * seconds. Choosing to walk back into a scene you have already finished is not
+ * that question: the whole point of the replay is less help than last time.
+ *
+ * Reads the most recent rung, not the best ever, because a replay is about this
+ * next attempt. `independenceFrom` above keeps reading best-ever, and that
+ * asymmetry is what makes raising the rung safe — a tired evening at rung 1
+ * lowers what the next replay offers and costs the learner nothing they have
+ * already earned, so there is never a reason to avoid the tired evening.
+ *
+ * Clamped at the top: rung 4 is already no support at all, so there is nothing
+ * left to withdraw. `null` in, `null` out — a scene nobody has finished has no
+ * replay to open, and this refuses to invent a rung for it.
+ *
+ * This only decides what is OFFERED. The ladder still drops on the first four
+ * seconds of silence, exactly as it always does, so an ambitious replay cannot
+ * strand anyone.
+ */
+export function replayRung(lastRung: Rung | null): Rung | null {
+  return lastRung === null ? null : RAISED_BY_RUNG[lastRung];
+}
+
+/**
  * Project one mission's display state from evidence.
  *
  * Mirrors `stateForPhrases` in `path.ts` deliberately: anything the scheduler

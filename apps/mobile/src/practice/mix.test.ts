@@ -10,6 +10,7 @@ import {
 } from '@parle/core';
 
 import { MIX_OFFER, offersMix, sittingTitle, topicGroups } from './mix.ts';
+import { guiltIn } from '../copy/guilt.ts';
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = 1_700_000_000_000;
@@ -111,7 +112,11 @@ describe('Today\'s mix — when a sitting across topics is worth offering', () =
     for (const line of Object.values(MIX_OFFER)) {
       assert.ok(!/\d/.test(line), `"${line}" carries a number`);
       assert.ok(!/—/.test(line), `"${line}" carries an em dash`);
-      assert.ok(!/\b(streak|behind|missed|owe)\b/i.test(line), `"${line}" leans on guilt`);
+      // Was four words behind a word boundary. It is now the shared union of
+      // everything any surface ever banned, matched as a substring (F216), so
+      // this offer is held to Home's rule as well as its own.
+      const guilt = guiltIn(line);
+      assert.equal(guilt, undefined, `"${line}" leans on guilt with "${guilt}"`);
     }
   });
 });

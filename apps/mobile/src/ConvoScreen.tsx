@@ -21,6 +21,7 @@ import {
   type DrillExercise,
   type IncomingTopic,
   type RecapPayload,
+  type Rung,
 } from '@parle/core';
 import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from './theme.ts';
 import {
@@ -107,6 +108,7 @@ import {
 } from './tutor/coachMarks.ts';
 import { loadSeenCoachMarks, markCoachMarkSeen } from './tutor/store.ts';
 import { recordMissionCompletion } from './missions/store.ts';
+import { replayNote, type MissionReplay } from './missions/chooserView.ts';
 import { trackProductEvent } from './analytics/track.ts';
 import { MOMENT_ANSWER_MS, momentAnswer } from './practice/statusLine.ts';
 import { settleIn, useReduceMotion } from './motion.ts';
@@ -208,6 +210,7 @@ export function ConvoScreen({
   startInTextMode = false,
   seedTopic,
   missionId,
+  replay,
 }: {
   userId: string;
   /** The stored learner model, passed through to the agent opaquely. */
@@ -232,6 +235,16 @@ export function ConvoScreen({
    * mission has nothing to finish and never sees one.
    */
   missionId?: string;
+  /**
+   * This mission has been finished before: the rung it finished on, and the
+   * rung this attempt asks to open on.
+   *
+   * The navigator reads it, because the rung is signed into the join token and
+   * a session cannot change where it opened after the fact. Null for a first
+   * attempt and for every conversation that is not a mission, which is exactly
+   * what this screen did before there was a replay at all.
+   */
+  replay?: MissionReplay | null;
 }) {
   const insets = useSafeAreaInsets();
   const { profile, update } = useProfile();
@@ -248,7 +261,7 @@ export function ConvoScreen({
   // and deliberately NOT the quiet door: this opens the box without asking the
   // session, so the microphone stays live and the scene survives.
   const [typingOpen, setTypingOpen] = useState(false);
-  const live = useLiveSession(userId, 'convo-01', undefined, {
+  const live = useLiveSession(userId, 'convo-01', replay?.startRung, {
     mode: openedTyped ? 'convo-text' : 'convo',
     snapshot,
     seedTopic,
@@ -477,6 +490,25 @@ export function ConvoScreen({
   }, [marks.showing]);
 
   const closeMark = () => setMarks(dismissCoachMark);
+
+  // ---- The replay note.
+  //
+  // The rung this session actually OPENED on, kept from the first published
+  // view and never overwritten. The opening publish is the only honest source:
+  // the app asks the token server for a rung, and the engine is free to clamp
+  // it or refuse it and open where it always opens (see F222), so a note
+  // pitched on the value we sent would be the app quoting itself. It is also
+  // why this keeps the FIRST rung rather than tracking the live one, which
+  // drops the moment the scene rescues anybody.
+  const [openedRung, setOpenedRung] = useState<Rung | null>(null);
+  const publishedRung = live.convo?.rung ?? null;
+  useEffect(() => {
+    if (publishedRung === null) return;
+    setOpenedRung((prev) => prev ?? publishedRung);
+  }, [publishedRung]);
+  // Whether that is worth saying is missions/chooserView.ts's decision, not a
+  // condition spelled out in a render. It is null far more often than not.
+  const replayLine = replayNote({ replay: replay ?? null, openedRung, spokenThisSession: learnerSpoke });
 
   // The tap counter for "Give me a moment". A counter rather than a timestamp
   // because nothing on this screen may read a clock to decide something, and a
@@ -857,6 +889,17 @@ export function ConvoScreen({
           <View style={{ marginTop: space(2) }}>
             <StationLine total={view.beat.total} index={view.beat.position - 1} />
           </View>
+          {/* What is different about walking back into a scene you have
+              already finished. Said once, in ink rather than in a rung colour,
+              and gone as soon as the learner answers. */}
+          {replayLine ? (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2) }]}
+            >
+              {replayLine}
+            </Text>
+          ) : null}
         </View>
 
         {/* The tutor, as an object. Toward the top, and the only thing on the

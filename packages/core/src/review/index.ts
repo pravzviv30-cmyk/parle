@@ -2,6 +2,7 @@ export {
   newCard,
   applyGrade,
   dueCards,
+  firstReturn,
   mergeCards,
   AGAIN_RETRY_MS,
   MIN_EASE,
