@@ -1,6 +1,6 @@
 # Pronunciation Drill Bank
 
-> 42 nodes · cohesion 0.13
+> 41 nodes · cohesion 0.14
 
 ## Key Concepts
 
@@ -29,21 +29,21 @@
 - **DrillWord** (3 connections) — `packages/core/src/phonemes/drills.ts`
 - **meaningBearingPhonemes()** (3 connections) — `packages/core/src/phonemes/inventory.ts`
 - **novelPhonemes()** (3 connections) — `packages/core/src/phonemes/inventory.ts`
-- *... and 17 more nodes in this community*
+- *... and 16 more nodes in this community*
 
 ## Relationships
 
-- [Cafe Lesson Definitions](Cafe_Lesson_Definitions.md) (8 shared connections)
-- [Practice Data Export & History](Practice_Data_Export_&_History.md) (6 shared connections)
-- [Pronunciation Session Feedback](Pronunciation_Session_Feedback.md) (6 shared connections)
-- [Paper UI Primitives](Paper_UI_Primitives.md) (5 shared connections)
-- [Drill Exercise Bank Merge](Drill_Exercise_Bank_Merge.md) (4 shared connections)
-- [Product Principles & Design World](Product_Principles_&_Design_World.md) (2 shared connections)
-- [Drill Screen And Tracking](Drill_Screen_And_Tracking.md) (2 shared connections)
-- [Account Deletion And Product Events](Account_Deletion_And_Product_Events.md) (2 shared connections)
-- [Status Line & Tutor Name](Status_Line_&_Tutor_Name.md) (1 shared connections)
-- [Mock Speech And Session Screen](Mock_Speech_And_Session_Screen.md) (1 shared connections)
-- [Pronunciation Scoring & IPA](Pronunciation_Scoring_&_IPA.md) (1 shared connections)
+- [Mock Speech Session](Mock_Speech_Session.md) (9 shared connections)
+- [Lesson Definitions](Lesson_Definitions.md) (8 shared connections)
+- [Progress Export And History](Progress_Export_And_History.md) (6 shared connections)
+- [UI Theme Primitives](UI_Theme_Primitives.md) (5 shared connections)
+- [Drill Grading And Fixtures](Drill_Grading_And_Fixtures.md) (4 shared connections)
+- [Learner Story Test Fixtures](Learner_Story_Test_Fixtures.md) (2 shared connections)
+- [HTTP Security And Deletion](HTTP_Security_And_Deletion.md) (2 shared connections)
+- [Paper And Ink Design World](Paper_And_Ink_Design_World.md) (1 shared connections)
+- [Drill Merge And Scene Controls](Drill_Merge_And_Scene_Controls.md) (1 shared connections)
+- [Speechace Pronunciation Scoring](Speechace_Pronunciation_Scoring.md) (1 shared connections)
+- [Ladder State Machine](Ladder_State_Machine.md) (1 shared connections)
 
 ## Source Files
 

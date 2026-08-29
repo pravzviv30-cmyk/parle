@@ -2,7 +2,7 @@
 
 > God node · 32 connections · `packages/core/src/drill/types.ts`
 
-**Community:** [Drill Exercise Bank Merge](Drill_Exercise_Bank_Merge.md)
+**Community:** [Drill Grading And Fixtures](Drill_Grading_And_Fixtures.md)
 
 ## Connections by Relation
 

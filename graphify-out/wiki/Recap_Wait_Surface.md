@@ -1,11 +1,12 @@
 # Recap Wait Surface
 
-> 8 nodes · cohesion 0.36
+> 9 nodes · cohesion 0.33
 
 ## Key Concepts
 
 - **recapWait.ts** (8 connections) — `apps/mobile/src/tutor/recapWait.ts`
 - **recapWait.test.ts** (6 connections) — `apps/mobile/src/tutor/recapWait.test.ts`
+- **recapWait()** (4 connections) — `apps/mobile/src/tutor/recapWait.ts`
 - **LEAVE_LABEL** (2 connections) — `apps/mobile/src/tutor/recapWait.ts`
 - **RECAP_COMING** (2 connections) — `apps/mobile/src/tutor/recapWait.ts`
 - **RECAP_COMING_NOTE** (2 connections) — `apps/mobile/src/tutor/recapWait.ts`
@@ -15,7 +16,7 @@
 
 ## Relationships
 
-- [Conversation Screen And Profile](Conversation_Screen_And_Profile.md) (3 shared connections)
+- [Conversation Screen](Conversation_Screen.md) (3 shared connections)
 
 ## Source Files
 
@@ -24,7 +25,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 13 (100%)
+- EXTRACTED: 15 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

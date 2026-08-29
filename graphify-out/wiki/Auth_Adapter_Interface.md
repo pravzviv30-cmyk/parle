@@ -20,9 +20,9 @@
 
 ## Relationships
 
-- [Auth Adapter And Modes](Auth_Adapter_And_Modes.md) (4 shared connections)
-- [Mock Auth Adapter](Mock_Auth_Adapter.md) (1 shared connections)
-- [Mobile App Shell And Auth Flow](Mobile_App_Shell_And_Auth_Flow.md) (1 shared connections)
+- [Friendly Error Copy](Friendly_Error_Copy.md) (3 shared connections)
+- [Auth Adapter And Modes](Auth_Adapter_And_Modes.md) (2 shared connections)
+- [Auth Screens And Labels](Auth_Screens_And_Labels.md) (1 shared connections)
 
 ## Source Files
 

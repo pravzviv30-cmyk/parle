@@ -33,10 +33,10 @@
 
 ## Relationships
 
-- [Paper UI Primitives](Paper_UI_Primitives.md) (10 shared connections)
-- [Status Line & Tutor Name](Status_Line_&_Tutor_Name.md) (4 shared connections)
-- [Motion And Transcript UI](Motion_And_Transcript_UI.md) (3 shared connections)
-- [Analytics Events And Onboarding Answers](Analytics_Events_And_Onboarding_Answers.md) (2 shared connections)
+- [Onboarding And Tracking](Onboarding_And_Tracking.md) (8 shared connections)
+- [UI Theme Primitives](UI_Theme_Primitives.md) (5 shared connections)
+- [Path Row Status Line](Path_Row_Status_Line.md) (4 shared connections)
+- [Age Gate Answers](Age_Gate_Answers.md) (2 shared connections)
 
 ## Source Files
 

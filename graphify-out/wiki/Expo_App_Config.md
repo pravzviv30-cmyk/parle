@@ -1,14 +1,23 @@
 # Expo App Config
 
-> 20 nodes · cohesion 0.10
+> 31 nodes · cohesion 0.06
 
 ## Key Concepts
 
 - **expo** (14 connections) — `apps/mobile/app.json`
+- **adaptiveIcon** (5 connections) — `apps/mobile/app.json`
+- **android** (5 connections) — `apps/mobile/app.json`
 - **ios** (4 connections) — `apps/mobile/app.json`
+- **permissions** (3 connections) — `apps/mobile/app.json`
 - **web** (3 connections) — `apps/mobile/app.json`
 - **splash** (2 connections) — `apps/mobile/app.json`
 - **infoPlist** (2 connections) — `apps/mobile/app.json`
+- **backgroundColor** (1 connections) — `apps/mobile/app.json`
+- **backgroundImage** (1 connections) — `apps/mobile/app.json`
+- **foregroundImage** (1 connections) — `apps/mobile/app.json`
+- **monochromeImage** (1 connections) — `apps/mobile/app.json`
+- **package** (1 connections) — `apps/mobile/app.json`
+- **predictiveBackGestureEnabled** (1 connections) — `apps/mobile/app.json`
 - **icon** (1 connections) — `apps/mobile/app.json`
 - **name** (1 connections) — `apps/mobile/app.json`
 - **newArchEnabled** (1 connections) — `apps/mobile/app.json`
@@ -20,15 +29,11 @@
 - **NSMicrophoneUsageDescription** (1 connections) — `apps/mobile/app.json`
 - **bundleIdentifier** (1 connections) — `apps/mobile/app.json`
 - **supportsTablet** (1 connections) — `apps/mobile/app.json`
-- **app.json** (1 connections) — `apps/mobile/app.json`
-- **backgroundColor** (1 connections) — `apps/mobile/app.json`
-- **bundler** (1 connections) — `apps/mobile/app.json`
-- **favicon** (1 connections) — `apps/mobile/app.json`
+- *... and 6 more nodes in this community*
 
 ## Relationships
 
-- [Android App Config](Android_App_Config.md) (1 shared connections)
-- [Expo Plugins & File Saving](Expo_Plugins_&_File_Saving.md) (1 shared connections)
+- [Expo Plugins And File Save](Expo_Plugins_And_File_Save.md) (1 shared connections)
 
 ## Source Files
 
@@ -36,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 21 (100%)
+- EXTRACTED: 31 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

@@ -2,7 +2,7 @@
 
 > God node · 39 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Paper UI Primitives](Paper_UI_Primitives.md)
+**Community:** [UI Theme Primitives](UI_Theme_Primitives.md)
 
 ## Connections by Relation
 
@@ -14,10 +14,10 @@
 - RootNavigator.tsx `EXTRACTED`
 - DrillScreen.tsx `EXTRACTED`
 - components.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
 - MyFrenchTab.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
 - LiveSessionScreen.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
 - ReviewScreen.tsx `EXTRACTED`

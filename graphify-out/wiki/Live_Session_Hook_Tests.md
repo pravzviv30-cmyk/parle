@@ -33,15 +33,16 @@
 
 ## Relationships
 
-- [Audio Session Globals And Safety](Audio_Session_Globals_And_Safety.md) (9 shared connections)
-- [Session Journal Recovery](Session_Journal_Recovery.md) (5 shared connections)
-- [Pipeline Failure Classification](Pipeline_Failure_Classification.md) (5 shared connections)
-- [App Agent Wire Protocol](App_Agent_Wire_Protocol.md) (3 shared connections)
-- [Conversation Screen And Profile](Conversation_Screen_And_Profile.md) (3 shared connections)
-- [Brain Playground Chat CLI](Brain_Playground_Chat_CLI.md) (2 shared connections)
-- [User Scope Data Reset](User_Scope_Data_Reset.md) (2 shared connections)
-- [Session Domain Types](Session_Domain_Types.md) (1 shared connections)
-- [Status Line & Tutor Name](Status_Line_&_Tutor_Name.md) (1 shared connections)
+- [Session Journal Recovery](Session_Journal_Recovery.md) (6 shared connections)
+- [Thinking And Safety Views](Thinking_And_Safety_Views.md) (6 shared connections)
+- [Live Session Hook](Live_Session_Hook.md) (4 shared connections)
+- [Turns And Mode Caps](Turns_And_Mode_Caps.md) (4 shared connections)
+- [Failure Classification Copy](Failure_Classification_Copy.md) (3 shared connections)
+- [App Agent Protocol](App_Agent_Protocol.md) (2 shared connections)
+- [Brain CLI Playground](Brain_CLI_Playground.md) (2 shared connections)
+- [Drill Screen Tests](Drill_Screen_Tests.md) (2 shared connections)
+- [Conversation Screen](Conversation_Screen.md) (1 shared connections)
+- [Drill Merge And Scene Controls](Drill_Merge_And_Scene_Controls.md) (1 shared connections)
 - [Learner Profile Updates](Learner_Profile_Updates.md) (1 shared connections)
 
 ## Source Files

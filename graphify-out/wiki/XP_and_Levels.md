@@ -27,14 +27,17 @@
 
 ## Relationships
 
-- [Phrasebook Screen And Storage](Phrasebook_Screen_And_Storage.md) (8 shared connections)
-- [Live Session React Context](Live_Session_React_Context.md) (6 shared connections)
-- [Conversation Screen And Profile](Conversation_Screen_And_Profile.md) (2 shared connections)
-- [Status Line & Tutor Name](Status_Line_&_Tutor_Name.md) (1 shared connections)
-- [Drill Screen And Tracking](Drill_Screen_And_Tracking.md) (1 shared connections)
-- [User Scope Data Reset](User_Scope_Data_Reset.md) (1 shared connections)
-- [Mobile App Shell And Auth Flow](Mobile_App_Shell_And_Auth_Flow.md) (1 shared connections)
-- [Paper UI Primitives](Paper_UI_Primitives.md) (1 shared connections)
+- [Live Session Context](Live_Session_Context.md) (5 shared connections)
+- [Root Navigation](Root_Navigation.md) (3 shared connections)
+- [Learner Story Builder](Learner_Story_Builder.md) (2 shared connections)
+- [Conversation Screen](Conversation_Screen.md) (2 shared connections)
+- [Activity History Store](Activity_History_Store.md) (2 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (2 shared connections)
+- [Drill Merge And Scene Controls](Drill_Merge_And_Scene_Controls.md) (1 shared connections)
+- [Drill Screen Tests](Drill_Screen_Tests.md) (1 shared connections)
+- [App Root Auth Bootstrap](App_Root_Auth_Bootstrap.md) (1 shared connections)
+- [UI Theme Primitives](UI_Theme_Primitives.md) (1 shared connections)
+- [Profile And Friends UI](Profile_And_Friends_UI.md) (1 shared connections)
 
 ## Source Files
 

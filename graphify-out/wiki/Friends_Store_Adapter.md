@@ -33,11 +33,11 @@
 
 ## Relationships
 
-- [Paper UI Primitives](Paper_UI_Primitives.md) (15 shared connections)
-- [User Scope Data Reset](User_Scope_Data_Reset.md) (3 shared connections)
-- [Tutor Onboarding Marks Store](Tutor_Onboarding_Marks_Store.md) (2 shared connections)
-- [Onboarding Profile Store](Onboarding_Profile_Store.md) (2 shared connections)
-- [Store Binding Integration Tests](Store_Binding_Integration_Tests.md) (2 shared connections)
+- [Profile And Friends UI](Profile_And_Friends_UI.md) (15 shared connections)
+- [Drill Screen Tests](Drill_Screen_Tests.md) (3 shared connections)
+- [Mission Completions Store](Mission_Completions_Store.md) (2 shared connections)
+- [Learner Profile Store](Learner_Profile_Store.md) (2 shared connections)
+- [Store Binding Tests](Store_Binding_Tests.md) (2 shared connections)
 - [Session Journal Recovery](Session_Journal_Recovery.md) (2 shared connections)
 
 ## Source Files

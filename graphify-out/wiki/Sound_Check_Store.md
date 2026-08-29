@@ -21,15 +21,14 @@
 
 ## Relationships
 
-- [Drill Screen And Tracking](Drill_Screen_And_Tracking.md) (9 shared connections)
-- [Tutor Onboarding Marks Store](Tutor_Onboarding_Marks_Store.md) (4 shared connections)
-- [Store Binding Integration Tests](Store_Binding_Integration_Tests.md) (3 shared connections)
-- [Mission Chooser View](Mission_Chooser_View.md) (3 shared connections)
-- [User Scope Data Reset](User_Scope_Data_Reset.md) (2 shared connections)
-- [Acknowledged Persistence Stores](Acknowledged_Persistence_Stores.md) (2 shared connections)
-- [Mission Completion Store](Mission_Completion_Store.md) (1 shared connections)
-- [Drill Bank Store](Drill_Bank_Store.md) (1 shared connections)
-- [Sync Engine Types](Sync_Engine_Types.md) (1 shared connections)
+- [Mission Completions Store](Mission_Completions_Store.md) (8 shared connections)
+- [Onboarding And Tracking](Onboarding_And_Tracking.md) (4 shared connections)
+- [UI Theme Primitives](UI_Theme_Primitives.md) (3 shared connections)
+- [Store Binding Tests](Store_Binding_Tests.md) (3 shared connections)
+- [Live Session Context](Live_Session_Context.md) (3 shared connections)
+- [Drill Screen Tests](Drill_Screen_Tests.md) (2 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (2 shared connections)
+- [Sync Engine Core](Sync_Engine_Core.md) (1 shared connections)
 
 ## Source Files
 

@@ -1,13 +1,15 @@
 # Review Card View
 
-> 26 nodes · cohesion 0.12
+> 28 nodes · cohesion 0.11
 
 ## Key Concepts
 
 - **cardView.test.ts** (28 connections) — `apps/mobile/src/review/cardView.test.ts`
+- **ReviewCard** (28 connections) — `packages/core/src/review/scheduler.ts`
 - **cardView.ts** (25 connections) — `apps/mobile/src/review/cardView.ts`
 - **cardView** (10 connections) — `apps/mobile/src/review/cardView.ts`
-- **CardPresentation** (4 connections) — `packages/core/src/review/evidence.ts`
+- **sittingView** (6 connections) — `apps/mobile/src/review/cardView.ts`
+- **GradeContext** (5 connections) — `packages/core/src/review/scheduler.ts`
 - **CARD_START** (3 connections) — `apps/mobile/src/review/cardView.ts`
 - **faces()** (3 connections) — `apps/mobile/src/review/cardView.ts`
 - **frenchSide()** (3 connections) — `apps/mobile/src/review/cardView.ts`
@@ -27,28 +29,32 @@
 - **everythingShown()** (1 connections) — `apps/mobile/src/review/cardView.test.ts`
 - **NOW** (1 connections) — `apps/mobile/src/review/cardView.test.ts`
 - **read()** (1 connections) — `apps/mobile/src/review/cardView.test.ts`
-- **rng()** (1 connections) — `apps/mobile/src/review/cardView.test.ts`
-- **stripComments()** (1 connections) — `apps/mobile/src/review/cardView.test.ts`
-- *... and 1 more nodes in this community*
+- *... and 3 more nodes in this community*
 
 ## Relationships
 
-- [Review Cards And Evidence](Review_Cards_And_Evidence.md) (17 shared connections)
-- [Paper UI Primitives](Paper_UI_Primitives.md) (6 shared connections)
-- [Live Session React Context](Live_Session_React_Context.md) (3 shared connections)
-- [Status Line & Tutor Name](Status_Line_&_Tutor_Name.md) (2 shared connections)
-- [Guilt Free Copy Checks](Guilt_Free_Copy_Checks.md) (2 shared connections)
-- [Phrasebook Mix Offers](Phrasebook_Mix_Offers.md) (1 shared connections)
+- [Evidence Mastery States](Evidence_Mastery_States.md) (21 shared connections)
+- [UI Theme Primitives](UI_Theme_Primitives.md) (8 shared connections)
+- [Phrasebook Mix Offer](Phrasebook_Mix_Offer.md) (5 shared connections)
+- [Root Navigation](Root_Navigation.md) (4 shared connections)
+- [Live Session Context](Live_Session_Context.md) (4 shared connections)
+- [Drill Grading And Fixtures](Drill_Grading_And_Fixtures.md) (3 shared connections)
+- [Drill Merge And Scene Controls](Drill_Merge_And_Scene_Controls.md) (2 shared connections)
+- [Copy Guilt Ban Checks](Copy_Guilt_Ban_Checks.md) (2 shared connections)
+- [Review Deck Store](Review_Deck_Store.md) (2 shared connections)
+- [Drill Screen Tests](Drill_Screen_Tests.md) (1 shared connections)
+- [Phrasebook Screen](Phrasebook_Screen.md) (1 shared connections)
+- [Authored Learning Path](Authored_Learning_Path.md) (1 shared connections)
 
 ## Source Files
 
 - `apps/mobile/src/review/cardView.test.ts`
 - `apps/mobile/src/review/cardView.ts`
-- `packages/core/src/review/evidence.ts`
+- `packages/core/src/review/scheduler.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 69 (100%)
+- EXTRACTED: 99 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
