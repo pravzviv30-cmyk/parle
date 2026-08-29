@@ -3388,3 +3388,19 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `convo.ts` alone, so closing this means extending the guard and updating that pin together.
   Found by work-judge at the slice 2 boundary.
 - verified-by: `the scripted lesson agent's own lines pass the output guard`
+
+### F211 — The first voice session on a phone refuses a working microphone
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:583
+- note: the preflight asked `micApiUnavailable()` — which is `!navigator.mediaDevices` — before
+  calling `ensureLiveKitGlobals()`, the only call site of `registerGlobals()` and therefore the
+  only thing that puts `navigator.mediaDevices` on a native global. The shim ran 59 lines later,
+  just before `new Room()`. A browser already has mediaDevices, so web and every test passed and
+  the ordering was invisible; on iOS and Android every spoken mode threw
+  'navigator.mediaDevices is unavailable' before `/session/start` was ever called, and the learner
+  was told there was no microphone on a phone whose microphone works. Fixed by hoisting the shim
+  to the first statement in the try, ungated by mode because it is idempotent and every mode
+  builds a Room. Found while planning the first device build; no device has ever run this code.
+- verified-by: `the WebRTC globals are installed before the hook asks whether a microphone exists`
+- verified-by: `a device the shim cannot give a microphone is still refused`

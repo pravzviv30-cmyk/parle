@@ -225,6 +225,23 @@ function statementWith(source: string, needle: string): string {
   return text;
 }
 
+/**
+ * Several one-line statements, lifted whole and returned in the order the hook
+ * writes them. Order is the subject of the test, so it is read off the source
+ * rather than taken from the order the needles were passed in.
+ */
+function statementsInOrder(source: string, ...needles: string[]): string {
+  return needles
+    .map((needle) => {
+      const at = source.indexOf(needle);
+      assert.notEqual(at, -1, `this test reads the hook for "${needle}" and the hook no longer writes it`);
+      return { at, text: statementWith(source, needle) };
+    })
+    .sort((a, b) => a.at - b.at)
+    .map((one) => one.text)
+    .join('\n');
+}
+
 /** A module constant, read off the source rather than restated here. */
 function constant(source: string, name: string): number | number[] {
   const found = new RegExp(`const ${name} = ([^;]+);`).exec(source);
@@ -274,6 +291,8 @@ const OPEN_CHECK = fragment(hook, 'if (!sessionOpenedRef.current && opensSession
 const WATCHDOG = fragment(hook, 'watchdogRef.current = [\n');
 const DISMISS = insideOf(hook, 'const dismissSafety = useCallback(() => {');
 const MIC_API_GUARD = statementWith(hook, 'micApiUnavailable()');
+// Both halves of the microphone preflight, in the order the hook runs them.
+const MIC_PREFLIGHT = statementsInOrder(hook, 'ensureLiveKitGlobals()', 'micApiUnavailable()');
 const AUDIO_BLOCKS = fragments(hook, 'if (modeCarriesAudio(mode)) {');
 
 const MODES: LiveMode[] = ['lesson', 'convo', 'convo-text', 'lesson-text'];
@@ -548,6 +567,41 @@ describe('the safety decision the hook holds — F136', () => {
       for (const fire of timers) fire();
       assert.deepEqual(fired, [], `${mode}: the watchdog left the room and replaced the stop with an error screen`);
     }
+  });
+});
+
+describe('the native WebRTC shim, before the microphone is judged — F211', () => {
+  // On a phone there is no `navigator.mediaDevices` until `registerGlobals()`
+  // has run, and `ensureLiveKitGlobals` is the only thing in the app that runs
+  // it. So the order of these two statements decides whether a spoken session
+  // can start at all. A browser has mediaDevices already, which is why web
+  // never sees this and why the test supplies the native world by hand.
+  const world = (installed: { yes: boolean }): Record<string, unknown> => ({
+    mode: 'lesson' as LiveMode,
+    modeCarriesAudio,
+    ensureLiveKitGlobals: () => {
+      installed.yes = true;
+    },
+    micApiUnavailable: () => !installed.yes,
+  });
+
+  test('the WebRTC globals are installed before the hook asks whether a microphone exists', () => {
+    const installed = { yes: false };
+    assert.doesNotThrow(
+      () => run(MIC_PREFLIGHT, world(installed)),
+      'a spoken session refuses a working microphone when the guard runs before the shim that installs it',
+    );
+    assert.ok(installed.yes, 'the shim never ran, so the guard was answered by whatever the platform happened to have');
+  });
+
+  test('a device the shim cannot give a microphone is still refused', () => {
+    // The control. Without it the test above would pass just as well if the
+    // guard had been deleted rather than reordered.
+    assert.throws(
+      () => run(MIC_PREFLIGHT, { ...world({ yes: false }), ensureLiveKitGlobals: () => {} }),
+      /mediaDevices/,
+      'a spoken session with no microphone API must still not connect',
+    );
   });
 });
 
