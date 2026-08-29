@@ -17,6 +17,8 @@ import { loadSoundChecks } from '../soundcheck/store.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { trackProductEvent } from '../analytics/track.ts';
 import { hasStamps, isStamped, stampLabel, stampsFrom } from '../progress/passport.ts';
+import { hasStory, storyFrom, type WeekStory } from '../progress/story.ts';
+import { loadHistory } from '../progress/store.ts';
 
 /** The stamp mark, at TodayRow's size, because it is TodayRow's mark. */
 const MARK = 10;
@@ -43,6 +45,17 @@ function checkLine(check: SoundCheckEvidence | null): string | null {
  * style; it never asks what rung anybody reached. That is the whole reason the
  * module exists, and a ternary on `independence` here would be a second ladder
  * one screen away from the first.
+ *
+ * The week's account above the passport works the same way and for the same
+ * reason. `progress/story.ts` reads the whole history, narrows it to seven local
+ * days and writes every word; this file passes the history in, asks `hasStory`
+ * and draws the sentences in the order they came back. There is no conditional
+ * here about what the week contained, because a second opinion about a week is
+ * how two screens end up telling a learner two different things about it.
+ *
+ * It is drawn here, in a tab somebody opened, and nowhere else. That is the
+ * on-demand half of "read on demand, never pushed"; the other half is held from
+ * the far side, where nothing under `reminders/` may import `progress/` at all.
  */
 export function MyFrenchTab() {
   const insets = useSafeAreaInsets();
@@ -51,12 +64,21 @@ export function MyFrenchTab() {
   const [checks, setChecks] = useState<readonly SoundCheckEvidence[]>([]);
   const [book, setBook] = useState<Phrasebook>({ groups: [], count: 0, topics: 0 });
   const [showingPhrases, setShowingPhrases] = useState(false);
+  // null is "not read yet", which draws the same as a quiet week and is not the
+  // same claim. The empty story is story.ts's to make, not this screen's.
+  const [story, setStory] = useState<WeekStory | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void Promise.all([loadMissionCompletions(), loadDeck(), loadTopics(), loadSoundChecks()]).then(
-        ([completions, deck, topics, soundChecks]) => {
+      void Promise.all([
+        loadMissionCompletions(),
+        loadDeck(),
+        loadTopics(),
+        loadSoundChecks(),
+        loadHistory(),
+      ]).then(
+        ([completions, deck, topics, soundChecks, history]) => {
           if (cancelled) return;
           const now = Date.now();
           const nextMissions = missionStates(missionCompletionsFrom(completions), deck, now);
@@ -64,6 +86,9 @@ export function MyFrenchTab() {
           setMissions(nextMissions);
           setBook(nextBook);
           setChecks(soundChecks);
+          // The whole history, unnarrowed. Which seven days count is story.ts's
+          // decision and filtering here would walk straight past it.
+          setStory(storyFrom(history, now));
           void trackProductEvent({
             name: 'my_french_opened',
             properties: {
@@ -115,6 +140,17 @@ export function MyFrenchTab() {
               <OutlineButton label="Open my phrases" onPress={() => setShowingPhrases(true)} />
             </View>
           </Card>
+        )}
+
+        {story !== null && hasStory(story) && (
+          <View style={st.week} accessibilityRole="summary">
+            <Label>Your week</Label>
+            {story.sentences.map((sentence) => (
+              <Text key={sentence} style={[type.body, { color: paper.ink }]}>
+                {sentence}
+              </Text>
+            ))}
+          </View>
         )}
 
         <View style={st.section}>
@@ -176,6 +212,10 @@ const st = StyleSheet.create({
   title: { ...type.display, color: paper.ink },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: space(4), marginTop: space(6) },
+  // A week's account, at the head of the page of stamps rather than under it.
+  // Sentences, so they are set in ink at body size: 4.5 is the floor for
+  // something a learner reads, and the softer inks are below it.
+  week: { marginTop: space(7), gap: space(2) },
   section: { marginTop: space(7), gap: space(3) },
   mission: {
     minHeight: HIT,

@@ -1,10 +1,10 @@
 /**
- * What happens when two devices disagree — one table, twelve namespaces, no exceptions.
+ * What happens when two devices disagree — one table, thirteen namespaces, no exceptions.
  *
  * The engine in `engine.ts` decides *when* to reconcile. This file decides *what the
  * answer is*, and it is the only file in the app that holds an opinion about how two
  * copies of a learner become one. Ten namespaces are synced under three merge classes;
- * two are excluded with a stated reason, because a namespace that is silently absent
+ * three are excluded with a stated reason, because a namespace that is silently absent
  * from a sync table is indistinguishable from one somebody forgot.
  *
  * | namespace     | class      | the rule                                                  |
@@ -26,6 +26,7 @@
  * | `tutorIntro`  | set-union  | OR. A one-time flag only ever turns on.                    |
  * | `journal`     | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `friends`     | **excluded** — see SYNC_EXCLUSIONS                          |
+ * | `reminder`    | **excluded** — see SYNC_EXCLUSIONS                          |
  *
  * ## Every policy is commutative and idempotent by construction
  *
@@ -587,9 +588,9 @@ export interface SyncExclusion {
 }
 
 /**
- * The two namespaces that are on the device and stay on the device.
+ * The three namespaces that are on the device and stay on the device.
  *
- * Both are here because syncing them is *wrong*, not because it is hard. A namespace
+ * Each is here because syncing it is *wrong*, not because it is hard. A namespace
  * missing from the table above without an entry here is a store somebody forgot, and
  * `policy.test.ts` cannot tell the two apart unless the reason is written down.
  */
@@ -603,6 +604,11 @@ export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
     namespace: 'friends',
     reason:
       'a dormant surface running on labelled sample profiles while social sits outside primary navigation. Syncing it would write fixtures into the account, server-side, where they would outlive the decision to ship the feature and be indistinguishable from a real roster.',
+  },
+  {
+    namespace: 'reminder',
+    reason:
+      'a property of one phone rather than of one learner: the OS holds the schedule and permission is asked for per install, so an account-level time would arrive on every device someone is signed in on. Two phones nudging at six is one learner reminded twice for one evening, which is the pestering the fixed, practice-blind wording exists to avoid, and a device that was never asked for permission would be told it already has a reminder. What excluding it costs a learner is one tap among four presets.',
   },
 ];
 

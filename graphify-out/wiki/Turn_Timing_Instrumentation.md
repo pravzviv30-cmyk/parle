@@ -21,18 +21,18 @@
 
 ## Relationships
 
-- [Environment Preflight Probes](Environment_Preflight_Probes.md) (6 shared connections)
-- [App Agent Wire Protocol](App_Agent_Wire_Protocol.md) (4 shared connections)
-- [Conversation Flow Orchestration](Conversation_Flow_Orchestration.md) (3 shared connections)
-- [Claude CLI Run And Usage](Claude_CLI_Run_And_Usage.md) (2 shared connections)
-- [TTS Voice Cache Build](TTS_Voice_Cache_Build.md) (2 shared connections)
-- [Cafe Lesson Definitions](Cafe_Lesson_Definitions.md) (2 shared connections)
-- [Live Conversation Controller](Live_Conversation_Controller.md) (2 shared connections)
-- [Turn Handling Thresholds](Turn_Handling_Thresholds.md) (2 shared connections)
-- [Brain Contract Zod Schemas](Brain_Contract_Zod_Schemas.md) (1 shared connections)
-- [Session Domain Types](Session_Domain_Types.md) (1 shared connections)
-- [LiveKit Tutor Agent](LiveKit_Tutor_Agent.md) (1 shared connections)
-- [French Authenticity Pack](French_Authenticity_Pack.md) (1 shared connections)
+- [Environment Preflight](Environment_Preflight.md) (6 shared connections)
+- [App Agent Protocol](App_Agent_Protocol.md) (3 shared connections)
+- [Conversation Brain Client](Conversation_Brain_Client.md) (3 shared connections)
+- [Brain CLI Playground](Brain_CLI_Playground.md) (2 shared connections)
+- [Brain LLM Schemas](Brain_LLM_Schemas.md) (2 shared connections)
+- [TTS Voice Cache Config](TTS_Voice_Cache_Config.md) (2 shared connections)
+- [Lesson Definitions](Lesson_Definitions.md) (2 shared connections)
+- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (2 shared connections)
+- [Turn Handling Tuning](Turn_Handling_Tuning.md) (2 shared connections)
+- [Mock Speech Session](Mock_Speech_Session.md) (1 shared connections)
+- [Thinking And Safety Views](Thinking_And_Safety_Views.md) (1 shared connections)
+- [Tutor Turn Handling](Tutor_Turn_Handling.md) (1 shared connections)
 
 ## Source Files
 

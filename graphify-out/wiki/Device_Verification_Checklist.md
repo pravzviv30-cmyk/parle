@@ -1,31 +1,39 @@
 # Device Verification Checklist
 
-> 17 nodes · cohesion 0.12
+> 33 nodes · cohesion 0.06
 
 ## Key Concepts
 
+- **iOS** (16 connections) — `docs/DEVICE_VERIFICATION.md`
 - **Device verification — auth, session storage, deletion, and the first run** (9 connections) — `docs/DEVICE_VERIFICATION.md`
 - **The first run on five viewports** (8 connections) — `docs/DEVICE_VERIFICATION.md`
 - **Android** (3 connections) — `docs/DEVICE_VERIFICATION.md`
 - **Before you start** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D0 — the build is on the Supabase adapter** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D10 — deletion demands a recent Google reauthentication** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D11 — a failed local wipe is reported honestly** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D12 — no bearer token in logs, in AsyncStorage, or in the bundle** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D13 — two accounts on one device never see each other's learning** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D14 — the installation signal survives deletion** (1 connections) — `docs/DEVICE_VERIFICATION.md`
 - **D15 — a keystore key invalidated by a lock-screen change** (1 connections) — `docs/DEVICE_VERIFICATION.md`
 - **D16 — restored from an Android backup** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D1 — a session survives backgrounding, cold start and reboot** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D2 — the session is in the keychain, not in plaintext storage** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D3 — a reinstall does not resurrect a session for a deleted account** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D4 — a plaintext session from an older build migrates, then is gone** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D5 — a failed secure migration forces a safe sign-in** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D6 — email and password** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D7 — Google sign-in over the deep link** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D8 — password reset** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- **D9 — deletion demands a recent password reauthentication** (1 connections) — `docs/DEVICE_VERIFICATION.md`
 - **O1 — every first-run screen is reachable** (1 connections) — `docs/DEVICE_VERIFICATION.md`
 - **O2 — the same at the largest text size** (1 connections) — `docs/DEVICE_VERIFICATION.md`
 - **O3 — reduce motion** (1 connections) — `docs/DEVICE_VERIFICATION.md`
-- **O4 — VoiceOver and TalkBack** (1 connections) — `docs/DEVICE_VERIFICATION.md`
-- **O5 — the keyboard, web only** (1 connections) — `docs/DEVICE_VERIFICATION.md`
-- **O6 — the stopwatch** (1 connections) — `docs/DEVICE_VERIFICATION.md`
-- **Recorded web route check — 2026-08-27** (1 connections) — `docs/DEVICE_VERIFICATION.md`
-- **Recording the result** (1 connections) — `docs/DEVICE_VERIFICATION.md`
-- **The matrix** (1 connections) — `docs/DEVICE_VERIFICATION.md`
-- **What a device proves that this machine cannot** (1 connections) — `docs/DEVICE_VERIFICATION.md`
-- **What this runbook cannot prove** (1 connections) — `docs/DEVICE_VERIFICATION.md`
+- *... and 8 more nodes in this community*
 
 ## Relationships
 
-- [Docs Index](Docs_Index.md) (1 shared connections)
-- [Device Verification Criteria](Device_Verification_Criteria.md) (1 shared connections)
+- [Project Documentation](Project_Documentation.md) (1 shared connections)
 
 ## Source Files
 
@@ -33,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 18 (100%)
+- EXTRACTED: 33 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

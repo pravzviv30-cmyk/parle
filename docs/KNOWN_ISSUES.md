@@ -3541,6 +3541,193 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the floors as one act per evidenceContract. The Phase 5 precedent, followed rather than reinvented.
 - verified-by: `the Phase 6 criterion keeps all four nouns and each built noun names real source`
 
+### F226 — The reminder says the same words at the same time, and that is all it does
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/reminders/reminder.ts:1
+- note: fixed daily copy, preset times, the explain-before-ask sentence and the refused-permission
+  line, as pure constants and functions with no expo import, on the disclosure.ts discipline. The
+  content builder takes no arguments so it cannot vary with practice.
+- verified-by: `the reminder says the same words every day and none of them guilt anyone`
+
+### F227 — Nothing under reminders/ can see whether the learner practised
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/reminders/reminder.test.ts:1
+- note: the no-guilt commitment enforced structurally: a source scan holds that no module in
+  reminders/ imports from progress/, missions/, review/ or the history store, so a practice-aware
+  reminder cannot be built without going red. A notification cancelled because you practised is a
+  streak with the guilt hidden in the scheduler.
+- verified-by: `nothing under reminders can read whether the learner practised`
+
+### F228 — The reminder's chosen time lives under the account scope
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/reminders/store.ts:1
+- note: versioned envelope under userKey('reminder'), suffix added to USER_KEY_SUFFIXES so a data
+  reset clears it and scope.test.ts can see it.
+- verified-by: `the reminder store keeps the chosen time under the signed-in learner's own key`
+
+### F229 — A reminder is a property of a device, and the sync table says so
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/sync/policy.ts:596
+- note: reminder joins SYNC_EXCLUSIONS with a product reason over forty characters; the pinned
+  exclusion list in policy.test.ts grows to three. The OS holds the schedule and permission is
+  per-install, so syncing it would double-fire one learner.
+- verified-by: `every synced namespace has an explicit merge policy and every excluded one an explicit reason`
+
+### F230 — Only the native half of the platform pair talks to the OS
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/reminders/schedule.native.ts:1
+- note: the saveFile.ts pattern: schedule.native.ts is the sole expo-notifications importer with a
+  daily repeating trigger, schedule.ts is the web no-op, and no test loads the native half, which
+  is what makes the dependency separable from the code.
+- verified-by: `only the native schedule module touches expo-notifications and its trigger repeats unchanged`
+
+### F231 — The Profile row explains the ask first and a refusal leaves no dead switch
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:469
+- note: one sentence above the switch before any system dialog; a refusal turns the switch back off
+  with one honest line about system settings; a permission revoked later reads as off at render
+  rather than as a toggle that silently does nothing.
+- verified-by: `the profile reminder row explains the ask first and a refusal leaves no dead switch`
+
+### F232 — The weekly story says what happened, or says nothing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/progress/story.ts:1
+- note: at most three sentences from seven days of session evidence, none on an empty week; digits
+  only as counts of things produced; no percentages, day counts or weekday names; imports nothing
+  it could compare weeks with.
+- verified-by: `the weekly story says what happened this week or says nothing at all`
+- verified-by: `the weekly story never compares a week to the one before it`
+
+### F233 — My French carries the story, read on demand
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/MyFrenchTab.tsx:1
+- note: the story renders where the learner goes looking, wired to story.ts and to no second
+  opinion; combined with F226 it can never arrive as a push.
+- verified-by: `my french shows the week's story only where the learner goes looking`
+
+### F234 — The ladder's comment stops promising a surface that did not exist
+- severity: P1
+- status: [x]
+- where: packages/core/src/ladder/ladder.ts:215
+- note: ladder.ts:217 calls unassistedRate "the headline number on the weekly fingerprint", a
+  forward reference to nothing. The story now exists and leads with independence as a sentence,
+  never a printed number, so the comment is repaired to name its real consumers.
+- verified-by: `the story leads with independence and never prints it as a number`
+
+### F235 — The roadmap's row rule learns that 6b can be built
+- severity: P1
+- status: [x]
+- where: services/token-server/src/verify/deliveryRoadmap.test.ts:886
+- note: the row test hard-asserts slice 6b is "not built", so shipping 6b turns it red by design.
+  It learns the F225 shape: the row may claim 6b built only when this slice's ledger is closed,
+  the row-writing entry excluded, and the device-honesty assertions stay.
+- verified-by: `the phase six row says what is built and what is not`
+
+### F236 — The roadmap tells the truth about 6b and the floors move at landing
+- severity: P1
+- status: [x]
+- where: docs/DELIVERY_ROADMAP.md:15
+- note: the row status and the reminders/story definition flip to built with implementation clauses
+  citing declared symbols, which the probe then agrees with; evidence and floors are written at
+  landing in the evidenceContract order, as one act.
+- verified-by: `the Phase 6 criterion keeps all four nouns and each built noun names real source`
+- verified-by: `the newest recorded gate is the floor the gate defends`
+
+### F237 — Two source files are invisible to grep because they carry raw NUL bytes
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/sync/policy.ts:227
+- note: `policy.ts` at lines 227, 364 and 400, and `packages/core/src/review/merge.ts:153`, embed a
+  literal NUL as an identity delimiter rather than the escaped form, so grep calls both files
+  binary and answers a search for any symbol in them with silence. Found when data-sync-engineer
+  grepped `SYNC_EXCLUSIONS` in policy.ts, got nothing, and nearly concluded the sync table did not
+  exist; merge.ts is worse, because it is the CRDT merge and a wrong conclusion there is subtle.
+  The repo already knows this hazard, since `apps/mobile/src/sync/sourceText.test.ts` was written
+  after `engine.test.ts` carried one, but it scans `*.test.ts` only, so a NUL in a source file is
+  outside its view. The fix is the escape plus widening that scan to source; the delimiter
+  behaviour must not change, because it is load-bearing for identity in both files.
+- verified-by: `no tracked source file carries a control character that hides it from grep`
+
+### F238 — The reminder is registered with the build, and lands on a channel with a name
+- severity: P1
+- status: [x]
+- where: apps/mobile/app.json:38
+- note: `expo-notifications` is installed and `schedule.native.ts` calls it, but the config plugin
+  is not registered, so prebuild produces a binary where scheduling throws at runtime. The plugin
+  entry and `android.permission.POST_NOTIFICATIONS` close that. Two traps found while building
+  F230. `enableBackgroundRemoteNotifications` stays off, because it writes
+  `UIBackgroundModes: remote-notification` into Info.plist and invites an App Store review question
+  nobody can answer honestly for a local-only reminder that registers for no push service. And the
+  plugin's `defaultChannel` prop is FCM-only: it does not name the channel a local scheduled
+  notification lands on, so Android falls back to an auto-created channel with a generic name in
+  Settings. Naming it is a runtime `setNotificationChannelAsync` call, and it must live inside
+  `schedule.native.ts` or F230's sole-importer test goes red.
+- verified-by: `the build registers the notification plugin and names the channel a reminder lands on`
+
+### F239 — A schedule that fails after a durable write leaves the switch on over nothing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:469
+- note: `toggleReminder` branches on the store's `PersistAck` and correctly refuses to move the row
+  on a failed write, but it does not branch on `ScheduleOutcome` from `scheduleReminder`. On a
+  device the OS call can answer `failed` after the write landed, and the row then reads on over a
+  notification that was never scheduled. That is the same dead switch F231 exists to forbid,
+  reached by a second and narrower route. Found by frontend-engineer while building F231 and
+  deliberately filed rather than folded in, because what the row should say in that state is a copy
+  decision and not a two-line patch.
+- verified-by: `a reminder the phone refused to schedule does not leave the row reading on`
+
+### F240 — The reminder's Android channel still badges the app icon, and the guard that should stop it forbids the fix
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/reminders/schedule.test.ts:271
+- note: two things measured in the expo-notifications Android source while building F238. Expo's
+  `BaseNotificationBuilder.createFallbackChannel()` creates its auto channel with an explicit
+  `channel.setShowBadge(true)`, and `AndroidXNotificationsChannelManager` only calls `setShowBadge`
+  at all when the input carries the key — so a channel created without it takes the platform
+  default, which Android documents as true. Either way the daily reminder puts a count on the
+  launcher icon, which reminder.ts:41-45 calls "the counter this whole phase refuses to show,
+  hosted by the home screen instead of by us". The one-line fix is `showBadge: false` on the
+  channel input, and F230's `assert.doesNotMatch(NATIVE, /badge/i)` forbids the word outright, so
+  the guard written to prevent a badge is what blocks the line that removes one. Filed rather than
+  folded into F238, because the repair is to reshape a closed entry's assertion — it should forbid
+  *asking for* the badge permission while requiring the channel to *suppress* the badge — and that
+  is `progress-retention-engineer`'s call on their own file, not a build change. The AOSP default
+  is the only part of this not read from source here and it needs a dev build to confirm; the
+  fallback channel's explicit `setShowBadge(true)` was read directly and does not.
+  One thing F235 has to decide, because the file is theirs: `PHASE_SIX_B_LEDGER` in
+  deliveryRoadmap.test.ts is a hand-written list of ids that stops at F239, so this entry is
+  invisible to the row rule and 6b can be called built with it open. Adding F240 to that list is
+  the reading that matches the rule; leaving it out is the reading F237 already got, and the note
+  above F237 in that file is the argument for it. Either is defensible and the silent version is
+  not.
+- verified-by: `the reminder's channel asks for no badge and the guard says which kind it means`
+
+### F241 — The no-guilt boundary is guarded in one direction only
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/reminders/schedule.ts:1
+- note: F227 stops anything under `reminders/` importing `progress/`, `missions/`, `review/`,
+  `practice/` or the history store, so the reminder cannot learn whether the learner practised.
+  The mirror door is open: nothing stops a future practice surface importing `cancelReminder` and
+  cancelling the reminder from the outside, which reaches the same guilt mechanic by the other
+  side — a notification whose absence means you did enough. Today `ProfileTab.tsx` is the only
+  non-test importer of the reminders layer, so the hole is theoretical, and closing it is the same
+  shape as F230's guard: assert the set of non-test files importing `reminders/schedule.ts` is
+  exactly the Profile row. Found by work-judge while refuting Phase 6b and correctly marked out of
+  scope rather than made a revision condition. While in that file, F235's `NOT_SLICE_SIX_B` reason
+  for F237 says "files 6b never touched", which F229's exclusion row in `sync/policy.ts` makes
+  slightly untrue; the operative fact, that the NUL bytes are not 6b's, holds and is worded
+  correctly in the roadmap.
+- verified-by: `only the profile row can turn the reminder off`
 ### F242 — The first voice session on a phone refuses a working microphone
 - severity: P1
 - status: [x]

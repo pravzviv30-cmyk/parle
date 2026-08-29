@@ -1,5 +1,6 @@
 /**
- * What My French is allowed to claim about a situation — F218.
+ * What My French is allowed to claim about a situation — F218, and about a
+ * week — F233.
  *
  * There is no renderer in this suite (docs/TESTING.md), so this reads the
  * screen. That is a blunt tool and its ceiling is honest: it proves the mark is
@@ -21,7 +22,8 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { guiltIn } from '../copy/guilt.ts';
@@ -190,6 +192,193 @@ describe('My French draws the stamps — F218', () => {
       const banned = guiltIn(line);
       assert.equal(banned, undefined, `the situations list says ${line}, which carries the banned word "${banned}"`);
       assert.doesNotMatch(line, /\d/, `the situations list says ${line}; a stamp is never a count, a share or a total`);
+    }
+  });
+});
+
+/* ===========================================================================
+ * F233 — the week's story, read where the learner went looking.
+ *
+ * `progress/story.ts` decides everything about the week and this screen draws
+ * it. So the positive half of these tests is small on purpose: an import, a
+ * gate, a map. Every assertion with any weight in it is about what the screen
+ * must *not* have grown.
+ *
+ * The word "only" in the pinned title is the hard part, and it is worth being
+ * exact about what is behind it. It is a measurement over source: every
+ * non-test file under `src/` is read, comments stripped, and the set of files
+ * that import `progress/story.ts` has to be exactly one. That proves no other
+ * module in the app can see the week, so nothing scheduled, backgrounded or
+ * notified can carry it anywhere. What it cannot prove is a runtime claim: it
+ * says nothing about a server, and it does not watch a phone. The other half of
+ * "never pushed" is enforced from the far side, by `reminders/reminder.test.ts`
+ * refusing any module under `reminders/` the ability to import `progress/`.
+ * Neither test alone is the promise; the pair is.
+ *
+ * Comments are stripped before the walk, and that is load-bearing rather than
+ * tidy. `story.ts`'s own header names the modules around it, and a file that
+ * merely *mentions* `progress/story.ts` in prose is not a file that can read
+ * the week.
+ * =========================================================================== */
+
+/** src/, so "reached from one place" can be counted rather than asserted. */
+const SRC = fileURLToPath(new URL('..', import.meta.url));
+
+/** Every non-test source file under src/. Tests are not a way in for a learner. */
+function sourceFiles(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...sourceFiles(full));
+    else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) out.push(full);
+  }
+  return out;
+}
+
+/**
+ * The block that draws the week.
+ *
+ * Anchored on `st.week`, which the JSX carries and the stylesheet below it does
+ * not, so deleting the block leaves nothing to measure and the failure says so.
+ * Anchoring on the gate instead was tried and is worse: hoist the gate into a
+ * `const` and the slice runs from there to the first `</View>` anywhere on the
+ * page, so every assertion after it would be asked of the missions list. Where
+ * the gate sits is checked by position, below, which is the F218 pattern.
+ *
+ * A function rather than a const, unlike `SITUATIONS` above it, because a
+ * `between` at module level throws before any test runs and takes the other
+ * four down with it. A missing week block is one red test, not five.
+ */
+function week(): string {
+  return between(SCREEN, 'st.week', '</View>', "My French draws the week's story");
+}
+
+/**
+ * The words in a body, as opposed to the code: quoted strings and JSX text.
+ *
+ * `literals` alone is not enough here. A section heading written as JSX text
+ * carries no quotes, so a sweep built only on quoted strings would read the
+ * accessibility role and miss the one line on the block a learner actually
+ * reads.
+ */
+function spoken(body: string): string[] {
+  const text = [...body.matchAll(/>\s*([A-Za-z][^<{}]*?)\s*</g)].map((m) => m[1]!);
+  return [...literals(body), ...text];
+}
+
+describe("My French carries the week's story — F233", () => {
+  test("my french shows the week's story only where the learner goes looking", () => {
+    // Where the learner went looking. My French is a tab you open, and the
+    // story is drawn in it from the module that owns every word of it.
+    const imported = FLAT.match(/import \{([^}]*)\} from '\.\.\/progress\/story\.ts'/);
+    assert.ok(imported, 'My French never imports the week story, so there is nothing here to show');
+    for (const name of ['storyFrom', 'hasStory']) {
+      assert.ok(imported[1]!.includes(name), `My French imports the story module without ${name}`);
+    }
+    assert.match(FLAT, /loadHistory\(\)/, 'the screen never reads the history the story is built from');
+    assert.match(
+      FLAT,
+      /storyFrom\(history, now\)/,
+      'the story is not built from the loaded history and a passed clock; `now` is required, not defaulted',
+    );
+    // The whole history goes in. Narrowing is the module's job, and doing it
+    // here is how the no-delta guarantee gets bypassed one commit later.
+    assert.doesNotMatch(
+      FLAT,
+      /history\s*\.\s*(filter|slice|sort|reverse)\b/,
+      'the screen narrows the history before storyFrom sees it; narrowing is that module\'s job and its guarantee',
+    );
+    assert.match(week(), /story\.sentences\.map\(/, 'the screen never draws the sentences the module built');
+
+    // Nothing on a quiet week. An empty rail is a quota, and a quota you have
+    // not met is guilt with better manners (progress/today.ts, progress/story.ts).
+    const drawn = SCREEN.indexOf('story.sentences.map(');
+    assert.notEqual(drawn, -1, 'there are no sentences to gate');
+    const gate = SCREEN.lastIndexOf('hasStory(story)', drawn);
+    assert.notEqual(gate, -1, 'the sentences are drawn with nothing holding them back');
+    assert.ok(
+      drawn - gate < 160,
+      'the hasStory gate is somewhere else on the screen, not on the block it is meant to hold back',
+    );
+
+    // A week's account heads the page of stamps rather than sitting under it.
+    assert.ok(
+      gate < SCREEN.indexOf('Your situations'),
+      "the week's account is buried under the passport instead of heading it",
+    );
+
+    // And now "only". One file in the whole app can see the week.
+    const storyModule = join('progress', 'story.ts');
+    const readers = sourceFiles(SRC)
+      .filter((path) => !path.endsWith(storyModule))
+      .filter((path) => /from '[^']*progress\/story\.ts'/.test(stripComments(readFileSync(path, 'utf8'))))
+      .map((path) => path.slice(SRC.length));
+    assert.deepEqual(
+      readers,
+      ['tabs/MyFrenchTab.tsx'],
+      'something other than My French can read the week, so the story has a second way to reach a learner',
+    );
+
+    // Read on demand means this screen is not on the path of anything that
+    // arrives uninvited, and it does not become one by importing the way out.
+    assert.doesNotMatch(FLAT, /from '\.\.\/reminders\//, 'My French reaches into the reminders layer');
+    assert.doesNotMatch(FLAT, /expo-notifications/, 'My French reaches for the notification API');
+  });
+
+  test('the week is drawn as it arrives, and nothing here re-decides it', () => {
+    // Already ordered, already capped. A screen that sorts or slices is a
+    // second opinion about a week, one import away from the only one.
+    for (const meddling of ['.sort(', '.slice(', '.reverse(', '.join(', '.filter(', '.length']) {
+      assert.ok(
+        !SCREEN.includes(`story.sentences${meddling}`),
+        `the screen writes story.sentences${meddling}; the sentences arrive ordered and capped and are drawn as they arrive`,
+      );
+    }
+    // And not through a copy, which is how the line above would be walked past
+    // on the first attempt: `[...story.sentences].sort()` contains none of them.
+    assert.ok(
+      !SCREEN.includes('[...story.sentences]'),
+      'the screen copies the sentences before drawing them, which is only ever done to reorder or trim them',
+    );
+
+    // Nothing here names what the week contained. Every one of these is a
+    // fact story.ts weighs, and weighing it twice is how two accounts of one
+    // week end up on two screens.
+    for (const owned of ['unassistedRate', 'wordsProduced', 'MAX_STORY_SENTENCES', 'DAYS_IN_THE_STORY']) {
+      assert.ok(
+        !SCREEN.includes(owned),
+        `My French names ${owned} itself; what a week contained is the judgement of story.ts, not of a screen`,
+      );
+    }
+
+    // The block types no number of its own. story.ts holds a narrow licence to
+    // print a count of words the learner produced; a digit typed here would be
+    // outside it and nothing would say so.
+    assert.doesNotMatch(week(), /\d/, 'the week block types a number of its own; every digit in the story comes from story.ts');
+
+    // Words, not a mark. 4.5 is the floor for something a learner reads, and
+    // paper.inkFaint measures 2.91 on this ground (palette.test.ts), which is
+    // under even the mark floor.
+    const sentence = tags(week(), 'Text');
+    assert.equal(sentence.length, 1, `the week block draws ${sentence.length} kinds of Text, so this check is reading the wrong one`);
+    assert.match(sentence[0]!, /color: paper\.ink[\s,}]/, "the week's sentences are not set in ink");
+    assert.doesNotMatch(
+      sentence[0]!,
+      /inkSoft|inkFaint/,
+      'a sentence a learner reads is set in a secondary ink; words clear 4.5 and those do not',
+    );
+
+    // A green dot is not readable by everyone and neither is a heading, so the
+    // block says what it is to assistive tech as well as to the eye.
+    assert.match(week(), /accessibilityRole="summary"/, 'the week arrives at a screen reader as an unnamed group of views');
+
+    // And the one line of copy this screen adds carries none of the vocabulary
+    // of a chain you can break.
+    const said = spoken(week());
+    assert.ok(said.length > 0, 'no words were found in the week block, so this sweep proves nothing');
+    for (const line of said) {
+      const banned = guiltIn(line);
+      assert.equal(banned, undefined, `the week block says ${line}, which carries the banned word "${banned}"`);
     }
   });
 });

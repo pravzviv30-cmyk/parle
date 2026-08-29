@@ -28,8 +28,8 @@
 
 ## Relationships
 
-- [Dev Process Launcher](Dev_Process_Launcher.md) (11 shared connections)
-- [Environment Preflight Probes](Environment_Preflight_Probes.md) (3 shared connections)
+- [Dev Launcher Script](Dev_Launcher_Script.md) (11 shared connections)
+- [Environment Preflight](Environment_Preflight.md) (3 shared connections)
 
 ## Source Files
 

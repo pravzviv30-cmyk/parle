@@ -12,7 +12,7 @@ deferred.
 | 3. Onboarding | onboarding UX, design system, privacy-safety | One welcome, useful choices, readiness, contextual mic, returning-user migration | Built on `phase-3-onboarding` and merged into `main` as `2a86092`; local web route proof complete, native/five-viewport QA and migration deployment remain external |
 | 4. Practice | practice UX, learning science, data-sync | Retrieval before reveal, one mastery source, durable batches, transfer | Built on `phase-4-practice` and merged into `main` as `f943bbe`; that branch is deleted now, so the hash is what finds it. Device, screen-reader and Supabase verification pending |
 | 5. Tutor | tutor behaviour, voice, learning science, privacy-safety | Mode parity across the four session modes (`convo`, `convo-text`, `lesson`, `lesson-text`), correction policy, recovery, safety, durable curation | Built on `phase-5-tutor` and merged into `main` as `1b37b81`. All five properties held locally and tested; every P0 and P1 closed. Six P2s stay open by choice, and the six external checks are unclaimed by anyone, so this is not a release |
-| 6. Retention | progress-retention, learning science, design system | Passport, delayed test, less-help replay, honest reminders/story | Slice 6a is built on `phase-6-retention` and has not landed: the passport, the delayed test and the less-help replay each have code and a named test, and F216 to F225 are closed. Slice 6b, the honest reminders and the weekly story, is not built at all and stays designed but intentionally deferred. Nothing in this phase has been seen on a device or a deployed database, and the six external checks stay unclaimed |
+| 6. Retention | progress-retention, learning science, design system | Passport, delayed test, less-help replay, honest reminders/story | Slice 6a is built on `phase-6-retention` and has not landed: the passport, the delayed test and the less-help replay each have code and a named test, and F216 to F225 are closed. Slice 6b, the honest reminders and the weekly story, is built on the same branch, and F226 to F240 are closed with one P2 left open on purpose. Nothing in this phase has been seen on a device or a deployed database, no reminder has been seen firing on a phone, and the six external checks stay unclaimed |
 | 7. Revenue | revenue, security, privacy-safety | One paid tier, verified receipts/webhooks, restore/lifecycle, fair-use economics | Blocked by product/store credentials; implementation missing |
 | 8. Privacy/release | privacy-safety, qa-release, deploy | Reviewed policies, export/deletion, full device/live/build gate and rollback | Blocked; policies, devices and deployment evidence missing |
 
@@ -174,23 +174,28 @@ cannot hold them:
 ## Phase 6: what the exit criterion means, and where it stands
 
 The criterion is four nouns — Passport, delayed test, less-help replay, honest
-reminders/story — and all four stay in the row. Three of them now have code. The fourth has
-none at all, and dropping it would be the cheapest possible way to pass the criterion, so it
-stays in the sentence and is named here as unbuilt.
+reminders/story — and all four stay in the row. All four now have code. The fourth stayed in
+the sentence through the whole of slice 6a, when it had none at all, because dropping a noun
+nobody has built is the cheapest way there is to pass an exit criterion.
 
 This is the Phase 5 precedent above, applied again rather than reinvented. A noun every
-reader expands differently is a criterion nobody can close against, so each built noun is
-defined against the symbols that implement it, and
+reader expands differently is a criterion nobody can close against, so each noun is defined
+against the symbols that implement it, and
 `services/token-server/src/verify/deliveryRoadmap.test.ts` reads those symbols out of the
 source files this section names. Delete `firstReturn` and the test says this document went
 stale, which makes it a document to fix rather than a test to edit. The definitions below are
 what may be argued with. The source is not.
 
-Slice 6a is held locally and has not landed. Every entry this phase filed, F216 to F225, is
-closed against a named test that passes, and the gate on `phase-6-retention` read 2,090 tests
-with none failing. `docs/IMPLEMENTATION_EVIDENCE.md` is where that run is written down, and
-the floors were blessed to it in the same act, because a floor that lags a landing is a floor
-that would let a whole suite stop loading without anybody noticing.
+Both slices are held locally and neither has landed. Slice 6a is the passport, the delayed
+test and the less-help replay; slice 6b is the honest reminder and the weekly story. Every
+entry the phase filed, F216 to F240, is closed against a named test that passes, except F237:
+a P2 about two source files that carry raw NUL bytes and are therefore invisible to grep.
+Those bytes predate this phase, the repair belongs to the sync policy and the core merge
+rather than to retention, and it is left open on purpose instead of being folded into a slice
+it does not belong to. The gate on `phase-6-retention` read 2,125 tests with none failing.
+`docs/IMPLEMENTATION_EVIDENCE.md` is where that run is written down, and the floors were
+blessed to it in the same act, because a floor that lags a landing is a floor that would let a
+whole suite stop loading without anybody noticing.
 
 ### What each noun means
 
@@ -229,15 +234,58 @@ that would let a whole suite stop loading without anybody noticing.
   `apps/mobile/src/ConvoScreen.tsx`. `replayNote` writes the line only when the rung actually
   rises, so a learner already at the top is told nothing false.
 
-- **Honest reminders / story.** Not built. This is slice 6b and none of it is started: no
-  notification permission is ever asked for, nothing is ever scheduled, and no weekly story
-  module exists in any workspace. It stays designed but intentionally deferred, and it stays
-  in the criterion, because a phase that quietly drops its fourth noun reads as finished.
+- **Honest reminders / story.** Built in 6b. One sentence at a fixed time the learner picked,
+  and a weekly story they have to come and read. In code: `reminderContent`, `reminderTime`,
+  `reminderRow`, `REMINDER_TIMES` and `REMINDER_COPY` in
+  `apps/mobile/src/reminders/reminder.ts`; `reminderPermission`, `askReminderPermission`,
+  `scheduleReminder`, `cancelReminder` and `REMINDERS_AVAILABLE` in
+  `apps/mobile/src/reminders/schedule.ts`, the web half of a platform pair whose native half is
+  the only file in the repository that imports the notification SDK; `loadReminder` and
+  `saveReminder` in `apps/mobile/src/reminders/store.ts`, offered by `ProfileTab` in
+  `apps/mobile/src/tabs/ProfileTab.tsx`; and `storyFrom`, `hasStory`, `WeekStory`,
+  `MAX_STORY_SENTENCES` and `DAYS_IN_THE_STORY` in `apps/mobile/src/progress/story.ts`, drawn
+  by `MyFrenchTab` in `apps/mobile/src/tabs/MyFrenchTab.tsx`. The web half is what this
+  definition points at, because it declares the same symbols as the native one and no test may
+  load the native half, which is the property that keeps the dependency separable from the
+  code.
 
-### What Phase 6a did not verify
+  The no-guilt rule is structural rather than a promise somebody has to keep. Nothing under
+  `reminders/` may import the progress, missions, review or history modules, and a source scan
+  fails the build if anything ever does, so the reminder cannot know whether the learner
+  practised and cannot be quietly cancelled because they did. The story is held from the same
+  two sides: `reminders/` may not reach `progress/`, and exactly one file that is not a test
+  imports the story module, so the week's sentences can only be read where the learner goes
+  looking for them. Neither of those tests is the promise on its own; the pair is.
+
+  What this noun may not claim is longer than for the other three, and it is why the noun
+  needed a definition most. The tests prove that exactly one file imports the notification
+  SDK; that the trigger is a daily repeat with no hardcoded hour; that the module reads no
+  clock and sets no timer, so the operating system repeats the reminder and the app never
+  re-arms it; that the content builder takes no arguments and therefore cannot vary with how
+  the week went; and that the channel is created asking for no badge. They prove nothing about
+  a notification arriving. Permission dialogs, delivery, what a lock screen renders, whether
+  the repeat survives a reboot or a change of timezone, and whether a launcher honours the
+  badge flag are all device evidence, and nobody has any of it. The badge has a second edge
+  worth writing down: creating the channel is deliberately allowed to fail without costing the
+  reminder, and the fallback channel a refused creation leaves behind is one this code did not
+  configure.
+
+  The build configuration is the same shape of claim. `apps/mobile/app.json` registers the
+  notification plugin, asks for the Android post-notifications permission, and sets neither the
+  background-remote-notifications flag nor a default channel. That is all a green tick there
+  means, because nothing in this repository runs prebuild and the generated `ios/` and
+  `android/` trees are gitignored, so the manifest this configuration produces does not exist
+  here to be read. The build is configured to have a chance. Even a manual look needs a
+  development build, because local scheduled notifications have not worked in Expo Go on
+  Android since SDK 53.
+
+### What Phase 6 did not verify
 
 Everything above was measured on this machine, by tests, against source. No stamp has been
-seen on a phone, no delayed test has been sat by a person, and no replay has been spoken to.
+seen on a phone, no delayed test has been sat by a person, no replay has been spoken to, no
+reminder has been seen firing, and no launcher icon has been confirmed free of a badge. There
+is no development build, so there is not yet a way to look.
+
 The six external checks the Phase 4 and Phase 5 sections leave standing are unchanged and
 still unclaimed: migration 7's deployment and its live verification, a Supabase-authenticated
 first run, the device and five-viewport accessibility matrix with VoiceOver and TalkBack, the

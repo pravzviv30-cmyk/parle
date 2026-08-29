@@ -24,7 +24,7 @@
 
 ## Relationships
 
-- [Mobile App Shell And Auth Flow](Mobile_App_Shell_And_Auth_Flow.md) (1 shared connections)
+- [Auth Screens And Labels](Auth_Screens_And_Labels.md) (1 shared connections)
 
 ## Source Files
 

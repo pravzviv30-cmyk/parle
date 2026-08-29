@@ -21,9 +21,10 @@
 
 ## Relationships
 
-- [Review Cards And Evidence](Review_Cards_And_Evidence.md) (15 shared connections)
+- [Evidence Mastery States](Evidence_Mastery_States.md) (14 shared connections)
 - [Activity Sync Policy](Activity_Sync_Policy.md) (2 shared connections)
-- [Sync Retention Policy Limits](Sync_Retention_Policy_Limits.md) (1 shared connections)
+- [Review Card View](Review_Card_View.md) (1 shared connections)
+- [Retention Policy Limits](Retention_Policy_Limits.md) (1 shared connections)
 
 ## Source Files
 

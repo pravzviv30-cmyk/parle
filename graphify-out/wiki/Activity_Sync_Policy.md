@@ -1,13 +1,12 @@
 # Activity Sync Policy
 
-> 44 nodes · cohesion 0.12
+> 43 nodes · cohesion 0.12
 
 ## Key Concepts
 
 - **policy.ts** (73 connections) — `apps/mobile/src/sync/policy.ts`
 - **compareText()** (12 connections) — `apps/mobile/src/sync/policy.ts`
 - **stableStringify()** (11 connections) — `apps/mobile/src/sync/envelope.ts`
-- **canonical()** (10 connections) — `packages/brain/src/profile/merge.ts`
 - **mergeDrills()** (9 connections) — `apps/mobile/src/sync/policy.ts`
 - **arrayOf()** (8 connections) — `apps/mobile/src/sync/policy.ts`
 - **isRecord()** (8 connections) — `apps/mobile/src/sync/policy.ts`
@@ -29,32 +28,32 @@
 - **isSession()** (4 connections) — `apps/mobile/src/sync/policy.ts`
 - **isSoundCheck()** (4 connections) — `apps/mobile/src/sync/policy.ts`
 - **isExercise()** (3 connections) — `apps/mobile/src/sync/policy.ts`
-- *... and 19 more nodes in this community*
+- **isTopic()** (3 connections) — `apps/mobile/src/sync/policy.ts`
+- *... and 18 more nodes in this community*
 
 ## Relationships
 
-- [Sync Retention Policy Limits](Sync_Retention_Policy_Limits.md) (7 shared connections)
-- [Profile Merge Rules](Profile_Merge_Rules.md) (6 shared connections)
-- [Spaced Repetition Engine Tests](Spaced_Repetition_Engine_Tests.md) (5 shared connections)
-- [Sync Engine Types](Sync_Engine_Types.md) (4 shared connections)
-- [Drill Exercise Bank Merge](Drill_Exercise_Bank_Merge.md) (4 shared connections)
-- [Phrasebook Mix Offers](Phrasebook_Mix_Offers.md) (3 shared connections)
-- [Age Gate And Upgrade](Age_Gate_And_Upgrade.md) (3 shared connections)
+- [Sync Engine Core](Sync_Engine_Core.md) (9 shared connections)
+- [Profile Merge](Profile_Merge.md) (9 shared connections)
+- [Retention Policy Limits](Retention_Policy_Limits.md) (7 shared connections)
 - [Review Deck Merge](Review_Deck_Merge.md) (2 shared connections)
-- [Mobile App Shell And Auth Flow](Mobile_App_Shell_And_Auth_Flow.md) (2 shared connections)
-- [Analytics Events And Onboarding Answers](Analytics_Events_And_Onboarding_Answers.md) (2 shared connections)
-- [Sync Engine Reconciliation](Sync_Engine_Reconciliation.md) (2 shared connections)
-- [Store Binding Integration Tests](Store_Binding_Integration_Tests.md) (1 shared connections)
+- [Topic Scheduling And Merge](Topic_Scheduling_And_Merge.md) (2 shared connections)
+- [Age And Profile Upgrade](Age_And_Profile_Upgrade.md) (2 shared connections)
+- [Drill Exercise Store](Drill_Exercise_Store.md) (2 shared connections)
+- [App Root Auth Bootstrap](App_Root_Auth_Bootstrap.md) (2 shared connections)
+- [Age Gate Answers](Age_Gate_Answers.md) (2 shared connections)
+- [Drill Merge And Scene Controls](Drill_Merge_And_Scene_Controls.md) (2 shared connections)
+- [Sync Policy And Live](Sync_Policy_And_Live.md) (2 shared connections)
+- [Drill Grading And Fixtures](Drill_Grading_And_Fixtures.md) (1 shared connections)
 
 ## Source Files
 
 - `apps/mobile/src/sync/envelope.ts`
 - `apps/mobile/src/sync/policy.ts`
-- `packages/brain/src/profile/merge.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 136 (89%)
+- EXTRACTED: 132 (89%)
 - INFERRED: 16 (11%)
 - AMBIGUOUS: 0 (0%)
 

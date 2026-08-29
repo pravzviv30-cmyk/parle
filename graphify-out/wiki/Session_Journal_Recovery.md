@@ -1,6 +1,6 @@
 # Session Journal Recovery
 
-> 49 nodes · cohesion 0.10
+> 52 nodes · cohesion 0.10
 
 ## Key Concepts
 
@@ -11,51 +11,55 @@
 - **recoveryPlan()** (13 connections) — `apps/mobile/src/live/journalRules.ts`
 - **bankPractice()** (12 connections) — `apps/mobile/src/live/journal.ts`
 - **journalDrills()** (12 connections) — `apps/mobile/src/live/journal.ts`
+- **ConvoPhrase** (12 connections) — `packages/core/src/protocol/protocol.ts`
+- **RecapPayload** (12 connections) — `packages/core/src/protocol/protocol.ts`
 - **bankLesson()** (10 connections) — `apps/mobile/src/live/journal.ts`
 - **recoverJournal()** (10 connections) — `apps/mobile/src/live/journal.ts`
+- **PracticeBatch** (10 connections) — `apps/mobile/src/live/journalRules.ts`
 - **journalPractice()** (9 connections) — `apps/mobile/src/live/journal.ts`
 - **serialized()** (8 connections) — `apps/mobile/src/live/journal.ts`
+- **convoUsesFrom()** (8 connections) — `apps/mobile/src/live/journalRules.ts`
 - **journalledSession()** (7 connections) — `apps/mobile/src/live/journal.test.ts`
 - **journalFor()** (7 connections) — `apps/mobile/src/live/journalRules.ts`
+- **SessionJournal** (7 connections) — `apps/mobile/src/live/journalRules.ts`
 - **readJournal()** (6 connections) — `apps/mobile/src/live/journal.ts`
 - **write()** (6 connections) — `apps/mobile/src/live/journal.ts`
 - **isWorthKeeping()** (6 connections) — `apps/mobile/src/live/journalRules.ts`
 - **journalWithDrills()** (6 connections) — `apps/mobile/src/live/journalRules.ts`
+- **IncomingTopic** (6 connections) — `packages/core/src/topics/topics.ts`
 - **acknowledged()** (4 connections) — `apps/mobile/src/live/journal.ts`
 - **clearAt()** (4 connections) — `apps/mobile/src/live/journal.ts`
-- **clearJournal()** (4 connections) — `apps/mobile/src/live/journal.ts`
-- **KEY()** (4 connections) — `apps/mobile/src/live/journal.ts`
-- **installDisk()** (4 connections) — `apps/mobile/src/live/journal.test.ts`
-- **journalWithLesson()** (4 connections) — `apps/mobile/src/live/journalRules.ts`
-- **journalWithPractice()** (4 connections) — `apps/mobile/src/live/journalRules.ts`
-- **journalWithRecap()** (4 connections) — `apps/mobile/src/live/journalRules.ts`
-- *... and 24 more nodes in this community*
+- *... and 27 more nodes in this community*
 
 ## Relationships
 
-- [Session Domain Types](Session_Domain_Types.md) (14 shared connections)
-- [Convo Screen Disk Tests](Convo_Screen_Disk_Tests.md) (10 shared connections)
-- [Review Deck Store](Review_Deck_Store.md) (9 shared connections)
-- [Conversation Screen And Profile](Conversation_Screen_And_Profile.md) (9 shared connections)
-- [Live Session React Context](Live_Session_React_Context.md) (7 shared connections)
-- [Acknowledged Persistence Stores](Acknowledged_Persistence_Stores.md) (6 shared connections)
-- [User Scope Data Reset](User_Scope_Data_Reset.md) (5 shared connections)
-- [Live Session Hook Tests](Live_Session_Hook_Tests.md) (5 shared connections)
-- [Drill Bank Store](Drill_Bank_Store.md) (4 shared connections)
-- [Learner Profile Updates](Learner_Profile_Updates.md) (4 shared connections)
-- [Drill Exercise Bank Merge](Drill_Exercise_Bank_Merge.md) (3 shared connections)
-- [Status Line & Tutor Name](Status_Line_&_Tutor_Name.md) (3 shared connections)
+- [Conversation Screen](Conversation_Screen.md) (15 shared connections)
+- [Convo Screen Session Tests](Convo_Screen_Session_Tests.md) (12 shared connections)
+- [Review Deck Store](Review_Deck_Store.md) (11 shared connections)
+- [Persist Acknowledgement](Persist_Acknowledgement.md) (8 shared connections)
+- [Mock Speech Session](Mock_Speech_Session.md) (7 shared connections)
+- [Live Session Hook Tests](Live_Session_Hook_Tests.md) (6 shared connections)
+- [Drill Grading And Fixtures](Drill_Grading_And_Fixtures.md) (5 shared connections)
+- [Live Session Hook](Live_Session_Hook.md) (5 shared connections)
+- [App Agent Protocol](App_Agent_Protocol.md) (5 shared connections)
+- [Drill Exercise Store](Drill_Exercise_Store.md) (4 shared connections)
+- [Drill Screen Tests](Drill_Screen_Tests.md) (4 shared connections)
+- [Drill Merge And Scene Controls](Drill_Merge_And_Scene_Controls.md) (3 shared connections)
 
 ## Source Files
 
+- `README.md`
 - `apps/mobile/src/live/journal.test.ts`
 - `apps/mobile/src/live/journal.ts`
 - `apps/mobile/src/live/journalRules.ts`
+- `apps/mobile/src/review/store.ts`
+- `packages/core/src/protocol/protocol.ts`
+- `packages/core/src/topics/topics.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 211 (96%)
-- INFERRED: 8 (4%)
+- EXTRACTED: 243 (96%)
+- INFERRED: 11 (4%)
 - AMBIGUOUS: 0 (0%)
 
 ---

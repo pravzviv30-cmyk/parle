@@ -2,7 +2,7 @@
 
 > God node · 38 connections · `packages/core/src/ladder/ladder.ts`
 
-**Community:** [Session Domain Types](Session_Domain_Types.md)
+**Community:** [Mock Speech Session](Mock_Speech_Session.md)
 
 ## Connections by Relation
 

@@ -2,15 +2,16 @@
 
 > God node · 88 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Drill Screen And Tracking](Drill_Screen_And_Tracking.md)
+**Community:** [UI Theme Primitives](UI_Theme_Primitives.md)
 
 ## Connections by Relation
 
 ### calls
 - [ConvoScreen()](ConvoScreen.md) `EXTRACTED`
 - DrillScreen() `EXTRACTED`
-- HomeTab() `EXTRACTED`
 - MyFrenchTab() `EXTRACTED`
+- HomeTab() `EXTRACTED`
+- ProfileTab() `EXTRACTED`
 - LiveSessionScreen() `EXTRACTED`
 - SoundCheckScreen() `EXTRACTED`
 - OutlineButton() `EXTRACTED`
@@ -18,7 +19,6 @@
 - PracticeTab() `EXTRACTED`
 - TutorTab() `EXTRACTED`
 - MissionsScreen() `EXTRACTED`
-- ProfileTab() `EXTRACTED`
 - SignUpScreen() `EXTRACTED`
 - Field() `EXTRACTED`
 - ConvoRoute() `EXTRACTED`
@@ -36,10 +36,10 @@
 - RootNavigator.tsx `EXTRACTED`
 - DrillScreen.tsx `EXTRACTED`
 - components.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
 - HomeTab.tsx `EXTRACTED`
 - MyFrenchTab.tsx `EXTRACTED`
 - OnboardingFlow.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
 - LiveSessionScreen.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
 - ReviewScreen.tsx `EXTRACTED`

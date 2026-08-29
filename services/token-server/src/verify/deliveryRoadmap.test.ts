@@ -734,6 +734,243 @@ function phaseSixProblems(
   return problems;
 }
 
+/**
+ * Slice 6b's ledger ids, and why three ids inside the F226..F239 span are not among them.
+ *
+ * Written out rather than inferred from a range, for the reason `PHASE_SIX_LEDGER` above
+ * gives: a slice is a fixed historical thing, and "everything after F225" silently adopts
+ * whatever the next slice files.
+ *
+ *  - **F235** files the rule you are reading and **F236** writes the row it judges. F203 and
+ *    F225 set that precedent twice over: an entry whose whole job is to make the row right
+ *    cannot also be a precondition for the row being writable, or nothing ever closes.
+ *  - **F237** is a P2 about raw NUL bytes hiding two source files from grep. It was found
+ *    while 6b was being built and belongs to no slice, so counting it would hold the row
+ *    hostage to an unrelated repair. The severity filter below would drop it anyway; leaving
+ *    it out of the list is what says why.
+ *
+ * **F240 is in**, and it asked to be decided here rather than guessed at. It reads like F237 —
+ * both were found in passing, both name a file the entry that found them was not building — and
+ * it is not the same case. What separates them is which tree the repair lives in. F237's files
+ * are `apps/mobile/src/sync/policy.ts` and `packages/core/src/review/merge.ts`, which slice 6b
+ * never touched; F240's are the reminder's own, and its subject is the reminder putting a count
+ * on the launcher icon. A count is the thing this phase exists not to show. A row that called 6b
+ * built while the reminder still badged the home screen would be the exact overclaim this rule
+ * refuses, so the slice is not closed while F240 is open.
+ */
+const PHASE_SIX_B_LEDGER = [
+  'F226', 'F227', 'F228', 'F229', 'F230', 'F231',
+  'F232', 'F233', 'F234', 'F238', 'F239', 'F240',
+] as const;
+
+/**
+ * The ids in the same span that are deliberately not slice 6b work, and why.
+ *
+ * This exists so the list above can be checked for completeness rather than trusted. Every
+ * id from F226 up has to appear in one of these two places while the slice is still in
+ * flight, and an id in neither turns this red by name. That is the whole answer to the
+ * failure mode the hand-written list actually has: not that it is wrong, but that being
+ * wrong made it quieter. F238, F239 and F240 were each filed after it was written, and each
+ * time the list got weaker without saying so.
+ *
+ * The obvious alternative — derive the slice from the ledger instead of typing it — was
+ * measured before being rejected, because it reads better than it works. Matching `where:`
+ * against a reminders or story path finds six of the twelve: it drops F229 (the sync
+ * exclusion, filed against `sync/policy.ts`), F231 and F239 (the Profile row), F233 (My
+ * French), F234 (the ladder comment) and F238 (`app.json`), four of them P1. Widening it to
+ * keyword-match the note instead sweeps in F236, which is the one entry that provably must
+ * be excluded, because its note has to describe the slice in order to write the row about
+ * it. A derived rule would therefore have been wrong in both directions and silent in both,
+ * which is the property being fixed, so the list stays typed and the completeness check is
+ * what stops it going quiet.
+ */
+const NOT_SLICE_SIX_B: Readonly<Record<string, string>> = {
+  F235: 'files the row rule in this file, so it cannot be a precondition for the row',
+  F236: 'writes the row this rule judges, for the same reason',
+  F237: 'a P2 about NUL bytes in sync/policy.ts and core/review/merge.ts, files 6b never touched',
+};
+
+/** Every id the ledger holds from F226 up, which is the span slice 6b was filed into. */
+function sliceSixBSpan(entries: ReadonlyMap<string, LedgerEntry>): string[] {
+  return [...entries.keys()]
+    .filter((id) => Number(id.slice(1)) >= 226)
+    .sort((left, right) => Number(left.slice(1)) - Number(right.slice(1)));
+}
+
+interface LedgerEntry {
+  severity: string;
+  closed: boolean;
+}
+
+/** Every ledger entry by id, with its severity and whether it is closed. */
+function ledgerEntries(text: string): Map<string, LedgerEntry> {
+  return new Map(
+    text.split(/\n(?=### )/).flatMap((block) => {
+      const id = /^### (F\d+) — /.exec(block)?.[1];
+      if (id === undefined) return [];
+      const severity = /^- severity: (P[012])/m.exec(block)?.[1] ?? 'P2';
+      return [[id, { severity, closed: /^- status: \[x\]/m.test(block) }] as const];
+    }),
+  );
+}
+
+/**
+ * The ids in a slice that are still open above P2.
+ *
+ * A missing id counts as blocking. An entry nobody can find in the ledger is an entry
+ * nobody can call closed, and the alternative is a row that gets easier to justify by
+ * deleting its evidence.
+ */
+function blockingIn(ids: readonly string[], entries: ReadonlyMap<string, LedgerEntry>): string[] {
+  return ids.filter((id) => {
+    const entry = entries.get(id);
+    return entry === undefined || (!entry.closed && entry.severity !== 'P2');
+  });
+}
+
+/**
+ * The status cell as separate claims. A full stop ends one; a colon or a semicolon
+ * introduces the next. That is how this cell is actually written, and splitting on the
+ * three of them is what stops a claim about slice 6a being read as a claim about 6b.
+ */
+function rowSentences(status: string): string[] {
+  return status
+    .split(/(?<=[.;:])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length > 0);
+}
+
+/** Words that turn a sentence about a phone into an admission rather than a claim. */
+const NEGATOR = /\b(?:no|not|never|nothing|nobody|none|neither|nor|yet|unclaimed|unverified|pending)\b/i;
+
+/**
+ * A claim that a reminder, a notification or the weekly story was seen doing something on
+ * a phone. Nothing in this slice has been on a phone, and a notification firing is the one
+ * piece of evidence a green suite most looks like and least is.
+ *
+ * The noun and the verb have to sit in one clause — `[^.;:]` — so "no reminder has been
+ * seen firing" and "the passport was seen on a device" are not stitched together across a
+ * full stop. The limit, stated rather than hidden: the negation check reads the whole
+ * clause, so a clause that both denies one thing and claims another gets through. That is
+ * a contrived sentence, and the honest ones this has to keep accepting — "Nothing in this
+ * phase has been seen on a device" — are the common case.
+ */
+const DEVICE_FIRING =
+  /\b(?:reminders?|notifications?|stor(?:y|ies))\b[^.;:]{0,160}?\b(?:fired|fires|arrived|arrives|rang|popped up|(?:was|were) delivered|landed on (?:a|the) (?:phone|device)|seen (?:firing|arriving)|seen on (?:a|the) (?:phone|device))\b/i;
+
+/**
+ * Every reason the Phase 6 status cell does not describe the ledger and the tree.
+ *
+ * A list rather than inline assertions, for the reason this file gives three times over: a
+ * rule that can only be run against the one document on disk cannot prove a green result
+ * was earned. The refutations in the test below run it against rows nobody wrote.
+ *
+ * Both slices are judged the same way and in both directions. The row may say a slice is
+ * built only when that slice's ledger is closed, and it may say a slice is unbuilt only
+ * while the ledger agrees and the tree holds none of it. F235 filed this because the
+ * hard-coded "6b is not built" assertion that used to live here was a claim about the
+ * repository, and claims about the repository rot: 6b shipped and the assertion went red by
+ * design. The replacement cannot go stale the same way, because nothing here is pinned to
+ * what happens to be true today.
+ */
+function phaseSixRowProblems(
+  status: string,
+  entries: ReadonlyMap<string, LedgerEntry>,
+  slice6b: readonly string[],
+): string[] {
+  const problems: string[] = [];
+  const sentences = rowSentences(status);
+
+  // ── slice 6a, the F225 rule, unchanged ───────────────────────────────────────────────
+  const blocking6a = blockingIn(PHASE_SIX_LEDGER.filter((id) => id !== 'F225'), entries);
+  const claims6aBuilt = /\b(?:slice )?6a is built\b/i.test(status);
+  if (blocking6a.length > 0) {
+    if (claims6aBuilt) problems.push(`the row says 6a is built while ${blocking6a.join(', ')} is still open`);
+  } else if (!claims6aBuilt) {
+    problems.push('every Phase 6 P0 and P1 is closed and the row does not say slice 6a is built');
+  }
+
+  // ── slice 6b, the same rule against its own ledger and the tree ──────────────────────
+  const claim = sentences.filter((sentence) => /\b6b\b/i.test(sentence)).join(' ');
+  if (claim === '') {
+    problems.push('the status cell never mentions slice 6b, so a reader takes the phase for finished');
+  } else {
+    const unbuilt = /\bnot built\b|\bdeferred\b/i.test(claim);
+    const built = /\bbuilt\b/i.test(claim.replace(/\bnot built\b/gi, ' '));
+    const blocking6b = blockingIn(PHASE_SIX_B_LEDGER, entries);
+    if (built === unbuilt) {
+      problems.push('the row says neither that slice 6b is built nor that it is not, or says both');
+    } else if (built) {
+      if (blocking6b.length > 0) {
+        problems.push(
+          `the row says slice 6b is built while ${blocking6b.join(', ')} ${blocking6b.length === 1 ? 'is' : 'are'} still open`,
+        );
+      }
+      if (slice6b.length === 0) {
+        problems.push('the row says slice 6b is built and nothing in this repository implements it');
+      }
+    } else {
+      if (slice6b.length > 0) {
+        problems.push(`the row says slice 6b is not built, and this repository has ${slice6b.join(', ')}`);
+      }
+      if (blocking6b.length === 0) {
+        problems.push('every slice 6b P0 and P1 is closed and the row still says slice 6b is not built');
+      }
+      // While the row still reads unbuilt the slice is in flight, which is the only window
+      // in which `PHASE_SIX_B_LEDGER` can go stale. An id filed into the span that neither
+      // list claims is an id nobody decided about, and the point of saying so here is that
+      // the alternative is a rule that silently got easier to satisfy.
+      for (const id of sliceSixBSpan(entries)) {
+        if (PHASE_SIX_B_LEDGER.includes(id as (typeof PHASE_SIX_B_LEDGER)[number])) continue;
+        if (NOT_SLICE_SIX_B[id] !== undefined) continue;
+        problems.push(`${id} was filed into the slice 6b span and neither list says whether it is 6b work`);
+      }
+    }
+  }
+
+  // ── what nobody did ──────────────────────────────────────────────────────────────────
+  // Device evidence stays unclaimed for both slices. A notification that has been watched
+  // arriving on a phone is the thing this row is most tempted to imply and least entitled
+  // to say, because the whole slice was measured by tests against source.
+  for (const sentence of sentences) {
+    if (DEVICE_FIRING.test(sentence) && !NEGATOR.test(sentence)) {
+      problems.push(`the row claims a reminder was seen working on a phone: "${sentence}"`);
+    }
+  }
+  const onDevice = sentences.filter((sentence) => /\bdevice\b|\bphone\b/i.test(sentence));
+  if (onDevice.length === 0) {
+    problems.push('the row does not say that none of this has been seen on a device');
+  } else if (!onDevice.some((sentence) => NEGATOR.test(sentence))) {
+    problems.push('the row mentions a device without saying that nobody has seen this on one');
+  }
+  if (/merged (?:in)?to `main`/i.test(status)) {
+    problems.push('the row claims a merge that has not happened');
+  }
+  if (/\brelease\b|\bshipped\b|ready to ship/i.test(status)) {
+    problems.push('the row reads as a release');
+  }
+
+  return problems;
+}
+
+/** A ledger the row rule can be run against: every id closed at P1 unless named open. */
+function fixtureLedger(open: Readonly<Record<string, string>> = {}): Map<string, LedgerEntry> {
+  const ledger = new Map<string, LedgerEntry>();
+  for (const id of [...PHASE_SIX_LEDGER, ...PHASE_SIX_B_LEDGER]) {
+    ledger.set(id, { severity: 'P1', closed: true });
+  }
+  for (const [id, severity] of Object.entries(open)) ledger.set(id, { severity, closed: false });
+  return ledger;
+}
+
+/** A status cell that claims both slices, honestly. The refutations vary one thing from it. */
+const FIXTURE_BUILT_ROW =
+  'Slice 6a is built on `phase-6-retention` and has not landed. Slice 6b, the honest reminders and the weekly story, is built. Nothing in this phase has been seen on a device';
+
+/** The same cell as it read before 6b existed, which this rule still has to accept. */
+const FIXTURE_DEFERRED_ROW =
+  'Slice 6a is built on `phase-6-retention` and has not landed. Slice 6b, the honest reminders and the weekly story, is not built at all and stays designed but intentionally deferred. Nothing in this phase has been seen on a device';
+
 describe('the delivery roadmap defines what Phase 6 shipped and what it did not', () => {
   test('the Phase 6 criterion keeps all four nouns and each built noun names real source', () => {
     const criteria = criteriaFor(roadmap, 6);
@@ -833,23 +1070,34 @@ describe('the delivery roadmap defines what Phase 6 shipped and what it did not'
 
     // 9. The reminders noun claiming to be built while nothing implements it, which is the
     //    overclaim this whole entry exists to stop.
+    //
+    //    The empty probe is passed in rather than the real one, and that is the correction
+    //    F235 made here. While 6b was unbuilt the two were the same list, so this read as a
+    //    refutation and was in fact a tautology: the day 6b shipped, the real probe stopped
+    //    being empty and this stopped being able to fire at all. A refutation that quietly
+    //    dies when the tree moves is the same rot the row rule below was filed for.
     const overclaimed = phaseSixProblems(
       criteria,
       fixtureDefinitions('- **Honest reminders / story.** Built in 6a. It reminds people honestly.'),
       read,
-      slice6b,
+      [],
     );
     assert.ok(
       overclaimed.some((problem) => problem.includes('nothing in this repository implements it')),
       'the unbuilt noun was allowed to claim it shipped',
     );
 
-    // 10. And the direction that will actually happen one day: 6b gets built and the
-    //     document still says it did not. The tree moves here, not the sentence.
+    // 10. And the direction that actually happened: 6b got built and the document still
+    //     said it did not. The tree moves here, not the sentence. Both sides are fixtures
+    //     now, for the reason given at refutation 9: read against the live section this
+    //     went dead the moment that section stopped saying "not built".
     assert.ok(
-      phaseSixProblems(criteria, section, read, ['apps/mobile/package.json depends on expo-notifications']).some(
-        (problem) => problem.includes('says it is not built'),
-      ),
+      phaseSixProblems(
+        criteria,
+        fixtureDefinitions('- **Honest reminders / story.** Not built. It stays designed but intentionally deferred.'),
+        read,
+        ['apps/mobile/package.json depends on expo-notifications'],
+      ).some((problem) => problem.includes('says it is not built')),
       'the document kept its "not built" claim while the repository had shipped it',
     );
 
@@ -884,45 +1132,202 @@ describe('the delivery roadmap defines what Phase 6 shipped and what it did not'
   });
 
   test('the phase six row says what is built and what is not', () => {
-    const ledgerText = readFileSync(KNOWN_ISSUES_PATH, 'utf8');
-    const entries = new Map(
-      ledgerText.split(/\n(?=### )/).flatMap((block) => {
-        const id = /^### (F\d+) — /.exec(block)?.[1];
-        return id === undefined
-          ? []
-          : [[id, { severity: /^- severity: (P[012])/m.exec(block)?.[1] ?? 'P2', closed: /^- status: \[x\]/m.test(block) }] as const];
-      }),
-    );
-    for (const id of PHASE_SIX_LEDGER) {
+    const entries = ledgerEntries(readFileSync(KNOWN_ISSUES_PATH, 'utf8'));
+    for (const id of [...PHASE_SIX_LEDGER, ...PHASE_SIX_B_LEDGER]) {
       assert.ok(entries.has(id), `${id} is gone from the ledger, so the Phase 6 row cannot be judged against it`);
     }
 
     const row = phaseRows(roadmap).find((candidate) => candidate.phase.startsWith('6.'));
     assert.ok(row, 'the roadmap has no row for phase 6');
     const status = row.status.replace(/\s+/g, ' ').trim();
+    assert.ok(status.length > 0, 'the Phase 6 row has no status cell to read');
 
-    // 1. The claim tracks the ledger, in both directions. F225 is excluded from its own
-    //    evidence for the reason F203 is: it is the entry that writes this row, so counting
-    //    it would make the rule unsatisfiable. Phase 5 set that precedent above.
-    const blocking = PHASE_SIX_LEDGER.filter(
-      (id) => id !== 'F225' && entries.get(id)!.closed === false && entries.get(id)!.severity !== 'P2',
+    const files = repoFiles(ROOT);
+    const slice6b = slice6bEvidence(files, (file) => readFileSync(path.join(ROOT, file), 'utf8'));
+
+    // 1. The row as it stands, against the ledger and the tree it summarises.
+    assert.deepEqual(
+      phaseSixRowProblems(status, entries, slice6b),
+      [],
+      'the Phase 6 row does not describe the ledger and the code this repository ships',
     );
-    const claimsBuilt = /\b6a is built\b|\bslice 6a is built\b/i.test(status);
-    if (blocking.length > 0) {
-      assert.ok(!claimsBuilt, `the row says 6a is built while ${blocking.join(', ')} is still open`);
-    } else {
-      assert.ok(claimsBuilt, 'every Phase 6 P0 and P1 is closed and the row does not say slice 6a is built');
+
+    // 2. The probe is not answering out of an empty tree, which would make every claim
+    //    about slice 6b below vacuously true.
+    assert.ok(files.length > 100, `only ${files.length} files were walked, so the slice 6b probe saw almost nothing`);
+
+    // ── the refutations ────────────────────────────────────────────────────────────────
+    // Each one is a status cell somebody could plausibly write, and each has to be refused.
+    // These run on strings and a fixture ledger, so none of them moves when the real
+    // document does.
+
+    // 3. Slice 6b claimed as built while its own ledger is open. This is the direction the
+    //    F225 rule already holds for 6a, applied to the slice that has now been built.
+    assert.ok(
+      phaseSixRowProblems(FIXTURE_BUILT_ROW, fixtureLedger({ F238: 'P1' }), ['a slice 6b module']).some(
+        (problem) => problem.includes('slice 6b is built while F238'),
+      ),
+      'the row was allowed to call slice 6b built with a slice 6b P1 still open',
+    );
+
+    // 4. And claimed as built over a tree that holds none of it. A row may not ship a slice
+    //    by describing it.
+    assert.ok(
+      phaseSixRowProblems(FIXTURE_BUILT_ROW, fixtureLedger(), []).some(
+        (problem) => problem.includes('nothing in this repository implements it'),
+      ),
+      'the row was allowed to call slice 6b built while nothing implements it',
+    );
+
+    // 5. The other direction, and the one that actually happened: 6b got built and the row
+    //    still called it deferred. The tree moves here, not the sentence. This is what the
+    //    hard-coded "6b is not built" assertion used to prevent by pinning, and what it now
+    //    prevents by measuring.
+    assert.ok(
+      phaseSixRowProblems(FIXTURE_DEFERRED_ROW, fixtureLedger({ F238: 'P1' }), [
+        'apps/mobile/src/reminders/reminder.ts is a slice 6b module',
+      ]).some((problem) => problem.includes('slice 6b is not built, and this repository has')),
+      'the row kept its deferred claim while the repository had shipped the slice',
+    );
+
+    // 6. Deferred while every slice 6b entry is closed. The ledger is an authority of its
+    //    own here, so a slice that closed without leaving a file the probe recognises still
+    //    cannot be summarised as unbuilt.
+    assert.ok(
+      phaseSixRowProblems(FIXTURE_DEFERRED_ROW, fixtureLedger(), []).some(
+        (problem) => problem.includes('every slice 6b P0 and P1 is closed'),
+      ),
+      'the row was allowed to call a closed slice deferred',
+    );
+
+    // 7. And the state before any of this: 6b unbuilt, its ledger open, nothing in the tree.
+    //    The rule has to keep accepting the row it was written against, or it is not a rule
+    //    about honesty but a rule about the calendar.
+    assert.deepEqual(phaseSixRowProblems(FIXTURE_DEFERRED_ROW, fixtureLedger({ F238: 'P1' }), []), []);
+
+    // 8. The three exclusions, proven rather than asserted in a comment. F235 writes this
+    //    rule, F236 writes the row, and F237 is an unrelated P2 about NUL bytes in source.
+    //    If any of them counted, the row could never be written and nothing could close.
+    assert.deepEqual(
+      phaseSixRowProblems(
+        FIXTURE_BUILT_ROW,
+        fixtureLedger({ F235: 'P1', F236: 'P1', F237: 'P2' }),
+        ['a slice 6b module'],
+      ),
+      [],
+      'an entry whose job is to write this row was counted as a reason the row may not be written',
+    );
+    assert.deepEqual(
+      Object.keys(NOT_SLICE_SIX_B).sort(),
+      ['F235', 'F236', 'F237'],
+      'an id was excluded from slice 6b without a reason written beside it',
+    );
+    for (const [id, reason] of Object.entries(NOT_SLICE_SIX_B)) {
+      assert.ok(reason.length > 40, `${id} is excluded from slice 6b with a reason too short to be one`);
+      assert.ok(
+        !PHASE_SIX_B_LEDGER.includes(id as (typeof PHASE_SIX_B_LEDGER)[number]),
+        `${id} is both in slice 6b and excluded from it`,
+      );
     }
 
-    // 2. The half that is not built is named in the row itself, not only in a section
-    //    further down that a table reader never reaches.
-    assert.match(status, /6b/i, 'the status cell never mentions slice 6b, so a reader takes the phase for finished');
-    assert.match(status, /is not built|not built at all/i, 'the row does not say that slice 6b is unbuilt');
+    // 8b. And the hole a hand-written list of ids actually has. F238, F239 and F240 were each
+    //     filed after this list was written, and each time it got weaker without saying so.
+    //     An id in the span that neither list claims is now named while the slice is in
+    //     flight, which is the difference between a decision and an oversight.
+    assert.ok(
+      phaseSixRowProblems(FIXTURE_DEFERRED_ROW, fixtureLedger({ F241: 'P1' }), []).some(
+        (problem) => problem.includes('F241 was filed into the slice 6b span'),
+      ),
+      'an entry filed into the slice 6b span after this list was written passed unnoticed',
+    );
+    assert.deepEqual(
+      sliceSixBSpan(fixtureLedger({ F241: 'P1' })).filter((id) => id === 'F216' || id === 'F241'),
+      ['F241'],
+      'the slice 6b span reached back into Phase 6a, where a different list is the authority',
+    );
 
-    // 3. And nothing is claimed that nobody did. This branch has not landed and no part of
-    //    it has been seen on a device.
-    assert.doesNotMatch(status, /merged (?:in)?to `main`/i, 'the row claims a merge that has not happened');
-    assert.doesNotMatch(status, /\brelease\b|\bshipped\b|ready to ship/i, 'the row reads as a release');
-    assert.match(status, /device/i, 'the row does not say that none of this has been seen on a device');
+    // 9. Slice 6a still tracks its own ledger, in both directions.
+    assert.ok(
+      phaseSixRowProblems(FIXTURE_BUILT_ROW, fixtureLedger({ F220: 'P1' }), ['a slice 6b module']).some(
+        (problem) => problem.includes('6a is built while F220'),
+      ),
+      'the row was allowed to call slice 6a built with a Phase 6a P1 still open',
+    );
+    assert.ok(
+      phaseSixRowProblems(
+        'Slice 6b, the honest reminders and the weekly story, is built. Nothing here has been seen on a device',
+        fixtureLedger(),
+        ['a slice 6b module'],
+      ).some((problem) => problem.includes('does not say slice 6a is built')),
+      'the row dropped the slice 6a claim while every Phase 6a entry was closed',
+    );
+
+    // 10. A row that never names 6b at all. A table reader takes the phase for finished,
+    //     which is the whole reason the half-claim lives in the cell and not only in the
+    //     section below it.
+    assert.ok(
+      phaseSixRowProblems(
+        'Slice 6a is built on `phase-6-retention` and has not landed. Nothing in this phase has been seen on a device',
+        fixtureLedger(),
+        ['a slice 6b module'],
+      ).some((problem) => problem.includes('never mentions slice 6b')),
+      'the row was allowed to stop naming slice 6b',
+    );
+
+    // 11. And a row that says both, which is how a status cell rots: the old sentence is
+    //     kept and the new one is appended.
+    assert.ok(
+      phaseSixRowProblems(
+        'Slice 6a is built. Slice 6b is built and stays designed but intentionally deferred. Nothing has been seen on a device',
+        fixtureLedger(),
+        ['a slice 6b module'],
+      ).some((problem) => problem.includes('neither that slice 6b is built nor that it is not')),
+      'a row claiming slice 6b both built and deferred was accepted',
+    );
+
+    // 12. Device evidence, which nobody has. A notification seen arriving on a phone is the
+    //     claim a green suite most resembles and least earns.
+    assert.ok(
+      phaseSixRowProblems(
+        'Slice 6a is built. Slice 6b is built and the reminder fired on a phone at 8am. Nothing else has been seen on a device',
+        fixtureLedger(),
+        ['a slice 6b module'],
+      ).some((problem) => problem.includes('seen working on a phone')),
+      'the row was allowed to claim a notification had been watched arriving',
+    );
+    assert.ok(
+      phaseSixRowProblems(
+        'Slice 6a is built. Slice 6b is built. All of it has been seen on a device',
+        fixtureLedger(),
+        ['a slice 6b module'],
+      ).some((problem) => problem.includes('without saying that nobody has seen this on one')),
+      'the row mentioned a device without admitting nobody has used one',
+    );
+    assert.ok(
+      phaseSixRowProblems(
+        'Slice 6a is built. Slice 6b is built.',
+        fixtureLedger(),
+        ['a slice 6b module'],
+      ).some((problem) => problem.includes('none of this has been seen on a device')),
+      'the row dropped the device admission entirely',
+    );
+
+    // 13. And the two claims that would make this read as finished work rather than as a
+    //     branch: a merge nobody performed, and the word release.
+    assert.ok(
+      phaseSixRowProblems(`${FIXTURE_BUILT_ROW}, merged into \`main\` as \`abc1234\``, fixtureLedger(), ['a slice 6b module'])
+        .some((problem) => problem.includes('claims a merge that has not happened')),
+      'the row claimed a merge that has not happened',
+    );
+    assert.ok(
+      phaseSixRowProblems(`${FIXTURE_BUILT_ROW} and it is ready to ship`, fixtureLedger(), ['a slice 6b module'])
+        .some((problem) => problem.includes('reads as a release')),
+      'the row was allowed to read as a release',
+    );
+
+    // 14. The sentence splitter, so refutations 3 to 12 are judging the clause they think
+    //     they are. A claim about 6a must not be read as a claim about 6b.
+    assert.deepEqual(rowSentences('One. Two: three; four'), ['One.', 'Two:', 'three;', 'four']);
+    assert.deepEqual(rowSentences('Version 57.0.15 shipped.'), ['Version 57.0.15 shipped.']);
   });
 });

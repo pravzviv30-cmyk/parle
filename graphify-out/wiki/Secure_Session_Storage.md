@@ -25,7 +25,7 @@
 
 ## Relationships
 
-- [Auth Adapter And Modes](Auth_Adapter_And_Modes.md) (3 shared connections)
+- [Friendly Error Copy](Friendly_Error_Copy.md) (3 shared connections)
 
 ## Source Files
 

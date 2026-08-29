@@ -1,25 +1,35 @@
-# React
+# react
 
-> 2 nodes · cohesion 1.00
+> God node · 40 connections · `apps/mobile/tsconfig.json`
 
-## Key Concepts
+**Community:** [Auth Screens And Labels](Auth_Screens_And_Labels.md)
 
-- **react** (2 connections) — `apps/mobile/package.json`
-- **react** (1 connections) — `apps/mobile/package.json`
+## Connections by Relation
 
-## Relationships
+### extends
+- types `EXTRACTED`
 
-- [Mobile App Dependencies](Mobile_App_Dependencies.md) (1 shared connections)
-
-## Source Files
-
-- `apps/mobile/package.json`
-
-## Audit Trail
-
-- EXTRACTED: 2 (100%)
-- INFERRED: 0 (0%)
-- AMBIGUOUS: 0 (0%)
+### imports_from
+- ConvoScreen.tsx `EXTRACTED`
+- RootNavigator.tsx `EXTRACTED`
+- DrillScreen.tsx `EXTRACTED`
+- components.tsx `EXTRACTED`
+- useLiveSession.ts `EXTRACTED`
+- App.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
+- HomeTab.tsx `EXTRACTED`
+- MyFrenchTab.tsx `EXTRACTED`
+- OnboardingFlow.tsx `EXTRACTED`
+- LiveSessionScreen.tsx `EXTRACTED`
+- TutorTab.tsx `EXTRACTED`
+- ReviewScreen.tsx `EXTRACTED`
+- PracticeTab.tsx `EXTRACTED`
+- SoundCheckScreen.tsx `EXTRACTED`
+- LeaderboardTab.tsx `EXTRACTED`
+- AddFriendsScreen.tsx `EXTRACTED`
+- MissionsScreen.tsx `EXTRACTED`
+- SummaryScreen.tsx `EXTRACTED`
+- SessionView.tsx `EXTRACTED`
 
 ---
 

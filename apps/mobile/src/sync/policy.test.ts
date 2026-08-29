@@ -308,7 +308,7 @@ function blobFor(namespace: string, seed: number): unknown {
 
 // ──────────────────────────────────────────────────────────────────── tests
 
-describe('the per-domain conflict policy — twelve namespaces, three classes, two exclusions', () => {
+describe('the per-domain conflict policy — thirteen namespaces, three classes, three exclusions', () => {
   test('every synced namespace has an explicit merge policy and every excluded one an explicit reason', () => {
     const suffixes = userKeySuffixes().filter((suffix) => suffix !== SYNC_STATE_SUFFIX);
     assert.ok(suffixes.length > 0, 'the scan read no suffixes out of scope.ts, so it is checking nothing');
@@ -333,8 +333,10 @@ describe('the per-domain conflict policy — twelve namespaces, three classes, t
     );
 
     // Every exclusion states a reason, and the reason is about the product rather than
-    // about effort. Both journal and friends have to be here by name.
-    assert.deepEqual([...excluded].sort(), ['friends', 'journal']);
+    // about effort. journal, friends and reminder each have to be here by name: this list
+    // is pinned so that excluding a namespace stays a decision somebody made on purpose
+    // rather than a store that quietly slipped out of the merge table.
+    assert.deepEqual([...excluded].sort(), ['friends', 'journal', 'reminder']);
     for (const exclusion of SYNC_EXCLUSIONS) {
       assert.ok(exclusion.reason.trim().length > 40, `${exclusion.namespace} has no real reason for being excluded`);
     }

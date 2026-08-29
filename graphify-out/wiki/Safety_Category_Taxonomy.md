@@ -33,11 +33,11 @@
 
 ## Relationships
 
-- [Safety Output Guard](Safety_Output_Guard.md) (8 shared connections)
-- [Safety Category Corpus](Safety_Category_Corpus.md) (5 shared connections)
-- [Safety Policy Corpus Tests](Safety_Policy_Corpus_Tests.md) (3 shared connections)
-- [Conversation Flow Orchestration](Conversation_Flow_Orchestration.md) (1 shared connections)
-- [Agent Prompt And Turn Queue](Agent_Prompt_And_Turn_Queue.md) (1 shared connections)
+- [Output Safety Guard](Output_Safety_Guard.md) (8 shared connections)
+- [Safety Category Rules](Safety_Category_Rules.md) (5 shared connections)
+- [Safety Policy Corpus](Safety_Policy_Corpus.md) (3 shared connections)
+- [Conversation Brain Client](Conversation_Brain_Client.md) (1 shared connections)
+- [Prompt And Turn Queue](Prompt_And_Turn_Queue.md) (1 shared connections)
 
 ## Source Files
 

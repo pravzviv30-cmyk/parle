@@ -33,12 +33,12 @@
 
 ## Relationships
 
-- [Entitlement Plan Store](Entitlement_Plan_Store.md) (9 shared connections)
-- [Voice Session Lifecycle Checks](Voice_Session_Lifecycle_Checks.md) (6 shared connections)
-- [Session Token Grants](Session_Token_Grants.md) (6 shared connections)
-- [Account Deletion And Product Events](Account_Deletion_And_Product_Events.md) (3 shared connections)
-- [Status Line & Tutor Name](Status_Line_&_Tutor_Name.md) (1 shared connections)
-- [Database Migration Contract Tests](Database_Migration_Contract_Tests.md) (1 shared connections)
+- [Entitlement Store](Entitlement_Store.md) (9 shared connections)
+- [Voice Lifecycle Checks](Voice_Lifecycle_Checks.md) (6 shared connections)
+- [LiveKit Session Token Grants](LiveKit_Session_Token_Grants.md) (6 shared connections)
+- [HTTP Security And Deletion](HTTP_Security_And_Deletion.md) (3 shared connections)
+- [Drill Merge And Scene Controls](Drill_Merge_And_Scene_Controls.md) (1 shared connections)
+- [Database Contract Checks](Database_Contract_Checks.md) (1 shared connections)
 
 ## Source Files
 

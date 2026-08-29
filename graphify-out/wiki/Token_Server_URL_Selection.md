@@ -14,10 +14,11 @@
 
 ## Relationships
 
-- [Drill Screen And Tracking](Drill_Screen_And_Tracking.md) (4 shared connections)
-- [Live Session React Context](Live_Session_React_Context.md) (2 shared connections)
-- [Auth Adapter And Modes](Auth_Adapter_And_Modes.md) (2 shared connections)
-- [Audio Session Globals And Safety](Audio_Session_Globals_And_Safety.md) (2 shared connections)
+- [Onboarding And Tracking](Onboarding_And_Tracking.md) (2 shared connections)
+- [Live Session Context](Live_Session_Context.md) (2 shared connections)
+- [Friendly Error Copy](Friendly_Error_Copy.md) (2 shared connections)
+- [Live Session Hook](Live_Session_Hook.md) (2 shared connections)
+- [Mock Speech Session](Mock_Speech_Session.md) (2 shared connections)
 
 ## Source Files
 
