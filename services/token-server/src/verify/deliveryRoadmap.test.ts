@@ -335,3 +335,150 @@ describe('the roadmap row records what Phase 5 proved', () => {
     assert.doesNotMatch(status, /\brelease\b(?!\s*$)|shipped|ready to ship/i, 'the row reads as a release, and no part of Phase 5 has been seen on a device');
   });
 });
+
+/**
+ * What the Phase 5 narrative is allowed to claim, judged against the same ledger.
+ *
+ * The row above is one table cell. The section below the table is where a reader actually
+ * finds out where the phase stands, and it is the half that rots first: a slice-1 paragraph
+ * survived the slice-2 landing and went on saying "34 of them are still open, 23 at P1"
+ * three paragraphs after the same section said every P0 and every P1 was closed. Both
+ * sentences were in one document, and the wrong one was the one a reader reached last.
+ *
+ * The rule is the same shape as the row's: the ledger is the authority and the prose is
+ * judged against it, in both directions. A count of open P0 or P1 work has to be the count
+ * the ledger holds, and a claim that the phase closed all of it is refused while any of it
+ * is open. Neither direction is pinned, so correcting the ledger is never what turns this
+ * red — only a document that stopped agreeing with it.
+ *
+ * One limit, stated rather than hidden: `phaseFiveEntries` reads F132 to F199, so entries
+ * this phase filed at F200 and above are outside its view. That is why the counted rule is
+ * scoped to P0 and P1, where the range is complete, and why rule 3 below is an internal
+ * consistency check that needs no ledger at all.
+ */
+
+/** The `## Phase 5` narrative section, whitespace-flattened. */
+function phaseFiveNarrative(markdown: string): string {
+  const start = markdown.search(/^## Phase 5\b/m);
+  assert.notEqual(start, -1, 'the roadmap has no Phase 5 narrative section, so there is nothing to judge');
+  const rest = markdown.slice(start);
+  const end = rest.indexOf('\n## ', 1);
+  return (end === -1 ? rest : rest.slice(0, end)).replace(/\s+/g, ' ');
+}
+
+/** A claim that the phase closed every blocking entry it filed. */
+const CLAIMS_ALL_CLOSED = /every P0 and (?:every )?P1\b[^.]*?\bclosed\b/i;
+
+/**
+ * Every reason this narrative disagrees with the ledger it summarises.
+ *
+ * A list rather than inline assertions, for the reason the head of this file gives: a rule
+ * that can only be run against the one document on disk cannot prove its own green result
+ * was earned.
+ */
+function narrativeProblems(
+  narrative: string,
+  entries: readonly { id: string; severity: string; closed: boolean }[],
+): string[] {
+  const problems: string[] = [];
+  const claimsAllClosed = CLAIMS_ALL_CLOSED.test(narrative);
+  const counted = [...narrative.matchAll(/(\d+)\s+at\s+(P[01])\b/g)];
+
+  // 1. A counted claim of open work at P0 or P1 is a claim about the ledger, so it has to
+  //    be the number the ledger holds. This is the sentence F211 was filed for.
+  for (const claim of counted) {
+    const severity = claim[2]!;
+    const open = entries.filter((entry) => !entry.closed && entry.severity === severity);
+    if (Number(claim[1]) !== open.length) {
+      problems.push(
+        `the narrative says "${claim[0]}" while the ledger has ${open.length} open at ${severity}` +
+          `${open.length > 0 ? ` (${open.map((entry) => entry.id).join(', ')})` : ''}`,
+      );
+    }
+  }
+
+  // 2. And the other direction. Claiming the phase closed all of it while any of it is open
+  //    is the overclaim, and it is the one that reads as finished.
+  const blocking = entries.filter((entry) => !entry.closed && entry.severity !== 'P2');
+  if (claimsAllClosed && blocking.length > 0) {
+    problems.push(
+      `the narrative says every P0 and P1 is closed while ${blocking.map((entry) => `${entry.id} (${entry.severity})`).join(', ')} ` +
+        `${blocking.length === 1 ? 'is' : 'are'} still open`,
+    );
+  }
+
+  // 3. The self-contradiction, which needs no ledger. One section may not both count open
+  //    P1 work and say there is none. Whichever half is wrong, a reader cannot tell which.
+  if (claimsAllClosed) {
+    for (const claim of counted) {
+      if (Number(claim[1]) > 0) {
+        problems.push(
+          `the narrative says every P0 and P1 is closed and also says "${claim[0]}", and both cannot be true`,
+        );
+      }
+    }
+  }
+
+  return problems;
+}
+
+/** A minimal Phase 5 section the rule can be run against, read by the real parser. */
+function fixtureNarrative(body: string): string {
+  return ['## Phase 5: what the exit criterion means, and where it stands', '', body, ''].join('\n');
+}
+
+describe('the Phase 5 narrative agrees with the ledger', () => {
+  test('the phase five narrative agrees with the ledger it summarises', () => {
+    const ledger = readFileSync(KNOWN_ISSUES_PATH, 'utf8');
+    const entries = phaseFiveEntries(ledger);
+    assert.ok(
+      entries.length >= 30,
+      `only ${entries.length} Phase 5 entries found, so the ledger cannot be the authority here`,
+    );
+
+    // 1. The document as it stands.
+    const narrative = phaseFiveNarrative(roadmap);
+    assert.ok(narrative.length > 400, 'the Phase 5 section is too short to be saying anything');
+    assert.deepEqual(
+      narrativeProblems(narrative, entries),
+      [],
+      'the Phase 5 narrative does not agree with the ledger it summarises',
+    );
+
+    // ── the refutations ────────────────────────────────────────────────────────────────
+
+    // 2. The sentence F211 was filed for, run through the real parser rather than as a
+    //    bare string, so a section shape this file cannot read could never be why it passes.
+    const stale = fixtureNarrative(
+      'Phase 5 is held locally. Every P0 and every P1 in the range this phase filed is closed ' +
+        'against a named test that passes. A survey of the phase found 40 gaps and 34 of them ' +
+        'are still open, 23 at P1 and 11 at P2, across correction policy and much of safety.',
+    );
+    const staleProblems = narrativeProblems(phaseFiveNarrative(stale), entries);
+    assert.ok(
+      staleProblems.some((problem) => problem.includes('"23 at P1"') && problem.includes('open at P1')),
+      'a narrative counting 23 open P1s was accepted while the ledger has none',
+    );
+    assert.ok(
+      staleProblems.some((problem) => problem.includes('both cannot be true')),
+      'a narrative that both counts open P1s and says there are none was accepted',
+    );
+
+    // 3. The other direction, on entries this test controls: an open P1 with a section that
+    //    says the phase closed everything. The ledger is what moves here, not the document.
+    const reopened = [...entries.map((entry) => ({ ...entry })), { id: 'F999', severity: 'P1', closed: false }];
+    assert.ok(
+      narrativeProblems(narrative, reopened).some((problem) => problem.includes('F999 (P1)')),
+      'the narrative kept its "every P0 and P1 is closed" claim while a P1 was open',
+    );
+
+    // 4. And an honest count passes. A rule that refused every number would push the
+    //    numbers out of the document, which is the opposite of what F211 asked for.
+    const honest = [...entries.map((entry) => ({ ...entry })), { id: 'F999', severity: 'P1', closed: false }];
+    assert.deepEqual(
+      narrativeProblems(fixtureNarrative('A survey found 40 gaps. 1 at P1 is still open, and it is F999.'), honest),
+      [],
+      'a narrative whose count matches the ledger exactly was still refused',
+    );
+  });
+});

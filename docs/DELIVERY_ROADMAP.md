@@ -11,7 +11,7 @@ deferred.
 | 2. Data/infrastructure | data-sync, observability, security | Versioned sync, conflicts, offline retry, privacy-safe analytics, cost alerts | Implemented and tested locally; revision migration measured on a disposable project; live two-device/release verification pending |
 | 3. Onboarding | onboarding UX, design system, privacy-safety | One welcome, useful choices, readiness, contextual mic, returning-user migration | Built on `phase-3-onboarding` and merged into `main` as `2a86092`; local web route proof complete, native/five-viewport QA and migration deployment remain external |
 | 4. Practice | practice UX, learning science, data-sync | Retrieval before reveal, one mastery source, durable batches, transfer | Built on `phase-4-practice` and merged into `main` as `f943bbe`; that branch is deleted now, so the hash is what finds it. Device, screen-reader and Supabase verification pending |
-| 5. Tutor | tutor behaviour, voice, learning science, privacy-safety | Mode parity across the four session modes (`convo`, `convo-text`, `lesson`, `lesson-text`), correction policy, recovery, safety, durable curation | All five properties held locally and tested; every P0 and P1 closed. Six P2s stay open by choice, and the six external checks are unclaimed by anyone, so this is not a release |
+| 5. Tutor | tutor behaviour, voice, learning science, privacy-safety | Mode parity across the four session modes (`convo`, `convo-text`, `lesson`, `lesson-text`), correction policy, recovery, safety, durable curation | Built on `phase-5-tutor` and merged into `main` as `1b37b81`. All five properties held locally and tested; every P0 and P1 closed. Six P2s stay open by choice, and the six external checks are unclaimed by anyone, so this is not a release |
 | 6. Retention | progress-retention, learning science, design system | Passport, delayed test, less-help replay, honest reminders/story | Designed but intentionally deferred until sync/evidence stabilise |
 | 7. Revenue | revenue, security, privacy-safety | One paid tier, verified receipts/webhooks, restore/lifecycle, fair-use economics | Blocked by product/store credentials; implementation missing |
 | 8. Privacy/release | privacy-safety, qa-release, deploy | Reviewed policies, export/deletion, full device/live/build gate and rollback | Blocked; policies, devices and deployment evidence missing |
@@ -131,7 +131,8 @@ about. `MODE_CAPS` is a `Record<LiveMode, ModeCaps>` over all four, and the test
 table, so a fifth mode will not compile until it declares what it may do.
 
 Phase 5 is held locally. Every P0 and every P1 in the range this phase filed is closed
-against a named test that passes, and the gate stands at 2,003 tests with none failing.
+against a named test that passes, and the gate that landed Phase 5 read 2,003 tests with
+none failing.
 
 Slice 1 was the six P0s, merged to `main`. Slice 2 was the rest of the survey, and between
 the two every one of the five properties has code and a test behind it: mode parity across
@@ -155,12 +156,16 @@ Slice 1 covered:
 - `lesson-text`, which no longer publishes a microphone
 - the typed lesson, given the twelve-second text window instead of four
 
-That is all Phase 5 has proved so far. A survey of the phase found 40 gaps and 34 of them
-are still open, 23 at P1 and 11 at P2, across correction policy, recovery, durable curation
-and much of safety. Two are worth naming here, because a table cell cannot hold them:
+Slice 2 then finished the survey. All 40 gaps it found are closed or accepted: every P0 and
+every P1 against a named test that passes, and six P2s left open by choice: F146, F147,
+F193, F206, F208 and F209. Each of those six is written up in `docs/RISK_REGISTER.md` with
+the reasoning that kept it open. Two things are worth naming here, because a table cell
+cannot hold them:
 
 - **Safety has no escalation or reporting route.** A session can be stopped and nobody is
-  told. This slice did not add one.
+  told. That is a fact about the phase and not about one slice: nothing in Phase 5 built
+  one, and `docs/IMPLEMENTATION_EVIDENCE.md` still lists the in-app escalation UI among the
+  things the tutor-safety row has not proven.
 - **The six external checks are unchanged and unclaimed.** Migration 7 deployment and its
   live verification, a Supabase-authenticated first run, the device and five-viewport
   accessibility matrix with VoiceOver and TalkBack, the F57 stopwatch, vendor credential

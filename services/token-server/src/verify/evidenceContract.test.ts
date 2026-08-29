@@ -55,6 +55,7 @@ import { REQUIRED_ENV as UPSTASH_ENV, UPSTASH_CHECKS } from './upstashLive.ts';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 const EVIDENCE_PATH = path.join(ROOT, 'docs', 'IMPLEMENTATION_EVIDENCE.md');
 const RISK_PATH = path.join(ROOT, 'docs', 'RISK_REGISTER.md');
+const ROADMAP_PATH = path.join(ROOT, 'docs', 'DELIVERY_ROADMAP.md');
 const LEDGER_PATH = path.join(ROOT, 'docs', 'KNOWN_ISSUES.md');
 const VOICE_HARNESS_PATH = path.join(ROOT, 'services', 'tutor-agent', 'src', 'verify', 'voiceLifecycle.ts');
 const RUNBOOK_PATH = path.join(ROOT, 'supabase', 'README.md');
@@ -63,6 +64,7 @@ const FLOORS_PATH = path.join(ROOT, 'scripts', 'gate.floors.json');
 
 const evidence = readFileSync(EVIDENCE_PATH, 'utf8');
 const risk = readFileSync(RISK_PATH, 'utf8');
+const roadmap = readFileSync(ROADMAP_PATH, 'utf8');
 const ledger = readFileSync(LEDGER_PATH, 'utf8');
 const runbook = readFileSync(RUNBOOK_PATH, 'utf8');
 
@@ -326,6 +328,175 @@ function provenLiveEntries(markdown: string): LedgerEntry[] {
     if (!where.startsWith('supabase/')) return false;
     return /proven live/i.test(entry.body);
   });
+}
+
+// ────────────────────────────────────────────────────────── the recorded gates (F214)
+
+/**
+ * The six workspaces a gate record names, spelled the way this document spells them.
+ * Hoisted out of the test that used to own it, because two rules read these runs now:
+ * the historical one below, which only asks that the newest run clears the floors, and
+ * F214's, which asks that it *is* them.
+ */
+const WORKSPACE_OF: Record<string, string> = {
+  core: '@parle/core',
+  brain: '@parle/brain',
+  'tutor agent': '@parle/tutor-agent',
+  'token server': '@parle/token-server',
+  playground: '@parle/brain-playground',
+  mobile: '@parle/mobile',
+};
+
+interface GateRun {
+  label: string;
+  total: number;
+  counts: Map<string, number>;
+}
+
+/**
+ * Every gate this document records: its label, its total, and its six workspace counts.
+ *
+ * The arithmetic is asserted here rather than returned, because a record whose six numbers
+ * do not sum to its own headline is not a record with a problem, it is not a record. That
+ * check is the reason a malformed new bullet fails this suite by arithmetic before any rule
+ * about floors or landings gets a chance to be wrong about it.
+ */
+function recordedGates(markdown: string): GateRun[] {
+  const runs: GateRun[] = [];
+  for (const claim of markdown.matchAll(/\*\*([\d,]+) tests/g)) {
+    const label = claim[1]!;
+    // Bounded to the bullet it lives in, or the next bullet's six numbers join in
+    // and the sum stops meaning anything.
+    const rest = markdown.slice(claim.index!);
+    const stop = rest.indexOf('\n- ', 1);
+    // Whitespace-normalised, because markdown wraps "tutor agent 338" across two lines.
+    const window = (stop === -1 ? rest.slice(0, 260) : rest.slice(0, stop)).replace(/\s+/g, ' ');
+    const parts = [...window.matchAll(/(core|brain|tutor agent|token server|playground|mobile) (\d{2,4})/g)];
+    assert.equal(parts.length, 6, `the ${label} gate does not name all six workspaces`);
+    const total = parts.reduce((sum, part) => sum + Number(part[2]), 0);
+    assert.equal(total, Number(label.replace(/,/g, '')), `the ${label} gate's six workspace counts do not sum to ${label}`);
+    runs.push({ label, total, counts: new Map(parts.map((part) => [part[1]!, Number(part[2])])) });
+  }
+  return runs;
+}
+
+/**
+ * The newest run, found by its total rather than by its position.
+ *
+ * Floors are monotonic and this document keeps its history, so "newest" and "largest" are
+ * the same run. Reading position instead would make the rule depend on which end of a list
+ * somebody adds a bullet to.
+ */
+function newestGate(runs: readonly GateRun[]): GateRun {
+  assert.ok(runs.length > 0, 'the document records no gate run at all');
+  return runs.reduce((largest, run) => (run.total > largest.total ? run : largest));
+}
+
+/** Every workspace where the newest recorded gate and the blessed floors disagree. */
+function floorGapProblems(newest: GateRun, floors: Record<string, number>): string[] {
+  const problems: string[] = [];
+  for (const [name, workspace] of Object.entries(WORKSPACE_OF)) {
+    const floor = floors[workspace];
+    if (floor === undefined) {
+      problems.push(`no floor is recorded for ${workspace}`);
+      continue;
+    }
+    const count = newest.counts.get(name);
+    if (count === undefined) {
+      problems.push(`the ${newest.label} gate does not record ${name}`);
+      continue;
+    }
+    if (count !== floor) {
+      problems.push(
+        `the newest recorded gate has ${name} at ${count} and the floor defends ${floor}, so ` +
+          `${count > floor ? `${count - floor} tests could vanish silently` : 'the floor defends tests no recorded run ever ran'}`,
+      );
+    }
+  }
+  return problems;
+}
+
+// ──────────────────────────────────────────────── the roadmap it answers to (F212, F213)
+
+/** The roadmap's phase table: the phase, and what its status cell claims. */
+function roadmapPhaseStatuses(markdown: string): { phase: string; status: string }[] {
+  const rows: { phase: string; status: string }[] = [];
+  for (const line of markdown.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('|')) continue;
+    const cells = trimmed.slice(1, trimmed.endsWith('|') ? -1 : undefined).split('|').map((cell) => cell.trim());
+    if (cells.length < 4) continue;
+    // A phase row starts "5. Tutor". The header row and its rule do not.
+    if (!/^\d+\.\s/.test(cells[0] ?? '')) continue;
+    rows.push({ phase: cells[0]!, status: cells[3]! });
+  }
+  return rows;
+}
+
+/**
+ * Every merge a phase row claims, and whether the evidence document knows about it.
+ *
+ * The roadmap is where a phase is declared landed and this document is where landings are
+ * evidenced, and nothing joined the two: Phase 4 and Phase 5 were both merged, both hashes
+ * were in the roadmap, and neither appeared anywhere in the snapshot that is supposed to
+ * separate what landed from what is merely built.
+ */
+function unrecordedMerges(roadmapText: string, evidenceText: string): string[] {
+  const problems: string[] = [];
+  for (const row of roadmapPhaseStatuses(roadmapText)) {
+    for (const claim of row.status.matchAll(/merged (?:in)?to `main` as `([0-9a-f]{7,40})`/gi)) {
+      if (!evidenceText.includes(claim[1]!)) {
+        problems.push(
+          `the roadmap says phase "${row.phase}" merged into main as ${claim[1]}, and the evidence ` +
+            'document never names that commit',
+        );
+      }
+    }
+  }
+  return problems;
+}
+
+/** The roadmap's `## Phase 5` narrative section. */
+function roadmapPhaseFive(markdown: string): string {
+  const start = markdown.search(/^## Phase 5\b/m);
+  assert.notEqual(start, -1, 'the roadmap has no Phase 5 narrative section');
+  const rest = markdown.slice(start);
+  const end = rest.indexOf('\n## ', 1);
+  return end === -1 ? rest : rest.slice(0, end);
+}
+
+/**
+ * The first ledger id Phase 5 filed.
+ *
+ * Written out for the same reason as `PHASE_ONE_LEDGER`: which entries belong to a phase is
+ * a fact about the phase, not something to infer from the document being checked. The rule
+ * below is scoped by it so that the section stays free to point at older external items —
+ * F57's stopwatch and F79's worker-local refusal are Phase 1 risks the register already
+ * places elsewhere, and re-filing them under Phase 5 would be the wrong repair.
+ */
+const PHASE_FIVE_FIRST = 132;
+
+/** Every reason the register does not record what the roadmap says Phase 5 accepted. */
+function unregisteredPhaseFive(section: string, registerText: string, ledgerText: string): string[] {
+  const problems: string[] = [];
+  const named = [...new Set([...section.matchAll(/\bF(\d+)\b/g)].map((hit) => Number(hit[1])))].sort((a, b) => a - b);
+
+  for (const number of named) {
+    if (!new RegExp(`^### F${number} — `, 'm').test(ledgerText)) {
+      problems.push(`the Phase 5 section names F${number}, which is not an entry in docs/KNOWN_ISSUES.md`);
+    }
+  }
+
+  const filed = named.filter((number) => number >= PHASE_FIVE_FIRST);
+  if (filed.length === 0) {
+    problems.push('the Phase 5 section names no entry this phase filed, so the register cannot be checked against it');
+  }
+  for (const number of filed) {
+    if (!new RegExp(`\\bF${number}\\b`).test(registerText)) {
+      problems.push(`the roadmap's Phase 5 section names F${number} and docs/RISK_REGISTER.md never does`);
+    }
+  }
+  return problems;
 }
 
 describe('the evidence matrix is honest about what Phase 1 actually proved', () => {
@@ -745,33 +916,10 @@ describe('the evidence matrix is honest about what Phase 1 actually proved', () 
     // are supposed to fall below today's floor. Only the newest (largest) recorded gate
     // has to defend the current floor; rewriting old measurements would destroy evidence.
     const floors: Record<string, number> = JSON.parse(readFileSync(FLOORS_PATH, 'utf8'));
-    const workspaceOf: Record<string, string> = {
-      core: '@parle/core',
-      brain: '@parle/brain',
-      'tutor agent': '@parle/tutor-agent',
-      'token server': '@parle/token-server',
-      playground: '@parle/brain-playground',
-      mobile: '@parle/mobile',
-    };
-    const claims = [...evidence.matchAll(/\*\*([\d,]+) tests/g)];
-    assert.ok(claims.length >= 2, 'the document records fewer than two gate runs, so nothing can be compared');
-    const runs: { label: string; total: number; counts: Map<string, number> }[] = [];
-    for (const claim of claims) {
-      const label = claim[1]!;
-      // Bounded to the bullet it lives in, or the next bullet's six numbers join in
-      // and the sum stops meaning anything.
-      const rest = evidence.slice(claim.index!);
-      const stop = rest.indexOf('\n- ', 1);
-      // Whitespace-normalised, because markdown wraps "tutor agent 338" across two lines.
-      const window = (stop === -1 ? rest.slice(0, 260) : rest.slice(0, stop)).replace(/\s+/g, ' ');
-      const parts = [...window.matchAll(/(core|brain|tutor agent|token server|playground|mobile) (\d{2,4})/g)];
-      assert.equal(parts.length, 6, `the ${label} gate does not name all six workspaces`);
-      const total = parts.reduce((sum, part) => sum + Number(part[2]), 0);
-      assert.equal(total, Number(label.replace(/,/g, '')), `the ${label} gate's six workspace counts do not sum to ${label}`);
-      runs.push({ label, total, counts: new Map(parts.map((part) => [part[1]!, Number(part[2])])) });
-    }
-    const newest = runs.reduce((largest, run) => (run.total > largest.total ? run : largest));
-    for (const [name, workspace] of Object.entries(workspaceOf)) {
+    const runs = recordedGates(evidence);
+    assert.ok(runs.length >= 2, 'the document records fewer than two gate runs, so nothing can be compared');
+    const newest = newestGate(runs);
+    for (const [name, workspace] of Object.entries(WORKSPACE_OF)) {
       const floor = floors[workspace];
       assert.ok(floor !== undefined, `no floor is recorded for ${name}`);
       const count = newest.counts.get(name);
@@ -923,6 +1071,197 @@ describe('the evidence matrix is honest about what Phase 1 actually proved', () 
     assert.ok(
       new RegExp(`departureTimeout[^.\\n]{0,20}\\b${ROOM_LIFECYCLE.departureTimeoutSec}\\b`).test(evidence),
       `the evidence document does not record the shipped departureTimeout of ${ROOM_LIFECYCLE.departureTimeoutSec}s`,
+    );
+  });
+});
+
+/**
+ * The three joins nothing owned: roadmap to evidence, roadmap to register, evidence to floors.
+ *
+ * Each of the three documents was internally consistent and the set of them was not. The
+ * roadmap said Phase 4 and Phase 5 had merged and named the hashes; the evidence document,
+ * whose whole job is to separate what landed from what is merely built, said Phase 3 was the
+ * last landing and carried neither hash. The roadmap said six P2 risks were accepted on
+ * purpose; the register that exists to record accepted risks named none of them. And the
+ * floors defended 46 fewer mobile tests than `main` carried, because a landing raised the
+ * count and nobody re-blessed.
+ *
+ * All three are the same failure: a fact that lives in two documents and is owned by
+ * neither. So each rule below reads one document and judges another, in the mould of F130's
+ * "a gate the roadmap quotes has to be a gate the evidence document records".
+ *
+ * F214 legislates a process on purpose. Recording a landing gate here and blessing the
+ * floors are now one act: write the record without blessing and this is red, bless without
+ * writing the record and it is red too. That is the point. A floor that lags a landing is
+ * a floor that would let a whole suite stop loading without anybody noticing, which is the
+ * exact thing floors exist to catch.
+ */
+describe('the three documents agree about what landed', () => {
+  test('the landing snapshot names every merge the roadmap records', () => {
+    // 1. The rule is not vacuous: the roadmap really does claim landings.
+    const claimed = roadmapPhaseStatuses(roadmap).flatMap((row) =>
+      [...row.status.matchAll(/merged (?:in)?to `main` as `([0-9a-f]{7,40})`/gi)].map((hit) => hit[1]!),
+    );
+    assert.ok(
+      claimed.length >= 2,
+      `the roadmap records ${claimed.length} merges into main, so this rule is judging almost nothing`,
+    );
+
+    // 2. The documents as they stand.
+    assert.deepEqual(
+      unrecordedMerges(roadmap, evidence),
+      [],
+      'the roadmap declares a phase landed and the evidence document does not know the commit',
+    );
+
+    // 3. Refuted on a table this test controls, read by the real parser so a row shape the
+    //    parser cannot see could never be the reason step 2 passed.
+    const invented = [
+      '| Phase | Owner | Exit criteria | Current status |',
+      '|---|---|---|---|',
+      '| 9. Fiction | nobody | none | Built somewhere and merged into `main` as `deadbee` |',
+      '',
+    ].join('\n');
+    assert.equal(
+      unrecordedMerges(invented, evidence).length,
+      1,
+      'a phase row claiming a commit the evidence document never names was accepted',
+    );
+
+    // 4. And on the real roadmap with the real evidence document mutated, which is what
+    //    proves the green result in step 2 was earned rather than lucky.
+    const stripped = evidence.split(claimed[0]!).join('0000000');
+    assert.ok(
+      unrecordedMerges(roadmap, stripped).some((problem) => problem.includes(claimed[0]!)),
+      `removing ${claimed[0]} from the evidence document left the roadmap's landing claim standing`,
+    );
+
+    // 5. A row that claims no merge is not a row with a problem. Phases 6 to 8 have not
+    //    landed and must never be made to look as though they had.
+    assert.deepEqual(unrecordedMerges('| 8. Privacy | qa | criteria | Blocked; nothing built |', evidence), []);
+  });
+
+  test('the risk register records what phase five accepted', () => {
+    const section = roadmapPhaseFive(roadmap);
+
+    // 1. The documents as they stand. Every entry Phase 5 filed and the roadmap names is
+    //    written up in the register with the reasoning that kept it open.
+    assert.deepEqual(
+      unregisteredPhaseFive(section, risk, ledger),
+      [],
+      'the roadmap names an accepted Phase 5 risk that the risk register never records',
+    );
+
+    // 2. The founder decision is named as one. F208 is money, not engineering, and a
+    //    register that lists it beside four cosmetic P2s hides the one that costs.
+    if (/\bF208\b/.test(section)) {
+      const at = risk.indexOf('F208');
+      assert.notEqual(at, -1, 'F208 is named in the roadmap and nowhere in the risk register');
+      assert.match(
+        risk.slice(at, at + 700).replace(/\s+/g, ' '),
+        /founder/i,
+        'the register records F208 without saying it is a founder decision rather than an engineering one',
+      );
+    }
+
+    // 3. The safety gap filed alongside the six is in the register too, whatever the
+    //    roadmap does. F210 is the one an engineer would most easily leave in a table row.
+    const safetyGap = readLedger(ledger).find((entry) => entry.id === 'F210');
+    assert.ok(safetyGap, 'F210 is not in docs/KNOWN_ISSUES.md');
+    if (!safetyGap.done) {
+      assert.ok(
+        /\bF210\b/.test(risk),
+        'F210 is open in the ledger and the risk register never names it, so the only record of an ' +
+          'unguarded lesson line is a ledger entry nobody reads beside the risks',
+      );
+    }
+
+    // ── the refutations ────────────────────────────────────────────────────────────────
+
+    // 4. A section naming an entry this phase filed that the register does not carry.
+    assert.ok(
+      unregisteredPhaseFive('## Phase 5\n\nF193 and F999 stay open.', risk, ledger).some((problem) =>
+        problem.includes('F999'),
+      ),
+      'the register was allowed to omit an id the roadmap names',
+    );
+
+    // 5. A section that names nothing. This is the state F213 was filed against: a register
+    //    that stops at Phase 4 and a section that gives it nothing to be missing.
+    assert.ok(
+      unregisteredPhaseFive('## Phase 5\n\nEverything is fine.', risk, ledger).some((problem) =>
+        problem.includes('names no entry this phase filed'),
+      ),
+      'a Phase 5 section naming no ledger entry at all was accepted',
+    );
+
+    // 6. And an id that is not an entry. A document may not be kept true by a typo.
+    assert.ok(
+      unregisteredPhaseFive('## Phase 5\n\nF9999 stays open.', risk, ledger).some((problem) =>
+        problem.includes('not an entry'),
+      ),
+      'the Phase 5 section was allowed to name a ledger entry that does not exist',
+    );
+
+    // 7. Older external items are the section's to point at. F57 and F79 are Phase 1 risks
+    //    the register places elsewhere, and re-filing them under Phase 5 is not the repair.
+    assert.deepEqual(unregisteredPhaseFive('## Phase 5\n\nF57, F79 and F193 stand.', risk, ledger), []);
+  });
+
+  test('the newest recorded gate is the floor the gate defends', () => {
+    const floors: Record<string, number> = JSON.parse(readFileSync(FLOORS_PATH, 'utf8'));
+    const runs = recordedGates(evidence);
+    const newest = newestGate(runs);
+
+    // 1. The document as it stands. The newest gate recorded here is exactly what the gate
+    //    now defends, in all six workspaces — not merely above it.
+    assert.deepEqual(
+      floorGapProblems(newest, floors),
+      [],
+      'the newest gate this document records is not the floor scripts/gate.floors.json defends',
+    );
+    assert.equal(
+      newest.total,
+      Object.values(WORKSPACE_OF).reduce((sum, workspace) => sum + (floors[workspace] ?? 0), 0),
+      `the ${newest.label} gate is the newest record and its total is not the sum of the floors`,
+    );
+
+    // 2. History is left alone. Older runs are supposed to fall below today's floor, and a
+    //    rule that demanded equality of all of them would force somebody to rewrite a
+    //    measurement, which is the one thing a record of measurements may never do.
+    const older = runs.filter((run) => run !== newest);
+    assert.ok(older.length > 0, 'the document records one gate and no history, so nothing can be compared');
+    assert.ok(
+      older.every((run) => run.total <= newest.total),
+      'a recorded gate is larger than the newest one, so "newest" is not the largest total',
+    );
+
+    // ── the refutations ────────────────────────────────────────────────────────────────
+
+    // 3. The state F214 was filed against: a landing raised a workspace's count and nobody
+    //    blessed, so the floor defends fewer tests than the newest run recorded.
+    const lagging = { ...floors, '@parle/mobile': (floors['@parle/mobile'] ?? 0) - 46 };
+    assert.ok(
+      floorGapProblems(newest, lagging).some((problem) => problem.includes('46 tests could vanish silently')),
+      'a floor 46 tests below the newest recorded gate was accepted',
+    );
+
+    // 4. And the other way: a floor above every recorded run, which is a floor nothing
+    //    measured. That is how a gate comes to defend a number somebody typed.
+    const invented = { ...floors, '@parle/core': (floors['@parle/core'] ?? 0) + 1 };
+    assert.ok(
+      floorGapProblems(newest, invented).some((problem) => problem.includes('no recorded run ever ran')),
+      'a floor above the newest recorded gate was accepted',
+    );
+
+    // 5. A missing workspace in either direction is a problem, not a pass.
+    assert.ok(
+      floorGapProblems(newest, { ...floors, '@parle/brain': undefined as unknown as number }).length > 0,
+      'a workspace with no floor at all was accepted',
+    );
+    assert.ok(
+      floorGapProblems({ label: 'fixture', total: 0, counts: new Map() }, floors).length === Object.keys(WORKSPACE_OF).length,
+      'a gate record naming no workspace at all was accepted',
     );
   });
 });

@@ -3388,3 +3388,43 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `convo.ts` alone, so closing this means extending the guard and updating that pin together.
   Found by work-judge at the slice 2 boundary.
 - verified-by: `the scripted lesson agent's own lines pass the output guard`
+
+### F211 — The roadmap's Phase 5 section contradicts the ledger it summarises
+- severity: P1
+- status: [x]
+- where: docs/DELIVERY_ROADMAP.md:149
+- note: lines 149-167 are slice-1 text left in place after slice 2 landed. They claim 34 gaps
+  open with 23 at P1 while the opening of the same section, and the ledger, say every P0 and
+  P1 is closed. The two paragraphs cannot both be true, and the wrong one is the one a reader
+  reaches last.
+- verified-by: `the phase five narrative agrees with the ledger it summarises`
+
+### F212 — The evidence snapshot records Phase 3 as the last landing
+- severity: P1
+- status: [x]
+- where: docs/IMPLEMENTATION_EVIDENCE.md:24
+- note: the header says refreshed for the Phase 3 landing floor and the snapshot's lead
+  sentence says Phases 1, 2 and 3 are on `main`, while Phases 4 and 5 landed as `f943bbe` and
+  `1b37b81`. The document that separates measured from claimed is itself two landings behind,
+  and neither later merge hash appears anywhere in it.
+- verified-by: `the landing snapshot names every merge the roadmap records`
+
+### F213 — The risk register stops at Phase 4
+- severity: P2
+- status: [x]
+- where: docs/RISK_REGISTER.md:3
+- note: Phase 5 accepted six P2 risks by choice, one of them a founder decision about money
+  (F208) and one a safety gap (F210), and the register that exists to record accepted risks
+  names none of them. Its own philosophy says a register that records only the good news is
+  the document this repo spends its time correcting.
+- verified-by: `the risk register records what phase five accepted`
+
+### F214 — The mobile floor defends 46 fewer tests than main carries
+- severity: P2
+- status: [x]
+- where: scripts/gate.floors.json:7
+- note: floors were blessed at the Phase 5 branch gate (mobile 556) and the loading-feedback
+  landing raised main's mobile count to 602 without a re-bless, so 46 tests could vanish
+  silently. The new equality test holds the recorded landing gate and the floors together so a
+  landing can never leave the floors behind again; the bless on a green gate is the work.
+- verified-by: `the newest recorded gate is the floor the gate defends`

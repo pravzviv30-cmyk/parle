@@ -1,6 +1,6 @@
 # Implementation evidence
 
-Snapshot date: 2026-08-27, refreshed for the Phase 3 landing floor. This document separates
+Snapshot date: 2026-08-29, refreshed after the Phase 5 landing. This document separates
 what was measured on a machine from what is merely implemented. A passing local test is not
 proof that a migration, a header, a credential, a provider or a store is live. The Phase 1
 matrix and run record below remain historical evidence; later snapshots do not rewrite what
@@ -21,10 +21,19 @@ of the list.
 
 ## Current landing snapshot
 
-- Phases 1, 2 and 3 are on `main`. Phase 2 includes the client sync engine, per-domain
+- Phases 1, 2, 3, 4 and 5 are on `main`. Phase 2 includes the client sync engine, per-domain
   conflict policy, restart-safe dirty registry, fresh-device adoption and the revision
-  migration. Phase 3 was merged as `2a86092`, and `phase-4-practice` was branched from that
-  merge commit.
+  migration. Phase 3 was merged as `2a86092`, Phase 4 as `f943bbe`, and Phase 5 as
+  `1b37b81`. `phase-4-practice` was branched from the Phase 3 merge commit, and every one of
+  those three branches has since been deleted, so the hashes are what find the work now.
+- The `main` gate after the Phase 5 landing passes **2,053 tests, 0 failing**: core 543,
+  brain 373, tutor agent 377, token server 132, playground 26, mobile 602. Typecheck is clean
+  in all six workspaces. Floors were blessed to those counts, so the gate defends them now,
+  and the test `the newest recorded gate is the floor the gate defends` holds this record and
+  `scripts/gate.floors.json` equal from here on: recording a landing gate and blessing the
+  floors are one act. It is still not a release gate. No part of any phase has been seen on a
+  device or a deployed database, and every check under "What is still outstanding" is
+  unclaimed.
 - Phase 3 landed from `phase-3-onboarding`: one welcome, three onboarding pages,
   age-first gating, AI/vendor/microphone disclosure, labelled fields and headings, removal of
   the splash/why/duplicate welcome, attempt-audio cleanup, analytics contract repair, and the
@@ -32,7 +41,7 @@ of the list.
   web journey proved the `/` → onboarding → `/missions` path and one-shot reset; F58 is closed.
 - The Phase 3 landing gate passes **1,791 tests, 0 failing**: core 507, brain 348, tutor agent
   350, token server 124, playground 13, mobile 449. Typecheck is clean in all six workspaces.
-- Phase 4 is implemented on `phase-4-practice`: one phrase-evidence record in core with every
+- Phase 4 landed as `f943bbe`: one phrase-evidence record in core with every
   other verdict projected from it, field-wise evidence merge that leaves scheduling alone,
   durable practice batches behind a `durable` or `failed` acknowledgement, retrieval before
   reveal on a due card, and transfer drills feeding the same record. F118 to F131 are closed.
@@ -257,6 +266,10 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Full `main` gate after the Phase 5 landing: **2,053 tests, 0 failing**; core 543, brain 373,
+  tutor agent 377, token server 132, playground 26, mobile 602. Typecheck clean in all six
+  workspaces. Run from a worktree at `main`'s tip, `97f2c48`, with its own `node_modules`,
+  after which the floors were blessed to match.
 - Full Phase 5 tutor gate, slices 1 and 2: **2,003 tests, 0 failing**; core 543, brain 373, tutor agent
   377, token server 128, playground 26, mobile 556. Typecheck clean in all six workspaces.
   Run from the repo root on `phase-5-tutor`, after which the floors were blessed to match.
