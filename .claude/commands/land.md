@@ -105,10 +105,21 @@ git switch -c <branch>          # if the work is sitting on main, branch it firs
 git add <explicit paths>        # never -A, never .
 git commit                      # pre-commit runs gate:fast
 git switch main && git merge --no-ff <branch>
+git push                        # pre-push runs the full gate
+git branch -d <branch>          # retire the label, now that main carries the work
 ```
 
 `--no-ff` so the branch is one revertable unit. The `pre-push` hook runs the full gate, so
 pushing is the last honest check; let it run rather than working around it.
+
+**Delete the branch in the same breath as the merge.** Work leaves this repo by going to
+`main` and pushing `main`, so a landed branch has nothing left to say and is never pushed on
+its own. Left alone the labels accumulate, and a later reader cannot tell a branch holding
+real unpushed work from one that merged three weeks ago. Use lowercase `-d`, which refuses
+anything unmerged and so cannot lose work. If git objects that the branch is not merged to
+its *upstream* even though it is merged to HEAD, that is a stale remote pointer rather than
+work at risk: confirm with `git rev-list --count main..<branch>` and only drop the label
+when the answer is `0`.
 
 Commit messages end with:
 
