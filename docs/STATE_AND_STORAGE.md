@@ -273,7 +273,7 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 ### The sync contract
 
 Since Phase 2, the account rather than the device is the durable home for ten of
-the twelve stores. `apps/mobile/src/sync/` holds a **state-based reconciler**:
+the thirteen stores. `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
 compare-and-swap on the `revision` column. Losing the swap means another device
@@ -310,11 +310,15 @@ Four pieces, and each has one file:
 - **set-union** — `history`, `activity`, `missions`, `soundChecks`, `coachMarks`,
   `tutorIntro`.
 
-Two are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `journal` is a
-device-local crash buffer whose whole meaning is bank-then-delete, so syncing it
-would re-bank a session another device already banked. `friends` is a dormant
-surface running on labelled sample profiles, and syncing it would write fixtures
-into the account where they would outlive the decision to ship the feature.
+Three are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `journal`
+is a device-local crash buffer whose whole meaning is bank-then-delete, so
+syncing it would re-bank a session another device already banked. `friends` is a
+dormant surface running on labelled sample profiles, and syncing it would write
+fixtures into the account where they would outlive the decision to ship the
+feature. `reminder` is a property of one phone: the OS holds the schedule and
+permission is asked for per install, so an account-level time would nudge one
+learner twice for one evening on two devices, and would tell a device that was
+never asked for permission that it already has a reminder.
 
 Three rules hold the whole thing up:
 

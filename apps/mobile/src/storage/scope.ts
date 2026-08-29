@@ -72,6 +72,7 @@ export const USER_KEY_SUFFIXES = [
   'missions',
   'coachMarks',
   'soundChecks',
+  'reminder',
   // The sync engine's dirty set. It has to be here even though no `userKey`
   // call in the source names it — the engine resolves it through an injected
   // key function, so scope.test.ts's literal scan cannot see it, and

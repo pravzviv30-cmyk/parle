@@ -213,9 +213,35 @@ export function directiveFor(rung: Rung, rescued = false): LadderDirective {
 }
 
 /**
- * Share of turns the learner handled while composing French themselves.
- * This is the headline number on the weekly fingerprint — it is a measure of
- * independence, which is what "getting better" actually means here.
+ * Share of turns the learner handled while composing French themselves — a
+ * measure of independence, which is what "getting better" actually means here.
+ *
+ * Three consumers read this number, and each reads it differently:
+ *
+ *   - **The end-of-session cards print it.** `summarise` puts it on
+ *     `SessionSummary` (`session/session.ts`) and `assembleRecap` on the
+ *     recap's `stats` (`brain/src/engine/recap.ts`); SummaryScreen and
+ *     RecapScreen each round it to a percentage. Those two cards are the only
+ *     learner-facing surfaces that show the rate as a figure, and they can,
+ *     because a report on one sitting is a report on something the learner can
+ *     still remember doing.
+ *   - **XP reads it as a threshold, not a quantity.** `lessonXp` and
+ *     `conversationXp` (`levels/levels.ts`) add a flat bonus at `>= 0.5` and
+ *     are otherwise indifferent to it. Nothing scales with the rate, so there
+ *     is no gradient here for anyone to farm.
+ *   - **The weekly story says it in words.** `storyFrom`
+ *     (`apps/mobile/src/progress/story.ts`) leads with an independence sentence
+ *     when the week's sessions were mostly unaided, and never prints the rate.
+ *     A week is not a sitting: a percentage spanning seven days is the rendered
+ *     fraction `progress/passport.ts` and `progress/today.ts` both already
+ *     refuse to draw, because a figure the learner can hold against last week's
+ *     is a figure they can be down on.
+ *
+ * This comment used to call the rate "the headline number on the weekly
+ * fingerprint". No weekly fingerprint was ever built. That is written down
+ * rather than quietly deleted because a forward reference to an unbuilt screen
+ * reads exactly like a description of a real one, and the next reader has no
+ * way to tell the two apart.
  */
 export function unassistedRate(state: LadderState): number {
   if (state.totalTurns === 0) return 0;
