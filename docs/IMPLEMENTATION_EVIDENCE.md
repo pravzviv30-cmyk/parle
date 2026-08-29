@@ -282,6 +282,12 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
   tutor agent 377, token server 132, playground 26, mobile 602. Typecheck clean in all six
   workspaces. Run from a worktree at `main`'s tip, `97f2c48`, with its own `node_modules`,
   after which the floors were blessed to match.
+- Device-build preparation gate: **2,055 tests, 0 failing**; core 543, brain 373, tutor agent
+  377, token server 128, playground 26, mobile 608. Typecheck clean in all six workspaces.
+  Run on `claude/app-tech-stack-check-442698` from inside that worktree after `npm install`
+  there, not from the repo root — two other worktrees were live in the shared checkout at the
+  time. Floors were blessed to match afterwards. Covers F242 and the device build contract; it
+  is a branch gate, and still nothing here has been seen on a device.
 - Full Phase 5 tutor gate, slices 1 and 2: **2,003 tests, 0 failing**; core 543, brain 373, tutor agent
   377, token server 128, playground 26, mobile 556. Typecheck clean in all six workspaces.
   Run from the repo root on `phase-5-tutor`, after which the floors were blessed to match.

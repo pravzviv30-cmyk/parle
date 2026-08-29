@@ -10,6 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.parle.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Parle listens while you speak French so it can tell you which sounds to work on."
       }

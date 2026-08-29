@@ -573,6 +573,17 @@ export function useLiveSession(
     removeAudioEls();
     clearWatchdog();
     try {
+      // First, and before the guard below reads it: on iOS and Android there is
+      // no `navigator.mediaDevices` until `registerGlobals()` has installed the
+      // WebRTC primitives, and this is the only call site that runs it. Asking
+      // whether a microphone exists before installing the shim that provides it
+      // answers "no" on every phone with a perfectly good microphone. A browser
+      // already has mediaDevices, which is why web never saw this.
+      //
+      // Ungated by mode on purpose: it is idempotent, and every mode builds a
+      // Room that needs RTCPeerConnection whether or not it carries audio.
+      ensureLiveKitGlobals();
+
       // Checked before anything else, and only for the modes that need one:
       // with no microphone API a spoken session has nothing to connect for, and
       // the failure deep inside the client would be unreadable.
@@ -639,7 +650,6 @@ export function useLiveSession(
         serverTiming: diagRef.current.tokenServerTiming,
       });
 
-      ensureLiveKitGlobals();
       const room = new Room();
       // Held twice on purpose. `roomRef` is the session's room, read by every
       // control on the screen; `opened` is this attempt's room, and it is the

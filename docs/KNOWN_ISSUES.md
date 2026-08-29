@@ -3540,3 +3540,24 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   status cell records 6a built and 6b still deferred, and the landing records the gate and blesses
   the floors as one act per evidenceContract. The Phase 5 precedent, followed rather than reinvented.
 - verified-by: `the Phase 6 criterion keeps all four nouns and each built noun names real source`
+
+### F242 — The first voice session on a phone refuses a working microphone
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:583
+- note: filed as F211 on `claude/app-tech-stack-check-442698` and renumbered here, because that
+  branch and the roadmap repairs branched from `97f2c48` within hours of each other and both
+  reached for F211. The roadmap one had already landed and been pushed, so this is the id that
+  could move without rewriting history. Nothing detected the clash: the gate parses one ledger at
+  a time and each branch's was internally consistent.
+  The defect itself: the preflight asked `micApiUnavailable()` — which is `!navigator.mediaDevices`
+  — before calling `ensureLiveKitGlobals()`, the only call site of `registerGlobals()` and
+  therefore the only thing that puts `navigator.mediaDevices` on a native global. The shim ran 59
+  lines later, just before `new Room()`. A browser already has mediaDevices, so web and every test
+  passed and the ordering was invisible; on iOS and Android every spoken mode threw
+  'navigator.mediaDevices is unavailable' before `/session/start` was ever called, and the learner
+  was told there was no microphone on a phone whose microphone works. Fixed by hoisting the shim
+  to the first statement in the try, ungated by mode because it is idempotent and every mode
+  builds a Room. Found while planning the first device build; no device has ever run this code.
+- verified-by: `the WebRTC globals are installed before the hook asks whether a microphone exists`
+- verified-by: `a device the shim cannot give a microphone is still refused`
