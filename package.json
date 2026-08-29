@@ -29,7 +29,7 @@
     "verify:upstash": "node --experimental-strip-types services/token-server/src/verify/upstashLive.ts",
     "loop": "node scripts/loop.mjs",
     "hooks": "node scripts/installHooks.mjs",
-    "postinstall": "node scripts/installHooks.mjs"
+    "postinstall": "node scripts/patchExpoModulesJsi.mjs && node scripts/installHooks.mjs"
   },
   "engines": {
     "node": ">=22"

@@ -115,7 +115,12 @@ export function bootPlan(env: Env = process.env): BootStep[] {
       id: 'token',
       label: 'token',
       command: 'npm',
-      args: ['run', 'start', '--workspace=@parle/token-server'],
+      // `start` is the deployed entry point: it sets NODE_ENV=production, and the
+      // server's own guard then refuses to boot without a wss:// LiveKit URL and
+      // exact HTTPS origins — neither of which exists on a laptop running
+      // livekit-server --dev. `dev` is the same server behind
+      // PARLE_LOCAL_DEVELOPMENT=1, which is what that flag is for.
+      args: ['run', 'dev', '--workspace=@parle/token-server'],
       port: TOKEN_PORT,
       ready: { kind: 'http', url: `http://127.0.0.1:${TOKEN_PORT}/health`, timeoutMs: 15_000, fatalOnTimeout: true },
       identify: (p) => p.status === 200 && p.body.includes('"ok":true'),
