@@ -3428,3 +3428,21 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   silently. The new equality test holds the recorded landing gate and the floors together so a
   landing can never leave the floors behind again; the bless on a green gate is the work.
 - verified-by: `the newest recorded gate is the floor the gate defends`
+
+### F215 — A credential of only letters is invisible to the secret scanner
+- severity: P1
+- status: [x]
+- where: services/token-server/src/secretScan.ts:136
+- note: `isCodeReference` calls any value matching `/^[a-z][A-Za-z]*$/` a code identifier, and
+  `scanLine` skips it for every context-anchored pattern. `LIVEKIT_API_SECRET=` followed by
+  thirty-two letters beginning in lower case is not reported at all. The six patterns this
+  silences are exactly the repo's live vendor credentials: livekit-credential, deepgram-key,
+  upstash-token, assigned-server-secret, url-embedded-credential and hardcoded-bearer, which
+  are the same four keys F80 is still waiting to rotate. The rule earns its keep against a
+  real code reference like `authorization: bearerTokenFromRequest`, so deleting it is not the
+  fix; it needs a test that separates an identifier from a credential. It also makes the gate
+  flaky, because `plantedSamples()` generates genuine random tokens and roughly one base64url
+  draw in 480 is all letters starting lower case. Found when the pre-push hook refused a push
+  and the same suite passed on the next run.
+- verified-by: `a credential of only letters is still found behind its variable name`
+- verified-by: `a dotted code reference is still not a finding`
