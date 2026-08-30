@@ -291,6 +291,15 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Local dev loop and auth repair gate: **2,209 tests, 0 failing**; core 563, brain 377,
+  tutor agent 378, token server 168, playground 26, mobile 697. Typecheck is clean in all
+  six workspaces and floors were blessed to those counts. F258 to F262: the development
+  CORS origins are now derived from `APP_PORT`, so `npm run dev` no longer serves the app
+  on a port its own token server answers 403 to; the auth adapter is wrapped so a provider
+  that throws becomes a sentence rather than a button stuck on "Signing in…"; Google
+  sign-in asks whether the provider is enabled before it navigates the tab away; and the
+  README's by-hand block no longer names a script that exits on a laptop. Found by
+  reproducing a founder report against the running local stack rather than from the suite.
 - Full Phase 8 local privacy gate: **2,185 tests, 0 failing**; core 563, brain 377,
   tutor agent 378, token server 165, playground 26, mobile 676. Typecheck is clean in all
   six workspaces and floors were blessed to those counts. The authenticated export proves

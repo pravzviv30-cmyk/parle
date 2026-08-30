@@ -50,6 +50,13 @@ export const GENERIC_FAILURE = 'Something went sideways. Try again in a moment.'
 export const GOOGLE_START_FAILED = 'Google sign in could not start. Try again, or use your email and password.';
 
 /**
+ * Google is switched off on the project. Distinct from the line above on
+ * purpose: "try again" is a lie when the answer will not change until somebody
+ * enables the provider, and a learner who retries four times learns nothing.
+ */
+export const GOOGLE_NOT_CONFIGURED = 'Google sign in is not available yet. Use your email and password for now.';
+
+/**
  * What the adapter knows about a provider failure.
  *
  * The Supabase SDK's `AuthError` satisfies this as it stands: `code` is

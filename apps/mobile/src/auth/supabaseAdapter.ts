@@ -16,7 +16,8 @@ import * as SecureStore from 'expo-secure-store';
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 import type { AuthAdapter, AuthResult, AuthUser } from './types.ts';
 import { startGoogleSignIn } from './oauth.ts';
-import { friendly, deletionFailure } from './friendly.ts';
+import { friendly, deletionFailure, GOOGLE_NOT_CONFIGURED } from './friendly.ts';
+import { googleAvailable } from './providerStatus.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { createSecureSessionStorage } from './secureSessionStorage.ts';
 import { installationId } from './installation.ts';
@@ -101,7 +102,14 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
       return error ? { ok: false, message: friendly(error) } : { ok: true };
     },
 
-    signInWithGoogle(): Promise<AuthResult> {
+    async signInWithGoogle(): Promise<AuthResult> {
+      // Ask before throwing the tab away. On web `signInWithOAuth` navigates
+      // first and lets the provider refuse afterwards, which strands the learner
+      // on a raw JSON body outside the app (F260). `null` means the preflight
+      // could not tell, and then the redirect goes ahead as it always did.
+      if ((await googleAvailable(url, anonKey)) === false) {
+        return { ok: false, message: GOOGLE_NOT_CONFIGURED };
+      }
       return startGoogleSignIn(client);
     },
 

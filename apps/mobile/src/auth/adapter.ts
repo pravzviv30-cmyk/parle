@@ -10,6 +10,7 @@ import type { AuthAdapter } from './types.ts';
 import { createMockAdapter } from './mockAdapter.ts';
 import { selectAuthMode } from './authMode.ts';
 import { installationId } from './installation.ts';
+import { guardAdapter } from './attempt.ts';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -28,8 +29,15 @@ function build(): AuthAdapter {
   return createMockAdapter();
 }
 
-/** The one adapter for this launch. */
-export const auth: AuthAdapter = build();
+/**
+ * The one adapter for this launch, wrapped so it cannot reject.
+ *
+ * `guardAdapter` is applied here rather than inside either implementation, so
+ * both of them — and any third one — get it once. Without it a throw from the
+ * provider escapes into a floating promise and the screen's pending flag is
+ * never cleared, which a learner reads as a hung button (F259).
+ */
+export const auth: AuthAdapter = guardAdapter(build());
 
 /**
  * Bearer and pseudonymous installation headers for token-server calls. Mock

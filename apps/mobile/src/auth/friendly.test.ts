@@ -280,12 +280,32 @@ describe('the words are true at the window the server keeps — F163, F164, F166
       'the provider errors are no longer all going through friendly(); one of them is being handled some other way',
     );
 
-    // Every sentence this file hands a screen is either its own fixed copy or a
-    // call to the module that owns the translations. Nothing is assembled here.
+    // Every sentence this file hands a screen is either its own fixed copy, a
+    // call to the module that owns the translations, or a named constant that
+    // module exports. Nothing is assembled here.
+    //
+    // The third form is read from the import rather than allowed by shape: only
+    // names this file actually pulls from './friendly.ts' pass, so a constant
+    // declared locally, or imported from anywhere else, is still refused. That
+    // keeps the rule exactly as strict — copy lives in friendly.ts — while
+    // letting a fixed sentence be shared by name instead of retyped.
+    const fromFriendly = new Set(
+      (/import\s*\{([^}]*)\}\s*from\s*'\.\/friendly\.ts'/.exec(adapter)?.[1] ?? '')
+        .split(',')
+        .map((name) => name.trim().split(/\s+as\s+/).pop()!.trim())
+        .filter(Boolean),
+    );
+
     for (const [, value] of adapter.matchAll(/message:\s*([^\n]+?),?\s*\n/g)) {
-      const written = value!.trim().replace(/,$/, '');
+      // Trailing `}` / `;` come from a single-line `return { ok: false, … };`.
+      // The two call forms are unaffected — they are matched by prefix — but a
+      // bare constant is the whole value, so it has to be read cleanly.
+      const written = value!.trim().replace(/[;,}\s]+$/, '');
       assert.ok(
-        written.startsWith("'") || written.startsWith('friendly(') || written.startsWith('deletionFailure('),
+        written.startsWith("'") ||
+          written.startsWith('friendly(') ||
+          written.startsWith('deletionFailure(') ||
+          fromFriendly.has(written),
         `supabaseAdapter.ts builds a learner-facing sentence of its own: "${written}"`,
       );
     }
