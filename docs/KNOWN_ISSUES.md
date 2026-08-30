@@ -3977,3 +3977,203 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   resubscribe rather than as a trial that ended. That marker is an entitlement field and a store
   concern, so it lands with the billing work rather than in the meter.
 - verified-by: `a learner whose paid plan lapsed is not told their free trial ended`
+
+### F258 — The one command that starts Parle serves the app on a port its own server refuses
+- severity: P1
+- status: [x]
+- where: services/token-server/src/httpSecurity.ts:3
+- note: `devPlan.ts:94` sets `APP_PORT = 8082` and `dev.mjs` launches the web app there, but the
+  token server's development origin allowlist is the literal list `8081, 8090` and their `127.0.0.1`
+  twins. Nothing links the two constants, which is exactly how they drifted. So `npm run dev` — the
+  supported, documented, one-command path this repo tells a newcomer to use — brings up an app that
+  gets `403 {"error":"origin not allowed"}` on every token-server call, including `/health`, which
+  the app renders to the learner as "Tutor unavailable". It has been invisible because the only
+  people running it lately started Expo by hand on 8081, which is on the list. The fix is not a
+  fourth literal: derive the development origins from `APP_PORT` so a future port move cannot
+  silently reintroduce this. Found while diagnosing a founder report of "sometimes localhost 404".
+- verified-by: `the development origins cover the port the dev script actually serves`
+
+### F259 — A thrown provider error leaves the sign-in button pending for ever
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/SignInScreen.tsx:37
+- note: `submit()` sets `pending` and then awaits `adapter.signInWithPassword(...)` with no
+  `try`/`catch`, and `supabaseAdapter.signInWithPassword` has none either. `supabase-js` returns
+  `{error}` for an `AuthError` but *re-throws* anything else — a dropped socket, a DNS failure, a
+  CORS refusal, a bug in the SDK. When that happens the rejection escapes into a floating promise,
+  `pending` is never cleared, and the button sits on "Signing in…", greyed, with no message and no
+  way back short of reloading the page. The same hole is in `SignUpScreen.submit()` and in the
+  Google handler beside it. `friendly.ts` already knows how to turn an unrecognised failure into a
+  sentence; nothing was calling it on the throw path. This is the difference between a learner who
+  reads "the connection dropped" and one who thinks the app is hung.
+- verified-by: `a provider that throws still leaves the learner a sentence and a working button`
+- verified-by: `the guarded list is every AuthResult method the interface declares`
+- verified-by: `the adapter every screen uses is the guarded one`
+
+### F260 — Google sign-in ejects the learner onto a raw provider error page
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/oauth.ts:12
+- note: on web `signInWithOAuth` does not report a disabled provider — it resolves without an error
+  and navigates the whole tab to `/auth/v1/authorize`, which is where the refusal happens. So
+  `GOOGLE_START_FAILED` at `friendly.ts:50` can never be shown for the most likely failure of all,
+  and a learner whose project has Google switched off lands on
+  `{"code":400,"error_code":"validation_failed","msg":"Unsupported provider: provider is not enabled"}`
+  as a bare JSON body, outside the app, with the back button as the only exit. Confirmed live
+  against this project, whose `/auth/v1/settings` reports `"google": false`. The button should ask
+  the provider whether it is enabled before it throws the tab away, and stay in the app and say so
+  when it is not. Found from a founder report of "Google authentication goes to a 404 page".
+- verified-by: `a disabled google provider keeps the learner in the app`
+
+### F261 — The README's by-hand instructions start the token server in a mode that cannot boot
+- severity: P2
+- status: [x]
+- where: README.md:155
+- note: the four-terminal block says `npm run start --workspace=@parle/token-server`. That script is
+  `NODE_ENV=production node …`, so `productionConfigurationProblems` runs and `process.exit(1)`s on
+  any laptop: `LIVEKIT_URL` is `ws://` not `wss://`, and `PARLE_AGENT_SECRET` and
+  `PARLE_ALLOWED_ORIGINS` are both unset in local development by design. The correct script is
+  `npm run dev`, which sets `PARLE_LOCAL_DEVELOPMENT=1`. `devPlan.ts:112-118` already documents this
+  trap for the supervisor; the README never got the same correction. A newcomer following the
+  documented fallback watches the server exit and reasonably concludes the repo is broken.
+- verified-by: `the readme never tells anyone to start the token server in production mode`
+
+### F262 — The one-command boot hits EMFILE and the workaround exists nowhere in the repo
+- severity: P2
+- status: [x]
+- where: services/token-server/package.json:8
+- note: the token server's `dev` script runs `node --watch`, and on macOS that walks the whole
+  workspace and dies with `EMFILE: too many open files`. `npm run dev` invokes exactly that script,
+  so the supported path is the path that fails. `ulimit -n` is over a million on the affected
+  machine, so raising a shell limit is not the answer and telling somebody to try it wastes their
+  afternoon. The working answer — run the same server without watch mode — was discovered twice and
+  written down only in an untracked scratch file, one `git clean` from being lost for a third time.
+  Either the watch flag earns its place or the failure and its workaround belong in the README.
+- verified-by: `the readme records what to do when the watcher runs out of file descriptors`
+
+### F263 — A billing event whose projection fails is dropped permanently
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/server.ts:232
+- note: latent while RevenueCat is unconfigured; **raise to P0 before any `REVENUECAT_*` value is
+  set**. `recordBillingEvent` is a PostgREST RPC and commits on its own, claiming the event id
+  *before* the work it guards is attempted. If `refreshSubscriber` then throws — a vendor 5xx, the
+  five-second `AbortSignal.timeout`, DNS, a failing `store.save` — the handler 500s, RevenueCat
+  retries, and the retry sees `first === false` and answers `200 {received: true, replay: true}`
+  having projected nothing, for ever. That is at-most-once effect behind at-least-once delivery,
+  the exact inversion of what the migration's own design note set out to build. `INITIAL_PURCHASE`
+  is partly rescued because the client also calls `/billing/refresh`; `RENEWAL`, `CANCELLATION`,
+  `EXPIRATION`, `PRODUCT_CHANGE`, `BILLING_ISSUE` and `TRANSFER` have no client path at all, so a
+  dropped renewal lapses a subscriber whose card is still being charged. The claim must be recorded
+  only after the effect succeeds, or the two must share one transaction.
+- verified-by: `a webhook whose projection fails does not consume the event id`
+
+### F264 — Entitlement refresh reads and writes without holding anything
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/billing/revenuecat.ts:143
+- note: latent while RevenueCat is unconfigured; **raise to P1 before it is configured**.
+  `store.get()` and `store.save()` are each atomic, but the pair is not, and `projectSubscriber`
+  carries `secondsUsed` across the gap before `save` rewrites the whole row. Any `/session/end`
+  debit or second concurrent refresh landing between the two is silently reverted — free minutes,
+  at a learner-triggerable ten refreshes a minute. Worse, `samePeriod` compares
+  `current.periodEnd?.getTime()` to a `Date` parsed from the vendor's string, and a mismatch sets
+  `secondsUsed: 0` outright; if a Postgres `timestamptz` round-trip ever moves that value by a
+  millisecond, every refresh resets the meter. The existing test compares two hand-built in-memory
+  dates that have never been near a database, so it cannot see this.
+- verified-by: `a refresh cannot revert a debit that landed while it was in flight`
+
+### F265 — A refresh that granted nothing still tells the learner their minutes are ready
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/server.ts:245
+- note: latent while RevenueCat is unconfigured; **raise to P1 before it is configured**.
+  `refreshSubscriber` returns `{kind: 'unchanged', reason: 'not-paid' | 'unknown-product'}` when it
+  granted nothing, and the handler discards it and answers `{refreshed: true}` regardless. The
+  client returns `response.ok`, and the paywall renders "Your speaking time is ready." Combined with
+  a native `restore()` that reports success whenever `restorePurchases()` resolves — which it does
+  for somebody with nothing to restore — a learner with no subscription is told they have minutes
+  and the paywall then hides both the purchase and the restore buttons, leaving them on a terminal
+  screen asserting something false with no way to buy anything. The endpoint should report what it
+  actually did.
+- verified-by: `a refresh that granted nothing does not report success`
+
+### F266 — Client and server billing configuration are never checked against each other
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/config.ts:62
+- note: latent while RevenueCat is unconfigured; **raise to P0 before it is configured**. Each side
+  is genuinely dark alone: the server 503s both billing routes without its five `REVENUECAT_*`
+  values, and the client keeps the paywall shut without its `EXPO_PUBLIC_REVENUECAT_*` ones. Nothing
+  couples them. A build carrying the client keys against a server missing the server keys shows a
+  live purchase button, takes a real charge through Apple, then 503s every webhook and every
+  refresh and grants the learner nothing, ever. Both `.env.example` files are commented-out lists
+  with no note tying them together and no test asserting the pairing. This is the single
+  configuration most likely to charge somebody for nothing, and it is the one the phase's "dark
+  until configured" claim does not cover.
+- verified-by: `a client configured for purchases refuses to run against a server that is not`
+
+### F267 — The billing webhook is the one endpoint with no rate limit
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/server.ts:215
+- note: latent while RevenueCat is unconfigured. `/billing/refresh` beside it takes both an IP and a
+  per-user limit, and `/account/delete` and `/account/export` take theirs, but `/billing/webhook`
+  calls `withinLimits` not at all. It is authenticated by a shared secret, so this is a
+  defence-in-depth gap rather than an open door — but it is also the endpoint that writes to
+  `billing_events` on every call, and an unauthenticated flood still costs a signature check and a
+  round trip per request.
+- verified-by: `every write endpoint carries a rate limit`
+
+### F268 — Export is not gated on recent authentication, and deletion is
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/server.ts:397
+- note: `/account/delete` requires `signedInRecently` within five minutes; `/account/export` has no
+  equivalent check. Both correctly resolve the owner from the bearer alone and neither can be
+  pointed at another account — that part is right, and tested. But a refreshed stolen token cannot
+  delete the account and can pull the learner's email, every `learner_state` row, every product
+  event and the whole entitlement and billing history in one GET. In a phase about privacy, gating
+  the destructive action and leaving the confidentiality-sensitive one open is the wrong way round.
+- verified-by: `an export needs a recent sign-in just as a deletion does`
+
+### F269 — The account export is left in a shared cache directory for ever
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/progress/saveFile.native.ts:9
+- note: `downloadAccountData` writes `parle-account-data.json` into `FileSystem.cacheDirectory` and
+  shares it, and nothing ever deletes it. `clearActiveUserData` sweeps the AsyncStorage keys and the
+  attempt audio and does not touch the cache, so after an account deletion or an account switch on a
+  shared phone a plaintext file holding the previous account's email, entitlements and billing
+  events is still sitting there. The helper was safe when the only thing it wrote was a word list;
+  reusing it for the full export is what made the residue sensitive. Second defect in the same
+  path: when `Sharing.isAvailableAsync()` is false the write happens, no sheet opens, and the
+  function still resolves `{ok: true}` — the learner sees the button flick back to idle and gets
+  nothing, with no error.
+- verified-by: `an exported account file does not outlive the account`
+
+### F270 — The export tells the learner the antifraud marker is unlinkable, and it is not
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/accountExport.ts:83
+- note: the export's own explanatory note says the free-trial antifraud marker is "deliberately not
+  linkable back to an account". `trial_installations.first_user_hash` is
+  `privateSignal(rateLimitSalt, 'user', userId)` — a keyed HMAC over the user id, where the server
+  holds both the salt and the id and can therefore recompute the hash for any account and look the
+  row straight up. It is pseudonymous, not unlinkable. `PRIVACY_AND_SAFETY.md:253` repeats the
+  sentence. This matters more than a wording slip because the row deliberately survives account
+  deletion, so the claim is doing real work in an answer to a data-subject request.
+- verified-by: `the export describes the antifraud marker as pseudonymous rather than unlinkable`
+
+### F271 — Phase 8 landed outside the discipline the rest of the ledger is held to
+- severity: P2
+- status: [ ]
+- where: docs/DELIVERY_ROADMAP.md:1
+- note: Phase 7's roadmap row is pinned by `deliveryRoadmap.test.ts` against `F244`–`F257`, so it
+  cannot claim more than the ledger holds. `git grep "Phase 8"` across every `.ts` returns nothing.
+  The Phase 8 row was rewritten from "blocked" to "built and tested locally" with no ledger entry
+  and no test, and the export endpoint, the mobile export module and the Profile row all landed with
+  zero ledger coverage. This is precisely the failure mode F235, F236, F243 and F254 were written to
+  prevent, applied to one phase and skipped for the next. The roadmap rule should cover Phase 8 the
+  way it covers Phase 7.
+- verified-by: `the roadmap's Phase 8 row matches the ledger's built state`

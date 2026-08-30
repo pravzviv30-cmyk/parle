@@ -154,10 +154,30 @@ Starting them by hand still works if you want one process on its own:
 
 ```bash
 ~/.local/bin/livekit-server --dev
-npm run start --workspace=@parle/token-server
+npm run dev --workspace=@parle/token-server
 npm run dev --workspace=@parle/tutor-agent
 npm run web
 ```
+
+The token server's `dev` script is the one to use, not `start`. `start` sets
+`NODE_ENV=production`, and a production boot refuses a laptop on purpose: the
+local `LIVEKIT_URL` is `ws://` rather than `wss://`, and `PARLE_AGENT_SECRET`
+and `PARLE_ALLOWED_ORIGINS` are deliberately unset in local development. It does
+not warn, it exits.
+
+**If the token server dies with `EMFILE: too many open files`,** that is
+`node --watch` walking the whole workspace, not a shell limit — `ulimit -n` is
+already in the millions on macOS and raising it changes nothing. Run the same
+server without the watcher and it starts:
+
+```bash
+cd services/token-server
+PARLE_LOCAL_DEVELOPMENT=1 node --experimental-strip-types src/server.ts
+```
+
+You lose reload-on-save and nothing else. `npm run dev` from the repo root goes
+through the watch script, so this is the fallback when the one-command boot
+stops at the token server.
 
 Forgetting one of those is exactly how the app comes to report that there is no
 server available. Nothing is broken when it says that: the token server is not

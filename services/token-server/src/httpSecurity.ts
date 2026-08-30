@@ -1,11 +1,27 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-const DEVELOPMENT_ORIGINS = [
-  'http://localhost:8081',
-  'http://localhost:8090',
-  'http://127.0.0.1:8081',
-  'http://127.0.0.1:8090',
-] as const;
+import { APP_PORT } from '../../shared/devPlan.ts';
+
+/**
+ * The ports a browser can be serving this app from on a developer's machine, and
+ * why they are computed rather than typed out.
+ *
+ * `APP_PORT` is where `npm run dev` puts the web app. It used to be absent from a
+ * hand-written list here, so the repo's own one-command boot brought up an app
+ * that this server answered `403 origin not allowed` to on every call, `/health`
+ * included — which the app shows a learner as "Tutor unavailable" (F258). Reading
+ * the same constant the dev script launches on is what keeps the pair honest; a
+ * fifth literal would only have been correct until the next port move.
+ *
+ * 8081 is Expo's own default, for a Metro started by hand rather than by the
+ * supervisor. 8090 predates both and is kept so an existing setup does not break.
+ */
+const DEVELOPMENT_PORTS = [...new Set([APP_PORT, 8081, 8090])];
+
+const DEVELOPMENT_ORIGINS = DEVELOPMENT_PORTS.flatMap((port) => [
+  `http://localhost:${port}`,
+  `http://127.0.0.1:${port}`,
+]);
 
 export interface OriginPolicy {
   production: boolean;
