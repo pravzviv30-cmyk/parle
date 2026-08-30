@@ -20,6 +20,16 @@ export interface EntitlementStore {
   save(userId: string, entitlement: Entitlement): Promise<void>;
   /** Record consumed seconds after a session ends. A session id makes retries idempotent. */
   consume(userId: string, seconds: number, sessionId?: string): Promise<Entitlement>;
+  /**
+   * Claim a billing event id, answering whether this is the **first** sighting.
+   *
+   * The webhook is a doorbell rather than a source of state: it asks this before
+   * it fetches anything from the vendor, so a redelivery costs one question to
+   * our own database and no outbound request at all. Reading an ambiguous answer
+   * as `true` is the client half of F73 and F74 — it would send a fresh
+   * subscriber fetch on every retry of an event we have already acted on.
+   */
+  recordBillingEvent(userId: string, eventId: string): Promise<boolean>;
 }
 
 /**
@@ -50,6 +60,11 @@ export class DevelopmentEntitlementStore implements EntitlementStore {
     return { plan: 'regular', secondsUsed: 0 };
   }
 
+  /** Every delivery is a first sighting, so a replayed fixture still exercises the path. */
+  async recordBillingEvent(_userId: string, _eventId: string): Promise<boolean> {
+    return true;
+  }
+
   async save(_userId: string, _entitlement: Entitlement): Promise<void> {}
 
   async consume(_userId: string, seconds: number, _sessionId?: string): Promise<Entitlement> {
@@ -63,6 +78,7 @@ export class DevelopmentEntitlementStore implements EntitlementStore {
 export class InMemoryEntitlementStore implements EntitlementStore {
   private readonly rows = new Map<string, Entitlement>();
   private readonly consumedSessions = new Set<string>();
+  private readonly billingEvents = new Set<string>();
   // Written out longhand rather than as a constructor parameter property: Node runs
   // this file by stripping types, and parameter properties emit runtime code, so
   // they are rejected outright. Same reason in services/tutor-agent/src/agent.ts.
@@ -108,6 +124,15 @@ export class InMemoryEntitlementStore implements EntitlementStore {
     if (consumptionKey) this.consumedSessions.add(consumptionKey);
     return next;
   }
+
+  /** Keyed on the event id alone, exactly as billing_events' primary key is. */
+  async recordBillingEvent(userId: string, eventId: string): Promise<boolean> {
+    if (!eventId) throw new Error('a billing event id is required');
+    if (!userId) throw new Error('a billing event needs an account');
+    if (this.billingEvents.has(eventId)) return false;
+    this.billingEvents.add(eventId);
+    return true;
+  }
 }
 
 /**
@@ -128,6 +153,7 @@ export class FileEntitlementStore implements EntitlementStore {
   private readonly defaultPlan: Plan;
   private readonly rows: Map<string, Entitlement>;
   private readonly consumedSessions = new Set<string>();
+  private readonly billingEvents = new Set<string>();
 
   constructor(path: string, defaultPlan: Plan = 'trial') {
     this.path = path;
@@ -192,6 +218,15 @@ export class FileEntitlementStore implements EntitlementStore {
       console.error('[parle] ENTITLEMENT_NOT_PERSISTED', err);
     }
   }
+
+  /** Keyed on the event id alone, exactly as billing_events' primary key is. */
+  async recordBillingEvent(userId: string, eventId: string): Promise<boolean> {
+    if (!eventId) throw new Error('a billing event id is required');
+    if (!userId) throw new Error('a billing event needs an account');
+    if (this.billingEvents.has(eventId)) return false;
+    this.billingEvents.add(eventId);
+    return true;
+  }
 }
 
 interface SupabaseEntitlementRow {
@@ -199,6 +234,7 @@ interface SupabaseEntitlementRow {
   plan: Plan;
   seconds_used: number;
   period_end: string | null;
+  lapsed_from_paid?: boolean;
 }
 
 function entitlementFrom(row: SupabaseEntitlementRow): Entitlement {
@@ -206,6 +242,7 @@ function entitlementFrom(row: SupabaseEntitlementRow): Entitlement {
     plan: row.plan,
     secondsUsed: row.seconds_used,
     ...(row.period_end ? { periodEnd: new Date(row.period_end) } : {}),
+    ...(row.lapsed_from_paid === true ? { lapsed: true } : {}),
   };
 }
 
@@ -263,6 +300,7 @@ export class SupabaseEntitlementStore implements EntitlementStore {
         plan: entitlement.plan,
         seconds_used: entitlement.secondsUsed,
         period_end: entitlement.periodEnd?.toISOString() ?? null,
+        lapsed_from_paid: entitlement.lapsed === true,
       }),
     });
     if (!response.ok) throw new Error(`entitlement write failed (${response.status})`);
@@ -281,5 +319,27 @@ export class SupabaseEntitlementStore implements EntitlementStore {
     const row = Array.isArray(body) ? body[0] : body;
     if (!row) throw new Error('entitlement debit returned no row');
     return entitlementFrom(row);
+  }
+
+  async recordBillingEvent(userId: string, eventId: string): Promise<boolean> {
+    if (!eventId) throw new Error('a billing event id is required');
+    if (!userId) throw new Error('a billing event needs an account');
+    const response = await this.request(`${this.baseUrl}/rest/v1/rpc/record_billing_event`, {
+      method: 'POST',
+      headers: this.#headers(),
+      signal: AbortSignal.timeout(5_000),
+      // The argument names are the migration's, not ours. PostgREST matches an
+      // overload by argument name, so a typo here is a 404 in production.
+      body: JSON.stringify({ p_event_id: eventId, p_user_id: userId }),
+    });
+    // A raise means neither replay nor first sighting — another transaction holds
+    // this id uncommitted. Throwing sends the vendor away to redeliver, and costs
+    // nothing outbound because the dedupe runs before the subscriber fetch.
+    if (!response.ok) throw new Error(`billing event record failed (${response.status})`);
+    const body: unknown = await response.json();
+    // Only a literal true is a first sighting. null, {}, [], "true" and 1 are all
+    // ambiguous, and reading any of them as true would re-fetch the subscriber on
+    // every redelivery of an event we have already acted on.
+    return body === true;
   }
 }

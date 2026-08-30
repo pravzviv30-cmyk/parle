@@ -112,6 +112,7 @@ import { replayNote, type MissionReplay } from './missions/chooserView.ts';
 import { trackProductEvent } from './analytics/track.ts';
 import { MOMENT_ANSWER_MS, momentAnswer } from './practice/statusLine.ts';
 import { settleIn, useReduceMotion } from './motion.ts';
+import { Paywall } from './purchases/Paywall.tsx';
 
 /**
  * The browser wants a gesture before it will play the tutor.
@@ -629,6 +630,7 @@ export function ConvoScreen({
         <Text style={[type.title, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>
           {live.status.message}
         </Text>
+        <Paywall userId={userId} />
         <View style={st.terminalAction}>
           <PillButton label="Back" onPress={onExit} />
         </View>

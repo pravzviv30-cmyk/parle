@@ -4,7 +4,9 @@ import assert from 'node:assert/strict';
 import {
   PLANS,
   DEFAULT_COST_MODEL,
+  LAPSE_GRACE_SEC,
   MIN_VIABLE_SESSION_SEC,
+  STORE_FEE_RATES,
   canStartSession,
   estimateSessionCost,
   planMargin,
@@ -27,13 +29,6 @@ describe('entitlements', () => {
     assert.deepEqual(rollPeriod(spent, new Date('2027-01-01')), spent);
   });
 
-  test('a paid period resets usage when it rolls', () => {
-    const e: Entitlement = { plan: 'starter', secondsUsed: 9000, periodEnd: new Date('2026-01-01') };
-    const rolled = rollPeriod(e, new Date('2026-02-01'));
-    assert.equal(rolled.secondsUsed, 0);
-    assert.ok(rolled.periodEnd! > new Date('2026-02-01'));
-  });
-
   test('a period that has not ended yet is left alone', () => {
     const e: Entitlement = { plan: 'starter', secondsUsed: 9000, periodEnd: new Date('2026-12-01') };
     assert.equal(rollPeriod(e, new Date('2026-06-01')).secondsUsed, 9000);
@@ -53,6 +48,72 @@ describe('entitlements', () => {
   });
 });
 
+describe('a paid period that ends without renewing', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const ended = new Date('2026-06-01T00:00:00.000Z');
+  const expiredStarter = (): Entitlement => ({ plan: 'starter', secondsUsed: 9000, periodEnd: ended });
+
+  test('rollPeriod never renews a paid period the billing system did not', () => {
+    // The behaviour this replaces handed back a cleared counter and thirty fresh
+    // days on every read of an expired paid row - free, forever, for anyone who
+    // cancelled. Renewal is something a verified receipt does through save(); a
+    // lazy read may take an expired plan away, and may never grant one.
+    for (const plan of ['starter', 'regular'] as const) {
+      for (const daysPast of [2, 30, 400]) {
+        const e: Entitlement = { plan, secondsUsed: 60, periodEnd: ended };
+        const after = rollPeriod(e, new Date(ended.getTime() + daysPast * DAY_MS));
+        assert.notEqual(after.plan, plan, `${plan} still held its plan ${daysPast} days after the period ended`);
+        assert.equal(secondsRemaining(after), 0, `${plan} was handed minutes nobody paid for, ${daysPast} days on`);
+      }
+    }
+  });
+
+  test('an expired paid period collapses to an exhausted trial, not a fresh month', () => {
+    const after = rollPeriod(expiredStarter(), new Date(ended.getTime() + 3 * DAY_MS));
+    assert.equal(after.plan, 'trial');
+    assert.equal(after.secondsUsed, PLANS.trial.secondsPerPeriod);
+    assert.equal(after.periodEnd, undefined, 'a lapsed entitlement carries no period end');
+    assert.equal(after.lapsed, true, 'the lapsed state forgot that this learner previously paid');
+  });
+
+  test('the lapsed trial is exhausted, so cancelling is not a route back to free minutes', () => {
+    const after = rollPeriod(expiredStarter(), new Date(ended.getTime() + 3 * DAY_MS));
+    const decision = canStartSession(after);
+    assert.equal(decision.allowed, false);
+    assert.equal(decision.allowed === false && decision.reason, 'subscription-lapsed');
+    // And the one-time trial does not come back through the lapse door later.
+    assert.deepEqual(rollPeriod(after, new Date(ended.getTime() + 900 * DAY_MS)), after);
+  });
+
+  test('a period a few hours past its end is left alone while the webhook catches up', () => {
+    const e = expiredStarter();
+    assert.equal(rollPeriod(e, new Date(ended.getTime() + 6 * 60 * 60 * 1000)), e);
+  });
+
+  test('the slack runs out twenty-four hours after the period ends, not a moment before', () => {
+    // The same 24h the database uses. If these two ever disagree, a learner's
+    // balance depends on which of them read the row, which is how a money bug hides.
+    assert.equal(LAPSE_GRACE_SEC, 24 * 60 * 60);
+    const e = expiredStarter();
+    const deadline = new Date(ended.getTime() + LAPSE_GRACE_SEC * 1000);
+    assert.equal(rollPeriod(e, deadline), e, 'exactly at the deadline the paid period still stands');
+    assert.equal(rollPeriod(e, new Date(deadline.getTime() + 1000)).plan, 'trial');
+  });
+
+  test('a clock that runs backwards neither renews nor lapses', () => {
+    const e: Entitlement = { plan: 'regular', secondsUsed: 12_000, periodEnd: new Date('2026-12-01') };
+    assert.equal(rollPeriod(e, new Date('2020-01-01')), e);
+  });
+
+  test('a paid plan with no period on record is left as it is, not granted one', () => {
+    // A missing period end is a malformed row, not evidence of expiry. Taking a
+    // subscriber's plan away over a missing timestamp is the opposite mistake to
+    // the one above, and just as expensive.
+    const e: Entitlement = { plan: 'starter', secondsUsed: 600 };
+    assert.equal(rollPeriod(e, new Date('2030-01-01')), e);
+  });
+});
+
 describe('starting a session', () => {
   test('a fresh learner can start', () => {
     assert.equal(canStartSession(fresh()).allowed, true);
@@ -66,6 +127,19 @@ describe('starting a session', () => {
 
     const paid = canStartSession({ plan: 'starter', secondsUsed: PLANS.starter.secondsPerPeriod });
     assert.match(paid.allowed === false ? paid.message : '', /this month/i);
+  });
+
+  test('a learner whose paid plan lapsed is not told their free trial ended', () => {
+    const decision = canStartSession({
+      plan: 'trial',
+      secondsUsed: PLANS.trial.secondsPerPeriod,
+      lapsed: true,
+    });
+    assert.equal(decision.allowed, false);
+    if (decision.allowed) return;
+    assert.equal(decision.reason, 'subscription-lapsed');
+    assert.match(decision.message, /subscription has ended/i);
+    assert.doesNotMatch(decision.message, /free trial/i);
   });
 
   test('we refuse to start a session we cannot finish, rather than dying mid-sentence', () => {
@@ -169,5 +243,96 @@ describe('margins — the check that keeps us out of Issen’s trap', () => {
     // acquisition cost, not a leak — but it is no longer pocket change, so
     // the ceiling is pinned here.
     assert.ok(cost.total < 2, `a free trial costing $${cost.total.toFixed(2)} is too expensive to hand out`);
+  });
+});
+
+describe('margins after the store takes its cut', () => {
+  // Measured from DEFAULT_COST_MODEL, not quoted from anyone: at full burn a
+  // minute costs $0.0578, so starter's 180 minutes cost $10.40 against $19 and
+  // regular's 450 cost $26.01 against $39.
+  //
+  // Margin here is measured against what actually reaches us. The store's
+  // percentage is a deduction from revenue, not a cost of goods, so it divides
+  // as well as subtracts: at 15% starter leaves 35.6% and regular 21.5%; at 30%
+  // starter leaves 21.8% and regular 4.7%.
+  //
+  // Currency: a margin is a ratio, so it holds in any single currency provided
+  // price and cost are quoted in the same one. Both are USD here. The store's
+  // base currency is GBP and the real tier prices come back from App Store
+  // Connect - when they do, convert them into USD before they replace priceUsd
+  // rather than mixing the two, and re-run these floors, because FX moves them.
+  const worstCase = (plan: 'starter' | 'regular', fee: number) => planMargin(plan, 1.0, DEFAULT_COST_MODEL, fee);
+
+  test('both paid plans clear twenty percent worst-case margin after the small business store fee', () => {
+    for (const plan of ['starter', 'regular'] as const) {
+      const small = worstCase(plan, STORE_FEE_RATES.smallBusiness);
+      const standard = worstCase(plan, STORE_FEE_RATES.standard);
+      assert.ok(
+        small.worstCaseMargin > 0.2,
+        `${plan} leaves ${(small.worstCaseMargin * 100).toFixed(1)}% at the ` +
+          `${(STORE_FEE_RATES.smallBusiness * 100).toFixed(0)}% Small Business rate ` +
+          `($${small.worstCaseCostUsd.toFixed(2)} of vendor cost against $${small.netRevenueUsd.toFixed(2)} received). ` +
+          `At the standard ${(STORE_FEE_RATES.standard * 100).toFixed(0)}% rate the same plan leaves ` +
+          `${(standard.worstCaseMargin * 100).toFixed(1)}%. Revisit the price point before a vendor does it for us.`,
+      );
+    }
+  });
+
+  test('the standard store rate is why Small Business enrolment is a requirement, not a nicety', () => {
+    const regular = worstCase('regular', STORE_FEE_RATES.standard);
+    assert.ok(
+      regular.worstCaseMargin > 0,
+      `regular is underwater at the standard rate: $${regular.worstCaseCostUsd.toFixed(2)} of cost ` +
+        `against $${regular.netRevenueUsd.toFixed(2)} received.`,
+    );
+    assert.ok(
+      regular.worstCaseMargin < 0.2,
+      `regular now clears the twenty percent floor even at the standard rate ` +
+        `(${(regular.worstCaseMargin * 100).toFixed(1)}%). Small Business enrolment has stopped being ` +
+        `load-bearing - say that on the founder checklist rather than leaving this test to say it.`,
+    );
+  });
+
+  test('the modelled store rates are the ones the platforms actually charge', () => {
+    // Lowering these would make every floor above pass for free.
+    assert.equal(STORE_FEE_RATES.smallBusiness, 0.15);
+    assert.equal(STORE_FEE_RATES.standard, 0.3);
+  });
+
+  test('the cut comes off revenue and is never added to cost', () => {
+    const gross = planMargin('starter', 1.0);
+    const net = worstCase('starter', STORE_FEE_RATES.smallBusiness);
+    assert.equal(net.worstCaseCostUsd, gross.worstCaseCostUsd, 'vendor cost does not change because a store took a cut');
+    assert.equal(net.storeFeeUsd, PLANS.starter.priceUsd * STORE_FEE_RATES.smallBusiness);
+    assert.equal(net.netRevenueUsd, PLANS.starter.priceUsd - net.storeFeeUsd);
+    assert.ok(Math.abs(net.worstCaseMargin - (net.netRevenueUsd - net.worstCaseCostUsd) / net.netRevenueUsd) < 1e-12);
+    assert.ok(net.worstCaseMargin < gross.worstCaseMargin);
+  });
+
+  test('with no store in the path the margin is exactly the pre-store number', () => {
+    const implicit = planMargin('regular', 1.0);
+    assert.deepEqual(planMargin('regular', 1.0, DEFAULT_COST_MODEL, 0), implicit);
+    assert.equal(implicit.storeFeeRate, 0);
+    assert.equal(implicit.storeFeeUsd, 0);
+    assert.equal(implicit.netRevenueUsd, PLANS.regular.priceUsd);
+    // The pre-store floors elsewhere in this file still mean what they meant.
+    assert.ok(implicit.worstCaseMargin > 0.3);
+  });
+
+  test('the free trial has no price for a store to take a cut of', () => {
+    const m = planMargin('trial', 1.0, DEFAULT_COST_MODEL, STORE_FEE_RATES.standard);
+    assert.equal(m.netRevenueUsd, 0);
+    assert.equal(m.storeFeeUsd, 0);
+    assert.equal(m.worstCaseMargin, 0, 'a zero price must report zero margin, not NaN or -Infinity');
+    assert.equal(m.expectedMargin, 0);
+  });
+
+  test('a price change is a three-part change: this constant, these floors, and the store tier', () => {
+    const note =
+      'changing a price means changing three things together: PLANS.priceUsd, the margin floors in ' +
+      'this file, and the tier in App Store Connect. Change one and the other two quietly lie.';
+    assert.equal(PLANS.starter.priceUsd, 19, note);
+    assert.equal(PLANS.regular.priceUsd, 39, note);
+    assert.equal(PLANS.trial.priceUsd, 0, note);
   });
 });

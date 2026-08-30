@@ -23,8 +23,14 @@ import { createUserResolver } from './auth.ts';
 import { agentDebitAllowed } from './agentAuth.ts';
 import { productionConfigurationProblems } from './config.ts';
 import { deleteSupabaseUser, signedInRecently } from './accountDeletion.ts';
+import { exportSupabaseAccountData } from './accountExport.ts';
 import { insertProductEvent, parseProductEvent } from './productEvents.ts';
 import { applyHttpSecurity, createOriginPolicy } from './httpSecurity.ts';
+import {
+  refreshSubscriber,
+  revenueCatConfiguration,
+  webhookAuthorised,
+} from './billing/revenuecat.ts';
 import {
   RATE_LIMITS,
   clientIp,
@@ -119,6 +125,8 @@ const users = createUserResolver({
   jwtSecret: process.env.SUPABASE_JWT_SECRET,
   supabaseUrl: process.env.SUPABASE_URL,
 });
+const billing = revenueCatConfiguration(process.env);
+const userIdPattern = sessionIdPattern;
 
 function json(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
   const payload = JSON.stringify(body);
@@ -200,6 +208,42 @@ const server = createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && url.pathname === '/health') {
       return json(res, 200, { ok: true, livekitUrl });
+    }
+
+    // RevenueCat's event is a doorbell, not authority. Authenticate and dedupe
+    // before reading current subscriber state from the vendor.
+    if (req.method === 'POST' && url.pathname === '/billing/webhook') {
+      if (!billing) return json(res, 503, { error: 'billing is not configured' });
+      const authorisation = Array.isArray(req.headers.authorization)
+        ? req.headers.authorization[0]
+        : req.headers.authorization;
+      if (!webhookAuthorised(authorisation, billing.webhookSecret)) {
+        return json(res, 401, { error: 'billing webhook authentication failed' });
+      }
+      const body = await readJson(req);
+      const event = typeof body.event === 'object' && body.event !== null
+        ? (body.event as Record<string, unknown>)
+        : null;
+      const eventId = typeof event?.id === 'string' ? event.id : '';
+      const userId = typeof event?.app_user_id === 'string' ? event.app_user_id : '';
+      if (!eventId || !userIdPattern.test(userId)) {
+        return json(res, 400, { error: 'invalid billing event' });
+      }
+      const first = await store.recordBillingEvent(userId, eventId);
+      if (!first) return json(res, 200, { received: true, replay: true });
+      await refreshSubscriber(userId, store, billing);
+      return json(res, 200, { received: true });
+    }
+
+    // Learner-triggered recovery for restore and for a webhook delayed or lost.
+    if (req.method === 'POST' && url.pathname === '/billing/refresh') {
+      if (!billing) return json(res, 503, { error: 'billing is not configured' });
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.billingRefreshIp)]))) return;
+      const resolved = await users.resolve(req.headers.authorization, null);
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      if (!(await withinLimits(req, res, [[RATE_LIMITS.billingRefreshUser, 'user', resolved.userId]]))) return;
+      await refreshSubscriber(resolved.userId, store, billing);
+      return json(res, 200, { refreshed: true });
     }
 
     // What the app calls to begin. Returns credentials, or 402 with the reason.
@@ -346,6 +390,24 @@ const server = createServer(async (req, res) => {
       }
       await deleteSupabaseUser(supabaseUrl, serviceRoleKey, resolved.userId);
       return json(res, 200, { deleted: true });
+    }
+
+    // A portable copy of the verified caller's account and server rows. There
+    // is no user id in the URL or body: the bearer chooses exactly one owner.
+    if (req.method === 'GET' && url.pathname === '/account/export') {
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.exportIp)]))) return;
+      const resolved = await users.resolve(req.headers.authorization, null);
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      if (!(await withinLimits(req, res, [[RATE_LIMITS.exportUser, 'user', resolved.userId]]))) return;
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!supabaseUrl || !serviceRoleKey) {
+        return json(res, 503, { error: 'account export is not configured' });
+      }
+      const exported = await exportSupabaseAccountData(supabaseUrl, serviceRoleKey, resolved.userId);
+      return json(res, 200, exported, {
+        'content-disposition': 'attachment; filename="parle-account-data.json"',
+      });
     }
 
     if (req.method === 'POST' && url.pathname === '/events') {

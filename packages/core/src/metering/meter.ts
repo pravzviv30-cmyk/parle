@@ -41,11 +41,31 @@ export const PLANS: Record<Plan, PlanSpec> = {
   regular: { id: 'regular', label: 'Regular', secondsPerPeriod: 450 * 60, periodDays: 30, priceUsd: 39 },
 };
 
+/**
+ * What the app stores take off the top of every sale.
+ *
+ * Nothing reaches us at the sticker price. Apple and Google both run a reduced
+ * rate for small developers and a standard one, and which of the two we pay is a
+ * paperwork question, not a pricing one - which is why enrolling in the Small
+ * Business programme sits on the founder's checklist as a requirement rather
+ * than a nicety. The margin floors in meter.test.ts are pinned at the reduced
+ * rate and name the standard-rate figure when they fail, so the day the
+ * paperwork lapses the number that changes is visible rather than inferred.
+ */
+export const STORE_FEE_RATES = {
+  /** Apple Small Business / Google's first-million rate. Enrolment required. */
+  smallBusiness: 0.15,
+  /** What we pay unenrolled, and what we pay once we outgrow the programme. */
+  standard: 0.3,
+} as const;
+
 export interface Entitlement {
   plan: Plan;
   secondsUsed: number;
   /** When the current period ends. Undefined for the non-renewing trial. */
   periodEnd?: Date;
+  /** The exhausted trial represents a former paid period, not a first trial. */
+  lapsed?: boolean;
 }
 
 /** Per-minute vendor costs, in USD. Overridable so pricing experiments are cheap. */
@@ -90,7 +110,7 @@ export function secondsRemaining(e: Entitlement): number {
   return Math.max(0, PLANS[e.plan].secondsPerPeriod - e.secondsUsed);
 }
 
-export type StartRefusal = 'exhausted' | 'insufficient-for-session';
+export type StartRefusal = 'exhausted' | 'insufficient-for-session' | 'subscription-lapsed';
 
 export type StartDecision =
   | { allowed: true; secondsRemaining: number }
@@ -103,9 +123,14 @@ export function canStartSession(e: Entitlement, minSessionSec: number = MIN_VIAB
   if (remaining <= 0) {
     return {
       allowed: false,
-      reason: 'exhausted',
+      reason: e.lapsed === true ? 'subscription-lapsed' : 'exhausted',
       secondsRemaining: 0,
-      message: e.plan === 'trial' ? 'Your free trial is finished.' : 'You have used all your minutes this month.',
+      message:
+        e.lapsed === true
+          ? 'Your subscription has ended.'
+          : e.plan === 'trial'
+            ? 'Your free trial is finished.'
+            : 'You have used all your minutes this month.',
     };
   }
 
@@ -128,13 +153,51 @@ export function recordUsage(e: Entitlement, seconds: number): Entitlement {
   return { ...e, secondsUsed: Math.min(cap, e.secondsUsed + seconds) };
 }
 
-/** Reset at the start of a new billing period. The trial never renews. */
+/**
+ * How long a paid period stands after its end date before it lapses.
+ *
+ * A renewal receipt does not always arrive the instant the period ends: the
+ * store's webhook is queued, our clock and theirs disagree by seconds, and a
+ * retry can take minutes. Lapsing on the stroke of midnight would lock out
+ * paying subscribers over plumbing. Twenty-four hours is the slack, and it is
+ * the same twenty-four hours the database uses - if the two ever disagree, a
+ * learner's balance depends on which of them read the row.
+ */
+export const LAPSE_GRACE_SEC = 24 * 60 * 60;
+
+/**
+ * Where a paid plan lands when its period ends and nothing renewed it.
+ *
+ * An *exhausted* trial, not a fresh one. The thirty free minutes are a one-time
+ * grant, and letting them back in through the lapse door would make cancelling
+ * a way to farm them. A learner here has not done anything wrong; they simply
+ * have no minutes, and the paywall is how they get more.
+ */
+export function lapsedEntitlement(): Entitlement {
+  return { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod, lapsed: true };
+}
+
+/**
+ * Bring an entitlement up to date at read time. Nothing here ever grants minutes.
+ *
+ * This used to renew: any read of a paid row whose period had ended cleared the
+ * counter and added thirty days, which is a free month, on every read, forever,
+ * for every subscriber who cancelled. Renewal is something a verified receipt
+ * does, through save(), on the server. The only thing a lazy read may do is take
+ * an expired plan away.
+ *
+ * So there are exactly three outcomes: the trial is untouched, a paid period
+ * still inside its dates or its slack is untouched, and a paid period past both
+ * lapses. A paid row with no period end at all is malformed rather than expired,
+ * and is left alone - taking someone's plan away over a missing timestamp is the
+ * opposite mistake, and just as expensive.
+ */
 export function rollPeriod(e: Entitlement, now: Date): Entitlement {
   const spec = PLANS[e.plan];
   if (spec.periodDays === null) return e;
-  if (e.periodEnd && now < e.periodEnd) return e;
-  const periodEnd = new Date(now.getTime() + spec.periodDays * 24 * 60 * 60 * 1000);
-  return { ...e, secondsUsed: 0, periodEnd };
+  if (!e.periodEnd) return e;
+  if (now.getTime() <= e.periodEnd.getTime() + LAPSE_GRACE_SEC * 1000) return e;
+  return lapsedEntitlement();
 }
 
 export interface SessionUsage {
@@ -162,7 +225,14 @@ export function estimateSessionCost(usage: SessionUsage, model: CostModel = DEFA
 
 export interface Margin {
   plan: Plan;
+  /** The sticker price. What the learner pays, not what we receive. */
   priceUsd: number;
+  /** The store's share of the sticker price, as a fraction. 0 is a direct sale. */
+  storeFeeRate: number;
+  /** What the store keeps. */
+  storeFeeUsd: number;
+  /** What actually reaches us. Every margin below is measured against this. */
+  netRevenueUsd: number;
   /** Cost if the learner burns every granted minute. */
   worstCaseCostUsd: number;
   /** Cost at the given utilisation. */
@@ -172,13 +242,30 @@ export interface Margin {
 }
 
 /**
- * Gross margin for a plan at a given utilisation.
+ * Gross margin for a plan at a given utilisation, after the store's cut.
  *
- * Worth running whenever pricing or the voice vendor changes. If worstCaseMargin
- * goes negative, the plan is a liability on its heaviest users — which is exactly
- * the position Issen's unlimited tier occupies.
+ * Worth running whenever pricing, the voice vendor, or the store rate changes.
+ * If worstCaseMargin goes negative, the plan is a liability on its heaviest
+ * users — which is exactly the position Issen's unlimited tier occupies.
+ *
+ * `storeFeeRate` defaults to 0, which means a direct sale with no store in the
+ * path. Nothing ships that way: pass a rate from STORE_FEE_RATES for any
+ * decision about a real price, or the number you get back is the one the store
+ * has not taken its share of yet.
+ *
+ * The fee is taken off revenue rather than added to cost, because that is what
+ * it is, and it therefore divides as well as subtracts: at 15% it costs starter
+ * about ten points of margin, and at 30% it costs regular about twenty-nine.
+ *
+ * Currency: a margin is a ratio, so this holds in any single currency provided
+ * the price and the cost model are quoted in the same one. Both are USD today.
  */
-export function planMargin(plan: Plan, utilisation = 0.5, model: CostModel = DEFAULT_COST_MODEL): Margin {
+export function planMargin(
+  plan: Plan,
+  utilisation = 0.5,
+  model: CostModel = DEFAULT_COST_MODEL,
+  storeFeeRate = 0,
+): Margin {
   const spec = PLANS[plan];
   // Assume roughly one scored utterance per 20 seconds of session.
   const utterances = (n: number) => n / 20;
@@ -187,12 +274,18 @@ export function planMargin(plan: Plan, utilisation = 0.5, model: CostModel = DEF
   const usedSec = spec.secondsPerPeriod * utilisation;
   const expected = estimateSessionCost({ wallClockSec: usedSec, utterancesScored: utterances(usedSec) }, model);
 
+  const storeFeeUsd = spec.priceUsd * storeFeeRate;
+  const netRevenueUsd = spec.priceUsd - storeFeeUsd;
+
   return {
     plan,
     priceUsd: spec.priceUsd,
+    storeFeeRate,
+    storeFeeUsd,
+    netRevenueUsd,
     worstCaseCostUsd: worst.total,
     expectedCostUsd: expected.total,
-    worstCaseMargin: spec.priceUsd === 0 ? 0 : (spec.priceUsd - worst.total) / spec.priceUsd,
-    expectedMargin: spec.priceUsd === 0 ? 0 : (spec.priceUsd - expected.total) / spec.priceUsd,
+    worstCaseMargin: netRevenueUsd === 0 ? 0 : (netRevenueUsd - worst.total) / netRevenueUsd,
+    expectedMargin: netRevenueUsd === 0 ? 0 : (netRevenueUsd - expected.total) / netRevenueUsd,
   };
 }

@@ -42,6 +42,7 @@ import { OnboardClock } from '../illustrations.tsx';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
 import { Acknowledgements } from '../legal/Acknowledgements.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
+import { downloadAccountData } from '../privacy/export.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
 import { TUTOR_INTRO_LINK } from '../tutor/gate.ts';
@@ -144,7 +145,7 @@ export function ProfileTab({
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, adapter } = useAuth();
   const { profile, update } = useProfile();
   const [sheet, setSheet] = useState<Sheet>('none');
   const [draftName, setDraftName] = useState(profile.name ?? '');
@@ -153,6 +154,7 @@ export function ProfileTab({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   // Null until the first read comes back, because a guess would flash the wrong
   // sentence: defaulting to denied would show "notifications are turned off"
@@ -510,6 +512,20 @@ export function ProfileTab({
           {user?.provider === 'google' && <SettingsRow label="Signed in with" value="Google" />}
           {user?.provider === 'mock' && <SettingsRow label="Account" value="Demo, stored on this device only" />}
           <SettingsRow
+            label="Download my data"
+            value={exporting ? 'Preparing…' : 'JSON file'}
+            onPress={() => {
+              if (!user || exporting) return;
+              setExporting(true);
+              void downloadAccountData(user, adapter).then((result) => {
+                if (!result.ok) {
+                  setUnavailable(result.message);
+                  setSheet('unavailable');
+                }
+              }).finally(() => setExporting(false));
+            }}
+          />
+          <SettingsRow
             label="Delete account"
             destructive
             onPress={() => setSheet('delete')}
@@ -600,9 +616,9 @@ export function ProfileTab({
           )}
         </Pressable>
 
-        {/* The legal footer. Terms and a privacy policy are content someone has
-            to write and have reviewed; the app has neither, and inventing them
-            would be worse than their absence. Acknowledgements is real today. */}
+        {/* The legal review is still an external release gate. This footer says
+            what is already implemented—export and deletion—without presenting
+            an unreviewed document as a legal promise. */}
         <View style={st.legal}>
           <Pressable
             onPress={() => setSheet('acknowledgements')}
@@ -612,10 +628,10 @@ export function ProfileTab({
             <Text style={[type.label, { color: paper.inkSoft }]}>Acknowledgements</Text>
           </Pressable>
           <Text style={[type.small, { color: paper.inkFaint, marginTop: space(3) }]}>
-            Terms and a privacy policy are not written yet. Parle records your email, your name, and that you said you are
-            old enough, then sends what you say to speech and language services so the tutor can answer. If you joined
-            when Parle asked for a date of birth, that date is still on file and is still yours. Nothing is shared with
-            anyone else.
+            You can download your account data or delete your account above. A reviewed privacy policy and terms are
+            still required before release. Parle records your email, name and age confirmation, then sends live speech
+            to speech and language services so the tutor can answer. Nothing is shared with anyone else or sold for
+            advertising.
           </Text>
         </View>
 

@@ -243,10 +243,15 @@ database, and the device wipe has never been run on a real iOS or Android build.
 Both are open ledger work (F63, F71), and neither may be described to a learner as
 verified until it is.
 
-**Export.** There is no export today beyond the words file the Summary screen
-writes. A learner asking for a copy of their data is answered by hand until an
-export route exists. That route, when it is built, returns the learner's own rows
-and never another account's, and it is not a place to invent new retention.
+**Export.** Profile's **Download my data** writes a JSON file containing every
+per-account device key and, for a Supabase account, the authenticated learner's
+account metadata and rows from `learner_state`, `product_events`, `entitlements`,
+`session_usage` and `billing_events`. `GET /account/export` takes no user id: it
+resolves the bearer first, rate-limits the request by IP and account, and filters
+every table by that resolved id. It deliberately excludes raw audio and transcripts
+(neither is stored), access tokens, and `trial_installations` (the antifraud HMAC is
+deliberately not linkable back to an account). A local-development account exports
+its device data and says that it has no server copy.
 
 ## The safety boundary
 
@@ -584,4 +589,4 @@ promise already kept.
 | Worker logs have no stated retention | The safety record is kept for as long as the host keeps logs, which nothing here sets | This file, section above |
 | A stop does not stop the worker's post-session model work | Extract, curate and drills still run and publish into a room that is closing | Ledger F208 |
 | The scripted lesson agent's own lines pass no output guard | `outputGuard` covers the conversation agent only | Not filed |
-| No reviewed privacy policy or terms exist | The app says so honestly and must keep saying so | Deletion ledger |
+| No reviewed privacy policy or terms exist | The app says professional review remains required before release; it must not present an unreviewed document as a legal promise | Release roadmap, Phase 8 |

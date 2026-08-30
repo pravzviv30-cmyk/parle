@@ -65,9 +65,13 @@ export const SUPABASE_PROOFS: readonly SupabaseProof[] = [
     why: 'a client that can call the debit can grant itself a plan or put seconds back',
   },
   {
+    // The id is unchanged on purpose. It names the risk — what this database does with a
+    // paid period that has ended — and a recorded run in docs/IMPLEMENTATION_EVIDENCE.md
+    // is history that a rename would quietly rewrite. What it proves has changed, twice
+    // over: F245 turned the roll into a lapse.
     id: 'period-roll',
-    title: 'an expired paid period rolls the allowance on the next authoritative read',
-    why: 'without the roll a paid learner stays exhausted forever after their first full month',
+    title: 'an expired paid period lapses to an exhausted trial, and a recently ended one is left alone',
+    why: 'a database that renews a paid period the billing system did not sell is forging paid status',
   },
   {
     id: 'debit-concurrency',
@@ -157,16 +161,18 @@ const SCHEMA_OBJECTS: readonly (readonly [string, string])[] = [
   ['entitlements', 'user_id'],
   ['session_usage', 'session_id'],
   ['trial_installations', 'installation_hash'],
+  ['billing_events', 'event_id'],
 ];
 
 /**
- * Both RPCs, probed with arguments they must reject. A missing function answers PGRST202;
+ * Every RPC, probed with arguments it must reject. A missing function answers PGRST202;
  * anything else — including the validation exception these arguments are chosen to raise —
- * proves the function is there, and neither probe writes a row.
+ * proves the function is there, and no probe writes a row.
  */
 const ROUTINE_PROBES: readonly (readonly [string, Record<string, unknown>])[] = [
   ['consume_entitlement', { p_user_id: '00000000-0000-0000-0000-000000000000', p_seconds: -1, p_session_id: null }],
   ['claim_trial', { p_user_id: '00000000-0000-0000-0000-000000000000', p_installation_hash: '', p_user_hash: '' }],
+  ['record_billing_event', { p_event_id: '', p_user_id: '00000000-0000-0000-0000-000000000000' }],
 ];
 
 const JWT_SHAPE = /\beyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]+/g;
@@ -566,20 +572,37 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
     });
 
     await run.check('period-roll', async () => {
-      const expired = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      // F245. This check used to seed a period that ended 24 hours ago and assert that
+      // the database cleared the counter and granted thirty more days — the defect,
+      // written down as the expected result. 202608300002 makes the database refuse to
+      // grant paid time at all, so both sides of the 24 hour slack are proved here: a
+      // period that ended an hour ago is left exactly as it is, because a webhook is
+      // allowed to be late, and one that ended two days ago lapses.
+      const withinSlack = new Date(Date.now() - 60 * 60 * 1000);
+      const seededRecent = await adminDb
+        .from('entitlements')
+        .update({ plan: 'starter', seconds_used: 9000, period_end: withinSlack.toISOString() })
+        .eq('user_id', bob.id);
+      expect(!seededRecent.error, `could not seed a recently ended period: ${redact(seededRecent.error)}`);
+      const held = await store.get(bob.id);
+      expect(held.plan === 'starter', `a period one hour past its end lost its plan: ${held.plan}`);
+      expect(held.secondsUsed === 9000, `a period one hour past its end moved the counter to ${held.secondsUsed}`);
+      expect(
+        held.periodEnd !== undefined && held.periodEnd.getTime() === withinSlack.getTime(),
+        `a period one hour past its end was rewritten to ${held.periodEnd?.toISOString()}`,
+      );
+
+      const expired = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
       const seeded = await adminDb
         .from('entitlements')
         .update({ plan: 'starter', seconds_used: 9000, period_end: expired })
         .eq('user_id', bob.id);
       expect(!seeded.error, `could not seed an expired period: ${redact(seeded.error)}`);
-      const rolled = await store.get(bob.id);
-      expect(rolled.plan === 'starter', 'the roll changed the plan');
-      expect(rolled.secondsUsed === 0, `an expired period did not roll: ${rolled.secondsUsed} seconds still used`);
-      expect(
-        rolled.periodEnd !== undefined && rolled.periodEnd.getTime() > Date.now(),
-        'the rolled period does not end in the future',
-      );
-      return `starter rolled from 9000 used to ${rolled.secondsUsed}, next period ends ${rolled.periodEnd?.toISOString()}`;
+      const lapsed = await store.get(bob.id);
+      expect(lapsed.plan === 'trial', `an expired paid period kept its paid plan: ${lapsed.plan}`);
+      expect(lapsed.secondsUsed === 1800, `an expired paid period left ${lapsed.secondsUsed} seconds used, expected 1800`);
+      expect(lapsed.periodEnd === undefined, `an expired paid period was granted one ending ${lapsed.periodEnd?.toISOString()}`);
+      return 'a period one hour past its end held; one 48 hours past it lapsed to an exhausted trial';
     });
 
     await run.check('debit-concurrency', async () => {
