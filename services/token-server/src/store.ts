@@ -234,6 +234,7 @@ interface SupabaseEntitlementRow {
   plan: Plan;
   seconds_used: number;
   period_end: string | null;
+  lapsed_from_paid?: boolean;
 }
 
 function entitlementFrom(row: SupabaseEntitlementRow): Entitlement {
@@ -241,6 +242,7 @@ function entitlementFrom(row: SupabaseEntitlementRow): Entitlement {
     plan: row.plan,
     secondsUsed: row.seconds_used,
     ...(row.period_end ? { periodEnd: new Date(row.period_end) } : {}),
+    ...(row.lapsed_from_paid === true ? { lapsed: true } : {}),
   };
 }
 
@@ -298,6 +300,7 @@ export class SupabaseEntitlementStore implements EntitlementStore {
         plan: entitlement.plan,
         seconds_used: entitlement.secondsUsed,
         period_end: entitlement.periodEnd?.toISOString() ?? null,
+        lapsed_from_paid: entitlement.lapsed === true,
       }),
     });
     if (!response.ok) throw new Error(`entitlement write failed (${response.status})`);

@@ -25,6 +25,7 @@ import { withAgeStop } from './profile/store.ts';
 import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
 import { waitingView } from './tutor/waitingView.ts';
 import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
+import { Paywall } from './purchases/Paywall.tsx';
 
 export function LiveSessionScreen({
   lesson,
@@ -168,6 +169,7 @@ export function LiveSessionScreen({
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
           {live.status.message}
         </Text>
+        <Paywall userId={userId} />
         <View style={{ marginTop: space(6) }}>
           <PillButton label="Back" onPress={onExit} />
         </View>

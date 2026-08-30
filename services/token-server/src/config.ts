@@ -11,6 +11,11 @@ export interface ServerEnvironment {
   UPSTASH_REDIS_REST_TOKEN?: string;
   PARLE_RATE_LIMIT_SALT?: string;
   ENTITLEMENT_STORE_PATH?: string;
+  REVENUECAT_SECRET_API_KEY?: string;
+  PARLE_REVENUECAT_WEBHOOK_SECRET?: string;
+  REVENUECAT_ENTITLEMENT_ID?: string;
+  REVENUECAT_STARTER_PRODUCT_ID?: string;
+  REVENUECAT_REGULAR_PRODUCT_ID?: string;
 }
 
 function secureUrl(value: string | undefined, protocol: 'https:' | 'wss:'): boolean {
@@ -53,6 +58,17 @@ export function productionConfigurationProblems(env: ServerEnvironment): string[
   if (!(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY)) problems.push('atomic Supabase entitlement storage');
   if (!!env.SUPABASE_SERVICE_ROLE_KEY !== !!env.SUPABASE_URL) {
     problems.push('complete Supabase service configuration');
+  }
+  const billing = [
+    env.REVENUECAT_SECRET_API_KEY,
+    env.PARLE_REVENUECAT_WEBHOOK_SECRET,
+    env.REVENUECAT_ENTITLEMENT_ID,
+    env.REVENUECAT_STARTER_PRODUCT_ID,
+    env.REVENUECAT_REGULAR_PRODUCT_ID,
+  ];
+  const billingValues = billing.filter(Boolean).length;
+  if (billingValues > 0 && billingValues !== billing.length) {
+    problems.push('complete RevenueCat billing configuration');
   }
   return problems;
 }

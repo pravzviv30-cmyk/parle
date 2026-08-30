@@ -190,8 +190,9 @@ describe('the first run says what a learner is talking to', () => {
   });
 
   test('no first-run copy promises a policy that does not exist', () => {
-    // Terms and a privacy policy are not written. The Profile footer says so,
-    // and a first-run screen that implies one exists makes the footer a liar.
+    // Legal review remains a release gate. First-run copy may not imply a
+    // reviewed policy exists before the founder can name a controller, a
+    // contact channel and vendor terms that have actually been checked.
     for (const line of FIRST_RUN_COPY) {
       for (const promise of [
         'privacy policy',
@@ -215,8 +216,8 @@ describe('the first run says what a learner is talking to', () => {
     // linger in the app cache, listed under Not true yet.
     assert.ok(!/\brecord/i.test(MEET_MIC), 'the microphone line makes a claim about recordings');
     assert.ok(
-      squash(stripComments(read('tabs/ProfileTab.tsx'))).includes('Terms and a privacy policy are not written yet'),
-      'the honest footer stance is gone, so the first run is now the only thing saying anything',
+      squash(stripComments(read('tabs/ProfileTab.tsx'))).includes('A reviewed privacy policy and terms are still required before release'),
+      'the Profile footer stopped naming the legal-review release gate',
     );
   });
 

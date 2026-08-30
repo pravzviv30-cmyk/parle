@@ -32,9 +32,11 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { PLANS, estimateSessionCost } from '@parle/core';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 const ROADMAP_PATH = path.join(ROOT, 'docs', 'DELIVERY_ROADMAP.md');
+const RISK_REGISTER_PATH = path.join(ROOT, 'docs', 'RISK_REGISTER.md');
 const CHOOSING_VIEW_PATH = path.join(ROOT, 'apps', 'mobile', 'src', 'tutor', 'choosingView.ts');
 const MOBILE_SRC = path.join(ROOT, 'apps', 'mobile', 'src');
 
@@ -1810,5 +1812,50 @@ describe('a landing claim is checked against git and not against the day it was 
       ['Criteria', 'Status', '`a-branch`', 'merged into `main` as `eee755c`'],
     );
     assert.deepEqual([...new Set(parsed.map((claim) => claim.where))], ['`doc.md` row "Phase"', '`doc.md` row "6. R"']);
+  });
+});
+
+describe('Phase 7 evidence follows the implementation and the cost model', () => {
+  test('the register prices a farmed trial from the cost model, not from memory', () => {
+    const register = readFileSync(RISK_REGISTER_PATH, 'utf8');
+    const farmedTrial = estimateSessionCost({
+      wallClockSec: PLANS.trial.secondsPerPeriod,
+      utterancesScored: PLANS.trial.secondsPerPeriod / 20,
+    }).total;
+
+    assert.ok(
+      register.includes(`roughly $${farmedTrial.toFixed(2)} of vendor spend`),
+      `the risk register does not carry the cost model's $${farmedTrial.toFixed(2)} farmed-trial figure`,
+    );
+    assert.doesNotMatch(register, /\$2\.20 of vendor spend/, 'the stale farmed-trial estimate survived');
+  });
+
+  test('the register may not claim nothing sells once a purchase surface exists', () => {
+    const register = readFileSync(RISK_REGISTER_PATH, 'utf8');
+    const paymentRow = register.split('\n').find((line) => line.startsWith('| Paid status can be forged or lost'));
+    assert.ok(paymentRow, 'the payment risk row is missing');
+    assert.doesNotMatch(paymentRow, /nothing sells|No purchase UI/i);
+    for (const control of ['RevenueCat', 'webhook', 'replay', 'restore']) {
+      assert.match(paymentRow, new RegExp(control, 'i'), `the payment row no longer names ${control}`);
+    }
+    assert.match(paymentRow, /implemented and tested locally, dark/i);
+    assert.match(paymentRow, /sandbox purchase.*renewal.*cancel.*refund\/revoke.*restore/i);
+  });
+
+  test('the roadmap\'s Phase 7 row matches the ledger\'s built state', () => {
+    const entries = ledgerEntries(readFileSync(KNOWN_ISSUES_PATH, 'utf8'));
+    const phaseSevenIds = Array.from({ length: 14 }, (_, index) => `F${244 + index}`);
+    const missing = phaseSevenIds.filter((id) => !entries.has(id));
+    assert.deepEqual(missing, [], `Phase 7 ledger entries are missing: ${missing.join(', ')}`);
+
+    const blocking = blockingIn(phaseSevenIds, entries);
+    assert.deepEqual(blocking, [], `Phase 7 still has open P0/P1 entries: ${blocking.join(', ')}`);
+
+    const row = phaseRows(roadmap).find((candidate) => candidate.phase.startsWith('7.'));
+    assert.ok(row, 'the roadmap has no Phase 7 row');
+    assert.match(row.status, /built and tested locally/i);
+    assert.match(row.status, /dark unless every RevenueCat setting exists/i);
+    assert.match(row.status, /store credentials.*sandbox lifecycle evidence remain external/i);
+    assert.doesNotMatch(row.status, /implementation missing/i);
   });
 });

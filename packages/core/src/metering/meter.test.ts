@@ -73,13 +73,14 @@ describe('a paid period that ends without renewing', () => {
     assert.equal(after.plan, 'trial');
     assert.equal(after.secondsUsed, PLANS.trial.secondsPerPeriod);
     assert.equal(after.periodEnd, undefined, 'a lapsed entitlement carries no period end');
+    assert.equal(after.lapsed, true, 'the lapsed state forgot that this learner previously paid');
   });
 
   test('the lapsed trial is exhausted, so cancelling is not a route back to free minutes', () => {
     const after = rollPeriod(expiredStarter(), new Date(ended.getTime() + 3 * DAY_MS));
     const decision = canStartSession(after);
     assert.equal(decision.allowed, false);
-    assert.equal(decision.allowed === false && decision.reason, 'exhausted');
+    assert.equal(decision.allowed === false && decision.reason, 'subscription-lapsed');
     // And the one-time trial does not come back through the lapse door later.
     assert.deepEqual(rollPeriod(after, new Date(ended.getTime() + 900 * DAY_MS)), after);
   });
@@ -126,6 +127,19 @@ describe('starting a session', () => {
 
     const paid = canStartSession({ plan: 'starter', secondsUsed: PLANS.starter.secondsPerPeriod });
     assert.match(paid.allowed === false ? paid.message : '', /this month/i);
+  });
+
+  test('a learner whose paid plan lapsed is not told their free trial ended', () => {
+    const decision = canStartSession({
+      plan: 'trial',
+      secondsUsed: PLANS.trial.secondsPerPeriod,
+      lapsed: true,
+    });
+    assert.equal(decision.allowed, false);
+    if (decision.allowed) return;
+    assert.equal(decision.reason, 'subscription-lapsed');
+    assert.match(decision.message, /subscription has ended/i);
+    assert.doesNotMatch(decision.message, /free trial/i);
   });
 
   test('we refuse to start a session we cannot finish, rather than dying mid-sentence', () => {

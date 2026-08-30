@@ -3822,7 +3822,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F247 — Subscriber state projects to entitlement in one place
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/billing/revenuecat.ts:1
 - note: the doorbell design's other half — fetch current subscriber state, map identifiers to plans,
   apply the transition policy, land on save(). Tested entirely with injected fetch doubles; no
@@ -3833,7 +3833,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F248 — The webhook and refresh endpoints exist, authenticated and bounded
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:462
 - note: /billing/webhook behind a timing-safe shared header, deduped before any vendor fetch, 503
   when unconfigured; /billing/refresh learner-authenticated and rate-limited; half a billing
@@ -3844,7 +3844,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F249 — The purchases SDK lives behind an adapter and only its native half touches the store
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/purchases/adapter.ts:1
 - note: the auth/ adapter pattern plus the F230 platform pair; lazy configure with the Supabase user
   id so app_user_id equals our uuid; Expo Go and web report unavailable rather than crash.
@@ -3853,7 +3853,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F250 — The paywall ships complete and stays dark until the store says otherwise
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/purchases/paywallView.ts:1
 - note: a purchase button exists only when getOfferings returned a purchasable product with its own
   localized price string; both out-of-minutes renderers share the view model; a restore affordance
@@ -3884,7 +3884,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F253 — The risk register's payment row gets a real control and a true number
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: docs/RISK_REGISTER.md:37
 - note: "nothing sells yet" stops being a control the moment a paywall exists; the row must name the
   structural controls this phase builds. And the farmed-trial figure is $1.73 from the cost model,
@@ -3895,7 +3895,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F254 — The roadmap's Phase 7 row tells the truth at landing
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: docs/DELIVERY_ROADMAP.md:16
 - note: "implementation missing" becomes false when this lands; the row should say built-and-dark,
   blocked only on store credentials. P2 because it closes at landing as one act with the floors, and
@@ -3965,7 +3965,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F257 — A subscriber whose plan lapsed is told their free trial is finished
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: packages/core/src/metering/meter.ts:112
 - note: F245 makes an expired paid period collapse to an exhausted trial, which is the right money
   answer and the wrong sentence. `StartRefusal` is `'exhausted' | 'insufficient-for-session'` and

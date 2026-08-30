@@ -252,6 +252,10 @@ export const RATE_LIMITS = {
   eventsUser: { name: 'events-user', limit: 120, windowSec: 60 },
   deletionIp: { name: 'deletion-ip', limit: 20, windowSec: 86_400 },
   deletionUser: { name: 'deletion-user', limit: 3, windowSec: 86_400 },
+  exportIp: { name: 'export-ip', limit: 30, windowSec: 86_400 },
+  exportUser: { name: 'export-user', limit: 5, windowSec: 86_400 },
+  billingRefreshIp: { name: 'billing-refresh-ip', limit: 60, windowSec: 60 },
+  billingRefreshUser: { name: 'billing-refresh-user', limit: 10, windowSec: 60 },
   debitIp: { name: 'debit-ip', limit: 120, windowSec: 60 },
   debitUser: { name: 'debit-user', limit: 30, windowSec: 60 },
 } as const satisfies Record<string, RateLimitRule>;

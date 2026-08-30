@@ -93,4 +93,34 @@ describe('production starts closed', () => {
       [],
     );
   });
+
+  test('half a billing configuration refuses to boot in production', () => {
+    const base = {
+      NODE_ENV: 'production',
+      SUPABASE_URL: 'https://project.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role',
+      LIVEKIT_URL: 'wss://parle.livekit.cloud',
+      PARLE_AGENT_SECRET: 'agent-secret',
+      PARLE_ALLOWED_ORIGINS: 'https://app.parle.example',
+      UPSTASH_REDIS_REST_URL: 'https://redis.example',
+      UPSTASH_REDIS_REST_TOKEN: 'redis-token',
+      PARLE_RATE_LIMIT_SALT: 'a-unique-deployment-salt-at-least-32-chars',
+    };
+    assert.ok(
+      productionConfigurationProblems({ ...base, REVENUECAT_SECRET_API_KEY: 'only-one-key' }).includes(
+        'complete RevenueCat billing configuration',
+      ),
+    );
+    assert.deepEqual(
+      productionConfigurationProblems({
+        ...base,
+        REVENUECAT_SECRET_API_KEY: 'api',
+        PARLE_REVENUECAT_WEBHOOK_SECRET: 'hook',
+        REVENUECAT_ENTITLEMENT_ID: 'parle',
+        REVENUECAT_STARTER_PRODUCT_ID: 'starter',
+        REVENUECAT_REGULAR_PRODUCT_ID: 'regular',
+      }),
+      [],
+    );
+  });
 });

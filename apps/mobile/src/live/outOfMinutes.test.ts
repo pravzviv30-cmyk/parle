@@ -180,6 +180,7 @@ const EVERY_402: Body[] = [
   refusalBody(spent('trial')),
   refusalBody(spent('starter')),
   refusalBody(nearlySpent('regular')),
+  refusalBody({ plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod, lapsed: true }),
   CLAIMED,
 ];
 
@@ -202,6 +203,7 @@ describe('the 402 the hook is handed — F251', () => {
       [EVERY_402[0]!, 'exhausted'],
       [EVERY_402[1]!, 'exhausted'],
       [EVERY_402[2]!, 'insufficient-for-session'],
+      [EVERY_402[3]!, 'subscription-lapsed'],
       [CLAIMED, 'trial already claimed'],
     ];
 

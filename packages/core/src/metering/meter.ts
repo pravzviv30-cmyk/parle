@@ -64,6 +64,8 @@ export interface Entitlement {
   secondsUsed: number;
   /** When the current period ends. Undefined for the non-renewing trial. */
   periodEnd?: Date;
+  /** The exhausted trial represents a former paid period, not a first trial. */
+  lapsed?: boolean;
 }
 
 /** Per-minute vendor costs, in USD. Overridable so pricing experiments are cheap. */
@@ -108,7 +110,7 @@ export function secondsRemaining(e: Entitlement): number {
   return Math.max(0, PLANS[e.plan].secondsPerPeriod - e.secondsUsed);
 }
 
-export type StartRefusal = 'exhausted' | 'insufficient-for-session';
+export type StartRefusal = 'exhausted' | 'insufficient-for-session' | 'subscription-lapsed';
 
 export type StartDecision =
   | { allowed: true; secondsRemaining: number }
@@ -121,9 +123,14 @@ export function canStartSession(e: Entitlement, minSessionSec: number = MIN_VIAB
   if (remaining <= 0) {
     return {
       allowed: false,
-      reason: 'exhausted',
+      reason: e.lapsed === true ? 'subscription-lapsed' : 'exhausted',
       secondsRemaining: 0,
-      message: e.plan === 'trial' ? 'Your free trial is finished.' : 'You have used all your minutes this month.',
+      message:
+        e.lapsed === true
+          ? 'Your subscription has ended.'
+          : e.plan === 'trial'
+            ? 'Your free trial is finished.'
+            : 'You have used all your minutes this month.',
     };
   }
 
@@ -167,7 +174,7 @@ export const LAPSE_GRACE_SEC = 24 * 60 * 60;
  * have no minutes, and the paywall is how they get more.
  */
 export function lapsedEntitlement(): Entitlement {
-  return { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod };
+  return { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod, lapsed: true };
 }
 
 /**

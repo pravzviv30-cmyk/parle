@@ -241,6 +241,11 @@ const OUT_OF_MINUTES: Record<OutOfMinutesCode, OutOfMinutesCopy> = {
     message:
       'There is a little speaking time left, but not quite enough for a whole conversation. Starting one now would end it partway through. Practice and review work offline, so you can carry on there.',
   },
+  'subscription-lapsed': {
+    label: 'Speaking plan ended',
+    message:
+      'Your previous speaking plan has ended. Practice and review still work offline, and the store can add more speaking time when you want it.',
+  },
   // F168, and the reason it stayed open: the server's sentence names an
   // internal noun and accuses the reader of using somebody else's minutes. The
   // learner in front of it has usually done nothing at all, so this says what
