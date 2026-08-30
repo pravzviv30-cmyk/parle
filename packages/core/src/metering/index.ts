@@ -4,6 +4,7 @@ export {
   MIN_VIABLE_SESSION_SEC,
   canStartSession,
   estimateSessionCost,
+  lapsedEntitlement,
   planMargin,
   recordUsage,
   rollPeriod,

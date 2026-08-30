@@ -1,7 +1,7 @@
 /**
  * The CI contract.
  *
- * Two things here can be lost silently, and both of them are the kind of loss nobody
+ * Three things here can be lost silently, and all of them are the kind of loss nobody
  * notices for months.
  *
  * The first is a workflow step. `.github/workflows/ci.yml` is a file people edit while
@@ -18,9 +18,13 @@
  * actually carries, and the chain that was judged fixable is walked, edge by edge, to
  * prove no vulnerable package is still on it.
  *
+ * The third is the strength of a guard that reads git, which is not decided in that
+ * guard's own source but in one line of this workflow. It has its own comment below.
+ *
  * Written as a source walk rather than as a mock, in the mould of
  * `serverSecurityContract.test.ts` and `databaseContract.test.ts`: the thing being
- * defended is a file, so a file is what gets read.
+ * defended is a file, so a file is what gets read. That is also the honest limit of the
+ * last test: it can hold what CI *asks* for, never what a runner handed over.
  */
 
 import { strict as assert } from 'node:assert';
@@ -85,6 +89,32 @@ function workflowRunSteps(): { name: string; run: string }[] {
     if (ran) steps.push({ name: pendingName ?? '(unnamed)', run: ran[1] ?? '' });
   }
   return steps;
+}
+
+/**
+ * The same file again, cut into steps rather than into commands. `workflowRunSteps` above
+ * throws the `uses:` steps away because it only cares what got executed; the checkout step
+ * runs nothing and configures everything, so it needs the whole block it lives in — a
+ * `with:` key is only meaningful attached to the step above it.
+ *
+ * Chunked on the leading `- ` after `steps:` for the same reason the parse above is
+ * hand-rolled: one file's worth of YAML does not justify a dependency, and a chunker that
+ * loses a step fails an assertion loudly rather than quietly finding nothing to check.
+ */
+function workflowSteps(): { title: string; body: string }[] {
+  const lines = workflow.split('\n');
+  const stepsAt = lines.findIndex((l) => /^\s*steps:\s*$/.test(l));
+  if (stepsAt === -1) return [];
+  const blocks: string[][] = [];
+  for (const line of lines.slice(stepsAt + 1)) {
+    if (/^\s*-\s+\S/.test(line)) blocks.push([line]);
+    else if (blocks.length > 0) (blocks[blocks.length - 1] as string[]).push(line);
+  }
+  return blocks.map((block) => {
+    const body = block.join('\n');
+    const named = body.match(/name:\s*(.+?)\s*$/m);
+    return { title: named?.[1] ?? '(unnamed step)', body };
+  });
 }
 
 /** Node's own resolution order, read off the lockfile: nested first, then up to the root. */
@@ -313,4 +343,83 @@ describe('the ci contract', () => {
     });
     assert.match(outcome, /secret scan: clean/, 'the scanner the gate runs did not report a clean tree');
   });
+  /**
+   * The third thing that can be lost silently, and the quietest of the three: a guard that
+   * still runs, still passes, and has stopped being able to see anything.
+   *
+   * `deliveryRoadmap.test.ts` asks git whether a claimed hash exists and whether a branch is
+   * an ancestor of `main`, and it deliberately answers `unknown` rather than `no` in a
+   * shallow clone, because in a truncated history "not here" is the normal state of almost
+   * everything. That design is right. What it means, though, is that the guard's strength is
+   * decided by a line in this YAML file rather than by anything in its own source.
+   *
+   * Measured on 2026-08-30 by rebuilding the four fetch shapes with plain git against this
+   * repository, checking out `phase-7-revenue` each time and probing the revs the rule needs:
+   *
+   *   depth 1, one branch  — shallow, 1 commit. Only `eee755c` resolves. No main ref at all.
+   *   depth 50, one branch — shallow, 86 commits. Older hashes resolve, but `is-shallow` is
+   *                          still true and there is still no main ref, so the rule is still
+   *                          entirely `unknown`. It costs 6.4M of 7.1M and buys nothing.
+   *   depth 0             — not shallow, 131 commits, `refs/remotes/origin/main` and the
+   *                          archive tags all resolve. The rule runs in full.
+   *   depth 1 + a second shallow fetch of main — the main ref appears, but the clone is still
+   *                          shallow, so every negative answer is still downgraded to unknown.
+   *
+   * Only the third shape turns the rule on, which is why this asserts `0` and not "more than
+   * one". Two things are needed and both arrive together: the history, and the ref.
+   */
+  test('ci fetches enough history for the guards that read git', (t) => {
+    const checkouts = workflowSteps().filter((s) => /uses:\s*actions\/checkout(?:@|\s|$)/.test(s.body));
+    assert.ok(
+      checkouts.length > 0,
+      'no step in the workflow checks the repository out, so nothing below is being tested',
+    );
+
+    for (const step of checkouts) {
+      const declared = step.body.match(/^\s*fetch-depth:\s*(\S+)\s*$/m);
+      assert.ok(
+        declared,
+        `${step.title}: actions/checkout sets no fetch-depth, so it takes the default of 1. ` +
+          'A depth-1 clone of this repository resolves the tip and nothing else, and the ' +
+          'landing rule in deliveryRoadmap.test.ts answers `unknown` to every question it ' +
+          'asks git — it passes by having checked nothing. F243 was a stale landing claim on ' +
+          '`main` that reached the repository through exactly that hole.',
+      );
+      assert.equal(
+        declared[1],
+        '0',
+        `${step.title}: fetch-depth is ${declared[1]}. Any positive depth still leaves ` +
+          '`rev-parse --is-shallow-repository` true, and still fetches one branch rather than ' +
+          'all of them, so the landing rule stays silent. Measured: depth 50 costs 6.4M of a ' +
+          'full 7.1M and turns nothing on. Only 0 fetches every head and unshallows the clone.',
+      );
+    }
+
+    // The line above is only worth defending while something still depends on it. If the
+    // guard that reads git ever goes away, `fetch-depth: 0` becomes a cost with no reason,
+    // and this is where a reader finds that out rather than paying it forever.
+    const landingRule = readFileSync(
+      path.join(ROOT, 'services', 'token-server', 'src', 'verify', 'deliveryRoadmap.test.ts'),
+      'utf8',
+    );
+    assert.match(
+      landingRule,
+      /--is-shallow-repository/,
+      'nothing in deliveryRoadmap.test.ts probes for a shallow clone any more, so either the ' +
+        'landing rule stopped reading git — in which case fetch-depth: 0 is now an unpaid-for ' +
+        'cost and should go — or it stopped noticing that it cannot, which is worse.',
+    );
+
+    // Said out loud on every green run, because this is a test about a file and not about a
+    // machine. It reads YAML: it can hold what the workflow *asks* for, and it cannot hold
+    // what a runner actually handed over. If GitHub ever changes what fetch-depth: 0 means,
+    // or a self-hosted runner reuses a shallow work directory, this test stays green and the
+    // guard goes quiet again. The only thing that would catch that is the diagnostic
+    // deliveryRoadmap.test.ts already prints from the runner itself.
+    t.diagnostic(
+      'this asserts the workflow asks for full history; it cannot prove a runner delivered it. ' +
+        'The proof of delivery is the `git.limits` diagnostic printed by the landing rule in CI.',
+    );
+  });
+
 });

@@ -17,7 +17,13 @@
 #   3. secret scan      — its own step as well as inside the gate, on purpose. If somebody
 #                         ever needs to make the gate faster, this is the one check that
 #                         must survive that decision, and a named step is harder to lose
-#                         than a line inside a script.
+#                         than a line inside a script. This is the tracked-file scan, which
+#                         walks `git ls-files`. That reads the index, so it sees all 846
+#                         tracked files at any clone depth — measured, not assumed. The
+#                         history scan is the depth-sensitive one: `npm run
+#                         scan:secrets:history` walks `git log -p --all`, which saw 1 commit
+#                         on the old default and sees all 131 now. It is still not run here,
+#                         because it belongs to a release and not to every push.
 #
 # **This workflow needs no secrets, and must not be given any.** Every suite was measured
 # on 2026-08-25 with dotenv pointed at an empty file: 1547 tests, 0 failures, identical
@@ -50,8 +56,29 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      # `fetch-depth: 0` and not the default. The default is 1, and in a depth-1 clone of
+      # this repository only the tip resolves: `refs/remotes/origin/main`, `2a86092`,
+      # `f943bbe` and `2eac2f2` all fail to. The landing rule in
+      # `services/token-server/src/verify/deliveryRoadmap.test.ts` asks git whether a
+      # claimed hash exists and whether a branch is an ancestor of `main`, and it correctly
+      # answers `unknown` rather than `no` in a shallow clone — so on the default it passed
+      # by checking nothing, and F243, a stale landing claim on `main`, went straight
+      # through the one check that guards a push from a machine with no hooks installed.
+      #
+      # Not a larger depth. Measured on 2026-08-30 against this repository: at `--depth 50`
+      # the clone is still shallow and still carries no main ref, so the rule stays entirely
+      # silent, and it already costs 6.4M of the 7.1M a full fetch costs. Depth buys history
+      # but not refs; only 0 buys both, because that is the case where the action fetches
+      # every head and every tag instead of one branch.
+      #
+      # The bill, measured the same day: 7.3M of .git against 3.3M, and about one second of
+      # a twenty-minute job. `graphify-out/` is 55% of the packed history and grows roughly
+      # 175K per regeneration, so this stays cheap for years rather than forever. Revisit if
+      # a clone ever costs more than a suite.
       - name: check out
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: node
         uses: actions/setup-node@v4

@@ -27,6 +27,7 @@
  */
 
 import { strict as assert } from 'node:assert';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { describe, test } from 'node:test';
@@ -943,9 +944,13 @@ function phaseSixRowProblems(
   } else if (!onDevice.some((sentence) => NEGATOR.test(sentence))) {
     problems.push('the row mentions a device without saying that nobody has seen this on one');
   }
-  if (/merged (?:in)?to `main`/i.test(status)) {
-    problems.push('the row claims a merge that has not happened');
-  }
+  // A merge claim used to be refused outright here, on the grounds that no merge had
+  // happened. That was a claim about the repository written into a test, which is the exact
+  // defect F235 filed against the line above it, and it rotted the same way: `eee755c`
+  // merged the branch into `main` and the refusal became the false sentence. F243 moved the
+  // check to `landingProblems` at the foot of this file, where a merge claim is judged
+  // against git — it must name a commit, the commit must exist, and it must be in a history
+  // this checkout can reach. Nothing was dropped; the pin was.
   if (/\brelease\b|\bshipped\b|ready to ship/i.test(status)) {
     problems.push('the row reads as a release');
   }
@@ -1312,12 +1317,17 @@ describe('the delivery roadmap defines what Phase 6 shipped and what it did not'
       'the row dropped the device admission entirely',
     );
 
-    // 13. And the two claims that would make this read as finished work rather than as a
-    //     branch: a merge nobody performed, and the word release.
+    // 13. And the claim that would make this read as finished work rather than as a branch.
+    //     The word release, still refused here. A merge claim is no longer refused by this
+    //     rule at all — F243 moved it to `landingProblems`, which asks git rather than
+    //     asserting that no merge has happened — so the same string is checked there, on the
+    //     property that survives a merge actually happening: the hash has to be real.
     assert.ok(
-      phaseSixRowProblems(`${FIXTURE_BUILT_ROW}, merged into \`main\` as \`abc1234\``, fixtureLedger(), ['a slice 6b module'])
-        .some((problem) => problem.includes('claims a merge that has not happened')),
-      'the row claimed a merge that has not happened',
+      landingProblems(
+        [{ where: 'the Phase 6 row', text: `${FIXTURE_BUILT_ROW}, merged into \`main\` as \`abc1234\`` }],
+        fixtureGit({ absent: ['abc1234'] }),
+      ).some((problem) => problem.includes('does not exist in this repository')),
+      'the row claimed a merge naming a commit this repository does not have',
     );
     assert.ok(
       phaseSixRowProblems(`${FIXTURE_BUILT_ROW} and it is ready to ship`, fixtureLedger(), ['a slice 6b module'])
@@ -1329,5 +1339,476 @@ describe('the delivery roadmap defines what Phase 6 shipped and what it did not'
     //     they are. A claim about 6a must not be read as a claim about 6b.
     assert.deepEqual(rowSentences('One. Two: three; four'), ['One.', 'Two:', 'three;', 'four']);
     assert.deepEqual(rowSentences('Version 57.0.15 shipped.'), ['Version 57.0.15 shipped.']);
+  });
+});
+
+/**
+ * Landing claims, read against git rather than against the day they were written.
+ *
+ * F243. The Phase 6 row said "Slice 6a is built on `phase-6-retention` and has not landed".
+ * That was true when it was written and false forty minutes later, when `eee755c` merged the
+ * branch into `main`. Every rule above it stayed green, because every rule above it judges a
+ * *built* claim — a claim about the ledger and the tree, both of which those rules read. A
+ * *landed* claim is a fact about git, and nothing in this repository was reading git.
+ *
+ * That is the third roadmap sentence to outlive its truth in one day, after F211 and F212 in
+ * the same document, so the repair is the rule rather than the sentence.
+ *
+ * ## What this can honestly check, and what it cannot
+ *
+ * A test that shells out to `git` is a different animal from the rest of this file, which
+ * reads files. Files are always there. Git's answer depends on how the repository was
+ * cloned, and the environments where that bites are exactly the ones that matter — a shallow
+ * CI checkout, a detached HEAD, a worktree, a tarball with no `.git` at all. Measured, not
+ * assumed: `actions/checkout@v4` defaults to `fetch-depth: 1`, and a `--depth 1` clone of
+ * this repository resolves `eee755c` and nothing else. `refs/heads/main`,
+ * `refs/remotes/origin/main`, `refs/heads/phase-6-retention` and `2a86092` all fail to
+ * resolve there. A rule that read that as "the hash does not exist" would be a rule that
+ * fails on the runner and passes on a laptop, which is worse than no rule.
+ *
+ * So every question git is asked has three answers and not two, and `unknown` is never a
+ * failure. Two asymmetries make that honest rather than convenient:
+ *
+ *   - **A positive answer is always trusted.** `merge-base --is-ancestor` reaches a commit
+ *     or it does not; a shallow graft can hide an ancestor, but it cannot invent one. So a
+ *     "yes, this landed" is sound even in a truncated clone.
+ *   - **A negative answer is trusted only in a full clone.** "This hash does not resolve" and
+ *     "this branch is not on main" both mean "not here", and in a shallow clone "not here"
+ *     is the normal state of almost everything. Both are downgraded to `unknown` when
+ *     `rev-parse --is-shallow-repository` says true.
+ *
+ * The practical consequence, stated plainly so nobody reads a green CI run as more than it
+ * is: **on GitHub Actions as this repository configures it, the git half of this rule
+ * answers `unknown` to everything and only the textual half runs.** It would run in full if
+ * the workflow ever set `fetch-depth: 0`. On a developer machine, in a worktree, and at a
+ * detached HEAD, the whole rule runs — a worktree shares its parent's object database and
+ * refs, and a detached HEAD still resolves `HEAD` and `refs/heads/main`.
+ *
+ * The textual half needs no git and never goes quiet:
+ *
+ *   - a cell that claims a merge has to name a commit, and the token has to be shaped like
+ *     one, and
+ *   - a cell may not say both that something merged and that something has not landed. That
+ *     is the half-edit F243 would have become if the row had been half corrected, and it is
+ *     the same rot refutation 11 above names: the old sentence kept, the new one appended.
+ *
+ * `git.limits` carries what could not be consulted, and the test prints it as a diagnostic.
+ * A rule that quietly checks nothing is the failure mode this file exists to prevent, so a
+ * green run says out loud which half of itself ran.
+ */
+
+/** What git could establish. `unknown` is a real answer, and it is never a failure. */
+type GitAnswer = boolean | 'unknown';
+
+interface GitFacts {
+  /** Whether a commit for this hash is in the object database. */
+  hasCommit(hash: string): GitAnswer;
+  /** Whether that commit is in the history this checkout carries, or on `main`. */
+  inHistory(hash: string): GitAnswer;
+  /** Whether every commit on this branch is already an ancestor of `main`. */
+  landedOnMain(branch: string): GitAnswer;
+  /** What git could not be asked here, in words a failure message can carry. */
+  readonly limits: readonly string[];
+}
+
+/** Where a landing claim was found and what it says. One table cell, flattened. */
+interface LandingClaim {
+  where: string;
+  text: string;
+}
+
+/** A git command's stdout, or undefined if it failed for any reason at all. */
+function gitText(root: string, args: readonly string[]): string | undefined {
+  try {
+    return execFileSync('git', args, {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 15_000,
+    }).trim();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * A git predicate as three states. Exit 0 is yes, exit 1 is no, and anything else — 128 for
+ * a rev git cannot name, ENOENT for no git at all — is a question that was never answered.
+ */
+function gitPredicate(root: string, args: readonly string[]): GitAnswer {
+  try {
+    execFileSync('git', args, { cwd: root, stdio: 'ignore', timeout: 15_000 });
+    return true;
+  } catch (error) {
+    return (error as { status?: number }).status === 1 ? false : 'unknown';
+  }
+}
+
+/** Where `main` might live, in the order worth trying. A worktree and a CI clone differ here. */
+const MAIN_REFS = ['refs/heads/main', 'refs/remotes/origin/main', 'refs/remotes/upstream/main'] as const;
+
+/** Where a branch might still be findable, including the tag this repo leaves when it deletes one. */
+const BRANCH_REFS = ['refs/heads/', 'refs/remotes/origin/', 'refs/tags/', 'refs/tags/archive/'] as const;
+
+/**
+ * Everything git can say here, asked once and cached, with the limits written down.
+ *
+ * `rev-parse --verify --quiet <rev>^{commit}` is the one probe used for existence, because it
+ * answers uniformly for a ref and for a hash: exit 0 with the full sha, or exit 1. `cat-file
+ * -e` was measured and rejected — it exits 128 for a short hash that names nothing, which is
+ * indistinguishable from git being broken.
+ */
+function readGitFacts(root: string): GitFacts {
+  const limits: string[] = [];
+  const resolved = new Map<string, string | undefined>();
+
+  const resolve = (rev: string): string | undefined => {
+    if (!resolved.has(rev)) resolved.set(rev, gitText(root, ['rev-parse', '--verify', '--quiet', `${rev}^{commit}`]));
+    return resolved.get(rev);
+  };
+
+  const inRepo = gitText(root, ['rev-parse', '--git-dir']) !== undefined;
+  if (!inRepo) limits.push('git could not read a repository here, so no claim was checked against history');
+
+  const shallow = inRepo && gitText(root, ['rev-parse', '--is-shallow-repository']) === 'true';
+  if (shallow) {
+    limits.push('the clone is shallow, so git can confirm that a commit is present but never that one is missing');
+  }
+
+  const head = inRepo ? resolve('HEAD') : undefined;
+  const main = inRepo ? MAIN_REFS.map(resolve).find((sha) => sha !== undefined) : undefined;
+  if (inRepo && main === undefined) {
+    limits.push(`no main ref resolves here (${MAIN_REFS.join(', ')}), so no row could be checked for having landed`);
+  }
+
+  /** A negative is only a negative in a full clone. Everywhere else it is "not fetched". */
+  const negative = (answer: GitAnswer): GitAnswer => (answer === false && (shallow || !inRepo) ? 'unknown' : answer);
+
+  const ancestor = (sha: string, of: string | undefined): GitAnswer =>
+    of === undefined ? 'unknown' : negative(gitPredicate(root, ['merge-base', '--is-ancestor', sha, of]));
+
+  return {
+    limits,
+    hasCommit(hash) {
+      if (!inRepo) return 'unknown';
+      return resolve(hash) !== undefined ? true : negative(false);
+    },
+    inHistory(hash) {
+      const sha = inRepo ? resolve(hash) : undefined;
+      if (sha === undefined) return 'unknown';
+      const onHead = ancestor(sha, head);
+      if (onHead === true) return true;
+      const onMain = ancestor(sha, main);
+      if (onMain === true) return true;
+      return onHead === false && onMain === false ? false : 'unknown';
+    },
+    landedOnMain(branch) {
+      if (!inRepo || main === undefined) return 'unknown';
+      const tip = BRANCH_REFS.map((prefix) => resolve(`${prefix}${branch}`)).find((sha) => sha !== undefined);
+      if (tip === undefined) return 'unknown';
+      return ancestor(tip, main);
+    },
+  };
+}
+
+/** A commit hash as this repository writes them: seven to forty lowercase hex digits. */
+const COMMIT_HASH = /^[0-9a-f]{7,40}$/;
+
+/**
+ * A sentence saying something has not landed.
+ *
+ * Deliberately narrow. "Not built" is a claim about the tree and the rules above already own
+ * it; this is only about a branch's commits being on `main` or not.
+ */
+const UNLANDED = /\b(?:not\s+landed|unlanded|yet\s+to\s+land|not\s+been\s+merged|has\s+not\s+merged)\b/i;
+
+/** A sentence claiming the work reached `main`. Read only on sentences `UNLANDED` did not claim. */
+const LANDED = /\b(?:merged|landed)\b/i;
+
+/** Names that are the target of a landing rather than a branch that landed. */
+const NOT_A_BRANCH = new Set(['main', 'master', 'HEAD', 'origin']);
+
+/** A backticked token that could be a ref. Git resolution is the real filter; this drops the obvious. */
+function looksLikeBranch(token: string): boolean {
+  if (NOT_A_BRANCH.has(token)) return false;
+  if (COMMIT_HASH.test(token)) return false;
+  if (/\.(?:ts|tsx|js|jsx|mjs|json|md|sql|yml|yaml)$/.test(token)) return false;
+  return /^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(token);
+}
+
+/** Every backticked token in a fragment. */
+function backticked(text: string): string[] {
+  return [...text.matchAll(/`([^`\n]+)`/g)].map((hit) => hit[1]!);
+}
+
+/**
+ * Every table row in a markdown document, as one claim per cell after the first.
+ *
+ * Per cell rather than per row on purpose: a cell is one claim, and joining them would let a
+ * branch name in the exit-criteria column be read as part of a sentence in the status column.
+ * The first cell is the row's name and is what a failure message says instead of a line
+ * number, which moves.
+ */
+function landingClaims(file: string, markdown: string): LandingClaim[] {
+  const claims: LandingClaim[] = [];
+  for (const line of markdown.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('|')) continue;
+    const cells = trimmed.slice(1, trimmed.endsWith('|') ? -1 : undefined).split('|').map((cell) => cell.trim());
+    if (cells.length < 2) continue;
+    if (cells.every((cell) => /^:?-{2,}:?$/.test(cell))) continue;
+    for (const cell of cells.slice(1)) {
+      claims.push({ where: `\`${file}\` row "${cells[0]}"`, text: cell.replace(/\s+/g, ' ').trim() });
+    }
+  }
+  return claims;
+}
+
+/**
+ * Every reason a document's landing claims disagree with git, or with themselves.
+ *
+ * A list rather than inline assertions, and git as a parameter rather than a call, for the
+ * reason the rest of this file gives: a rule that can only run against the one repository on
+ * this disk cannot prove that a green result was earned. The refutations below run it against
+ * repositories nobody has.
+ */
+function landingProblems(claims: readonly LandingClaim[], git: GitFacts): string[] {
+  const problems: string[] = [];
+
+  for (const { where, text } of claims) {
+    const sentences = rowSentences(text);
+    const unlanded = sentences.filter((sentence) => UNLANDED.test(sentence));
+    const merged = sentences.filter((sentence) => !UNLANDED.test(sentence) && LANDED.test(sentence) && /`main`/.test(sentence));
+
+    // 1. A merge claim names a commit, and the commit is real. The first two hold with no
+    //    git at all; the last two go quiet rather than guess when git cannot answer.
+    for (const sentence of merged) {
+      const hashes = backticked(sentence).filter((token) => COMMIT_HASH.test(token));
+      if (hashes.length === 0) {
+        const named = backticked(sentence).filter((token) => token !== 'main');
+        problems.push(
+          named.length > 0
+            ? `${where} claims a merge into \`main\` and names \`${named[0]}\`, which is not a commit hash`
+            : `${where} claims a merge into \`main\` and names no commit, so nobody can check it`,
+        );
+        continue;
+      }
+      for (const hash of hashes) {
+        if (git.hasCommit(hash) === false) {
+          problems.push(`${where} names merge commit \`${hash}\`, which does not exist in this repository`);
+          continue;
+        }
+        if (git.inHistory(hash) === false) {
+          problems.push(`${where} names merge commit \`${hash}\`, which is in no history this checkout can reach`);
+        }
+      }
+    }
+
+    // 2. F243 itself. An unlanded claim about a branch whose commits are all on `main` is a
+    //    sentence that has outlived its truth, and no amount of reading documents finds it.
+    for (const sentence of unlanded) {
+      for (const branch of backticked(sentence).filter(looksLikeBranch)) {
+        if (git.landedOnMain(branch) === true) {
+          problems.push(
+            `${where} says \`${branch}\` has not landed, and every commit on it is already an ancestor of \`main\``,
+          );
+        }
+      }
+    }
+
+    // 3. And the half-edit, which needs no git: one cell that says both.
+    if (merged.length > 0 && unlanded.length > 0) {
+      problems.push(
+        `${where} says the work merged into \`main\` and also that it has not landed, so one of the two is stale`,
+      );
+    }
+  }
+
+  return problems;
+}
+
+/** A repository nobody has, so the rule can be refused as well as passed. */
+function fixtureGit(world: {
+  present?: readonly string[];
+  absent?: readonly string[];
+  inHistory?: readonly string[];
+  outOfHistory?: readonly string[];
+  landed?: readonly string[];
+  unlanded?: readonly string[];
+  limits?: readonly string[];
+}): GitFacts {
+  const answer = (yes: readonly string[] | undefined, no: readonly string[] | undefined, key: string): GitAnswer => {
+    if (yes?.includes(key)) return true;
+    if (no?.includes(key)) return false;
+    return 'unknown';
+  };
+  return {
+    limits: world.limits ?? [],
+    hasCommit: (hash) => answer(world.present, world.absent, hash),
+    inHistory: (hash) => answer(world.inHistory, world.outOfHistory, hash),
+    landedOnMain: (branch) => answer(world.landed, world.unlanded, branch),
+  };
+}
+
+/**
+ * The Phase 6 status cell exactly as F243 found it, kept as a fixture rather than a memory.
+ *
+ * This is the sentence the rule was written against. It stays here so the refutation below
+ * runs on the real defect and not on a paraphrase of it, and so that correcting the document
+ * cannot quietly make the rule untested.
+ */
+const STALE_PHASE_SIX_ROW =
+  'Slice 6a is built on `phase-6-retention` and has not landed: the passport, the delayed test and the '
+  + 'less-help replay each have code and a named test, and F216 to F225 are closed.';
+
+const EVIDENCE_PATH_F243 = path.join(ROOT, 'docs', 'IMPLEMENTATION_EVIDENCE.md');
+
+describe('a landing claim is checked against git and not against the day it was written', () => {
+  test('a roadmap row cannot call a branch unlanded once its work is on main', (t) => {
+    const git = readGitFacts(ROOT);
+    t.diagnostic(
+      git.limits.length === 0
+        ? 'git answered in full: hashes were checked for existence and branches for having landed'
+        : `git could not be fully consulted here, so part of this rule went quiet: ${git.limits.join('; ')}`,
+    );
+
+    const claims = [
+      ...landingClaims('docs/DELIVERY_ROADMAP.md', roadmap),
+      ...landingClaims('docs/IMPLEMENTATION_EVIDENCE.md', readFileSync(EVIDENCE_PATH_F243, 'utf8')),
+    ];
+
+    // 1. The two documents as they stand.
+    assert.deepEqual(
+      landingProblems(claims, git),
+      [],
+      'a row claims something about landing that git does not support',
+    );
+
+    // 2. And the probe is not answering out of an empty document, which would make every
+    //    claim below vacuous.
+    assert.ok(
+      claims.some((claim) => LANDED.test(claim.text) && /`main`/.test(claim.text)),
+      'no row in either document claims a merge, so this rule read nothing',
+    );
+
+    // 3. The rule works here, on this machine, against commits this repository certainly has
+    //    and a hash it certainly does not. Skipped rather than faked where git cannot answer,
+    //    which is the whole design: on a shallow CI clone this is the line that must not run.
+    if (git.limits.length === 0) {
+      assert.equal(git.hasCommit('eee755c'), true, 'git could not find the commit this rule was written about');
+      assert.equal(git.inHistory('eee755c'), true, 'the Phase 6 merge is not in the history this checkout carries');
+      assert.equal(
+        git.hasCommit('deadbeefdeadbeefdeadbeefdeadbeefdeadbeef'),
+        false,
+        'a hash nobody ever wrote came back as present, so the existence probe proves nothing',
+      );
+    } else {
+      t.diagnostic('the live git probe was skipped, so only the refutations below ran');
+    }
+
+    // ── the refutations ────────────────────────────────────────────────────────────────
+    // Each runs against a repository this test invents, so none of them moves when the real
+    // one does.
+
+    // 4. F243 itself, on the sentence that caused it. Nothing about this cell reads as a
+    //    claim about git to a person, and that is exactly why the rules above it stayed
+    //    green while it was false.
+    assert.deepEqual(
+      landingProblems(
+        [{ where: 'the Phase 6 row', text: STALE_PHASE_SIX_ROW }],
+        fixtureGit({ landed: ['phase-6-retention'] }),
+      ),
+      ['the Phase 6 row says `phase-6-retention` has not landed, and every commit on it is already an ancestor of `main`'],
+    );
+
+    // 5. The same sentence while the branch really has not landed. A rule that refused this
+    //    would be a rule about the calendar rather than about the truth.
+    assert.deepEqual(
+      landingProblems(
+        [{ where: 'the Phase 6 row', text: STALE_PHASE_SIX_ROW }],
+        fixtureGit({ unlanded: ['phase-6-retention'] }),
+      ),
+      [],
+    );
+
+    // 6. And the case that decides whether this rule is honest: git cannot answer. A shallow
+    //    clone has no `main` and no branch refs, and silence there has to mean silence.
+    assert.deepEqual(
+      landingProblems([{ where: 'the Phase 6 row', text: STALE_PHASE_SIX_ROW }], fixtureGit({})),
+      [],
+    );
+
+    // 7. A merge claim naming a hash that exists nowhere. This is the second property F243
+    //    asked for, and the one that catches a hash typed from memory.
+    assert.deepEqual(
+      landingProblems(
+        [{ where: 'a row', text: 'Built on `phase-9-x` and merged into `main` as `abc1234`' }],
+        fixtureGit({ absent: ['abc1234'] }),
+      ),
+      ['a row names merge commit `abc1234`, which does not exist in this repository'],
+    );
+
+    // 8. A hash that exists but belongs to no history this checkout can reach — a commit on
+    //    somebody's branch, written into the document as though it were a merge.
+    assert.deepEqual(
+      landingProblems(
+        [{ where: 'a row', text: 'Built on `phase-9-x` and merged into `main` as `abc1234`' }],
+        fixtureGit({ present: ['abc1234'], outOfHistory: ['abc1234'] }),
+      ),
+      ['a row names merge commit `abc1234`, which is in no history this checkout can reach'],
+    );
+
+    // 9. A merge claim with no commit at all, and one that names a branch where a hash
+    //    belongs. Both hold with no git whatsoever, which is what keeps this rule alive on
+    //    a CI runner that fetched one commit.
+    assert.deepEqual(
+      landingProblems([{ where: 'a row', text: 'Built and merged into `main` last week' }], fixtureGit({})),
+      ['a row claims a merge into `main` and names no commit, so nobody can check it'],
+    );
+    assert.deepEqual(
+      landingProblems([{ where: 'a row', text: 'Merged into `main` as `phase-9-x`' }], fixtureGit({})),
+      ["a row claims a merge into `main` and names `phase-9-x`, which is not a commit hash"],
+    );
+
+    // 10. The half-edit: a merge sentence appended and the old one left standing. This is
+    //     what F243 would have become if the row had been half corrected, and it needs no
+    //     git either.
+    assert.ok(
+      landingProblems(
+        [{
+          where: 'a row',
+          text: 'Slice 6a is built on `phase-6-retention` and merged into `main` as `eee755c`. Slice 6b has not landed.',
+        }],
+        fixtureGit({}),
+      ).some((problem) => problem.includes('and also that it has not landed')),
+      'a row was allowed to claim a merge and deny a landing in the same breath',
+    );
+
+    // 11. And the two ways this rule could quietly stop being a rule. `main` is the target of
+    //     a landing and never a branch that landed, so an honest "has not landed on `main`"
+    //     must not be read as main failing to land on itself. A file path is not a ref either.
+    assert.deepEqual(
+      landingProblems(
+        [{ where: 'a row', text: 'Built on `phase-9-x` and has not landed on `main`' }],
+        fixtureGit({ landed: ['main', 'phase-9-x'] }),
+      ),
+      ['a row says `phase-9-x` has not landed, and every commit on it is already an ancestor of `main`'],
+    );
+    assert.equal(looksLikeBranch('main'), false);
+    assert.equal(looksLikeBranch('apps/mobile/src/theme.ts'), false);
+    assert.equal(looksLikeBranch('eee755c'), false);
+    assert.equal(looksLikeBranch('phase-6-retention'), true);
+    assert.equal(looksLikeBranch('claude/forge-phases-status-c74034'), true);
+
+    // 12. The cell splitter, so a claim in the exit-criteria column is never read as part of
+    //     a sentence in the status column. Both are cells of the same row. The header row is
+    //     read as well, and stays read: a column heading is a cell like any other, and the
+    //     rule would rather judge one that says "merged into `main`" than skip it by position.
+    const parsed = landingClaims('doc.md', '| Phase | Criteria | Status |\n|---|---|---|\n| 6. R | `a-branch` | merged into `main` as `eee755c` |\n');
+    assert.deepEqual(
+      parsed.map((claim) => claim.text),
+      ['Criteria', 'Status', '`a-branch`', 'merged into `main` as `eee755c`'],
+    );
+    assert.deepEqual([...new Set(parsed.map((claim) => claim.where))], ['`doc.md` row "Phase"', '`doc.md` row "6. R"']);
   });
 });

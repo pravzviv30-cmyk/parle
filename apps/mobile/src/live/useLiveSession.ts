@@ -17,16 +17,20 @@ import { Room, RoomEvent, Track } from 'livekit-client';
 import {
   decodeServerMessage,
   encodeMessage,
+  PLANS,
   TOPIC_CLIENT,
   TOPIC_SERVER,
   type ClientMessage,
   type ConvoPhrase,
   type ConvoView,
   type DrillExercise,
+  type Plan,
+  type PlanSpec,
   type RecapPayload,
   type Rung,
   type SessionPrompt,
   type SessionSummary,
+  type StartRefusal,
   type TurnFeedback,
 } from '@parle/core';
 import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from './globals.ts';
@@ -168,11 +172,145 @@ function trace(event: string, detail?: Record<string, unknown>): void {
   console.info(`[parle:live] ${event}`, detail ?? {});
 }
 
+/* ─────────────────────────────────────────────────── the 402, and what it means
+ *
+ * The token server refuses a session it will not grant with a 402 carrying
+ * three things: a machine-readable reason, a sentence, and its whole plan
+ * catalogue. This hook used to cast all of that down to `{ message?: string }`,
+ * which threw away the reason and the catalogue at the door and rendered the
+ * sentence raw.
+ *
+ * Both halves of that were wrong. The catalogue is the only thing a paywall can
+ * be built out of, and the sentence is written for whoever is reading a log:
+ * one of them says "The introductory minutes for this installation have already
+ * been used by another account", which is an internal noun and an accusation
+ * shown to somebody who has done nothing, and another counts down the seconds
+ * left. `failure.ts` already refuses to render the server's prose for every
+ * other 4xx and answers from a closed local table instead; the 402 was the one
+ * path that escaped that rule. This is the rule, extended to it.
+ */
+
+/**
+ * Why the session was refused, spelled exactly as the wire spells it.
+ *
+ * The two `StartRefusal` values are `canStartSession`'s own and reach us as
+ * `error` on the body. `trial already claimed` is the token server's, from the
+ * one-trial-per-device check it makes before it asks about minutes at all.
+ * `unknown` covers a refusal newer than this build, including a body that will
+ * not parse: the status alone is enough to know a session was refused over
+ * minutes, and a learner should never meet a blank screen because a field moved.
+ *
+ * One name per refusal rather than ours and theirs, so nothing has to be kept in
+ * step. A fourth reason added to core does not compile until the table below
+ * says what the learner is told about it.
+ */
+export type OutOfMinutesCode = StartRefusal | 'trial already claimed' | 'unknown';
+
+interface OutOfMinutesCopy {
+  /** The heading over the sentence. */
+  label: string;
+  /** One or two plain sentences. Never a number, never a reproach, never a price. */
+  message: string;
+}
+
+/**
+ * What we say, per refusal. `failure.ts`'s table, in the shape it uses.
+ *
+ * Three rules, and every one of them is load-bearing at the most pressurable
+ * moment this product has. No number, because a countdown is a scarcity
+ * mechanic and PRODUCT.md refuses one. No blame, because none of these is the
+ * learner's doing. And nothing about buying: the store has no product yet, the
+ * paywall ships dark until it does, and a sentence offering a purchase would be
+ * a button that is not on the screen. What a purchase costs is the store's own
+ * localized string when there is one, and never a number written here.
+ */
+const OUT_OF_MINUTES: Record<OutOfMinutesCode, OutOfMinutesCopy> = {
+  // One code, two situations: a trial that is finished and a month that is
+  // spent. The server tells them apart in prose we do not render, and the
+  // catalogue does not say which plan the learner is on, so this sentence has
+  // to be true of both. It is.
+  exhausted: {
+    label: 'Out of minutes',
+    message:
+      'You have used all the speaking time on your account for now. Practice and review work offline, so you can carry on there and come back to a conversation later.',
+  },
+  // The server's version of this one counts out the seconds, which is the
+  // clearest reason of all four not to render what it wrote.
+  'insufficient-for-session': {
+    label: 'Not enough for a session',
+    message:
+      'There is a little speaking time left, but not quite enough for a whole conversation. Starting one now would end it partway through. Practice and review work offline, so you can carry on there.',
+  },
+  // F168, and the reason it stayed open: the server's sentence names an
+  // internal noun and accuses the reader of using somebody else's minutes. The
+  // learner in front of it has usually done nothing at all, so this says what
+  // is true, says it is not their fault, and stops.
+  'trial already claimed': {
+    label: 'Free minutes already used',
+    message:
+      'The free minutes on this device have already been used. They are a one time welcome rather than something that renews, so there are none waiting here. Nothing is wrong on your side, and practice and review work offline.',
+  },
+  unknown: {
+    label: 'Out of minutes',
+    message:
+      'Parle cannot start a session on this account right now, and it is about minutes rather than anything you did. Practice and review work offline, so you can carry on there.',
+  },
+};
+
+/**
+ * The refusal the body names, or `unknown`.
+ *
+ * `Object.hasOwn` rather than `in`, because `in` walks the prototype chain and
+ * would accept `toString` as a refusal and then hand the screen a function.
+ */
+function refusalCode(body: unknown): OutOfMinutesCode {
+  const named = (body as { error?: unknown } | null)?.error;
+  return typeof named === 'string' && Object.hasOwn(OUT_OF_MINUTES, named) ? (named as OutOfMinutesCode) : 'unknown';
+}
+
+/**
+ * The plan catalogue the refusal carried, or null.
+ *
+ * Whole or nothing. A paywall drawn from a half catalogue renders holes, and a
+ * body shaped differently from what this build expects is not something to
+ * guess at — `null` means "there is nothing to offer from", which is also the
+ * honest answer when the body never arrived.
+ *
+ * `priceUsd` rides along because it is part of the payload and dropping fields
+ * at the door is the defect this replaces. It is our unit-economic model's own
+ * number in dollars, not a price anybody may be shown: a purchase price comes
+ * from the store's localized string or from nowhere.
+ */
+function plansIn(body: unknown): Record<Plan, PlanSpec> | null {
+  const offered = (body as { plans?: unknown } | null)?.plans;
+  if (typeof offered !== 'object' || offered === null) return null;
+  const table = offered as Record<string, unknown>;
+  for (const id of Object.keys(PLANS)) {
+    const spec = table[id];
+    if (typeof spec !== 'object' || spec === null) return null;
+    const { label, secondsPerPeriod } = spec as Partial<PlanSpec>;
+    if (typeof label !== 'string' || typeof secondsPerPeriod !== 'number') return null;
+  }
+  return offered as Record<Plan, PlanSpec>;
+}
+
 export type LiveStatus =
   | { phase: 'idle' }
   | { phase: 'connecting' }
   | { phase: 'live' }
-  | { phase: 'out-of-minutes'; message: string }
+  /**
+   * Refused over minutes. Everything a paywall needs and nothing the server
+   * wrote: `code` says which refusal it was, `plans` is the catalogue it came
+   * with (null when there was none to read), and `label` and `message` are this
+   * app's own words for it.
+   */
+  | {
+      phase: 'out-of-minutes';
+      code: OutOfMinutesCode;
+      label: string;
+      message: string;
+      plans: Record<Plan, PlanSpec> | null;
+    }
   | { phase: 'error'; failure: LiveFailure; message: string; canType: boolean }
   | { phase: 'ended' };
 
@@ -627,9 +765,17 @@ export function useLiveSession(
       diagRef.current.tokenServerTiming = res.headers.get('server-timing');
 
       if (res.status === 402) {
-        const body = (await res.json()) as { message?: string };
+        // Read whole, and kept whole. A body that will not parse is still a
+        // 402: the refusal is the status, not the payload, and throwing here
+        // would put a connection error in front of a learner whose connection
+        // is fine.
+        const body: unknown = await res.json().catch(() => null);
         if (await abandoned()) return;
-        setStatus({ phase: 'out-of-minutes', message: body.message ?? 'You are out of minutes.' });
+        const code = refusalCode(body);
+        const copy = OUT_OF_MINUTES[code];
+        const plans = plansIn(body);
+        trace('out-of-minutes', { code, plans: plans !== null });
+        setStatus({ phase: 'out-of-minutes', code, label: copy.label, message: copy.message, plans });
         return;
       }
       if (!res.ok) throw new TokenServerError(res.status);

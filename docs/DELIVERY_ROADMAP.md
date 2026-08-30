@@ -12,7 +12,7 @@ deferred.
 | 3. Onboarding | onboarding UX, design system, privacy-safety | One welcome, useful choices, readiness, contextual mic, returning-user migration | Built on `phase-3-onboarding` and merged into `main` as `2a86092`; local web route proof complete, native/five-viewport QA and migration deployment remain external |
 | 4. Practice | practice UX, learning science, data-sync | Retrieval before reveal, one mastery source, durable batches, transfer | Built on `phase-4-practice` and merged into `main` as `f943bbe`; that branch is deleted now, so the hash is what finds it. Device, screen-reader and Supabase verification pending |
 | 5. Tutor | tutor behaviour, voice, learning science, privacy-safety | Mode parity across the four session modes (`convo`, `convo-text`, `lesson`, `lesson-text`), correction policy, recovery, safety, durable curation | Built on `phase-5-tutor` and merged into `main` as `1b37b81`. All five properties held locally and tested; every P0 and P1 closed. Six P2s stay open by choice, and the six external checks are unclaimed by anyone, so this is not a release |
-| 6. Retention | progress-retention, learning science, design system | Passport, delayed test, less-help replay, honest reminders/story | Slice 6a is built on `phase-6-retention` and has not landed: the passport, the delayed test and the less-help replay each have code and a named test, and F216 to F225 are closed. Slice 6b, the honest reminders and the weekly story, is built on the same branch, and F226 to F240 are closed with one P2 left open on purpose. Nothing in this phase has been seen on a device or a deployed database, no reminder has been seen firing on a phone, and the six external checks stay unclaimed |
+| 6. Retention | progress-retention, learning science, design system | Passport, delayed test, less-help replay, honest reminders/story | Slice 6a is built on `phase-6-retention` and merged into `main` as `eee755c`: the passport, the delayed test and the less-help replay each have code and a named test, and F216 to F225 are closed. Slice 6b, the honest reminders and the weekly story, is built on the same branch and landed in the same merge, and F226 to F240 are closed with one P2 left open on purpose. Nothing in this phase has been seen on a device or a deployed database, no reminder has been seen firing on a phone, and the six external checks stay unclaimed |
 | 7. Revenue | revenue, security, privacy-safety | One paid tier, verified receipts/webhooks, restore/lifecycle, fair-use economics | Blocked by product/store credentials; implementation missing |
 | 8. Privacy/release | privacy-safety, qa-release, deploy | Reviewed policies, export/deletion, full device/live/build gate and rollback | Blocked; policies, devices and deployment evidence missing |
 
@@ -34,10 +34,11 @@ is `2a86092`. No Phase 4 work had to reintroduce a deleted onboarding surface, a
 
 Phase 4 then landed the same way. `phase-4-practice` was merged into `main` as `f943bbe`,
 whose two parents are `2a86092` and `fccb0fe`. Two commits followed on `main`: `d24913f`
-corrected `docs/PEDAGOGY.md`, and `2eac2f2` regenerated the code graph. `main` points at
-`2eac2f2`. The gate that closed Phase 4 is the one in step 5 below, 1,865 tests with none
-failing, and the floors were blessed to match. The branch has since been deleted, so it is
-a hash and not a branch name that finds this work now.
+corrected `docs/PEDAGOGY.md`, and `2eac2f2` regenerated the code graph. `2eac2f2` is where
+Phase 4 left `main`, and later landings have moved it on since. The gate that closed Phase
+4 is the one in step 5 below, 1,865 tests with none failing, and the floors were blessed to
+match. The branch has since been deleted, so it is a hash and not a branch name that finds
+this work now.
 
 ## Phase 4 execution order, and what was built against it
 

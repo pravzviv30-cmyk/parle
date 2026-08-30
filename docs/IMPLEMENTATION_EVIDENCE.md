@@ -95,9 +95,9 @@ of the list.
   desktop horizontal overflow. A local mock-auth account completed all three onboarding steps,
   landed at `/missions`, returned to `/home`, and stayed there across reload. A Supabase-auth
   run, five-viewport pass, native screen-reader pass and human stopwatch have not been run.
-- All seven migrations and seven rollback scripts pass their static contract. Migration 7,
+- All nine migrations and nine rollback scripts pass their static contract. Migration 7,
   `202608270001_onboarding_event_property_fix.sql`, has never been applied to any project.
-  No schema is production evidence until all seven are applied in order and the live verifier
+  No schema is production evidence until all nine are applied in order and the live verifier
   passes there.
 
 ## Historical Phase 1 baseline
@@ -143,7 +143,7 @@ applied to one, and the day one exists it starts with an empty schema and the sa
 | Upstash cross-instance limits and leases | F61 | `measured` | `npm run verify:upstash`, exit 0, 5 of 5 proofs. Two token servers on ports 53320 and 53324 sharing one Redis: requests split across both then both refused the next, a live session on A made B answer 409, only the matching id freed the lease, an abandoned lease lapsed on its TTL, and the key scan read 5 keys, all hashed. | Upstash under production concurrency and region latency. Two local processes are not a fleet. |
 | Secret scanning of files, history and bundles | F62 | `measured` | `npm run scan:secrets` clean across the working tree. `npm run scan:secrets:history` found **5 critical findings in one commit**, `576bc53`, an `.env.bak-before-cli-all` carrying 4 distinct live vendor credentials. That commit is on two local `codex/*` branches and is **not** reachable from any remote ref. No value was printed at any point. | `--bundles` reported BLOCKED because no web build output exists. Run `npm run build:web` first. Rotation is a human action on four vendor consoles: see F80. |
 | Supabase RLS, RPC privilege, debit concurrency, trial race, deletion cascade | F63 | `measured` | `npm run verify:supabase` against a disposable project. First run: **6 of 12 failed**, which is how F74 and F75 were found. After the three fix migrations, exit 0 and **12 of 12 proofs passed**, one row each in the run record below. | The production project, which does not exist yet. Two accounts are not a population, and no proof here was run under production concurrency, data volume or region latency. |
-| Migration rollbacks and the apply runbook | F64 | `measured` | `databaseContract.test.ts` over 7 migrations and 7 down-scripts: each down-script names every object its migration created, `202608230001_down.sql` also restores the 2-argument `consume_entitlement` its migration dropped, the three function-body rollbacks each refuse to run without an interlock set in the same session, and `supabase/README.md` applies all 7 in order and pairs each with its rollback. | No rollback has ever been executed against a database. The scripts are read, not run, and the rollback-evidence procedure in the runbook has not been performed. |
+| Migration rollbacks and the apply runbook | F64 | `measured` | `databaseContract.test.ts` over 9 migrations and 9 down-scripts: each down-script names every object its migration created, `202608230001_down.sql` also restores the 2-argument `consume_entitlement` its migration dropped, the three function-body rollbacks each refuse to run without an interlock set in the same session, and `supabase/README.md` applies all 9 in order and pairs each with its rollback. | No rollback has ever been executed against a database. The scripts are read, not run, and the rollback-evidence procedure in the runbook has not been performed. |
 | Voice lifecycle: expiry, caps, leases, hard stop, billing | F65 | `measured` | `npm run verify:voice`, 13 checks, 108.5s wall clock: **11 assertions held, 2 measurements recorded**, exit 0. Grants live 300s and a credential 90s past expiry is refused; `maxParticipants=2` held against a forged third identity; one grant and one 409 from the lease, released by the debit; the agent secret guarded the debit; a replayed `/session/end` changed nothing in the store file; a never-joined room debited 0s; a room with no learner turn debited 0s; the hard stop fired at **60.0s** against a seeded 60s allowance and the room was gone **20.1s** later. | Cloud LiveKit was not used; transport was a self-hosted server on 127.0.0.1. The 15-minute production hard stop was pinned by test, not run for 15 real minutes. |
 | Safety net breadth | F66 | `measured` | `npm test -w @parle/tutor-agent`, 338 tests, 0 failing. 153 patterns, up from 33. 149 adversarial lines across 8 categories and 4 buckets each are caught, and a 51-line ordinary-French corpus still returns null. Normalisation sees through zero-width, homoglyph, spacing and leet forms. | A wider net is still a net. Nothing here bounds what a determined adult phrases around, which is exactly what F70 exists for. |
 | Privacy and safety policy | F67 | `measured` | `docs/PRIVACY_AND_SAFETY.md` plus 4 tests in `safetyPolicy.test.ts`. Falsified by mutation: flipping one category action, replacing the disclaimer with an emergency-service claim, and blanking one retention cell each turned the suite red, and the doc was restored with a matching checksum. | A document is a promise, not an enforcement. Retention is asserted against copy, not against a database that holds rows. |
@@ -285,12 +285,21 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 | Tutor safety policy | Widened and documented | 153 deterministic patterns over 8 categories, 149 adversarial lines caught, 51 ordinary-French lines left alone, and a written policy with matching shipped copy | Professional review, live report workflow, in-app escalation UI |
 | Onboarding redesign | Implemented and tested locally on Phase 3 | One welcome, age-first three-page flow, AI/vendor/mic disclosure, chooser landing, labelled fields/headings, returning-device adoption and audio cleanup | Native and five-viewport visual/accessibility QA, human time-to-first-French measurement, migration 7 deployment |
 | Practice redesign | Partially implemented | Review/drill/topic flows and curation exist | Retrieval-before-reveal across surfaces, durable batch/outbox, transfer flow |
-| Retention system | Implemented and tested locally on `phase-6-retention`, not landed | My French, daily goal/activity and mission evidence exist. Slice 6a added the passport, the delayed test and the less-help replay; slice 6b added the daily reminder and the weekly story. Each has code and a named test, and F216 to F240 are closed apart from one P2 | Every one of those five surfaces on a device, which nobody has run, and a reminder actually arriving on a phone, which needs a development build no one has made |
+| Retention system | Implemented and tested locally, landed on `main` as `eee755c` | My French, daily goal/activity and mission evidence exist. Slice 6a added the passport, the delayed test and the less-help replay; slice 6b added the daily reminder and the weekly story. Each has code and a named test, and F216 to F240 are closed apart from one P2 | Every one of those five surfaces on a device, which nobody has run, and a reminder actually arriving on a phone, which needs a development build no one has made |
 | Social systems | Superseded and scheduled for deletion | Fake/stale leaderboard/friend code identified | Removal after reference and persisted-data audit; no launch social backend |
 | Privacy/legal surfaces | Policy plus first-run AI/vendor/mic disclosure implemented | `PRIVACY_AND_SAFETY.md`, shared first-run disclosure copy, Profile data footer and matching tests | Professionally reviewed privacy/terms, complete export and learner memory controls |
 
 ## Current focused verification
 
+- Gate after F243, the landing-claim rule: **2,132 tests, 0 failing**; core 549, brain 377,
+  tutor agent 378, token server 137, playground 26, mobile 665. Typecheck clean in all six
+  workspaces. Run on `phase-7-revenue` from inside that worktree, which has its own
+  `node_modules`, and floors were blessed to these counts in the same act as writing this
+  record. One test moved the count: `a roadmap row cannot call a branch unlanded once its work
+  is on main`. The ledger check was red at the time and stayed red on purpose — ten Phase 7
+  entries, F244 to F253, were filed into `docs/KNOWN_ISSUES.md` by a parallel session before
+  that work was built, which is what an in-progress branch looks like. Nothing here has been
+  seen on a device.
 - Full Phase 6 retention gate, slices 6a and 6b: **2,125 tests, 0 failing**; core 549, brain
   377, tutor agent 378, token server 136, playground 26, mobile 659. Typecheck clean in all six
   workspaces. Run from the `phase-6-retention` worktree, which has its own `node_modules`,
@@ -352,7 +361,7 @@ Each line names a blocker used in a table above.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
   found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
   rotation, even though the object is no longer reachable and was never pushed.
-- **`phase-3-schema-apply`** — apply all seven migrations, including the onboarding event
+- **`phase-3-schema-apply`** — apply all nine migrations, including the onboarding event
   property fix, then reload the schema cache and run `npm run verify:supabase`.
 - **`phase-3-device-and-human-pass`** — complete the first-run matrix on iOS, Android,
   narrow/wide web and screen readers, and time a real beginner at their own pace. The static
@@ -364,7 +373,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **seven migrations**, and all seven must be pasted, in this order, from
+There are **nine migrations**, and all nine must be pasted, in this order, from
 `supabase/README.md`:
 
 1. `202608220001_parle_learning.sql` — the tables, the RLS policies, the first debit.
@@ -383,6 +392,13 @@ There are **seven migrations**, and all seven must be pasted, in this order, fro
    demands the `motivationAnswered` property the client stopped sending when Phase 3 deleted
    the why page, so every `onboarding_completed` is refused and the onboarding funnel goes
    dark while every suite stays green.
+8. `202608300001_billing_events.sql` — F244. The replay boundary a purchase webhook needs.
+   Without it there is no primary key to dedupe a redelivered billing event against, so every
+   retry RevenueCat sends would re-fetch the subscriber and re-write the entitlement.
+9. `202608300002_paid_period_lapse.sql` — F245. Without it, an expired **paid** period renews
+   itself on every read or debit: thirty fresh days and a cleared counter, free, forever. That
+   is inert while nothing sells and becomes a perpetual free plan for every cancelled
+   subscriber the day something does.
 
 Then reload the API schema cache and run `npm run verify:supabase` against that project.
 Stopping after any of the first four leaves a known defect live, which is why the runbook

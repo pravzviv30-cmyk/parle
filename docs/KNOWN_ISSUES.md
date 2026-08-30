@@ -2969,13 +2969,16 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F168 — The out-of-minutes screen renders the token server's own sentence
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/live/useLiveSession.ts:531
 - note: the 402 branch renders body.message raw, which today can be "The introductory
   minutes for this installation have already been used by another account." — an internal
   noun and an accusation, the class F153 closed on the auth side. Parked by this
   contract's out-of-scope list (the plans payload is revenue-engineer work); filed so the
-  revenue contract inherits it rather than losing it.
+  revenue contract inherits it rather than losing it. Closed by F251, which extended
+  failure.ts's closed-table discipline to the one path that had escaped it: the sentence now
+  comes from OUT_OF_MINUTES keyed on the refusal code, the server's prose is never rendered,
+  and both out-of-minutes renderers show what the hook supplies.
 - verified-by: `the out of minutes screen speaks the app's words, not the server's`
 
 ### F169 — The wire learns a mid-session mode switch
@@ -3748,3 +3751,229 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   builds a Room. Found while planning the first device build; no device has ever run this code.
 - verified-by: `the WebRTC globals are installed before the hook asks whether a microphone exists`
 - verified-by: `a device the shim cannot give a microphone is still refused`
+
+### F243 — The roadmap says Phase 6 has not landed, and it landed
+- severity: P1
+- status: [x]
+- where: docs/DELIVERY_ROADMAP.md:15
+- note: the Phase 6 status cell reads "Slice 6a is built on `phase-6-retention` and has not landed",
+  which was true when F236 wrote it and false forty minutes later when `eee755c` merged the branch
+  into `main`. The row rule did not catch it because it checks whether a *built* claim matches the
+  ledger, and says nothing about a *landed* claim, which is a fact about git rather than about the
+  ledger. This is the third time a roadmap sentence has outlived its truth — F211 and F212 were the
+  first two, in the same document, this same day — so the repair is the rule and not only the
+  sentence: a row naming a branch as unlanded must fail once the commit it names is an ancestor of
+  `main`, and a row claiming a merge must name a hash that exists.
+- verified-by: `a roadmap row cannot call a branch unlanded once its work is on main`
+- fixed: the Phase 6 status cell now reads "merged into `main` as `eee755c`", and the same stale claim
+  in `docs/IMPLEMENTATION_EVIDENCE.md`'s "Retention system" row was corrected with it — the rule found
+  that second one, which nobody had noticed. `landingProblems` in
+  `services/token-server/src/verify/deliveryRoadmap.test.ts` now reads every table cell in both
+  documents and refuses three things: a cell that calls a branch unlanded when git says every commit on
+  it is an ancestor of `main`, a merge claim naming a hash git cannot find or place in any reachable
+  history, and a cell that claims a merge and denies a landing at once. The pinned "the row claims a
+  merge that has not happened" line that used to sit in `phaseSixRowProblems` was itself the same class
+  of defect and is gone; its refutation now runs against the new rule. What this cannot honestly check
+  is written at the rule's head: git answers in three states, `unknown` is never a failure, and a
+  negative answer is only trusted in a full clone. Measured, not assumed — in a `--depth 1` clone, which
+  is what `actions/checkout@v4` makes, no main ref resolves and only the textual half runs.
+
+### F244 — A billing event is recorded once, whatever the webhook does
+- severity: P1
+- status: [x]
+- where: supabase/migrations/202608300001_billing_events.sql:1
+- note: replay safety by primary key, the session_usage precedent, with the null-safe guard written
+  before the bug instead of after it. RLS on, no client policies.
+- verified-by: `a replayed billing event id is refused in three-valued logic`
+- verified-by: `billing_events has no client policies and only the service role may record`
+- fixed: `202608300001_billing_events.sql` adds `billing_events` — `event_id` primary key, owner, vendor
+  event name, timestamp, cascade on account delete — with RLS on, no policies at all and every client
+  role revoked, the `session_usage` precedent. `record_billing_event(text, uuid)` inserts `on conflict
+  (event_id) do nothing` and answers whether this was the first sighting, service role only, security
+  definer with a fixed search path. The guard is `if recorded is not true then`, written that way
+  before the bug rather than after it, and `databaseContract.test.ts` evaluates it in simulated
+  three-valued logic: it builds the null-unsafe counterfactual out of the real body by substitution and
+  requires the same reading to condemn it, so the assertion cannot decay into a string match. Two
+  boundaries are deliberate and both are in the file: a duplicate held uncommitted by a concurrent
+  transaction raises rather than answering "already seen", so no event is lost to a rollback we cannot
+  see; and a replay naming a different account is still a replay, because RevenueCat transfers
+  app_user_ids and refusing would retry until the vendor gave up. `event_type` carries a default,
+  because the recorder F246 calls takes the pair the dedupe needs and nothing else — the column is
+  there so the typed overload is a function change later and not a table change.
+
+### F245 — An expired paid period lapses instead of granting a free month
+- severity: P1
+- status: [x]
+- where: supabase/migrations/202608250001_consume_entitlement_null_fix.sql:113
+- note: the lazy roll self-renews a paid period on any read or debit — `period_end <= now()` resets
+  the seconds and adds thirty days, free, forever. Harmless while nothing sells; a perpetual free
+  plan for every cancelled subscriber the day something does. Fixed forward in 202608300002 with a
+  24h slack for webhook delay and clock skew, and mirrored in rollPeriod so the fixtures agree.
+- verified-by: `an expired paid period lapses to an exhausted trial instead of renewing itself`
+- verified-by: `rollPeriod never renews a paid period the billing system did not`
+
+### F246 — The store can say whether it has seen a billing event before
+- severity: P1
+- status: [x]
+- where: services/token-server/src/store.ts:16
+- note: recordBillingEvent on the EntitlementStore interface and all four implementations; Supabase
+  through the RPC, fixtures through a set, matching the consume idempotency shape.
+- verified-by: `recording a billing event asks the database once and reports a replay as already seen`
+
+### F247 — Subscriber state projects to entitlement in one place
+- severity: P1
+- status: [ ]
+- where: services/token-server/src/billing/revenuecat.ts:1
+- note: the doorbell design's other half — fetch current subscriber state, map identifiers to plans,
+  apply the transition policy, land on save(). Tested entirely with injected fetch doubles; no
+  vendor account needed.
+- verified-by: `an active starter subscriber projects to a fresh starter period`
+- verified-by: `a lapsed subscriber projects to an exhausted trial`
+- verified-by: `an unknown product identifier changes nothing and is logged loudly`
+
+### F248 — The webhook and refresh endpoints exist, authenticated and bounded
+- severity: P1
+- status: [ ]
+- where: services/token-server/src/server.ts:462
+- note: /billing/webhook behind a timing-safe shared header, deduped before any vendor fetch, 503
+  when unconfigured; /billing/refresh learner-authenticated and rate-limited; half a billing
+  configuration refuses production boot.
+- verified-by: `a webhook without the shared secret is refused before anything is read`
+- verified-by: `a replayed webhook is acknowledged without a second vendor fetch`
+- verified-by: `half a billing configuration refuses to boot in production`
+
+### F249 — The purchases SDK lives behind an adapter and only its native half touches the store
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/purchases/adapter.ts:1
+- note: the auth/ adapter pattern plus the F230 platform pair; lazy configure with the Supabase user
+  id so app_user_id equals our uuid; Expo Go and web report unavailable rather than crash.
+- verified-by: `only the native half of the purchases pair imports the store SDK`
+- verified-by: `without a configured key the adapter reports purchases unavailable`
+
+### F250 — The paywall ships complete and stays dark until the store says otherwise
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/purchases/paywallView.ts:1
+- note: a purchase button exists only when getOfferings returned a purchasable product with its own
+  localized price string; both out-of-minutes renderers share the view model; a restore affordance
+  is present; every sentence passes the guilt list and no price is hard-coded.
+- verified-by: `the paywall stays dark until the store returns a purchasable product`
+- verified-by: `paywall copy carries no banned words and no invented price`
+- verified-by: `both out-of-minutes screens render the shared paywall surface`
+
+### F251 — The 402 keeps its reason and its plans, and speaks in our words
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:629
+- note: folds F168 in. The hook parses away the plans payload and the refusal code, and the screen
+  repeats a server sentence carrying an internal noun and an accusation. The code and payload
+  survive onto the status; copy comes from a local table, the failure.ts discipline extended to the
+  one path that escaped it.
+- verified-by: `the 402 keeps the refusal code and the plans, not just the sentence`
+- verified-by: `a trial claimed by another account is explained in our words, not the server's`
+
+### F252 — Margins survive the store's cut, and the floor says by how much
+- severity: P1
+- status: [x]
+- where: packages/core/src/metering/meter.ts:256
+- note: planMargin ignores store fees. At 15% both paid plans hold above 20% worst-case; at 30%
+  regular is roughly 4.7%, one repricing from underwater. Pinned at the 15% rate with the 30% figure
+  named in the failure message, which is why Small Business enrolment is on the founder checklist.
+- verified-by: `both paid plans clear twenty percent worst-case margin after the small business store fee`
+
+### F253 — The risk register's payment row gets a real control and a true number
+- severity: P1
+- status: [ ]
+- where: docs/RISK_REGISTER.md:37
+- note: "nothing sells yet" stops being a control the moment a paywall exists; the row must name the
+  structural controls this phase builds. And the farmed-trial figure is $1.73 from the cost model,
+  not $2.20 — the register's own arithmetic does not even produce its own number. Both proven by a
+  verify test so neither claim can go stale silently again.
+- verified-by: `the register prices a farmed trial from the cost model, not from memory`
+- verified-by: `the register may not claim nothing sells once a purchase surface exists`
+
+### F254 — The roadmap's Phase 7 row tells the truth at landing
+- severity: P2
+- status: [ ]
+- where: docs/DELIVERY_ROADMAP.md:16
+- note: "implementation missing" becomes false when this lands; the row should say built-and-dark,
+  blocked only on store credentials. P2 because it closes at landing as one act with the floors, and
+  F243's new row rule polices the same document.
+- verified-by: `the roadmap's Phase 7 row matches the ledger's built state`
+
+### F255 — CI clones shallow, so every guard that reads git is silent there
+- severity: P1
+- status: [x]
+- where: .github/workflows/ci.yml:54
+- note: `actions/checkout@v4` defaults to `--depth 1`. F243's landing rule asks git whether a branch
+  is an ancestor of `main` and whether a claimed hash exists, and it correctly downgrades every
+  negative answer to `unknown` in a shallow clone, because "not here" is the normal state of almost
+  everything in one — a rule that is red on the runner and green on a laptop is worse than no rule.
+  The consequence, measured rather than assumed: in a `--depth 1` clone of this repository only
+  `eee755c` resolves, and `refs/heads/main`, `refs/remotes/origin/main`, `refs/heads/phase-6-retention`
+  and `2a86092` all fail to. **So F243 would not have been caught by CI**, which is the one place a
+  push from a machine with no hooks is checked. `fetch-depth: 0` closes it. Whoever takes this should
+  also sweep the gate for anything else that reads git and is quietly degraded on the runner, and say
+  what they found; `scan:secrets --history` is the obvious candidate even though CI runs the tracked
+  scan today. Escalated by product-orchestrator rather than changed, because it is shared
+  infrastructure and a clone-cost decision.
+- resolution: `fetch-depth: 0` on the checkout step, with the measurement written beside it. Not a
+  larger depth: the four fetch shapes were rebuilt with plain git against this repository on
+  2026-08-30, and `--depth 50` is *still* shallow, *still* carries no main ref, and already costs
+  6.4M of the 7.1M a full fetch costs — it buys history but not refs, and the rule needs both. A
+  depth-1 fetch plus a second targeted fetch of `main` gets the ref for 3.4M but leaves the clone
+  shallow, so every negative answer stays `unknown`. Only 0 fetches every head and unshallows.
+  The bill: 7.3M of `.git` against 3.3M, about one second of a twenty-minute job. `graphify-out/`
+  is 55% of the packed history (3.7M of 6.7M in blob bytes, 135M raw across 21 regenerations) and
+  adds roughly 175K per regeneration, so this stays cheap for years rather than forever.
+- swept: four things in this repository read git, and only two of them run in CI. `git ls-files`
+  in `secretScan.ts` — **not degraded**, measured: 846 tracked files at depth 1, at depth 0 and in
+  a full checkout, because it reads the index and the index is complete at any depth. That is the
+  scan CI runs. `git config core.hooksPath` in `installHooks.mjs` — not degraded, and inert on the
+  runner anyway. `git log -p --all` behind `scan:secrets:history` — **badly degraded**: 1 commit
+  and 354,670 diff lines at depth 1 against 131 commits and 1,400,404 at full, so 75% of history
+  was invisible and a depth-1 history scan is a tracked-file scan wearing a costume. CI does not
+  run it, and now that it could, it still should not on every push. `scripts/loop.mjs` reads git
+  heavily but is a local tool the gate never invokes. Nothing else: no test reads `.git` directly,
+  and every other subprocess in the repo spawns node, ps, claude or a live-verify harness.
+- verified-by: `ci fetches enough history for the guards that read git`
+
+### F256 — The roadmap still says main points at a commit four landings ago
+- severity: P2
+- status: [x]
+- where: docs/DELIVERY_ROADMAP.md:37
+- note: "`main` points at `2eac2f2`" in the present tense, in the Phase 4 narrative. `main` points at
+  `eee755c`, four landings later. This is the fourth instance of the same class in one document in
+  one day — F211, F212, F243 were the first three — and F243's new rule cannot see it, because the
+  rule reads markdown table cells only. Whole-document scanning was measured during F243 and
+  rejected: "refused rather than merged" and "the merged manifests" are false positives in prose.
+  So the honest repair is to write the sentence in a form that cannot go stale, naming the commit as
+  the Phase 4 landing rather than as the current tip, rather than to widen the rule until it cries
+  wolf. Sweep at the Phase 7 landing, when the roadmap is open anyway for F254.
+- resolution: the sentence now reads "`2eac2f2` is where Phase 4 left `main`, and later landings
+  have moved it on since" — the same two facts in the other order, which makes it a claim about a
+  landing rather than about the tip, and the hash is kept rather than dropped. The property is held
+  by `services/token-server/src/verify/roadmapTip.test.ts`, a sibling of F243's rule rather than a
+  widening of it: one shape only, `main` plus a present-tense verb plus an explicit `at`/`on`/`to`
+  plus a commit, scanned over paragraphs flattened to one line so a re-wrap cannot switch it off.
+  The first draft allowed a bare `is` and immediately flagged "its merge base with `main` is
+  `2a86092`", which is permanently true — so the preposition is required, and the resulting blind
+  spot ("`main` is `<hash>`", never written here) is fixtured as a boundary rather than left
+  unstated. F243's rule is untouched.
+- verified-by: `the roadmap never claims to know where main points today`
+
+### F257 — A subscriber whose plan lapsed is told their free trial is finished
+- severity: P1
+- status: [ ]
+- where: packages/core/src/metering/meter.ts:112
+- note: F245 makes an expired paid period collapse to an exhausted trial, which is the right money
+  answer and the wrong sentence. `StartRefusal` is `'exhausted' | 'insufficient-for-session'` and
+  `canStartSession` keys its copy off `plan` alone, so the lapsed state — which *is* `trial` — reaches
+  a learner as "Your free trial is finished." Someone who paid last month and let it run out is told
+  they were never a customer. Found by revenue-engineer while building F245's half and filed rather
+  than papered over, because the honest fix needs the entitlement to remember it was once paid: a
+  `lapsed` marker feeding a third refusal reason, which F250's paywall can then render as an offer to
+  resubscribe rather than as a trial that ended. That marker is an entitlement field and a store
+  concern, so it lands with the billing work rather than in the meter.
+- verified-by: `a learner whose paid plan lapsed is not told their free trial ended`
