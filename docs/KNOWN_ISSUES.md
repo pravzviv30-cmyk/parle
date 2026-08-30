@@ -4177,3 +4177,25 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   prevent, applied to one phase and skipped for the next. The roadmap rule should cover Phase 8 the
   way it covers Phase 7.
 - verified-by: `the roadmap's Phase 8 row matches the ledger's built state`
+
+### F272 — The account export had never been run, and did not work the first time it was
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/accountExport.ts:60
+- note: the first real execution of `GET /account/export` against the development project — a
+  signed-in learner, a valid bearer, the running stack — answered **500**. The server log says
+  `billing_events export failed (404)`: migrations 8, 9 and 10 have never been applied to that
+  project, so the table the export reads does not exist. Migrations 1 to 7 are applied, which is
+  why every other surface works and this one does not.
+  Two separate things are wrong and only one of them is the founder's to fix. The unapplied
+  migration is deployment state, and `supabase/README.md` already says the apply path is a paste
+  into the SQL Editor because there is no CLI, Docker or `psql` on this machine. The code half is
+  that a missing table is indistinguishable from a bug: every other Supabase-dependent route in
+  `server.ts` answers `503 {"error":"… is not configured"}` when its dependency is absent, and this
+  one throws into the generic 500 handler, so the learner is told nothing and the operator has to
+  read a stack trace to learn that one table is missing. Hard-failing rather than shipping a
+  partial export is correct and `accountExport.test.ts` pins it; being illegible about *why* is not.
+  This is also the concrete cost of F271: Phase 8 landed with no ledger entry, `IMPLEMENTATION_EVIDENCE.md`
+  called the export "implemented and tested locally", and no test or human had ever executed it.
+  Found by running it, not by reading it.
+- verified-by: `a missing billing table is reported as unconfigured rather than as an internal error`
