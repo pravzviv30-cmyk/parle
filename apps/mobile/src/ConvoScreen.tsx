@@ -56,7 +56,7 @@ import { waitingView } from './tutor/waitingView.ts';
 import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 import { enterSubmits, keyPressFrom } from './tutor/enterSubmit.ts';
 import { TUTOR_NAME } from './tutor/tutorName.ts';
-import { sceneControls, typedTurn } from './tutor/sceneControls.ts';
+import { OPEN_MIC_LABEL, sceneControls, typedTurn } from './tutor/sceneControls.ts';
 import { NO_WIN, dismissWin, winAfterTurn, winCard, type WinState } from './tutor/missionWin.ts';
 import { recapWait } from './tutor/recapWait.ts';
 
@@ -856,6 +856,7 @@ export function ConvoScreen({
     textMode: typing,
     listening,
     typingOpen,
+    micOpen: live.micOpen,
   });
   const card = win.showing ? winCard(missionId) : null;
   const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
@@ -867,7 +868,13 @@ export function ConvoScreen({
       ? 'speaking'
       : typing
         ? 'idle'
-        : 'listening';
+        : // A closed microphone is not listening, and drawing it that way is the
+          // half of F274 that made the other half invisible: the learner had no
+          // reason to look for a control, because the orb said it was already
+          // hearing them. `ready` is the same state the chooser's circle wears.
+          controls.showOpenMic
+          ? 'ready'
+          : 'listening';
 
   return (
     <View style={st.shell}>
@@ -907,7 +914,18 @@ export function ConvoScreen({
         {/* The tutor, as an object. Toward the top, and the only thing on the
             screen that moves. */}
         <View style={st.orbBlock}>
-          <VoiceOrb state={orbState} />
+          {controls.showOpenMic ? (
+            <Pressable
+              onPress={live.openMic}
+              accessibilityRole="button"
+              accessibilityLabel={OPEN_MIC_LABEL}
+              style={({ pressed }) => [st.orbTap, pressed && { opacity: 0.7 }]}
+            >
+              <VoiceOrb state={orbState} />
+            </Pressable>
+          ) : (
+            <VoiceOrb state={orbState} />
+          )}
         </View>
 
         {/* Same banner in the scene as in the choosing moment: a redirect does

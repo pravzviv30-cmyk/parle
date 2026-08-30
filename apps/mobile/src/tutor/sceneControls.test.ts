@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
 import type { ConvoSupportView } from '@parle/core';
 
-import { hasSayableSupportLine, sceneControls, typedTurn } from './sceneControls.ts';
+import { TAP_TO_TALK } from './choosingView.ts';
+import { OPEN_MIC_LABEL, hasSayableSupportLine, sceneControls, typedTurn } from './sceneControls.ts';
 
 const fullLine: ConvoSupportView = {
   kind: 'full-line',
@@ -15,7 +17,7 @@ const options: ConvoSupportView = { kind: 'options', options: [{ text: 'Un café
 const none: ConvoSupportView = { kind: 'none' };
 
 const controls = (over: Partial<Parameters<typeof sceneControls>[0]> = {}) =>
-  sceneControls({ supportView: fullLine, textMode: false, listening: true, typingOpen: false, ...over });
+  sceneControls({ supportView: fullLine, textMode: false, listening: true, typingOpen: false, micOpen: true, ...over });
 
 describe('the controls a live scene offers', () => {
   test('hear it hides when there is no line the tutor would vouch for', () => {
@@ -62,5 +64,81 @@ describe('the controls a live scene offers', () => {
     assert.deepEqual(typedTurn('  Je voudrais un café  '), { t: 'say', text: 'Je voudrais un café' });
     assert.equal(typedTurn(''), null);
     assert.equal(typedTurn('   '), null);
+  });
+});
+
+describe('a mission scene the learner cannot speak into — F274', () => {
+  /**
+   * The whole bug in one assertion. A mission runs in `convo`, which does not
+   * open the microphone at connect, and the only circle that opened one lived
+   * in the choosing block — which the mission's own scene unmounts within a
+   * frame. The learner was left with an orb drawn in its listening state above
+   * a microphone that did not exist.
+   */
+  test('a scene with a closed microphone offers the circle that opens it', () => {
+    assert.equal(controls({ micOpen: false }).showOpenMic, true);
+  });
+
+  test('the scene stops offering the circle once the microphone is open', () => {
+    // Not a toggle. Closing it again is the quiet door's job, and two controls
+    // claiming the same circle is how the choosing orb got its own bug.
+    assert.equal(controls({ micOpen: true }).showOpenMic, false);
+  });
+
+  test('a scene in text mode never offers a microphone', () => {
+    // A voiceless session is a promise, not a preference: the learner chose a
+    // room that publishes nothing, and an orb offering to open one would be the
+    // app asking again after being told.
+    assert.equal(controls({ micOpen: false, textMode: true }).showOpenMic, false);
+    assert.equal(controls({ micOpen: true, textMode: true }).showOpenMic, false);
+  });
+
+  test('the offer stands while the tutor is still speaking', () => {
+    // `listening` gates the replay button because a replay would talk over the
+    // tutor. Opening a microphone does not make a sound, and a learner who
+    // wants to answer early should not have to wait to be allowed to try.
+    assert.equal(controls({ micOpen: false, listening: false }).showOpenMic, true);
+  });
+
+  test('the offer survives the typing box being open', () => {
+    // Typing mid-scene is a detour, not a decision. The circle stays.
+    assert.equal(controls({ micOpen: false, typingOpen: true }).showOpenMic, true);
+  });
+
+  test('it wears the words the chooser already promised', () => {
+    // The consent sentence is TAP_TO_TALK and it lives in one place. A second
+    // copy here is how the promise and the button drift apart.
+    assert.equal(OPEN_MIC_LABEL, TAP_TO_TALK);
+  });
+});
+
+describe('the screen actually wires it — F274', () => {
+  /**
+   * The view-model being right is worth nothing if nothing renders it. That is
+   * exactly how F274 survived: `micAtConnect: false` was correct, deliberate and
+   * tested, and the control it implied was never drawn. ConvoScreen cannot be
+   * imported here — it pulls in react-native — so the wiring is read.
+   */
+  const screen = () => readFileSync(new URL('../ConvoScreen.tsx', import.meta.url), 'utf8');
+
+  test('the scene orb is the only other place that opens a microphone', () => {
+    const source = screen();
+    const calls = [...source.matchAll(/onPress=\{live\.openMic\}/g)];
+    assert.equal(
+      calls.length,
+      2,
+      'the choosing circle and the scene circle. One means the scene lost its microphone again',
+    );
+  });
+
+  test('the scene asks the view-model before drawing a button', () => {
+    const source = screen();
+    assert.match(source, /micOpen: live\.micOpen/, 'sceneControls cannot decide without being told');
+    assert.match(source, /controls\.showOpenMic \? \(/, 'the button must be gated on the decision, not on a guess');
+  });
+
+  test('a closed microphone is never drawn as listening', () => {
+    // The half that made the other half invisible.
+    assert.match(screen(), /controls\.showOpenMic\s*\n?\s*\? 'ready'/);
   });
 });

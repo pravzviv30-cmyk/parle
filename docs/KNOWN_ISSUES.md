@@ -4224,3 +4224,37 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   authenticated and was then refused a scope, so only that shape may fall through to synthesis.
 - verified-by: `a scoped key that can synthesise is not called revoked`
 - verified-by: `a bare 401 is still a dead key`
+
+### F274 — A mission opens a spoken scene the learner can never speak into
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:910
+- note: tap a mission card and the tutor greets you out loud, the orb sits in its listening
+  state, and nothing you say ever reaches the room. No error, no prompt, no permission dialog —
+  the microphone is simply never published. It is the failure this repo names most often as the
+  one that matters: a room that opens and a learner who cannot speak.
+  Four facts make it, and only together. A mission runs in `convo`, and `capsFor('convo')` sets
+  `micAtConnect: false` (`tutor/choosingView.ts:116`), so `useLiveSession.ts:1130` does not open
+  the mic at connect — deliberately, because "a free conversation waits for the circle to be
+  tapped". The circle that does the tapping is the *choosing* orb, and `live.openMic` has exactly
+  one call site in the entire app, `ConvoScreen.tsx:718`, inside the block guarded by
+  `if (!view && live.opening)` at line 667. And `openMission` (`services/tutor-agent/src/convo.ts`)
+  publishes the opening and then calls `openScene()` with nothing awaited between them, so the
+  scene view arrives within a frame and that block unmounts. The learner is left with the scene
+  orb at `ConvoScreen.tsx:910`, which is a bare `VoiceOrb` and not a `Pressable`, whose state is
+  computed `listening` whenever the tutor is not speaking — so it looks live while no microphone
+  exists. "Talk freely" is unaffected: it stays in the choosing moment until the learner speaks,
+  which is why the bug has stayed invisible.
+  The fix is not to open the mic at connect for missions. The chooser tells the learner in its
+  own words that "the microphone opens only when you tap the circle" (`TAP_TO_TALK`), and
+  publishing one behind their back to fix a layout problem would make that sentence false and
+  trade a consent promise for a shortcut. The scene keeps the same promise instead: when the mic
+  is closed and the session is not in text mode, the scene's orb is the same tappable circle,
+  wearing the same words. The decision belongs in `sceneControls`, beside the other three, so it
+  is testable without a renderer.
+  Found by walking the signed-in path after the founder's first real sign-in, and confirmed by
+  reading all four files rather than inferring from one.
+- verified-by: `a scene with a closed microphone offers the circle that opens it`
+- verified-by: `a scene in text mode never offers a microphone`
+- verified-by: `the scene stops offering the circle once the microphone is open`
+- verified-by: `the scene orb is the only other place that opens a microphone`

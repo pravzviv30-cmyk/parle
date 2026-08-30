@@ -30,6 +30,7 @@
  */
 
 import type { ClientMessage, ConvoSupportView } from '@parle/core';
+import { TAP_TO_TALK } from './choosingView.ts';
 
 /**
  * Is there a line on the card that the tutor would actually say if asked?
@@ -49,7 +50,25 @@ export interface SceneControls {
   showTypeInstead: boolean;
   /** The text box and its Send. */
   showInput: boolean;
+  /**
+   * The scene's orb is the circle that opens the microphone.
+   *
+   * A mission runs in `convo`, which does not publish a microphone at connect,
+   * and until F274 the only control that opened one lived in the choosing
+   * block — which a mission's own scene unmounts within a frame of arriving.
+   * The learner got an orb drawn `listening` above no microphone at all.
+   */
+  showOpenMic: boolean;
 }
+
+/**
+ * The words on the scene's circle.
+ *
+ * Re-exported from the chooser rather than retyped: it is the same promise in
+ * the same session, and a second copy is how a promise and its button drift
+ * apart. See F274.
+ */
+export const OPEN_MIC_LABEL = TAP_TO_TALK;
 
 export function sceneControls(input: {
   supportView: ConvoSupportView;
@@ -59,6 +78,8 @@ export function sceneControls(input: {
   listening: boolean;
   /** The learner tapped Type instead during this scene. */
   typingOpen: boolean;
+  /** A microphone is already published for this session. */
+  micOpen: boolean;
 }): SceneControls {
   return {
     // Three conditions, and the third is the new one: something to replay.
@@ -66,6 +87,12 @@ export function sceneControls(input: {
     // Offered until it is taken. Once the box is open the offer is the box.
     showTypeInstead: !input.textMode && !input.typingOpen,
     showInput: input.textMode || input.typingOpen,
+    // Two conditions and no third. `listening` is deliberately not one of them:
+    // it gates the replay button because a replay would talk over the tutor,
+    // and opening a microphone makes no sound — a learner who wants to answer
+    // early should not be told to wait. `typingOpen` is not one either, because
+    // typing mid-scene is a detour and not a decision about the microphone.
+    showOpenMic: !input.textMode && !input.micOpen,
   };
 }
 
