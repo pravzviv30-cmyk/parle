@@ -4199,3 +4199,28 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   called the export "implemented and tested locally", and no test or human had ever executed it.
   Found by running it, not by reading it.
 - verified-by: `a missing billing table is reported as unconfigured rather than as an internal error`
+### F273 — A least-privilege ElevenLabs key that can speak is reported as revoked
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/preflight.ts:370
+- note: the vendor check proves the ElevenLabs key by reading `/v1/user`, and ElevenLabs now
+  issues *scoped* keys. A key granted only what the tutor needs — synthesis — does not carry
+  `user_read`, so that endpoint answers 401 with
+  `{"detail":{"status":"missing_permissions","message":"The API key you used is missing the
+  permission user_read to execute this operation."}}`. `probe` reads any 401 as "rejected the key
+  (HTTP 401). It is wrong, expired, or revoked", the check is fatal, and the worker refuses to
+  boot — so `npm run dev` brings the whole stack down. The founder hit this on a real key
+  rotation and worked around it by widening the key's permissions, which is precisely backwards:
+  the code pushed them off least privilege to satisfy a check that was asking the wrong question.
+  The file already contains the right question. `probeSynthesis` asks the vendor to say one word
+  in the exact voice and model the tutor uses, and its own comment says the catalogue "answers
+  does this account have this voice" while synthesis "answers the question that actually
+  matters". It is simply unreachable: `/v1/user` and `/v1/voices` are asked first and either can
+  401 on a scoped key. Confirmed against the live vendor — the same key that 401s on `/v1/user`
+  returns 200 and 16,762 bytes of MPEG audio from `/v1/text-to-speech/<voice>`.
+  The fix must not weaken the sibling rule. A *bare* 401 — no key at all, or a wrong one — has to
+  stay fatal, and `an unauthenticated catalogue does not vouch for the key` already pins that.
+  What separates them is the vendor's own `missing_permissions`, which is proof the key
+  authenticated and was then refused a scope, so only that shape may fall through to synthesis.
+- verified-by: `a scoped key that can synthesise is not called revoked`
+- verified-by: `a bare 401 is still a dead key`

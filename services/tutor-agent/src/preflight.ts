@@ -190,12 +190,37 @@ type FetchLike = (
   init?: { method?: string; headers?: Record<string, string>; body?: string },
 ) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
+/**
+ * A 401 that proves the key is real.
+ *
+ * ElevenLabs issues scoped keys, and a key granted only what the tutor needs
+ * does not carry `user_read` or `voices_read`. The vendor answers 401 with
+ * `status: "missing_permissions"`, which is authentication succeeding and
+ * authorisation failing — the opposite of a dead key. Reading the two the same
+ * way stopped the worker booting on a perfectly good key and pushed a real
+ * rotation off least privilege (F273).
+ *
+ * Only the vendor's own word counts. A bare 401 carries none of this and stays
+ * fatal, which is what `a bare 401 is still a dead key` holds.
+ */
+function scopeGap(body: unknown): boolean {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (typeof detail !== 'object' || detail === null) return false;
+  const { status, message } = detail as { status?: unknown; message?: unknown };
+  if (status === 'missing_permissions') return true;
+  return typeof message === 'string' && /missing the permission/i.test(message);
+}
+
 async function probe(
   vendor: string,
   url: string,
   headers: Record<string, string>,
   fetchFn: FetchLike,
   onOk?: (body: unknown) => VendorCheck | null,
+  // When set, a 401/403 the vendor explains as a missing scope is not a fault:
+  // the caller has another way to prove the credential. Absent, every refusal
+  // is fatal exactly as before.
+  allowScopeGap = false,
 ): Promise<VendorCheck | null> {
   let response: { ok: boolean; status: number; json(): Promise<unknown> };
   try {
@@ -204,6 +229,17 @@ async function probe(
     return { vendor, fatal: false, detail: `could not be reached — check the network, not the key.` };
   }
   if (response.status === 401 || response.status === 403) {
+    if (allowScopeGap) {
+      // Read the refusal before judging it. An unreadable body is not evidence
+      // of a scope gap, so it falls through to fatal.
+      let body: unknown = null;
+      try {
+        body = await response.json();
+      } catch {
+        body = null;
+      }
+      if (scopeGap(body)) return null;
+    }
     return { vendor, fatal: true, detail: `rejected the key (HTTP ${response.status}). It is wrong, expired, or revoked.` };
   }
   if (!response.ok) {
@@ -367,7 +403,9 @@ export async function verifyVendors(
   checks.push(
     (async (): Promise<VendorCheck | null> => {
       const headers = { 'xi-api-key': env.ELEVEN_API_KEY ?? '' };
-      const auth = await probe('ElevenLabs', 'https://api.elevenlabs.io/v1/user', headers, fetchFn);
+      // `undefined` for onOk, `true` for allowScopeGap: a key scoped to
+      // synthesis alone cannot read the account, and that is not a bad key.
+      const auth = await probe('ElevenLabs', 'https://api.elevenlabs.io/v1/user', headers, fetchFn, undefined, true);
       if (auth !== null) return auth;
 
       const catalogue = await probe('ElevenLabs', 'https://api.elevenlabs.io/v1/voices', headers, fetchFn, (body) => {
@@ -392,7 +430,7 @@ export async function verifyVendors(
             `          the tutor would join and never speak.\n` +
             `          Unset ELEVEN_VOICE_ID for the default voice, or set it to one of: ${named.join(', ')}`,
         };
-      });
+      }, true);
       if (catalogue !== null) return catalogue;
 
       // Asked third and only once the first two are clean, so one broken vendor

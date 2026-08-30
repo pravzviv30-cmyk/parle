@@ -242,6 +242,75 @@ describe('the voice the tutor is configured to use', () => {
     assert.ok(warnings(noVoice).some((w) => /ELEVEN_VOICE_ID is unset/.test(w)));
   });
 
+  /**
+   * F273. ElevenLabs issues scoped keys, and a key granted only synthesis does
+   * not carry `user_read`. The vendor answers 401 with `missing_permissions`,
+   * which is proof the key authenticated and was then refused a scope — the
+   * opposite of a dead key. Reading it as "wrong, expired, or revoked" stopped
+   * the worker booting and pushed a real rotation off least privilege.
+   */
+  const scopeGap = (permission: string) => ({
+    status: 401,
+    body: {
+      detail: {
+        type: 'authentication_error',
+        status: 'missing_permissions',
+        message: `The API key you used is missing the permission ${permission} to execute this operation.`,
+      },
+    },
+  });
+
+  test('a scoped key that can synthesise is not called revoked', async () => {
+    // Both read endpoints are outside this key's scope; synthesis is inside it.
+    // fakeFetch answers 200 to any route it was not told about, which is the
+    // text-to-speech POST the tutor actually depends on.
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      fakeFetch({
+        'api.elevenlabs.io/v1/user': scopeGap('user_read'),
+        'api.elevenlabs.io/v1/voices': scopeGap('voices_read'),
+      }) as never,
+    );
+
+    assert.equal(
+      checks.find((c) => c.vendor === 'ElevenLabs'),
+      undefined,
+      'a key that can speak must not be reported as revoked because it cannot read the account',
+    );
+  });
+
+  test('a bare 401 is still a dead key', async () => {
+    // The sibling rule this must not weaken: no `missing_permissions`, so the
+    // key really was refused. Fatal, exactly as before.
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      fakeFetch({ 'api.elevenlabs.io/v1/user': { status: 401 } }) as never,
+    );
+    const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
+    assert.ok(eleven, 'a genuinely refused key must still stop the worker');
+    assert.equal(eleven.fatal, true);
+    assert.match(eleven.detail, /wrong, expired, or revoked/);
+  });
+
+  test('a scoped key whose synthesis is refused is still fatal', async () => {
+    // Falling through must not become a way to pass. The scope gap only buys a
+    // chance to prove the thing that matters, and this key fails it.
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      fakeFetch({
+        'api.elevenlabs.io/v1/user': scopeGap('user_read'),
+        'api.elevenlabs.io/v1/voices': scopeGap('voices_read'),
+        'api.elevenlabs.io/v1/text-to-speech/v': { status: 401, body: { detail: 'no' } },
+      }) as never,
+    );
+    const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
+    assert.ok(eleven, 'a key that cannot speak must still stop the worker');
+    assert.equal(eleven.fatal, true);
+  });
+
   test('a key that is missing entirely is still caught', () => {
     // The regression this file exists to remember. /v1/voices answers 200 to a
     // caller with no key at all — it serves the premade catalogue anonymously —
