@@ -9,13 +9,18 @@
  *   npm run warm-cache -w @parle/tutor-agent
  *
  * Rerunning is free: cached lines are skipped.
+ *
+ * Changing PARLE_TTS_VENDOR is the expensive one. The cache key carries the
+ * vendor and its sample rate, so every WAV already on disk is orphaned — not
+ * corrupted, just never asked for again — and the first run on the new vendor
+ * pays for every line a second time. Budget a full cold warm, not a top-up.
  */
 
 import 'dotenv/config';
 import { initializeLogger, tokenize } from '@livekit/agents';
 import { LESSONS } from '@parle/core';
 import { APERO_FRAME, CAFE_FRAME } from '@parle/brain';
-import { buildTTS } from './voice.ts';
+import { buildTTS, selectedVoiceVendor, VOICE_KEY } from './voice.ts';
 import { CONVO_LINES } from './convo.ts';
 
 // The worker CLI does this for the agent; a standalone script must do it itself.
@@ -58,8 +63,12 @@ function scriptedLines(): string[] {
 }
 
 async function main(): Promise<void> {
-  if (!process.env.ELEVEN_API_KEY) {
-    console.error('[warm-cache] ELEVEN_API_KEY is empty in services/tutor-agent/.env. Add it, then rerun.');
+  // The key the *selected* vendor cannot speak without, not a literal. A fish
+  // run refusing over ELEVEN_API_KEY would be a refusal about a credential it
+  // was never going to send. One table in voice.ts holds the mapping.
+  const key = VOICE_KEY[selectedVoiceVendor()];
+  if (!process.env[key]) {
+    console.error(`[warm-cache] ${key} is empty in services/tutor-agent/.env. Add it, then rerun.`);
     process.exit(1);
   }
 

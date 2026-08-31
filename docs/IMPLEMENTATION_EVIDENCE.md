@@ -291,6 +291,18 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- fish.audio voice-vendor seam gate: **2,243 tests, 0 failing**; core 563, brain 377,
+  tutor agent 401, token server 170, playground 26, mobile 706. Typecheck is clean in all six
+  workspaces and floors were blessed to those counts. F275 to F280: `buildTTS()` now selects a
+  TTS vendor from `PARLE_TTS_VENDOR`, defaulting to ElevenLabs with a byte-identical voiceKey so
+  the warmed cache keeps hitting; fish.audio is the second implementation, pinned to the only
+  model its free tier serves. Fish never reliably marks a stream final — its HTTP path hardcodes
+  `final: false` and its websocket path marks it only on a non-empty flush remainder — so a
+  hold-last-packet adapter supplies the marker on clean completion and withholds it on error or
+  abort, leaving `ttsCache.ts` and its truncated-line guarantee untouched. Preflight, the dev
+  supervisor, the warm run and the secret scanner all became vendor-aware. Verified against the
+  live vendors: ElevenLabs' free tier refuses every native French voice (402 `paid_plan_required`)
+  while fish's free tier serves them, which is the reason this seam exists.
 - Local dev loop and auth repair gate: **2,221 tests, 0 failing**; core 563, brain 377,
   tutor agent 381, token server 168, playground 26, mobile 706. Typecheck is clean in all
   six workspaces and floors were blessed to those counts. F258 to F262: the development

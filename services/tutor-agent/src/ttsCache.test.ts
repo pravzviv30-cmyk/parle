@@ -13,6 +13,7 @@ initializeLogger({ pretty: false, level: 'silent' });
 import { CachedTTS, normaliseLine } from './ttsCache.ts';
 import { encodeWav, decodeWav } from './wav.ts';
 import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 
 const SAMPLE_RATE = 16_000;
 
@@ -358,5 +359,44 @@ describe('the warm-cache script cannot be hung by an env flag', () => {
     // main() talks to a vendor.
     const source = readFileSync(new URL('./warmCache.ts', import.meta.url).pathname, 'utf8');
     assert.match(source, /buildTTS\(\{[^}]*missTransport:\s*'http'/, 'the warm run no longer pins its transport');
+  });
+});
+
+describe('the warm-cache script demands the selected vendor key', () => {
+  /**
+   * Runs the real script exactly as `npm run warm-cache` does, and gets the real
+   * refusal — the guard lives inside a main() that talks to a vendor, so the
+   * only honest way to see it is to run it.
+   *
+   * Two details are load-bearing, both about not spending money in a test.
+   * dotenv reads .env from the cwd, so the run happens in an empty temp dir
+   * rather than services/tutor-agent. And the child env is built from nothing
+   * rather than inherited, because a founder with keys exported would sail past
+   * the guard and start a real, paid warm run inside the suite.
+   */
+  function warmRun(vendor?: string): { status: number | null; err: string } {
+    const script = new URL('./warmCache.ts', import.meta.url).pathname;
+    const run = spawnSync(process.execPath, ['--experimental-strip-types', script], {
+      cwd: mkdtempSync(join(tmpdir(), 'parle-warm-')),
+      env: {
+        PATH: process.env.PATH ?? '',
+        HOME: process.env.HOME ?? '',
+        ...(vendor === undefined ? {} : { PARLE_TTS_VENDOR: vendor }),
+      },
+      encoding: 'utf8',
+    });
+    return { status: run.status, err: run.stderr };
+  }
+
+  test("the warm run refuses without the selected vendor's key and names the right variable", () => {
+    const fish = warmRun('fish');
+    assert.equal(fish.status, 1, 'a keyless fish warm run stops rather than starting');
+    assert.match(fish.err, /FISH_API_KEY is empty/, 'and names the key fish actually needs');
+    assert.doesNotMatch(fish.err, /ELEVEN_API_KEY/, 'never refusing over a key it was not going to send');
+
+    const eleven = warmRun(undefined);
+    assert.equal(eleven.status, 1, 'and the default vendor is still ElevenLabs');
+    assert.match(eleven.err, /ELEVEN_API_KEY is empty/, 'refusing over its own key');
+    assert.doesNotMatch(eleven.err, /FISH_API_KEY/, 'and only its own');
   });
 });

@@ -37,9 +37,50 @@
 import { fileURLToPath } from 'node:url';
 import * as elevenlabs from '@livekit/agents-plugin-elevenlabs';
 import { CachedTTS, type CachedTTSOptions } from './ttsCache.ts';
+import { fishVoice } from './voiceFish.ts';
 
 /** Lives inside the service so a repo clone starts cold, not with stale audio. */
 export const DEFAULT_CACHE_DIR = fileURLToPath(new URL('../.tts-cache', import.meta.url));
+
+/** The voice vendors this worker can speak through. */
+export type VoiceVendor = 'elevenlabs' | 'fish';
+
+type Env = Record<string, string | undefined>;
+
+/**
+ * Which voice vendor the .env asks for.
+ *
+ * Parsed exactly like selectedBrain() in preflight.ts, and for exactly the
+ * reason documented there: `??` only falls back on null or undefined, so a
+ * `PARLE_TTS_VENDOR=` line in a .env selects the default while reading to a
+ * human as "unset". Trim, lowercase, treat empty as absent, and fall back
+ * rather than throw on a value nobody recognises — a typo here must not be able
+ * to stop a worker booting on the vendor it has always used.
+ *
+ * ElevenLabs is the default and stays the default. There are hundreds of warmed
+ * WAVs on disk keyed to it, and this seam exists to add a vendor, not to move
+ * one.
+ */
+export function selectedVoiceVendor(env: Env = process.env): VoiceVendor {
+  const raw = (env.PARLE_TTS_VENDOR ?? '').trim().toLowerCase();
+  if (raw === 'fish') return 'fish';
+  return 'elevenlabs';
+}
+
+/**
+ * Which credential each vendor cannot speak without.
+ *
+ * One table, read by three places that would otherwise each carry their own
+ * literal: the agent's preflight, the dev supervisor's env check, and the warm
+ * cache script. Demanding the wrong vendor's key is a worker that refuses to
+ * boot over a credential it was never going to send.
+ *
+ * FISH_API_KEY is the name the plugin itself reads, not a name chosen here.
+ */
+export const VOICE_KEY: Record<VoiceVendor, string> = {
+  elevenlabs: 'ELEVEN_API_KEY',
+  fish: 'FISH_API_KEY',
+};
 
 /**
  * Pinned for two reasons. A plugin upgrade must never be able to move the voice
@@ -185,10 +226,23 @@ export function synthesisProbeRequest(voiceId: string): { url: string; body: str
 /**
  * `hooks` exists for the agent's latency telemetry; the warm-cache script calls
  * this bare. Nothing here may change what the tutor sounds like.
+ *
+ * The vendor branch is the only thing PARLE_TTS_VENDOR moves. Everything below
+ * it — the model, the voice, the settings, the fingerprint, the voiceKey — is
+ * the ElevenLabs configuration exactly as it was before fish existed, because
+ * the warmed cache on disk is keyed to that string and a byte of drift throws
+ * all of it away.
  */
 export function buildTTS(
   hooks: Pick<CachedTTSOptions, 'onFirstAudio'> & Pick<CachedTTSOptions, 'missTransport'> = {},
 ): CachedTTS {
+  const dir = process.env.TTS_CACHE_DIR ?? DEFAULT_CACHE_DIR;
+
+  if (selectedVoiceVendor() === 'fish') {
+    const { inner, voiceKey } = fishVoice();
+    return new CachedTTS(inner, { dir, voiceKey, ...hooks });
+  }
+
   const voiceId = process.env.ELEVEN_VOICE_ID;
   const inner = new elevenlabs.TTS({
     model: MODEL,
@@ -199,7 +253,7 @@ export function buildTTS(
   });
 
   const opts: CachedTTSOptions = {
-    dir: process.env.TTS_CACHE_DIR ?? DEFAULT_CACHE_DIR,
+    dir,
     voiceKey: `elevenlabs:${voiceId ?? 'default'}:${inner.model}:${SETTINGS_FINGERPRINT}`,
     ...hooks,
   };

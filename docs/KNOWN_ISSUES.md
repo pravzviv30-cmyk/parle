@@ -4258,3 +4258,83 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a scene in text mode never offers a microphone`
 - verified-by: `the scene stops offering the circle once the microphone is open`
 - verified-by: `the scene orb is the only other place that opens a microphone`
+
+### F275 — A voice vendor seam in buildTTS, defaulting to ElevenLabs byte-for-byte
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/voice.ts:189
+- note: `selectedVoiceVendor()` and `VOICE_KEY` follow the selectedBrain pattern (trim, lowercase,
+  empty means absent, unknown falls back); the fish branch builds from a new voiceFish.ts with
+  model pinned to s2.1-pro-free (FISH_MODEL override), env-set FISH_VOICE_ID, explicit 24000
+  sampleRate, pinned FISH_SETTINGS with a sorted derived fingerprint, and voiceKey
+  `fish:<voice>:<model>:<fingerprint>`. The ElevenLabs branch and its voiceKey are unchanged so
+  the 380 warmed WAVs keep hitting. Includes the exact-pinned plugin dep and the .env.example
+  vendor block.
+- verified-by: `PARLE_TTS_VENDOR empty, blank or unknown selects ElevenLabs, case and whitespace insensitively`
+- verified-by: `PARLE_TTS_VENDOR=fish builds a fish TTS pinned to s2.1-pro-free, and FISH_MODEL overrides it into the cache key`
+- verified-by: `the fish cache key fingerprints vendor, voice, model and every delivery knob, so none can drift`
+- verified-by: `.env.example documents PARLE_TTS_VENDOR and every FISH_ variable the worker reads`
+
+### F276 — Fish's missing final marker is repaired at the seam, not trusted
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/voiceFish.ts:1
+- note: fish's ws stream emits final:false on every frame and its http stream hardcodes it, so
+  ttsCache.ts:242 would never cache under the founder's PARLE_TTS_MISS_TRANSPORT=ws — audio plays,
+  spend rises, no test fails. A hold-last-packet adapter around the fish TTS's stream() marks final
+  only on clean completion; error and abort never mark it, so ttsCache's truncated-line guarantee
+  is preserved and ttsCache.ts itself is not edited.
+- verified-by: `a fish-shaped stream that never marks final is cached by CachedTTS over ws and replayed as a hit`
+- verified-by: `a stream that errors mid-line never reaches disk, even through the adapter`
+- verified-by: `an aborted line never reaches disk, even through the adapter`
+- verified-by: `when the inner stream marks final itself the adapter forwards it once, unchanged and in order`
+
+### F277 — Preflight demands, probes and warns for the vendor the env selected
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/preflight.ts:118
+- note: missingRequired swaps ELEVEN_API_KEY for FISH_API_KEY under fish; FISH_AUDIO_API_KEY (the
+  founder's live misname, verified) becomes a named near-miss; the ELEVEN_VOICE_ID warning is gated
+  on the default vendor and the two new warnings are conditional, so the five exact w.length
+  assertions hold; under fish, verifyVendors probes /wallet/self/api-credit then a JSON /v1/tts
+  probe with the model header (always — the pinned model is exactly what 402s when the free window
+  closes), skips the ElevenLabs IIFE, and never applies the F273 missing_permissions parse to a
+  fish 401.
+- verified-by: `missingRequired demands FISH_API_KEY and not ELEVEN_API_KEY when fish is selected, and the reverse by default`
+- verified-by: `FISH_AUDIO_API_KEY is named as a near-miss of FISH_API_KEY, and never its value`
+- verified-by: `a fish 402 is fatal and quotes the vendor's own message`
+- verified-by: `a fish 401 stays fatal even when the body claims missing_permissions`
+- verified-by: `fish selected probes fish and never ElevenLabs; the default probes ElevenLabs and never fish`
+- verified-by: `FISH_VOICE_ID unset under fish warns that the default voice is the one this migration replaces`
+
+### F278 — The supervisor and the agent agree on which voice key the env selects
+- severity: P1
+- status: [x]
+- where: services/shared/devPlan.ts:229
+- note: devPlan cannot import preflight (services/shared sits below the services that use it), so
+  voiceVendorOf mirrors selectedVoiceVendor exactly as brainOf mirrors selectedBrain, and line
+  229's unconditional ELEVEN_API_KEY need becomes vendor-conditional. The agreement test couples
+  the two answers, not the two implementations, across empty, cased, padded and nonsense values.
+- verified-by: `the supervisor and the agent preflight agree on which voice key PARLE_TTS_VENDOR selects`
+
+### F279 — The warm run refuses without the selected vendor's key, naming it
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/warmCache.ts:61
+- note: the guard is hardcoded to ELEVEN_API_KEY, so a fish-selected warm run would refuse over a
+  key it does not need. It reads selectedVoiceVendor and VOICE_KEY from voice.ts instead. The
+  buildTTS call at line 74 is untouched because ttsCache.test.ts:353-361 reads this file's source
+  with a regex whose `[^}]*` cannot cross a brace.
+- verified-by: `the warm run refuses without the selected vendor's key and names the right variable`
+- verified-by: `warming pins the transport rather than reading the environment`
+
+### F280 — The secret scanner knows fish's key by both its names
+- severity: P1
+- status: [x]
+- where: services/token-server/src/secretScan.ts:321
+- note: FISH_API_KEY is now a live server credential and the founder's .env carries it under the
+  misname too; both names join the assigned-server-secret list so an inline assignment is caught
+  before it leaves through a log. Name-anchored only — no shape pattern, because fish's key format
+  is unverified and guessing about foreign secrets is the failure the file's own doctrine forbids.
+- verified-by: `an inline FISH_API_KEY assignment is caught as a server-only credential`
+- verified-by: `an inline FISH_AUDIO_API_KEY assignment is caught even under the misspelled name`

@@ -202,6 +202,25 @@ function brainOf(env: Env): 'anthropic' | 'openai' | 'groq' | 'claude-cli' | 'cl
   return 'anthropic';
 }
 
+/**
+ * The voice vendor the agent's .env asks for. A deliberate mirror of
+ * selectedVoiceVendor in services/tutor-agent/src/voice.ts, for the same reason
+ * brainOf mirrors selectedBrain: services/shared sits BELOW the services that
+ * import it, and reaching upward into the tutor agent would invert the
+ * dependency direction speechace.ts established.
+ *
+ * An unguarded mirror is a silent disagreement waiting to happen — the
+ * supervisor would demand one vendor's key and the agent another one process
+ * later — so a test in the tutor agent couples the two ANSWERS across empty,
+ * cased, padded and nonsense values. Change one of these two functions and that
+ * test fails, which is the whole point of writing it twice.
+ */
+function voiceVendorOf(env: Env): 'elevenlabs' | 'fish' {
+  const raw = (env.PARLE_TTS_VENDOR ?? '').trim().toLowerCase();
+  if (raw === 'fish') return 'fish';
+  return 'elevenlabs';
+}
+
 const AGENT_FILE = 'services/tutor-agent/.env';
 const TOKEN_FILE = 'services/token-server/.env';
 
@@ -226,7 +245,10 @@ export function envGaps(agentEnv: Env, tokenEnv: Env): EnvGap[] {
     need(agentEnv, name, AGENT_FILE, 'the agent cannot register with LiveKit without it.');
   }
   need(agentEnv, 'DEEPGRAM_API_KEY', AGENT_FILE, 'nothing would transcribe the learner.');
-  need(agentEnv, 'ELEVEN_API_KEY', AGENT_FILE, 'the tutor would have no voice.');
+  // One voice key, and it is the selected vendor's. Asking for the other one
+  // would refuse to boot a stack that runs.
+  const voiceKeyName = voiceVendorOf(agentEnv) === 'fish' ? 'FISH_API_KEY' : 'ELEVEN_API_KEY';
+  need(agentEnv, voiceKeyName, AGENT_FILE, 'the tutor would have no voice.');
 
   const brain = brainOf(agentEnv);
   if (brain === 'groq') {

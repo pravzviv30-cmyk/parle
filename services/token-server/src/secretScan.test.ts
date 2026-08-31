@@ -207,6 +207,58 @@ describe('the secret scanner — shapes found, values never spoken', () => {
     assert.deepEqual(scanLine(`AKIA${token(16, 'upper')} // ${ALLOW_MARKER}`), []);
   });
 
+  test('an inline FISH_API_KEY assignment is caught as a server-only credential', () => {
+    // fish.audio is a live TTS vendor now, so this key spends real vendor money
+    // the moment anyone else is holding it.
+    assert.deepEqual(scanLine(`FISH_API_KEY=${token(40)}`), ['assigned-server-secret']);
+    assert.deepEqual(scanLine(`        FISH_API_KEY: '${token(32)}',`), ['assigned-server-secret']);
+    assert.ok(
+      scanLine(`FISH_API_KEY=${letters(32)}`).includes('assigned-server-secret'),
+      'a fish key of only letters must not be forgiven as a variable name',
+    );
+
+    // Wiring the key up is not leaking it, and neither is the stand-in an
+    // example file carries.
+    assert.deepEqual(scanLine('const fishKey = process.env.FISH_API_KEY;'), []);
+    assert.deepEqual(scanLine('        FISH_API_KEY: process.env.FISH_API_KEY,'), []);
+    assert.deepEqual(scanLine('FISH_API_KEY=<your fish.audio key here>'), []);
+
+    // Name-anchored only, deliberately. Fish's key format is unverified, so
+    // there is no fish shape rule and a value with no name in front of it stays
+    // quiet: a guessed shape cries wolf, and a scanner that cries wolf is off.
+    assert.deepEqual(patternIds().filter((id) => /fish/i.test(id)), []);
+    assert.deepEqual(scanLine(`const referenceAudio = '${token(48, 'hex')}';`), []);
+  });
+
+  test('an inline FISH_AUDIO_API_KEY assignment is caught even under the misspelled name', () => {
+    // The plugin reads FISH_API_KEY, but a live .env in this repo holds the same
+    // credential under FISH_AUDIO_API_KEY. A scanner that only knows the correct
+    // spelling is blind to the file people actually have in front of them.
+    assert.deepEqual(scanLine(`FISH_AUDIO_API_KEY=${token(40)}`), ['assigned-server-secret']);
+    assert.deepEqual(
+      scanLine(`        FISH_AUDIO_API_KEY: '${token(32)}',`),
+      ['assigned-server-secret'],
+    );
+    assert.ok(
+      scanLine(`FISH_AUDIO_API_KEY=${letters(32)}`).includes('assigned-server-secret'),
+      'the misspelling must be read as carefully as the right name, or it is not covered',
+    );
+
+    // The shorter name is a prefix of the longer one, so the alternation has to
+    // capture the whole credential rather than a tail of it. Compared, never
+    // printed, so a failure here still says nothing about the value.
+    const misnamed = token(40);
+    const assigned = SECRET_PATTERNS.find((pattern) => pattern.id === 'assigned-server-secret');
+    assert.ok(assigned, 'the assigned-server-secret pattern must exist for this check to mean anything');
+    assert.ok(
+      assigned.pattern.exec(`FISH_AUDIO_API_KEY=${misnamed}`)?.groups?.value === misnamed,
+      'the misspelled name must capture the whole credential, not a fragment of it',
+    );
+
+    assert.deepEqual(scanLine('FISH_AUDIO_API_KEY=process.env.FISH_API_KEY'), []);
+    assert.deepEqual(scanLine('FISH_AUDIO_API_KEY=your-fish-audio-key-here'), []);
+  });
+
   test('the history walker names the commit and line that introduced a secret', () => {
     const leaked = `gsk_${token(52)}`;
     const diff = [

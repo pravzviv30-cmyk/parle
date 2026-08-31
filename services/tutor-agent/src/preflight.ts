@@ -11,7 +11,8 @@
  */
 
 import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_TURN_MODEL } from '@parle/brain';
-import { MODEL, PROBE_LINE, synthesisProbeRequest } from './voice.ts';
+import { MODEL, PROBE_LINE, VOICE_KEY, selectedVoiceVendor, synthesisProbeRequest } from './voice.ts';
+import { fishModel, fishSynthesisProbeRequest, fishVoiceId } from './voiceFish.ts';
 
 export type Brain = 'anthropic' | 'openai' | 'groq' | 'claude-cli' | 'claude-cli-all';
 
@@ -72,6 +73,7 @@ export const REAL_KEY_NAMES: readonly string[] = [
   'LIVEKIT_API_SECRET',
   'DEEPGRAM_API_KEY',
   'ELEVEN_API_KEY',
+  'FISH_API_KEY',
   'ANTHROPIC_API_KEY',
   'OPENAI_API_KEY',
   'GROQ_API_KEY',
@@ -105,6 +107,10 @@ export const NEAR_MISS_KEYS: Record<string, string> = {
   ELEVENLABS_API_KEY: 'ELEVEN_API_KEY',
   ELEVEN_LABS_API_KEY: 'ELEVEN_API_KEY',
   ELEVENLABS_KEY: 'ELEVEN_API_KEY',
+  // Not hypothetical. This is the name in the live .env today, and the plugin
+  // reads FISH_API_KEY, so under PARLE_TTS_VENDOR=fish the worker would refuse
+  // to boot next to a perfectly good key sitting under the wrong name.
+  FISH_AUDIO_API_KEY: 'FISH_API_KEY',
 };
 
 /** Without these the worker cannot serve a single turn. */
@@ -115,17 +121,25 @@ export function missingRequired(env: Env = process.env): string[] {
     'LIVEKIT_API_KEY',
     'LIVEKIT_API_SECRET',
     'DEEPGRAM_API_KEY',
-    'ELEVEN_API_KEY',
+    // The voice key follows PARLE_TTS_VENDOR exactly as the brain key follows
+    // TUTOR_LLM. Demanding ElevenLabs' key under fish would refuse to boot a
+    // worker that was never going to call ElevenLabs.
+    VOICE_KEY[selectedVoiceVendor(env)],
     ...(brainKey === null ? [] : [brainKey]),
   ];
   return required.filter((name) => (env[name] ?? '').trim() === '');
 }
 
 /**
- * Worth saying out loud but not worth refusing over. ELEVEN_VOICE_ID is
- * genuinely optional — voice.ts falls back to the vendor's default voice — but
- * a default-voice tutor is not the tutor anyone intended to ship, and the TTS
+ * Worth saying out loud but not worth refusing over. A voice id is genuinely
+ * optional — voice.ts falls back to the vendor's default voice — but a
+ * default-voice tutor is not the tutor anyone intended to ship, and the TTS
  * cache is keyed by voice, so discovering this later means re-warming it.
+ *
+ * Every line added here has to be CONDITIONAL. Five tests assert the exact
+ * length of this list, which is the point: a startup that warns about something
+ * on every single boot teaches everyone to stop reading the warnings, and then
+ * the one that mattered scrolls past unread.
  */
 export function warnings(env: Env = process.env): string[] {
   const out: string[] = [];
@@ -136,8 +150,27 @@ export function warnings(env: Env = process.env): string[] {
         `Rename it, or delete it so nobody trusts it.`,
     );
   }
-  if ((env.ELEVEN_VOICE_ID ?? '').trim() === '') {
+  const vendor = selectedVoiceVendor(env);
+  if (vendor === 'elevenlabs' && (env.ELEVEN_VOICE_ID ?? '').trim() === '') {
     out.push('ELEVEN_VOICE_ID is unset, so the tutor will speak in ElevenLabs’ default voice.');
+  }
+  if (vendor === 'fish' && (env.FISH_VOICE_ID ?? '').trim() === '') {
+    // Not the same warning with a different variable name. fish's default voice
+    // is "Sarah", a young American woman, which is precisely the voice this
+    // vendor was added to escape — so an unset id here does not merely miss the
+    // intended tutor, it reproduces the original bug under a new vendor.
+    out.push(
+      'FISH_VOICE_ID is unset, so the tutor will speak in fish.audio’s default voice: “Sarah”, ' +
+        'a young American woman. That is the exact voice this vendor was added to replace. ' +
+        'Set FISH_VOICE_ID to a French voice before a learner hears it.',
+    );
+  }
+  const asked = (env.PARLE_TTS_VENDOR ?? '').trim();
+  if (asked !== '' && asked.toLowerCase() !== 'fish' && asked.toLowerCase() !== 'elevenlabs') {
+    out.push(
+      `PARLE_TTS_VENDOR is set to “${asked}”, which is not a vendor this worker knows, so ElevenLabs ` +
+        'will be used. The two it knows are elevenlabs and fish.',
+    );
   }
   if (selectedBrain(env) === 'groq') {
     out.push('TUTOR_LLM=groq selects the $0 fallback brain. Its coaching is visibly weaker than Claude’s.');
@@ -314,6 +347,62 @@ async function probeSynthesis(voiceId: string, apiKey: string, fetchFn: FetchLik
   };
 }
 
+/**
+ * The same question of fish, and it has to be asked on EVERY boot.
+ *
+ * ElevenLabs' synthesis probe is skipped when no voice is configured, because
+ * the vendor default is the vendor's problem. fish is different: the thing most
+ * likely to refuse is not the voice, it is the MODEL. `s2.1-pro-free` is the
+ * only model fish's free tier serves and its free window was published to end
+ * 2026-08-31, so the failure this probe exists to catch is a 402 appearing one
+ * morning on a configuration nobody touched. A probe that only ran when a voice
+ * id was set would miss it exactly when it mattered.
+ *
+ * Fatality follows the rule the rest of this file uses: a deterministic no
+ * about the configuration stops the worker, weather does not.
+ */
+async function probeFishSynthesis(env: Env, fetchFn: FetchLike): Promise<VendorCheck | null> {
+  const { url, headers, body } = fishSynthesisProbeRequest(env.FISH_API_KEY ?? '', PROBE_LINE, env);
+  let response: { ok: boolean; status: number; json(): Promise<unknown> };
+  try {
+    response = await fetchFn(url, { method: 'POST', headers, body });
+  } catch {
+    return { vendor: 'fish.audio', fatal: false, detail: `could not be reached — check the network, not the key.` };
+  }
+  if (response.ok) return null;
+  if (response.status >= 500 || response.status === 429) {
+    return {
+      vendor: 'fish.audio',
+      fatal: false,
+      detail: `answered HTTP ${response.status} to a test line; treating as a blip rather than a misconfiguration.`,
+    };
+  }
+
+  // The vendor explains itself better than this file could guess. fish answers
+  // in more than one shape, so read the likely ones and stay quiet rather than
+  // paraphrase if none of them fits.
+  let said = '';
+  try {
+    const parsed = (await response.json()) as { detail?: { message?: string } | string; message?: string };
+    const detail = parsed?.detail;
+    said = (typeof detail === 'string' ? detail : detail?.message) ?? parsed?.message ?? '';
+  } catch {
+    said = '';
+  }
+
+  return {
+    vendor: 'fish.audio',
+    fatal: true,
+    detail:
+      `refused to speak a test line (HTTP ${response.status}).\n` +
+      (said ? `          The vendor said: ${said}\n` : '') +
+      `          The tutor asks for voice "${fishVoiceId(env) ?? 'the vendor default'}" on ${fishModel(env)},\n` +
+      `          and it is the COMBINATION that is refused. A 402 here usually means the free window on\n` +
+      `          that model has closed: set FISH_MODEL in services/tutor-agent/.env to a paid model, or\n` +
+      `          set PARLE_TTS_VENDOR back to elevenlabs.`,
+  };
+}
+
 /** Reaches each vendor the selected pipeline needs. Empty means all is well. */
 export async function verifyVendors(
   env: Env = process.env,
@@ -385,62 +474,88 @@ export async function verifyVendors(
     );
   }
 
-  // Two questions, two endpoints, because neither can answer the other's.
-  //
-  // /v1/user refuses an absent key. /v1/voices does NOT — it serves the premade
-  // catalogue to anonymous callers and answers 200 with no header at all — so
-  // the key check cannot live there, though a *wrong* key does get a 401. That
-  // asymmetry is worth stating: putting authentication on /v1/voices looks like
-  // it works, passes every test written against a fake, and quietly stops
-  // catching the one case it most needs to.
-  //
-  // The catalogue is still the only thing that can settle the voice id. A voice
-  // belongs to the account that made it, so a key rotated onto a new account
-  // leaves an id that passes every other check and then 404s at synthesis —
-  // reaching the learner as a room that opens and a tutor that never speaks.
-  // Asked second, and only once the key is known good, so one broken vendor
-  // produces one message.
-  checks.push(
-    (async (): Promise<VendorCheck | null> => {
-      const headers = { 'xi-api-key': env.ELEVEN_API_KEY ?? '' };
-      // `undefined` for onOk, `true` for allowScopeGap: a key scoped to
-      // synthesis alone cannot read the account, and that is not a bad key.
-      const auth = await probe('ElevenLabs', 'https://api.elevenlabs.io/v1/user', headers, fetchFn, undefined, true);
-      if (auth !== null) return auth;
+  // Only the selected voice vendor is asked anything. Probing the other one
+  // would send an empty key, read the 401 as fatal, and refuse to start a worker
+  // that was perfectly able to run — the same trap claude-cli-all showed above.
+  if (selectedVoiceVendor(env) === 'fish') {
+    checks.push(
+      (async (): Promise<VendorCheck | null> => {
+        // The cheapest authenticated GET fish offers, verified live: 401 with no
+        // key, 200 with one.
+        //
+        // `allowScopeGap` stays FALSE here, and that is not an oversight. The
+        // missing_permissions parse is ElevenLabs' wire shape and ElevenLabs'
+        // scoped-key model (F273). Extending it to a vendor whose refusals have
+        // never been read would turn a real dead key into a silent pass on a
+        // guess about somebody else's API.
+        const auth = await probe(
+          'fish.audio',
+          'https://api.fish.audio/wallet/self/api-credit',
+          { Authorization: `Bearer ${env.FISH_API_KEY ?? ''}` },
+          fetchFn,
+        );
+        if (auth !== null) return auth;
+        return probeFishSynthesis(env, fetchFn);
+      })(),
+    );
+  } else {
+    // Two questions, two endpoints, because neither can answer the other's.
+    //
+    // /v1/user refuses an absent key. /v1/voices does NOT — it serves the premade
+    // catalogue to anonymous callers and answers 200 with no header at all — so
+    // the key check cannot live there, though a *wrong* key does get a 401. That
+    // asymmetry is worth stating: putting authentication on /v1/voices looks like
+    // it works, passes every test written against a fake, and quietly stops
+    // catching the one case it most needs to.
+    //
+    // The catalogue is still the only thing that can settle the voice id. A voice
+    // belongs to the account that made it, so a key rotated onto a new account
+    // leaves an id that passes every other check and then 404s at synthesis —
+    // reaching the learner as a room that opens and a tutor that never speaks.
+    // Asked second, and only once the key is known good, so one broken vendor
+    // produces one message.
+    checks.push(
+      (async (): Promise<VendorCheck | null> => {
+        const headers = { 'xi-api-key': env.ELEVEN_API_KEY ?? '' };
+        // `undefined` for onOk, `true` for allowScopeGap: a key scoped to
+        // synthesis alone cannot read the account, and that is not a bad key.
+        const auth = await probe('ElevenLabs', 'https://api.elevenlabs.io/v1/user', headers, fetchFn, undefined, true);
+        if (auth !== null) return auth;
 
-      const catalogue = await probe('ElevenLabs', 'https://api.elevenlabs.io/v1/voices', headers, fetchFn, (body) => {
+        const catalogue = await probe('ElevenLabs', 'https://api.elevenlabs.io/v1/voices', headers, fetchFn, (body) => {
+          const wanted = (env.ELEVEN_VOICE_ID ?? '').trim();
+          if (wanted === '') return null; // unset is a warning, not a fault — see warnings()
+
+          const voices = (body as { voices?: { voice_id?: string; name?: string }[] }).voices ?? [];
+          const ids = voices.map((v) => v.voice_id).filter((id): id is string => typeof id === 'string');
+          // An unreadable or empty list is not evidence the voice is missing.
+          if (ids.length === 0 || ids.includes(wanted)) return null;
+
+          const named = voices
+            .filter((v) => typeof v.voice_id === 'string')
+            .slice(0, 4)
+            .map((v) => `${v.name ?? 'unnamed'} (${v.voice_id})`);
+          return {
+            vendor: 'ElevenLabs',
+            fatal: true,
+            detail:
+              `accepts the key but has no voice "${wanted}" — a voice belongs to the account that made it,\n` +
+              `          so this is what a key rotated onto a NEW account looks like. Synthesis would 404 and\n` +
+              `          the tutor would join and never speak.\n` +
+              `          Unset ELEVEN_VOICE_ID for the default voice, or set it to one of: ${named.join(', ')}`,
+          };
+        }, true);
+        if (catalogue !== null) return catalogue;
+
+        // Asked third and only once the first two are clean, so one broken vendor
+        // still produces one message. Costs `PROBE_LINE` worth of quota per boot,
+        // which is four characters against a tutor that silently cannot speak.
         const wanted = (env.ELEVEN_VOICE_ID ?? '').trim();
-        if (wanted === '') return null; // unset is a warning, not a fault — see warnings()
-
-        const voices = (body as { voices?: { voice_id?: string; name?: string }[] }).voices ?? [];
-        const ids = voices.map((v) => v.voice_id).filter((id): id is string => typeof id === 'string');
-        // An unreadable or empty list is not evidence the voice is missing.
-        if (ids.length === 0 || ids.includes(wanted)) return null;
-
-        const named = voices
-          .filter((v) => typeof v.voice_id === 'string')
-          .slice(0, 4)
-          .map((v) => `${v.name ?? 'unnamed'} (${v.voice_id})`);
-        return {
-          vendor: 'ElevenLabs',
-          fatal: true,
-          detail:
-            `accepts the key but has no voice "${wanted}" — a voice belongs to the account that made it,\n` +
-            `          so this is what a key rotated onto a NEW account looks like. Synthesis would 404 and\n` +
-            `          the tutor would join and never speak.\n` +
-            `          Unset ELEVEN_VOICE_ID for the default voice, or set it to one of: ${named.join(', ')}`,
-        };
-      }, true);
-      if (catalogue !== null) return catalogue;
-
-      // Asked third and only once the first two are clean, so one broken vendor
-      // still produces one message. Costs `PROBE_LINE` worth of quota per boot,
-      // which is four characters against a tutor that silently cannot speak.
-      const wanted = (env.ELEVEN_VOICE_ID ?? '').trim();
-      if (wanted === '') return null; // the vendor default; nothing of ours to prove
-      return probeSynthesis(wanted, env.ELEVEN_API_KEY ?? '', fetchFn);
-    })(),
-  );
+        if (wanted === '') return null; // the vendor default; nothing of ours to prove
+        return probeSynthesis(wanted, env.ELEVEN_API_KEY ?? '', fetchFn);
+      })(),
+    );
+  }
 
   checks.push(probe('Deepgram', 'https://api.deepgram.com/v1/projects', { Authorization: `Token ${env.DEEPGRAM_API_KEY ?? ''}` }, fetchFn));
 

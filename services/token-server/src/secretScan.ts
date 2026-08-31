@@ -319,6 +319,13 @@ export const SECRET_PATTERNS: readonly SecretPattern[] = [
         'PARLE_RATE_LIMIT_SALT',
         'SPEECHACE_API_KEY',
         'ELEVEN_API_KEY',
+        // fish.audio, under both names that exist in the wild: the plugin reads
+        // FISH_API_KEY, and a live .env in this repo still holds the key under
+        // the misspelling. Name-anchored only, deliberately — fish's key format
+        // is unverified, and a guessed shape is worse than a missed one because
+        // false positives are how a scanner gets switched off.
+        'FISH_API_KEY',
+        'FISH_AUDIO_API_KEY',
         'OPENAI_API_KEY',
         'OPEN_AI_KEY',
         'ANTHROPIC_API_KEY',

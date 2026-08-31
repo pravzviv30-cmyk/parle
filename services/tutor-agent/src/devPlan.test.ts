@@ -243,4 +243,33 @@ describe('devPlan — the supervisor and the agent must agree', () => {
     assert.deepEqual(agentWants, [], 'the agent asks for no brain credential');
     assert.deepEqual(devWants, agentWants, 'and npm run dev asks for exactly the same nothing');
   });
+
+  test('the supervisor and the agent preflight agree on which voice key PARLE_TTS_VENDOR selects', () => {
+    // The same mirror as brainOf, for the same reason, with the same hazard.
+    // devPlan cannot import voice.ts — services/shared sits below the services
+    // that use it — so voiceVendorOf is written twice, and two copies of a
+    // parser drift the moment one of them learns a third vendor. The failure
+    // that produces is specific and maddening: `npm run dev` refuses to boot
+    // over ELEVEN_API_KEY while the agent, one process later, wanted
+    // FISH_API_KEY and would have been perfectly happy.
+    //
+    // Nothing here couples the two implementations. It couples their answers.
+    const VOICE_KEYS = ['ELEVEN_API_KEY', 'FISH_API_KEY'];
+    for (const value of ['', '  ', 'fish', ' FISH ', 'elevenlabs', 'nonsense']) {
+      // Blank both voice keys, then ask each side which one it misses.
+      const env = { ...AGENT_ENV, PARLE_TTS_VENDOR: value, ELEVEN_API_KEY: '', FISH_API_KEY: '' };
+
+      const agentWants = missingRequired(env).filter((name) => VOICE_KEYS.includes(name));
+      const devWants = envGaps(env, TOKEN_ENV)
+        .filter((gap) => VOICE_KEYS.includes(gap.name))
+        .map((gap) => gap.name);
+
+      assert.equal(agentWants.length, 1, `PARLE_TTS_VENDOR=${JSON.stringify(value)} must select exactly one voice key`);
+      assert.deepEqual(
+        devWants,
+        agentWants,
+        `PARLE_TTS_VENDOR=${JSON.stringify(value)}: npm run dev and the agent must want the same key`,
+      );
+    }
+  });
 });

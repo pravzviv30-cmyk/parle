@@ -611,3 +611,176 @@ describe('reportVendors', () => {
     assert.equal(exited, false);
   });
 });
+
+/**
+ * The second voice vendor. Everything here is conditional on PARLE_TTS_VENDOR,
+ * because the failure mode of getting that wrong is not a wrong sound — it is a
+ * worker that refuses to boot over a credential it was never going to send.
+ */
+describe('the voice vendor the env selected', () => {
+  const FISH = {
+    ...FULL,
+    PARLE_TTS_VENDOR: 'fish',
+    // Deliberately empty. Under fish these two are not merely unused, they must
+    // not be able to produce a demand or a warning.
+    ELEVEN_API_KEY: '',
+    ELEVEN_VOICE_ID: '',
+    FISH_API_KEY: 'f',
+    FISH_VOICE_ID: 'voix-fr',
+  };
+
+  const CREDIT = 'api.fish.audio/wallet/self/api-credit';
+  const SYNTH = 'api.fish.audio/v1/tts';
+
+  /** Answers by host+path, and records every host asked and the synthesis call. */
+  function fishFetch(
+    byRoute: Record<string, { status: number; body?: unknown }>,
+    seen?: { hosts: string[]; url?: string; init?: unknown },
+  ) {
+    return async (url: string, init?: unknown) => {
+      const { host, pathname } = new URL(url);
+      if (seen) {
+        seen.hosts.push(host);
+        if (pathname === '/v1/tts' || pathname.startsWith('/v1/text-to-speech')) {
+          seen.url = url;
+          seen.init = init;
+        }
+      }
+      const reply = byRoute[host + pathname] ?? byRoute[host];
+      if (reply === undefined) return { ok: true, status: 200, json: async () => ({}) };
+      return { ok: reply.status < 400, status: reply.status, json: async () => reply.body ?? {} };
+    };
+  }
+
+  test('missingRequired demands FISH_API_KEY and not ELEVEN_API_KEY when fish is selected, and the reverse by default', () => {
+    const fish = { ...FULL, PARLE_TTS_VENDOR: 'fish', ELEVEN_API_KEY: '' };
+    assert.deepEqual(missingRequired(fish), ['FISH_API_KEY'], 'an empty ElevenLabs key is irrelevant under fish');
+    assert.deepEqual(missingRequired({ ...fish, FISH_API_KEY: 'f' }), []);
+
+    const eleven = { ...FULL, ELEVEN_API_KEY: '', FISH_API_KEY: 'f' };
+    assert.deepEqual(missingRequired(eleven), ['ELEVEN_API_KEY'], 'and a fish key buys nothing on the default vendor');
+
+    // An unrecognised value is the default vendor, so it must demand the
+    // default vendor's key rather than nothing at all.
+    assert.deepEqual(missingRequired({ ...FULL, PARLE_TTS_VENDOR: 'nonsense', ELEVEN_API_KEY: '' }), ['ELEVEN_API_KEY']);
+  });
+
+  test('FISH_AUDIO_API_KEY is named as a near-miss of FISH_API_KEY, and never its value', () => {
+    // The founder's live .env carries the key under this name. The plugin reads
+    // FISH_API_KEY and only that, so the worker would refuse to start standing
+    // next to a perfectly good credential.
+    const w = warnings({ ...FULL, FISH_AUDIO_API_KEY: 'fk-looks-real' });
+    assert.equal(w.length, 1);
+    assert.match(w[0]!, /FISH_AUDIO_API_KEY/, 'the variable that is set');
+    assert.match(w[0]!, /FISH_API_KEY/, 'and the one the plugin actually reads');
+    assert.ok(!w[0]!.includes('fk-looks-real'), 'and never the value, which is a credential');
+  });
+
+  test('FISH_VOICE_ID unset under fish warns that the default voice is the one this migration replaces', () => {
+    const w = warnings({ ...FISH, FISH_VOICE_ID: '' });
+    assert.equal(w.length, 1, 'and the ElevenLabs voice warning must not fire under fish');
+    assert.match(w[0]!, /FISH_VOICE_ID/);
+    assert.match(w[0]!, /Sarah/, 'naming the voice is the point: it is the bug this vendor was added to escape');
+    assert.ok(!w[0]!.includes('ELEVEN_VOICE_ID'));
+
+    // A configured fish voice, and nothing to say.
+    assert.deepEqual(warnings(FISH), []);
+  });
+
+  test('an unrecognised PARLE_TTS_VENDOR says plainly that ElevenLabs will be used', () => {
+    const w = warnings({ ...FULL, PARLE_TTS_VENDOR: 'fishaudio' });
+    assert.equal(w.length, 1);
+    assert.match(w[0]!, /fishaudio/, 'quote what was actually written, or nobody finds the typo');
+    assert.match(w[0]!, /ElevenLabs/);
+
+    // And a value it does know is not worth a word.
+    assert.deepEqual(warnings({ ...FULL, PARLE_TTS_VENDOR: ' ELEVENLABS ' }), []);
+  });
+
+  test("a fish 402 is fatal and quotes the vendor's own message", async () => {
+    // What the end of fish's free window looks like: every key present, the
+    // account fine, and the pinned model refusing to speak. It reaches a learner
+    // as a room that opens and a tutor that never says a word.
+    const checks = await verifyVendors(
+      FISH,
+      '',
+      fishFetch({ [SYNTH]: { status: 402, body: { detail: 'Insufficient credit' } } }) as never,
+    );
+    const fish = checks.find((c) => c.vendor === 'fish.audio');
+    assert.ok(fish, 'a model that cannot be spoken with must stop the worker');
+    assert.equal(fish.fatal, true);
+    assert.match(fish.detail, /Insufficient credit/, 'the vendor explains itself better than we can');
+    assert.match(fish.detail, /s2\.1-pro-free/, 'and the refusal names the model, because that is what is refused');
+    assert.match(fish.detail, /FISH_MODEL/, 'and says where to change it');
+  });
+
+  test('a fish 401 stays fatal even when the body claims missing_permissions', async () => {
+    // F273's scope-gap parse is ElevenLabs' wire shape and ElevenLabs' scoped
+    // keys. Applying it to a vendor whose refusals have never been read would
+    // turn a dead key into a silent pass on a guess about somebody else's API.
+    const checks = await verifyVendors(
+      FISH,
+      '',
+      fishFetch({
+        [CREDIT]: {
+          status: 401,
+          body: { detail: { status: 'missing_permissions', message: 'The API key you used is missing the permission' } },
+        },
+      }) as never,
+    );
+    const fish = checks.find((c) => c.vendor === 'fish.audio');
+    assert.ok(fish);
+    assert.equal(fish.fatal, true);
+    assert.match(fish.detail, /rejected the key/);
+    assert.equal(checks.filter((c) => c.vendor === 'fish.audio').length, 1, 'one broken vendor, one message');
+  });
+
+  test('fish selected probes fish and never ElevenLabs; the default probes ElevenLabs and never fish', async () => {
+    const underFish: { hosts: string[]; url?: string; init?: unknown } = { hosts: [] };
+    const fishChecks = await verifyVendors(FISH, '', fishFetch({}, underFish) as never);
+    assert.deepEqual(fishChecks, [], 'a healthy fish pipeline reports nothing');
+    assert.ok(underFish.hosts.includes('api.fish.audio'));
+    assert.ok(!underFish.hosts.includes('api.elevenlabs.io'), 'an empty ElevenLabs key must never be sent anywhere');
+
+    // The probe asks for exactly what the tutor will ask for. The model header
+    // is the billed one, so a probe that omitted it would vouch for the paid
+    // model rather than the pinned free one.
+    const init = underFish.init as { method?: string; headers?: Record<string, string>; body?: string };
+    assert.equal(init.method, 'POST');
+    assert.equal(init.headers?.model, 's2.1-pro-free');
+    assert.equal(init.headers?.Authorization, 'Bearer f');
+    assert.equal(init.headers?.['Content-Type'], 'application/json');
+    const body = JSON.parse(init.body ?? '{}');
+    assert.equal(body.text, PROBE_LINE);
+    assert.equal(body.reference_id, 'voix-fr', 'the configured voice, because it is the combination that is refused');
+
+    const underEleven: { hosts: string[] } = { hosts: [] };
+    await verifyVendors(
+      { ...FULL, FISH_API_KEY: 'f' },
+      '',
+      fishFetch({ 'api.elevenlabs.io/v1/voices': { status: 200, body: { voices: [{ voice_id: 'v' }] } } }, underEleven) as never,
+    );
+    assert.ok(underEleven.hosts.includes('api.elevenlabs.io'));
+    assert.ok(!underEleven.hosts.includes('api.fish.audio'), 'the default vendor must not spend a fish request');
+  });
+
+  test('the fish synthesis probe runs on every boot, even with no voice configured', async () => {
+    // Unlike ElevenLabs, where an unset voice means there is nothing of ours to
+    // prove. Here the thing most likely to refuse is the MODEL, and the model is
+    // pinned whether or not a voice is.
+    const seen: { hosts: string[]; url?: string } = { hosts: [] };
+    await verifyVendors({ ...FISH, FISH_VOICE_ID: '' }, '', fishFetch({}, seen) as never);
+    assert.equal(seen.url, 'https://api.fish.audio/v1/tts');
+  });
+
+  test('a fish blip does not refuse to start the worker', async () => {
+    for (const status of [500, 429]) {
+      const checks = await verifyVendors(FISH, '', fishFetch({ [SYNTH]: { status } }) as never);
+      assert.equal(checks.find((c) => c.vendor === 'fish.audio')?.fatal, false, `HTTP ${status} is weather, not config`);
+    }
+    const unreachable = await verifyVendors(FISH, '', (async () => {
+      throw new Error('ECONNREFUSED');
+    }) as never);
+    assert.equal(unreachable.find((c) => c.vendor === 'fish.audio')?.fatal, false);
+  });
+});
