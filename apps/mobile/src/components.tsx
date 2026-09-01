@@ -23,7 +23,7 @@ import {
 } from 'react-native';
 import Svg, { Path, Circle, G } from 'react-native-svg';
 import { accent, decorative, paper, radius, signal, space, type, HAIRLINE, HIT, STROKE, rungColor } from './theme.ts';
-import type { Rung } from '@parle/core';
+import type { Rung } from '@luvani/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
 // Authored SVG in the illustration stroke. No glyph or emoji substitutes.

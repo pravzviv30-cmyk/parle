@@ -18,7 +18,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DRILL_FIXTURES, type DrillExercise } from '@parle/core';
+import { DRILL_FIXTURES, type DrillExercise } from '@luvani/core';
 import type { PersistAck } from '../storage/ack.ts';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';

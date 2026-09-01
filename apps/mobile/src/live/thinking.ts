@@ -11,7 +11,7 @@
  * One function, one rule, and every message accounted for by the type system.
  */
 
-import type { ServerMessage } from '@parle/core';
+import type { ServerMessage } from '@luvani/core';
 
 export function thinkingAfter(thinking: boolean, message: ServerMessage): boolean {
   switch (message.t) {

@@ -1,7 +1,7 @@
 # Device verification — auth, session storage, deletion, and the first run
 
 **Status: device and five-viewport matrices not run; one local web route check
-recorded.** No representative iOS or Android build of Parle exists on the machine
+recorded.** No representative iOS or Android build of Luvani exists on the machine
 this was written on, so every row in [the matrix](#the-matrix) below says `not run`.
 This file is primarily the runbook, not the result. `F71` in
 [KNOWN_ISSUES.md](KNOWN_ISSUES.md) stays open until the matrix is filled in from a
@@ -32,7 +32,7 @@ other test in this repo:
   — by throwing — rather than silently returning a wrong or empty value;
 - what the Supabase SDK, `expo-web-browser`, LiveKit or React Native itself write
   to the platform log while a real session is alive;
-- whether the Google deep link `parle://auth/callback` is actually claimed by the
+- whether the Google deep link `luvani://auth/callback` is actually claimed by the
   installed build;
 - whether deletion, reauthentication and the local wipe hold together on a device
   whose storage is full, whose keystore key was invalidated, or which was restored
@@ -47,8 +47,8 @@ Expo Go, and not the web bundle. Expo Go rewrites the deep-link scheme to `exp:/
 and does not carry the app's own bundle identifier, so both the OAuth step and the
 keychain steps mean something different there.
 
-- iOS: bundle identifier `com.parle.app`, scheme `parle`.
-- Android: package `com.parle.app`, scheme `parle`.
+- iOS: bundle identifier `com.luvani.app`, scheme `luvani`.
+- Android: package `com.luvani.app`, scheme `luvani`.
 
 **Configuration.** The build must be on the Supabase adapter, not the on-device
 mock. `selectAuthMode` in `apps/mobile/src/auth/authMode.ts` picks `supabase` only
@@ -66,8 +66,8 @@ project, plus one Google account. Never a real learner's account.
 | Platform | Logs | App container |
 |---|---|---|
 | iOS device | Console.app, or `idevicesyslog` | `xcrun devicectl` / Xcode → Devices → Download Container |
-| iOS simulator | `xcrun simctl spawn booted log stream --predicate 'process == "Parle"'` | `xcrun simctl get_app_container booted com.parle.app data` |
-| Android | `adb logcat --pid=$(adb shell pidof -s com.parle.app)` | `adb shell run-as com.parle.app ls -R` (debuggable builds only) |
+| iOS simulator | `xcrun simctl spawn booted log stream --predicate 'process == "Luvani"'` | `xcrun simctl get_app_container booted com.luvani.app data` |
+| Android | `adb logcat --pid=$(adb shell pidof -s com.luvani.app)` | `adb shell run-as com.luvani.app ls -R` (debuggable builds only) |
 
 **Recording rule, and it is not negotiable.** Never paste a token, a password, an
 access token or a full email address into this file, a ticket, a screenshot or a
@@ -91,7 +91,7 @@ are not, and finding either is a P0.
 | D4 | A plaintext session from an older build migrates, then is gone | not run | not run |
 | D5 | A **failed** secure migration forces a safe sign-in | not run | not run |
 | D6 | Email and password: sign up, sign out, sign in | not run | not run |
-| D7 | Google sign-in over the `parle://auth/callback` deep link | not run | not run |
+| D7 | Google sign-in over the `luvani://auth/callback` deep link | not run | not run |
 | D8 | Password reset from the email link | not run | not run |
 | D9 | Deletion demands a recent password reauthentication | not run | not run |
 | D10 | Deletion demands a recent Google reauthentication | not run | not run |
@@ -116,7 +116,7 @@ bearer the server could verify — the mock's `getAccessToken()` returns `null` 
 would be refused with `Sign in to use this.`
 
 **Fail looks like:** the session starts anyway with no account, or the Profile tab
-shows an email ending `@parle.local`. That is `mockAdapter`, and it means a
+shows an email ending `@luvani.local`. That is `mockAdapter`, and it means a
 development flag reached this build. Stop; nothing else in this runbook is valid.
 
 ### D1 — a session survives backgrounding, cold start and reboot
@@ -125,7 +125,7 @@ development flag reached this build. Stop; nothing else in this runbook is valid
 2. Background the app for five minutes, return.
 3. Force-quit, relaunch.
 4. Reboot the phone, relaunch **without** unlocking anything else first, then
-   unlock and open Parle.
+   unlock and open Luvani.
 
 **Expect:** signed in as `A` every time, with no sign-in screen and no spinner that
 never resolves. `createSecureSessionStorage` reads the chunked session back out of
@@ -141,13 +141,13 @@ a read before first unlock returns nothing. Record which of the four steps broke
 
 1. Signed in as `A`, download the app container (Xcode → Devices and Simulators →
    the app → Download Container), or `xcrun simctl get_app_container booted
-   com.parle.app data` on the simulator.
+   com.luvani.app data` on the simulator.
 2. Look in `Documents/RCTAsyncLocalStorage_V1/` — that is AsyncStorage.
 
-**Expect:** AsyncStorage holds `parle.installation.v1` and keys shaped
-`parle.u.<uid>.<suffix>` (the per-account stores from `storage/scope.ts`) and
+**Expect:** AsyncStorage holds `luvani.installation.v1` and keys shaped
+`luvani.u.<uid>.<suffix>` (the per-account stores from `storage/scope.ts`) and
 **nothing else that looks like a session**. Specifically no `sb-…-auth-token`, and
-no `.parle-secure-meta` or `.parle-secure-a-0` — those belong in the keychain,
+no `.luvani-secure-meta` or `.luvani-secure-a-0` — those belong in the keychain,
 which is not in the container at all. The container carrying no session material
 is the pass.
 
@@ -157,14 +157,14 @@ base64 string. Count it, do not copy it, and file it as a P0.
 ### D3 — a reinstall does not resurrect a session for a deleted account
 
 This is the iOS-specific one. Keychain items are **not** removed when an app is
-deleted, so a reinstalled Parle can find a session written by the previous install.
+deleted, so a reinstalled Luvani can find a session written by the previous install.
 
 1. Sign in as `A`. Delete the account from Profile → Delete account and complete
    the flow (see D9).
 2. Delete the app. Reinstall it. Launch.
 
 **Expect:** the welcome screen. `deleteAccount()` is followed by `auth.signOut()`
-in `App.tsx`, and sign-out runs `removeItem`, which drops the `.parle-secure-meta`
+in `App.tsx`, and sign-out runs `removeItem`, which drops the `.luvani-secure-meta`
 pointer first and then every chunk of both generations.
 
 3. Now the interrupted case: sign in as `B`, and force-quit the app **between** the
@@ -267,7 +267,7 @@ still usable.
 
 **Fail looks like:** the browser opening as a full Safari app rather than a sheet
 (the redirect will not come back), a redirect that lands on a blank page, or an
-error mentioning `redirect_uri`. The redirect URL `parle://auth/callback` must be
+error mentioning `redirect_uri`. The redirect URL `luvani://auth/callback` must be
 allow-listed in the Supabase dashboard for this build.
 
 ### D8 — password reset
@@ -352,10 +352,10 @@ stays signed in to an account the server has deleted.
 deletion while capturing the log, then count — never print — matches:
 
 ```bash
-xcrun simctl spawn booted log stream --predicate 'process == "Parle"' > /tmp/parle-ios.log
-grep -c 'eyJ' /tmp/parle-ios.log        # JWT header prefix. Expect 0.
-grep -ci 'authorization: Bearer' /tmp/parle-ios.log   # Expect 0.
-grep -ci 'password' /tmp/parle-ios.log  # Expect 0.
+xcrun simctl spawn booted log stream --predicate 'process == "Luvani"' > /tmp/luvani-ios.log
+grep -c 'eyJ' /tmp/luvani-ios.log        # JWT header prefix. Expect 0.
+grep -ci 'authorization: Bearer' /tmp/luvani-ios.log   # Expect 0.
+grep -ci 'password' /tmp/luvani-ios.log  # Expect 0.
 ```
 
 Delete the capture afterwards. A non-zero count is a finding; report the count and
@@ -363,7 +363,7 @@ the line number, not the line.
 
 **AsyncStorage.** As D2.
 
-**Bundle.** `npm run export:web --workspace=@parle/mobile` produces `dist/`, and the
+**Bundle.** `npm run export:web --workspace=@luvani/mobile` produces `dist/`, and the
 native bundle can be extracted from the build artefact the same way.
 
 ```bash
@@ -413,16 +413,16 @@ D16, which have no iOS equivalent.
 **Container and storage.** On a debuggable build:
 
 ```bash
-adb shell run-as com.parle.app ls -R           # the whole container
-adb shell run-as com.parle.app ls databases    # AsyncStorage is RKStorage (SQLite)
-adb shell run-as com.parle.app ls shared_prefs # SecureStore lives here
+adb shell run-as com.luvani.app ls -R           # the whole container
+adb shell run-as com.luvani.app ls databases    # AsyncStorage is RKStorage (SQLite)
+adb shell run-as com.luvani.app ls shared_prefs # SecureStore lives here
 ```
 
 **D2 on Android.** AsyncStorage is `databases/RKStorage`, a plain SQLite file with
-a `catalystLocalStorage` table. Expect `parle.installation.v1` and
-`parle.u.<uid>.*` and no session key. SecureStore is a SharedPreferences XML file
+a `catalystLocalStorage` table. Expect `luvani.installation.v1` and
+`luvani.u.<uid>.*` and no session key. SecureStore is a SharedPreferences XML file
 whose **values are AES ciphertext** under an Android Keystore key; expect entries
-whose names end `.parle-secure-meta`, `.parle-secure-a-0`, `.parle-secure-b-0` and
+whose names end `.luvani-secure-meta`, `.luvani-secure-a-0`, `.luvani-secure-b-0` and
 so on, and expect their values to be unreadable. A value that starts with `eyJ` in
 that file means the encryption is not happening.
 
@@ -431,9 +431,9 @@ that file means the encryption is not happening.
 ```bash
 adb logcat -c
 # exercise sign-in, a session, and deletion
-adb logcat -d --pid=$(adb shell pidof -s com.parle.app) > /tmp/parle-android.log
-grep -c 'eyJ' /tmp/parle-android.log        # Expect 0.
-grep -ci 'bearer' /tmp/parle-android.log    # Expect 0.
+adb logcat -d --pid=$(adb shell pidof -s com.luvani.app) > /tmp/luvani-android.log
+grep -c 'eyJ' /tmp/luvani-android.log        # Expect 0.
+grep -ci 'bearer' /tmp/luvani-android.log    # Expect 0.
 ```
 
 `adb logcat` needs no root and no unlocked bootloader, which is exactly why a token
@@ -446,7 +446,7 @@ biometric is enrolled. `expo-secure-store` then throws on read.
 
 1. Sign in as `A`. Confirm the session survives a cold start.
 2. Change the device PIN, or enrol a new fingerprint.
-3. Launch Parle.
+3. Launch Luvani.
 
 **Expect:** the learner is signed out and can sign in again. In
 `createSecureSessionStorage`, the throw is caught, the code falls through to the
@@ -462,7 +462,7 @@ Android auto-backup can restore SharedPreferences onto a new device while the
 keystore key stays behind, leaving ciphertext nothing can decrypt.
 
 1. Sign in as `A`, trigger a backup, restore onto a second device.
-2. Launch Parle on the restored device.
+2. Launch Luvani on the restored device.
 
 **Expect:** the welcome screen, and a clean sign-in. Same path as D15.
 
@@ -627,7 +627,7 @@ excerpts containing any of those, or screenshots of them. Counts and verdicts on
 - **Anything about a build it was not run against.** These are manual steps on
   specific hardware; they say nothing about the next build.
 - **Anything a dependency does internally.** If the Supabase SDK, LiveKit or React
-  Native logs something the platform log does not show under Parle's process, D12
+  Native logs something the platform log does not show under Luvani's process, D12
   will not see it.
 - **Keychain and keystore strength.** The check is that the session is there and
   not in plaintext storage, not that the platform's encryption is sound.

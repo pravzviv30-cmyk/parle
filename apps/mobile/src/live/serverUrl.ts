@@ -21,22 +21,22 @@ export interface TokenServerEnvironment {
 export function selectTokenServerUrl(env: TokenServerEnvironment): string {
   const localDevelopment = env.localDevelopment === '1' && env.nodeEnv !== 'production';
   const value = env.tokenServerUrl ?? (localDevelopment ? 'http://localhost:8787' : null);
-  if (!value) throw new Error('Parle refuses to run without a configured token server.');
+  if (!value) throw new Error('Luvani refuses to run without a configured token server.');
   let parsed: URL;
   try {
     parsed = new URL(value);
   } catch {
-    throw new Error('Parle token server URL is invalid.');
+    throw new Error('Luvani token server URL is invalid.');
   }
   if (!localDevelopment && parsed.protocol !== 'https:') {
-    throw new Error('Parle refuses a deployed token server that is not HTTPS.');
+    throw new Error('Luvani refuses a deployed token server that is not HTTPS.');
   }
-  if (value.endsWith('/')) throw new Error('Parle token server URL must not end with a slash.');
+  if (value.endsWith('/')) throw new Error('Luvani token server URL must not end with a slash.');
   return value;
 }
 
 export const TOKEN_SERVER = selectTokenServerUrl({
   nodeEnv: process.env.NODE_ENV,
-  localDevelopment: process.env.EXPO_PUBLIC_PARLE_LOCAL_DEVELOPMENT,
+  localDevelopment: process.env.EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT,
   tokenServerUrl: process.env.EXPO_PUBLIC_TOKEN_SERVER_URL,
 });

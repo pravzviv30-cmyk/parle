@@ -26,7 +26,7 @@ import {
   type LevelStanding,
   type MissionProgress,
   type ProgressReport,
-} from '@parle/core';
+} from '@luvani/core';
 import { accent, paper, space, type, radius, HIT } from '../theme.ts';
 import { Card, GhostButton, Label, OutlineButton, PillButton, StationLine, Stat } from '../components.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';

@@ -15,13 +15,13 @@
  * paths do not diverge, and so no route ever has to carry a summary object.
  */
 
-import { withLearnerName } from '@parle/brain/profile';
+import { withLearnerName } from '@luvani/brain/profile';
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, type RouteProp, useRoute } from '@react-navigation/native';
-import { CAFE_LESSON, lessonXp, type ProgressReport, type Rung, type SessionSummary } from '@parle/core';
+import { CAFE_LESSON, lessonXp, type ProgressReport, type Rung, type SessionSummary } from '@luvani/core';
 import { paper, space, type } from '../theme.ts';
 import { GhostButton, Label, PillButton } from '../components.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -44,7 +44,7 @@ import { PracticeTab } from '../tabs/PracticeTab.tsx';
 import { MyFrenchTab } from '../tabs/MyFrenchTab.tsx';
 import { ProfileTab } from '../tabs/ProfileTab.tsx';
 import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
-import { ParleTabBar } from './ParleTabBar.tsx';
+import { LuvaniTabBar } from './LuvaniTabBar.tsx';
 import type { RootStackParamList, TabParamList } from './types.ts';
 import type { AuthResult } from '../auth/types.ts';
 
@@ -326,7 +326,7 @@ function Tabs({
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: paper.ground } }}
-      tabBar={(props) => <ParleTabBar {...props} />}
+      tabBar={(props) => <LuvaniTabBar {...props} />}
     >
       <Tab.Screen name="Home" component={HomeTab} />
       <Tab.Screen name="Tutor" component={TutorTab} />

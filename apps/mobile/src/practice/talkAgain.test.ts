@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import type { PathNode, PracticeTopic } from '@parle/core';
+import type { PathNode, PracticeTopic } from '@luvani/core';
 
 import { TALK_AGAIN, offersTalkAgain, seedTopicFor, talkAgainLabel } from './talkAgain.ts';
 

@@ -37,7 +37,7 @@
 - [Dev Boot Plan](Dev_Boot_Plan.md) (3 shared connections)
 - [Brain CLI Playground](Brain_CLI_Playground.md) (2 shared connections)
 - [Brain LLM Schemas](Brain_LLM_Schemas.md) (2 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (1 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (1 shared connections)
 
 ## Source Files
 

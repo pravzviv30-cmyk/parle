@@ -49,7 +49,7 @@ export interface DiscardHooks {
  * purpose: that a discard failed is the entire signal, and a device path is the
  * kind of thing that ends up pasted into a support ticket.
  */
-export const RECORDING_NOT_DISCARDED = '[parle] RECORDING_NOT_DISCARDED';
+export const RECORDING_NOT_DISCARDED = '[luvani] RECORDING_NOT_DISCARDED';
 
 /** Remove one finished recording. Never throws, whatever the platform does. */
 export function discardRecording(uri: string | null, hooks: DiscardHooks = {}): void {

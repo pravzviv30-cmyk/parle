@@ -3,7 +3,7 @@
  *
  * These tests exist because the bug they cover is invisible: fish's websocket
  * stream emits `final: false` on every frame, ttsCache refuses to write a WAV
- * without a final marker, and the founder runs PARLE_TTS_MISS_TRANSPORT=ws. So
+ * without a final marker, and the founder runs LUVANI_TTS_MISS_TRANSPORT=ws. So
  * the tutor would speak perfectly, the cache would fill with nothing, the bill
  * would climb, and every existing test would stay green.
  *
@@ -149,7 +149,7 @@ async function pcmOf(stream: tts.ChunkedStream): Promise<number[]> {
   return out;
 }
 
-const freshDir = () => mkdtempSync(join(tmpdir(), 'parle-fish-'));
+const freshDir = () => mkdtempSync(join(tmpdir(), 'luvani-fish-'));
 
 let dir: string;
 let fake: FakeFishTTS;

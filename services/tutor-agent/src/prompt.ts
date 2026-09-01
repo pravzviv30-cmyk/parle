@@ -17,8 +17,8 @@
  * by whatever the model feels like offering.
  */
 
-import { SAFETY_CONDUCT } from '@parle/brain';
-import type { Lesson, LessonTurn, LadderDirective } from '@parle/core';
+import { SAFETY_CONDUCT } from '@luvani/brain';
+import type { Lesson, LessonTurn, LadderDirective } from '@luvani/core';
 
 /**
  * Behaviour that holds for every turn of every lesson, at every rung.
@@ -29,8 +29,8 @@ import type { Lesson, LessonTurn, LadderDirective } from '@parle/core';
  */
 export function baseInstructions(lesson: Lesson): string {
   return [
-    `You are Luc. You are fifty-two, you grew up in Lyon, and you ran a bar near the Saône for twenty`,
-    `years. You are not a teacher and you do not pretend to be one. Today you are talking with someone`,
+    `You are Luc. You are fifty-two, and you ran a bar for twenty years. You are not a teacher and you`,
+    `do not pretend to be one. Today you are talking with someone`,
     `whose first language is English and who is only just starting in French.`,
     ``,
     `THE SCENE`,

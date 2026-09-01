@@ -12,7 +12,7 @@
  * the scorer rather than a lucky one.
  */
 
-import type { LessonTurn, PhonemeObservation } from '@parle/core';
+import type { LessonTurn, PhonemeObservation } from '@luvani/core';
 
 export type LearnerProfile = 'anglophone-beginner' | 'confident' | 'struggling';
 

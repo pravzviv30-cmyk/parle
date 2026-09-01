@@ -126,8 +126,8 @@ describe('capturing what the learner said', () => {
 describe('the audio scoring flag', () => {
   test('scoring stays off until it is deliberately turned on', () => {
     assert.equal(audioScoringEnabled({}), false);
-    assert.equal(audioScoringEnabled({ PARLE_AUDIO_SCORING: '' }), false);
-    assert.equal(audioScoringEnabled({ PARLE_AUDIO_SCORING: 'true' }), false, 'one spelling, so a typo cannot half-enable it');
-    assert.equal(audioScoringEnabled({ PARLE_AUDIO_SCORING: '1' }), true);
+    assert.equal(audioScoringEnabled({ LUVANI_AUDIO_SCORING: '' }), false);
+    assert.equal(audioScoringEnabled({ LUVANI_AUDIO_SCORING: 'true' }), false, 'one spelling, so a typo cannot half-enable it');
+    assert.equal(audioScoringEnabled({ LUVANI_AUDIO_SCORING: '1' }), true);
   });
 });

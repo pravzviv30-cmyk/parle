@@ -7,7 +7,7 @@
 - **Privacy and safety** (10 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **Review package for an external professional** (5 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **The safety boundary** (3 connections) — `docs/PRIVACY_AND_SAFETY.md`
-- **Escalation and what Parle is not** (2 connections) — `docs/PRIVACY_AND_SAFETY.md`
+- **Escalation and what Luvani is not** (2 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **Raw speech is never stored** (2 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **An under-13 stop is remembered on this device** (1 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **Analytics: consent, opt-out and retention** (1 connections) — `docs/PRIVACY_AND_SAFETY.md`
@@ -20,7 +20,7 @@
 - **The adversarial corpus** (1 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **The tutor's own words are checked too** (1 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **What a safety decision leaves behind** (1 connections) — `docs/PRIVACY_AND_SAFETY.md`
-- **What Parle holds** (1 connections) — `docs/PRIVACY_AND_SAFETY.md`
+- **What Luvani holds** (1 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **What we are not asking for** (1 connections) — `docs/PRIVACY_AND_SAFETY.md`
 
 ## Relationships

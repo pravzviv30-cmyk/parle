@@ -41,7 +41,7 @@
 - [Zod Contract Schemas](Zod_Contract_Schemas.md) (20 shared connections)
 - [Ladder State Machine](Ladder_State_Machine.md) (16 shared connections)
 - [French Authenticity Pack](French_Authenticity_Pack.md) (14 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (13 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (13 shared connections)
 - [Mock Speech Session](Mock_Speech_Session.md) (12 shared connections)
 - [Topic Curation](Topic_Curation.md) (7 shared connections)
 - [Drill Merge And Scene Controls](Drill_Merge_And_Scene_Controls.md) (7 shared connections)

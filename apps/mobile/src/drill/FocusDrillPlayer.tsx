@@ -27,7 +27,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { focusDrillSteps, type Drill } from '@parle/core';
+import { focusDrillSteps, type Drill } from '@luvani/core';
 
 import { Card, Label, PillButton, GhostButton, EarGlyph, ProgressDots } from '../components.tsx';
 import * as tutorVoice from '../speech/tutorVoice.ts';

@@ -2,7 +2,7 @@
  * The review deck on the device.
  *
  * AsyncStorage is enough for now. The deck is one small JSON array, the
- * scheduling math lives in @parle/core, and nothing here needs a backend —
+ * scheduling math lives in @luvani/core, and nothing here needs a backend —
  * reviewing must cost zero metered minutes, so nothing here may ever grow a
  * network call either. When accounts arrive this file is the only thing that
  * changes.
@@ -29,7 +29,7 @@ import {
   type ReviewCard,
   type ReviewGrade,
   type SessionSummary,
-} from '@parle/core';
+} from '@luvani/core';
 import type { PersistAck } from '../storage/ack.ts';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';

@@ -23,7 +23,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createProfile } from '@parle/brain/profile';
+import { createProfile } from '@luvani/brain/profile';
 
 import {
   DEFAULT_STRICTNESS,

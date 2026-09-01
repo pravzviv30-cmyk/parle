@@ -18,7 +18,7 @@ const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 function build(): AuthAdapter {
   const mode = selectAuthMode({
     nodeEnv: process.env.NODE_ENV,
-    localDevelopment: process.env.EXPO_PUBLIC_PARLE_LOCAL_DEVELOPMENT,
+    localDevelopment: process.env.EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT,
     supabaseUrl: SUPABASE_URL,
     supabaseAnonKey: SUPABASE_ANON_KEY,
   });
@@ -47,6 +47,6 @@ export async function authHeaders(): Promise<Record<string, string>> {
   const [token, installation] = await Promise.all([auth.getAccessToken(), installationId()]);
   return {
     ...(token ? { authorization: `Bearer ${token}` } : {}),
-    'x-parle-installation': installation,
+    'x-luvani-installation': installation,
   };
 }

@@ -67,7 +67,7 @@
  * invitation, which the screen already carries. It is not a page of blanks.
  */
 
-import type { Independence, MissionId, MissionPlace, MissionProgress } from '@parle/core';
+import type { Independence, MissionId, MissionPlace, MissionProgress } from '@luvani/core';
 
 /** The three states in order, weakest evidence first. Exported so tests can walk them. */
 export const STAMP_STATES = ['not-yet', 'with-help', 'on-your-own'] as const;

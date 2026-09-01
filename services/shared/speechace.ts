@@ -12,7 +12,7 @@
  * differentiator should not be welded to a single vendor.
  */
 
-import type { PhonemeObservation } from '@parle/core';
+import type { PhonemeObservation } from '@luvani/core';
 import { toInventoryIpa } from './phoneMap.ts';
 
 export interface ScoreRequest {

@@ -20,7 +20,7 @@ describe('usage reporting', () => {
 
     await reportUsage(report, {
       request: request as typeof fetch,
-      tokenServer: 'https://api.parle.test',
+      tokenServer: 'https://api.luvani.test',
       agentSecret: 'agent-secret',
       attempts: 1,
     });
@@ -47,7 +47,7 @@ describe('usage reporting', () => {
 
     await reportUsage({ ...report, seconds: 200 }, {
       request: request as typeof fetch,
-      tokenServer: 'https://api.parle.test',
+      tokenServer: 'https://api.luvani.test',
       attempts: 2,
       sleep: async () => {},
     });

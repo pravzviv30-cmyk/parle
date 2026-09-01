@@ -22,7 +22,7 @@ import {
   type Rung,
   type SessionState,
   type SessionSummary,
-} from '@parle/core';
+} from '@luvani/core';
 import { SessionView } from './SessionView.tsx';
 import { mockObservations, estimateDurationSec } from './mockSpeech.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';

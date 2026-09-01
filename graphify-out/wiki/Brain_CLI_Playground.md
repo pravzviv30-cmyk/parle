@@ -40,7 +40,7 @@
 - [Conversation Brain Client](Conversation_Brain_Client.md) (10 shared connections)
 - [French Authenticity Pack](French_Authenticity_Pack.md) (10 shared connections)
 - [Learner Profile Store](Learner_Profile_Store.md) (7 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (4 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (4 shared connections)
 - [Topic Curation](Topic_Curation.md) (4 shared connections)
 - [Profile Merge Logic](Profile_Merge_Logic.md) (4 shared connections)
 - [Zod Contract Schemas](Zod_Contract_Schemas.md) (3 shared connections)

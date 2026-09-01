@@ -150,7 +150,7 @@ describe('applyCuration — code disposes', () => {
   test('closely related extensions can create practice even when no phrase was taught verbatim', () => {
     const extension = phrase('Vous pouvez répéter ?', 'Can you repeat?');
     const out = applyCuration(
-      { topics: [topic('Speaking with a teacher', 'Parler avec un professeur', [], [extension])] },
+      { topics: [topic('Speaking with a teacher', 'Luvanir avec un professeur', [], [extension])] },
       [],
       [CAFE],
     );

@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { describe, test } from 'node:test';
 
-import { PLANS } from '@parle/core';
+import { PLANS } from '@luvani/core';
 
 import { SUPABASE_PROOFS } from './verify/supabaseLive.ts';
 
@@ -17,7 +17,7 @@ const migrationFiles = readdirSync(MIGRATIONS)
   .sort();
 const sqlOf = (name: string): string => readFileSync(path.join(MIGRATIONS, name), 'utf8');
 
-const initialMigration = sqlOf('202608220001_parle_learning.sql');
+const initialMigration = sqlOf('202608220001_luvani_learning.sql');
 const hardeningMigration = sqlOf('202608230001_session_usage_idempotency.sql');
 const trialFixMigration = sqlOf('202608240001_claim_trial_null_fix.sql');
 const debitFixMigration = sqlOf('202608250001_consume_entitlement_null_fix.sql');
@@ -1125,7 +1125,7 @@ describe('database security contract — SQL cannot drift quietly', () => {
     assert.match(trialLedger, /trial_installations is pseudonymous antifraud evidence/i);
     const reopensF73 = readFileSync(path.join(ROLLBACKS, '202608240001_down.sql'), 'utf8');
     assert.match(reopensF73, /REOPENS-F73/);
-    assert.match(reopensF73, /parle\.reopen_f73/);
+    assert.match(reopensF73, /luvani\.reopen_f73/);
     assert.match(reopensF73, /raise exception\s*\n?\s*'refusing to restore the NULL-unsafe claim_trial guard/i);
 
     // F245's down-script restores a body that grants a free month to every cancelled
@@ -1133,7 +1133,7 @@ describe('database security contract — SQL cannot drift quietly', () => {
     // above, so it carries one too. F244's drops a table that holds rows instead.
     const reopensF245 = readFileSync(path.join(ROLLBACKS, '202608300002_down.sql'), 'utf8');
     assert.match(reopensF245, /REOPENS-F245/);
-    assert.match(reopensF245, /parle\.reopen_f245/);
+    assert.match(reopensF245, /luvani\.reopen_f245/);
     assert.match(reopensF245, /raise exception\s*\n?\s*'refusing to restore the self-renewing paid period/i);
     const billingLedgerDown = readFileSync(path.join(ROLLBACKS, '202608300001_down.sql'), 'utf8');
     assert.match(billingLedgerDown, /DESTRUCTIVE/);

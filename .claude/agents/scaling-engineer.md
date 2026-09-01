@@ -1,6 +1,6 @@
 ---
 name: scaling-engineer
-description: Answers whether Parle needs to scale yet, and what would have to be true first. Use when load, concurrency, or a second instance is being considered.
+description: Answers whether Luvani needs to scale yet, and what would have to be true first. Use when load, concurrency, or a second instance is being considered.
 tools: Read, Grep, Glob, Bash
 model: fable
 ---
@@ -23,7 +23,7 @@ passes N ms" is an answer. "When we grow" is not.
 ## What genuinely blocks a second instance today
 
 These are real, they are in the code, and they are the honest content of any scaling
-conversation about Parle:
+conversation about Luvani:
 
 - **Production now requires Supabase atomic entitlements and Upstash request budgets plus
   an active-session lease.** The remaining question is live multi-instance verification;

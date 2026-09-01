@@ -16,7 +16,7 @@
  * test. Same reason as practice/statusLine.ts.
  */
 
-import { dueCards, type PracticeTopic, type ReviewCard } from '@parle/core';
+import { dueCards, type PracticeTopic, type ReviewCard } from '@luvani/core';
 
 export const MIX_OFFER = {
   title: "Today's mix",

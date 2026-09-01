@@ -37,7 +37,7 @@
 - [Brain CLI Playground](Brain_CLI_Playground.md) (25 shared connections)
 - [Conversation Brain Client](Conversation_Brain_Client.md) (12 shared connections)
 - [Profile Repair Validation](Profile_Repair_Validation.md) (9 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (8 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (8 shared connections)
 - [Drill Grading And Fixtures](Drill_Grading_And_Fixtures.md) (8 shared connections)
 - [French Authenticity Pack](French_Authenticity_Pack.md) (7 shared connections)
 - [Zod Contract Schemas](Zod_Contract_Schemas.md) (6 shared connections)

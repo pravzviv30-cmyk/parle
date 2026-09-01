@@ -39,7 +39,7 @@
 - [Learner Profile Updates](Learner_Profile_Updates.md) (7 shared connections)
 - [LLM Usage Pricing](LLM_Usage_Pricing.md) (6 shared connections)
 - [Prompt And Turn Queue](Prompt_And_Turn_Queue.md) (4 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (4 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (4 shared connections)
 - [Ladder State Machine](Ladder_State_Machine.md) (3 shared connections)
 - [Topic Curation](Topic_Curation.md) (2 shared connections)
 - [Zod Contract Schemas](Zod_Contract_Schemas.md) (1 shared connections)

@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { FIRST_MISSION, PLANS, type Entitlement } from '@parle/core';
+import { FIRST_MISSION, PLANS, type Entitlement } from '@luvani/core';
 import { ROOM_LIFECYCLE, grantSession, roomNameFor, type TokenConfig } from './tokens.ts';
 import { DevelopmentEntitlementStore, InMemoryEntitlementStore, developmentEntitlementsEnabled } from './store.ts';
 
@@ -18,11 +18,11 @@ describe('room naming', () => {
 
   test('hostile identifiers cannot escape the room namespace', () => {
     const name = roomNameFor('../../admin room!', 'cafe/../01', 1);
-    assert.match(name, /^parle-[a-zA-Z0-9_-]+$/, `unsafe room name: ${name}`);
+    assert.match(name, /^luvani-[a-zA-Z0-9_-]+$/, `unsafe room name: ${name}`);
   });
 
   test('empty identifiers still produce a valid room', () => {
-    assert.match(roomNameFor('', '', 1), /^parle-lesson-anon-/);
+    assert.match(roomNameFor('', '', 1), /^luvani-lesson-anon-/);
   });
 });
 
@@ -304,9 +304,9 @@ describe('entitlement store', () => {
 
   test('development minutes have to be explicitly enabled and can never activate in production', () => {
     assert.equal(developmentEntitlementsEnabled({}), false);
-    assert.equal(developmentEntitlementsEnabled({ PARLE_DEV_UNLIMITED_MINUTES: '1' }), true);
+    assert.equal(developmentEntitlementsEnabled({ LUVANI_DEV_UNLIMITED_MINUTES: '1' }), true);
     assert.equal(
-      developmentEntitlementsEnabled({ PARLE_DEV_UNLIMITED_MINUTES: '1', NODE_ENV: 'production' }),
+      developmentEntitlementsEnabled({ LUVANI_DEV_UNLIMITED_MINUTES: '1', NODE_ENV: 'production' }),
       false,
     );
   });

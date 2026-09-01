@@ -4,8 +4,8 @@
 
 ## Key Concepts
 
-- **@parle/core** (2 connections) — `apps/mobile/package.json`
-- **@parle/core** (1 connections) — `apps/mobile/package.json`
+- **@luvani/core** (2 connections) — `apps/mobile/package.json`
+- **@luvani/core** (1 connections) — `apps/mobile/package.json`
 
 ## Relationships
 

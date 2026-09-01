@@ -20,7 +20,7 @@ import {
   replayRung,
   type MissionCompletion,
   type ReviewCard,
-} from '@parle/core';
+} from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
 import { tutorDoors } from '../tutor/gate.ts';

@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 
-import { PLANS, lapsedEntitlement, type Entitlement } from '@parle/core';
+import { PLANS, lapsedEntitlement, type Entitlement } from '@luvani/core';
 import type { EntitlementStore } from '../store.ts';
 
 export interface RevenueCatConfiguration {
@@ -12,7 +12,7 @@ export interface RevenueCatConfiguration {
 
 export interface BillingEnvironment {
   REVENUECAT_SECRET_API_KEY?: string;
-  PARLE_REVENUECAT_WEBHOOK_SECRET?: string;
+  LUVANI_REVENUECAT_WEBHOOK_SECRET?: string;
   REVENUECAT_ENTITLEMENT_ID?: string;
   REVENUECAT_STARTER_PRODUCT_ID?: string;
   REVENUECAT_REGULAR_PRODUCT_ID?: string;
@@ -20,7 +20,7 @@ export interface BillingEnvironment {
 
 const BILLING_KEYS = [
   'REVENUECAT_SECRET_API_KEY',
-  'PARLE_REVENUECAT_WEBHOOK_SECRET',
+  'LUVANI_REVENUECAT_WEBHOOK_SECRET',
   'REVENUECAT_ENTITLEMENT_ID',
   'REVENUECAT_STARTER_PRODUCT_ID',
   'REVENUECAT_REGULAR_PRODUCT_ID',
@@ -35,7 +35,7 @@ export function revenueCatConfiguration(env: BillingEnvironment): RevenueCatConf
   }
   return {
     secretApiKey: env.REVENUECAT_SECRET_API_KEY!,
-    webhookSecret: env.PARLE_REVENUECAT_WEBHOOK_SECRET!,
+    webhookSecret: env.LUVANI_REVENUECAT_WEBHOOK_SECRET!,
     entitlementId: env.REVENUECAT_ENTITLEMENT_ID!,
     products: {
       starter: env.REVENUECAT_STARTER_PRODUCT_ID!,
@@ -147,7 +147,7 @@ export async function refreshSubscriber(
   const projection = projectSubscriber(body, current, config, options.now);
   if (projection.kind === 'unchanged') {
     if (projection.reason === 'unknown-product') {
-      (options.logger ?? console).error('[parle] REVENUECAT_UNKNOWN_PRODUCT', { userId });
+      (options.logger ?? console).error('[luvani] REVENUECAT_UNKNOWN_PRODUCT', { userId });
     }
     return projection;
   }

@@ -59,9 +59,9 @@ const PRACTICE_DIRS: readonly string[] = ['progress', 'missions', 'review', 'pra
 /**
  * The same knowledge arriving by another door.
  *
- * A path ban alone is routed around in one line: `@parle/core` re-exports the
+ * A path ban alone is routed around in one line: `@luvani/core` re-exports the
  * report builder and the due-card query, and `import { dueCards } from
- * '@parle/core'` reaches practice state without naming a banned directory. So
+ * '@luvani/core'` reaches practice state without naming a banned directory. So
  * the names are banned too, wherever they come from. Every one of these is real
  * today, and the last test in this file is what keeps that true.
  */
@@ -244,7 +244,7 @@ describe('what a reminder is not allowed to know', () => {
     const byPath = "import { hasToday } from '../progress/today.ts';\nexport const x = 1;\n";
     assert.deepEqual(forbiddenIn(byPath), ["imports '../progress/today.ts'", 'names hasToday']);
 
-    const byPackage = "import { dueCards } from '@parle/core';\nexport const x = 1;\n";
+    const byPackage = "import { dueCards } from '@luvani/core';\nexport const x = 1;\n";
     assert.deepEqual(forbiddenIn(byPackage), ['names dueCards'], 'core re-exports route round a path ban');
 
     const lazy = "export async function x() { return import('../review/store.ts'); }\n";

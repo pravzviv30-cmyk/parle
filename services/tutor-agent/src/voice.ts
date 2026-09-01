@@ -11,7 +11,7 @@
  * sound for scripted lines. Pinning plus a settings fingerprint in the cache
  * key means audio synthesized under one configuration is never replayed under
  * another: change a setting here and the whole cache re-keys, which is exactly
- * the moment to rerun `npm run warm-cache -w @parle/tutor-agent`.
+ * the moment to rerun `npm run warm-cache -w @luvani/tutor-agent`.
  *
  * WHICH VOICE, AND ON WHICH MODEL. These are one decision, not two.
  *
@@ -52,7 +52,7 @@ type Env = Record<string, string | undefined>;
  *
  * Parsed exactly like selectedBrain() in preflight.ts, and for exactly the
  * reason documented there: `??` only falls back on null or undefined, so a
- * `PARLE_TTS_VENDOR=` line in a .env selects the default while reading to a
+ * `LUVANI_TTS_VENDOR=` line in a .env selects the default while reading to a
  * human as "unset". Trim, lowercase, treat empty as absent, and fall back
  * rather than throw on a value nobody recognises — a typo here must not be able
  * to stop a worker booting on the vendor it has always used.
@@ -62,7 +62,7 @@ type Env = Record<string, string | undefined>;
  * one.
  */
 export function selectedVoiceVendor(env: Env = process.env): VoiceVendor {
-  const raw = (env.PARLE_TTS_VENDOR ?? '').trim().toLowerCase();
+  const raw = (env.LUVANI_TTS_VENDOR ?? '').trim().toLowerCase();
   if (raw === 'fish') return 'fish';
   return 'elevenlabs';
 }
@@ -105,7 +105,7 @@ export const VOICE_KEY: Record<VoiceVendor, string> = {
  * product whose promise is trustworthy pronunciation is not a trade of quality
  * against speed. A beginner imitates what they hear.
  *
- * Re-measure with the [parle:latency] say->audio segment before touching this.
+ * Re-measure with the [luvani:latency] say->audio segment before touching this.
  */
 export const MODEL = 'eleven_multilingual_v2';
 
@@ -159,7 +159,7 @@ export const LANGUAGE_CODE: string | undefined = 'fr';
  *
  * `style` is the one knob here that is not free: raising it costs first-byte
  * time on a turbo model. It went in as a measured change. Read the
- * `[parle:latency]` lines before and after moving it.
+ * `[luvani:latency]` lines before and after moving it.
  */
 export const VOICE_SETTINGS: elevenlabs.VoiceSettings = {
   stability: 0.4,
@@ -227,7 +227,7 @@ export function synthesisProbeRequest(voiceId: string): { url: string; body: str
  * `hooks` exists for the agent's latency telemetry; the warm-cache script calls
  * this bare. Nothing here may change what the tutor sounds like.
  *
- * The vendor branch is the only thing PARLE_TTS_VENDOR moves. Everything below
+ * The vendor branch is the only thing LUVANI_TTS_VENDOR moves. Everything below
  * it — the model, the voice, the settings, the fingerprint, the voiceKey — is
  * the ElevenLabs configuration exactly as it was before fish existed, because
  * the warmed cache on disk is keyed to that string and a byte of drift throws

@@ -2,7 +2,7 @@
  * Cost visibility per session, in the repo's metering spirit: know what a
  * session costs in week one, not month three.
  *
- * The price table and the arithmetic moved to `@parle/brain`'s pricing.ts, next
+ * The price table and the arithmetic moved to `@luvani/brain`'s pricing.ts, next
  * to the adapters that produce the tokens, because the playground stopped being
  * the only thing counting. What is left here is presentation: how a turn and a
  * session read in a terminal.
@@ -18,7 +18,7 @@
  *     forgotten. `addUsage` is that function under its old name.
  */
 
-import { addLlmUsage, costUsd, priceUsage, USD_PER_MTOK, ZERO_USAGE, type LlmUsage } from '@parle/brain';
+import { addLlmUsage, costUsd, priceUsage, USD_PER_MTOK, ZERO_USAGE, type LlmUsage } from '@luvani/brain';
 
 export { addLlmUsage, addLlmUsage as addUsage, costUsd, USD_PER_MTOK, ZERO_USAGE };
 

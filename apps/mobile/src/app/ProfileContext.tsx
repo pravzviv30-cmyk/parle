@@ -8,7 +8,7 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { LearnerProfile } from '@parle/brain/profile';
+import type { LearnerProfile } from '@luvani/brain/profile';
 import { loadProfile, saveProfile, withAgeGatePassed, type StoredProfile } from '../profile/store.ts';
 import { entryFor } from '../onboarding/answers.ts';
 import { AgeGateScreen } from '../onboarding/AgeGateScreen.tsx';

@@ -88,7 +88,7 @@ describe('the reminder store — whose reminder it is', () => {
     assert.equal(await saveReminder({ enabled: true, time: 'morning' }), 'durable');
     assert.deepEqual(
       [...disk.map.keys()],
-      [`parle.u.${mine}.reminder`],
+      [`luvani.u.${mine}.reminder`],
       "the chosen time landed somewhere other than this account's own key",
     );
     assert.deepEqual(await loadReminder(), { enabled: true, time: 'morning' });
@@ -138,7 +138,7 @@ describe('the reminder store — whose reminder it is', () => {
       'the reminder suffix is not on the reset list, so a cleared account keeps its reminder',
     );
     await clearActiveUserData({ sweepAudio: noAudio });
-    assert.equal(disk.map.has(`parle.u.${mine}.reminder`), false, 'a data reset left the reminder key on the device');
+    assert.equal(disk.map.has(`luvani.u.${mine}.reminder`), false, 'a data reset left the reminder key on the device');
     assert.equal(await loadReminder(), null, "a reset learner still has a reminder waiting for them");
     setActiveUser(null);
   });
@@ -166,7 +166,7 @@ describe('the reminder store — which way a bad blob falls', () => {
       const disk = installDisk();
       const uid = nextUid();
       setActiveUser(uid);
-      if (blob !== null) disk.map.set(`parle.u.${uid}.reminder`, blob);
+      if (blob !== null) disk.map.set(`luvani.u.${uid}.reminder`, blob);
 
       const stored = await loadReminder();
       assert.equal(stored, null, `this read as something rather than as nothing: ${blob}`);
@@ -194,7 +194,7 @@ describe('the reminder store — which way a bad blob falls', () => {
     const disk = installDisk();
     const kept = nextUid();
     setActiveUser(kept);
-    disk.map.set(`parle.u.${kept}.reminder`, '{"version":1,"reminder":{"enabled":true,"time":"teatime"}}');
+    disk.map.set(`luvani.u.${kept}.reminder`, '{"version":1,"reminder":{"enabled":true,"time":"teatime"}}');
     assert.deepEqual(
       await loadReminder(),
       { enabled: true, time: DEFAULT_REMINDER_TIME },
@@ -235,14 +235,14 @@ describe('the reminder store — what a write is allowed to claim', () => {
     // The row on screen is unaffected; what changes is that nobody downstream
     // may believe the choice survives this launch.
     const full = nextUid();
-    const refused = installDisk({ refuse: (key) => key === `parle.u.${full}.reminder` });
+    const refused = installDisk({ refuse: (key) => key === `luvani.u.${full}.reminder` });
     setActiveUser(full);
     assert.equal(
       await saveReminder({ enabled: true, time: 'morning' }),
       'failed',
       'a refused write answered as if it had landed, so a switch would claim a reminder nothing will send',
     );
-    assert.equal(refused.map.has(`parle.u.${full}.reminder`), false, "the test's own disk did not actually refuse the write");
+    assert.equal(refused.map.has(`luvani.u.${full}.reminder`), false, "the test's own disk did not actually refuse the write");
     assert.equal(await loadReminder(), null, 'a refused write left something readable behind');
     setActiveUser(null);
   });

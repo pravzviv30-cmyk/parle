@@ -33,7 +33,7 @@ class Cache {
 
   /** The shape expo-audio actually writes: the app cache, an m4a, a uuid. */
   write(name: string): string {
-    const uri = `file:///var/mobile/Containers/Data/Application/parle/Library/Caches/ExpoAudio/${name}.m4a`;
+    const uri = `file:///var/mobile/Containers/Data/Application/luvani/Library/Caches/ExpoAudio/${name}.m4a`;
     this.files.add(uri);
     return uri;
   }
@@ -126,7 +126,7 @@ describe('an attempt recording does not outlive the attempt — F115', () => {
     // somebody has to be able to grep for that.
     assert.doesNotThrow(() => discardRecording('file:///cache/ExpoAudio/recording-2.m4a', hooks));
     assert.deepEqual(alarms, [RECORDING_NOT_DISCARDED, RECORDING_NOT_DISCARDED]);
-    assert.match(RECORDING_NOT_DISCARDED, /^\[parle\] [A-Z_]+$/, 'the alarm left the house shape');
+    assert.match(RECORDING_NOT_DISCARDED, /^\[luvani\] [A-Z_]+$/, 'the alarm left the house shape');
     assert.doesNotMatch(RECORDING_NOT_DISCARDED, /file:|\/|Caches/, 'the alarm carries a device path');
   });
 

@@ -11,7 +11,7 @@
 
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import type { DrillExercise, FillBlankExercise, TapTranslateExercise } from '@parle/core';
+import type { DrillExercise, FillBlankExercise, TapTranslateExercise } from '@luvani/core';
 
 import { MAX_DRILL_EXERCISES, mergeExerciseBank } from './merge.ts';
 

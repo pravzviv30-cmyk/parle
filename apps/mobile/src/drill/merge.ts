@@ -20,7 +20,7 @@
  * one incoming exercise can only leave one exercise behind.
  */
 
-import type { DrillExercise } from '@parle/core';
+import type { DrillExercise } from '@luvani/core';
 
 /** A generous offline bank, bounded so parsing and rendering never grow forever. */
 export const MAX_DRILL_EXERCISES = 160;

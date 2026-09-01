@@ -28,7 +28,7 @@
 - [Brain LLM Schemas](Brain_LLM_Schemas.md) (2 shared connections)
 - [TTS Voice Cache Config](TTS_Voice_Cache_Config.md) (2 shared connections)
 - [Lesson Definitions](Lesson_Definitions.md) (2 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (2 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (2 shared connections)
 - [Turn Handling Tuning](Turn_Handling_Tuning.md) (2 shared connections)
 - [Mock Speech Session](Mock_Speech_Session.md) (1 shared connections)
 - [Thinking And Safety Views](Thinking_And_Safety_Views.md) (1 shared connections)

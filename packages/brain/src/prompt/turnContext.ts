@@ -8,7 +8,7 @@
  * can forge it. The Groq adapter folds it into the user turn instead.
  */
 
-import type { LadderDirective } from '@parle/core';
+import type { LadderDirective } from '@luvani/core';
 import type { CefrBand, Strictness } from '../types.ts';
 
 export type TurnInputKind = 'spoke' | 'silence' | 'help';

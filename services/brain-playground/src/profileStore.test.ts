@@ -4,11 +4,11 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { createProfile } from '@parle/brain';
+import { createProfile } from '@luvani/brain';
 
 import { loadProfile, saveProfile } from './profileStore.ts';
 
-const dir = mkdtempSync(join(tmpdir(), 'parle-profile-'));
+const dir = mkdtempSync(join(tmpdir(), 'luvani-profile-'));
 after(() => rmSync(dir, { recursive: true, force: true }));
 
 describe('the profile store', () => {

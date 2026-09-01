@@ -1,6 +1,6 @@
 -- F116 — the trigger still demands a property the client stopped sending.
 --
--- Parle validates a product event three times on purpose: the client's typed union in
+-- Luvani validates a product event three times on purpose: the client's typed union in
 -- apps/mobile/src/analytics/track.ts, parseProductEvent in the token server, and this
 -- trigger. The third layer is not belt and braces. RLS lets a signed-in learner insert
 -- into public.product_events directly over PostgREST, so a modified client can skip the

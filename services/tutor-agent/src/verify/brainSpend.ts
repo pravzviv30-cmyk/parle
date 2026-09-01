@@ -2,13 +2,13 @@
  * The F101 measurement checkpoint: what a session actually costs the brain.
  *
  * Runs two real sessions against the configured brain — one full, one short —
- * and prints the `[parle:brain:summary]` line for each. That line is what the
+ * and prints the `[luvani:brain:summary]` line for each. That line is what the
  * F101 decision rules in docs/KNOWN_ISSUES.md are read against, and until it
  * exists the analyst routing is being tuned on an estimate.
  *
  * Microphone free and text mode, so no speech vendor is touched: brain spend is
  * the only thing being measured and the only thing F101 decides on. A real
- * ParleConversation is driven exactly the way convo.test.ts drives one, with a
+ * LuvaniConversation is driven exactly the way convo.test.ts drives one, with a
  * live client in place of the mock, so the numbers come from the same code path
  * a learner runs and not from a rehearsal of it.
  *
@@ -28,10 +28,10 @@ import dotenv from 'dotenv';
 // anywhere, and the key it needs lives with the service that normally reads it.
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../.env') });
 
-import { createProfile } from '@parle/brain';
-import { encodeMessage, type ClientMessage } from '@parle/core';
+import { createProfile } from '@luvani/brain';
+import { encodeMessage, type ClientMessage } from '@luvani/core';
 
-import { ParleConversation } from '../convo.ts';
+import { LuvaniConversation } from '../convo.ts';
 
 /** Anything pointed at the token server is a debit, and a debit is not the subject. */
 const DEBIT_HOSTS = ['127.0.0.1', 'localhost'];
@@ -81,7 +81,7 @@ function tapped(message: ClientMessage): Uint8Array {
 /** One session: choose a topic, take N turns, then leave. */
 async function runSession(label: string, topic: string, turns: readonly string[]): Promise<void> {
   console.log(`\n===== ${label} — ${turns.length} learner turns =====`);
-  const convo = new ParleConversation(createProfile(), {
+  const convo = new LuvaniConversation(createProfile(), {
     voiceless: true,
     setSttLanguage: () => {},
   });
@@ -146,5 +146,5 @@ stubDebitOnly();
 await runSession('FULL', TOPIC, FULL_TURNS);
 await runSession('SHORT', TOPIC, SHORT_TURNS);
 
-console.log('\nRead the two [parle:brain:summary] lines above against the F101 rules in docs/KNOWN_ISSUES.md.');
+console.log('\nRead the two [luvani:brain:summary] lines above against the F101 rules in docs/KNOWN_ISSUES.md.');
 console.log('If either line reports abandoned>0, the split is a floor and the checkpoint is void.');

@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import type { ServerMessage } from '@parle/core';
+import type { ServerMessage } from '@luvani/core';
 import { thinkingAfter } from './thinking.ts';
 
 /** The learner has said something and is waiting on the tutor. */

@@ -13,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import type { AuthAdapter, AuthResult, AuthUser } from './types.ts';
 
-const KEY = 'parle.auth.mock.v1';
+const KEY = 'luvani.auth.mock.v1';
 
 interface MockAccount {
   id: string;
@@ -124,7 +124,7 @@ export function createMockAdapter(): AuthAdapter {
       // Keyless dev has no Google to talk to; a stable stand-in account keeps
       // the button, the flow, and per-user data all testable.
       const store = await readStore();
-      const key = 'google-dev@parle.local';
+      const key = 'google-dev@luvani.local';
       const account: MockAccount = store.users[key] ?? {
         id: 'mock-google-dev',
         email: key,

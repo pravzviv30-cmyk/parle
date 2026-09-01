@@ -39,7 +39,7 @@
 - [Conversation Brain Client](Conversation_Brain_Client.md) (7 shared connections)
 - [Topic Curation](Topic_Curation.md) (7 shared connections)
 - [French Authenticity Pack](French_Authenticity_Pack.md) (6 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (3 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (3 shared connections)
 - [Drill Generation Prompts](Drill_Generation_Prompts.md) (2 shared connections)
 - [Drill Grading And Fixtures](Drill_Grading_And_Fixtures.md) (2 shared connections)
 - [Drill Merge And Scene Controls](Drill_Merge_And_Scene_Controls.md) (2 shared connections)

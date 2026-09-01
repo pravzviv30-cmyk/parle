@@ -27,7 +27,7 @@
  * Above that sits the structural half, `reminder.test.ts`, which reads every
  * module in this directory and fails if one of them imports from `progress/`,
  * `missions/`, `review/` or `practice/`, or names one of the functions that
- * read practice state through `@parle/core`.
+ * read practice state through `@luvani/core`.
  *
  * **The cost, said plainly.** A learner who practised at 7:55 still gets the
  * 8:00 reminder. That is the price of the rule, and it is why the words are
@@ -182,7 +182,7 @@ export const REMINDER_OFF = 'Off';
  * not ask for is a promise pointing at nothing.
  */
 export const REMINDER_EXPLAIN =
-  'Your phone will ask to allow notifications. Parle sends one a day at the time you pick, and it says the same thing every day.';
+  'Your phone will ask to allow notifications. Luvani sends one a day at the time you pick, and it says the same thing every day.';
 
 /**
  * What the row says when the OS will not deliver.
@@ -194,7 +194,7 @@ export const REMINDER_EXPLAIN =
  * anyway, so a re-ask loop would be a button that silently does nothing.
  */
 export const REMINDER_REFUSED =
-  'Notifications are turned off for Parle in your phone settings. You can turn them on there whenever you like.';
+  'Notifications are turned off for Luvani in your phone settings. You can turn them on there whenever you like.';
 
 /** The sheet that picks the time. */
 export const REMINDER_TIME_TITLE = 'When to remind you';

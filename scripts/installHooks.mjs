@@ -18,8 +18,8 @@ import path from 'node:path';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HOOKS_DIR = '.githooks';
 
-if (process.env.PARLE_SKIP_HOOKS === '1') {
-  console.log('hooks: skipped (PARLE_SKIP_HOOKS=1)');
+if (process.env.LUVANI_SKIP_HOOKS === '1') {
+  console.log('hooks: skipped (LUVANI_SKIP_HOOKS=1)');
   process.exit(0);
 }
 

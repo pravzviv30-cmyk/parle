@@ -1,6 +1,6 @@
--- Rollback for supabase/migrations/202608220001_parle_learning.sql
+-- Rollback for supabase/migrations/202608220001_luvani_learning.sql
 --
--- DESTRUCTIVE. This drops every learner row Parle owns: saved state, product events
+-- DESTRUCTIVE. This drops every learner row Luvani owns: saved state, product events
 -- and entitlements. Take the backup in supabase/README.md § Backup before you paste
 -- it, and do not run it on a project that has real accounts without an escalation.
 --
@@ -31,6 +31,6 @@ drop policy if exists "learners insert their own state" on public.learner_state;
 drop policy if exists "learners read their own state" on public.learner_state;
 drop table if exists public.learner_state;
 
--- Nothing here touches auth.users. Accounts are Supabase's, not Parle's, and a schema
+-- Nothing here touches auth.users. Accounts are Supabase's, not Luvani's, and a schema
 -- rollback that deleted accounts would be a data-loss incident wearing a migration's
 -- clothes.

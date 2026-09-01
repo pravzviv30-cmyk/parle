@@ -18,7 +18,7 @@ const OWNED_TABLES = [
 export type ExportedTable = (typeof OWNED_TABLES)[number];
 
 export interface AccountDataExport {
-  format: 'parle-account-export-v1';
+  format: 'luvani-account-export-v1';
   exportedAt: string;
   account: {
     id: string;
@@ -69,7 +69,7 @@ export async function exportSupabaseAccountData(
   const account = (typeof accountBody === 'object' && accountBody !== null ? accountBody : {}) as Record<string, unknown>;
 
   return {
-    format: 'parle-account-export-v1',
+    format: 'luvani-account-export-v1',
     exportedAt: now.toISOString(),
     account: {
       id: userId,

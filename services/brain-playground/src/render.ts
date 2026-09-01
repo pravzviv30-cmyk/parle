@@ -13,7 +13,7 @@ import type {
   SessionRecap,
   SupportView,
   TurnView,
-} from '@parle/brain';
+} from '@luvani/brain';
 
 const useColor = process.env.NO_COLOR === undefined && process.stdout.isTTY === true;
 

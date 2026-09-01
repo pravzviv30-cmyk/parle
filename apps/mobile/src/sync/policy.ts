@@ -79,14 +79,14 @@
  *
  * No react-native import belongs in this file. It is reached from `engine.ts`, which runs
  * under plain `node --test`, and the three modules it leans on — `profile/upgrade.ts`,
- * `drill/merge.ts`, `@parle/core` — are all pure for exactly that reason.
+ * `drill/merge.ts`, `@luvani/core` — are all pure for exactly that reason.
  */
 
 import { innerVersion, stableStringify } from './envelope.ts';
 import type { SyncMergeRequest, SyncMergeResult, SyncPolicy } from './engine.ts';
-import { mergeStoredProfiles } from '@parle/brain/profile/merge';
-import { MAX_DISCUSSED_DATES, MAX_STORED_TOPICS, mergeDecks } from '@parle/core';
-import type { DrillExercise, PracticeTopic } from '@parle/core';
+import { mergeStoredProfiles } from '@luvani/brain/profile/merge';
+import { MAX_DISCUSSED_DATES, MAX_STORED_TOPICS, mergeDecks } from '@luvani/core';
+import type { DrillExercise, PracticeTopic } from '@luvani/core';
 import { upgradeStored } from '../profile/upgrade.ts';
 import { mergeExerciseBank } from '../drill/merge.ts';
 
@@ -183,12 +183,12 @@ function unionBy<T>(
  * nobody has ever set, and a sentinel that collides with real data is a sentinel that
  * eventually means the wrong thing.
  */
-const UNREADABLE = Symbol('parle.sync.unreadable');
+const UNREADABLE = Symbol('luvani.sync.unreadable');
 
 // ────────────────────────────────────────────────────────────────── profile
 
 /**
- * Delegated whole to `@parle/brain`. The rule for putting two copies of a learner back
+ * Delegated whole to `@luvani/brain`. The rule for putting two copies of a learner back
  * together is pedagogy — it is a claim about what somebody has actually learned — and a
  * second copy of it here is how a repo grows two answers to that question.
  *
@@ -207,7 +207,7 @@ function mergeProfile(local: unknown, remote: unknown, now: number): unknown | t
 // ─────────────────────────────────────────────────────────────────── review
 
 /**
- * Delegated whole to `@parle/core`. Union by card id; the whole card comes from the side
+ * Delegated whole to `@luvani/core`. Union by card id; the whole card comes from the side
  * with more grades applied, and no interval is ever regenerated. See that file for why
  * the ordering primitive is `reps + lapses` and not a timestamp.
  */

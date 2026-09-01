@@ -11,7 +11,7 @@
 
 import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 
-import { PLANS, rollPeriod, type Entitlement, type Plan } from '@parle/core';
+import { PLANS, rollPeriod, type Entitlement, type Plan } from '@luvani/core';
 
 export interface EntitlementStore {
   /** Claim the one-time trial boundary before a first entitlement is read. */
@@ -40,7 +40,7 @@ export interface EntitlementStore {
  * opt-in flag.
  */
 export function developmentEntitlementsEnabled(env: Record<string, string | undefined>): boolean {
-  return env.PARLE_DEV_UNLIMITED_MINUTES === '1' && env.NODE_ENV !== 'production';
+  return env.LUVANI_DEV_UNLIMITED_MINUTES === '1' && env.NODE_ENV !== 'production';
 }
 
 /**
@@ -215,7 +215,7 @@ export class FileEntitlementStore implements EntitlementStore {
     } catch (err) {
       // A balance that could not be persisted is still correct in memory for
       // this process. Loud, because the next restart will forget it.
-      console.error('[parle] ENTITLEMENT_NOT_PERSISTED', err);
+      console.error('[luvani] ENTITLEMENT_NOT_PERSISTED', err);
     }
   }
 

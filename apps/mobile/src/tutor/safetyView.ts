@@ -27,7 +27,7 @@
  * `live/thinking.ts`.
  */
 
-import type { ServerMessage } from '@parle/core';
+import type { ServerMessage } from '@luvani/core';
 
 /**
  * The safety frame, taken from the wire type rather than restated.

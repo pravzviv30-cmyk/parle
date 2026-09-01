@@ -13,7 +13,7 @@
  * The second is a dependency decision. `npm audit` reports advisories against packages
  * nobody in this repo chose; the interesting question is never "is there an advisory" but
  * "is that code path reached, and if it is not, who decided that and on what evidence".
- * Those decisions live in package.json under `parle.dependencyAudit`, and the tests below
+ * Those decisions live in package.json under `luvani.dependencyAudit`, and the tests below
  * hold them against package-lock.json: every decision names a version the lockfile
  * actually carries, and the chain that was judged fixable is walked, edge by edge, to
  * prove no vulnerable package is still on it.
@@ -40,7 +40,7 @@ const WORKFLOW_PATH = path.join(ROOT, '.github', 'workflows', 'ci.yml');
 const workflow = readFileSync(WORKFLOW_PATH, 'utf8');
 const manifest = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8')) as {
   scripts: Record<string, string>;
-  parle?: { dependencyAudit?: { advisories?: AdvisoryDecision[] } };
+  luvani?: { dependencyAudit?: { advisories?: AdvisoryDecision[] } };
 };
 const lock = JSON.parse(readFileSync(path.join(ROOT, 'package-lock.json'), 'utf8')) as Lockfile;
 
@@ -66,7 +66,7 @@ interface Lockfile {
   packages: Record<string, LockEntry>;
 }
 
-const decisions = manifest.parle?.dependencyAudit?.advisories ?? [];
+const decisions = manifest.luvani?.dependencyAudit?.advisories ?? [];
 const accepted = decisions.filter((d) => d.decision === 'accepted');
 const fixed = decisions.filter((d) => d.decision === 'fixed');
 
@@ -276,7 +276,7 @@ describe('the ci contract', () => {
     assert.ok(decisions.length > 0, 'package.json records no dependency-audit decisions at all');
 
     for (const record of decisions) {
-      const where = `parle.dependencyAudit for ${record.module}`;
+      const where = `luvani.dependencyAudit for ${record.module}`;
       assert.ok(['moderate', 'high', 'critical'].includes(record.severity), `${where}: unknown severity`);
       assert.ok(['fixed', 'accepted'].includes(record.decision), `${where}: decision must be fixed or accepted`);
 

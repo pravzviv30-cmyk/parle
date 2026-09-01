@@ -11,7 +11,7 @@
 #   1. the gate         — typecheck, every suite, the count floors, the agent pins, the
 #                         secret scan, and the ledger. Exactly what `pre-push` runs.
 #   2. dependency audit — `npm audit` read against the advisory decisions recorded in
-#                         package.json under `parle.dependencyAudit`. Fails on any high or
+#                         package.json under `luvani.dependencyAudit`. Fails on any high or
 #                         critical advisory nobody has written a reachability argument for,
 #                         and equally on an acceptance that no longer applies.
 #   3. secret scan      — its own step as well as inside the gate, on purpose. If somebody

@@ -30,7 +30,7 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { ConvoPhrase, DrillExercise, SessionSummary, StoredSession } from '@parle/core';
+import type { ConvoPhrase, DrillExercise, SessionSummary, StoredSession } from '@luvani/core';
 
 import { USER_KEY_SUFFIXES, setActiveUser } from './scope.ts';
 import { adopterFor, clearDirty, dirtyStamp, resetSyncRegistry, type SyncFold } from '../sync/registry.ts';
@@ -205,7 +205,7 @@ const QUEUED_WRITES: readonly QueuedWrite[] = [
  * yet, which is precisely the window this whole invariant is about.
  */
 async function landingOf(entry: QueuedWrite): Promise<{ mine: boolean; theirs: boolean }> {
-  const mine = `parle.u.${uid}.${entry.suffix}`;
+  const mine = `luvani.u.${uid}.${entry.suffix}`;
   if (entry.seed) disk.set(mine, entry.seed(mine));
   const before = disk.get(mine) ?? null;
 
@@ -216,7 +216,7 @@ async function landingOf(entry: QueuedWrite): Promise<{ mine: boolean; theirs: b
 
   return {
     mine: (disk.get(mine) ?? null) !== before,
-    theirs: disk.has(`parle.u.${next}.${entry.suffix}`),
+    theirs: disk.has(`luvani.u.${next}.${entry.suffix}`),
   };
 }
 
@@ -248,11 +248,11 @@ describe('the account a queued write belongs to', () => {
     // first: a store with a load-once cache that misses re-reads the key it is
     // about to write, so a late-resolved key does not just misfile the entry —
     // it merges one learner's work into another learner's data.
-    const mine = `parle.u.${uid}.drills`;
+    const mine = `luvani.u.${uid}.drills`;
     disk.set(mine, JSON.stringify({ version: 1, exercises: [exercise('gen:mine', 'phrase:mine')], micSuppressedUntil: null }));
     const other = nextUid();
     disk.set(
-      `parle.u.${other}.drills`,
+      `luvani.u.${other}.drills`,
       JSON.stringify({ version: 1, exercises: [exercise('gen:theirs', 'phrase:theirs')], micSuppressedUntil: null }),
     );
 
@@ -261,7 +261,7 @@ describe('the account a queued write belongs to', () => {
     await inFlight;
 
     const landedMine = JSON.parse(disk.get(mine)!) as { exercises: DrillExercise[] };
-    const landedTheirs = JSON.parse(disk.get(`parle.u.${other}.drills`)!) as { exercises: DrillExercise[] };
+    const landedTheirs = JSON.parse(disk.get(`luvani.u.${other}.drills`)!) as { exercises: DrillExercise[] };
     assert.deepEqual(
       landedMine.exercises.map((e) => e.id).sort(),
       ['gen:mine', 'gen:queued'],
@@ -664,7 +664,7 @@ describe('the seam every synced store shares with the reconciler', () => {
       await store.write();
       await store.during();
 
-      const key = `parle.u.${uid}.${store.namespace}`;
+      const key = `luvani.u.${uid}.${store.namespace}`;
       const raw = disk.get(key) ?? null;
       const onDisk: unknown = raw === null ? null : JSON.parse(raw);
 

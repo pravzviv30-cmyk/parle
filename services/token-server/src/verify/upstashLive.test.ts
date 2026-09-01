@@ -86,20 +86,20 @@ describe('the upstash harness — honest about what it did and did not prove', (
   test('the harness describes a bad redis key without ever quoting it', () => {
     const hashed = privateSignal('a'.repeat(48), 'user', 'learner@example.com');
     assert.ok(isHashedSegment(hashed));
-    assert.equal(keyShapeProblem(`parle:active-session:${hashed}`), null);
-    assert.equal(keyShapeProblem(`parle:limit:${RATE_LIMITS.sessionIp.name}:${hashed}`), null);
+    assert.equal(keyShapeProblem(`luvani:active-session:${hashed}`), null);
+    assert.equal(keyShapeProblem(`luvani:limit:${RATE_LIMITS.sessionIp.name}:${hashed}`), null);
     for (const rule of Object.values(RATE_LIMITS)) {
-      assert.equal(keyShapeProblem(`parle:limit:${rule.name}:${hashed}`), null, `${rule.name} is not accepted`);
+      assert.equal(keyShapeProblem(`luvani:limit:${rule.name}:${hashed}`), null, `${rule.name} is not accepted`);
     }
 
     // The shapes that would mean an identity is sitting in a shared database.
     const raw = [
-      'parle:limit:session-ip:203.0.113.42',
-      'parle:limit:session-user:learner@example.com',
-      'parle:active-session:9f1c2b7e-1111-4222-8333-444455556666',
-      'parle:active-session:learner@example.com',
-      'parle:limit:not-a-rule:' + hashed,
-      'parle:something-else:' + hashed,
+      'luvani:limit:session-ip:203.0.113.42',
+      'luvani:limit:session-user:learner@example.com',
+      'luvani:active-session:9f1c2b7e-1111-4222-8333-444455556666',
+      'luvani:active-session:learner@example.com',
+      'luvani:limit:not-a-rule:' + hashed,
+      'luvani:something-else:' + hashed,
       'other:limit:session-ip:' + hashed,
     ];
     for (const key of raw) {
@@ -139,7 +139,7 @@ describe('the upstash harness — honest about what it did and did not prove', (
     assert.match(source, /output\.push\(redact\(/, 'child output must be redacted before it is kept');
 
     const token = 'AX4kASQgY2NkZWZnaGlqa2xtbm9wcXJzdHV2d3h5eg';
-    const url = 'https://eu2-parle-12345.upstash.io';
+    const url = 'https://eu2-luvani-12345.upstash.io';
     const safe = redact(`connecting to ${url} with ${token} and ${token} again`, [token, url]);
     assert.ok(!safe.includes(token));
     assert.ok(!safe.includes(url));

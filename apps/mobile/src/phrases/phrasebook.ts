@@ -23,13 +23,13 @@
  * ## No percentage, and that is deliberate
  *
  * The app that prompted this shows "22% words learnt, 116 words in stack". It
- * can, because it ships a fixed list. Parle's deck grows from whatever the
+ * can, because it ships a fixed list. Luvani's deck grows from whatever the
  * learner actually said, so there is no denominator, and inventing one would
  * be the same species of error as inventing a pronunciation score. Counts are
  * honest. A ratio would not be.
  */
 
-import { isDue, isSettled, phraseKeyOf, type PracticeTopic, type ReviewCard } from '@parle/core';
+import { isDue, isSettled, phraseKeyOf, type PracticeTopic, type ReviewCard } from '@luvani/core';
 
 /** How settled a phrase is. The same three words the practice path uses. */
 export type Hold = 'steady' | 'coming-back' | 'new';

@@ -26,7 +26,7 @@
  *   node --experimental-strip-types services/tutor-agent/src/verify/voiceLifecycle.ts --agent none
  *
  * Two kinds of check live here and the difference is deliberate. An `assert`
- * check states what Parle promises and fails the run when the promise breaks.
+ * check states what Luvani promises and fails the run when the promise breaks.
  * A `record` check measures something LiveKit decides — how a rejoin inside the
  * token TTL is treated, how long an empty room holds a waiting agent — and
  * prints the number without pretending we chose it. Anything ugly a `record`
@@ -53,7 +53,7 @@ import {
   TOPIC_SERVER,
   type CostModel,
   type Entitlement,
-} from '@parle/core';
+} from '@luvani/core';
 
 // ---------------------------------------------------------------------------
 // The inventory
@@ -63,7 +63,7 @@ import {
 export type CheckNeeds = 'token-server' | 'livekit' | 'agent';
 
 /**
- * `assert` — Parle's own promise. A wrong answer fails the run.
+ * `assert` — Luvani's own promise. A wrong answer fails the run.
  * `record` — LiveKit's behaviour. The number is printed, never asserted.
  */
 export type CheckKind = 'assert' | 'record';
@@ -639,7 +639,7 @@ async function endSession(
 ): Promise<number> {
   const response = await fetch(`${live.tokenServer}/session/end`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', ...(secret === null ? {} : { 'x-parle-agent': secret }) },
+    headers: { 'content-type': 'application/json', ...(secret === null ? {} : { 'x-luvani-agent': secret }) },
     body: JSON.stringify(body),
   });
   await response.text();
@@ -683,14 +683,14 @@ function checkInsecureUrlRefused(live: Live): Check {
         env: {
           ...process.env,
           NODE_ENV: 'production',
-          PARLE_LOCAL_DEVELOPMENT: '0',
+          LUVANI_LOCAL_DEVELOPMENT: '0',
           PORT: String(port),
           LIVEKIT_URL: url,
           LIVEKIT_API_KEY: live.apiKey,
           LIVEKIT_API_SECRET: live.apiSecret,
           // Guarantees at least one other problem, so both boots exit fast and
           // the only thing that differs between them is the transport line.
-          PARLE_ALLOWED_ORIGINS: '',
+          LUVANI_ALLOWED_ORIGINS: '',
         },
       });
       const deadline = Date.now() + 20_000;
@@ -700,7 +700,7 @@ function checkInsecureUrlRefused(live: Live): Check {
     };
 
     const insecure = await bootRefusal(live.wsUrl);
-    const secure = await bootRefusal('wss://parle-verify.invalid');
+    const secure = await bootRefusal('wss://luvani-verify.invalid');
     const marker = /secure WSS LiveKit URL/;
     if (!marker.test(insecure)) {
       return { status: 'fail', detail: `a ws:// production boot was not refused for its transport: ${insecure.slice(-200)}` };
@@ -718,7 +718,7 @@ function checkInsecureUrlRefused(live: Live): Check {
 /**
  * Two separate questions, because the first answer surprised this harness.
  *
- * Parle's question is whether a captured join credential stops working. LiveKit's
+ * Luvani's question is whether a captured join credential stops working. LiveKit's
  * question is *when*, and the answer is not "at `exp`": the server validates the
  * claim with leeway, so a credential a few seconds past its expiry still opens a
  * room. The assertion is on the property that matters — a credential replayed
@@ -734,7 +734,7 @@ function checkJoinTokenExpiry(live: Live): Check {
       return { status: 'fail', detail: `a server grant should live five minutes; this one lives ${defaultTtl}s` };
     }
 
-    const roomName = `parle-verify-ttl-${randomBytes(4).toString('hex')}`;
+    const roomName = `luvani-verify-ttl-${randomBytes(4).toString('hex')}`;
     const ladder = [3, 30, 90, 900];
     const accepted: number[] = [];
     const refused: number[] = [];
@@ -980,7 +980,7 @@ function checkHardStop(live: Live, seed: HardStopSeed, carry: { userId: string }
   return timed('hard-stop-closes-a-live-session', async () => {
     const userId = `verify-hardstop-${randomUUID()}`;
     carry.userId = userId;
-    const roomName = `parle-verify-hardstop-${randomBytes(4).toString('hex')}`;
+    const roomName = `luvani-verify-hardstop-${randomBytes(4).toString('hex')}`;
     const token = await mintToken(live, {
       identity: userId,
       room: roomName,
@@ -1095,7 +1095,7 @@ function checkUnusableRoomNotCharged(live: Live, carry: { userId: string }): Che
 /** How long LiveKit keeps a tutor waiting in a room nobody joined. */
 function recordEmptyRoomHold(live: Live): Check {
   return timed('empty-room-holds-the-agent', async () => {
-    const roomName = `parle-verify-empty-${randomBytes(4).toString('hex')}`;
+    const roomName = `luvani-verify-empty-${randomBytes(4).toString('hex')}`;
     const emptyTimeout = 20;
     const createdAt = Date.now();
     await live.rooms.createRoom({ name: roomName, emptyTimeout, maxParticipants: 2 });
@@ -1128,7 +1128,7 @@ function recordEmptyRoomHold(live: Live): Check {
       `empty-room-holds-the-agent: emptyTimeout=${emptyTimeout}, held ${heldSec.toFixed(1)}s, ${joinNote}. ` +
         'The production RoomConfiguration uses emptyTimeout=30, so an empty room survives half a minute — but the ' +
         'worker-occupancy cost of that is what this line measures, not what it assumes. Dispatch follows a ' +
-        'PARTICIPANT, so a room with nobody in it holds no tutor, and Parle never creates one any other way: a ' +
+        'PARTICIPANT, so a room with nobody in it holds no tutor, and Luvani never creates one any other way: a ' +
         'grant nobody joins leaves no room at all (never-joined-room-debits-nothing). The tutor-holding timeout is ' +
         'departureTimeout, measured separately at 20s by learner-departure-closes-the-room. ROOM_LIFECYCLE in ' +
         'tokens.ts carries both numbers.',
@@ -1157,24 +1157,24 @@ export async function main(argv: readonly string[] = process.argv.slice(2)): Pro
   let workspace: string | null = null;
 
   try {
-    console.log('[parle:voice] inventory');
+    console.log('[luvani:voice] inventory');
     for (const check of LIFECYCLE_CHECKS) console.log(`  ${check.kind === 'assert' ? 'assert' : 'record'}  ${check.id}`);
     console.log('');
 
     const foreign = foreignAgentWorkers(execFileSync('ps', ['-Ao', 'pid=,command='], { encoding: 'utf8' }));
     const refusal = refuseForeignWorker(options, foreign);
     if (refusal !== null) {
-      console.error(`[parle:voice] REFUSING: ${refusal}`);
+      console.error(`[luvani:voice] REFUSING: ${refusal}`);
       return 2;
     }
     if (foreign.length > 0) {
       console.log(
-        `[parle:voice] note: ${foreign.join(', ')} is a tutor worker this harness did not start. ` +
+        `[luvani:voice] note: ${foreign.join(', ')} is a tutor worker this harness did not start. ` +
           'It is registered against a different LiveKit, so it cannot be dispatched into this run.',
       );
     }
 
-    workspace = mkdtempSync(join(tmpdir(), 'parle-voice-verify-'));
+    workspace = mkdtempSync(join(tmpdir(), 'luvani-voice-verify-'));
     const storePath = join(workspace, 'entitlements.json');
     writeFileSync(storePath, '{}');
 
@@ -1210,18 +1210,18 @@ export async function main(argv: readonly string[] = process.argv.slice(2)): Pro
       httpUrl = `http://127.0.0.1:${signalPort}`;
       wsUrl = `ws://127.0.0.1:${signalPort}`;
       await waitForHttp(`${httpUrl}/`, 20_000, 'the harness livekit-server');
-      console.log(`[parle:voice] livekit-server on ${wsUrl} (this run's own key pair, self-hosted, $0 transport)`);
+      console.log(`[luvani:voice] livekit-server on ${wsUrl} (this run's own key pair, self-hosted, $0 transport)`);
     } else {
       const envUrl = process.env.LIVEKIT_URL ?? '';
       apiKey = process.env.LIVEKIT_API_KEY ?? '';
       apiSecret = process.env.LIVEKIT_API_SECRET ?? '';
       if (!envUrl || !apiKey || !apiSecret) {
-        console.error('[parle:voice] BLOCKED: --transport env needs LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET.');
+        console.error('[luvani:voice] BLOCKED: --transport env needs LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET.');
         return 2;
       }
       wsUrl = envUrl;
       httpUrl = envUrl.replace(/^ws/, 'http');
-      console.log(`[parle:voice] using the configured LiveKit at ${new URL(envUrl).protocol}//${new URL(envUrl).host}`);
+      console.log(`[luvani:voice] using the configured LiveKit at ${new URL(envUrl).protocol}//${new URL(envUrl).host}`);
     }
 
     // --- token server ------------------------------------------------------
@@ -1233,20 +1233,20 @@ export async function main(argv: readonly string[] = process.argv.slice(2)): Pro
       env: {
         ...process.env,
         NODE_ENV: 'development',
-        PARLE_LOCAL_DEVELOPMENT: '1',
+        LUVANI_LOCAL_DEVELOPMENT: '1',
         PORT: String(tokenPort),
         // The measured store. Empty strings rather than deletions: dotenv only
         // fills names that are absent, so an empty value is how a .env line is
         // overridden without editing anybody's file.
         ENTITLEMENT_STORE_PATH: storePath,
-        PARLE_DEV_UNLIMITED_MINUTES: '0',
+        LUVANI_DEV_UNLIMITED_MINUTES: '0',
         SUPABASE_URL: '',
         SUPABASE_SERVICE_ROLE_KEY: '',
         SUPABASE_JWT_SECRET: '',
         UPSTASH_REDIS_REST_URL: '',
         UPSTASH_REDIS_REST_TOKEN: '',
-        PARLE_RATE_LIMIT_SALT: randomBytes(36).toString('base64url'),
-        PARLE_AGENT_SECRET: agentSecret,
+        LUVANI_RATE_LIMIT_SALT: randomBytes(36).toString('base64url'),
+        LUVANI_AGENT_SECRET: agentSecret,
         LIVEKIT_URL: wsUrl,
         LIVEKIT_API_KEY: apiKey,
         LIVEKIT_API_SECRET: apiSecret,
@@ -1258,10 +1258,10 @@ export async function main(argv: readonly string[] = process.argv.slice(2)): Pro
     // under test. The health payload has to name the LiveKit we just started.
     const health = (await (await fetch(`${tokenServerUrl}/health`)).json()) as { livekitUrl?: string };
     if (health.livekitUrl !== wsUrl) {
-      console.error(`[parle:voice] REFUSING: ${tokenServerUrl} answered for a different LiveKit than this run started.`);
+      console.error(`[luvani:voice] REFUSING: ${tokenServerUrl} answered for a different LiveKit than this run started.`);
       return 2;
     }
-    console.log(`[parle:voice] token server on ${tokenServerUrl} with a seeded file store`);
+    console.log(`[luvani:voice] token server on ${tokenServerUrl} with a seeded file store`);
 
     const live: Live = {
       options,
@@ -1284,7 +1284,7 @@ export async function main(argv: readonly string[] = process.argv.slice(2)): Pro
     const held = { sessionId: '', userId: '' };
     const debitCarry = { token: '', roomName: '', window: null as RoomWindow | null };
 
-    console.log('[parle:voice] phase one — token server and transport, no tutor registered');
+    console.log('[luvani:voice] phase one — token server and transport, no tutor registered');
     const phaseOne = await Promise.all([
       (async () => {
         const first = await checkConcurrentStart(live, held)();
@@ -1310,7 +1310,7 @@ export async function main(argv: readonly string[] = process.argv.slice(2)): Pro
     if (options.agent === 'none') {
       for (const id of agentChecks) results.push(skip(id, 'the run was started with --agent none'));
     } else {
-      console.log(`[parle:voice] phase two — spawning this run's own tutor worker (mode ${options.mode})`);
+      console.log(`[luvani:voice] phase two — spawning this run's own tutor worker (mode ${options.mode})`);
       agent = spawnLogged('node', ['--experimental-strip-types', 'src/agent.ts', 'start', '--simulation'], {
         cwd: TUTOR_AGENT_DIR,
         env: {
@@ -1319,7 +1319,7 @@ export async function main(argv: readonly string[] = process.argv.slice(2)): Pro
           LIVEKIT_API_KEY: apiKey,
           LIVEKIT_API_SECRET: apiSecret,
           TOKEN_SERVER_URL: tokenServerUrl,
-          PARLE_AGENT_SECRET: agentSecret,
+          LUVANI_AGENT_SECRET: agentSecret,
         },
       });
       const registeredBy = Date.now() + 60_000;
@@ -1362,7 +1362,7 @@ export async function main(argv: readonly string[] = process.argv.slice(2)): Pro
       vendorProbes: options.agent === 'spawn' ? 5 : 0,
     });
 
-    console.log('\n[parle:voice] results');
+    console.log('\n[luvani:voice] results');
     for (const check of LIFECYCLE_CHECKS) {
       const result = results.find((r) => r.id === check.id);
       const badge = result === undefined ? 'MISSING ' : result.status.toUpperCase().padEnd(8);
@@ -1372,11 +1372,11 @@ export async function main(argv: readonly string[] = process.argv.slice(2)): Pro
     }
 
     if (live.records.length > 0) {
-      console.log('\n[parle:voice] measured, not asserted');
+      console.log('\n[luvani:voice] measured, not asserted');
       for (const record of live.records) console.log(`  - ${record}`);
     }
 
-    console.log('\n[parle:voice] vendor cost record');
+    console.log('\n[luvani:voice] vendor cost record');
     for (const line of spend.lines) console.log(`  ${line}`);
     console.log(`  live budget:                 ${agentRoomSec.toFixed(1)}s of ${options.budgetSec}s tutor-attended`);
     console.log(`  wall clock:                  ${((Date.now() - startedAt) / 1_000).toFixed(1)}s`);
@@ -1387,14 +1387,14 @@ export async function main(argv: readonly string[] = process.argv.slice(2)): Pro
     const summary = summariseRun(results);
     console.log('');
     if (summary.ok) {
-      console.log(`[parle:voice] PASS — ${summary.passed} assertions held, ${summary.recorded} measurements recorded.`);
+      console.log(`[luvani:voice] PASS — ${summary.passed} assertions held, ${summary.recorded} measurements recorded.`);
       return 0;
     }
-    console.error(`[parle:voice] FAIL — ${summary.failed} failed, ${summary.skipped} skipped.`);
+    console.error(`[luvani:voice] FAIL — ${summary.failed} failed, ${summary.skipped} skipped.`);
     for (const reason of summary.reasons) console.error(`  - ${reason}`);
     return 1;
   } catch (error) {
-    console.error('[parle:voice] the harness itself failed:', error instanceof Error ? error.message : error);
+    console.error('[luvani:voice] the harness itself failed:', error instanceof Error ? error.message : error);
     return 1;
   } finally {
     await stop(agent);

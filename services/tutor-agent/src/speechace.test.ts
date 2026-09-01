@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { parseSpeechace, scoreUtterance } from './speechace.ts';
 import { toInventoryIpa } from '../../shared/phoneMap.ts';
-import { buildReport } from '@parle/core';
+import { buildReport } from '@luvani/core';
 
 /** A trimmed but structurally faithful Speechace v9 response for "sur place". */
 const RESPONSE = {

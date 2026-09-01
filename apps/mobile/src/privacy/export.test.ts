@@ -29,15 +29,15 @@ test('the data export combines every user-scoped device key with the authenticat
     request: (async (input, init) => {
       requested = String(input);
       assert.equal((init?.headers as Record<string, string>).authorization, 'Bearer bearer-secret');
-      return new Response(JSON.stringify({ format: 'parle-account-export-v1', serverData: { learner_state: [] } }));
+      return new Response(JSON.stringify({ format: 'luvani-account-export-v1', serverData: { learner_state: [] } }));
     }) as typeof fetch,
     readDevice: async (keys) => {
       assert.equal(keys.length, USER_KEY_SUFFIXES.length);
-      assert.ok(keys.every((key) => key.startsWith('parle.u.learner-1.')));
+      assert.ok(keys.every((key) => key.startsWith('luvani.u.learner-1.')));
       return keys.map((key, index) => [key, index === 0 ? '{"name":"Ada"}' : null] as const);
     },
     save: async (filename, content, mime) => {
-      assert.equal(filename, 'parle-account-data.json');
+      assert.equal(filename, 'luvani-account-data.json');
       assert.equal(mime, 'application/json');
       saved = content;
     },
@@ -47,7 +47,7 @@ test('the data export combines every user-scoped device key with the authenticat
   assert.deepEqual(result, { ok: true });
   assert.match(requested, /\/account\/export$/);
   const payload = JSON.parse(saved) as Record<string, any>;
-  assert.equal(payload.format, 'parle-complete-export-v1');
+  assert.equal(payload.format, 'luvani-complete-export-v1');
   assert.equal(payload.exportedAt, '2026-08-30T12:00:00.000Z');
   assert.deepEqual(payload.deviceData.profile, { name: 'Ada' });
   assert.deepEqual(Object.keys(payload.deviceData), [...USER_KEY_SUFFIXES]);

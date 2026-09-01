@@ -339,12 +339,12 @@ function provenLiveEntries(markdown: string): LedgerEntry[] {
  * F214's, which asks that it *is* them.
  */
 const WORKSPACE_OF: Record<string, string> = {
-  core: '@parle/core',
-  brain: '@parle/brain',
-  'tutor agent': '@parle/tutor-agent',
-  'token server': '@parle/token-server',
-  playground: '@parle/brain-playground',
-  mobile: '@parle/mobile',
+  core: '@luvani/core',
+  brain: '@luvani/brain',
+  'tutor agent': '@luvani/tutor-agent',
+  'token server': '@luvani/token-server',
+  playground: '@luvani/brain-playground',
+  mobile: '@luvani/mobile',
 };
 
 interface GateRun {
@@ -1240,7 +1240,7 @@ describe('the three documents agree about what landed', () => {
 
     // 3. The state F214 was filed against: a landing raised a workspace's count and nobody
     //    blessed, so the floor defends fewer tests than the newest run recorded.
-    const lagging = { ...floors, '@parle/mobile': (floors['@parle/mobile'] ?? 0) - 46 };
+    const lagging = { ...floors, '@luvani/mobile': (floors['@luvani/mobile'] ?? 0) - 46 };
     assert.ok(
       floorGapProblems(newest, lagging).some((problem) => problem.includes('46 tests could vanish silently')),
       'a floor 46 tests below the newest recorded gate was accepted',
@@ -1248,7 +1248,7 @@ describe('the three documents agree about what landed', () => {
 
     // 4. And the other way: a floor above every recorded run, which is a floor nothing
     //    measured. That is how a gate comes to defend a number somebody typed.
-    const invented = { ...floors, '@parle/core': (floors['@parle/core'] ?? 0) + 1 };
+    const invented = { ...floors, '@luvani/core': (floors['@luvani/core'] ?? 0) + 1 };
     assert.ok(
       floorGapProblems(newest, invented).some((problem) => problem.includes('no recorded run ever ran')),
       'a floor above the newest recorded gate was accepted',
@@ -1256,7 +1256,7 @@ describe('the three documents agree about what landed', () => {
 
     // 5. A missing workspace in either direction is a problem, not a pass.
     assert.ok(
-      floorGapProblems(newest, { ...floors, '@parle/brain': undefined as unknown as number }).length > 0,
+      floorGapProblems(newest, { ...floors, '@luvani/brain': undefined as unknown as number }).length > 0,
       'a workspace with no floor at all was accepted',
     );
     assert.ok(

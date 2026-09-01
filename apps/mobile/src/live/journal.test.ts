@@ -26,8 +26,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { evidenceOf, phraseKeyOf, type DrillExercise, type RecapPayload, type SessionSummary } from '@parle/core';
-import { createProfile } from '@parle/brain/profile';
+import { evidenceOf, phraseKeyOf, type DrillExercise, type RecapPayload, type SessionSummary } from '@luvani/core';
+import { createProfile } from '@luvani/brain/profile';
 
 import { loadDrillBank } from '../drill/store.ts';
 import { gradeCards, loadDeck } from '../review/store.ts';
@@ -187,7 +187,7 @@ describe('the drills a conversation leaves behind', () => {
     await journalDrills([drill('gen:crashed', 'phrase:ça marche')], NOW);
 
     // The app is gone. Nothing merged the batch, nothing cleared the journal.
-    assert.ok(disk.has(`parle.u.${uid}.journal`), 'the batch was on disk when the app died');
+    assert.ok(disk.has(`luvani.u.${uid}.journal`), 'the batch was on disk when the app died');
 
     const banked = await recoverJournal();
 
@@ -201,7 +201,7 @@ describe('the drills a conversation leaves behind', () => {
       (await loadDeck()).some((card) => card.id === 'phrase:ça marche'),
       'and the phrases still bank, because drills did not displace them',
     );
-    assert.equal(disk.has(`parle.u.${uid}.journal`), false, 'banked, then cleared — never the other order');
+    assert.equal(disk.has(`luvani.u.${uid}.journal`), false, 'banked, then cleared — never the other order');
   });
 
   test('a journal written by the build before this one still banks everything it holds', async () => {
@@ -211,7 +211,7 @@ describe('the drills a conversation leaves behind', () => {
     // protect it.
     const uid = nextUid();
     const disk = installDisk({
-      [`parle.u.${uid}.journal`]: JSON.stringify({
+      [`luvani.u.${uid}.journal`]: JSON.stringify({
         version: 1,
         savedAt: NOW,
         phrases: [phrase('Autre chose', 'something else')],
@@ -222,7 +222,7 @@ describe('the drills a conversation leaves behind', () => {
 
     assert.equal(await recoverJournal(), 1, 'the old envelope was read, not discarded');
     assert.ok((await loadDeck()).some((card) => card.id === 'phrase:autre chose'));
-    assert.equal(disk.has(`parle.u.${uid}.journal`), false);
+    assert.equal(disk.has(`luvani.u.${uid}.journal`), false);
   });
 
   test('a batch that arrives after the recap does not erase the phrases waiting beside it', async () => {
@@ -233,7 +233,7 @@ describe('the drills a conversation leaves behind', () => {
     await journalRecap(recap(), { savedAt: NOW });
     await journalDrills([drill('gen:late', 'phrase:ça marche')], NOW);
 
-    const written = JSON.parse(disk.get(`parle.u.${uid}.journal`)!) as { phrases: unknown[]; drills: unknown[] };
+    const written = JSON.parse(disk.get(`luvani.u.${uid}.journal`)!) as { phrases: unknown[]; drills: unknown[] };
     assert.equal(written.phrases.length, 2, 'the recap phrases are still in the envelope');
     assert.equal(written.drills.length, 1, 'and so is the batch');
   });
@@ -270,7 +270,7 @@ describe('the drills a conversation leaves behind', () => {
  * conversation counts fold by max rather than by addition.
  */
 
-const journalKeyOf = (uid: string): string => `parle.u.${uid}.journal`;
+const journalKeyOf = (uid: string): string => `luvani.u.${uid}.journal`;
 
 /**
  * A learner model with the counts the brain kept, in the shape the recap
@@ -336,14 +336,14 @@ describe('banking a conversation, and what it takes to stop keeping it', () => {
     // places at once. The drills key is the one with no room here; the journal
     // must stay for as long as that is true.
     const uid = nextUid();
-    const disk = installDisk({}, { full: (key) => key === `parle.u.${uid}.drills` });
+    const disk = installDisk({}, { full: (key) => key === `luvani.u.${uid}.drills` });
     setActiveUser(uid);
     const batch = await journalledSession(disk, uid);
 
     assert.equal(await bankPractice(batch), 'kept', 'a bank with a refused write called itself finished');
     assert.ok(disk.has(journalKeyOf(uid)), 'the only copy of the conversation was deleted anyway');
-    assert.equal(disk.has(`parle.u.${uid}.drills`), false, 'the test disk did not actually refuse the drills');
-    assert.ok(disk.has(`parle.u.${uid}.review`), 'the two stores that could write still wrote');
+    assert.equal(disk.has(`luvani.u.${uid}.drills`), false, 'the test disk did not actually refuse the drills');
+    assert.ok(disk.has(`luvani.u.${uid}.review`), 'the two stores that could write still wrote');
 
     // The phone has room again, which is what a later launch usually finds.
     const after = relaunch(disk, uid);
@@ -357,7 +357,7 @@ describe('banking a conversation, and what it takes to stop keeping it', () => {
     // of the three going down has to be enough to keep the batch.
     for (const suffix of ['topics', 'review', 'drills']) {
       const uid = nextUid();
-      const disk = installDisk({}, { full: (key) => key === `parle.u.${uid}.${suffix}` });
+      const disk = installDisk({}, { full: (key) => key === `luvani.u.${uid}.${suffix}` });
       setActiveUser(uid);
       const batch = await journalledSession(disk, uid);
 
@@ -378,7 +378,7 @@ describe('banking a conversation, and what it takes to stop keeping it', () => {
     // takes. This is the one that catches a recovery which banks and then
     // clears regardless, which is what recovery did before this contract.
     const uid = nextUid();
-    const noRoom = { full: (key: string) => key === `parle.u.${uid}.review` };
+    const noRoom = { full: (key: string) => key === `luvani.u.${uid}.review` };
     let disk = installDisk({}, noRoom);
     setActiveUser(uid);
     await journalledSession(disk, uid);
@@ -817,7 +817,7 @@ describe('the curated batch, and the retry that has to match it', () => {
     const uid = nextUid();
     // The recap wrote down everything the conversation touched, including two
     // phrases curation went on to drop.
-    const disk = installDisk({}, { full: (key) => key === `parle.u.${uid}.drills` });
+    const disk = installDisk({}, { full: (key) => key === `luvani.u.${uid}.drills` });
     setActiveUser(uid);
     await journalRecap(
       recap({
@@ -949,7 +949,7 @@ describe('the curated batch, and the retry that has to match it', () => {
 describe('a lesson deck and the disk that refused it', () => {
   test('a lesson deck that fails to save is kept and retried, not dropped', async () => {
     const uid = nextUid();
-    const disk = installDisk({}, { full: (key) => key === `parle.u.${uid}.review` });
+    const disk = installDisk({}, { full: (key) => key === `luvani.u.${uid}.review` });
     setActiveUser(uid);
 
     assert.equal(await bankLesson(lessonSummary()), 'failed', 'a refused deck write called itself finished');
@@ -989,7 +989,7 @@ describe('a lesson deck and the disk that refused it', () => {
 
   test('the same lesson refused twice is one deck to bank, not two', async () => {
     const uid = nextUid();
-    const disk = installDisk({}, { full: (key) => key === `parle.u.${uid}.review` });
+    const disk = installDisk({}, { full: (key) => key === `luvani.u.${uid}.review` });
     setActiveUser(uid);
 
     await bankLesson(lessonSummary());

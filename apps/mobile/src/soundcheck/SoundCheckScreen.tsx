@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
-import { getMission } from '@parle/core';
+import { getMission } from '@luvani/core';
 
 import { Card, EarGlyph, GhostButton, Label, PillButton, SpeakCircle, fitDisplay } from '../components.tsx';
 import { HIT, paper, paperFor, space, type } from '../theme.ts';
@@ -136,7 +136,7 @@ export function SoundCheckScreen({
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
         <Label>Sound check</Label>
         <Text style={[type.display, { color: paper.ink, marginTop: space(2) }]}>One useful line, once.</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>This is the part Parle can assess honestly, because the words are known in advance.</Text>
+        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>This is the part Luvani can assess honestly, because the words are known in advance.</Text>
 
         {reference && (
           <Card style={{ marginTop: space(6), alignItems: 'center' }}>

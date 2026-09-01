@@ -90,7 +90,7 @@ Rules:
 - **Seed `query` on symbol names, never on a sentence.** This is the difference between
   a useful answer and an empty one, not a style preference. `"how does the live voice
   session work"` seeds on `Session` from the playground and `session()` from a *test
-  file*, and returns 5 nodes with no edges. `"useLiveSession ParleTutor grantSession"`
+  file*, and returns 5 nodes with no edges. `"useLiveSession LuvaniTutor grantSession"`
   returns 50 nodes and 52 edges, complete and untruncated.
 - **Always pass `--context call`** to `query`. You get `EDGE a --calls [...]--> b
   at=file:L123` lines instead of a bare list of names. If a result still says

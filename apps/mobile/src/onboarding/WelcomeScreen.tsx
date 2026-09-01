@@ -2,8 +2,8 @@
  * The front door, and now the only one.
  *
  * The app used to open three times. A device-level splash said "Welcome to
- * Parle!" and then spent a second page explaining what Parle is; the auth
- * welcome said "Speak French from day one" and made the same promise in
+ * Luvani!" and then spent a second page explaining what Luvani is; the auth
+ * welcome said "Find your voice in French" and made the same promise in
  * different words; and TutorIntro introduced the tutor a third time once the
  * account existed. None of the three said the tutor is AI. This screen is what
  * is left of all of them before an account exists: one scene, one promise, one
@@ -60,7 +60,7 @@ export function WelcomeScreen({
       <ScrollView contentContainerStyle={st.hero} showsVerticalScrollIndicator={false}>
         <HeroCafe width={230} />
         <Text accessibilityRole="header" style={st.title}>
-          Speak French from day one
+          Find your voice in French
         </Text>
         <Text style={st.subline}>{WELCOME_SUBLINE}</Text>
       </ScrollView>

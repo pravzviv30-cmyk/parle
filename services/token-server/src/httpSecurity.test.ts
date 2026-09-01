@@ -8,12 +8,12 @@ describe('HTTP security — exact browser origins', () => {
   test('production permits only the exact configured origins', () => {
     const policy = createOriginPolicy({
       NODE_ENV: 'production',
-      PARLE_ALLOWED_ORIGINS: 'https://app.parle.example,https://beta.parle.example',
+      LUVANI_ALLOWED_ORIGINS: 'https://app.luvani.example,https://beta.luvani.example',
     });
 
-    assert.equal(originAllowed(policy, 'https://app.parle.example'), true);
+    assert.equal(originAllowed(policy, 'https://app.luvani.example'), true);
     assert.equal(originAllowed(policy, 'https://evil.example'), false);
-    assert.equal(originAllowed(policy, 'https://app.parle.example.evil.example'), false);
+    assert.equal(originAllowed(policy, 'https://app.luvani.example.evil.example'), false);
     assert.equal(originAllowed(policy, null), true, 'native apps do not send a browser Origin header');
   });
 

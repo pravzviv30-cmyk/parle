@@ -29,7 +29,7 @@ export interface TurnHandling {
  * The framework floor is 500ms, or 300ms with a streaming detector. 400ms is
  * the chosen middle ground between a snappy reply and clipping a slow finish.
  * It is additive on top of the recogniser's own end-of-speech signal, so read
- * `[parle:metrics] eou` before moving it.
+ * `[luvani:metrics] eou` before moving it.
  */
 export const ENDPOINTING_MIN_DELAY_MS = 400;
 

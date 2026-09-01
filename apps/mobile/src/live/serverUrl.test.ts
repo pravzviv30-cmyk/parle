@@ -49,12 +49,12 @@ describe('the token server address', () => {
   test('a deployment refuses a missing or plaintext endpoint', () => {
     assert.throws(() => selectTokenServerUrl({ nodeEnv: 'production' }), /without a configured token server/);
     assert.throws(
-      () => selectTokenServerUrl({ nodeEnv: 'production', tokenServerUrl: 'http://api.parle.example' }),
+      () => selectTokenServerUrl({ nodeEnv: 'production', tokenServerUrl: 'http://api.luvani.example' }),
       /not HTTPS/,
     );
     assert.equal(
-      selectTokenServerUrl({ nodeEnv: 'production', tokenServerUrl: 'https://api.parle.example' }),
-      'https://api.parle.example',
+      selectTokenServerUrl({ nodeEnv: 'production', tokenServerUrl: 'https://api.luvani.example' }),
+      'https://api.luvani.example',
     );
   });
 });

@@ -25,7 +25,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { SAFETY_CATEGORIES } from '@parle/core';
+import { SAFETY_CATEGORIES } from '@luvani/core';
 
 import { thinkingAfter } from '../live/thinking.ts';
 import {

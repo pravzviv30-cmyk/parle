@@ -53,7 +53,7 @@
 -- replaces all of it and a fix that quietly dropped `recorded is not true` would reopen
 -- double billing on a retry. And the allowance table stays a literal `case plan when`,
 -- the fourth copy of it in this schema; databaseContract.test.ts reads every copy in
--- every migration and rollback against PLANS in @parle/core, so a fourth cannot drift.
+-- every migration and rollback against PLANS in @luvani/core, so a fourth cannot drift.
 --
 -- Forward-only. 202608250001 keeps its defect on the record and this file is the
 -- correction. It replaces one function body, reads and writes no rows, holds no long

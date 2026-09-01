@@ -1,8 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { CAFE_LESSON, directiveFor, RUNGS } from '@parle/core';
-import { buildSystemBlocks } from '@parle/brain';
+import { CAFE_LESSON, directiveFor, RUNGS } from '@luvani/core';
+import { buildSystemBlocks } from '@luvani/brain';
 import { baseInstructions, buildPrompt, turnInstructions } from './prompt.ts';
 
 const lesson = CAFE_LESSON;

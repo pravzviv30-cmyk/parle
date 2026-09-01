@@ -15,8 +15,8 @@
 - **@livekit/agents-plugin-elevenlabs** (2 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents-plugin-openai** (2 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents-plugin-silero** (2 connections) — `services/tutor-agent/package.json`
-- **@parle/brain** (2 connections) — `services/tutor-agent/package.json`
-- **@parle/core** (2 connections) — `services/tutor-agent/package.json`
+- **@luvani/brain** (2 connections) — `services/tutor-agent/package.json`
+- **@luvani/core** (2 connections) — `services/tutor-agent/package.json`
 - **zod** (2 connections) — `services/tutor-agent/package.json`
 - **@types/node** (2 connections) — `services/tutor-agent/package.json`
 - **typescript** (2 connections) — `services/tutor-agent/package.json`
@@ -27,8 +27,8 @@
 - **@livekit/agents-plugin-openai** (1 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents-plugin-silero** (1 connections) — `services/tutor-agent/package.json`
 - **dotenv** (1 connections) — `services/tutor-agent/package.json`
-- **@parle/brain** (1 connections) — `services/tutor-agent/package.json`
-- **@parle/core** (1 connections) — `services/tutor-agent/package.json`
+- **@luvani/brain** (1 connections) — `services/tutor-agent/package.json`
+- **@luvani/core** (1 connections) — `services/tutor-agent/package.json`
 - *... and 13 more nodes in this community*
 
 ## Relationships

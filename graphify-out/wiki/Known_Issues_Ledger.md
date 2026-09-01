@@ -12,7 +12,7 @@
 - **A5 — Two different opening-rung formulas** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **A6 — A focus point vanishes when the worst sound has no drill** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **A7 — A v2 snapshot with no memory crashes the worker** (1 connections) — `docs/KNOWN_ISSUES.md`
-- **B0 — ParleTutor cannot be tested at all** (1 connections) — `docs/KNOWN_ISSUES.md`
+- **B0 — LuvaniTutor cannot be tested at all** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **B1 — Live pronunciation scoring never receives audio** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **B2 — Speechace phone symbols are assumed to be IPA** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **B3 — An empty transcript lets the pipeline speak unladdered** (1 connections) — `docs/KNOWN_ISSUES.md`

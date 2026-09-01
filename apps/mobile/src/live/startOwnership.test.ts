@@ -29,7 +29,7 @@ import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { RoomEvent, Track } from 'livekit-client';
-import { TOPIC_SERVER } from '@parle/core';
+import { TOPIC_SERVER } from '@luvani/core';
 
 import { NO_START, nextStart, standDown, startStillOwns } from './startOwnership.ts';
 import { micOpensAtConnect, modeCarriesAudio } from '../tutor/choosingView.ts';

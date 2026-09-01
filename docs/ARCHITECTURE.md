@@ -48,12 +48,12 @@ only allowlisted, content-free product events and performs account deletion.
 
 ## Two paths, one ladder
 
-**Scripted lesson** — `ParleTutor` (`services/tutor-agent/src/tutor.ts`) drives
+**Scripted lesson** — `LuvaniTutor` (`services/tutor-agent/src/tutor.ts`) drives
 core's `submitTurn` directly. The script is known in advance, which is exactly why
 pronunciation scoring is possible here at all: accuracy scoring needs a reference
 text, and this is where one exists.
 
-**Free conversation** — `ParleConversation` (`services/tutor-agent/src/convo.ts`)
+**Free conversation** — `LuvaniConversation` (`services/tutor-agent/src/convo.ts`)
 drives `packages/brain`'s engine, which imports core's ladder unmodified. The
 pipeline LLM is never used for generation here; the brain generates out of band
 and `session.say()` speaks the result.

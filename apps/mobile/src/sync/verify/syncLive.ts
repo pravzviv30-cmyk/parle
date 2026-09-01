@@ -405,7 +405,7 @@ export async function runSyncVerification(options: RunOptions): Promise<RunRepor
 
   /** Create an account and sign it in, so PostgREST sees the real authenticated role. */
   const learner = async (): Promise<Learner> => {
-    const email = `parle-sync-${randomUUID()}@example.com`;
+    const email = `luvani-sync-${randomUUID()}@example.com`;
     const password = randomUUID().replace(/-/g, '');
     const account = await ask(`${url}/auth/v1/admin/users`, {
       method: 'POST',
@@ -430,7 +430,7 @@ export async function runSyncVerification(options: RunOptions): Promise<RunRepor
   };
 
   const policy = createSyncPolicy();
-  const keyOf = (device: Device, namespace: string): string => `parle.u.${device.learner.id}.${namespace}`;
+  const keyOf = (device: Device, namespace: string): string => `luvani.u.${device.learner.id}.${namespace}`;
 
   /**
    * Start this device's app.
@@ -837,11 +837,11 @@ export function readEnvFile(path: string): Record<string, string> {
 /** Entry point. Blocked, failed and errored all exit non-zero; only a full pass exits 0. */
 async function main(): Promise<void> {
   // The token server's own env file, not the caller's cwd: this runs from the repo root
-  // and the credentials live beside the service that already uses them. PARLE_ENV_FILE
+  // and the credentials live beside the service that already uses them. LUVANI_ENV_FILE
   // points somewhere else, which is how the self-test proves the blocked path without
   // borrowing this machine's real credentials.
   const envFile =
-    process.env.PARLE_ENV_FILE ?? fileURLToPath(new URL('../../../../../services/token-server/.env', import.meta.url));
+    process.env.LUVANI_ENV_FILE ?? fileURLToPath(new URL('../../../../../services/token-server/.env', import.meta.url));
   const fromFile = readEnvFile(envFile);
   const env: Environment = { ...fromFile, ...process.env };
   const report = await runSyncVerification({ env, log: (line) => console.log(line) });

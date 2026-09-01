@@ -1,12 +1,12 @@
 /**
- * @parle/brain — the conversational tutor brain.
+ * @luvani/brain — the conversational tutor brain.
  *
  * The intelligence layer of the product: scenario roleplay, real-spoken-French
  * coaching, the scaffolding ladder extended into free conversation, and the
  * learner model. Pure and provider-neutral throughout; the `llm/` adapters are
  * the only files that know a network exists.
  *
- * The pedagogy has one implementation: the ladder itself lives in @parle/core
+ * The pedagogy has one implementation: the ladder itself lives in @luvani/core
  * and is reused here, never copied.
  */
 

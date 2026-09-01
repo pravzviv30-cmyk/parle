@@ -19,7 +19,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
-import { MIN_VIABLE_SESSION_SEC } from '@parle/core';
+import { MIN_VIABLE_SESSION_SEC } from '@luvani/core';
 import {
   HARD_STOP_CEILING_SEC,
   LIFECYCLE_CHECKS,
@@ -294,7 +294,7 @@ describe('voice lifecycle harness', () => {
       'carry.token',
       'granted.body.token',
       'LIVEKIT_API_SECRET',
-      'PARLE_AGENT_SECRET',
+      'LUVANI_AGENT_SECRET',
       'SERVICE_ROLE',
       'process.env',
     ];
@@ -319,7 +319,7 @@ describe('voice lifecycle harness', () => {
     // rejection carries the whole credential, so the reason a join failed is
     // not safe to print until it has been through here.
     const jwt =
-      'eyJhbGciOiJIUzI1NiJ9.eyJ2aWRlbyI6eyJyb29tIjoicGFybGUtdmVyaWZ5In0sImlzcyI6InB2YiJ9.xzQIiCS5UiyHuL0Mi9Ky8o2e'; // parle-secret-scan: allow — fabricated fixture, not an issued credential
+      'eyJhbGciOiJIUzI1NiJ9.eyJ2aWRlbyI6eyJyb29tIjoicGFybGUtdmVyaWZ5In0sImlzcyI6InB2YiJ9.xzQIiCS5UiyHuL0Mi9Ky8o2e'; // luvani-secret-scan: allow — fabricated fixture, not an issued credential
     const vendor = `engine: signal failure: client error: 401 Unauthorized - invalid token: ${jwt}, error: token is expired`;
     const clean = redactCredentials(vendor);
     assert.ok(!clean.includes(jwt), 'the credential survived redaction');

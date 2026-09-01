@@ -18,7 +18,7 @@
 
 import { z } from 'zod/v4';
 
-import type { DrillExercise } from '@parle/core';
+import type { DrillExercise } from '@luvani/core';
 
 import type { NewPhrase } from '../contract/types.ts';
 

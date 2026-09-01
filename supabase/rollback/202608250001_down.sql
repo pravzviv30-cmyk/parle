@@ -22,15 +22,15 @@
 -- Because the only honest rollback here is a dangerous one, the script refuses to run
 -- until the operator says so in the same paste. That is the interlock, not a formality:
 --
---     set local parle.reopen_f74 = 'yes-i-accept-double-billing-on-retry';
+--     set local luvani.reopen_f74 = 'yes-i-accept-double-billing-on-retry';
 --
 -- Idempotent and retryable. It replaces one function body and touches no rows.
 
 do $$
 begin
-  if coalesce(current_setting('parle.reopen_f74', true), '') <> 'yes-i-accept-double-billing-on-retry' then
+  if coalesce(current_setting('luvani.reopen_f74', true), '') <> 'yes-i-accept-double-billing-on-retry' then
     raise exception
-      'refusing to restore the NULL-unsafe consume_entitlement guard (F74): set parle.reopen_f74 in this session first';
+      'refusing to restore the NULL-unsafe consume_entitlement guard (F74): set luvani.reopen_f74 in this session first';
   end if;
 end;
 $$;

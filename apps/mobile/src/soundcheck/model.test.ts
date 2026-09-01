@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { getMission, type SessionPhonemeReport } from '@parle/core';
+import { getMission, type SessionPhonemeReport } from '@luvani/core';
 
 import { SELF_GUIDED, nextSoundCheckReference, soundCheckDecision, type SoundCheckEvidence } from './model.ts';
 

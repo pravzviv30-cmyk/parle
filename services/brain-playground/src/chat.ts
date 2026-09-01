@@ -22,7 +22,7 @@ import {
   type BrainEffort,
   type LlmClient,
   type ScenarioFrame,
-} from '@parle/brain';
+} from '@luvani/brain';
 
 import { COMMAND_HELP, parseCommand } from './commands.ts';
 import { loadProfile, resetProfile, saveProfile } from './profileStore.ts';
@@ -97,7 +97,7 @@ async function main(): Promise<void> {
   let current: Session = session;
 
   console.log('');
-  console.log(title('Parle · tutor brain playground'));
+  console.log(title('Luvani · tutor brain playground'));
   console.log(meta(`brain: ${label}`));
   console.log(meta('Speak French (or English) and press enter. /help lists the commands.'));
   lines.forEach((l) => console.log(l));

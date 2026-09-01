@@ -24,8 +24,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, test } from 'node:test';
 
-import { mergeStoredProfiles } from '@parle/brain/profile/merge';
-import { mergeDecks } from '@parle/core';
+import { mergeStoredProfiles } from '@luvani/brain/profile/merge';
+import { mergeDecks } from '@luvani/core';
 
 import { sameData, stableStringify } from './envelope.ts';
 import { SYNC_STATE_SUFFIX } from './registry.ts';

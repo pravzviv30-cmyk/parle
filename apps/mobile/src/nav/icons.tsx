@@ -5,7 +5,7 @@
  * STROKE, round caps and joins. Deliberately NO filled variant — a solid icon
  * would be the first two-weight mark in the app and would break the one-pen
  * contract the illustrations and the existing icons both keep. The active tab
- * is said with ink colour and a dot underneath instead (see ParleTabBar), which
+ * is said with ink colour and a dot underneath instead (see LuvaniTabBar), which
  * is ProgressDots' grammar reused rather than a new idea.
  *
  * Drawn to the illustration rules too: nothing perfectly level, one oversized

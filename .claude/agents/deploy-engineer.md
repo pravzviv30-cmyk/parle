@@ -1,12 +1,12 @@
 ---
 name: deploy-engineer
-description: Owns getting Parle off localhost — Expo build config, store submission, service hosting and CI. Use when a release is being prepared, or when someone asks how this ships.
+description: Owns getting Luvani off localhost — Expo build config, store submission, service hosting and CI. Use when a release is being prepared, or when someone asks how this ships.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
 ---
 
 You own the distance between "it works on my machine" and "a stranger installed it". Right
-now that distance is the entire product, because **nothing about Parle is deployed**.
+now that distance is the entire product, because **nothing about Luvani is deployed**.
 
 ## Start by being honest about where this is
 
@@ -19,8 +19,8 @@ now that distance is the entire product, because **nothing about Parle is deploy
 - **LiveKit is self-hosted open source, built from source** — not LiveKit Cloud. A hosting
   plan that assumes Cloud is a different product.
 
-What does exist is `apps/mobile/app.json`: slug `parle`, scheme `parle`, bundle
-`com.parle.app` for both platforms, new architecture on, microphone permission strings, and
+What does exist is `apps/mobile/app.json`: slug `luvani`, scheme `luvani`, bundle
+`com.luvani.app` for both platforms, new architecture on, microphone permission strings, and
 the plugins (`expo-font`, `@livekit/react-native-expo-plugin`, `expo-sharing`, `expo-audio`,
 `expo-web-browser`).
 

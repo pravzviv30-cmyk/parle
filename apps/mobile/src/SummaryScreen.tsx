@@ -13,7 +13,7 @@
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@parle/core';
+import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@luvani/core';
 import { HAIRLINE, paper, paperFor, radius, signal, space, type } from './theme.ts';
 import { Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
 import { FocusDrillPlayer } from './drill/FocusDrillPlayer.tsx';
@@ -44,7 +44,7 @@ export function SummaryScreen({
   // Export everything they have ever said, not only today's words.
   const exportWords = report && report.wordsKnown.length > 0 ? report.wordsKnown : summary.wordsProduced;
   const exportCards = useCallback(() => {
-    void saveTextFile('parle-words.txt', toAnkiTsv(buildEntries(exportWords, LESSONS)), 'text/tab-separated-values');
+    void saveTextFile('luvani-words.txt', toAnkiTsv(buildEntries(exportWords, LESSONS)), 'text/tab-separated-values');
   }, [exportWords]);
 
   if (drilling && focus) {

@@ -35,7 +35,7 @@
 
 - [Sample Fixtures And Copy](Sample_Fixtures_And_Copy.md) (29 shared connections)
 - [Brain LLM Schemas](Brain_LLM_Schemas.md) (27 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (26 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (26 shared connections)
 - [Prompt And Turn Queue](Prompt_And_Turn_Queue.md) (13 shared connections)
 - [Learner Profile Updates](Learner_Profile_Updates.md) (12 shared connections)
 - [Brain CLI Playground](Brain_CLI_Playground.md) (10 shared connections)

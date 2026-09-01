@@ -8,7 +8,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 
-const KEY = 'parle.installation.v1';
+const KEY = 'luvani.installation.v1';
 let pending: Promise<string> | null = null;
 
 export function installationId(): Promise<string> {

@@ -17,18 +17,18 @@ export function selectAuthMode(env: AuthModeEnvironment): AuthMode {
   const hasUrl = Boolean(env.supabaseUrl);
   const hasKey = Boolean(env.supabaseAnonKey);
   if (hasUrl !== hasKey) {
-    throw new Error('Parle auth is misconfigured: set both Supabase public variables or neither in development.');
+    throw new Error('Luvani auth is misconfigured: set both Supabase public variables or neither in development.');
   }
   if (hasUrl && hasKey) {
     if (!localDevelopment) {
       try {
         if (new URL(env.supabaseUrl!).protocol !== 'https:') throw new Error('not HTTPS');
       } catch {
-        throw new Error('Parle refuses a deployed Supabase endpoint that is not HTTPS.');
+        throw new Error('Luvani refuses a deployed Supabase endpoint that is not HTTPS.');
       }
     }
     return 'supabase';
   }
   if (localDevelopment) return 'mock';
-  throw new Error('Parle refuses to run without Supabase authentication unless local development is explicit.');
+  throw new Error('Luvani refuses to run without Supabase authentication unless local development is explicit.');
 }

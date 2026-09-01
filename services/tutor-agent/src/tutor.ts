@@ -8,7 +8,7 @@
  * what happens to a transcript that came back empty) and imports no CLI and no
  * keys, so a test can build one with a stubbed session and drive it directly.
  *
- * The pedagogy itself is @parle/core's, unmodified — the same ladder, lesson and
+ * The pedagogy itself is @luvani/core's, unmodified — the same ladder, lesson and
  * grading the app runs. Two copies of "four seconds of silence is being stuck,
  * not thinking" drift apart within a month.
  */
@@ -28,7 +28,7 @@ import {
   type Rung,
   type ServerMessage,
   type SessionState,
-} from '@parle/core';
+} from '@luvani/core';
 // One text-mode window for both session shapes, imported rather than restated:
 // two ideas of how long a typed answer may take drift apart within a month, and
 // the learner would feel the difference as two different tutors. The import
@@ -119,7 +119,7 @@ export function forgetReportedSessions(): void {
   reportedSessions.clear();
 }
 
-export class ParleTutor extends voice.Agent {
+export class LuvaniTutor extends voice.Agent {
   private state: SessionState;
   private silenceTimer?: ReturnType<typeof setTimeout>;
   // Not a constructor parameter property — Node runs this worker by stripping
@@ -247,7 +247,7 @@ export class ParleTutor extends voice.Agent {
       await delivered;
       await spoken?.waitForPlayout();
     } catch (error) {
-      console.warn('[parle] the stop message did not settle cleanly; closing the room anyway:', error);
+      console.warn('[luvani] the stop message did not settle cleanly; closing the room anyway:', error);
     }
     this.closeRoom();
   }
@@ -281,7 +281,7 @@ export class ParleTutor extends voice.Agent {
       //
       // Only ever a restart: if no clock is running, none is started. armRescue
       // owns when the tutor may wait on a learner at all, and a keystroke must
-      // not be a second opinion about that. This is the answer ParleConversation
+      // not be a second opinion about that. This is the answer LuvaniConversation
       // already settled on.
       if (this.silenceTimer) this.armRescue(session);
       return;
@@ -377,7 +377,7 @@ export class ParleTutor extends voice.Agent {
    * composing one sentence was rescued every four seconds by a clock whose only
    * evidence was that nobody had spoken — which drops a rung, counts a rescue,
    * and writes the rung tomorrow opens on. Twelve seconds of nothing in a typed
-   * lesson still means stuck, and the answer is the same answer ParleConversation
+   * lesson still means stuck, and the answer is the same answer LuvaniConversation
    * already gives.
    */
   private silenceWindow(): number {
@@ -540,7 +540,7 @@ export class ParleTutor extends voice.Agent {
 
     const wallClockSec = Math.round((Date.now() - this.startedAt) / 1000);
     console.log(
-      `[parle] session complete — ${summary.turnsCompleted} turns (${this.learnerTurns} from the learner), ` +
+      `[luvani] session complete — ${summary.turnsCompleted} turns (${this.learnerTurns} from the learner), ` +
         `${summary.wordsProduced.length} words, ${wallClockSec}s, ` +
         `focus=${summary.pronunciation.focus?.phoneme.ipa ?? 'none'}`,
     );
@@ -558,7 +558,7 @@ export class ParleTutor extends voice.Agent {
     if (billableSeconds === 0) {
       // Greppable on purpose. If these start appearing in numbers, rooms are
       // reaching learners unusable and the vendor bill is being paid for them.
-      console.log(`[parle] SESSION_NOT_CHARGED session=${this.sessionId.slice(0, 8)} reason=no-learner-turn`);
+      console.log(`[luvani] SESSION_NOT_CHARGED session=${this.sessionId.slice(0, 8)} reason=no-learner-turn`);
     }
     // Spent before the call goes out: a crash between here and the debit must
     // not leave a used credential looking fresh to the next room it opens.
@@ -598,6 +598,6 @@ export class ParleTutor extends voice.Agent {
     // from here nothing can debit, speak, or move the ladder.
     this.ended = true;
     this.clearRescue();
-    console.warn(`[parle] refused a replayed join credential for session ${value.slice(0, 8)}`);
+    console.warn(`[luvani] refused a replayed join credential for session ${value.slice(0, 8)}`);
   }
 }

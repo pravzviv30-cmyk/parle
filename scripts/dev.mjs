@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One command that brings Parle up.
+ * One command that brings Luvani up.
  *
  * Before this, running the app meant four terminals started by hand in the right
  * order, and forgetting one of them is exactly how the app came to report "there
@@ -162,7 +162,7 @@ async function main() {
   const gaps = envGaps(agentEnv, tokenEnv);
   if (gaps.length > 0) {
     die(
-      `Parle cannot start. These are missing:\n\n` +
+      `Luvani cannot start. These are missing:\n\n` +
         gaps.map((g) => `        ${g.name}\n          in ${g.file}\n          ${g.why}`).join('\n\n') +
         `\n\n        Each file has a .env.example beside it to copy from.`,
     );
@@ -184,15 +184,15 @@ async function main() {
   const secret = sharedAgentSecret(agentEnv, tokenEnv, () => randomBytes(24).toString('hex'));
   if (secret.mismatch) {
     die(
-      `PARLE_AGENT_SECRET differs between the two .env files.\n` +
+      `LUVANI_AGENT_SECRET differs between the two .env files.\n` +
         `        Every debit would be refused, and sessions would stop metering silently.\n` +
         `        Make them the same, or remove both and let dev generate one.`,
     );
   }
 
-  const childEnv = { ...process.env, PARLE_AGENT_SECRET: secret.value, FORCE_COLOR: '1' };
+  const childEnv = { ...process.env, LUVANI_AGENT_SECRET: secret.value, FORCE_COLOR: '1' };
   say('dev', `brain: ${brain === '' ? 'anthropic (default)' : brain}`);
-  if (secret.generated) say('dev', 'generated a PARLE_AGENT_SECRET for this run, so /session/end is closed.');
+  if (secret.generated) say('dev', 'generated a LUVANI_AGENT_SECRET for this run, so /session/end is closed.');
 
   for (const step of resolvedPlan()) {
     const result = step.port === null ? { reachable: false } : await probe(step.ready.url ?? `http://127.0.0.1:${step.port}/`);
@@ -227,7 +227,7 @@ async function main() {
   }
 
   say('dev', '');
-  say('dev', `Parle is up. Open http://localhost:8082`);
+  say('dev', `Luvani is up. Open http://localhost:8082`);
   say('dev', 'For the microphone, use a real browser rather than an embedded pane.');
   say('dev', 'Ctrl-C stops everything this started.');
 }

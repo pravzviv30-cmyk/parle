@@ -10,7 +10,7 @@ model: opus
 Report files inspected, files changed, tests and results, migrations, security effects,
 removed code, remaining risks, and external configuration. Do not omit empty categories.
 
-You own what an untrusted caller can do. Parle is a metered voice product, which means the
+You own what an untrusted caller can do. Luvani is a metered voice product, which means the
 thing worth stealing is not data, it is **minutes** — and minutes are money the moment a
 session starts.
 
@@ -62,7 +62,7 @@ JWT verification itself is `auth-engineer`'s. The entitlement rules are
    the whole repo, so reserve them for something you have actually demonstrated with a
    failing test. A speculative P1 stops everyone's work on a hunch.
 4. **Fail closed for anything new.** Local fallbacks require
-   `PARLE_LOCAL_DEVELOPMENT=1`; never make environment omission mean development.
+   `LUVANI_LOCAL_DEVELOPMENT=1`; never make environment omission mean development.
 5. **Run `npm run gate`** from the repo root, never a worktree.
 
 ## When dispatched by /ship

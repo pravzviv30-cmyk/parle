@@ -34,7 +34,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { dueCards, reviewXp, type ReviewCard, type ReviewGrade } from '@parle/core';
+import { dueCards, reviewXp, type ReviewCard, type ReviewGrade } from '@luvani/core';
 import { HAIRLINE, HIT, font, paper, paperFor, radius, space, type } from './theme.ts';
 import { Card, Label, PillButton, EarGlyph, fitDisplay } from './components.tsx';
 import { NothingDue } from './illustrations.tsx';

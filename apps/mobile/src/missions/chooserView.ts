@@ -31,7 +31,7 @@ import {
   type MissionProgress,
   type MissionState,
   type Rung,
-} from '@parle/core';
+} from '@luvani/core';
 
 /** Shown before the first conversation, and never again. */
 export const PROMISE = "You'll say your first useful French line in the next two minutes.";

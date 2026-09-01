@@ -82,7 +82,7 @@ describe('the tutor intro teaches what the app actually does — J3', () => {
 });
 
 describe('the tab bar can be used without seeing it — J4', () => {
-  const bar = named('nav/ParleTabBar.tsx');
+  const bar = named('nav/LuvaniTabBar.tsx');
 
   test('changing tab announces the destination', () => {
     // Five icons, no labels. announceTab was written for exactly this and then

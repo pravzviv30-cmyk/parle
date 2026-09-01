@@ -132,7 +132,7 @@ export type ScheduleOutcome = 'done' | 'unavailable' | 'failed';
  * Read off `granted` and `canAskAgain` rather than off `status`, because the
  * question the row actually asks is "will flipping this switch open a dialog?".
  * `canAskAgain` is literally that, and it is the field that moves when a
- * learner denies the Android 13 permission prompt or turns Parle off in iOS
+ * learner denies the Android 13 permission prompt or turns Luvani off in iOS
  * Settings months later. Anything that is not granted and cannot be asked for
  * again is `denied`, which draws an off switch and one honest sentence.
  */

@@ -1,5 +1,5 @@
 /**
- * @parle/core — the shared brain.
+ * @luvani/core — the shared brain.
  *
  * Everything here is pure and platform-free, so the same logic runs in the Expo
  * app, in the tutor agent, and in tests. Nothing in this package touches a

@@ -35,7 +35,7 @@ describe('what the form checks before the server does — F156', () => {
     // deliverable address that a tighter regex would refuse, and the refusal
     // would happen on this device, where no server can overrule it.
     for (const value of [
-      'first.last+parle@sub.example.co.uk',
+      'first.last+luvani@sub.example.co.uk',
       'UPPER@EXAMPLE.COM',
       "o'brien@example.com",
       'jose@example.museum',

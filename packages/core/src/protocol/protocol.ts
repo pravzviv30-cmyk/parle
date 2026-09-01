@@ -24,12 +24,12 @@ import type { SessionPrompt, SessionSummary, TurnFeedback } from '../session/ses
 import type { DrillExercise } from '../drill/types.ts';
 
 /** Data-channel topics. Kept distinct so each side can subscribe narrowly. */
-export const TOPIC_SERVER = 'parle.server';
-export const TOPIC_CLIENT = 'parle.client';
+export const TOPIC_SERVER = 'luvani.server';
+export const TOPIC_CLIENT = 'luvani.client';
 
 // ─────────────────────────────────────────────── free-conversation payloads
 //
-// Structural mirrors of shapes assembled in @parle/brain. Core cannot import
+// Structural mirrors of shapes assembled in @luvani/brain. Core cannot import
 // brain (brain depends on core), so the wire contract is stated here and the
 // agent maps brain's richer objects onto it field by field. Deliberate
 // duplication: a wire format should not silently widen because an internal

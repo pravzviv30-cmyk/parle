@@ -97,8 +97,8 @@
  * the delivery layer.
  */
 
-import { localDayKey } from '@parle/core';
-import type { StoredSession } from '@parle/core';
+import { localDayKey } from '@luvani/core';
+import type { StoredSession } from '@luvani/core';
 
 /** Seven local days: this one and the six behind it. Never a rolling 168 hours. */
 export const DAYS_IN_THE_STORY = 7;

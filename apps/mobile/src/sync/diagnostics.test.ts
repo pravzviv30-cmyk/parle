@@ -216,7 +216,7 @@ describe('sync diagnostics — evidence, never content', () => {
     assert.equal(createSyncDiagnostics({ console: false }).capacity, SYNC_RING_CAPACITY);
   });
 
-  test('every event prints one greppable line in the [parle] house style', () => {
+  test('every event prints one greppable line in the [luvani] house style', () => {
     const clock = stopwatch();
     const printed: string[] = [];
     const diagnostics = createSyncDiagnostics({ now: clock.now, log: (line) => printed.push(line) });
@@ -227,20 +227,20 @@ describe('sync diagnostics — evidence, never content', () => {
     diagnostics.record(event({ namespace: 'drills', phase: 'push', status: 'conflict', attempt: 2, revision: 3, code: 'stale-revision' }));
 
     assert.deepEqual(printed, [
-      '[parle:sync] ns=profile phase=push status=pushed attempt=1 rev=7 bytes=2048 ms=412',
-      '[parle:sync] ns=drills phase=push status=conflict attempt=2 rev=3 code=stale-revision ms=412',
+      '[luvani:sync] ns=profile phase=push status=pushed attempt=1 rev=7 bytes=2048 ms=412',
+      '[luvani:sync] ns=drills phase=push status=conflict attempt=2 rev=3 code=stale-revision ms=412',
     ]);
 
     // `unchanged` is the common case and would drown the prefix twelve times a launch,
     // so it stays in the ring as evidence and off the console as noise.
     assert.equal(diagnostics.entries().length, 3);
-    assert.equal(SYNC_LOG_PREFIX, '[parle:sync]');
+    assert.equal(SYNC_LOG_PREFIX, '[luvani:sync]');
 
     // Absent facts are absent, never printed as a zero that looks measured.
     const sparse = diagnostics.entries()[1];
     assert.ok(sparse !== undefined);
     const line = formatSyncDiagnostic(sparse);
-    assert.equal(line, '[parle:sync] ns=topics phase=cycle status=unchanged attempt=0 ms=412');
+    assert.equal(line, '[luvani:sync] ns=topics phase=cycle status=unchanged attempt=0 ms=412');
     assert.equal(line.includes('rev='), false);
     assert.equal(line.includes('bytes='), false);
     assert.equal(line.includes('code='), false);
@@ -268,17 +268,17 @@ describe('sync diagnostics — evidence, never content', () => {
 
     assert.equal(shouted.length, 3, 'the alarm fired on the wrong number of records');
     for (const line of shouted) {
-      assert.equal(line.startsWith('[parle] SYNC_NOT_CONVERGED '), true, `not the stable alarm string: ${line}`);
+      assert.equal(line.startsWith('[luvani] SYNC_NOT_CONVERGED '), true, `not the stable alarm string: ${line}`);
     }
     assert.equal(
       shouted[0],
-      '[parle] SYNC_NOT_CONVERGED ns=profile phase=push status=refused attempt=0 code=over-size-cap ms=0',
+      '[luvani] SYNC_NOT_CONVERGED ns=profile phase=push status=refused attempt=0 code=over-size-cap ms=0',
     );
     assert.equal(quiet.length, 2, 'a working-as-designed status was shouted about');
     for (const line of quiet) assert.equal(line.includes('SYNC_NOT_CONVERGED'), false);
 
     // The string itself is the interface. Changing it breaks whoever is grepping.
-    assert.equal(SYNC_ALARM_PREFIX, '[parle] SYNC_NOT_CONVERGED');
+    assert.equal(SYNC_ALARM_PREFIX, '[luvani] SYNC_NOT_CONVERGED');
     assert.equal(isSyncAlarm({ ...(diagnostics.entries()[3] as SyncDiagnostic) }), false);
   });
 
@@ -302,7 +302,7 @@ describe('sync diagnostics — evidence, never content', () => {
     // from its object, which is why `record` is a closure and not a method.
     const sink: (e: SyncEvent) => void = diagnostics.record;
     sink(fromEngine);
-    assert.deepEqual(lines, ['[parle:sync] ns=missions phase=adopt status=adopted attempt=1 rev=12 bytes=640 ms=0']);
+    assert.deepEqual(lines, ['[luvani:sync] ns=missions phase=adopt status=adopted attempt=1 rev=12 bytes=640 ms=0']);
 
     // And everything a caller should never send, sent. None of it throws, because a
     // diagnostic that can fail a sync is worse than no diagnostic at all.

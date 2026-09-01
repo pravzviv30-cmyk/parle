@@ -16,7 +16,7 @@
  *      people what locals actually say is the product.
  */
 
-import { CORRECTION_COOLDOWN_TURNS, type TurnQuality } from '@parle/core';
+import { CORRECTION_COOLDOWN_TURNS, type TurnQuality } from '@luvani/core';
 import type { Assessment, CoachItem, CoachKind } from '../contract/types.ts';
 import type { Strictness } from '../types.ts';
 

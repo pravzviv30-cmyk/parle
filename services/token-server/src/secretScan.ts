@@ -69,7 +69,7 @@ export interface Finding {
 }
 
 /** A line carrying this marker is skipped, for the documented false positive. */
-export const ALLOW_MARKER = 'parle-secret-scan: allow';
+export const ALLOW_MARKER = 'luvani-secret-scan: allow';
 
 /**
  * A Supabase key is a JWT whose payload names its role. The anon key is built
@@ -168,8 +168,8 @@ function isCamelCaseName(value: string): boolean {
 
 /**
  * Code that *refers* to a credential rather than being one. Anchored patterns
- * like `PARLE_AGENT_SECRET: agentSecret` and
- * `PARLE_RATE_LIMIT_SALT: randomBytes(36).toString(...)` are the shape of a
+ * like `LUVANI_AGENT_SECRET: agentSecret` and
+ * `LUVANI_RATE_LIMIT_SALT: randomBytes(36).toString(...)` are the shape of a
  * server wiring itself up correctly, and flagging them is how a scanner teaches
  * people to ignore it. No issued credential contains a bracket, and none is a
  * dotted path.
@@ -315,8 +315,8 @@ export const SECRET_PATTERNS: readonly SecretPattern[] = [
       `\\b(?:${[
         'SUPABASE_SERVICE_ROLE_KEY',
         'SUPABASE_JWT_SECRET',
-        'PARLE_AGENT_SECRET',
-        'PARLE_RATE_LIMIT_SALT',
+        'LUVANI_AGENT_SECRET',
+        'LUVANI_RATE_LIMIT_SALT',
         'SPEECHACE_API_KEY',
         'ELEVEN_API_KEY',
         // fish.audio, under both names that exist in the wild: the plugin reads

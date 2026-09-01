@@ -613,14 +613,14 @@ describe('reportVendors', () => {
 });
 
 /**
- * The second voice vendor. Everything here is conditional on PARLE_TTS_VENDOR,
+ * The second voice vendor. Everything here is conditional on LUVANI_TTS_VENDOR,
  * because the failure mode of getting that wrong is not a wrong sound — it is a
  * worker that refuses to boot over a credential it was never going to send.
  */
 describe('the voice vendor the env selected', () => {
   const FISH = {
     ...FULL,
-    PARLE_TTS_VENDOR: 'fish',
+    LUVANI_TTS_VENDOR: 'fish',
     // Deliberately empty. Under fish these two are not merely unused, they must
     // not be able to produce a demand or a warning.
     ELEVEN_API_KEY: '',
@@ -653,7 +653,7 @@ describe('the voice vendor the env selected', () => {
   }
 
   test('missingRequired demands FISH_API_KEY and not ELEVEN_API_KEY when fish is selected, and the reverse by default', () => {
-    const fish = { ...FULL, PARLE_TTS_VENDOR: 'fish', ELEVEN_API_KEY: '' };
+    const fish = { ...FULL, LUVANI_TTS_VENDOR: 'fish', ELEVEN_API_KEY: '' };
     assert.deepEqual(missingRequired(fish), ['FISH_API_KEY'], 'an empty ElevenLabs key is irrelevant under fish');
     assert.deepEqual(missingRequired({ ...fish, FISH_API_KEY: 'f' }), []);
 
@@ -662,7 +662,7 @@ describe('the voice vendor the env selected', () => {
 
     // An unrecognised value is the default vendor, so it must demand the
     // default vendor's key rather than nothing at all.
-    assert.deepEqual(missingRequired({ ...FULL, PARLE_TTS_VENDOR: 'nonsense', ELEVEN_API_KEY: '' }), ['ELEVEN_API_KEY']);
+    assert.deepEqual(missingRequired({ ...FULL, LUVANI_TTS_VENDOR: 'nonsense', ELEVEN_API_KEY: '' }), ['ELEVEN_API_KEY']);
   });
 
   test('FISH_AUDIO_API_KEY is named as a near-miss of FISH_API_KEY, and never its value', () => {
@@ -687,14 +687,14 @@ describe('the voice vendor the env selected', () => {
     assert.deepEqual(warnings(FISH), []);
   });
 
-  test('an unrecognised PARLE_TTS_VENDOR says plainly that ElevenLabs will be used', () => {
-    const w = warnings({ ...FULL, PARLE_TTS_VENDOR: 'fishaudio' });
+  test('an unrecognised LUVANI_TTS_VENDOR says plainly that ElevenLabs will be used', () => {
+    const w = warnings({ ...FULL, LUVANI_TTS_VENDOR: 'fishaudio' });
     assert.equal(w.length, 1);
     assert.match(w[0]!, /fishaudio/, 'quote what was actually written, or nobody finds the typo');
     assert.match(w[0]!, /ElevenLabs/);
 
     // And a value it does know is not worth a word.
-    assert.deepEqual(warnings({ ...FULL, PARLE_TTS_VENDOR: ' ELEVENLABS ' }), []);
+    assert.deepEqual(warnings({ ...FULL, LUVANI_TTS_VENDOR: ' ELEVENLABS ' }), []);
   });
 
   test("a fish 402 is fatal and quotes the vendor's own message", async () => {

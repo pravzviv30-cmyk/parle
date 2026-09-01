@@ -38,8 +38,8 @@
  *
  * One greppable line per event, in the shape services/tutor-agent already uses:
  *
- *   [parle:sync] ns=profile phase=push status=pushed attempt=1 rev=7 bytes=2048 ms=412
- *   [parle] SYNC_NOT_CONVERGED ns=profile phase=push status=refused code=over-size-cap ...
+ *   [luvani:sync] ns=profile phase=push status=pushed attempt=1 rev=7 bytes=2048 ms=412
+ *   [luvani] SYNC_NOT_CONVERGED ns=profile phase=push status=refused code=over-size-cap ...
  *
  * `SYNC_NOT_CONVERGED` is an interface, the same way `USAGE_NOT_DEBITED` is: somebody
  * greps for it at two in the morning, so it does not get renamed. It means this device's
@@ -190,13 +190,13 @@ export function isSyncAlarm(record: SyncDiagnostic): boolean {
 // ─────────────────────────────────────────────────────────────── the formatter
 
 /** The stable prefix for the ordinary per-event line. */
-export const SYNC_LOG_PREFIX = '[parle:sync]';
+export const SYNC_LOG_PREFIX = '[luvani:sync]';
 
 /**
  * The stable alarm string. Renaming this breaks whoever is grepping for it during an
  * incident, which is the only time it matters.
  */
-export const SYNC_ALARM_PREFIX = '[parle] SYNC_NOT_CONVERGED';
+export const SYNC_ALARM_PREFIX = '[luvani] SYNC_NOT_CONVERGED';
 
 /**
  * One line, prefix included, alarm or not.

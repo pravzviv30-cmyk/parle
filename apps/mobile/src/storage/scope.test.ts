@@ -137,7 +137,7 @@ describe('storage scope — what a reset actually reaches', () => {
  *
  * Deleting the screen is the visible half; the key it wrote is still on every
  * phone that ran the old build, and a device-level key survives account reset
- * and account deletion both. `parle.seenSplash.v1` is the first of those to be
+ * and account deletion both. `luvani.seenSplash.v1` is the first of those to be
  * retired, and it had no value to lose: it recorded that this install had seen
  * a screen that no longer exists.
  */
@@ -146,10 +146,10 @@ describe('storage scope — the keys whose reader was deleted', () => {
     // The device this actually happens on. It inherited its pre-auth data long
     // ago, so the legacy marker is already set — which is exactly why the sweep
     // cannot live behind that marker.
-    const legacyDone = 'parle.legacyMigrated.v1';
-    const ownData = `parle.u.${UID}.profile`;
+    const legacyDone = 'luvani.legacyMigrated.v1';
+    const ownData = `luvani.u.${UID}.profile`;
     const first = installDisk({
-      'parle.seenSplash.v1': '1',
+      'luvani.seenSplash.v1': '1',
       [legacyDone]: '1',
       [ownData]: '{"version":4}',
     });
@@ -157,7 +157,7 @@ describe('storage scope — the keys whose reader was deleted', () => {
     await migrateLegacyStores(UID);
 
     assert.equal(
-      first.map.get('parle.seenSplash.v1'),
+      first.map.get('luvani.seenSplash.v1'),
       undefined,
       'a flag whose reader was deleted must be swept, not left behind a marker that already fired',
     );
@@ -222,7 +222,7 @@ describe('storage scope — the voice a reset has to reach', () => {
       // progress/saveFile.native.ts writes the Anki export into the same cache
       // root. A learner who exported their deck and has not opened the share
       // sheet yet must not lose it to a sweep aimed at audio.
-      'file:///cache/parle-review-2026-08-26.csv',
+      'file:///cache/luvani-review-2026-08-26.csv',
     ]);
     const sweep = (): { removed: number; failed: number } => {
       let removed = 0;
@@ -237,7 +237,7 @@ describe('storage scope — the voice a reset has to reach', () => {
   }
 
   test("clearing a learner's data removes any attempt audio left on the device", async () => {
-    const stored = Object.fromEntries(USER_KEY_SUFFIXES.map((s) => [`parle.u.${UID}.${s}`, '{"version":1}']));
+    const stored = Object.fromEntries(USER_KEY_SUFFIXES.map((s) => [`luvani.u.${UID}.${s}`, '{"version":1}']));
     const disk = installDisk(stored);
     const cache = cacheWithRecordings();
 
@@ -250,7 +250,7 @@ describe('storage scope — the voice a reset has to reach', () => {
     // way the scoring test reads its cache: at the moment the sweep runs.
     let keysStillOnDiskWhenSweeping = false;
     const sweepAudio = (): { removed: number; failed: number } => {
-      keysStillOnDiskWhenSweeping = disk.map.has(`parle.u.${UID}.profile`);
+      keysStillOnDiskWhenSweeping = disk.map.has(`luvani.u.${UID}.profile`);
       return cache.sweep();
     };
 
@@ -267,17 +267,17 @@ describe('storage scope — the voice a reset has to reach', () => {
 
     assert.deepEqual(
       [...cache.files],
-      ['file:///cache/parle-review-2026-08-26.csv'],
+      ['file:///cache/luvani-review-2026-08-26.csv'],
       "a reset either left the learner's recordings on the device or took the Anki export with them",
     );
     assert.equal(keysStillOnDiskWhenSweeping, true, 'the keys went first, so a storage failure would skip the audio');
 
     for (const suffix of USER_KEY_SUFFIXES) {
-      assert.equal(disk.map.has(`parle.u.${UID}.${suffix}`), false, `${suffix} survived the reset`);
+      assert.equal(disk.map.has(`luvani.u.${UID}.${suffix}`), false, `${suffix} survived the reset`);
     }
     assert.deepEqual(
       disk.removals,
-      [USER_KEY_SUFFIXES.map((s) => `parle.u.${UID}.${s}`)],
+      [USER_KEY_SUFFIXES.map((s) => `luvani.u.${UID}.${s}`)],
       'the key removal changed shape; the sweep must not have quietly replaced it',
     );
     assert.equal(
@@ -292,7 +292,7 @@ describe('storage scope — the voice a reset has to reach', () => {
     const alarm = (line: string): void => {
       alarms.push(line);
     };
-    const disk = installDisk({ [`parle.u.${UID}.profile`]: '{"version":1}' });
+    const disk = installDisk({ [`luvani.u.${UID}.profile`]: '{"version":1}' });
 
     let dropped = 0;
     onUserScopeReset(() => {
@@ -322,16 +322,16 @@ describe('storage scope — the voice a reset has to reach', () => {
     }
 
     assert.deepEqual(alarms, [ATTEMPT_AUDIO_NOT_SWEPT, ATTEMPT_AUDIO_NOT_SWEPT]);
-    assert.match(ATTEMPT_AUDIO_NOT_SWEPT, /^\[parle\] [A-Z_]+$/, 'the alarm left the house shape');
+    assert.match(ATTEMPT_AUDIO_NOT_SWEPT, /^\[luvani\] [A-Z_]+$/, 'the alarm left the house shape');
     assert.doesNotMatch(ATTEMPT_AUDIO_NOT_SWEPT, /file:|\/|Caches/, 'the alarm carries a device path');
-    assert.equal(disk.map.has(`parle.u.${UID}.profile`), false, 'a failed sweep took the data reset down with it');
+    assert.equal(disk.map.has(`luvani.u.${UID}.profile`), false, 'a failed sweep took the data reset down with it');
     assert.equal(droppedByTheResets, 3, 'a failed sweep stopped the module caches being dropped');
 
     // The other half of the same discipline, and the reason audio goes first.
     // A storage failure still throws — App.tsx tells the learner plainly that
     // this device could not finish erasing its local copy — but the audio is
     // already gone by then.
-    installDisk({ [`parle.u.${UID}.profile`]: '{"version":1}' });
+    installDisk({ [`luvani.u.${UID}.profile`]: '{"version":1}' });
     (AsyncStorage as unknown as Record<string, unknown>).multiRemove = (): Promise<void> =>
       Promise.reject(new Error('the disk is full'));
     let sweptAnyway = false;

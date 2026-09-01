@@ -29,7 +29,7 @@ stale fixed count.
 
 **The mobile app never calls an LLM API and holds no secret key.** It reads exactly three
 environment variables, all `EXPO_PUBLIC_*`: the token server URL and the two Supabase
-values. `@parle/brain/llm` is never imported client-side.
+values. `@luvani/brain/llm` is never imported client-side.
 
 The LLM lives inside the LiveKit agent. The app talks to the agent over the LiveKit data
 channel using `packages/core/src/protocol/`. Any design that has the phone talking to
@@ -64,7 +64,7 @@ round-trip, because JSON mode is not a schema.
 ## What you must never do
 
 - Move an API key, or any secret, into `apps/mobile`.
-- Import `@parle/brain/llm` from the app.
+- Import `@luvani/brain/llm` from the app.
 - Hardcode a model id outside `routing.ts`.
 - Change a protocol message shape without handling the mismatched pair.
 - Stream a turn that the gates have not finished deciding.

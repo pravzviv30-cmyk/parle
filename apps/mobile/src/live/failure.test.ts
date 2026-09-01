@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { ERROR_KINDS, type ErrorKind } from '@parle/core';
+import { ERROR_KINDS, type ErrorKind } from '@luvani/core';
 
 import {
   classifyFailure,
@@ -337,25 +337,25 @@ describe('what the learner reads when half the tutor stops working mid-session',
     const attempt = "je voudrais un croissant s'il vous plait";
     const out = classifyPipelineError({ message: attempt, kind: 'stt_error', recoverable: false }, { spoken: true });
 
-    assert.match(PIPELINE_ALARM_PREFIX, /^\[parle\] [A-Z_]+$/, 'the alarm left the house shape, and the house shape is what makes it greppable.');
-    assert.equal(PIPELINE_ALARM_PREFIX, '[parle] TUTOR_PIPELINE_DOWN', 'this string is an interface. Renaming it breaks whoever is grepping for it during an incident.');
-    assert.equal(PIPELINE_LOG_PREFIX, '[parle:live] pipeline');
+    assert.match(PIPELINE_ALARM_PREFIX, /^\[luvani\] [A-Z_]+$/, 'the alarm left the house shape, and the house shape is what makes it greppable.');
+    assert.equal(PIPELINE_ALARM_PREFIX, '[luvani] TUTOR_PIPELINE_DOWN', 'this string is an interface. Renaming it breaks whoever is grepping for it during an incident.');
+    assert.equal(PIPELINE_LOG_PREFIX, '[luvani:live] pipeline');
 
     // The privacy assertion runs before the exact line is pinned, so a leak is
     // reported as a leak rather than as a formatting change.
     for (const word of attempt.split(' ')) {
       assert.equal(out.log.includes(word), false, `the log line carries "${word}" from the frame. Nothing a learner said or attempted leaves the device for diagnostics.`);
     }
-    assert.equal(out.log, '[parle] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=spoken shown=blocking');
+    assert.equal(out.log, '[luvani] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=spoken shown=blocking');
 
     // A blip is logged too, on the ordinary channel, so the count of them is
     // still there to read.
     const blip = classifyPipelineError({ message: attempt, kind: 'tts_error', recoverable: true }, { spoken: true });
-    assert.equal(blip.log, '[parle:live] pipeline kind=tts_error recoverable=yes mode=spoken shown=notice');
+    assert.equal(blip.log, '[luvani:live] pipeline kind=tts_error recoverable=yes mode=spoken shown=notice');
 
     // Absent fields are left out rather than printed as a guess.
     const bare = classifyPipelineError({ message: attempt }, { spoken: false });
-    assert.equal(bare.log, '[parle:live] pipeline mode=typed shown=notice');
+    assert.equal(bare.log, '[luvani:live] pipeline mode=typed shown=notice');
   });
 
   test('a typed learner is not interrupted by a failure they cannot feel', () => {
@@ -372,7 +372,7 @@ describe('what the learner reads when half the tutor stops working mid-session',
     // Still logged, and still an alarm, because the vendor really is down even
     // though this learner was untouched by it.
     const quiet = classifyPipelineError({ message: AGENT_SENTENCE, kind: 'stt_error', recoverable: false }, { spoken: false });
-    assert.equal(quiet.log, '[parle] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=typed shown=silent');
+    assert.equal(quiet.log, '[luvani] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=typed shown=silent');
 
     // The reply itself failing reaches everyone, typed or not.
     const stalled = blocking(classifyPipelineError({ message: AGENT_SENTENCE, kind: 'llm_error', recoverable: false }, { spoken: false }));

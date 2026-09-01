@@ -71,10 +71,10 @@ export const NAME_SKIP_HINT = 'You can leave this empty and add it later.';
 
 /** The age page. One tap through, one honest way of saying no. */
 export const AGE_QUESTION = 'How old are you?';
-export const AGE_SUB = 'Parle is made for teens and adults.';
+export const AGE_SUB = 'Luvani is made for teens and adults.';
 export const AGE_CONFIRM = 'I am 13 or older';
 export const AGE_DENY = 'I am younger than that';
-export const AGE_REFUSAL = 'Parle is for learners thirteen and up. Come back and find us then.';
+export const AGE_REFUSAL = 'Luvani is for learners thirteen and up. Come back and find us then.';
 
 /**
  * The same page, reached the second way: a session ended because the learner
@@ -91,7 +91,7 @@ export const AGE_REFUSAL = 'Parle is for learners thirteen and up. Come back and
  * one age gate; this is a second door into it, not a second gate.
  */
 export const AGE_RETURN_TITLE = 'Before we carry on';
-export const AGE_RETURN_SUB = 'Parle is made for learners thirteen and up. Everything you have learned is still here.';
+export const AGE_RETURN_SUB = 'Luvani is made for learners thirteen and up. Everything you have learned is still here.';
 
 /** What the pages are holding while the learner fills them in. */
 export interface OnboardingDraft {

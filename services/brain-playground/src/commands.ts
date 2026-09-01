@@ -5,7 +5,7 @@
  * lists these commands.
  */
 
-import type { Strictness } from '@parle/brain';
+import type { Strictness } from '@luvani/brain';
 
 export type Command =
   | { kind: 'scenario'; request: string }

@@ -26,7 +26,7 @@ import {
   type LadderState,
   type Rung,
   type SupportLevel,
-} from '@parle/core';
+} from '@luvani/core';
 
 import type {
   CoachItem,

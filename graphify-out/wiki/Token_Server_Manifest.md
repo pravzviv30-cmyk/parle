@@ -11,13 +11,13 @@
 - **dotenv** (2 connections) — `services/token-server/package.json`
 - **jose** (2 connections) — `services/token-server/package.json`
 - **livekit-server-sdk** (2 connections) — `services/token-server/package.json`
-- **@parle/core** (2 connections) — `services/token-server/package.json`
+- **@luvani/core** (2 connections) — `services/token-server/package.json`
 - **@types/node** (2 connections) — `services/token-server/package.json`
 - **typescript** (2 connections) — `services/token-server/package.json`
 - **jose** (1 connections) — `services/token-server/package.json`
 - **livekit-server-sdk** (1 connections) — `services/token-server/package.json`
 - **dotenv** (1 connections) — `services/token-server/package.json`
-- **@parle/core** (1 connections) — `services/token-server/package.json`
+- **@luvani/core** (1 connections) — `services/token-server/package.json`
 - **@types/node** (1 connections) — `services/token-server/package.json`
 - **typescript** (1 connections) — `services/token-server/package.json`
 - **main** (1 connections) — `services/token-server/package.json`

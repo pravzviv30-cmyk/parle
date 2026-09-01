@@ -34,7 +34,7 @@
 ## Relationships
 
 - [Safety Category Taxonomy](Safety_Category_Taxonomy.md) (3 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (2 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (2 shared connections)
 - [Output Safety Guard](Output_Safety_Guard.md) (2 shared connections)
 - [Tutor Turn Handling](Tutor_Turn_Handling.md) (1 shared connections)
 - [Conversation Brain Client](Conversation_Brain_Client.md) (1 shared connections)

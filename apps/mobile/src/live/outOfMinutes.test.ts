@@ -35,7 +35,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { stripTypeScriptTypes } from 'node:module';
-import { PLANS, canStartSession, type Entitlement, type Plan } from '@parle/core';
+import { PLANS, canStartSession, type Entitlement, type Plan } from '@luvani/core';
 import { guiltIn } from '../copy/guilt.ts';
 
 const read = (relative: string): string =>

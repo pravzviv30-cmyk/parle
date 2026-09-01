@@ -7,11 +7,11 @@
  * line of plumbing rather than a behaviour.
  *
  * It exists because that one line was missing. The token server signed
- * `missionId` into the metadata, `ParleConversation` accepted it in its
+ * `missionId` into the metadata, `LuvaniConversation` accepted it in its
  * constructor, seven tests covering the mission path were green, and the worker
  * never read the field — so every mission tap still paid the ten-to-twenty-five
  * second scene build, and no test could see it, because they all construct
- * `ParleConversation` directly and never come through this door.
+ * `LuvaniConversation` directly and never come through this door.
  *
  * A value that has to survive four hops needs something watching each hop.
  */
@@ -46,7 +46,7 @@ describe('the join metadata reaches the conversation it was signed for', () => {
   });
 
   test('and hands it to the conversation, beside the seed topic it already carried', () => {
-    const open = CODE.indexOf('new ParleConversation(');
+    const open = CODE.indexOf('new LuvaniConversation(');
     assert.ok(open >= 0, 'the worker still builds a conversation');
     const call = CODE.slice(open, CODE.indexOf('})', open));
 

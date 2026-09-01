@@ -48,7 +48,7 @@ export function userKey(suffix: string): string {
   if (activeUid === null) {
     throw new Error(`storage read for "${suffix}" with no signed-in user - stores live behind the auth gate`);
   }
-  return `parle.u.${activeUid}.${suffix}`;
+  return `luvani.u.${activeUid}.${suffix}`;
 }
 
 /**
@@ -88,7 +88,7 @@ export const USER_KEY_SUFFIXES = [
  * signal, and a device path is the kind of thing that ends up in a support
  * ticket.
  */
-export const ATTEMPT_AUDIO_NOT_SWEPT = '[parle] ATTEMPT_AUDIO_NOT_SWEPT';
+export const ATTEMPT_AUDIO_NOT_SWEPT = '[luvani] ATTEMPT_AUDIO_NOT_SWEPT';
 
 /**
  * The two effects a reset has outside AsyncStorage, injected so this policy can
@@ -139,34 +139,34 @@ export async function clearActiveUserData(hooks: ClearHooks = {}): Promise<void>
     } catch {
       alarm(ATTEMPT_AUDIO_NOT_SWEPT);
     }
-    await AsyncStorage.multiRemove(USER_KEY_SUFFIXES.map((s) => `parle.u.${uid}.${s}`));
+    await AsyncStorage.multiRemove(USER_KEY_SUFFIXES.map((s) => `luvani.u.${uid}.${s}`));
   } finally {
     for (const hook of resetHooks) hook();
   }
 }
 
-const MIGRATED_MARKER = 'parle.legacyMigrated.v1';
+const MIGRATED_MARKER = 'luvani.legacyMigrated.v1';
 
 /** Legacy pre-auth key → per-user suffix. Payload versions live inside the JSON. */
 const LEGACY_KEYS: readonly (readonly [string, string])[] = [
-  ['parle.profile.v1', 'profile'],
-  ['parle.history.v1', 'history'],
-  ['parle.review.v1', 'review'],
-  ['parle.drills.v1', 'drills'],
+  ['luvani.profile.v1', 'profile'],
+  ['luvani.history.v1', 'history'],
+  ['luvani.review.v1', 'review'],
+  ['luvani.drills.v1', 'drills'],
 ];
 
 /**
  * Device-level keys whose reader has been deleted.
  *
  * These are not legacy keys, because there is nothing left to inherit.
- * `parle.seenSplash.v1` recorded that this install had seen the pre-auth
+ * `luvani.seenSplash.v1` recorded that this install had seen the pre-auth
  * splash; the splash is gone, so the flag now encodes "has seen a screen that
  * no longer exists". Removing it is the whole migration.
  *
  * Exported so scope.test.ts can hold the list against the app source and fail
  * if anything starts reading a key the sweep deletes.
  */
-export const RETIRED_DEVICE_KEYS = ['parle.seenSplash.v1'] as const;
+export const RETIRED_DEVICE_KEYS = ['luvani.seenSplash.v1'] as const;
 
 /**
  * One-time inheritance of pre-auth device data by the first account.
@@ -176,7 +176,7 @@ export const RETIRED_DEVICE_KEYS = ['parle.seenSplash.v1'] as const;
  */
 export async function migrateLegacyStores(uid: string): Promise<void> {
   try {
-    const targets = LEGACY_KEYS.map(([, suffix]) => `parle.u.${uid}.${suffix}`);
+    const targets = LEGACY_KEYS.map(([, suffix]) => `luvani.u.${uid}.${suffix}`);
     const keys = [
       MIGRATED_MARKER,
       ...RETIRED_DEVICE_KEYS,

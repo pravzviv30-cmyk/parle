@@ -29,8 +29,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createProfile } from '@parle/brain/profile';
-import { evidenceOf, phraseKeyOf, type ConvoPhrase, type DrillExercise, type RecapPayload } from '@parle/core';
+import { createProfile } from '@luvani/brain/profile';
+import { evidenceOf, phraseKeyOf, type ConvoPhrase, type DrillExercise, type RecapPayload } from '@luvani/core';
 
 import { loadDrillBank } from './drill/store.ts';
 import { bankPractice, journalDrills, journalRecap } from './live/journal.ts';
@@ -105,7 +105,7 @@ function installDisk(faults: DiskFaults = {}): Map<string, string> {
 
 let uids = 0;
 const nextUid = (): string => `33333333-3333-4333-8333-${String(++uids).padStart(12, '0')}`;
-const journalKeyOf = (uid: string): string => `parle.u.${uid}.journal`;
+const journalKeyOf = (uid: string): string => `luvani.u.${uid}.journal`;
 
 /**
  * The batch ConvoScreen's `practiceBatch` builds, rebuilt here.
@@ -192,7 +192,7 @@ describe('the conversation screen banks through the outbox — F118, F124', () =
     // conversation existed nowhere. Kept means the next launch banks it again,
     // which is safe because every merge in the path folds by content identity.
     const uid = nextUid();
-    const disk = installDisk({ full: (key) => key === `parle.u.${uid}.review` });
+    const disk = installDisk({ full: (key) => key === `luvani.u.${uid}.review` });
     setActiveUser(uid);
     await journalledSession();
 
@@ -200,8 +200,8 @@ describe('the conversation screen banks through the outbox — F118, F124', () =
 
     assert.equal(result, 'kept', 'a bank with a refused write called itself finished');
     assert.ok(disk.has(journalKeyOf(uid)), 'the only copy of the conversation was deleted anyway');
-    assert.equal(disk.has(`parle.u.${uid}.review`), false, 'the test disk did not actually refuse the deck');
-    assert.ok(disk.has(`parle.u.${uid}.topics`), 'the store that could write still wrote');
+    assert.equal(disk.has(`luvani.u.${uid}.review`), false, 'the test disk did not actually refuse the deck');
+    assert.ok(disk.has(`luvani.u.${uid}.topics`), 'the store that could write still wrote');
   });
 
   test('leaving before the practice message lands banks through the same outbox', async () => {
@@ -225,7 +225,7 @@ describe('the conversation screen banks through the outbox — F118, F124', () =
 
   test('an early exit onto a full phone keeps the journal for the next launch', async () => {
     const uid = nextUid();
-    const disk = installDisk({ full: (key) => key === `parle.u.${uid}.topics` });
+    const disk = installDisk({ full: (key) => key === `luvani.u.${uid}.topics` });
     setActiveUser(uid);
     await journalledSession();
 

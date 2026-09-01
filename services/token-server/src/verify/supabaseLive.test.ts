@@ -32,7 +32,7 @@ import {
 } from './supabaseLive.ts';
 
 const HARNESS = fileURLToPath(new URL('./supabaseLive.ts', import.meta.url));
-const NO_ENV_FILE = path.join(tmpdir(), `parle-no-env-${randomUUID()}`);
+const NO_ENV_FILE = path.join(tmpdir(), `luvani-no-env-${randomUUID()}`);
 
 /** Every proof passing — the baseline the honesty tests deform one field at a time. */
 const allPassing = (): CheckResult[] =>
@@ -45,7 +45,7 @@ function runCli(env: Record<string, string>): { code: number; out: string } {
       encoding: 'utf8',
       // An env file that does not exist, so this machine's real credentials cannot
       // wander into a test through services/token-server/.env.
-      env: { PATH: process.env.PATH ?? '', PARLE_ENV_FILE: NO_ENV_FILE, ...env },
+      env: { PATH: process.env.PATH ?? '', LUVANI_ENV_FILE: NO_ENV_FILE, ...env },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     return { code: 0, out };

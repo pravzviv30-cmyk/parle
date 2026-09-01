@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { File } from 'expo-file-system';
-import type { PhonemeObservation, SessionPhonemeReport } from '@parle/core';
+import type { PhonemeObservation, SessionPhonemeReport } from '@luvani/core';
 
 import { authHeaders } from '../auth/adapter.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';

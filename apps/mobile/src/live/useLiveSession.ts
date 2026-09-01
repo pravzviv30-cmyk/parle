@@ -32,7 +32,7 @@ import {
   type SessionSummary,
   type StartRefusal,
   type TurnFeedback,
-} from '@parle/core';
+} from '@luvani/core';
 import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from './globals.ts';
 import { authHeaders } from '../auth/adapter.ts';
 import { journalRecap } from './journal.ts';
@@ -169,7 +169,7 @@ function emptyDiagnostics(): LiveDiagnostics {
 
 /** One stable prefix so a developer can filter the console to just this. */
 function trace(event: string, detail?: Record<string, unknown>): void {
-  console.info(`[parle:live] ${event}`, detail ?? {});
+  console.info(`[luvani:live] ${event}`, detail ?? {});
 }
 
 /* ─────────────────────────────────────────────────── the 402, and what it means
@@ -258,7 +258,7 @@ const OUT_OF_MINUTES: Record<OutOfMinutesCode, OutOfMinutesCopy> = {
   unknown: {
     label: 'Out of minutes',
     message:
-      'Parle cannot start a session on this account right now, and it is about minutes rather than anything you did. Practice and review work offline, so you can carry on there.',
+      'Luvani cannot start a session on this account right now, and it is about minutes rather than anything you did. Practice and review work offline, so you can carry on there.',
   },
 };
 

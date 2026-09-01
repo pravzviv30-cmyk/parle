@@ -1,5 +1,5 @@
 {
-  "name": "@parle/brain-playground",
+  "name": "@luvani/brain-playground",
   "version": "0.1.0",
   "private": true,
   "description": "Terminal playground for talking to the tutor brain, plus the curated live eval.",
@@ -14,8 +14,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@parle/brain": "*",
-    "@parle/core": "*",
+    "@luvani/brain": "*",
+    "@luvani/core": "*",
     "dotenv": "^16.4.7"
   },
   "devDependencies": {

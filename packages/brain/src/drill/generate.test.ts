@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import type { DrillExercise } from '@parle/core';
+import type { DrillExercise } from '@luvani/core';
 
 import { DrillBatchSchema, buildDrillGenerationRequest, type DrillGenerationInput } from './generate.ts';
 import type { NewPhrase } from '../contract/types.ts';

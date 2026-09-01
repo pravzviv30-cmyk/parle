@@ -20,7 +20,7 @@
  * inside a `.tsx` is a decision nothing can ask a question about.
  */
 
-import type { LearnerProfile } from '@parle/brain/profile';
+import type { LearnerProfile } from '@luvani/brain/profile';
 import type { StoredProfile } from '../profile/store.ts';
 
 /**

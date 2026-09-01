@@ -33,8 +33,8 @@ import { stripTypeScriptTypes } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RoomEvent } from 'livekit-client';
-import { decodeClientMessage, encodeMessage, type RecapPayload, type ServerMessage } from '@parle/core';
-import { createProfile } from '@parle/brain/profile';
+import { decodeClientMessage, encodeMessage, type RecapPayload, type ServerMessage } from '@luvani/core';
+import { createProfile } from '@luvani/brain/profile';
 
 import { setActiveUser } from '../storage/scope.ts';
 import { journalRecap } from './journal.ts';
@@ -151,7 +151,7 @@ describe('the recap message, on its way to the disk', () => {
     };
     await makeTheCall(journalCall(recapCase(read('./useLiveSession.ts'))), message);
 
-    const raw = disk.get(`parle.u.${uid}.journal`);
+    const raw = disk.get(`luvani.u.${uid}.journal`);
     assert.ok(raw, 'the recap never reached the disk at all');
 
     // Read back the way a launch reads it, so this is the batch the deck is
@@ -893,7 +893,7 @@ describe('the tutor that never arrived — F196', () => {
     );
     assert.doesNotMatch(
       ABANDON,
-      /session\/end|seconds|debit|x-parle-agent|AGENT_SECRET/,
+      /session\/end|seconds|debit|x-luvani-agent|AGENT_SECRET/,
       'this call releases a lease and does nothing else, which is the whole reason it is safe to make from a phone',
     );
 
@@ -1083,7 +1083,7 @@ describe('half the tutor stops working mid-session — F198, the rendering half'
     assert.equal(deaf.seen.left, 0, 'the room was closed on a failure the learner can carry on typing through');
     assert.deepEqual(
       deaf.seen.logs,
-      ['warn [parle] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=spoken shown=blocking'],
+      ['warn [luvani] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=spoken shown=blocking'],
       'a vendor half of the tutor went down and the alarm line is not on the console at the level that gets noticed',
     );
 
@@ -1105,7 +1105,7 @@ describe('half the tutor stops working mid-session — F198, the rendering half'
     assert.equal(blip.seen.notices.length, 1, 'the learner was told nothing at all about a voice that just went');
     assert.notEqual(blip.seen.notices[0], frame('tts_error', true).message, 'the agent sentence is shown raw, so all five kinds still read alike');
     assert.deepEqual(blip.seen.timers.map((t) => t.ms), [8000], 'the notice no longer clears itself, and that part was right');
-    assert.deepEqual(blip.seen.logs, ['info [parle:live] pipeline kind=tts_error recoverable=yes mode=spoken shown=notice']);
+    assert.deepEqual(blip.seen.logs, ['info [luvani:live] pipeline kind=tts_error recoverable=yes mode=spoken shown=notice']);
 
     // A typed session carries no audio in either direction, so an audio failure
     // in one is invisible by construction. Telling somebody who is typing that
@@ -1115,7 +1115,7 @@ describe('half the tutor stops working mid-session — F198, the rendering half'
     assert.deepEqual(typed.seen.failed, [], 'a learner who is typing was shown a microphone failure they cannot possibly have');
     assert.deepEqual(typed.seen.notices, [], 'a learner who is typing was interrupted by a failure they cannot feel');
     assert.equal(typed.seen.left, 0, 'a typed session was ended by an audio failure that cannot reach it');
-    assert.deepEqual(typed.seen.logs, ['info [parle] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=typed shown=silent']);
+    assert.deepEqual(typed.seen.logs, ['info [luvani] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=typed shown=silent']);
 
     // And the same thing again for a session that STARTED spoken and has since
     // taken the quiet door. This is the learner who took that door because the
@@ -1129,7 +1129,7 @@ describe('half the tutor stops working mid-session — F198, the rendering half'
       'a learner who took the quiet door was thrown out by the very outage they took it for',
     );
     assert.deepEqual(switched.seen.notices, []);
-    assert.deepEqual(switched.seen.logs, ['info [parle] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=typed shown=silent']);
+    assert.deepEqual(switched.seen.logs, ['info [luvani] TUTOR_PIPELINE_DOWN kind=stt_error recoverable=no mode=typed shown=silent']);
 
     // An agent older than the kinds sends neither field, and a session hitting
     // its time limit sends a bare error too. Both keep today's behaviour.

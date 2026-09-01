@@ -31,7 +31,7 @@ load in `adapter.ts`:
   returns `null`. Never let it reach a build a learner could install.
 
 Google OAuth is platform-split on purpose: `oauth.ts` does a full-page redirect on web,
-`oauth.native.ts` uses `expo-web-browser` and the `parle://auth/callback` deep link, then
+`oauth.native.ts` uses `expo-web-browser` and the `luvani://auth/callback` deep link, then
 exchanges the code. Two files because the flows genuinely differ, not by accident.
 
 ## The server side

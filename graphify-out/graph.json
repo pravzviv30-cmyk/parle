@@ -3919,7 +3919,7 @@
       "id": "apps_mobile_src_speech_discardrecording_test_cache"
     },
     {
-      "label": "ParleConversation",
+      "label": "LuvaniConversation",
       "file_type": "code",
       "source_file": "services/tutor-agent/src/convo.ts",
       "source_location": "L836",
@@ -3927,7 +3927,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": "parleconversation",
       "id": "services_tutor_agent_src_convo_parleconversation"
     },
@@ -4387,7 +4387,7 @@
       "id": "packages_core_src_protocol_protocol_servermessage"
     },
     {
-      "label": "ParleTutor",
+      "label": "LuvaniTutor",
       "file_type": "code",
       "source_file": "services/tutor-agent/src/tutor.ts",
       "source_location": "L122",
@@ -11285,7 +11285,7 @@
     {
       "label": "announceTab()",
       "file_type": "code",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L103",
       "_callable": true,
       "_origin": "ast",
@@ -11295,9 +11295,9 @@
       "id": "apps_mobile_src_nav_parletabbar_announcetab"
     },
     {
-      "label": "ParleTabBar()",
+      "label": "LuvaniTabBar()",
       "file_type": "code",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L42",
       "_callable": true,
       "_origin": "ast",
@@ -18922,7 +18922,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".armrescue()",
       "id": "services_tutor_agent_src_convo_parleconversation_armrescue"
     },
@@ -18934,7 +18934,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".attach()",
       "id": "services_tutor_agent_src_convo_parleconversation_attach"
     },
@@ -18946,7 +18946,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".attachroomclose()",
       "id": "services_tutor_agent_src_convo_parleconversation_attachroomclose"
     },
@@ -18958,7 +18958,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".attachtiming()",
       "id": "services_tutor_agent_src_convo_parleconversation_attachtiming"
     },
@@ -18970,7 +18970,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".brainmeter()",
       "id": "services_tutor_agent_src_convo_parleconversation_brainmeter"
     },
@@ -18982,7 +18982,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".brainspend()",
       "id": "services_tutor_agent_src_convo_parleconversation_brainspend"
     },
@@ -18994,7 +18994,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".buildframe()",
       "id": "services_tutor_agent_src_convo_parleconversation_buildframe"
     },
@@ -19006,7 +19006,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".clearrescue()",
       "id": "services_tutor_agent_src_convo_parleconversation_clearrescue"
     },
@@ -19018,7 +19018,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".closeafterstop()",
       "id": "services_tutor_agent_src_convo_parleconversation_closeafterstop"
     },
@@ -19030,7 +19030,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".closeroom()",
       "id": "services_tutor_agent_src_convo_parleconversation_closeroom"
     },
@@ -19042,7 +19042,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".conversationstate()",
       "id": "services_tutor_agent_src_convo_parleconversation_conversationstate"
     },
@@ -19054,7 +19054,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".curateanddrill()",
       "id": "services_tutor_agent_src_convo_parleconversation_curateanddrill"
     },
@@ -19066,7 +19066,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".curatepractice()",
       "id": "services_tutor_agent_src_convo_parleconversation_curatepractice"
     },
@@ -19078,7 +19078,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".deferforamoment()",
       "id": "services_tutor_agent_src_convo_parleconversation_deferforamoment"
     },
@@ -19090,7 +19090,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".extractmemory()",
       "id": "services_tutor_agent_src_convo_parleconversation_extractmemory"
     },
@@ -19102,7 +19102,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".finish()",
       "id": "services_tutor_agent_src_convo_parleconversation_finish"
     },
@@ -19114,7 +19114,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".generatedrills()",
       "id": "services_tutor_agent_src_convo_parleconversation_generatedrills"
     },
@@ -19126,7 +19126,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".guardline()",
       "id": "services_tutor_agent_src_convo_parleconversation_guardline"
     },
@@ -19138,7 +19138,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".guardview()",
       "id": "services_tutor_agent_src_convo_parleconversation_guardview"
     },
@@ -19150,7 +19150,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".handlesafety()",
       "id": "services_tutor_agent_src_convo_parleconversation_handlesafety"
     },
@@ -19162,7 +19162,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".knownphrases()",
       "id": "services_tutor_agent_src_convo_parleconversation_knownphrases"
     },
@@ -19174,7 +19174,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".logspendsummary()",
       "id": "services_tutor_agent_src_convo_parleconversation_logspendsummary"
     },
@@ -19186,7 +19186,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".marktiming()",
       "id": "services_tutor_agent_src_convo_parleconversation_marktiming"
     },
@@ -19198,7 +19198,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".noteabandoned()",
       "id": "services_tutor_agent_src_convo_parleconversation_noteabandoned"
     },
@@ -19210,7 +19210,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".onuserturncompleted()",
       "id": "services_tutor_agent_src_convo_parleconversation_onuserturncompleted"
     },
@@ -19222,7 +19222,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".open()",
       "id": "services_tutor_agent_src_convo_parleconversation_open"
     },
@@ -19234,7 +19234,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".openmission()",
       "id": "services_tutor_agent_src_convo_parleconversation_openmission"
     },
@@ -19246,7 +19246,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".openscene()",
       "id": "services_tutor_agent_src_convo_parleconversation_openscene"
     },
@@ -19258,7 +19258,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".publish()",
       "id": "services_tutor_agent_src_convo_parleconversation_publish"
     },
@@ -19270,7 +19270,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".publisherror()",
       "id": "services_tutor_agent_src_convo_parleconversation_publisherror"
     },
@@ -19282,7 +19282,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".publishview()",
       "id": "services_tutor_agent_src_convo_parleconversation_publishview"
     },
@@ -19294,7 +19294,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".recordbrainusage()",
       "id": "services_tutor_agent_src_convo_parleconversation_recordbrainusage"
     },
@@ -19306,7 +19306,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".recordfailedcall()",
       "id": "services_tutor_agent_src_convo_parleconversation_recordfailedcall"
     },
@@ -19318,7 +19318,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".recover()",
       "id": "services_tutor_agent_src_convo_parleconversation_recover"
     },
@@ -19330,7 +19330,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".releasemoment()",
       "id": "services_tutor_agent_src_convo_parleconversation_releasemoment"
     },
@@ -19342,7 +19342,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".rescue()",
       "id": "services_tutor_agent_src_convo_parleconversation_rescue"
     },
@@ -19354,7 +19354,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".returntochoosing()",
       "id": "services_tutor_agent_src_convo_parleconversation_returntochoosing"
     },
@@ -19366,7 +19366,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".routeclientmessage()",
       "id": "services_tutor_agent_src_convo_parleconversation_routeclientmessage"
     },
@@ -19378,7 +19378,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".runbrainturn()",
       "id": "services_tutor_agent_src_convo_parleconversation_runbrainturn"
     },
@@ -19390,7 +19390,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".runrescue()",
       "id": "services_tutor_agent_src_convo_parleconversation_runrescue"
     },
@@ -19402,7 +19402,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".say()",
       "id": "services_tutor_agent_src_convo_parleconversation_say"
     },
@@ -19414,7 +19414,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".sendspeaking()",
       "id": "services_tutor_agent_src_convo_parleconversation_sendspeaking"
     },
@@ -19426,7 +19426,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".sessionid()",
       "id": "services_tutor_agent_src_convo_parleconversation_sessionid"
     },
@@ -19438,7 +19438,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".setlearnerspeaking()",
       "id": "services_tutor_agent_src_convo_parleconversation_setlearnerspeaking"
     },
@@ -19450,7 +19450,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".setsttlanguage()",
       "id": "services_tutor_agent_src_convo_parleconversation_setsttlanguage"
     },
@@ -19462,7 +19462,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".settled()",
       "id": "services_tutor_agent_src_convo_parleconversation_settled"
     },
@@ -19474,7 +19474,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".setvoiceless()",
       "id": "services_tutor_agent_src_convo_parleconversation_setvoiceless"
     },
@@ -19486,7 +19486,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".silencewindow()",
       "id": "services_tutor_agent_src_convo_parleconversation_silencewindow"
     },
@@ -19498,7 +19498,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".speak()",
       "id": "services_tutor_agent_src_convo_parleconversation_speak"
     },
@@ -19510,7 +19510,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": ".startscene()",
       "id": "services_tutor_agent_src_convo_parleconversation_startscene"
     },
@@ -19522,7 +19522,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": "postsessiondeadlinems()",
       "id": "services_tutor_agent_src_convo_postsessiondeadlinems"
     },
@@ -19534,7 +19534,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": "strictnessof()",
       "id": "services_tutor_agent_src_convo_strictnessof"
     },
@@ -19546,7 +19546,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": "sttlanguagefor()",
       "id": "services_tutor_agent_src_convo_sttlanguagefor"
     },
@@ -19558,7 +19558,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": "inmissionscene()",
       "id": "services_tutor_agent_src_convo_test_inmissionscene"
     },
@@ -19570,7 +19570,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": "stubswitchablesession()",
       "id": "services_tutor_agent_src_convo_test_stubswitchablesession"
     },
@@ -19582,7 +19582,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": "withdeadline()",
       "id": "services_tutor_agent_src_convo_withdeadline"
     },
@@ -19594,7 +19594,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 26,
-      "community_name": "Parle Conversation Orchestrator",
+      "community_name": "Luvani Conversation Orchestrator",
       "norm_label": "sessionalreadyreported()",
       "id": "services_tutor_agent_src_tutor_sessionalreadyreported"
     },
@@ -32216,25 +32216,25 @@
       "id": "services_tutor_agent_package_dependencies_livekit_agents_plugin_silero"
     },
     {
-      "label": "@parle/brain",
+      "label": "@luvani/brain",
       "file_type": "code",
       "source_file": "services/tutor-agent/package.json",
       "source_location": "L21",
       "_origin": "ast",
       "community": 10,
       "community_name": "Tutor Agent Dependencies",
-      "norm_label": "@parle/brain",
+      "norm_label": "@luvani/brain",
       "id": "services_tutor_agent_package_dependencies_parle_brain"
     },
     {
-      "label": "@parle/core",
+      "label": "@luvani/core",
       "file_type": "code",
       "source_file": "services/tutor-agent/package.json",
       "source_location": "L22",
       "_origin": "ast",
       "community": 10,
       "community_name": "Tutor Agent Dependencies",
-      "norm_label": "@parle/core",
+      "norm_label": "@luvani/core",
       "id": "services_tutor_agent_package_dependencies_parle_core"
     },
     {
@@ -32480,25 +32480,25 @@
       "id": "services_tutor_agent_package_json_dotenv"
     },
     {
-      "label": "@parle/brain",
+      "label": "@luvani/brain",
       "file_type": "concept",
       "source_file": "services/tutor-agent/package.json",
       "source_location": "L21",
       "_origin": "ast",
       "community": 10,
       "community_name": "Tutor Agent Dependencies",
-      "norm_label": "@parle/brain",
+      "norm_label": "@luvani/brain",
       "id": "services_tutor_agent_package_json_parle_brain"
     },
     {
-      "label": "@parle/core",
+      "label": "@luvani/core",
       "file_type": "concept",
       "source_file": "services/tutor-agent/package.json",
       "source_location": "L22",
       "_origin": "ast",
       "community": 10,
       "community_name": "Tutor Agent Dependencies",
-      "norm_label": "@parle/core",
+      "norm_label": "@luvani/core",
       "id": "services_tutor_agent_package_json_parle_core"
     },
     {
@@ -33092,7 +33092,7 @@
       "source_location": "L1",
       "frontmatter": {
         "name": "deploy-engineer",
-        "description": "Owns getting Parle off localhost \u2014 Expo build config, store submission, service hosting and CI. Use when a release is being prepared, or when someone asks how this ships.",
+        "description": "Owns getting Luvani off localhost \u2014 Expo build config, store submission, service hosting and CI. Use when a release is being prepared, or when someone asks how this ships.",
         "tools": "Read, Grep, Glob, Bash, Edit, Write",
         "model": "opus"
       },
@@ -35502,7 +35502,7 @@
       "source_location": "L1",
       "frontmatter": {
         "name": "backend-engineer",
-        "description": "Builds and repairs the Parle services \u2014 the LiveKit tutor agent and the token server. Use when work touches services/, the live voice pipeline, or the process that mints join tokens.",
+        "description": "Builds and repairs the Luvani services \u2014 the LiveKit tutor agent and the token server. Use when work touches services/, the live voice pipeline, or the process that mints join tokens.",
         "tools": "Read, Grep, Glob, Bash, Edit, Write",
         "model": "opus"
       },
@@ -35682,7 +35682,7 @@
       "source_location": "L1",
       "frontmatter": {
         "name": "frontend-engineer",
-        "description": "Builds and repairs the Parle mobile UI \u2014 screens, tabs, components, navigation and theme. Use when work touches anything a learner sees, or when /forge routes a contract into apps/mobile.",
+        "description": "Builds and repairs the Luvani mobile UI \u2014 screens, tabs, components, navigation and theme. Use when work touches anything a learner sees, or when /forge routes a contract into apps/mobile.",
         "tools": "Read, Grep, Glob, Bash, Edit, Write",
         "model": "opus"
       },
@@ -35934,7 +35934,7 @@
       "source_location": "L1",
       "frontmatter": {
         "name": "scaling-engineer",
-        "description": "Answers whether Parle needs to scale yet, and what would have to be true first. Use when load, concurrency, or a second instance is being considered.",
+        "description": "Answers whether Luvani needs to scale yet, and what would have to be true first. Use when load, concurrency, or a second instance is being considered.",
         "tools": "Read, Grep, Glob, Bash",
         "model": "fable"
       },
@@ -36016,9 +36016,9 @@
       "id": "apps_mobile_src_nav_icons"
     },
     {
-      "label": "ParleTabBar.tsx",
+      "label": "LuvaniTabBar.tsx",
       "file_type": "code",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L1",
       "_origin": "ast",
       "community": 128,
@@ -36029,7 +36029,7 @@
     {
       "label": "ICONS",
       "file_type": "code",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L25",
       "_origin": "ast",
       "community": 128,
@@ -36040,7 +36040,7 @@
     {
       "label": "LABELS",
       "file_type": "code",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L34",
       "_origin": "ast",
       "community": 128,
@@ -36051,7 +36051,7 @@
     {
       "label": "st",
       "file_type": "code",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L107",
       "_origin": "ast",
       "community": 128,
@@ -38127,7 +38127,7 @@
       "id": "docs_privacy_and_safety_disclosure_at_first_run"
     },
     {
-      "label": "Escalation and what Parle is not",
+      "label": "Escalation and what Luvani is not",
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "docs/PRIVACY_AND_SAFETY.md",
@@ -38259,7 +38259,7 @@
       "id": "docs_privacy_and_safety_what_a_safety_decision_leaves_behind"
     },
     {
-      "label": "What Parle holds",
+      "label": "What Luvani holds",
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "docs/PRIVACY_AND_SAFETY.md",
@@ -41105,25 +41105,25 @@
       "id": "services_tutor_agent_src_warmcache_splitter"
     },
     {
-      "label": "@parle/core",
+      "label": "@luvani/core",
       "file_type": "code",
       "source_file": "apps/mobile/package.json",
       "source_location": "L21",
       "_origin": "ast",
       "community": 193,
       "community_name": "Core Package Dependency",
-      "norm_label": "@parle/core",
+      "norm_label": "@luvani/core",
       "id": "apps_mobile_package_dependencies_parle_core"
     },
     {
-      "label": "@parle/core",
+      "label": "@luvani/core",
       "file_type": "concept",
       "source_file": "apps/mobile/package.json",
       "source_location": "L21",
       "_origin": "ast",
       "community": 193,
       "community_name": "Core Package Dependency",
-      "norm_label": "@parle/core",
+      "norm_label": "@luvani/core",
       "id": "apps_mobile_package_json_parle_core"
     },
     {
@@ -41200,7 +41200,7 @@
       "source_location": "L1",
       "frontmatter": {
         "name": "design-system-engineer",
-        "description": "Owns Parle&#x27;s tokens, typography, components, responsive composition, motion vocabulary, contrast, touch targets, and visual regression evidence.",
+        "description": "Owns Luvani&#x27;s tokens, typography, components, responsive composition, motion vocabulary, contrast, touch targets, and visual regression evidence.",
         "tools": "Read, Grep, Glob, Bash, Edit, Write",
         "model": "opus"
       },
@@ -42344,14 +42344,14 @@
       "id": "packages_brain_package_dependencies_anthropic_ai_sdk"
     },
     {
-      "label": "@parle/core",
+      "label": "@luvani/core",
       "file_type": "code",
       "source_file": "packages/brain/package.json",
       "source_location": "L21",
       "_origin": "ast",
       "community": 21,
       "community_name": "Brain Package Manifest",
-      "norm_label": "@parle/core",
+      "norm_label": "@luvani/core",
       "id": "packages_brain_package_dependencies_parle_core"
     },
     {
@@ -42564,14 +42564,14 @@
       "id": "anthropic_ai_sdk"
     },
     {
-      "label": "@parle/core",
+      "label": "@luvani/core",
       "file_type": "concept",
       "source_file": "packages/brain/package.json",
       "source_location": "L21",
       "_origin": "ast",
       "community": 21,
       "community_name": "Brain Package Manifest",
-      "norm_label": "@parle/core",
+      "norm_label": "@luvani/core",
       "id": "packages_brain_package_json_parle_core"
     },
     {
@@ -43442,14 +43442,14 @@
       "id": "services_token_server_package_dependencies_livekit_server_sdk"
     },
     {
-      "label": "@parle/core",
+      "label": "@luvani/core",
       "file_type": "code",
       "source_file": "services/token-server/package.json",
       "source_location": "L14",
       "_origin": "ast",
       "community": 22,
       "community_name": "Token Server Manifest",
-      "norm_label": "@parle/core",
+      "norm_label": "@luvani/core",
       "id": "services_token_server_package_dependencies_parle_core"
     },
     {
@@ -43629,14 +43629,14 @@
       "id": "services_token_server_package_json_dotenv"
     },
     {
-      "label": "@parle/core",
+      "label": "@luvani/core",
       "file_type": "concept",
       "source_file": "services/token-server/package.json",
       "source_location": "L14",
       "_origin": "ast",
       "community": 22,
       "community_name": "Token Server Manifest",
-      "norm_label": "@parle/core",
+      "norm_label": "@luvani/core",
       "id": "services_token_server_package_json_parle_core"
     },
     {
@@ -44080,25 +44080,25 @@
       "id": "services_brain_playground_package_dependencies_dotenv"
     },
     {
-      "label": "@parle/brain",
+      "label": "@luvani/brain",
       "file_type": "code",
       "source_file": "services/brain-playground/package.json",
       "source_location": "L17",
       "_origin": "ast",
       "community": 23,
       "community_name": "Playground Package Manifest",
-      "norm_label": "@parle/brain",
+      "norm_label": "@luvani/brain",
       "id": "services_brain_playground_package_dependencies_parle_brain"
     },
     {
-      "label": "@parle/core",
+      "label": "@luvani/core",
       "file_type": "code",
       "source_file": "services/brain-playground/package.json",
       "source_location": "L18",
       "_origin": "ast",
       "community": 23,
       "community_name": "Playground Package Manifest",
-      "norm_label": "@parle/core",
+      "norm_label": "@luvani/core",
       "id": "services_brain_playground_package_dependencies_parle_core"
     },
     {
@@ -44289,25 +44289,25 @@
       "id": "services_brain_playground_package_json_dotenv"
     },
     {
-      "label": "@parle/brain",
+      "label": "@luvani/brain",
       "file_type": "concept",
       "source_file": "services/brain-playground/package.json",
       "source_location": "L17",
       "_origin": "ast",
       "community": 23,
       "community_name": "Playground Package Manifest",
-      "norm_label": "@parle/brain",
+      "norm_label": "@luvani/brain",
       "id": "services_brain_playground_package_json_parle_brain"
     },
     {
-      "label": "@parle/core",
+      "label": "@luvani/core",
       "file_type": "concept",
       "source_file": "services/brain-playground/package.json",
       "source_location": "L18",
       "_origin": "ast",
       "community": 23,
       "community_name": "Playground Package Manifest",
-      "norm_label": "@parle/core",
+      "norm_label": "@luvani/core",
       "id": "services_brain_playground_package_json_parle_core"
     },
     {
@@ -44333,25 +44333,25 @@
       "id": "services_brain_playground_package_json_typescript"
     },
     {
-      "label": "@parle/brain",
+      "label": "@luvani/brain",
       "file_type": "code",
       "source_file": "apps/mobile/package.json",
       "source_location": "L20",
       "_origin": "ast",
       "community": 230,
       "community_name": "Brain Package Dependency",
-      "norm_label": "@parle/brain",
+      "norm_label": "@luvani/brain",
       "id": "apps_mobile_package_dependencies_parle_brain"
     },
     {
-      "label": "@parle/brain",
+      "label": "@luvani/brain",
       "file_type": "concept",
       "source_file": "apps/mobile/package.json",
       "source_location": "L20",
       "_origin": "ast",
       "community": 230,
       "community_name": "Brain Package Dependency",
-      "norm_label": "@parle/brain",
+      "norm_label": "@luvani/brain",
       "id": "apps_mobile_package_json_parle_brain"
     },
     {
@@ -51776,7 +51776,7 @@
       "id": "docs_known_issues_a7_a_v2_snapshot_with_no_memory_crashes_the_worker"
     },
     {
-      "label": "B0 \u2014 ParleTutor cannot be tested at all",
+      "label": "B0 \u2014 LuvaniTutor cannot be tested at all",
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "docs/KNOWN_ISSUES.md",
@@ -59127,7 +59127,7 @@
       "source_location": "L1",
       "frontmatter": {
         "name": "bug-hunter",
-        "description": "Hunts real defects in the Parle codebase and fixes them, failing test first. Use when asked to find bugs, sweep for regressions, close an item in docs/KNOWN_ISSUES.md, or drive `npm run gate` to green.",
+        "description": "Hunts real defects in the Luvani codebase and fixes them, failing test first. Use when asked to find bugs, sweep for regressions, close an item in docs/KNOWN_ISSUES.md, or drive `npm run gate` to green.",
         "tools": "Read, Grep, Glob, Bash, Edit, Write",
         "model": "opus"
       },
@@ -59520,7 +59520,7 @@
       "id": "product_absolute_beginners"
     },
     {
-      "label": "Parle (working name)",
+      "label": "Luvani (working name)",
       "file_type": "concept",
       "source_file": "PRODUCT.md",
       "source_location": "Brand Commitments",
@@ -65274,7 +65274,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L48",
       "weight": 1.0,
       "_origin": "ast",
@@ -65285,7 +65285,7 @@
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L72",
       "weight": 1.0,
       "_origin": "ast",
@@ -99189,7 +99189,7 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
@@ -99201,7 +99201,7 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
@@ -99213,7 +99213,7 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
@@ -99225,7 +99225,7 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
@@ -99237,7 +99237,7 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
@@ -99249,7 +99249,7 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L23",
       "weight": 1.0,
       "_origin": "ast",
@@ -132045,7 +132045,7 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L18",
       "weight": 1.0,
       "_origin": "ast",
@@ -132057,7 +132057,7 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
@@ -132069,7 +132069,7 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
@@ -132081,7 +132081,7 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L23",
       "weight": 1.0,
       "_origin": "ast",
@@ -154018,7 +154018,7 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L103",
       "weight": 1.0,
       "_origin": "ast",
@@ -154029,7 +154029,7 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L107",
       "weight": 1.0,
       "_origin": "ast",
@@ -154040,7 +154040,7 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L25",
       "weight": 1.0,
       "_origin": "ast",
@@ -154051,7 +154051,7 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
@@ -154062,7 +154062,7 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L42",
       "weight": 1.0,
       "_origin": "ast",
@@ -196594,7 +196594,7 @@
       "relation": "indirect_call",
       "context": "collection",
       "confidence": "INFERRED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L26",
       "weight": 1.0,
       "_origin": "ast",
@@ -196606,7 +196606,7 @@
       "relation": "indirect_call",
       "context": "collection",
       "confidence": "INFERRED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L27",
       "weight": 1.0,
       "_origin": "ast",
@@ -196618,7 +196618,7 @@
       "relation": "indirect_call",
       "context": "collection",
       "confidence": "INFERRED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L28",
       "weight": 1.0,
       "_origin": "ast",
@@ -196630,7 +196630,7 @@
       "relation": "indirect_call",
       "context": "collection",
       "confidence": "INFERRED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L29",
       "weight": 1.0,
       "_origin": "ast",
@@ -196642,7 +196642,7 @@
       "relation": "indirect_call",
       "context": "collection",
       "confidence": "INFERRED",
-      "source_file": "apps/mobile/src/nav/ParleTabBar.tsx",
+      "source_file": "apps/mobile/src/nav/LuvaniTabBar.tsx",
       "source_location": "L30",
       "weight": 1.0,
       "_origin": "ast",

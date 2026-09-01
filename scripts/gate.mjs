@@ -37,7 +37,7 @@
  * `--audit` is a third mode, and the only one that touches the network, which is why it is
  * not part of `npm run gate`: the bar has to be the same offline and on a plane. CI runs it
  * as its own step via `npm run audit:ci`. It reads the advisory decisions recorded under
- * `parle.dependencyAudit` in package.json and refuses any high or critical advisory that is
+ * `luvani.dependencyAudit` in package.json and refuses any high or critical advisory that is
  * not among them — and equally refuses an acceptance whose advisory has since gone away, so
  * the record cannot rot into a list of stale excuses.
  */
@@ -93,11 +93,11 @@ function run(command, commandArgs) {
 
 if (auditOnly) {
   const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
-  const record = manifest.parle?.dependencyAudit;
+  const record = manifest.luvani?.dependencyAudit;
   const decided = record?.advisories ?? [];
 
   if (!Array.isArray(record?.advisories)) {
-    console.error('audit: package.json has no parle.dependencyAudit.advisories, so nothing has been decided.');
+    console.error('audit: package.json has no luvani.dependencyAudit.advisories, so nothing has been decided.');
     process.exit(1);
   }
 
@@ -139,7 +139,7 @@ if (auditOnly) {
     if (row.severity !== 'high' && row.severity !== 'critical') continue;
     if (accepted.has(name)) continue;
     problems.push(
-      `${name} (${row.severity}) is not in package.json parle.dependencyAudit.advisories. ` +
+      `${name} (${row.severity}) is not in package.json luvani.dependencyAudit.advisories. ` +
         'Fix it, or record it with a reachability argument and why it cannot be fixed.',
     );
   }

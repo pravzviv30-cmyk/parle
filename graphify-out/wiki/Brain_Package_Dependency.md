@@ -4,8 +4,8 @@
 
 ## Key Concepts
 
-- **@parle/brain** (2 connections) — `apps/mobile/package.json`
-- **@parle/brain** (1 connections) — `apps/mobile/package.json`
+- **@luvani/brain** (2 connections) — `apps/mobile/package.json`
+- **@luvani/brain** (1 connections) — `apps/mobile/package.json`
 
 ## Relationships
 

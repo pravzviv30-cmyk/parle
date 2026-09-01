@@ -71,7 +71,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   apps/mobile/src/profile/store.ts:62.
 - verified-by: `a v2 snapshot with no memory is repaired, not discarded`
 
-### B0 — ParleTutor cannot be tested at all
+### B0 — LuvaniTutor cannot be tested at all
 - severity: P1
 - status: [x]
 - where: services/tutor-agent/src/agent.ts:88
@@ -133,7 +133,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: services/tutor-agent/src/convo.ts:433
 - note: convo.test.ts covered the pure mapping helpers and never instantiated
-  ParleConversation, so `rescue()`, `runBrainTurn()`, `armRescue` in voiceless
+  LuvaniConversation, so `rescue()`, `runBrainTurn()`, `armRescue` in voiceless
   mode, the StopResponse throw and the serial queue guard were all uncovered. The
   queue guard in particular was added to this file by analogy with the scripted
   tutor and had never been executed by a test — the exact shape of change that
@@ -862,7 +862,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: speak() issued narration, coachLine and sceneReply as three separate say()
   handles. The framework returns the session to `listening` at the end of every handle
   and to `speaking` on the next one's first frame, so one real turn produced three full
-  state cycles. Three consequences, one cause. The [parle:latency] record split three
+  state cycles. Three consequences, one cause. The [luvani:latency] record split three
   ways with only the first carrying its marks, so no usable per-turn number existed to
   tune against. The rescue is armed on `listening` and speak() is fire-and-forget, so
   queue.busy is already false: a mid-turn sentence whose first audio byte took longer
@@ -912,7 +912,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   conversation essentially every sentence is a cold vendor round-trip preceded by a TLS
   handshake. The websocket transport is written, tested and rides a pooled persistent
   socket; it was simply never switched on, and .env.example does not mention it exists.
-- verified-by: `PARLE_TTS_MISS_TRANSPORT=ws opts in via the environment, junk does not`
+- verified-by: `LUVANI_TTS_MISS_TRANSPORT=ws opts in via the environment, junk does not`
 - verified-by: `http is the default and still synthesizes per sentence`
 
 ### H5 — The framework measures the turn and nothing reads it
@@ -920,7 +920,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: services/tutor-agent/src/agent.ts:242
 - note: the pipeline already computes time to first TTS byte, playback latency,
-  transcription delay and end-of-turn delay, and emits them on MetricsCollected. Parle
+  transcription delay and end-of-turn delay, and emits them on MetricsCollected. Luvani
   subscribes to Error, AgentStateChanged and UserStateChanged and not to that one, so
   the numbers that would say which vendor ate the milliseconds were being thrown away
   every turn while the same question was answered by guessing.
@@ -934,7 +934,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: the comment says the semantic turn detector reads the words to judge whether the
   learner has finished and "stays the default", protecting hesitating beginners. No
   turn-detector plugin is in the package, so the framework has been falling through to
-  plain silence-based VAD all along, and PARLE_TURN_DETECTION=vad selects what was
+  plain silence-based VAD all along, and LUVANI_TURN_DETECTION=vad selects what was
   already happening. A comment that describes protection the learner does not have is
   worse than no comment.
 - verified-by: `the turn-detection note matches the plugins actually installed`
@@ -981,7 +981,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### J4 — The icon-only tab bar never tells a screen reader the screen changed
 - severity: P1
 - status: [x]
-- where: apps/mobile/src/nav/ParleTabBar.tsx:96
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx:96
 - note: announceTab was written for exactly this, docblock and all, and then called from
   nowhere. Five tabs with no labels and no announcement means a screen-reader user gets
   no signal that the entire screen replaced itself.
@@ -1565,7 +1565,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - severity: P1
 - status: [x]
 - where: services/token-server/src/rateLimit.ts:205
-- note: with PARLE_TRUST_PROXY=1, `clientIp` takes the first x-forwarded-for entry; a standard
+- note: with LUVANI_TRUST_PROXY=1, `clientIp` takes the first x-forwarded-for entry; a standard
   proxy appends the real address, so the first entry is attacker-supplied and every per-IP
   limit becomes evadable by header rotation. Take the last entry under one trusted proxy and
   document the misconfiguration case.
@@ -1962,7 +1962,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/sync/diagnostics.ts:1
 - note: namespace, phase, status, attempt, revision and timing in a bounded ring buffer, in
-  the existing [parle] log style; the record type has no field that could hold a phrase, a
+  the existing [luvani] log style; the record type has no field that could hold a phrase, a
   name or a payload, and a test holds that shape.
 - verified-by: `sync diagnostics never contain payload fields or learner text`
 
@@ -2015,7 +2015,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   adopter call, and adopters resolve userKey() when they run. Sign-out cleanup re-registers
   every adopter via setActiveUser's reset hooks; if account A's pull (on the un-timeboxed
   fetch) returns after account B signs in, adoptProfile writes A's merged profile into
-  parle.u.<B>.profile through B's store chain. The push dies at RLS as designed, but the
+  luvani.u.<B>.profile through B's store chain. The push dies at RLS as designed, but the
   local cross-account write has already happened — F83's defect class at the engine layer.
   A synchronous halted check immediately before invoking the adopter closes the window,
   because the cleanup that flips it runs synchronously before the account changes.
@@ -2218,7 +2218,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/storage/scope.ts:1
-- note: parle.seenSplash.v1 is device-level and survives account reset; after the splash goes
+- note: luvani.seenSplash.v1 is device-level and survives account reset; after the splash goes
   it has no reader. The honest migration is an idempotent removeItem in the existing
   device-level migration seam, recorded in STATE_AND_STORAGE.md.
 - verified-by: `the retired splash flag is removed by the storage sweep`
@@ -2603,7 +2603,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - severity: P0
 - status: [x]
 - where: services/tutor-agent/src/convo.ts:1045
-- note: `handleSafety` in ParleConversation and ParleTutor publishes the safety frame instead of
+- note: `handleSafety` in LuvaniConversation and LuvaniTutor publishes the safety frame instead of
   publishError; spoken modes keep the uninterruptible say. Driven through the real classes with a
   captured publisher, because the current wiring test greps source text and would pass with
   publishError emptied out.
@@ -2670,9 +2670,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - severity: P0
 - status: [x]
 - where: services/tutor-agent/src/tutor.ts:246
-- note: ParleTutor rescues at four seconds regardless of voiceless and ignores typing and moment,
+- note: LuvaniTutor rescues at four seconds regardless of voiceless and ignores typing and moment,
   so composing a sentence is graded as stuck every turn and lowers tomorrow's opening rung. It
-  gains ParleConversation's silenceWindow answer and handles both presence frames as clock
+  gains LuvaniConversation's silenceWindow answer and handles both presence frames as clock
   restarts. The existing test `a typed lesson still rescues a learner who goes quiet` keeps its
   title and moves to the text window: genuine silence still rescues, at twelve seconds.
 - verified-by: `a typed lesson waits the text window and typing keeps the clock standing`
@@ -3323,7 +3323,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: packages/brain/src/engine/grading.ts:110
 - note: F181 carried K1's `INLINE_COACH_COOLDOWN_TURNS` into `packages/core/src/session/session.ts`
   as `CORRECTION_COOLDOWN_TURNS`, pinned by comment and by a test that fails on drift, because
-  core cannot import brain. But brain already imports `@parle/core`, so the dependency runs the
+  core cannot import brain. But brain already imports `@luvani/core`, so the dependency runs the
   other way: move the constant into core and have `grading.ts` re-export it, and the pin becomes
   mechanical rather than a test on a literal. One decision, one home, no new package. Found by
   bug-hunter while closing F181, and correctly not built from core's side.
@@ -3386,7 +3386,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: `PRIVACY_AND_SAFETY.md`'s not-true-yet table names the gap honestly and its ledger
   column says "Not filed", but `KNOWN_ISSUES.md` is where this repo keeps what is known to be
   broken, and a doc row is not greppable as an open item. `outputGuard` runs on
-  `ParleConversation`'s four surfaces and not on `ParleTutor`'s, so a lesson's model line
+  `LuvaniConversation`'s four surfaces and not on `LuvaniTutor`'s, so a lesson's model line
   reaches the learner unchecked. `safetyPolicy.test.ts` already pins `guardedAgents()` to
   `convo.ts` alone, so closing this means extending the guard and updating that pin together.
   Found by work-judge at the slice 2 boundary.
@@ -3521,7 +3521,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - severity: P1
 - status: [x]
 - where: services/tutor-agent/src/agent.ts:202
-- note: the already-clamped startRung rides ParleConversation's opts and is consumed in openMission
+- note: the already-clamped startRung rides LuvaniConversation's opts and is consumed in openMission
   alone, so a stray rung can never stiffen a generic scene; the scripted-lesson branch is untouched.
 - verified-by: `the signed start rung reaches the mission conversation and a generic scene ignores it`
 
@@ -3978,7 +3978,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   concern, so it lands with the billing work rather than in the meter.
 - verified-by: `a learner whose paid plan lapsed is not told their free trial ended`
 
-### F258 — The one command that starts Parle serves the app on a port its own server refuses
+### F258 — The one command that starts Luvani serves the app on a port its own server refuses
 - severity: P1
 - status: [x]
 - where: services/token-server/src/httpSecurity.ts:3
@@ -4029,11 +4029,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - severity: P2
 - status: [x]
 - where: README.md:155
-- note: the four-terminal block says `npm run start --workspace=@parle/token-server`. That script is
+- note: the four-terminal block says `npm run start --workspace=@luvani/token-server`. That script is
   `NODE_ENV=production node …`, so `productionConfigurationProblems` runs and `process.exit(1)`s on
-  any laptop: `LIVEKIT_URL` is `ws://` not `wss://`, and `PARLE_AGENT_SECRET` and
-  `PARLE_ALLOWED_ORIGINS` are both unset in local development by design. The correct script is
-  `npm run dev`, which sets `PARLE_LOCAL_DEVELOPMENT=1`. `devPlan.ts:112-118` already documents this
+  any laptop: `LIVEKIT_URL` is `ws://` not `wss://`, and `LUVANI_AGENT_SECRET` and
+  `LUVANI_ALLOWED_ORIGINS` are both unset in local development by design. The correct script is
+  `npm run dev`, which sets `LUVANI_LOCAL_DEVELOPMENT=1`. `devPlan.ts:112-118` already documents this
   trap for the supervisor; the README never got the same correction. A newcomer following the
   documented fallback watches the server exit and reasonably concludes the repo is broken.
 - verified-by: `the readme never tells anyone to start the token server in production mode`
@@ -4141,7 +4141,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - severity: P2
 - status: [ ]
 - where: apps/mobile/src/progress/saveFile.native.ts:9
-- note: `downloadAccountData` writes `parle-account-data.json` into `FileSystem.cacheDirectory` and
+- note: `downloadAccountData` writes `luvani-account-data.json` into `FileSystem.cacheDirectory` and
   shares it, and nothing ever deletes it. `clearActiveUserData` sweeps the AsyncStorage keys and the
   attempt audio and does not touch the cache, so after an account deletion or an account switch on a
   shared phone a plaintext file holding the previous account's email, entitlements and billing
@@ -4270,17 +4270,17 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `fish:<voice>:<model>:<fingerprint>`. The ElevenLabs branch and its voiceKey are unchanged so
   the 380 warmed WAVs keep hitting. Includes the exact-pinned plugin dep and the .env.example
   vendor block.
-- verified-by: `PARLE_TTS_VENDOR empty, blank or unknown selects ElevenLabs, case and whitespace insensitively`
-- verified-by: `PARLE_TTS_VENDOR=fish builds a fish TTS pinned to s2.1-pro-free, and FISH_MODEL overrides it into the cache key`
+- verified-by: `LUVANI_TTS_VENDOR empty, blank or unknown selects ElevenLabs, case and whitespace insensitively`
+- verified-by: `LUVANI_TTS_VENDOR=fish builds a fish TTS pinned to s2.1-pro-free, and FISH_MODEL overrides it into the cache key`
 - verified-by: `the fish cache key fingerprints vendor, voice, model and every delivery knob, so none can drift`
-- verified-by: `.env.example documents PARLE_TTS_VENDOR and every FISH_ variable the worker reads`
+- verified-by: `.env.example documents LUVANI_TTS_VENDOR and every FISH_ variable the worker reads`
 
 ### F276 — Fish's missing final marker is repaired at the seam, not trusted
 - severity: P1
 - status: [x]
 - where: services/tutor-agent/src/voiceFish.ts:1
 - note: fish's ws stream emits final:false on every frame and its http stream hardcodes it, so
-  ttsCache.ts:242 would never cache under the founder's PARLE_TTS_MISS_TRANSPORT=ws — audio plays,
+  ttsCache.ts:242 would never cache under the founder's LUVANI_TTS_MISS_TRANSPORT=ws — audio plays,
   spend rises, no test fails. A hold-last-packet adapter around the fish TTS's stream() marks final
   only on clean completion; error and abort never mark it, so ttsCache's truncated-line guarantee
   is preserved and ttsCache.ts itself is not edited.
@@ -4315,7 +4315,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   voiceVendorOf mirrors selectedVoiceVendor exactly as brainOf mirrors selectedBrain, and line
   229's unconditional ELEVEN_API_KEY need becomes vendor-conditional. The agreement test couples
   the two answers, not the two implementations, across empty, cased, padded and nonsense values.
-- verified-by: `the supervisor and the agent preflight agree on which voice key PARLE_TTS_VENDOR selects`
+- verified-by: `the supervisor and the agent preflight agree on which voice key LUVANI_TTS_VENDOR selects`
 
 ### F279 — The warm run refuses without the selected vendor's key, naming it
 - severity: P1
@@ -4338,3 +4338,23 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   is unverified and guessing about foreign secrets is the failure the file's own doctrine forbids.
 - verified-by: `an inline FISH_API_KEY assignment is caught as a server-only credential`
 - verified-by: `an inline FISH_AUDIO_API_KEY assignment is caught even under the misspelled name`
+
+### F281 — Luc's biography names a city his voice contradicts
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/prompt.ts:32
+- note: both prompts open by placing Luc in Lyon — "you grew up in Lyon", "you ran a bar near the
+  Saône", and the opinion "Lyon eats better than Paris" — and the first-run copy repeats it as
+  "the man from Lyon". The founder has chosen a Québécois voice for him. A voice and a biography
+  that disagree is the same defect as a woman's voice introducing herself as a man: the learner
+  hears one thing and reads another, and the one they believe is the voice.
+  The fix is to drop the *place*, not the person. The bar, the twenty years, the fifty-two, the
+  not-a-teacher and the warmth all stay, because none of them is something an accent can
+  contradict. "Near the Saône" goes with the city, since a river names the place as surely as the
+  place does. This is the same rule F291 will apply to gender and age once a learner can choose a
+  voice: a persona may assert only what every voice in the catalogue could plausibly claim.
+  A guard is needed as well as an edit, because the sentence is warm and the temptation to put a
+  home town back is permanent. The scene lessons keep their Lyon café — a scene has a location and
+  that is not a claim about who Luc is.
+- verified-by: `neither prompt gives the tutor a home town`
+- verified-by: `the first-run copy tells his life story without naming a city`

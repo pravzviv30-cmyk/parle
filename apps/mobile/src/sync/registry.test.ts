@@ -30,8 +30,8 @@ import {
 } from './registry.ts';
 
 const UID = '33333333-3333-4333-8333-333333333333';
-const REVIEW_KEY = `parle.u.${UID}.review`;
-const STATE_KEY = `parle.u.${UID}.${SYNC_STATE_SUFFIX}`;
+const REVIEW_KEY = `luvani.u.${UID}.review`;
+const STATE_KEY = `luvani.u.${UID}.${SYNC_STATE_SUFFIX}`;
 
 /** AsyncStorage as the device sees it: it outlives the app, which is the whole point. */
 function createDisk(initial: Record<string, string> = {}) {
@@ -104,7 +104,7 @@ function engineOn(disk: ReturnType<typeof createDisk>, server: ReturnType<typeof
     getAccessToken: () => Promise.resolve('learner-jwt'),
     fetch: server.fetch,
     storage: disk,
-    keyFor: (suffix: string) => `parle.u.${UID}.${suffix}`,
+    keyFor: (suffix: string) => `luvani.u.${UID}.${suffix}`,
     policy: unionPolicy,
     now: () => 1_700_000_000_000,
     random: () => 0.5,
@@ -316,7 +316,7 @@ describe('the sync registry — what survives being closed', () => {
     assert.equal(SYNC_STATE_SUFFIX, 'syncState');
     assert.equal(
       STATE_KEY,
-      `parle.u.${UID}.syncState`,
+      `luvani.u.${UID}.syncState`,
       'the sync state must be namespaced to the account, or a reset would leave it behind',
     );
 

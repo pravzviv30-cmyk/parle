@@ -9,7 +9,7 @@
 4. The token server verifies the account, rate/installation budgets, one-time trial,
    entitlement, active-session lease, and signed room/session metadata.
 5. `services/tutor-agent/src/agent.ts` binds the first participant, runs either
-   `ParleTutor` or `ParleConversation`, and publishes the core protocol over LiveKit data.
+   `LuvaniTutor` or `LuvaniConversation`, and publishes the core protocol over LiveKit data.
 6. Session finish reports the signed session ID and billable seconds to the token server.
    PostgreSQL records the ID once and atomically debits the entitlement.
 7. The app stores recap/practice/profile artefacts locally. The Supabase `learner_state`

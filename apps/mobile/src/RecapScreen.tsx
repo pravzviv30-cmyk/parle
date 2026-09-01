@@ -12,7 +12,7 @@
 
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { RecapPayload } from '@parle/core';
+import type { RecapPayload } from '@luvani/core';
 import { HAIRLINE, paper, paperFor, signal, space, type } from './theme.ts';
 import { Card, Label, PillButton } from './components.tsx';
 import { RecapPostcard } from './illustrations.tsx';

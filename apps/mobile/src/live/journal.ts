@@ -28,7 +28,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { DrillExercise, RecapPayload, SessionSummary } from '@parle/core';
+import type { DrillExercise, RecapPayload, SessionSummary } from '@luvani/core';
 
 import { mergeExercises } from '../drill/store.ts';
 import { addFromSummary, addPhrases } from '../review/store.ts';

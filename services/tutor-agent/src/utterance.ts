@@ -47,7 +47,7 @@ const WINDOW_SEC = 30;
  * on and cannot tell whether it works".
  */
 export function audioScoringEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.PARLE_AUDIO_SCORING === '1';
+  return env.LUVANI_AUDIO_SCORING === '1';
 }
 
 export class UtteranceTap {

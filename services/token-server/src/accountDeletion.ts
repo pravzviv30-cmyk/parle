@@ -26,7 +26,7 @@ export async function signedInRecently(
   return Number.isFinite(signedInAt) && signedInAt <= now && now - signedInAt <= maximumAgeMs;
 }
 
-/** Delete the authenticated Supabase user. Related Parle rows cascade in SQL. */
+/** Delete the authenticated Supabase user. Related Luvani rows cascade in SQL. */
 export async function deleteSupabaseUser(
   baseUrl: string,
   serviceRoleKey: string,

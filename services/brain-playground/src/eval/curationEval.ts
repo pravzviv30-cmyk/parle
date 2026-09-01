@@ -1,7 +1,7 @@
 /**
  * The curation eval: does the practice editor keep the right five?
  *
- *   npm run eval:curation -w @parle/brain-playground
+ *   npm run eval:curation -w @luvani/brain-playground
  *
  * Phase 4 proved a practice batch survives a crash, a full disk and a retry.
  * Nothing proved the batch was worth surviving. This run is the other half:
@@ -82,7 +82,7 @@ import {
   type Curation,
   type LlmClient,
   type NewPhrase,
-} from '@parle/brain';
+} from '@luvani/brain';
 
 import { addUsage, costUsd, ZERO_USAGE } from '../usage.ts';
 
@@ -510,7 +510,7 @@ export function blockedReport(missing: readonly string[]): string {
   const lines = [
     `BLOCKED: none of ${missing.join(', ')} is set, so nothing below has been measured.`,
     'Put one in services/brain-playground/.env and run this again:',
-    '  npm run eval:curation -w @parle/brain-playground',
+    '  npm run eval:curation -w @luvani/brain-playground',
     `Unmeasured until then (${CURATION_CHECKS.length}):`,
   ];
   for (const check of CURATION_CHECKS) lines.push(`  - ${check.id}: ${check.title}`);
@@ -619,9 +619,9 @@ export async function runCurationEval(options: {
 async function main(): Promise<void> {
   const dotenv = await import('dotenv');
   // The playground's own env file, not the caller's cwd, so the self-test can
-  // point PARLE_ENV_FILE somewhere empty and prove the blocked path without
+  // point LUVANI_ENV_FILE somewhere empty and prove the blocked path without
   // borrowing this machine's real keys.
-  const envFile = process.env.PARLE_ENV_FILE ?? fileURLToPath(new URL('../../.env', import.meta.url));
+  const envFile = process.env.LUVANI_ENV_FILE ?? fileURLToPath(new URL('../../.env', import.meta.url));
   dotenv.config({ path: envFile, override: false, quiet: true });
   const result = await runCurationEval({ env: process.env, log: (line) => console.log(line) });
   // Blocked exits 2 and failed exits 1: both non-zero, and neither is a pass.

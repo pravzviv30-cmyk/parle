@@ -35,7 +35,7 @@
 - ladder/index.ts `EXTRACTED`
 
 ### references
-- [ParleConversation](ParleConversation.md) `EXTRACTED`
+- [LuvaniConversation](LuvaniConversation.md) `EXTRACTED`
 - SessionSummary `EXTRACTED`
 - LearnerProfile `EXTRACTED`
 - Lesson `EXTRACTED`

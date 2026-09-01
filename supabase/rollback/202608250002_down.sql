@@ -21,15 +21,15 @@
 --
 -- The script refuses to run until the operator says so in the same paste:
 --
---     set local parle.reopen_f75 = 'yes-i-accept-losing-every-product-event';
+--     set local luvani.reopen_f75 = 'yes-i-accept-losing-every-product-event';
 --
 -- Idempotent and retryable. It replaces one function body and touches no rows.
 
 do $$
 begin
-  if coalesce(current_setting('parle.reopen_f75', true), '') <> 'yes-i-accept-losing-every-product-event' then
+  if coalesce(current_setting('luvani.reopen_f75', true), '') <> 'yes-i-accept-losing-every-product-event' then
     raise exception
-      'refusing to restore the jsonb_object_length product-event trigger (F75): set parle.reopen_f75 in this session first';
+      'refusing to restore the jsonb_object_length product-event trigger (F75): set luvani.reopen_f75 in this session first';
   end if;
 end;
 $$;

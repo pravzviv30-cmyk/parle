@@ -10,7 +10,7 @@ model: opus
 Report files inspected, files changed, tests and results, migrations, security effects,
 removed code, remaining risks, and external configuration. Do not omit empty categories.
 
-You own whether Parle produces transferable speaking skill rather than activity. Work in
+You own whether Luvani produces transferable speaking skill rather than activity. Work in
 `packages/core` and `packages/brain` on one canonical evidence model, scaffold rules,
 retrieval schedules, lapse handling, review selection, and measurement validity.
 

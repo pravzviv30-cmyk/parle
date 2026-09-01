@@ -16,7 +16,7 @@ describe('turn timing', () => {
 
     assert.equal(
       formatTiming(t),
-      '[parle:latency] turn=3 eou→brain=120ms brain=980ms brain→say=10ms say→audio=210ms audio→speaking=30ms cache=miss',
+      '[luvani:latency] turn=3 eou→brain=120ms brain=980ms brain→say=10ms say→audio=210ms audio→speaking=30ms cache=miss',
     );
   });
 
@@ -29,11 +29,11 @@ describe('turn timing', () => {
     mark(t, 'firstAudio', 900);
     t.cache = 'hit';
 
-    assert.equal(formatTiming(t), '[parle:latency] turn=1 eou→brain=150ms say→audio=200ms cache=hit');
+    assert.equal(formatTiming(t), '[luvani:latency] turn=1 eou→brain=150ms say→audio=200ms cache=hit');
   });
 
   test('a turn with no marks and no cache still identifies itself', () => {
-    assert.equal(formatTiming(createTurnTiming(7)), '[parle:latency] turn=7');
+    assert.equal(formatTiming(createTurnTiming(7)), '[luvani:latency] turn=7');
   });
 
   test('segments come from timestamps, not from the order marks were made', () => {
@@ -44,7 +44,7 @@ describe('turn timing', () => {
     mark(t, 'sayCalled', 2110);
     mark(t, 'brainSent', 1120);
 
-    assert.equal(formatTiming(t), '[parle:latency] turn=2 eou→brain=120ms say→audio=210ms');
+    assert.equal(formatTiming(t), '[luvani:latency] turn=2 eou→brain=120ms say→audio=210ms');
   });
 
   test('the first mark for a stage wins; later ones are ignored', () => {
@@ -54,7 +54,7 @@ describe('turn timing', () => {
     // A second sentence's first frame arrives later and must not move the mark.
     mark(t, 'firstAudio', 900);
 
-    assert.equal(formatTiming(t), '[parle:latency] turn=4 say→audio=150ms');
+    assert.equal(formatTiming(t), '[luvani:latency] turn=4 say→audio=150ms');
   });
 
   test('cache is only printed once it is known', () => {
@@ -69,14 +69,14 @@ describe('vendor metrics — H5', () => {
   test('the metrics line prices each vendor stage and omits what did not happen', () => {
     assert.equal(
       formatVendorMetrics({ type: 'tts_metrics', ttfbMs: 210.4, durationMs: 430, audioDurationMs: 1_900 }),
-      '[parle:metrics] tts ttfb=210ms synth=430ms audio=1900ms',
+      '[luvani:metrics] tts ttfb=210ms synth=430ms audio=1900ms',
     );
     assert.equal(
       formatVendorMetrics({ type: 'eou_metrics', endOfUtteranceDelayMs: 340, transcriptionDelayMs: 120 }),
-      '[parle:metrics] eou eou=340ms transcript=120ms',
+      '[luvani:metrics] eou eou=340ms transcript=120ms',
       'a stage with no measurement is left out, not printed as a zero',
     );
-    assert.equal(formatVendorMetrics({ type: 'llm_metrics', ttfbMs: 980 }), '[parle:metrics] llm ttfb=980ms');
+    assert.equal(formatVendorMetrics({ type: 'llm_metrics', ttfbMs: 980 }), '[luvani:metrics] llm ttfb=980ms');
   });
 
   test('a cancelled synthesis says so, because its numbers mean something else', () => {

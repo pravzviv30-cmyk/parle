@@ -42,7 +42,7 @@
 - [Brain Test Doubles](Brain_Test_Doubles.md) (16 shared connections)
 - [French Authenticity Pack](French_Authenticity_Pack.md) (13 shared connections)
 - [Drill Generation Prompts](Drill_Generation_Prompts.md) (10 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (6 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (6 shared connections)
 - [Learner Profile Updates](Learner_Profile_Updates.md) (3 shared connections)
 - [Environment Preflight](Environment_Preflight.md) (2 shared connections)
 

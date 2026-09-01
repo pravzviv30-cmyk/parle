@@ -21,7 +21,7 @@
  * construction. The default is the per-sentence HTTP endpoint: self-contained,
  * and safe for the standalone warm-cache script, whose process must be free to
  * exit the moment the last line lands rather than dangle on an idle vendor
- * socket. Setting PARLE_TTS_MISS_TRANSPORT=ws in the agent's .env routes misses
+ * socket. Setting LUVANI_TTS_MISS_TRANSPORT=ws in the agent's .env routes misses
  * through the vendor's persistent multi-context websocket instead, sparing each
  * free-conversation sentence a fresh TLS handshake before its first audio
  * byte. Either way the caller sees frames as they arrive and the completed line
@@ -51,7 +51,7 @@ export interface CachedTTSOptions {
   maxTextLength?: number;
   /**
    * How a cache miss reaches the vendor. Defaults to the environment seam
-   * (PARLE_TTS_MISS_TRANSPORT), which defaults to 'http'; see the file header
+   * (LUVANI_TTS_MISS_TRANSPORT), which defaults to 'http'; see the file header
    * for why 'ws' is an opt-in.
    */
   missTransport?: 'ws' | 'http';
@@ -73,7 +73,7 @@ const REPLAY_CHUNK_MS = 100;
 
 /** Anything other than an explicit 'ws' means the safe-everywhere default. */
 function defaultMissTransport(): 'ws' | 'http' {
-  return process.env.PARLE_TTS_MISS_TRANSPORT === 'ws' ? 'ws' : 'http';
+  return process.env.LUVANI_TTS_MISS_TRANSPORT === 'ws' ? 'ws' : 'http';
 }
 
 /** Cache keys survive harmless whitespace differences but respect punctuation. */
@@ -82,7 +82,7 @@ export function normaliseLine(text: string): string {
 }
 
 export class CachedTTS extends tts.TTS {
-  label = 'parle.CachedTTS';
+  label = 'luvani.CachedTTS';
   readonly inner: tts.TTS;
   readonly opts: ResolvedCachedTTSOptions;
   /** Running counters, logged by the agent so cost per session stays visible. */
@@ -132,7 +132,7 @@ export class CachedTTS extends tts.TTS {
 }
 
 class CachedChunkedStream extends tts.ChunkedStream {
-  label = 'parle.CachedChunkedStream';
+  label = 'luvani.CachedChunkedStream';
   readonly #cache: CachedTTS;
   /** Forwarded to the vendor so the session's retry policy applies end to end. */
   readonly #connOptions?: APIConnectOptions;

@@ -2,7 +2,7 @@
  * Google sign-in, native half: open the provider page in an auth session
  * browser, catch the deep-link redirect, and trade the code for a session.
  *
- * The redirect URL differs by runtime — `parle://auth/callback` in a dev or
+ * The redirect URL differs by runtime — `luvani://auth/callback` in a dev or
  * store build, an `exp://…` URL inside Expo Go — and every variant must be
  * allow-listed in the Supabase dashboard. Codes are pulled with a regex, not
  * `new URL`, so nothing here leans on a global Hermes may not have.

@@ -2,7 +2,7 @@
  * Free conversation over LiveKit — the brain, spoken.
  *
  * The sequencing here mirrors the playground's sessionLoop exactly, adapted to
- * voice: every decision lives in @parle/brain where it is tested, and this
+ * voice: every decision lives in @luvani/brain where it is tested, and this
  * file only sequences. The one structural difference from the scripted tutor
  * is that the pipeline LLM is NOT used for generation — the brain produces the
  * reply out of band, this agent speaks it with `session.say`, and every hook
@@ -73,7 +73,7 @@ import {
   type Strictness,
   type TurnView,
   missionFrame,
-} from '@parle/brain';
+} from '@luvani/brain';
 import {
   STUCK_SILENCE_MS,
   decodeClientMessage,
@@ -81,12 +81,12 @@ import {
   type MissionId,
   type Rung,
   type ServerMessage,
-} from '@parle/core';
+} from '@luvani/core';
 /**
  * The authored mission scenes, reached by file rather than through brain's
- * barrel because `@parle/brain` does not re-export `missions/` yet and its
+ * barrel because `@luvani/brain` does not re-export `missions/` yet and its
  * package `exports` map admits only `.`, `./llm` and `./profile`. One line in
- * that barrel turns this back into an ordinary named import from '@parle/brain';
+ * that barrel turns this back into an ordinary named import from '@luvani/brain';
  * the file lives in brain's territory, so it is filed rather than edited here.
  */
 
@@ -713,7 +713,7 @@ export function postSessionDeadlineMs(
 /**
  * What a session cost, kept where the room cannot take it with it.
  *
- * The per-call `[parle:brain]` line is a running commentary and nothing more:
+ * The per-call `[luvani:brain]` line is a running commentary and nothing more:
  * it lives in the worker's stdout for as long as the room does, it is one line
  * per call in a stream shared with every other session on the worker, and
  * adding it up by eye is not a measurement. The checkpoint question — is prompt
@@ -816,7 +816,7 @@ export function formatBrainSummary(spend: SessionSpend, sessionId: string): stri
   }
 
   const head =
-    `[parle:brain:summary] session=${sessionId.slice(0, 8)} usd=${usd(dollars)} calls=${calls} ` +
+    `[luvani:brain:summary] session=${sessionId.slice(0, 8)} usd=${usd(dollars)} calls=${calls} ` +
     `abandoned=${abandoned} in=${total.inputTokens} cacheRead=${total.cacheReadTokens} ` +
     `cacheWrite=${total.cacheWriteTokens} out=${total.outputTokens} reasoning=${reasoningOf(total)} ` +
     `cacheHit=${cacheHitRate(total)}`;
@@ -833,7 +833,7 @@ const CONVO_MAX_TURNS = 12;
 /** Where a conversation is: choosing a topic, building the scene, or inside it. */
 export type ConversationPhase = 'choosing' | 'starting' | 'scene';
 
-export class ParleConversation extends voice.Agent {
+export class LuvaniConversation extends voice.Agent {
   private state: ConversationState;
   private profile: LearnerProfile;
   private readonly client: LlmClient;
@@ -900,7 +900,7 @@ export class ParleConversation extends voice.Agent {
 
   /**
    * Where the replay check lands, for the same reason and by the same rule as
-   * `ParleTutor`: agent.ts writes the signed session id here before the tutor
+   * `LuvaniTutor`: agent.ts writes the signed session id here before the tutor
    * opens its mouth, and a credential whose session was already reported is
    * spent. Refusing here is what stops a re-created room from buying a whole
    * free conversation — scene build, brain turns, speech and all.
@@ -911,7 +911,7 @@ export class ParleConversation extends voice.Agent {
     this.refused = true;
     this.ended = true;
     this.clearRescue();
-    console.warn(`[parle] refused a replayed join credential for session ${value.slice(0, 8)}`);
+    console.warn(`[luvani] refused a replayed join credential for session ${value.slice(0, 8)}`);
   }
   /** Raw provider-neutral tokens, so development sessions produce real cost evidence. */
   private modelUsage: LlmUsage = ZERO_USAGE;
@@ -1045,7 +1045,7 @@ export class ParleConversation extends voice.Agent {
     if (charged === 0 && usage.outputTokens === 0) return;
     const totalInput = this.modelUsage.inputTokens + this.modelUsage.cacheReadTokens + this.modelUsage.cacheWriteTokens;
     console.info(
-      `[parle:brain] ${activity}: ${charged} input (${usage.cacheReadTokens} cached), ${usage.outputTokens} output; ` +
+      `[luvani:brain] ${activity}: ${charged} input (${usage.cacheReadTokens} cached), ${usage.outputTokens} output; ` +
         `session total ${this.modelCalls} calls, ${totalInput} input, ${this.modelUsage.outputTokens} output`,
     );
   }
@@ -1062,7 +1062,7 @@ export class ParleConversation extends voice.Agent {
   private noteAbandoned(activity: BrainActivity, ms: number): void {
     const row = this.spend[activity];
     this.spend[activity] = { ...row, abandoned: row.abandoned + 1 };
-    console.warn(`[parle:brain] ${activity} abandoned after ${ms}ms`);
+    console.warn(`[luvani:brain] ${activity} abandoned after ${ms}ms`);
   }
 
   /**
@@ -1238,7 +1238,7 @@ export class ParleConversation extends voice.Agent {
     } catch (error) {
       // A line that could not finish playing is still a line that was said, and
       // a room that stays open is worse than one that closes a beat early.
-      console.warn('[parle] the stop message did not settle cleanly; closing the room anyway:', error);
+      console.warn('[luvani] the stop message did not settle cleanly; closing the room anyway:', error);
     }
     this.closeRoom();
   }
@@ -1265,7 +1265,7 @@ export class ParleConversation extends voice.Agent {
       mode: 'convo',
       voiceless: this.voiceless,
     });
-    console.warn(`[parle] a tutor ${surface} failed the output guard and was replaced`);
+    console.warn(`[luvani] a tutor ${surface} failed the output guard and was replaced`);
     return false;
   }
 
@@ -1304,7 +1304,7 @@ export class ParleConversation extends voice.Agent {
    * card skips the question and opens on the topic it was handed.
    */
   open(session: voice.AgentSession): void {
-    void session; // kept for signature parity with ParleTutor; speech goes via this.session
+    void session; // kept for signature parity with LuvaniTutor; speech goes via this.session
     // A spent credential gets no opening line, no scenario call and no scene.
     // This is the guard that keeps a replayed room from costing model money.
     if (this.refused) return;
@@ -1344,7 +1344,7 @@ export class ParleConversation extends voice.Agent {
         this.publish(this.lastOpening);
         this.say(seeded.en, { allowInterruptions: false });
         void this.startScene(this.seedTopic.en).catch((error: unknown) => {
-          console.error('[parle] the seeded scene could not be started:', error);
+          console.error('[luvani] the seeded scene could not be started:', error);
         });
         return;
       }
@@ -1420,7 +1420,7 @@ export class ParleConversation extends voice.Agent {
       this.phase = 'scene';
       this.openScene();
     } catch (error) {
-      console.error('[parle] the mission scene could not be opened; handing back the choosing moment:', error);
+      console.error('[luvani] the mission scene could not be opened; handing back the choosing moment:', error);
       this.returnToChoosing();
     }
   }
@@ -1448,7 +1448,7 @@ export class ParleConversation extends voice.Agent {
       // A duplicate press during a healthy build stays dropped — the scene is
       // seconds away and two would open on top of each other — but it says so,
       // because a drop nobody can see is how this took a week to find.
-      console.warn(`[parle] a topic arrived while the session was ${this.phase}; the scene already coming is the one that opens`);
+      console.warn(`[luvani] a topic arrived while the session was ${this.phase}; the scene already coming is the one that opens`);
       return;
     }
     this.phase = 'starting';
@@ -1460,7 +1460,7 @@ export class ParleConversation extends voice.Agent {
       frame = await this.buildFrame(request);
     } catch (error) {
       frame = requestFallbackFrame(request);
-      console.error('[parle] scenario build failed; opening a simpler scene on the learner request:', error);
+      console.error('[luvani] scenario build failed; opening a simpler scene on the learner request:', error);
       this.publish({ t: 'error', message: "I've kept your topic. We'll start with a simpler version." });
     }
     if (this.ended) return;
@@ -1476,7 +1476,7 @@ export class ParleConversation extends voice.Agent {
       this.phase = 'scene';
       this.openScene();
     } catch (error) {
-      console.error('[parle] the scene could not be opened; handing back the choosing moment:', error);
+      console.error('[luvani] the scene could not be opened; handing back the choosing moment:', error);
       this.returnToChoosing();
     }
   }
@@ -1619,7 +1619,7 @@ export class ParleConversation extends voice.Agent {
     // which for a thinking learner is a stray sound and nothing more.
     if (this.momentHeld && this.silenceTimer) return this.queue.generation;
     this.clearRescue();
-    void session; // kept for signature parity with ParleTutor; speech goes via this.session
+    void session; // kept for signature parity with LuvaniTutor; speech goes via this.session
     // Captured now, checked when the timer fires. Returned so the caller — and
     // a test — can name the moment this particular wait began.
     const generation = this.queue.generation;
@@ -1748,7 +1748,7 @@ export class ParleConversation extends voice.Agent {
     try {
       await this.routeClientMessage(session, payload);
     } catch (error) {
-      console.error('[parle] a client message could not be handled; the session carries on:', error);
+      console.error('[luvani] a client message could not be handled; the session carries on:', error);
     }
   }
 
@@ -1926,7 +1926,7 @@ export class ParleConversation extends voice.Agent {
         // the learner they were heard; the scene does the rest.
         this.publish({ t: 'transcript', text, final: true });
         void this.startScene(text).catch((error: unknown) => {
-          console.error('[parle] the spoken topic could not open a scene:', error);
+          console.error('[luvani] the spoken topic could not open a scene:', error);
         });
       } else if (this.phase === 'scene') {
         this.publish({ t: 'transcript', text, final: true });
@@ -2011,7 +2011,7 @@ export class ParleConversation extends voice.Agent {
       }
       // Anything else (network, provider outage) gets the same gentle exit:
       // an unhandled throw here would strand the learner in silence.
-      console.error('[parle] convo brain turn failed:', error);
+      console.error('[luvani] convo brain turn failed:', error);
       this.recover();
       return;
     }
@@ -2111,7 +2111,7 @@ export class ParleConversation extends voice.Agent {
 
     const wallClockSec = Math.round((Date.now() - this.startedAt) / 1000);
     console.log(
-      `[parle] convo complete — ${recap.stats.turns} turns (${this.learnerTurns} from the learner), ` +
+      `[luvani] convo complete — ${recap.stats.turns} turns (${this.learnerTurns} from the learner), ` +
         `${recap.stats.rescues} rescues, ${wallClockSec}s, cefr=${recap.cefr.estimate} (${recap.cefr.confidence})`,
     );
     // The same rule as the scripted tutor, for the same reason and with the
@@ -2121,7 +2121,7 @@ export class ParleConversation extends voice.Agent {
     // bill for its whole wall clock. Learner production is the test (F76).
     const billableSeconds = this.learnerTurns > 0 ? wallClockSec : 0;
     if (billableSeconds === 0) {
-      console.log(`[parle] SESSION_NOT_CHARGED session=${this.sessionId.slice(0, 8)} reason=no-learner-turn`);
+      console.log(`[luvani] SESSION_NOT_CHARGED session=${this.sessionId.slice(0, 8)} reason=no-learner-turn`);
     }
     // Spent before the call goes out: a crash between here and the debit must
     // not leave a used credential looking fresh to the next room it opens.
@@ -2228,7 +2228,7 @@ export class ParleConversation extends voice.Agent {
       return applyCuration(result.curation, state.phrases, sessionTopics, known);
     } catch (error) {
       this.recordFailedCall('curate', error);
-      console.error('[parle] curation failed; the code fallback ships instead:', error);
+      console.error('[luvani] curation failed; the code fallback ships instead:', error);
       return applyCuration(null, state.phrases, sessionTopics, known);
     }
   }
@@ -2258,7 +2258,7 @@ export class ParleConversation extends voice.Agent {
       this.publish(this.lastRecap);
     } catch (error) {
       this.recordFailedCall('extract', error);
-      console.error('[parle] memory extraction failed; the recap already shipped without it:', error);
+      console.error('[luvani] memory extraction failed; the recap already shipped without it:', error);
     }
   }
 
@@ -2302,12 +2302,12 @@ export class ParleConversation extends voice.Agent {
 
       const valid = result.batch.exercises.filter((exercise) => validateExercise(exercise).ok);
       const dropped = result.batch.exercises.length - valid.length;
-      if (dropped > 0) console.warn(`[parle] drill linter rejected ${dropped} of ${result.batch.exercises.length} exercises`);
+      if (dropped > 0) console.warn(`[luvani] drill linter rejected ${dropped} of ${result.batch.exercises.length} exercises`);
       if (valid.length === 0) return;
       this.publish({ t: 'drills', exercises: valid });
     } catch (error) {
       this.recordFailedCall('drills', error);
-      console.error('[parle] drill generation failed; the fixture bank covers the gap:', error);
+      console.error('[luvani] drill generation failed; the fixture bank covers the gap:', error);
     }
   }
 }

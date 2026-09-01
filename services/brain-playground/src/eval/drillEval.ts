@@ -5,7 +5,7 @@
  * the gate. Below the threshold, the generation prompt needs work before the
  * feature is worth its tokens.
  *
- *   npm run eval:drills -w @parle/brain-playground
+ *   npm run eval:drills -w @luvani/brain-playground
  */
 
 import 'dotenv/config';
@@ -19,8 +19,8 @@ import {
   buildDrillGenerationRequest,
   buildSystemBlocks,
   type LlmClient,
-} from '@parle/brain';
-import { validateExercise } from '@parle/core';
+} from '@luvani/brain';
+import { validateExercise } from '@luvani/core';
 
 import { addUsage, costUsd, ZERO_USAGE } from '../usage.ts';
 

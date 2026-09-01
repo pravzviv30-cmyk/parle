@@ -14,7 +14,7 @@
  *
  * ## The policy is core's, not this file's
  *
- * `presentationOf` in `@parle/core` says whether a card is an introduction or a
+ * `presentationOf` in `@luvani/core` says whether a card is an introduction or a
  * retrieval, and nothing here argues with it. A second copy of that rule is how
  * a deck starts revealing answers on one surface and asking for them on
  * another. This module answers the next question down: given that verdict and
@@ -59,7 +59,7 @@ import {
   type GradeContext,
   type ReviewCard,
   type ReviewCardKind,
-} from '@parle/core';
+} from '@luvani/core';
 
 /** How the learner produced the answer, before the answer was on screen. */
 export type AttemptKind = 'typed' | 'said';

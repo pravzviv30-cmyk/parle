@@ -16,7 +16,7 @@
  * would be one the app made up.
  */
 
-import type { PathNode, PracticeTopic } from '@parle/core';
+import type { PathNode, PracticeTopic } from '@luvani/core';
 
 export const TALK_AGAIN = {
   action: 'Talk about it again',

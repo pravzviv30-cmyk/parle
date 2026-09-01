@@ -40,7 +40,7 @@
 - Playground Package Manifest
 - Tutor Voice Playback
 - Dev Launcher Script
-- Parle Conversation Orchestrator
+- Luvani Conversation Orchestrator
 - Drill Grading And Fixtures
 - Core Package Manifest
 - App Agent Protocol
@@ -260,7 +260,7 @@
 ## God Nodes (most connected - your core abstractions)
 1. `Format` - 298 edges
 2. `space()` - 88 edges
-3. `ParleConversation` - 63 edges
+3. `LuvaniConversation` - 63 edges
 4. `LlmUsage` - 54 edges
 5. `paper` - 52 edges
 6. `ConvoScreen()` - 42 edges
@@ -377,15 +377,15 @@ Nodes (22): AppropriateReplyZ, BASE, BestSentenceZ, buildDrillGenerationRequest(
 
 ### Community 21 - "Brain Package Manifest"
 Cohesion: 0.07
-Nodes (26): @anthropic-ai/sdk, dependencies, @anthropic-ai/sdk, @parle/core, zod, description, devDependencies, @types/node (+18 more)
+Nodes (26): @anthropic-ai/sdk, dependencies, @anthropic-ai/sdk, @luvani/core, zod, description, devDependencies, @types/node (+18 more)
 
 ### Community 22 - "Token Server Manifest"
 Cohesion: 0.08
-Nodes (24): jose, livekit-server-sdk, dependencies, dotenv, jose, livekit-server-sdk, @parle/core, devDependencies (+16 more)
+Nodes (24): jose, livekit-server-sdk, dependencies, dotenv, jose, livekit-server-sdk, @luvani/core, devDependencies (+16 more)
 
 ### Community 23 - "Playground Package Manifest"
 Cohesion: 0.08
-Nodes (25): dependencies, dotenv, @parle/brain, @parle/core, description, devDependencies, @types/node, typescript (+17 more)
+Nodes (25): dependencies, dotenv, @luvani/brain, @luvani/core, description, devDependencies, @types/node, typescript (+17 more)
 
 ### Community 24 - "Tutor Voice Playback"
 Cohesion: 0.43
@@ -395,9 +395,9 @@ Nodes (6): available(), frenchVoice(), loadVoices(), speak(), speakLines(), with
 Cohesion: 0.20
 Nodes (18): AGENT_ENV_FILE, children, COLOURS, die(), hasClaudeCli(), launch(), main(), probe() (+10 more)
 
-### Community 26 - "Parle Conversation Orchestrator"
+### Community 26 - "Luvani Conversation Orchestrator"
 Cohesion: 0.11
-Nodes (8): ParleConversation, postSessionDeadlineMs(), strictnessOf(), sttLanguageFor(), inMissionScene(), stubSwitchableSession(), withDeadline(), sessionAlreadyReported()
+Nodes (8): LuvaniConversation, postSessionDeadlineMs(), strictnessOf(), sttLanguageFor(), inMissionScene(), stubSwitchableSession(), withDeadline(), sessionAlreadyReported()
 
 ### Community 27 - "Drill Grading And Fixtures"
 Cohesion: 0.06
@@ -421,7 +421,7 @@ Nodes (18): thinkingAfter(), Seen, switchWorld(), CLOSE_HINT, CLOSE_LABEL, DISMI
 
 ### Community 32 - "Tutor Turn Handling"
 Cohesion: 0.19
-Nodes (3): currentPrompt(), ParleTutor, rescueOnce()
+Nodes (3): currentPrompt(), LuvaniTutor, rescueOnce()
 
 ### Community 33 - "Friends Store Adapter"
 Cohesion: 0.08
@@ -565,7 +565,7 @@ Nodes (14): deletionFailure(), friendly(), GENERIC_FAILURE, GOOGLE_START_FAILED,
 
 ### Community 72 - "Known Issues Ledger"
 Cohesion: 0.01
-Nodes (298): A1 — A spoken answer has to match the script exactly, A2 — An empty transcript is graded as a wrong answer, A3 — A freeze at the top rung still asks the learner to invent French, A4 — A rescue can skip the beat the learner froze on, A5 — Two different opening-rung formulas, A6 — A focus point vanishes when the worst sound has no drill, A7 — A v2 snapshot with no memory crashes the worker, B0 — ParleTutor cannot be tested at all (+290 more)
+Nodes (298): A1 — A spoken answer has to match the script exactly, A2 — An empty transcript is graded as a wrong answer, A3 — A freeze at the top rung still asks the learner to invent French, A4 — A rescue can skip the beat the learner froze on, A5 — Two different opening-rung formulas, A6 — A focus point vanishes when the worst sound has no drill, A7 — A v2 snapshot with no memory crashes the worker, B0 — LuvaniTutor cannot be tested at all (+290 more)
 
 ### Community 73 - "Agent Fleet Frontmatter Checks"
 Cohesion: 0.20
@@ -829,7 +829,7 @@ Nodes (7): 1. Who else is in this tree, 2. Where you are standing, 3. The gate, 
 
 ### Community 151 - "Privacy And Safety Docs"
 Cohesion: 0.11
-Nodes (18): An under-13 stop is remembered on this device, Analytics: consent, opt-out and retention, Antifraud identifiers: purpose, retention and disclosure, Deletion and export, Disclosure at first run, Escalation and what Parle is not, Known limits of a deterministic net, Not true yet (+10 more)
+Nodes (18): An under-13 stop is remembered on this device, Analytics: consent, opt-out and retention, Antifraud identifiers: purpose, retention and disclosure, Deletion and export, Disclosure at first run, Escalation and what Luvani is not, Known limits of a deterministic net, Not true yet (+10 more)
 
 ### Community 152 - "Brain Test Doubles"
 Cohesion: 0.11
@@ -1055,7 +1055,7 @@ Nodes (5): Paper colour token set, Paper & Ink design world, Everything spoken m
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Rung` connect `Mock Speech Session` to `Tutor Turn Handling`, `Conversation Brain Client`, `Prompt And Turn Queue`, `Root Navigation`, `Conversation Screen`, `Brain CLI Playground`, `Live Session Context`, `Ladder State Machine`, `Sample Fixtures And Copy`, `Turn Timing Instrumentation`, `Learner Profile Updates`, `UI Theme Primitives`, `Lesson Definitions`, `Live Session Hook`, `Parle Conversation Orchestrator`, `App Agent Protocol`?**
+- **Why does `Rung` connect `Mock Speech Session` to `Tutor Turn Handling`, `Conversation Brain Client`, `Prompt And Turn Queue`, `Root Navigation`, `Conversation Screen`, `Brain CLI Playground`, `Live Session Context`, `Ladder State Machine`, `Sample Fixtures And Copy`, `Turn Timing Instrumentation`, `Learner Profile Updates`, `UI Theme Primitives`, `Lesson Definitions`, `Live Session Hook`, `Luvani Conversation Orchestrator`, `App Agent Protocol`?**
   _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **Why does `DrillExercise` connect `Drill Grading And Fixtures` to `Conversation Screen`, `Drill Merge And Scene Controls`, `Drill Screen Views`, `Convo Screen Session Tests`, `Mock Speech Session`, `Persist Acknowledgement`, `Session Journal Recovery`, `Store Binding Tests`, `Drill Exercise Store`, `Drill Screen Tests`, `Drill Generation Prompts`, `Authored Learning Path`, `Live Session Hook`, `App Agent Protocol`, `Activity Sync Policy`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._

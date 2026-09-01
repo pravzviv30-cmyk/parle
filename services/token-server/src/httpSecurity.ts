@@ -33,9 +33,9 @@ export function parseAllowedOrigins(value: string | undefined): string[] {
   return [...new Set(value.split(',').map((origin) => origin.trim()).filter(Boolean))];
 }
 
-export function createOriginPolicy(env: { NODE_ENV?: string; PARLE_ALLOWED_ORIGINS?: string }): OriginPolicy {
+export function createOriginPolicy(env: { NODE_ENV?: string; LUVANI_ALLOWED_ORIGINS?: string }): OriginPolicy {
   const production = env.NODE_ENV === 'production';
-  const configured = parseAllowedOrigins(env.PARLE_ALLOWED_ORIGINS);
+  const configured = parseAllowedOrigins(env.LUVANI_ALLOWED_ORIGINS);
   return {
     production,
     allowed: new Set(production ? configured : [...DEVELOPMENT_ORIGINS, ...configured]),

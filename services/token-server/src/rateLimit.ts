@@ -109,7 +109,7 @@ export class UpstashRateLimiter implements RateLimiter {
         'content-type': 'application/json',
       },
       signal: AbortSignal.timeout(3_000),
-      body: JSON.stringify(['EVAL', CONSUME_SCRIPT, '1', `parle:limit:${rule.name}:${signal}`, String(rule.windowSec)]),
+      body: JSON.stringify(['EVAL', CONSUME_SCRIPT, '1', `luvani:limit:${rule.name}:${signal}`, String(rule.windowSec)]),
     });
     if (!response.ok) throw new Error(`distributed rate limiter returned ${response.status}`);
     const body = (await response.json()) as { result?: unknown };
@@ -154,7 +154,7 @@ export class UpstashSessionLeaseStore implements SessionLeaseStore {
   async acquire(userSignal: string, sessionId: string, ttlSec: number): Promise<boolean> {
     const result = await this.#command([
       'SET',
-      `parle:active-session:${userSignal}`,
+      `luvani:active-session:${userSignal}`,
       sessionId,
       'NX',
       'EX',
@@ -168,7 +168,7 @@ export class UpstashSessionLeaseStore implements SessionLeaseStore {
       'EVAL',
       RELEASE_LEASE_SCRIPT,
       '1',
-      `parle:active-session:${userSignal}`,
+      `luvani:active-session:${userSignal}`,
       sessionId,
     ]);
   }
@@ -214,7 +214,7 @@ export function privateSignal(salt: string, kind: 'ip' | 'user' | 'installation'
  *   - **Exactly one trusted hop.** A CDN in front of a load balancer appends
  *     twice, so the last entry is the LB and the learner's address is the
  *     second from the end. That topology needs a hop count, not this function.
- *   - **`PARLE_TRUST_PROXY=1` with no proxy in front is a misconfiguration.**
+ *   - **`LUVANI_TRUST_PROXY=1` with no proxy in front is a misconfiguration.**
  *     There is nothing appending, so the last entry is again attacker-chosen
  *     and the per-IP budget is spoofable. Leave the flag unset unless a proxy
  *     really is terminating the connection; the socket peer is the honest
@@ -236,7 +236,7 @@ export function clientIp(req: IncomingMessage, trustProxy: boolean): string {
 }
 
 export function installationSignal(req: IncomingMessage): string | null {
-  const value = req.headers['x-parle-installation'];
+  const value = req.headers['x-luvani-installation'];
   if (typeof value !== 'string') return null;
   return /^[a-zA-Z0-9-]{16,80}$/.test(value) ? value : null;
 }

@@ -39,7 +39,7 @@ const LABELS: Record<string, string> = {
   Profile: 'Profile',
 };
 
-export function ParleTabBar({ state, navigation, insets }: BottomTabBarProps) {
+export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
   // The badge is a fact about the review deck, so it is re-read whenever the
   // learner moves between tabs — finishing a sitting must be able to clear it.
   const [due, setDue] = useState(0);

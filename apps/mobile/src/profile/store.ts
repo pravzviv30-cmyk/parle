@@ -41,7 +41,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createProfile, repairProfile, type LearnerProfile } from '@parle/brain/profile';
+import { createProfile, repairProfile, type LearnerProfile } from '@luvani/brain/profile';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import { ageConfirmedFromDob } from './age.ts';
@@ -218,7 +218,7 @@ function adoptProfile(fold: SyncFold): Promise<SyncAdoption> {
     // The one field an adoption may not touch. `ageStopAt` says a session ended
     // on THIS device because the learner said in a scene that they are under
     // thirteen, and the merge drops it from the account copy on purpose (see
-    // `PROFILE_DEVICE_FIELDS` in @parle/brain). Dropped from the account and
+    // `PROFILE_DEVICE_FIELDS` in @luvani/brain). Dropped from the account and
     // then adopted back would clear the stop on the first sync cycle after it
     // landed, which is the whole defect this field exists to fix, arriving by a
     // different door. So the device keeps its own, whatever the account says.

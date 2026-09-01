@@ -15,7 +15,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { mergeTopics, type IncomingTopic, type PracticeTopic } from '@parle/core';
+import { mergeTopics, type IncomingTopic, type PracticeTopic } from '@luvani/core';
 import type { PersistAck } from '../storage/ack.ts';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';

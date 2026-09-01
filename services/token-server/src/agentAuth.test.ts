@@ -29,7 +29,7 @@ describe('who may debit a learner', () => {
 
 describe('minutes that survive a restart', () => {
   test('a file-backed balance outlives the process that spent it', async () => {
-    const file = path.join(mkdtempSync(path.join(tmpdir(), 'parle-store-')), 'entitlements.json');
+    const file = path.join(mkdtempSync(path.join(tmpdir(), 'luvani-store-')), 'entitlements.json');
 
     const before = new FileEntitlementStore(file);
     await before.consume('learner-1', 120);
@@ -43,7 +43,7 @@ describe('minutes that survive a restart', () => {
   });
 
   test('an unreadable store still serves, starting where memory would have', async () => {
-    const store = new FileEntitlementStore('/nonexistent/parle/entitlements.json');
+    const store = new FileEntitlementStore('/nonexistent/luvani/entitlements.json');
     const fresh = await store.get('learner-2');
     assert.equal(fresh.secondsUsed, 0, 'never a reason to refuse to serve');
   });

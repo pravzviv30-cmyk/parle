@@ -32,7 +32,7 @@ import {
 } from './syncLive.ts';
 
 const HARNESS = fileURLToPath(new URL('./syncLive.ts', import.meta.url));
-const NO_ENV_FILE = path.join(tmpdir(), `parle-no-env-${randomUUID()}`);
+const NO_ENV_FILE = path.join(tmpdir(), `luvani-no-env-${randomUUID()}`);
 
 /** Every proof passing — the baseline the honesty tests deform one field at a time. */
 const allPassing = (): CheckResult[] =>
@@ -47,7 +47,7 @@ function runCli(env: Record<string, string>): { code: number; out: string } {
       // into a test through services/token-server/.env.
       // NODE_ENV is required rather than optional here: expo augments ProcessEnv, so a
       // minimal environment has to name it even though this harness never reads it.
-      env: { NODE_ENV: 'test', PATH: process.env.PATH ?? '', PARLE_ENV_FILE: NO_ENV_FILE, ...env },
+      env: { NODE_ENV: 'test', PATH: process.env.PATH ?? '', LUVANI_ENV_FILE: NO_ENV_FILE, ...env },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     return { code: 0, out };
@@ -195,7 +195,7 @@ describe('the sync live harness is honest about what it proved', () => {
   test('the env file reader takes names and values without needing a dependency', () => {
     assert.deepEqual(readEnvFile(NO_ENV_FILE), {}, 'a missing env file must be empty, not a throw');
 
-    const file = path.join(tmpdir(), `parle-env-${randomUUID()}`);
+    const file = path.join(tmpdir(), `luvani-env-${randomUUID()}`);
     writeFileSync(
       file,
       ['# a comment', 'SUPABASE_URL=https://project.supabase.co', "QUOTED='kept'", 'DOUBLE="also kept"', 'BLANK=', 'not a line'].join('\n'),

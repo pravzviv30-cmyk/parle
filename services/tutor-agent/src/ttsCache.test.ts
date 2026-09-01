@@ -151,16 +151,16 @@ let savedTransportEnv: string | undefined;
 beforeEach(() => {
   // The transport default is an env seam; tests own it so a developer's shell
   // can never flip which path these assertions exercise.
-  savedTransportEnv = process.env.PARLE_TTS_MISS_TRANSPORT;
-  delete process.env.PARLE_TTS_MISS_TRANSPORT;
-  dir = mkdtempSync(join(tmpdir(), 'parle-tts-'));
+  savedTransportEnv = process.env.LUVANI_TTS_MISS_TRANSPORT;
+  delete process.env.LUVANI_TTS_MISS_TRANSPORT;
+  dir = mkdtempSync(join(tmpdir(), 'luvani-tts-'));
   fake = new FakeTTS();
   cached = new CachedTTS(fake, { dir, voiceKey: 'test-voice' });
 });
 
 afterEach(() => {
-  if (savedTransportEnv === undefined) delete process.env.PARLE_TTS_MISS_TRANSPORT;
-  else process.env.PARLE_TTS_MISS_TRANSPORT = savedTransportEnv;
+  if (savedTransportEnv === undefined) delete process.env.LUVANI_TTS_MISS_TRANSPORT;
+  else process.env.LUVANI_TTS_MISS_TRANSPORT = savedTransportEnv;
 });
 
 describe('wav round trip', () => {
@@ -252,11 +252,11 @@ describe('the miss transport seam', () => {
     assert.equal(fake.streamCalls, 0, 'and never open a vendor stream');
   });
 
-  test('PARLE_TTS_MISS_TRANSPORT=ws opts in via the environment, junk does not', () => {
-    process.env.PARLE_TTS_MISS_TRANSPORT = 'ws';
+  test('LUVANI_TTS_MISS_TRANSPORT=ws opts in via the environment, junk does not', () => {
+    process.env.LUVANI_TTS_MISS_TRANSPORT = 'ws';
     assert.equal(new CachedTTS(fake, { dir, voiceKey: 'test-voice' }).opts.missTransport, 'ws');
 
-    process.env.PARLE_TTS_MISS_TRANSPORT = 'websocket';
+    process.env.LUVANI_TTS_MISS_TRANSPORT = 'websocket';
     assert.equal(new CachedTTS(fake, { dir, voiceKey: 'test-voice' }).opts.missTransport, 'http');
   });
 });
@@ -353,7 +353,7 @@ describe('normalisation', () => {
 
 describe('the warm-cache script cannot be hung by an env flag', () => {
   test('warming pins the transport rather than reading the environment', () => {
-    // PARLE_TTS_MISS_TRANSPORT lives in the same .env warmCache.ts loads, so a
+    // LUVANI_TTS_MISS_TRANSPORT lives in the same .env warmCache.ts loads, so a
     // flag meant for the agent reached the script too and held its pooled
     // socket open past the last line. Reading the source because the script's
     // main() talks to a vendor.
@@ -377,11 +377,11 @@ describe('the warm-cache script demands the selected vendor key', () => {
   function warmRun(vendor?: string): { status: number | null; err: string } {
     const script = new URL('./warmCache.ts', import.meta.url).pathname;
     const run = spawnSync(process.execPath, ['--experimental-strip-types', script], {
-      cwd: mkdtempSync(join(tmpdir(), 'parle-warm-')),
+      cwd: mkdtempSync(join(tmpdir(), 'luvani-warm-')),
       env: {
         PATH: process.env.PATH ?? '',
         HOME: process.env.HOME ?? '',
-        ...(vendor === undefined ? {} : { PARLE_TTS_VENDOR: vendor }),
+        ...(vendor === undefined ? {} : { LUVANI_TTS_VENDOR: vendor }),
       },
       encoding: 'utf8',
     });

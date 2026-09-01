@@ -1,5 +1,5 @@
 /**
- * The words Parle's copy is not allowed to say.
+ * The words Luvani's copy is not allowed to say.
  *
  * "No streak guilt" is the promise PRODUCT.md makes hardest (:90-93, and
  * principle 4 at :138), and it used to be kept by three suites carrying three

@@ -2,7 +2,7 @@
  * The drill sitting — the review deck made active.
  *
  * One exercise per screen, calm. The screen renders engine state and calls the
- * pure functions in @parle/core/drill; every pedagogical decision (what to ask,
+ * pure functions in @luvani/core/drill; every pedagogical decision (what to ask,
  * how to grade, what a miss costs) already happened there. If logic that looks
  * like grading or selection appears in this file, it is in the wrong file.
  *
@@ -51,7 +51,7 @@ import {
   type RepeatThisExercise,
   type TapTranslateExercise,
   drillXp,
-} from '@parle/core';
+} from '@luvani/core';
 import { HAIRLINE, HIT, accent, font, paper, paperFor, radius, signal, space, type } from './theme.ts';
 import { recordActivity } from './progress/activity.ts';
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';

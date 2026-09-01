@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **ParleTutor** (32 connections) — `services/tutor-agent/src/tutor.ts`
+- **LuvaniTutor** (32 connections) — `services/tutor-agent/src/tutor.ts`
 - **currentPrompt()** (13 connections) — `packages/core/src/session/session.ts`
 - **.handleClientMessage()** (11 connections) — `services/tutor-agent/src/tutor.ts`
 - **.applyInput()** (10 connections) — `services/tutor-agent/src/tutor.ts`
@@ -43,7 +43,7 @@
 - [Output Safety Guard](Output_Safety_Guard.md) (1 shared connections)
 - [Safety Policy Corpus](Safety_Policy_Corpus.md) (1 shared connections)
 - [Speechace Pronunciation Scoring](Speechace_Pronunciation_Scoring.md) (1 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (1 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (1 shared connections)
 
 ## Source Files
 

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { CAFE_FRAME, createProfile } from '@parle/brain';
+import { CAFE_FRAME, createProfile } from '@luvani/brain';
 
 import { beginSession } from './sessionLoop.ts';
 

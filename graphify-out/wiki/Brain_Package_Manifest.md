@@ -10,7 +10,7 @@
 - **devDependencies** (3 connections) — `packages/brain/package.json`
 - **scripts** (3 connections) — `packages/brain/package.json`
 - **@anthropic-ai/sdk** (2 connections) — `packages/brain/package.json`
-- **@parle/core** (2 connections) — `packages/brain/package.json`
+- **@luvani/core** (2 connections) — `packages/brain/package.json`
 - **zod** (2 connections) — `packages/brain/package.json`
 - **@types/node** (2 connections) — `packages/brain/package.json`
 - **typescript** (2 connections) — `packages/brain/package.json`
@@ -19,7 +19,7 @@
 - **./llm** (1 connections) — `packages/brain/package.json`
 - **./profile** (1 connections) — `packages/brain/package.json`
 - **./profile/merge** (1 connections) — `packages/brain/package.json`
-- **@parle/core** (1 connections) — `packages/brain/package.json`
+- **@luvani/core** (1 connections) — `packages/brain/package.json`
 - **@types/node** (1 connections) — `packages/brain/package.json`
 - **typescript** (1 connections) — `packages/brain/package.json`
 - **zod** (1 connections) — `packages/brain/package.json`

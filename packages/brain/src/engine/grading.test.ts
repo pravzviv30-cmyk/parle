@@ -8,7 +8,7 @@ import {
   createSession,
   submitTurn,
   type LearnerInput,
-} from '@parle/core';
+} from '@luvani/core';
 
 import { INLINE_CAP, INLINE_COACH_COOLDOWN_TURNS, assessmentToQuality, splitCoach, surfacePolicy } from './grading.ts';
 import { sampleCoachItem, sampleTurn } from '../contract/samples.ts';

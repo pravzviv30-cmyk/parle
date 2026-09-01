@@ -12,7 +12,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { SETTLED_DAYS, SETTLED_REPS, isSettled, phraseKeyOf, type PracticeTopic, type ReviewCard } from '@parle/core';
+import { SETTLED_DAYS, SETTLED_REPS, isSettled, phraseKeyOf, type PracticeTopic, type ReviewCard } from '@luvani/core';
 import { buildPhrasebook, hasPhrases, LESSONS_GROUP } from './phrasebook.ts';
 
 const NOW = Date.parse('2026-08-20T12:00:00.000Z');
@@ -149,7 +149,7 @@ describe('it never invents a denominator', () => {
 
   test('nothing on the returned shape is a ratio', () => {
     const book = buildPhrasebook([card({ front: 'un' })], [], NOW);
-    // Parle ships no fixed word list, so a percentage would have nothing behind
+    // Luvani ships no fixed word list, so a percentage would have nothing behind
     // it. If a `progress` or `percent` field ever appears here, that is the
     // conversation this test exists to force.
     for (const key of Object.keys(book)) {

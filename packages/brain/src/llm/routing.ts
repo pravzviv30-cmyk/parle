@@ -44,7 +44,7 @@ export const DEFAULT_ROUTING: BrainRouting = {
   // gates — sanitizeTurn, copyViolations and the speak order (narration →
   // coach → sceneReply) all need the complete object, and the parts that
   // stream first are spoken last. Revisit only if measured turn latency
-  // (see tutor-agent's [parle:latency] lines) holds a p50 above ~1.5s after
+  // (see tutor-agent's [luvani:latency] lines) holds a p50 above ~1.5s after
   // the TTS streaming work.
   turn: { model: 'claude-sonnet-5', effort: 'low', maxTokens: 3_000, midConversationSystem: false },
   // The learner waits for this object before the scene can open. The contract

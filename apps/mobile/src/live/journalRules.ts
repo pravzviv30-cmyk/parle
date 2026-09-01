@@ -66,8 +66,8 @@ import {
   type IncomingTopic,
   type RecapPayload,
   type SessionSummary,
-} from '@parle/core';
-import { MAX_PHRASES, repairProfile } from '@parle/brain/profile';
+} from '@luvani/core';
+import { MAX_PHRASES, repairProfile } from '@luvani/brain/profile';
 
 // The store folds these counts into the deck, so the shape is defined where the
 // fold lives. A type-only import: nothing in this file touches a disk, which is

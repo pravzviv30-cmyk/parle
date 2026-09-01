@@ -108,7 +108,7 @@ An illustrative twelve-turn OpenAI session with 90k Luna input / 10k Luna
 output and 15k Terra input / 8k Terra output is about **$0.16 for the brain**
 before cache discounts. This is a planning example, not a billing promise. The
 worker now logs actual input, output and cached tokens for every successful call
-under `[parle:brain]`; collect those lines from real sessions and replace the
+under `[luvani:brain]`; collect those lines from real sessions and replace the
 example with measured p50 and p95 usage.
 
 The rest of a ten-minute voice session is roughly:

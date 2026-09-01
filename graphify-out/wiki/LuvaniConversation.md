@@ -1,8 +1,8 @@
-# ParleConversation
+# LuvaniConversation
 
 > God node · 63 connections · `services/tutor-agent/src/convo.ts`
 
-**Community:** [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md)
+**Community:** [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md)
 
 ## Connections by Relation
 

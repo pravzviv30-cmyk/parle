@@ -39,7 +39,7 @@
 - [Conversation Brain Client](Conversation_Brain_Client.md) (5 shared connections)
 - [Zod Contract Schemas](Zod_Contract_Schemas.md) (5 shared connections)
 - [Brain CLI Playground](Brain_CLI_Playground.md) (4 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (4 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (4 shared connections)
 - [Drill Generation Prompts](Drill_Generation_Prompts.md) (3 shared connections)
 - [French Authenticity Pack](French_Authenticity_Pack.md) (2 shared connections)
 

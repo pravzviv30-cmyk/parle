@@ -145,7 +145,7 @@ export function blockedReport(missing: readonly string[]): string {
 /** The one line to print when the credentials work but the schema was never applied. */
 export function schemaMissingReport(detail: string): string {
   return [
-    `BLOCKED: the Supabase project answers but the Parle schema is not applied (missing: ${detail}).`,
+    `BLOCKED: the Supabase project answers but the Luvani schema is not applied (missing: ${detail}).`,
     'Paste the migrations in order from supabase/README.md, then run this again.',
   ].join('\n');
 }
@@ -337,11 +337,11 @@ interface Learner {
 
 const PASSWORD_LENGTH = 24;
 const newPassword = (): string => randomUUID().replace(/-/g, '').slice(0, PASSWORD_LENGTH);
-const newEmail = (): string => `parle-verify-${randomUUID()}@example.com`;
+const newEmail = (): string => `luvani-verify-${randomUUID()}@example.com`;
 
 /** A 43-character base64url signal, the same shape the token server sends. */
 const signal = (kind: string, value: string): string =>
-  createHmac('sha256', 'parle-supabase-verify').update(`${kind}\0${value}`).digest('base64url');
+  createHmac('sha256', 'luvani-supabase-verify').update(`${kind}\0${value}`).digest('base64url');
 
 /**
  * Run every proof against the live project.
@@ -856,10 +856,10 @@ interface SupabaseClientLike {
 async function main(): Promise<void> {
   const dotenv = await import('dotenv');
   // The token server's own env file, not the caller's cwd: this is run from the repo
-  // root and the credentials live beside the service that uses them. PARLE_ENV_FILE
+  // root and the credentials live beside the service that uses them. LUVANI_ENV_FILE
   // points somewhere else, which is how the self-test proves the blocked path without
   // borrowing this machine's real credentials.
-  const envFile = process.env.PARLE_ENV_FILE ?? fileURLToPath(new URL('../../.env', import.meta.url));
+  const envFile = process.env.LUVANI_ENV_FILE ?? fileURLToPath(new URL('../../.env', import.meta.url));
   dotenv.config({ path: envFile, override: false, quiet: true });
   const report = await runSupabaseVerification({ env: process.env, log: (line) => console.log(line) });
   process.exitCode = report.ok ? 0 : 1;

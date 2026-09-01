@@ -23,7 +23,7 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, test } from 'node:test';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { ConvoPhrase, DrillExercise } from '@parle/core';
+import type { ConvoPhrase, DrillExercise } from '@luvani/core';
 
 import { loadDrillBank, mergeExercises } from '../drill/store.ts';
 import { addPhrases, loadDeck } from '../review/store.ts';
@@ -127,7 +127,7 @@ describe('what a store says about its own write', () => {
       uid = nextUid();
       resetSyncRegistry();
       setActiveUser(uid);
-      const key = `parle.u.${uid}.${entry.suffix}`;
+      const key = `luvani.u.${uid}.${entry.suffix}`;
       const disk = installDisk({ full: (k) => k === key });
 
       const ack = await entry.write();
@@ -149,7 +149,7 @@ describe('what a store says about its own write', () => {
       uid = nextUid();
       resetSyncRegistry();
       setActiveUser(uid);
-      const key = `parle.u.${uid}.${entry.suffix}`;
+      const key = `luvani.u.${uid}.${entry.suffix}`;
       const disk = installDisk();
 
       const ack = await entry.write();
@@ -180,15 +180,15 @@ describe('what a store says about its own write', () => {
     // Quotas bite one write at a time. Banking two thirds of a conversation is
     // better than banking none of it, and the journal is kept either way — so
     // the store that can write, writes.
-    const disk = installDisk({ full: (k) => k === `parle.u.${uid}.review` });
+    const disk = installDisk({ full: (k) => k === `luvani.u.${uid}.review` });
 
     const [review, topics, drills] = [await STORES[0]!.write(), await STORES[1]!.write(), await STORES[2]!.write()];
 
     assert.equal(review, 'failed');
     assert.equal(topics, 'durable');
     assert.equal(drills, 'durable');
-    assert.ok(disk.has(`parle.u.${uid}.topics`), 'the topics went down even though the deck could not');
-    assert.ok(disk.has(`parle.u.${uid}.drills`), 'and so did the drills');
+    assert.ok(disk.has(`luvani.u.${uid}.topics`), 'the topics went down even though the deck could not');
+    assert.ok(disk.has(`luvani.u.${uid}.drills`), 'and so did the drills');
     assert.equal((await loadTopics()).length, 1);
   });
 

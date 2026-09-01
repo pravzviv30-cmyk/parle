@@ -1,12 +1,12 @@
 /**
  * The policy and the shipped words are held against each other.
  *
- * `docs/PRIVACY_AND_SAFETY.md` states what Parle keeps, for how long, what a
+ * `docs/PRIVACY_AND_SAFETY.md` states what Luvani keeps, for how long, what a
  * learner can switch off, and what the tutor does when it has to stop. A policy
  * nobody checks is a wish, so this file is the check: the required sections have
  * to exist, every retained store has to name a retention, the safety table in the
  * doc has to agree with what `safetyDecision` actually returns, and nothing
- * anywhere may tell a learner that Parle is an emergency service.
+ * anywhere may tell a learner that Luvani is an emergency service.
  *
  * It reads `safety.ts` and never writes it. The categories, the stop/redirect
  * split and the copy belong to that file; this one refuses to let the document
@@ -36,13 +36,13 @@ const safetySource = readFileSync(path.join(SRC, 'safety.ts'), 'utf8');
 
 /** The section headings the policy is not allowed to lose. */
 const REQUIRED_SECTIONS = [
-  '## What Parle holds',
+  '## What Luvani holds',
   '## Raw speech is never stored',
   '## Analytics: consent, opt-out and retention',
   '## Antifraud identifiers: purpose, retention and disclosure',
   '## Deletion and export',
   '## The safety boundary',
-  '## Escalation and what Parle is not',
+  '## Escalation and what Luvani is not',
   '## Review package for an external professional',
   '## Not true yet',
 ] as const;
@@ -57,8 +57,8 @@ const RETAINED_STORES = [
   'public.session_usage',
   'public.entitlements',
   'public.trial_installations',
-  'parle:*',
-  'parle.installation.v1',
+  'luvani:*',
+  'luvani.installation.v1',
   'ageStopAt',
 ] as const;
 
@@ -75,7 +75,7 @@ const PRODUCT_EVENTS = [
 ] as const;
 
 /**
- * A claim that Parle itself is a crisis or emergency service.
+ * A claim that Luvani itself is a crisis or emergency service.
  *
  * Deliberately narrow. Pointing a learner at their own local emergency number is
  * the opposite of this claim and must keep passing; the pattern only fires when
@@ -83,9 +83,9 @@ const PRODUCT_EVENTS = [
  * policy's own disclaimer from tripping it.
  */
 const EMERGENCY_CLAIM =
-  /\b(?:parle|we|it|this app|the tutor|luc|luna)\s+(?:is|are|can be)\s+(?!not\b|never\b)(?:an?|your)?\s*(?:emergency|crisis|counselling|counseling|suicide|safeguarding)\s+(?:service|line|helpline|hotline|responder|support)\b/i;
+  /\b(?:luvani|we|it|this app|the tutor|luc|luna)\s+(?:is|are|can be)\s+(?!not\b|never\b)(?:an?|your)?\s*(?:emergency|crisis|counselling|counseling|suicide|safeguarding)\s+(?:service|line|helpline|hotline|responder|support)\b/i;
 const EMERGENCY_PROMISE =
-  /\b(?:call|contact|message|reach)\s+(?:us|parle)\s+in\s+an?\s+(?:emergency|crisis)\b|\bwe\s+(?:will|can|do)\s+(?:call|contact|alert|notify)\s+(?:the\s+)?(?:emergency|police|authorities|ambulance)\b/i;
+  /\b(?:call|contact|message|reach)\s+(?:us|luvani)\s+in\s+an?\s+(?:emergency|crisis)\b|\bwe\s+(?:will|can|do)\s+(?:call|contact|alert|notify)\s+(?:the\s+)?(?:emergency|police|authorities|ambulance)\b/i;
 
 /** One canonical input per category, matching the corpus in safety.test.ts. */
 const PROBES: Record<SafetyCategory, string> = {
@@ -106,7 +106,7 @@ function declaredCategories(): string[] {
   return [...union[1]!.matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]!);
 }
 
-/** The five-column rows of the "What Parle holds" table, keyed by the store name. */
+/** The five-column rows of the "What Luvani holds" table, keyed by the store name. */
 function retentionRow(store: string): string | null {
   for (const line of policy.split('\n')) {
     if (!line.startsWith('|') || !line.includes(store)) continue;
@@ -303,7 +303,7 @@ function callCount(source: string, symbol: string): number {
  * about escalation and would let an emptied list pass on a neighbour's words.
  */
 function stopList(): string {
-  const escalation = section('## Escalation and what Parle is not');
+  const escalation = section('## Escalation and what Luvani is not');
   const marker = escalation.indexOf('**What happens after a `stop`');
   assert.ok(marker >= 0, 'the escalation section no longer says what happens after a stop');
   const out: string[] = [];
@@ -364,7 +364,7 @@ function emitted(record: SafetyRecord): string {
  * quietly ignored.
  */
 function recordFields(line: string): Record<string, string> {
-  const m = /^\[parle\] SAFETY_DECISION ([a-z]+=\S+(?: [a-z]+=\S+)*)$/.exec(line);
+  const m = /^\[luvani\] SAFETY_DECISION ([a-z]+=\S+(?: [a-z]+=\S+)*)$/.exec(line);
   assert.ok(m, `the safety record is no longer a bare key=value line: ${line}`);
   return Object.fromEntries(
     m[1]!.split(' ').map((pair) => {
@@ -447,7 +447,7 @@ describe('the privacy and safety policy is held against the code', () => {
     // Retention: every durable store names how long it is kept.
     for (const store of RETAINED_STORES) {
       const cell = retentionRow(store);
-      assert.ok(cell !== null, `"${store}" has no row in the "What Parle holds" table`);
+      assert.ok(cell !== null, `"${store}" has no row in the "What Luvani holds" table`);
       assert.match(cell, RETENTION, `"${store}" is listed with no stated retention`);
     }
 
@@ -456,7 +456,7 @@ describe('the privacy and safety policy is held against the code', () => {
     const antifraud = section('## Antifraud identifiers: purpose, retention and disclosure');
     assert.match(antifraud, /public\.trial_installations/);
     assert.match(antifraud, /HMAC/i, 'the policy must say the antifraud value is a salted HMAC, not a raw identifier');
-    assert.match(antifraud, /PARLE_RATE_LIMIT_SALT/);
+    assert.match(antifraud, /LUVANI_RATE_LIMIT_SALT/);
     assert.match(antifraud, /\bnot\b[\s\S]{0,120}advertising identifier/i);
     assert.match(antifraud, /survives account deletion|no foreign key/i);
     assert.match(antifraud, /\b\d+\s+months\b/, 'the antifraud retention must be a number of months, not "as needed"');
@@ -490,10 +490,10 @@ describe('the privacy and safety policy is held against the code', () => {
     assert.match(deletion, /trial_installations/);
 
     // Escalation, and the sentence this whole test is named after.
-    const escalation = section('## Escalation and what Parle is not');
+    const escalation = section('## Escalation and what Luvani is not');
     assert.ok(
-      escalation.includes('Parle is not an emergency service.'),
-      'the escalation section must say, in those words, that Parle is not an emergency service',
+      escalation.includes('Luvani is not an emergency service.'),
+      'the escalation section must say, in those words, that Luvani is not an emergency service',
     );
     assert.match(escalation, /not monitored|Nobody is watching/i);
     assert.match(escalation, /Escalate, do not decide in code/);
@@ -672,7 +672,7 @@ describe('the privacy and safety policy is held against the code', () => {
     //    here rather than a paragraph nobody re-reads.
     const record = section(RECORD_SECTION);
     const recordFlat = record.replace(/\s+/g, ' ');
-    const example = /```\n(\[parle\] SAFETY_DECISION [^\n]*)\n```/.exec(record);
+    const example = /```\n(\[luvani\] SAFETY_DECISION [^\n]*)\n```/.exec(record);
     assert.ok(example, 'the record section no longer shows the line the worker writes');
     const shown = recordFields(example[1]!);
     assert.deepEqual(
@@ -858,7 +858,7 @@ describe('the privacy and safety policy is held against the code', () => {
     assert.ok(stop.includes('F208'), 'the stop list does not name the ledger entry that owns the work a stop does not stop');
   });
 
-  test('no shipped copy anywhere tells a learner that Parle is an emergency service', () => {
+  test('no shipped copy anywhere tells a learner that Luvani is an emergency service', () => {
     const offenders: string[] = [];
     for (const file of learnerFacingFiles()) {
       const text = readFileSync(file, 'utf8');
@@ -866,7 +866,7 @@ describe('the privacy and safety policy is held against the code', () => {
         offenders.push(path.relative(REPO, file));
       }
     }
-    assert.deepEqual(offenders, [], `these files claim Parle is an emergency or crisis service: ${offenders.join(', ')}`);
+    assert.deepEqual(offenders, [], `these files claim Luvani is an emergency or crisis service: ${offenders.join(', ')}`);
 
     // The control case: the self-harm stop points at the learner's own emergency
     // number, which is the opposite claim and must keep shipping.

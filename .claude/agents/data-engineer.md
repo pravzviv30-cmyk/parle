@@ -22,7 +22,7 @@ production identity, entitlement, trial and usage ledgers have Supabase contract
   learner envelopes, atomic entitlements, an idempotent session-usage ledger, one-time
   pseudonymous trial claims and validated product events. Client learning stores remain
   AsyncStorage until the sync transport is implemented.
-- **Every key is namespaced per user**: `parle.u.{uid}.{suffix}`. `userKey()` **throws**
+- **Every key is namespaced per user**: `luvani.u.{uid}.{suffix}`. `userKey()` **throws**
   when nobody is signed in, on purpose, so a signed-out read is a crash and not a silent
   cross-account leak.
 - **The whole learner profile is signed into a JWT.** The device posts `profile.brain` to

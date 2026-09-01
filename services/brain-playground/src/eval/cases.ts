@@ -7,7 +7,7 @@
  * copy rules) are checked separately and DO fail the run.
  */
 
-import type { CoachKind } from '@parle/brain';
+import type { CoachKind } from '@luvani/brain';
 
 export interface EvalExpectation {
   /** At least one coach item of one of these kinds. */

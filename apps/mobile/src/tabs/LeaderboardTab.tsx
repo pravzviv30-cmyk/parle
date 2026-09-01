@@ -129,7 +129,7 @@ export function LeaderboardTab() {
             </View>
             <Card>
             <Text style={[type.bodyStrong, { color: paper.ink }]}>
-              A board the whole world shares needs a server to keep score, and Parle does not have one yet. It is
+              A board the whole world shares needs a server to keep score, and Luvani does not have one yet. It is
               coming.
             </Text>
             <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>

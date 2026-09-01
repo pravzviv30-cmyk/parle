@@ -5,7 +5,7 @@
  * either holds the contract the conversation engine stands on, or it fails
  * the run.
  *
- *   npm run eval:frames -w @parle/brain-playground
+ *   npm run eval:frames -w @luvani/brain-playground
  */
 
 import 'dotenv/config';
@@ -22,7 +22,7 @@ import {
   copyViolations,
   type LlmClient,
   type ScenarioFrame,
-} from '@parle/brain';
+} from '@luvani/brain';
 
 import { addUsage, costUsd, ZERO_USAGE } from '../usage.ts';
 

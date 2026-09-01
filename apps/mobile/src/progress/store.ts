@@ -2,7 +2,7 @@
  * Session history on the device.
  *
  * AsyncStorage is enough for now. The history is one small JSON array, the report
- * math lives in @parle/core, and nothing here needs a backend. When accounts
+ * math lives in @luvani/core, and nothing here needs a backend. When accounts
  * arrive this file is the only thing that changes.
  *
  * Writes go through one chain with the key bound at enqueue, the same shape
@@ -13,7 +13,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { buildProgressReport, type ProgressReport, type SessionSummary, type StoredSession } from '@parle/core';
+import { buildProgressReport, type ProgressReport, type SessionSummary, type StoredSession } from '@luvani/core';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 

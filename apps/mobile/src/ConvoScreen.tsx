@@ -22,7 +22,7 @@ import {
   type IncomingTopic,
   type RecapPayload,
   type Rung,
-} from '@parle/core';
+} from '@luvani/core';
 import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from './theme.ts';
 import {
   Card,

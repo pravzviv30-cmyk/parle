@@ -33,10 +33,10 @@
  * Opening the app cannot fill a mark.
  */
 
-import { localDayKey } from '@parle/core';
+import { localDayKey } from '@luvani/core';
 import type { ActivityEntry } from './activity.ts';
 
-/** What Parle is built around. Two sittings is the shape, not a target to hit. */
+/** What Luvani is built around. Two sittings is the shape, not a target to hit. */
 export const SITTINGS_IN_A_DAY = 2;
 
 export interface Today {

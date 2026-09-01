@@ -26,7 +26,7 @@ test('account export returns only rows filtered to the authenticated learner', a
     new Date('2026-08-30T12:00:00.000Z'),
   );
 
-  assert.equal(exported.format, 'parle-account-export-v1');
+  assert.equal(exported.format, 'luvani-account-export-v1');
   assert.equal(exported.exportedAt, '2026-08-30T12:00:00.000Z');
   assert.equal(exported.account.id, 'user/id');
   assert.equal(exported.account.email, 'learner@example.com');

@@ -25,7 +25,7 @@
 - pricing.test.ts `EXTRACTED`
 
 ### references
-- [ParleConversation](ParleConversation.md) `EXTRACTED`
+- [LuvaniConversation](LuvaniConversation.md) `EXTRACTED`
 - .complete() `EXTRACTED`
 - .parseWithRetry() `EXTRACTED`
 - .ask() `EXTRACTED`

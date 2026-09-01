@@ -25,7 +25,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import type { PhonemeStat, SessionSummary, StoredSession } from '@parle/core';
+import type { PhonemeStat, SessionSummary, StoredSession } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
 import { DAYS_IN_THE_STORY, MAX_STORY_SENTENCES, hasStory, storyFrom, type WeekStory } from './story.ts';

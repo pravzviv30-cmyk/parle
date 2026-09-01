@@ -16,7 +16,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { buildPath, CAFE_LESSON, dueCards, type PathUnit, type PracticeTopic } from '@parle/core';
+import { buildPath, CAFE_LESSON, dueCards, type PathUnit, type PracticeTopic } from '@luvani/core';
 import { paper, paperFor, space, type } from '../theme.ts';
 import { Card, Label, OutlineButton, GhostButton } from '../components.tsx';
 import { PathNodeRow } from '../practice/PathNodeRow.tsx';

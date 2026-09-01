@@ -33,7 +33,7 @@ export async function downloadAccountData(
   const readDevice = dependencies.readDevice ?? ((keys) => AsyncStorage.multiGet([...keys]));
   const save = dependencies.save ?? saveTextFile;
   const now = dependencies.now?.() ?? new Date();
-  const keys = USER_KEY_SUFFIXES.map((suffix) => `parle.u.${user.id}.${suffix}`);
+  const keys = USER_KEY_SUFFIXES.map((suffix) => `luvani.u.${user.id}.${suffix}`);
 
   try {
     const [devicePairs, token] = await Promise.all([readDevice(keys), adapter.getAccessToken()]);
@@ -55,10 +55,10 @@ export async function downloadAccountData(
     }
 
     const deviceData = Object.fromEntries(
-      devicePairs.map(([key, value]) => [key.slice(`parle.u.${user.id}.`.length), parsed(value)]),
+      devicePairs.map(([key, value]) => [key.slice(`luvani.u.${user.id}.`.length), parsed(value)]),
     );
     const payload = {
-      format: 'parle-complete-export-v1',
+      format: 'luvani-complete-export-v1',
       exportedAt: now.toISOString(),
       account: { id: user.id, email: user.email, provider: user.provider },
       deviceData,
@@ -67,7 +67,7 @@ export async function downloadAccountData(
         ? ['This development account exists only on this device, so there is no server copy.']
         : [],
     };
-    await save('parle-account-data.json', `${JSON.stringify(payload, null, 2)}\n`, 'application/json');
+    await save('luvani-account-data.json', `${JSON.stringify(payload, null, 2)}\n`, 'application/json');
     return { ok: true };
   } catch {
     return { ok: false, message: 'Your data could not be prepared just now. Nothing was changed.' };

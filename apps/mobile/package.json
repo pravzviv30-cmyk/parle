@@ -1,17 +1,17 @@
 {
-  "name": "@parle/mobile",
+  "name": "@luvani/mobile",
   "version": "0.1.0",
   "private": true,
   "main": "index.ts",
   "scripts": {
-    "start": "EXPO_PUBLIC_PARLE_LOCAL_DEVELOPMENT=1 expo start --dev-client",
-    "android": "EXPO_PUBLIC_PARLE_LOCAL_DEVELOPMENT=1 expo run:android",
-    "ios": "EXPO_PUBLIC_PARLE_LOCAL_DEVELOPMENT=1 expo run:ios",
-    "ios:device": "EXPO_PUBLIC_PARLE_LOCAL_DEVELOPMENT=1 expo run:ios --device",
-    "web": "EXPO_PUBLIC_PARLE_LOCAL_DEVELOPMENT=1 expo start --web",
+    "start": "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 expo start --dev-client",
+    "android": "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 expo run:android",
+    "ios": "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 expo run:ios",
+    "ios:device": "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 expo run:ios --device",
+    "web": "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 expo start --web",
     "export:web": "expo export --platform web --output-dir dist",
     "typecheck": "tsc --noEmit",
-    "test": "EXPO_PUBLIC_PARLE_LOCAL_DEVELOPMENT=1 node --test --experimental-strip-types \"src/**/*.test.ts\""
+    "test": "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 node --test --experimental-strip-types \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@config-plugins/react-native-webrtc": "^15.0.2",
@@ -19,8 +19,8 @@
     "@livekit/react-native": "^2.12.0",
     "@livekit/react-native-expo-plugin": "^1.0.2",
     "@livekit/react-native-webrtc": "^144.1.2",
-    "@parle/brain": "*",
-    "@parle/core": "*",
+    "@luvani/brain": "*",
+    "@luvani/core": "*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.18.16",
     "@react-navigation/native": "^7.3.16",

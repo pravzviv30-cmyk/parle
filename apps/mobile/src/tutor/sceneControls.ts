@@ -29,7 +29,7 @@
  * Neither rule can be tested where it was, so neither rule stays there.
  */
 
-import type { ClientMessage, ConvoSupportView } from '@parle/core';
+import type { ClientMessage, ConvoSupportView } from '@luvani/core';
 import { TAP_TO_TALK } from './choosingView.ts';
 
 /**

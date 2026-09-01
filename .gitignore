@@ -31,7 +31,7 @@ android/
 !apps/mobile/ios/.gitkeep
 !apps/mobile/android/.gitkeep
 
-# Synthesized tutor audio (regenerate with: npm run warm-cache -w @parle/tutor-agent)
+# Synthesized tutor audio (regenerate with: npm run warm-cache -w @luvani/tutor-agent)
 .tts-cache/
 
 # graphify — the graph itself IS committed (graph.json, GRAPH_REPORT.md,

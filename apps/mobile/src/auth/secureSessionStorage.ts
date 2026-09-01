@@ -20,14 +20,14 @@ interface StoredMeta {
 }
 
 const CHUNK_SIZE = 1_800;
-const META_SUFFIX = '.parle-secure-meta';
+const META_SUFFIX = '.luvani-secure-meta';
 
 function metaKey(key: string): string {
   return `${key}${META_SUFFIX}`;
 }
 
 function chunkKey(key: string, generation: StoredMeta['generation'], index: number): string {
-  return `${key}.parle-secure-${generation}-${index}`;
+  return `${key}.luvani-secure-${generation}-${index}`;
 }
 
 function parseMeta(raw: string | null): StoredMeta | null {

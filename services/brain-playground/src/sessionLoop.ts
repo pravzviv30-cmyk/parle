@@ -2,7 +2,7 @@
  * One live session: the engine, a client, and the profile, wired together.
  *
  * The loop's job is sequencing, not deciding — every decision lives in
- * @parle/brain where it is tested. Notably the rescue order: silence renders
+ * @luvani/brain where it is tested. Notably the rescue order: silence renders
  * support INSTANTLY from material already in hand, and only then does the
  * model get asked for its warm in-character step-in.
  */
@@ -30,8 +30,8 @@ import {
   type LlmUsage,
   type ScenarioFrame,
   type SessionRecap,
-} from '@parle/brain';
-import { STUCK_SILENCE_MS } from '@parle/core';
+} from '@luvani/brain';
+import { STUCK_SILENCE_MS } from '@luvani/core';
 
 import { addUsage, formatTurnUsage, ZERO_USAGE } from './usage.ts';
 import { renderOpening, renderRescue, renderTurnView, meta, warm } from './render.ts';

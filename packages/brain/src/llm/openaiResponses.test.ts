@@ -300,7 +300,7 @@ describe('the prompt cache is pinned, not left to the vendor to guess', () => {
         'string',
         `${activity} sends a ~4.3k frozen prefix every call; without a key the routing that shares it is a coin toss`,
       );
-      assert.match(first.prompt_cache_key as string, new RegExp(`^parle-${activity}-[0-9a-f]{6,}$`));
+      assert.match(first.prompt_cache_key as string, new RegExp(`^luvani-${activity}-[0-9a-f]{6,}$`));
       assert.equal(
         first.prompt_cache_key,
         second.prompt_cache_key,
@@ -352,7 +352,7 @@ describe('the prompt cache is pinned, not left to the vendor to guess', () => {
       text: {
         format: {
           type: 'json_schema',
-          name: 'parle_tutor_turn',
+          name: 'luvani_tutor_turn',
           strict: true,
           schema: (zodOutputFormat(TurnSchema) as { schema?: unknown }).schema,
         },

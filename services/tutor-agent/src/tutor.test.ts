@@ -2,9 +2,9 @@ import { test, describe, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { voice } from '@livekit/agents';
-import { CAFE_LESSON, RUNGS, STUCK_SILENCE_MS, encodeMessage, type ClientMessage, type Rung, type ServerMessage } from '@parle/core';
+import { CAFE_LESSON, RUNGS, STUCK_SILENCE_MS, encodeMessage, type ClientMessage, type Rung, type ServerMessage } from '@luvani/core';
 import { TEXT_SILENCE_MS } from './convo.ts';
-import { ParleTutor, forgetReportedSessions } from './tutor.ts';
+import { LuvaniTutor, forgetReportedSessions } from './tutor.ts';
 
 /**
  * A stand-in for the LiveKit session.
@@ -28,7 +28,7 @@ function stubSession() {
 }
 
 function build(startRung: Rung = RUNGS.PROMPTED, options: { voiceless?: boolean; sessionId?: string } = {}) {
-  const tutor = new ParleTutor(CAFE_LESSON, startRung, options);
+  const tutor = new LuvaniTutor(CAFE_LESSON, startRung, options);
   const { session, calls } = stubSession();
   Object.defineProperty(tutor, 'session', { value: session, configurable: true });
   // In agent.ts the signed session id is written before the channel back to the
@@ -311,7 +311,7 @@ describe('what a session is allowed to bill', () => {
    * or not, which is a test that cannot fail. Sixty seconds because sixty is
    * what the live harness watched being debited for a room nobody spoke in.
    */
-  function ranFor(tutor: ParleTutor, seconds: number): void {
+  function ranFor(tutor: LuvaniTutor, seconds: number): void {
     (tutor as unknown as { startedAt: number }).startedAt = Date.now() - seconds * 1_000;
   }
 
@@ -323,7 +323,7 @@ describe('what a session is allowed to bill', () => {
    * the lesson runs out — which then debits, under whatever fetch is installed
    * by the time it gets there.
    */
-  async function rescueOnce(tutor: ParleTutor, session: voice.AgentSession): Promise<void> {
+  async function rescueOnce(tutor: LuvaniTutor, session: voice.AgentSession): Promise<void> {
     const generation = tutor.armRescue(session);
     tutor.clearRescue();
     await tutor.runRescue(session, generation);

@@ -19,7 +19,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { ERROR_KINDS, type ErrorKind } from '@parle/core';
+import { ERROR_KINDS, type ErrorKind } from '@luvani/core';
 import type { ErrorEvent as PipelineErrorEvent } from '@livekit/agents';
 
 const AGENT = readFileSync(fileURLToPath(new URL('./agent.ts', import.meta.url)), 'utf8');
@@ -78,11 +78,11 @@ describe('the vendor failure the worker reports', () => {
     // The string is an interface. It is shared with apps/mobile/src/live/failure.ts,
     // which cannot be imported here without dragging livekit-client into the
     // worker, so both ends are pinned to the literal instead.
-    assert.match(body, /\[parle\] TUTOR_PIPELINE_DOWN/, 'a vendor half of the tutor can die without anything greppable being logged');
-    assert.match(body, /\[parle:live\] pipeline/, 'a recoverable blip goes unlogged, so nobody can count them');
+    assert.match(body, /\[luvani\] TUTOR_PIPELINE_DOWN/, 'a vendor half of the tutor can die without anything greppable being logged');
+    assert.match(body, /\[luvani:live\] pipeline/, 'a recoverable blip goes unlogged, so nobody can count them');
     assert.match(
       body,
-      /recoverable \? '\[parle:live\] pipeline' : '\[parle\] TUTOR_PIPELINE_DOWN'/,
+      /recoverable \? '\[luvani:live\] pipeline' : '\[luvani\] TUTOR_PIPELINE_DOWN'/,
       'the alarm is raised for the wrong half: it belongs to the failure that is not coming back',
     );
     assert.match(body, /kind=\$\{kind\}/, 'the log line never says what broke');

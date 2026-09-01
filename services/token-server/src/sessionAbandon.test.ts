@@ -94,7 +94,7 @@ describe('a learner whose tutor never turned up is not locked out by their own l
 
     // The agent secret is the wrong door. It authenticates the debit path, and a
     // client that held it would hold that too.
-    assert.doesNotMatch(abandon, /agentDebitAllowed|x-parle-agent|AGENT_SECRET/, 'an agent-authenticated abandon could not be called by the learner who needs it');
+    assert.doesNotMatch(abandon, /agentDebitAllowed|x-luvani-agent|AGENT_SECRET/, 'an agent-authenticated abandon could not be called by the learner who needs it');
 
     // Releases only. Every one of these would be a second thing this endpoint
     // does, and a client-callable endpoint that debits or mints is a different

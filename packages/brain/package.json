@@ -1,5 +1,5 @@
 {
-  "name": "@parle/brain",
+  "name": "@luvani/brain",
   "version": "0.1.0",
   "private": true,
   "description": "The conversational tutor brain: scenario roleplay, spoken-French coaching, and the learner model.",
@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
-    "@parle/core": "*",
+    "@luvani/core": "*",
     "zod": "^3.24.1"
   },
   "devDependencies": {

@@ -4,22 +4,22 @@
 
 ## Key Concepts
 
-- **ParleTabBar.tsx** (21 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
+- **LuvaniTabBar.tsx** (21 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
 - **icons.tsx** (12 connections) — `apps/mobile/src/nav/icons.tsx`
 - **STROKE** (8 connections) — `apps/mobile/src/theme.ts`
 - **dueCount()** (5 connections) — `apps/mobile/src/review/store.ts`
-- **ParleTabBar()** (4 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
+- **LuvaniTabBar()** (4 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
 - **HomeIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **MyFrenchIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **PracticeIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **ProfileIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **TabIconProps** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **TutorIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
-- **announceTab()** (2 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
+- **announceTab()** (2 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
 - **Glyph()** (1 connections) — `apps/mobile/src/nav/icons.tsx`
-- **ICONS** (1 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
-- **LABELS** (1 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
-- **st** (1 connections) — `apps/mobile/src/nav/ParleTabBar.tsx`
+- **ICONS** (1 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
+- **LABELS** (1 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
+- **st** (1 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
 - **Inline SVG illustration style contract** (1 connections) — `DESIGN.md`
 
 ## Relationships
@@ -37,7 +37,7 @@
 ## Source Files
 
 - `DESIGN.md`
-- `apps/mobile/src/nav/ParleTabBar.tsx`
+- `apps/mobile/src/nav/LuvaniTabBar.tsx`
 - `apps/mobile/src/nav/icons.tsx`
 - `apps/mobile/src/review/store.ts`
 - `apps/mobile/src/theme.ts`

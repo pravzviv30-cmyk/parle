@@ -19,7 +19,7 @@ import { FISH_SETTINGS } from './voiceFish.ts';
  * test run never touches the real warmed cache.
  *
  * The four vendor variables are cleared as well as saved. Without that, a
- * developer who has PARLE_TTS_VENDOR=fish in their own shell would silently
+ * developer who has LUVANI_TTS_VENDOR=fish in their own shell would silently
  * run every assertion below against the wrong vendor, and their real FISH_API_KEY
  * would be read by a test process — neither of which should ever be possible.
  */
@@ -27,7 +27,7 @@ const ENV_KEYS = [
   'ELEVEN_API_KEY',
   'ELEVEN_VOICE_ID',
   'TTS_CACHE_DIR',
-  'PARLE_TTS_VENDOR',
+  'LUVANI_TTS_VENDOR',
   'FISH_API_KEY',
   'FISH_VOICE_ID',
   'FISH_MODEL',
@@ -39,11 +39,11 @@ beforeEach(() => {
   for (const key of ENV_KEYS) savedEnv[key] = process.env[key];
   process.env.ELEVEN_API_KEY = 'test-key-never-sent';
   delete process.env.ELEVEN_VOICE_ID;
-  delete process.env.PARLE_TTS_VENDOR;
+  delete process.env.LUVANI_TTS_VENDOR;
   delete process.env.FISH_API_KEY;
   delete process.env.FISH_VOICE_ID;
   delete process.env.FISH_MODEL;
-  process.env.TTS_CACHE_DIR = mkdtempSync(join(tmpdir(), 'parle-voice-'));
+  process.env.TTS_CACHE_DIR = mkdtempSync(join(tmpdir(), 'luvani-voice-'));
 });
 
 afterEach(() => {
@@ -95,31 +95,31 @@ describe('the voice configuration', () => {
 });
 
 describe('which voice vendor the env selects', () => {
-  test('PARLE_TTS_VENDOR empty, blank or unknown selects ElevenLabs, case and whitespace insensitively', () => {
+  test('LUVANI_TTS_VENDOR empty, blank or unknown selects ElevenLabs, case and whitespace insensitively', () => {
     // The same trap TUTOR_LLM fell into, and the reason this is parsed rather
     // than read: `??` does not fall back on the empty string, so a
-    // `PARLE_TTS_VENDOR=` line would select a vendor while reading to a human
+    // `LUVANI_TTS_VENDOR=` line would select a vendor while reading to a human
     // as "unset, take the default". ElevenLabs is the default and hundreds of
     // warmed WAVs on disk depend on it staying so.
     assert.equal(selectedVoiceVendor({}), 'elevenlabs');
-    assert.equal(selectedVoiceVendor({ PARLE_TTS_VENDOR: '' }), 'elevenlabs');
-    assert.equal(selectedVoiceVendor({ PARLE_TTS_VENDOR: '   ' }), 'elevenlabs');
-    assert.equal(selectedVoiceVendor({ PARLE_TTS_VENDOR: 'nonsense' }), 'elevenlabs');
-    assert.equal(selectedVoiceVendor({ PARLE_TTS_VENDOR: 'ELEVENLABS' }), 'elevenlabs');
+    assert.equal(selectedVoiceVendor({ LUVANI_TTS_VENDOR: '' }), 'elevenlabs');
+    assert.equal(selectedVoiceVendor({ LUVANI_TTS_VENDOR: '   ' }), 'elevenlabs');
+    assert.equal(selectedVoiceVendor({ LUVANI_TTS_VENDOR: 'nonsense' }), 'elevenlabs');
+    assert.equal(selectedVoiceVendor({ LUVANI_TTS_VENDOR: 'ELEVENLABS' }), 'elevenlabs');
 
-    assert.equal(selectedVoiceVendor({ PARLE_TTS_VENDOR: 'fish' }), 'fish');
-    assert.equal(selectedVoiceVendor({ PARLE_TTS_VENDOR: ' FISH ' }), 'fish');
+    assert.equal(selectedVoiceVendor({ LUVANI_TTS_VENDOR: 'fish' }), 'fish');
+    assert.equal(selectedVoiceVendor({ LUVANI_TTS_VENDOR: ' FISH ' }), 'fish');
 
     // And each vendor names the one credential it cannot speak without.
     assert.deepEqual(VOICE_KEY, { elevenlabs: 'ELEVEN_API_KEY', fish: 'FISH_API_KEY' });
   });
 
-  test('PARLE_TTS_VENDOR=fish builds a fish TTS pinned to s2.1-pro-free, and FISH_MODEL overrides it into the cache key', () => {
+  test('LUVANI_TTS_VENDOR=fish builds a fish TTS pinned to s2.1-pro-free, and FISH_MODEL overrides it into the cache key', () => {
     // The pin is a bill, not a preference. fish sends the model as an HTTP
     // header and falls back to the PAID s2.1-pro when it is omitted or
     // unrecognised — which is also the plugin's own default — so an unpinned
     // model bills at about $15 per million bytes without saying so.
-    process.env.PARLE_TTS_VENDOR = 'fish';
+    process.env.LUVANI_TTS_VENDOR = 'fish';
     process.env.FISH_API_KEY = 'test-key-never-sent';
 
     const free = buildTTS();
@@ -136,7 +136,7 @@ describe('which voice vendor the env selects', () => {
   });
 
   test('the fish cache key fingerprints vendor, voice, model and every delivery knob, so none can drift', () => {
-    process.env.PARLE_TTS_VENDOR = 'fish';
+    process.env.LUVANI_TTS_VENDOR = 'fish';
     process.env.FISH_API_KEY = 'test-key-never-sent';
 
     const unset = buildTTS().opts.voiceKey;
@@ -155,11 +155,11 @@ describe('which voice vendor the env selects', () => {
     }
 
     // And it never collides with the ElevenLabs namespace, whatever is set.
-    delete process.env.PARLE_TTS_VENDOR;
+    delete process.env.LUVANI_TTS_VENDOR;
     assert.ok(buildTTS().opts.voiceKey.startsWith('elevenlabs:'));
   });
 
-  test('.env.example documents PARLE_TTS_VENDOR and every FISH_ variable the worker reads', () => {
+  test('.env.example documents LUVANI_TTS_VENDOR and every FISH_ variable the worker reads', () => {
     // Derived from the source rather than listed here: a variable read by the
     // worker and absent from the example is a setting nobody can discover, and
     // for FISH_MODEL that means discovering it on an invoice.
@@ -171,15 +171,15 @@ describe('which voice vendor the env selects', () => {
     for (const name of read) {
       assert.match(example, new RegExp(`\\b${name}\\b`), `${name} is read by the worker and undocumented`);
     }
-    assert.match(example, /PARLE_TTS_VENDOR/);
+    assert.match(example, /LUVANI_TTS_VENDOR/);
     assert.match(example, /s2\.1-pro-free/, 'the pinned model, and why it is pinned, belong in the example');
     assert.match(example, /FISH_AUDIO_API_KEY/, 'the near-miss preflight warns about belongs here too');
 
     // Never shipped blank. That was the TUTOR_LLM lesson: an empty assignment
     // reads as "unset" to a person and as "set" to `??`.
     assert.ok(
-      !example.split('\n').some((line) => /^\s*PARLE_TTS_VENDOR\s*=\s*$/.test(line)),
-      'PARLE_TTS_VENDOR must be commented out, not shipped as a blank assignment',
+      !example.split('\n').some((line) => /^\s*LUVANI_TTS_VENDOR\s*=\s*$/.test(line)),
+      'LUVANI_TTS_VENDOR must be commented out, not shipped as a blank assignment',
     );
   });
 

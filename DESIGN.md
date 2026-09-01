@@ -234,7 +234,7 @@ verdict, in the reserved-height slot the screen already keeps. There is no
 ## Structure
 
 A two-page moving welcome on first launch (the café scene says hello; page two
-says what Parle is and why speaking out loud is the point) → sign-in gate
+says what Luvani is and why speaking out loud is the point) → sign-in gate
 (Welcome / Create account / Sign in) → three onboarding pages (the age gate
 first, then a name, then one page saying what the tutor is; everything but the
 age is skippable) → the mission chooser, with the café already picked → **five

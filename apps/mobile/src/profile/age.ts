@@ -22,7 +22,7 @@
  * condition inside a screen.
  */
 
-import type { SafetyCategory } from '@parle/core';
+import type { SafetyCategory } from '@luvani/core';
 
 /** Youngest learner the product is made for. */
 export const MIN_AGE = 13;
@@ -79,7 +79,7 @@ export interface AgeStopCandidate {
  * could — is the tutor steering the conversation, not the product closing its
  * doors. Every other stop, including the two that also end a session, ends that
  * session and nothing more; none of them is a statement about whether this
- * learner is who Parle is for.
+ * learner is who Luvani is for.
  */
 export function isUnderAgeStop(safety: AgeStopCandidate | null | undefined): boolean {
   if (!safety) return false;

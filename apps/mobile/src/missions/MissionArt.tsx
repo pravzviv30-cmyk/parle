@@ -1,4 +1,4 @@
-import type { MissionPlace } from '@parle/core';
+import type { MissionPlace } from '@luvani/core';
 import { EveningIn, FrontDesk, HeroCafe, MarketStall, SpeakBubbles, StreetCorner } from '../illustrations.tsx';
 
 /** One authored postcard per situation, shared by the chooser and My French. */

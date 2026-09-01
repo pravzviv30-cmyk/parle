@@ -1,7 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
-import { CAFE_LESSON, RUNGS, directiveFor } from '@parle/core';
+import { CAFE_LESSON, RUNGS, directiveFor } from '@luvani/core';
 
 // The other shipped prompt. Reached across the workspace on purpose: the claim
 // under test is that both real builders carry one block, and a test that
@@ -68,7 +69,13 @@ describe('the stable prefix', () => {
     const { persona } = buildSystemBlocks();
     const opening = persona.slice(0, 400);
     assert.match(opening, /you are luc/i, 'the tutor has no name in the first thing the model reads');
-    assert.match(persona, /lyon/i, 'he is from somewhere');
+    // He has a life, not just rules — that is what this line has always held.
+    // It used to prove it with "Lyon". The town came out under F281 because the
+    // learner's chosen voice can be Québécois and a persona may assert only what
+    // every voice could plausibly claim, so the proof moved to the fact that
+    // survived the edit and carries the same weight: twenty years behind a bar.
+    assert.match(persona, /ran a bar/i, 'he is a person with a life, not a policy');
+    assert.match(persona, /fifty-two/i, 'and an age');
     assert.match(persona, /not a teacher/i, 'the one thing he is explicitly not');
 
     const firstRule = persona.indexOf('- ');
@@ -208,7 +215,7 @@ describe('the stable prefix', () => {
     // product must not offer, because it is not true.
     assert.doesNotMatch(
       SAFETY_CONDUCT,
-      /\b(?:we|someone|somebody|a human|staff|parle)\s+(?:is|are|will be)\s+(?:watching|monitoring|reading|listening|notified)/i,
+      /\b(?:we|someone|somebody|a human|staff|luvani)\s+(?:is|are|will be)\s+(?:watching|monitoring|reading|listening|notified)/i,
       'the block claims somebody is watching the conversation',
     );
     assert.doesNotMatch(SAFETY_CONDUCT, /help is (?:on the way|coming)(?! because)/i, 'the block promises help that is not coming');
@@ -441,5 +448,35 @@ describe('the tutor speaks at the length the learner can carry', () => {
     assert.match(carrying, /stay in character/i);
     assert.match(carrying, /Do not announce the achievement/i);
     assert.doesNotMatch(ordinary, /SCENE GOAL/, 'an unfinished scene must not carry the finished-scene line');
+  });
+});
+
+describe("the tutor's biography claims nothing a voice can contradict — F281", () => {
+  /**
+   * A persona may assert only what every voice in the catalogue could plausibly
+   * claim. The founder chose a Québécois voice for Luc, and the prompts said he
+   * grew up in Lyon and ran a bar near the Saône — so the learner heard one man
+   * and read about another. The bar, the twenty years and the warmth survive
+   * because no accent contradicts them; the town does not.
+   *
+   * Both prompts are checked because they are two pipelines describing one
+   * person, and the existing coupling test exists precisely because they drifted
+   * once already.
+   */
+  const CITIES = /\b(Lyon|Lyonnais|Sa[oô]ne|Paris|Marseille|Bordeaux|Toulouse|Montr[eé]al|Qu[eé]bec)\b/i;
+
+  test('neither prompt gives the tutor a home town', () => {
+    const brain = readFileSync(new URL('./system.ts', import.meta.url), 'utf8');
+    const persona = brain.slice(brain.indexOf('const PERSONA'), brain.indexOf('THE CONVERSATION'));
+    const found = persona.match(CITIES);
+    assert.equal(found, null, `the brain persona still places him in ${found?.[0]}`);
+
+    const agent = readFileSync(
+      new URL('../../../../services/tutor-agent/src/prompt.ts', import.meta.url),
+      'utf8',
+    );
+    const opening = agent.slice(agent.indexOf('You are Luc.'), agent.indexOf('THE SCENE'));
+    const there = opening.match(CITIES);
+    assert.equal(there, null, `the agent prompt still places him in ${there?.[0]}`);
   });
 });

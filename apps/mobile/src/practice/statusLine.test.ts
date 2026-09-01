@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, test } from 'node:test';
-import type { PathNode } from '@parle/core';
+import type { PathNode } from '@luvani/core';
 
 import { statusLine, momentAnswer, MOMENT_ANSWER_MS } from './statusLine.ts';
 import { TUTOR_NAME } from '../tutor/tutorName.ts';

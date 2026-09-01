@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
-import type { ConvoSupportView } from '@parle/core';
+import type { ConvoSupportView } from '@luvani/core';
 
 import { TAP_TO_TALK } from './choosingView.ts';
 import { OPEN_MIC_LABEL, hasSayableSupportLine, sceneControls, typedTurn } from './sceneControls.ts';

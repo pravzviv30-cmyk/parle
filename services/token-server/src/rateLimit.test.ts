@@ -90,7 +90,7 @@ describe('active voice sessions — one lease per learner', () => {
     await leases.release('private-user-signal', 'session-a');
     assert.deepEqual(commands[0], [
       'SET',
-      'parle:active-session:private-user-signal',
+      'luvani:active-session:private-user-signal',
       'session-a',
       'NX',
       'EX',
@@ -273,7 +273,7 @@ describe('the redis boundary — failures refuse, keys are hashed', () => {
 
     // Inside the adapter, the key is built from the passed signal and the rule
     // name only — it never reaches back into the request for an identity.
-    const keyTemplates = [...rateLimitSource.matchAll(/`parle:[^`]*`/g)].map((m) => m[0]);
+    const keyTemplates = [...rateLimitSource.matchAll(/`luvani:[^`]*`/g)].map((m) => m[0]);
     assert.ok(keyTemplates.length >= 2, 'the redis key templates must still be here');
     for (const template of keyTemplates) {
       for (const slot of [...template.matchAll(/\$\{([^}]+)\}/g)].map((m) => (m[1] ?? '').trim())) {

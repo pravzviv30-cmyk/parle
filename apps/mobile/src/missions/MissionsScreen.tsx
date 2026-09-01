@@ -24,7 +24,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { missionStates, type MissionProgress } from '@parle/core';
+import { missionStates, type MissionProgress } from '@luvani/core';
 import { paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
 import { Card, ChevronLeft, GhostButton, PillButton } from '../components.tsx';
 import { loadMissionCompletions } from './store.ts';

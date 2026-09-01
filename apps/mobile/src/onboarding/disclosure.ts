@@ -3,7 +3,7 @@
  *
  * Before this module the app said nothing. Splash, onboarding and the auth
  * welcome carried zero mentions of AI, and TutorIntro introduced the tutor with
- * a biography: from Lyon, ran a bar there for twenty years. A character is not
+ * a biography: twenty years behind a bar. A character is not
  * a lie. Presenting one as a biography to somebody who does not yet know they
  * are talking to software is, and the fix is not to delete Luc's history but to
  * introduce it as what it is. The warmth stays; the pretence goes.
@@ -62,7 +62,7 @@ import { TUTOR_NAME } from '../tutor/tutorName.ts';
 export const VENDOR_PHRASE = 'speech and language services';
 
 /**
- * The welcome subline, under "Speak French from day one".
+ * The welcome subline, under "Find your voice in French".
  *
  * The front door, so it carries the disclosure in its first sentence. What
  * follows is the old auth welcome's promise, kept whole, because the honest
@@ -80,7 +80,7 @@ export const MEET_TITLE = `Meet ${TUTOR_NAME}`;
  * who knows Luc is written can still enjoy him; a learner who finds out later
  * was tricked, and the second one stops trusting everything else on the screen.
  */
-export const MEET_AI = `${TUTOR_NAME} is an AI tutor. The man from Lyon who ran a bar for twenty years is a character we wrote for him, because a person is easier to talk to than a program. He is made up. The French is real.`;
+export const MEET_AI = `${TUTOR_NAME} is an AI tutor. The man who ran a bar for twenty years is a character we wrote for him, because a person is easier to talk to than a program. He is made up. The French is real.`;
 
 /** Where the words go, in the footer's vocabulary, and who does not hear them. */
 export const MEET_PRIVACY = `No person hears you. What you say goes to ${VENDOR_PHRASE} so ${TUTOR_NAME} can answer, and nothing is shared with anyone else.`;
@@ -98,7 +98,7 @@ export const MEET_MIC = 'Your phone will ask to use the microphone when you star
 export const MEET_TYPING = 'If you cannot speak out loud, tap Type instead in the scene and write your answer.';
 
 /** Where the rest of it lives. A pointer to text that exists, not to a policy that does not. */
-export const MEET_MORE = 'Profile has the rest of what Parle keeps.';
+export const MEET_MORE = 'Profile has the rest of what Luvani keeps.';
 
 /** The one action on the page. */
 export const MEET_PILL = 'Choose your first scene';
@@ -113,7 +113,7 @@ export const PERSONA_TITLE = `You'll be talking to ${TUTOR_NAME}`;
  * twenty years, and he is not a teacher." Same man, same bar, same warmth, and
  * now the learner knows what he is before they hear him.
  */
-export const PERSONA_BODY = `Not a quiz. ${TUTOR_NAME} is an AI tutor with a character we wrote for him: a man from Lyon, twenty years behind a bar, and not a teacher. He asks about your day, waits while you find the French, and answers what you actually said.`;
+export const PERSONA_BODY = `Not a quiz. ${TUTOR_NAME} is an AI tutor with a character we wrote for him: twenty years behind a bar, and not a teacher. He asks about your day, waits while you find the French, and answers what you actually said.`;
 
 /** One first-run surface: what it says, and the file that has to say it. */
 export interface FirstRunSurface {

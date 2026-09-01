@@ -17,15 +17,15 @@
 -- Because the only honest rollback here is a dangerous one, the script refuses to run
 -- until the operator says so in the same paste. That is the interlock, not a formality:
 --
---     set local parle.reopen_f73 = 'yes-i-accept-unbounded-trial-farming';
+--     set local luvani.reopen_f73 = 'yes-i-accept-unbounded-trial-farming';
 --
 -- Idempotent and retryable. It replaces one function body and touches no rows.
 
 do $$
 begin
-  if coalesce(current_setting('parle.reopen_f73', true), '') <> 'yes-i-accept-unbounded-trial-farming' then
+  if coalesce(current_setting('luvani.reopen_f73', true), '') <> 'yes-i-accept-unbounded-trial-farming' then
     raise exception
-      'refusing to restore the NULL-unsafe claim_trial guard (F73): set parle.reopen_f73 in this session first';
+      'refusing to restore the NULL-unsafe claim_trial guard (F73): set luvani.reopen_f73 in this session first';
   end if;
 end;
 $$;

@@ -236,7 +236,7 @@ export function applyCuration(
         const reasons = extensionViolations(extension);
         if (reasons.length > 0) {
           rejected += 1;
-          console.warn(`[parle] curation rejected the extension "${fr}": ${reasons.join('; ')}`);
+          console.warn(`[luvani] curation rejected the extension "${fr}": ${reasons.join('; ')}`);
           continue;
         }
         claimed.add(key);
@@ -248,7 +248,7 @@ export function applyCuration(
     }
   }
 
-  if (rejected > 0) console.warn(`[parle] curation rejected ${rejected} of ${checked} extensions`);
+  if (rejected > 0) console.warn(`[luvani] curation rejected ${rejected} of ${checked} extensions`);
   if (topics.length > 0) return topics;
 
   // The fallback: the scene's own topic, the first few phrases as met, minus

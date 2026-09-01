@@ -31,12 +31,12 @@ import {
   type CurationFixture,
   type Worth,
 } from './curationEval.ts';
-import type { Curation } from '@parle/brain';
+import type { Curation } from '@luvani/brain';
 
 const EVAL = fileURLToPath(new URL('./curationEval.ts', import.meta.url));
 const WORKSPACE = fileURLToPath(new URL('../..', import.meta.url));
 /** An env file that does not exist, so this machine's real keys cannot wander in. */
-const NO_ENV_FILE = path.join(tmpdir(), `parle-no-env-${randomUUID()}`);
+const NO_ENV_FILE = path.join(tmpdir(), `luvani-no-env-${randomUUID()}`);
 
 const CAFE = CURATION_FIXTURES[0] as CurationFixture;
 
@@ -54,7 +54,7 @@ function runCli(env: Record<string, string>): { code: number; out: string } {
     const out = execFileSync(process.execPath, ['--experimental-strip-types', EVAL], {
       encoding: 'utf8',
       cwd: WORKSPACE,
-      env: { PATH: process.env.PATH ?? '', PARLE_ENV_FILE: NO_ENV_FILE, ...env },
+      env: { PATH: process.env.PATH ?? '', LUVANI_ENV_FILE: NO_ENV_FILE, ...env },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     return { code: 0, out };

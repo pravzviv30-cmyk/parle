@@ -97,7 +97,7 @@ describe('the phrase evidence record', () => {
       !/^\s*export const MASTERY_USES\b/m.test(brain),
       'brain declares its own mastery threshold again',
     );
-    assert.match(brain, /export \{ MASTERY_USES \} from '@parle\/core'/);
+    assert.match(brain, /export \{ MASTERY_USES \} from '@luvani\/core'/);
   });
 
   test('a card with no evidence block reads as all zero, and an old deck still parses', () => {

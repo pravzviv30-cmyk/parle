@@ -29,7 +29,7 @@
  * A card that banked its own recap would give a learner two of them.
  */
 
-import { getMission, type MissionId, type Rung } from '@parle/core';
+import { getMission, type MissionId, type Rung } from '@luvani/core';
 
 export interface WinState {
   /**

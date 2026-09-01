@@ -63,7 +63,7 @@ describe('ClaudeCliBrainClient — talking to the command line', () => {
     const repoRoot = process.cwd();
     assert.ok(calls[0], 'the CLI was invoked');
     assert.notEqual(calls[0]!.cwd, repoRoot);
-    assert.ok(!calls[0]!.cwd.includes('Parle'), `ran in ${calls[0]!.cwd}, which is inside the project`);
+    assert.ok(!calls[0]!.cwd.includes('Luvani'), `ran in ${calls[0]!.cwd}, which is inside the project`);
   });
 
   test('the routed model is the one asked for, per activity', async () => {

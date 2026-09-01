@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import type { Lesson, Rung, SessionSummary } from '@parle/core';
+import type { Lesson, Rung, SessionSummary } from '@luvani/core';
 import { paper, space, type, HIT } from './theme.ts';
 import { Card, PillButton, GhostButton } from './components.tsx';
 import { SessionView } from './SessionView.tsx';

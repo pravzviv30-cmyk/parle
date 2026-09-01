@@ -40,7 +40,7 @@
 - [Session Journal Recovery](Session_Journal_Recovery.md) (5 shared connections)
 - [Failure Classification Copy](Failure_Classification_Copy.md) (5 shared connections)
 - [Prompt And Turn Queue](Prompt_And_Turn_Queue.md) (5 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (5 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (5 shared connections)
 - [Thinking And Safety Views](Thinking_And_Safety_Views.md) (4 shared connections)
 - [Tutor Turn Handling](Tutor_Turn_Handling.md) (3 shared connections)
 - [Voice Lifecycle Checks](Voice_Lifecycle_Checks.md) (3 shared connections)

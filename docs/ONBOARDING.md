@@ -31,9 +31,9 @@ Then the scene, where the first French is spoken.
 
 | # | Screen | What it wanted |
 |---|---|---|
-| 1 | Splash page 1 | "Welcome to Parle!", tap Let's go |
+| 1 | Splash page 1 | "Welcome to Luvani!", tap Let's go |
 | 2 | Splash page 2 | Three sentences on why speaking out loud works |
-| 3 | Auth welcome | "Speak French from day one", tap Create account |
+| 3 | Auth welcome | "Find your voice in French", tap Create account |
 | 4 | Sign up | Email and password |
 | 5 | Onboarding: name | A name |
 | 6 | Onboarding: age | One tap: thirteen or older |

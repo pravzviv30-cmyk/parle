@@ -20,12 +20,12 @@
  * exactly the failure this file would otherwise introduce, and because that file
  * calls itself the quality bar. The other four are authored here to match it.
  *
- * The catalogue half lives in `@parle/core`'s `missions/missions.ts` and repeats
+ * The catalogue half lives in `@luvani/core`'s `missions/missions.ts` and repeats
  * these phrases as literal data, because core cannot import brain.
  * `agreement.test.ts` reads both sides and fails when they disagree.
  */
 
-import type { MissionId } from '@parle/core';
+import type { MissionId } from '@luvani/core';
 
 import type { ScenarioFrame } from '../contract/types.ts';
 import { CAFE_FRAME, APERO_FRAME } from '../fixtures.ts';

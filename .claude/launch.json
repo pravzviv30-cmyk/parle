@@ -2,12 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "parle-web",
+      "name": "luvani-web",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
         "web",
-        "--workspace=@parle/mobile",
+        "--workspace=@luvani/mobile",
         "--",
         "--port",
         "8082"
@@ -15,12 +15,12 @@
       "port": 8082
     },
     {
-      "name": "parle-web-2",
+      "name": "luvani-web-2",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
         "web",
-        "--workspace=@parle/mobile",
+        "--workspace=@luvani/mobile",
         "--",
         "--port",
         "8090"
@@ -28,12 +28,12 @@
       "port": 8090
     },
     {
-      "name": "parle-worktree",
+      "name": "luvani-worktree",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
         "web",
-        "--workspace=@parle/mobile",
+        "--workspace=@luvani/mobile",
         "--",
         "--port",
         "8091"

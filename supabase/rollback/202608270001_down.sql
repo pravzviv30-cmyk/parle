@@ -24,7 +24,7 @@
 --
 -- The script refuses to run until the operator says so in the same paste:
 --
---     set local parle.reopen_f116 = 'yes-i-accept-losing-every-onboarding-event';
+--     set local luvani.reopen_f116 = 'yes-i-accept-losing-every-onboarding-event';
 --
 -- Idempotent and retryable. It replaces one function body and touches no rows. It leaves
 -- the product_events_validate trigger alone, exactly as the migration did, so there is no
@@ -32,9 +32,9 @@
 
 do $$
 begin
-  if coalesce(current_setting('parle.reopen_f116', true), '') <> 'yes-i-accept-losing-every-onboarding-event' then
+  if coalesce(current_setting('luvani.reopen_f116', true), '') <> 'yes-i-accept-losing-every-onboarding-event' then
     raise exception
-      'refusing to restore the two-key onboarding_completed product-event guard (F116): set parle.reopen_f116 in this session first';
+      'refusing to restore the two-key onboarding_completed product-event guard (F116): set luvani.reopen_f116 in this session first';
   end if;
 end;
 $$;

@@ -113,7 +113,7 @@ describe('Supabase billing events', () => {
 
 describe('billing event dedupe in the local fixtures', () => {
   test('a fixture dedupes on the event id alone, exactly as the primary key does', async () => {
-    const file = path.join(mkdtempSync(path.join(tmpdir(), 'parle-billing-')), 'entitlements.json');
+    const file = path.join(mkdtempSync(path.join(tmpdir(), 'luvani-billing-')), 'entitlements.json');
     for (const store of [new InMemoryEntitlementStore(), new FileEntitlementStore(file)]) {
       assert.equal(await store.recordBillingEvent('user-1', 'rc:evt-1'), true);
       assert.equal(await store.recordBillingEvent('user-1', 'rc:evt-1'), false);

@@ -23,7 +23,7 @@
  * kind of thing a future edit adds while trying to be helpful:
  *
  * `enableBackgroundRemoteNotifications` writes `UIBackgroundModes:
- * remote-notification` into Info.plist. Parle registers for no push service
+ * remote-notification` into Info.plist. Luvani registers for no push service
  * and runs no push server, so an App Store reviewer asking what the background
  * mode is for would get an answer nobody in this repo could give honestly.
  *
@@ -174,7 +174,7 @@ describe('what the reminder needs from the build rather than from its own logic'
         configured.enableBackgroundRemoteNotifications,
         true,
         'the plugin enables background remote notifications, which writes UIBackgroundModes: ' +
-          'remote-notification into Info.plist. Parle registers for no push service, so the App ' +
+          'remote-notification into Info.plist. Luvani registers for no push service, so the App ' +
           'Store review question that flag invites has no honest answer.',
       );
       assert.equal(

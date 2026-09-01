@@ -20,7 +20,7 @@
  * file deliberately does not. The reminder is a phone thing: it has to survive
  * the tab being closed, which needs a service worker and a whole second
  * delivery path with its own permission model and its own failure modes, for a
- * surface almost nobody runs Parle on. Reporting `unavailable` is the small
+ * surface almost nobody runs Luvani on. Reporting `unavailable` is the small
  * honest answer; a half-working web notification is the expensive dishonest
  * one. If that changes, it changes here and nowhere else.
  *

@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { STUCK_SILENCE_MS, directiveFor, replayRung, type Rung } from '@parle/core';
+import { STUCK_SILENCE_MS, directiveFor, replayRung, type Rung } from '@luvani/core';
 
 import {
   MAX_ATTEMPTS_PER_BEAT,

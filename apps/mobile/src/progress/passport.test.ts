@@ -25,7 +25,7 @@ import {
   type MissionId,
   type ReviewCard,
   type Rung,
-} from '@parle/core';
+} from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
 import { STAMP_STATES, hasStamps, stampLabel, stampsFrom, type Stamp } from './passport.ts';

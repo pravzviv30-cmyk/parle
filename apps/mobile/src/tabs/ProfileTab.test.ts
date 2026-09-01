@@ -326,7 +326,7 @@ describe('the daily reminder on Profile', () => {
     // write that did not land, which is about this device rather than about the
     // reminder, so it is written here and held to the same bar.
     assert.ok(TAB.includes(SAVE_TROUBLE), 'the screen no longer says anything when the choice fails to save');
-    assert.equal(guiltIn(SAVE_TROUBLE), undefined, `"${SAVE_TROUBLE}" carries a word Parle does not say to learners`);
+    assert.equal(guiltIn(SAVE_TROUBLE), undefined, `"${SAVE_TROUBLE}" carries a word Luvani does not say to learners`);
     assert.ok(!/[—–]/.test(SAVE_TROUBLE), 'the save line carries an em dash');
     assert.ok(!/\d/.test(SAVE_TROUBLE), 'the save line carries a number, and nothing on this row counts anything');
     assert.ok(!/\b(sorry|apolog|oops)/i.test(SAVE_TROUBLE), 'the save line apologises');
@@ -426,7 +426,7 @@ describe('a schedule the phone would not take', () => {
     // is a lie told in the one place this screen has to be trusted.
     assert.ok(TAB.includes(SCHEDULE_TROUBLE), 'the screen says nothing when the phone refuses to schedule');
     assert.notEqual(SCHEDULE_TROUBLE, SAVE_TROUBLE, 'two different facts are being told with one sentence');
-    assert.equal(guiltIn(SCHEDULE_TROUBLE), undefined, `"${SCHEDULE_TROUBLE}" carries a word Parle does not say to learners`);
+    assert.equal(guiltIn(SCHEDULE_TROUBLE), undefined, `"${SCHEDULE_TROUBLE}" carries a word Luvani does not say to learners`);
     assert.ok(!/[—–]/.test(SCHEDULE_TROUBLE), 'the schedule line carries an em dash');
     assert.ok(!/\d/.test(SCHEDULE_TROUBLE), 'the schedule line carries a number');
 

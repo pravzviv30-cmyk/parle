@@ -78,11 +78,11 @@ export const DEFAULT_OPENAI_ANALYST_MODEL = 'gpt-5.6-terra';
  */
 
 const FORMAT_NAME: Record<BrainActivity, string> = {
-  turn: 'parle_tutor_turn',
-  frame: 'parle_scenario',
-  extract: 'parle_memory',
-  drills: 'parle_drills',
-  curate: 'parle_practice',
+  turn: 'luvani_tutor_turn',
+  frame: 'luvani_scenario',
+  extract: 'luvani_memory',
+  drills: 'luvani_drills',
+  curate: 'luvani_practice',
 };
 
 interface ResponsesPayload {
@@ -149,7 +149,7 @@ function inputMessages(messages: readonly ChatMessage[]): { role: 'user' | 'assi
  */
 function cacheKeyFor(activity: BrainActivity, system: { persona: string; pack: string; contract: string }): string {
   const digest = createHash('sha256').update(`${system.persona}${system.pack}${system.contract}`).digest('hex').slice(0, 8);
-  return `parle-${activity}-${digest}`;
+  return `luvani-${activity}-${digest}`;
 }
 
 /**

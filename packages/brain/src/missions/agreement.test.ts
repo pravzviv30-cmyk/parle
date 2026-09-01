@@ -2,7 +2,7 @@
  * The pin between core's mission catalogue and brain's mission frames.
  *
  * A mission is deliberately stored in two places: the progression metadata in
- * `@parle/core`, the French in this package, because core cannot import brain
+ * `@luvani/core`, the French in this package, because core cannot import brain
  * and `ScenarioFrameSchema` cannot live anywhere but here. That split is only
  * safe while something reads both sides, which is what this file is. It is the
  * same move `palette.test.ts` makes for the colour table and `drill/fixtures.ts`
@@ -15,7 +15,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { MISSIONS, phraseKeyOf } from '@parle/core';
+import { MISSIONS, phraseKeyOf } from '@luvani/core';
 
 import { MISSION_FRAMES, missionFrame } from './frames.ts';
 import { ScenarioFrameSchema } from '../contract/schemas.ts';

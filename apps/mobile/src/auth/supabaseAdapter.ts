@@ -155,7 +155,7 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
         const installation = await installationId();
         const response = await fetch(`${TOKEN_SERVER}/account/delete`, {
           method: 'POST',
-          headers: { authorization: `Bearer ${token}`, 'x-parle-installation': installation },
+          headers: { authorization: `Bearer ${token}`, 'x-luvani-installation': installation },
         });
         // The response body is never read. It is written for an operator, it
         // can carry a database error, and the same route can be answered by a

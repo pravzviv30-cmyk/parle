@@ -13,7 +13,7 @@
  */
 
 import { ConnectionError, ConnectionErrorReason, DeviceUnsupportedError, MediaDeviceFailure } from 'livekit-client';
-import type { ErrorKind } from '@parle/core';
+import type { ErrorKind } from '@luvani/core';
 
 export type LiveFailure =
   /** The browser or OS refused the microphone. */
@@ -163,12 +163,12 @@ export interface FailureCopy {
 const COPY: Record<LiveFailure, FailureCopy> = {
   'mic-denied': {
     label: 'Microphone blocked',
-    message: 'Parle needs your microphone to hear you speak. Allow it for this site and try again, or carry on by typing.',
+    message: 'Luvani needs your microphone to hear you speak. Allow it for this site and try again, or carry on by typing.',
     canType: true,
   },
   'mic-missing': {
     label: 'No microphone',
-    message: 'This device has no microphone Parle can use. You can still have the whole conversation by typing.',
+    message: 'This device has no microphone Luvani can use. You can still have the whole conversation by typing.',
     canType: true,
   },
   'mic-in-use': {
@@ -178,7 +178,7 @@ const COPY: Record<LiveFailure, FailureCopy> = {
   },
   'mic-unavailable': {
     label: 'Microphone unavailable',
-    message: 'Parle cannot open the microphone here. You can have the whole conversation by typing instead.',
+    message: 'Luvani cannot open the microphone here. You can have the whole conversation by typing instead.',
     canType: true,
   },
   // The one failure a learner is most likely to meet, and the one that read
@@ -189,12 +189,12 @@ const COPY: Record<LiveFailure, FailureCopy> = {
   // on-device and completely unaffected.
   'server-unreachable': {
     label: 'Tutor unavailable',
-    message: 'Parle cannot reach your tutor right now. Practice works offline, so you can carry on there. Try again in a little while.',
+    message: 'Luvani cannot reach your tutor right now. Practice works offline, so you can carry on there. Try again in a little while.',
     canType: false,
   },
   'server-refused': {
     label: 'Session refused',
-    message: 'Parle could not start a session for this account. Signing out and back in usually settles it.',
+    message: 'Luvani could not start a session for this account. Signing out and back in usually settles it.',
     canType: false,
   },
   // The three refusals below used to share the line above, and sign out and
@@ -209,7 +209,7 @@ const COPY: Record<LiveFailure, FailureCopy> = {
   // find out than this screen.
   'rate-limited': {
     label: 'A short wait',
-    message: 'Parle needs a short pause before it can start another session. Try again in a minute or two.',
+    message: 'Luvani needs a short pause before it can start another session. Try again in a minute or two.',
     canType: false,
   },
   // Two learners meet this one, and the first draft only spoke to one of them.
@@ -232,12 +232,12 @@ const COPY: Record<LiveFailure, FailureCopy> = {
     // One string literal, not a concatenation: the surface walk in
     // surfaceContract.test.ts reads these messages with a `message: '...'`
     // regex, and a second half on its own line would never be walked at all.
-    message: 'Parle still has a French session open for you. If it is on another device, end it there and try again. If you just left one here, it clears itself within half an hour, and practice works offline until then.',
+    message: 'Luvani still has a French session open for you. If it is on another device, end it there and try again. If you just left one here, it clears itself within half an hour, and practice works offline until then.',
     canType: false,
   },
   'sign-in-required': {
     label: 'Signed out',
-    message: 'Parle cannot start a session while you are signed out. Sign in again and your progress is right where you left it.',
+    message: 'Luvani cannot start a session while you are signed out. Sign in again and your progress is right where you left it.',
     canType: false,
   },
   signal: {
@@ -309,7 +309,7 @@ export function failureCopy(failure: LiveFailure): FailureCopy {
 // Everything above classifies an exception thrown while a session was being
 // STARTED. This half classifies a frame that arrives while one is running: the
 // agent's `error` message, which now carries the vendor's own `kind` and its
-// `recoverable` flag (see ERROR_KINDS in @parle/core).
+// `recoverable` flag (see ERROR_KINDS in @luvani/core).
 //
 // It exists because one sentence was answering for all five. A Deepgram outage
 // meant the tutor could not HEAR, and the learner was told its VOICE had gone —
@@ -403,14 +403,14 @@ const AUDIO_ONLY: ReadonlySet<ErrorKind> = new Set<ErrorKind>([
 ]);
 
 /** The ordinary per-event line, same channel as the rest of the live trace. */
-export const PIPELINE_LOG_PREFIX = '[parle:live] pipeline';
+export const PIPELINE_LOG_PREFIX = '[luvani:live] pipeline';
 
 /**
  * The stable alarm string. A vendor half of the tutor is down and not coming
  * back on its own. Renaming this breaks whoever is grepping for it during an
  * incident, which is the only time it matters.
  */
-export const PIPELINE_ALARM_PREFIX = '[parle] TUTOR_PIPELINE_DOWN';
+export const PIPELINE_ALARM_PREFIX = '[luvani] TUTOR_PIPELINE_DOWN';
 
 /**
  * One greppable line, prefix included.

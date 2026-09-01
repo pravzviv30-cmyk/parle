@@ -4,7 +4,7 @@
  * The reference app this came from puts two big serif numbers under its hero,
  * and that shape is right: a count in the serif reads as an achievement in a
  * way a sentence does not. What it does NOT get is that app's percentage,
- * because Parle has no fixed word list to be a percentage of.
+ * because Luvani has no fixed word list to be a percentage of.
  *
  * A few of the learner's own phrases come along under the numbers, in the
  * serif, because the count is the claim and the phrases are the evidence.

@@ -12,7 +12,7 @@
  * have its own store). This module is pure.
  */
 
-import { isMastered, normalise, type Rung } from '@parle/core';
+import { isMastered, normalise, type Rung } from '@luvani/core';
 
 import type { MemoryExtraction, MemoryFact, TutorTurn } from '../contract/types.ts';
 import { CEFR_BANDS, type CefrBand, type RegisterId, type Strictness } from '../types.ts';
@@ -78,7 +78,7 @@ export const EVIDENCE_WINDOW = 12;
  * second opinion about what a learner knows. Re-exported so every existing
  * importer of this module keeps working.
  */
-export { MASTERY_USES } from '@parle/core';
+export { MASTERY_USES } from '@luvani/core';
 /** Recurring-error patterns kept; beyond this the least recently seen goes. */
 export const MAX_ERROR_PATTERNS = 40;
 export const MAX_PHRASES = 200;

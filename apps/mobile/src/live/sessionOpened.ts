@@ -18,7 +18,7 @@
  * decides whether a learner sees their session or an error screen.
  */
 
-import type { ServerMessage } from '@parle/core';
+import type { ServerMessage } from '@luvani/core';
 import type { LiveMode } from '../tutor/choosingView.ts';
 
 /**

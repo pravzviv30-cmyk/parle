@@ -7,7 +7,7 @@
  * learner's transcript and reference text in the loop to score pronunciation at
  * all, which a speech-to-speech model does not hand back).
  *
- * The important architectural decision is that this worker imports `@parle/core`
+ * The important architectural decision is that this worker imports `@luvani/core`
  * and runs *the same* tested ladder, lesson and grading code the app uses. The
  * pedagogy has exactly one implementation. A Python worker would have meant a
  * second copy of the ladder, and two copies of a rule like "four seconds of
@@ -18,7 +18,7 @@
  *               text-level answer grading, the silence rescue, per-utterance
  *               audio capture (utterance.ts) and the real spoken duration that
  *               comes with it.
- *   Behind a flag: sending that audio to Speechace. PARLE_AUDIO_SCORING=1 turns
+ *   Behind a flag: sending that audio to Speechace. LUVANI_AUDIO_SCORING=1 turns
  *               it on. Off, `scoreUtterance` is called with the reference alone
  *               and returns an empty array, `grade()` treats a null score as
  *               "do not invent a penalty", and the end card says plainly that
@@ -36,7 +36,7 @@ import {
 } from '@livekit/agents';
 import * as anthropic from '@livekit/agents-plugin-anthropic';
 import * as openai from '@livekit/agents-plugin-openai';
-import { DEFAULT_OPENAI_TURN_MODEL, DEFAULT_ROUTING, defaultModel } from '@parle/brain';
+import { DEFAULT_OPENAI_TURN_MODEL, DEFAULT_ROUTING, defaultModel } from '@luvani/brain';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as silero from '@livekit/agents-plugin-silero';
 import { preflight, reportVendors, selectedBrain, verifyVendors } from './preflight.ts';
@@ -52,9 +52,9 @@ import {
   type Lesson,
   type Rung,
   type ServerMessage,
-} from '@parle/core';
-import { ParleConversation, parseStoredProfile, sttLanguageFor, validSeedTopic } from './convo.ts';
-import { ParleTutor } from './tutor.ts';
+} from '@luvani/core';
+import { LuvaniConversation, parseStoredProfile, sttLanguageFor, validSeedTopic } from './convo.ts';
+import { LuvaniTutor } from './tutor.ts';
 import { createTurnTiming, formatTiming, formatVendorMetrics, mark, type VendorMetrics } from './timing.ts';
 import { turnHandlingFor } from './turnHandling.ts';
 
@@ -146,7 +146,7 @@ export default defineAgent({
       throw new Error('signed join metadata is missing a valid session id');
     }
     if (meta.lessonId && meta.lessonId !== lesson.id) {
-      console.warn(`[parle] token metadata names lesson ${meta.lessonId}; agent is running ${lesson.id}`);
+      console.warn(`[luvani] token metadata names lesson ${meta.lessonId}; agent is running ${lesson.id}`);
     }
     const allowanceRemaining =
       typeof meta.secondsRemaining === 'number' && Number.isFinite(meta.secondsRemaining)
@@ -187,33 +187,33 @@ export default defineAgent({
 
     // The mission the learner tapped. Same channel as the seed topic and the
     // same reasoning about trust: server-signed, but the shape inside came from
-    // the app, so `ParleConversation` resolves it against the frames it
+    // the app, so `LuvaniConversation` resolves it against the frames it
     // actually has and opens the ordinary choosing question for anything else.
     //
     // Reading it here is what makes the whole authored-scene path exist. The
     // token server signs it and the conversation accepts it, and for a while
     // this line was missing between them, so every mission tap still paid the
     // ten-to-twenty-five second scene build and no test could see it: the
-    // mission tests all build ParleConversation directly and never come
+    // mission tests all build LuvaniConversation directly and never come
     // through this door.
     const missionId = meta.missionId;
 
     const tutor = isConvo
-      ? new ParleConversation(parseStoredProfile(meta.snapshot), {
+      ? new LuvaniConversation(parseStoredProfile(meta.snapshot), {
           voiceless,
           seedTopic,
           missionId,
           // The same clamped rung the scripted lesson below already got, now
           // reaching the branch a mission actually runs on. It rode this far
           // and then died here: missions are conversations, so handing it only
-          // to ParleTutor meant a learner replaying a finished mission got
+          // to LuvaniTutor meant a learner replaying a finished mission got
           // exactly the help they had last time, with every wire in between
-          // looking connected. ParleConversation reads it when it opens a
+          // looking connected. LuvaniConversation reads it when it opens a
           // mission and nowhere else.
           startRung,
           setSttLanguage: (language) => stt.updateOptions({ language }),
         })
-      : new ParleTutor(lesson, startRung, { voiceless });
+      : new LuvaniTutor(lesson, startRung, { voiceless });
     tutor.learnerId = participant.identity;
     tutor.sessionId = meta.sessionId;
 
@@ -227,7 +227,7 @@ export default defineAgent({
     // The brain marks belong to the conversation; the record and the clock stay
     // here. Reading `timing` through the closure keeps marks landing on the
     // current turn's record across the per-turn resets below.
-    if (tutor instanceof ParleConversation) {
+    if (tutor instanceof LuvaniConversation) {
       tutor.attachTiming((stage) => mark(timing, stage, performance.now()));
     }
 
@@ -236,7 +236,7 @@ export default defineAgent({
     // another account by becoming "the latest" identity.
     ctx.room.on('participantConnected', (p) => {
       if (p.identity !== tutor.learnerId) {
-        console.warn('[parle] ignored an unexpected participant in a learner-bound room');
+        console.warn('[luvani] ignored an unexpected participant in a learner-bound room');
       }
     });
 
@@ -251,7 +251,7 @@ export default defineAgent({
     const publish = (message: ServerMessage) =>
       ctx.room.localParticipant
         ?.publishData(encodeMessage(message), { topic: TOPIC_SERVER, reliable: true })
-        .catch((err) => console.error('[parle] failed to publish state', err));
+        .catch((err) => console.error('[luvani] failed to publish state', err));
 
     tutor.attach(publish);
 
@@ -271,7 +271,7 @@ export default defineAgent({
       // process, and an unhandled rejection here ends all of their sessions at
       // once. A `void` with no catch is that bet, taken on every frame.
       void tutor.handleClientMessage(session, payload).catch((err: unknown) => {
-        console.error('[parle] a client message failed on its way in', err);
+        console.error('[luvani] a client message failed on its way in', err);
       });
     });
 
@@ -286,14 +286,14 @@ export default defineAgent({
       // so they live in a tested module rather than inline here. See
       // turnHandling.ts for what each one costs when it is wrong.
       turnHandling: turnHandlingFor(isConvo ? 'convo' : 'lesson', {
-        turnDetection: process.env.PARLE_TURN_DETECTION,
+        turnDetection: process.env.LUVANI_TURN_DETECTION,
       }),
     });
 
     session.on(voice.AgentSessionEventTypes.Error, (ev) => {
       // A TTS outage without this handler is indistinguishable from silence:
       // prompts keep flowing and the learner hears nothing. Tell them plainly.
-      console.error('[parle] pipeline error:', ev.error);
+      console.error('[luvani] pipeline error:', ev.error);
 
       // Which half broke, and whether it is coming back. Every arm of the
       // pipeline's error union already carries both (events.ts: STTError,
@@ -321,7 +321,7 @@ export default defineAgent({
       // session it happened in. What never goes in: the frame's sentence, and
       // anything the learner said. The vendor's own error is logged above, on
       // its own line, so this one stays clean enough to paste anywhere.
-      const prefix = recoverable ? '[parle:live] pipeline' : '[parle] TUTOR_PIPELINE_DOWN';
+      const prefix = recoverable ? '[luvani:live] pipeline' : '[luvani] TUTOR_PIPELINE_DOWN';
       console.error(
         `${prefix} kind=${kind} recoverable=${recoverable ? 'yes' : 'no'} mode=${voiceless ? 'typed' : 'spoken'}`,
       );
@@ -352,7 +352,7 @@ export default defineAgent({
       }
     });
 
-    // The pipeline measures the vendors Parle was guessing about: time to the
+    // The pipeline measures the vendors Luvani was guessing about: time to the
     // voice vendor's first byte, how long the recogniser took after the learner
     // stopped, how long the turn decision itself ran. It has been emitting all
     // of it to nobody. An `llm` line during a CONVERSATION is a finding in its
@@ -381,7 +381,7 @@ export default defineAgent({
     ctx.room.on('disconnected', () => {
       clearTimeout(hardStop);
       // Cost visibility per session: hits are free lines, misses were billed.
-      console.log(`[parle] voice cache: ${voiceTts.hits} replayed free, ${voiceTts.misses} synthesized live`);
+      console.log(`[luvani] voice cache: ${voiceTts.hits} replayed free, ${voiceTts.misses} synthesized live`);
       void tutor.finish();
     });
 
@@ -397,7 +397,7 @@ export default defineAgent({
 
     await session.start({ agent: tutor, room: ctx.room });
 
-    if (tutor instanceof ParleConversation) {
+    if (tutor instanceof LuvaniConversation) {
       // The scene opens: the character speaks first and the app renders the
       // opening support. No model call — the frame carries everything.
       tutor.open(session);

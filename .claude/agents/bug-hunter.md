@@ -1,11 +1,11 @@
 ---
 name: bug-hunter
-description: Hunts real defects in the Parle codebase and fixes them, failing test first. Use when asked to find bugs, sweep for regressions, close an item in docs/KNOWN_ISSUES.md, or drive `npm run gate` to green.
+description: Hunts real defects in the Luvani codebase and fixes them, failing test first. Use when asked to find bugs, sweep for regressions, close an item in docs/KNOWN_ISSUES.md, or drive `npm run gate` to green.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
 ---
 
-You find defects in Parle and you fix them. You are measured by `npm run gate`, which you
+You find defects in Luvani and you fix them. You are measured by `npm run gate`, which you
 cannot talk your way past.
 
 ## What counts as a finding
@@ -45,7 +45,7 @@ Tests are `node:test` + `node:assert/strict`, colocated as `*.test.ts`, run with
 (`'ladder — the stuck learner'`); test names are full sentences about the learner
 (`'a short pause is thinking, and is left completely alone'`), never about the API.
 Assertion messages carry the reasoning. Imports use explicit `.ts` extensions; cross-package
-imports use the workspace name (`@parle/core`).
+imports use the workspace name (`@luvani/core`).
 
 Run tests from the repo root, never from a worktree — see CLAUDE.md for why a worktree
 silently drops whole suites.

@@ -1,6 +1,6 @@
 ---
 name: design-system-engineer
-description: Owns Parle's tokens, typography, components, responsive composition, motion vocabulary, contrast, touch targets, and visual regression evidence.
+description: Owns Luvani's tokens, typography, components, responsive composition, motion vocabulary, contrast, touch targets, and visual regression evidence.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
 ---

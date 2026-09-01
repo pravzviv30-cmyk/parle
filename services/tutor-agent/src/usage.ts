@@ -18,7 +18,7 @@ const TOKEN_SERVER = process.env.TOKEN_SERVER_URL ?? 'http://localhost:8787';
  * seconds from anyone who can reach it. Unset in dev, where the server keeps its
  * old behaviour and says so at boot.
  */
-const AGENT_SECRET = process.env.PARLE_AGENT_SECRET;
+const AGENT_SECRET = process.env.LUVANI_AGENT_SECRET;
 
 export interface UsageReport {
   userId: string;
@@ -48,7 +48,7 @@ export async function reportUsage(report: UsageReport, options: UsageReportOptio
   // does: agent.ts refuses metadata without a real session id before starting.
   if (report.sessionId === '00000000-0000-4000-8000-000000000000') return;
   if (!Number.isInteger(report.seconds) || report.seconds < 0 || report.seconds > 900) {
-    console.error(`[parle] USAGE_NOT_DEBITED session=${report.sessionId.slice(0, 8)} reason=invalid-seconds`);
+    console.error(`[luvani] USAGE_NOT_DEBITED session=${report.sessionId.slice(0, 8)} reason=invalid-seconds`);
     return;
   }
 
@@ -65,7 +65,7 @@ export async function reportUsage(report: UsageReport, options: UsageReportOptio
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          ...(agentSecret ? { 'x-parle-agent': agentSecret } : {}),
+          ...(agentSecret ? { 'x-luvani-agent': agentSecret } : {}),
         },
         signal: AbortSignal.timeout(5_000),
         body: JSON.stringify({
@@ -78,7 +78,7 @@ export async function reportUsage(report: UsageReport, options: UsageReportOptio
       if (res.ok) {
         const body = (await res.json()) as { secondsRemaining?: number };
         console.log(
-          `[parle] usage recorded session=${report.sessionId.slice(0, 8)} seconds=${report.seconds} ` +
+          `[luvani] usage recorded session=${report.sessionId.slice(0, 8)} seconds=${report.seconds} ` +
             `remaining=${body.secondsRemaining ?? '?'}`,
         );
         return;
@@ -93,5 +93,5 @@ export async function reportUsage(report: UsageReport, options: UsageReportOptio
 
   // No raw account id in logs. The random session prefix is enough to match
   // this line to the token-server request without creating identity telemetry.
-  console.error(`[parle] USAGE_NOT_DEBITED session=${report.sessionId.slice(0, 8)} ${lastFailure}`);
+  console.error(`[luvani] USAGE_NOT_DEBITED session=${report.sessionId.slice(0, 8)} ${lastFailure}`);
 }

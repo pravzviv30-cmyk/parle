@@ -629,7 +629,7 @@ export function ProfileTab({
           </Pressable>
           <Text style={[type.small, { color: paper.inkFaint, marginTop: space(3) }]}>
             You can download your account data or delete your account above. A reviewed privacy policy and terms are
-            still required before release. Parle records your email, name and age confirmation, then sends live speech
+            still required before release. Luvani records your email, name and age confirmation, then sends live speech
             to speech and language services so the tutor can answer. Nothing is shared with anyone else or sold for
             advertising.
           </Text>

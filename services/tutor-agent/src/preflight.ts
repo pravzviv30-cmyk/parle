@@ -10,7 +10,7 @@
  * misconfigured it.
  */
 
-import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_TURN_MODEL } from '@parle/brain';
+import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_TURN_MODEL } from '@luvani/brain';
 import { MODEL, PROBE_LINE, VOICE_KEY, selectedVoiceVendor, synthesisProbeRequest } from './voice.ts';
 import { fishModel, fishSynthesisProbeRequest, fishVoiceId } from './voiceFish.ts';
 
@@ -108,7 +108,7 @@ export const NEAR_MISS_KEYS: Record<string, string> = {
   ELEVEN_LABS_API_KEY: 'ELEVEN_API_KEY',
   ELEVENLABS_KEY: 'ELEVEN_API_KEY',
   // Not hypothetical. This is the name in the live .env today, and the plugin
-  // reads FISH_API_KEY, so under PARLE_TTS_VENDOR=fish the worker would refuse
+  // reads FISH_API_KEY, so under LUVANI_TTS_VENDOR=fish the worker would refuse
   // to boot next to a perfectly good key sitting under the wrong name.
   FISH_AUDIO_API_KEY: 'FISH_API_KEY',
 };
@@ -121,7 +121,7 @@ export function missingRequired(env: Env = process.env): string[] {
     'LIVEKIT_API_KEY',
     'LIVEKIT_API_SECRET',
     'DEEPGRAM_API_KEY',
-    // The voice key follows PARLE_TTS_VENDOR exactly as the brain key follows
+    // The voice key follows LUVANI_TTS_VENDOR exactly as the brain key follows
     // TUTOR_LLM. Demanding ElevenLabs' key under fish would refuse to boot a
     // worker that was never going to call ElevenLabs.
     VOICE_KEY[selectedVoiceVendor(env)],
@@ -165,10 +165,10 @@ export function warnings(env: Env = process.env): string[] {
         'Set FISH_VOICE_ID to a French voice before a learner hears it.',
     );
   }
-  const asked = (env.PARLE_TTS_VENDOR ?? '').trim();
+  const asked = (env.LUVANI_TTS_VENDOR ?? '').trim();
   if (asked !== '' && asked.toLowerCase() !== 'fish' && asked.toLowerCase() !== 'elevenlabs') {
     out.push(
-      `PARLE_TTS_VENDOR is set to “${asked}”, which is not a vendor this worker knows, so ElevenLabs ` +
+      `LUVANI_TTS_VENDOR is set to “${asked}”, which is not a vendor this worker knows, so ElevenLabs ` +
         'will be used. The two it knows are elevenlabs and fish.',
     );
   }
@@ -399,7 +399,7 @@ async function probeFishSynthesis(env: Env, fetchFn: FetchLike): Promise<VendorC
       `          The tutor asks for voice "${fishVoiceId(env) ?? 'the vendor default'}" on ${fishModel(env)},\n` +
       `          and it is the COMBINATION that is refused. A 402 here usually means the free window on\n` +
       `          that model has closed: set FISH_MODEL in services/tutor-agent/.env to a paid model, or\n` +
-      `          set PARLE_TTS_VENDOR back to elevenlabs.`,
+      `          set LUVANI_TTS_VENDOR back to elevenlabs.`,
   };
 }
 
@@ -564,15 +564,15 @@ export async function verifyVendors(
 
 /** Prints what the vendors said, and refuses to start on anything fatal. */
 export function reportVendors(checks: readonly VendorCheck[], exit: (code: number) => never = process.exit): void {
-  for (const check of checks.filter((c) => !c.fatal)) console.warn(`[parle:agent] ${check.vendor} ${check.detail}`);
+  for (const check of checks.filter((c) => !c.fatal)) console.warn(`[luvani:agent] ${check.vendor} ${check.detail}`);
 
   const fatal = checks.filter((c) => c.fatal);
   if (fatal.length === 0) {
-    console.info('[parle:agent] vendors ok — brain, voice and transcription all answered.');
+    console.info('[luvani:agent] vendors ok — brain, voice and transcription all answered.');
     return;
   }
   console.error(
-    `\n[parle:agent] Cannot start. The keys are present but the vendors disagree:\n` +
+    `\n[luvani:agent] Cannot start. The keys are present but the vendors disagree:\n` +
       fatal.map((c) => `        - ${c.vendor} ${c.detail}`).join('\n') +
       `\n\n        Every one of these reaches a learner the same way: a room that opens\n` +
       `        and a tutor that never speaks. Fix them in services/tutor-agent/.env.\n`,
@@ -582,16 +582,16 @@ export function reportVendors(checks: readonly VendorCheck[], exit: (code: numbe
 
 /** Called once at startup, before the worker registers with LiveKit. */
 export function preflight(env: Env = process.env, exit: (code: number) => never = process.exit): void {
-  for (const line of warnings(env)) console.warn(`[parle:agent] ${line}`);
+  for (const line of warnings(env)) console.warn(`[luvani:agent] ${line}`);
 
   const missing = missingRequired(env);
   if (missing.length === 0) {
-    console.info(`[parle:agent] preflight ok — brain: ${selectedBrain(env)}`);
+    console.info(`[luvani:agent] preflight ok — brain: ${selectedBrain(env)}`);
     return;
   }
 
   console.error(
-    `\n[parle:agent] Cannot start. Missing in services/tutor-agent/.env:\n` +
+    `\n[luvani:agent] Cannot start. Missing in services/tutor-agent/.env:\n` +
       missing.map((name) => `        - ${name}`).join('\n') +
       `\n\n        Copy services/tutor-agent/.env.example to .env and fill it in.\n` +
       `        The brain is selected by TUTOR_LLM (currently: ${selectedBrain(env)}).\n` +

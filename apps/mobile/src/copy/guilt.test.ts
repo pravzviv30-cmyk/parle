@@ -27,7 +27,7 @@ import assert from 'node:assert/strict';
 import { BANNED_IN_COPY, guiltIn } from './guilt.ts';
 
 /**
- * Every word a Parle surface has ever banned, written down with its origin.
+ * Every word a Luvani surface has ever banned, written down with its origin.
  *
  * This is the historical record, not a copy of the list under test. When a word
  * is removed from BANNED_IN_COPY to let a nice sentence through, it is still
@@ -56,7 +56,7 @@ const ONCE_BANNED: readonly { readonly word: string; readonly from: string }[] =
   { word: 'owe', from: 'the mix offer' },
 ];
 
-describe('the words no Parle surface may say', () => {
+describe('the words no Luvani surface may say', () => {
   test('the shared ban list still carries every word each surface ever banned', () => {
     const dropped = ONCE_BANNED.filter(({ word }) => guiltIn(word) === undefined).map(
       ({ word, from }) => `"${word}", banned by ${from}`,

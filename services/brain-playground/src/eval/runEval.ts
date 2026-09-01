@@ -36,8 +36,8 @@ import {
   type LlmUsage,
   type TurnView,
   type TutorTurn,
-} from '@parle/brain';
-import { STUCK_SILENCE_MS } from '@parle/core';
+} from '@luvani/brain';
+import { STUCK_SILENCE_MS } from '@luvani/core';
 
 import { EVAL_CASES, type EvalCase } from './cases.ts';
 import { addUsage, costUsd, ZERO_USAGE } from '../usage.ts';

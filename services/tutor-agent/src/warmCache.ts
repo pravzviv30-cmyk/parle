@@ -6,11 +6,11 @@
  * one-off measured in cents. Run it after keys land, and again whenever lesson
  * text or the configured voice changes:
  *
- *   npm run warm-cache -w @parle/tutor-agent
+ *   npm run warm-cache -w @luvani/tutor-agent
  *
  * Rerunning is free: cached lines are skipped.
  *
- * Changing PARLE_TTS_VENDOR is the expensive one. The cache key carries the
+ * Changing LUVANI_TTS_VENDOR is the expensive one. The cache key carries the
  * vendor and its sample rate, so every WAV already on disk is orphaned — not
  * corrupted, just never asked for again — and the first run on the new vendor
  * pays for every line a second time. Budget a full cold warm, not a top-up.
@@ -18,8 +18,8 @@
 
 import 'dotenv/config';
 import { initializeLogger, tokenize } from '@livekit/agents';
-import { LESSONS } from '@parle/core';
-import { APERO_FRAME, CAFE_FRAME } from '@parle/brain';
+import { LESSONS } from '@luvani/core';
+import { APERO_FRAME, CAFE_FRAME } from '@luvani/brain';
 import { buildTTS, selectedVoiceVendor, VOICE_KEY } from './voice.ts';
 import { CONVO_LINES } from './convo.ts';
 
@@ -76,7 +76,7 @@ async function main(): Promise<void> {
   //
   // This script exits by letting the event loop drain, and the websocket
   // transport holds a pooled vendor socket open for up to its 180s inactivity
-  // timeout — so a warm run under PARLE_TTS_MISS_TRANSPORT=ws looks hung for
+  // timeout — so a warm run under LUVANI_TTS_MISS_TRANSPORT=ws looks hung for
   // three minutes. That flag lives in the same .env this file loads, so "set it
   // on the agent, not on the warm run" was advice that could not be followed.
   // Pinning it is the fix; the trap is gone rather than documented.

@@ -6,7 +6,7 @@
  * speaking in an American woman's voice, because every native French voice
  * ElevenLabs offers is a library or cloned voice and a free account cannot use
  * either over the API. fish.audio sells French voices its free tier will
- * actually synthesize, so it is here as a SECOND vendor behind PARLE_TTS_VENDOR
+ * actually synthesize, so it is here as a SECOND vendor behind LUVANI_TTS_VENDOR
  * — not as a replacement. ElevenLabs stays the default, byte for byte, because
  * the warmed cache on disk is keyed to it.
  *
@@ -67,7 +67,7 @@ export const FISH_SAMPLE_RATE = 24_000;
  * deliberate: the point of this pass is a French voice, not a new delivery, and
  * a settings change and a vendor change landing together would make a bad take
  * impossible to attribute. `latencyMode: 'low'` is the obvious next experiment
- * and it is a measured change, not a free one — read the `[parle:latency]`
+ * and it is a measured change, not a free one — read the `[luvani:latency]`
  * say->audio segment before and after.
  */
 export const FISH_SETTINGS: Required<
@@ -187,7 +187,7 @@ export function fishVoice(env: Env = process.env): { inner: tts.TTS; voiceKey: s
  * audio happens to land on an exact 4800-byte boundary. Its HTTP stream is
  * worse: both emit sites hardcode `final: false`.
  *
- * With PARLE_TTS_MISS_TRANSPORT=ws, which is what the founder runs, that means
+ * With LUVANI_TTS_MISS_TRANSPORT=ws, which is what the founder runs, that means
  * the cache silently stops caching. Audio plays, spend rises, and no test
  * fails. That is the worst shape a bug can have.
  *
@@ -222,7 +222,7 @@ export function fishVoice(env: Env = process.env): { inner: tts.TTS; voiceKey: s
  * `finish` event. A frame here is 100ms of audio (AudioByteStream defaults to
  * sampleRate/10 samples, which is the 4800 bytes above), and fish generates
  * well faster than realtime, so the gap is a fraction of that. It is not free
- * and it is not measured yet: read the `[parle:latency]` say->audio segment on
+ * and it is not measured yet: read the `[luvani:latency]` say->audio segment on
  * fish before deciding it does not matter.
  *
  * Only `stream()` is wrapped. `synthesize()` passes straight through, because
@@ -233,7 +233,7 @@ export function holdLastPacketFinal(inner: tts.TTS): tts.TTS {
 }
 
 class FinalMarkingTTS extends tts.TTS {
-  label = 'parle.FinalMarkingTTS';
+  label = 'luvani.FinalMarkingTTS';
   readonly inner: tts.TTS;
 
   constructor(inner: tts.TTS) {
@@ -264,7 +264,7 @@ class FinalMarkingTTS extends tts.TTS {
 }
 
 class FinalMarkingStream extends tts.SynthesizeStream {
-  label = 'parle.FinalMarkingStream';
+  label = 'luvani.FinalMarkingStream';
   readonly #inner: tts.SynthesizeStream;
 
   constructor(owner: tts.TTS, inner: tts.SynthesizeStream, connOptions?: APIConnectOptions) {

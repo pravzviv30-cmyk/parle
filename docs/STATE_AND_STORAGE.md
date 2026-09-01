@@ -6,7 +6,7 @@ gone wrong.
 ## On the device
 
 `apps/mobile/src/storage/scope.ts` keys **everything** to the signed-in account:
-`parle.u.{uid}.{suffix}`. `userKey()` throws if called with no active user, which
+`luvani.u.{uid}.{suffix}`. `userKey()` throws if called with no active user, which
 is deliberate — a store read before the auth gate is a bug, and a silent global
 fallback would leak one learner's history into another's session.
 
@@ -51,7 +51,7 @@ and be in another scene seconds later.
 
 **Its ceiling, said plainly, because it is smaller than it looks.** This is a fact
 about a device, not about an account. `mergeStoredProfiles` drops it from every
-merge (`PROFILE_DEVICE_FIELDS` in `@parle/brain`) so the account copy never carries
+merge (`PROFILE_DEVICE_FIELDS` in `@luvani/brain`) so the account copy never carries
 it, and `adoptProfile` keeps this device's own across a sync fold so a cycle cannot
 clear it. The consequences are the honest ones: **a reinstall clears it, and a second
 phone never learns about it.** That is the same strength the age gate already had,
@@ -209,7 +209,7 @@ Two things close it, and they are deliberately not the same thing.
 `consumeRecording` lets the scorer finish reading the file and only then removes it,
 on every exit: scored, unscored because assessment is off, refused, thrown, or a
 take that arrived after its beat had passed. A discard that fails costs the learner
-nothing and leaves `[parle] RECORDING_NOT_DISCARDED` in the log, because swallowed
+nothing and leaves `[luvani] RECORDING_NOT_DISCARDED` in the log, because swallowed
 is not the same as hidden.
 
 **The reset sweeps whatever is left.** `clearActiveUserData` empties the two cache
@@ -226,7 +226,7 @@ opened the share sheet yet would lose it. Only the two audio directories go, and
 are recreated by `expo-audio` on the next recording.
 
 A sweep that cannot finish does not take the reset down with it. The keys still go,
-the module caches still drop, and `[parle] ATTEMPT_AUDIO_NOT_SWEPT` is what says so.
+the module caches still drop, and `[luvani] ATTEMPT_AUDIO_NOT_SWEPT` is what says so.
 A failed **key** removal still throws exactly as it did, and `App.tsx` still tells the
 learner plainly that this device could not finish erasing its local copy.
 
@@ -244,9 +244,9 @@ it has not been run on one yet.
 ### Device-level keys, and the one that retired
 
 Almost everything is per-account. Two keys are not, because they are read before
-anyone is signed in and `userKey()` throws there: `parle.legacyMigrated.v1`, the
+anyone is signed in and `userKey()` throws there: `luvani.legacyMigrated.v1`, the
 marker that stops a second account inheriting the first one's pre-auth data, and
-`parle.seenSplash.v1`, which recorded that this install had seen the pre-auth
+`luvani.seenSplash.v1`, which recorded that this install had seen the pre-auth
 splash.
 
 A device-level key is the one kind that survives everything a learner can do to
@@ -255,11 +255,11 @@ outlives deleting the account. So when the screen that reads one is deleted, the
 key does not go with it — it sits on every phone that ever ran the old build,
 readable by nobody.
 
-The splash is gone, so `parle.seenSplash.v1` now encodes "has seen a screen that
+The splash is gone, so `luvani.seenSplash.v1` now encodes "has seen a screen that
 no longer exists". Nothing of value is lost by removing it, and that is the whole
 migration. `RETIRED_DEVICE_KEYS` in `scope.ts` names it and `migrateLegacyStores`
 sweeps it on sign-in, in the same batched read the legacy inheritance already
-does — **before** the `parle.legacyMigrated.v1` short-circuit, deliberately. Every
+does — **before** the `luvani.legacyMigrated.v1` short-circuit, deliberately. Every
 device still carrying the flag inherited its pre-auth data long ago and therefore
 already has the marker set, so a sweep behind the marker would run only on the
 devices that do not need one. It is idempotent because a key that is gone never
@@ -305,7 +305,7 @@ Four pieces, and each has one file:
 
 `sync/policy.ts` is the one to read. Ten namespaces under three merge classes:
 
-- **structured** — `profile`, delegated to `@parle/brain`'s `mergeStoredProfiles`.
+- **structured** — `profile`, delegated to `@luvani/brain`'s `mergeStoredProfiles`.
 - **per-item** — `review` (delegated to core's `mergeDecks`), `drills`, `topics`.
 - **set-union** — `history`, `activity`, `missions`, `soundChecks`, `coachMarks`,
   `tutorIntro`.
@@ -355,7 +355,7 @@ when the credentials are absent.
 { version: 4, name, dob, ageConfirmed, motivation, dailyGoalMin, onboardedAt, username, brain: LearnerProfile }
 ```
 
-`brain` is `@parle/brain`'s learner model, stored verbatim — the app is its
+`brain` is `@luvani/brain`'s learner model, stored verbatim — the app is its
 storage, not its author.
 
 `apps/mobile/src/profile/upgrade.ts` is the app-side forward migration.
@@ -432,7 +432,7 @@ one-time trial claim, read, plan save, and idempotent session consumption.
   `SUPABASE_SERVICE_ROLE_KEY` are present. Reads and plan changes use PostgREST;
   consumption uses the atomic `consume_entitlement` database function.
 
-`supabase/migrations/202608220001_parle_learning.sql` creates the durable
+`supabase/migrations/202608220001_luvani_learning.sql` creates the durable
 entitlements, privacy-filtered product events and a row-level-secured
 `learner_state` envelope for cross-device sync. `learner_state.namespace` carries
 a check constraint naming the twelve stores, so a namespace that is not on that

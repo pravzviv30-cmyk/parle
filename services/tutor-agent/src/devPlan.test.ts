@@ -172,13 +172,13 @@ describe('devPlan — the agent secret', () => {
   });
 
   test('a secret already configured is left exactly as it is', () => {
-    const secret = sharedAgentSecret({ PARLE_AGENT_SECRET: 'mine' }, { PARLE_AGENT_SECRET: 'mine' }, () => 'unused');
+    const secret = sharedAgentSecret({ LUVANI_AGENT_SECRET: 'mine' }, { LUVANI_AGENT_SECRET: 'mine' }, () => 'unused');
     assert.equal(secret.value, 'mine');
     assert.equal(secret.generated, false);
   });
 
   test('two different configured secrets are a gap, because the debit would be refused', () => {
-    const secret = sharedAgentSecret({ PARLE_AGENT_SECRET: 'a' }, { PARLE_AGENT_SECRET: 'b' }, () => 'unused');
+    const secret = sharedAgentSecret({ LUVANI_AGENT_SECRET: 'a' }, { LUVANI_AGENT_SECRET: 'b' }, () => 'unused');
     assert.equal(secret.mismatch, true);
   });
 });
@@ -244,7 +244,7 @@ describe('devPlan — the supervisor and the agent must agree', () => {
     assert.deepEqual(devWants, agentWants, 'and npm run dev asks for exactly the same nothing');
   });
 
-  test('the supervisor and the agent preflight agree on which voice key PARLE_TTS_VENDOR selects', () => {
+  test('the supervisor and the agent preflight agree on which voice key LUVANI_TTS_VENDOR selects', () => {
     // The same mirror as brainOf, for the same reason, with the same hazard.
     // devPlan cannot import voice.ts — services/shared sits below the services
     // that use it — so voiceVendorOf is written twice, and two copies of a
@@ -257,18 +257,18 @@ describe('devPlan — the supervisor and the agent must agree', () => {
     const VOICE_KEYS = ['ELEVEN_API_KEY', 'FISH_API_KEY'];
     for (const value of ['', '  ', 'fish', ' FISH ', 'elevenlabs', 'nonsense']) {
       // Blank both voice keys, then ask each side which one it misses.
-      const env = { ...AGENT_ENV, PARLE_TTS_VENDOR: value, ELEVEN_API_KEY: '', FISH_API_KEY: '' };
+      const env = { ...AGENT_ENV, LUVANI_TTS_VENDOR: value, ELEVEN_API_KEY: '', FISH_API_KEY: '' };
 
       const agentWants = missingRequired(env).filter((name) => VOICE_KEYS.includes(name));
       const devWants = envGaps(env, TOKEN_ENV)
         .filter((gap) => VOICE_KEYS.includes(gap.name))
         .map((gap) => gap.name);
 
-      assert.equal(agentWants.length, 1, `PARLE_TTS_VENDOR=${JSON.stringify(value)} must select exactly one voice key`);
+      assert.equal(agentWants.length, 1, `LUVANI_TTS_VENDOR=${JSON.stringify(value)} must select exactly one voice key`);
       assert.deepEqual(
         devWants,
         agentWants,
-        `PARLE_TTS_VENDOR=${JSON.stringify(value)}: npm run dev and the agent must want the same key`,
+        `LUVANI_TTS_VENDOR=${JSON.stringify(value)}: npm run dev and the agent must want the same key`,
       );
     }
   });

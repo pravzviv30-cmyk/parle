@@ -4,7 +4,7 @@
 
 ```bash
 npm test                          # every workspace
-npm test --workspace=@parle/core  # one
+npm test --workspace=@luvani/core  # one
 npm run typecheck                 # all six, tsc --noEmit
 npm run gate                      # the whole bar — see LOOP.md
 ```
@@ -54,7 +54,7 @@ suite against the old behaviour, revert the source change alone and confirm the
 new test goes red:
 
 ```bash
-git stash push -- path/to/source.ts && npm test --workspace=@parle/core; git stash pop
+git stash push -- path/to/source.ts && npm test --workspace=@luvani/core; git stash pop
 ```
 
 This is not ceremony. Two tests in this repo's history passed on first write

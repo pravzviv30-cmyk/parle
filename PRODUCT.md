@@ -82,7 +82,7 @@ Two things competitors structurally cannot copy without changing shape:
 
 ## Brand Commitments
 
-Working name **Parle**. Not confirmed as final — treat as a placeholder the user
+Working name **Luvani**. Not confirmed as final — treat as a placeholder the user
 may replace.
 
 Two hard behavioural commitments, both derived from confirmed research:

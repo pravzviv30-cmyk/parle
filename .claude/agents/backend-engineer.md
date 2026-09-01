@@ -1,6 +1,6 @@
 ---
 name: backend-engineer
-description: Builds and repairs the Parle services — the LiveKit tutor agent and the token server. Use when work touches services/, the live voice pipeline, or the process that mints join tokens.
+description: Builds and repairs the Luvani services — the LiveKit tutor agent and the token server. Use when work touches services/, the live voice pipeline, or the process that mints join tokens.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
 ---
@@ -33,8 +33,8 @@ are `performance-engineer`.
 
 ## How you work
 
-1. **Know which of the two paths you are on.** `ParleTutor` drives `packages/core`'s
-   `submitTurn` directly for scripted lessons. `ParleConversation` drives `packages/brain`'s
+1. **Know which of the two paths you are on.** `LuvaniTutor` drives `packages/core`'s
+   `submitTurn` directly for scripted lessons. `LuvaniConversation` drives `packages/brain`'s
    engine for free conversation, and the engine imports core's ladder unmodified. The
    pipeline LLM is **never** used for generation in conversation — the brain generates out
    of band and `session.say()` speaks it.

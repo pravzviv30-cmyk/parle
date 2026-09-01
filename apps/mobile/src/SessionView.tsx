@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { SessionPrompt } from '@parle/core';
+import type { SessionPrompt } from '@luvani/core';
 import { paper, radius, rungColor, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
 import { Card, Label, LineBullet, StationLine, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
 import { TUTOR_NAME } from './tutor/tutorName.ts';

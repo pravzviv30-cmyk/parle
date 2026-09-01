@@ -22,7 +22,7 @@ app  ──POST /session/start──►  token-server
                                        secondsRemaining }
 app  ──joins the room──────►  LiveKit
                                  └ dispatches the job to the tutor-agent worker
-agent  ─reads the metadata──►  builds ParleTutor or ParleConversation
+agent  ─reads the metadata──►  builds LuvaniTutor or LuvaniConversation
        ◄──── audio ─────────►  Deepgram STT (multi, then fr) → selected brain → ElevenLabs TTS
        ◄──── data channel ──►  the wire protocol below
 agent  ──POST /session/end──►  token-server debits the metered seconds
@@ -37,10 +37,10 @@ Signed into the join token, chosen at `/session/start`:
 
 | mode | agent | speech | how the learner answers |
 |---|---|---|---|
-| `lesson` | `ParleTutor` | full pipeline | speaking, or tapping an option |
-| `lesson-text` | `ParleTutor` voiceless | none at all | typing, or tapping an option |
-| `convo` | `ParleConversation` | full pipeline | speaking |
-| `convo-text` | `ParleConversation` voiceless | none at all | typing |
+| `lesson` | `LuvaniTutor` | full pipeline | speaking, or tapping an option |
+| `lesson-text` | `LuvaniTutor` voiceless | none at all | typing, or tapping an option |
+| `convo` | `LuvaniConversation` | full pipeline | speaking |
+| `convo-text` | `LuvaniConversation` voiceless | none at all | typing |
 
 The `-text` modes are not a degraded fallback, they are the product working as
 intended for someone who cannot speak aloud right now. In `lesson-text` there is
@@ -54,7 +54,7 @@ the silence clock when the turn *renders* instead of when speech stops.
 ## The wire
 
 `packages/core/src/protocol/protocol.ts`. JSON over the LiveKit data channel,
-topics `parle.server` and `parle.client`. `decodeServerMessage` never throws — a
+topics `luvani.server` and `luvani.client`. `decodeServerMessage` never throws — a
 malformed frame must not take down a live conversation.
 
 **Agent → app**: `prompt` · `feedback` · `speaking` · `transcript` · `summary` ·
@@ -96,10 +96,10 @@ The selected brain is controlled by `TUTOR_LLM`. `openai` uses the Responses
 API with strict schemas, Luna for live turns and scene design and Terra for
 post-session practice work;
 `anthropic` uses the Claude API; `groq` remains the free-tier plumbing option.
-Every successful call contributes its tokens to the session's `[parle:brain]`
+Every successful call contributes its tokens to the session's `[luvani:brain]`
 log, and every call abandoned at its deadline is named there too. That per-call
 line is a running trace, not the number to quote: the source of truth for what a
-session cost is the single `[parle:brain:summary]` line emitted once the analyst
+session cost is the single `[luvani:brain:summary]` line emitted once the analyst
 calls have joined, which prices each activity from the model that actually
 answered it. Input tokens are normalised per vendor before they are counted, so
 uncached input, cache reads and cache writes are three disjoint buckets whoever
@@ -130,7 +130,7 @@ failure available here, so the machinery is deliberately explicit:
 - **`durationSec`** comes from the same place and is always used. It was hard-coded
   to `0`, which is why speaking share and longest turn read as nothing on every
   live session ever run.
-- **Sending that audio to Speechace is behind `PARLE_AUDIO_SCORING=1`.** Not
+- **Sending that audio to Speechace is behind `LUVANI_AUDIO_SCORING=1`.** Not
   because the capture is doubtful, but because the vendor's phone alphabet is: a
   mismatch fails silently to "no focus", which is exactly the shape of bug this is
   all here to stop shipping.

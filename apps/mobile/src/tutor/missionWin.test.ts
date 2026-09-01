@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import type { Rung } from '@parle/core';
+import type { Rung } from '@luvani/core';
 
 import { NO_WIN, dismissWin, winAfterTurn, winCard } from './missionWin.ts';
 

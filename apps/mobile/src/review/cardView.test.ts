@@ -23,7 +23,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { applyGrade, dueCards, evidenceOf, firstReturn, presentationOf, DUE_CAP, type ReviewCard } from '@parle/core';
+import { applyGrade, dueCards, evidenceOf, firstReturn, presentationOf, DUE_CAP, type ReviewCard } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
 import {

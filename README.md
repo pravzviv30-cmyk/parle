@@ -1,4 +1,4 @@
-# Parle
+# Luvani
 
 **Speak French from your first session — and know exactly which sounds you're getting wrong.**
 
@@ -91,7 +91,7 @@ Supabase project: in
 `EXPO_PUBLIC_SUPABASE_ANON_KEY` (see `.env.example`). Email/password works
 immediately. For Google sign-in, enable the Google provider in the Supabase
 dashboard and allow-list the redirect URLs you use: your web origin
-(`http://localhost:8090`), `parle://auth/callback` for a dev/store build, and
+(`http://localhost:8090`), `luvani://auth/callback` for a dev/store build, and
 the `exp://…/--/auth/callback` URL Expo Go prints. The production token server requires
 HTTPS `SUPABASE_URL`, a server-only service-role key, and asymmetric JWKS verification;
 the legacy shared JWT secret is a local compatibility fallback only.
@@ -131,7 +131,7 @@ Lines are cached one sentence at a time, matching how the voice pipeline
 requests them at runtime — a whole-line cache entry would never be hit.
 
 ```bash
-npm run warm-cache --workspace=@parle/tutor-agent
+npm run warm-cache --workspace=@luvani/tutor-agent
 ```
 
 Then start everything with one command:
@@ -154,15 +154,15 @@ Starting them by hand still works if you want one process on its own:
 
 ```bash
 ~/.local/bin/livekit-server --dev
-npm run dev --workspace=@parle/token-server
-npm run dev --workspace=@parle/tutor-agent
+npm run dev --workspace=@luvani/token-server
+npm run dev --workspace=@luvani/tutor-agent
 npm run web
 ```
 
 The token server's `dev` script is the one to use, not `start`. `start` sets
 `NODE_ENV=production`, and a production boot refuses a laptop on purpose: the
-local `LIVEKIT_URL` is `ws://` rather than `wss://`, and `PARLE_AGENT_SECRET`
-and `PARLE_ALLOWED_ORIGINS` are deliberately unset in local development. It does
+local `LIVEKIT_URL` is `ws://` rather than `wss://`, and `LUVANI_AGENT_SECRET`
+and `LUVANI_ALLOWED_ORIGINS` are deliberately unset in local development. It does
 not warn, it exits.
 
 **If the token server dies with `EMFILE: too many open files`,** that is
@@ -172,7 +172,7 @@ server without the watcher and it starts:
 
 ```bash
 cd services/token-server
-PARLE_LOCAL_DEVELOPMENT=1 node --experimental-strip-types src/server.ts
+LUVANI_LOCAL_DEVELOPMENT=1 node --experimental-strip-types src/server.ts
 ```
 
 You lose reload-on-save and nothing else. `npm run dev` from the repo root goes

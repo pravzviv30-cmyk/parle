@@ -1,10 +1,10 @@
-# Parle Conversation Orchestrator
+# Luvani Conversation Orchestrator
 
 > 58 nodes · cohesion 0.11
 
 ## Key Concepts
 
-- **ParleConversation** (63 connections) — `services/tutor-agent/src/convo.ts`
+- **LuvaniConversation** (63 connections) — `services/tutor-agent/src/convo.ts`
 - **.runBrainTurn()** (20 connections) — `services/tutor-agent/src/convo.ts`
 - **.publish()** (16 connections) — `services/tutor-agent/src/convo.ts`
 - **.finish()** (15 connections) — `services/tutor-agent/src/convo.ts`

@@ -19,7 +19,7 @@
 - [Sync Engine Core](Sync_Engine_Core.md) — 71 nodes
 - [Voice Lifecycle Checks](Voice_Lifecycle_Checks.md) — 68 nodes
 - [Conversation Brain Client](Conversation_Brain_Client.md) — 68 nodes
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) — 58 nodes
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) — 58 nodes
 - [Topic Curation](Topic_Curation.md) — 57 nodes
 - [TTS Caching Layer](TTS_Caching_Layer.md) — 57 nodes
 - [Illustration Scenes](Illustration_Scenes.md) — 54 nodes
@@ -264,7 +264,7 @@
 
 - [Format](Format.md) — 298 connections
 - [space()](space.md) — 88 connections
-- [ParleConversation](ParleConversation.md) — 63 connections
+- [LuvaniConversation](LuvaniConversation.md) — 63 connections
 - [LlmUsage](LlmUsage.md) — 54 connections
 - [paper](paper.md) — 52 connections
 - [ConvoScreen()](ConvoScreen.md) — 42 connections

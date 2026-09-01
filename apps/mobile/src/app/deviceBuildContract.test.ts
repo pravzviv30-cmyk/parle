@@ -1,7 +1,7 @@
 /**
  * The device build contract.
  *
- * Parle ran in a browser for its whole life. `app.json` and `package.json` are the two
+ * Luvani ran in a browser for its whole life. `app.json` and `package.json` are the two
  * files that decide whether it can also run on a phone, and neither of them is imported
  * by anything, so nothing fails when they drift. Three things can be lost silently here,
  * and all three cost an afternoon each to rediscover on a device rather than in a test.
@@ -16,7 +16,7 @@
  * `selectTokenServerUrl` throws on a missing token server URL outside local development.
  *
  * The third is the pair of identifiers. `docs/DEVICE_VERIFICATION.md` tells a human to
- * attach a debugger to `com.parle.app` and to follow a `parle://` link. If someone
+ * attach a debugger to `com.luvani.app` and to follow a `luvani://` link. If someone
  * changes the bundle identifier to get past a signing error — which is a real and
  * reasonable thing to do — the runbook silently starts describing a different app.
  *
@@ -47,7 +47,7 @@ const appConfig = JSON.parse(read('app.json')) as {
 const runbook = readFileSync(path.join(MOBILE, '..', '..', 'docs', 'DEVICE_VERIFICATION.md'), 'utf8');
 
 /** The flag every script that starts Metro has to carry. */
-const LOCAL_DEVELOPMENT = 'EXPO_PUBLIC_PARLE_LOCAL_DEVELOPMENT=1';
+const LOCAL_DEVELOPMENT = 'EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1';
 
 describe('the device build contract', () => {
   test('the app declares the dev client a device build cannot start without', () => {

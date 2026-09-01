@@ -29,13 +29,13 @@ describe('the README can actually be followed', () => {
       /NODE_ENV=production/,
       'the token server start script is no longer the production one; this rule needs rereading',
     );
-    assert.match(scripts.dev ?? '', /PARLE_LOCAL_DEVELOPMENT=1/);
+    assert.match(scripts.dev ?? '', /LUVANI_LOCAL_DEVELOPMENT=1/);
 
     assert.doesNotMatch(
       readme(),
-      /npm run start --workspace=@parle\/token-server/,
+      /npm run start --workspace=@luvani\/token-server/,
       'the README tells a newcomer to run the token server in production mode, which exits(1) on any laptop: ' +
-        'LIVEKIT_URL is ws:// not wss://, and PARLE_AGENT_SECRET and PARLE_ALLOWED_ORIGINS are unset by design locally',
+        'LIVEKIT_URL is ws:// not wss://, and LUVANI_AGENT_SECRET and LUVANI_ALLOWED_ORIGINS are unset by design locally',
     );
   });
 

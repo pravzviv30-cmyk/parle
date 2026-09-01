@@ -9,7 +9,7 @@
 
 import { AccessToken, RoomConfiguration, TrackSource } from 'livekit-server-sdk';
 import { randomUUID } from 'node:crypto';
-import { canStartSession, MIN_VIABLE_SESSION_SEC, secondsRemaining, type Entitlement } from '@parle/core';
+import { canStartSession, MIN_VIABLE_SESSION_SEC, secondsRemaining, type Entitlement } from '@luvani/core';
 
 export interface TokenConfig {
   apiKey: string;
@@ -41,7 +41,7 @@ export type GrantResult = { ok: true; grant: SessionGrant } | { ok: false; statu
  * The guess worth naming, because the ledger made it (F78) and the measurement
  * refused it: an abandoned room does NOT hold a tutor. Dispatch follows a
  * PARTICIPANT, so a room with nobody in it gets no tutor — measured, a room
- * created at `emptyTimeout=20` held 20.1s with none dispatched into it. Parle
+ * created at `emptyTimeout=20` held 20.1s with none dispatched into it. Luvani
  * never creates a room any other way either: the grant does not create one, and
  * a grant nobody joins leaves no room at all. So `emptyTimeoutSec` is a
  * backstop rather than a live cost, and lowering it would buy nothing while
@@ -78,7 +78,7 @@ export const ROOM_LIFECYCLE = {
 export function roomNameFor(userId: string, lessonId: string, now = Date.now()): string {
   const safeUser = userId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'anon';
   const safeLesson = lessonId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'lesson';
-  return `parle-${safeLesson}-${safeUser}-${now.toString(36)}`;
+  return `luvani-${safeLesson}-${safeUser}-${now.toString(36)}`;
 }
 
 /**

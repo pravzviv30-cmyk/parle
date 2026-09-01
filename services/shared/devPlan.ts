@@ -1,7 +1,7 @@
 /**
  * What `npm run dev` decides, separated from what it does.
  *
- * Until this existed, running Parle meant four terminals started by hand in the
+ * Until this existed, running Luvani meant four terminals started by hand in the
  * right order, which is the whole reason the founder's own app reported "there
  * is no server available": nothing was wrong with the code, the token server
  * simply was not running. README documented the four commands, `.claude/launch.json`
@@ -119,8 +119,8 @@ export function bootPlan(env: Env = process.env): BootStep[] {
       // server's own guard then refuses to boot without a wss:// LiveKit URL and
       // exact HTTPS origins — neither of which exists on a laptop running
       // livekit-server --dev. `dev` is the same server behind
-      // PARLE_LOCAL_DEVELOPMENT=1, which is what that flag is for.
-      args: ['run', 'dev', '--workspace=@parle/token-server'],
+      // LUVANI_LOCAL_DEVELOPMENT=1, which is what that flag is for.
+      args: ['run', 'dev', '--workspace=@luvani/token-server'],
       port: TOKEN_PORT,
       ready: { kind: 'http', url: `http://127.0.0.1:${TOKEN_PORT}/health`, timeoutMs: 15_000, fatalOnTimeout: true },
       identify: (p) => p.status === 200 && p.body.includes('"ok":true'),
@@ -129,7 +129,7 @@ export function bootPlan(env: Env = process.env): BootStep[] {
       id: 'agent',
       label: 'agent',
       command: 'npm',
-      args: ['run', 'dev', '--workspace=@parle/tutor-agent'],
+      args: ['run', 'dev', '--workspace=@luvani/tutor-agent'],
       port: null,
       // Not fatal on timeout: preflight.ts exits 1 with a specific reason when
       // it cannot serve, and that message is worth more than "the agent did not
@@ -141,7 +141,7 @@ export function bootPlan(env: Env = process.env): BootStep[] {
       id: 'app',
       label: 'app',
       command: 'npm',
-      args: ['run', 'web', '--workspace=@parle/mobile', '--', '--port', String(APP_PORT)],
+      args: ['run', 'web', '--workspace=@luvani/mobile', '--', '--port', String(APP_PORT)],
       port: APP_PORT,
       ready: { kind: 'http', url: `http://127.0.0.1:${APP_PORT}/`, timeoutMs: 90_000, fatalOnTimeout: true },
       identify: (p) => p.status === 200,
@@ -216,7 +216,7 @@ function brainOf(env: Env): 'anthropic' | 'openai' | 'groq' | 'claude-cli' | 'cl
  * test fails, which is the whole point of writing it twice.
  */
 function voiceVendorOf(env: Env): 'elevenlabs' | 'fish' {
-  const raw = (env.PARLE_TTS_VENDOR ?? '').trim().toLowerCase();
+  const raw = (env.LUVANI_TTS_VENDOR ?? '').trim().toLowerCase();
   if (raw === 'fish') return 'fish';
   return 'elevenlabs';
 }
@@ -290,8 +290,8 @@ export interface AgentSecret {
  * never touches disk.
  */
 export function sharedAgentSecret(agentEnv: Env, tokenEnv: Env, generate: () => string): AgentSecret {
-  const fromAgent = (agentEnv.PARLE_AGENT_SECRET ?? '').trim();
-  const fromToken = (tokenEnv.PARLE_AGENT_SECRET ?? '').trim();
+  const fromAgent = (agentEnv.LUVANI_AGENT_SECRET ?? '').trim();
+  const fromToken = (tokenEnv.LUVANI_AGENT_SECRET ?? '').trim();
   if (fromAgent !== '' && fromToken !== '') {
     return { value: fromAgent, generated: false, mismatch: fromAgent !== fromToken };
   }

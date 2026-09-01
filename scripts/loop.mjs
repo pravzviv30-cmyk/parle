@@ -126,7 +126,7 @@ function composePrompt(g, deadEnds) {
   const target = g.open?.find((o) => o.severity === 'P0') ?? g.open?.find((o) => o.severity === 'P1') ?? g.open?.[0];
 
   return [
-    'You are working in the Parle repo, unattended, inside a loop that checks your work.',
+    'You are working in the Luvani repo, unattended, inside a loop that checks your work.',
     '',
     'The bar is `npm run gate`. It is currently red. Here is exactly why:',
     '',

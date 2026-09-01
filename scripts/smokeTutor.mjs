@@ -11,9 +11,9 @@
 import assert from 'node:assert/strict';
 
 import { Room, RoomEvent, dispose } from '@livekit/rtc-node';
-import { decodeServerMessage, encodeMessage, TOPIC_CLIENT, TOPIC_SERVER } from '@parle/core';
+import { decodeServerMessage, encodeMessage, TOPIC_CLIENT, TOPIC_SERVER } from '@luvani/core';
 
-const tokenServer = process.env.PARLE_TOKEN_SERVER ?? 'http://127.0.0.1:8787';
+const tokenServer = process.env.LUVANI_TOKEN_SERVER ?? 'http://127.0.0.1:8787';
 const topic = 'speaking with my teacher at school about an assignment I do not understand';
 const englishAttempt = 'I do not understand the homework and I need help.';
 const smokeStartedAt = performance.now();

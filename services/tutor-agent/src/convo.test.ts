@@ -37,7 +37,7 @@ import {
   type NewPhrase,
   type SupportView,
   type TurnView,
-} from '@parle/brain';
+} from '@luvani/brain';
 import {
   CAFE_LESSON,
   RUNGS,
@@ -47,12 +47,12 @@ import {
   type ClientMessage,
   type Rung,
   type ServerMessage,
-} from '@parle/core';
+} from '@luvani/core';
 
 import {
   CONVO_LINES,
   MOMENT_GRACE_MS,
-  ParleConversation,
+  LuvaniConversation,
   TEXT_SILENCE_MS,
   brainClient,
   chooseFrame,
@@ -72,9 +72,9 @@ import {
   validMissionId,
   type SttLanguage,
 } from './convo.ts';
-import { ParleTutor, forgetReportedSessions, noteSessionReported } from './tutor.ts';
+import { LuvaniTutor, forgetReportedSessions, noteSessionReported } from './tutor.ts';
 
-/** A fresh flow-mode café conversation, exactly as ParleConversation builds one. */
+/** A fresh flow-mode café conversation, exactly as LuvaniConversation builds one. */
 function freshState() {
   const profile = createProfile();
   return {
@@ -329,7 +329,7 @@ describe('a profile that predates memory', () => {
     assert.equal(profile.stats.sessions, 4, 'the learning history survives the repair');
     assert.equal(profile.stats.lastRung, 3);
     // The crash site itself: open() reads memory.opener on session open.
-    const convo = new ParleConversation(profile, { client: new MockLlmClient() });
+    const convo = new LuvaniConversation(profile, { client: new MockLlmClient() });
     const { session } = stubSession();
     Object.defineProperty(convo, 'session', { value: session, configurable: true });
     assert.doesNotThrow(() => convo.open(session));
@@ -526,7 +526,7 @@ function buildConvo(
 ) {
   const client = opts.client ?? new MockLlmClient();
   const sttLanguages: SttLanguage[] = [];
-  const convo = new ParleConversation(opts.profile ?? createProfile(), {
+  const convo = new LuvaniConversation(opts.profile ?? createProfile(), {
     voiceless: opts.voiceless ?? false,
     client,
     seedTopic: opts.seedTopic,
@@ -624,7 +624,7 @@ describe('the conversation agent, off the worker', () => {
     const profile = createProfile();
     profile.memory.opener = { fr: 'Alors, cet entretien ?', en: 'So, how did that interview go?' };
     const client = new MockLlmClient();
-    const convo = new ParleConversation(profile, { client });
+    const convo = new LuvaniConversation(profile, { client });
     const { session, said } = stubSession();
     Object.defineProperty(convo, 'session', { value: session, configurable: true });
     const published: ServerMessage[] = [];
@@ -1608,7 +1608,7 @@ describe('what a session cost, and what it gave up on', () => {
     assert.equal(convo.brainSpend.turn.abandoned, 1, 'a call nobody read is still a call somebody paid for');
     assert.equal(convo.brainSpend.turn.calls, 0, 'and it is not counted as one that answered');
     assert.ok(
-      linesFrom(warned).includes('[parle:brain] turn abandoned after 15000ms'),
+      linesFrom(warned).includes('[luvani:brain] turn abandoned after 15000ms'),
       'named in the log, with the activity and the bound it broke',
     );
 
@@ -1658,14 +1658,14 @@ describe('what a session cost, and what it gave up on', () => {
 
     assert.ok(client.started >= 2, 'extraction and curation are both out and still thinking');
     assert.ok(
-      !linesFrom(info).some((line) => line.startsWith('[parle:brain:summary]')),
+      !linesFrom(info).some((line) => line.startsWith('[luvani:brain:summary]')),
       'and nothing has been claimed about what the session cost yet',
     );
 
     client.release();
     await finishing;
 
-    const summary = linesFrom(info).find((line) => line.startsWith('[parle:brain:summary]'));
+    const summary = linesFrom(info).find((line) => line.startsWith('[luvani:brain:summary]'));
     assert.ok(summary, 'a session says what it cost, once, on the way out');
     assert.match(summary, /extract calls=1/, 'with the memory call inside it');
     assert.match(summary, /curate calls=1/, 'and the practice editor');
@@ -1712,7 +1712,7 @@ describe('what a session cost, and what it gave up on', () => {
     await convo.settled();
     await convo.finish();
 
-    const summary = linesFrom(info).find((line) => line.startsWith('[parle:brain:summary]'));
+    const summary = linesFrom(info).find((line) => line.startsWith('[luvani:brain:summary]'));
     assert.ok(summary);
 
     // One turn on Luna at $0.2/$1.2/$0.02/$0.25 per Mtok:
@@ -1732,7 +1732,7 @@ describe('what a session cost, and what it gave up on', () => {
 
     // The head is the sum of the priced rows, never a price of the summed
     // usage: the session mixed models, so a single total has no honest rate.
-    assert.match(summary, /^\[parle:brain:summary\] session=[0-9a-f]{8} usd=\d\.\d{6} calls=5 abandoned=0 /);
+    assert.match(summary, /^\[luvani:brain:summary\] session=[0-9a-f]{8} usd=\d\.\d{6} calls=5 abandoned=0 /);
     assert.match(summary, /cacheHit=/, 'the rate the checkpoint reads to tell whether caching is landing');
   });
 
@@ -2213,7 +2213,7 @@ describe('a conversation started from a mission', () => {
     // Replaying a mission you have already finished should offer LESS help than
     // last time. core's `replayRung` decides that, the token server signs it and
     // agent.ts clamps it, and for a while the value died here: the worker handed
-    // it to ParleTutor, the scripted-lesson branch, and missions run as convo.
+    // it to LuvaniTutor, the scripted-lesson branch, and missions run as convo.
     // So every wire from the tap to the scene looked connected and the learner
     // replayed at exactly the support they had before.
     //
@@ -2277,19 +2277,19 @@ describe('a conversation started from a mission', () => {
     // And the worker actually hands it over. A tripwire, in the joinMeta.test.ts
     // idiom and for its reason: importing agent.ts runs preflight and gives the
     // process to cli.runApp, so it cannot be driven. It is also exactly the door
-    // this bug lived behind — every assertion above builds ParleConversation
+    // this bug lived behind — every assertion above builds LuvaniConversation
     // directly and every one of them passed while the worker gave the rung to
     // the scripted-lesson branch alone.
     const agentSource = readFileSync(fileURLToPath(new URL('./agent.ts', import.meta.url)), 'utf8');
     const code = agentSource
       .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
       .replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
-    const convoBranch = code.slice(code.indexOf('new ParleConversation('), code.indexOf('new ParleTutor('));
+    const convoBranch = code.slice(code.indexOf('new LuvaniConversation('), code.indexOf('new LuvaniTutor('));
     assert.ok(convoBranch.length > 0, 'agent.ts still builds one of the two agents; this tripwire has gone stale');
     assert.match(convoBranch, /\bstartRung\b/, 'the worker hands the signed rung to the conversation, not only to the lesson');
     // The scripted lesson is untouched by this entry: it already got the rung
     // and its behaviour must not move.
-    assert.match(code, /new ParleTutor\(lesson, startRung, \{ voiceless \}\)/, 'the scripted-lesson branch still gets it too');
+    assert.match(code, /new LuvaniTutor\(lesson, startRung, \{ voiceless \}\)/, 'the scripted-lesson branch still gets it too');
   });
 });
 
@@ -2481,7 +2481,7 @@ describe('replaying a line', () => {
  */
 describe('what a conversation is allowed to bill', () => {
   /** Backdate the room's start, or every assertion below reads zero for free. */
-  function ranFor(convo: ParleConversation, seconds: number): void {
+  function ranFor(convo: LuvaniConversation, seconds: number): void {
     (convo as unknown as { startedAt: number }).startedAt = Date.now() - seconds * 1_000;
   }
 
@@ -2625,7 +2625,7 @@ describe('where a safety decision leaves', () => {
 
     // 2. The scripted lesson, typed, which never speaks at all.
     forgetReportedSessions();
-    const tutor = new ParleTutor(CAFE_LESSON, RUNGS.PROMPTED, { voiceless: true });
+    const tutor = new LuvaniTutor(CAFE_LESSON, RUNGS.PROMPTED, { voiceless: true });
     const lessonSession = stubSession();
     Object.defineProperty(tutor, 'session', { value: lessonSession.session, configurable: true });
     const lessonPublished: ServerMessage[] = [];
@@ -2696,7 +2696,7 @@ describe('a safety decision leaves a record', () => {
     // the learner's words" that a test can say.
     assert.match(
       records[0]!,
-      /^\[parle\] SAFETY_DECISION session=7f3c1a20 category=minor-sexual action=stop rule=R2 mode=convo voiceless=false$/,
+      /^\[luvani\] SAFETY_DECISION session=7f3c1a20 category=minor-sexual action=stop rule=R2 mode=convo voiceless=false$/,
       `the record changed shape: ${records[0]}`,
     );
 
@@ -2714,7 +2714,7 @@ describe('a safety decision leaves a record', () => {
     // grep has to answer for both tutors.
     forgetReportedSessions();
     logged.length = 0;
-    const tutor = new ParleTutor(CAFE_LESSON, RUNGS.PROMPTED, { voiceless: true });
+    const tutor = new LuvaniTutor(CAFE_LESSON, RUNGS.PROMPTED, { voiceless: true });
     const lesson = stubSession();
     Object.defineProperty(tutor, 'session', { value: lesson.session, configurable: true });
     tutor.sessionId = '9b2d4e60-2222-4222-8222-222222222222';
@@ -2727,7 +2727,7 @@ describe('a safety decision leaves a record', () => {
     assert.equal(lessonRecords.length, 1, 'the scripted lesson decides in silence');
     assert.match(
       lessonRecords[0]!,
-      /^\[parle\] SAFETY_DECISION session=9b2d4e60 category=self-harm action=stop rule=none mode=lesson voiceless=true$/,
+      /^\[luvani\] SAFETY_DECISION session=9b2d4e60 category=self-harm action=stop rule=none mode=lesson voiceless=true$/,
       `the lesson record changed shape: ${lessonRecords[0]}`,
     );
     forgetReportedSessions();
@@ -2906,7 +2906,7 @@ describe('a stop closes the room', () => {
     t.mock.method(console, 'warn', () => {});
 
     // 1. Spoken. The room waits for the words to finish playing.
-    const convo = new ParleConversation(createProfile(), { client: new MockLlmClient() });
+    const convo = new LuvaniConversation(createProfile(), { client: new MockLlmClient() });
     const spoken = stubSessionWithPlayout();
     Object.defineProperty(convo, 'session', { value: spoken.session, configurable: true });
     const published: ServerMessage[] = [];
@@ -2936,7 +2936,7 @@ describe('a stop closes the room', () => {
     const landed = new Promise<void>((resolve) => {
       land = resolve;
     });
-    const quiet = new ParleConversation(createProfile(), { voiceless: true, client: new MockLlmClient() });
+    const quiet = new LuvaniConversation(createProfile(), { voiceless: true, client: new MockLlmClient() });
     const quietSession = stubSession();
     Object.defineProperty(quiet, 'session', { value: quietSession.session, configurable: true });
     const quietPublished: ServerMessage[] = [];
@@ -2960,7 +2960,7 @@ describe('a stop closes the room', () => {
 
     // 3. A redirect is not a stop. The learner asked one bad question and the
     //    scene they were in is still theirs.
-    const kept = new ParleConversation(createProfile(), { voiceless: true, client: new MockLlmClient() });
+    const kept = new LuvaniConversation(createProfile(), { voiceless: true, client: new MockLlmClient() });
     const keptSession = stubSession();
     Object.defineProperty(kept, 'session', { value: keptSession.session, configurable: true });
     const keptPublished: ServerMessage[] = [];
@@ -2982,7 +2982,7 @@ describe('a stop closes the room', () => {
     // 4. The scripted lesson closes its room the same way, because the two
     //    tutors have to be one person at the worst moment of somebody's day.
     forgetReportedSessions();
-    const tutor = new ParleTutor(CAFE_LESSON, RUNGS.PROMPTED, { voiceless: true });
+    const tutor = new LuvaniTutor(CAFE_LESSON, RUNGS.PROMPTED, { voiceless: true });
     const lesson = stubSession();
     Object.defineProperty(tutor, 'session', { value: lesson.session, configurable: true });
     tutor.attach(() => {});
@@ -3239,7 +3239,7 @@ describe('switching to text without leaving the scene', () => {
 
   /** A conversation already in an authored scene, spoken unless asked otherwise. */
   function inMissionScene(t: TestContext, opts: { voiceless?: boolean } = {}) {
-    const convo = new ParleConversation(createProfile(), {
+    const convo = new LuvaniConversation(createProfile(), {
       voiceless: opts.voiceless ?? false,
       client: new MockLlmClient(),
       missionId: 'mission:cafe',
@@ -3329,7 +3329,7 @@ describe('switching to text without leaving the scene', () => {
     //    to be one person. There the pipeline speaks rather than `say`, so what
     //    stops is `generateReply`, and the published turn becomes the handover.
     forgetReportedSessions();
-    const tutor = new ParleTutor(CAFE_LESSON, RUNGS.PROMPTED);
+    const tutor = new LuvaniTutor(CAFE_LESSON, RUNGS.PROMPTED);
     const lesson = stubSwitchableSession();
     Object.defineProperty(tutor, 'session', { value: lesson.session, configurable: true });
     const lessonPublished: ServerMessage[] = [];

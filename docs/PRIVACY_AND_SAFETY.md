@@ -1,6 +1,6 @@
 # Privacy and safety
 
-This is the policy for what Parle collects, why it collects it, how long it keeps
+This is the policy for what Luvani collects, why it collects it, how long it keeps
 it, who can read it, and what the tutor does when a learner says something the
 product must not answer.
 
@@ -17,7 +17,7 @@ them would be worse than their absence.
 `docs/STATE_AND_STORAGE.md` says where the learner's data *lives*. This file says
 what we are allowed to do with it.
 
-## What Parle holds
+## What Luvani holds
 
 Every durable store, with the retention that governs it. A row whose retention says
 "not true yet" is honest about a gap and appears again at the bottom of this file.
@@ -25,15 +25,15 @@ Every durable store, with the retention that governs it. A row whose retention s
 | What | Where it lives | Why | Retention | Removed by |
 |---|---|---|---|---|
 | Email, name, sign-in provider | Supabase `auth.users` | There is no account without them | Life of the account | Account deletion |
-| Age confirmation, and a date of birth for learners who joined when Parle asked | Device, `parle.u.<uid>.profile` | The 13+ gate, which is a gate and not a field | Life of the account on that device | Reset progress, account deletion |
-| The moment a session stopped because the learner said they are under thirteen | Device, `parle.u.<uid>.profile`, field `ageStopAt` | Keep the tutor doors shut until the age gate is answered again | Life of the account on that device, cleared the moment they pass the gate | Passing the age gate, reset progress, reinstall, account deletion |
-| Learning state: history, review deck, journal phrases, missions, topics, drills, sound-check evidence | Device, `parle.u.<uid>.*`, and `public.learner_state` once sync ships | It is the product | Life of the account | Reset progress, account deletion, cascade |
+| Age confirmation, and a date of birth for learners who joined when Luvani asked | Device, `luvani.u.<uid>.profile` | The 13+ gate, which is a gate and not a field | Life of the account on that device | Reset progress, account deletion |
+| The moment a session stopped because the learner said they are under thirteen | Device, `luvani.u.<uid>.profile`, field `ageStopAt` | Keep the tutor doors shut until the age gate is answered again | Life of the account on that device, cleared the moment they pass the gate | Passing the age gate, reset progress, reinstall, account deletion |
+| Learning state: history, review deck, journal phrases, missions, topics, drills, sound-check evidence | Device, `luvani.u.<uid>.*`, and `public.learner_state` once sync ships | It is the product | Life of the account | Reset progress, account deletion, cascade |
 | Five content-free product events | `public.product_events` | Product decisions | 13 months from `occurred_at` | Scheduled delete, cascade |
 | Seconds of voice per session | `public.session_usage` | Bill each session at most once | 24 months from `reported_at` | Scheduled delete, cascade |
 | Plan and seconds used | `public.entitlements` | The allowance | Life of the account | Cascade |
 | Two salted antifraud HMACs | `public.trial_installations` | One free trial per installation | 24 months from `claimed_at` | Scheduled delete only, never account deletion |
-| Rate-limit counters and session leases | Upstash, `parle:*` | Abuse and cost limits | The window TTL, 60 seconds to 24 hours | Key expiry |
-| A random installation id | Device, `parle.installation.v1` | The input the antifraud HMAC is made from | Until app data is cleared | Clearing app data, uninstall |
+| Rate-limit counters and session leases | Upstash, `luvani:*` | Abuse and cost limits | The window TTL, 60 seconds to 24 hours | Key expiry |
+| A random installation id | Device, `luvani.installation.v1` | The input the antifraud HMAC is made from | Until app data is cleared | Clearing app data, uninstall |
 | One content-free line per safety decision | Agent host logs, worker stdout | Know how often the boundary fires, and on which rule | Not true yet: whatever the host keeps, and nothing here sets it | Nothing in this repo |
 | Synthesised tutor lines as WAV | Agent host disk, TTS cache | A voice vendor should be paid once per line | Indefinite, tutor speech only | Deleting the cache directory |
 | Learner utterance audio | Never written anywhere | See the next section | Never written anywhere | Nothing to remove |
@@ -96,8 +96,8 @@ Four rules, each with a test behind it:
   presenting one as a biography to somebody who does not know they are talking to
   software is.
 - **No person hears you**, said out loud rather than left to be inferred, because it
-  is the same position this file takes in [Escalation and what Parle is
-  not](#escalation-and-what-parle-is-not) and a learner decides what to say before
+  is the same position this file takes in [Escalation and what Luvani is
+  not](#escalation-and-what-luvani-is-not) and a learner decides what to say before
   the scene, not after it.
 - **One vendor vocabulary.** The line about where speech goes is the Profile
   footer's words, character for character, and the test reads both files. Two
@@ -113,7 +113,7 @@ text is written, this module is where it goes.
 
 ## Analytics: consent, opt-out and retention
 
-Parle records five events. They exist so product decisions are made on evidence
+Luvani records five events. They exist so product decisions are made on evidence
 rather than on the loudest opinion in the room, and they are content-free by
 construction, not by good intentions.
 
@@ -147,7 +147,7 @@ on demanding both keys, and every `onboarding_completed` was rejected rather tha
 while the funnel reported nothing and nobody saw an error (F116). Two things follow. A
 deployed database keeps rejecting them until somebody pastes that migration by hand,
 because there is no CLI here and DDL does not travel over PostgREST. And a property
-removed in TypeScript is not a property removed from Parle: the compiler holds only the
+removed in TypeScript is not a property removed from Luvani: the compiler holds only the
 client's half of this, so the parser, the trigger and this table are a manual step every
 time.
 
@@ -179,7 +179,7 @@ are kept forever.
 `public.trial_installations` holds two values per claimed trial:
 `installation_hash` and `first_user_hash`. Both are 43-character base64url
 HMAC-SHA256 digests computed by the token server with the deployment secret
-`PARLE_RATE_LIMIT_SALT`, through `privateSignal` in
+`LUVANI_RATE_LIMIT_SALT`, through `privateSignal` in
 `services/token-server/src/rateLimit.ts`. The table's own `check` constraints
 refuse anything that is not that shape.
 
@@ -202,13 +202,13 @@ rather than kept forever because nobody picked a number. A learner who genuinely
 returns after two years and gets another trial costs us one trial; that is the
 trade being made, deliberately.
 
-**Salt rotation is deletion.** Rotating `PARLE_RATE_LIMIT_SALT` makes every stored
+**Salt rotation is deletion.** Rotating `LUVANI_RATE_LIMIT_SALT` makes every stored
 hash unmatchable. Rows made under a retired salt are dead weight and must be
 dropped in the same change that rotates it, not left behind.
 
 **Disclosure.** This identifier is **not disclosed to learners today**, and that is
 the gap this section exists to close. Before launch the privacy text says, in the
-learner's words: Parle keeps a scrambled marker for the device the free trial was
+learner's words: Luvani keeps a scrambled marker for the device the free trial was
 claimed on, so the trial cannot be claimed twice; it is not linked to any advert,
 it is not shared, and it is kept for two years.
 
@@ -234,7 +234,7 @@ namespace can still be resolved. If the local erase fails the learner is told
 plainly that the online account is gone but this device still holds a copy.
 
 **What deliberately survives.** `public.trial_installations`, for the reason above.
-On the device, `parle.installation.v1` and the legacy-migration marker survive,
+On the device, `luvani.installation.v1` and the legacy-migration marker survive,
 because the installation signal is exactly the thing a fresh account must not be
 able to reset. Neither carries learning, content or identity.
 
@@ -267,7 +267,7 @@ session open, so a learner is never stranded mid-scene for asking one wrong thin
 
 | Category | Action | What the learner hears |
 |---|---|---|
-| `under-13` | `stop` | Parle is not available for anyone under 13. Please stop here and ask a parent or guardian for help. |
+| `under-13` | `stop` | Luvani is not available for anyone under 13. Please stop here and ask a parent or guardian for help. |
 | `minor-sexual` | `stop` | I cannot help with sexual content involving anyone under 18. |
 | `self-harm` | `stop` | I cannot provide crisis support. If you might act now, call your local emergency number. If you can, contact someone you trust and stay with them. |
 | `dangerous-instructions` | `redirect` | I cannot help with instructions that could hurt someone. We can practise a different French situation. |
@@ -299,7 +299,7 @@ child kept for no reason.
 The words on that gate are `AGE_RETURN_TITLE` and `AGE_RETURN_SUB` in
 `apps/mobile/src/onboarding/answers.ts`:
 
-> Parle is made for learners thirteen and up. Everything you have learned is still here.
+> Luvani is made for learners thirteen and up. Everything you have learned is still here.
 
 It does not say what the learner said, and it does not apologise. Telling a child
 what they were caught at is not kindness, the boundary is sometimes wrong about
@@ -359,16 +359,16 @@ about it.** They did nothing.
 The scripted lesson agent has no guard of its own today. That gap is in
 [Not true yet](#not-true-yet) rather than left to be discovered.
 
-## Escalation and what Parle is not
+## Escalation and what Luvani is not
 
-**Parle is not an emergency service.** It is not a crisis line, not a counselling
+**Luvani is not an emergency service.** It is not a crisis line, not a counselling
 service, not a safeguarding service, and not monitored. Nobody is watching a
 session. Nobody is on call. No message a learner sends reaches a human, at any hour,
 by any route.
 
 Saying that clearly is the policy, because the alternative — implying that
 something is watching — is the failure that gets somebody hurt. The tutor's own
-stop message models the tone we hold ourselves to: it says what Parle cannot do,
+stop message models the tone we hold ourselves to: it says what Luvani cannot do,
 points at the local emergency number, and points at a person the learner trusts. It
 does not promise help it cannot send.
 
@@ -414,7 +414,7 @@ does not promise help it cannot send.
 
 Point 7 is the honest tension in this document. Retaining nothing is the
 strongest privacy position available and it is the one we take, and it also means
-Parle has nothing to escalate *with*. We accept that trade knowingly: a language
+Luvani has nothing to escalate *with*. We accept that trade knowingly: a language
 app that quietly builds a file on what its learners said in distress is a worse
 product than one that admits it cannot help and gets out of the way.
 
@@ -435,7 +435,7 @@ One line on the worker's stdout, beside `SESSION_NOT_CHARGED`, written by
 `recordSafetyDecision` in `services/tutor-agent/src/safety.ts`:
 
 ```
-[parle] SAFETY_DECISION session=7f3c1a20 category=minor-sexual action=stop rule=R2 mode=convo voiceless=false
+[luvani] SAFETY_DECISION session=7f3c1a20 category=minor-sexual action=stop rule=R2 mode=convo voiceless=false
 ```
 
 Six fields and no seventh: the first eight characters of the session id, the
@@ -538,7 +538,7 @@ Stated plainly, because a review that starts from an inflated claim is worthless
   child.
 - **Those five lines are recall this net gave up, deliberately.** The old rule was
   `(minor && sexual) || (minor && approach) || (approach && secrecy)`, and its
-  last clause needed no child at all, so two adults making plans were told Parle
+  last clause needed no child at all, so two adults making plans were told Luvani
   cannot help with sexual content involving anyone under 18. Those words accuse a
   person of one specific thing, and saying them to somebody who has not done it
   is its own harm. The judgement that clause was standing in for now sits in the
@@ -564,7 +564,7 @@ Stated plainly, because a review that starts from an inflated claim is worthless
 
 ### What we are not asking for
 
-Not a certification, not sign-off that Parle is safe, and not clinical advice
+Not a certification, not sign-off that Luvani is safe, and not clinical advice
 routed to learners. We are asking whether the boundary, the copy and the stated
 position are defensible for a consumer language app with no human in the loop, and
 what we should change.

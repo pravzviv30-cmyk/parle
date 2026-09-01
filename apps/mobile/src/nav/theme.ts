@@ -34,7 +34,7 @@ export const navTheme: Theme = {
 /**
  * Web only, and an explicit screen map rather than a catch-all.
  *
- * A wildcard prefix would swallow `parle://auth/callback`, which
+ * A wildcard prefix would swallow `luvani://auth/callback`, which
  * auth/oauth.native.ts relies on for the OAuth round trip — the deep link would
  * be handed to the navigator and the sign-in would silently never complete.
  * Native gets no linking config at all for exactly that reason.

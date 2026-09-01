@@ -5845,7 +5845,7 @@
     },
     {
       "id": "services_tutor_agent_src_convo_parleconversation",
-      "label": "ParleConversation",
+      "label": "LuvaniConversation",
       "degree": 63
     },
     {
@@ -5944,7 +5944,7 @@
   "questions": [
     {
       "type": "bridge_node",
-      "question": "Why does `Rung` connect `Mock Speech Session` to `Tutor Turn Handling`, `Conversation Brain Client`, `Prompt And Turn Queue`, `Root Navigation`, `Conversation Screen`, `Brain CLI Playground`, `Live Session Context`, `Ladder State Machine`, `Sample Fixtures And Copy`, `Turn Timing Instrumentation`, `Learner Profile Updates`, `UI Theme Primitives`, `Lesson Definitions`, `Live Session Hook`, `Parle Conversation Orchestrator`, `App Agent Protocol`?",
+      "question": "Why does `Rung` connect `Mock Speech Session` to `Tutor Turn Handling`, `Conversation Brain Client`, `Prompt And Turn Queue`, `Root Navigation`, `Conversation Screen`, `Brain CLI Playground`, `Live Session Context`, `Ladder State Machine`, `Sample Fixtures And Copy`, `Turn Timing Instrumentation`, `Learner Profile Updates`, `UI Theme Primitives`, `Lesson Definitions`, `Live Session Hook`, `Luvani Conversation Orchestrator`, `App Agent Protocol`?",
       "why": "High betweenness centrality (0.022) - this node is a cross-community bridge."
     },
     {

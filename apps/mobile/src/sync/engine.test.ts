@@ -216,7 +216,7 @@ async function until(predicate: () => boolean, label: string): Promise<void> {
   assert.fail(`timed out waiting for ${label}`);
 }
 
-const keyFor = (uid: string) => (suffix: string) => `parle.u.${uid}.${suffix}`;
+const keyFor = (uid: string) => (suffix: string) => `luvani.u.${uid}.${suffix}`;
 
 function engineFor(
   rest: Rest,
@@ -323,7 +323,7 @@ describe('the sync engine — one account, many devices', () => {
 
     const rest = createRest();
     rest.tokens.set('alice-jwt', ALICE);
-    const storage = createStorage({ [`parle.u.${ALICE}.review`]: JSON.stringify([{ id: 'a', reps: 1 }]) });
+    const storage = createStorage({ [`luvani.u.${ALICE}.review`]: JSON.stringify([{ id: 'a', reps: 1 }]) });
     const { engine } = engineFor(rest, storage, ALICE, 'alice-jwt');
 
     // The first push creates the row at revision 0.
@@ -363,7 +363,7 @@ describe('the sync engine — one account, many devices', () => {
     // And the engine really does send the swap that way round.
     const patches = rest.requests.filter((request) => request.method === 'PATCH' && request.token === 'alice-jwt');
     markDirty('review');
-    await storage.setItem(`parle.u.${ALICE}.review`, JSON.stringify([{ id: 'a', reps: 4 }]));
+    await storage.setItem(`luvani.u.${ALICE}.review`, JSON.stringify([{ id: 'a', reps: 4 }]));
     await engine.reconcile('review');
     const sent = rest.requests.filter((request) => request.method === 'PATCH').slice(patches.length);
     assert.equal(sent.length >= 1, true, 'the engine never sent a compare-and-swap');
@@ -375,7 +375,7 @@ describe('the sync engine — one account, many devices', () => {
   test('a duplicate push of the same envelope converges without double-applying anything', async () => {
     const rest = createRest();
     rest.tokens.set('alice-jwt', ALICE);
-    const key = `parle.u.${ALICE}.review`;
+    const key = `luvani.u.${ALICE}.review`;
     const storage = createStorage({ [key]: JSON.stringify([{ id: 'a', reps: 2 }]) });
     const { engine } = engineFor(rest, storage, ALICE, 'alice-jwt');
 
@@ -429,7 +429,7 @@ describe('the sync engine — one account, many devices', () => {
   test('a corrupted server envelope is quarantined and never overwrites local data', async () => {
     const rest = createRest();
     rest.tokens.set('alice-jwt', ALICE);
-    const key = `parle.u.${ALICE}.review`;
+    const key = `luvani.u.${ALICE}.review`;
     const local = [{ id: 'a', reps: 3 }];
     const storage = createStorage({ [key]: JSON.stringify(local) });
 
@@ -488,7 +488,7 @@ describe('the sync engine — one account, many devices', () => {
     const rest = createRest();
     rest.tokens.set('alice-jwt', ALICE);
     rest.tokens.set('bob-jwt', BOB);
-    const key = `parle.u.${ALICE}.review`;
+    const key = `luvani.u.${ALICE}.review`;
     const storage = createStorage({ [key]: JSON.stringify([{ id: 'a', reps: 5 }]) });
     rest.rows.set(rest.rowKey(ALICE, 'review'), {
       user_id: ALICE,
@@ -512,7 +512,7 @@ describe('the sync engine — one account, many devices', () => {
     assert.equal(rest.rows.get(rest.rowKey(ALICE, 'review'))!.revision, 4, 'the straggler moved a row');
 
     // Bob signs in on the same phone and gets his own engine, his own uid, his own keys.
-    const bobStorage = createStorage({ [`parle.u.${BOB}.review`]: JSON.stringify([{ id: 'b', reps: 1 }]) });
+    const bobStorage = createStorage({ [`luvani.u.${BOB}.review`]: JSON.stringify([{ id: 'b', reps: 1 }]) });
     const bob = engineFor(rest, bobStorage, BOB, 'bob-jwt');
     const bobOutcome = await bob.engine.reconcile('review');
     assert.equal(bobOutcome.status, 'pushed');
@@ -543,7 +543,7 @@ describe('the sync engine — one account, many devices', () => {
   test('an envelope over the size cap is refused with a diagnostic and never truncated', async () => {
     const rest = createRest();
     rest.tokens.set('alice-jwt', ALICE);
-    const key = `parle.u.${ALICE}.profile`;
+    const key = `luvani.u.${ALICE}.profile`;
     const oversized = { version: 1, notes: 'x'.repeat(MAX_ENVELOPE_BYTES) };
     const storage = createStorage({ [key]: JSON.stringify(oversized) });
 
@@ -585,7 +585,7 @@ describe('the sync engine — one account, many devices', () => {
 
   test('mock auth has no token, so the engine never touches the network', async () => {
     const rest = createRest();
-    const storage = createStorage({ [`parle.u.${ALICE}.review`]: JSON.stringify([{ id: 'a', reps: 1 }]) });
+    const storage = createStorage({ [`luvani.u.${ALICE}.review`]: JSON.stringify([{ id: 'a', reps: 1 }]) });
     const { engine, events } = engineFor(rest, storage, ALICE, null);
 
     const summary = await engine.reconcileAll();
@@ -600,7 +600,7 @@ describe('the sync engine — one account, many devices', () => {
   test('merged state reaches a store through its adopter, never by writing its key', async () => {
     const rest = createRest();
     rest.tokens.set('alice-jwt', ALICE);
-    const key = `parle.u.${ALICE}.review`;
+    const key = `luvani.u.${ALICE}.review`;
     const storage = createStorage({ [key]: JSON.stringify([{ id: 'local', reps: 1 }]) });
     rest.rows.set(rest.rowKey(ALICE, 'review'), {
       user_id: ALICE,
@@ -644,7 +644,7 @@ describe('the sync engine — one account, many devices', () => {
   test('a local write that lands while a merge is being adopted survives the adoption', async () => {
     const rest = createRest();
     rest.tokens.set('alice-jwt', ALICE);
-    const key = `parle.u.${ALICE}.review`;
+    const key = `luvani.u.${ALICE}.review`;
 
     // The phone holds one card. The tablet pushed two, and the phone has not seen the
     // second one yet — the ordinary state of two devices.
@@ -697,7 +697,7 @@ describe('the sync engine — one account, many devices', () => {
   });
 
   test("an adopted merge is folded into the store's current state, never written over it", async () => {
-    const key = `parle.u.${ALICE}.review`;
+    const key = `luvani.u.${ALICE}.review`;
     const fromTheAccount = (): unknown => sealEnvelope([{ id: 'account', reps: 2 }], 'device-tablet', 1);
     const rowAt = (rest: Rest): void => {
       rest.tokens.set('alice-jwt', ALICE);
@@ -762,8 +762,8 @@ describe('the sync engine — one account, many devices', () => {
   });
 
   test('an adoption that outlives a sign-out never writes under the next account', async () => {
-    const aliceKey = `parle.u.${ALICE}.review`;
-    const bobKey = `parle.u.${BOB}.review`;
+    const aliceKey = `luvani.u.${ALICE}.review`;
+    const bobKey = `luvani.u.${BOB}.review`;
 
     // ── One phone, two accounts, one storage map, because that is what a phone is.
     const rest = createRest();
@@ -786,7 +786,7 @@ describe('the sync engine — one account, many devices', () => {
     const wrote: string[] = [];
     const rebindingStore = (): void => {
       registerSyncAdopter('review', async (fold) => {
-        const key = `parle.u.${activeUid}.review`;
+        const key = `luvani.u.${activeUid}.review`;
         const raw = phone.map.get(key);
         const next = fold(raw === undefined ? null : (JSON.parse(raw) as unknown));
         wrote.push(key);
@@ -938,7 +938,7 @@ describe('the sync engine — one account, many devices', () => {
       payload: future,
       revision: 3,
     });
-    const storage = createStorage({ [`parle.u.${ALICE}.review`]: JSON.stringify([{ id: 'a', reps: 1 }]) });
+    const storage = createStorage({ [`luvani.u.${ALICE}.review`]: JSON.stringify([{ id: 'a', reps: 1 }]) });
     const { engine, events } = engineFor(rest, storage, ALICE, 'alice-jwt', { policy: shyPolicy });
 
     const outcome = await engine.reconcile('review');
@@ -951,7 +951,7 @@ describe('the sync engine — one account, many devices', () => {
   test('a local write that lands mid-push keeps its place in the queue', async () => {
     const rest = createRest();
     rest.tokens.set('alice-jwt', ALICE);
-    const key = `parle.u.${ALICE}.review`;
+    const key = `luvani.u.${ALICE}.review`;
     const storage = createStorage({ [key]: JSON.stringify([{ id: 'a', reps: 1 }]) });
     const { engine } = engineFor(rest, storage, ALICE, 'alice-jwt');
 
@@ -982,7 +982,7 @@ describe('the sync engine — one account, many devices', () => {
   test('two devices editing the same namespace both keep their work, and each write counts once', async () => {
     const rest = createRest();
     rest.tokens.set('alice-jwt', ALICE);
-    const key = `parle.u.${ALICE}.review`;
+    const key = `luvani.u.${ALICE}.review`;
 
     const phone = createStorage({ [key]: JSON.stringify([{ id: 'phone', reps: 1 }]) });
     const tablet = createStorage({ [key]: JSON.stringify([{ id: 'tablet', reps: 1 }]) });
@@ -1007,7 +1007,7 @@ describe('the sync engine — one account, many devices', () => {
   test('losing the swap repeatedly gives up for this cycle rather than spinning', async () => {
     const rest = createRest();
     rest.tokens.set('alice-jwt', ALICE);
-    const key = `parle.u.${ALICE}.review`;
+    const key = `luvani.u.${ALICE}.review`;
     const storage = createStorage({ [key]: JSON.stringify([{ id: 'a', reps: 1 }]) });
     rest.rows.set(rest.rowKey(ALICE, 'review'), {
       user_id: ALICE,

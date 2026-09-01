@@ -14,7 +14,7 @@
  * and telling a learner the wrong one is telling them something untrue.
  */
 
-import type { PathNode } from '@parle/core';
+import type { PathNode } from '@luvani/core';
 import { TUTOR_NAME } from '../tutor/tutorName.ts';
 
 export function statusLine(node: PathNode): string {

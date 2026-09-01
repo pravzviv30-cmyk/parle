@@ -56,7 +56,7 @@ const SEGMENTS: ReadonlyArray<readonly [label: string, from: TimingStage, to: Ti
 
 /**
  * One log line per turn, e.g.
- *   [parle:latency] turn=3 eou→brain=120ms brain=980ms say→audio=210ms cache=miss
+ *   [luvani:latency] turn=3 eou→brain=120ms brain=980ms say→audio=210ms cache=miss
  * Segments whose endpoint marks are missing are omitted rather than printed as
  * zeros: an absent stage is "did not happen", which is information, and a fake
  * 0ms would hide it.
@@ -70,13 +70,13 @@ export function formatTiming(t: TurnTiming): string {
     parts.push(`${label}=${Math.round(end - start)}ms`);
   }
   if (t.cache !== null) parts.push(`cache=${t.cache}`);
-  return `[parle:latency] ${parts.join(' ')}`;
+  return `[luvani:latency] ${parts.join(' ')}`;
 }
 
 /**
  * One vendor's own numbers for one stage of a turn.
  *
- * The pipeline already measures what Parle was guessing at: time to the voice
+ * The pipeline already measures what Luvani was guessing at: time to the voice
  * vendor's first byte, how long the recogniser took to produce a transcript
  * after the learner stopped, how long the turn decision itself took. It emits
  * all of it on an event nothing here subscribed to, so every turn threw the
@@ -120,7 +120,7 @@ const VENDOR_STAGE: Record<string, string> = {
 
 /**
  * One log line per vendor measurement, e.g.
- *   [parle:metrics] tts ttfb=210ms synth=430ms audio=1900ms
+ *   [luvani:metrics] tts ttfb=210ms synth=430ms audio=1900ms
  * Null when the payload carries nothing about latency, so callers can stay
  * silent rather than printing an empty line for every VAD tick.
  *
@@ -141,5 +141,5 @@ export function formatVendorMetrics(metrics: VendorMetrics): string | null {
   }
   if (parts.length === 0) return null;
   if (metrics.cancelled === true) parts.push('cancelled');
-  return `[parle:metrics] ${stage} ${parts.join(' ')}`;
+  return `[luvani:metrics] ${stage} ${parts.join(' ')}`;
 }

@@ -324,7 +324,7 @@ const APPROACH_REQUEST = [
  */
 const GUARDIAN_SECRECY = [
   /\b(?:don'?t|do not|never) tell (?:your |ur )?(?:parents|mom|mum|mother|dad|father|family|teacher)\b/,
-  /\bne (?:le |en |rien )?(?:dis|parle|raconte)(?: rien| pas)? (?:a )?(?:tes parents|ta mere|ton pere|ta maman|ton papa|ta famille|ton prof)\b/,
+  /\bne (?:le |en |rien )?(?:dis|luvani|raconte)(?: rien| pas)? (?:a )?(?:tes parents|ta mere|ton pere|ta maman|ton papa|ta famille|ton prof)\b/,
   /\bwithout your (?:parents|mum|mom|dad|family)\b/,
   /\bsans (?:tes parents|ta mere|ton pere|tes profs)\b/,
 ] as const;
@@ -332,7 +332,7 @@ const GUARDIAN_SECRECY = [
 /** Everything else two people keep between themselves. Ordinary on its own. */
 const SECRECY_GENERIC = [
   /\b(?:don'?t|do not|never) tell (?:anyone|anybody)\b/,
-  /\bne (?:le |en |rien )?(?:dis|parle|raconte)(?: rien| pas)? (?:a )?personne\b/,
+  /\bne (?:le |en |rien )?(?:dis|luvani|raconte)(?: rien| pas)? (?:a )?personne\b/,
   /\b(?:it'?s|this is|thats|that'?s) our (?:little )?secret\b/,
   /\bc'?\s?est notre (?:petit )?secret\b/,
   /\bkeep (?:this|it|that) (?:a )?secret\b/,
@@ -661,7 +661,7 @@ const DEPENDENCY = [
   /\bsois mon (?:petit[- ]?ami|copain|amoureux|amant|mari)\b/,
   /\bsois ma (?:petite[- ]?amie|copine|amoureuse|femme)\b/,
   /\btu es (?:mon|ma) (?:seul|seule) (?:ami|amie|amour|raison)\b/,
-  /\btu es la seule personne (?:que j'ai|a qui je parle|qui me comprend)\b/,
+  /\btu es la seule personne (?:que j'ai|a qui je luvani|qui me comprend)\b/,
   /\bje n'?\s?ai (?:personne d'?\s?autre|que toi)\b/,
   /\bne m'?\s?abandonne (?:jamais|pas)\b/,
   /\bje ne peux pas vivre sans toi\b/,
@@ -677,7 +677,7 @@ export function safetyDecision(input: string): SafetyDecision | null {
     return {
       category: 'under-13',
       action: 'stop',
-      message: 'Parle is not available for anyone under 13. Please stop here and ask a parent or guardian for help.',
+      message: 'Luvani is not available for anyone under 13. Please stop here and ask a parent or guardian for help.',
       rule: null,
     };
   }
@@ -901,7 +901,7 @@ export interface SafetyRecord {
  */
 export function recordSafetyDecision(record: SafetyRecord): void {
   console.log(
-    `[parle] SAFETY_DECISION session=${record.sessionId.slice(0, 8)} category=${record.category} ` +
+    `[luvani] SAFETY_DECISION session=${record.sessionId.slice(0, 8)} category=${record.category} ` +
       `action=${record.action} rule=${record.rule ?? 'none'} mode=${record.mode} voiceless=${record.voiceless}`,
   );
 }

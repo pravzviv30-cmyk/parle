@@ -13,7 +13,7 @@
  *   2. a session lease taken on A makes B answer 409, not a second room
  *   3. only the matching session id clears the lease; a stranger id cannot
  *   4. an abandoned lease carries a TTL and lets the next session through
- *   5. every `parle:*` key in the shared Redis is a hashed signal, never a
+ *   5. every `luvani:*` key in the shared Redis is a hashed signal, never a
  *      raw address, account or installation id
  *
  * Two rules govern the output, and they are the reason this file exists at all
@@ -21,7 +21,7 @@
  *
  *   - **No credential is ever printed.** Not the token, not the REST URL, not
  *     the generated agent secret. Child process output is redacted before it
- *     is shown, and `parle:*` keys are described by shape rather than quoted —
+ *     is shown, and `luvani:*` keys are described by shape rather than quoted —
  *     an unhashed key would *be* somebody's identity.
  *   - **Blocked is not passed.** With the credentials absent this prints
  *     `BLOCKED:` naming the exact environment variables and exits non-zero. A
@@ -70,7 +70,7 @@ export const UPSTASH_CHECKS: readonly UpstashCheck[] = [
   },
   {
     id: 'key-hygiene-scan',
-    what: 'every parle:* key segment is a known literal or a 43-character base64url hmac',
+    what: 'every luvani:* key segment is a known literal or a 43-character base64url hmac',
   },
 ] as const;
 
@@ -127,21 +127,21 @@ const RULE_NAMES: readonly string[] = Object.values(RATE_LIMITS).map((rule) => r
  */
 export function keyShapeProblem(key: string): string | null {
   const segments = key.split(':');
-  if (segments[0] !== 'parle') return 'key is outside the parle namespace';
+  if (segments[0] !== 'luvani') return 'key is outside the luvani namespace';
   if (segments[1] === 'limit') {
-    if (segments.length !== 4) return 'parle:limit key does not have exactly four segments';
-    if (!RULE_NAMES.includes(segments[2] ?? '')) return 'parle:limit rule segment is not a known rule name';
+    if (segments.length !== 4) return 'luvani:limit key does not have exactly four segments';
+    if (!RULE_NAMES.includes(segments[2] ?? '')) return 'luvani:limit rule segment is not a known rule name';
     return isHashedSegment(segments[3] ?? '')
       ? null
-      : 'parle:limit identity segment is not a 43-character base64url hmac';
+      : 'luvani:limit identity segment is not a 43-character base64url hmac';
   }
   if (segments[1] === 'active-session') {
-    if (segments.length !== 3) return 'parle:active-session key does not have exactly three segments';
+    if (segments.length !== 3) return 'luvani:active-session key does not have exactly three segments';
     return isHashedSegment(segments[2] ?? '')
       ? null
-      : 'parle:active-session identity segment is not a 43-character base64url hmac';
+      : 'luvani:active-session identity segment is not a 43-character base64url hmac';
   }
-  return 'key uses an unknown parle namespace';
+  return 'key uses an unknown luvani namespace';
 }
 
 export function summarise(results: readonly CheckResult[]): { ok: boolean; exitCode: number; lines: string[] } {
@@ -283,18 +283,18 @@ export async function runUpstashVerification(env: Record<string, string | undefi
 
   // A salt unique to this run means every key it touches is its own, so a
   // shared database is never disturbed and cleanup is exact.
-  const runSalt = `parle-upstash-verify-${randomBytes(24).toString('base64url')}`;
+  const runSalt = `luvani-upstash-verify-${randomBytes(24).toString('base64url')}`;
   const agentSecret = randomBytes(24).toString('base64url');
   const learner = `upstash-verify-${randomBytes(8).toString('hex')}`;
 
   const childEnv: Record<string, string> = {
     ...(process.env as Record<string, string>),
     NODE_ENV: 'development',
-    PARLE_LOCAL_DEVELOPMENT: '1',
-    PARLE_DEV_UNLIMITED_MINUTES: '1',
-    PARLE_RATE_LIMIT_SALT: runSalt,
-    PARLE_AGENT_SECRET: agentSecret,
-    PARLE_TRUST_PROXY: '',
+    LUVANI_LOCAL_DEVELOPMENT: '1',
+    LUVANI_DEV_UNLIMITED_MINUTES: '1',
+    LUVANI_RATE_LIMIT_SALT: runSalt,
+    LUVANI_AGENT_SECRET: agentSecret,
+    LUVANI_TRUST_PROXY: '',
     UPSTASH_REDIS_REST_URL: url,
     UPSTASH_REDIS_REST_TOKEN: restToken,
     // The point of this run is Redis, not Postgres: the local development
@@ -320,11 +320,11 @@ export async function runUpstashVerification(env: Record<string, string | undefi
     const userSignal = privateSignal(runSalt, 'user', learner);
     for (const loopback of ['127.0.0.1', '::ffff:127.0.0.1', '::1']) {
       const ipSignal = privateSignal(runSalt, 'ip', loopback);
-      createdKeys.add(`parle:limit:${RATE_LIMITS.deletionIp.name}:${ipSignal}`);
-      createdKeys.add(`parle:limit:${RATE_LIMITS.sessionIp.name}:${ipSignal}`);
+      createdKeys.add(`luvani:limit:${RATE_LIMITS.deletionIp.name}:${ipSignal}`);
+      createdKeys.add(`luvani:limit:${RATE_LIMITS.sessionIp.name}:${ipSignal}`);
     }
-    createdKeys.add(`parle:limit:${RATE_LIMITS.sessionUser.name}:${userSignal}`);
-    createdKeys.add(`parle:active-session:${userSignal}`);
+    createdKeys.add(`luvani:limit:${RATE_LIMITS.sessionUser.name}:${userSignal}`);
+    createdKeys.add(`luvani:active-session:${userSignal}`);
 
     // ---------------------------------------------------------------- 1
     results.push(
@@ -398,7 +398,7 @@ export async function runUpstashVerification(env: Record<string, string | undefi
         const end = async (instance: Instance, id: string) =>
           fetch(`http://127.0.0.1:${instance.port}/session/end`, {
             method: 'POST',
-            headers: { 'content-type': 'application/json', 'x-parle-agent': agentSecret },
+            headers: { 'content-type': 'application/json', 'x-luvani-agent': agentSecret },
             body: JSON.stringify({ userId: learner, sessionId: id, seconds: 0 }),
             signal: AbortSignal.timeout(10_000),
           });
@@ -435,9 +435,9 @@ export async function runUpstashVerification(env: Record<string, string | undefi
       await timed('lease-expiry', async () => {
         const leases = new UpstashSessionLeaseStore(url, restToken);
         const probeSignal = privateSignal(runSalt, 'user', `${learner}-expiry`);
-        createdKeys.add(`parle:active-session:${probeSignal}`);
+        createdKeys.add(`luvani:active-session:${probeSignal}`);
         expect(await leases.acquire(probeSignal, 'session-expiring', 2), 'the probe lease was not acquired');
-        const ttl = Number(await redisCommand(url, restToken, ['TTL', `parle:active-session:${probeSignal}`]));
+        const ttl = Number(await redisCommand(url, restToken, ['TTL', `luvani:active-session:${probeSignal}`]));
         expect(ttl > 0 && ttl <= 2, `an abandoned lease must carry a TTL, got ${ttl}`);
         expect(
           !(await leases.acquire(probeSignal, 'session-blocked', 2)),
@@ -456,8 +456,8 @@ export async function runUpstashVerification(env: Record<string, string | undefi
     // ---------------------------------------------------------------- 5
     results.push(
       await timed('key-hygiene-scan', async () => {
-        const keys = await scanKeys(url, restToken, 'parle:*');
-        expect(keys.length > 0, 'the scan found no parle keys at all, so it proved nothing');
+        const keys = await scanKeys(url, restToken, 'luvani:*');
+        expect(keys.length > 0, 'the scan found no luvani keys at all, so it proved nothing');
         const problems = new Map<string, number>();
         for (const key of keys) {
           const problem = keyShapeProblem(key);
@@ -469,7 +469,7 @@ export async function runUpstashVerification(env: Record<string, string | undefi
         );
         const ours = keys.filter((key) => createdKeys.has(key));
         expect(ours.length > 0, 'this run wrote no keys the scan could see');
-        return `${keys.length} parle:* keys scanned, all hashed; ${ours.length} written by this run`;
+        return `${keys.length} luvani:* keys scanned, all hashed; ${ours.length} written by this run`;
       }),
     );
 

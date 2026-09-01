@@ -1,4 +1,4 @@
-import type { Mission, SessionPhonemeReport } from '@parle/core';
+import type { Mission, SessionPhonemeReport } from '@luvani/core';
 
 export type SoundCheckKind = 'assessed-clear' | 'assessed-focus' | 'self-guided' | 'unavailable';
 
@@ -68,5 +68,5 @@ export const SELF_GUIDED: SoundCheckDecision = {
   kind: 'self-guided',
   focus: null,
   headline: 'You said the line.',
-  detail: 'This was listen-and-repeat practice. Parle did not assess your pronunciation.',
+  detail: 'This was listen-and-repeat practice. Luvani did not assess your pronunciation.',
 };

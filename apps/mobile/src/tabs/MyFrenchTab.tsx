@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { missionStates, type MissionProgress } from '@parle/core';
+import { missionStates, type MissionProgress } from '@luvani/core';
 
 import { Card, Label, OutlineButton, PillButton, Stat } from '../components.tsx';
 import { paper, radius, signal, space, type, HAIRLINE, HIT } from '../theme.ts';

@@ -40,8 +40,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { SAFETY_CATEGORIES, type SafetyCategory } from '@parle/core';
-import { mergeStoredProfiles } from '@parle/brain/profile/merge';
+import { SAFETY_CATEGORIES, type SafetyCategory } from '@luvani/core';
+import { mergeStoredProfiles } from '@luvani/brain/profile/merge';
 
 import { ageStopStanding, isUnderAgeStop } from './age.ts';
 import {

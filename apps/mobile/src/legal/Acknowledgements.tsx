@@ -61,7 +61,7 @@ export function Acknowledgements({ onBack }: { onBack: () => void }) {
       <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
         <Text style={[type.display, { color: paper.ink }]}>Acknowledgements</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
-          Parle is built on other people's work. The full licence text for each of these ships inside the app.
+          Luvani is built on other people's work. The full licence text for each of these ships inside the app.
         </Text>
         <View style={{ marginTop: space(6), gap: space(3) }}>
           {NOTICES.map((n) => (

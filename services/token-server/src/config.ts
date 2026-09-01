@@ -1,18 +1,18 @@
 export interface ServerEnvironment {
   NODE_ENV?: string;
-  PARLE_LOCAL_DEVELOPMENT?: string;
+  LUVANI_LOCAL_DEVELOPMENT?: string;
   LIVEKIT_URL?: string;
   SUPABASE_URL?: string;
   SUPABASE_JWT_SECRET?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
-  PARLE_AGENT_SECRET?: string;
-  PARLE_ALLOWED_ORIGINS?: string;
+  LUVANI_AGENT_SECRET?: string;
+  LUVANI_ALLOWED_ORIGINS?: string;
   UPSTASH_REDIS_REST_URL?: string;
   UPSTASH_REDIS_REST_TOKEN?: string;
-  PARLE_RATE_LIMIT_SALT?: string;
+  LUVANI_RATE_LIMIT_SALT?: string;
   ENTITLEMENT_STORE_PATH?: string;
   REVENUECAT_SECRET_API_KEY?: string;
-  PARLE_REVENUECAT_WEBHOOK_SECRET?: string;
+  LUVANI_REVENUECAT_WEBHOOK_SECRET?: string;
   REVENUECAT_ENTITLEMENT_ID?: string;
   REVENUECAT_STARTER_PRODUCT_ID?: string;
   REVENUECAT_REGULAR_PRODUCT_ID?: string;
@@ -39,14 +39,14 @@ function exactHttpsOrigin(value: string): boolean {
 
 /** Unsafe fallbacks exist only behind an explicit local supervisor flag. */
 export function productionConfigurationProblems(env: ServerEnvironment): string[] {
-  if (env.PARLE_LOCAL_DEVELOPMENT === '1' && env.NODE_ENV !== 'production') return [];
+  if (env.LUVANI_LOCAL_DEVELOPMENT === '1' && env.NODE_ENV !== 'production') return [];
   const problems: string[] = [];
-  if (env.NODE_ENV !== 'production') problems.push('NODE_ENV=production or PARLE_LOCAL_DEVELOPMENT=1');
+  if (env.NODE_ENV !== 'production') problems.push('NODE_ENV=production or LUVANI_LOCAL_DEVELOPMENT=1');
   if (!secureUrl(env.SUPABASE_URL, 'https:')) problems.push('HTTPS Supabase JWKS authentication');
   if (!secureUrl(env.LIVEKIT_URL, 'wss:')) problems.push('secure WSS LiveKit URL');
-  if (!env.PARLE_AGENT_SECRET) problems.push('PARLE_AGENT_SECRET');
-  const origins = (env.PARLE_ALLOWED_ORIGINS ?? '').split(',').map((origin) => origin.trim()).filter(Boolean);
-  if (origins.length === 0) problems.push('PARLE_ALLOWED_ORIGINS');
+  if (!env.LUVANI_AGENT_SECRET) problems.push('LUVANI_AGENT_SECRET');
+  const origins = (env.LUVANI_ALLOWED_ORIGINS ?? '').split(',').map((origin) => origin.trim()).filter(Boolean);
+  if (origins.length === 0) problems.push('LUVANI_ALLOWED_ORIGINS');
   else if (origins.some((origin) => !exactHttpsOrigin(origin))) {
     problems.push('exact HTTPS origins');
   }
@@ -54,14 +54,14 @@ export function productionConfigurationProblems(env: ServerEnvironment): string[
   if (env.UPSTASH_REDIS_REST_URL && !secureUrl(env.UPSTASH_REDIS_REST_URL, 'https:')) {
     problems.push('HTTPS rate-limit store');
   }
-  if (!env.PARLE_RATE_LIMIT_SALT || env.PARLE_RATE_LIMIT_SALT.length < 32) problems.push('PARLE_RATE_LIMIT_SALT');
+  if (!env.LUVANI_RATE_LIMIT_SALT || env.LUVANI_RATE_LIMIT_SALT.length < 32) problems.push('LUVANI_RATE_LIMIT_SALT');
   if (!(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY)) problems.push('atomic Supabase entitlement storage');
   if (!!env.SUPABASE_SERVICE_ROLE_KEY !== !!env.SUPABASE_URL) {
     problems.push('complete Supabase service configuration');
   }
   const billing = [
     env.REVENUECAT_SECRET_API_KEY,
-    env.PARLE_REVENUECAT_WEBHOOK_SECRET,
+    env.LUVANI_REVENUECAT_WEBHOOK_SECRET,
     env.REVENUECAT_ENTITLEMENT_ID,
     env.REVENUECAT_STARTER_PRODUCT_ID,
     env.REVENUECAT_REGULAR_PRODUCT_ID,

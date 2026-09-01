@@ -1,6 +1,6 @@
 # Supabase runbook
 
-Everything Parle keeps about a learner lives in six tables and four functions here. This
+Everything Luvani keeps about a learner lives in six tables and four functions here. This
 file is how they get applied, backed up, rolled back and proved, by hand, from the SQL
 Editor.
 
@@ -26,7 +26,7 @@ of each before starting the next. Each file is idempotent: every create is
 
 | # | File | What it adds |
 |---|---|---|
-| 1 | `migrations/202608220001_parle_learning.sql` | `learner_state`, `product_events`, `entitlements`, their RLS policies, and the first `consume_entitlement(uuid, integer)` |
+| 1 | `migrations/202608220001_luvani_learning.sql` | `learner_state`, `product_events`, `entitlements`, their RLS policies, and the first `consume_entitlement(uuid, integer)` |
 | 2 | `migrations/202608230001_session_usage_idempotency.sql` | `session_usage`, `trial_installations`, `claim_trial`, the session-aware `consume_entitlement(uuid, integer, uuid)`, and the `product_events` validation trigger. Drops the two-argument debit |
 | 3 | `migrations/202608240001_claim_trial_null_fix.sql` | F73: the NULL-safe refusal guard in `claim_trial`. Replaces one function body, touches no rows |
 | 4 | `migrations/202608250001_consume_entitlement_null_fix.sql` | F74: the same NULL-safe guard in `consume_entitlement`, so a retried session bills once and a foreign session id is refused. Replaces one function body, touches no rows |
@@ -96,7 +96,7 @@ Take one before anything in `## Rollback` and before any migration that is not s
    `product_events`, `entitlements`, `session_usage`, `trial_installations`,
    `billing_events` → Export CSV.
    Slow and manual, but it is the only copy that exists on a free project between
-   snapshots, and it is enough to reconstruct every row Parle owns.
+   snapshots, and it is enough to reconstruct every row Luvani owns.
 
 Record what you took and when, in the incident note or the PR. A backup nobody can date
 is a backup nobody can restore from.
@@ -127,15 +127,15 @@ depends on what the earlier ones built.
 | Rolling back | Script | Cost |
 |---|---|---|
 | `202608300003_paid_lapse_marker.sql` | `rollback/202608300003_down.sql` | Reopens F257. Former subscribers become indistinguishable from exhausted trials and receive the wrong explanation |
-| `202608300002_paid_period_lapse.sql` | `rollback/202608300002_down.sql` | Reopens F245. Every cancelled subscriber's row renews itself for thirty more days, free, on every read. Refuses to run until you set `parle.reopen_f245` in the same session |
+| `202608300002_paid_period_lapse.sql` | `rollback/202608300002_down.sql` | Reopens F245. Every cancelled subscriber's row renews itself for thirty more days, free, on every read. Refuses to run until you set `luvani.reopen_f245` in the same session |
 | `202608300001_billing_events.sql` | `rollback/202608300001_down.sql` | Destroys the webhook replay ledger. Take the webhook endpoint out of service first: without the table every redelivered billing event is acted on again |
-| `202608270001_onboarding_event_property_fix.sql` | `rollback/202608270001_down.sql` | Reopens F116. Every `onboarding_completed` is refused again and the funnel goes dark, silently. Refuses to run until you set `parle.reopen_f116` in the same session |
+| `202608270001_onboarding_event_property_fix.sql` | `rollback/202608270001_down.sql` | Reopens F116. Every `onboarding_completed` is refused again and the funnel goes dark, silently. Refuses to run until you set `luvani.reopen_f116` in the same session |
 | `202608260001_learner_state_revision.sql` | `rollback/202608260001_down.sql` | Every synced device stops being able to write: the compare-and-swap filters on a column that no longer exists, so PostgREST answers 42703 and the push queues instead of landing. Fails closed, loses no learner content, and cannot be undone by re-applying — the counters come back at 0 |
-| `202608250002_product_event_key_count_fix.sql` | `rollback/202608250002_down.sql` | Reopens F75. Every product event write fails again, silently. Refuses to run until you set `parle.reopen_f75` in the same session |
-| `202608250001_consume_entitlement_null_fix.sql` | `rollback/202608250001_down.sql` | Reopens F74. A retried `/session/end` bills a learner twice and a foreign session id merges. Refuses to run until you set `parle.reopen_f74` in the same session |
-| `202608240001_claim_trial_null_fix.sql` | `rollback/202608240001_down.sql` | Reopens F73. Refuses to run until you set `parle.reopen_f73` in the same session |
+| `202608250002_product_event_key_count_fix.sql` | `rollback/202608250002_down.sql` | Reopens F75. Every product event write fails again, silently. Refuses to run until you set `luvani.reopen_f75` in the same session |
+| `202608250001_consume_entitlement_null_fix.sql` | `rollback/202608250001_down.sql` | Reopens F74. A retried `/session/end` bills a learner twice and a foreign session id merges. Refuses to run until you set `luvani.reopen_f74` in the same session |
+| `202608240001_claim_trial_null_fix.sql` | `rollback/202608240001_down.sql` | Reopens F73. Refuses to run until you set `luvani.reopen_f73` in the same session |
 | `202608230001_session_usage_idempotency.sql` | `rollback/202608230001_down.sql` | Destroys the exactly-once billing ledger and the antifraud evidence. Restores the two-argument debit |
-| `202608220001_parle_learning.sql` | `rollback/202608220001_down.sql` | Destroys every learner row Parle owns |
+| `202608220001_luvani_learning.sql` | `rollback/202608220001_down.sql` | Destroys every learner row Luvani owns |
 
 The five interlocked rows are the ones to argue with. Each adds no table, no column and
 no row; each only stops one function doing the wrong thing. If something looks broken after
@@ -143,11 +143,11 @@ applying one of them, fix forward with a new migration. Rolling one back restore
 defect, which is why each script makes you say so out loud in the same paste:
 
 ```sql
-set local parle.reopen_f245 = 'yes-i-accept-renewing-cancelled-subscriptions';
-set local parle.reopen_f116 = 'yes-i-accept-losing-every-onboarding-event';
-set local parle.reopen_f75 = 'yes-i-accept-losing-every-product-event';
-set local parle.reopen_f74 = 'yes-i-accept-double-billing-on-retry';
-set local parle.reopen_f73 = 'yes-i-accept-unbounded-trial-farming';
+set local luvani.reopen_f245 = 'yes-i-accept-renewing-cancelled-subscriptions';
+set local luvani.reopen_f116 = 'yes-i-accept-losing-every-onboarding-event';
+set local luvani.reopen_f75 = 'yes-i-accept-losing-every-product-event';
+set local luvani.reopen_f74 = 'yes-i-accept-double-billing-on-retry';
+set local luvani.reopen_f73 = 'yes-i-accept-unbounded-trial-farming';
 ```
 
 `202608300001_down.sql` is the odd one: it reopens money-shaped behaviour like the five

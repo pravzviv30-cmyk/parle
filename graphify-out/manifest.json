@@ -1061,7 +1061,7 @@
     "ast_hash": "ee864f5cfc0ddc4a66329d6d06f3a2c9",
     "semantic_hash": ""
   },
-  "apps/mobile/src/nav/ParleTabBar.tsx": {
+  "apps/mobile/src/nav/LuvaniTabBar.tsx": {
     "mtime": 1788005441.181262,
     "seen": 1788046035.348,
     "ast_hash": "15b5b7ad4972b9c2deda2338a519ee9f",

@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "Parle",
-    "slug": "parle",
+    "name": "Luvani",
+    "slug": "luvani",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "parle",
+    "scheme": "luvani",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.parle.app",
+      "bundleIdentifier": "com.luvani.app",
       "buildNumber": "1",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Parle listens while you speak French so it can tell you which sounds to work on."
+        "NSMicrophoneUsageDescription": "Luvani listens while you speak French so it can tell you which sounds to work on."
       }
     },
     "android": {
-      "package": "com.parle.app",
+      "package": "com.luvani.app",
       "adaptiveIcon": {
         "backgroundColor": "#F3E8F3",
         "foregroundImage": "./assets/android-icon-foreground.png",

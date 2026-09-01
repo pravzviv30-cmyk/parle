@@ -9,7 +9,7 @@
  * Numbers are allowed here and only here; mid-session they read as grades.
  */
 
-import { unassistedRate } from '@parle/core';
+import { unassistedRate } from '@luvani/core';
 
 import type { CoachItem, SessionRecap } from '../contract/types.ts';
 import type { CefrBand } from '../types.ts';

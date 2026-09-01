@@ -17,7 +17,7 @@
 
 - [Safety Category Taxonomy](Safety_Category_Taxonomy.md) (8 shared connections)
 - [Safety Category Rules](Safety_Category_Rules.md) (3 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (2 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (2 shared connections)
 - [Conversation Brain Client](Conversation_Brain_Client.md) (2 shared connections)
 - [Safety Policy Corpus](Safety_Policy_Corpus.md) (2 shared connections)
 - [Tutor Turn Handling](Tutor_Turn_Handling.md) (1 shared connections)

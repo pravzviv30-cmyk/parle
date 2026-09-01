@@ -4,7 +4,7 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "types": ["node", "react"],
-    // @parle/core ships raw TypeScript with explicit .ts specifiers so Node can run
+    // @luvani/core ships raw TypeScript with explicit .ts specifiers so Node can run
     // it directly via type stripping and Metro can bundle it without a build step.
     "allowImportingTsExtensions": true,
     "noEmit": true

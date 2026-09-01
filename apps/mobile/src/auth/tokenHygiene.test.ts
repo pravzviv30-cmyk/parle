@@ -300,7 +300,7 @@ describe('auth token hygiene — what a static walk can prove without a device',
 
     const anchors: [symbol: string, file: string][] = [
       ['createSecureSessionStorage', path.join(AUTH_DIR, 'secureSessionStorage.ts')],
-      ['parle-secure-meta', path.join(AUTH_DIR, 'secureSessionStorage.ts')],
+      ['luvani-secure-meta', path.join(AUTH_DIR, 'secureSessionStorage.ts')],
       ['WHEN_UNLOCKED_THIS_DEVICE_ONLY', path.join(AUTH_DIR, 'supabaseAdapter.ts')],
       ['reauthenticateForDeletion', path.join(AUTH_DIR, 'types.ts')],
       ['deleteAccount', path.join(AUTH_DIR, 'types.ts')],

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { PLANS, type Entitlement } from '@parle/core';
+import { PLANS, type Entitlement } from '@luvani/core';
 import { InMemoryEntitlementStore } from '../store.ts';
 import {
   projectSubscriber,
@@ -14,17 +14,17 @@ import {
 const config: RevenueCatConfiguration = {
   secretApiKey: 'secret-api-key',
   webhookSecret: 'Bearer webhook-secret',
-  entitlementId: 'parle',
-  products: { starter: 'parle_starter_monthly', regular: 'parle_regular_monthly' },
+  entitlementId: 'luvani',
+  products: { starter: 'luvani_starter_monthly', regular: 'luvani_regular_monthly' },
 };
 const now = new Date('2026-08-30T12:00:00.000Z');
 const subscriber = (product: string, expires = '2026-09-30T12:00:00.000Z') => ({
-  subscriber: { entitlements: { parle: { product_identifier: product, expires_date: expires } } },
+  subscriber: { entitlements: { luvani: { product_identifier: product, expires_date: expires } } },
 });
 
 describe('RevenueCat subscriber projection — F247', () => {
   test('an active starter subscriber projects to a fresh starter period', () => {
-    const result = projectSubscriber(subscriber('parle_starter_monthly'), { plan: 'trial', secondsUsed: 300 }, config, now);
+    const result = projectSubscriber(subscriber('luvani_starter_monthly'), { plan: 'trial', secondsUsed: 300 }, config, now);
     assert.equal(result.kind, 'active');
     if (result.kind !== 'active') return;
     assert.equal(result.entitlement.plan, 'starter');
@@ -39,9 +39,9 @@ describe('RevenueCat subscriber projection — F247', () => {
       secondsUsed: 1200,
       periodEnd: new Date('2026-09-30T12:00:00.000Z'),
     };
-    const repeat = projectSubscriber(subscriber('parle_starter_monthly'), current, config, now);
+    const repeat = projectSubscriber(subscriber('luvani_starter_monthly'), current, config, now);
     assert.equal(repeat.kind === 'active' && repeat.entitlement.secondsUsed, 1200);
-    const renewed = projectSubscriber(subscriber('parle_starter_monthly', '2026-10-30T12:00:00.000Z'), current, config, now);
+    const renewed = projectSubscriber(subscriber('luvani_starter_monthly', '2026-10-30T12:00:00.000Z'), current, config, now);
     assert.equal(renewed.kind === 'active' && renewed.entitlement.secondsUsed, 0);
   });
 
@@ -87,8 +87,8 @@ describe('billing configuration and webhook authentication', () => {
     assert.throws(() => revenueCatConfiguration({ REVENUECAT_SECRET_API_KEY: 'only-one' }), /incomplete/);
     assert.deepEqual(revenueCatConfiguration({
       REVENUECAT_SECRET_API_KEY: 'api',
-      PARLE_REVENUECAT_WEBHOOK_SECRET: 'hook',
-      REVENUECAT_ENTITLEMENT_ID: 'parle',
+      LUVANI_REVENUECAT_WEBHOOK_SECRET: 'hook',
+      REVENUECAT_ENTITLEMENT_ID: 'luvani',
       REVENUECAT_STARTER_PRODUCT_ID: 'starter',
       REVENUECAT_REGULAR_PRODUCT_ID: 'regular',
     })?.products, { starter: 'starter', regular: 'regular' });

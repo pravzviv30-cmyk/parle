@@ -8,7 +8,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import 'dotenv/config';
 
-import { PLANS, buildReport, secondsRemaining } from '@parle/core';
+import { PLANS, buildReport, secondsRemaining } from '@luvani/core';
 import { scoreUtterance } from '../../shared/speechace.ts';
 import {
   DevelopmentEntitlementStore,
@@ -45,8 +45,8 @@ const PORT = Number(process.env.PORT ?? 8787);
 const originPolicy = createOriginPolicy(process.env);
 const rateLimiter = createRateLimiter(process.env);
 const sessionLeases = createSessionLeaseStore(process.env);
-const trustProxy = process.env.PARLE_TRUST_PROXY === '1';
-const rateLimitSalt = process.env.PARLE_RATE_LIMIT_SALT ?? 'parle-local-development-rate-limit-salt';
+const trustProxy = process.env.LUVANI_TRUST_PROXY === '1';
+const rateLimitSalt = process.env.LUVANI_RATE_LIMIT_SALT ?? 'luvani-local-development-rate-limit-salt';
 const ACTIVE_SESSION_LEASE_SEC = 30 * 60;
 /**
  * The shape a session id has to have before it is allowed to match a lease.
@@ -60,7 +60,7 @@ const sessionIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-
 
 const productionProblems = productionConfigurationProblems(process.env);
 if (productionProblems.length > 0) {
-  console.error(`[parle] Refusing unsafe production configuration: ${productionProblems.join(', ')}.`);
+  console.error(`[luvani] Refusing unsafe production configuration: ${productionProblems.join(', ')}.`);
   process.exit(1);
 }
 
@@ -68,7 +68,7 @@ function requiredEnv(name: string): string {
   const v = process.env[name];
   if (!v) {
     console.error(
-      `\n[parle] Missing ${name}.\n` +
+      `\n[luvani] Missing ${name}.\n` +
         `        Copy services/token-server/.env.example to .env and fill it in.\n` +
         `        Values come from your LiveKit Cloud project under Settings → Keys.\n`,
     );
@@ -87,10 +87,10 @@ const livekitUrl = requiredEnv('LIVEKIT_URL');
  * /session/end. Production boot refuses an unset secret; explicit local
  * development retains a noisy compatibility path.
  */
-const AGENT_SECRET = process.env.PARLE_AGENT_SECRET;
+const AGENT_SECRET = process.env.LUVANI_AGENT_SECRET;
 if (!AGENT_SECRET) {
   console.warn(
-    '[parle] PARLE_AGENT_SECRET is not set: /session/end will accept a debit from anyone who can reach this port. ' +
+    '[luvani] LUVANI_AGENT_SECRET is not set: /session/end will accept a debit from anyone who can reach this port. ' +
       'Fine locally, not fine anywhere else.',
   );
 }
@@ -104,11 +104,11 @@ if (!AGENT_SECRET) {
  * learner is a property of the server's uptime rather than of what they bought.
  */
 const developmentMinutes = developmentEntitlementsEnabled(process.env);
-if (process.env.PARLE_DEV_UNLIMITED_MINUTES === '1' && !developmentMinutes) {
-  console.warn('[parle] PARLE_DEV_UNLIMITED_MINUTES was ignored because NODE_ENV=production.');
+if (process.env.LUVANI_DEV_UNLIMITED_MINUTES === '1' && !developmentMinutes) {
+  console.warn('[luvani] LUVANI_DEV_UNLIMITED_MINUTES was ignored because NODE_ENV=production.');
 }
 if (developmentMinutes) {
-  console.warn('[parle] development minutes are enabled: local testing sessions are not debited.');
+  console.warn('[luvani] development minutes are enabled: local testing sessions are not debited.');
 }
 
 const store: EntitlementStore = developmentMinutes
@@ -197,7 +197,7 @@ const server = createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'access-control-allow-methods': 'GET,POST,OPTIONS',
-      'access-control-allow-headers': 'content-type, authorization, x-parle-installation',
+      'access-control-allow-headers': 'content-type, authorization, x-luvani-installation',
       'access-control-max-age': '600',
     });
     return res.end();
@@ -406,7 +406,7 @@ const server = createServer(async (req, res) => {
       }
       const exported = await exportSupabaseAccountData(supabaseUrl, serviceRoleKey, resolved.userId);
       return json(res, 200, exported, {
-        'content-disposition': 'attachment; filename="parle-account-data.json"',
+        'content-disposition': 'attachment; filename="luvani-account-data.json"',
       });
     }
 
@@ -438,7 +438,7 @@ const server = createServer(async (req, res) => {
       // The caller is the tutor agent, server side, using the identity it read
       // out of the signed join token. A shared secret is what separates that
       // from anyone else on the network draining a stranger's minutes.
-      if (!agentDebitAllowed(AGENT_SECRET, req.headers['x-parle-agent'])) {
+      if (!agentDebitAllowed(AGENT_SECRET, req.headers['x-luvani-agent'])) {
         return json(res, 401, { error: 'agent authentication required' });
       }
       const body = await readJson(req);
@@ -523,11 +523,11 @@ const server = createServer(async (req, res) => {
 
     return json(res, 404, { error: 'not found' });
   } catch (err) {
-    console.error('[parle] request failed', err);
+    console.error('[luvani] request failed', err);
     return json(res, 500, { error: 'internal error' });
   }
 });
 
 server.listen(PORT, () => {
-  console.log(`[parle] token server on http://localhost:${PORT} → ${livekitUrl}`);
+  console.log(`[luvani] token server on http://localhost:${PORT} → ${livekitUrl}`);
 });

@@ -44,7 +44,7 @@
 - [Turns And Mode Caps](Turns_And_Mode_Caps.md) (1 shared connections)
 - [UI Theme Primitives](UI_Theme_Primitives.md) (1 shared connections)
 - [Mock Speech Session](Mock_Speech_Session.md) (1 shared connections)
-- [Parle Conversation Orchestrator](Parle_Conversation_Orchestrator.md) (1 shared connections)
+- [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md) (1 shared connections)
 
 ## Source Files
 

@@ -19,7 +19,7 @@
  */
 
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import type { PathNode } from '@parle/core';
+import type { PathNode } from '@luvani/core';
 import { paper, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
 import { statusLine } from './statusLine.ts';
 import { TALK_AGAIN, offersTalkAgain, talkAgainLabel } from './talkAgain.ts';

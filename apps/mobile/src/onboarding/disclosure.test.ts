@@ -277,3 +277,19 @@ describe('the first run says what a learner is talking to', () => {
     }
   });
 });
+
+describe("the first-run copy claims nothing a voice can contradict — F281", () => {
+  /**
+   * The sibling of the prompt guard in brain. The persona page and the Meet page
+   * both told his life story and both named the town, so a learner could hear a
+   * Québécois voice and read that he grew up in Lyon. The bar and the twenty
+   * years stay; they are true of any voice that could read them.
+   */
+  test('the first-run copy tells his life story without naming a city', () => {
+    const CITIES = /\b(Lyon|Lyonnais|Sa[oô]ne|Marseille|Bordeaux|Toulouse|Montr[eé]al|Qu[eé]bec)\b/i;
+    for (const line of FIRST_RUN_COPY) {
+      const found = line.match(CITIES);
+      assert.equal(found, null, `"${line}" places him in ${found?.[0]}`);
+    }
+  });
+});

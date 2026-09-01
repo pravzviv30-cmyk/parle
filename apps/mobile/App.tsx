@@ -54,7 +54,7 @@ import { resetSyncRegistry } from './src/sync/registry.ts';
 import { adoptBeforeReady } from './src/app/freshDevice.ts';
 import { loadHistory } from './src/progress/store.ts';
 import { backfillFrom } from './src/progress/activity.ts';
-import { lessonXp } from '@parle/core';
+import { lessonXp } from '@luvani/core';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { ProfileGate } from './src/app/ProfileContext.tsx';
 import { LiveProvider } from './src/app/LiveContext.tsx';
@@ -154,7 +154,7 @@ function SignedInRoot({ user }: { user: AuthUser }) {
         // closed between the recap and the practice message. Ordinary launches
         // find nothing here and this costs one read.
         const recovered = await recoverJournal();
-        if (recovered > 0) console.info(`[parle] recovered ${recovered} phrases from a session that did not finish banking`);
+        if (recovered > 0) console.info(`[luvani] recovered ${recovered} phrases from a session that did not finish banking`);
 
         // Sync starts here and nowhere else: after the journal has been banked,
         // so the launch reconcile pushes a device that is already whole, and
@@ -178,7 +178,7 @@ function SignedInRoot({ user }: { user: AuthUser }) {
           hasLocalProfile: async () => (await loadProfile()) !== null,
           pull: started === null ? null : () => started.reconcileAll(),
         });
-        if (start.waited) console.info(`[parle] fresh device start: ${start.kind}`);
+        if (start.waited) console.info(`[luvani] fresh device start: ${start.kind}`);
         // The ordinary launch reconcile, in the background where it belongs. It
         // is the backstop that makes the dirty set an optimisation rather than
         // something correctness depends on. Skipped when the fresh device pull
@@ -265,7 +265,7 @@ function SignedInRoot({ user }: { user: AuthUser }) {
           ref={navigationRef}
           onReady={openFirstMissionChooser}
           theme={navTheme}
-          // Web only. A native linking config would claim parle://auth/callback,
+          // Web only. A native linking config would claim luvani://auth/callback,
           // which auth/oauth.native.ts needs for the OAuth round trip.
           {...(Platform.OS === 'web' ? { linking } : {})}
         >

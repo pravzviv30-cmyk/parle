@@ -32,7 +32,7 @@ import {
   type DrillExercise,
   type DrillSessionState,
   type ReviewCard,
-} from '@parle/core';
+} from '@luvani/core';
 
 import { gradeCards, loadDeck } from './review/store.ts';
 import { setActiveUser } from './storage/scope.ts';
@@ -120,7 +120,7 @@ async function withDeck(): Promise<void> {
   const uid = nextUid();
   installDisk();
   setActiveUser(uid);
-  await AsyncStorage.setItem(`parle.u.${uid}.review`, JSON.stringify([card()]));
+  await AsyncStorage.setItem(`luvani.u.${uid}.review`, JSON.stringify([card()]));
 }
 
 describe('a drill sitting reaches the deck with everything it proved — F128', () => {

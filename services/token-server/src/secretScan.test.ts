@@ -124,8 +124,8 @@ function plantedSamples(): { id: string; line: string; value: string }[] {
   plant('livekit-credential', livekit, `LIVEKIT_API_SECRET=${livekit}`);
   plant('deepgram-key', deepgram, `DEEPGRAM_API_KEY=${deepgram}`);
   plant('upstash-token', upstash, `UPSTASH_REDIS_REST_TOKEN=${upstash}`);
-  plant('assigned-server-secret', agentSecret, `PARLE_AGENT_SECRET=${agentSecret}`);
-  plant('url-embedded-credential', redisPassword, `redis://default:${redisPassword}@eu2-parle.upstash.io:6379`);
+  plant('assigned-server-secret', agentSecret, `LUVANI_AGENT_SECRET=${agentSecret}`);
+  plant('url-embedded-credential', redisPassword, `redis://default:${redisPassword}@eu2-luvani.upstash.io:6379`);
   plant('hardcoded-bearer', bearer, `  authorization: 'Bearer ${bearer}',`);
 
   return samples;
@@ -185,16 +185,16 @@ describe('the secret scanner — shapes found, values never spoken', () => {
       assert.deepEqual(scanText(readFileSync(file, 'utf8'), `${example}/.env.example`), []);
     }
     assert.deepEqual(scanLine('LIVEKIT_API_SECRET=<your livekit secret here>'), []);
-    assert.deepEqual(scanLine('PARLE_AGENT_SECRET=changeme-changeme-changeme'), []);
+    assert.deepEqual(scanLine('LUVANI_AGENT_SECRET=changeme-changeme-changeme'), []);
     assert.deepEqual(scanLine('const secret = process.env.LIVEKIT_API_SECRET;'), []);
 
     // Code that wires a credential up is not a credential. These three shapes
     // are all live in this repo's own harnesses.
-    assert.deepEqual(scanLine("        PARLE_RATE_LIMIT_SALT: randomBytes(36).toString('base64url'),"), []);
-    assert.deepEqual(scanLine('        PARLE_AGENT_SECRET: agentSecretForThisRun,'), []);
+    assert.deepEqual(scanLine("        LUVANI_RATE_LIMIT_SALT: randomBytes(36).toString('base64url'),"), []);
+    assert.deepEqual(scanLine('        LUVANI_AGENT_SECRET: agentSecretForThisRun,'), []);
     assert.deepEqual(scanLine('        UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,'), []);
     // But the same variable name holding an actual value still is one.
-    assert.deepEqual(scanLine(`PARLE_AGENT_SECRET=${token(40)}`), ['assigned-server-secret']);
+    assert.deepEqual(scanLine(`LUVANI_AGENT_SECRET=${token(40)}`), ['assigned-server-secret']);
     assert.deepEqual(scanLine(`OPENAI_API_KEY=sk-${'x'.repeat(40)}`), []);
 
     // A Supabase anon key is designed to ship inside a client build.
@@ -295,7 +295,7 @@ describe('the secret scanner — shapes found, values never spoken', () => {
   });
 
   test('a bundle scan with no build output reports blocked rather than clean', () => {
-    const empty = mkdtempSync(path.join(tmpdir(), 'parle-secret-scan-'));
+    const empty = mkdtempSync(path.join(tmpdir(), 'luvani-secret-scan-'));
     try {
       assert.deepEqual(bundleFiles(empty), []);
       const outcome = runScan(['--bundles'], empty);
@@ -323,8 +323,8 @@ describe('the secret scanner — a credential that reads like a name', () => {
     { id: 'livekit-credential', line: `LIVEKIT_API_SECRET=${value}` },
     { id: 'deepgram-key', line: `DEEPGRAM_API_KEY=${value}` },
     { id: 'upstash-token', line: `UPSTASH_REDIS_REST_TOKEN=${value}` },
-    { id: 'assigned-server-secret', line: `PARLE_AGENT_SECRET=${value}` },
-    { id: 'url-embedded-credential', line: `redis://default:${value}@eu2-parle.upstash.io:6379` },
+    { id: 'assigned-server-secret', line: `LUVANI_AGENT_SECRET=${value}` },
+    { id: 'url-embedded-credential', line: `redis://default:${value}@eu2-luvani.upstash.io:6379` },
     { id: 'hardcoded-bearer', line: `  authorization: 'Bearer ${value}',` },
   ];
 
@@ -366,22 +366,22 @@ describe('the secret scanner — a credential that reads like a name', () => {
       {
         id: 'assigned-server-secret',
         reference: 'config.secrets.agentSecret',
-        line: (value) => `        PARLE_AGENT_SECRET: ${value},`,
+        line: (value) => `        LUVANI_AGENT_SECRET: ${value},`,
       },
       {
         id: 'assigned-server-secret',
         reference: 'config?.secrets?.agentSecret',
-        line: (value) => `        PARLE_AGENT_SECRET: ${value},`,
+        line: (value) => `        LUVANI_AGENT_SECRET: ${value},`,
       },
       {
         id: 'assigned-server-secret',
         reference: 'agentSecretForThisRun',
-        line: (value) => `        PARLE_AGENT_SECRET: ${value},`,
+        line: (value) => `        LUVANI_AGENT_SECRET: ${value},`,
       },
       {
         id: 'assigned-server-secret',
         reference: "randomBytes(36).toString('base64url')",
-        line: (value) => `        PARLE_RATE_LIMIT_SALT: ${value},`,
+        line: (value) => `        LUVANI_RATE_LIMIT_SALT: ${value},`,
       },
       {
         id: 'livekit-credential',

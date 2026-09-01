@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from '
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { createProfile, migrateProfile, type LearnerProfile } from '@parle/brain';
+import { createProfile, migrateProfile, type LearnerProfile } from '@luvani/brain';
 
 const SERVICE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const DEFAULT_PROFILE_PATH = join(SERVICE_ROOT, '.data', 'profile.json');
