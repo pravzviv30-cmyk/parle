@@ -30,7 +30,7 @@ const ICONS: Record<string, (p: TabIconProps) => React.ReactElement> = {
   Profile: ProfileIcon,
 };
 
-/** What a screen reader announces. The visible UI has no words at all. */
+/** The word under each glyph, and what a screen reader announces for the tab. */
 const LABELS: Record<string, string> = {
   Home: 'Home',
   Tutor: 'Tutor',
