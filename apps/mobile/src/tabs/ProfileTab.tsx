@@ -240,8 +240,11 @@ export function ProfileTab({
   };
 
   // Android's hardware back closes the open sheet in place rather than popping
-  // the whole Profile tab. Inactive on the main list, so ordinary back stands.
-  useHardwareBack(sheet !== 'none', closeCurrentSheet);
+  // the whole Profile tab. Inactive on the main list, so ordinary back stands,
+  // and inactive for the intro and acknowledgements sheets, which render their
+  // own screens and answer hardware back through their own hook — two handlers
+  // on one screen would race and close the whole sheet from page two.
+  useHardwareBack(sheet !== 'none' && sheet !== 'intro' && sheet !== 'acknowledgements', closeCurrentSheet);
 
   // A clip that ends on its own leaves `samplePlaying` pointing at it, so the
   // next tap on that same voice is read as "stop" and stops nothing — a dead ear

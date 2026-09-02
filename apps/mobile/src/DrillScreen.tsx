@@ -836,7 +836,7 @@ export function DrillScreen({
       ground={sheet.ground}
       // A sitting is an offer, not an obligation. Leaving persists what was
       // answered; the rest simply stays due. Never a count up here.
-      header={<ScreenHeader leave={{ onPress: leave, label: 'Leave' }} />}
+      header={<ScreenHeader leave={{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' }} />}
       footer={
         // Reserved height, so the card never jumps when a line arrives.
         <View style={ds.feedbackArea}>

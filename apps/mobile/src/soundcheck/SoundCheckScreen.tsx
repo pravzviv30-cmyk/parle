@@ -127,7 +127,7 @@ export function SoundCheckScreen({
     <ScrollScreen
       ground={sheet.ground}
       center={noCheck}
-      header={<ScreenHeader back={{ onPress: onDone }} />}
+      header={!noCheck && phase !== 'result' ? <ScreenHeader back={{ onPress: onDone }} /> : undefined}
       footer={noCheck || phase === 'result' ? <PillButton label="Done" onPress={onDone} /> : null}
     >
       {noCheck ? (

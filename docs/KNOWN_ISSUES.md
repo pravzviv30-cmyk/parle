@@ -4808,3 +4808,51 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   in-place sub-view, notched bottom insets, and web at a short viewport. Rows say `not run` until
   walked.
 - verified-by: `the device runbook carries the Phase 1 layout and back checks — F315`
+
+### F316 — The lesson's quiet line vanished into the shared header
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/SessionView.tsx:270
+- note: `headerLine` is a plain string handed to `ScreenHeader`'s `title`, which renders it as a bare
+  child of a `View` (layout.tsx:177). Fabric drops a raw text node under a View and the dev renderer
+  logs "Text strings must be rendered within a <Text> component" on every render. Inputs: a learner
+  mid-lesson whose connection is being rebuilt (`live.reconnecting` true) or whose agent posts a
+  `notice`. Before Phase 1 they read the reconnect line in `type.small`/`inkSoft` inside a
+  `<Text accessibilityLiveRegion="polite">`; now the header shows nothing and a screen reader hears
+  nothing. connectionLine.test.ts still passed only because the connecting branch's own live region
+  (LiveSessionScreen.tsx:198) matched its regex. Wrap the line in a polite-live-region Text before it
+  reaches title, and make the test read that wrapper rather than any live region in the file.
+- verified-by: `the lesson's quiet line is drawn as text with a polite live region inside the shared header — F316`
+
+### F317 — The sound check's terminal cards show a chevron and a Done
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/soundcheck/SoundCheckScreen.tsx:130
+- note: the comment at the card says the "no check" card carries no back header, but
+  `header={<ScreenHeader back=…/>}` was unconditional, so the no-check card and the result card each
+  offered two doors (chevron and Done) to the same `onDone`. Review and Drill got this right: a
+  terminal card keeps Done and no header. Gate the header on `!noCheck && phase !== 'result'`.
+- verified-by: `a terminal sound-check card has Done and no chevron — F317`
+
+### F318 — The shared Leave no longer tells a screen reader what it leaves
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/layout.tsx:182
+- note: `ScreenHeader` used the visible word as the `accessibilityLabel`, so "Leave the lesson",
+  "Leave the conversation", "Leave the review" and "Leave the drills" all became "Leave, button". A
+  screen-reader user on a metered screen heard a verb with no object until the confirm opened. Take an
+  optional `accessibilityLabel` on `leave` (default to the label) and pass the sentences from the four
+  callers.
+- verified-by: `the shared Leave tells a screen reader what it leaves — F318`
+
+### F319 — Two hardware-back handlers answer the tutor walkthrough opened from Profile
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:244
+- note: `useHardwareBack(sheet !== 'none', closeCurrentSheet)` was active while `sheet === 'intro'` and
+  `'acknowledgements'`, and `TutorIntro` and `Acknowledgements` each register their own. `BackHandler`
+  runs the most recently registered handler first, and `closeCurrentSheet` is a new closure every
+  ProfileTab render, so after any re-render a learner on page 2 of the walkthrough pressing back could
+  get the whole sheet closed instead of page 1. Never strands, but the answer depended on render order.
+  Leave those two sheets to their own hook.
+- verified-by: `a Profile sheet that answers back itself is not answered twice — F319`

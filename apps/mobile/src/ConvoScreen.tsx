@@ -720,7 +720,7 @@ export function ConvoScreen({
         <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
           {/* Metered minutes must always have a door, and it is the shared
               header's Leave now, which asks before it disconnects. */}
-          <ScreenHeader leave={{ onPress: () => setConfirming(true), label: 'Leave' }} />
+          <ScreenHeader leave={{ onPress: () => setConfirming(true), label: 'Leave', accessibilityLabel: 'Leave the conversation' }} />
 
           <ScrollView
             style={choosing.showTranscript ? st.chooseHeadShrink : st.chooseHeadGrow}
@@ -931,7 +931,7 @@ export function ConvoScreen({
           {/* Metered minutes must always have a door, and it is the shared
               header's Leave now, which asks before it ends the scene. Leaving
               still delivers the recap the session has earned. */}
-          <ScreenHeader leave={{ onPress: () => setConfirming(true), label: 'Leave' }} />
+          <ScreenHeader leave={{ onPress: () => setConfirming(true), label: 'Leave', accessibilityLabel: 'Leave the conversation' }} />
           <View style={{ marginTop: space(2) }}>
             <StationLine total={view.beat.total} index={view.beat.position - 1} />
           </View>

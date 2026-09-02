@@ -151,7 +151,7 @@ export function ScrollScreen({
  */
 type ScreenHeaderProps = { title?: ReactNode } & (
   | { back: { onPress: () => void; label?: string }; leave?: never }
-  | { leave: { onPress: () => void; label: string }; back?: never }
+  | { leave: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
 );
 
 /**
@@ -174,12 +174,21 @@ export function ScreenHeader(props: ScreenHeaderProps) {
           <ChevronLeft />
         </Pressable>
       ) : null}
-      <View style={{ flex: 1, alignItems: 'center' }}>{title}</View>
+      <View style={{ flex: 1, alignItems: 'center' }}>
+        {typeof title === 'string' || typeof title === 'number' ? (
+          // A bare string under a View is a raw text node — Fabric drops it and
+          // logs. A caller that wants a status line passes its own <Text> (with
+          // a live region); this only keeps a plain string title from vanishing.
+          <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{title}</Text>
+        ) : (
+          title
+        )}
+      </View>
       {leave != null ? (
         <Pressable
           onPress={leave.onPress}
           accessibilityRole="button"
-          accessibilityLabel={leave.label}
+          accessibilityLabel={leave.accessibilityLabel ?? leave.label}
           style={{ marginLeft: 'auto', minHeight: HIT, alignItems: 'center', justifyContent: 'center' }}
         >
           <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>{leave.label}</Text>

@@ -919,3 +919,53 @@ describe('the device runbook carries the Phase 1 checks — F315', () => {
     }
   });
 });
+
+describe('the Phase 1 revise fixes — F317, F318, F319', () => {
+  test('a terminal sound-check card has Done and no chevron — F317', () => {
+    // The "no check" and "result" cards are terminal: Done is the one door, as
+    // on Review and Drill. The chevron is gated off them, so a terminal card
+    // never offers two ways to the same place.
+    const src = stripComments(readFileSync(join(SRC, 'soundcheck', 'SoundCheckScreen.tsx'), 'utf8'));
+    assert.match(
+      src,
+      /header=\{!noCheck && phase !== 'result' \?/,
+      'the sound-check chevron is not gated off the terminal cards, so a terminal card shows two doors',
+    );
+  });
+
+  test('the shared Leave tells a screen reader what it leaves — F318', () => {
+    // "Leave, button" with no object is what a screen reader heard on every
+    // metered screen. The header takes an optional accessibilityLabel and each
+    // caller names the room it leaves.
+    const layout = stripComments(readFileSync(join(SRC, 'layout.tsx'), 'utf8'));
+    assert.match(
+      layout,
+      /accessibilityLabel=\{leave\.accessibilityLabel \?\? leave\.label\}/,
+      'the shared header ignores a leave accessibilityLabel',
+    );
+    for (const [file, phrase] of [
+      ['SessionView.tsx', 'Leave the lesson'],
+      ['ConvoScreen.tsx', 'Leave the conversation'],
+      ['ReviewScreen.tsx', 'Leave the review'],
+      ['DrillScreen.tsx', 'Leave the drills'],
+    ] as const) {
+      const src = stripComments(readFileSync(join(SRC, file), 'utf8'));
+      assert.ok(
+        src.includes(`accessibilityLabel: '${phrase}'`),
+        `${file} leaves a metered room as a bare "Leave" with no object`,
+      );
+    }
+  });
+
+  test('a Profile sheet that answers back itself is not answered twice — F319', () => {
+    // The intro and acknowledgements sheets render their own screens with their
+    // own hardware-back hook. ProfileTab's hook stands down for them, so two
+    // handlers never race and close the whole sheet from page two.
+    const src = stripComments(readFileSync(join(SRC, 'tabs', 'ProfileTab.tsx'), 'utf8'));
+    assert.match(
+      src,
+      /useHardwareBack\(\s*sheet !== 'none' && sheet !== 'intro' && sheet !== 'acknowledgements'/,
+      "ProfileTab's hardware back also fires for the sheets that answer it themselves",
+    );
+  });
+});

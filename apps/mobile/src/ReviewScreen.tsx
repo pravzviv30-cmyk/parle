@@ -318,7 +318,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       // down mid-card and nothing is lost or counted against them.
       header={
         <ScreenHeader
-          leave={{ onPress: onDone, label: 'Leave' }}
+          leave={{ onPress: onDone, label: 'Leave', accessibilityLabel: 'Leave the review' }}
           title={<Label color={paper.inkFaint}>{remaining === 1 ? '1 card' : `${remaining} cards`}</Label>}
         />
       }

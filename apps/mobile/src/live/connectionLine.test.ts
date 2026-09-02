@@ -104,3 +104,25 @@ describe('the quiet slot — what a live screen says about its own connection', 
     assert.match(hook, /setReconnecting\(false\)/, 'the reconnect line has no way to come off the screen');
   });
 });
+
+describe('the lesson line survives the shared header — F316', () => {
+  test("the lesson's quiet line is drawn as text with a polite live region inside the shared header — F316", () => {
+    // LiveSessionScreen hands the reconnect line to SessionView as `headerLine`,
+    // and SessionView draws it in the shared ScreenHeader's title slot. A bare
+    // string there is a raw text node the Fabric renderer drops in silence, so
+    // the line must be its own <Text> with a polite live region — otherwise a
+    // learner mid-scene whose room is being rebuilt is told nothing, which is
+    // the exact silence connectionLine exists to end.
+    const view = stripComments(read('../SessionView.tsx'));
+    assert.doesNotMatch(
+      view,
+      /title=\{props\.headerLine\}/,
+      'the lesson line is handed to the header as a bare string the renderer drops',
+    );
+    assert.match(
+      view,
+      /headerLine \? \([\s\S]{0,240}accessibilityLiveRegion="polite"/,
+      'the lesson line is not wrapped in its own polite live region before the header',
+    );
+  });
+});

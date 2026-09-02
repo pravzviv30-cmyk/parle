@@ -267,7 +267,25 @@ export function SessionView(props: SessionViewProps) {
   return (
     <ScrollScreen
       topGap={space(2)}
-      header={<ScreenHeader leave={{ onPress: props.onLeave, label: 'Leave' }} title={props.headerLine} />}
+      header={
+        <ScreenHeader
+          leave={{ onPress: props.onLeave, label: 'Leave', accessibilityLabel: 'Leave the lesson' }}
+          // The connection line is a status line: a learner mid-scene whose room
+          // is being rebuilt must both see it and hear it. It is drawn as its own
+          // polite live region here rather than handed to the header as a bare
+          // string, which Fabric would drop in silence.
+          title={
+            props.headerLine ? (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}
+              >
+                {props.headerLine}
+              </Text>
+            ) : undefined
+          }
+        />
+      }
       footer={footer}
     >
       <View style={st.header}>
