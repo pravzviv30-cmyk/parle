@@ -4698,3 +4698,113 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   Mirrored in `apps/mobile/src/onboarding/OnboardingFlow.tsx`. This adds a little more of the
   duplicated audition glue F301 already tracks; lifting it into one hook stays F301's to do.
 - verified-by: `a clip that ends clears the selection so the next tap replays it — F305`
+
+### F306 — A screen primitive owns the layout every screen hand-rolls today
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/layout.tsx:1
+- note: no reusable root exists; every screen repeats `flex:1` + inset + scroll, and only two files
+  carry the web `minHeight:0` fix. `Screen`, `ScrollScreen`, `ScreenHeader` and `ConfirmSheet` make
+  those decisions once and read theme tokens only.
+- verified-by: `the scroll screen keeps taps while the keyboard is up, by construction — F306`
+- verified-by: `both screen primitives carry the web height fix the transcript already has — F306`
+- verified-by: `the screen primitives never disable or cap font scaling — F306`
+
+### F307 — Every tab and pushed screen stands on the primitive, not on a hand-rolled root
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/surfaceContract.test.ts:1
+- note: the five tabs, Missions, SoundCheck, Summary, Review, Drill, Phrasebook, TutorIntro,
+  Acknowledgements and the Profile sheets render `<Screen` or `<ScrollScreen`; an explicit
+  allow-list (ConvoScreen, LiveSessionScreen, Transcript, auth, onboarding, friends, RecapScreen,
+  FocusDrillPlayer, SafetyStopView, layout.tsx, LuvaniTabBar.tsx) is the only place
+  `useSafeAreaInsets` may still be called, so the next hand-rolled screen fails the walk.
+- verified-by: `every tab and pushed screen is built on Screen or ScrollScreen — F307`
+- verified-by: `no adopted screen reads the safe area or opens a ScrollView for itself — F307`
+
+### F308 — The review deck clips with the keyboard up
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/ReviewScreen.tsx:261
+- note: a typing screen whose card sits in a fixed `flex:1` centre with no scroll; large text or a
+  small device with the keyboard open pushes the answer box off the page. `keyboardTaps.test.ts:34-37`
+  even records that it "has no scroll of its own".
+- verified-by: `the review deck scrolls, and its scroll keeps taps with the keyboard up — F308`
+
+### F309 — One header for every pushed screen, and exactly one way back on each
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/layout.tsx:1
+- note: three back idioms today (chevron, "Leave" text, "Back"/"Done"/"Not now" pills) and two
+  screens with none (`SummaryScreen`, the mock lesson through `SessionView`). Every adopter renders
+  `ScreenHeader` once with either `back` or `leave`, never both, and no hand-rolled `ChevronLeft` or
+  `accessibilityLabel="Back"` pressable survives outside `layout.tsx`.
+- verified-by: `a pushed screen has exactly one way back, and it is the shared header — F309`
+- verified-by: `the end card and the mock lesson have a way out — F309`
+
+### F310 — Leaving a metered room asks first, and never through a native alert
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/LiveSessionScreen.tsx:141
+- note: `leaveNow` at `LiveSessionScreen.tsx:141` and `ConvoScreen.tsx:593` disconnect on one tap;
+  no `Alert` or confirm exists anywhere. The in-room Leave opens `ConfirmSheet` with copy from
+  `live/leaveConfirm.ts`, Stay first; `Alert.alert` is forbidden because it is a no-op on
+  react-native-web. Non-room branches (connecting, waiting, error, out of minutes, safety stop,
+  recap) keep their direct doors.
+- verified-by: `the in-room Leave on both live screens opens the confirm rather than leaving — F310`
+- verified-by: `the leave confirm is honest, puts Stay first, and never uses a native alert — F310`
+
+### F311 — Android back and the iOS swipe go through the same confirm as the Leave button
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/ConvoScreen.tsx:593
+- note: native-stack pops a metered screen on hardware back or a swipe with no question asked.
+  `usePreventRemove(inRoom && !leaving, ...)` routes both to the sheet; the exit runs from an effect
+  keyed on `leaving` so the pop is never itself prevented.
+- verified-by: `hardware back and the swipe on a live room are routed to the confirm — F311`
+- verified-by: `the room exit runs after the guard is down, not inline with it — F311`
+
+### F312 — Android back closes an in-place sub-view instead of leaving the tab
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/nav/useHardwareBack.ts:1
+- note: `PhrasebookScreen` (from Home and My French), `TutorIntro` (Tutor, Profile),
+  `Acknowledgements` (Profile), the Profile sheets and the Summary's in-place drill are `useState`
+  views the navigator cannot see, so back exits the tab or the app. One focus-scoped `BackHandler`
+  hook, called by each with the right closer (the voice sheet closes through `closeVoiceSheet` so the
+  sample stops).
+- verified-by: `every in-place sub-view answers the hardware back button — F312`
+- verified-by: `the hardware back hook only listens while its view is up — F312`
+
+### F313 — The tab bar says where it goes
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx:34
+- note: the words exist only for screen readers. Each cell shows its label in `type.tabLabel`; active
+  is ink and a heavier weight on both glyph and word; the dot goes; labels scale and wrap, never
+  truncate or cap; inactive words are `inkSoft` because `inkFaint` cannot carry text; role, selected
+  state, announce and the badge are untouched; the bar stays on `paper.ground` with one hairline and
+  no shadow or absolute position. `DESIGN.md` is updated to match.
+- verified-by: `every tab cell shows its label, and the label scales and wraps rather than truncating — F313`
+- verified-by: `the active tab is told by ink and weight, and a screen reader still hears selected — F313`
+- verified-by: `the bar is the page's edge, not a card — F313`
+- verified-by: `the design doc no longer calls the tabs icon-only — F313`
+
+### F314 — The in-place end cards stand on the primitive too
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/RecapScreen.tsx:38
+- note: `RecapScreen` and `drill/FocusDrillPlayer.tsx` still hand-roll insets and scroll; they are
+  reached only from a live room or the end card and are on F307's allow-list for now. Moving them
+  removes two more copies of the root.
+- verified-by: `the recap and the focus drill are built on the primitive — F314`
+
+### F315 — The device runbook names what a source walk cannot see about layout and back
+- severity: P2
+- status: [ ]
+- where: docs/DEVICE_VERIFICATION.md:1
+- note: keyboard over Review and Drill on both platforms, label wrapping at accessibility sizes,
+  VoiceOver and TalkBack on the bar, the iOS swipe and Android back inside a room and on every
+  in-place sub-view, notched bottom insets, and web at a short viewport. Rows say `not run` until
+  walked.
+- verified-by: `the device runbook carries the Phase 1 layout and back checks — F315`
