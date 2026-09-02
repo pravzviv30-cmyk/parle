@@ -16,7 +16,7 @@ A brand-new learner crosses **7 screens** before the first scene, and taps **7 t
 to get there. Before this phase it was **8 screens** and **8 taps**, across three
 different introductions to the same product.
 
-The seventh is the voice step, and it is the one screen on this path that was
+The sixth is the voice step, and it is the one screen on this path that was
 added back rather than removed. It costs a tap. What it buys is the only place a
 learner is ever shown that the tutor's voice is theirs to choose, and two of the
 eight voices are women, so a learner who never opens Profile would otherwise
@@ -78,7 +78,7 @@ nobody's data is thrown away and the synced blob keeps its shape; the flow simpl
 stops asking, and hands back whatever the record already carried.
 
 **Meet Luc arrived in its place.** One page, no question, the last thing before
-the chooser: the tutor is AI, the man from Lyon is a character somebody wrote, no
+the voice step: the tutor is AI, he is a character somebody wrote, no
 person hears you, your phone will ask for the microphone at the first scene, and
 typing is there if you cannot speak out loud. Every line comes from
 `onboarding/disclosure.ts`, which also feeds the welcome subline and TutorIntro's
@@ -141,7 +141,7 @@ instead of eight, and that is all it means.
 | What | Where |
 |---|---|
 | The welcome, the one front door | `apps/mobile/src/onboarding/WelcomeScreen.tsx` |
-| The three pages | `apps/mobile/src/onboarding/OnboardingFlow.tsx` |
+| The four pages | `apps/mobile/src/onboarding/OnboardingFlow.tsx` |
 | The rules: pages, the gate, the leaving guard | `apps/mobile/src/onboarding/answers.ts` |
 | The words about AI, privacy and the microphone | `apps/mobile/src/onboarding/disclosure.ts` |
 | Who is asked at all | `apps/mobile/src/app/ProfileContext.tsx` |

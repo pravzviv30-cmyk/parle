@@ -43,10 +43,10 @@
  * reach it. What is left here is layout.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAudioPlayer } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { paper, space, type, HIT } from '../theme.ts';
 import { PillButton, GhostButton, Field, ProgressDots, ChevronLeft, OptionCard } from '../components.tsx';
 import { OnboardWave, OnboardCake, SpeakBubbles } from '../illustrations.tsx';
@@ -136,6 +136,7 @@ export function OnboardingFlow({
    */
   const [playing, setPlaying] = useState<TutorVoiceKey | null>(null);
   const player = useAudioPlayer();
+  const playerStatus = useAudioPlayerStatus(player);
   const hearVoice = useCallback(
     (key: TutorVoiceKey) => {
       const next = nextSample(playing, key);
@@ -153,11 +154,27 @@ export function OnboardingFlow({
     [playing, player],
   );
 
+  // A clip that ends on its own leaves `playing` pointing at it, and then
+  // `nextSample` reads the next tap on that same voice as "stop" and stops
+  // nothing — a dead ear until a third tap. Clearing it the instant the sound
+  // finishes makes the next tap a fresh play. F305.
+  useEffect(() => {
+    if (playerStatus.didJustFinish) setPlaying(null);
+  }, [playerStatus.didJustFinish]);
+
+  // The sound does not follow the learner off the voice step. `complete` pauses
+  // on the way out the front, but the back chevron only moves the page, so a
+  // sample auditioned here would otherwise play on over the screen behind it.
+  // F304.
+  useEffect(() => {
+    if (page !== 'voice') player.pause();
+  }, [page, player]);
+
   const index = PAGES.indexOf(page);
   const previous = pageBefore(page);
   const refusal = oldEnough === false ? ageGate(false).refusal : null;
 
-  const finish = () => {
+  const complete = (chosen: TutorVoiceKey | null) => {
     void trackProductEvent({
       name: 'onboarding_completed',
       properties: { personalisedGreeting: name.trim().length > 0 },
@@ -166,20 +183,19 @@ export function OnboardingFlow({
     // over the next screen is the kind of thing that makes somebody put the
     // phone down in a quiet room.
     player.pause();
-    // Nothing asks why any more, so nothing here invents an answer. What it
-    // does do is hand back whatever the record already carried: `completeProfile`
-    // writes this field straight through, so a hardcoded null here would erase a
-    // stored value on the one path that re-onboards an existing learner — a
-    // pre-account record whose age was never confirmed. Nothing reads the field
-    // today, which is exactly why deleting somebody's copy of it would go
-    // unnoticed until something did.
     onDone(
       answersFrom({
         name,
         ageConfirmed: oldEnough === true,
         motivation: existing?.motivation ?? null,
-        // Null when they walked past the step, which is what a skip means.
-        tutorVoice: voice,
+        // The pill leaves with the selection, the skip with null — passed in by
+        // the caller, never read from `voice` here. The skip sets `voice` to null
+        // and completes in the same tick, and a closure reading `voice` would
+        // still see the old selection and save a voice the learner walked past.
+        // A null skip leaves an existing learner's stored voice untouched:
+        // `completeProfile` carries it through and `withChosenVoice(_, null)`
+        // writes nothing. F303.
+        tutorVoice: chosen,
       }),
     );
   };
@@ -323,16 +339,15 @@ export function OnboardingFlow({
         {page === 'meet' && <PillButton label="Continue" onPress={() => setPage('voice')} />}
         {page === 'voice' && (
           <>
-            <PillButton label={MEET_PILL} onPress={finish} />
+            <PillButton label={MEET_PILL} onPress={() => complete(voice)} />
             {/* The way past, and it is a ghost rather than a second pill on
                 purpose: one solid action per screen. It goes to the same place
                 the pill does, carrying nothing, which is what makes skipping an
-                answer instead of a question asked again later. */}
+                answer instead of a question asked again later. It passes null
+                itself rather than scheduling `setVoice(null)` and completing in
+                the same tick, which a closure over `voice` would never see. */}
             <View style={st.secondary}>
-              <GhostButton label={VOICE_SKIP} onPress={() => {
-                setVoice(null);
-                finish();
-              }} />
+              <GhostButton label={VOICE_SKIP} onPress={() => complete(null)} />
             </View>
           </>
         )}

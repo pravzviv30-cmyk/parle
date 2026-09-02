@@ -82,7 +82,7 @@ describe('first run introduces the voices and lets the learner choose one — F2
     // Playing them is the same machinery the Profile sheet uses, down to the
     // one-at-a-time rule. One player, `nextSample` deciding the key: with eight
     // players a learner comparing two voices hears both at once.
-    assert.match(FLOW, /import \{ useAudioPlayer \} from 'expo-audio'/, 'the voice page has no player');
+    assert.match(FLOW, /import \{ useAudioPlayer, useAudioPlayerStatus \} from 'expo-audio'/, 'the voice page has no player');
     assert.match(FLOW, /nextSample\(playing, key\)/, 'the step does not stop the clip that is already playing');
     assert.match(FLOW, /player\.replace\(voiceSample\(next\)\)/, "the step plays something other than that voice's bundled clip");
     for (const call of ['player.pause()', 'player.play()']) {
@@ -135,8 +135,8 @@ describe('first run introduces the voices and lets the learner choose one — F2
     // goes to the same place the pill does rather than somewhere else.
     const footer = FLOW.slice(FLOW.indexOf("{page === 'voice' && ("));
     assert.ok(footer.includes('<GhostButton label={VOICE_SKIP}'), 'the voice step offers no way past');
-    assert.match(footer, /setVoice\(null\);\s*\n\s*finish\(\);/, 'skipping does something other than leaving with nothing chosen');
-    assert.ok(footer.includes('<PillButton label={MEET_PILL} onPress={finish}'), 'the voice step does not lead anywhere');
+    assert.match(footer, /onPress=\{\(\) => complete\(null\)\}/, 'skipping does something other than leaving with nothing chosen');
+    assert.ok(footer.includes('<PillButton label={MEET_PILL} onPress={() => complete(voice)}'), 'the voice step does not lead anywhere');
 
     // Nothing on the page is disabled or required. A step that can hold a
     // learner at a menu on the way to their first French sentence is the one
@@ -168,7 +168,7 @@ describe('first run introduces the voices and lets the learner choose one — F2
     assert.match(SHEET, /update\(withTutorVoice\(profile, option\.value\)\)/, 'the Profile sheet stopped using the door this step shares');
     assert.deepEqual(
       FLOW.match(/tutorVoice:[^,\n]*/g),
-      ['tutorVoice: voice'],
+      ['tutorVoice: chosen'],
       'the voice page names the stored field somewhere other than the answers it hands back',
     );
     assert.ok(!FLOW.includes('withTutorVoice('), 'the voice page writes the profile itself instead of handing its answer back');
@@ -181,7 +181,7 @@ describe('first run introduces the voices and lets the learner choose one — F2
     // the pick away, which is worse than not offering it.
     assert.match(APP, /withChosenVoice\(built, answers\.tutorVoice\)/, 'the profile is built without the voice the learner picked');
     assert.match(APP, /import \{ withChosenVoice \} from '\.\/src\/onboarding\/voiceStep\.ts'/, 'App.tsx applies a voice from somewhere else');
-    assert.match(FLOW, /tutorVoice: voice,/, 'the flow hands its answers back without the voice');
+    assert.match(FLOW, /tutorVoice: chosen,/, 'the flow hands its answers back without the voice');
   });
 
   test('the voice step still says the tutor is AI', () => {
@@ -224,5 +224,47 @@ describe('first run introduces the voices and lets the learner choose one — F2
       [...VOICE_STEP_COPY],
       [VOICE_TITLE, VOICE_BODY, VOICE_AI, VOICE_SKIP, VOICE_SKIP_HINT(DEFAULT_TUTOR_PERSONA)],
     );
+  });
+});
+
+describe('the voice audition and skip hold their three fixes — F303, F304, F305', () => {
+  test('the skip contributes null on its own, not through a raced setState — F303', () => {
+    // A learner who taps a voice and then taps "Skip for now" must leave with
+    // nothing chosen. The skip used to run `setVoice(null); finish();` in one
+    // tick, but `finish` had already closed over the previous `voice`, so it
+    // handed the tapped key to `onDone` and the skip saved the voice the learner
+    // walked past. The exit now takes the value as an argument: the pill passes
+    // the selection, the skip passes null, and neither reads a state update that
+    // has only been queued.
+    const footer = FLOW.slice(FLOW.indexOf("{page === 'voice' && ("));
+    assert.match(footer, /onPress=\{\(\) => complete\(null\)\}/, 'the skip does not pass null on its own');
+    assert.match(footer, /onPress=\{\(\) => complete\(voice\)\}/, 'the pill does not leave with the selection');
+    assert.doesNotMatch(footer, /setVoice\(null\)/, 'the skip still schedules a setState it then races');
+  });
+
+  test('a sample stops when the voice step is left by the back chevron — F304', () => {
+    // The chevron only moves the page; nothing on it paused the player, so a clip
+    // auditioned on the voice step played on over the Meet screen behind it. An
+    // effect pauses whenever the page is no longer the voice step, which is the
+    // one exit `complete`'s own pause did not cover.
+    assert.match(FLOW, /if \(page !== 'voice'\) player\.pause\(\)/, 'stepping back off the voice page leaves the sample playing');
+  });
+
+  test('a clip that ends clears the selection so the next tap replays it — F305', () => {
+    // `nextSample(playing, tapped)` returns null when the tapped voice is the one
+    // already playing, which is how a second tap stops it. But a clip that ends
+    // on its own leaves `playing` pointing at it, so the next tap on that same
+    // voice was read as "stop" and stopped nothing — a dead ear until a third
+    // tap. Watching the player and clearing the key the instant it finishes makes
+    // the next tap a fresh play again. Both the first run and the Profile sheet
+    // do it, because both run the same one-player audition.
+    for (const [src, where, reset] of [
+      [FLOW, 'the first run', 'setPlaying(null)'],
+      [SHEET, 'the Profile sheet', 'setSamplePlaying(null)'],
+    ] as const) {
+      assert.match(src, /useAudioPlayerStatus\(/, `${where} never watches the player, so a finished clip is a dead ear`);
+      assert.ok(src.includes('didJustFinish'), `${where} does not notice when a clip finishes on its own`);
+      assert.ok(src.includes(reset), `${where} does not clear the playing voice when its clip ends`);
+    }
   });
 });

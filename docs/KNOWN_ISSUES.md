@@ -4656,3 +4656,41 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   to exactly one `test(` call in exactly one file, checked. But the gate cannot currently tell the
   two apart, and "tick follows the test" is the rule it exists to enforce.
 - verified-by: `a verified-by that names a describe block rather than a test does not count as passing`
+
+### F303 — The voice-step skip saved a voice the learner had tapped and walked past
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/OnboardingFlow.tsx:332
+- note: the skip ran `setVoice(null)` and then the exit in one tick, but the exit closed over the
+  render-scope `voice`, which the queued setState had not yet changed. So a learner who tapped a
+  card and then tapped "Skip for now" left with the tapped voice, not the default — the "a skip
+  writes nothing" invariant defeated by a stale closure. The exit now takes the chosen key as an
+  argument (`complete(voice)` on the pill, `complete(null)` on the skip) and reads nothing from a
+  state update that has only been queued. Safe for a re-onboarding learner too: `completeProfile`
+  carries an existing stored voice through untouched and `withChosenVoice(_, null)` writes nothing,
+  so a null skip keeps the voice they already had while a first-run skip lands on the default.
+- verified-by: `the skip contributes null on its own, not through a raced setState — F303`
+
+### F304 — A voice sample kept playing after the learner stepped back off the voice step
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/OnboardingFlow.tsx:202
+- note: the back chevron only moved the page; only the forward exit paused the player. So a clip
+  auditioned on the voice step played on over the Meet screen behind it — the very thing the
+  forward exit's own pause exists to prevent, missed on the one exit that does not finish
+  onboarding. An effect now pauses the player whenever the page is no longer the voice step, which
+  covers the chevron and any other way off the page.
+- verified-by: `a sample stops when the voice step is left by the back chevron — F304`
+
+### F305 — Re-listening to a sample that had finished on its own was a dead tap
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:190
+- note: `nextSample(playing, tapped)` returns null when the tapped voice is the one already playing,
+  which is how a second tap stops a clip. But nothing reset `playing`/`samplePlaying` when a clip
+  ended on its own, so the next tap on that same voice was read as "stop" and stopped nothing — a
+  dead ear until a further tap. Both the first-run step and the Profile sheet now watch the player
+  with `useAudioPlayerStatus` and clear the key on `didJustFinish`, so a re-listen is one tap again.
+  Mirrored in `apps/mobile/src/onboarding/OnboardingFlow.tsx`. This adds a little more of the
+  duplicated audition glue F301 already tracks; lifting it into one hook stays F301's to do.
+- verified-by: `a clip that ends clears the selection so the next tap replays it — F305`

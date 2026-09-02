@@ -1,3 +1,12 @@
+## Where this project lives
+
+The permanent home of this project is `/Users/pravz_07/Documents/StartUps/Luvani`
+(renamed from the old `Parle` path). It is the canonical working tree: every change
+and improvement lands **there**, and every session should treat that folder as the
+project root. Worktrees under `.claude/worktrees/` are temporary scratch copies — work
+done in one is only finished once it is landed back into this folder (see "Landing work
+on main"). The old `Documents/StartUps/Parle` worktrees are stale and safe to prune.
+
 ## Context docs
 
 `docs/` is the map. Read [docs/README.md](docs/README.md) first and then the one

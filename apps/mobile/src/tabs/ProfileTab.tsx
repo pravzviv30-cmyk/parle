@@ -32,9 +32,9 @@
  * forever and no later render could repair it.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Switch } from 'react-native';
-import { useAudioPlayer } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
@@ -184,6 +184,7 @@ export function ProfileTab({
    */
   const [samplePlaying, setSamplePlaying] = useState<TutorVoiceKey | null>(null);
   const samplePlayer = useAudioPlayer();
+  const sampleStatus = useAudioPlayerStatus(samplePlayer);
 
   const hearVoice = useCallback(
     (key: TutorVoiceKey) => {
@@ -210,6 +211,14 @@ export function ProfileTab({
     setSamplePlaying(null);
     setSheet('none');
   }, [samplePlayer]);
+
+  // A clip that ends on its own leaves `samplePlaying` pointing at it, so the
+  // next tap on that same voice is read as "stop" and stops nothing — a dead ear
+  // until a second tap. Clearing it the instant the sound finishes keeps a
+  // re-listen one tap. F305.
+  useEffect(() => {
+    if (sampleStatus.didJustFinish) setSamplePlaying(null);
+  }, [sampleStatus.didJustFinish]);
 
   // Null until the first read comes back, because a guess would flash the wrong
   // sentence: defaulting to denied would show "notifications are turned off"

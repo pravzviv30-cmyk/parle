@@ -206,13 +206,14 @@ describe('onboarding — the shape of the walk', () => {
     //
     // This used to read the one line carrying `onPress={finish}` and check that
     // the same line named the page. The last page has two ways out now, the pill
-    // and the skip beside it, and both are several lines from the branch that
-    // renders them. So the guard is re-pointed at the fact that still carries
-    // it: every reference to `finish` sits after the last page's branch opens,
-    // which is the thing "a page before the last one cannot finish" means.
+    // and the skip beside it — `complete(voice)` and `complete(null)` — and both
+    // are several lines from the branch that renders them. So the guard is
+    // re-pointed at the fact that still carries it: every call that completes
+    // onboarding sits after the last page's branch opens, which is the thing
+    // "a page before the last one cannot finish" means.
     const lastPageAt = FLOW.indexOf("{page === 'voice' && (");
     assert.ok(lastPageAt > 0, 'the last page is not rendered by name any more');
-    const finishers = [...FLOW.matchAll(/onPress=\{finish\}|\bfinish\(\)/g)].map((m) => m.index ?? -1);
+    const finishers = [...FLOW.matchAll(/\bcomplete\(/g)].map((m) => m.index ?? -1);
     assert.ok(finishers.length > 0, 'nothing finishes onboarding at all');
     for (const index of finishers) {
       assert.ok(index > lastPageAt, 'a page before the last one finishes onboarding');
