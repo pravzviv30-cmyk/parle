@@ -2031,24 +2031,35 @@ describe('one turn, one utterance — H1', () => {
     } as TurnView;
   }
 
-  test('the spoken turn keeps narration, coaching and the scene reply in that order', () => {
+  test('the spoken turn keeps a scene shift and the French reply, without routine coaching', () => {
     const text = spokenTurn(
       view({
         narration: { speaker: 'narration', fr: 'Le serveur part.', frWritten: null, en: 'The waiter leaves.' },
         coachLine: 'Got it, Sam. In French: "un café".',
       }),
     );
-    assert.equal(text, 'The waiter leaves. Got it, Sam. In French: "un café". Ça marche, un café !');
+    assert.equal(text, 'The waiter leaves. Ça marche, un café !');
+  });
+
+  test('an English reach hears one short translation before the French reply', () => {
+    const text = spokenTurn(
+      view({
+        narration: { speaker: 'narration', fr: 'Le serveur part.', frWritten: null, en: 'The waiter leaves.' },
+        coachLine: 'Got it, Sam. In French: "un café".',
+        reachedForEnglish: true,
+      }),
+    );
+    assert.equal(text, 'Got it, Sam. In French: "un café". Ça marche, un café !');
   });
 
   test('a turn with nothing but a scene reply is spoken exactly as it was', () => {
     assert.equal(spokenTurn(view()), 'Ça marche, un café !');
   });
 
-  test('every part is closed off, so a sentence already on disk keeps its cache key', () => {
+  test('spoken English coaching is closed off, so a sentence already on disk keeps its cache key', () => {
     // The framework splits sentences inside one handle. A part that ran into
     // the next would make a new sentence, and a new key for warmed audio.
-    const text = spokenTurn(view({ coachLine: 'Small fix: "à la boulangerie"' }));
+    const text = spokenTurn(view({ coachLine: 'Small fix: "à la boulangerie"', reachedForEnglish: true }));
     assert.ok(text.includes('"à la boulangerie". Ça marche'), text);
   });
 

@@ -118,15 +118,17 @@ describe('the stable prefix', () => {
     assert.match(persona, /answer the person first/i);
   });
 
-  test('the fillers the pack already teaches are asked for in his own lines', () => {
+  test('spoken French can use fillers naturally, without performing them', () => {
     // The pack has carried these from the start and its own principle says they
-    // "belong in the tutor's own lines". Nothing repeated that where the model
-    // would act on it, so the tutor spoke textbook French while teaching that
-    // textbook French is the thing to fix.
+    // belong in the tutor's own lines. They are examples, though, not a quota:
+    // forcing one into every sentence was exactly what made the tutor sound
+    // scripted and irritating.
     const { persona } = buildSystemBlocks();
     for (const filler of ['bah', 'du coup', 'en fait', 'voilà']) {
       assert.ok(persona.includes(filler), `the persona never asks him to say "${filler}"`);
     }
+    assert.match(persona, /optional, never a requirement/i);
+    assert.match(persona, /at most one/i);
   });
 
   test('his English stays plain, because it is the channel the beginner relies on', () => {
@@ -160,6 +162,13 @@ describe('the stable prefix', () => {
     assert.match(contract, /vary/i, 'nothing asks the tutor to vary the acknowledgement');
     assert.match(contract, /their name/i, 'the contract never mentions using the learner’s name');
     assert.doesNotMatch(contract, /Name the better French directly/i, 'the terse instruction is still there');
+  });
+
+  test('the contract keeps spoken coaching reserved for English help', () => {
+    const { persona, contract } = buildSystemBlocks();
+    assert.match(contract, /voice layer speaks it only when the learner reached for English/i);
+    assert.match(persona, /do not introduce an unrelated exercise/i);
+    assert.match(contract, /normally one or two short sentences/i);
   });
 
   test('the pack block is exactly the rendered pack — one source of truth', () => {
