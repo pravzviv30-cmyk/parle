@@ -17,12 +17,12 @@
  */
 
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { missionStates, type MissionProgress } from '@luvani/core';
 import { paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
 import { PillButton, GhostButton, OutlineButton, Card, Label } from '../components.tsx';
+import { ScrollScreen } from '../layout.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
@@ -40,7 +40,6 @@ export function TutorTab() {
   // cannot ask for itself — useIsFocused throws outside a NavigationContainer,
   // and several scenes render above the navigator — so the tab passes it down.
   const focused = useIsFocused();
-  const insets = useSafeAreaInsets();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { live, recheck } = useLive();
   // The subline names the tutor, and the tutor is whoever this learner chose.
@@ -123,13 +122,8 @@ export function TutorTab() {
   };
 
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
-      <ScrollView
-        style={st.scrollView}
-        contentContainerStyle={st.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+    <ScrollScreen bottom="tab">
+      <View style={st.scroll}>
         <View style={st.hero}>
           <SpeakBubbles width={150} paused={!focused} />
         </View>
@@ -186,14 +180,12 @@ export function TutorTab() {
           <GhostButton label="Unable to speak right now?" onPress={() => open(true)} />
           <GhostButton label={TUTOR_INTRO_LINK} onPress={() => setShowingIntro(true)} />
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  scrollView: { flex: 1 },
   scroll: { flexGrow: 1, paddingTop: space(4), paddingBottom: space(8) },
   hero: { alignItems: 'center', marginBottom: space(3) },
   headline: { ...type.display, color: paper.ink, textAlign: 'center' },

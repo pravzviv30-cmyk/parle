@@ -603,6 +603,45 @@ would be a number chosen to be beaten. The first honest pass sets the baseline, 
 **Fail looks like:** any run where the learner cannot get there at all, which is a
 ledger entry, not a slow number.
 
+## Phase 1 layout and back
+
+The scroll, navigation and tab-bar work (F307–F315) is verified statically up to a
+point: the surface tests read the source and fail if a screen re-grows its own
+safe-area maths, opens a second back control, or truncates a tab label. What they
+cannot see is a keyboard actually clearing a field, a label wrapping at the largest
+accessibility size, an edge swipe being blocked, or a hardware back closing a sheet.
+Those are a device's to prove, and this is where that pass is recorded. Owner:
+`frontend-engineer` for the build, `qa-release-engineer` for running it.
+
+`pass` / `fail` / `not run`. Every row is `not run` until a real device pass is walked.
+
+| Id | Check | iOS | Android |
+|---|---|---|---|
+| P1-1 | The keyboard clears the field over the **Review** deck and the Drill exercise (iOS padding, Android resize), and the answer's grade buttons stay reachable | not run | not run |
+| P1-2 | The **tab bar** label wraps rather than truncating at iOS AX3–AX5 / Android font scale 2.0 on a 320pt device, and the bar grows to hold it | not run | not run |
+| P1-3 | VoiceOver and TalkBack read each tab as "…, tab, selected" and read the label once, not twice | not run | not run |
+| P1-4 | Inside a live room, the iOS edge **swipe** back is blocked and raises the leave confirm; Staying keeps the room, Leaving ends it | not run | not run |
+| P1-5 | Android **hardware back** raises the same confirm in a live room, and closes in place on Phrasebook, each Profile sheet, and TutorIntro page one (which leaves) | not run | not run |
+| P1-6 | The notched bottom inset is paid once on every `bottom="inset"` screen, and once by the bar on every tab | not run | not run |
+| P1-7 | Web at a short viewport (600px tall) scrolls every ScrollScreen to reveal what grew | not run | not run |
+
+### P1-1 — the keyboard over Review and Drill
+
+1. On the smallest device, open the Review deck to a retrieval card and tap the answer field. On iOS the card lifts (`KeyboardAvoidingView` padding); on Android the window resizes.
+2. Repeat on a typing Drill exercise.
+
+**Expect:** the field and its Check/attempt buttons stay above the keyboard, and a tap on them lands the first time rather than only dismissing the keyboard.
+
+**Fail looks like:** the grade or Check buttons under the keyboard with no way to scroll to them, or a first tap that only closes the keyboard.
+
+### P1-4 and P1-5 — the swipe and the hardware back in a room
+
+1. Start a lesson and a conversation. In each, try the iOS edge swipe and the Android hardware back.
+
+**Expect:** neither pops the room silently; both raise the leave confirm with Stay first. Stay keeps the room and its minutes; Leave ends it and still delivers whatever the session earned.
+
+**Fail looks like:** a swipe or back that leaves the room without asking, or a confirm whose primary action is Leave.
+
 ## Recording the result
 
 Fill the matrix in place, in this file, in the same commit as any ledger entry a

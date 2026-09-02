@@ -11,11 +11,12 @@
  */
 
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet } from 'react-native';
 import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@luvani/core';
 import { HAIRLINE, paper, paperFor, radius, signal, space, type } from './theme.ts';
 import { Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
+import { ScrollScreen, ScreenHeader } from './layout.tsx';
+import { useHardwareBack } from './nav/useHardwareBack.ts';
 import { FocusDrillPlayer } from './drill/FocusDrillPlayer.tsx';
 import { RecapPostcard } from './illustrations.tsx';
 import { saveTextFile } from './progress/saveFile.ts';
@@ -26,6 +27,7 @@ export function SummaryScreen({
   report,
   onAgain,
   onReview,
+  onDone,
 }: {
   lesson: Lesson;
   summary: SessionSummary;
@@ -34,10 +36,14 @@ export function SummaryScreen({
   onAgain: () => void;
   /** Opens the review deck, while today's words are still warm. Optional: no prop, no button. */
   onReview?: () => void;
+  /** The chevron out of the end card. The navigator hands back whichever tab launched the lesson. */
+  onDone: () => void;
 }) {
-  const insets = useSafeAreaInsets();
   const focus = summary.pronunciation.focus;
   const [drilling, setDrilling] = useState(false);
+  // The focus drill opens in place, so Android's hardware back closes it back to
+  // the card rather than popping the whole end card off the stack.
+  useHardwareBack(drilling, () => setDrilling(false));
   const mins = Math.floor(summary.durationSec / 60);
   const secs = Math.round(summary.durationSec % 60);
 
@@ -52,8 +58,8 @@ export function SummaryScreen({
   }
 
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(2) }]}>
-      <ScrollView contentContainerStyle={[st.scroll, { paddingBottom: insets.bottom + space(8) }]} showsVerticalScrollIndicator={false}>
+    <ScrollScreen ground={sheet.ground} header={<ScreenHeader back={{ onPress: onDone }} />}>
+      <View style={st.scroll}>
         <View>
           <View style={st.postcard}>
             <RecapPostcard width={190} />
@@ -211,8 +217,8 @@ export function SummaryScreen({
         )}
 
         <OutlineButton label="Go again" onPress={onAgain} />
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollScreen>
   );
 }
 
@@ -225,8 +231,7 @@ export function SummaryScreen({
 const sheet = paperFor('cafe');
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: sheet.ground },
-  scroll: { paddingHorizontal: space(5), paddingTop: space(3), gap: space(7) },
+  scroll: { paddingTop: space(3), paddingBottom: space(8), gap: space(7) },
   postcard: { alignItems: 'center', marginBottom: space(4) },
   divider: {
     height: HAIRLINE,

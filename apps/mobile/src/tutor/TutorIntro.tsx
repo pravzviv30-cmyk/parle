@@ -28,10 +28,11 @@
  */
 
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HIT, paper, space, type } from '../theme.ts';
-import { ChevronLeft, ProgressDots, PillButton, Card } from '../components.tsx';
+import { View, Text, StyleSheet } from 'react-native';
+import { paper, space, type } from '../theme.ts';
+import { ProgressDots, PillButton, Card } from '../components.tsx';
+import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SpeakBubbles, OnboardWave, RecapPostcard } from '../illustrations.tsx';
 import { VoiceOrb, type OrbState } from './VoiceOrb.tsx';
 import { tutorPersonaOf, type TutorPersona } from './tutorName.ts';
@@ -116,7 +117,6 @@ function pagesFor(persona: TutorPersona) {
 }
 
 export function TutorIntro({ onDone }: { onDone: () => void }) {
-  const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
   // The person this learner chose, so the walkthrough introduces the voice they
   // will actually hear rather than the one that happens to be the default.
@@ -126,26 +126,18 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
   const Art = page.art;
   const last = index === pages.length - 1;
 
-  return (
-    <View style={[st.root, { paddingTop: insets.top + space(3), paddingBottom: insets.bottom + space(6) }]}>
-      <View style={st.topRow}>
-        {index > 0 ? (
-          <Pressable
-            onPress={() => setIndex((i) => i - 1)}
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-            style={st.back}
-          >
-            <ChevronLeft />
-          </Pressable>
-        ) : (
-          <View style={st.back} />
-        )}
-        <ProgressDots total={pages.length} index={index} />
-        <View style={st.back} />
-      </View>
+  // The chevron and the hardware back agree: step back a page, or leave on page
+  // one, so the walkthrough finally has a way out of its very first screen.
+  const back = () => (index > 0 ? setIndex((i) => i - 1) : onDone());
+  useHardwareBack(true, back);
 
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
+  return (
+    <ScrollScreen
+      center
+      header={<ScreenHeader back={{ onPress: back }} title={<ProgressDots total={pages.length} index={index} />} />}
+      footer={<PillButton label={last ? 'Start talking' : 'Next'} onPress={() => (last ? onDone() : setIndex((i) => i + 1))} />}
+    >
+      <View style={st.page}>
         {Art ? (
           <View style={st.art}>
             <Art width={170} />
@@ -159,18 +151,13 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
             <Text style={[type.bodyStrong, { color: paper.ink }]}>{page.note}</Text>
           </Card>
         ) : null}
-      </ScrollView>
-
-      <PillButton label={last ? 'Start talking' : 'Next'} onPress={() => (last ? onDone() : setIndex((i) => i + 1))} />
-    </View>
+      </View>
+    </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
-  scroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: space(4) },
+  page: { paddingVertical: space(4) },
   art: { alignItems: 'center', marginBottom: space(5) },
   title: { ...type.display, color: paper.ink, textAlign: 'center' },
   body: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },

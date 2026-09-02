@@ -348,8 +348,12 @@ describe('the review sitting on screen', () => {
     // Phase 3's contract, applied here rather than reinvented: a Pressable
     // with no role is reachable and unannounced, and a field with no name is
     // announced as "text field" and nothing else.
+    // Five now, not six: the Leave control moved into the shared ScreenHeader
+    // (layout.tsx) when the deck adopted the frame, so it is no longer a
+    // Pressable this file hand-rolls. The five that remain are the hear button,
+    // the flip, the three grades, and the two attempt buttons.
     const controls = tags(screen, 'Pressable');
-    assert.ok(controls.length >= 6, `only ${controls.length} controls found; this test is reading the wrong thing`);
+    assert.ok(controls.length >= 5, `only ${controls.length} controls found; this test is reading the wrong thing`);
     for (const tag of controls) {
       assert.match(tag, /accessibilityRole=/, `a control on the review screen has no role: ${tag.replace(/\s+/g, ' ').slice(0, 80)}`);
       assert.match(tag, /accessibilityLabel=/, `a control on the review screen has no name: ${tag.replace(/\s+/g, ' ').slice(0, 80)}`);

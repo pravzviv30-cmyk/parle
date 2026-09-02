@@ -13,12 +13,12 @@
  */
 
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { buildPath, CAFE_LESSON, dueCards, type PathUnit, type PracticeTopic } from '@luvani/core';
 import { paper, paperFor, space, type } from '../theme.ts';
 import { Card, Label, OutlineButton, GhostButton } from '../components.tsx';
+import { ScrollScreen } from '../layout.tsx';
 import { PathNodeRow } from '../practice/PathNodeRow.tsx';
 import { MIX_OFFER, offersMix } from '../practice/mix.ts';
 import { seedTopicFor } from '../practice/talkAgain.ts';
@@ -30,7 +30,6 @@ import { useLive } from '../app/LiveContext.tsx';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 
 export function PracticeTab() {
-  const insets = useSafeAreaInsets();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { recheck } = useLive();
 
@@ -117,8 +116,8 @@ export function PracticeTab() {
 
   const lessonNode = units?.flatMap((u) => u.nodes).find((n) => n.kind === 'lesson') ?? null;
 
-  return (
-    <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
+  const header = (
+    <View>
       <Text style={[type.title, { color: paper.ink }]}>Practice</Text>
       {/* The receipt for a tap that has to wait on the network. The gate's own
           word, so the tab and the tutor card do not grow two vocabularies for
@@ -131,13 +130,12 @@ export function PracticeTab() {
           {TUTOR_OFFLINE.checking}
         </Text>
       )}
+    </View>
+  );
 
-      <ScrollView
-        style={st.scrollView}
-        contentContainerStyle={st.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+  return (
+    <ScrollScreen bottom="tab" ground={sheet.ground} header={header}>
+      <View style={st.scroll}>
         {mixOffered && (
           <View style={{ marginBottom: space(3) }}>
             {/* Offered only when the due phrases come from more than one topic,
@@ -190,12 +188,12 @@ export function PracticeTab() {
 
         <Card>
           <Text style={[type.bodyStrong, { color: paper.ink }]}>Practice from your conversations</Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}> 
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
             Your tutor turns useful moments from free conversation into short, focused practice here.
           </Text>
         </Card>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollScreen>
   );
 }
 
@@ -208,7 +206,5 @@ export function PracticeTab() {
 const sheet = paperFor('practice');
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: sheet.ground, paddingHorizontal: space(5) },
-  scrollView: { flex: 1 },
   scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(8) },
 });

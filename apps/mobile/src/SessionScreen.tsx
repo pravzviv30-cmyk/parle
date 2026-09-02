@@ -40,11 +40,17 @@ export function SessionScreen({
   lesson,
   startRung,
   onFinish,
+  onExit,
 }: {
   lesson: Lesson;
   /** Where the ladder opens. Omitted, the lesson's own opening rung applies. */
   startRung?: Rung;
   onFinish: (s: SessionSummary) => void;
+  /**
+   * Leave the mock lesson. The demo path had no way out at all until the shared
+   * header gave it one; this is what the header's Leave hands back to.
+   */
+  onExit: () => void;
 }) {
   const [session, setSession] = useState<SessionState>(() => createSession(lesson, startRung));
   const [phase, setPhase] = useState<Phase>('tutor-speaking');
@@ -133,6 +139,7 @@ export function SessionScreen({
       prompt={prompt}
       listening={phase === 'awaiting'}
       flash={flash}
+      onLeave={onExit}
       onOptionPress={speak}
       onMicPress={() => speak(prompt.turn.target)}
       onHelp={() => advance({ type: 'help' })}

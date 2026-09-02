@@ -10,12 +10,16 @@
  * short attribution plus the licence name rather than the full body, which is
  * what OFL section requires for an application that redistributes the fonts
  * embedded — the full text ships in the bundle at assets/fonts/.
+ *
+ * It opens in place from Profile rather than as a stack route, so it answers
+ * the hardware back itself and takes its frame from the shared `ScrollScreen`.
  */
 
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HIT, paper, space, type } from '../theme.ts';
-import { Card, Label, ChevronLeft } from '../components.tsx';
+import { View, Text } from 'react-native';
+import { paper, space, type } from '../theme.ts';
+import { Card, Label } from '../components.tsx';
+import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { useHardwareBack } from '../nav/useHardwareBack.ts';
 
 interface Notice {
   name: string;
@@ -52,34 +56,25 @@ const NOTICES: readonly Notice[] = [
 ];
 
 export function Acknowledgements({ onBack }: { onBack: () => void }) {
-  const insets = useSafeAreaInsets();
+  // Opened in place, so Android's hardware back closes it rather than popping
+  // whatever pushed Profile.
+  useHardwareBack(true, onBack);
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(3), paddingBottom: insets.bottom + space(4) }]}>
-      <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Back" style={st.back}>
-        <ChevronLeft />
-      </Pressable>
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={[type.display, { color: paper.ink }]}>Acknowledgements</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
-          Luvani is built on other people's work. The full licence text for each of these ships inside the app.
-        </Text>
-        <View style={{ marginTop: space(6), gap: space(3) }}>
-          {NOTICES.map((n) => (
-            <Card key={n.name}>
-              <Label>{n.licence}</Label>
-              <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{n.name}</Text>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{n.by}</Text>
-              <Text style={[type.small, { color: paper.inkFaint, marginTop: space(2) }]}>{n.note}</Text>
-            </Card>
-          ))}
-        </View>
-      </ScrollView>
-    </View>
+    <ScrollScreen header={<ScreenHeader back={{ onPress: onBack }} />}>
+      <Text style={[type.display, { color: paper.ink }]}>Acknowledgements</Text>
+      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
+        Luvani is built on other people's work. The full licence text for each of these ships inside the app.
+      </Text>
+      <View style={{ marginTop: space(6), gap: space(3), paddingBottom: space(6) }}>
+        {NOTICES.map((n) => (
+          <Card key={n.name}>
+            <Label>{n.licence}</Label>
+            <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{n.name}</Text>
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{n.by}</Text>
+            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(2) }]}>{n.note}</Text>
+          </Card>
+        ))}
+      </View>
+    </ScrollScreen>
   );
 }
-
-const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  back: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
-  scroll: { paddingTop: space(3), paddingBottom: space(6) },
-});

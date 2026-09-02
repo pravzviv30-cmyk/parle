@@ -10,14 +10,17 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { usePreventRemove } from '@react-navigation/native';
 import type { Lesson, Rung, SessionSummary } from '@luvani/core';
 import { paper, space, type, HIT } from './theme.ts';
 import { Card, PillButton, GhostButton } from './components.tsx';
+import { ConfirmSheet } from './layout.tsx';
 import { SessionView } from './SessionView.tsx';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { CONNECTING_TICK_MS, connectingTick, connectingView } from './live/connectingView.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
 import { connectionLine } from './live/connectionLine.ts';
+import { leaveConfirmCopy } from './live/leaveConfirm.ts';
 import { takeTypedDoor, typedDoorFor } from './live/typedDoor.ts';
 import { useProfile } from './app/ProfileContext.tsx';
 import { tutorNameOf } from './tutor/tutorName.ts';
@@ -68,6 +71,13 @@ export function LiveSessionScreen({
     ...(textMode ? { mode: 'lesson-text' as const } : {}),
     tutorVoice: tutorVoiceOf(profile),
   });
+
+  // The leave gate. `confirming` shows the sheet; `leaving` is raised once the
+  // learner commits, which drops the guard and lets the exit run from an effect
+  // rather than inline, where the guard would prevent its own pop.
+  const [confirming, setConfirming] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const leaveCopy = leaveConfirmCopy('lesson');
 
   // Connect on mount. The hook tears the room down on unmount.
   useEffect(() => {
@@ -141,6 +151,29 @@ export function LiveSessionScreen({
   const leaveNow = () => {
     void live.leave().finally(onExit);
   };
+
+  // In the room only on the branch that renders the live scene, above every
+  // early return below. That is the one place leaving costs metered minutes, so
+  // it is the one place a swipe or a hardware back is caught and asked first.
+  const inRoom =
+    safety.kind !== 'stop' &&
+    phase !== 'connecting' &&
+    phase !== 'idle' &&
+    live.status.phase !== 'out-of-minutes' &&
+    live.status.phase !== 'error' &&
+    live.prompt != null;
+
+  // Android's hardware back and iOS's edge swipe both go through here, so
+  // neither can pop the room without meeting the same sheet the header opens.
+  usePreventRemove(inRoom && !leaving, () => setConfirming(true));
+
+  // The exit runs from the effect, not from the sheet's confirm: with the guard
+  // still up an inline pop would be prevented. Raising `leaving` lowers the
+  // guard first, and this then runs the real teardown.
+  useEffect(() => {
+    if (leaving) leaveNow();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaving]);
 
   // First, and before every status screen. A stop is normally followed by the
   // agent leaving the room, which the hook reads as a dropped connection, and
@@ -251,25 +284,8 @@ export function LiveSessionScreen({
           </Card>
         </Pressable>
       )}
-      <View style={st.topRow}>
-        {/* Transient trouble from the agent (a voice hiccup), which clears
-            itself, or a connection being rebuilt, which does not and must not
-            be given a timer. One line at a time: live/connectionLine.ts. */}
-        <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, flex: 1 }]}>
-          {connectionLine({ reconnecting: live.reconnecting, notice: live.notice }).text ?? ''}
-        </Text>
-        {/* Metered minutes must always have a door. */}
-        <Pressable
-          onPress={leaveNow}
-          accessibilityRole="button"
-          accessibilityLabel="Leave the lesson"
-          style={({ pressed }) => [st.leave, pressed && { opacity: 0.6 }]}
-        >
-          <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
-        </Pressable>
-      </View>
       {/* The tutor steered away and said why. It stays until the learner puts
-          it away, unlike the notice above it, which is a hiccup on a timer. */}
+          it away, unlike the header notice, which is a hiccup on a timer. */}
       {safety.kind === 'redirect' ? (
         <View style={st.banner}>
           <SafetyBanner surface={safety} onDismiss={live.dismissSafety} />
@@ -282,6 +298,13 @@ export function LiveSessionScreen({
         listening={!live.tutorSpeaking}
         flash={live.feedback?.message ?? null}
         transcript={live.lastTranscript}
+        // Metered minutes must always have a door, and it is the shared header's
+        // Leave now — which opens the confirm rather than disconnecting on the tap.
+        onLeave={() => setConfirming(true)}
+        // Transient trouble from the agent (a voice hiccup), which clears itself,
+        // or a connection being rebuilt, which does not and must not be given a
+        // timer. One line at a time: live/connectionLine.ts.
+        headerLine={connectionLine({ reconnecting: live.reconnecting, notice: live.notice }).text ?? undefined}
         onHelp={live.sendHelp}
         // Replays come from the agent in the premium voice, and only while the
         // learner holds the floor — a replay must not talk over the tutor.
@@ -298,6 +321,18 @@ export function LiveSessionScreen({
         // who was mid-sentence. Throttled inside the hook.
         onTyping={typing ? live.sendTyping : undefined}
       />
+      <ConfirmSheet
+        visible={confirming}
+        title={leaveCopy.title}
+        body={leaveCopy.body}
+        confirmLabel={leaveCopy.leave}
+        cancelLabel={leaveCopy.stay}
+        onConfirm={() => {
+          setConfirming(false);
+          setLeaving(true);
+        }}
+        onCancel={() => setConfirming(false)}
+      />
     </View>
   );
 }
@@ -306,11 +341,9 @@ const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground },
   center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
   listen: { minHeight: HIT, paddingHorizontal: space(5), paddingTop: space(3) },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingHorizontal: space(5), paddingTop: space(2) },
   banner: { paddingHorizontal: space(5), paddingTop: space(2) },
   // The waiting screen centres its children, so the banner has to be told to
   // take the width: a safety sentence shrink-wrapped to its longest word is
   // unreadable, and this one is the whole reason the branch draws anything.
   waitingBanner: { alignSelf: 'stretch', marginBottom: space(3) },
-  leave: { minHeight: HIT, justifyContent: 'center', paddingLeft: space(3) },
 });

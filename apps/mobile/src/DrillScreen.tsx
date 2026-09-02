@@ -27,12 +27,9 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  ScrollView,
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import {
   answerCurrent,
@@ -55,6 +52,7 @@ import {
 import { HAIRLINE, HIT, accent, font, paper, paperFor, radius, signal, space, type } from './theme.ts';
 import { recordActivity } from './progress/activity.ts';
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
+import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
 import { gradeCards, loadDeck } from './review/store.ts';
 import { NothingDue, RewardMark } from './illustrations.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
@@ -592,8 +590,6 @@ export function DrillScreen({
    */
   mix?: boolean;
 }) {
-  const insets = useSafeAreaInsets();
-
   // The sitting. Null while the deck and bank load.
   const [session, setSession] = useState<DrillSessionState | null>(null);
   // The line on the floor. While one shows, inputs are locked and the next
@@ -761,73 +757,71 @@ export function DrillScreen({
 
   if (session === null) {
     return (
-      <View style={ds.center}>
-        <ActivityIndicator color={paper.inkSoft} />
-      </View>
+      <Screen ground={sheet.ground}>
+        <View style={ds.loading}>
+          <ActivityIndicator color={paper.inkSoft} />
+        </View>
+      </Screen>
     );
   }
 
-  // Built empty: nothing due right now. One calm card and the way out.
+  // Built empty: nothing due right now. One calm card and the way out. A
+  // terminal card, so Done is its one door and it carries no back header.
   if (session.finished && session.answered.length === 0) {
     return (
-      <View style={[ds.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
-        <View style={ds.centerFill}>
-          {/* An empty bank is the good outcome, not a dead end, so it gets the
-              cleared table — the same scene, width and spacing the review deck
-              uses, because these two screens say the same thing. No `paused`:
-              this is a stack route above the tabs with nothing pushed over it,
-              so unlike a tab it is either focused or unmounted. */}
-          <View style={{ alignItems: 'center', marginBottom: space(5) }}>
-            <NothingDue width={190} />
-          </View>
-          <Card>
-            <Text style={[type.title, { color: paper.ink }]}>Nothing to review.</Text>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
-              Your next session adds more.
-            </Text>
-          </Card>
+      <ScrollScreen center ground={sheet.ground} footer={<PillButton label="Done" onPress={finishAndLeave} />}>
+        {/* An empty bank is the good outcome, not a dead end, so it gets the
+            cleared table — the same scene, width and spacing the review deck
+            uses, because these two screens say the same thing. No `paused`:
+            this is a stack route above the tabs with nothing pushed over it,
+            so unlike a tab it is either focused or unmounted. */}
+        <View style={{ alignItems: 'center', marginBottom: space(5) }}>
+          <NothingDue width={190} />
         </View>
-        <PillButton label="Done" onPress={finishAndLeave} />
-      </View>
+        <Card>
+          <Text style={[type.title, { color: paper.ink }]}>Nothing to review.</Text>
+          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
+            Your next session adds more.
+          </Text>
+        </Card>
+      </ScrollScreen>
     );
   }
 
   // The end card — the one place numbers are allowed, where they have context.
+  // Terminal, so Done alone, no back header.
   if (session.finished) {
     const s = summariseDrill(session);
     return (
-      <View style={[ds.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
-        <View style={ds.centerFill}>
-          <Card>
-            <View style={ds.stats}>
-              <View style={ds.stat}>
-                <Text style={[type.title, { color: paper.ink }]}>{s.total}</Text>
-                <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Drills</Text>
-              </View>
-              <View style={ds.stat}>
-                <Text style={[type.title, { color: paper.ink }]}>{s.resolved}</Text>
-                <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Got right</Text>
-              </View>
-              {s.typos > 0 && (
-                <View style={ds.stat}>
-                  <Text style={[type.title, { color: paper.ink }]}>{s.typos}</Text>
-                  <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Spelling slips</Text>
-                </View>
-              )}
-              {s.unresolved > 0 && (
-                <View style={ds.stat}>
-                  <Text style={[type.title, { color: paper.ink }]}>{s.unresolved}</Text>
-                  <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Coming back</Text>
-                </View>
-              )}
+      <ScrollScreen center ground={sheet.ground} footer={<PillButton label="Done" onPress={leave} />}>
+        <Card>
+          <View style={ds.stats}>
+            <View style={ds.stat}>
+              <Text style={[type.title, { color: paper.ink }]}>{s.total}</Text>
+              <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Drills</Text>
             </View>
-            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(3) }]}>
-              Your review deck takes it from here.
-            </Text>
-          </Card>
-        </View>
-        <PillButton label="Done" onPress={leave} />
-      </View>
+            <View style={ds.stat}>
+              <Text style={[type.title, { color: paper.ink }]}>{s.resolved}</Text>
+              <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Got right</Text>
+            </View>
+            {s.typos > 0 && (
+              <View style={ds.stat}>
+                <Text style={[type.title, { color: paper.ink }]}>{s.typos}</Text>
+                <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Spelling slips</Text>
+              </View>
+            )}
+            {s.unresolved > 0 && (
+              <View style={ds.stat}>
+                <Text style={[type.title, { color: paper.ink }]}>{s.unresolved}</Text>
+                <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Coming back</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[type.small, { color: paper.inkFaint, marginTop: space(3) }]}>
+            Your review deck takes it from here.
+          </Text>
+        </Card>
+      </ScrollScreen>
     );
   }
 
@@ -836,51 +830,15 @@ export function DrillScreen({
   const locked = feedback !== null;
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-      <View style={[ds.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(4) }]}>
-        <View style={ds.headerRow}>
-          {/* A sitting is an offer, not an obligation. Leaving persists what
-              was answered; the rest simply stays due. Never a count up here. */}
-          <Pressable
-            onPress={leave}
-            accessibilityRole="button"
-            accessibilityLabel="Leave the drills"
-            style={({ pressed }) => [ds.leave, pressed && { opacity: 0.6 }]}
-          >
-            <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
-          </Pressable>
-        </View>
-
-        <ScrollView
-          contentContainerStyle={ds.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {exercise.kind === 'fill-blank' && (
-            <FillBlankView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
-          )}
-          {exercise.kind === 'best-sentence' && <BestSentenceView exercise={exercise} onAnswer={answer} locked={locked} />}
-          {exercise.kind === 'appropriate-reply' && (
-            <AppropriateReplyView exercise={exercise} onAnswer={answer} locked={locked} />
-          )}
-          {exercise.kind === 'tap-translate' && (
-            <TapTranslateView
-              exercise={exercise}
-              assembled={assembled}
-              onAssembled={setAssembled}
-              onAnswer={answer}
-              locked={locked}
-            />
-          )}
-          {exercise.kind === 'listen-type' && (
-            <ListenTypeView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
-          )}
-          {exercise.kind === 'repeat-this' && (
-            <RepeatThisView exercise={exercise} onAnswer={answer} onSpoke={spoke} onNoMic={goSilent} locked={locked} />
-          )}
-        </ScrollView>
-
-        {/* Reserved height, so the card never jumps when a line arrives. */}
+    <ScrollScreen
+      avoidKeyboard
+      center
+      ground={sheet.ground}
+      // A sitting is an offer, not an obligation. Leaving persists what was
+      // answered; the rest simply stays due. Never a count up here.
+      header={<ScreenHeader leave={{ onPress: leave, label: 'Leave' }} />}
+      footer={
+        // Reserved height, so the card never jumps when a line arrives.
         <View style={ds.feedbackArea}>
           {feedback && (
             <View style={ds.verdictRow}>
@@ -903,8 +861,31 @@ export function DrillScreen({
             </Text>
           )}
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      }
+    >
+      {exercise.kind === 'fill-blank' && (
+        <FillBlankView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
+      )}
+      {exercise.kind === 'best-sentence' && <BestSentenceView exercise={exercise} onAnswer={answer} locked={locked} />}
+      {exercise.kind === 'appropriate-reply' && (
+        <AppropriateReplyView exercise={exercise} onAnswer={answer} locked={locked} />
+      )}
+      {exercise.kind === 'tap-translate' && (
+        <TapTranslateView
+          exercise={exercise}
+          assembled={assembled}
+          onAssembled={setAssembled}
+          onAnswer={answer}
+          locked={locked}
+        />
+      )}
+      {exercise.kind === 'listen-type' && (
+        <ListenTypeView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
+      )}
+      {exercise.kind === 'repeat-this' && (
+        <RepeatThisView exercise={exercise} onAnswer={answer} onSpoke={spoke} onNoMic={goSilent} locked={locked} />
+      )}
+    </ScrollScreen>
   );
 }
 
@@ -917,14 +898,7 @@ export function DrillScreen({
 const sheet = paperFor('drill');
 
 const ds = StyleSheet.create({
-  root: { flex: 1, backgroundColor: sheet.ground, paddingHorizontal: space(5) },
-  center: { flex: 1, backgroundColor: sheet.ground, alignItems: 'center', justifyContent: 'center' },
-  centerFill: { flex: 1, justifyContent: 'center' },
-  // flex-end: the caps screen title that used to hold the left of this row is
-  // gone, and without this Leave slides over to fill the space it left.
-  headerRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
-  leave: { minHeight: HIT, justifyContent: 'center', paddingLeft: space(3) },
-  scroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: space(4) },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   feedbackArea: { minHeight: HIT + 8, justifyContent: 'center', paddingHorizontal: space(2) },
   verdictRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2) },
 

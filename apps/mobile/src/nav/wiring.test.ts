@@ -15,10 +15,24 @@
 
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { leaveConfirmCopy } from '../live/leaveConfirm.ts';
 
 const read = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
+
+/** Every non-test source file under src, for the "nobody reaches for a native alert" sweep. */
+const SRC_DIR = fileURLToPath(new URL('..', import.meta.url));
+function walk(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) out.push(...walk(full));
+    else if (/\.tsx?$/.test(entry) && !entry.includes('.test.')) out.push(full);
+  }
+  return out;
+}
 
 /** Comments may say anything; only what compiles is wiring. */
 function strip(source: string): string {
@@ -243,5 +257,73 @@ describe('the lesson deck goes through the outbox too', () => {
       !/addFromSummary/.test(navigator),
       'the navigator still reaches the raw deck write, which answers and then swallows a failure',
     );
+  });
+});
+
+describe('leaving a metered room is confirmed, not instant — F310', () => {
+  test('the in-room Leave on both live screens opens the confirm rather than leaving — F310', () => {
+    // The Leave inside a live room used to disconnect on the tap. It asks first
+    // now: the header press opens the sheet, and the exit runs from an effect
+    // once the guard is down (F311). Held here because it is a wiring claim two
+    // screens must make identically.
+    const live = strip(read('../LiveSessionScreen.tsx'));
+    assert.match(live, /onLeave=\{\(\) => setConfirming\(true\)\}/, 'the lesson Leave leaves instead of opening the confirm');
+    assert.match(live, /<ConfirmSheet\b/, 'the lesson renders no confirm sheet');
+    assert.match(live, /leaveConfirmCopy\('lesson'\)/, 'the lesson confirm is not drawn from the lesson copy');
+
+    const convo = strip(read('../ConvoScreen.tsx'));
+    assert.match(convo, /onPress: \(\) => setConfirming\(true\)/, 'the conversation Leave leaves instead of opening the confirm');
+    assert.match(convo, /<ConfirmSheet\b/, 'the conversation renders no confirm sheet');
+    assert.match(convo, /leaveConfirmCopy\('conversation'\)/, 'the conversation confirm is not drawn from the conversation copy');
+  });
+
+  test('the leave confirm is honest, puts Stay first, and never uses a native alert — F310', () => {
+    // A native Alert would be an OS box the app cannot make say Stay first or
+    // keep the mid-session rules, so nothing anywhere reaches for one.
+    for (const path of walk(SRC_DIR)) {
+      const body = readFileSync(path, 'utf8');
+      assert.ok(!body.includes('Alert.alert'), `${path} reaches for a native alert instead of the ConfirmSheet`);
+    }
+    for (const room of ['lesson', 'conversation'] as const) {
+      const copy = leaveConfirmCopy(room);
+      assert.equal(copy.stay, 'Stay', `${room} does not offer to stay first`);
+      assert.equal(copy.leave, 'Leave', `${room} does not name the way out Leave`);
+      assert.match(copy.body, /minutes stop/, `${room} is not honest that the meter stops`);
+      assert.ok(!/—/.test(copy.body), `${room} confirm body carries an em dash`);
+    }
+  });
+});
+
+describe('hardware back and the swipe cannot slip a metered room — F311', () => {
+  test('hardware back and the swipe on a live room are routed to the confirm — F311', () => {
+    // usePreventRemove catches both Android's hardware back and iOS's edge
+    // swipe, so neither can pop the room without meeting the same sheet the
+    // header Leave opens.
+    for (const [name, file] of [
+      ['the lesson', '../LiveSessionScreen.tsx'],
+      ['the conversation', '../ConvoScreen.tsx'],
+    ] as const) {
+      const src = strip(read(file));
+      assert.match(
+        src,
+        /usePreventRemove\(inRoom && !leaving, \(\) => setConfirming\(true\)\)/,
+        `${name} lets a swipe or hardware back pop the room without confirming`,
+      );
+    }
+  });
+
+  test('the room exit runs after the guard is down, not inline with it — F311', () => {
+    // Running leaveNow() straight from the sheet's confirm would be prevented by
+    // the very guard that opened the sheet. Instead the confirm raises `leaving`
+    // — which drops the guard — and an effect keyed on it runs the exit.
+    for (const [name, file] of [
+      ['the lesson', '../LiveSessionScreen.tsx'],
+      ['the conversation', '../ConvoScreen.tsx'],
+    ] as const) {
+      const src = strip(read(file));
+      assert.match(src, /useEffect\(\(\) => \{[\s\S]{0,80}leaving[\s\S]{0,40}leaveNow\(\)[\s\S]{0,40}\}, \[leaving\]\)/,
+        `${name} does not run the exit from an effect keyed on the guard coming down`);
+      assert.match(src, /setLeaving\(true\)/, `${name} confirm never lowers the guard, so the exit is prevented forever`);
+    }
   });
 });

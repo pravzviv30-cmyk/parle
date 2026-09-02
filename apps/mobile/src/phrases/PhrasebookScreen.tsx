@@ -13,10 +13,11 @@
  */
 
 import { useMemo } from 'react';
-import { View, Text, Pressable, FlatList, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { paper, papers, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
-import { Label, ChevronLeft, Stat } from '../components.tsx';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { paper, papers, signal, space, type, radius, HAIRLINE } from '../theme.ts';
+import { Label, Stat } from '../components.tsx';
+import { Screen, ScreenHeader } from '../layout.tsx';
+import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { Phrasebook as PhrasebookScene } from '../illustrations.tsx';
 import { LESSONS_GROUP, type Hold, type Phrase, type Phrasebook } from './phrasebook.ts';
 
@@ -36,7 +37,9 @@ function Mark({ hold }: { hold: Hold }) {
 }
 
 export function PhrasebookScreen({ book, onDone }: { book: Phrasebook; onDone: () => void }) {
-  const insets = useSafeAreaInsets();
+  // Opened in place from Home and My French, so Android's hardware back closes
+  // it rather than popping the tab underneath.
+  useHardwareBack(true, onDone);
   const rows = useMemo(
     () =>
       book.groups.flatMap((group) => [
@@ -53,16 +56,10 @@ export function PhrasebookScreen({ book, onDone }: { book: Phrasebook; onDone: (
   }, [book.topics]);
 
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(3), paddingBottom: insets.bottom }]}>
-      <View style={st.topRow}>
-        <Pressable onPress={onDone} accessibilityRole="button" accessibilityLabel="Back" style={st.back}>
-          <ChevronLeft />
-        </Pressable>
-        <View style={st.back} />
-      </View>
-
+    <Screen ground={PAPER.ground} bottom="inset" header={<ScreenHeader back={{ onPress: onDone }} />}>
       <FlatList
         data={rows}
+        style={{ flex: 1 }}
         keyExtractor={(row) => row.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={st.scroll}
@@ -95,7 +92,7 @@ export function PhrasebookScreen({ book, onDone }: { book: Phrasebook; onDone: (
           )
         }
       />
-    </View>
+    </Screen>
   );
 }
 
@@ -113,11 +110,6 @@ function PhraseRow({ phrase }: { phrase: Phrase }) {
 }
 
 const st = StyleSheet.create({
-  // The ground is set here rather than in a token, because a StyleSheet is
-  // evaluated once at import and a screen's paper is a property of the screen.
-  root: { flex: 1, backgroundColor: PAPER.ground, paddingHorizontal: space(5) },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingBottom: space(8) },
   hero: { alignItems: 'center', marginBottom: space(3) },
   headline: { ...type.display, color: paper.ink, textAlign: 'center' },

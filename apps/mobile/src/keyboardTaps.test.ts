@@ -30,9 +30,9 @@ const TYPING_SCREENS = [
   'ConvoScreen.tsx',
   'DrillScreen.tsx',
   // The review deck takes typing now: a due card can be answered in the box
-  // rather than out loud. It has no scroll of its own, so the second test
-  // below passes it over; it is on the list so that the day it grows one,
-  // somebody has to answer this question about it.
+  // rather than out loud. Since F308 it scrolls, and it scrolls on ScrollScreen
+  // rather than a bare ScrollView, so the loop below counts that as a
+  // tap-persisting scroll rather than passing the file over.
   'ReviewScreen.tsx',
   'auth/SignInScreen.tsx',
   'auth/SignUpScreen.tsx',
@@ -49,6 +49,13 @@ const TYPING_SCREENS = [
  */
 const SCROLL_VIEW_TAG = /<ScrollView\s/g;
 
+/**
+ * The frame primitive's scrolling root (layout.tsx). It sets
+ * `keyboardShouldPersistTaps="handled"` on the ScrollView it owns, so a screen
+ * built on it keeps taps by construction and need not declare the prop itself.
+ */
+const SCROLL_SCREEN_TAG = /<ScrollScreen\b/g;
+
 describe('taps and the keyboard — whether a press has to be made twice', () => {
   test('the choosing screen keeps taps while the keyboard is up', () => {
     const source = readFileSync(join(SRC, 'ConvoScreen.tsx'), 'utf8');
@@ -64,15 +71,33 @@ describe('taps and the keyboard — whether a press has to be made twice', () =>
     const offenders: string[] = [];
     for (const name of TYPING_SCREENS) {
       const source = readFileSync(join(SRC, name), 'utf8');
-      const scrolls = (source.match(SCROLL_VIEW_TAG) ?? []).length;
+      const scrollViews = (source.match(SCROLL_VIEW_TAG) ?? []).length;
+      // A ScrollScreen is a scroll that keeps taps on its own, so it counts as
+      // one scroll AND one that persists — the screen owes no separate prop.
+      const scrollScreens = (source.match(SCROLL_SCREEN_TAG) ?? []).length;
+      const scrolls = scrollViews + scrollScreens;
       if (scrolls === 0) continue;
-      const persists = source.split('keyboardShouldPersistTaps').length - 1;
+      const persists = (source.split('keyboardShouldPersistTaps').length - 1) + scrollScreens;
       if (persists < scrolls) offenders.push(`${name} has ${scrolls} scrolls and ${persists} that keep taps`);
     }
     assert.deepEqual(
       offenders,
       [],
       `One screen behaving differently from the rest is how a working Send comes to look broken:\n${offenders.join('\n')}`,
+    );
+  });
+
+  test('the review deck scrolls, and its scroll keeps taps with the keyboard up — F308', () => {
+    // F308: the review deck was the one typing surface that could not scroll,
+    // so a due card answered on a small phone with the keyboard up had its
+    // grade buttons under the keys. It is on the frame now: ScrollScreen owns
+    // the scroll and the tap-persistence, and avoidKeyboard lifts the card.
+    const source = readFileSync(join(SRC, 'ReviewScreen.tsx'), 'utf8');
+    assert.match(source, /<ScrollScreen\b/, 'the review deck is not built on the scrolling frame, so it still cannot scroll');
+    assert.match(source, /avoidKeyboard/, 'the review deck does not lift its card above the keyboard');
+    assert.ok(
+      !source.includes('centerFill'),
+      'the review deck still centres with its own fixed fill instead of letting the frame scroll',
     );
   });
 });

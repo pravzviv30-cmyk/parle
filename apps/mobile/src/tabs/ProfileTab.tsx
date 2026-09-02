@@ -33,12 +33,13 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Switch } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Switch } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
-import { Card, Label, OptionCard, OutlineButton, Field, ChevronLeft } from '../components.tsx';
+import { Card, Label, OptionCard, OutlineButton, Field } from '../components.tsx';
+import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { OnboardClock } from '../illustrations.tsx';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
 import { Acknowledgements } from '../legal/Acknowledgements.tsx';
@@ -155,7 +156,6 @@ export function ProfileTab({
   onSignOut: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
-  const insets = useSafeAreaInsets();
   const { user, adapter } = useAuth();
   const { profile, update } = useProfile();
   const [sheet, setSheet] = useState<Sheet>('none');
@@ -208,6 +208,40 @@ export function ProfileTab({
     setSamplePlaying(null);
     setSheet('none');
   }, [samplePlayer]);
+
+  /**
+   * Close whichever sheet is open, by its own correct closer.
+   *
+   * The chevron on each sheet routes here too. It matters that the voice sheet
+   * goes through `closeVoiceSheet` rather than a bare `setSheet('none')`: only
+   * that path pauses the sample, so leaving the sheet by the hardware back stops
+   * the audition rather than letting a voice follow the learner out (F304). The
+   * name and delete sheets clear their drafts, exactly as their own controls do.
+   */
+  const closeCurrentSheet = () => {
+    // A switch rather than a chain of `if (sheet === '…')`, because the sheet
+    // tests slice each render branch by finding exactly that phrase, and a
+    // second one here would hand them the wrong braces.
+    switch (sheet) {
+      case 'tutorVoice':
+        closeVoiceSheet();
+        return;
+      case 'name':
+        setDraftName(profile.name ?? '');
+        setSheet('none');
+        return;
+      case 'delete':
+        setDeletePassword('');
+        setSheet('none');
+        return;
+      default:
+        setSheet('none');
+    }
+  };
+
+  // Android's hardware back closes the open sheet in place rather than popping
+  // the whole Profile tab. Inactive on the main list, so ordinary back stands.
+  useHardwareBack(sheet !== 'none', closeCurrentSheet);
 
   // A clip that ends on its own leaves `samplePlaying` pointing at it, so the
   // next tap on that same voice is read as "stop" and stops nothing — a dead ear
@@ -365,9 +399,10 @@ export function ProfileTab({
   if (sheet === 'intro') return <TutorIntro onDone={() => setSheet('none')} />;
 
   if (sheet === 'delete') {
+    // No chevron: this is the one sheet where leaving is the safe answer and it
+    // is spelled out as "Keep my account" rather than a quiet back arrow.
     return (
-      <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
-        <ProfileBack onPress={() => setSheet('none')} />
+      <ScrollScreen bottom="tab">
         <Text style={[type.display, { color: paper.ink }]}>Delete your account?</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
           This permanently removes your sign-in, conversations turned into practice, progress, and remaining minutes. It cannot be undone.
@@ -415,14 +450,13 @@ export function ProfileTab({
             }}
           />
         </View>
-      </View>
+      </ScrollScreen>
     );
   }
 
   if (sheet === 'goal') {
     return (
-      <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
-        <ProfileBack onPress={() => setSheet('none')} />
+      <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: () => setSheet('none') }} />}>
         <View style={{ alignItems: 'center', marginBottom: space(5) }}>
           <OnboardClock width={150} />
         </View>
@@ -444,10 +478,7 @@ export function ProfileTab({
             />
           ))}
         </View>
-        <View style={{ marginTop: space(6) }}>
-          <OutlineButton label="Cancel" onPress={() => setSheet('none')} />
-        </View>
-      </View>
+      </ScrollScreen>
     );
   }
 
@@ -462,8 +493,7 @@ export function ProfileTab({
    */
   if (sheet === 'strictness') {
     return (
-      <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
-        <ProfileBack onPress={() => setSheet('none')} />
+      <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: () => setSheet('none') }} />}>
         <Text style={[type.display, { color: paper.ink }]}>{STRICTNESS_TITLE}</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{STRICTNESS_SUB}</Text>
         <View style={{ marginTop: space(6), gap: space(3) }}>
@@ -480,10 +510,7 @@ export function ProfileTab({
             />
           ))}
         </View>
-        <View style={{ marginTop: space(6) }}>
-          <OutlineButton label="Cancel" onPress={() => setSheet('none')} />
-        </View>
-      </View>
+      </ScrollScreen>
     );
   }
 
@@ -503,31 +530,25 @@ export function ProfileTab({
    */
   if (sheet === 'tutorVoice') {
     return (
-      <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
-        <ProfileBack onPress={closeVoiceSheet} />
+      <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: closeVoiceSheet }} />}>
         <Text style={[type.display, { color: paper.ink }]}>{TUTOR_VOICE_TITLE}</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{TUTOR_VOICE_SUB}</Text>
-        <ScrollView contentContainerStyle={{ paddingBottom: space(6) }} showsVerticalScrollIndicator={false}>
-          <View style={{ marginTop: space(6), gap: space(3) }}>
-            {TUTOR_VOICE_OPTIONS.map((option) => (
-              <OptionCard
-                key={option.value}
-                text={option.label}
-                gloss={option.gloss}
-                selected={tutorVoiceOf(profile) === option.value}
-                onPress={() => {
-                  update(withTutorVoice(profile, option.value));
-                  closeVoiceSheet();
-                }}
-                onHear={() => hearVoice(option.value)}
-              />
-            ))}
-          </View>
-          <View style={{ marginTop: space(6) }}>
-            <OutlineButton label="Cancel" onPress={closeVoiceSheet} />
-          </View>
-        </ScrollView>
-      </View>
+        <View style={{ marginTop: space(6), gap: space(3), paddingBottom: space(6) }}>
+          {TUTOR_VOICE_OPTIONS.map((option) => (
+            <OptionCard
+              key={option.value}
+              text={option.label}
+              gloss={option.gloss}
+              selected={tutorVoiceOf(profile) === option.value}
+              onPress={() => {
+                update(withTutorVoice(profile, option.value));
+                closeVoiceSheet();
+              }}
+              onHear={() => hearVoice(option.value)}
+            />
+          ))}
+        </View>
+      </ScrollScreen>
     );
   }
 
@@ -541,8 +562,7 @@ export function ProfileTab({
    */
   if (sheet === 'reminderTime') {
     return (
-      <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
-        <ProfileBack onPress={() => setSheet('none')} />
+      <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: () => setSheet('none') }} />}>
         <Text style={[type.display, { color: paper.ink }]}>{REMINDER_TIME_TITLE}</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{REMINDER_TIME_SUB}</Text>
         <View style={{ marginTop: space(6), gap: space(3) }}>
@@ -556,17 +576,19 @@ export function ProfileTab({
             />
           ))}
         </View>
-        <View style={{ marginTop: space(6) }}>
-          <OutlineButton label="Cancel" onPress={() => setSheet('none')} />
-        </View>
-      </View>
+      </ScrollScreen>
     );
   }
 
   if (sheet === 'name') {
+    // The chevron is Cancel here: leaving restores the stored name, exactly as
+    // the removed Cancel button did. Save is the one action left in the body.
     return (
-      <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
-        <ProfileBack onPress={() => { setDraftName(profile.name ?? ''); setSheet('none'); }} />
+      <ScrollScreen
+        bottom="tab"
+        avoidKeyboard
+        header={<ScreenHeader back={{ onPress: () => { setDraftName(profile.name ?? ''); setSheet('none'); } }} />}
+      >
         <Text style={[type.display, { color: paper.ink }]}>Your name</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
           What your tutor calls you at the start of a session.
@@ -574,7 +596,7 @@ export function ProfileTab({
         <View style={{ marginTop: space(6) }}>
           <Field label="Your name" value={draftName} onChangeText={setDraftName} placeholder="Your name" />
         </View>
-        <View style={{ marginTop: space(6), gap: space(3) }}>
+        <View style={{ marginTop: space(6) }}>
           <OutlineButton
             label="Save"
             onPress={() => {
@@ -583,21 +605,14 @@ export function ProfileTab({
               setSheet('none');
             }}
           />
-          <OutlineButton label="Cancel" onPress={() => { setDraftName(profile.name ?? ''); setSheet('none'); }} />
         </View>
-      </View>
+      </ScrollScreen>
     );
   }
 
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
-      <ScrollView
-        style={st.scrollView}
-        contentContainerStyle={st.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={[type.title, { color: paper.ink }]}>Profile</Text>
+    <ScrollScreen bottom="tab" header={<Text style={[type.title, { color: paper.ink }]}>Profile</Text>}>
+      <View style={st.scroll}>
         <View style={st.identity}>
           <View style={st.ring}>
             <Text style={[type.title, { color: paper.ink }]}>{firstName.charAt(0).toUpperCase()}</Text>
@@ -709,24 +724,12 @@ export function ProfileTab({
             </View>
           </Card>
         )}
-      </ScrollView>
-    </View>
-  );
-}
-
-/** Internal profile sheets need a visible way back at the top as well as Cancel below. */
-function ProfileBack({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel="Back to profile" style={st.back}>
-      <ChevronLeft />
-      <Text style={[type.bodyStrong, { color: paper.ink }]}>Back</Text>
-    </Pressable>
+      </View>
+    </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  scrollView: { flex: 1 },
   scroll: { flexGrow: 1, paddingTop: space(4), paddingBottom: space(9) },
   identity: { alignItems: 'center', marginBottom: space(6) },
   ring: {
@@ -743,5 +746,4 @@ const st = StyleSheet.create({
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT },
   legal: { marginTop: space(8), alignItems: 'center' },
   legalItem: { minHeight: HIT, justifyContent: 'center' },
-  back: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: space(1), marginBottom: space(3) },
 });

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import { getMission } from '@luvani/core';
 
 import { Card, EarGlyph, GhostButton, Label, PillButton, SpeakCircle, fitDisplay } from '../components.tsx';
+import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { HIT, paper, paperFor, space, type } from '../theme.ts';
 import { scoreRecordedAttempt } from '../speech/scoreAttempt.ts';
 import { consumeRecording, discardRecording } from '../speech/discardRecording.ts';
@@ -26,7 +26,6 @@ export function SoundCheckScreen({
   missionId: string;
   onDone: () => void;
 }) {
-  const insets = useSafeAreaInsets();
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const mission = getMission(missionId);
   const [reference, setReference] = useState<string | null>(null);
@@ -119,74 +118,73 @@ export function SoundCheckScreen({
     }
   }, [reference, phase, recorder, selfGuided, userId, persist]);
 
-  if (!mission || (phase !== 'loading' && reference === null)) {
-    return (
-      <View style={[st.root, st.center, { paddingTop: insets.top, paddingBottom: insets.bottom }]}> 
+  // No back header on the "no check" card: it is a terminal card and Done is the
+  // one door. Everywhere else the chevron is the way out, so the "Not now" pill
+  // that used to sit at the bottom is gone.
+  const noCheck = !mission || (phase !== 'loading' && reference === null);
+
+  return (
+    <ScrollScreen
+      ground={sheet.ground}
+      center={noCheck}
+      header={<ScreenHeader back={{ onPress: onDone }} />}
+      footer={noCheck || phase === 'result' ? <PillButton label="Done" onPress={onDone} /> : null}
+    >
+      {noCheck ? (
         <Card>
           <Text style={[type.title, { color: paper.ink }]}>No sound check for this situation yet.</Text>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>The conversation and its practice still count.</Text>
         </Card>
-        <View style={st.bottom}><PillButton label="Done" onPress={onDone} /></View>
-      </View>
-    );
-  }
+      ) : (
+        <>
+          <Label>Sound check</Label>
+          <Text style={[type.display, { color: paper.ink, marginTop: space(2) }]}>One useful line, once.</Text>
+          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>This is the part Luvani can assess honestly, because the words are known in advance.</Text>
 
-  return (
-    <View style={[st.root, { paddingTop: insets.top + space(4), paddingBottom: insets.bottom + space(4) }]}> 
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
-        <Label>Sound check</Label>
-        <Text style={[type.display, { color: paper.ink, marginTop: space(2) }]}>One useful line, once.</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>This is the part Luvani can assess honestly, because the words are known in advance.</Text>
+          {reference && (
+            <Card style={{ marginTop: space(6), alignItems: 'center' }}>
+              <Text style={[fitDisplay(reference), { color: paper.ink, textAlign: 'center' }]}>{reference}</Text>
+              <Pressable
+                onPress={() => tutorVoice.speak(reference)}
+                accessibilityRole="button"
+                accessibilityLabel="Hear the reference line"
+                style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
+              >
+                <EarGlyph size={16} color={paper.inkSoft} />
+                <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
+              </Pressable>
+            </Card>
+          )}
 
-        {reference && (
-          <Card style={{ marginTop: space(6), alignItems: 'center' }}>
-            <Text style={[fitDisplay(reference), { color: paper.ink, textAlign: 'center' }]}>{reference}</Text>
-            <Pressable
-              onPress={() => tutorVoice.speak(reference)}
-              accessibilityRole="button"
-              accessibilityLabel="Hear the reference line"
-              style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
-            >
-              <EarGlyph size={16} color={paper.inkSoft} />
-              <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
-            </Pressable>
-          </Card>
-        )}
-
-        {phase === 'result' && result ? (
-          <Card style={{ marginTop: space(5) }}>
-            <Text style={[type.title, { color: paper.ink }]}>{result.headline}</Text>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{result.detail}</Text>
-          </Card>
-        ) : (
-          <View style={st.micBlock}>
-            <SpeakCircle
-              onPress={() => void toggle()}
-              active={phase === 'recording'}
-              muted={!CAN_RECORD}
-              disabled={phase === 'loading' || phase === 'scoring'}
-              accessibilityLabel={phase === 'recording' ? 'Finish recording' : 'Start recording'}
-            />
-            <Text style={[type.bodyStrong, { color: paper.ink, textAlign: 'center' }]}>
-              {phase === 'recording' ? 'Tap when you are done' : phase === 'scoring' ? 'Checking the sound…' : 'Tap, then say the line'}
-            </Text>
-            {!CAN_RECORD && <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Recording is unavailable here. Say it aloud and use the self-guided option.</Text>}
-            <GhostButton label="I said it without assessment" onPress={selfGuided} />
-          </View>
-        )}
-      </ScrollView>
-
-      <PillButton label={phase === 'result' ? 'Done' : 'Not now'} onPress={onDone} />
-    </View>
+          {phase === 'result' && result ? (
+            <Card style={{ marginTop: space(5) }}>
+              <Text style={[type.title, { color: paper.ink }]}>{result.headline}</Text>
+              <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{result.detail}</Text>
+            </Card>
+          ) : (
+            <View style={st.micBlock}>
+              <SpeakCircle
+                onPress={() => void toggle()}
+                active={phase === 'recording'}
+                muted={!CAN_RECORD}
+                disabled={phase === 'loading' || phase === 'scoring'}
+                accessibilityLabel={phase === 'recording' ? 'Finish recording' : 'Start recording'}
+              />
+              <Text style={[type.bodyStrong, { color: paper.ink, textAlign: 'center' }]}>
+                {phase === 'recording' ? 'Tap when you are done' : phase === 'scoring' ? 'Checking the sound…' : 'Tap, then say the line'}
+              </Text>
+              {!CAN_RECORD && <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Recording is unavailable here. Say it aloud and use the self-guided option.</Text>}
+              <GhostButton label="I said it without assessment" onPress={selfGuided} />
+            </View>
+          )}
+        </>
+      )}
+    </ScrollScreen>
   );
 }
 
 const sheet = paperFor('drill');
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: sheet.ground, paddingHorizontal: space(5) },
-  center: { justifyContent: 'center' },
-  scroll: { flexGrow: 1, paddingTop: space(4), paddingBottom: space(6) },
   hear: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(3) },
   micBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space(3), marginTop: space(7) },
-  bottom: { marginTop: space(5) },
 });

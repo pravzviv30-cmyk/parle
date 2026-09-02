@@ -147,6 +147,7 @@ function LessonRoute() {
         report={report}
         onAgain={again}
         onReview={() => nav.navigate('Review')}
+        onDone={() => nav.goBack()}
       />
     );
   }
@@ -164,7 +165,7 @@ function LessonRoute() {
       />
     </Suspense>
   ) : (
-    <SessionScreen key="mock" lesson={CAFE_LESSON} startRung={startRung} onFinish={finish} />
+    <SessionScreen key="mock" lesson={CAFE_LESSON} startRung={startRung} onFinish={finish} onExit={() => nav.goBack()} />
   );
 }
 
@@ -371,31 +372,18 @@ export function RootNavigator({
       <Stack.Screen name="Tabs">
         {() => <Tabs onSignOut={onSignOut} onResetProgress={onResetProgress} onDeleteAccount={onDeleteAccount} />}
       </Stack.Screen>
-      {/* A visible, platform-native back affordance on every pushed screen.
-          Live screens still keep their explicit Leave action for a metered
-          session; the header fixes the ordinary drill/review dead ends. */}
-      <Stack.Screen name="Lesson" component={LessonRoute} options={stackHeader('Lesson')} />
-      <Stack.Screen name="Convo" component={ConvoRoute} options={stackHeader('Tutor')} />
-      <Stack.Screen name="Drill" component={DrillRoute} options={stackHeader('Practice')} />
-      <Stack.Screen name="Review" component={ReviewRoute} options={stackHeader('Review')} />
-      <Stack.Screen name="SoundCheck" component={SoundCheckRoute} options={stackHeader('Sound check')} />
-      <Stack.Screen name="Missions" component={MissionsScreen} options={stackHeader('Situations')} />
+      {/* No native header on any pushed screen: the back is the in-screen
+          ScreenHeader now (a chevron on a reversible push, the Leave word on a
+          metered room), so a native title bar would be a second, duplicate way
+          back. Each screen inherits headerShown:false from screenOptions. */}
+      <Stack.Screen name="Lesson" component={LessonRoute} />
+      <Stack.Screen name="Convo" component={ConvoRoute} />
+      <Stack.Screen name="Drill" component={DrillRoute} />
+      <Stack.Screen name="Review" component={ReviewRoute} />
+      <Stack.Screen name="SoundCheck" component={SoundCheckRoute} />
+      <Stack.Screen name="Missions" component={MissionsScreen} />
     </Stack.Navigator>
   );
-}
-
-/** The same calm, explicit back treatment for every screen above the tabs. */
-function stackHeader(title: string) {
-  return {
-    headerShown: true,
-    title,
-    headerBackTitle: 'Back',
-    headerBackButtonDisplayMode: 'minimal' as const,
-    headerStyle: { backgroundColor: paper.ground },
-    headerTintColor: paper.ink,
-    headerTitleStyle: { ...type.heading, color: paper.ink },
-    headerShadowVisible: false,
-  };
 }
 
 const st = StyleSheet.create({

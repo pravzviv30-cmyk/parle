@@ -125,15 +125,25 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
 
   test('a header row that lost its title does not let the way out slide left', () => {
     // The one mechanical trap in the sweep. These rows were space-between with
-    // exactly two children, and deleting the caps title on the left flushes the
-    // remaining control across the screen unless the row is told otherwise.
+    // exactly two children, and deleting the caps title on the left flushed the
+    // remaining control across the screen. The concern moved into the shared
+    // header (layout.tsx) when these three adopted it: the Leave word is flushed
+    // right by `marginLeft: 'auto'` there, once, rather than by each screen's
+    // own row. So the guarantee is now checked at its home, and the three
+    // screens are held to routing their Leave through it rather than a
+    // hand-rolled row.
+    const header = readFileSync(join(SRC, 'layout.tsx'), 'utf8');
+    assert.match(
+      header,
+      /marginLeft: 'auto'/,
+      'the shared header no longer flushes the leave word to the right, so it can sit under the wrong thumb',
+    );
     for (const name of ['ConvoScreen.tsx', 'ReviewScreen.tsx', 'DrillScreen.tsx']) {
       const source = readFileSync(join(SRC, name), 'utf8');
-      const row = /headerRow: \{[^}]*\}/.exec(source);
-      assert.ok(row !== null, `${name} lost its headerRow style entirely`);
-      assert.ok(
-        !row[0].includes('space-between'),
-        `${name} still spreads a header row that now holds one thing, so the way out sits under the wrong thumb`,
+      assert.match(
+        source,
+        /<ScreenHeader\s+leave=/,
+        `${name} hand-rolls its way out instead of the shared header that positions it once`,
       );
     }
   });

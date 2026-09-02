@@ -513,10 +513,11 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
       );
       // The other way to cap text is to give it nowhere to go. Every one of
       // these screens scrolls, so a title at 200% still ends somewhere the
-      // learner can reach rather than under the buttons.
+      // learner can reach rather than under the buttons. A ScrollScreen is a
+      // scroll container too — the frame's ScrollView — so it counts.
       assert.match(
         body,
-        /<ScrollView\b/,
+        /<Scroll(View|Screen)\b/,
         `${where} has no scroll container, so text that grows has nowhere to go`,
       );
     }
@@ -679,5 +680,242 @@ describe('a ghost control can be busy — F152 hand-off', () => {
     assert.match(ghost, /disabled=\{disabled\}/, 'GhostButton stays tappable while disabled');
     assert.match(ghost, /pressed && !disabled/, 'a disabled GhostButton still flashes when pressed');
     assert.match(ghost, /disabled \? paper\.inkFaint/, 'a disabled GhostButton looks live');
+  });
+});
+
+/* ===========================================================================
+ * Phase 1: one frame, one way back, one labelled bar (F307–F315).
+ *
+ * The design system landed the frame primitive (`layout.tsx`) and the labelled
+ * tab bar. These read the screens that adopt them. Same ceiling as everything
+ * above: this is a walk over text, so "built on the frame" means the source
+ * says so, not that a renderer proved the notch was paid once. What it catches
+ * is the regression — a screen that re-grows its own safe-area maths, a second
+ * back control, a hand-rolled chevron, a tab that truncates its label.
+ * =========================================================================== */
+
+const ROOT = join(SRC, '..', '..', '..');
+
+/** Every tab and pushed screen rebuilt on the shared frame in this phase. */
+const ADOPTERS = [
+  'tabs/HomeTab.tsx',
+  'tabs/TutorTab.tsx',
+  'tabs/PracticeTab.tsx',
+  'tabs/MyFrenchTab.tsx',
+  'tabs/ProfileTab.tsx',
+  'SessionView.tsx',
+  'SummaryScreen.tsx',
+  'ReviewScreen.tsx',
+  'DrillScreen.tsx',
+  'missions/MissionsScreen.tsx',
+  'soundcheck/SoundCheckScreen.tsx',
+  'phrases/PhrasebookScreen.tsx',
+  'tutor/TutorIntro.tsx',
+  'legal/Acknowledgements.tsx',
+];
+
+/**
+ * The only files that may still measure the safe area themselves.
+ *
+ * `layout.tsx` owns it. `ConvoScreen` keeps its own scene layout this phase and
+ * is not adopted. `RecapScreen` and the focus drill player are pushed screens
+ * the design system has not reached yet. The auth, onboarding and friends
+ * screens are the same: not adopted, so still framing themselves. Adjust this
+ * list as those screens are adopted; a file dropping off it is the work landing.
+ */
+const SAFE_AREA_ALLOW = [
+  'layout.tsx',
+  'ConvoScreen.tsx',
+  'RecapScreen.tsx',
+  'drill/FocusDrillPlayer.tsx',
+  'auth/SignInScreen.tsx',
+  'auth/SignUpScreen.tsx',
+  'auth/SetNewPasswordScreen.tsx',
+  'onboarding/WelcomeScreen.tsx',
+  'onboarding/OnboardingFlow.tsx',
+  'onboarding/AgeGateScreen.tsx',
+  'friends/AddFriendsScreen.tsx',
+  'tabs/LeaderboardTab.tsx',
+];
+
+/**
+ * The only files that may still draw a chevron by hand. `layout.tsx` draws the
+ * one every adopted screen now borrows; the rest are the not-yet-adopted
+ * auth/onboarding/friends screens, and they lose theirs when they are adopted.
+ */
+const CHEVRON_ALLOW = [
+  'layout.tsx',
+  'auth/SignInScreen.tsx',
+  'auth/SignUpScreen.tsx',
+  'friends/AddFriendsScreen.tsx',
+  'onboarding/OnboardingFlow.tsx',
+];
+
+describe('every screen sits inside the one frame — F307', () => {
+  test('every tab and pushed screen is built on Screen or ScrollScreen — F307', () => {
+    for (const name of ADOPTERS) {
+      assert.match(
+        named(name),
+        /<(Screen|ScrollScreen)\b/,
+        `${name} is not built on the shared frame, so it re-derives the safe-area and keyboard maths itself`,
+      );
+    }
+  });
+
+  test('no adopted screen reads the safe area or opens a ScrollView for itself — F307', () => {
+    for (const name of ADOPTERS) {
+      const body = named(name);
+      assert.ok(
+        !body.includes('useSafeAreaInsets'),
+        `${name} still measures the safe area itself instead of letting the frame pay the notch once`,
+      );
+      assert.doesNotMatch(
+        body,
+        /<ScrollView\b/,
+        `${name} opens its own ScrollView; the frame's ScrollScreen is the one that keeps taps and carries the web height fix`,
+      );
+    }
+    // And nobody outside the allow-list re-grows the safe-area read. This is the
+    // half that catches a brand new screen measuring for itself.
+    for (const { path, body } of SOURCES) {
+      if (!body.includes('useSafeAreaInsets')) continue;
+      assert.ok(
+        SAFE_AREA_ALLOW.some((a) => path.endsWith(a)),
+        `${rel(path)} reads the safe area and is neither the frame nor a screen still waiting to be adopted; adopt it or add it to SAFE_AREA_ALLOW with a reason`,
+      );
+    }
+  });
+});
+
+describe('one way back, and it is the shared header — F309', () => {
+  /** The single-view pushed screens: exactly one header, one way back. */
+  const PUSHED_ONE_BACK = [
+    'SessionView.tsx',
+    'SummaryScreen.tsx',
+    'ReviewScreen.tsx',
+    'DrillScreen.tsx',
+    'missions/MissionsScreen.tsx',
+    'soundcheck/SoundCheckScreen.tsx',
+    'phrases/PhrasebookScreen.tsx',
+    'tutor/TutorIntro.tsx',
+    'legal/Acknowledgements.tsx',
+  ];
+
+  test('a pushed screen has exactly one way back, and it is the shared header — F309', () => {
+    for (const name of PUSHED_ONE_BACK) {
+      const headers = (named(name).match(/<ScreenHeader\b/g) ?? []).length;
+      assert.equal(
+        headers,
+        1,
+        `${name} draws ${headers} shared headers; a pushed screen shows exactly one way back and it is ScreenHeader`,
+      );
+    }
+    // No adopter hand-rolls a back control beside the shared header.
+    for (const name of ADOPTERS) {
+      const body = named(name);
+      assert.ok(!body.includes('<ChevronLeft'), `${name} hand-rolls a chevron instead of using the shared header`);
+      assert.ok(
+        !body.includes('accessibilityLabel="Back"'),
+        `${name} builds its own Back pressable instead of routing through the shared header`,
+      );
+    }
+    // And the hand-rolled chevron survives nowhere but the frame and the
+    // screens not yet adopted.
+    for (const { path, body } of SOURCES) {
+      if (!body.includes('<ChevronLeft')) continue;
+      assert.ok(
+        CHEVRON_ALLOW.some((a) => path.endsWith(a)),
+        `${rel(path)} draws a chevron by hand outside the frame; the shared header is the one back affordance`,
+      );
+    }
+  });
+
+  test('the end card and the mock lesson have a way out — F309', () => {
+    // These three were the dead ends: the summary end card had no back, the
+    // session surface's Leave was hand-rolled, and the mock lesson had no exit
+    // at all. Now the card gets a chevron, the surface gets the shared Leave,
+    // and the mock passes its exit straight through.
+    assert.match(named('SummaryScreen.tsx'), /<ScreenHeader\s+back=/, 'the end card has no way back');
+    assert.match(named('SessionView.tsx'), /<ScreenHeader\s+leave=/, 'the session surface has no Leave');
+    // Leading slash so this reads the mock driver and not LiveSessionScreen,
+    // whose filename also ends with "SessionScreen.tsx".
+    assert.match(named('/SessionScreen.tsx'), /onLeave=\{onExit\}/, 'the mock lesson never wires its exit to the surface Leave');
+  });
+});
+
+describe('the hardware back button is answered in place — F312', () => {
+  /** Every sub-view that opens in place rather than as a stack route. */
+  const IN_PLACE = [
+    'phrases/PhrasebookScreen.tsx',
+    'tutor/TutorIntro.tsx',
+    'legal/Acknowledgements.tsx',
+    'tabs/ProfileTab.tsx',
+    'SummaryScreen.tsx',
+  ];
+
+  test('every in-place sub-view answers the hardware back button — F312', () => {
+    for (const name of IN_PLACE) {
+      assert.match(
+        named(name),
+        /useHardwareBack\(/,
+        `${name} opens a sub-view in place and never answers Android's hardware back, so the button pops the whole screen`,
+      );
+    }
+  });
+
+  test('the hardware back hook only listens while its view is up — F312', () => {
+    const hook = named('nav/useHardwareBack.ts');
+    assert.match(hook, /useFocusEffect\(/, 'the hook listens even when its screen is not on top of the stack');
+    assert.match(hook, /BackHandler\.addEventListener\(/, 'the hook never registers a back handler');
+    assert.match(hook, /return true;/, 'the handler does not consume the press, so the screen still pops behind it');
+    assert.match(hook, /if \(!active\) return;/, 'the hook eats the back press even while its sub-view is closed');
+  });
+});
+
+describe('the tab bar shows a word, and it is the page edge — F313', () => {
+  const tabbar = named('nav/LuvaniTabBar.tsx');
+
+  test('every tab cell shows its label, and the label scales and wraps rather than truncating — F313', () => {
+    assert.match(tabbar, /<Text\b/, 'the tab cell renders no text at all');
+    assert.match(tabbar, /\{label\}/, 'the tab cell does not render its own label');
+    for (const cap of ['numberOfLines', 'maxWidth', 'adjustsFontSizeToFit', 'maxFontSizeMultiplier', 'allowFontScaling']) {
+      assert.ok(!tabbar.includes(cap), `the tab bar caps its label with ${cap}; a long word must wrap and the bar grow to hold it`);
+    }
+  });
+
+  test('the active tab is told by ink and weight, and a screen reader still hears selected — F313', () => {
+    assert.match(tabbar, /accessibilityState=\{\{\s*selected/, 'a screen reader is not told which tab is selected');
+    assert.match(tabbar, /fontFamily: type\.button\.fontFamily/, 'the active tab is not marked by the heavier weight');
+    assert.ok(!/\bst\.dot\b/.test(tabbar) && !tabbar.includes('dotActive'), 'the tab bar still marks the active cell with a dot');
+  });
+
+  test("the bar is the page's edge, not a card — F313", () => {
+    const from = tabbar.indexOf('bar: {');
+    assert.notEqual(from, -1, 'the bar style is gone; this test is reading the wrong thing');
+    const barStyle = tabbar.slice(from, tabbar.indexOf('},', from) + 1);
+    assert.match(barStyle, /backgroundColor: paper\.ground/, 'the bar is not on the page paper');
+    assert.match(barStyle, /borderTopWidth/, 'the bar has no top rule, so it does not read as the edge');
+    for (const card of ['shadow', 'elevation', 'borderRadius', "position: 'absolute'"]) {
+      assert.ok(!barStyle.includes(card), `the bar carries ${card}, which makes it a floating card rather than the page edge`);
+    }
+  });
+
+  test('the design doc no longer calls the tabs icon-only — F313', () => {
+    const design = readFileSync(join(ROOT, 'DESIGN.md'), 'utf8');
+    assert.ok(!/icon-only/i.test(design), 'DESIGN.md still describes an icon-only tab bar that no screen renders');
+  });
+});
+
+describe('the device runbook carries the Phase 1 checks — F315', () => {
+  test('the device runbook carries the Phase 1 layout and back checks — F315', () => {
+    // The layout and back work is verifiable statically only up to a point: the
+    // keyboard actually clearing the field, the label wrapping at AX5, the swipe
+    // being blocked, the hardware back closing a sheet — those are a device's to
+    // prove. The runbook is where that pass is recorded, so it has to name them.
+    const runbook = readFileSync(join(ROOT, 'docs', 'DEVICE_VERIFICATION.md'), 'utf8');
+    assert.match(runbook, /Phase 1/, 'the runbook has no Phase 1 section for the layout and back pass');
+    for (const row of ['Review', 'tab bar', 'hardware back', 'swipe']) {
+      assert.match(runbook, new RegExp(row), `the Phase 1 runbook names no check for ${row}`);
+    }
   });
 });

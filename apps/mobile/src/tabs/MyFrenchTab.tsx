@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { missionStates, type MissionProgress } from '@luvani/core';
 
 import { Card, Label, OutlineButton, PillButton, Stat } from '../components.tsx';
+import { ScrollScreen } from '../layout.tsx';
 import { paper, radius, signal, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
@@ -58,7 +58,6 @@ function checkLine(check: SoundCheckEvidence | null): string | null {
  * the far side, where nothing under `reminders/` may import `progress/` at all.
  */
 export function MyFrenchTab() {
-  const insets = useSafeAreaInsets();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const [missions, setMissions] = useState<readonly MissionProgress[]>([]);
   const [checks, setChecks] = useState<readonly SoundCheckEvidence[]>([]);
@@ -118,9 +117,8 @@ export function MyFrenchTab() {
   const showStamps = hasStamps(stamps);
 
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={st.title}>My French</Text>
+    <ScrollScreen bottom="tab" header={<Text style={st.title}>My French</Text>}>
+      <View style={st.scroll}>
         <Text style={st.sub}>The situations you have handled and the lines you have made yours.</Text>
 
         <View style={st.stats}>
@@ -201,13 +199,12 @@ export function MyFrenchTab() {
         <View style={{ marginTop: space(6) }}>
           <PillButton label="Choose another situation" onPress={() => nav.navigate('Missions')} />
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
   scroll: { paddingBottom: space(7) },
   title: { ...type.display, color: paper.ink },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },

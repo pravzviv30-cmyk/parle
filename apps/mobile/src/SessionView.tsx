@@ -7,11 +7,11 @@
  */
 
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, TextInput } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
 import type { SessionPrompt } from '@luvani/core';
 import { paper, radius, rungColor, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
 import { Card, Label, LineBullet, StationLine, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
+import { ScrollScreen, ScreenHeader } from './layout.tsx';
 import { tutorNameOf } from './tutor/tutorName.ts';
 import { useProfile } from './app/ProfileContext.tsx';
 
@@ -132,6 +132,17 @@ export interface SessionViewProps {
   /** Mock path only: simulates speaking the target line. */
   onMicPress?: () => void;
   onHelp: () => void;
+  /**
+   * Leave this session. On the live path it opens the confirm sheet; on the mock
+   * path it hands straight back to the caller. Either way the meter's one door
+   * is the shared header's Leave, not a control this surface hand-rolls.
+   */
+  onLeave: () => void;
+  /**
+   * A quiet line in the header: a vendor hiccup, or a connection being rebuilt.
+   * The live path fills it from `connectionLine`; the mock path has none.
+   */
+  headerLine?: string;
   /** Replay the line on the card. Every cued turn should be hearable on demand. */
   onHearLine?: () => void;
   /** Replay a rung-2 option aloud without submitting it. */
@@ -153,7 +164,6 @@ export interface SessionViewProps {
 }
 
 export function SessionView(props: SessionViewProps) {
-  const insets = useSafeAreaInsets();
   // Read here rather than taken as a prop so both drivers name the same person
   // without either of them having to remember to pass it. It is the same kind
   // of ambient fact as the safe-area inset above: whose voice this session is
@@ -177,55 +187,10 @@ export function SessionView(props: SessionViewProps) {
     props.onTyping?.();
   };
 
-  return (
-    <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
-      <View style={st.header}>
-        {/* The position is the dot rail below, and only the dot rail. It used
-            to be printed here as "2 / 5" as well, which is the numeric progress
-            ConvoScreen deliberately dropped: a count mid-session is a score,
-            and this surface is the one place a learner is already exposed. */}
-        <View style={st.headerRow}>
-          <Label>Level {props.cefr}</Label>
-        </View>
-        <Text style={[type.heading, { color: paper.ink, marginTop: space(1) }]} numberOfLines={1}>
-          {props.lessonTitle}
-        </Text>
-        <View style={{ marginTop: space(2.5) }}>
-          <StationLine total={prompt.total} index={prompt.position - 1} />
-        </View>
-      </View>
-
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
-        <View style={st.tutorBlock}>
-          <View style={st.tutorHead}>
-            <EarGlyph size={19} color={listening ? paper.inkFaint : paper.ink} />
-            <Label color={listening ? paper.inkFaint : paper.ink}>The waiter</Label>
-          </View>
-          <Text style={[type.french, { color: paper.ink, marginTop: space(1.5) }]}>{prompt.turn.tutor}</Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{prompt.turn.tutorEn}</Text>
-        </View>
-
-        <SupportBlock
-          support={prompt.support}
-          onOptionPress={props.onOptionPress}
-          onOptionHear={props.onOptionHear}
-          onHearLine={props.onHearLine}
-        />
-
-        {props.transcript ? (
-          <View style={st.heard}>
-            <Label color={paper.inkFaint}>{`What ${tutorName} heard`}</Label>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>« {props.transcript} »</Text>
-          </View>
-        ) : null}
-
-        {prompt.turn.note && listening && (
-          <View style={st.note}>
-            <Text style={[type.small, { color: paper.inkSoft }]}>{prompt.turn.note}</Text>
-          </View>
-        )}
-      </ScrollView>
-
+  // The rung row and the control row hold the bottom of the screen, so they ride
+  // in the frame's footer rather than scrolling with the thread above them.
+  const footer = (
+    <>
       <View style={st.rungRow}>
         <View style={st.bullets}>
           {([1, 2, 3, 4] as const).map((r) => (
@@ -296,12 +261,66 @@ export function SessionView(props: SessionViewProps) {
           <Text style={[type.small, { color: paper.inkSoft }]}>Help me out</Text>
         </Pressable>
       </View>
-    </View>
+    </>
+  );
+
+  return (
+    <ScrollScreen
+      topGap={space(2)}
+      header={<ScreenHeader leave={{ onPress: props.onLeave, label: 'Leave' }} title={props.headerLine} />}
+      footer={footer}
+    >
+      <View style={st.header}>
+        {/* The position is the dot rail below, and only the dot rail. It used
+            to be printed here as "2 / 5" as well, which is the numeric progress
+            ConvoScreen deliberately dropped: a count mid-session is a score,
+            and this surface is the one place a learner is already exposed. */}
+        <View style={st.headerRow}>
+          <Label>Level {props.cefr}</Label>
+        </View>
+        <Text style={[type.heading, { color: paper.ink, marginTop: space(1) }]} numberOfLines={1}>
+          {props.lessonTitle}
+        </Text>
+        <View style={{ marginTop: space(2.5) }}>
+          <StationLine total={prompt.total} index={prompt.position - 1} />
+        </View>
+      </View>
+
+      <View style={st.body}>
+        <View style={st.tutorBlock}>
+          <View style={st.tutorHead}>
+            <EarGlyph size={19} color={listening ? paper.inkFaint : paper.ink} />
+            <Label color={listening ? paper.inkFaint : paper.ink}>The waiter</Label>
+          </View>
+          <Text style={[type.french, { color: paper.ink, marginTop: space(1.5) }]}>{prompt.turn.tutor}</Text>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{prompt.turn.tutorEn}</Text>
+        </View>
+
+        <SupportBlock
+          support={prompt.support}
+          onOptionPress={props.onOptionPress}
+          onOptionHear={props.onOptionHear}
+          onHearLine={props.onHearLine}
+        />
+
+        {props.transcript ? (
+          <View style={st.heard}>
+            <Label color={paper.inkFaint}>{`What ${tutorName} heard`}</Label>
+            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>« {props.transcript} »</Text>
+          </View>
+        ) : null}
+
+        {prompt.turn.note && listening && (
+          <View style={st.note}>
+            <Text style={[type.small, { color: paper.inkSoft }]}>{prompt.turn.note}</Text>
+          </View>
+        )}
+      </View>
+    </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
   typeRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), alignSelf: 'stretch' },
   input: {
     flex: 1,
@@ -316,7 +335,7 @@ const st = StyleSheet.create({
   send: { paddingHorizontal: space(3), paddingVertical: space(2.5), minHeight: HIT },
   header: { paddingBottom: space(3) },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  scroll: { paddingTop: space(3), paddingBottom: space(5), gap: space(5), flexGrow: 1, justifyContent: 'center' },
+  body: { flex: 1, paddingTop: space(3), paddingBottom: space(5), gap: space(5), justifyContent: 'center' },
   tutorBlock: { borderLeftWidth: HAIRLINE + 1, borderLeftColor: paper.line, paddingLeft: space(3.5) },
   tutorHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   mainCard: { alignItems: 'center' },

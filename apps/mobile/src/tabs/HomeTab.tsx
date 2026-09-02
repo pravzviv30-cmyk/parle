@@ -14,8 +14,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import {
   buildProgressReport,
@@ -29,6 +28,7 @@ import {
 } from '@luvani/core';
 import { accent, paper, space, type, radius, HIT } from '../theme.ts';
 import { Card, GhostButton, Label, OutlineButton, PillButton, StationLine, Stat } from '../components.tsx';
+import { ScrollScreen } from '../layout.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
 import { loadHistory } from '../progress/store.ts';
 import { loadActivity } from '../progress/activity.ts';
@@ -52,7 +52,6 @@ export function HomeTab() {
   // cannot ask for itself — useIsFocused throws outside a NavigationContainer,
   // and several scenes render above the navigator — so the tab passes it down.
   const focused = useIsFocused();
-  const insets = useSafeAreaInsets();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { profile } = useProfile();
   const { live } = useLive();
@@ -100,33 +99,30 @@ export function HomeTab() {
     return <PhrasebookScreen book={book} onDone={() => setShowingPhrases(false)} />;
   }
 
-  return (
-    // No bottom inset: the tab bar owns the bottom edge now, and adding it here
-    // would double the gap on a notched phone.
-    <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
-      <View style={st.headerRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={[type.title, { color: paper.ink }]} numberOfLines={1}>
-            Bonjour, {firstName}
-          </Text>
-          {!live && <Label color={paper.inkFaint}>Demo</Label>}
-        </View>
-        <Pressable
-          onPress={() => nav.navigate('Profile')}
-          accessibilityRole="button"
-          accessibilityLabel="Your profile"
-          style={({ pressed }) => [st.avatar, pressed && { opacity: 0.7 }]}
-        >
-          <Text style={[type.heading, { color: paper.onInk }]}>{firstName.charAt(0).toUpperCase()}</Text>
-        </Pressable>
+  const header = (
+    <View style={st.headerRow}>
+      <View style={{ flex: 1 }}>
+        <Text style={[type.title, { color: paper.ink }]} numberOfLines={1}>
+          Bonjour, {firstName}
+        </Text>
+        {!live && <Label color={paper.inkFaint}>Demo</Label>}
       </View>
-
-      <ScrollView
-        style={st.scrollView}
-        contentContainerStyle={st.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+      <Pressable
+        onPress={() => nav.navigate('Profile')}
+        accessibilityRole="button"
+        accessibilityLabel="Your profile"
+        style={({ pressed }) => [st.avatar, pressed && { opacity: 0.7 }]}
       >
+        <Text style={[type.heading, { color: paper.onInk }]}>{firstName.charAt(0).toUpperCase()}</Text>
+      </Pressable>
+    </View>
+  );
+
+  return (
+    // bottom="tab": the tab bar owns the bottom edge, so the frame leaves it the
+    // inset rather than paying it twice on a notched phone.
+    <ScrollScreen bottom="tab" header={header}>
+      <View style={st.scroll}>
         {/* Today, and only today. Absent entirely until the learner has done
             something, which is what stops a daily count becoming a streak. */}
         {today && <TodayRow today={today} />}
@@ -223,13 +219,12 @@ export function HomeTab() {
         <View style={st.actions}>
           <PillButton label={`Talk to ${tutorNameOf(profile)}`} onPress={() => nav.navigate('Tutor')} />
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   avatar: {
     width: HIT,
@@ -239,7 +234,6 @@ const st = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scrollView: { flex: 1 },
   scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(8) },
   hero: { alignItems: 'center', marginBottom: space(4) },
   headline: { ...type.display, color: paper.ink, textAlign: 'center' },

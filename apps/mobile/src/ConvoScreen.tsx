@@ -14,6 +14,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePreventRemove } from '@react-navigation/native';
 import {
   conversationXp,
   phraseKeyOf,
@@ -35,6 +36,8 @@ import {
   fitDisplay,
 } from './components.tsx';
 import { SupportBlock } from './SessionView.tsx';
+import { ConfirmSheet, ScreenHeader } from './layout.tsx';
+import { leaveConfirmCopy } from './live/leaveConfirm.ts';
 import { RecapScreen } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
 import { bankPractice, journalDrills, journalPractice } from './live/journal.ts';
@@ -261,6 +264,11 @@ export function ConvoScreen({
   // `live.voiceless`, which belongs to the room and is read below.
   const [openedTyped, setOpenedTyped] = useState(startInTextMode);
   const [draft, setDraft] = useState('');
+  // The leave gate. `confirming` shows the sheet; `leaving` is raised on commit,
+  // which drops the guard so the exit can run from an effect rather than inline.
+  const [confirming, setConfirming] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const leaveCopy = leaveConfirmCopy('conversation');
   // Which text input holds the caret, for the ink focus border. Visual only.
   const [focusedInput, setFocusedInput] = useState<'topic' | 'reply' | null>(null);
   // The learner tapped Type instead during a voice scene. Local to the screen
@@ -593,6 +601,31 @@ export function ConvoScreen({
     void live.leave().finally(onExit);
   };
 
+  // In the metered room only: the choosing moment and the open scene, the two
+  // places minutes are being spent. Not the connecting, waiting, error, recap or
+  // finishing screens, each of which owns its own door and calls leaveNow itself
+  // — a guard active there would intercept that call's own pop.
+  const inRoom =
+    safety.kind !== 'stop' &&
+    !live.recap &&
+    !finishing &&
+    phase !== 'connecting' &&
+    phase !== 'idle' &&
+    live.status.phase !== 'out-of-minutes' &&
+    live.status.phase !== 'error' &&
+    (live.convo != null || live.opening != null);
+
+  // Android's hardware back and iOS's edge swipe both route through here, so
+  // neither can pop the room without meeting the same sheet the header opens.
+  usePreventRemove(inRoom && !leaving, () => setConfirming(true));
+
+  // The exit runs from the effect, not from the sheet's confirm: with the guard
+  // still up an inline pop would be prevented. Raising `leaving` lowers it first.
+  useEffect(() => {
+    if (leaving) leaveNow();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaving]);
+
   // First, and before the recap and every status screen. A stop is normally
   // followed by the agent leaving the room, which the hook reads as a dropped
   // connection, so anything ordered above this would take the emergency number
@@ -685,16 +718,9 @@ export function ConvoScreen({
         {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
 
         <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
-          <View style={st.headerRow}>
-            <Pressable
-              onPress={leaveNow}
-              accessibilityRole="button"
-              accessibilityLabel="Leave the conversation"
-              style={({ pressed }) => [st.leave, pressed && { opacity: 0.6 }]}
-            >
-              <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
-            </Pressable>
-          </View>
+          {/* Metered minutes must always have a door, and it is the shared
+              header's Leave now, which asks before it disconnects. */}
+          <ScreenHeader leave={{ onPress: () => setConfirming(true), label: 'Leave' }} />
 
           <ScrollView
             style={choosing.showTranscript ? st.chooseHeadShrink : st.chooseHeadGrow}
@@ -801,6 +827,18 @@ export function ConvoScreen({
             </View>
           ) : null}
         </View>
+        <ConfirmSheet
+          visible={confirming}
+          title={leaveCopy.title}
+          body={leaveCopy.body}
+          confirmLabel={leaveCopy.leave}
+          cancelLabel={leaveCopy.stay}
+          onConfirm={() => {
+            setConfirming(false);
+            setLeaving(true);
+          }}
+          onCancel={() => setConfirming(false)}
+        />
       </View>
     );
   }
@@ -890,18 +928,10 @@ export function ConvoScreen({
 
       <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
         <View style={st.header}>
-          <View style={st.headerRow}>
-            {/* Metered minutes must always have a door. Leaving ends the scene
-                early and still delivers the recap the session has earned. */}
-            <Pressable
-              onPress={leaveNow}
-              accessibilityRole="button"
-              accessibilityLabel="Leave the conversation"
-              style={({ pressed }) => [st.leave, pressed && { opacity: 0.6 }]}
-            >
-              <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>Leave</Text>
-            </Pressable>
-          </View>
+          {/* Metered minutes must always have a door, and it is the shared
+              header's Leave now, which asks before it ends the scene. Leaving
+              still delivers the recap the session has earned. */}
+          <ScreenHeader leave={{ onPress: () => setConfirming(true), label: 'Leave' }} />
           <View style={{ marginTop: space(2) }}>
             <StationLine total={view.beat.total} index={view.beat.position - 1} />
           </View>
@@ -1127,6 +1157,18 @@ export function ConvoScreen({
           </>
         )}
       </View>
+      <ConfirmSheet
+        visible={confirming}
+        title={leaveCopy.title}
+        body={leaveCopy.body}
+        confirmLabel={leaveCopy.leave}
+        cancelLabel={leaveCopy.stay}
+        onConfirm={() => {
+          setConfirming(false);
+          setLeaving(true);
+        }}
+        onCancel={() => setConfirming(false)}
+      />
     </View>
   );
 }
@@ -1144,11 +1186,6 @@ const st = StyleSheet.create({
   // unreadable, and this one is the whole reason the branch draws anything.
   waitingBanner: { alignSelf: 'stretch', marginBottom: space(3) },
   header: { paddingBottom: space(3) },
-  // flex-end, not space-between: the caps "Free talk" label that used to hold
-  // the left of this row is gone, and without this Leave slides over to fill
-  // the space it left.
-  headerRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start' },
-  leave: { minHeight: HIT, justifyContent: 'center', paddingLeft: space(3) },
   notice: { paddingBottom: space(2) },
   // Nothing but the question and the circle yet: they sit in the middle of the
   // screen, exactly as they always have.

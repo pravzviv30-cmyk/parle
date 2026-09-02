@@ -21,12 +21,12 @@
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../nav/types.ts';
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { missionStates, type MissionProgress } from '@luvani/core';
 import { paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
-import { Card, ChevronLeft, GhostButton, PillButton } from '../components.tsx';
+import { Card, GhostButton, PillButton } from '../components.tsx';
+import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { loadMissionCompletions } from './store.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadActivity } from '../progress/activity.ts';
@@ -35,7 +35,6 @@ import { MissionArt } from './MissionArt.tsx';
 import { trackProductEvent } from '../analytics/track.ts';
 
 export function MissionsScreen() {
-  const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const nav = useNavigation<{
     goBack: () => void;
@@ -87,14 +86,8 @@ export function MissionsScreen() {
   const [first, ...rest] = view.cards;
 
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(3) }]}>
-      <View style={st.headerRow}>
-        <Pressable onPress={leave} accessibilityRole="button" accessibilityLabel="Back" style={st.back}>
-          <ChevronLeft />
-        </Pressable>
-      </View>
-
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
+    <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}>
+      <View style={st.scroll}>
         <Text style={st.headline}>{view.headline}</Text>
         <Text style={st.sub}>{view.sub}</Text>
         {view.promise !== null && <Text style={st.promise}>{view.promise}</Text>}
@@ -139,16 +132,13 @@ export function MissionsScreen() {
         <View style={st.footer}>
           <GhostButton label={view.talkFreely} onPress={() => nav.navigate('Convo')} />
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  back: { minHeight: HIT, minWidth: HIT, alignItems: 'flex-start', justifyContent: 'center' },
-  scroll: { flexGrow: 1, paddingTop: space(2), paddingBottom: space(6) },
+  scroll: { paddingTop: space(2), paddingBottom: space(6) },
   headline: { ...type.display, color: paper.ink },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
   promise: { ...type.bodyStrong, color: paper.ink, marginTop: space(4) },
