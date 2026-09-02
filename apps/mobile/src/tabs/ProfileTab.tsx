@@ -38,7 +38,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
-import { Card, Label, OptionCard, OutlineButton, Field } from '../components.tsx';
+import { Card, Label, OptionCard, OutlineButton, Field, ChevronLeft } from '../components.tsx';
 import { OnboardClock } from '../illustrations.tsx';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
 import { Acknowledgements } from '../legal/Acknowledgements.tsx';
@@ -150,11 +150,9 @@ const REMINDER_SCHEDULE_TROUBLE = 'Your phone would not change the reminder just
 
 export function ProfileTab({
   onSignOut,
-  onResetProgress,
   onDeleteAccount,
 }: {
   onSignOut: () => void;
-  onResetProgress: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
   const insets = useSafeAreaInsets();
@@ -162,7 +160,6 @@ export function ProfileTab({
   const { profile, update } = useProfile();
   const [sheet, setSheet] = useState<Sheet>('none');
   const [draftName, setDraftName] = useState(profile.name ?? '');
-  const [armed, setArmed] = useState(false);
   const [unavailable, setUnavailable] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -370,6 +367,7 @@ export function ProfileTab({
   if (sheet === 'delete') {
     return (
       <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
+        <ProfileBack onPress={() => setSheet('none')} />
         <Text style={[type.display, { color: paper.ink }]}>Delete your account?</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
           This permanently removes your sign-in, conversations turned into practice, progress, and remaining minutes. It cannot be undone.
@@ -424,6 +422,7 @@ export function ProfileTab({
   if (sheet === 'goal') {
     return (
       <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
+        <ProfileBack onPress={() => setSheet('none')} />
         <View style={{ alignItems: 'center', marginBottom: space(5) }}>
           <OnboardClock width={150} />
         </View>
@@ -464,6 +463,7 @@ export function ProfileTab({
   if (sheet === 'strictness') {
     return (
       <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
+        <ProfileBack onPress={() => setSheet('none')} />
         <Text style={[type.display, { color: paper.ink }]}>{STRICTNESS_TITLE}</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{STRICTNESS_SUB}</Text>
         <View style={{ marginTop: space(6), gap: space(3) }}>
@@ -504,6 +504,7 @@ export function ProfileTab({
   if (sheet === 'tutorVoice') {
     return (
       <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
+        <ProfileBack onPress={closeVoiceSheet} />
         <Text style={[type.display, { color: paper.ink }]}>{TUTOR_VOICE_TITLE}</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{TUTOR_VOICE_SUB}</Text>
         <ScrollView contentContainerStyle={{ paddingBottom: space(6) }} showsVerticalScrollIndicator={false}>
@@ -541,6 +542,7 @@ export function ProfileTab({
   if (sheet === 'reminderTime') {
     return (
       <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
+        <ProfileBack onPress={() => setSheet('none')} />
         <Text style={[type.display, { color: paper.ink }]}>{REMINDER_TIME_TITLE}</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{REMINDER_TIME_SUB}</Text>
         <View style={{ marginTop: space(6), gap: space(3) }}>
@@ -564,6 +566,7 @@ export function ProfileTab({
   if (sheet === 'name') {
     return (
       <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
+        <ProfileBack onPress={() => { setDraftName(profile.name ?? ''); setSheet('none'); }} />
         <Text style={[type.display, { color: paper.ink }]}>Your name</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
           What your tutor calls you at the start of a session.
@@ -588,7 +591,13 @@ export function ProfileTab({
 
   return (
     <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={st.scrollView}
+        contentContainerStyle={st.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={[type.title, { color: paper.ink }]}>Profile</Text>
         <View style={st.identity}>
           <View style={st.ring}>
             <Text style={[type.title, { color: paper.ink }]}>{firstName.charAt(0).toUpperCase()}</Text>
@@ -596,7 +605,7 @@ export function ProfileTab({
           <Text style={[type.title, { color: paper.ink, marginTop: space(3) }]}>{profile.name ?? 'You'}</Text>
         </View>
 
-        <Label>Account</Label>
+        <Label>Your learning</Label>
         <Card style={{ marginTop: space(2.5) }}>
           <SettingsRow first label="Name" value={profile.name ?? 'Not set'} onPress={() => setSheet('name')} />
           <SettingsRow
@@ -606,39 +615,31 @@ export function ProfileTab({
           />
           <SettingsRow label={STRICTNESS_ROW} value={strictnessLabel(profile)} onPress={() => setSheet('strictness')} />
           <SettingsRow label={TUTOR_VOICE_ROW} value={tutorVoiceLabel(profile)} onPress={() => setSheet('tutorVoice')} />
-          <SettingsRow label="Email" value={user?.email ?? 'Signed in'} />
-          {hasPassword && (
+          <SettingsRow label={TUTOR_INTRO_LINK} onPress={() => setSheet('intro')} />
+        </Card>
+
+        <View style={{ marginTop: space(6) }}>
+          <Label>Account</Label>
+          <Card style={{ marginTop: space(2.5) }}>
+            <SettingsRow first label="Email" value={user?.email ?? 'Signed in'} />
+            {user?.provider === 'mock' && <SettingsRow label="Account" value="Demo, stored on this device only" />}
             <SettingsRow
-              label="Password"
-              value="Change it"
+              label="Download my data"
+              value={exporting ? 'Preparing…' : 'JSON file'}
               onPress={() => {
-                setUnavailable('Changing your password needs the account server, which is not running yet.');
-                setSheet('unavailable');
+                if (!user || exporting) return;
+                setExporting(true);
+                void downloadAccountData(user, adapter).then((result) => {
+                  if (!result.ok) {
+                    setUnavailable(result.message);
+                    setSheet('unavailable');
+                  }
+                }).finally(() => setExporting(false));
               }}
             />
-          )}
-          {user?.provider === 'google' && <SettingsRow label="Signed in with" value="Google" />}
-          {user?.provider === 'mock' && <SettingsRow label="Account" value="Demo, stored on this device only" />}
-          <SettingsRow
-            label="Download my data"
-            value={exporting ? 'Preparing…' : 'JSON file'}
-            onPress={() => {
-              if (!user || exporting) return;
-              setExporting(true);
-              void downloadAccountData(user, adapter).then((result) => {
-                if (!result.ok) {
-                  setUnavailable(result.message);
-                  setSheet('unavailable');
-                }
-              }).finally(() => setExporting(false));
-            }}
-          />
-          <SettingsRow
-            label="Delete account"
-            destructive
-            onPress={() => setSheet('delete')}
-          />
-        </Card>
+            <SettingsRow label="Delete account" destructive onPress={() => setSheet('delete')} />
+          </Card>
+        </View>
 
         {/* The reminder. Its own group, because the sentence above the switch
             needs a heading to be about something, and because the whole block
@@ -678,51 +679,8 @@ export function ProfileTab({
         )}
 
         <View style={{ marginTop: space(6) }}>
-          <Label>Support</Label>
-          <Card style={{ marginTop: space(2.5) }}>
-            <SettingsRow first label={TUTOR_INTRO_LINK} onPress={() => setSheet('intro')} />
-            <SettingsRow
-              label="Help"
-              onPress={() => {
-                setUnavailable('There is no help centre yet. When there is, this is where it will be.');
-                setSheet('unavailable');
-              }}
-            />
-            <SettingsRow
-              label="Send feedback"
-              onPress={() => {
-                setUnavailable('Feedback needs somewhere to go. Add an address and this will send there.');
-                setSheet('unavailable');
-              }}
-            />
-          </Card>
-        </View>
-
-        <View style={{ marginTop: space(6) }}>
           <OutlineButton label="Sign out" onPress={onSignOut} />
         </View>
-
-        <Pressable
-          onPress={() => {
-            if (!armed) {
-              setArmed(true);
-              return;
-            }
-            onResetProgress();
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={armed ? 'Press again to erase progress' : 'Reset progress'}
-          style={({ pressed }) => [st.reset, armed && st.resetArmed, pressed && { opacity: 0.7 }]}
-        >
-          <Text style={[type.bodyStrong, { color: armed ? paper.onInk : signal.correspondance }]}>
-            {armed ? 'Press again to erase everything' : 'Reset progress'}
-          </Text>
-          {!armed && (
-            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>
-              Erases lessons, phrases and the tutor's memory of you.
-            </Text>
-          )}
-        </Pressable>
 
         {/* The legal review is still an external release gate. This footer says
             what is already implemented—export and deletion—without presenting
@@ -735,7 +693,7 @@ export function ProfileTab({
           >
             <Text style={[type.label, { color: paper.inkSoft }]}>Acknowledgements</Text>
           </Pressable>
-          <Text style={[type.small, { color: paper.inkFaint, marginTop: space(3) }]}>
+          <Text style={[type.small, { color: paper.inkFaint, marginTop: space(3), textAlign: 'center' }]}> 
             You can download your account data or delete your account above. A reviewed privacy policy and terms are
             still required before release. Luvani records your email, name and age confirmation, then sends live speech
             to speech and language services so the tutor can answer. Nothing is shared with anyone else or sold for
@@ -756,9 +714,20 @@ export function ProfileTab({
   );
 }
 
+/** Internal profile sheets need a visible way back at the top as well as Cancel below. */
+function ProfileBack({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel="Back to profile" style={st.back}>
+      <ChevronLeft />
+      <Text style={[type.bodyStrong, { color: paper.ink }]}>Back</Text>
+    </Pressable>
+  );
+}
+
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  scroll: { flexGrow: 1, paddingTop: space(4), paddingBottom: space(6) },
+  scrollView: { flex: 1 },
+  scroll: { flexGrow: 1, paddingTop: space(4), paddingBottom: space(9) },
   identity: { alignItems: 'center', marginBottom: space(6) },
   ring: {
     width: 96,
@@ -769,21 +738,10 @@ const st = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reset: {
-    minHeight: HIT,
-    marginTop: space(3),
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: space(2),
-    paddingHorizontal: space(4),
-    borderRadius: radius.pill,
-    borderWidth: HAIRLINE,
-    borderColor: 'transparent',
-  },
   // The switch keeps the 44pt floor the settings rows keep, so the control is
   // the same size to a thumb as everything above it.
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT },
-  resetArmed: { backgroundColor: signal.correspondance },
   legal: { marginTop: space(8), alignItems: 'center' },
   legalItem: { minHeight: HIT, justifyContent: 'center' },
+  back: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: space(1), marginBottom: space(3) },
 });

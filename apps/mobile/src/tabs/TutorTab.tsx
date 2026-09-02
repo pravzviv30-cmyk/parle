@@ -124,7 +124,12 @@ export function TutorTab() {
 
   return (
     <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={st.scrollView}
+        contentContainerStyle={st.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={st.hero}>
           <SpeakBubbles width={150} paused={!focused} />
         </View>
@@ -188,7 +193,8 @@ export function TutorTab() {
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  scroll: { flexGrow: 1, paddingTop: space(4), paddingBottom: space(3) },
+  scrollView: { flex: 1 },
+  scroll: { flexGrow: 1, paddingTop: space(4), paddingBottom: space(8) },
   hero: { alignItems: 'center', marginBottom: space(3) },
   headline: { ...type.display, color: paper.ink, textAlign: 'center' },
   subline: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },

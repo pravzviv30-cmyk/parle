@@ -132,7 +132,12 @@ export function PracticeTab() {
         </Text>
       )}
 
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={st.scrollView}
+        contentContainerStyle={st.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {mixOffered && (
           <View style={{ marginBottom: space(3) }}>
             {/* Offered only when the due phrases come from more than one topic,
@@ -184,11 +189,9 @@ export function PracticeTab() {
         )}
 
         <Card>
-          <Text style={[type.bodyStrong, { color: paper.ink }]}>
-            Your conversations write the rest of this.
-          </Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
-            Every time you talk to your tutor, it writes practice from what you actually said, and it lands here.
+          <Text style={[type.bodyStrong, { color: paper.ink }]}>Practice from your conversations</Text>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}> 
+            Your tutor turns useful moments from free conversation into short, focused practice here.
           </Text>
         </Card>
       </ScrollView>
@@ -206,5 +209,6 @@ const sheet = paperFor('practice');
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: sheet.ground, paddingHorizontal: space(5) },
-  scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(4) },
+  scrollView: { flex: 1 },
+  scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(8) },
 });

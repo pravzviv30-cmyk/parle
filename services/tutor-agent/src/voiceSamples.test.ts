@@ -54,7 +54,8 @@ describe('a sample clip per voice, made the way the tutor speaks', () => {
       const sentences = sampleSentences(key);
       assert.equal(sentences.length, 2, `${key} is one French sentence and one English one`);
       assert.match(sentences[0]!, /^Bonjour, je m’appelle /, 'the French one first');
-      assert.match(sentences[1]!, /English/, 'then the English one');
+      assert.equal(sentences[1]!, `Hello, my name is ${name}.`, 'then its direct English translation');
+      assert.doesNotMatch(text, /how I sound|English/i, 'a sample translates; it never comments on its own voice');
 
       // Short, because every one of these ships in the app download.
       assert.ok(text.length < 90, `${key}'s line stays short: ${text.length} characters`);

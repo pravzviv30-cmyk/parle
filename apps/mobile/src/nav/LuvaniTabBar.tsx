@@ -16,9 +16,9 @@
  */
 
 import { useEffect, useState } from 'react';
-import { View, Pressable, StyleSheet, AccessibilityInfo } from 'react-native';
+import { View, Text, Pressable, StyleSheet, AccessibilityInfo } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { paper, space, HAIRLINE, HIT } from '../theme.ts';
+import { paper, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { dueCount } from '../review/store.ts';
 import { HomeIcon, TutorIcon, PracticeIcon, MyFrenchIcon, ProfileIcon, type TabIconProps } from './icons.tsx';
 
@@ -88,6 +88,9 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
               <Icon size={26} color={focused ? paper.ink : paper.inkFaint} />
               {badged ? <View style={st.badge} /> : null}
             </View>
+            <Text style={[st.label, { color: focused ? paper.ink : paper.inkSoft }]} numberOfLines={1}>
+              {label}
+            </Text>
             <View style={[st.dot, focused && st.dotActive]} />
           </Pressable>
         );
@@ -107,19 +110,20 @@ export function announceTab(name: string): void {
 const st = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    backgroundColor: paper.ground,
+    backgroundColor: paper.card,
     borderTopWidth: HAIRLINE,
     borderTopColor: paper.line,
   },
   cell: {
     flex: 1,
-    minHeight: HIT + space(3),
+    minHeight: HIT + space(6),
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: space(2.5),
     paddingBottom: space(1.5),
-    gap: space(1.5),
+    gap: space(0.5),
   },
+  label: { ...type.small, fontFamily: type.button.fontFamily, fontSize: 11, lineHeight: 14, maxWidth: 68, textAlign: 'center' },
   dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: 'transparent' },
   dotActive: { backgroundColor: paper.ink },
   badge: {

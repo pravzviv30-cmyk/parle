@@ -121,7 +121,12 @@ export function HomeTab() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={st.scrollView}
+        contentContainerStyle={st.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Today, and only today. Absent entirely until the learner has done
             something, which is what stops a daily count becoming a streak. */}
         {today && <TodayRow today={today} />}
@@ -234,7 +239,8 @@ const st = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(3) },
+  scrollView: { flex: 1 },
+  scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(8) },
   hero: { alignItems: 'center', marginBottom: space(4) },
   headline: { ...type.display, color: paper.ink, textAlign: 'center' },
   subline: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
