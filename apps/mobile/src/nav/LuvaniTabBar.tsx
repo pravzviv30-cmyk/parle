@@ -1,18 +1,18 @@
 /**
- * The bottom bar — icon only, five cells.
+ * The bottom bar — a glyph and a word, five cells.
  *
  * It is the page's edge, not a card sitting on the page: `paper.ground` with a
  * single hairline rule along the top, no white, no shadow. The app's only
  * shadow belongs to the live microphone and nothing else may borrow it.
  *
- * Saying which tab is active without a filled-icon variant: ink colour, plus a
- * small solid dot beneath the glyph. That is ProgressDots' existing grammar
- * rather than a new signal, and it keeps every mark in the app at one stroke
- * weight. The Practice badge is a dot too, but it sits on the glyph's shoulder,
- * so the two never occupy the same place or read as the same thing.
+ * Saying which tab is active without a filled-icon variant: the word and glyph
+ * both go ink, and the word takes the heavier sans. That keeps every mark in
+ * the app at one stroke weight and needs no second signal, so there is no dot.
+ * The Practice badge is the one dot left, and it sits on the glyph's shoulder.
  *
- * Icon-only navigation is unreadable to a screen reader without help, so every
- * cell carries an explicit label and selected state.
+ * A long label wraps and the bar grows to hold it rather than truncating, and
+ * nothing here caps the reading size. The label is also the screen reader's
+ * name for the cell, alongside its selected state.
  */
 
 import { useEffect, useState } from 'react';
@@ -66,9 +66,9 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
           if (!focused && !event.defaultPrevented) {
             navigation.navigate(route.name as never);
-            // Five icons, no labels: without this a screen-reader user gets no
-            // signal at all that the whole screen just replaced itself. The
-            // function was written for exactly this and then never called.
+            // A tab tap replaces the whole screen. VoiceOver gives no signal of
+            // that on its own, so the destination is announced. The function was
+            // written for exactly this and then never called.
             announceTab(route.name);
           }
         };
@@ -88,10 +88,14 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
               <Icon size={26} color={focused ? paper.ink : paper.inkFaint} />
               {badged ? <View style={st.badge} /> : null}
             </View>
-            <Text style={[st.label, { color: focused ? paper.ink : paper.inkSoft }]} numberOfLines={1}>
+            <Text
+              style={[
+                st.label,
+                focused ? { color: paper.ink, fontFamily: type.button.fontFamily } : { color: paper.inkSoft },
+              ]}
+            >
               {label}
             </Text>
-            <View style={[st.dot, focused && st.dotActive]} />
           </Pressable>
         );
       })}
@@ -110,12 +114,14 @@ export function announceTab(name: string): void {
 const st = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    backgroundColor: paper.card,
+    backgroundColor: paper.ground,
     borderTopWidth: HAIRLINE,
     borderTopColor: paper.line,
   },
   cell: {
     flex: 1,
+    // A floor, not a height: a wrapped two-line label at large text grows the
+    // cell rather than clipping, and the row grows with the tallest cell.
     minHeight: HIT + space(6),
     alignItems: 'center',
     justifyContent: 'center',
@@ -123,9 +129,7 @@ const st = StyleSheet.create({
     paddingBottom: space(1.5),
     gap: space(0.5),
   },
-  label: { ...type.small, fontFamily: type.button.fontFamily, fontSize: 11, lineHeight: 14, maxWidth: 68, textAlign: 'center' },
-  dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: 'transparent' },
-  dotActive: { backgroundColor: paper.ink },
+  label: { ...type.tabLabel, textAlign: 'center' },
   badge: {
     position: 'absolute',
     top: -1,

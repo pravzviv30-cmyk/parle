@@ -238,7 +238,7 @@ says what Luvani is and why speaking out loud is the point) → sign-in gate
 (Welcome / Create account / Sign in) → three onboarding pages (the age gate
 first, then a name, then one page saying what the tutor is; everything but the
 age is skippable) → the mission chooser, with the café already picked → **five
-icon-only tabs along the bottom**:
+labelled tabs along the bottom**:
 
 That age gate has a second door. A session the tutor ended because the learner
 said in a scene that they are under thirteen is remembered by the account, and
@@ -262,9 +262,10 @@ Home card pushes it, and the Tutor tab's first two doors lead to it. That is wha
 leaving a live session an explicit act rather than a tab switch — a room that
 survives a tab switch is a room the meter is still counting.
 
-The tab bar has no filled-icon variant, because a solid icon would be the first
-two-weight mark in the app. Active is ink plus a dot beneath it, which is
-ProgressDots' grammar reused.
+Each tab is a glyph and a word. There is no filled-icon variant, because a solid
+icon would be the first two-weight mark in the app. Active is ink plus a heavier
+weight on both the glyph and its word, so the label carries the signal and there
+is no dot. A long word wraps and the bar grows to hold it.
 
 On web the app is still a **460pt centred column**, and the navigator mounts
 inside it, so the tab bar is clamped to the column rather than spanning the

@@ -169,6 +169,8 @@ export const type = {
   body: { fontFamily: font.sans, fontSize: 16, lineHeight: 23 },
   bodyStrong: { fontFamily: font.sansMedium, fontSize: 16, lineHeight: 23 },
   small: { fontFamily: font.sans, fontSize: 13.5, lineHeight: 19 },
+  /** The word under a bottom-tab glyph. Small enough to sit two to a cell. */
+  tabLabel: { fontFamily: font.sansMedium, fontSize: 11, lineHeight: 14 },
   /** Tiny caps label above a card or count. */
   label: {
     fontFamily: font.sansBold,
