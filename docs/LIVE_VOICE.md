@@ -79,6 +79,16 @@ one, and the scene is built from it straight away. Everything downstream is the
 same code path, including the request-grounded recovery scene when the frame
 call fails.
 
+### One spoken answer, not a lecture
+
+On an ordinary free-conversation turn, the learner hears the French character
+reply and, only for a genuine scene shift, one short English scene-setting line.
+Routine correction cards remain visible and feed the recap, but are not read
+aloud over the conversation. When the learner reaches for English, the one
+short English-to-French hand-back takes that single support slot before the
+French reply. This keeps the tutor responsive without making every answer sound
+like narration, correction, and roleplay glued together.
+
 If the scenario-builder call times out, fails, or returns an invalid frame, the
 agent opens a small request-grounded frame instead. The learner's words remain
 the scene setting and ride every later turn; a provider failure must never turn

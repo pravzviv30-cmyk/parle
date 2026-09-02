@@ -454,8 +454,8 @@ export function openerFor(name: string | null): { fr: string; en: string } {
 }
 
 /**
- * The tutor's whole answer as one utterance: narration, then coaching, then the
- * character's line. Outside-in, like a film.
+ * The tutor's whole answer as one utterance: at most one short English support
+ * segment, then the character's French line.
  *
  * One string rather than three say() calls, and that is not tidying. Each
  * speech handle is a full speaking → listening → speaking cycle in the
@@ -473,7 +473,20 @@ export function openerFor(name: string | null): { fr: string; en: string } {
  * make a new sentence and, with it, a new cache key for a line already on disk.
  */
 export function spokenTurn(view: TurnView): string {
-  const parts = [view.narration?.en, view.coachLine, view.sceneReply.fr];
+  /**
+   * A learner came here to have a conversation, not to hear the tutor read
+   * every card on screen back to them. Routine corrections still appear in the
+   * UI and reach the recap, but they do not break the scene out loud.
+   *
+   * Reaching for English is the useful exception: the learner has explicitly
+   * asked for language help through what they said. In that case the coach line
+   * gives the natural French meaning before the scene carries on. A scene shift
+   * and a translation would otherwise create two English explanations in the
+   * same breath, so the learner's immediate need wins; the shift remains
+   * visible on screen.
+   */
+  const support = view.reachedForEnglish ? view.coachLine : view.narration?.en;
+  const parts = [support, view.sceneReply.fr];
   return parts
     .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
     .map((part) => {
