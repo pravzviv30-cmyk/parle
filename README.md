@@ -83,6 +83,36 @@ the token server answered, how long the room took to connect, whether the tutor
 joined, and whether it ever said anything. That panel is how you tell an
 environment problem from a bug without reading LiveKit's logs.
 
+### On an iPhone — simulator and device
+
+`npm run web` stays the quickest loop and the fallback. To run the real native app:
+
+```bash
+# one-off after a rename or a fresh clone: regenerate the gitignored native project
+cd apps/mobile && LANG=en_US.UTF-8 npx expo prebuild --clean --platform ios
+
+npm run ios          # the iOS Simulator
+npm run ios:device   # a physical iPhone
+```
+
+It is a custom **dev client**, not Expo Go — LiveKit and WebRTC are native modules.
+The `ios/` directory is generated and gitignored, so `prebuild --clean` is how it
+comes back, carrying `com.luvani.app` from `app.json`. The first build takes a while;
+after that Metro reloads JS on save.
+
+**The Simulator** reaches the token server at `localhost:8787` unchanged, so
+`npm run dev` in another terminal is all it needs. It has no microphone, so speech
+never reaches the STT: the picker, onboarding and the tutor's spoken replies (TTS) all
+work, but a real spoken exchange is a device-only test.
+
+**A physical iPhone** cannot reach the Mac's `localhost`. Point it at the Mac instead —
+in `apps/mobile/.env` set `EXPO_PUBLIC_TOKEN_SERVER_URL=http://<mac-lan-ip>:8787`
+(`ipconfig getifaddr en0`), rebuild, and let the macOS firewall accept inbound 8787;
+the run scripts already send the local-development flag, so plain HTTP is allowed. First
+build needs a signing team on the Luvani target in Xcode — a free Apple ID gives a
+7-day dev certificate, which is enough to test. The full device checklist is
+[docs/DEVICE_VERIFICATION.md](docs/DEVICE_VERIFICATION.md).
+
 ### Accounts
 
 Local scripts explicitly enable on-device mock accounts. Any deployed build requires a
