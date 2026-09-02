@@ -2,8 +2,21 @@ import { test, describe, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { voice } from '@livekit/agents';
-import { CAFE_LESSON, RUNGS, STUCK_SILENCE_MS, encodeMessage, type ClientMessage, type Rung, type ServerMessage } from '@luvani/core';
+import {
+  CAFE_LESSON,
+  DEFAULT_TUTOR_VOICE,
+  RUNGS,
+  STUCK_SILENCE_MS,
+  currentPrompt,
+  encodeMessage,
+  tutorVoice,
+  type ClientMessage,
+  type Rung,
+  type ServerMessage,
+  type TutorPersona,
+} from '@luvani/core';
 import { TEXT_SILENCE_MS } from './convo.ts';
+import { buildPrompt } from './prompt.ts';
 import { LuvaniTutor, forgetReportedSessions } from './tutor.ts';
 
 /**
@@ -27,7 +40,10 @@ function stubSession() {
   return { session: session as never, calls };
 }
 
-function build(startRung: Rung = RUNGS.PROMPTED, options: { voiceless?: boolean; sessionId?: string } = {}) {
+function build(
+  startRung: Rung = RUNGS.PROMPTED,
+  options: { voiceless?: boolean; sessionId?: string; persona?: TutorPersona } = {},
+) {
   const tutor = new LuvaniTutor(CAFE_LESSON, startRung, options);
   const { session, calls } = stubSession();
   Object.defineProperty(tutor, 'session', { value: session, configurable: true });
@@ -535,5 +551,84 @@ describe('a tapped option passes the safety boundary', () => {
         assert.equal(calls.generateReply.length, 1);
       })
       .finally(() => tutor.clearRescue());
+  });
+});
+
+// ─────────────────────────────── the person the learner chose to be taught by
+
+/**
+ * F292 gave the tutor a chosen persona, and every test of it called
+ * `buildPrompt` directly. Nothing asked whether this CLASS hands the person
+ * over, so the option lived on the caller's side of the constructor and nowhere
+ * else — agent.ts passed a `persona` that `LuvaniTutor` had never heard of. The
+ * gate caught that as a type error, which was luck: had the option been spelled
+ * on the constructor and dropped in the body, or threaded into the first prompt
+ * and forgotten in the rebuild, it would have compiled and shipped a tutor who
+ * changes name partway through a lesson.
+ *
+ * So these drive the real object and read back the prompt the model would get.
+ */
+describe('the tutor speaks as the person the learner chose', () => {
+  const celine = tutorVoice('celine').persona;
+
+  /** The prompt the model would be handed right now, as a string. */
+  function promptOf(tutor: LuvaniTutor): string {
+    const instructions = tutor.instructions;
+    assert.equal(typeof instructions, 'string', 'the lesson prompt is built as one string, per turn');
+    return instructions as string;
+  }
+
+  test('a non-default persona reaches the lesson prompt through the tutor, not just the builder', () => {
+    const { tutor } = build(RUNGS.PROMPTED, { persona: celine });
+    const prompt = promptOf(tutor);
+
+    assert.match(prompt, /You are Céline\b/, 'the tutor opens as somebody the learner will never hear');
+    assert.doesNotMatch(prompt, /\bLuc\b/, "the default persona's name is still in the prompt somewhere");
+    // The pronoun rides with the name or she says "je suis content" out loud in
+    // a woman's voice on the first turn. prompt.test.ts makes this assertion of
+    // the builder; this one makes it of the object that calls the builder.
+    assert.match(prompt, /you are a woman/i, 'the agreement her own French takes went missing on the way through');
+
+    // And it is exactly what the builder produces for her, so this cannot pass
+    // on a prompt the tutor assembled some other way.
+    const { turn, directive } = currentPrompt(CAFE_LESSON, tutor.sessionState);
+    assert.equal(prompt, buildPrompt(CAFE_LESSON, turn, directive, celine));
+  });
+
+  test('a non-default persona survives a mid-lesson prompt rebuild', async () => {
+    const { tutor } = build(RUNGS.PROMPTED, { persona: celine });
+
+    // One right answer, which is the ordinary case rather than an edge: every
+    // applied turn re-renders the whole prompt for the next one. That rebuild is
+    // the trap. It is a second `buildPrompt` call, three hundred lines from the
+    // constructor, and a persona missing there swaps the tutor one turn into the
+    // lesson while the voice saying the words carries straight on — a mismatch
+    // nobody would think to look for, because the session started out right.
+    await tutor.onUserTurnCompleted({} as never, heard('Bonjour')).catch(() => {});
+    await tutor.settled();
+    assert.equal(tutor.sessionState.turnIndex, 1, 'the lesson never moved on, so no rebuild was proved');
+
+    const prompt = promptOf(tutor);
+    assert.match(prompt, /You are Céline\b/, 'the tutor became somebody else partway through the lesson');
+    assert.doesNotMatch(prompt, /\bLuc\b/, 'the default persona came back on the second turn');
+
+    const { turn, directive } = currentPrompt(CAFE_LESSON, tutor.sessionState);
+    assert.equal(prompt, buildPrompt(CAFE_LESSON, turn, directive, celine), 'the rebuilt prompt is not hers');
+    tutor.clearRescue();
+  });
+
+  test('a lesson nobody chose a voice for still opens as the catalogue default', () => {
+    // The other half of the guarantee: threading the persona through must not
+    // move a single byte for a learner who has never picked one. The default is
+    // read out of the catalogue rather than written here, and it is answered in
+    // one place — the builder — so this class holds no second opinion about who
+    // the tutor is when nobody has said.
+    const luc = tutorVoice(DEFAULT_TUTOR_VOICE).persona;
+    const { tutor } = build();
+    const { turn, directive } = currentPrompt(CAFE_LESSON, tutor.sessionState);
+
+    assert.equal(promptOf(tutor), buildPrompt(CAFE_LESSON, turn, directive), 'an unchosen lesson stopped matching the builder');
+    assert.equal(promptOf(tutor), buildPrompt(CAFE_LESSON, turn, directive, luc), 'and stopped being the catalogue default');
+    assert.match(promptOf(tutor), /\bLuc\b/);
   });
 });

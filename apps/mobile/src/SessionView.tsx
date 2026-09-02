@@ -12,7 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SessionPrompt } from '@luvani/core';
 import { paper, radius, rungColor, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
 import { Card, Label, LineBullet, StationLine, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
-import { TUTOR_NAME } from './tutor/tutorName.ts';
+import { tutorNameOf } from './tutor/tutorName.ts';
+import { useProfile } from './app/ProfileContext.tsx';
 
 /**
  * What the support block can render. A structural superset of the lesson path's
@@ -153,6 +154,11 @@ export interface SessionViewProps {
 
 export function SessionView(props: SessionViewProps) {
   const insets = useSafeAreaInsets();
+  // Read here rather than taken as a prop so both drivers name the same person
+  // without either of them having to remember to pass it. It is the same kind
+  // of ambient fact as the safe-area inset above: whose voice this session is
+  // in belongs to the learner, not to whatever is driving the turns.
+  const tutorName = tutorNameOf(useProfile().profile);
   const { prompt, listening, flash } = props;
   const rung = prompt.directive.rung;
   const [draft, setDraft] = useState('');
@@ -208,7 +214,7 @@ export function SessionView(props: SessionViewProps) {
 
         {props.transcript ? (
           <View style={st.heard}>
-            <Label color={paper.inkFaint}>{`What ${TUTOR_NAME} heard`}</Label>
+            <Label color={paper.inkFaint}>{`What ${tutorName} heard`}</Label>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>« {props.transcript} »</Text>
           </View>
         ) : null}
@@ -228,7 +234,7 @@ export function SessionView(props: SessionViewProps) {
         </View>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
           <View style={[st.rungDot, { backgroundColor: rungColor[rung] }]} />
-          <Text style={[type.bodyStrong, { color: paper.ink }]}>{rungLabel[rung]}</Text>
+          <Text style={[type.bodyStrong, { color: paper.ink }]}>{rungLabel(rung, tutorName)}</Text>
         </View>
       </View>
 
@@ -271,7 +277,7 @@ export function SessionView(props: SessionViewProps) {
               active={listening}
               muted={!listening}
               disabled={!props.onMicPress}
-              accessibilityLabel={listening ? 'Speak your answer' : `${TUTOR_NAME} is speaking`}
+              accessibilityLabel={listening ? 'Speak your answer' : `${tutorName} is speaking`}
             />
             <Text style={[type.label, { color: listening ? paper.ink : paper.inkFaint, marginTop: space(2) }]}>
               {listening ? 'Speak' : 'Listen'}

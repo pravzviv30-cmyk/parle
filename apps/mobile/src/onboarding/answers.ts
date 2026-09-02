@@ -1,8 +1,9 @@
 /**
  * What onboarding asks, and what it hands over.
  *
- * Three pages: the age gate, a name, and one page that says what the learner
- * is about to talk to. The goal page is gone from the first run and lives in
+ * Four pages: the age gate, a name, one page that says what the learner is
+ * about to talk to, and one where they meet the eight voices and pick one or
+ * walk past it. The goal page is gone from the first run and lives in
  * Profile, the date of birth page is gone entirely — a product for teens and
  * adults needs to know that somebody is thirteen, which is one tap, not a date
  * — and the why page is gone too.
@@ -55,13 +56,26 @@
  * the standalone gate to somebody who has never seen onboarding at all.
  */
 
+import type { TutorVoiceKey } from '@luvani/core';
 import { ageStopStanding } from '../profile/age.ts';
 
 /**
- * The three pages, in order. The dots at the top count these, `docs/ONBOARDING.md`
+ * The four pages, in order. The dots at the top count these, `docs/ONBOARDING.md`
  * counts them too, and a test holds the doc to this array.
+ *
+ * `voice` is the one addition, and it is the only page here that costs a
+ * learner a screen without asking a question they have to answer. It earns its
+ * place the way nothing else on this path does: it is the one setting in the
+ * product that changes who is talking, two of the eight voices are women, and a
+ * learner who never opens Profile would otherwise never learn the choice
+ * exists. It is one tap past, and skipping is a real answer rather than a
+ * question deferred.
+ *
+ * It comes AFTER `meet` and not before it, because `meet` is where the app says
+ * the tutor is AI. Meeting eight named people first and being told what they
+ * are afterwards is the order this whole module exists to prevent.
  */
-export const PAGES = ['age', 'name', 'meet'] as const;
+export const PAGES = ['age', 'name', 'meet', 'voice'] as const;
 export type Page = (typeof PAGES)[number];
 
 /** The name page: encouraged, never required. */
@@ -106,6 +120,15 @@ export interface OnboardingDraft {
    * value on its way past is how a synced record loses a field it was holding.
    */
   motivation: string | null;
+  /**
+   * Who they picked on the voice step, or null for a skip.
+   *
+   * Null is a skip and never the default key spelled out. The default is what
+   * null already means everywhere else that reads this field, so writing
+   * `'luc'` here would record a choice the learner did not make and would make
+   * the Profile row unable to tell the two apart.
+   */
+  tutorVoice: TutorVoiceKey | null;
 }
 
 /**
@@ -120,6 +143,16 @@ export interface OnboardingAnswers {
   name: string | null;
   ageConfirmed: boolean;
   motivation: string | null;
+  /**
+   * The voice step's answer, riding out with the rest.
+   *
+   * It travels as an answer rather than being written from inside a page
+   * because onboarding runs outside `ProfileProvider`: there is no profile to
+   * write to until the flow has handed these back. `withChosenVoice` in
+   * `voiceStep.ts` is what applies it, through the same door the Profile sheet
+   * uses.
+   */
+  tutorVoice: TutorVoiceKey | null;
 }
 
 /** A typed name, trimmed. Nothing typed is null, never the empty string. */
@@ -137,6 +170,10 @@ export function answersFrom(draft: OnboardingDraft): OnboardingAnswers {
     // skipped a page, and before that it was 'want' because a flow defaulted
     // it, which is the app deciding why somebody is here.
     motivation: draft.motivation,
+    // Straight through, null included. A skipped voice step is a null the same
+    // way a skipped name is: the question was offered and declined, and the app
+    // does not answer it on the learner's behalf.
+    tutorVoice: draft.tutorVoice,
   };
 }
 

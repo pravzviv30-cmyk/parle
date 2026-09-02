@@ -38,10 +38,21 @@
  * needing durable server storage and an authenticated write path from the
  * agent. `docs/STATE_AND_STORAGE.md` records the ceiling where a learner's data
  * is described.
+ *
+ * Version 6 is the one that lets the learner choose who they are talking to.
+ * `tutorVoice` is a key from the catalogue in `@luvani/core`, never a vendor id
+ * — the vendor ids live in the agent alone, so a voice re-cloned or moved to
+ * another vendor is a one-table edit there and this stored preference outlives
+ * it. Null means never chosen, which the agent resolves to the catalogue
+ * default; it is deliberately not written as 'luc', because "has not been asked
+ * yet" and "asked for Luc" are different facts and the Profile row has to be
+ * able to tell them apart. The field is bounded by construction: one key out of
+ * eight, replaced on every choice, so nothing here grows per session.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createProfile, repairProfile, type LearnerProfile } from '@luvani/brain/profile';
+import type { TutorVoiceKey } from '@luvani/core';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import { ageConfirmedFromDob } from './age.ts';
@@ -51,7 +62,7 @@ import { upgradeStored } from './upgrade.ts';
 const KEY = () => userKey('profile');
 
 export interface StoredProfile {
-  version: 5;
+  version: 6;
   /** What they asked to be called. Null when they skipped the question. */
   name: string | null;
   /**
@@ -75,6 +86,16 @@ export interface StoredProfile {
    * rather than a field anything may set, because this one closes the tutor.
    */
   ageStopAt: number | null;
+  /**
+   * Which catalogue voice the learner asked their tutor to speak with, as an
+   * app-level key from `@luvani/core` — never a vendor id, which no process
+   * outside the agent is allowed to hold. Null until they choose one, and the
+   * agent reads null as the catalogue default. Written by `withTutorVoice`,
+   * one named door, because the persona the tutor introduces itself with is
+   * derived from this key and a field two places can set is a tutor that can
+   * disagree with its own voice.
+   */
+  tutorVoice: TutorVoiceKey | null;
   /** Why they came, as the tag chosen during onboarding. Null when skipped. */
   motivation: string | null;
   /** The daily practice promise, set in Profile. Null until they pick one. */
@@ -256,7 +277,7 @@ function confirmedFrom(answers: OnboardingAnswers, now: Date): boolean | null {
 
 export function createStoredProfile(answers: OnboardingAnswers, now = Date.now()): StoredProfile {
   return {
-    version: 5,
+    version: 6,
     name: answers.name,
     // Data minimisation, discharged without touching one stored record: from
     // v4 on nobody is asked for a date, so nobody has one written down. While
@@ -267,6 +288,11 @@ export function createStoredProfile(answers: OnboardingAnswers, now = Date.now()
     // Nobody arrives already stopped. A learner reaching this function is one
     // the age gate has just let through.
     ageStopAt: null,
+    // And nobody arrives having chosen a voice: onboarding does not ask, the
+    // Profile row does. Writing the default key here instead would record a
+    // choice the learner never made, and would make the row unable to say
+    // whether they had picked Luc or simply never looked.
+    tutorVoice: null,
     motivation: answers.motivation,
     dailyGoalMin: answers.dailyGoalMin ?? null,
     onboardedAt: now,
@@ -330,6 +356,23 @@ export function withAgeGatePassed(existing: StoredProfile): StoredProfile {
  */
 export function withDailyGoal(existing: StoredProfile, dailyGoalMin: 5 | 10 | 15): StoredProfile {
   return { ...existing, dailyGoalMin };
+}
+
+/**
+ * Choose the voice the tutor speaks with.
+ *
+ * A plain spread beside `withDailyGoal`, and named for the same reason: one
+ * write path for a field several surfaces read. The parameter is the catalogue
+ * key type rather than a string, so a voice that is not in `@luvani/core`'s
+ * catalogue is a compile error here rather than an unknown key travelling to
+ * the token server and on towards a vendor URL.
+ *
+ * There is no `withoutTutorVoice`. Null is what "never chosen" means, and
+ * nothing in the product asks a learner to un-choose a voice — the row always
+ * offers all eight, so changing their mind is picking another one.
+ */
+export function withTutorVoice(existing: StoredProfile, tutorVoice: TutorVoiceKey): StoredProfile {
+  return { ...existing, tutorVoice };
 }
 
 /** Claim a leaderboard username. A plain spread, named so the field has one write path. */

@@ -11,17 +11,28 @@ import {
   verifyVendors,
   warnings,
 } from './preflight.ts';
-import { MODEL, PROBE_LINE } from './voice.ts';
+import { DEFAULT_TUTOR_VOICE } from '@luvani/core';
+import { ELEVEN_VOICES, MODEL, PROBE_LINE } from './voice.ts';
 
+/**
+ * ELEVEN_VOICE_ID is deliberately absent. It used to live here as part of "a
+ * fully configured setup", and it is now read by nothing: the voice comes from
+ * the learner's choice and the catalogue in voice.ts. Setting it in this
+ * object would make every `warnings()` count below wrong for a reason that has
+ * nothing to do with what those tests are about.
+ */
 const FULL = {
   LIVEKIT_URL: 'ws://localhost:7880',
   LIVEKIT_API_KEY: 'k',
   LIVEKIT_API_SECRET: 's',
   DEEPGRAM_API_KEY: 'd',
   ELEVEN_API_KEY: 'e',
-  ELEVEN_VOICE_ID: 'v',
   ANTHROPIC_API_KEY: 'a',
 };
+
+/** Every voice the account has to own, and the one the probe actually speaks. */
+const ALL_VOICE_IDS = Object.values(ELEVEN_VOICES);
+const DEFAULT_VOICE_ID = ELEVEN_VOICES[DEFAULT_TUTOR_VOICE];
 
 describe('selectedBrain', () => {
   test('defaults to anthropic when unset', () => {
@@ -99,8 +110,14 @@ describe('missingRequired', () => {
     assert.deepEqual(missingRequired({ ...env, TUTOR_LLM: 'claude-cli' }), ['GROQ_API_KEY']);
   });
 
-  test('ELEVEN_VOICE_ID is not required, because voice.ts has a fallback', () => {
+  // Re-pointed from 'ELEVEN_VOICE_ID is not required, because voice.ts has a
+  // fallback'. The guarantee is the same one — the worker never refuses to boot
+  // over this variable — but the reason changed: there is no fallback any more
+  // because there is no read. A stale value is a warning, and warnings() covers
+  // that; this holds the line that it can never become a demand.
+  test('ELEVEN_VOICE_ID is not required, because nothing reads it any more', () => {
     assert.deepEqual(missingRequired({ ...FULL, ELEVEN_VOICE_ID: '' }), []);
+    assert.deepEqual(missingRequired({ ...FULL, ELEVEN_VOICE_ID: 'a-stale-id' }), []);
   });
 });
 
@@ -109,11 +126,32 @@ describe('warnings', () => {
     assert.deepEqual(warnings(FULL), []);
   });
 
-  test('names the default voice and the weaker brain', () => {
-    const w = warnings({ ...FULL, ELEVEN_VOICE_ID: '', TUTOR_LLM: 'groq' });
+  // Re-pointed from 'names the default voice and the weaker brain'. There is no
+  // "default voice" for this variable to miss any more, so the ELEVEN_VOICE_ID
+  // half now guards the fact that replaced it: set, and read by nothing. The
+  // count and the ordering are the part worth keeping.
+  test('names the stale voice variable and the weaker brain', () => {
+    const w = warnings({ ...FULL, ELEVEN_VOICE_ID: 'Qrl71rx6Yg8RvyPYRGCQ', TUTOR_LLM: 'groq' });
     assert.equal(w.length, 2);
     assert.match(w[0]!, /ELEVEN_VOICE_ID/);
     assert.match(w[1]!, /groq/i);
+  });
+
+  test('a stale ELEVEN_VOICE_ID is named as read by nothing', () => {
+    // The same failure shape as OPEN_AI_KEY, one step worse. A real vendor id
+    // under a name nothing reads does not merely look configured — it looks
+    // like the voice the tutor is using, so the next person to change the
+    // tutor's voice changes this and hears no difference at all.
+    const w = warnings({ ...FULL, ELEVEN_VOICE_ID: 'Qrl71rx6Yg8RvyPYRGCQ' });
+    assert.equal(w.length, 1);
+    assert.match(w[0]!, /ELEVEN_VOICE_ID/, 'the variable that is set');
+    assert.match(w[0]!, /nothing reads it/i, 'and that it buys nothing');
+    assert.match(w[0]!, /Profile/, 'and where the voice is actually chosen now');
+
+    // Empty or absent is silence, not a warning. A boot that complains about
+    // something on every start teaches everyone to stop reading the warnings.
+    assert.deepEqual(warnings({ ...FULL, ELEVEN_VOICE_ID: '' }), []);
+    assert.deepEqual(warnings({ ...FULL, ELEVEN_VOICE_ID: '   ' }), []);
   });
 
   test('claude-cli-all says plainly what it costs, and that it is for development', () => {
@@ -212,11 +250,44 @@ describe('the voice the tutor is configured to use', () => {
     body: { voices: ids.map((voice_id) => ({ voice_id, name: `voice-${voice_id}` })) },
   });
 
-  test('a voice the account does not have is fatal, not a warning', async () => {
-    // What a key rotated onto a NEW account looks like: the key is fine, every
-    // other check passes, and synthesis 404s the first time the tutor opens its
-    // mouth — a room that opens and a tutor that never speaks, which is the one
-    // failure this whole file exists to turn into a line on a terminal.
+  /** The same list, with some of the voices marked as the vendor's own stock. */
+  const catalogueWithPremade = (...premade: string[]) => ({
+    status: 200,
+    body: {
+      voices: ALL_VOICE_IDS.map((voice_id) => ({
+        voice_id,
+        name: `voice-${voice_id}`,
+        category: premade.includes(voice_id) ? 'premade' : 'professional',
+      })),
+    },
+  });
+
+  // Re-pointed from 'a voice the account does not have is fatal, not a warning'.
+  // Same failure, eight times the surface: the learner picks the voice now, so
+  // the probe has to prove ALL of them rather than the one an env var named.
+  test('a catalogue voice the account does not list is fatal and names the key to remove', async () => {
+    const missing = ELEVEN_VOICES.celine;
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      fakeFetch({ 'api.elevenlabs.io': catalogue(...ALL_VOICE_IDS.filter((id) => id !== missing)) }) as never,
+    );
+    const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
+
+    assert.ok(eleven, 'a voice a learner can choose and the account cannot speak must be reported');
+    assert.equal(eleven.fatal, true);
+    assert.match(eleven.detail, /celine/, 'the KEY, because that is what a reader has to act on');
+    assert.match(eleven.detail, /voices\.ts/, 'and where the catalogue lives, so the fix is findable');
+    assert.ok(!eleven.detail.includes(ELEVEN_VOICES.luc), 'a voice that IS listed must not be named as missing');
+  });
+
+  test('a key rotated onto a new account is fatal, and names every voice it cannot speak', async () => {
+    // What that rotation actually looks like: the key is fine, every other check
+    // passes, and synthesis 404s the first time the tutor opens its mouth — a
+    // room that opens and a tutor that never speaks, which is the one failure
+    // this whole file exists to turn into a line on a terminal. With eight
+    // voices it is now every one of them at once, so the message has to say so
+    // rather than name the first and let someone fix them one boot at a time.
     const checks = await verifyVendors(
       FULL,
       '',
@@ -224,22 +295,74 @@ describe('the voice the tutor is configured to use', () => {
     );
     const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
 
-    assert.ok(eleven, 'a voice that cannot be synthesized must be reported');
+    assert.ok(eleven);
     assert.equal(eleven.fatal, true);
-    assert.match(eleven.detail, /has no voice "v"/);
-    assert.match(eleven.detail, /someone-elses-voice/, 'and it names what the account can actually use');
+    for (const key of Object.keys(ELEVEN_VOICES)) {
+      assert.match(eleven.detail, new RegExp(key), `${key} is unusable and must be named`);
+    }
   });
 
   test('a voice the account does have passes silently', async () => {
-    const checks = await verifyVendors(FULL, '', fakeFetch({ 'api.elevenlabs.io': catalogue('v', 'other') }) as never);
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      fakeFetch({ 'api.elevenlabs.io': catalogue(...ALL_VOICE_IDS, 'other') }) as never,
+    );
     assert.equal(checks.find((c) => c.vendor === 'ElevenLabs'), undefined);
   });
 
-  test('no voice configured is left alone — that is the default voice, and a warning already', async () => {
-    const { ELEVEN_VOICE_ID: _unset, ...noVoice } = FULL;
-    const checks = await verifyVendors(noVoice, '', fakeFetch({ 'api.elevenlabs.io': catalogue('anything') }) as never);
-    assert.equal(checks.find((c) => c.vendor === 'ElevenLabs'), undefined);
-    assert.ok(warnings(noVoice).some((w) => /ELEVEN_VOICE_ID is unset/.test(w)));
+  test('a premade voice in the catalogue is a warning that names the retirement date', async () => {
+    // The vendor is retiring its stock voices, so a catalogue entry that
+    // resolves to one is a tutor with an expiry date on it. Non-fatal on
+    // purpose: it still speaks today, and refusing to boot over a deadline
+    // months away would take the product down to prevent an outage.
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      fakeFetch({ 'api.elevenlabs.io': catalogueWithPremade(ELEVEN_VOICES.emilie) }) as never,
+    );
+    const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
+
+    assert.ok(eleven, 'a voice with a retirement date on it is worth saying out loud');
+    assert.equal(eleven.fatal, false, 'it still speaks today; refusing to boot would be the bigger outage');
+    assert.match(eleven.detail, /emilie/, 'named by key, because that is what gets replaced');
+    assert.match(eleven.detail, /2026-12-31/, 'and the date, because that is what makes it urgent or not');
+
+    // And a catalogue of voices that are not stock says nothing at all.
+    const clean = await verifyVendors(FULL, '', fakeFetch({ 'api.elevenlabs.io': catalogueWithPremade() }) as never);
+    assert.equal(clean.find((c) => c.vendor === 'ElevenLabs'), undefined);
+  });
+
+  test('a missing voice outranks a premade one, so one broken vendor is still one message', async () => {
+    // Both findings can be true at once and probe() returns one check. A voice
+    // that cannot be spoken with at all beats a voice with a date on it: the
+    // first is a silent room today, the second is a task for this quarter.
+    const listedWithoutCeline = {
+      status: 200,
+      body: ALL_VOICE_IDS.filter((id) => id !== ELEVEN_VOICES.celine).map((voice_id) => ({
+        voice_id,
+        category: 'premade',
+      })),
+    };
+    const checks = await verifyVendors(
+      FULL,
+      '',
+      fakeFetch({ 'api.elevenlabs.io': { status: 200, body: { voices: listedWithoutCeline.body } } }) as never,
+    );
+    assert.equal(checks.filter((c) => c.vendor === 'ElevenLabs').length, 1);
+    assert.equal(checks.find((c) => c.vendor === 'ElevenLabs')?.fatal, true);
+  });
+
+  // Re-pointed from 'no voice configured is left alone — that is the default
+  // voice, and a warning already'. There is no unset state to be left alone any
+  // more: the catalogue decides the voice. What survives is the shape of that
+  // old guarantee — a stale ELEVEN_VOICE_ID is somebody's leftover .env line,
+  // and a leftover line must never be able to stop a worker that can speak.
+  test('a stale ELEVEN_VOICE_ID is left alone — it is a warning, never a refusal', async () => {
+    const stale = { ...FULL, ELEVEN_VOICE_ID: 'Qrl71rx6Yg8RvyPYRGCQ' };
+    const checks = await verifyVendors(stale, '', fakeFetch({ 'api.elevenlabs.io': catalogue(...ALL_VOICE_IDS) }) as never);
+    assert.equal(checks.find((c) => c.vendor === 'ElevenLabs'), undefined, 'a dead variable cannot make a good account bad');
+    assert.ok(warnings(stale).some((w) => /ELEVEN_VOICE_ID/.test(w)), 'but it is still said out loud');
   });
 
   /**
@@ -303,7 +426,7 @@ describe('the voice the tutor is configured to use', () => {
       fakeFetch({
         'api.elevenlabs.io/v1/user': scopeGap('user_read'),
         'api.elevenlabs.io/v1/voices': scopeGap('voices_read'),
-        'api.elevenlabs.io/v1/text-to-speech/v': { status: 401, body: { detail: 'no' } },
+        [`api.elevenlabs.io/v1/text-to-speech/${DEFAULT_VOICE_ID}`]: { status: 401, body: { detail: 'no' } },
       }) as never,
     );
     const eleven = checks.find((c) => c.vendor === 'ElevenLabs');
@@ -365,7 +488,7 @@ describe('being allowed to actually speak, not just to list the voice', () => {
    * them happily. Found by running it: the voice was in the list and the vendor
    * answered 402 the moment anyone asked it to speak.
    */
-  const SYNTH = 'api.elevenlabs.io/v1/text-to-speech/v';
+  const SYNTH = `api.elevenlabs.io/v1/text-to-speech/${DEFAULT_VOICE_ID}`;
 
   function routedFetch(byRoute: Record<string, { status: number; body?: unknown }>, seen?: { url?: string; init?: unknown }) {
     return async (url: string, init?: unknown) => {
@@ -380,7 +503,12 @@ describe('being allowed to actually speak, not just to list the voice', () => {
     };
   }
 
-  const listed = { status: 200, body: { voices: [{ voice_id: 'v', name: 'voice-v' }] } };
+  // Every catalogue voice, because the catalogue probe now runs before the
+  // synthesis one and a short list would stop these tests at the wrong check.
+  const listed = {
+    status: 200,
+    body: { voices: ALL_VOICE_IDS.map((voice_id) => ({ voice_id, name: `voice-${voice_id}` })) },
+  };
 
   test('a voice the account may list but may not speak with is fatal', async () => {
     const checks = await verifyVendors(
@@ -418,7 +546,10 @@ describe('being allowed to actually speak, not just to list the voice', () => {
     const seen: { url?: string; init?: unknown } = {};
     await verifyVendors(FULL, '', routedFetch({ 'api.elevenlabs.io': listed }, seen) as never);
 
-    assert.ok(seen.url?.includes('/v1/text-to-speech/v'), 'the configured voice id must be the one probed');
+    assert.ok(
+      seen.url?.includes(`/v1/text-to-speech/${DEFAULT_VOICE_ID}`),
+      'the default voice id must be the one probed, because that is the request every cold session makes',
+    );
     const init = seen.init as { method?: string; body?: string };
     assert.equal(init.method, 'POST');
     const body = JSON.parse(init.body ?? '{}');
@@ -454,14 +585,29 @@ describe('being allowed to actually speak, not just to list the voice', () => {
     assert.equal(checks.filter((c) => c.vendor === 'ElevenLabs').length, 1);
   });
 
-  test('no configured voice means nothing of ours to prove', async () => {
-    // The vendor default is the vendor's problem, and an unset id is already a
-    // warning. Spending quota to probe it would be spending it on nothing.
-    const { ELEVEN_VOICE_ID: _unset, ...noVoice } = FULL;
-    const seen: { url?: string } = {};
-    const checks = await verifyVendors(noVoice, '', routedFetch({ 'api.elevenlabs.io': listed }, seen) as never);
+  // Re-pointed from 'no configured voice means nothing of ours to prove'. There
+  // is no unset state left, so the question the old test answered — how much
+  // quota does a boot spend — is now "how MANY voices does it speak", and the
+  // honest answer has to be one.
+  test('the synthesis probe asks for the default voice, and only the default', async () => {
+    // Eight probes on every boot is eight billed requests every time a dev
+    // restarts, for a guarantee seven of them cannot give: being allowed to
+    // speak is per-plan, not per-voice, and the catalogue probe above already
+    // proves the account owns all eight. So this one asks the question that
+    // every cold session actually asks, once.
+    const spoken: string[] = [];
+    const counting = async (url: string, init?: unknown) => {
+      const { host, pathname } = new URL(url);
+      if (pathname.startsWith('/v1/text-to-speech')) spoken.push(pathname);
+      const reply = ({ 'api.elevenlabs.io': listed } as Record<string, { status: number; body?: unknown }>)[host];
+      void init;
+      if (reply === undefined) return { ok: true, status: 200, json: async () => ({}) };
+      return { ok: reply.status < 400, status: reply.status, json: async () => reply.body ?? {} };
+    };
+
+    const checks = await verifyVendors(FULL, '', counting as never);
     assert.equal(checks.find((c) => c.vendor === 'ElevenLabs'), undefined);
-    assert.equal(seen.url, undefined, 'no synthesis request should have been made at all');
+    assert.deepEqual(spoken, [`/v1/text-to-speech/${DEFAULT_VOICE_ID}`], 'one probe, and it is the default voice');
   });
 });
 
@@ -758,7 +904,10 @@ describe('the voice vendor the env selected', () => {
     await verifyVendors(
       { ...FULL, FISH_API_KEY: 'f' },
       '',
-      fishFetch({ 'api.elevenlabs.io/v1/voices': { status: 200, body: { voices: [{ voice_id: 'v' }] } } }, underEleven) as never,
+      fishFetch(
+        { 'api.elevenlabs.io/v1/voices': { status: 200, body: { voices: ALL_VOICE_IDS.map((voice_id) => ({ voice_id })) } } },
+        underEleven,
+      ) as never,
     );
     assert.ok(underEleven.hosts.includes('api.elevenlabs.io'));
     assert.ok(!underEleven.hosts.includes('api.fish.audio'), 'the default vendor must not spend a fish request');

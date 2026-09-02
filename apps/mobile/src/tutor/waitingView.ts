@@ -25,7 +25,6 @@
  */
 
 import type { SafetySurface } from './safetyView.ts';
-import { TUTOR_NAME } from './tutorName.ts';
 
 /** The redirect arm of the surface, named once so the screens can hold it. */
 export type RedirectSurface = Extract<SafetySurface, { kind: 'redirect' }>;
@@ -43,6 +42,15 @@ export const LEAVE_LABEL = 'Leave';
 export interface WaitingState {
   /** The hook's watchdog has waited long enough to say who is missing. */
   waitingForTutor: boolean;
+  /**
+   * Who this learner is waiting for, from `tutorPersonaOf`.
+   *
+   * An argument rather than a constant read in here, because the tutor is
+   * whoever the learner chose and two of the eight are women. A module that
+   * reached for the default name would put the wrong person on the one line
+   * this state shows.
+   */
+  tutorName: string;
   /** The safety decision as a surface, from `safetySurface`. */
   safety: SafetySurface;
 }
@@ -67,9 +75,9 @@ export interface WaitingView {
  * the whole-screen stop surface above every status branch, and the ordering is
  * held by `safetyView.test.ts`.
  */
-export function waitingView({ waitingForTutor, safety }: WaitingState): WaitingView {
+export function waitingView({ waitingForTutor, safety, tutorName }: WaitingState): WaitingView {
   return {
-    headline: waitingForTutor ? `Waiting for ${TUTOR_NAME}…` : ONE_MOMENT,
+    headline: waitingForTutor ? `Waiting for ${tutorName}…` : ONE_MOMENT,
     leaveLabel: LEAVE_LABEL,
     banner: safety.kind === 'redirect' ? safety : null,
   };

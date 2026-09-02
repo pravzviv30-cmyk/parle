@@ -291,6 +291,26 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Learner tutor-voice picker gate: **2,301 tests, 0 failing**; core 565, brain 380, tutor agent 429,
+  token server 172, playground 26, mobile 729. Typecheck is clean in all six workspaces and floors
+  were blessed to those counts. F299 is the entry worth reading: the app statically `require()`s
+  all eight voice clips, the clips had never been generated, and so `expo export` failed to resolve
+  them and no screen loaded on any platform — while 2,298 tests and a clean typecheck said green.
+  The gate does not bundle, and nothing in it could see this. F295 had been ticked against a test
+  that returned early when zero clips were present, which is exactly the state the app cannot be
+  built in; that tick was withdrawn and re-earned once the check became unconditional and was
+  mutation-verified. F282 to F297: the learner chooses their tutor's voice from eight
+  ElevenLabs library voices, each verified for French and English and each present in the account.
+  The catalogue lives in core keyed by app-level names rather than vendor ids, so a re-clone or a
+  vendor move is a one-table edit; vendor ids stay in the agent, where a `Record<TutorVoiceKey,
+  string>` makes a missing one a compile error. The choice rides `/session/start` beside `missionId`,
+  shape-checked at the token server and authoritatively resolved in the agent — the only process
+  holding the vendor key and the last hop before a billed URL — so nothing the app sends can become
+  a vendor id. The profile stores it at version 6 and syncs it as an answered question. The persona
+  follows the voice through both prompts and all twelve app call sites, because two of the eight
+  voices are women and Luc is a written character; with F281's home town already gone, F292 removes
+  the age for the same reason. First run introduces the voices, plays a sample of each, and can be
+  skipped, leaving the default chosen.
 - Luc's biography and the Luvani rename gate: **2,245 tests, 0 failing**; core 563, brain 378,
   tutor agent 401, token server 170, playground 26, mobile 707. Typecheck is clean in all six
   workspaces and floors were blessed to those counts. F281: both prompts and the first-run copy

@@ -20,6 +20,8 @@ import { LiveErrorView } from './live/LiveErrorView.tsx';
 import { connectionLine } from './live/connectionLine.ts';
 import { takeTypedDoor, typedDoorFor } from './live/typedDoor.ts';
 import { useProfile } from './app/ProfileContext.tsx';
+import { tutorNameOf } from './tutor/tutorName.ts';
+import { tutorVoiceOf } from './tutor/tutorVoice.ts';
 import { isUnderAgeStop } from './profile/age.ts';
 import { withAgeStop } from './profile/store.ts';
 import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
@@ -55,7 +57,17 @@ export function LiveSessionScreen({
   onRetryAsText: () => void;
 }) {
   const { profile, update } = useProfile();
-  const live = useLiveSession(userId, lesson.id, startRung, textMode ? { mode: 'lesson-text' } : undefined);
+  // Who this learner chose. The waiting line is the one place this screen names
+  // the tutor, and naming the wrong person there is the first thing a learner
+  // who picked a woman's voice would read.
+  const tutorName = tutorNameOf(profile);
+  // The voice rides every start, the default included, so the picker on Profile
+  // and the agent's own fallback can never mean two different people by
+  // "unchosen". See live/useLiveSession.ts for why it is not a conditional.
+  const live = useLiveSession(userId, lesson.id, startRung, {
+    ...(textMode ? { mode: 'lesson-text' as const } : {}),
+    tutorVoice: tutorVoiceOf(profile),
+  });
 
   // Connect on mount. The hook tears the room down on unmount.
   useEffect(() => {
@@ -206,7 +218,7 @@ export function LiveSessionScreen({
     // redirect banner is below it, so a redirect the tutor published before its
     // first line was never drawn at all. The view model carries it now. See
     // tutor/waitingView.ts.
-    const waiting = waitingView({ waitingForTutor: live.waitingForTutor, safety });
+    const waiting = waitingView({ waitingForTutor: live.waitingForTutor, safety, tutorName });
     return (
       <View style={st.center}>
         {waiting.banner ? (

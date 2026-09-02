@@ -18,7 +18,6 @@
 
 import { Platform } from 'react-native';
 import { ink, papers, accents, paperFor, type Paper, type PaperName } from './palette.ts';
-import { TUTOR_NAME } from './tutor/tutorName.ts';
 
 /**
  * The papers, and which place gets which. Every raw value lives in
@@ -87,12 +86,17 @@ export const rungColor: Record<1 | 2 | 3 | 4, string> = {
   4: '#241633',
 };
 
-export const rungLabel: Record<1 | 2 | 3 | 4, string> = {
-  1: `Repeat after ${TUTOR_NAME}`,
-  2: 'Choose a reply and say it',
-  3: 'Say it in your own words',
-  4: 'Free conversation',
-};
+/**
+ * What each rung asks of the learner, in words.
+ *
+ * The words themselves live in `tutor/rungLabel.ts` and are re-exported here so
+ * every screen still reaches them beside the colour they go with. They had to
+ * leave this file to be testable at all: theme.ts imports `Platform`, and the
+ * mobile test runner has no react-native, which is the same reason `palette.ts`
+ * exists. A sentence that names the tutor is a decision, and a decision nothing
+ * can import is a decision nothing can check.
+ */
+export { rungLabel } from './tutor/rungLabel.ts';
 
 /** Signal colours, kept out of the rung set so state never reads as a rung. */
 export const signal = {

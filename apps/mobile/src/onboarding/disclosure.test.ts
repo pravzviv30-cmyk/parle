@@ -1,11 +1,17 @@
 /**
  * The disclosure, held to what it promises.
  *
- * Two halves, in the `answers.test.ts` idiom. The first reads the constants,
- * because they are the copy and a value is the one thing this workspace can
- * assert about without a renderer. The second reads the first-run screens as
- * source, because "the app says AI before a learner talks to it" is a claim
- * about glass, and a module nobody imports says nothing to anybody.
+ * Two halves, in the `answers.test.ts` idiom. The first reads the copy, because
+ * the words are values and a value is the one thing this workspace can assert
+ * about without a renderer. The second reads the first-run screens as source,
+ * because "the app says AI before a learner talks to it" is a claim about
+ * glass, and a module nobody imports says nothing to anybody.
+ *
+ * Every line that names the tutor is a function of a persona, so the first half
+ * applies `DEFAULT_TUTOR_PERSONA` in as many words: that is the copy a
+ * first-ever run reads, and it is the reading these rules were written about.
+ * The eight-persona sweep at the bottom of the file is what holds the other
+ * seven to the same rules.
  *
  * The listener check is written as negation-aware on purpose. A blunt search
  * for "person hears" flags the very sentence that exists to reassure, which is
@@ -31,8 +37,14 @@ import {
   PERSONA_TITLE,
   VENDOR_PHRASE,
   WELCOME_SUBLINE,
+  firstRunCopy,
+  pronouns,
 } from './disclosure.ts';
-import { TUTOR_NAME } from '../tutor/tutorName.ts';
+import { DEFAULT_TUTOR_PERSONA, TUTOR_NAME } from '../tutor/tutorName.ts';
+import { TUTOR_VOICES, tutorVoice, type TutorVoiceKey } from '@luvani/core';
+
+/** The eight personas a learner can be reading these pages as. */
+const EVERY_PERSONA = (Object.keys(TUTOR_VOICES) as TutorVoiceKey[]).map((key) => tutorVoice(key).persona);
 
 /** apps/mobile/src, so a first-run file can be named the way a screen names it. */
 const SRC = new URL('../', import.meta.url);
@@ -106,15 +118,19 @@ describe('the first run says what a learner is talking to', () => {
     // door is held to the strictest version of the rule.
     assert.deepEqual(
       FIRST_RUN_SURFACES.map((s) => s.key),
-      ['welcome', 'meet', 'persona'],
+      ['welcome', 'meet', 'voice', 'persona'],
       'the surfaces a learner meets before a conversation changed shape',
     );
 
     const [welcome] = FIRST_RUN_SURFACES;
     assert.ok(welcome, 'there is no front door');
-    assert.equal(welcome.lines[0], WELCOME_SUBLINE, 'the welcome subline is what the front door says');
+    assert.equal(
+      welcome.lines[0],
+      WELCOME_SUBLINE(DEFAULT_TUTOR_PERSONA),
+      'the welcome subline is what the front door says',
+    );
 
-    const opening = WELCOME_SUBLINE.split(/(?<=[.!?])\s+/)[0] ?? '';
+    const opening = WELCOME_SUBLINE(DEFAULT_TUTOR_PERSONA).split(/(?<=[.!?])\s+/)[0] ?? '';
     assert.match(opening, /\bAI\b/, 'the first sentence a learner reads does not say AI');
     assert.match(opening, /\bAI tutor\b/, 'AI is said, but not next to what he is');
 
@@ -134,7 +150,11 @@ describe('the first run says what a learner is talking to', () => {
 
     // A character is not a lie; a biography presented as fact is. Wherever the
     // invented life appears, the sentence that carries it also says what he is.
-    assert.match(MEET_AI, /\b(made up|character we wrote)\b/i, 'the persona is offered as fact again');
+    assert.match(
+      MEET_AI(DEFAULT_TUTOR_PERSONA),
+      /\b(made up|character we wrote)\b/i,
+      'the persona is offered as fact again',
+    );
     for (const line of FIRST_RUN_COPY) {
       if (/Lyon|ran a bar|behind a bar|twenty years/i.test(line)) {
         assert.match(line, /\bAI\b/, `"${line}" tells his life story without saying he is AI`);
@@ -175,7 +195,10 @@ describe('the first run says what a learner is talking to', () => {
     // disagreeing, and the learner is the one who finds out.
     const footer = squash(stripComments(read('tabs/ProfileTab.tsx')));
     assert.ok(footer.includes(VENDOR_PHRASE), 'the Profile footer no longer uses the words this module copied');
-    assert.ok(MEET_PRIVACY.includes(VENDOR_PHRASE), 'the first run invented its own words for the vendors');
+    assert.ok(
+      MEET_PRIVACY(DEFAULT_TUTOR_PERSONA).includes(VENDOR_PHRASE),
+      'the first run invented its own words for the vendors',
+    );
     assert.ok(
       footer.includes('Nothing is shared with anyone else'),
       'the footer stopped saying nothing is shared, so the first run should not say it either',
@@ -230,12 +253,16 @@ describe('the first run says what a learner is talking to', () => {
 
     // The page a learner is left on has one thing to do next.
     assert.equal(MEET_PILL, 'Choose your first scene');
-    assert.equal(MEET_TITLE, `Meet ${TUTOR_NAME}`, 'the page stopped being an introduction to him');
+    assert.equal(
+      MEET_TITLE(DEFAULT_TUTOR_PERSONA),
+      `Meet ${TUTOR_NAME}`,
+      'the page stopped being an introduction to him',
+    );
     assert.match(MEET_MIC, /microphone/, 'the microphone line stopped mentioning the microphone');
     assert.match(MEET_TYPING, /Type instead/, 'the typing line no longer names the control it points at');
     assert.match(MEET_MORE, /Profile/, 'the pointer to the rest of it lost its destination');
-    assert.ok(PERSONA_TITLE.includes(TUTOR_NAME), 'the persona page stopped naming him');
-    assert.match(PERSONA_BODY, /\bAI tutor\b/, 'the persona page went back to a biography');
+    assert.ok(PERSONA_TITLE(DEFAULT_TUTOR_PERSONA).includes(TUTOR_NAME), 'the persona page stopped naming him');
+    assert.match(PERSONA_BODY(DEFAULT_TUTOR_PERSONA), /\bAI tutor\b/, 'the persona page went back to a biography');
   });
 
   test('every first-run screen reads its AI disclosure from one module', () => {
@@ -291,5 +318,114 @@ describe("the first-run copy claims nothing a voice can contradict — F281", ()
       const found = line.match(CITIES);
       assert.equal(found, null, `"${line}" places him in ${found?.[0]}`);
     }
+  });
+});
+
+describe('the first-run disclosure follows the chosen persona — F294', () => {
+  /**
+   * The sibling of F281 and F292, made about gender rather than about place.
+   *
+   * `PERSONA_TITLE` and `PERSONA_BODY` were constants that said "Luc" and "him"
+   * and "He". Two of the eight catalogue voices are women, so a learner who
+   * chose Céline was read a page introducing her as a man — the same defect as
+   * a Québécois voice being handed a biography set in Lyon. The rule is the one
+   * `voices.ts` states: the persona follows the voice, and a screen that
+   * hardcodes either half creates the mismatch the code was supposed to prevent.
+   *
+   * Both are checked for ALL eight rather than for one woman, because a ternary
+   * that happens to work for Céline is not a rule.
+   */
+  test('the persona page describes the chosen persona in the right words, and still says AI tutor', () => {
+    assert.equal(EVERY_PERSONA.length, 8, 'the catalogue stopped having eight people to introduce');
+
+    for (const persona of EVERY_PERSONA) {
+      const p = pronouns(persona);
+      const wrong = p.subject === 'he' ? { subject: 'she', object: 'her' } : { subject: 'he', object: 'him' };
+
+      const title = PERSONA_TITLE(persona);
+      assert.ok(title.includes(persona.name), `the persona page does not name ${persona.name}`);
+
+      const body = PERSONA_BODY(persona);
+      assert.ok(body.includes(persona.name), `the body introduces somebody other than ${persona.name}`);
+
+      // The disclosure itself. It is the reason this page exists, so the gender
+      // words move around it and it does not move at all.
+      assert.match(body, /\bAI tutor\b/, `${persona.name}'s page went back to a biography`);
+      assert.ok(
+        body.includes(`${persona.name} is an AI tutor`),
+        `the sentence that says what ${persona.name} is no longer says it next to the name`,
+      );
+
+      // Agreement, both ways round: the right pronouns are present and the
+      // other set is absent. Only asserting the first would pass a body that
+      // said "her" once and "him" twice.
+      assert.ok(body.includes(` ${p.object}:`), `the body does not use "${p.object}" for ${persona.name}`);
+      assert.ok(body.includes(`${p.Subject} asks`), `the body does not use "${p.Subject}" for ${persona.name}`);
+      for (const line of [title, body]) {
+        assert.doesNotMatch(
+          line,
+          new RegExp(`\\b(${wrong.subject}|${wrong.object})\\b`, 'i'),
+          `"${line}" calls ${persona.name} ${wrong.subject}`,
+        );
+      }
+
+      // Nobody put a name back into the constant next to the function.
+      if (persona.name !== TUTOR_NAME) {
+        assert.ok(!body.includes(TUTOR_NAME), `${persona.name}'s page still says ${TUTOR_NAME}`);
+      }
+    }
+
+    // And every rule the rest of this file holds the default copy to holds for
+    // the other seven. F281's guard in particular: the fix for the home town
+    // was never allowed to be re-derived per persona.
+    const CITIES = /\b(Lyon|Lyonnais|Sa[oô]ne|Marseille|Bordeaux|Toulouse|Montr[eé]al|Qu[eé]bec)\b/i;
+    for (const persona of EVERY_PERSONA) {
+      for (const line of firstRunCopy(persona)) {
+        assert.equal(line.match(CITIES), null, `"${line}" places ${persona.name} somewhere`);
+        assert.ok(!/[—–]/.test(line), `"${line}" carries an em dash`);
+        assert.ok(!claimsAHumanListener(line), `"${line}" puts a person on the other end`);
+        if (/ran a bar|behind a bar|twenty years/i.test(line)) {
+          assert.match(line, /\bAI\b/, `"${line}" tells the life story without saying AI`);
+        }
+      }
+    }
+  });
+
+  test("the intro's pronoun follows the chosen persona", () => {
+    // The one sentence outside this module that had a pronoun written into it:
+    // "In English tells you what he just said", on TutorIntro's hint card. A
+    // source walk rather than a value check, because the sentence is composed
+    // inside the screen and apps/mobile has no renderer.
+    const intro = stripComments(read('tutor/TutorIntro.tsx'));
+
+    assert.ok(
+      intro.includes('PERSONA_TITLE(persona)') && intro.includes('PERSONA_BODY(persona)'),
+      "the intro renders the persona page for somebody other than the choice this learner made",
+    );
+    assert.ok(intro.includes('pronouns(persona)'), 'the intro no longer derives the pronouns from the chosen persona');
+    assert.match(
+      intro,
+      /In English tells you what \$\{p\.subject\} just said/,
+      'the hint card writes a pronoun in by hand again, so it calls Céline he',
+    );
+    assert.doesNotMatch(
+      intro,
+      /tells you what he just said|tells you what she just said/,
+      'a literal pronoun is back on the hint card',
+    );
+
+    // The two forms this table has to answer, checked directly rather than
+    // through the copy that happens to use them today.
+    const he = EVERY_PERSONA.find((persona) => persona.pronoun === 'he');
+    const she = EVERY_PERSONA.find((persona) => persona.pronoun === 'she');
+    assert.ok(he && she, 'the catalogue no longer has a voice of each gender to check agreement with');
+    assert.deepEqual(pronouns(he), { subject: 'he', Subject: 'He', object: 'him' });
+    assert.deepEqual(pronouns(she), { subject: 'she', Subject: 'She', object: 'her' });
+
+    // Nothing else in the walkthrough may name a person the catalogue did not
+    // choose. `TUTOR_NAME` is the default persona's name, and a page that spells
+    // it is a page that greets Céline as Luc.
+    assert.ok(!intro.includes('TUTOR_NAME'), 'the intro reads the default name instead of the chosen persona');
+    assert.ok(intro.includes('tutorPersonaOf('), 'the intro stopped asking who this learner chose');
   });
 });

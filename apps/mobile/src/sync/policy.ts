@@ -509,10 +509,13 @@ export const SYNC_POLICIES: readonly NamespacePolicy[] = [
   {
     namespace: 'profile',
     merges: 'structured',
-    // Moves with `StoredProfile.version`. v5 added `ageStopAt`; left at 4 this
-    // build would call its own merge output a newer schema and go pull-quiet on
-    // every profile cycle, forever.
-    writes: 5,
+    // Moves with `StoredProfile.version`, and moves in the same commit the store
+    // does. v5 added `ageStopAt`, v6 the chosen `tutorVoice`; left a version
+    // behind, this build calls its own merge output a newer schema and goes
+    // pull-quiet on every profile cycle, forever, with nothing in the log. What
+    // a learner would see is the voice they picked on one phone never reaching
+    // the other. `policy.test.ts` reads the number back out of profile/store.ts.
+    writes: 6,
     rule: 'phrases and error patterns union with max counts and mastered ORed; the rest whole from the evidence-heavier side',
     merge: mergeProfile,
   },

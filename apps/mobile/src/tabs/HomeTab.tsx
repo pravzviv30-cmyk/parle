@@ -41,7 +41,7 @@ import { TodayRow } from '../home/TodayRow.tsx';
 import { PhrasebookCard } from '../home/PhrasebookCard.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { useLive } from '../app/LiveContext.tsx';
-import { TUTOR_NAME } from '../tutor/tutorName.ts';
+import { tutorNameOf } from '../tutor/tutorName.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { missionCompletionsFrom, missionStatus } from '../missions/chooserView.ts';
 import { trackProductEvent } from '../analytics/track.ts';
@@ -216,7 +216,7 @@ export function HomeTab() {
         )}
 
         <View style={st.actions}>
-          <PillButton label={`Talk to ${TUTOR_NAME}`} onPress={() => nav.navigate('Tutor')} />
+          <PillButton label={`Talk to ${tutorNameOf(profile)}`} onPress={() => nav.navigate('Tutor')} />
         </View>
       </ScrollView>
     </View>

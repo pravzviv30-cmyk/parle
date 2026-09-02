@@ -55,7 +55,8 @@ import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
 import { waitingView } from './tutor/waitingView.ts';
 import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 import { enterSubmits, keyPressFrom } from './tutor/enterSubmit.ts';
-import { TUTOR_NAME } from './tutor/tutorName.ts';
+import { tutorNameOf } from './tutor/tutorName.ts';
+import { tutorVoiceOf } from './tutor/tutorVoice.ts';
 import { OPEN_MIC_LABEL, sceneControls, typedTurn } from './tutor/sceneControls.ts';
 import { NO_WIN, dismissWin, winAfterTurn, winCard, type WinState } from './tutor/missionWin.ts';
 import { recapWait } from './tutor/recapWait.ts';
@@ -122,12 +123,12 @@ import { Paywall } from './purchases/Paywall.tsx';
  * one that never got made. Sentence case rather than the caps micro-label,
  * because it is a control and DESIGN.md puts buttons in sentence case.
  */
-function ListenPlaque({ onPress }: { onPress: () => void }) {
+function ListenPlaque({ onPress, tutorName }: { onPress: () => void; tutorName: string }) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Tap to listen to ${TUTOR_NAME}`}
+      accessibilityLabel={`Tap to listen to ${tutorName}`}
       style={({ pressed }) => [st.listen, pressed && { opacity: 0.85 }]}
     >
       <Card style={{ alignItems: 'center' }}>
@@ -249,6 +250,10 @@ export function ConvoScreen({
 }) {
   const insets = useSafeAreaInsets();
   const { profile, update } = useProfile();
+  // Who this learner chose. Every line on this screen that names the tutor
+  // reads it from here, so a learner who picked Celine is never told that Luc
+  // is thinking.
+  const tutorName = tutorNameOf(profile);
   // The mode this session CONNECTS in, and the only thing a rebuild can change.
   // It starts as the learner asked for it and flips exactly once, in the one
   // case the quiet door cannot be taken in place: a session that failed before
@@ -267,6 +272,7 @@ export function ConvoScreen({
     snapshot,
     seedTopic,
     ...(missionId !== undefined ? { missionId } : {}),
+    tutorVoice: tutorVoiceOf(profile),
   });
 
   // Connect on mount, and again only in the one case a session has to be built
@@ -671,11 +677,12 @@ export function ConvoScreen({
       thinking: live.thinking,
       tutorSpeaking: live.tutorSpeaking,
       turns: live.turns,
+      tutorName,
     });
     const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
     return (
       <View style={st.shell}>
-        {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} /> : null}
+        {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
 
         <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
           <View style={st.headerRow}>
@@ -807,7 +814,7 @@ export function ConvoScreen({
     // This is an early return, so everything below it — including the scene's
     // own banner — never runs, and a redirect published during startScene used
     // to vanish. See tutor/waitingView.ts.
-    const waiting = waitingView({ waitingForTutor: live.waitingForTutor, safety });
+    const waiting = waitingView({ waitingForTutor: live.waitingForTutor, safety, tutorName });
     return (
       <View style={st.center}>
         {waiting.banner ? (
@@ -879,7 +886,7 @@ export function ConvoScreen({
   return (
     <View style={st.shell}>
       {/* One calm white notice, gone the moment it is tapped. */}
-      {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} /> : null}
+      {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
 
       <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
         <View style={st.header}>
@@ -996,7 +1003,7 @@ export function ConvoScreen({
                 accessibilityLiveRegion="polite"
                 style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginBottom: space(2) }]}
               >
-                {momentAnswer()}
+                {momentAnswer(tutorName)}
               </Text>
             ) : null}
 
@@ -1079,7 +1086,7 @@ export function ConvoScreen({
                     }}
                     disabled={!listening}
                     accessibilityRole="button"
-                    accessibilityLabel={`Ask ${TUTOR_NAME} to slow down`}
+                    accessibilityLabel={`Ask ${tutorName} to slow down`}
                     style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
                   >
                     <Text style={[type.small, { color: paper.inkSoft }]}>Slower</Text>

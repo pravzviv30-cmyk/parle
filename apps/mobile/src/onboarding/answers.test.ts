@@ -64,7 +64,7 @@ describe('onboarding — three questions, and nothing that has to be answered', 
     assert.equal(nameFrom('   '), null, 'whitespace is not a name');
     assert.equal(nameFrom('  Camille '), 'Camille', 'a real name still arrives trimmed');
 
-    const skipped = answersFrom({ name: '  ', ageConfirmed: true, motivation: null });
+    const skipped = answersFrom({ name: '  ', ageConfirmed: true, motivation: null , tutorVoice: null });
     assert.equal(skipped.name, null, 'the assembled answers carry the skip, not an empty string');
     assert.equal(skipped.motivation, null, 'a question nobody is asked is null, never a reason invented for them');
 
@@ -76,7 +76,7 @@ describe('onboarding — three questions, and nothing that has to be answered', 
   });
 
   test('onboarding never asks for a date of birth', () => {
-    assert.deepEqual([...PAGES], ['age', 'name', 'meet'], 'the pages are the three that are left');
+    assert.deepEqual([...PAGES], ['age', 'name', 'meet', 'voice'], 'the pages are the four that are left');
 
     for (const forbidden of [
       'DD/MM/YYYY',
@@ -133,16 +133,29 @@ describe('onboarding — three questions, and nothing that has to be answered', 
     // null here would quietly erase a value on the one path that re-onboards
     // somebody who already has a record.
     assert.ok(!PAGES.includes('why' as never), 'the why page is back');
-    for (const forbidden of ['MOTIVATIONS', 'WHY_QUESTION', 'WHY_SKIP', 'OptionCard', 'Why are you learning']) {
+    for (const forbidden of ['MOTIVATIONS', 'WHY_QUESTION', 'WHY_SKIP', 'Why are you learning']) {
       assert.ok(!FLOW.includes(forbidden), `onboarding is asking why again: ${forbidden}`);
     }
 
-    const existing = createStoredProfile(answersFrom({ name: 'Ada', ageConfirmed: true, motivation: 'work' }), NOW);
+    // `OptionCard` used to be on that list, because a list of tappable options
+    // in this flow could only have been the why page. It is not a proxy for the
+    // why question any more: the voice step draws one card per catalogue voice
+    // with the same component the Profile sheet uses. So the guard is re-pointed
+    // at the fact that still carries it — every option card in this flow belongs
+    // to the voice step, and none of them asks a question about the learner.
+    const cards = [...FLOW.matchAll(/<OptionCard/g)].map((m) => m.index ?? -1);
+    const voicePageAt = FLOW.indexOf("{page === 'voice' && (");
+    assert.ok(voicePageAt > 0, 'the voice step is no longer rendered by name');
+    for (const index of cards) {
+      assert.ok(index > voicePageAt, 'onboarding offers a list of options somewhere other than the voice step');
+    }
+
+    const existing = createStoredProfile(answersFrom({ name: 'Ada', ageConfirmed: true, motivation: 'work' , tutorVoice: null }), NOW);
     assert.equal(existing.motivation, 'work', 'the stored record stopped carrying the field at all');
 
     const reonboarded = completeProfile(
       existing,
-      answersFrom({ name: 'Ada', ageConfirmed: true, motivation: existing.motivation }),
+      answersFrom({ name: 'Ada', ageConfirmed: true, motivation: existing.motivation , tutorVoice: null }),
       NOW,
     );
     assert.equal(reonboarded.motivation, 'work', 'walking the flow again threw away a stored answer');
@@ -159,8 +172,10 @@ describe('onboarding — the shape of the walk', () => {
     assert.equal(pageBefore('age'), null, 'there is nothing behind the first question');
     assert.equal(pageAfter('age'), 'name');
     assert.equal(pageAfter('name'), 'meet');
-    assert.equal(pageAfter('meet'), null, 'the last page finishes rather than advancing');
+    assert.equal(pageAfter('meet'), 'voice');
+    assert.equal(pageAfter('voice'), null, 'the last page finishes rather than advancing');
     assert.equal(pageBefore('meet'), 'name');
+    assert.equal(pageBefore('voice'), 'meet', 'the back chevron out of the voice step goes nowhere');
   });
 
   test('age is asked before any personal question', () => {
@@ -178,17 +193,30 @@ describe('onboarding — the shape of the walk', () => {
     const agePage = FLOW.indexOf("page === 'age' &&");
     const namePage = FLOW.indexOf("page === 'name' &&");
     const meetPage = FLOW.indexOf("page === 'meet' &&");
+    const voicePage = FLOW.indexOf("page === 'voice' &&");
     assert.ok(agePage >= 0 && namePage > agePage, 'the gate is rendered after a personal question');
-    assert.ok(meetPage > namePage, 'the last page is not last');
+    assert.ok(meetPage > namePage, 'the disclosure is not after the questions');
+    assert.ok(voicePage > meetPage, 'the voices are met before the app says what they are');
     assert.equal((FLOW.match(/<Field/g) ?? []).length, 1, 'onboarding grew a second thing to type into');
     const field = FLOW.indexOf('<Field');
     assert.ok(field > namePage && field < meetPage, 'the text field is not on the name page');
 
     // Nothing before the last page can finish, so a refused learner cannot be
     // written to disk on the way past.
-    const finishing = FLOW.split('\n').filter((line) => line.includes('onPress={finish}'));
-    assert.equal(finishing.length, 1, 'more than one page can finish onboarding');
-    assert.match(finishing[0] ?? '', /page === 'meet'/, 'a page before the last one finishes onboarding');
+    //
+    // This used to read the one line carrying `onPress={finish}` and check that
+    // the same line named the page. The last page has two ways out now, the pill
+    // and the skip beside it, and both are several lines from the branch that
+    // renders them. So the guard is re-pointed at the fact that still carries
+    // it: every reference to `finish` sits after the last page's branch opens,
+    // which is the thing "a page before the last one cannot finish" means.
+    const lastPageAt = FLOW.indexOf("{page === 'voice' && (");
+    assert.ok(lastPageAt > 0, 'the last page is not rendered by name any more');
+    const finishers = [...FLOW.matchAll(/onPress=\{finish\}|\bfinish\(\)/g)].map((m) => m.index ?? -1);
+    assert.ok(finishers.length > 0, 'nothing finishes onboarding at all');
+    for (const index of finishers) {
+      assert.ok(index > lastPageAt, 'a page before the last one finishes onboarding');
+    }
     assert.equal(ageGate(false).go, false, 'and the refusal is still a full stop');
   });
 
@@ -217,7 +245,7 @@ describe('leaving onboarding — the journey, not the field', () => {
   test('a learner who skips their name is not sent back to page one', () => {
     // The trap: the name became optional, the guard still read the name, and the
     // learner was returned to onboarding on that launch and every launch after.
-    const stored = createStoredProfile(answersFrom({ name: '   ', ageConfirmed: true, motivation: null }), NOW);
+    const stored = createStoredProfile(answersFrom({ name: '   ', ageConfirmed: true, motivation: null , tutorVoice: null }), NOW);
 
     assert.equal(stored.name, null, 'a skipped name is still stored as null, which is the honest value');
     assert.equal(
@@ -228,7 +256,7 @@ describe('leaving onboarding — the journey, not the field', () => {
   });
 
   test('a learner who gave their name is not asked again either', () => {
-    const stored = createStoredProfile(answersFrom({ name: 'Sam', ageConfirmed: true, motivation: 'trip' }), NOW);
+    const stored = createStoredProfile(answersFrom({ name: 'Sam', ageConfirmed: true, motivation: 'trip' , tutorVoice: null }), NOW);
     assert.equal(needsOnboarding(stored), false);
   });
 
@@ -262,7 +290,7 @@ describe('leaving onboarding — the journey, not the field', () => {
     // re-onboard everybody, so this holds the rule from both ends: the people
     // who must never see it again, and the fact that the rule cannot see the
     // pages at all.
-    const finished = createStoredProfile(answersFrom({ name: 'Camille', ageConfirmed: true, motivation: null }), NOW);
+    const finished = createStoredProfile(answersFrom({ name: 'Camille', ageConfirmed: true, motivation: null , tutorVoice: null }), NOW);
     assert.equal(needsOnboarding(finished), false, 'somebody who just finished the new flow is asked again');
 
     // The same record after a round trip through the pre-account upgrade path,

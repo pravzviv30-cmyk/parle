@@ -15,7 +15,6 @@
  */
 
 import type { TurnLine } from '../live/turns.ts';
-import { TUTOR_NAME } from './tutorName.ts';
 
 /**
  * Deliberately four of VoiceOrb's five states, and a subset of its union so it
@@ -38,6 +37,15 @@ export interface ChoosingState {
    * appends it the moment the opening arrives.
    */
   turns: readonly TurnLine[];
+  /**
+   * Who this learner is talking to, from `tutorPersonaOf`.
+   *
+   * Passed in rather than read here for the reason waitingView states: the
+   * tutor is whoever the learner chose, and three of the five things the
+   * circle can say name that person out loud. A constant would have this
+   * module tell a learner who picked Celine that Luc is thinking.
+   */
+  tutorName: string;
 }
 
 export interface ChoosingView {
@@ -151,14 +159,21 @@ export function modeCarriesAudio(mode: LiveMode | undefined): boolean {
 /** The one instruction the voice-first screen gives. */
 export const TAP_TO_TALK = 'Tap the circle when you are ready to talk.';
 
-/** What the learner may talk about, which is anything. */
-export const ANYTHING_GOES = `Anything goes. Say it in English or French, and ${TUTOR_NAME} takes it from there.`;
+/**
+ * What the learner may talk about, which is anything.
+ *
+ * A function of the name rather than a constant, because the sentence names
+ * the person who will be listening.
+ */
+export function anythingGoes(tutorName: string): string {
+  return `Anything goes. Say it in English or French, and ${tutorName} takes it from there.`;
+}
 
 /** The quiet twin, worded exactly as the tutor tab words it. */
 export const QUIET_DOOR = 'Unable to speak right now?';
 
 export function choosingView(state: ChoosingState): ChoosingView {
-  const { textMode, micOpen, thinking, tutorSpeaking, turns } = state;
+  const { textMode, micOpen, thinking, tutorSpeaking, turns, tutorName } = state;
 
   // A closed microphone is the only thing a tap can change. It stays tappable
   // while the tutor is still asking, because a learner who is ready before the
@@ -185,12 +200,12 @@ export function choosingView(state: ChoosingState): ChoosingView {
   const orbLabel = orbIsButton
     ? 'Tap the circle when you are ready to talk'
     : orb === 'thinking'
-      ? `${TUTOR_NAME} is thinking`
+      ? `${tutorName} is thinking`
       : orb === 'speaking'
-        ? `${TUTOR_NAME} is speaking`
+        ? `${tutorName} is speaking`
         : orb === 'listening'
           ? 'Your turn to speak'
-          : `${TUTOR_NAME} is ready`;
+          : `${tutorName} is ready`;
 
   // Two voices in the thread is the moment the thread becomes worth drawing.
   const answered = turns.some((t) => t.who === 'learner');
@@ -203,6 +218,6 @@ export function choosingView(state: ChoosingState): ChoosingView {
     showTranscript: answered,
     showInput: textMode,
     showQuietDoor: !textMode,
-    helper: textMode ? null : orbIsButton ? TAP_TO_TALK : ANYTHING_GOES,
+    helper: textMode ? null : orbIsButton ? TAP_TO_TALK : anythingGoes(tutorName),
   };
 }

@@ -33,7 +33,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RoomEvent } from 'livekit-client';
-import { decodeClientMessage, encodeMessage, type RecapPayload, type ServerMessage } from '@luvani/core';
+import { DEFAULT_TUTOR_VOICE, decodeClientMessage, encodeMessage, isTutorVoiceKey, type RecapPayload, type ServerMessage } from '@luvani/core';
 import { createProfile } from '@luvani/brain/profile';
 
 import { setActiveUser } from '../storage/scope.ts';
@@ -1143,5 +1143,100 @@ describe('half the tutor stops working mid-session — F198, the rendering half'
     deliver(unsure.world, frame('stt_error', undefined));
     assert.deepEqual(unsure.seen.failed, [], 'a missing recoverable flag was read as an outage, and a live conversation was lost to it');
     assert.equal(unsure.seen.notices.length, 1);
+  });
+});
+
+describe('the voice the learner chose, on its way to the agent — F291', () => {
+  /**
+   * The `/session/start` body, lifted out of the hook exactly as the hook
+   * writes it and run against supplied free names.
+   *
+   * Same technique as the fragments above and for the same reason: this hook
+   * cannot be imported here at all, and matching a string would pass just as
+   * happily for a field that is spelled and never sent. Every name the
+   * expression reaches for is handed in, so a body that grows a dependency this
+   * harness has not thought about throws a ReferenceError rather than quietly
+   * agreeing.
+   */
+  function startBody(world: Record<string, unknown>): Record<string, unknown> {
+    const source = read('./useLiveSession.ts');
+    // Anchored on the route, because the hook posts two bodies and the other
+    // one is /session/abandon. Getting that wrong is how this harness would
+    // report on a request nobody asked about.
+    const route = source.indexOf('/session/start');
+    assert.ok(route >= 0, 'the hook no longer starts a session');
+    const at = source.indexOf('body: JSON.stringify({', route);
+    assert.ok(at >= 0, 'the session start no longer builds a body');
+    const open = source.indexOf('{', source.indexOf('JSON.stringify(', at));
+    let depth = 0;
+    let expression = '';
+    for (let i = open; i < source.length; i += 1) {
+      if (source[i] === '{') depth += 1;
+      else if (source[i] === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          expression = source.slice(open, i + 1);
+          break;
+        }
+      }
+    }
+    assert.ok(expression.length > 0, 'the body object is never closed');
+    const names = Object.keys(world);
+    const run = new Function(...names, `"use strict"; return (${expression});`) as (
+      ...args: unknown[]
+    ) => Record<string, unknown>;
+    return run(...names.map((name) => world[name]));
+  }
+
+  const world = (chosen: string | undefined): Record<string, unknown> => ({
+    userId: 'u1',
+    lessonId: 'convo-01',
+    startRung: undefined,
+    mode: 'convo',
+    snapshot: undefined,
+    seedTopic: undefined,
+    missionId: undefined,
+    tutorVoice: chosen,
+    DEFAULT_TUTOR_VOICE,
+  });
+
+  test('every session start sends the chosen voice, and the default when none is chosen', () => {
+    // Chosen. The key travels, never a vendor id: the ids live in the agent,
+    // which is the only process holding the account that bills for them.
+    const chosen = startBody(world('celine'));
+    assert.equal(chosen.tutorVoice, 'celine', 'the learner picked a voice and the session opened in somebody else');
+    assert.ok(isTutorVoiceKey(chosen.tutorVoice), 'what rides the wire is not one of our keys');
+
+    // Unchosen, which is the ordinary state of a new account. The default is
+    // SENT rather than left out, and that is the whole of F291: the app has a
+    // picker and the agent has a fallback, and an absent field would leave the
+    // two agreeing only by coincidence about who "unchosen" means.
+    const unchosen = startBody(world(undefined));
+    assert.ok(
+      Object.hasOwn(unchosen, 'tutorVoice'),
+      'an unchosen voice sends no field, so the app and the agent are each free to pick a different person',
+    );
+    assert.equal(unchosen.tutorVoice, DEFAULT_TUTOR_VOICE);
+    assert.equal(unchosen.tutorVoice, chosen.tutorVoice === 'celine' ? DEFAULT_TUTOR_VOICE : unchosen.tutorVoice);
+
+    // Nothing else about the body moved. seedTopic and missionId stay absent
+    // when they have nothing to say, which is what tells them apart from this.
+    assert.ok(!Object.hasOwn(unchosen, 'missionId'), 'a session with no mission started sending one');
+    assert.ok(!Object.hasOwn(unchosen, 'seedTopic'), 'a session with no seed started sending one');
+    assert.equal(unchosen.userId, 'u1');
+    assert.equal(unchosen.lessonId, 'convo-01');
+
+    // And both live screens hand it in. A hook that always sends the field is
+    // no use if the screens never fill it: the default would then be sent for
+    // every learner, including the ones who chose.
+    for (const screen of ['../ConvoScreen.tsx', '../LiveSessionScreen.tsx']) {
+      const source = read(screen);
+      const call = source.slice(source.indexOf('useLiveSession('), source.indexOf('useLiveSession(') + 900);
+      assert.match(
+        call,
+        /tutorVoice: tutorVoiceOf\(profile\)/,
+        `${screen} opens a session without the chosen voice, so the picker changes nothing on this surface`,
+      );
+    }
   });
 });

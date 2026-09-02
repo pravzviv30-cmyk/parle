@@ -9,6 +9,7 @@
     "start": "node --experimental-strip-types src/agent.ts start",
     "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
     "warm-cache": "node --experimental-strip-types src/warmCache.ts",
+    "voice-samples": "node --experimental-strip-types src/voiceSamples.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

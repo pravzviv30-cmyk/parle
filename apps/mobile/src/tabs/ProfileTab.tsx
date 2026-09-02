@@ -34,6 +34,7 @@
 
 import { useCallback, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Switch } from 'react-native';
+import { useAudioPlayer } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
@@ -46,7 +47,7 @@ import { downloadAccountData } from '../privacy/export.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
 import { TUTOR_INTRO_LINK } from '../tutor/gate.ts';
-import { withDailyGoal } from '../profile/store.ts';
+import { withDailyGoal, withTutorVoice } from '../profile/store.ts';
 import {
   STRICTNESS_OPTIONS,
   STRICTNESS_ROW,
@@ -56,6 +57,17 @@ import {
   strictnessOf,
   withStrictness,
 } from '../tutor/strictness.ts';
+import {
+  TUTOR_VOICE_OPTIONS,
+  TUTOR_VOICE_ROW,
+  TUTOR_VOICE_SUB,
+  TUTOR_VOICE_TITLE,
+  nextSample,
+  tutorVoiceLabel,
+  tutorVoiceOf,
+  type TutorVoiceKey,
+} from '../tutor/tutorVoice.ts';
+import { voiceSample } from '../tutor/voiceSamples.ts';
 import {
   REMINDER_ROW,
   REMINDER_TIMES,
@@ -95,6 +107,7 @@ type Sheet =
   | 'name'
   | 'goal'
   | 'strictness'
+  | 'tutorVoice'
   | 'reminderTime'
   | 'intro'
   | 'acknowledgements'
@@ -155,6 +168,48 @@ export function ProfileTab({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
   const [exporting, setExporting] = useState(false);
+
+  /**
+   * Which voice sample is sounding right now, and the one player that sounds it.
+   *
+   * One player, not one per row, and that is the whole of the "one at a time"
+   * rule rather than a discipline somebody has to keep. A learner comparing two
+   * voices taps the second while the first is still going; with eight players
+   * they would hear both at once and learn nothing about either. With one, the
+   * second clip replaces the first because there is nothing else for it to play
+   * out of. `nextSample` decides which key that is, in a module a test can ask.
+   *
+   * Declared here rather than inside the sheet because the sheet is an early
+   * return and a hook behind a branch is a hook that changes order.
+   */
+  const [samplePlaying, setSamplePlaying] = useState<TutorVoiceKey | null>(null);
+  const samplePlayer = useAudioPlayer();
+
+  const hearVoice = useCallback(
+    (key: TutorVoiceKey) => {
+      const next = nextSample(samplePlaying, key);
+      setSamplePlaying(next);
+      if (next === null) {
+        samplePlayer.pause();
+        return;
+      }
+      // Loaded before it is told to play, or the player sounds whatever it was
+      // last handed. No seek afterwards: `replace` builds the player a fresh
+      // media element (AudioPlayer.web.ts, and the same on native), so the new
+      // clip starts at nought by construction, and a tap on the voice that just
+      // finished plays it again rather than sitting silently at its end.
+      samplePlayer.replace(voiceSample(next));
+      samplePlayer.play();
+    },
+    [samplePlaying, samplePlayer],
+  );
+
+  /** Leaving the sheet takes the sound with it. Nobody wants a voice following them back to Profile. */
+  const closeVoiceSheet = useCallback(() => {
+    samplePlayer.pause();
+    setSamplePlaying(null);
+    setSheet('none');
+  }, [samplePlayer]);
 
   // Null until the first read comes back, because a guess would flash the wrong
   // sentence: defaulting to denied would show "notifications are turned off"
@@ -424,6 +479,49 @@ export function ProfileTab({
   }
 
   /**
+   * Who the tutor is, which until now the product decided for everybody.
+   *
+   * Eight voices, and two of them women, which is why this is more than a
+   * dropdown: the persona follows the voice, so choosing here changes the name
+   * the app calls him or her by everywhere else. Built exactly like the
+   * strictness sheet above, because it is the same kind of question, with one
+   * addition: every row can be heard before it is chosen.
+   *
+   * Hearing is optional and deliberately secondary. The card's own press is
+   * what chooses, the ear is a sibling control beside it, and a learner who
+   * never taps one still leaves with a voice. Nobody is made to audition eight
+   * people to get to a conversation.
+   */
+  if (sheet === 'tutorVoice') {
+    return (
+      <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
+        <Text style={[type.display, { color: paper.ink }]}>{TUTOR_VOICE_TITLE}</Text>
+        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{TUTOR_VOICE_SUB}</Text>
+        <ScrollView contentContainerStyle={{ paddingBottom: space(6) }} showsVerticalScrollIndicator={false}>
+          <View style={{ marginTop: space(6), gap: space(3) }}>
+            {TUTOR_VOICE_OPTIONS.map((option) => (
+              <OptionCard
+                key={option.value}
+                text={option.label}
+                gloss={option.gloss}
+                selected={tutorVoiceOf(profile) === option.value}
+                onPress={() => {
+                  update(withTutorVoice(profile, option.value));
+                  closeVoiceSheet();
+                }}
+                onHear={() => hearVoice(option.value)}
+              />
+            ))}
+          </View>
+          <View style={{ marginTop: space(6) }}>
+            <OutlineButton label="Cancel" onPress={closeVoiceSheet} />
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  /**
    * Which part of the day, not which minute.
    *
    * Four presets in the shape the goal and strictness sheets already use. A
@@ -498,6 +596,7 @@ export function ProfileTab({
             onPress={() => setSheet('goal')}
           />
           <SettingsRow label={STRICTNESS_ROW} value={strictnessLabel(profile)} onPress={() => setSheet('strictness')} />
+          <SettingsRow label={TUTOR_VOICE_ROW} value={tutorVoiceLabel(profile)} onPress={() => setSheet('tutorVoice')} />
           <SettingsRow label="Email" value={user?.email ?? 'Signed in'} />
           {hasPassword && (
             <SettingsRow

@@ -12,7 +12,9 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { completeProfile, createStoredProfile, withDailyGoal, type StoredProfile } from './store.ts';
+import { DEFAULT_TUTOR_VOICE, TUTOR_VOICES, type TutorVoiceKey } from '@luvani/core';
+
+import { completeProfile, createStoredProfile, withDailyGoal, withTutorVoice, type StoredProfile } from './store.ts';
 
 const NOW = Date.parse('2026-08-22T10:00:00Z');
 
@@ -29,8 +31,13 @@ describe('a new profile — what the app writes down about someone who just join
     const profile = createStoredProfile({ name: 'Camille', ageConfirmed: true, motivation: 'travel' }, NOW);
     assert.equal(profile.dob, null, 'the product stopped asking for a date, so there is none to keep');
     assert.equal(profile.ageConfirmed, true, 'what they actually told us is that they are old enough');
-    assert.equal(profile.version, 5);
+    assert.equal(profile.version, 6);
     assert.equal(profile.ageStopAt, null, 'nobody arrives already stopped');
+    assert.equal(
+      profile.tutorVoice,
+      null,
+      'nobody arrives having chosen a voice either, and writing the default here would record a choice they never made',
+    );
   });
 
   test('a learner who skipped the questions is stored as having skipped them', () => {
@@ -89,5 +96,35 @@ describe('the daily goal — one field, one write path', () => {
     const after = withDailyGoal(before, 15);
     assert.equal(after.dailyGoalMin, 15);
     assert.deepEqual({ ...after, dailyGoalMin: null }, before, 'the goal row edits the goal, not the learner');
+  });
+});
+
+describe("the tutor's voice — one field, one write path", () => {
+  /** A catalogue voice that is not the default, so a no-op cannot pass as a write. */
+  const CHOICE: TutorVoiceKey =
+    (Object.keys(TUTOR_VOICES) as TutorVoiceKey[]).find((key) => key !== DEFAULT_TUTOR_VOICE) ?? DEFAULT_TUTOR_VOICE;
+
+  test('choosing a voice changes the voice and nothing else', () => {
+    const before = existing({ tutorVoice: null });
+    const after = withTutorVoice(before, CHOICE);
+    assert.equal(after.tutorVoice, CHOICE);
+    assert.deepEqual({ ...after, tutorVoice: null }, before, 'the voice row edits the voice, not the learner');
+  });
+
+  test('changing their mind replaces the voice rather than collecting one', () => {
+    // The bound, held the way the age stop's is: one key, replaced. A profile
+    // field that accumulates is a profile that eventually will not fit in the
+    // token the whole learner model is signed into.
+    const twice = withTutorVoice(withTutorVoice(existing(), CHOICE), DEFAULT_TUTOR_VOICE);
+    assert.equal(twice.tutorVoice, DEFAULT_TUTOR_VOICE, 'the last choice is the choice');
+    assert.equal(typeof twice.tutorVoice, 'string', 'and it is still one key, not a list of them');
+  });
+
+  test('a second pass through onboarding does not take their voice away', () => {
+    // Onboarding never asks about the voice, so it cannot answer for them.
+    // This is the same rule the username and the brain already ride on.
+    const before = existing({ tutorVoice: CHOICE });
+    const after = completeProfile(before, { name: 'Cam', motivation: 'travel' }, NOW);
+    assert.equal(after.tutorVoice, CHOICE, 'a flow that does not ask about the voice cannot unpick it');
   });
 });

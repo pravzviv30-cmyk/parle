@@ -10,6 +10,21 @@
  *
  * Rerunning is free: cached lines are skipped.
  *
+ * WHICH VOICES. The learner chooses from eight, and the voice is part of the
+ * cache key, so warming is per voice with no sharing between them. One voice is
+ * 62 sentences and 1,618 characters; eight is about 12,900, roughly a third of
+ * a Starter month's allowance. A cold clone running this command is following
+ * the README rather than asking to spend that, so the default is the default
+ * voice alone:
+ *
+ *   npm run warm-cache -w @luvani/tutor-agent                       # luc only
+ *   LUVANI_WARM_VOICES=celine,emilie npm run warm-cache -w ...      # two
+ *   LUVANI_WARM_VOICES=all npm run warm-cache -w ...                # all eight
+ *
+ * The plan is resolved in warmPlan.ts before anything is built, so a mistyped
+ * key refuses at once instead of after seven voices have been paid for. The run
+ * prints what it is about to cost and then what each voice actually cost.
+ *
  * Changing LUVANI_TTS_VENDOR is the expensive one. The cache key carries the
  * vendor and its sample rate, so every WAV already on disk is orphaned — not
  * corrupted, just never asked for again — and the first run on the new vendor
@@ -18,10 +33,11 @@
 
 import 'dotenv/config';
 import { initializeLogger, tokenize } from '@livekit/agents';
-import { LESSONS } from '@luvani/core';
+import { LESSONS, type TutorVoiceKey } from '@luvani/core';
 import { APERO_FRAME, CAFE_FRAME } from '@luvani/brain';
 import { buildTTS, selectedVoiceVendor, VOICE_KEY } from './voice.ts';
 import { CONVO_LINES } from './convo.ts';
+import { voicesToWarm, warmCost, warmPlanLine, warmVoiceLine } from './warmPlan.ts';
 
 // The worker CLI does this for the agent; a standalone script must do it itself.
 initializeLogger({ pretty: true, level: 'warn' });
@@ -62,7 +78,56 @@ function scriptedLines(): string[] {
   return [...lines];
 }
 
+/**
+ * Warm one voice, and report what it cost.
+ *
+ * A fresh CachedTTS per voice, because the voice is baked into the cache key at
+ * construction; reusing one across the loop would warm the first voice eight
+ * times. Its own counters, so the per-voice report is that voice's bill rather
+ * than a running total, and `chars` counts only misses because a hit costs
+ * nothing.
+ */
+async function warmVoice(voice: TutorVoiceKey, lines: readonly string[]): Promise<number> {
+  // Always HTTP here, whatever the environment says.
+  //
+  // This script exits by letting the event loop drain, and the websocket
+  // transport holds a pooled vendor socket open for up to its 180s inactivity
+  // timeout — so a warm run under LUVANI_TTS_MISS_TRANSPORT=ws looks hung for
+  // three minutes. That flag lives in the same .env this file loads, so "set it
+  // on the agent, not on the warm run" was advice that could not be followed.
+  // Pinning it is the fix; the trap is gone rather than documented.
+  const cached = buildTTS({ voice, missTransport: 'http' });
+
+  let chars = 0;
+  for (const line of lines) {
+    const had = cached.hits;
+    await cached.synthesize(line).collect();
+    const hit = cached.hits > had;
+    if (!hit) chars += line.length;
+    console.log(`  ${voice} ${hit ? 'cached ' : 'synthd '} ${line}`);
+  }
+
+  // Closing matters even on the HTTP path: the fish vendor holds a client the
+  // process would otherwise idle on, and eight open ones is eight reasons this
+  // script does not exit.
+  await cached.close();
+
+  console.log(`[warm-cache] ${warmVoiceLine(voice, { cached: cached.hits, synthesized: cached.misses, chars })}`);
+  return chars;
+}
+
 async function main(): Promise<void> {
+  // The plan first, because it is the only check here that is free. It reads
+  // one environment variable and the catalogue, so a mistyped voice refuses
+  // before a key is looked up, a vendor is constructed or a character is spent.
+  let plan: TutorVoiceKey[];
+  try {
+    plan = voicesToWarm();
+  } catch (err) {
+    console.error(`[warm-cache] ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+
   // The key the *selected* vendor cannot speak without, not a literal. A fish
   // run refusing over ELEVEN_API_KEY would be a refusal about a credential it
   // was never going to send. One table in voice.ts holds the mapping.
@@ -72,28 +137,19 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Always HTTP here, whatever the environment says.
-  //
-  // This script exits by letting the event loop drain, and the websocket
-  // transport holds a pooled vendor socket open for up to its 180s inactivity
-  // timeout — so a warm run under LUVANI_TTS_MISS_TRANSPORT=ws looks hung for
-  // three minutes. That flag lives in the same .env this file loads, so "set it
-  // on the agent, not on the warm run" was advice that could not be followed.
-  // Pinning it is the fix; the trap is gone rather than documented.
-  const cached = buildTTS({ missTransport: 'http' });
   const lines = scriptedLines();
-  console.log(`[warm-cache] ${lines.length} scripted lines, cache dir ${cached.opts.dir}`);
+  const cost = warmCost(plan, lines);
 
-  let chars = 0;
-  for (const line of lines) {
-    const had = cached.hits;
-    await cached.synthesize(line).collect();
-    const hit = cached.hits > had;
-    if (!hit) chars += line.length;
-    console.log(`  ${hit ? 'cached ' : 'synthd '} ${line}`);
-  }
+  // What it is about to cost, before it costs it. Printed even for the
+  // one-voice default: the habit of reading this line is what makes the eight
+  // voice number land when someone does type `all`.
+  console.log(`[warm-cache] ${lines.length} scripted lines: ${plan.join(', ')}`);
+  console.log(`[warm-cache] ${warmPlanLine(cost)}`);
 
-  console.log(`[warm-cache] done: ${cached.hits} already cached, ${cached.misses} synthesized (~${chars} chars billed)`);
+  let billed = 0;
+  for (const voice of plan) billed += await warmVoice(voice, lines);
+
+  console.log(`[warm-cache] done: ${cost.voices} ${cost.voices === 1 ? 'voice' : 'voices'}, ~${billed} chars billed`);
 }
 
 main().catch((err) => {

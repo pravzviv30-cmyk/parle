@@ -17,21 +17,48 @@
  * by whatever the model feels like offering.
  */
 
-import { SAFETY_CONDUCT } from '@luvani/brain';
-import type { Lesson, LessonTurn, LadderDirective } from '@luvani/core';
+import { SAFETY_CONDUCT, personaAgreementLine } from '@luvani/brain';
+import { DEFAULT_TUTOR_VOICE, tutorVoice } from '@luvani/core';
+import type { Lesson, LessonTurn, LadderDirective, TutorPersona } from '@luvani/core';
+
+/**
+ * Who the tutor is when nobody has chosen. Read out of the catalogue rather
+ * than written here again, so this file cannot come to disagree with the
+ * default the agent resolves to or the one the Profile row shows.
+ */
+const DEFAULT_PERSONA: TutorPersona = tutorVoice(DEFAULT_TUTOR_VOICE).persona;
 
 /**
  * Behaviour that holds for every turn of every lesson, at every rung.
  *
  * Same person as the free conversation brain (packages/brain/src/prompt/system.ts).
  * Two prompts is a fact of the two pipelines, but two different tutors would be
- * a fact the learner can hear, so Luc opens both.
+ * a fact the learner can hear, so the same person opens both.
+ *
+ * That person is now chosen. `persona` is the learner's voice made into someone
+ * to be: the name is said out loud in the first line, and the pronoun decides
+ * which agreement the tutor's own French takes. It is optional and falls back to
+ * the catalogue default because the process that resolves the voice
+ * authoritatively is the agent, which holds the vendor key; anything built
+ * before that resolve should sound like the tutor a learner who has never chosen
+ * already has, rather than like nobody.
+ *
+ * Nothing in these lines states an age or a home town, and neither may come
+ * back. F281 removed the town when the founder chose a Québécois voice, F292
+ * removed "fifty-two" when the catalogue gained a young one, and both obey one
+ * rule: a persona may assert only what EVERY voice could plausibly claim. The
+ * bar, the twenty years, the not-a-teacher and the warmth all survive it.
  */
-export function baseInstructions(lesson: Lesson): string {
+export function baseInstructions(lesson: Lesson, persona: TutorPersona = DEFAULT_PERSONA): string {
   return [
-    `You are Luc. You are fifty-two, and you ran a bar for twenty years. You are not a teacher and you`,
+    `You are ${persona.name}. You ran a bar for twenty years. You are not a teacher and you`,
     `do not pretend to be one. Today you are talking with someone`,
     `whose first language is English and who is only just starting in French.`,
+    // The one sentence in this prompt that is about gender rather than about
+    // teaching, and it is here for the same reason the name is: the learner
+    // hears the voice, so French that disagrees with it is a mistake they can
+    // hear. Imported rather than restated, so both pipelines say it identically.
+    personaAgreementLine(persona),
     ``,
     `THE SCENE`,
     `${lesson.scenario}`,
@@ -113,7 +140,18 @@ export function turnInstructions(turn: LessonTurn, directive: LadderDirective): 
   return lines.join('\n');
 }
 
-/** The whole prompt handed to the model for this turn. */
-export function buildPrompt(lesson: Lesson, turn: LessonTurn, directive: LadderDirective): string {
-  return `${baseInstructions(lesson)}\n\n${turnInstructions(turn, directive)}`;
+/**
+ * The whole prompt handed to the model for this turn.
+ *
+ * The persona rides through to `baseInstructions` rather than being resolved
+ * here, so there is exactly one place in this file that decides who the tutor is
+ * when nobody has chosen.
+ */
+export function buildPrompt(
+  lesson: Lesson,
+  turn: LessonTurn,
+  directive: LadderDirective,
+  persona: TutorPersona = DEFAULT_PERSONA,
+): string {
+  return `${baseInstructions(lesson, persona)}\n\n${turnInstructions(turn, directive)}`;
 }

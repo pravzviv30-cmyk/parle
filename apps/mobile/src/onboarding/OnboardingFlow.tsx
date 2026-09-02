@@ -1,7 +1,8 @@
 /**
- * Onboarding, one page at a time: age, name, and who is answering.
+ * Onboarding, one page at a time: age, name, who is answering, and which voice
+ * answers.
  *
- * Three pages, progress dots, a back chevron, and nothing to fail. The name
+ * Four pages, progress dots, a back chevron, and nothing to fail. The name
  * page's Continue is always live, because a name is encouraged and never
  * required. A learner migrated from the pre-account era arrives with `existing`
  * set and their old answers pre-filled, so they are asked only what is new.
@@ -14,25 +15,46 @@
  * because nothing ever read the answer. All three are the same idea: ask less
  * before the value, and never ask a question the product does not use.
  *
- * The last page is the one addition. It is not a question — it is the app
- * saying, before the first scene rather than after it, that the tutor is AI,
- * that no person hears you, that the microphone is about to be asked for, and
- * that typing is there for anyone who cannot speak out loud. Every word of it
- * comes from `onboarding/disclosure.ts`, which is also where the welcome and
- * TutorIntro get theirs, so the three cannot drift apart.
+ * The Meet page is not a question — it is the app saying, before the first
+ * scene rather than after it, that the tutor is AI, that no person hears you,
+ * that the microphone is about to be asked for, and that typing is there for
+ * anyone who cannot speak out loud. Every word of it comes from
+ * `onboarding/disclosure.ts`, which is also where the welcome and TutorIntro
+ * get theirs, so the four cannot drift apart.
+ *
+ * Every page that names the tutor names `persona`, and `persona` is
+ * `tutorPersonaOf(existing)` rather than the default. On a first-ever run there
+ * is no record and it resolves to the default, which is the right answer and is
+ * why these pages were allowed to name it at all. On a second pass there is a
+ * record: a migrated learner, or one sent back through by a newly required
+ * answer. That learner used to be told to meet Luc and then introduced to
+ * Céline by TutorIntro two screens later, which is F300 and is the same
+ * mismatch F281 and F294 exist to prevent.
+ *
+ * The voice page is the last one, and it is the only place a learner is ever
+ * shown the eight voices before they have gone looking in Profile for them.
+ * It is a question that costs nothing to decline: the pill leaves with whatever
+ * is selected, the ghost under it leaves with nothing selected, and both of
+ * those end up talking to somebody with a name. Its rules — what it offers,
+ * what a skip means, and which door the answer is written through — are in
+ * `voiceStep.ts`, because a rule inside a `.tsx` is a rule nothing can check.
  *
  * Every rule this file used to hold now lives in `answers.ts`, where a test can
  * reach it. What is left here is layout.
  */
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAudioPlayer } from 'expo-audio';
 import { paper, space, type, HIT } from '../theme.ts';
-import { PillButton, GhostButton, Field, ProgressDots, ChevronLeft } from '../components.tsx';
+import { PillButton, GhostButton, Field, ProgressDots, ChevronLeft, OptionCard } from '../components.tsx';
 import { OnboardWave, OnboardCake, SpeakBubbles } from '../illustrations.tsx';
 import type { StoredProfile } from '../profile/store.ts';
-import { TUTOR_NAME } from '../tutor/tutorName.ts';
+import { tutorPersonaOf } from '../tutor/tutorName.ts';
+import { nextSample, type TutorVoiceKey } from '../tutor/tutorVoice.ts';
+import { voiceSample } from '../tutor/voiceSamples.ts';
+import { VOICE_STEP_OPTIONS } from './voiceStep.ts';
 import {
   AGE_CONFIRM,
   AGE_DENY,
@@ -56,6 +78,11 @@ import {
   MEET_PRIVACY,
   MEET_TITLE,
   MEET_TYPING,
+  VOICE_AI,
+  VOICE_BODY,
+  VOICE_SKIP,
+  VOICE_SKIP_HINT,
+  VOICE_TITLE,
 } from './disclosure.ts';
 import { trackProductEvent } from '../analytics/track.ts';
 
@@ -74,6 +101,57 @@ export function OnboardingFlow({
   const [oldEnough, setOldEnough] = useState<boolean | null>(
     existing?.ageConfirmed === true ? true : null,
   );
+  // Who they tapped on the voice step. Null is a skip and stays a skip all the
+  // way to the profile: `withChosenVoice` writes nothing for it, so the field
+  // still reads "never chosen" and both the app and the agent resolve it to the
+  // catalogue default. Pre-filled for a learner running the flow a second time
+  // so the step shows what they already have rather than presenting their own
+  // choice back to them as unmade.
+  const [voice, setVoice] = useState<TutorVoiceKey | null>(existing?.tutorVoice ?? null);
+
+  /**
+   * Who this learner is already talking to, which is who these pages name.
+   *
+   * Read off the record rather than from the state above on purpose. `voice`
+   * is what they are picking on the last page and it moves under their thumb;
+   * this is who they had when they walked in, and it is what the skip hint has
+   * to be honest about, because a skip writes nothing and leaves them exactly
+   * here. Null record, or a stored key the catalogue no longer has, resolves to
+   * the default, so a first-ever run reads word for word as it always did.
+   */
+  const persona = tutorPersonaOf(existing);
+
+  /**
+   * Which sample is sounding, and the one player that sounds it.
+   *
+   * Lifted from the Profile sheet unchanged, down to `nextSample` deciding the
+   * key: one player rather than one per row is what makes "one at a time" a
+   * property of the shape instead of a discipline. A learner comparing two
+   * voices taps the second while the first is still going, and with eight
+   * players would hear both at once and learn nothing about either.
+   *
+   * Declared at the top of the component rather than beside the page that uses
+   * it, because the pages are branches and a hook behind a branch is a hook
+   * that changes order.
+   */
+  const [playing, setPlaying] = useState<TutorVoiceKey | null>(null);
+  const player = useAudioPlayer();
+  const hearVoice = useCallback(
+    (key: TutorVoiceKey) => {
+      const next = nextSample(playing, key);
+      setPlaying(next);
+      if (next === null) {
+        player.pause();
+        return;
+      }
+      // Loaded before it is told to play, or the player sounds whatever it was
+      // last handed. `replace` builds a fresh media element, so the new clip
+      // starts at nought and a tap on the one that just finished replays it.
+      player.replace(voiceSample(next));
+      player.play();
+    },
+    [playing, player],
+  );
 
   const index = PAGES.indexOf(page);
   const previous = pageBefore(page);
@@ -84,6 +162,10 @@ export function OnboardingFlow({
       name: 'onboarding_completed',
       properties: { personalisedGreeting: name.trim().length > 0 },
     });
+    // The sound does not follow them into the chooser. Leaving a clip playing
+    // over the next screen is the kind of thing that makes somebody put the
+    // phone down in a quiet room.
+    player.pause();
     // Nothing asks why any more, so nothing here invents an answer. What it
     // does do is hand back whatever the record already carried: `completeProfile`
     // writes this field straight through, so a hardcoded null here would erase a
@@ -91,7 +173,15 @@ export function OnboardingFlow({
     // pre-account record whose age was never confirmed. Nothing reads the field
     // today, which is exactly why deleting somebody's copy of it would go
     // unnoticed until something did.
-    onDone(answersFrom({ name, ageConfirmed: oldEnough === true, motivation: existing?.motivation ?? null }));
+    onDone(
+      answersFrom({
+        name,
+        ageConfirmed: oldEnough === true,
+        motivation: existing?.motivation ?? null,
+        // Null when they walked past the step, which is what a skip means.
+        tutorVoice: voice,
+      }),
+    );
   };
 
   const confirmAge = () => {
@@ -153,7 +243,7 @@ export function OnboardingFlow({
               <Text accessibilityRole="header" style={st.question}>
                 {NAME_QUESTION}
               </Text>
-              <Text style={st.sub}>{`${TUTOR_NAME} greets you by name.`}</Text>
+              <Text style={st.sub}>{`${persona.name} greets you by name.`}</Text>
               <View style={{ marginTop: space(6) }}>
                 {/* A visible label rather than a placeholder alone: a
                     placeholder disappears the moment somebody types, and it is
@@ -179,15 +269,44 @@ export function OnboardingFlow({
                 <SpeakBubbles width={150} />
               </View>
               <Text accessibilityRole="header" style={st.question}>
-                {MEET_TITLE}
+                {MEET_TITLE(persona)}
               </Text>
               <View style={st.lines}>
-                <Text style={st.line}>{MEET_AI}</Text>
-                <Text style={st.line}>{MEET_PRIVACY}</Text>
+                <Text style={st.line}>{MEET_AI(persona)}</Text>
+                <Text style={st.line}>{MEET_PRIVACY(persona)}</Text>
                 <Text style={st.line}>{MEET_MIC}</Text>
                 <Text style={st.line}>{MEET_TYPING}</Text>
               </View>
               <Text style={st.hint}>{MEET_MORE}</Text>
+            </>
+          )}
+
+          {/* The voice step. It comes after the page that says the tutor is AI,
+              never before it: eight named people introduced first and the
+              disclosure afterwards is the exact order this flow exists to
+              prevent. Nothing here is required. The pill at the bottom leaves
+              with whatever is selected, the skip under it leaves with nothing
+              selected, and both of those are a real person with a name. */}
+          {page === 'voice' && (
+            <>
+              <Text accessibilityRole="header" style={st.question}>
+                {VOICE_TITLE}
+              </Text>
+              <Text style={st.sub}>{VOICE_BODY}</Text>
+              <Text style={st.hint}>{VOICE_AI}</Text>
+              <View style={st.voices}>
+                {VOICE_STEP_OPTIONS.map((option) => (
+                  <OptionCard
+                    key={option.value}
+                    text={option.label}
+                    gloss={option.gloss}
+                    selected={voice === option.value}
+                    onPress={() => setVoice(option.value)}
+                    onHear={() => hearVoice(option.value)}
+                  />
+                ))}
+              </View>
+              <Text style={st.hint}>{VOICE_SKIP_HINT(persona)}</Text>
             </>
           )}
         </ScrollView>
@@ -201,7 +320,22 @@ export function OnboardingFlow({
             mis-tap and is deliberately not a button. */}
         {page === 'age' && oldEnough !== false && <PillButton label={AGE_CONFIRM} onPress={confirmAge} />}
         {page === 'name' && <PillButton label="Continue" onPress={() => setPage('meet')} />}
-        {page === 'meet' && <PillButton label={MEET_PILL} onPress={finish} />}
+        {page === 'meet' && <PillButton label="Continue" onPress={() => setPage('voice')} />}
+        {page === 'voice' && (
+          <>
+            <PillButton label={MEET_PILL} onPress={finish} />
+            {/* The way past, and it is a ghost rather than a second pill on
+                purpose: one solid action per screen. It goes to the same place
+                the pill does, carrying nothing, which is what makes skipping an
+                answer instead of a question asked again later. */}
+            <View style={st.secondary}>
+              <GhostButton label={VOICE_SKIP} onPress={() => {
+                setVoice(null);
+                finish();
+              }} />
+            </View>
+          </>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -218,6 +352,7 @@ const st = StyleSheet.create({
   hint: { ...type.small, color: paper.inkFaint, textAlign: 'center', marginTop: space(3) },
   refusal: { ...type.bodyStrong, color: paper.ink, textAlign: 'center', marginTop: space(5) },
   lines: { gap: space(3), marginTop: space(4) },
+  voices: { gap: space(3), marginTop: space(5), alignSelf: 'stretch' },
   line: { ...type.body, color: paper.inkSoft, textAlign: 'center' },
   secondary: { marginTop: space(5) },
 });

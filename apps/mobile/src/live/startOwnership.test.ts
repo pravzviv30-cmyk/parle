@@ -29,7 +29,7 @@ import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { RoomEvent, Track } from 'livekit-client';
-import { TOPIC_SERVER } from '@luvani/core';
+import { DEFAULT_TUTOR_VOICE, TOPIC_SERVER } from '@luvani/core';
 
 import { NO_START, nextStart, standDown, startStillOwns } from './startOwnership.ts';
 import { micOpensAtConnect, modeCarriesAudio } from '../tutor/choosingView.ts';
@@ -264,6 +264,11 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     snapshot: undefined,
     seedTopic: undefined,
     missionId: undefined,
+    // F291 puts the chosen voice on every start body, resolved rather than
+    // conditional, so both names the expression reaches for have to exist here
+    // or the lifted fragment throws before it ever builds a room.
+    tutorVoice: undefined,
+    DEFAULT_TUTOR_VOICE,
     TOKEN_SERVER: 'https://token.example',
     TOPIC_SERVER,
     CONNECT_TIMEOUTS: {},

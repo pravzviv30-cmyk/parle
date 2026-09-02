@@ -495,6 +495,52 @@ describe('the per-domain conflict policy — thirteen namespaces, three classes,
     );
   });
 
+  test('the profile row writes the version the store writes', () => {
+    // The failure this catches has no symptom. `writes` is the inner schema
+    // version this build puts in the profile blob, and the engine goes quiet on
+    // anything declaring a higher one. So a store that moves to v6 while this
+    // table still says 5 makes the build call *its own merge output* a payload
+    // from the future: every profile cycle goes pull-quiet, forever, with
+    // nothing on fire and nothing in the log to say why. v6 is the chosen tutor
+    // voice, and the way a learner would meet this bug is picking Céline on one
+    // phone and never hearing her on the other.
+    //
+    // Read as text rather than imported, like the caps below: importing
+    // profile/store.ts would drag AsyncStorage into a directory whose whole
+    // point is that it loads under plain node. `profile/ageStop.test.ts` holds
+    // the same coupling from the store's side against a live StoredProfile —
+    // two readings of one fact, because this is the fact both of them are for.
+    const profilePolicy = SYNC_POLICIES.find((entry) => entry.namespace === 'profile');
+    assert.ok(profilePolicy, 'the profile namespace has no sync policy, so this reads nothing');
+
+    const source = readFileSync(join(MOBILE, 'src/profile/store.ts'), 'utf8');
+    const declared = source.match(/export interface StoredProfile \{\s*\n\s*version:\s*(\d+);/);
+    assert.ok(declared, 'StoredProfile no longer declares a literal version, so this test reads nothing');
+    assert.equal(
+      profilePolicy.writes,
+      Number(declared[1]),
+      'sync/policy.ts declares a different profile schema version than profile/store.ts writes',
+    );
+
+    // And the same number from the other door: the chain brings every older blob
+    // up to exactly the version this build writes, so a policy that agreed with
+    // the interface but not with the upgrade would still be wrong.
+    const upgraded = upgradeStored({ version: 1, brain: null }, FIXED_NOW);
+    assert.ok(upgraded, 'the version chain refused a v1 blob, so this reads nothing');
+    assert.equal(
+      profilePolicy.writes,
+      upgraded.version,
+      'sync/policy.ts declares a different profile schema version than profile/upgrade.ts brings blobs to',
+    );
+
+    // The rule that number buys, driven rather than asserted: one past it is a
+    // payload from a newer build and this device declines to merge it.
+    const future = { version: Number(declared[1]) + 1, name: 'from a build that does not exist yet' };
+    const result = policy.merge({ namespace: 'profile', local: genProfile(chooser(7)), remote: future });
+    assert.equal(result.kind, 'quiet', 'the profile row merged a payload from a newer app version');
+    assert.equal(result.kind === 'quiet' ? result.reason : '', 'newer-schema');
+  });
+
   test('the caps this policy re-applies are the caps the stores enforce', () => {
     assert.equal(
       MAX_HISTORY_SESSIONS,

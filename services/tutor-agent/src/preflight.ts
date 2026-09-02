@@ -11,10 +11,22 @@
  */
 
 import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_TURN_MODEL } from '@luvani/brain';
-import { MODEL, PROBE_LINE, VOICE_KEY, selectedVoiceVendor, synthesisProbeRequest } from './voice.ts';
+import { DEFAULT_TUTOR_VOICE } from '@luvani/core';
+import { ELEVEN_VOICES, MODEL, PROBE_LINE, VOICE_KEY, selectedVoiceVendor, synthesisProbeRequest } from './voice.ts';
 import { fishModel, fishSynthesisProbeRequest, fishVoiceId } from './voiceFish.ts';
 
 export type Brain = 'anthropic' | 'openai' | 'groq' | 'claude-cli' | 'claude-cli-all';
+
+/**
+ * When ElevenLabs stops serving its premade catalogue.
+ *
+ * A date rather than a boolean, because "this will break" is ignorable and
+ * "this breaks on this day" is plannable. None of the eight voices should be
+ * premade — they were chosen from the library — but a voice can be recategorised
+ * under us, and the failure that follows is a learner who picked that one
+ * meeting silence while everyone else's tutor works.
+ */
+const PREMADE_RETIREMENT = '2026-12-31';
 
 type Env = Record<string, string | undefined>;
 
@@ -131,15 +143,15 @@ export function missingRequired(env: Env = process.env): string[] {
 }
 
 /**
- * Worth saying out loud but not worth refusing over. A voice id is genuinely
- * optional — voice.ts falls back to the vendor's default voice — but a
- * default-voice tutor is not the tutor anyone intended to ship, and the TTS
- * cache is keyed by voice, so discovering this later means re-warming it.
+ * Worth saying out loud but not worth refusing over: a setting that is wrong in
+ * a way the worker can survive, and that somebody will otherwise discover from
+ * an invoice or a learner.
  *
- * Every line added here has to be CONDITIONAL. Five tests assert the exact
- * length of this list, which is the point: a startup that warns about something
- * on every single boot teaches everyone to stop reading the warnings, and then
- * the one that mattered scrolls past unread.
+ * Every line added here has to be CONDITIONAL. Sixteen assertions across
+ * preflight.test.ts pin the exact length or the exact contents of this list,
+ * which is the point rather than an obstacle: a startup that warns about
+ * something on every single boot teaches everyone to stop reading the warnings,
+ * and then the one that mattered scrolls past unread.
  */
 export function warnings(env: Env = process.env): string[] {
   const out: string[] = [];
@@ -151,8 +163,20 @@ export function warnings(env: Env = process.env): string[] {
     );
   }
   const vendor = selectedVoiceVendor(env);
-  if (vendor === 'elevenlabs' && (env.ELEVEN_VOICE_ID ?? '').trim() === '') {
-    out.push('ELEVEN_VOICE_ID is unset, so the tutor will speak in ElevenLabs’ default voice.');
+  // Retired by the voice chooser. Not a near-miss — there is no correctly
+  // spelled variable to point at, because the voice is not an env decision any
+  // more — but the same failure shape as OPEN_AI_KEY and one step worse: this
+  // one holds a REAL vendor id, so a .env carrying it reads as "the tutor
+  // speaks with this voice" to every human who opens it, and the next person to
+  // change the tutor's voice edits this line and hears nothing change.
+  //
+  // Ungated by vendor on purpose. It is read by nothing under either one.
+  if ((env.ELEVEN_VOICE_ID ?? '').trim() !== '') {
+    out.push(
+      'ELEVEN_VOICE_ID is set and nothing reads it. The tutor’s voice is chosen by the learner in ' +
+        'Profile, from the catalogue in packages/core/src/protocol/voices.ts. Delete the line, so nobody ' +
+        'trusts it.',
+    );
   }
   if (vendor === 'fish' && (env.FISH_VOICE_ID ?? '').trim() === '') {
     // Not the same warning with a different variable name. fish's default voice
@@ -522,37 +546,91 @@ export async function verifyVendors(
         const auth = await probe('ElevenLabs', 'https://api.elevenlabs.io/v1/user', headers, fetchFn, undefined, true);
         if (auth !== null) return auth;
 
+        // EVERY voice in the catalogue, not the one an env var named. The
+        // learner picks, so a voice this account cannot speak with is not a
+        // misconfiguration waiting for someone to select it — it is a room that
+        // opens and a tutor that never speaks, for whoever chose that one, on a
+        // worker where the other seven are fine and every other check is green.
         const catalogue = await probe('ElevenLabs', 'https://api.elevenlabs.io/v1/voices', headers, fetchFn, (body) => {
-          const wanted = (env.ELEVEN_VOICE_ID ?? '').trim();
-          if (wanted === '') return null; // unset is a warning, not a fault — see warnings()
+          const voices = (body as { voices?: { voice_id?: string; name?: string; category?: string }[] }).voices ?? [];
+          const listed = new Map<string, { name?: string; category?: string }>();
+          for (const v of voices) if (typeof v.voice_id === 'string') listed.set(v.voice_id, v);
+          // An unreadable or empty list is not evidence anything is missing.
+          // Better to let a working setup boot than to refuse over a body this
+          // check did not understand.
+          if (listed.size === 0) return null;
 
-          const voices = (body as { voices?: { voice_id?: string; name?: string }[] }).voices ?? [];
-          const ids = voices.map((v) => v.voice_id).filter((id): id is string => typeof id === 'string');
-          // An unreadable or empty list is not evidence the voice is missing.
-          if (ids.length === 0 || ids.includes(wanted)) return null;
+          const entries = Object.entries(ELEVEN_VOICES);
+          const missing = entries.filter(([, id]) => !listed.has(id));
+          if (missing.length > 0) {
+            // Named by KEY, because the key is what a reader acts on: either the
+            // voice goes back on the account, or the key comes out of the
+            // catalogue. The vendor id is printed beside it only so it can be
+            // pasted into the vendor's own search.
+            const named = missing.map(([key, id]) => `${key} (${id})`).join(', ');
+            // The sample is printed only when NOTHING matches, which is the
+            // signature of a key rotated onto a different account. With one or
+            // two voices missing it is noise — the reader already knows which
+            // key to act on, and four unrelated ids from the account would
+            // invite pasting one of them in, which is how the old
+            // ELEVEN_VOICE_ID advice used to end.
+            const sample =
+              missing.length < entries.length
+                ? ''
+                : `\n          This account does list: ` +
+                  voices
+                    .filter((v) => typeof v.voice_id === 'string')
+                    .slice(0, 4)
+                    .map((v) => `${v.name ?? 'unnamed'} (${v.voice_id})`)
+                    .join(', ');
+            return {
+              vendor: 'ElevenLabs',
+              fatal: true,
+              detail:
+                `accepts the key but does not list ${missing.length} of the ${entries.length} catalogue voices:\n` +
+                `          ${named}\n` +
+                `          A voice belongs to the account that made it, so this is what a key rotated onto a NEW\n` +
+                `          account looks like. Synthesis would 404 for any learner who picked one, and the tutor\n` +
+                `          would join and never speak.\n` +
+                `          Re-add the voice to this account, or remove the key from ELEVEN_VOICES in voice.ts AND\n` +
+                `          from packages/core/src/protocol/voices.ts — both, or the Record stops compiling.` +
+                sample,
+            };
+          }
 
-          const named = voices
-            .filter((v) => typeof v.voice_id === 'string')
-            .slice(0, 4)
-            .map((v) => `${v.name ?? 'unnamed'} (${v.voice_id})`);
-          return {
-            vendor: 'ElevenLabs',
-            fatal: true,
-            detail:
-              `accepts the key but has no voice "${wanted}" — a voice belongs to the account that made it,\n` +
-              `          so this is what a key rotated onto a NEW account looks like. Synthesis would 404 and\n` +
-              `          the tutor would join and never speak.\n` +
-              `          Unset ELEVEN_VOICE_ID for the default voice, or set it to one of: ${named.join(', ')}`,
-          };
+          // A stock voice is a tutor with an expiry date on it. Non-fatal: it
+          // still speaks today, and refusing to boot over a deadline months out
+          // would take the product down to prevent an outage. Reported second,
+          // because a voice that cannot be spoken with at all outranks one that
+          // can be spoken with until December — probe() returns one check, and
+          // one broken vendor has to stay one message.
+          const premade = entries.filter(([, id]) => listed.get(id)?.category === 'premade');
+          if (premade.length > 0) {
+            return {
+              vendor: 'ElevenLabs',
+              fatal: false,
+              detail:
+                `lists ${premade.map(([key]) => key).join(', ')} as a premade voice. ElevenLabs is retiring its\n` +
+                `          premade catalogue on ${PREMADE_RETIREMENT}, after which that voice stops synthesizing and\n` +
+                `          every learner who chose it meets a silent tutor. Replace it with a library or\n` +
+                `          professional voice in ELEVEN_VOICES before then, and re-warm the cache.`,
+            };
+          }
+          return null;
         }, true);
         if (catalogue !== null) return catalogue;
 
         // Asked third and only once the first two are clean, so one broken vendor
         // still produces one message. Costs `PROBE_LINE` worth of quota per boot,
         // which is four characters against a tutor that silently cannot speak.
-        const wanted = (env.ELEVEN_VOICE_ID ?? '').trim();
-        if (wanted === '') return null; // the vendor default; nothing of ours to prove
-        return probeSynthesis(wanted, env.ELEVEN_API_KEY ?? '', fetchFn);
+        //
+        // THE DEFAULT VOICE ONLY, and that is a deliberate limit rather than an
+        // oversight. This probe answers "is this account allowed to SAY
+        // anything", which is a property of the plan and not of the voice; the
+        // catalogue check above has already proved the account owns all eight.
+        // Probing each one would multiply every dev restart by eight billed
+        // requests to re-answer the same question.
+        return probeSynthesis(ELEVEN_VOICES[DEFAULT_TUTOR_VOICE], env.ELEVEN_API_KEY ?? '', fetchFn);
       })(),
     );
   }

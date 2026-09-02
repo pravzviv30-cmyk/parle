@@ -1115,7 +1115,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   instead of reading /v1/user — same 401 on a bad key, and the body is the only
   thing that can settle the question — and an absent voice is fatal with the
   usable voices named, mirroring the retired-Groq-model check.
-- verified-by: `a voice the account does not have is fatal, not a warning`
+- verified-by: `a key rotated onto a new account is fatal, and names every voice it cannot speak`
+- verified-by: `a catalogue voice the account does not list is fatal and names the key to remove`
+- note 2026-09-02: re-pointed by F286, not weakened. The original test named one voice from an env
+  var; the learner now picks from eight, so the probe proves all of them and the replacement names
+  every voice the account cannot speak. Same failure, eight times the surface.
 
 ### E2 — A dead voice key blocks the two modes that need no voice
 - severity: P2
@@ -1168,7 +1172,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the probe asks for exactly what the tutor will ask for`
 - verified-by: `a vendor blip at synthesis does not refuse to start the worker`
 - verified-by: `a refused voice still produces one message, not two`
-- verified-by: `no configured voice means nothing of ours to prove`
+- verified-by: `the synthesis probe asks for the default voice, and only the default`
+- note 2026-09-02: re-pointed by F286. There is no unset-voice state left to test, so the question
+  the old test answered — how much quota a boot spends — became "how many voices does it speak",
+  and the honest answer is one. Eight probes per boot would be eight billed requests for a
+  guarantee seven of them cannot give.
 
 ### E4 — A delivery knob could change what the vendor was asked for while the cache replayed the old answer
 - severity: P2
@@ -4358,3 +4366,293 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   that is not a claim about who Luc is.
 - verified-by: `neither prompt gives the tutor a home town`
 - verified-by: `the first-run copy tells his life story without naming a city`
+
+### F282 — The tutor voice catalogue lives in core, keyed by app-level keys
+- severity: P1
+- status: [x]
+- where: packages/core/src/protocol/index.ts:19
+- note: the app needs names and one-line descriptions, the token server needs the shape, and the
+  agent needs the keys to map to vendor ids. Core is the only package all three import, and the
+  voice is a wire value, so the catalogue sits beside the protocol. Eight entries keyed
+  `luc | alexandre | enrick | mathieu | guillaume | benoit | celine | emilie`, each carrying a
+  persona name, a pronoun and a `sound` line stating only what is verified — gender, accent,
+  "young". `luc` is the default. App-level keys rather than vendor ids, so a re-clone or a vendor
+  move is a one-table edit and a learner's stored preference outlives both. No vendor name and no
+  vendor id may appear anywhere a learner can read, which `failure.test.ts:319` already polices.
+- verified-by: `the catalogue offers eight voices, one default, every key lowercase and vendor-free`
+- verified-by: `an unknown or malformed key is not a tutor voice`
+
+### F283 — buildTTS speaks the chosen catalogue voice, and ELEVEN_VOICE_ID is retired
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/voice.ts:246
+- note: the voice becomes a parameter defaulting to the catalogue default, mapped through
+  `ELEVEN_VOICES: Record<TutorVoiceKey, string>` so a missing id is a compile error rather than a
+  404 at the vendor. The cache key keeps the **vendor id**, not the app key, so a voice re-cloned
+  under the same key can never replay the old clone's audio. `process.env.ELEVEN_VOICE_ID` is read
+  by nothing from here on; preflight names it when set, the way `NEAR_MISS_KEYS` names `OPEN_AI_KEY`.
+  The derived, sorted settings fingerprint is untouched.
+- verified-by: `buildTTS speaks the default voice when nothing is chosen`
+- verified-by: `the chosen voice's vendor id lands in the cache key, so two voices never share a WAV`
+- verified-by: `ELEVEN_VOICE_ID is read by nothing any more`
+- verified-by: `ELEVEN_VOICES names a non-empty vendor id for every catalogue voice`
+
+### F284 — /session/start carries the tutor voice into the signed join metadata, shape-checked
+- severity: P1
+- status: [x]
+- where: services/token-server/src/tokens.ts:159
+- note: the third passenger after `seedTopic` and `missionId`, obeying the same rules: a loose
+  string at the edge, `validTutorVoice` in `grantSession` (trimmed, 1 to 32 chars,
+  `/^[a-z][a-z0-9-]*$/`), signed when it passes and silently dropped when it does not. Deliberately
+  NOT checked against the catalogue here: the agent is the last hop before the billed vendor URL
+  and resolves it there, and a second strict copy would be a second thing to keep in step.
+- verified-by: `the token server signs the tutor voice into the join metadata`
+- verified-by: `a tutor voice that is not shaped like a key is dropped, never refused`
+
+### F285 — The worker resolves the voice before it builds the TTS, and hands the persona to both tutors
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:107
+- note: `buildTTS()` runs at line 107 and `parseMeta` at 141, so today the voice is decided before
+  anyone can know which learner joined. The call moves below the parse. `resolveTutorVoice` returns
+  a catalogue key or the default and never throws, so nothing the app sends can become a URL
+  segment at the vendor — that resolve is the authoritative guard, because this is the only process
+  holding the vendor key. The same key's persona reaches both tutors. A joinMeta tripwire holds the
+  ordering, because plumbing order is the class of bug seven green tests once missed here.
+- verified-by: `the worker reads the tutor voice off the join metadata and builds the voice after reading it`
+- verified-by: `an unknown tutor voice resolves to the default and never reaches the vendor`
+- verified-by: `the worker hands the persona to both tutors`
+
+### F286 — Preflight proves every catalogue voice on the account, and warns on a premade one
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/preflight.ts:525
+- note: the catalogue probe checks every id in `ELEVEN_VOICES` is listed, not just the configured
+  one, because a learner can pick any of them and a missing one means a room that opens and a tutor
+  that never speaks. A missing voice is fatal and names the key to remove or the voice to re-add.
+  A listed voice with `category: 'premade'` is a non-fatal check naming the 2026-12-31 retirement.
+  The synthesis probe speaks the default only. Any new `warnings()` line must be CONDITIONAL:
+  eleven assertions in preflight.test.ts pin exact counts and deepEqual results.
+- verified-by: `a catalogue voice the account does not list is fatal and names the key to remove`
+- verified-by: `a premade voice in the catalogue is a warning that names the retirement date`
+- verified-by: `a stale ELEVEN_VOICE_ID is named as read by nothing`
+- verified-by: `the synthesis probe asks for the default voice, and only the default`
+
+### F287 — The warm run warms the default, every voice on request, and says what each costs
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/warmCache.ts:83
+- note: 62 sentences is roughly 1,618 characters per voice, so eight is about 12,900 — a third of
+  a Starter month — and must not happen on every cold clone. `voicesToWarm(env)` in a new
+  `warmPlan.ts` reads `LUVANI_WARM_VOICES` (unset: the default; `all`; or a comma list), refuses an
+  unknown key BEFORE spending, and the run prints characters per voice. The
+  `buildTTS({ voice, missTransport: 'http' })` call must keep `ttsCache.test.ts:353`'s regex
+  matching, whose `[^}]*` cannot cross a brace — so no nested object literal before `missTransport`.
+- verified-by: `the warm run warms only the default voice unless LUVANI_WARM_VOICES asks for more`
+- verified-by: `LUVANI_WARM_VOICES=all warms every catalogue voice and reports the characters per voice`
+- verified-by: `an unknown key in LUVANI_WARM_VOICES refuses before spending, naming the catalogue`
+
+### F288 — The profile remembers the chosen voice at version 6
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/profile/upgrade.ts:116
+- note: `tutorVoice: TutorVoiceKey | null`, null meaning never chosen and therefore the default. A
+  v6 branch reads its own; every branch below writes null, because nothing that happened before the
+  field existed is a choice. A stored value that is not a catalogue key reads as null, the same way
+  every other slot in this chain reads junk as an unanswered question. `withTutorVoice` is a named
+  door in `store.ts` beside `withDailyGoal`.
+- verified-by: `a v6 profile keeps the voice the learner chose`
+- verified-by: `every version below 6 arrives with no voice chosen, never an invented one`
+- verified-by: `a stored voice that is not a catalogue key reads as not chosen`
+
+### F289 — The chosen voice syncs as an answered question
+- severity: P1
+- status: [x]
+- where: packages/brain/src/profile/merge.ts:135
+- note: a voice is something the learner told us, so it joins `PROFILE_ANSWER_FIELDS` and a non-null
+  beats a null from either side, exactly like `dailyGoalMin`. `sync/policy.ts:515` moves to
+  `writes: 6`, and the existing coupling test that holds the store's version equal to the policy's
+  keeps both honest. Note for the executor: `sync/policy.ts` reports as binary to `file` and plain
+  `grep` misses it — use `grep -a`.
+- verified-by: `a chosen voice beats a null one from either side, and the merge still absorbs its inputs`
+- verified-by: `the profile row writes the version the store writes`
+
+### F290 — The Profile tab offers every voice
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:500
+- note: a "Tutor's voice" row after strictness, opening a sheet built like the strictness one:
+  one `OptionCard` per catalogue voice showing the persona name and its `sound` line, the chosen one
+  selected, one tap through `withTutorVoice`. The subline says it takes effect next session and can
+  be changed whenever they like. Copy is checked in the file's source-walk idiom: no vendor name,
+  no em dash, no promise about quality.
+- verified-by: `the voice row offers every catalogue voice, marks the chosen one, and writes through the named door`
+- verified-by: `the voice sheet never names a vendor and carries no em dash`
+
+### F291 — Every session start sends the chosen voice
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:759
+- note: `tutorVoice` rides the `/session/start` body beside `missionId`, from both
+  `LiveSessionScreen` and `ConvoScreen`, and it is ALWAYS sent — the default included — so the app's
+  picker and the agent's fallback can never disagree about what "unchosen" means.
+- verified-by: `every session start sends the chosen voice, and the default when none is chosen`
+
+### F292 — Both prompts introduce the chosen persona, and claim no age a voice can contradict
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/prompt.ts:32
+- note: the sibling of F281, which already removed the home town. Both prompts open with the chosen
+  persona's name rather than "Luc", and the explicit age goes for the same reason the city did:
+  Émilie is a young voice and "fifty-two" is the one remaining biography fact a voice contradicts.
+  The bar, the twenty years, the not-a-teacher and the warmth stay. The default persona is Luc, so
+  the default prompt is unchanged apart from the age. The existing coupling test that holds both
+  pipelines introducing the same person still applies. NOTE: F281's re-pointed assertion currently
+  matches on `fifty-two`; re-point it again rather than deleting it.
+- verified-by: `both prompts introduce the chosen persona by name, and Luc when nothing is chosen`
+- verified-by: `the persona line carries no age a young voice can contradict`
+
+### F293 — The app calls the tutor by the chosen persona everywhere it names him
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tutor/tutorName.ts:18
+- note: `tutorName.ts` was built so a rename is two deliberate edits rather than a hunt; this is that
+  rename, made per learner. `tutorPersonaOf(profile)` replaces the constant at its twelve call sites,
+  `rungLabel` in `theme.ts:90` becomes a function of the name, and `waitingView` takes it as an
+  argument. A source walk holds that `TUTOR_NAME` is referenced from nowhere but its own file, so a
+  thirteenth literal cannot creep back.
+- verified-by: `every learner-facing tutor name reads from the chosen persona, not the constant`
+- verified-by: `the rung label and the waiting line name the chosen persona`
+
+### F294 — The first-run disclosure follows the chosen persona
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/disclosure.ts:116
+- note: `PERSONA_TITLE` and `PERSONA_BODY` become functions of the persona so the gender words and
+  pronouns follow it, and "AI tutor" stays because that sentence IS the disclosure. `TutorIntro`'s
+  "what he just said" takes the pronoun. F281's guard that the copy names no city still applies.
+- verified-by: `the persona page describes the chosen persona in the right words, and still says AI tutor`
+- verified-by: `the intro's pronoun follows the chosen persona`
+
+### F295 — A sample clip per voice, made through the same voice seam
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/package.json:11
+- note: promoted from P2 because the onboarding showcase needs something to play. `voice-samples`
+  synthesises one short bilingual line per catalogue voice — one French sentence, one English, the
+  persona's name in it — through `buildTTS({ voice, missTransport: 'http' })` into
+  `apps/mobile/assets/voices/<key>.m4a`. Through the seam, so the clip is exactly what the tutor
+  will sound like rather than an approximation, and cached so a rerun is free. Bundle size is the
+  constraint: keep each clip under about 150KB.
+- verified-by: `the sample script writes one clip per catalogue voice through the same voice seam`
+- verified-by: `every catalogue voice has a bundled sample the app can play`
+
+### F296 — A learner can hear each voice before choosing it
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:400
+- note: promoted from P2 for the same reason. Each option on the voice sheet offers a listen that
+  plays that voice's bundled clip through `expo-audio`'s `useAudioPlayer` — the first local playback
+  in the app, and already a dependency. One clip at a time: starting a second stops the first, or a
+  learner comparing two voices hears both at once. Choosing a voice must not require hearing it.
+- verified-by: `each voice on the sheet offers a listen, and it plays that voice's clip`
+- verified-by: `starting one sample stops the one already playing`
+
+### F297 — First run introduces the voices and lets the learner choose one
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/disclosure.ts:73
+- note: the founder asked for this explicitly, overriding the contract's original "Profile row only"
+  scope. A first-run step after the AI disclosure where the learner meets the voices: each one
+  named, described in its own `sound` line, and playable. Choosing writes through `withTutorVoice`
+  exactly as the Profile sheet does — one door, not two.
+  Three rules this step must not break. It is SKIPPABLE, because a learner who just wants to talk
+  must not be held at a menu, and the default is a real answer. It must not claim a voice is
+  "better" or "native" beyond what the catalogue's verified `sound` line says. And it must still say
+  the tutor is AI, because this is the disclosure surface and `disclosure.test.ts` polices exactly
+  that: any copy telling his life story must also say AI.
+  The showcase explains what the choice DOES — it changes who speaks, not what is taught — so a
+  learner does not read it as picking a difficulty or a dialect to learn.
+- verified-by: `first run introduces every voice, names it, and can play it`
+- verified-by: `the voice step can be skipped, and skipping leaves the default chosen`
+- verified-by: `the voice step writes through the same door as the profile sheet`
+- verified-by: `the voice step still says the tutor is AI`
+
+### F298 — prepareTurn builds its own system blocks and cannot be told who is speaking
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/engine/conversation.ts:570
+- note: found while threading the persona through the tutor classes, and it is the call that
+  mattered most. `prepareTurn` builds `system: buildSystemBlocks()` itself, with no persona
+  parameter to build it from, and that is the **per-turn spoken reply** — the line the learner
+  actually hears. The four call sites written out in `convo.ts` cover the scene, the curation, the
+  extraction and the drills; this fifth one covers speech. Threading only the four would have
+  shipped a session where the recap and tomorrow's drills speak as Céline while every spoken line
+  introduces itself as Luc in her voice, which is precisely the mismatch F292 exists to prevent.
+  It is not broken today: `runBrainTurn` overrides the block with brain's own builder,
+  `{ ...prepareTurn(state, input), system: buildSystemBlocks(this.persona) }`. That override is the
+  debt. It rebuilds a block `prepareTurn` already built, so the two can drift, and brain's own
+  docstring asserts a contract the code does not keep — "The live path always passes one." It does
+  not. The honest fix is a `persona` argument on `prepareTurn`, after which the override comes out
+  in the same commit. Filed rather than done because brain's engine was outside the territory of
+  the engineer who found it, and a parallel prompt path is worth one deliberate change, not a
+  reach across a boundary.
+- verified-by: `prepareTurn takes the persona and the live path stops overriding its system block`
+
+### F299 — The app cannot be bundled: eight voice clips are required and none exists
+- severity: P0
+- status: [x]
+- where: apps/mobile/src/tutor/voiceSamples.ts:41
+- note: `npx expo export --platform web` from apps/mobile fails with `Unable to resolve
+  ../../assets/voices/luc.m4a`, import stack voiceSamples.ts -> tabs/ProfileTab.tsx ->
+  nav/RootNavigator.tsx -> App.tsx -> index.ts, so no screen loads on any platform. The directory
+  `apps/mobile/assets/voices/` does not exist because `npm run voice-samples -w @luvani/tutor-agent`
+  was written and never run — the orchestrator told the engineer not to spend vendor quota, and
+  nothing then noticed that a static import makes those files a build dependency rather than an
+  asset. F295 was ticked on a test that returns early at
+  services/tutor-agent/src/voiceSamples.test.ts:91 when zero clips are present, which is exactly
+  the one state the app cannot be built in: the tick was vacuous and has been undone.
+  Run the script once, commit the eight .m4a files, and replace the early return with an
+  unconditional existence check so a missing clip fails the suite rather than Metro. A green gate
+  said nothing here because the gate never bundles; that is the lesson worth keeping.
+- verified-by: `every bundled clip is on disk, so the app can be built at all`
+
+### F300 — A learner who already chose a voice is re-introduced to the default on a second first run
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/OnboardingFlow.tsx:225
+- note: tutorName.test.ts:26 says F294 and F297 "empty" the NO_LEARNER_IN_HAND list, but both
+  onboarding files are still on it, and OnboardingFlow has `existing` in hand. A migrated learner
+  with `tutorVoice: 'celine'` who re-enters onboarding — a new required answer, or a pre-account
+  record — reads "Meet Luc", "Luc is an AI tutor. The man who ran a bar...", and "Luc greets you by
+  name", and then TutorIntro introduces Céline. Naming the default on pre-choice surfaces is
+  deliberate and correct for a first-ever run, which is why this is P2 rather than a defect in the
+  contract: the gap is only the learner who already answered. Read `tutorPersonaOf(existing)` on
+  the meet page and drop the two onboarding files from the allowance.
+- verified-by: `a learner who already chose a voice is re-introduced to that voice, not the default`
+
+### F301 — The sample player glue is copied between the Profile sheet and the first-run voice step
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/OnboardingFlow.tsx:137
+- note: `playing` state, `useAudioPlayer()` and the `hearVoice` callback are the same fifteen lines
+  in OnboardingFlow.tsx:137-153 and ProfileTab.tsx:185-203, with the pause-on-leave in a third
+  shape each (`finish` versus `closeVoiceSheet`). `nextSample` already holds the one-at-a-time rule
+  in a testable module, so what is copied is only React glue — but two copies of glue is how one
+  screen gets a fix the other does not. Lift it into one hook in `tutor/` and have both call it.
+- verified-by: `one hook owns the sample player, and both the sheet and the first-run step use it`
+
+### F302 — A ticked ledger entry can name a describe block and still count as verified
+- severity: P2
+- status: [ ]
+- where: scripts/gate.mjs:222
+- note: found by the work-judge while checking this repo's own tick discipline, which makes it the
+  most interesting entry in the batch: it is a hole in the mechanism the whole ledger rests on.
+  `passed` collects every line beginning `✔ ` from node's spec reporter, and the reporter prints a
+  ✔ for a passing *describe* as well as for a passing test — confirmed, `✔ the warm plan decides
+  which voices a run pays for` appears alongside its three tests. So a `verified-by` naming a suite
+  title rather than a test title satisfies the tick check while binding the claim to a group rather
+  than to one assertion. No entry does this today: all 42 ticked titles across F282 to F300 resolve
+  to exactly one `test(` call in exactly one file, checked. But the gate cannot currently tell the
+  two apart, and "tick follows the test" is the rule it exists to enforce.
+- verified-by: `a verified-by that names a describe block rather than a test does not count as passing`

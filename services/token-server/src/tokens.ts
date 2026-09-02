@@ -164,6 +164,40 @@ function validMissionId(value: unknown): string | undefined {
   return trimmed;
 }
 
+/** A catalogue key, not a name and not a vendor id. */
+const MAX_TUTOR_VOICE_CHARS = 32;
+
+/**
+ * Which tutor the learner chose to be taught by. The third passenger after the
+ * seed topic and the mission, and it obeys exactly the same rules, because it
+ * is exactly the same kind of thing: a hint the app sends, signed here, acted
+ * on by the agent.
+ *
+ * Stricter in shape than a mission id on purpose. Voice keys are ours and we
+ * chose them lowercase and hyphenated, so `/^[a-z][a-z0-9-]*$/` is a fact about
+ * the catalogue rather than a guess. Anything with a colon, a dot, a slash, an
+ * accent or a capital in it was not produced by our chooser.
+ *
+ * Deliberately NOT checked against the catalogue itself. The agent is the last
+ * hop before a URL that bills someone, it is the only process holding the
+ * vendor key, and it re-resolves this to a known voice or the default whatever
+ * arrives. A second strict copy of the list here would be a second thing to
+ * keep in step and a way for the two to disagree about the same learner. What
+ * this function is for is making sure nothing shaped like an injection, a path
+ * or a sentence inherits the server's signature on the way through.
+ *
+ * Dropped, never refused. A voice we cannot read costs the learner their chosen
+ * tutor for one session, never the session. They get the default and can still
+ * speak French, which is what they opened the app for.
+ */
+function validTutorVoice(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > MAX_TUTOR_VOICE_CHARS) return undefined;
+  if (!/^[a-z][a-z0-9-]*$/.test(trimmed)) return undefined;
+  return trimmed;
+}
+
 export async function grantSession(
   opts: {
     userId: string;
@@ -189,6 +223,12 @@ export async function grantSession(
      * what it is. Whether that mission exists is the agent's call, not ours.
      */
     missionId?: unknown;
+    /**
+     * Which voice the learner picked for their tutor. Validated here for shape
+     * only; whether that voice exists is the agent's call, because the agent is
+     * the only process that can turn a key into a vendor id.
+     */
+    tutorVoice?: unknown;
   },
 ): Promise<GrantResult> {
   const decision = canStartSession(opts.entitlement, MIN_VIABLE_SESSION_SEC);
@@ -201,6 +241,7 @@ export async function grantSession(
   const startRung = validStartRung(opts.startRung);
   const seedTopic = validSeedTopic(opts.seedTopic);
   const missionId = validMissionId(opts.missionId);
+  const tutorVoice = validTutorVoice(opts.tutorVoice);
   const sessionId = randomUUID();
   const roomName = `${roomNameFor(opts.userId, opts.lessonId, opts.now)}-${sessionId.slice(0, 12)}`;
   const at = new AccessToken(opts.config.apiKey, opts.config.apiSecret, {
@@ -227,6 +268,7 @@ export async function grantSession(
       ...(startRung !== undefined ? { startRung } : {}),
       ...(seedTopic !== undefined ? { seedTopic } : {}),
       ...(missionId !== undefined ? { missionId } : {}),
+      ...(tutorVoice !== undefined ? { tutorVoice } : {}),
       ...(opts.snapshot !== undefined ? { snapshot: opts.snapshot } : {}),
     }),
   });

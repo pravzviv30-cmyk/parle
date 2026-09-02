@@ -22,20 +22,22 @@
  * language code. That is most of what made it sound synthetic, and no amount of
  * better writing would have fixed it.
  *
- * The honest fix is a native French voice. It is not available here: every
+ * The honest fix was a native French voice, and it is a paid line item: every
  * native French voice the vendor offers is a library or cloned voice, and a
  * free account cannot use either over the API ("Free users cannot use library
  * voices via the API"), while the free tier's own premade voices are all
- * English. A native French tutor is therefore a paid line item, and until that
- * is bought this file does the next best thing: keep the premade voice, and put
- * it on the model where its French is actually verified.
+ * English. That plan is now bought, and there are eight of them.
  *
- * Before changing either constant, read verified_languages from /v2/voices and
- * check the pair. A voice's name tells you nothing.
+ * WHICH OF THE EIGHT is no longer a config decision at all — the learner makes
+ * it. `ELEVEN_VOICES` below maps their choice to a vendor id, and the model
+ * stays pinned across all eight, because every one of them is verified for
+ * French AND English on it. Before adding a ninth, read verified_languages from
+ * /v2/voices and check the pair. A voice's name tells you nothing.
  */
 
 import { fileURLToPath } from 'node:url';
 import * as elevenlabs from '@livekit/agents-plugin-elevenlabs';
+import { DEFAULT_TUTOR_VOICE, isTutorVoiceKey, type TutorVoiceKey } from '@luvani/core';
 import { CachedTTS, type CachedTTSOptions } from './ttsCache.ts';
 import { fishVoice } from './voiceFish.ts';
 
@@ -83,11 +85,66 @@ export const VOICE_KEY: Record<VoiceVendor, string> = {
 };
 
 /**
- * Pinned for two reasons. A plugin upgrade must never be able to move the voice
+ * The learner's catalogue key to the vendor's id for that voice.
+ *
+ * THIS IS THE ONLY PLACE VENDOR IDS EXIST. The catalogue in `@luvani/core` is
+ * imported by the app, which means it ships to a phone, and an id in it would
+ * be an id anyone could read and bill against with a stolen key. This file runs
+ * in the one process that holds the ElevenLabs key, so this is where the
+ * translation belongs and the only place it can be done safely.
+ *
+ * `Record<TutorVoiceKey, string>` and not a loose object, deliberately. A voice
+ * added to the catalogue and forgotten here is then a COMPILE error, which is
+ * the whole point: the alternative failure is a learner picking a real voice,
+ * the worker asking the vendor for `undefined`, and a 404 landing as a room
+ * that opens and a tutor that never speaks. That is not a bug anyone finds from
+ * the outside.
+ *
+ * Every one of these eight is verified by the vendor for BOTH French and
+ * English on the model pinned below. That pairing is not a formality — the
+ * tutor glosses a French word in English mid-sentence and it has to stay one
+ * person doing it. Read verified_languages from /v2/voices before adding a
+ * ninth, and preflight proves on every boot that the account still lists all of
+ * them.
+ */
+export const ELEVEN_VOICES: Record<TutorVoiceKey, string> = {
+  luc: 'IPgYtHTNLjC7Bq7IPHrm',
+  alexandre: 'gP52hjM48hyNoVCbizxO',
+  enrick: '0xHziZolI8Tp6rLtUqh2',
+  mathieu: 'wQjKP9DkO6pDLKdaqFn6',
+  guillaume: '3HZyQcLKlT0a3RDeXVsP',
+  benoit: '6O7stE7T9DovYmAe1JiJ',
+  celine: '3fxbs2pB9bs8S6Z1N38A',
+  emilie: 'i6ke7jvmGEVUyV4zjSaT',
+};
+
+/**
+ * Whatever the app sent, turned into a voice this worker can actually speak.
+ *
+ * This is the authoritative resolve, and it lives here rather than in core or
+ * at the token server because this is the LAST hop before a billed vendor URL.
+ * The token server shape-checks the value and signs it; core cannot decide a
+ * fallback because core is imported by the app. By the time a string reaches
+ * this function it has crossed a wire and sat in a stored profile, so it is
+ * untrusted no matter whose signature is on it.
+ *
+ * It never throws, and that is a product decision rather than defensive habit.
+ * The room is already open and the learner is already in it: a voice key we
+ * retired last month, or a profile written by a newer build, has to become a
+ * lesson in Luc's voice, not an exception in a room that has just gone quiet.
+ */
+export function resolveTutorVoice(raw: unknown): TutorVoiceKey {
+  return isTutorVoiceKey(raw) ? raw : DEFAULT_TUTOR_VOICE;
+}
+
+/**
+ * Pinned for two reasons. A plugin upgrade must never be able to move the model
  * and orphan every cached WAV on its own; and this specific model is the one
- * where the configured premade voice has verified French. On the plugin's own
- * default, eleven_turbo_v2_5, that same voice is verified for English only, and
- * the French it produced there was out of distribution.
+ * where every voice in ELEVEN_VOICES has verified French AND English. On the
+ * plugin's own default, eleven_turbo_v2_5, the voice this file originally
+ * shipped with was verified for English only, and the French it produced there
+ * was out of distribution. One model across all eight is also what keeps the
+ * cache a single fingerprint rather than eight.
  *
  * It costs first-byte time against turbo, and the number is measured rather
  * than feared: three streaming synthesis runs of the same French line, from
@@ -224,37 +281,69 @@ export function synthesisProbeRequest(voiceId: string): { url: string; body: str
 }
 
 /**
- * `hooks` exists for the agent's latency telemetry; the warm-cache script calls
- * this bare. Nothing here may change what the tutor sounds like.
+ * What buildTTS needs to know, flattened on purpose.
+ *
+ * `voice` is the learner's choice and the rest are the agent's latency hooks.
+ * They sit at one level rather than in a nested `hooks` object because
+ * `ttsCache.test.ts` reads the warm-cache script's call site with a regex whose
+ * `[^}]*` cannot cross a brace, and that tripwire is worth more than the tidier
+ * shape. Keep every field here a scalar.
+ */
+export interface BuildTTSOptions extends Pick<CachedTTSOptions, 'onFirstAudio' | 'missTransport'> {
+  /**
+   * Which of the eight the learner chose. Defaults to the catalogue default, so
+   * a caller that predates the chooser — the warm-cache script, a test — gets
+   * Luc rather than the vendor's own default voice, which is the failure this
+   * whole file was written to end.
+   */
+  voice?: TutorVoiceKey;
+}
+
+/**
+ * The hooks exist for the agent's latency telemetry; the warm-cache script
+ * calls this with a voice and a transport and nothing else. Nothing here may
+ * change what the tutor sounds like beyond the voice it was handed.
  *
  * The vendor branch is the only thing LUVANI_TTS_VENDOR moves. Everything below
- * it — the model, the voice, the settings, the fingerprint, the voiceKey — is
+ * it — the model, the settings, the fingerprint, the shape of the voiceKey — is
  * the ElevenLabs configuration exactly as it was before fish existed, because
  * the warmed cache on disk is keyed to that string and a byte of drift throws
  * all of it away.
  */
-export function buildTTS(
-  hooks: Pick<CachedTTSOptions, 'onFirstAudio'> & Pick<CachedTTSOptions, 'missTransport'> = {},
-): CachedTTS {
+export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, ...hooks }: BuildTTSOptions = {}): CachedTTS {
   const dir = process.env.TTS_CACHE_DIR ?? DEFAULT_CACHE_DIR;
 
   if (selectedVoiceVendor() === 'fish') {
+    // fish has one configured voice and no catalogue, so a chosen key has
+    // nowhere to go here. That is a real limitation and it is stated rather
+    // than hidden: this vendor exists as a free-tier escape hatch, and a
+    // learner who picks Céline under it hears whatever FISH_VOICE_ID names.
+    // The persona still follows the choice, which is the mismatch to watch for
+    // if fish is ever more than a fallback.
     const { inner, voiceKey } = fishVoice();
     return new CachedTTS(inner, { dir, voiceKey, ...hooks });
   }
 
-  const voiceId = process.env.ELEVEN_VOICE_ID;
+  // Never the app-level key. A voice re-cloned or re-recorded keeps its
+  // catalogue key — that is the point of app-level keys, so a learner's stored
+  // preference outlives the recording — and if the cache were keyed by that
+  // key, every warmed WAV of the OLD clone would replay under the new one. The
+  // vendor id changes when the recording does, so the cache changes with it.
+  const voiceId = ELEVEN_VOICES[voice];
   const inner = new elevenlabs.TTS({
     model: MODEL,
     streamingLatency: STREAMING_LATENCY,
     voiceSettings: VOICE_SETTINGS,
     ...(LANGUAGE_CODE ? { languageCode: LANGUAGE_CODE } : {}),
-    ...(voiceId ? { voiceId } : {}),
+    voiceId,
   });
 
   const opts: CachedTTSOptions = {
+    // `inner.model` rather than MODEL: it is the value the plugin resolved and
+    // will actually send, so a plugin that ever normalised the name re-keys the
+    // cache instead of replaying audio made under a different one.
     dir,
-    voiceKey: `elevenlabs:${voiceId ?? 'default'}:${inner.model}:${SETTINGS_FINGERPRINT}`,
+    voiceKey: `elevenlabs:${voiceId}:${inner.model}:${SETTINGS_FINGERPRINT}`,
     ...hooks,
   };
   return new CachedTTS(inner, opts);

@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
 import {
-  ANYTHING_GOES,
   MODE_CAPS,
   QUIET_DOOR,
   TAP_TO_TALK,
+  anythingGoes,
   choosingView,
   micOpensAtConnect,
   modeCarriesAudio,
@@ -13,7 +13,10 @@ import {
   type LiveMode,
 } from './choosingView.ts';
 import { pushTurn, type TurnLine } from '../live/turns.ts';
-import { TUTOR_NAME } from './tutorName.ts';
+// A name to interpolate, and deliberately not the default one. F293 made the
+// tutor per learner, so a suite that fed the default name back in would pass
+// just as happily over a module that had gone back to reading the constant.
+const CHOSEN = 'Celine';
 
 /** The tutor's question, which the hook puts in the thread the moment it lands. */
 const asked: TurnLine[] = [
@@ -27,6 +30,7 @@ const opening: ChoosingState = {
   thinking: false,
   tutorSpeaking: false,
   turns: asked,
+  tutorName: CHOSEN,
 };
 
 describe('the choosing moment — what the screen decides before a scene exists', () => {
@@ -58,7 +62,7 @@ describe('the choosing moment — what the screen decides before a scene exists'
     const after = choosingView({ ...opening, micOpen: true });
     assert.equal(after.orb, 'listening', 'once the microphone is open, green means the learner may speak');
     assert.equal(after.orbIsButton, false, 'one tap opens it for the session, so a second tap has nothing left to do');
-    assert.equal(after.helper, ANYTHING_GOES, 'the instruction is spent, and what replaces it is what to talk about');
+    assert.equal(after.helper, anythingGoes(CHOSEN), 'the instruction is spent, and what replaces it is what to talk about');
   });
 
   test('the tutor asking its question out loud is red, not green', () => {
@@ -90,7 +94,7 @@ describe('the choosing moment — what the screen decides before a scene exists'
       'the thread opens with the tutor question, so the headline saying it again is the same sentence twice',
     );
     assert.equal(sent.orb, 'thinking', 'amber is the app saying it heard them, and it costs nothing to say it at once');
-    assert.equal(sent.orbLabel, `${TUTOR_NAME} is thinking`, 'a learner who cannot see the amber still gets told');
+    assert.equal(sent.orbLabel, `${CHOSEN} is thinking`, 'a learner who cannot see the amber still gets told');
   });
 
   test('thinking outranks a tutor who has taken the floor back', () => {
@@ -133,7 +137,7 @@ describe('the choosing moment — what the screen decides before a scene exists'
   });
 
   test('nothing this screen says carries a number, an em dash, or a word that scolds', () => {
-    const lines = [TAP_TO_TALK, ANYTHING_GOES, QUIET_DOOR];
+    const lines = [TAP_TO_TALK, anythingGoes(CHOSEN), QUIET_DOOR];
     for (const state of [opening, { ...opening, micOpen: true }, { ...opening, textMode: true }]) {
       lines.push(choosingView(state).orbLabel);
     }

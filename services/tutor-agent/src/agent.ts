@@ -42,13 +42,14 @@ import * as silero from '@livekit/agents-plugin-silero';
 import { preflight, reportVendors, selectedBrain, verifyVendors } from './preflight.ts';
 import 'dotenv/config';
 
-import { buildTTS } from './voice.ts';
+import { buildTTS, resolveTutorVoice } from './voice.ts';
 
 import {
   CAFE_LESSON,
   encodeMessage,
   TOPIC_CLIENT,
   TOPIC_SERVER,
+  tutorVoice,
   type Lesson,
   type Rung,
   type ServerMessage,
@@ -104,13 +105,6 @@ export default defineAgent({
     let turnCount = 1;
     let timing = createTurnTiming(turnCount);
 
-    const voiceTts = buildTTS({
-      onFirstAudio: ({ hit }) => {
-        mark(timing, 'firstAudio', performance.now());
-        if (timing.cache === null) timing.cache = hit ? 'hit' : 'miss';
-      },
-    });
-
     // Connect before anything is built: the token server signs the lesson, the
     // opening rung and the session mode into the join credential, and the tutor
     // has to be constructed for where this learner actually left off — reading
@@ -128,6 +122,7 @@ export default defineAgent({
       snapshot?: unknown;
       seedTopic?: unknown;
       missionId?: unknown;
+      tutorVoice?: unknown;
     };
     const parseMeta = (raw?: string): TokenMeta => {
       try {
@@ -159,6 +154,45 @@ export default defineAgent({
       typeof meta.startRung === 'number' && Number.isInteger(meta.startRung)
         ? (Math.min(4, Math.max(1, meta.startRung)) as Rung)
         : undefined;
+
+    // Who the learner chose to be taught by, and the one place that choice is
+    // settled. `resolveTutorVoice` returns a catalogue key or the default and
+    // never throws, which matters twice over: this worker holds the only
+    // ElevenLabs key in the system, so whatever comes out of here becomes a
+    // path segment in a request somebody pays for; and the room is already
+    // open, so a voice we retired last month has to become a lesson in Luc's
+    // voice rather than an exception into a silence the learner is paying for.
+    //
+    // The token server signs this value but deliberately only shape-checks it
+    // (F284). A signature proves who sent it, never that the voice exists.
+    const chosenVoice = resolveTutorVoice(meta.tutorVoice);
+
+    // BUILT HERE, AND NOT ONE LINE EARLIER. This call used to sit above
+    // ctx.connect(), which was correct for exactly as long as the voice was a
+    // constant: the moment it belongs to a learner, building the TTS before
+    // waitForParticipant means choosing the voice before knowing whose session
+    // it is. Nothing about that reads as a bug at the call site — every voice
+    // test still passes and every learner quietly hears the default. The
+    // joinMeta tripwire holds this ordering for that reason.
+    //
+    // The cost of moving it: a missing or refused vendor key now throws after
+    // the room is open instead of before. Preflight already refuses to register
+    // a worker whose voice key is absent, so the case this trades away is one
+    // the worker would not have been running in.
+    const voiceTts = buildTTS({
+      voice: chosenVoice,
+      onFirstAudio: ({ hit }) => {
+        mark(timing, 'firstAudio', performance.now());
+        if (timing.cache === null) timing.cache = hit ? 'hit' : 'miss';
+      },
+    });
+
+    // The person that voice belongs to. Name and pronoun travel together out of
+    // core's catalogue, in one row, so they cannot drift: two of the eight
+    // voices are women, and a hardcoded "Luc, he" would have Céline introduce
+    // herself as a man in her first sentence. The prompts do not get to decide
+    // this, and neither does this file — it reads the row and passes it on.
+    const persona = tutorVoice(chosenVoice).persona;
 
     // Both session shapes share the whole voice pipeline below; only the agent
     // driving it differs. The convo profile is the app's stored brain profile,
@@ -211,9 +245,10 @@ export default defineAgent({
           // looking connected. LuvaniConversation reads it when it opens a
           // mission and nowhere else.
           startRung,
+          persona,
           setSttLanguage: (language) => stt.updateOptions({ language }),
         })
-      : new LuvaniTutor(lesson, startRung, { voiceless });
+      : new LuvaniTutor(lesson, startRung, { voiceless, persona });
     tutor.learnerId = participant.identity;
     tutor.sessionId = meta.sessionId;
 

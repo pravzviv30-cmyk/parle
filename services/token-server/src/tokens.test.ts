@@ -1,7 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
-import { FIRST_MISSION, PLANS, type Entitlement } from '@luvani/core';
+import { FIRST_MISSION, PLANS, TUTOR_VOICES, type Entitlement } from '@luvani/core';
 import { ROOM_LIFECYCLE, grantSession, roomNameFor, type TokenConfig } from './tokens.ts';
 import { DevelopmentEntitlementStore, InMemoryEntitlementStore, developmentEntitlementsEnabled } from './store.ts';
 
@@ -264,6 +265,75 @@ describe('session shape in token metadata', () => {
 
     const absent = await metadataFor({});
     assert.equal('missionId' in absent, false, 'no mission means no mission key at all');
+  });
+
+  test('the token server signs the tutor voice into the join metadata', async () => {
+    const chosen = await metadataFor({ tutorVoice: 'celine', mode: 'convo' });
+    assert.equal(chosen.tutorVoice, 'celine', 'the voice the learner chose has to reach the agent, because the agent is the only process that can turn it into a vendor id');
+
+    const padded = await metadataFor({ tutorVoice: '  celine  ' });
+    assert.equal(padded.tutorVoice, 'celine', 'the trimmed key is what gets signed, because the trimmed key is what the agent will look up');
+
+    // Every catalogue key survives the trip. A voice the chooser offers and the
+    // signer quietly drops is a preference that reverts to the default with no
+    // sign that anything went wrong, which is the worst version of this bug.
+    for (const key of Object.keys(TUTOR_VOICES)) {
+      const meta = await metadataFor({ tutorVoice: key });
+      assert.equal(meta.tutorVoice, key, `${key} is in the catalogue but never reaches the agent`);
+    }
+
+    const atTheCap = await metadataFor({ tutorVoice: 'a'.repeat(32) });
+    assert.equal(atTheCap.tutorVoice, 'a'.repeat(32), 'a key exactly at the cap is a key');
+
+    // Deliberately NOT checked against the catalogue, for the same reason the
+    // mission id is not: the agent is the last hop before the billed vendor URL
+    // and resolves the key there, so a second strict copy here would be a
+    // second thing to keep in step and a way for the two to give different
+    // answers about the same learner.
+    const unknown = await metadataFor({ tutorVoice: 'someone-not-in-the-catalogue' });
+    assert.equal(unknown.tutorVoice, 'someone-not-in-the-catalogue');
+
+    const absent = await metadataFor({});
+    assert.equal('tutorVoice' in absent, false, 'never having chosen means no key at all, and the agent opens on the default');
+
+    // The hop before this one. The endpoint reads the field loosely and hands
+    // it straight on; it decides nothing about it. Pinned against the source
+    // because a passenger that is validated perfectly and then never forwarded
+    // is exactly the bug this row of plumbing invites, and no unit of
+    // grantSession can see it.
+    const server = readFileSync(new URL('./server.ts', import.meta.url), 'utf8');
+    assert.match(server, /const tutorVoice = typeof body\.tutorVoice === 'string'/, 'the endpoint no longer reads the tutor voice off the body');
+    assert.match(server, /\.\.\.\(tutorVoice !== undefined \? \{ tutorVoice \} : \{\}\),/, 'the endpoint reads the tutor voice and then never hands it to grantSession');
+  });
+
+  test('a tutor voice that is not shaped like a key is dropped, never refused', async () => {
+    const malformed: unknown[] = [
+      '',
+      '   ',
+      'a'.repeat(33),
+      'Celine', // a key is lowercase, and a stored preference differing only in case is not a second voice
+      'céline', // the key is ASCII on purpose; the accent lives on the persona name, which is never signed
+      '9lives', // a key starts with a letter
+      'celine voice', // a key has no spaces in it
+      'celine_2',
+      'celine/../admin',
+      '<script>',
+      { key: 'celine' },
+      42,
+      true,
+      [],
+      null,
+    ];
+    for (const bad of malformed) {
+      // metadataFor asserts the grant succeeded, which is the whole point: a
+      // voice this server cannot read costs the learner their chosen tutor for
+      // one session, never the session itself. They get the default and can
+      // still speak French, which is what they came for.
+      const meta = await metadataFor({ tutorVoice: bad });
+      assert.equal('tutorVoice' in meta, false, `tutorVoice ${JSON.stringify(bad)} should have been dropped, not signed`);
+      assert.equal(meta.mode, 'lesson', 'and the session still starts');
+      assert.equal(meta.secondsRemaining, PLANS.starter.secondsPerPeriod, 'and nothing about the minutes changed');
+    }
   });
 });
 

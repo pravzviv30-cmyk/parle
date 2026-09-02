@@ -36,10 +36,12 @@
  * These are judgements, and a merge is not entitled to make them.
  *
  * The one exception is an **answered question**. `motivation`, `username`,
- * `name`, `dob`, `ageConfirmed` and `dailyGoalMin` are things the learner told
- * us, where `null` means "never asked". A non-null answer beats a null one from
- * either side, because forgetting an answer the learner gave is worse than
- * preferring the busier device.
+ * `name`, `dob`, `ageConfirmed`, `dailyGoalMin` and `tutorVoice` are things the
+ * learner told us, where `null` means "never asked". A non-null answer beats a
+ * null one from either side, because forgetting an answer the learner gave is
+ * worse than preferring the busier device. `tutorVoice` is the sharpest case:
+ * forgetting it changes who the tutor *is*, because the persona follows the
+ * voice and two of the catalogue's voices are women.
  *
  * The second exception is the opposite, and there is exactly one of it.
  * `ageStopAt` is a fact about a device rather than about the learner, so the
@@ -137,6 +139,15 @@ export const PROFILE_ANSWER_FIELDS = [
   'motivation',
   'dailyGoalMin',
   'username',
+  // Which catalogue voice the learner asked their tutor to speak with, as the
+  // app-level key `@luvani/core` owns. It is here rather than riding with the
+  // heavier side because losing it does not degrade to "some other voice": two
+  // of the eight voices are women and the tutor's persona is derived from the
+  // key, so a null overwriting `celine` makes the tutor introduce herself as a
+  // man on the busier device. Null means never chosen, and the agent — not this
+  // merge — is what resolves never-chosen to the default, so the merge never
+  // writes a key nobody picked.
+  'tutorVoice',
 ] as const;
 
 /**

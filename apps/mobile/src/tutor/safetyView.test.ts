@@ -289,7 +289,10 @@ describe('a safety decision, as a surface — F137', () => {
 describe('a redirect published before the first line — F145', () => {
   /** The waiting state's own view model, built the way both screens build it. */
   const waiting = (decision: SafetyDecision | null, waitingForTutor = false) =>
-    waitingView({ waitingForTutor, safety: safetySurface(decision) });
+    // The name is the chosen persona's now, and this suite is about the banner
+    // rather than about who is missing, so any name will do here. The name
+    // itself is held by tutorName.test.ts.
+    waitingView({ waitingForTutor, safety: safetySurface(decision), tutorName: 'Celine' });
 
   test('a redirect is drawn even before the first scene view arrives', () => {
     // The rule. A redirect that lands while the scene is still being built has
@@ -330,7 +333,7 @@ describe('a redirect published before the first line — F145', () => {
       const body = branchOf(screen, opens);
       assert.match(
         body,
-        /waitingView\(\{ waitingForTutor: live\.waitingForTutor, safety \}\)/,
+        /waitingView\(\{ waitingForTutor: live\.waitingForTutor, safety, tutorName \}\)/,
         `${name} still assembles its waiting state by hand, so the next early return drops the banner again`,
       );
       assert.match(

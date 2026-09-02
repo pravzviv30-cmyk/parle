@@ -2,12 +2,15 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { CAFE_LESSON, RUNGS, directiveFor } from '@luvani/core';
+import { CAFE_LESSON, RUNGS, TUTOR_VOICES, directiveFor } from '@luvani/core';
 
 // The other shipped prompt. Reached across the workspace on purpose: the claim
 // under test is that both real builders carry one block, and a test that
 // rebuilt either of them here would prove nothing about what ships.
-import { buildPrompt as buildLessonPrompt } from '../../../../services/tutor-agent/src/prompt.ts';
+import {
+  baseInstructions as lessonBaseInstructions,
+  buildPrompt as buildLessonPrompt,
+} from '../../../../services/tutor-agent/src/prompt.ts';
 import { SAFETY_CONDUCT } from './safetyConduct.ts';
 import { buildSystemBlocks } from './system.ts';
 import { buildTurnContext, type TurnContextInput } from './turnContext.ts';
@@ -27,6 +30,23 @@ function contextInput(overrides: Partial<TurnContextInput> = {}): TurnContextInp
     assistance: 'hidden',
     ...overrides,
   };
+}
+
+/**
+ * Slice a prompt between two anchors, and fail loudly if either has moved.
+ *
+ * The guards below check that a stretch of prompt text does NOT say something,
+ * and `indexOf` returns -1 when an anchor is gone. `slice(-1, n)` is the last
+ * character of the file, which contains no city and no age, so a guard whose
+ * anchor drifted keeps passing while checking nothing at all. F292 renamed both
+ * anchors the F281 guard used, which is how this was found rather than shipped.
+ */
+function section(source: string, from: string, to: string): string {
+  const start = source.indexOf(from);
+  const end = source.indexOf(to);
+  assert.ok(start >= 0, `the anchor "${from}" is gone, so this guard was about to check nothing`);
+  assert.ok(end > start, `the anchor "${to}" is gone, so this guard was about to check nothing`);
+  return source.slice(start, end);
 }
 
 describe('the stable prefix', () => {
@@ -74,8 +94,15 @@ describe('the stable prefix', () => {
     // learner's chosen voice can be Québécois and a persona may assert only what
     // every voice could plausibly claim, so the proof moved to the fact that
     // survived the edit and carries the same weight: twenty years behind a bar.
+    //
+    // It has now moved a second time, under the same rule and for the same
+    // reason. F292 took the age out because Émilie is a young voice and
+    // "fifty-two" is the last biography fact a voice could contradict, so the
+    // half of this assertion that watched the age watches an opinion instead.
+    // An opinion is the safest home for it: no accent and no age can disagree
+    // with one, and a rulebook does not have any.
     assert.match(persona, /ran a bar/i, 'he is a person with a life, not a policy');
-    assert.match(persona, /fifty-two/i, 'and an age');
+    assert.match(persona, /a long lunch is never wasted/i, 'and opinions of his own');
     assert.match(persona, /not a teacher/i, 'the one thing he is explicitly not');
 
     const firstRule = persona.indexOf('- ');
@@ -466,8 +493,13 @@ describe("the tutor's biography claims nothing a voice can contradict — F281",
   const CITIES = /\b(Lyon|Lyonnais|Sa[oô]ne|Paris|Marseille|Bordeaux|Toulouse|Montr[eé]al|Qu[eé]bec)\b/i;
 
   test('neither prompt gives the tutor a home town', () => {
+    // Both anchors changed under F292, which turned each persona block into a
+    // function of the chosen persona: `const PERSONA` became a function and
+    // `You are Luc.` became an interpolation. They are re-pointed at text that
+    // is not about to move again, and they go through `section` so that the next
+    // time one of them does move, this fails instead of quietly passing.
     const brain = readFileSync(new URL('./system.ts', import.meta.url), 'utf8');
-    const persona = brain.slice(brain.indexOf('const PERSONA'), brain.indexOf('THE CONVERSATION'));
+    const persona = section(brain, 'WHO YOU ARE', 'THE CONVERSATION');
     const found = persona.match(CITIES);
     assert.equal(found, null, `the brain persona still places him in ${found?.[0]}`);
 
@@ -475,8 +507,55 @@ describe("the tutor's biography claims nothing a voice can contradict — F281",
       new URL('../../../../services/tutor-agent/src/prompt.ts', import.meta.url),
       'utf8',
     );
-    const opening = agent.slice(agent.indexOf('You are Luc.'), agent.indexOf('THE SCENE'));
+    const opening = section(agent, 'export function baseInstructions', 'THE SCENE');
     const there = opening.match(CITIES);
     assert.equal(there, null, `the agent prompt still places him in ${there?.[0]}`);
+  });
+});
+
+describe("the tutor's biography claims no age either — F292", () => {
+  /**
+   * F281's rule applied to the last fact that broke it. A persona may assert
+   * only what EVERY voice in the catalogue could plausibly claim, and the
+   * catalogue now contains a young voice: Émilie saying "you are fifty-two" is
+   * the same defect as a Québécois voice saying "I grew up in Lyon", and it is
+   * the learner's ears that win either argument.
+   *
+   * What survives is everything an accent and an age leave alone: the bar, the
+   * twenty years, the not-a-teacher. Those are asserted here too, because the
+   * cheapest way to pass a "says no age" test is to delete the person, and that
+   * is the exact rewrite F281 and F292 both exist to prevent.
+   *
+   * Driven through the real builders for every voice in the catalogue, and only
+   * over the part of each prompt that describes the tutor: the café lesson's own
+   * scenario is lesson data, and letting it into the slice would test the wrong
+   * string.
+   */
+  const AGE_CLAIM =
+    /\b(?:you are|you're|he is|she is|aged)\s+(?:\d{1,3}|twenty|thirty|forty|fifty|sixty|seventy)\b|\byears old\b/i;
+
+  test('the persona line carries no age a young voice can contradict', () => {
+    for (const voice of Object.values(TUTOR_VOICES)) {
+      const lesson = section(lessonBaseInstructions(CAFE_LESSON, voice.persona), 'You are', 'THE SCENE');
+      const conversation = section(
+        buildSystemBlocks(voice.persona).persona,
+        'WHO YOU ARE',
+        'THE CONVERSATION',
+      );
+
+      for (const [where, text] of [
+        ['lesson', lesson],
+        ['conversation', conversation],
+      ] as const) {
+        const who = voice.persona.name;
+        assert.doesNotMatch(text, AGE_CLAIM, `the ${where} prompt still tells ${who} how old she or he is`);
+        assert.doesNotMatch(text, /fifty[- ]two/i, `the ${where} prompt still says fifty-two to ${who}`);
+
+        // The person the age was attached to has to still be there.
+        assert.match(text, /ran a bar/i, `the ${where} prompt lost the bar along with the age`);
+        assert.match(text, /twenty years/i, `the ${where} prompt lost the twenty years, which is a duration and not an age`);
+        assert.match(text, /not a teacher/i, `the ${where} prompt lost the one thing the tutor is explicitly not`);
+      }
+    }
   });
 });

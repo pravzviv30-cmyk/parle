@@ -28,6 +28,7 @@ import {
   type Rung,
   type ServerMessage,
   type SessionState,
+  type TutorPersona,
 } from '@luvani/core';
 // One text-mode window for both session shapes, imported rather than restated:
 // two ideas of how long a typed answer may take drift apart within a month, and
@@ -157,13 +158,28 @@ export class LuvaniTutor extends voice.Agent {
    */
   private voiceless: boolean;
 
-  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean } = {}) {
+  /**
+   * The person the learner chose to be taught by, or nothing.
+   *
+   * Held rather than resolved. `undefined` means nobody chose, and
+   * `buildPrompt` answers that from the catalogue — so this class never states
+   * a second opinion about who the tutor is by default, and a learner who has
+   * never picked gets exactly the prompt they got before this field existed.
+   *
+   * The agent is what resolves it, because it is the only process holding the
+   * vendor key that decides which voice actually speaks. This class only has to
+   * make sure the same person survives every render of the prompt.
+   */
+  private readonly persona: TutorPersona | undefined;
+
+  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona } = {}) {
     const state = createSession(lesson, startRung);
     const prompt = currentPrompt(lesson, state);
-    super({ instructions: buildPrompt(lesson, prompt.turn, prompt.directive) });
+    super({ instructions: buildPrompt(lesson, prompt.turn, prompt.directive, options.persona) });
     this.lesson = lesson;
     this.state = state;
     this.voiceless = options.voiceless ?? false;
+    this.persona = options.persona;
   }
 
   get sessionState(): SessionState {
@@ -508,7 +524,13 @@ export class LuvaniTutor extends voice.Agent {
     if (state.finished) return void this.finish();
 
     const next = currentPrompt(this.lesson, state);
-    await this.updateInstructions(buildPrompt(this.lesson, next.turn, next.directive));
+    // The persona rides every rebuild, not just the first one. This line runs
+    // on every applied turn, so a `buildPrompt` call without it here does not
+    // fail — it quietly swaps the tutor for the catalogue default one turn into
+    // the lesson, while the voice saying the words does not change. That is the
+    // F292 mismatch arriving late instead of at the start, and it is invisible
+    // to any test that only checks the constructor.
+    await this.updateInstructions(buildPrompt(this.lesson, next.turn, next.directive, this.persona));
     this.publish({ t: 'prompt', prompt: next });
 
     // The tutor answers every applied input — a spoken turn, a rescue, a skip —

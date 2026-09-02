@@ -81,6 +81,7 @@ import {
   type MissionId,
   type Rung,
   type ServerMessage,
+  type TutorPersona,
 } from '@luvani/core';
 /**
  * The authored mission scenes, reached by file rather than through brain's
@@ -967,6 +968,24 @@ export class LuvaniConversation extends voice.Agent {
   private readonly startRung: Rung | undefined;
 
   /**
+   * The chosen person, or nothing.
+   *
+   * Held rather than resolved: `undefined` means nobody chose, and
+   * `buildSystemBlocks` answers that from the catalogue, so this class never
+   * carries a second opinion about who the tutor is by default and a learner
+   * who has never picked gets byte-for-byte the prompt they got before.
+   *
+   * Every `buildSystemBlocks` call in this file takes it. There are five, they
+   * are far apart, and four of them are on paths a test rarely walks (the scene
+   * build, curation, memory, drills). Miss one and nothing breaks: that path
+   * simply introduces the catalogue default while the rest of the session is
+   * someone else, which is the mismatch F292 exists to stop and which only
+   * shows up as a learner hearing a woman's voice call herself Luc.
+   * `convo.test.ts` reads this file back to prove no bare call survives.
+   */
+  private readonly persona: TutorPersona | undefined;
+
+  /**
    * `client` is the seam a test drives this class through. Without it the
    * constructor reaches for a real vendor SDK and an API key, which is why
    * every behaviour below went untested: the object could not be built.
@@ -996,6 +1015,12 @@ export class LuvaniConversation extends voice.Agent {
        * ladder — so there is nothing left for a guard on this side to decide.
        */
       startRung?: Rung;
+      /**
+       * The person the learner chose to be taught by. Resolved by the agent,
+       * which holds the vendor key and therefore decides which voice speaks,
+       * and handed down here so the prompt and the voice describe one person.
+       */
+      persona?: TutorPersona;
     } = {},
   ) {
     // The pipeline LLM never generates here; see the header. One line keeps
@@ -1013,6 +1038,7 @@ export class LuvaniConversation extends voice.Agent {
     // Held, not applied. The placeholder state built just above is the scene
     // nobody is in yet, and every real scene is built again when it opens.
     this.startRung = opts.startRung;
+    this.persona = opts.persona;
     if (opts.setSttLanguage) this.setSttLanguage = opts.setSttLanguage;
   }
 
@@ -1523,7 +1549,7 @@ export class LuvaniConversation extends voice.Agent {
         (signal) =>
           this.client.frame({
             kind: 'frame',
-            system: buildSystemBlocks(),
+            system: buildSystemBlocks(this.persona),
             request: buildScenarioRequest({
               request,
               learner: {
@@ -1980,7 +2006,16 @@ export class LuvaniConversation extends voice.Agent {
    */
   private async runBrainTurn(input: LearnerTurnInput): Promise<void> {
     if (input.type === 'spoke' && this.handleSafety(input.text)) return;
-    const request = prepareTurn(this.state, input);
+    // The fifth system-block call, and the only one that is not written as one.
+    // brain's `prepareTurn` builds the blocks itself and has no persona to
+    // build them from, so its `buildSystemBlocks()` is the catalogue default.
+    // This is the prompt the learner actually hears, every single turn: leave
+    // it and the scene, the recap and tomorrow's drills all speak as the person
+    // they chose while the spoken reply introduces Luc in her voice. Overridden
+    // with brain's own builder rather than worked around, and the real repair is
+    // a persona argument on `prepareTurn`, which lives in brain's territory and
+    // is filed rather than edited here. This line comes out the day that lands.
+    const request = { ...prepareTurn(this.state, input), system: buildSystemBlocks(this.persona) };
     let turn;
     try {
       this.markTiming('brainSent');
@@ -2219,7 +2254,7 @@ export class LuvaniConversation extends voice.Agent {
       });
       const ms = postSessionDeadlineMs('curate');
       const result = await withDeadline(
-        (signal) => this.client.curate({ kind: 'curate', system: buildSystemBlocks(), request, signal }),
+        (signal) => this.client.curate({ kind: 'curate', system: buildSystemBlocks(this.persona), request, signal }),
         ms,
         'curation',
         () => this.noteAbandoned('curate', ms),
@@ -2247,7 +2282,7 @@ export class LuvaniConversation extends voice.Agent {
       const request = buildExtractionRequest({ history: this.state.history, knownFacts: this.profile.memory.facts });
       const ms = postSessionDeadlineMs('extract');
       const result = await withDeadline(
-        (signal) => this.client.extract({ kind: 'extract', system: buildSystemBlocks(), request, signal }),
+        (signal) => this.client.extract({ kind: 'extract', system: buildSystemBlocks(this.persona), request, signal }),
         ms,
         'extraction',
         () => this.noteAbandoned('extract', ms),
@@ -2293,7 +2328,7 @@ export class LuvaniConversation extends voice.Agent {
       });
       const ms = postSessionDeadlineMs('drills');
       const result = await withDeadline(
-        (signal) => this.client.drills({ kind: 'drills', system: buildSystemBlocks(), request, signal }),
+        (signal) => this.client.drills({ kind: 'drills', system: buildSystemBlocks(this.persona), request, signal }),
         ms,
         'drills',
         () => this.noteAbandoned('drills', ms),

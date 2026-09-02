@@ -38,6 +38,13 @@
  * The scene is not paused. `paused` exists for scenes on a tab that stays
  * mounted after the learner leaves it; this screen unmounts the moment they
  * choose a way in, so there is nothing to pause.
+ *
+ * The subline names the DEFAULT persona, and it is the one screen in the app
+ * entitled to. It is read before an account exists, so there is no record to
+ * ask who this learner chose, and the default is genuinely who answers if they
+ * never choose. It says so by handing `DEFAULT_TUTOR_PERSONA` over in as many
+ * words: every other first-run page reads `tutorPersonaOf(existing)`, and the
+ * one exception should be visible here rather than hidden in the copy module.
  */
 
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
@@ -45,6 +52,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { paper, space, type } from '../theme.ts';
 import { PillButton, GhostButton } from '../components.tsx';
 import { HeroCafe } from '../illustrations.tsx';
+import { DEFAULT_TUTOR_PERSONA } from '../tutor/tutorName.ts';
 import { WELCOME_SUBLINE } from './disclosure.ts';
 
 export function WelcomeScreen({
@@ -62,7 +70,7 @@ export function WelcomeScreen({
         <Text accessibilityRole="header" style={st.title}>
           Find your voice in French
         </Text>
-        <Text style={st.subline}>{WELCOME_SUBLINE}</Text>
+        <Text style={st.subline}>{WELCOME_SUBLINE(DEFAULT_TUTOR_PERSONA)}</Text>
       </ScrollView>
 
       <View style={st.ways}>

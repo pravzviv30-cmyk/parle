@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Room, RoomEvent, Track } from 'livekit-client';
 import {
   decodeServerMessage,
+  DEFAULT_TUTOR_VOICE,
   encodeMessage,
   PLANS,
   TOPIC_CLIENT,
@@ -32,6 +33,7 @@ import {
   type SessionSummary,
   type StartRefusal,
   type TurnFeedback,
+  type TutorVoiceKey,
 } from '@luvani/core';
 import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from './globals.ts';
 import { authHeaders } from '../auth/adapter.ts';
@@ -519,6 +521,20 @@ export function useLiveSession(
      * session with no mission opens exactly as it always has.
      */
     missionId?: string;
+    /**
+     * Which of the catalogue voices this learner chose.
+     *
+     * Optional to the caller and never optional on the wire. It is resolved to
+     * the default below and sent on every start, the default included, because
+     * the app has a picker and the agent has a fallback and the one thing they
+     * must not do is disagree about what "unchosen" means. Sending nothing
+     * would leave that agreement resting on two independently written defaults
+     * in two repos' worth of process.
+     *
+     * A key, never a vendor id. The ids exist in one process, the agent, and
+     * this value has to survive a signed token and a stored profile.
+     */
+    tutorVoice?: TutorVoiceKey;
   },
 ): LiveSession {
   const [status, setStatus] = useState<LiveStatus>({ phase: 'idle' });
@@ -549,6 +565,7 @@ export function useLiveSession(
   const snapshot = opts?.snapshot;
   const seedTopic = opts?.seedTopic;
   const missionId = opts?.missionId;
+  const tutorVoice = opts?.tutorVoice;
   const roomRef = useRef<Room | null>(null);
   const diagRef = useRef<LiveDiagnostics>(emptyDiagnostics());
   // Which attempt at starting owns the session. Bumped by leaving, by unmount
@@ -759,6 +776,11 @@ export function useLiveSession(
           ...(snapshot !== undefined ? { snapshot } : {}),
           ...(seedTopic !== undefined ? { seedTopic } : {}),
           ...(missionId !== undefined ? { missionId } : {}),
+          // Not a conditional spread, and that is the point of F291. Every
+          // other field here is absent when it has nothing to say; this one is
+          // always present, resolved, so the token server signs a voice the
+          // learner can actually be shown to have.
+          tutorVoice: tutorVoice ?? DEFAULT_TUTOR_VOICE,
         }),
       });
       // The long wait, and the one this guard was built for. A cold start can
@@ -1209,6 +1231,7 @@ export function useLiveSession(
     snapshot,
     seedTopic,
     missionId,
+    tutorVoice,
     send,
     removeAudioEls,
     clearWatchdog,

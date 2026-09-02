@@ -10,11 +10,19 @@ test can reach them.
 
 ## The shape now
 
-Onboarding renders **3 pages**: `age`, `name`, `meet`.
+Onboarding renders **4 pages**: `age`, `name`, `meet`, `voice`.
 
-A brand-new learner crosses **6 screens** before the first scene, and taps **6 times**
+A brand-new learner crosses **7 screens** before the first scene, and taps **7 times**
 to get there. Before this phase it was **8 screens** and **8 taps**, across three
 different introductions to the same product.
+
+The seventh is the voice step, and it is the one screen on this path that was
+added back rather than removed. It costs a tap. What it buys is the only place a
+learner is ever shown that the tutor's voice is theirs to choose, and two of the
+eight voices are women, so a learner who never opens Profile would otherwise
+never meet six of the eight people the product can be. It is skippable in one
+tap and the skip is a real answer: the default is a person with a name, and
+nothing is written to the profile when it is walked past.
 
 | # | Screen | The one thing it asks for | Skippable |
 |---|---|---|---|
@@ -23,7 +31,8 @@ different introductions to the same product.
 | 3 | Age (`onboarding/OnboardingFlow.tsx`) | One tap: thirteen or older | no, it is the gate |
 | 4 | Name (`onboarding/OnboardingFlow.tsx`) | A name to be greeted by | yes, Continue with it empty |
 | 5 | Meet Luc (`onboarding/OnboardingFlow.tsx`) | Nothing. It is the app talking | no, but it is one tap |
-| 6 | Mission chooser (`missions/`) | Which situation to speak in | no, it is the choice itself |
+| 6 | Voice (`onboarding/OnboardingFlow.tsx`) | Which of eight voices does the talking | yes, Skip for now |
+| 7 | Mission chooser (`missions/`) | Which situation to speak in | no, it is the choice itself |
 
 Then the scene, where the first French is spoken.
 

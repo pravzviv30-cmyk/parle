@@ -279,6 +279,12 @@ const server = createServer(async (req, res) => {
       // same rules: a loose string here, validated and signed in grantSession,
       // resolved against the catalogue by the agent and nowhere else. It has no
       // say in entitlement, in metered minutes, or in whether a session starts.
+      // tutorVoice is the third, and the same sentence describes it: read loosely
+      // here, shape-checked and signed in grantSession, resolved to a real voice
+      // by the agent, which is the only process holding the vendor key. This
+      // server deliberately does not know which voices exist. Knowing would mean
+      // a second copy of the catalogue that could disagree with the one the
+      // agent actually bills against.
       const startRung = typeof body.startRung === 'number' ? body.startRung : undefined;
       const mode =
         body.mode === 'convo'
@@ -291,6 +297,7 @@ const server = createServer(async (req, res) => {
       const snapshot = typeof body.snapshot === 'object' && body.snapshot !== null ? body.snapshot : undefined;
       const seedTopic = typeof body.seedTopic === 'object' && body.seedTopic !== null ? body.seedTopic : undefined;
       const missionId = typeof body.missionId === 'string' && body.missionId ? body.missionId : undefined;
+      const tutorVoice = typeof body.tutorVoice === 'string' && body.tutorVoice ? body.tutorVoice : undefined;
 
       if (
         installation !== null &&
@@ -318,6 +325,7 @@ const server = createServer(async (req, res) => {
         ...(snapshot !== undefined ? { snapshot } : {}),
         ...(seedTopic !== undefined ? { seedTopic } : {}),
         ...(missionId !== undefined ? { missionId } : {}),
+        ...(tutorVoice !== undefined ? { tutorVoice } : {}),
       });
       const grantedAt = performance.now();
       const serverTiming = [

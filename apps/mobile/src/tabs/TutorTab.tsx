@@ -28,10 +28,11 @@ import { useLive } from '../app/LiveContext.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
 import { TUTOR_INTRO_LINK, TUTOR_OFFLINE, tutorDoors, tutorGate } from '../tutor/gate.ts';
 import { markTutorIntroSeen } from '../tutor/store.ts';
-import { TUTOR_NAME } from '../tutor/tutorName.ts';
+import { tutorNameOf } from '../tutor/tutorName.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { missionCompletionsFrom, resumableMission } from '../missions/chooserView.ts';
 import { loadDeck } from '../review/store.ts';
+import { useProfile } from '../app/ProfileContext.tsx';
 
 export function TutorTab() {
   // A bottom tab stays mounted after its first visit, so a looping scene here
@@ -42,6 +43,8 @@ export function TutorTab() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { live, recheck } = useLive();
+  // The subline names the tutor, and the tutor is whoever this learner chose.
+  const tutorName = tutorNameOf(useProfile().profile);
 
   /** The explainer, on request. It no longer decides anything. */
   const [showingIntro, setShowingIntro] = useState(false);
@@ -127,7 +130,7 @@ export function TutorTab() {
         </View>
 
         <Text style={st.headline}>Ready to talk?</Text>
-        <Text style={st.subline}>{`${TUTOR_NAME} remembers you. Pick a situation, or just start talking.`}</Text>
+        <Text style={st.subline}>{`${tutorName} remembers you. Pick a situation, or just start talking.`}</Text>
 
         {!live && (
           <Card style={{ marginTop: space(5) }}>

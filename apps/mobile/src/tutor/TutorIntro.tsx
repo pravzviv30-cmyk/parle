@@ -19,6 +19,12 @@
  * keeps the bar. He is introduced as a character now, which is what he is, and
  * `disclosure.test.ts` fails if this page tells the life story again without
  * saying so.
+ *
+ * Every page that names the tutor now names whoever this learner chose, and
+ * every pronoun agrees with them. Two of the eight catalogue voices are women,
+ * so a walkthrough with "Luc" and "he" written into it introduces Céline as a
+ * man — the same defect as a voice from Quebec being read a biography set in
+ * Lyon, and the learner believes the voice.
  */
 
 import { useState } from 'react';
@@ -28,8 +34,9 @@ import { HIT, paper, space, type } from '../theme.ts';
 import { ChevronLeft, ProgressDots, PillButton, Card } from '../components.tsx';
 import { SpeakBubbles, OnboardWave, RecapPostcard } from '../illustrations.tsx';
 import { VoiceOrb, type OrbState } from './VoiceOrb.tsx';
-import { TUTOR_NAME } from './tutorName.ts';
-import { PERSONA_BODY, PERSONA_TITLE } from '../onboarding/disclosure.ts';
+import { tutorPersonaOf, type TutorPersona } from './tutorName.ts';
+import { useProfile } from '../app/ProfileContext.tsx';
+import { PERSONA_BODY, PERSONA_TITLE, pronouns } from '../onboarding/disclosure.ts';
 
 /**
  * The final page's lesson: the circle speaks traffic lights. Three live mini
@@ -37,9 +44,9 @@ import { PERSONA_BODY, PERSONA_TITLE } from '../onboarding/disclosure.ts';
  * component the conversation renders, so this page can never drift from the
  * real thing.
  */
-function OrbWalkthrough() {
+function OrbWalkthrough({ persona }: { persona: TutorPersona }) {
   const rows: { state: OrbState; title: string; sub: string }[] = [
-    { state: 'speaking', title: `Red, ${TUTOR_NAME} is talking`, sub: 'Just listen.' },
+    { state: 'speaking', title: `Red, ${persona.name} is talking`, sub: 'Just listen.' },
     { state: 'listening', title: 'Green, your turn', sub: 'Say it out loud.' },
     { state: 'thinking', title: 'Amber, it is thinking', sub: 'One moment.' },
   ];
@@ -60,12 +67,28 @@ function OrbWalkthrough() {
   );
 }
 
-const PAGES = [
+/**
+ * The four pages, as a function of who the learner chose.
+ *
+ * It used to be a module constant, which is exactly what a set of pages
+ * introducing a person should not be once the person can be a different one.
+ * Rung one of this walkthrough says who is talking, and the hint card says whose
+ * speed the Slower button changes, and both name somebody.
+ */
+function pagesFor(persona: TutorPersona) {
+  // Two of the eight voices are women, so every sentence on these pages that
+  // used to say "he" said the wrong thing to a quarter of the people reading
+  // it. One table, derived once, rather than a ternary at each call site.
+  const p = pronouns(persona);
+  return [
   {
     key: 'what',
     art: SpeakBubbles,
-    title: PERSONA_TITLE,
-    body: PERSONA_BODY,
+    // Both are functions of the persona now. "AI tutor" is not something the
+    // persona may move: that sentence is the disclosure itself, and
+    // `disclosure.test.ts` fails for any of the eight if it goes.
+    title: PERSONA_TITLE(persona),
+    body: PERSONA_BODY(persona),
     note: null,
   },
   {
@@ -73,7 +96,7 @@ const PAGES = [
     art: OnboardWave,
     title: 'Getting stuck is planned for',
     body: 'You always get the first attempt. If you get stuck, a small English hint appears without interrupting the scene. The answer stays hidden unless you ask again.',
-    note: `Help me out reveals a hint. Slower keeps ${TUTOR_NAME} slow. In English tells you what he just said.`,
+    note: `Help me out reveals a hint. Slower keeps ${persona.name} slow. In English tells you what ${p.subject} just said.`,
   },
   {
     key: 'after',
@@ -89,14 +112,19 @@ const PAGES = [
     body: 'One circle tells you whose turn it is, in traffic lights. You never have to guess.',
     note: null,
   },
-] as const;
+  ] as const;
+}
 
 export function TutorIntro({ onDone }: { onDone: () => void }) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
-  const page = PAGES[index]!;
+  // The person this learner chose, so the walkthrough introduces the voice they
+  // will actually hear rather than the one that happens to be the default.
+  const persona = tutorPersonaOf(useProfile().profile);
+  const pages = pagesFor(persona);
+  const page = pages[index]!;
   const Art = page.art;
-  const last = index === PAGES.length - 1;
+  const last = index === pages.length - 1;
 
   return (
     <View style={[st.root, { paddingTop: insets.top + space(3), paddingBottom: insets.bottom + space(6) }]}>
@@ -113,7 +141,7 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
         ) : (
           <View style={st.back} />
         )}
-        <ProgressDots total={PAGES.length} index={index} />
+        <ProgressDots total={pages.length} index={index} />
         <View style={st.back} />
       </View>
 
@@ -125,7 +153,7 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
         ) : null}
         <Text style={st.title} accessibilityRole="header">{page.title}</Text>
         <Text style={st.body}>{page.body}</Text>
-        {page.key === 'orb' ? <OrbWalkthrough /> : null}
+        {page.key === 'orb' ? <OrbWalkthrough persona={persona} /> : null}
         {page.note ? (
           <Card style={{ marginTop: space(5) }}>
             <Text style={[type.bodyStrong, { color: paper.ink }]}>{page.note}</Text>

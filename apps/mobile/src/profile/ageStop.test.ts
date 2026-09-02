@@ -120,7 +120,7 @@ describe('an account that remembers an under-13 stop', () => {
     //    through the version chain.
     const reloaded = upgradeStored(JSON.parse(JSON.stringify(stopped)) as unknown, LATER);
     assert.ok(reloaded, 'a stopped profile still upgrades');
-    assert.equal(reloaded.version, 5);
+    assert.equal(reloaded.version, 6);
     assert.equal(reloaded.ageStopAt, NOW, 'the stop is on the disk, not in a hook nothing clears');
     assert.equal(entryFor(reloaded), 'age-gate', 'so the doors are still shut on the next launch');
 
@@ -297,7 +297,7 @@ describe('an account that remembers an under-13 stop', () => {
     assert.ok(v4Blob);
     const forward = upgradeStored(v4Blob, LATER);
     assert.ok(forward, 'a v4 blob written by an older build still upgrades');
-    assert.equal(forward.version, 5);
+    assert.equal(forward.version, 6);
     assert.equal(forward.ageStopAt, null, 'and it carries no stop, because its version predates the field');
     assert.equal(forward.ageConfirmed, true, 'while everything it did answer survives');
 

@@ -16,6 +16,7 @@ import {
   SplitBrainClient,
   RECOVERY_LINE,
   assembleRecap,
+  buildSystemBlocks,
   createConversation,
   createProfile,
   finishSession,
@@ -40,13 +41,16 @@ import {
 } from '@luvani/brain';
 import {
   CAFE_LESSON,
+  DEFAULT_TUTOR_VOICE,
   RUNGS,
   STUCK_SILENCE_MS,
   decodeServerMessage,
   encodeMessage,
+  tutorVoice,
   type ClientMessage,
   type Rung,
   type ServerMessage,
+  type TutorPersona,
 } from '@luvani/core';
 
 import {
@@ -522,6 +526,8 @@ function buildConvo(
     startRung?: Rung;
     /** Written before `attach`, exactly as agent.ts writes it. */
     sessionId?: string;
+    /** The voice the learner chose, made into someone to be. */
+    persona?: TutorPersona;
   } = {},
 ) {
   const client = opts.client ?? new MockLlmClient();
@@ -532,6 +538,7 @@ function buildConvo(
     seedTopic: opts.seedTopic,
     missionId: opts.missionId,
     startRung: opts.startRung,
+    persona: opts.persona,
     setSttLanguage: (language) => sttLanguages.push(language),
   });
   const { session, said } = stubSession();
@@ -561,7 +568,13 @@ function heard(text: string) {
 /** Open the session and get into the scene the way a learner does: by answering. */
 async function inScene(
   t: TestContext,
-  opts: { voiceless?: boolean; client?: MockLlmClient; profile?: LearnerProfile; sessionId?: string } = {},
+  opts: {
+    voiceless?: boolean;
+    client?: MockLlmClient;
+    profile?: LearnerProfile;
+    sessionId?: string;
+    persona?: TutorPersona;
+  } = {},
 ) {
   const built = buildConvo(t, opts);
   built.convo.open(built.session);
@@ -2289,7 +2302,18 @@ describe('a conversation started from a mission', () => {
     assert.match(convoBranch, /\bstartRung\b/, 'the worker hands the signed rung to the conversation, not only to the lesson');
     // The scripted lesson is untouched by this entry: it already got the rung
     // and its behaviour must not move.
-    assert.match(code, /new LuvaniTutor\(lesson, startRung, \{ voiceless \}\)/, 'the scripted-lesson branch still gets it too');
+    //
+    // Re-pointed from a full-literal match on `{ voiceless }`. That spelling
+    // pinned the whole options object, so it broke the moment the chosen
+    // voice's persona was added beside `voiceless` — a change with nothing to
+    // do with the rung. The guarantee this assertion carries is that the signed
+    // rung is still the SECOND argument to the scripted branch, and that is
+    // what it now says; the options object is free to grow.
+    assert.match(
+      code,
+      /new LuvaniTutor\(lesson, startRung, \{/,
+      'the scripted-lesson branch still gets it too',
+    );
   });
 });
 
@@ -3378,5 +3402,101 @@ describe('switching to text without leaving the scene', () => {
     t.mock.timers.tick(TEXT_SILENCE_MS - STUCK_SILENCE_MS);
     await tutor.settled();
     assert.equal(tutor.sessionState.ladder.rescues, rescued + 1, 'and then left a stuck reader waiting for ever');
+  });
+});
+
+// ─────────────────────────────── the person the learner chose to be taught by
+
+/**
+ * F292 gave the conversation a chosen persona and nothing proved the class
+ * hands it over. agent.ts passed a `persona` that `LuvaniConversation` had
+ * never declared, which the gate caught as a type error — but the interesting
+ * half was never a type error at all: the system blocks are built at FIVE
+ * separate places in convo.ts, four of them written out and one hidden inside
+ * brain's `prepareTurn`, and every one of them compiles perfectly well without
+ * a persona. Missing one costs nothing visible. That path simply introduces the
+ * catalogue default while the rest of the session is somebody else, and the
+ * learner hears a woman's voice call herself Luc.
+ *
+ * So this is proved twice. Once by driving a whole session and reading the
+ * blocks off every request the brain actually received, and once by reading
+ * this file back — because the behavioural half can only cover the call sites
+ * that exist today, and the sixth one somebody adds next month is exactly the
+ * one that will be missed.
+ */
+describe('the conversation speaks as the person the learner chose', () => {
+  const celine = tutorVoice('celine').persona;
+
+  /** A turn that closes the scene, so the post-session calls all run. */
+  const closingScene = () =>
+    sampleTurn({
+      newPhrases: [keepable('Ça marche', 'works for me')],
+      scene: { beat: 'greet', beatDone: true, sceneDone: true },
+    });
+
+  test('every system-block call in a conversation carries the chosen persona', async (t) => {
+    const client = new MockLlmClient({ turns: [closingScene()] });
+    const { convo } = await inScene(t, { client, persona: celine });
+
+    // One spoken turn that ends the scene, then room for the post-session
+    // pipeline: curation, memory and drills are fire-and-forget, so their
+    // promise chains have to be let drain before their requests exist.
+    await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Bonjour, un café')), voice.StopResponse);
+    await convo.settled();
+    for (let i = 0; i < 6; i += 1) await new Promise((resolve) => setImmediate(resolve));
+
+    const calls = [
+      ['frame', client.frameRequests],
+      ['turn', client.turnRequests],
+      ['curate', client.curateRequests],
+      ['extract', client.extractRequests],
+      ['drills', client.drillsRequests],
+    ] as const;
+
+    for (const [kind, requests] of calls) {
+      assert.ok(requests.length > 0, `the ${kind} call never ran, so this test proves nothing about it`);
+      for (const request of requests) {
+        assert.match(request.system.persona, /You are Céline\b/, `the ${kind} prompt is somebody the learner will not hear`);
+        assert.doesNotMatch(request.system.persona, /\bLuc\b/, `the ${kind} prompt still names the catalogue default`);
+        // The pronoun rides with the name, or the tutor says "je suis content"
+        // in her voice. Same assertion prompt.test.ts makes of the builder.
+        assert.match(request.system.persona, /you are a woman/i, `the ${kind} prompt drops the agreement her French takes`);
+      }
+    }
+
+    // And the tripwire, in this file's own agent.ts idiom: no call site in
+    // convo.ts may build the blocks without saying who is speaking. Comments
+    // are blanked first, because this one names the bare form on purpose.
+    const source = readFileSync(fileURLToPath(new URL('./convo.ts', import.meta.url)), 'utf8');
+    const code = source
+      .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+      .replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
+
+    const bare = code.match(/buildSystemBlocks\(\s*\)/g) ?? [];
+    assert.equal(
+      bare.length,
+      0,
+      'a buildSystemBlocks() call in convo.ts names nobody: that path opens as the default tutor while the session is somebody else',
+    );
+    const carried = code.match(/buildSystemBlocks\(this\.persona\)/g) ?? [];
+    assert.ok(
+      carried.length >= 5,
+      `convo.ts builds the system blocks in ${carried.length} places carrying the persona; there are five and this tripwire has gone stale`,
+    );
+  });
+
+  test('a conversation nobody chose a voice for still opens as the catalogue default', async (t) => {
+    // The other half: threading the person through must not move one byte for a
+    // learner who has never picked. The default is answered in exactly one place
+    // — brain's builder, out of the catalogue — so this class carries no second
+    // opinion about who the tutor is when nobody has said.
+    const luc = tutorVoice(DEFAULT_TUTOR_VOICE).persona;
+    const client = new MockLlmClient();
+    await inScene(t, { client });
+
+    assert.ok(client.frameRequests.length > 0);
+    assert.deepEqual(client.frameRequests[0]!.system, buildSystemBlocks(), 'an unchosen session stopped matching the builder');
+    assert.deepEqual(client.frameRequests[0]!.system, buildSystemBlocks(luc), 'and stopped being the catalogue default');
+    assert.match(client.frameRequests[0]!.system.persona, /\bLuc\b/);
   });
 });

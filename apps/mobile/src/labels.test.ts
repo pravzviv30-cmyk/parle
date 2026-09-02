@@ -144,7 +144,10 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
     // unchanged and is the honest half of the label: this is what the tutor
     // HEARD, which is not always what the learner said.
     const source = readFileSync(join(SRC, 'SessionView.tsx'), 'utf8');
-    assert.match(source, /<Label[^>]*>\{`What \$\{TUTOR_NAME\} heard`\}<\/Label>/, 'the transcript lost its label');
+    // Re-pointed by F293: the name is per learner now, so what is interpolated
+    // is the chosen persona's name rather than the one constant. The guarantee
+    // is unchanged, and is the honest half of the label.
+    assert.match(source, /<Label[^>]*>\{`What \$\{tutorName\} heard`\}<\/Label>/, 'the transcript lost its label');
   });
 
   test('every label that names something the screen does not otherwise say is still there', () => {

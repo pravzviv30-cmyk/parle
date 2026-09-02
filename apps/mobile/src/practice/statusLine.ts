@@ -15,9 +15,14 @@
  */
 
 import type { PathNode } from '@luvani/core';
-import { TUTOR_NAME } from '../tutor/tutorName.ts';
 
-export function statusLine(node: PathNode): string {
+/**
+ * `tutorName` comes from `tutorPersonaOf`, and is an argument for the reason
+ * every other line that names him is now: two of the eight voices are women,
+ * so who is writing this topic is a fact about the learner's profile rather
+ * than about the product.
+ */
+export function statusLine(node: PathNode, tutorName: string): string {
   switch (node.state) {
     case 'complete':
       return 'Learned';
@@ -30,7 +35,7 @@ export function statusLine(node: PathNode): string {
       // phrases are banked and its drills are still being written. Telling them
       // their conversations will write it would be describing something that
       // has already happened.
-      return node.kind === 'topic' ? `${TUTOR_NAME} is still writing this one` : 'Your conversations write this one';
+      return node.kind === 'topic' ? `${tutorName} is still writing this one` : 'Your conversations write this one';
     default:
       return node.sub;
   }
@@ -57,7 +62,7 @@ export function statusLine(node: PathNode): string {
  * instead is the tutor's behaviour, not the learner's: the person who asked for
  * time is told the request landed, and nobody comments on why it was made.
  */
-export function momentAnswer(tutorName: string = TUTOR_NAME): string {
+export function momentAnswer(tutorName: string): string {
   return `${tutorName} will wait.`;
 }
 

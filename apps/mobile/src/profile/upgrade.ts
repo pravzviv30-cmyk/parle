@@ -10,8 +10,11 @@
  *
  * Version 3 added `username`, the leaderboard identity, claimed on first open.
  * Version 4 added `ageConfirmed` and widened `motivation` and `dailyGoalMin` to
- * nullable. Version 5 adds `ageStopAt`: the moment a session ended because the
- * learner said, in a scene, that they are under thirteen.
+ * nullable. Version 5 added `ageStopAt`: the moment a session ended because the
+ * learner said, in a scene, that they are under thirteen. Version 6 adds
+ * `tutorVoice`: which voice from the catalogue in `@luvani/core` the learner
+ * asked their tutor to speak with, null meaning they have never been asked or
+ * never chosen, which resolves to the catalogue default at the agent.
  *
  * Three rules hold this file together, and the first two are about not putting
  * words in the learner's mouth:
@@ -23,14 +26,21 @@
  *    longer form. Everything else — no dob, a corrupt dob, a dob that reads
  *    young — derives null, meaning "never asked". False would be this code
  *    claiming the learner denied something they were never asked.
- * 3. **No branch invents an age stop.** Every version below 5 predates the
- *    field, so all four of those branches write null. Nothing that happened
- *    before the field existed can be read as a stop after the fact.
+ * 3. **No branch invents an answer its version predates.** This is the rule
+ *    `ageStopAt` arrived with and it now carries `tutorVoice` too: every
+ *    version below 5 writes no stop, and every version below 6 writes no
+ *    voice, because nothing that happened before a field existed can be read
+ *    as an answer to it after the fact. It matters more for the voice than it
+ *    looks, because the honest empty value here is also the one that sounds
+ *    like a decision: null means "never chosen", the agent resolves that to
+ *    the default, and a learner who picked nothing has therefore not picked
+ *    Luc — they have simply not been asked yet, and the Profile row must be
+ *    able to tell those two apart.
  *
- * ## What a v5 blob costs an older build, said plainly
+ * ## What a v6 blob costs an older build, said plainly
  *
- * A build that predates this version has no `version === 5` branch, so it
- * reads a v5 profile as unreadable and hands back null, exactly as it does for
+ * A build that predates this version has no `version === 6` branch, so it
+ * reads a v6 profile as unreadable and hands back null, exactly as it does for
  * a v99 blob. The chain never throws and never mutates what it was given, so
  * the blob on disk survives the read — but that build will run onboarding over
  * the top of it. That is the cost of every version bump in this chain and it is
@@ -39,6 +49,7 @@
  * `sync/envelope.ts:151` describes the same hazard for the account copy.
  */
 
+import { isTutorVoiceKey, type TutorVoiceKey } from '@luvani/core';
 import { ageConfirmedFromDob } from './age.ts';
 import type { StoredProfile } from './store.ts';
 
@@ -68,6 +79,28 @@ function storedStop(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+/**
+ * A stored tutor voice, as a catalogue key or as nothing.
+ *
+ * The catalogue in `@luvani/core` is the only thing that decides what a voice
+ * key is, here and at the agent, so this asks it rather than keeping a second
+ * list that could drift out of step with the first. Anything the catalogue does
+ * not know — a key retired between builds, a vendor id somebody pasted in, a
+ * number, a mangled byte — reads as null, which is the same reading the goal
+ * and the age stop get: what is not a value this app wrote is not an answer.
+ *
+ * Null is safe in a way it is not everywhere. It does not strand anybody: the
+ * agent resolves a missing voice to the catalogue default, so the worst a
+ * dropped key costs is that the tutor sounds like Luc again and the learner
+ * picks their voice a second time from a row that is always there. Keeping the
+ * unknown string instead would push it down the wire to the token server and
+ * into a vendor URL segment, which is precisely what F285's resolve exists to
+ * stop.
+ */
+function storedVoice(value: unknown): TutorVoiceKey | null {
+  return isTutorVoiceKey(value) ? value : null;
+}
+
 export function upgradeStored(parsed: unknown, now = Date.now()): UpgradedProfile | null {
   if (typeof parsed !== 'object' || parsed === null) return null;
   const record = parsed as Record<string, unknown>;
@@ -76,7 +109,7 @@ export function upgradeStored(parsed: unknown, now = Date.now()): UpgradedProfil
 
   if (version === 1) {
     return {
-      version: 5,
+      version: 6,
       name: null,
       // v1 predates the date-of-birth question entirely, so there is nothing
       // here to keep and nothing to derive from.
@@ -84,6 +117,9 @@ export function upgradeStored(parsed: unknown, now = Date.now()): UpgradedProfil
       ageConfirmed: null,
       // Rule 3. Every branch below 5 predates the field.
       ageStopAt: null,
+      // Rule 3 again, for the field this version adds. Every branch below 6
+      // predates the voice question, so nobody upgrading has answered it.
+      tutorVoice: null,
       motivation: typeof record.motivation === 'string' ? record.motivation : 'want',
       // Ten minutes is what the old chain wrote to these learners' disks years
       // ago, and it has been their goal ever since. Re-deciding it now would
@@ -101,11 +137,12 @@ export function upgradeStored(parsed: unknown, now = Date.now()): UpgradedProfil
     // username, so the two branches say the same thing about everything else.
     return {
       ...(record as unknown as UpgradedProfile),
-      version: 5,
+      version: 6,
       name: typeof record.name === 'string' ? record.name : null,
       dob,
       ageConfirmed: ageConfirmedFromDob(dob, new Date(now)),
       ageStopAt: null,
+      tutorVoice: null,
       onboardedAt: typeof record.onboardedAt === 'number' ? record.onboardedAt : now,
       motivation: typeof record.motivation === 'string' ? record.motivation : null,
       dailyGoalMin: storedGoal(record.dailyGoalMin),
@@ -113,20 +150,26 @@ export function upgradeStored(parsed: unknown, now = Date.now()): UpgradedProfil
       brain: record.brain,
     };
   }
-  if (version === 4 || version === 5) {
+  if (version === 4 || version === 5 || version === 6) {
     return {
       ...(record as unknown as UpgradedProfile),
-      version: 5,
+      version: 6,
       name: typeof record.name === 'string' ? record.name : null,
       dob,
       // Already asked and answered. A blob carrying anything else in that slot
       // has never been through the age question, whatever it says — and a
       // stored false, which nothing in this app writes, reads as not asked.
       ageConfirmed: record.ageConfirmed === true ? true : null,
-      // The two versions differ here and nowhere else. A v4 blob predates the
-      // field, so its slot is empty however the spread above filled it; a v5
-      // blob is the only one whose stop is its own.
-      ageStopAt: version === 5 ? storedStop(record.ageStopAt) : null,
+      // A v4 blob predates the field, so its slot is empty however the spread
+      // above filled it; from v5 on the stop on the disk is that blob's own.
+      ageStopAt: version === 5 || version === 6 ? storedStop(record.ageStopAt) : null,
+      // The same reading, one version later. v4 and v5 predate the voice
+      // question, so whatever the spread carried up from their slot is not an
+      // answer either — only a v6 blob's voice is its own. Spelling both
+      // conditions out rather than testing `version >= 5` is deliberate:
+      // `version` is unknown off the disk, and a relational compare against an
+      // unknown is how a string "6" or a stray true would slip into a branch.
+      tutorVoice: version === 6 ? storedVoice(record.tutorVoice) : null,
       onboardedAt: typeof record.onboardedAt === 'number' ? record.onboardedAt : now,
       motivation: typeof record.motivation === 'string' ? record.motivation : null,
       dailyGoalMin: storedGoal(record.dailyGoalMin),

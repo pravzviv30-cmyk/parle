@@ -3,7 +3,7 @@
  * operation log.
  *
  * `upgrade` is injected here because the brain must not import the app, so
- * these tests supply a stand-in that mirrors the v4 branch of
+ * these tests supply a stand-in that mirrors the v6 branch of
  * `apps/mobile/src/profile/upgrade.ts`. What that pins is the *contract*: the
  * merge calls the version chain on every side and on its own result, and never
  * carries a field the chain would have refused. Wiring the real
@@ -13,6 +13,7 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { DEFAULT_TUTOR_VOICE, isTutorVoiceKey } from '@luvani/core';
 
 import {
   mergeLearnerProfiles,
@@ -32,18 +33,34 @@ import {
 const NOW = 1_700_000_000_000;
 const GOALS: ReadonlySet<unknown> = new Set([5, 10, 15]);
 
-/** The v4 branch of the app's version chain, in the shape the merge is handed. */
+/**
+ * The v6 branch of the app's version chain, in the shape the merge is handed.
+ *
+ * This stand-in moves when the app's chain moves, and it has to: the merge runs
+ * the chain on its own result, so one stuck a version behind would strip the
+ * field the merge had just decided and let a test pass that proves nothing.
+ *
+ * `tutorVoice` is trusted only from a v6 blob, exactly as `upgrade.ts` does it.
+ * Every earlier version predates the voice question, so whatever sits in that
+ * slot on an older disk is not an answer the learner ever gave.
+ *
+ * `ageStopAt` is deliberately absent. It is a device field the merge drops
+ * before the chain ever sees it, and `apps/mobile/src/profile/ageStop.test.ts`
+ * owns that seam against the real chain rather than against a stand-in.
+ */
 function chain(stored: unknown, now: number): Record<string, unknown> | null {
   if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) return null;
   const r = stored as Record<string, unknown>;
-  if (r.version !== 1 && r.version !== 2 && r.version !== 3 && r.version !== 4) return null;
+  const version = r.version;
+  if (version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5 && version !== 6) return null;
   return {
-    version: 4,
+    version: 6,
     name: typeof r.name === 'string' ? r.name : null,
     dob: typeof r.dob === 'string' ? r.dob : null,
     ageConfirmed: r.ageConfirmed === true ? true : null,
     motivation: typeof r.motivation === 'string' ? r.motivation : null,
     dailyGoalMin: GOALS.has(r.dailyGoalMin) ? r.dailyGoalMin : null,
+    tutorVoice: version === 6 && isTutorVoiceKey(r.tutorVoice) ? r.tutorVoice : null,
     onboardedAt: typeof r.onboardedAt === 'number' ? r.onboardedAt : now,
     username: typeof r.username === 'string' ? r.username : null,
     brain: r.brain,
@@ -77,12 +94,15 @@ function brain(over: Partial<LearnerProfile> = {}): LearnerProfile {
 
 function stored(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    version: 4,
+    version: 6,
     name: null,
     dob: null,
     ageConfirmed: null,
     motivation: null,
     dailyGoalMin: null,
+    // Never chosen, which is what the app writes for everybody until they pick
+    // a voice. It is not the default: the default is the agent's to apply.
+    tutorVoice: null,
     onboardedAt: NOW,
     username: null,
     brain: createProfile(),
@@ -288,6 +308,56 @@ describe('merging two copies of one learner', () => {
     for (const field of PROFILE_ANSWER_FIELDS) assert.equal(blank?.[field], null, field);
   });
 
+  test('a chosen voice beats a null one from either side, and the merge still absorbs its inputs', () => {
+    // The voice is the answered question where losing the answer changes who the
+    // tutor *is*. Two of the eight catalogue voices are women and the persona is
+    // derived from the key, so a null that overwrote `celine` would not degrade
+    // to "some other voice" — it would have the tutor introduce herself as a man
+    // on the device the learner uses most. That is the whole reason this field is
+    // an answer rather than something that rides with the evidence-heavier side.
+    const busy = stored({
+      tutorVoice: null,
+      brain: brain({ stats: { sessions: 20, totalTurns: 90, rescues: 0, lastRung: null } }),
+    });
+    const quiet = stored({
+      tutorVoice: 'celine',
+      brain: brain({ stats: { sessions: 1, totalTurns: 2, rescues: 0, lastRung: null } }),
+    });
+
+    for (const m of [merge(busy, quiet), merge(quiet, busy)]) {
+      assert.ok(m !== null);
+      assert.equal(m.tutorVoice, 'celine', 'the busier device with no voice overwrote the one the learner chose');
+      assert.ok(isTutorVoiceKey(m.tutorVoice), 'the merge produced something that is not a catalogue key');
+    }
+
+    // Two real choices is a different question, and the busier device wins it —
+    // the same rule `motivation` follows, for the same reason: between two
+    // answers the learner really gave, evidence decides, not text.
+    const alsoChosen = stored({
+      tutorVoice: 'emilie',
+      brain: brain({ stats: { sessions: 20, totalTurns: 90, rescues: 0, lastRung: null } }),
+    });
+    assert.equal(merge(alsoChosen, quiet)?.tutorVoice, 'emilie');
+    assert.equal(merge(quiet, alsoChosen)?.tutorVoice, 'emilie');
+
+    // Never chosen on either side stays never chosen. Writing the default here
+    // would record a choice nobody made, and the picker could no longer tell a
+    // learner who asked for Luc from one who has never been asked at all.
+    const untouched = merge(stored(), stored());
+    assert.equal(untouched?.tutorVoice, null);
+    assert.notEqual(untouched?.tutorVoice, DEFAULT_TUTOR_VOICE);
+
+    // And filling that null in must not move the evidence key, or two devices
+    // would hand the same profile back and forth forever with nothing changing.
+    // This is what `coreSlice` skipping the answer fields buys, pinned on the
+    // field that just joined them rather than assumed to have come along.
+    const merged = merge(busy, quiet);
+    assert.ok(merged !== null);
+    assert.ok(same(merged, merge(merged, busy, 2, 1)), 'the result stopped absorbing the side that had no voice');
+    assert.ok(same(merged, merge(merged, quiet, 2, 2)), 'the result stopped absorbing the side that chose');
+    assert.ok(same(merged, merge(merged, merged, 2, 2)), 'merging the result with itself changed it');
+  });
+
   test('both doors run: the version chain on every side and on the result, and repairProfile on the brain', () => {
     chainCalls = 0;
     // A version-1 outer whose brain predates `memory` entirely.
@@ -310,7 +380,10 @@ describe('merging two copies of one learner', () => {
     assert.ok(m !== null);
     // Two sides in, one result back out: three passes through the chain.
     assert.equal(chainCalls, 3);
-    assert.equal(m.version, 4);
+    // Re-pointed from 4 when the app's chain reached v6, which is the fact this
+    // line was always reading: the result comes back out through the chain and
+    // therefore wears the version the chain writes, whatever that has become.
+    assert.equal(m.version, 6);
     assert.equal(m.ageConfirmed, null);
     assert.equal(m.motivation, 'want');
     // repairProfile brought the brain to version 2 and filled the memory it

@@ -22,6 +22,8 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import type { PathNode } from '@luvani/core';
 import { paper, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
 import { statusLine } from './statusLine.ts';
+import { tutorNameOf } from '../tutor/tutorName.ts';
+import { useProfile } from '../app/ProfileContext.tsx';
 import { TALK_AGAIN, offersTalkAgain, talkAgainLabel } from './talkAgain.ts';
 import { ArrowRight } from '../components.tsx';
 import { StillWriting } from '../illustrations.tsx';
@@ -51,6 +53,11 @@ export function PathNodeRow({
    */
   paused?: boolean;
 }) {
+  // A locked topic says who is still writing it, and that is whoever this
+  // learner chose. Read here rather than threaded down from the tab, because
+  // the row is the only thing that renders the sentence.
+  const tutorName = tutorNameOf(useProfile().profile);
+  const status = statusLine(node, tutorName);
   const locked = node.state === 'locked';
   const talkAgain = onTalkAgain !== undefined && offersTalkAgain(node);
   return (
@@ -60,7 +67,7 @@ export function PathNodeRow({
         disabled={locked}
         accessibilityRole="button"
         accessibilityState={{ disabled: locked }}
-        accessibilityLabel={`${node.title}. ${statusLine(node)}`}
+        accessibilityLabel={`${node.title}. ${status}`}
         style={({ pressed }) => [st.row, pressed && !locked && { opacity: 0.7 }]}
       >
         {/* The one thing this app locks is a topic the tutor has not
@@ -75,7 +82,7 @@ export function PathNodeRow({
         )}
         <View style={{ flex: 1 }}>
           <Text style={[type.bodyStrong, { color: locked ? paper.inkFaint : paper.ink }]}>{node.title}</Text>
-          <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{statusLine(node)}</Text>
+          <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{status}</Text>
         </View>
         {!locked && <ArrowRight size={16} color={node.isNext ? paper.ink : paper.inkFaint} />}
       </Pressable>

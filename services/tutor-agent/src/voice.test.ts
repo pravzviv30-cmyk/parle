@@ -9,7 +9,16 @@ import { initializeLogger } from '@livekit/agents';
 // any plugin TTS is constructed.
 initializeLogger({ pretty: false, level: 'silent' });
 
-import { buildTTS, LANGUAGE_CODE, VOICE_KEY, VOICE_SETTINGS, selectedVoiceVendor } from './voice.ts';
+import { DEFAULT_TUTOR_VOICE, TUTOR_VOICES, type TutorVoiceKey } from '@luvani/core';
+import {
+  ELEVEN_VOICES,
+  buildTTS,
+  LANGUAGE_CODE,
+  VOICE_KEY,
+  VOICE_SETTINGS,
+  resolveTutorVoice,
+  selectedVoiceVendor,
+} from './voice.ts';
 import { FISH_SETTINGS } from './voiceFish.ts';
 
 /**
@@ -62,9 +71,15 @@ describe('the voice configuration', () => {
   test('the cache key fingerprints voice, model and delivery settings', () => {
     // Full-string equality on purpose: any settings change must change this key,
     // so audio synthesized under old settings is never replayed under new ones.
+    //
+    // The `default` segment used to be the literal word, because the voice came
+    // from an env var that was usually unset. It is now Luc's VENDOR id, which
+    // is the same discipline one level stricter: two learners on two different
+    // catalogue voices cannot collide, and a voice re-cloned under the same
+    // catalogue key gets a new id and therefore a new cache.
     assert.equal(
       buildTTS().opts.voiceKey,
-      'elevenlabs:default:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true',
+      'elevenlabs:IPgYtHTNLjC7Bq7IPHrm:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true',
     );
   });
 
@@ -88,9 +103,123 @@ describe('the voice configuration', () => {
     assert.match(buildTTS().opts.voiceKey, new RegExp(`lang=${LANGUAGE_CODE ?? 'auto'}`));
   });
 
-  test('a configured voice id lands in the cache key', () => {
+  // Re-pointed from 'a configured voice id lands in the cache key'. The fact
+  // that test guarded — the voice the tutor will actually speak with is in the
+  // cache key — is unchanged; what supplies it moved from an env var to the
+  // learner's chosen catalogue key, so the assertion follows it there.
+  test("the chosen voice's vendor id lands in the cache key, so two voices never share a WAV", () => {
+    const keys = Object.keys(TUTOR_VOICES) as TutorVoiceKey[];
+    const seen = new Map<string, TutorVoiceKey>();
+
+    for (const key of keys) {
+      const cacheKey = buildTTS({ voice: key }).opts.voiceKey;
+      assert.ok(
+        cacheKey.startsWith(`elevenlabs:${ELEVEN_VOICES[key]}:`),
+        `${key} must be cached under its own vendor id, got ${cacheKey}`,
+      );
+      const collision = seen.get(cacheKey);
+      assert.equal(
+        collision,
+        undefined,
+        `${key} and ${collision} share a cache key, so one would replay the other's audio`,
+      );
+      seen.set(cacheKey, key);
+    }
+
+    assert.equal(seen.size, keys.length, 'eight voices must produce eight distinct caches');
+  });
+
+  test('buildTTS speaks the default voice when nothing is chosen', () => {
+    // Two callers build this bare: the warm-cache script and any code path that
+    // has not learned about the chooser yet. Neither may silently get the
+    // vendor's own default voice, which is how the tutor spent months sounding
+    // like an American woman.
+    assert.equal(buildTTS().opts.voiceKey, buildTTS({ voice: DEFAULT_TUTOR_VOICE }).opts.voiceKey);
+    assert.ok(buildTTS().opts.voiceKey.includes(ELEVEN_VOICES[DEFAULT_TUTOR_VOICE]));
+  });
+
+  test('ELEVEN_VOICE_ID is read by nothing any more', () => {
+    // Retired by the catalogue. It is left in place here as a live check rather
+    // than deleted, because a stale value in somebody's .env must not be able to
+    // quietly reappear in the cache key or at the vendor: the learner's choice
+    // is the only thing that decides the voice now. preflight names it when set.
     process.env.ELEVEN_VOICE_ID = 'voix-test';
-    assert.ok(buildTTS().opts.voiceKey.startsWith('elevenlabs:voix-test:'));
+    assert.ok(!buildTTS().opts.voiceKey.includes('voix-test'), 'a retired variable must not reach the cache key');
+    assert.equal(
+      buildTTS().opts.voiceKey,
+      buildTTS({ voice: DEFAULT_TUTOR_VOICE }).opts.voiceKey,
+      'and must not change which voice is spoken',
+    );
+
+    // And nothing in the module reads it. Source-level, because an env var read
+    // on a branch no test happens to take is exactly how one survives a retirement.
+    const source = readFileSync(new URL('./voice.ts', import.meta.url), 'utf8');
+    assert.ok(!source.includes('ELEVEN_VOICE_ID'), 'voice.ts still reads the retired variable');
+
+    // Nor is it still handed out. A tracked example that assigns a dead
+    // variable is how a retirement gets undone: the next person regenerates
+    // their .env from it and puts the line back. Prose about the retirement is
+    // welcome; an assignment is not.
+    const example = readFileSync(new URL('../.env.example', import.meta.url), 'utf8');
+    assert.ok(
+      !example.split('\n').some((line) => /^#?\s*ELEVEN_VOICE_ID\s*=/.test(line)),
+      '.env.example still assigns ELEVEN_VOICE_ID, commented or not',
+    );
+    assert.match(example, /voices\.ts/, 'and it has to say where the voices actually are');
+  });
+
+  test('ELEVEN_VOICES names a non-empty vendor id for every catalogue voice', () => {
+    // `Record<TutorVoiceKey, string>` already makes a MISSING key a compile
+    // error. What it cannot catch is an empty or duplicated id, and both reach a
+    // learner the same way: a room that opens and a tutor that never speaks, or
+    // worse, a tutor speaking in somebody else's voice.
+    const ids = Object.entries(ELEVEN_VOICES);
+    assert.equal(ids.length, Object.keys(TUTOR_VOICES).length, 'every catalogue voice needs an id and no id is spare');
+    for (const [key, id] of ids) {
+      assert.ok(key in TUTOR_VOICES, `${key} has a vendor id and is not in the catalogue`);
+      assert.match(id, /^[A-Za-z0-9]{16,}$/, `${key}'s vendor id does not look like one: ${JSON.stringify(id)}`);
+    }
+    assert.equal(new Set(ids.map(([, id]) => id)).size, ids.length, 'two catalogue keys point at one vendor voice');
+  });
+});
+
+/**
+ * The guard between anything the app can send and the billed vendor URL.
+ *
+ * The agent is the only process holding the ElevenLabs key, so this is the last
+ * hop: whatever `resolveTutorVoice` returns becomes a path segment in a request
+ * somebody pays for. It therefore returns a catalogue key or the default, and
+ * never throws — a learner whose profile carries a voice we have since retired
+ * gets Luc and a lesson, not a stack trace in a room that already opened.
+ */
+describe('resolving the voice the app asked for', () => {
+  test('a key in the catalogue resolves to itself', () => {
+    for (const key of Object.keys(TUTOR_VOICES) as TutorVoiceKey[]) {
+      assert.equal(resolveTutorVoice(key), key);
+    }
+  });
+
+  test('anything else resolves to the default, and never throws', () => {
+    const hostile: unknown[] = [
+      undefined,
+      null,
+      '',
+      '   ',
+      'LUC',
+      'luc ',
+      'retired-voice',
+      '../../etc/passwd',
+      'IPgYtHTNLjC7Bq7IPHrm', // a vendor id, which is never an app-level key
+      'toString', // reachable through the prototype chain if the guard used `in`
+      'constructor',
+      42,
+      true,
+      { key: 'luc' },
+      ['luc'],
+    ];
+    for (const value of hostile) {
+      assert.equal(resolveTutorVoice(value), DEFAULT_TUTOR_VOICE, `${JSON.stringify(value)} must fall back, not pass`);
+    }
   });
 });
 

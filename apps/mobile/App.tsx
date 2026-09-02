@@ -56,6 +56,7 @@ import { loadHistory } from './src/progress/store.ts';
 import { backfillFrom } from './src/progress/activity.ts';
 import { lessonXp } from '@luvani/core';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
+import { withChosenVoice } from './src/onboarding/voiceStep.ts';
 import { ProfileGate } from './src/app/ProfileContext.tsx';
 import { LiveProvider } from './src/app/LiveContext.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
@@ -250,7 +251,14 @@ function SignedInRoot({ user }: { user: AuthUser }) {
         <OnboardingFlow
           existing={existing}
           onDone={(answers) => {
-            const next: StoredProfile = existing === null ? createStoredProfile(answers) : completeProfile(existing, answers);
+            const built = existing === null ? createStoredProfile(answers) : completeProfile(existing, answers);
+            // The voice step is the one onboarding answer neither constructor
+            // carries. It is applied here, through `withTutorVoice` — the same
+            // named door the Profile sheet writes with — rather than by adding a
+            // second opinion about the field to `createStoredProfile`. A skip
+            // leaves the profile untouched, so the field still reads "never
+            // chosen" and both ends of the wire resolve it to the default.
+            const next: StoredProfile = withChosenVoice(built, answers.tutorVoice);
             // Brand new, rather than someone answering a question that was
             // added since they joined. Only the first kind is sent to the
             // chooser; the second already has a Home worth returning to.
