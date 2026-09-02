@@ -4,7 +4,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { missionStates, type MissionProgress } from '@luvani/core';
 
-import { Card, Label, OutlineButton, PillButton } from '../components.tsx';
+import { Card, Label, OutlineButton, PillButton, Stat } from '../components.tsx';
 import { paper, radius, signal, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
@@ -106,6 +106,9 @@ export function MyFrenchTab() {
 
   if (showingPhrases) return <PhrasebookScreen book={book} onDone={() => setShowingPhrases(false)} />;
 
+  const finished = missions.filter((item) => item.timesFinished > 0).length;
+  const independent = missions.filter((item) => item.independence === 'on-your-own').length;
+
   // Keyed rather than indexed: `stampsFrom` answers in the order it was given,
   // and a lookup by id stays right the first time somebody filters this list.
   const stamps = stampsFrom(missions);
@@ -116,14 +119,15 @@ export function MyFrenchTab() {
 
   return (
     <View style={[st.root, { paddingTop: insets.top + space(4) }]}>
-      <ScrollView
-        style={st.scrollView}
-        contentContainerStyle={st.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
         <Text style={st.title}>My French</Text>
-        <Text style={st.sub}>Your useful phrases and real-world situations, in one place.</Text>
+        <Text style={st.sub}>The situations you have handled and the lines you have made yours.</Text>
+
+        <View style={st.stats}>
+          <Stat value={String(finished)} label="Situations done" />
+          <Stat value={String(independent)} label="On your own" />
+          <Stat value={String(book.count)} label="Phrases kept" />
+        </View>
 
         {book.count > 0 && (
           <Card style={{ marginTop: space(6) }}>
@@ -134,19 +138,6 @@ export function MyFrenchTab() {
             </Text>
             <View style={{ marginTop: space(4) }}>
               <OutlineButton label="Open my phrases" onPress={() => setShowingPhrases(true)} />
-            </View>
-          </Card>
-        )}
-
-        {book.count === 0 && (
-          <Card style={{ marginTop: space(6) }}>
-            <Label>Your notebook</Label>
-            <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>Make French yours</Text>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}> 
-              The useful lines from your tutor conversations will be kept here for you to return to.
-            </Text>
-            <View style={{ marginTop: space(4) }}>
-              <PillButton label="Talk to your tutor" onPress={() => nav.navigate('Tutor')} />
             </View>
           </Card>
         )}
@@ -189,7 +180,7 @@ export function MyFrenchTab() {
                 </View>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={item.timesFinished > 0 ? `Refine the sound in ${item.mission.titleEn}` : `Start ${item.mission.titleEn}`}
+                  accessibilityLabel={item.timesFinished > 0 ? `Sound check for ${item.mission.titleEn}` : `Start ${item.mission.titleEn}`}
                   onPress={() =>
                     item.timesFinished > 0
                       ? nav.navigate('SoundCheck', { missionId: item.mission.id })
@@ -200,7 +191,7 @@ export function MyFrenchTab() {
                   }
                   style={({ pressed }) => [st.smallAction, pressed && { opacity: 0.6 }]}
                 >
-                  <Text style={[type.button, { color: paper.ink }]}>{item.timesFinished > 0 ? 'Refine' : 'Start'}</Text>
+                  <Text style={[type.button, { color: paper.ink }]}>{item.timesFinished > 0 ? 'Check' : 'Start'}</Text>
                 </Pressable>
               </View>
             );
@@ -208,7 +199,7 @@ export function MyFrenchTab() {
         </View>
 
         <View style={{ marginTop: space(6) }}>
-          <PillButton label="Explore situations" onPress={() => nav.navigate('Missions')} />
+          <PillButton label="Choose another situation" onPress={() => nav.navigate('Missions')} />
         </View>
       </ScrollView>
     </View>
@@ -217,10 +208,10 @@ export function MyFrenchTab() {
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
-  scrollView: { flex: 1 },
-  scroll: { flexGrow: 1, paddingBottom: space(9) },
+  scroll: { paddingBottom: space(7) },
   title: { ...type.display, color: paper.ink },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: space(4), marginTop: space(6) },
   // A week's account, at the head of the page of stamps rather than under it.
   // Sentences, so they are set in ink at body size: 4.5 is the floor for
   // something a learner reads, and the softer inks are below it.
