@@ -918,6 +918,68 @@ describe('the tutor that never arrived — F196', () => {
   });
 });
 
+describe('a grant that never reached a tutor hands its lease back — F165', () => {
+  test('a grant nobody joins does not hold the session lease for half an hour', () => {
+    // A grant takes a thirty-minute lease before anyone joins the room, and only
+    // the agent's /session/end gives it back. The give-up watchdog hands it back
+    // for a tutor that joined an empty room (F196), but two paths never reach it:
+    // a connect that throws, and a start walked away from before a tutor joined.
+    // Both used to keep the lease, and the learner was refused their own next
+    // session for half an hour by one that never happened.
+
+    // The release helper, lifted and run. `heldSessionId` is a local the helper
+    // both reads and clears, so calling it twice proves it hands a lease back
+    // once and then has nothing left to hand.
+    const RELEASE = fragment(hook, 'const releaseHeldLease = (): void => {');
+    const released = (held: string | null, agentJoined: boolean, heardAgent: boolean): unknown[][] => {
+      const abandoned: unknown[][] = [];
+      run(`let heldSessionId = seedHeld;\n${RELEASE}\nreleaseHeldLease();\nreleaseHeldLease();`, {
+        seedHeld: held,
+        diagRef: { current: { agentJoined } },
+        heardAgentRef: { current: heardAgent },
+        userId: UID,
+        abandonSession: (...args: unknown[]) => {
+          abandoned.push(args);
+          return Promise.resolve();
+        },
+      });
+      return abandoned;
+    };
+
+    // No tutor in the room: the lease is handed back, with the account and the
+    // grant's own sessionId, and exactly once.
+    assert.deepEqual(
+      released(SESSION_ID, false, false),
+      [[UID, SESSION_ID]],
+      'a grant nobody joined kept its lease, so every retry 409s for half an hour',
+    );
+    // A tutor has taken the room: not ours to free. Freeing a lease out from
+    // under a live tutor is how one account comes to run two.
+    assert.deepEqual(released(SESSION_ID, true, false), [], 'a lease was freed under a tutor that had already joined');
+    assert.deepEqual(released(SESSION_ID, false, true), [], 'a lease was freed while an agent was already talking to us');
+    // Nothing granted yet: nothing to free.
+    assert.deepEqual(released(null, false, false), [], 'an attempt that never took a grant tried to hand one back');
+
+    // Wired, not merely written. The release is useless if nothing calls it: the
+    // catch a failed connect lands in, and the stand-down an abandoned start
+    // takes, both hand the lease back before they end.
+    const CATCH = fragment(hook, '} catch (err) {');
+    assert.match(
+      CATCH,
+      /releaseHeldLease\(\);\s*\n\s*fail\(classifyFailure\(err\)\)/,
+      'a session that failed to connect never hands its lease back, so the learner is locked out of their own next one',
+    );
+    const ABANDONED = fragment(hook, 'const abandoned = async (): Promise<boolean> => {');
+    assert.match(
+      ABANDONED,
+      /releaseHeldLease\(\);\s*\n\s*return true;/,
+      'a start walked away from after its grant keeps the lease it took',
+    );
+    // The sessionId it hands back is the grant's own, taken the moment it arrives.
+    assert.match(hook, /heldSessionId = grant\.sessionId;/, 'the release has no sessionId to name, so it frees nothing');
+  });
+});
+
 describe('the quiet door, mid-session — F200', () => {
   test('switching to text keeps the room, stops the microphone and needs no new grant', () => {
     const published: boolean[] = [];

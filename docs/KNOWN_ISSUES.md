@@ -2944,14 +2944,18 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F165 — A grant nobody joins holds the session lease for half an hour
 - severity: P2
-- status: [ ]
-- where: services/token-server/src/server.ts:281
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:698
 - note: the lease is acquired at token grant, before anyone joins, and released only by
-  /session/end, which the app cannot call; a grant abandoned by the F151 stand-down path
-  dispatches no tutor, so nothing releases it and every retry 409s for up to thirty
-  minutes. Root cause of F160. Token-server territory, outside this contract: acquire on
-  participant join, shorten the unjoined lease, or give the learner-authenticated path a
-  release. Route to voice-platform with its own contract.
+  /session/end (the agent's call) or /session/abandon (the account's). The app already made
+  the /session/abandon call for a tutor that joined an empty room (F196, 'agent-absent'), but
+  two grant-holding paths never reached it — a connect that throws, and a start walked away
+  from before a tutor joined — so both kept the lease and 409'd every retry for thirty
+  minutes. Found live driving the simulator, where a mic-less connect failure stranded the
+  account. The fix hands the lease back on those two paths too (`releaseHeldLease`), and only
+  while no tutor is in the room: freeing a lease under a live tutor is how one account runs
+  two, which is why 'agent-silent' still does not. The token server's thirty-minute TTL
+  remains the backstop for a client that dies before it can release. Root cause of F160.
 - verified-by: `a grant nobody joins does not hold the session lease for half an hour`
 
 ### F166 — Nothing pins the adapter to friendly.ts, so F153's leak can silently return

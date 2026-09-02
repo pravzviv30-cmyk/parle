@@ -684,6 +684,24 @@ export function useLiveSession(
     // whoever owns the session now.
     let opened: Room | null = null;
     let audioSession = false;
+    // The account's session lease, once this attempt has taken one. A grant
+    // acquires it before anyone joins the room, and only the agent's /session/end
+    // gives it back — so an attempt that gets a grant and then fails to connect,
+    // or is walked away from before a tutor joins, has to hand it back itself, or
+    // the learner is refused their own next session for the thirty-minute lease.
+    // That is F165. Released only while no tutor is in the room: once one has
+    // joined it owns the session and will end it, and freeing a lease out from
+    // under a live tutor is how one account comes to run two — the same rule the
+    // give-up watchdog keeps for 'agent-silent'. Cleared on release so a second
+    // teardown on the same attempt hands nothing back twice.
+    let heldSessionId: string | null = null;
+    const releaseHeldLease = (): void => {
+      if (heldSessionId === null) return;
+      if (diagRef.current.agentJoined || heardAgentRef.current) return;
+      const sessionId = heldSessionId;
+      heldSessionId = null;
+      void abandonSession(userId, sessionId);
+    };
     /**
      * Stop here if the learner has left, the screen has gone, or another start
      * has taken over. True means the caller must return, and by then everything
@@ -699,6 +717,9 @@ export function useLiveSession(
       // front of a learner who has already walked away.
       if (plan.disconnectRoom) await opened?.disconnect().catch(() => {});
       if (plan.releaseAudioSession) await releaseAudioSession().catch(() => {});
+      // The grant this attempt took goes back with it: a start given up before a
+      // tutor joined must not leave the account holding a lease nobody will end.
+      releaseHeldLease();
       return true;
     };
     setStatus({ phase: 'connecting' });
@@ -811,6 +832,10 @@ export function useLiveSession(
       // /session/abandon compares against before releasing anything, which is
       // what stops one caller freeing another's session.
       const grant = (await res.json()) as { token: string; livekitUrl: string; sessionId: string };
+      // From here this attempt holds the account's session lease, keyed on this
+      // sessionId. If it never reaches a room with a tutor in it, the teardown
+      // paths below hand it back; see releaseHeldLease. F165.
+      heldSessionId = grant.sessionId;
       // The last gate before a room exists at all. Everything past here has to
       // be given back rather than simply skipped.
       if (await abandoned()) return;
@@ -1221,6 +1246,9 @@ export function useLiveSession(
       void roomRef.current?.disconnect().catch(() => {});
       roomRef.current = null;
       removeAudioEls();
+      // The grant this attempt took never reached a tutor, so hand the lease
+      // back — a connect that threw is the strand F165 was filed for.
+      releaseHeldLease();
       fail(classifyFailure(err));
     }
   }, [

@@ -341,6 +341,10 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     TokenServerError: class extends Error {},
     trace: () => {},
     leave: async (): Promise<void> => {},
+    // Added to `start` by the F165 lease-release work: the abandon path now hands
+    // the account's session lease back when a grant never reached a tutor, so the
+    // lifted fragment reaches for the release call and the world must supply it.
+    abandonSession: async (): Promise<void> => {},
     setTimeout: (fire: () => void): number => {
       timers.push(fire);
       return timers.length;
