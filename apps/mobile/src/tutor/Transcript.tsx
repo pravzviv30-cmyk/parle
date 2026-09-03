@@ -17,9 +17,11 @@
 
 import { useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
-import { paper, signal, space, type, radius, HAIRLINE } from '../theme.ts';
+import { accent, paper, signal, space, type, radius, HAIRLINE } from '../theme.ts';
+import { EarGlyph, Label } from '../components.tsx';
 import type { TurnLine } from '../live/turns.ts';
 import { settleIn, useReduceMotion } from '../motion.ts';
+import { replayEar } from './replayEar.ts';
 
 function Recast({ quote, better, betterEn, why }: { quote: string; better: string; betterEn: string; why: string }) {
   return (
@@ -32,7 +34,22 @@ function Recast({ quote, better, betterEn, why }: { quote: string; better: strin
   );
 }
 
-function Line({ turn, onReplay }: { turn: TurnLine; onReplay?: () => void }) {
+function Line({
+  turn,
+  onReplay,
+  isLastTutorLine,
+  tutorName,
+  tutorSpeaking,
+}: {
+  turn: TurnLine;
+  onReplay?: () => void;
+  /** This is the most recent tutor line in the thread. */
+  isLastTutorLine: boolean;
+  /** Who the learner chose, said above each of their lines. */
+  tutorName: string;
+  /** The tutor holds the floor right now, which lights the ear. */
+  tutorSpeaking: boolean;
+}) {
   if (turn.who === 'narration') {
     return (
       <View style={st.narration}>
@@ -42,6 +59,15 @@ function Line({ turn, onReplay }: { turn: TurnLine; onReplay?: () => void }) {
   }
 
   const learner = turn.who === 'learner';
+  // Hidden, ink, or the accent on a quiet disc. The rule is in replayEar.ts so
+  // it can be asked a question; `learner` is folded into the first input here
+  // rather than there, because "a learner line is never the last tutor line" is
+  // a fact about this thread rather than a case the module has to know.
+  const ear = replayEar({
+    isLastTutorLine: !learner && isLastTutorLine,
+    canReplay: onReplay !== undefined,
+    sounding: tutorSpeaking,
+  });
   const body = (
     <>
       <Text style={[type.french, { color: paper.ink }]}>{turn.fr}</Text>
@@ -55,19 +81,35 @@ function Line({ turn, onReplay }: { turn: TurnLine; onReplay?: () => void }) {
   return (
     <View style={learner ? st.rowRight : st.rowLeft}>
       <View style={{ maxWidth: '82%' }}>
+        {/* Who is talking, said above every tutor bubble. A thread with two
+            sides and no names reads as two anonymous voices, and the learner
+            picked this person. Violet, because a name is identity. The
+            learner's own side needs none: it is their words on their side. */}
+        {learner ? null : (
+          <View style={st.speaker}>
+            <Label>{tutorName}</Label>
+          </View>
+        )}
         {/* Replay lives on the bubble rather than on a button in the control
             row, which is how "say that again" is served without a fifth chip
             competing for the space the learner reaches with one thumb. Only
             the tutor's own lines: replaying the learner's would be the app
-            reading somebody's French back at them. */}
+            reading somebody's French back at them. The ear is what says so;
+            before it, the whole affordance was that the bubble happened to be
+            pressable, which is a control only somebody who knows finds. */}
         {onReplay ? (
           <Pressable
             onPress={onReplay}
             accessibilityRole="button"
             accessibilityLabel={`Hear that line again: ${turn.fr}`}
-            style={({ pressed }) => [st.tutorBubble, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [st.tutorBubble, st.withEar, pressed && { opacity: 0.7 }]}
           >
-            {body}
+            <View style={{ flex: 1 }}>{body}</View>
+            {ear === 'hidden' ? null : (
+              <View style={ear === 'sounding' ? st.earSounding : st.ear}>
+                <EarGlyph size={18} color={ear === 'sounding' ? accent.primary : paper.ink} />
+              </View>
+            )}
           </Pressable>
         ) : (
           <View style={learner ? st.learnerBubble : st.tutorBubble}>{body}</View>
@@ -83,6 +125,8 @@ function Line({ turn, onReplay }: { turn: TurnLine; onReplay?: () => void }) {
 export function Transcript({
   turns,
   onReplayTutor,
+  tutorName,
+  tutorSpeaking,
 }: {
   turns: readonly TurnLine[];
   /**
@@ -93,6 +137,16 @@ export function Transcript({
    * lied about what it does.
    */
   onReplayTutor?: () => void;
+  /**
+   * Who this learner chose, drawn above every tutor bubble.
+   *
+   * Passed in rather than read here, for the reason `choosingView` gives: the
+   * tutor is whoever the learner picked, and a constant would put Luc's name
+   * over Celine's sentences.
+   */
+  tutorName: string;
+  /** The tutor is sounding right now, which lights the ear on its last line. */
+  tutorSpeaking: boolean;
 }) {
   const ref = useRef<ScrollView>(null);
   // One settling entrance, in the vocabulary the splash established and the
@@ -136,7 +190,14 @@ export function Transcript({
         accessibilityLabel="Your conversation so far"
       >
         {turns.map((t) => (
-          <Line key={t.id} turn={t} onReplay={onReplayTutor && t.id === lastTutorId ? onReplayTutor : undefined} />
+          <Line
+            key={t.id}
+            turn={t}
+            onReplay={onReplayTutor && t.id === lastTutorId ? onReplayTutor : undefined}
+            isLastTutorLine={t.id === lastTutorId}
+            tutorName={tutorName}
+            tutorSpeaking={tutorSpeaking}
+          />
         ))}
       </ScrollView>
     </Animated.View>
@@ -153,6 +214,17 @@ const st = StyleSheet.create({
   content: { flexGrow: 1, justifyContent: 'flex-end', gap: space(3), paddingVertical: space(3) },
   rowLeft: { alignItems: 'flex-start' },
   rowRight: { alignItems: 'flex-end' },
+  // The name sits on the bubble's leading edge, indented by the bubble's own
+  // padding so the caps line and the French below it share a left margin.
+  speaker: { paddingLeft: space(3.5), marginBottom: space(0.5) },
+  // The bubble becomes a row when it carries the ear, so the glyph sits at the
+  // trailing edge of the words rather than under them.
+  withEar: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  // The same treatment OptionCard gives an auditioning voice: a quiet disc, and
+  // the glyph in the accent. Colour rather than movement, because there is
+  // nothing here for reduce motion to withhold.
+  ear: { padding: space(1) },
+  earSounding: { padding: space(1), backgroundColor: paper.groundDeep, borderRadius: radius.pill },
   tutorBubble: {
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,

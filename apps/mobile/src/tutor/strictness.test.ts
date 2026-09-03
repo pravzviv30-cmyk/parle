@@ -168,22 +168,44 @@ describe('the strictness dial — the one preference the tutor already reads', (
     assert.notEqual(gloss('flow'), gloss('balanced'), 'two settings describe themselves identically');
     assert.match(STRICTNESS_SUB, /next conversation/i, 'the sheet does not say when a change is felt');
 
-    // 6. The wiring. There is no renderer in this suite, so the row and the
-    //    sheet are read out of the file the way ConvoScreen.test.ts reads its
-    //    own. A dial nothing renders is exactly the shape this defect had.
+    // 6. The wiring. There is no renderer in this suite, so the row is read out
+    //    of the file the way ConvoScreen.test.ts reads its own. A dial nothing
+    //    renders is exactly the shape this defect had.
+    //
+    //    The sheet went with F368. It was a headline, a paragraph and three
+    //    cards reached by a tap and left by another, to answer a question whose
+    //    whole content is three words; the three words are on the card now, and
+    //    the chosen one's gloss is written under them, which is what the sheet
+    //    was really carrying. Everything the old assertions guarded is still
+    //    guarded: the row exists, it marks what is set, it says what that
+    //    means, and it writes through the one named door.
     const tab = stripComments(read('../tabs/ProfileTab.tsx'));
+    // `indexOf` answers -1 for something that was deleted, and a slice from -1
+    // is the last character rather than nothing, so the position is checked
+    // before it is used. surfaceContract.test.ts writes that trap down as the
+    // reason a missing needle can read as a present one.
+    const at = tab.indexOf('<ChoiceRow<Strictness>');
+    assert.notEqual(at, -1, 'profile has no row for the dial, so the preference is unreachable again');
+    const row = tab.slice(at);
+    const block = row.slice(0, row.indexOf('/>'));
+    assert.match(block, /title=\{STRICTNESS_ROW\}/, 'the dial is on the card under a name this screen invented');
     assert.match(
-      tab,
-      /<SettingsRow label=\{STRICTNESS_ROW\} value=\{strictnessLabel\(profile\)\} onPress=\{\(\) => setSheet\('strictness'\)\}/,
-      'profile has no row for the dial, so the preference is unreachable again',
+      block,
+      /options=\{STRICTNESS_OPTIONS\.map\(\(option\) => \(\{ key: option\.value, label: option\.label \}\)\)\}/,
+      'the row offers something other than the three the engine grades on',
     );
-    assert.match(tab, /sheet === 'strictness'/, 'the row opens a sheet that does not exist');
     assert.match(
-      tab,
-      /update\(withStrictness\(profile, option\.value\)\)/,
-      'the sheet changes what is on screen without writing it down',
+      block,
+      /onChange=\{\(value\) => update\(withStrictness\(profile, value\)\)\}/,
+      'the row changes what is on screen without writing it down',
     );
-    assert.match(tab, /selected=\{strictnessOf\(profile\) === option\.value\}/, 'the sheet does not show what is already set');
+    assert.match(block, /active=\{strictnessOf\(profile\)\}/, 'the row does not show what is already set');
+    assert.match(
+      block,
+      /gloss=\{STRICTNESS_OPTIONS\.find\(\(option\) => option\.value === strictnessOf\(profile\)\)\?\.gloss \?\? ''\}/,
+      'three words stand alone, so what the chosen one actually does is hidden',
+    );
+    assert.ok(!tab.includes("'strictness'"), 'the dial has a sheet again, so there are two ways to answer one question');
     assert.ok(
       !/preferences/.test(tab),
       'the tab reaches into the learner model itself instead of going through the one named door',

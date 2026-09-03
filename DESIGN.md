@@ -215,7 +215,10 @@ so the thirteen screens that import from it did not change.
 
 Eighteen scenes. The original eight: café hero, name tag, birthday cake,
 suitcase, winged clock, clinking speech bubbles, sprouting word cards,
-postcard. Four of those now move. Six fill a place that previously said
+postcard. Four of those now move. The winged clock left the barrel with the
+daily-goal sheet that was its only caller, once the goal became a three-way
+control chosen in place; it is drawn, like the suitcase, and not exported. Six
+fill a place that previously said
 "nothing here" in plain text on an empty screen, and four are the mission
 chooser's postcards:
 
@@ -258,11 +261,11 @@ still there. Passing it is one tap and nothing else is asked twice.
 
 | Tab | What it is |
 |---|---|
-| Home | The level card, the evidence, the next situation to walk into, one way in |
-| Tutor | Three doors: continue a recent mission, start a practical one, or talk freely. The four-page intro that used to stand in front of them is a quiet "How the circle works" link here and in Profile |
-| Practice | The path, the guided lesson, the drill bank, the review deck — plus one topic card per conversation subject, projected live from the deck |
-| My French | Personal evidence: situations completed, best independence, retained phrases, and honest known-reference sound checks |
-| Profile | Account (the daily goal, how much the tutor corrects, and permanent account deletion), support, sign out, the legal footer |
+| Home | The next situation first, on its tinted disc with its goal line and the tab's one pill inside the card; then the level card and the evidence; the way to the Tutor tab is an outline at the foot |
+| Tutor | Three doors, each a card that says what is behind it: continue a recent mission (its drawing, both titles, where the learner stands, the pill), start a practical one (the six drawings as a teaser), or talk freely. The four-page intro that used to stand in front of them is a quiet "How the circle works" link here and in Profile |
+| Practice | The next step as the tab's one pill, then the path, the guided lesson, the drill bank, the review deck — plus one topic card per conversation subject, projected live from the deck |
+| My French | An evidence row that is absent at zero (situations handled, lines kept, the level), the notebook, the week, the situations with their stamps, and the same next-situation card Home draws |
+| Profile | The level under the name; the daily goal and the correction dial chosen in place as three-way controls with the chosen gloss beneath; the tutor's voice; prefer typing; tutor speaks slower; account (download, permanent deletion), the reminder, sign out, the legal footer and the build's version line |
 
 Every tab opens the same way. A **TabHeader** is the first thing in its scroll
 body: a display title on the left, one plain purpose line beneath it in soft ink,
@@ -306,7 +309,15 @@ Three rules the row now keeps that it did not:
   was pressable and silent. It is hidden instead of being taught to speak the
   tutor's line, which would hand back exactly what the support ladder withheld.
 - **Replay lives on the tutor's last bubble**, not on a sixth chip. Tapping it
-  plays that line again.
+  plays that line again, and the bubble now shows its ear so the affordance is
+  found rather than guessed: ink while quiet, the accent on a `groundDeep`
+  disc while the tutor is sounding, exactly as an option card's ear. Every
+  tutor bubble carries a caps label with the tutor's name above it, so a thread
+  read back later still says who spoke.
+- **A learner who prefers typing** opens the conversation with the reply box
+  already showing and the microphone closed until the circle is tapped; the
+  tutor still speaks. It is a standing choice in Profile, not the quiet door,
+  which is still taken per session where the learner is standing.
 - **Give me a moment stays enabled while the tutor talks.** Everything else in
   the row asks for a line and would talk over them. This one asks the clock to
   wait, and it is answered on screen in the quiet notice slot and never aloud,

@@ -69,6 +69,23 @@ function stripComments(source: string): string {
 const TAB = stripComments(read('./ProfileTab.tsx'));
 
 /**
+ * Just the reminder card, from its heading to the end of the Card.
+ *
+ * Every claim in this file is about that one group, and until F368 the screen
+ * had exactly one `<Switch` so the whole file could stand in for it. Two more
+ * switches live above it now, for typing and for pace, and a whole-file scan
+ * would happily answer "the explaining sentence is above a switch" about one of
+ * those instead. The region is bounded once, here, and used by both the tests
+ * that need it.
+ */
+const REMINDER_CARD = (() => {
+  const start = TAB.indexOf('<Label>{REMINDER_ROW}</Label>');
+  const end = TAB.indexOf('</Card>', start);
+  assert.ok(start !== -1 && end > start, 'the reminder group is not a card on this screen');
+  return TAB.slice(start, end);
+})();
+
+/**
  * `first` is present, `second` is present, and `first` comes first.
  *
  * A boolean rather than an assertion so the mutation test can watch it answer
@@ -165,9 +182,12 @@ describe('the daily reminder on Profile', () => {
     assert.equal(undecided.on, false, 'the row draws an on switch over a permission nobody has granted');
 
     // The screen's half. The note is written above the control, so the sentence
-    // is read before the dialog can be raised.
+    // is read before the dialog can be raised. Bounded to the reminder card,
+    // because the two switches F368 put above it are not this switch and must
+    // not be able to satisfy this claim on its behalf.
+    assert.ok(REMINDER_CARD.includes('<Switch'), 'the bounded block does not contain the switch, so it is scanning the wrong card');
     assert.ok(
-      writtenBefore(TAB, 'row.note', '<Switch'),
+      writtenBefore(REMINDER_CARD, 'row.note', '<Switch'),
       'the explaining sentence is not written above the switch, so the system dialog can arrive unexplained',
     );
 
@@ -346,10 +366,7 @@ describe('the daily reminder on Profile', () => {
     // Nothing on this row reports on the learner. No count, no percentage, and
     // no second opinion about when the reminder arrives. Bounded at the card it
     // draws, so the rest of the screen cannot lend it a pass or a failure.
-    const start = TAB.indexOf('<Label>{REMINDER_ROW}</Label>');
-    const end = TAB.indexOf('</Card>', start);
-    assert.ok(start !== -1 && end > start, 'the reminder group is not a card on this screen');
-    const block = TAB.slice(start, end);
+    const block = REMINDER_CARD;
     assert.ok(block.includes('<Switch'), 'the bounded block does not contain the switch, so it is scanning the wrong card');
     assert.ok(!/%/.test(block), 'the reminder row prints a percentage');
     assert.ok(!/\b(streak|practised|today)\b/i.test(block), 'the reminder row knows something about what the learner did');
@@ -510,5 +527,59 @@ describe('a schedule the phone would not take', () => {
     assert.equal(writtenBefore(shipped, "outcome === 'failed'", 'setStored(wanted)'), true);
     const shippedBlock = braceBlockAfter(shipped, "if (outcome === 'failed')") ?? '';
     assert.ok(shippedBlock.includes('saveReminder(reverted)') && !shippedBlock.includes('setStored('));
+  });
+});
+
+/**
+ * F367. The level, under the name, and decided somewhere else.
+ *
+ * Profile draws a monogram and a name and stops, so the one screen that is
+ * entirely about who the learner is says nothing about how far they have come.
+ * The rule for when there is anything to say is not new and must not be
+ * reinvented here: `progress/evidence.ts` answers null at zero XP, which is the
+ * same rule Home's level card keeps, and a second opinion is how one screen
+ * comes to congratulate somebody the other has not started counting.
+ *
+ * `levelName`'s own behaviour is `evidence.test.ts`'s to prove. What is left for
+ * this file is that the screen asks it, reads the log it needs, and draws
+ * nothing when the answer is null.
+ */
+describe('the level under the name — F367', () => {
+  test('profile draws the level line from evidence.ts — F367', () => {
+    // The rule is borrowed, not restated. A ternary here on `standing.xp` would
+    // be the second opinion this exists to prevent.
+    assert.ok(
+      TAB.includes("from '../progress/evidence.ts'"),
+      'profile works out its own level line instead of asking the module Home asks',
+    );
+    assert.ok(TAB.includes('levelName('), 'the level line is not drawn from evidence.ts at all');
+    assert.ok(!/standing\.xp/.test(TAB), 'the screen decides for itself when a level is worth saying');
+    assert.ok(!/standing\.name/.test(TAB), 'the screen reaches past levelName for the name');
+
+    // The log it is read from, on focus, so finishing a sitting anywhere in the
+    // app is visible here the moment the learner comes back to look.
+    assert.ok(TAB.includes('loadActivity('), 'the level is drawn from an activity log the screen never read');
+    const focus = callArguments(TAB, 'useFocusEffect');
+    assert.equal(focus.length, 1, 'the screen reads on focus in more than one place, or in none');
+    assert.ok(focus[0]?.includes('loadActivity()'), 'the level is read once at mount rather than on every return');
+    assert.ok(focus[0]?.includes('levelFor(totalXp('), 'the standing is assembled from something other than the log');
+
+    // And nothing is drawn when there is nothing to say. A learner who has not
+    // started is not told they are at the bottom of a ladder.
+    assert.ok(
+      TAB.includes('{levelLine === null ? null : ('),
+      'the level line is drawn whatever evidence.ts answered, so a learner at zero is given a rank',
+    );
+    const at = TAB.indexOf('{levelLine}');
+    assert.notEqual(at, -1, 'the level line is worked out and never drawn');
+
+    // It is words a learner reads, so it clears the 4.5 words are held to
+    // rather than the 3 a mark gets (F330), and it sits under the name.
+    const line = TAB.slice(TAB.lastIndexOf('<Text', at), at);
+    assert.match(line, /type\.small/, 'the level line is not set at the secondary size');
+    assert.match(line, /paper\.inkSoft/, 'the level line is set in a colour that only ever cleared as a mark');
+    assert.ok(!line.includes('inkFaint'), 'the level line is set in the faint ink F330 took off learner-facing text');
+    const name = TAB.indexOf("{profile.name ?? 'You'}");
+    assert.ok(name !== -1 && name < at, 'the level is drawn above the name it belongs to');
   });
 });

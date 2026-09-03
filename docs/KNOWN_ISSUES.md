@@ -5376,7 +5376,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F367 — Profile says the learner's level under their name
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:625
 - note: the focus effect also loads the activity log; levelName() from evidence.ts (null at zero XP, the
   same rule Home's level card keeps) is drawn as a type.small soft-ink line under the name, and nothing
@@ -5386,7 +5386,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F368 — The daily goal and the correction dial are chosen in place
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:460
 - note: the goal and strictness sheets go. settings/ChoiceRow.tsx draws a row title, a TabBar (three
   segments, active K | null, an accessibilityLabel on the tablist) and the chosen option's gloss beneath.
@@ -5400,7 +5400,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F369 — Profile's footer says which build this is
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:716
 - note: profile/appVersion.ts turns Constants.expoConfig?.version into "Luvani 0.1.0" or null, drawn as a
   type.small soft-ink line (never faint, F330) under the legal text, absent when unknown.
@@ -5408,7 +5408,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F370 — Prefer typing is a stored choice the conversation opens on
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/profile/store.ts:65
 - note: StoredProfile v7 adds preferTyping: boolean (false from createStoredProfile, one door
   withPreferTyping, every older version arrives false, junk reads false). sync/policy.ts writes 7.
@@ -5424,7 +5424,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F371 — A tutor asked to speak slower does so from the first line
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/convo.ts:1031
 - note: LearnerProfile.preferences.pace ('normal' | 'slow', the engine's own words at
   brain/src/engine/conversation.ts:132) is carried through repairProfile and finishSession.
@@ -5439,7 +5439,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F372 — The last tutor bubble shows its ear, and every tutor bubble says who spoke
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/Transcript.tsx:63
 - note: Transcript takes tutorName and tutorSpeaking. A caps Label with the name sits above each tutor
   bubble. tutor/replayEar.ts decides the ear on the last tutor bubble: hidden with nothing to hear, an ink
@@ -5451,7 +5451,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F373 — A password can be shown while it is typed
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx:328
 - note: Field with secure draws a trailing 44pt control reading "Show" / "Hide", announced "Show password"
   / "Hide password", and sets secureTextEntry to secure && !revealed. SignIn, SignUp (both fields) and
@@ -5461,7 +5461,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F374 — Sign in says what is waiting behind the door
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/auth/SignInScreen.tsx:95
 - note: one soft-ink line under "Welcome back": "Your phrases, your progress and your tutor's memory are
   where you left them." It lives in auth/copy.ts beside a test for the copy rules.
@@ -5469,7 +5469,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F375 — The auth seam can sign in with Apple
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/auth/types.ts:14
 - note: AuthUser.provider gains 'apple'; AuthAdapter.signInWithApple() joins GUARDED_METHODS.
   auth/apple.native.ts makes a raw nonce and its SHA-256 (auth/appleNonce.ts, pure), calls
@@ -5486,7 +5486,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F376 — Continue with Apple is offered only where it works
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/auth/SignInScreen.tsx:83
 - note: SignIn and SignUp ask appleSignInOffered() once on mount and, only when true, draw an OutlineButton
   "Continue with Apple" with the line-art AppleMark above the Google outline. Android and web draw nothing.
@@ -5527,7 +5527,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F380 — STATE_AND_STORAGE.md says the profile is at version 5
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: docs/STATE_AND_STORAGE.md:37
 - note: the doc predates v6 (tutorVoice) and would predate v7. Say 7, name tutorVoice and preferTyping,
   and correct the stored shape it lists to the fields the store writes.
