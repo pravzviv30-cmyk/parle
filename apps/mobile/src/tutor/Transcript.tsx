@@ -24,10 +24,10 @@ import { settleIn, useReduceMotion } from '../motion.ts';
 function Recast({ quote, better, betterEn, why }: { quote: string; better: string; betterEn: string; why: string }) {
   return (
     <View style={st.recast}>
-      <Text style={[type.small, { color: paper.inkFaint, textDecorationLine: 'line-through' }]}>{quote}</Text>
+      <Text style={[type.small, { color: paper.inkSoft, textDecorationLine: 'line-through' }]}>{quote}</Text>
       <Text style={[type.french, { color: paper.ink, marginTop: space(0.5) }]}>{better}</Text>
       <Text style={[type.small, { color: paper.inkSoft }]}>{betterEn}</Text>
-      <Text style={[type.small, { color: paper.inkFaint, marginTop: space(1) }]}>{why}</Text>
+      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{why}</Text>
     </View>
   );
 }
@@ -46,7 +46,7 @@ function Line({ turn, onReplay }: { turn: TurnLine; onReplay?: () => void }) {
     <>
       <Text style={[type.french, { color: paper.ink }]}>{turn.fr}</Text>
       {turn.frWritten && turn.frWritten !== turn.fr ? (
-        <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{turn.frWritten}</Text>
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{turn.frWritten}</Text>
       ) : null}
       {turn.en ? <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{turn.en}</Text> : null}
     </>

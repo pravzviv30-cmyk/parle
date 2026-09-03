@@ -135,7 +135,7 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
 | Style | Face / size | Use |
 |---|---|---|
 | `display` | Fraunces Bold 32 | Screen headline |
-| `title` | Fraunces 24 | Section head, big stat |
+| `title` | Fraunces 24 | Section / card head, big stat (not the tab title, which is `display` in `TabHeader`) |
 | `frenchLg` | Fraunces 28 | The line to say (`fitDisplay()` steps 28 → 24 → 20 by length) |
 | `french` | Fraunces 21 | Inline French — options, cards, chips |
 | `heading` | DM Sans Bold 17 | Screen titles in chrome |
@@ -164,6 +164,13 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
   hairline-muted when the tutor holds the floor.
 - **Icons** — authored SVG at the illustration stroke (2.2), ink by default.
   The Google mark is a monochrome line-art G: no brand-colour asset in v1.
+- **TabHeader**: the tab's title block. A `display` title on the left, one plain
+  purpose line beneath it in soft ink, and an optional trailing `Monogram` on the
+  title row. It mounts as the first child of a tab's scroll body, never in the
+  frame's `header` slot, so the fixed title and purpose can scroll at large text.
+- **Monogram**: the learner's initial drawn one way. One filled violet disc
+  (`accent.primary`), the initial set in the serif in warm-white (`paper.onInk`),
+  hidden from assistive tech. `HIT`-sized in Home's header, larger on Profile.
 
 ## Illustrations
 
@@ -224,6 +231,16 @@ still there. Passing it is one tap and nothing else is asked twice.
 | Practice | The path, the guided lesson, the drill bank, the review deck — plus one topic card per conversation subject, projected live from the deck |
 | My French | Personal evidence: situations completed, best independence, retained phrases, and honest known-reference sound checks |
 | Profile | Account (the daily goal, how much the tutor corrects, and permanent account deletion), support, sign out, the legal footer |
+
+Every tab opens the same way. A **TabHeader** is the first thing in its scroll
+body: a display title on the left, one plain purpose line beneath it in soft ink,
+and an optional trailing **Monogram** for the learner's initial. It is not passed
+to the frame's `header` slot, because a fixed display title over a purpose line is
+taller than the screen at the largest reading size and has to scroll with the
+content. Two rules ride with the block. A tab carries at most one primary pill,
+so the eye has one place to go. And a caps `Label` is violet, or it reports a
+state in ink, never faint: faint ink was only ever cleared as a mark, not as a
+line a learner reads.
 
 Navigation is React Navigation: a root stack whose first screen is the tab
 navigator, with the lesson, the conversation, drills, review and the mission

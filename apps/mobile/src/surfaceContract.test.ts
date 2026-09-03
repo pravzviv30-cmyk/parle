@@ -990,3 +990,233 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
     );
   });
 });
+
+/* ===========================================================================
+ * Pass 1b: the chrome is consistent (F329–F343).
+ *
+ * Same ceiling as everything above: a walk over source, not a renderer. What it
+ * catches is the regression a device pass would only find by eye — a tab that
+ * re-grows its own title, a caps label sunk to faint ink, a hand-rolled pill, a
+ * scroll that pads itself twice over the frame.
+ * =========================================================================== */
+
+/** The five tabs, which all open the same way now. */
+const TABS = [
+  'tabs/HomeTab.tsx',
+  'tabs/TutorTab.tsx',
+  'tabs/PracticeTab.tsx',
+  'tabs/MyFrenchTab.tsx',
+  'tabs/ProfileTab.tsx',
+];
+
+describe('the session names its rung once — F329', () => {
+  test('the rung row says the rung once, in the bullet and the label, and draws no bare dot', () => {
+    const view = named('SessionView.tsx');
+    // The 8pt fill read ~1.4 on the ground for rung one. The LineBullet row and
+    // the ink rungLabel on the same line already name the rung, so the dot goes.
+    assert.ok(!view.includes('rungDot'), 'SessionView still draws the bare rung dot or its style');
+    assert.ok(!/rungColor/.test(view), 'rungColor still reaches SessionView, so a fill can be drawn on the ground again');
+    // The two things that DO name the rung stay.
+    assert.match(view, /<LineBullet\b/, 'SessionView no longer draws the rung bullets; this test is stale');
+    assert.match(view, /rungLabel\(rung/, 'SessionView no longer names the rung in words');
+  });
+});
+
+describe('faint ink is a mark, not a word — F330, F338', () => {
+  // A drawn glyph the faint ink is allowed to colour: an icon, a spinner, an
+  // inactive tab mark. Words a learner reads never travel in it.
+  const GLYPH = /<(ArrowRight|EarGlyph|MicGlyph|ChevronLeft|HelpGlyph|GoogleMark|ActivityIndicator|Icon)\b/;
+  // The exact off-control expressions faint ink may still letter: a disabled
+  // ghost, a muted mic, an inactive bullet numeral, an empty draft's Send, a
+  // used token, a locked row's title. Nothing else. Normalised to single spaces.
+  const OFF_CONTROL = new Set([
+    '<Text style={[type.bodyStrong, { color: disabled ? paper.inkFaint : color }]}>{label}</Text>',
+    'const iconColor = active ? paper.onInk : muted ? paper.inkFaint : signal.good;',
+    'color: active ? (rung === 4 ? paper.onInk : paper.ink) : paper.inkFaint,',
+    '<Text style={[type.bodyStrong, { color: draft.trim().length === 0 ? paper.inkFaint : paper.ink }]}>Send</Text>',
+    '<Text style={[type.french, { color: used ? paper.inkFaint : paper.ink }]}>{token}</Text>',
+    '<Text style={[type.bodyStrong, { color: locked ? paper.inkFaint : paper.ink }]}>{node.title}</Text>',
+  ]);
+
+  test('a caps label is violet, or it reports a state in ink; none is faint', () => {
+    for (const { path, body } of SOURCES) {
+      for (const line of body.split('\n')) {
+        assert.ok(
+          !/<Label\b[^>]*paper\.inkFaint/.test(line),
+          `${rel(path)} sets a caps Label in faint ink, which clears neither the word floor nor a state's: ${line.trim()}`,
+        );
+      }
+    }
+  });
+
+  test('faint ink colours marks and off controls, never a line a learner reads', () => {
+    for (const { path, body } of SOURCES) {
+      for (const raw of body.split('\n')) {
+        if (!raw.includes('paper.inkFaint')) continue;
+        const line = raw.trim();
+        const norm = line.replace(/\s+/g, ' ');
+        const allowed =
+          /placeholderTextColor=\{paper\.inkFaint\}/.test(line) ||
+          /backgroundColor:\s*paper\.inkFaint/.test(line) ||
+          (GLYPH.test(line) && line.includes('paper.inkFaint')) ||
+          OFF_CONTROL.has(norm);
+        assert.ok(
+          allowed,
+          `${rel(path)} sets a line a learner reads in the faint ink that only clears the mark floor: ${line}`,
+        );
+      }
+    }
+  });
+});
+
+describe('the five tabs open the same way — F336', () => {
+  test('every tab opens with the one tab header and draws no headline of its own', () => {
+    for (const name of TABS) {
+      const body = named(name);
+      assert.equal(
+        (body.match(/<TabHeader\b/g) ?? []).length,
+        1,
+        `${name} does not open with exactly one TabHeader`,
+      );
+      assert.doesNotMatch(
+        body,
+        /\.\.\.type\.display/,
+        `${name} spreads the display line into a style of its own instead of leaving it to TabHeader`,
+      );
+      assert.doesNotMatch(
+        body,
+        /header=\{[^}]*type\.(title|display)/,
+        `${name} passes a title into the frame's header slot instead of opening the scroll body with TabHeader`,
+      );
+    }
+  });
+
+  test('every tab says what it is for in one line, and the line carries no debt and no dash', () => {
+    for (const name of TABS) {
+      const body = named(name);
+      const m = /purpose=(?:"([^"]*)"|\{`([^`]*)`\})/.exec(body);
+      assert.ok(m, `${name} opens a TabHeader with no purpose line`);
+      const purpose = m![1] ?? m![2] ?? '';
+      assert.ok(purpose.length > 0, `${name}'s purpose line is empty`);
+      assert.doesNotMatch(purpose, /—/, `${name}'s purpose line carries an em dash`);
+      assert.doesNotMatch(purpose, /TODO|FIXME|XXX|\bWIP\b/, `${name}'s purpose line carries a debt marker`);
+    }
+  });
+});
+
+describe('the learner initial is one drawn thing — F337', () => {
+  test("the learner's initial is drawn one way, on Home and on Profile", () => {
+    for (const name of ['tabs/HomeTab.tsx', 'tabs/ProfileTab.tsx']) {
+      const body = named(name);
+      assert.match(body, /<Monogram\b/, `${name} no longer draws the shared Monogram`);
+    }
+    // Neither hand-rolls its own disc any more.
+    assert.ok(!named('tabs/HomeTab.tsx').includes('st.avatar'), 'Home still hand-rolls its avatar disc');
+    assert.ok(!named('tabs/ProfileTab.tsx').includes('st.ring'), 'Profile still hand-rolls its identity ring');
+  });
+});
+
+describe('the tabs and the drill use the app buttons — F339', () => {
+  test('no tab draws a pill, a text button or a card-button of its own', () => {
+    for (const name of TABS) {
+      const body = named(name);
+      // A word boundary so this does not trip on st.doors or st.doorGloss, which
+      // are the row of doors and the primary door's gloss, not a card-button.
+      assert.doesNotMatch(body, /st\.door\b/, `${name} hand-rolls a card-button (st.door) instead of OutlineButton`);
+      assert.ok(!body.includes('st.smallAction'), `${name} hand-rolls a text button (st.smallAction) instead of GhostButton`);
+      assert.ok(
+        !body.includes('type.button'),
+        `${name} sets type.button on a control of its own instead of using the shared buttons`,
+      );
+    }
+  });
+
+  test("the drill's Check is the pill, twice, and nothing hand-rolled", () => {
+    const drill = named('DrillScreen.tsx');
+    assert.equal(
+      (drill.match(/<PillButton\s+label="Check"/g) ?? []).length,
+      2,
+      "the drill's two Check actions are not both the shared PillButton",
+    );
+    assert.doesNotMatch(drill, /ds\.check\b/, 'DrillScreen still defines a hand-rolled Check pill style');
+    assert.ok(!/accent\./.test(drill), 'the now-unused accent import lingers in DrillScreen');
+  });
+
+  test("the tutor's quiet doors are outline buttons with a gloss", () => {
+    const tutor = named('tabs/TutorTab.tsx');
+    assert.match(
+      tutor,
+      /<OutlineButton[\s\S]{0,120}sub=\{door\.gloss\}/,
+      'the tutor draws its quiet doors without the OutlineButton gloss line',
+    );
+    assert.doesNotMatch(tutor, /st\.door\b/, 'the tutor still draws a bespoke card-button for its quiet doors');
+  });
+});
+
+describe('the frame owns the tab gaps — F340', () => {
+  test('no tab pads its own scroll; the header gap and the bottom air come from the frame', () => {
+    for (const name of TABS) {
+      const body = named(name);
+      const m = /scroll:\s*\{([^}]*)\}/.exec(body);
+      assert.ok(m, `${name} no longer defines a scroll style; this test is stale`);
+      const scroll = m![1]!;
+      assert.doesNotMatch(scroll, /padding/, `${name}'s scroll style pads itself instead of leaving the gaps to the frame`);
+      assert.match(scroll, /flexGrow:\s*1/, `${name}'s scroll style should keep only flexGrow: 1`);
+      assert.ok(
+        !/paddingBottom/.test(body),
+        `${name} writes paddingBottom somewhere; the frame owns the air above the tab bar`,
+      );
+    }
+  });
+});
+
+describe('a chip is set in the token, not a raw size — F341', () => {
+  test('no text names a raw font size, except the inputs that hold iOS at 16', () => {
+    for (const { path, body } of SOURCES) {
+      if (path.endsWith('/theme.ts')) continue;
+      const p = rel(path);
+      for (const m of body.matchAll(/fontSize:\s*(\d+(?:\.\d+)?)/g)) {
+        const value = Number(m[1]);
+        const ok =
+          (p === 'components.tsx' && (value === 24 || value === 20)) ||
+          ((p === 'ReviewScreen.tsx' || p === 'DrillScreen.tsx') && value === 16);
+        assert.ok(
+          ok,
+          `${p} names a raw font size ${value}; only fitDisplay and the iOS-16 inputs may, everything else is a token`,
+        );
+      }
+    }
+  });
+});
+
+describe('one primary pill per tab, and none on a list — F342', () => {
+  test('a tab carries at most one primary pill, and Practice and Profile carry none', () => {
+    const counts: Record<string, number> = {
+      'tabs/HomeTab.tsx': 1,
+      'tabs/TutorTab.tsx': 1,
+      'tabs/MyFrenchTab.tsx': 1,
+      'tabs/PracticeTab.tsx': 0,
+      'tabs/ProfileTab.tsx': 0,
+    };
+    for (const [name, expected] of Object.entries(counts)) {
+      const n = (named(name).match(/<PillButton\b/g) ?? []).length;
+      assert.equal(n, expected, `${name} draws ${n} primary pills; the tab is allowed ${expected}`);
+    }
+  });
+});
+
+describe('the device runbook carries the Pass 1b chrome checks — F343', () => {
+  test('the device runbook carries the Pass 1b chrome checks', () => {
+    const runbook = readFileSync(join(ROOT, 'docs', 'DEVICE_VERIFICATION.md'), 'utf8');
+    assert.match(runbook, /## Pass 1b chrome/, 'the runbook has no Pass 1b chrome section');
+    const section = runbook.slice(runbook.indexOf('## Pass 1b chrome'));
+    const rows = section.split('\n').filter((l) => /\|\s*P1b-\d/.test(l));
+    assert.equal(rows.length, 6, `the Pass 1b section names ${rows.length} rows; it should carry P1b-1 through P1b-6`);
+    for (let i = 1; i <= 6; i += 1) {
+      assert.match(section, new RegExp(`P1b-${i}\\b`), `the Pass 1b runbook names no P1b-${i} row`);
+    }
+    for (const row of rows) {
+      assert.match(row, /not run/, `a Pass 1b row is walked before a device has: ${row.trim()}`);
+    }
+  });
+});

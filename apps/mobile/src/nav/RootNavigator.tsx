@@ -227,7 +227,7 @@ function ConvoRoute() {
   if (!live) {
     return (
       <View style={st.gate}>
-        <Label color={paper.inkFaint}>{TUTOR_OFFLINE.label}</Label>
+        <Label color={paper.inkSoft}>{TUTOR_OFFLINE.label}</Label>
         <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>
           {TUTOR_OFFLINE.headline}
         </Text>

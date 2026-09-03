@@ -80,7 +80,7 @@ export function RecapScreen({ recap, onDone }: { recap: RecapPayload; onDone: ()
                     <Text style={[type.small, { color: paper.inkSoft }]}>« {f.quote} »</Text>
                     <Text style={[type.french, { color: paper.ink, marginTop: space(1) }]}>{f.better}</Text>
                     <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{f.betterEn}</Text>
-                    <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{f.why}</Text>
+                    <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{f.why}</Text>
                   </View>
                 ))}
               </View>
@@ -98,14 +98,14 @@ export function RecapScreen({ recap, onDone }: { recap: RecapPayload; onDone: ()
                   <View key={p.fr} style={i > 0 ? st.divider : undefined}>
                     <View style={st.phraseHead}>
                       <Text style={[type.french, { color: paper.ink, flex: 1 }]}>{p.fr}</Text>
-                      <Text style={[type.small, { color: paper.inkFaint }]}>{registerTag(p.register)}</Text>
+                      <Text style={[type.small, { color: paper.inkSoft }]}>{registerTag(p.register)}</Text>
                     </View>
                     <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{p.en}</Text>
                   </View>
                 ))}
               </View>
             </Card>
-            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(2.5) }]}>The best of these become practice on your path.</Text>
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2.5) }]}>The best of these become practice on your path.</Text>
           </View>
         )}
 

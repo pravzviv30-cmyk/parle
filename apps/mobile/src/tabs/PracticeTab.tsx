@@ -18,7 +18,7 @@ import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/n
 import { buildPath, CAFE_LESSON, dueCards, type PathUnit, type PracticeTopic } from '@luvani/core';
 import { paper, space, type } from '../theme.ts';
 import { Card, Label, OutlineButton, GhostButton } from '../components.tsx';
-import { ScrollScreen } from '../layout.tsx';
+import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { PathNodeRow } from '../practice/PathNodeRow.tsx';
 import { MIX_OFFER, offersMix } from '../practice/mix.ts';
 import { seedTopicFor } from '../practice/talkAgain.ts';
@@ -116,13 +116,14 @@ export function PracticeTab() {
 
   const lessonNode = units?.flatMap((u) => u.nodes).find((n) => n.kind === 'lesson') ?? null;
 
-  const header = (
-    <View>
-      <Text style={[type.title, { color: paper.ink }]}>Practice</Text>
-      {/* The receipt for a tap that has to wait on the network. The gate's own
-          word, so the tab and the tutor card do not grow two vocabularies for
-          the same second and a half. */}
-      {checking && (
+  return (
+    <ScrollScreen
+      bottom="tab"
+      // The frame header keeps only the F154 checking receipt, so a tap that
+      // has to wait on the network stays acknowledged when the title scrolls
+      // away. The gate's own word, so the tab and the tutor card do not grow
+      // two vocabularies for the same second and a half.
+      header={checking && (
         <Text
           accessibilityLiveRegion="polite"
           style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}
@@ -130,12 +131,12 @@ export function PracticeTab() {
           {TUTOR_OFFLINE.checking}
         </Text>
       )}
-    </View>
-  );
-
-  return (
-    <ScrollScreen bottom="tab" header={header}>
+    >
       <View style={st.scroll}>
+        <TabHeader
+          title="Practice"
+          purpose="Short drills from the lesson, and from your own conversations."
+        />
         {mixOffered && (
           <View style={{ marginBottom: space(3) }}>
             {/* Offered only when the due phrases come from more than one topic,
@@ -198,5 +199,5 @@ export function PracticeTab() {
 }
 
 const st = StyleSheet.create({
-  scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(8) },
+  scroll: { flexGrow: 1 },
 });

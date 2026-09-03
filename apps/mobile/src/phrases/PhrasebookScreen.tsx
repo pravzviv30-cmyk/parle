@@ -82,7 +82,7 @@ export function PhrasebookScreen({ book, onDone }: { book: Phrasebook; onDone: (
         renderItem={({ item }) =>
           item.kind === 'group' ? (
             <View style={st.group}>
-              <Label color={item.groupId === LESSONS_GROUP ? paper.inkFaint : accent.label}>{item.title}</Label>
+              <Label color={item.groupId === LESSONS_GROUP ? paper.inkSoft : accent.label}>{item.title}</Label>
             </View>
           ) : (
             <PhraseRow phrase={item.phrase} />
@@ -101,7 +101,7 @@ function PhraseRow({ phrase }: { phrase: Phrase }) {
         <Text style={[type.french, { color: paper.ink }]}>{phrase.front}</Text>
         <Text style={[type.small, { color: paper.inkSoft }]}>{phrase.back}</Text>
       </View>
-      <Text style={[type.small, { color: paper.inkFaint }]}>{HOLD_LABEL[phrase.hold]}</Text>
+      <Text style={[type.small, { color: paper.inkSoft }]}>{HOLD_LABEL[phrase.hold]}</Text>
     </View>
   );
 }

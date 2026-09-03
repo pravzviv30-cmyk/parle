@@ -71,7 +71,7 @@ export function Acknowledgements({ onBack }: { onBack: () => void }) {
             <Label>{n.licence}</Label>
             <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{n.name}</Text>
             <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{n.by}</Text>
-            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(2) }]}>{n.note}</Text>
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{n.note}</Text>
           </Card>
         ))}
       </View>

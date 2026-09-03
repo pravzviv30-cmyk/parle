@@ -70,5 +70,5 @@ const st = StyleSheet.create({
     paddingVertical: space(1),
     maxWidth: '100%',
   },
-  chipText: { color: paper.ink, fontSize: 16, lineHeight: 22 },
+  chipText: { color: paper.ink },
 });

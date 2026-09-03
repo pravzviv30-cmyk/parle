@@ -62,7 +62,7 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
     return (
       <View style={[st.root, { paddingTop: insets.top + space(6) }]}>
         <Card>
-          <Label color={paper.inkFaint}>Nothing to practise</Label>
+          <Label color={paper.inkSoft}>Nothing to practise</Label>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
             This sound has no drill written for it yet.
           </Text>
@@ -85,7 +85,7 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
 
       <View style={st.stage}>
         <Text style={[type.frenchLg, { color: paper.ink, textAlign: 'center' }]}>{step.word}</Text>
-        <Text style={[type.notation, { color: paper.inkFaint, marginTop: space(1.5) }]}>/{step.ipa}/</Text>
+        <Text style={[type.notation, { color: paper.inkSoft, marginTop: space(1.5) }]}>/{step.ipa}/</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{step.gloss}</Text>
 
         {step.contrast && (
@@ -93,7 +93,7 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
             <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Not to be confused with</Text>
             <View style={st.contrastRow}>
               <Text style={[type.french, { color: paper.inkSoft }]}>{step.contrast.word}</Text>
-              <Text style={[type.small, { color: paper.inkFaint }]}>{step.contrast.gloss}</Text>
+              <Text style={[type.small, { color: paper.inkSoft }]}>{step.contrast.gloss}</Text>
             </View>
           </View>
         )}
@@ -110,7 +110,7 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
       </View>
 
       <View style={{ gap: space(2) }}>
-        <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center' }]}>
+        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>
           Say it out loud if you can. Nothing is listening.
         </Text>
         <PillButton label={last ? 'Done' : 'Next'} onPress={next} />

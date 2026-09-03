@@ -36,9 +36,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Switch } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useFocusEffect } from '@react-navigation/native';
-import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
-import { Card, Label, OptionCard, OutlineButton, Field } from '../components.tsx';
-import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { accent, paper, signal, space, type, HIT } from '../theme.ts';
+import { Card, Label, Monogram, OptionCard, OutlineButton, Field } from '../components.tsx';
+import { ScrollScreen, ScreenHeader, TabHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { OnboardClock } from '../illustrations.tsx';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
@@ -536,7 +536,7 @@ export function ProfileTab({
       <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: closeVoiceSheet }} />}>
         <Text style={[type.display, { color: paper.ink }]}>{TUTOR_VOICE_TITLE}</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{TUTOR_VOICE_SUB}</Text>
-        <View style={{ marginTop: space(6), gap: space(3), paddingBottom: space(6) }}>
+        <View style={{ marginTop: space(6), gap: space(3) }}>
           {TUTOR_VOICE_OPTIONS.map((option) => (
             <OptionCard
               key={option.value}
@@ -614,12 +614,13 @@ export function ProfileTab({
   }
 
   return (
-    <ScrollScreen bottom="tab" header={<Text style={[type.title, { color: paper.ink }]}>Profile</Text>}>
+    <ScrollScreen bottom="tab">
       <View style={st.scroll}>
+        <TabHeader title="Profile" purpose="Your name, your tutor, and your account." />
         <View style={st.identity}>
-          <View style={st.ring}>
-            <Text style={[type.title, { color: paper.ink }]}>{firstName.charAt(0).toUpperCase()}</Text>
-          </View>
+          {/* The one drawn initial: the same filled violet disc Home shows. The
+              name is said in the text beneath, so the disc is decorative. */}
+          <Monogram initial={firstName.charAt(0).toUpperCase()} size={72} />
           <Text style={[type.title, { color: paper.ink, marginTop: space(3) }]}>{profile.name ?? 'You'}</Text>
         </View>
 
@@ -711,7 +712,7 @@ export function ProfileTab({
           >
             <Text style={[type.label, { color: paper.inkSoft }]}>Acknowledgements</Text>
           </Pressable>
-          <Text style={[type.small, { color: paper.inkFaint, marginTop: space(3), textAlign: 'center' }]}> 
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
             You can download your account data or delete your account above. A reviewed privacy policy and terms are
             still required before release. Luvani records your email, name and age confirmation, then sends live speech
             to speech and language services so the tutor can answer. Nothing is shared with anyone else or sold for
@@ -733,17 +734,8 @@ export function ProfileTab({
 }
 
 const st = StyleSheet.create({
-  scroll: { flexGrow: 1, paddingTop: space(4), paddingBottom: space(9) },
+  scroll: { flexGrow: 1 },
   identity: { alignItems: 'center', marginBottom: space(6) },
-  ring: {
-    width: 96,
-    height: 96,
-    borderRadius: radius.pill,
-    borderWidth: 2,
-    borderColor: accent.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   // The switch keeps the 44pt floor the settings rows keep, so the control is
   // the same size to a thumb as everything above it.
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT },

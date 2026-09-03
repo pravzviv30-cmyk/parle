@@ -49,7 +49,7 @@ import {
   type TapTranslateExercise,
   drillXp,
 } from '@luvani/core';
-import { HAIRLINE, HIT, accent, font, paper, radius, signal, space, type } from './theme.ts';
+import { HAIRLINE, HIT, font, paper, radius, signal, space, type } from './theme.ts';
 import { recordActivity } from './progress/activity.ts';
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
@@ -188,15 +188,7 @@ function TypedAnswer({
         accessibilityLabel="Your answer in French"
         style={ds.input}
       />
-      <Pressable
-        onPress={onSubmit}
-        disabled={!canSubmit}
-        accessibilityRole="button"
-        accessibilityLabel="Check your answer"
-        style={({ pressed }) => [ds.check, !canSubmit && ds.checkDisabled, pressed && canSubmit && { opacity: 0.88 }]}
-      >
-        <Text style={[type.button, { color: paper.onInk }]}>Check</Text>
-      </Pressable>
+      <PillButton label="Check" disabled={!canSubmit} accessibilityLabel="Check your answer" onPress={onSubmit} />
     </View>
   );
 }
@@ -219,7 +211,7 @@ function FillBlankView({
   return (
     <View style={{ gap: space(4) }}>
       <Card style={ds.exCard}>
-        <Label color={paper.inkFaint}>{kindTag(exercise)}</Label>
+        <Label>{kindTag(exercise)}</Label>
         <Text style={[fitDisplay(exercise.sentence), { color: paper.ink, textAlign: 'center', marginTop: space(4) }]}>
           {exercise.sentence}
         </Text>
@@ -256,7 +248,7 @@ function BestSentenceView({
   return (
     <View style={{ gap: space(4) }}>
       <Card>
-        <Label color={paper.inkFaint}>{kindTag(exercise)}</Label>
+        <Label>{kindTag(exercise)}</Label>
         <Text style={[type.heading, { color: paper.ink, marginTop: space(3) }]}>{exercise.prompt}</Text>
       </Card>
       <View style={{ gap: space(2.5) }}>
@@ -287,7 +279,7 @@ function AppropriateReplyView({
   return (
     <View style={{ gap: space(4) }}>
       <Card>
-        <Label color={paper.inkFaint}>{kindTag(exercise)}</Label>
+        <Label>{kindTag(exercise)}</Label>
         <View style={{ marginTop: space(3) }}>
           <Label color={paper.ink}>{exercise.line.speaker}</Label>
           <Text style={[type.french, { color: paper.ink, marginTop: space(1.5) }]}>{exercise.line.fr}</Text>
@@ -330,14 +322,14 @@ function TapTranslateView({
   return (
     <View style={{ gap: space(4) }}>
       <Card style={ds.exCard}>
-        <Label color={paper.inkFaint}>{kindTag(exercise)}</Label>
+        <Label>{kindTag(exercise)}</Label>
         <Text style={[type.heading, { color: paper.ink, textAlign: 'center', marginTop: space(3) }]}>{exercise.en}</Text>
       </Card>
 
       {/* The answer line being assembled. Tap a word to put it back. */}
       <View style={ds.answerLine} accessibilityLabel="Your sentence so far">
         {assembled.length === 0 ? (
-          <Text style={[type.small, { color: paper.inkFaint }]}>Tap the words in order</Text>
+          <Text style={[type.small, { color: paper.inkSoft }]}>Tap the words in order</Text>
         ) : (
           assembled.map((tokenIndex, position) => (
             <Pressable
@@ -374,15 +366,12 @@ function TapTranslateView({
         })}
       </View>
 
-      <Pressable
-        onPress={() => onAnswer(answerText)}
+      <PillButton
+        label="Check"
         disabled={!canCheck}
-        accessibilityRole="button"
         accessibilityLabel="Check your sentence"
-        style={({ pressed }) => [ds.check, !canCheck && ds.checkDisabled, pressed && canCheck && { opacity: 0.88 }]}
-      >
-        <Text style={[type.button, { color: paper.onInk }]}>Check</Text>
-      </Pressable>
+        onPress={() => onAnswer(answerText)}
+      />
     </View>
   );
 }
@@ -403,7 +392,7 @@ function ListenTypeView({
   return (
     <View style={{ gap: space(4) }}>
       <Card style={ds.exCard}>
-        <Label color={paper.inkFaint}>{kindTag(exercise)}</Label>
+        <Label>{kindTag(exercise)}</Label>
         {/* Replayable freely — dictation is a listening exercise, not a memory test. */}
         <Pressable
           onPress={() => tutorVoice.speak(exercise.fr)}
@@ -506,7 +495,7 @@ function RepeatThisView({
   return (
     <View style={{ gap: space(4) }}>
       <Card style={ds.exCard}>
-        <Label color={paper.inkFaint}>{kindTag(exercise)}</Label>
+        <Label>{kindTag(exercise)}</Label>
         <Text style={[fitDisplay(exercise.reference), { color: paper.ink, textAlign: 'center', marginTop: space(4) }]}>
           {exercise.reference}
         </Text>
@@ -514,7 +503,7 @@ function RepeatThisView({
           {exercise.referenceEn}
         </Text>
         {exercise.ipa !== null && (
-          <Text style={[type.notation, { color: paper.inkFaint, textAlign: 'center', marginTop: space(2) }]}>
+          <Text style={[type.notation, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2) }]}>
             /{exercise.ipa}/
           </Text>
         )}
@@ -798,26 +787,26 @@ export function DrillScreen({
           <View style={ds.stats}>
             <View style={ds.stat}>
               <Text style={[type.title, { color: paper.ink }]}>{s.total}</Text>
-              <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Drills</Text>
+              <Text style={[type.label, { color: paper.inkSoft, marginTop: space(1) }]}>Drills</Text>
             </View>
             <View style={ds.stat}>
               <Text style={[type.title, { color: paper.ink }]}>{s.resolved}</Text>
-              <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Got right</Text>
+              <Text style={[type.label, { color: paper.inkSoft, marginTop: space(1) }]}>Got right</Text>
             </View>
             {s.typos > 0 && (
               <View style={ds.stat}>
                 <Text style={[type.title, { color: paper.ink }]}>{s.typos}</Text>
-                <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Spelling slips</Text>
+                <Text style={[type.label, { color: paper.inkSoft, marginTop: space(1) }]}>Spelling slips</Text>
               </View>
             )}
             {s.unresolved > 0 && (
               <View style={ds.stat}>
                 <Text style={[type.title, { color: paper.ink }]}>{s.unresolved}</Text>
-                <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>Coming back</Text>
+                <Text style={[type.label, { color: paper.inkSoft, marginTop: space(1) }]}>Coming back</Text>
               </View>
             )}
           </View>
-          <Text style={[type.small, { color: paper.inkFaint, marginTop: space(3) }]}>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>
             Your review deck takes it from here.
           </Text>
         </Card>
@@ -925,16 +914,6 @@ const ds = StyleSheet.create({
     fontFamily: font.sans,
     fontSize: 16,
   },
-  // The one primary action, in the PillButton anatomy.
-  check: {
-    minHeight: HIT + 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: accent.primary,
-    borderRadius: radius.pill,
-    paddingHorizontal: space(6),
-  },
-  checkDisabled: { backgroundColor: paper.inkFaint },
 
   answerLine: {
     minHeight: HIT + 12,

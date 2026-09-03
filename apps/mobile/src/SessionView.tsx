@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
 import type { SessionPrompt } from '@luvani/core';
-import { paper, radius, rungColor, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
+import { paper, radius, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
 import { Card, Label, LineBullet, StationLine, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
 import { ScrollScreen, ScreenHeader } from './layout.tsx';
 import { tutorNameOf } from './tutor/tutorName.ts';
@@ -57,12 +57,12 @@ export function SupportBlock({
           {support.gloss}
         </Text>
         {support.ipa ? (
-          <Text style={[type.notation, { color: paper.inkFaint, textAlign: 'center', marginTop: space(1.5) }]}>
+          <Text style={[type.notation, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
             /{support.ipa}/
           </Text>
         ) : null}
         {support.written && support.written !== support.line ? (
-          <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center', marginTop: space(1.5) }]}>
+          <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
             {support.written}
           </Text>
         ) : null}
@@ -197,8 +197,10 @@ export function SessionView(props: SessionViewProps) {
             <LineBullet key={r} rung={r} active={r === rung} />
           ))}
         </View>
-        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
-          <View style={[st.rungDot, { backgroundColor: rungColor[rung] }]} />
+        {/* The rung is named once in words here; the bullets to the left mark it
+            in colour. A bare colour dot beside both was a third telling that
+            read ~1.4 against the ground for rung one (F329). */}
+        <View style={{ flex: 1 }}>
           <Text style={[type.bodyStrong, { color: paper.ink }]}>{rungLabel(rung, tutorName)}</Text>
         </View>
       </View>
@@ -244,7 +246,10 @@ export function SessionView(props: SessionViewProps) {
               disabled={!props.onMicPress}
               accessibilityLabel={listening ? 'Speak your answer' : `${tutorName} is speaking`}
             />
-            <Text style={[type.label, { color: listening ? paper.ink : paper.inkFaint, marginTop: space(2) }]}>
+            {/* The caption under the voice circle reports which of us has the
+                floor. It is words, so it clears the text floor in soft ink when
+                the tutor holds it, not the faint ink a mark gets (F330). */}
+            <Text style={[type.label, { color: listening ? paper.ink : paper.inkSoft, marginTop: space(2) }]}>
               {listening ? 'Speak' : 'Listen'}
             </Text>
           </>
@@ -308,7 +313,7 @@ export function SessionView(props: SessionViewProps) {
         <View style={st.tutorBlock}>
           <View style={st.tutorHead}>
             <EarGlyph size={19} color={listening ? paper.inkFaint : paper.ink} />
-            <Label color={listening ? paper.inkFaint : paper.ink}>The waiter</Label>
+            <Label color={listening ? paper.inkSoft : paper.ink}>The waiter</Label>
           </View>
           <Text style={[type.french, { color: paper.ink, marginTop: space(1.5) }]}>{prompt.turn.tutor}</Text>
           <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{prompt.turn.tutorEn}</Text>
@@ -323,7 +328,7 @@ export function SessionView(props: SessionViewProps) {
 
         {props.transcript ? (
           <View style={st.heard}>
-            <Label color={paper.inkFaint}>{`What ${tutorName} heard`}</Label>
+            <Label>{`What ${tutorName} heard`}</Label>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>« {props.transcript} »</Text>
           </View>
         ) : null}
@@ -376,7 +381,6 @@ const st = StyleSheet.create({
     borderTopWidth: HAIRLINE,
     borderTopColor: paper.line,
   },
-  rungDot: { width: 8, height: 8, borderRadius: 999 },
   bullets: { flexDirection: 'row', gap: space(1.5) },
   controls: { alignItems: 'center', paddingTop: space(1) },
   help: { marginTop: space(2), minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(4) },

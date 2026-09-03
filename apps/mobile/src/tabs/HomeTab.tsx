@@ -26,9 +26,9 @@ import {
   type MissionProgress,
   type ProgressReport,
 } from '@luvani/core';
-import { accent, paper, space, type, radius, HIT } from '../theme.ts';
-import { Card, GhostButton, Label, OutlineButton, PillButton, StationLine, Stat } from '../components.tsx';
-import { ScrollScreen } from '../layout.tsx';
+import { paper, space, type, HIT } from '../theme.ts';
+import { Card, GhostButton, Label, Monogram, OutlineButton, PillButton, StationLine, Stat } from '../components.tsx';
+import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
 import { loadHistory } from '../progress/store.ts';
 import { loadActivity } from '../progress/activity.ts';
@@ -99,30 +99,38 @@ export function HomeTab() {
     return <PhrasebookScreen book={book} onDone={() => setShowingPhrases(false)} />;
   }
 
-  const header = (
-    <View style={st.headerRow}>
-      <View style={{ flex: 1 }}>
-        <Text style={[type.title, { color: paper.ink }]} numberOfLines={1}>
-          Bonjour, {firstName}
-        </Text>
-        {!live && <Label color={paper.inkFaint}>Demo</Label>}
-      </View>
-      <Pressable
-        onPress={() => nav.navigate('Profile')}
-        accessibilityRole="button"
-        accessibilityLabel="Your profile"
-        style={({ pressed }) => [st.avatar, pressed && { opacity: 0.7 }]}
-      >
-        <Text style={[type.heading, { color: paper.onInk }]}>{firstName.charAt(0).toUpperCase()}</Text>
-      </Pressable>
-    </View>
+  const profileButton = (
+    <Pressable
+      onPress={() => nav.navigate('Profile')}
+      accessibilityRole="button"
+      accessibilityLabel="Your profile"
+      style={({ pressed }) => pressed && { opacity: 0.7 }}
+    >
+      {/* The initial is decorative here; the name reaches a screen reader in the
+          title beside it, so the disc is the one drawn everywhere. */}
+      <Monogram initial={firstName.charAt(0).toUpperCase()} size={HIT} />
+    </Pressable>
   );
 
   return (
     // bottom="tab": the tab bar owns the bottom edge, so the frame leaves it the
     // inset rather than paying it twice on a notched phone.
-    <ScrollScreen bottom="tab" header={header}>
+    <ScrollScreen bottom="tab">
       <View style={st.scroll}>
+        <TabHeader
+          title={`Bonjour, ${firstName}`}
+          purpose="What to do next, and how far you have come."
+          trailing={profileButton}
+        >
+          {/* Demo reports a state — the tutor is not live — so it is soft ink,
+              not the faint ink that only ever cleared as a mark. */}
+          {!live && (
+            <View style={{ marginTop: space(2) }}>
+              <Label color={paper.inkSoft}>Demo</Label>
+            </View>
+          )}
+        </TabHeader>
+
         {/* Today, and only today. Absent entirely until the learner has done
             something, which is what stops a daily count becoming a streak. */}
         {today && <TodayRow today={today} />}
@@ -175,7 +183,7 @@ export function HomeTab() {
 
             {report && (
               <View style={{ marginTop: space(6) }}>
-                <Label color={paper.inkFaint}>What you have</Label>
+                <Label>What you have</Label>
                 <View style={st.stats}>
                   <Stat value={String(report.wordsKnown.length)} label="Words said" />
                   <Stat value={String(report.sessionCount)} label="Sessions" />
@@ -225,18 +233,11 @@ export function HomeTab() {
 }
 
 const st = StyleSheet.create({
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
-  avatar: {
-    width: HIT,
-    height: HIT,
-    borderRadius: radius.pill,
-    backgroundColor: accent.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(8) },
+  scroll: { flexGrow: 1 },
   hero: { alignItems: 'center', marginBottom: space(4) },
-  headline: { ...type.display, color: paper.ink, textAlign: 'center' },
+  // A screen never carries two display lines: TabHeader owns the one at the top,
+  // so the empty-state headline steps down to the title size.
+  headline: { ...type.title, color: paper.ink, textAlign: 'center' },
   subline: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
   stats: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(3), rowGap: space(5), columnGap: space(3) },
   actions: { marginTop: 'auto', paddingTop: space(6) },

@@ -4959,7 +4959,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F329 — The session's rung row draws a bare colour dot beside a rung it already names
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/SessionView.tsx:201
 - note: an 8pt `rungColor` fill with no numeral sits on the ground, where rung one's yellow reads ~1.4.
   F324 holds rung fills to ink-on-fill on the premise that nothing reads a fill against the ground; this
@@ -4969,7 +4969,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F330 — Words set in the faint ink that was cleared as a mark
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/PathNodeRow.tsx:85
 - note: `inkFaint` (#8A7996) clears 3.59 on the ground as a mark and 4.0 on a card; 87 sites use it and 66
   are words (status lines, costs, timestamps, settings values, stat captions, caps labels). Raised to P1
@@ -4982,7 +4982,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F331 — One tab header, and it is a primitive
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/layout.tsx:145
 - note: five tabs set their title at two sizes and two alignments, and only two say what the tab is for.
   `TabHeader({ title, purpose, trailing?, children? })` beside `ScreenHeader`: `type.display` in ink, left,
@@ -4995,7 +4995,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F332 — The learner's initial is one drawn thing
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx:438
 - note: Home draws a filled 44 violet disc with a sans initial; Profile draws a hollow 96 ring with a serif
   one. palette.ts calls the violet "the primary action and the monogram", so the fill is the design.
@@ -5005,7 +5005,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F333 — A pill and a ghost can carry a name for assistive tech
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx:131
 - note: `DrillScreen`'s Check pills and My French's Check/Start word announce themselves. Collapsing them
   onto `PillButton` and `GhostButton` (F339) needs an optional `accessibilityLabel` on both, forwarded to
@@ -5014,7 +5014,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F334 — The shared header centres its title between two equal slots
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/layout.tsx:177
 - note: the centre view is `flex: 1` with a 44pt chevron on the left and nothing on the right, so a card
   count or a connection line sits half a hit target off centre. Three slots always: left `width: HIT`,
@@ -5024,7 +5024,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F335 — The frame owns the air above the tab bar
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/layout.tsx:137
 - note: every tab pads its own scroll bottom on top of the root's `space(3)`. `ScrollScreen`'s
   contentContainerStyle takes `paddingBottom: space(8)` when `bottom === 'tab'` and nothing otherwise.
@@ -5032,7 +5032,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F336 — Five tabs open the same way
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/TutorTab.tsx:131
 - note: each tab renders exactly one `TabHeader` as the first child of its scroll body with a `title` and a
   required `purpose`; hand-rolled headers, `st.title`, `st.headline` and `st.subline` go; no tab spreads
@@ -5044,7 +5044,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F337 — Home and Profile draw the initial with the one monogram
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:738
 - note: Home keeps its "Your profile" Pressable in the header's `trailing` slot with `<Monogram size={HIT}>`
   inside; Profile draws `<Monogram size={72}>` above the name. `st.avatar` and `st.ring` go, so no tab pairs
@@ -5053,7 +5053,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F338 — A caps label is violet, or it reports a state in ink
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/HomeTab.tsx:178
 - note: `Label` defaults to violet and eighteen section heads override it to faint with no rule. Section
   heads drop the override. Four labels that report a state take `inkSoft` or `ink`. No `<Label` carries
@@ -5062,7 +5062,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F339 — The tabs and the drill use the app's own buttons
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/DrillScreen.tsx:929
 - note: `DrillScreen` hand-rolls the primary pill twice; My French sets `type.button` on a bare Pressable;
   Tutor draws a bespoke card-button. They become `PillButton` (with `accessibilityLabel`),
@@ -5074,7 +5074,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F340 — No tab pads its own scroll
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:736
 - note: with F331 owning the top gap and F335 the bottom, every `scroll` style keeps only `flexGrow: 1`,
   and no tab file writes `paddingBottom` at all (the voice sheet's included).
@@ -5082,7 +5082,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F341 — A chip is set in the French token, not a raw size
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/home/PhrasebookCard.tsx:73
 - note: `chipText` overrides `type.french` with `fontSize: 16, lineHeight: 22`. Drop both; the chip keeps
   its ink. A raw size is allowed only in `components.tsx` (`fitDisplay`) and the two `TextInput` styles that
@@ -5091,7 +5091,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F342 — A tab carries at most one primary pill, and a list tab carries none
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/PracticeTab.tsx:189
 - note: Home, Tutor and My French close with a pill; Practice's primary is the heavy-ruled next row and
   Profile has no next action. A closing pill on either would be a second or false primary, so the rule is
@@ -5100,7 +5100,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F343 — The device runbook names what a source walk cannot see about the chrome
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: docs/DEVICE_VERIFICATION.md:645
 - note: a `## Pass 1b chrome` section, every row `not run`: header scrolls with the body at AX5 and the
   closing action is reachable; the five tops match on a swipe; the monogram initial stays inside its disc at

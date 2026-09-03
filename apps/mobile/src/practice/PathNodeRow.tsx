@@ -82,7 +82,7 @@ export function PathNodeRow({
         )}
         <View style={{ flex: 1 }}>
           <Text style={[type.bodyStrong, { color: locked ? paper.inkFaint : paper.ink }]}>{node.title}</Text>
-          <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{status}</Text>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{status}</Text>
         </View>
         {!locked && <ArrowRight size={16} color={node.isNext ? paper.ink : paper.inkFaint} />}
       </Pressable>
@@ -97,7 +97,7 @@ export function PathNodeRow({
           <Text style={[type.bodyStrong, { color: paper.ink }]}>{TALK_AGAIN.action}</Text>
           {/* Said before the tap, on screen, every time. A learner who finds
               out afterwards has been charged for a surprise. */}
-          <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{TALK_AGAIN.cost}</Text>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{TALK_AGAIN.cost}</Text>
         </Pressable>
       )}
     </View>

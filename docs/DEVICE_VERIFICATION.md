@@ -642,6 +642,28 @@ Those are a device's to prove, and this is where that pass is recorded. Owner:
 
 **Fail looks like:** a swipe or back that leaves the room without asking, or a confirm whose primary action is Leave.
 
+## Pass 1b chrome
+
+The chrome-consistency work (F329–F343) is verified statically up to a point: the
+surface tests read the source and fail if a tab re-grows its own title, a caps label
+sinks to faint ink, a tab hand-rolls a pill, or a scroll pads itself over the frame.
+What they cannot see is a display title actually scrolling with the body at the
+largest reading size, a monogram letter staying inside its disc, a soft-ink status
+line reading on real glass, or the tutor's header, scene, doors and pill arriving in
+order on a small phone. Those are a device's to prove, and this is where that pass is
+recorded. Owner: `frontend-engineer` for the build, `qa-release-engineer` for running it.
+
+`pass` / `fail` / `not run`. Every row is `not run` until a real device pass is walked.
+
+| Id | Check | iOS | Android |
+|---|---|---|---|
+| P1b-1 | Each tab's display title scrolls with the body at iOS AX5 / Android font scale 2.0, and the tab's closing action stays reachable below it | not run | not run |
+| P1b-2 | The five tab tops read as one family on a swipe between them: same display title, same left edge, same purpose line beneath | not run | not run |
+| P1b-3 | The monogram initial stays inside its disc on Home and Profile across AX3 to AX5, and the disc is skipped by the screen reader while the name is read from the text | not run | not run |
+| P1b-4 | A pushed screen's centred title (the Review card count, the session connection line) sits centred, not half a touch target off | not run | not run |
+| P1b-5 | Soft-ink status lines, costs and captions stay legible on the ground and on a white card in daylight; no word reads as greyed out | not run | not run |
+| P1b-6 | On an SE-class phone the Tutor tab shows its header, then the scene, then the doors, then the one pill, in that order, and every one is reachable | not run | not run |
+
 ## Recording the result
 
 Fill the matrix in place, in this file, in the same commit as any ledger entry a

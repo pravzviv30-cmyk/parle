@@ -22,7 +22,7 @@ import {
   type KeyboardTypeOptions,
 } from 'react-native';
 import Svg, { Path, Circle, G } from 'react-native-svg';
-import { accent, decorative, paper, radius, signal, space, type, HAIRLINE, HIT, STROKE, rungColor } from './theme.ts';
+import { accent, decorative, font, paper, radius, signal, space, type, HAIRLINE, HIT, STROKE, rungColor } from './theme.ts';
 import type { Rung } from '@luvani/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
@@ -133,17 +133,21 @@ export function PillButton({
   onPress,
   disabled = false,
   icon,
+  accessibilityLabel,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   icon?: React.ReactNode;
+  /** Say something other than the label to assistive tech. Falls back to label. */
+  accessibilityLabel?: string;
 }) {
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
       style={({ pressed }) => [s.pill, disabled && s.pillDisabled, pressed && !disabled && { opacity: 0.88 }]}
     >
       {icon}
@@ -203,17 +207,21 @@ export function GhostButton({
   onPress,
   disabled = false,
   color = paper.inkSoft,
+  accessibilityLabel,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   color?: string;
+  /** Say something other than the label to assistive tech. Falls back to label. */
+  accessibilityLabel?: string;
 }) {
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
       style={({ pressed }) => [s.ghost, pressed && !disabled && { opacity: 0.55 }]}
     >
       <Text style={[type.bodyStrong, { color: disabled ? paper.inkFaint : color }]}>{label}</Text>
@@ -432,7 +440,34 @@ export function Stat({ value, label }: { value: string; label: string }) {
   return (
     <View style={{ flexBasis: '46%', flexGrow: 1 }}>
       <Text style={[type.title, { color: paper.ink }]}>{value}</Text>
-      <Text style={[type.label, { color: paper.inkFaint, marginTop: space(1) }]}>{label}</Text>
+      {/* The caption is words under a number, so it is soft ink, not the faint
+          ink that was only ever cleared as a mark (F330). */}
+      <Text style={[type.label, { color: paper.inkSoft, marginTop: space(1) }]}>{label}</Text>
+    </View>
+  );
+}
+
+/**
+ * The learner's initial, drawn one way: a filled violet disc with a serif
+ * initial in warm-white. The violet is the identity colour palette.ts names for
+ * "the primary action and the monogram", so the fill is the design rather than a
+ * hollow ring. It is decorative to assistive tech — the name is said in the text
+ * beside it, so a screen reader walks past the disc rather than reading a letter.
+ */
+export function Monogram({ initial, size = HIT }: { initial: string; size?: number }) {
+  return (
+    <View
+      {...decorative}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: accent.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text style={{ fontFamily: font.serif, fontSize: size * 0.44, color: paper.onInk }}>{initial}</Text>
     </View>
   );
 }

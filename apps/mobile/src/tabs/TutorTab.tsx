@@ -17,12 +17,12 @@
  */
 
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { missionStates, type MissionProgress } from '@luvani/core';
-import { paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
+import { paper, space, type } from '../theme.ts';
 import { PillButton, GhostButton, OutlineButton, Card, Label } from '../components.tsx';
-import { ScrollScreen } from '../layout.tsx';
+import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
@@ -124,12 +124,14 @@ export function TutorTab() {
   return (
     <ScrollScreen bottom="tab">
       <View style={st.scroll}>
+        <TabHeader
+          title="Ready to talk?"
+          purpose={`${tutorName} remembers you. Pick a situation, or just start talking.`}
+        />
+
         <View style={st.hero}>
           <SpeakBubbles width={150} paused={!focused} />
         </View>
-
-        <Text style={st.headline}>Ready to talk?</Text>
-        <Text style={st.subline}>{`${tutorName} remembers you. Pick a situation, or just start talking.`}</Text>
 
         {!live && (
           <Card style={{ marginTop: space(5) }}>
@@ -162,16 +164,13 @@ export function TutorTab() {
                 <Text style={st.doorGloss}>{door.gloss}</Text>
               </View>
             ) : (
-              <Pressable
+              <OutlineButton
                 key={door.key}
+                label={door.label}
+                sub={door.gloss}
+                disabled={checking}
                 onPress={() => enter(door.key)}
-                accessibilityRole="button"
-                accessibilityLabel={`${door.label}. ${door.gloss}`}
-                style={({ pressed }) => [st.door, pressed && { backgroundColor: paper.groundDeep }]}
-              >
-                <Text style={[type.bodyStrong, { color: paper.ink }]}>{door.label}</Text>
-                <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{door.gloss}</Text>
-              </Pressable>
+              />
             ),
           )}
         </View>
@@ -186,21 +185,9 @@ export function TutorTab() {
 }
 
 const st = StyleSheet.create({
-  scroll: { flexGrow: 1, paddingTop: space(4), paddingBottom: space(8) },
+  scroll: { flexGrow: 1 },
   hero: { alignItems: 'center', marginBottom: space(3) },
-  headline: { ...type.display, color: paper.ink, textAlign: 'center' },
-  subline: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
   doors: { marginTop: space(6), gap: space(3) },
   doorGloss: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
-  door: {
-    minHeight: HIT,
-    justifyContent: 'center',
-    backgroundColor: paper.card,
-    borderRadius: radius.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.lineOnCard,
-    paddingVertical: space(3),
-    paddingHorizontal: space(4),
-  },
   quiet: { marginTop: 'auto', paddingTop: space(6), gap: space(1) },
 });

@@ -167,7 +167,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
   const face = (
     <Card style={st.card}>
-      <Label color={paper.inkFaint}>{view.tag}</Label>
+      <Label>{view.tag}</Label>
 
       {view.answer === null ? (
         <View style={{ alignSelf: 'stretch', marginTop: space(4) }}>
@@ -189,7 +189,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
             </Text>
           )}
           {view.answer.ipa !== '' && (
-            <Text style={[type.notation, { color: paper.inkFaint, textAlign: 'center', marginTop: space(2) }]}>
+            <Text style={[type.notation, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2) }]}>
               /{view.answer.ipa}/
             </Text>
           )}
@@ -198,7 +198,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
               comparing two lines themselves is the whole point of typing. */}
           {view.echo !== null && (
             <View style={{ marginTop: space(3.5), alignItems: 'center' }}>
-              <Label color={paper.inkFaint}>You typed</Label>
+              <Label>You typed</Label>
               <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1) }]}>
                 {view.echo}
               </Text>
@@ -302,7 +302,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
         </View>
       ) : (
         <View style={st.flipHint}>
-          <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center' }]}>Tap to turn it over</Text>
+          <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Tap to turn it over</Text>
         </View>
       )}
     </View>
@@ -318,7 +318,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       header={
         <ScreenHeader
           leave={{ onPress: onDone, label: 'Leave', accessibilityLabel: 'Leave the review' }}
-          title={<Label color={paper.inkFaint}>{remaining === 1 ? '1 card' : `${remaining} cards`}</Label>}
+          title={<Label color={paper.inkSoft}>{remaining === 1 ? '1 card' : `${remaining} cards`}</Label>}
         />
       }
       footer={foot}

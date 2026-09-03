@@ -89,7 +89,7 @@ export function SummaryScreen({
             <Card>
               <View style={st.drillHead}>
                 <Text style={[type.heading, { color: paper.ink, flex: 1 }]}>{focus.drill.title}</Text>
-                <Text style={[type.label, { color: paper.inkFaint }]}>{focus.drill.durationSec}s</Text>
+                <Text style={[type.label, { color: paper.inkSoft }]}>{focus.drill.durationSec}s</Text>
               </View>
               <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1.5) }]}>{focus.drill.why}</Text>
 
@@ -113,7 +113,7 @@ export function SummaryScreen({
                       <Text style={[type.french, { color: paper.ink }]}>{i.word}</Text>
                       <Text style={[type.small, { color: paper.inkSoft }]}>{i.gloss}</Text>
                     </View>
-                    <Text style={[type.notation, { color: paper.inkFaint }]}>/{i.ipa}/</Text>
+                    <Text style={[type.notation, { color: paper.inkSoft }]}>/{i.ipa}/</Text>
                   </View>
                 ))}
               </View>
@@ -155,7 +155,7 @@ export function SummaryScreen({
 
         {/* ── what actually moved ───────────────────────────────────── */}
         <View>
-          <Label color={paper.inkFaint}>What moved today</Label>
+          <Label>What moved today</Label>
           <View style={st.stats}>
             <Stat value={String(summary.wordsProduced.length)} label="Words said" />
             <Stat value={`${summary.longestTurnSec.toFixed(1)}s`} label="Longest turn" />
@@ -186,7 +186,7 @@ export function SummaryScreen({
                 </Text>
               ))}
             </View>
-            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(2.5) }]}>
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2.5) }]}>
               {report.sessionCount} sessions so far
             </Text>
           </Card>
@@ -194,7 +194,7 @@ export function SummaryScreen({
 
         {summary.wordsProduced.length > 0 && (
           <View>
-            <Label color={paper.inkFaint}>Your notebook</Label>
+            <Label>Your notebook</Label>
             <View style={st.words}>
               {summary.wordsProduced.map((w) => (
                 <View key={w} style={st.word}>
@@ -210,7 +210,7 @@ export function SummaryScreen({
             <View style={{ marginTop: space(1.5) }}>
               <GhostButton label="Export to Anki" onPress={exportCards} />
             </View>
-            <Text style={[type.small, { color: paper.inkFaint, marginTop: space(1.5), textAlign: 'center' }]}>
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1.5), textAlign: 'center' }]}>
               Downloads your words as flashcards you can import into Anki or any deck app.
             </Text>
           </View>

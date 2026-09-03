@@ -179,6 +179,15 @@ describe('one ground, pinned — F321', () => {
     assert.ok(contrast(accent.primary, paper.groundDeep) >= 4, `the violet is ${contrast(accent.primary, paper.groundDeep).toFixed(2)} on a chip fill`);
     assert.ok(contrast(accent.label, GROUND) >= TEXT, `the label accent is ${contrast(accent.label, GROUND).toFixed(2)} on the ground`);
   });
+
+  test('soft ink clears 4.5 on a card as well as on the ground', () => {
+    // F330 moves the app's running text onto inkSoft, and some of that text sits
+    // on a white card rather than on the ground. The value already clears the
+    // text floor there; this pins it, so a re-tint of inkSoft cannot pass by
+    // clearing the ground alone and leave the words on a card under the floor.
+    assert.ok(contrast(paper.inkSoft, GROUND) >= TEXT, `inkSoft is ${contrast(paper.inkSoft, GROUND).toFixed(2)} on the ground`);
+    assert.ok(contrast(paper.inkSoft, CARD) >= TEXT, `inkSoft is ${contrast(paper.inkSoft, CARD).toFixed(2)} on a card`);
+  });
 });
 
 describe('signals are re-saturated and held to what they are — F322', () => {

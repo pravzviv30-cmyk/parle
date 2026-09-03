@@ -127,15 +127,22 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
     // The one mechanical trap in the sweep. These rows were space-between with
     // exactly two children, and deleting the caps title on the left flushed the
     // remaining control across the screen. The concern moved into the shared
-    // header (layout.tsx) when these three adopted it: the Leave word is flushed
-    // right by `marginLeft: 'auto'` there, once, rather than by each screen's
-    // own row. So the guarantee is now checked at its home, and the three
-    // screens are held to routing their Leave through it rather than a
-    // hand-rolled row.
+    // header (layout.tsx) when these three adopted it, and it is flushed right
+    // there, once, rather than by each screen's own row. F334 rebuilt that header
+    // as three equal slots: the `flex: 1` centre expands to push the right slot
+    // to the edge, and the leave word sits `alignItems: 'flex-end'` within it. So
+    // the guarantee is unchanged and still checked at its home, by the mechanism
+    // that replaced the old `marginLeft: 'auto'`, and the three screens are held
+    // to routing their Leave through it rather than a hand-rolled row.
     const header = readFileSync(join(SRC, 'layout.tsx'), 'utf8');
     assert.match(
       header,
-      /marginLeft: 'auto'/,
+      /flex: 1, alignItems: 'center'/,
+      'the shared header centre no longer expands, so it cannot push the leave word to the edge',
+    );
+    assert.match(
+      header,
+      /minWidth: HIT, minHeight: HIT, alignItems: 'flex-end'/,
       'the shared header no longer flushes the leave word to the right, so it can sit under the wrong thumb',
     );
     for (const name of ['ConvoScreen.tsx', 'ReviewScreen.tsx', 'DrillScreen.tsx']) {

@@ -665,7 +665,7 @@ export function ConvoScreen({
   if (live.status.phase === 'out-of-minutes') {
     return (
       <View style={st.center}>
-        <Label color={paper.inkFaint}>You are out of minutes</Label>
+        <Label color={paper.inkSoft}>You are out of minutes</Label>
         <Text style={[type.title, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>
           {live.status.message}
         </Text>
@@ -763,7 +763,7 @@ export function ConvoScreen({
             </View>
 
             {choosing.helper ? (
-              <Text style={[type.small, { color: paper.inkFaint, textAlign: 'center', marginTop: space(4) }]}>
+              <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(4) }]}>
                 {choosing.helper}
               </Text>
             ) : null}

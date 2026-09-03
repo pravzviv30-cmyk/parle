@@ -364,7 +364,7 @@ const st = StyleSheet.create({
   art: { alignItems: 'center', marginBottom: space(5) },
   question: { ...type.display, color: paper.ink, textAlign: 'center' },
   sub: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
-  hint: { ...type.small, color: paper.inkFaint, textAlign: 'center', marginTop: space(3) },
+  hint: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
   refusal: { ...type.bodyStrong, color: paper.ink, textAlign: 'center', marginTop: space(5) },
   lines: { gap: space(3), marginTop: space(4) },
   voices: { gap: space(3), marginTop: space(5), alignSelf: 'stretch' },

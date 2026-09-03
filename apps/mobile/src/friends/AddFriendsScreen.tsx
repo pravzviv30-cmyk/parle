@@ -158,12 +158,12 @@ export function AddFriendsScreen() {
                           </Text>
                           {hit.preview && <SampleChip />}
                         </View>
-                        <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{hit.username}</Text>
+                        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{hit.username}</Text>
                       </View>
                       {status === 'add' ? (
                         <GhostButton label="Add" color={paper.ink} onPress={() => void add(hit.username)} />
                       ) : (
-                        <Text style={[type.small, { color: paper.inkFaint }]}>
+                        <Text style={[type.small, { color: paper.inkSoft }]}>
                           {status === 'friends' ? 'Friends' : status === 'waiting' ? 'Waiting' : 'Sending'}
                         </Text>
                       )}
@@ -186,7 +186,7 @@ export function AddFriendsScreen() {
                     <GhostButton label="Save the request" color={paper.ink} onPress={() => void add(miss.username)} />
                   </View>
                 ) : (
-                  <Text style={[type.small, { color: paper.inkFaint, marginTop: space(2) }]}>Saved and waiting.</Text>
+                  <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Saved and waiting.</Text>
                 )}
               </Card>
             )}
@@ -237,7 +237,7 @@ export function AddFriendsScreen() {
                       <Text style={[type.bodyStrong, { color: paper.ink }]}>{r.displayName ?? r.username}</Text>
                       {r.preview && <SampleChip />}
                     </View>
-                    <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{r.username}</Text>
+                    <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{r.username}</Text>
                   </View>
                   <GhostButton label="Accept" color={paper.ink} onPress={() => void friends.acceptRequest(r.id)} />
                   <GhostButton label="Decline" onPress={() => void friends.declineRequest(r.id)} />

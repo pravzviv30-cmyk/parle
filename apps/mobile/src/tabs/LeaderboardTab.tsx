@@ -156,24 +156,24 @@ export function LeaderboardTab() {
           <Card padded={false}>
             {rows.map((row, i) => (
               <View key={row.key} style={[st.row, i > 0 && st.rowRule]}>
-                <Text style={[type.small, { color: paper.inkFaint, width: space(5) }]}>{i + 1}</Text>
+                <Text style={[type.small, { color: paper.inkSoft, width: space(5) }]}>{i + 1}</Text>
                 <Monogram letter={row.name} />
                 <View style={{ flex: 1 }}>
                   <View style={st.nameRow}>
                     <Text style={[type.bodyStrong, { color: paper.ink }]} numberOfLines={1}>
                       {row.name}
                     </Text>
-                    {row.you && <Label color={paper.inkFaint}>You</Label>}
+                    {row.you && <Label color={paper.inkSoft}>You</Label>}
                     {row.preview && <SampleChip />}
                   </View>
                   {row.username !== null && (
-                    <Text style={[type.small, { color: paper.inkFaint, marginTop: space(0.5) }]}>{row.username}</Text>
+                    <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{row.username}</Text>
                   )}
                 </View>
                 {row.xp !== null ? (
                   <Text style={[type.bodyStrong, { color: paper.ink }]}>{row.xp} XP</Text>
                 ) : (
-                  <Text style={[type.small, { color: paper.inkFaint }]}>new</Text>
+                  <Text style={[type.small, { color: paper.inkSoft }]}>new</Text>
                 )}
               </View>
             ))}

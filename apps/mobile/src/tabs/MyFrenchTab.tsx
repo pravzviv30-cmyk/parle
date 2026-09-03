@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { missionStates, type MissionProgress } from '@luvani/core';
 
-import { Card, Label, OutlineButton, PillButton, Stat } from '../components.tsx';
-import { ScrollScreen } from '../layout.tsx';
+import { Card, GhostButton, Label, OutlineButton, PillButton, Stat } from '../components.tsx';
+import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { paper, radius, signal, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
@@ -117,9 +117,12 @@ export function MyFrenchTab() {
   const showStamps = hasStamps(stamps);
 
   return (
-    <ScrollScreen bottom="tab" header={<Text style={st.title}>My French</Text>}>
+    <ScrollScreen bottom="tab">
       <View style={st.scroll}>
-        <Text style={st.sub}>The situations you have handled and the lines you have made yours.</Text>
+        <TabHeader
+          title="My French"
+          purpose="The situations you have handled and the lines you have made yours."
+        />
 
         <View style={st.stats}>
           <Stat value={String(finished)} label="Situations done" />
@@ -152,7 +155,7 @@ export function MyFrenchTab() {
         )}
 
         <View style={st.section}>
-          <Label color={paper.inkFaint}>Your situations</Label>
+          <Label>Your situations</Label>
           {missions.map((item) => {
             const check = latestCheck(item.mission.id, checks);
             const stamp = stampByMission.get(item.mission.id);
@@ -176,8 +179,9 @@ export function MyFrenchTab() {
                   </Text>
                   {checkLine(check) && <Text style={[type.small, st.check]}>{checkLine(check)}</Text>}
                 </View>
-                <Pressable
-                  accessibilityRole="button"
+                <GhostButton
+                  label={item.timesFinished > 0 ? 'Check' : 'Start'}
+                  color={paper.ink}
                   accessibilityLabel={item.timesFinished > 0 ? `Sound check for ${item.mission.titleEn}` : `Start ${item.mission.titleEn}`}
                   onPress={() =>
                     item.timesFinished > 0
@@ -187,10 +191,7 @@ export function MyFrenchTab() {
                           properties: { missionId: item.mission.id, entry: 'my-french' },
                         }), nav.navigate('Convo', { missionId: item.mission.id }))
                   }
-                  style={({ pressed }) => [st.smallAction, pressed && { opacity: 0.6 }]}
-                >
-                  <Text style={[type.button, { color: paper.ink }]}>{item.timesFinished > 0 ? 'Check' : 'Start'}</Text>
-                </Pressable>
+                />
               </View>
             );
           })}
@@ -205,9 +206,7 @@ export function MyFrenchTab() {
 }
 
 const st = StyleSheet.create({
-  scroll: { paddingBottom: space(7) },
-  title: { ...type.display, color: paper.ink },
-  sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
+  scroll: { flexGrow: 1 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: space(4), marginTop: space(6) },
   // A week's account, at the head of the page of stamps rather than under it.
   // Sentences, so they are set in ink at body size: 4.5 is the floor for
@@ -234,5 +233,4 @@ const st = StyleSheet.create({
   stampNotYet: { borderWidth: HAIRLINE + 0.4, borderColor: paper.line },
   words: { flex: 1 },
   check: { color: paper.ink, marginTop: space(1.5) },
-  smallAction: { minWidth: HIT, minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
 });

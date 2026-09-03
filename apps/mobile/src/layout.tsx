@@ -134,7 +134,13 @@ export function ScrollScreen({
     >
       <ScrollView
         style={{ flex: 1, minHeight: 0 }}
-        contentContainerStyle={{ flexGrow: 1, ...(center ? { justifyContent: 'center' } : null) }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          // The last card clears the tab bar without the tab padding its own
+          // scroll: the frame owns the air above the bar, here, once.
+          ...(bottom === 'tab' ? { paddingBottom: space(8) } : null),
+          ...(center ? { justifyContent: 'center' } : null),
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -162,6 +168,10 @@ export function ScreenHeader(props: ScreenHeaderProps) {
   const { title } = props;
   const back = props.back;
   const leave = props.leave;
+  // Three slots always, so the centre is the centre. The left holds the chevron
+  // or an empty box its width; the right holds the leave word or an empty box its
+  // width; the title sits in the flex centre between two equal touch floors, not
+  // half a hit target off it because one side happened to be empty.
   return (
     <View style={{ minHeight: HIT, flexDirection: 'row', alignItems: 'center' }}>
       {back != null ? (
@@ -173,7 +183,9 @@ export function ScreenHeader(props: ScreenHeaderProps) {
         >
           <ChevronLeft />
         </Pressable>
-      ) : null}
+      ) : (
+        <View style={{ width: HIT }} />
+      )}
       <View style={{ flex: 1, alignItems: 'center' }}>
         {typeof title === 'string' || typeof title === 'number' ? (
           // A bare string under a View is a raw text node — Fabric drops it and
@@ -189,11 +201,48 @@ export function ScreenHeader(props: ScreenHeaderProps) {
           onPress={leave.onPress}
           accessibilityRole="button"
           accessibilityLabel={leave.accessibilityLabel ?? leave.label}
-          style={{ marginLeft: 'auto', minHeight: HIT, alignItems: 'center', justifyContent: 'center' }}
+          style={{ minWidth: HIT, minHeight: HIT, alignItems: 'flex-end', justifyContent: 'center' }}
         >
           <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>{leave.label}</Text>
         </Pressable>
-      ) : null}
+      ) : (
+        <View style={{ minWidth: HIT }} />
+      )}
+    </View>
+  );
+}
+
+type TabHeaderProps = {
+  /** The tab's name, set large. */
+  title: string;
+  /** One plain line saying what the tab is for. */
+  purpose: string;
+  /** An optional control on the title row — the learner's monogram on Home. */
+  trailing?: ReactNode;
+  /** Anything the tab wants under the purpose, still inside the header block. */
+  children?: ReactNode;
+};
+
+/**
+ * The one tab header. A tab opens with its name set at display size and left,
+ * a plain purpose line beneath it, and an optional control on the title row.
+ *
+ * It is the FIRST child of a tab's scroll body, not the frame's `header` slot:
+ * a fixed display title over a purpose line is taller than the screen at the
+ * largest reading size, so it has to scroll with the content rather than pin
+ * to the top. Nothing here caps the reading size or truncates the title.
+ */
+export function TabHeader({ title, purpose, trailing, children }: TabHeaderProps) {
+  return (
+    <View style={{ marginBottom: space(5) }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
+        <Text accessibilityRole="header" style={[type.display, { color: paper.ink, flex: 1 }]}>
+          {title}
+        </Text>
+        {trailing != null ? trailing : null}
+      </View>
+      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{purpose}</Text>
+      {children != null ? children : null}
     </View>
   );
 }

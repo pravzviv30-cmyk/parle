@@ -23,7 +23,7 @@ import type { LiveDiagnostics } from './useLiveSession.ts';
 function Row({ name, value }: { name: string; value: string }) {
   return (
     <View style={st.row}>
-      <Text style={[type.small, { color: paper.inkFaint }]}>{name}</Text>
+      <Text style={[type.small, { color: paper.inkSoft }]}>{name}</Text>
       <Text style={[type.small, { color: paper.inkSoft, flexShrink: 1, textAlign: 'right' }]}>{value}</Text>
     </View>
   );
@@ -71,7 +71,7 @@ export function LiveErrorView({
 
   return (
     <View style={st.center}>
-      <Label color={paper.inkFaint}>{copy.label}</Label>
+      <Label color={paper.inkSoft}>{copy.label}</Label>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>{message}</Text>
 
       {canType ? (
@@ -98,7 +98,7 @@ export function LiveErrorView({
             accessibilityState={{ expanded: open }}
             style={({ pressed }) => [st.disclosure, pressed && { opacity: 0.6 }]}
           >
-            <Text style={[type.small, { color: paper.inkFaint }]}>{open ? 'Hide details' : 'What happened?'}</Text>
+            <Text style={[type.small, { color: paper.inkSoft }]}>{open ? 'Hide details' : 'What happened?'}</Text>
           </Pressable>
           {open ? (
             <View style={st.panel}>

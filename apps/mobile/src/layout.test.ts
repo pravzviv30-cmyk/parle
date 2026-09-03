@@ -92,3 +92,73 @@ describe('the layout primitives keep their promises — F306', () => {
     assert.doesNotMatch(source, /\bAlert\b/, 'a layout primitive reaches for Alert instead of ConfirmSheet');
   });
 });
+
+describe('the chrome primitives hold their shape — F331, F334, F335', () => {
+  test('the tab header sets its title at display size, left, as a heading, with a purpose line beneath and nothing capped', () => {
+    // TabHeader mounts in the scroll body, not the frame's header slot, so a
+    // fixed display title over a purpose line can scroll rather than pin. The
+    // title is the tab's name at display size, left, rolled as a heading; the
+    // purpose is one plain body line under it. Nothing caps or truncates either.
+    const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
+    assert.match(header, /marginBottom: space\(5\)/, 'the header block does not space itself off the body beneath it');
+    assert.match(
+      header,
+      /flexDirection: 'row', alignItems: 'center', gap: space\(3\)/,
+      'the title row is not a row with room for a trailing control',
+    );
+    assert.match(header, /accessibilityRole="header"/, 'the tab title is not rolled as a heading');
+    assert.match(
+      header,
+      /type\.display,\s*\{ color: paper\.ink, flex: 1 \}/,
+      'the title is not the display type in ink, taking the row',
+    );
+    assert.match(
+      header,
+      /type\.body,\s*\{ color: paper\.inkSoft, marginTop: space\(2\) \}/,
+      'the purpose is not a soft-ink body line beneath the title',
+    );
+    // Nothing capped: no line cap, no growth cap, no scaling switch, no centring
+    // that would re-read the left title as centred.
+    assert.doesNotMatch(header, /numberOfLines/, 'the tab title is capped to a line count');
+    assert.doesNotMatch(header, /maxFontSizeMultiplier/, 'the tab title caps how far it may grow');
+    assert.doesNotMatch(header, /allowFontScaling/, 'the tab title opts out of the OS reading size');
+    assert.doesNotMatch(header, /textAlign/, 'the tab title is aligned away from the left');
+  });
+
+  test('the shared header keeps a slot at the touch floor on both sides, whether or not it holds a control', () => {
+    // Three slots always. The left is the chevron at the touch floor or an empty
+    // box its width; the right is the leave word at the floor or an empty box its
+    // width; the title sits in the flex centre between them, not half a hit target
+    // off it because one side was empty. The marginLeft:auto crutch is gone.
+    const header = region(layoutSource(), 'export function ScreenHeader(', 'type TabHeaderProps');
+    assert.match(header, /width: HIT, height: HIT/, 'the back chevron is not a slot at the touch floor');
+    assert.match(header, /<View style=\{\{ width: HIT \}\} \/>/, 'the left slot collapses when there is no back control');
+    assert.match(
+      header,
+      /minWidth: HIT, minHeight: HIT, alignItems: 'flex-end'/,
+      'the leave word is not a right slot at the touch floor',
+    );
+    assert.match(header, /<View style=\{\{ minWidth: HIT \}\} \/>/, 'the right slot collapses when there is no leave control');
+    assert.match(header, /flex: 1, alignItems: 'center'/, 'the title is not the centred flex slot between the two');
+    assert.doesNotMatch(header, /marginLeft: 'auto'/, 'the header still shoves the leave word with marginLeft:auto');
+  });
+
+  test('a scroll screen under the tab bar pads its own bottom, and one that is not does not', () => {
+    // The frame owns the air above the tab bar: the scroll content pads its own
+    // bottom by space(8) only when it sits under the bar, so the last card clears
+    // it without the tab padding its own scroll. A screen that is not under the
+    // bar adds nothing here.
+    const scroll = region(layoutSource(), 'export function ScrollScreen(', 'export function ScreenHeader(');
+    assert.match(
+      scroll,
+      /bottom === 'tab' \? \{ paddingBottom: space\(8\) \} : null/,
+      'the scroll content does not pad its bottom under the tab bar, or pads it unconditionally',
+    );
+  });
+
+  test('DESIGN.md names the tab header and the monogram', () => {
+    const design = readFileSync(join(SRC, '..', '..', '..', 'DESIGN.md'), 'utf8');
+    assert.match(design, /TabHeader/, 'DESIGN.md does not name the tab header');
+    assert.match(design, /Monogram/, 'DESIGN.md does not name the monogram');
+  });
+});
