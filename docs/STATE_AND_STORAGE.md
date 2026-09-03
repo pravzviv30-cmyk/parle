@@ -214,8 +214,8 @@ is not the same as hidden.
 
 **The reset sweeps whatever is left.** `clearActiveUserData` empties the two cache
 directories `expo-audio` records into (`storage/attemptAudio.native.ts`) **before**
-it touches a single key, and both doors go through it — the progress reset and
-account deletion. It is the backstop for the three cases per-attempt deletion cannot
+it touches a single key, and its one door goes through it — account deletion. It
+is the backstop for the three cases per-attempt deletion cannot
 reach: the app killed between `stop()` and the delete, the builds that shipped before
 that discard existed and whose recordings an upgrade does not remove, and whatever
 path nobody thought of.

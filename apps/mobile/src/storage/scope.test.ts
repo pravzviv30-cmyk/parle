@@ -354,25 +354,39 @@ describe('storage scope — the voice a reset has to reach', () => {
     assert.equal(sweptAnyway, true, 'a storage failure skipped the audio, which is the bytes nobody can check');
   });
 
-  test('both doors into a reset use the real sweep, not a double', () => {
+  test('the one door into a reset uses the real sweep, not a double', () => {
     // The hooks exist so this policy can be tested without a device, which
     // means production passing one would be a silent no-op erase. It does not:
-    // App.tsx calls with no arguments at both doors, and the account deletion
-    // path is one of them, so deleting an account sweeps the same audio a
-    // progress reset does.
+    // App.tsx calls with no arguments at the one door that survives — account
+    // deletion — so deleting an account sweeps the attempt audio with the real
+    // defaults, not a hooked-out double.
     const app = readFileSync(join(APP, 'App.tsx'), 'utf8');
     const calls = [...app.matchAll(/clearActiveUserData\(([^)]*)\)/g)].map((m) => m[1]!.trim());
-    assert.deepEqual(calls, ['', ''], 'App.tsx must clear with the real defaults, and at both doors');
+    assert.deepEqual(calls, [''], 'App.tsx must clear with the real defaults, at its one remaining door');
 
-    for (const door of ['resetProgress', 'deleteAccount']) {
-      const start = app.indexOf(`const ${door} = useCallback(`);
-      assert.ok(start >= 0, `App.tsx no longer defines ${door}; this test is reading the wrong file`);
-      const end = app.indexOf('}, []);', start);
-      assert.ok(end > start, `${door} no longer ends where this test expects, so the slice below proves nothing`);
-      assert.ok(
-        app.slice(start, end).includes('clearActiveUserData()'),
-        `${door} does not clear this device, so a learner who used it keeps their data locally`,
-      );
+    const start = app.indexOf('const deleteAccount = useCallback(');
+    assert.ok(start >= 0, 'App.tsx no longer defines deleteAccount; this test is reading the wrong file');
+    const end = app.indexOf('}, []);', start);
+    assert.ok(end > start, 'deleteAccount no longer ends where this test expects, so the slice below proves nothing');
+    assert.ok(
+      app.slice(start, end).includes('clearActiveUserData()'),
+      'deleteAccount does not clear this device, so a learner who deleted their account keeps their data locally',
+    );
+  });
+
+  test('nothing in the app still threads a progress reset that no screen can reach', () => {
+    // F349 removed the reset chain outright: a callback in App.tsx threaded a
+    // prop through RootNavigator into a Tabs that never passed it on, because
+    // ProfileTab dropped the prop when its dead buttons went. Either name
+    // reappearing in these two files means the unreachable chain is back. The
+    // needles are assembled from fragments so this file does not itself contain
+    // the very literals it forbids.
+    const callback = ['reset', 'Progress'].join('');
+    const prop = ['onReset', 'Progress'].join('');
+    for (const rel of ['App.tsx', join('src', 'nav', 'RootNavigator.tsx')]) {
+      const src = readFileSync(join(APP, rel), 'utf8');
+      assert.ok(!src.includes(callback), `${rel} still names ${callback}, but no screen can reach one`);
+      assert.ok(!src.includes(prop), `${rel} still threads ${prop}, but ProfileTab stopped accepting it`);
     }
   });
 

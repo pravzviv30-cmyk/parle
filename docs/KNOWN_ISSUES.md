@@ -5122,7 +5122,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F345 — Practice decides what goes first in one pure rule
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/nextStep.ts:1
 - note: `nextStep(units, deck, now)` answers "what now" for the Practice tab: cards due outrank the path's
   next row because the deck covers every due card and a row covers its own; with nothing due the step is
@@ -5136,7 +5136,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F346 — Practice opens on its next step, and nothing competes with it
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/PracticeTab.tsx:140
 - note: under the header, `<Label>{NEXT_STEP.label}</Label>` and one `OutlineButton` built from `nextStep`;
   a review step opens `Review`, a node step calls the frozen F154 `open(step.node)` with `disabled={checking}`.
@@ -5149,7 +5149,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F347 — A situation's row action and the next-situation words are decided in one module
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/progress/portfolio.ts:1
 - note: `situationAction(item)` decides once whether a row offers Start or Refine pronunciation, with the
   label and the screen-reader sentence; `startLabel` writes "Start <situation>" for the pill and the rows;
@@ -5161,7 +5161,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F348 — My French draws nothing at zero and closes on the next situation
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/MyFrenchTab.tsx:127
 - note: the three-`Stat` rail goes and no count is drawn without its module's gate (`hasPhrases`, `hasStory`,
   `hasStamps`); the screen names no independence literal anywhere. The list's rows use `situationAction`
@@ -5177,7 +5177,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F349 — The progress reset that no screen can reach is gone from the app and its documents
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/App.tsx:204
 - note: `resetProgress` and `onResetProgress` thread from `App.tsx` through `RootNavigator.tsx` to a `Tabs`
   that never passes it on; `ProfileTab` stopped accepting it when its dead buttons went. Remove the callback
@@ -5189,7 +5189,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F350 — The device runbook names what a source walk cannot see about Pass 2
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: docs/DEVICE_VERIFICATION.md:667
 - note: a `## Pass 2 content` section, every row `not run`: Practice's headline and its button first under the
   header at AX5 and reachable before the path; "Refine pronunciation" wraps inside its row at AX3–AX5; on an

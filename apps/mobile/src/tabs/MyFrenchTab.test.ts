@@ -58,14 +58,19 @@ function between(text: string, open: string, close: string, why: string): string
 /**
  * The situations list only, which is the part of this screen F218 owns.
  *
- * Scoped deliberately. The `Stat` counts above it read `independence` directly
- * and predate this slice, so a file-wide ban on that literal would fail on code
- * this ticket is not allowed to touch.
+ * Scoped deliberately, but no longer because a count above it names
+ * `independence`: F348 took the `Stat` rail out, and its own test now bans the
+ * independence literals across the whole file. This slice stays narrow because
+ * the next-situation card below it passes `next.independence` to `missionStatus`
+ * — an expression, not a literal — and the F218 stamp checks (one green in the
+ * slice, one stamp mark) want the situations list and nothing past it. It closes
+ * at `st.nextSituation`, the card's own wrapper, because the pill block now sits
+ * between the list and the chooser and closing on the chooser would swallow it.
  */
 const SITUATIONS = between(
   SCREEN,
   'Your situations',
-  'Choose another situation',
+  'st.nextSituation',
   'the situations list is the part of My French that draws stamps',
 );
 
@@ -380,5 +385,94 @@ describe("My French carries the week's story — F233", () => {
       const banned = guiltIn(line);
       assert.equal(banned, undefined, `the week block says ${line}, which carries the banned word "${banned}"`);
     }
+  });
+});
+
+/* ===========================================================================
+ * F348 — nothing at zero, and the next situation closes the screen.
+ *
+ * The three-`Stat` rail is gone: it was the one place on this screen that drew
+ * a number with no module deciding whether it should be there at all. Every
+ * count that remains sits behind the gate of the module that owns it —
+ * `hasPhrases`, `hasStory`, `hasStamps` — so a first-run learner meets an
+ * honest empty screen rather than a rail of zeros. The rows read their verb
+ * from `portfolio.ts`'s `situationAction`, and the screen closes on the next
+ * situation from core, with the chooser demoted to the quiet door beneath it.
+ * =========================================================================== */
+
+/** Where a marker sits in the screen, proven present so ordering is real. */
+function at(marker: string): number {
+  const i = SCREEN.indexOf(marker);
+  assert.notEqual(i, -1, `\`${marker}\` is not on the screen at all`);
+  return i;
+}
+
+describe('My French draws nothing at zero and closes on the next situation — F348', () => {
+  test('my french draws no count at zero: the stat rail is gone and every block waits on its module\'s gate', () => {
+    // The rail and its style are both gone. A Stat drew a bare count with no
+    // module deciding whether it belonged, which is the whole thing F348 removes.
+    assert.ok(!SCREEN.includes('<Stat'), 'the three-Stat rail is still drawn');
+    assert.ok(!SCREEN.includes('st.stats'), 'the stat rail style survives, so a count can still be rehung on it');
+    assert.doesNotMatch(
+      FLAT,
+      /import \{[^}]*\bStat\b[^}]*\} from '\.\.\/components\.tsx'/,
+      'My French still imports Stat, the primitive it no longer draws',
+    );
+
+    // No count is drawn without its module's gate: the notebook waits on
+    // hasPhrases the way the week waits on hasStory and the stamps on hasStamps.
+    assert.match(FLAT, /import \{[^}]*hasPhrases[^}]*\} from '\.\.\/phrases\/phrasebook\.ts'/, 'the notebook count has no gate to wait on');
+    assert.match(FLAT, /hasPhrases\(\s*book\s*\)/, 'the notebook is drawn without asking hasPhrases');
+    assert.match(FLAT, /hasStory\(story\)/, 'the week is drawn without asking hasStory');
+    assert.match(FLAT, /hasStamps\(\s*stamps\s*\)/, 'the stamps are drawn without asking hasStamps');
+
+    // The screen names no independence literal anywhere now the rail is gone.
+    // That judgement is the passport's, one module away, and naming it here is a
+    // second ladder however it is dressed.
+    for (const invented of ["'on-your-own'", "'with-help'", "'not-yet'"]) {
+      assert.ok(!SCREEN.includes(invented), `My French names ${invented} itself; that judgement belongs in passport.ts`);
+    }
+    assert.ok(!SCREEN.includes('.independence ==='), 'My French compares independence directly, which is the passport\'s comparison to make');
+  });
+
+  test('my french closes on the next situation, and the chooser is the quiet door', () => {
+    // Core picks the next situation, the same call Home makes; this screen draws
+    // it and never re-derives which one.
+    assert.match(FLAT, /import \{[^}]*suggestedMission[^}]*\} from '@luvani\/core'/, 'My French never imports suggestedMission');
+    assert.match(FLAT, /suggestedMission\(nextMissions\)/, 'the next situation is not picked from the same list Home reads');
+
+    // Exactly one primary pill, the next-situation start, named for the situation
+    // it opens through startLabel so a screen reader hears which one.
+    const pills = FLAT.match(/<PillButton label=\{NEXT_SITUATION\.action\} accessibilityLabel=\{startLabel\(/g) ?? [];
+    assert.equal(pills.length, 1, `My French draws ${pills.length} next-situation pills; it draws exactly one`);
+
+    // The chooser is the quiet door below it, and it is always reachable — drawn
+    // outside the next-situation gate so a learner with no suggestion can still leave.
+    assert.match(FLAT, /<GhostButton label="Choose another situation"/, 'the chooser is not the quiet ghost door');
+    assert.ok(at('st.nextSituation') < at('Choose another situation'), 'the chooser sits above the next-situation card instead of closing beneath it');
+
+    // Top to bottom: notebook, week, situations, the next-situation card.
+    assert.ok(at('Your notebook') < at('st.week'), 'the notebook does not head the screen');
+    assert.ok(at('st.week') < at('Your situations'), 'the week does not sit above the situations list');
+    assert.ok(at('Your situations') < at('st.nextSituation'), 'the situations list does not sit above the next-situation card');
+  });
+
+  test('a finished situation\'s row says refine pronunciation in the module\'s words, and goes where the module says', () => {
+    // The row asks the module for its verb and branches on kind. A finished
+    // situation refines its sounds; an unfinished one is started. Neither word
+    // is spelled here.
+    assert.match(FLAT, /situationAction\(\s*item\s*\)/, 'the row does not read its action from situationAction');
+    assert.match(FLAT, /action\.kind === 'refine'/, 'the row does not branch on the module\'s kind');
+
+    // Refine goes to the sound check; start tracks the entry and opens the scene.
+    assert.match(SITUATIONS, /nav\.navigate\('SoundCheck', \{ missionId: item\.mission\.id \}\)/, 'a refine row does not open the sound check');
+    assert.match(SITUATIONS, /name: 'mission_started'/, 'a start row does not track the mission it opens');
+    assert.match(SITUATIONS, /entry: 'my-french'/, 'a start row does not carry its own entry point');
+    assert.match(SITUATIONS, /nav\.navigate\('Convo', \{ missionId: item\.mission\.id \}\)/, 'a start row does not open the scene');
+
+    // The old words left the file with the decision. "Check" and "Sound check
+    // for" now live only in the module, so they cannot drift from it here.
+    assert.ok(!SCREEN.includes("'Check'"), 'My French still spells the Check label itself');
+    assert.ok(!SCREEN.includes('Sound check for'), 'My French still spells the sound-check sentence itself');
   });
 });

@@ -317,11 +317,9 @@ function SoundCheckRoute() {
 
 function Tabs({
   onSignOut,
-  onResetProgress,
   onDeleteAccount,
 }: {
   onSignOut: () => void;
-  onResetProgress: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
   return (
@@ -342,12 +340,10 @@ function Tabs({
 
 export function RootNavigator({
   onSignOut,
-  onResetProgress,
   onDeleteAccount,
   startOnMissions = false,
 }: {
   onSignOut: () => void;
-  onResetProgress: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
   /**
    * A learner who finished onboarding a second ago opens on the chooser rather
@@ -370,7 +366,7 @@ export function RootNavigator({
       }}
     >
       <Stack.Screen name="Tabs">
-        {() => <Tabs onSignOut={onSignOut} onResetProgress={onResetProgress} onDeleteAccount={onDeleteAccount} />}
+        {() => <Tabs onSignOut={onSignOut} onDeleteAccount={onDeleteAccount} />}
       </Stack.Screen>
       {/* No native header on any pushed screen: the back is the in-screen
           ScreenHeader now (a chevron on a reversible push, the Leave word on a

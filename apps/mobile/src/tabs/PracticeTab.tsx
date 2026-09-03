@@ -15,13 +15,17 @@
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { buildPath, CAFE_LESSON, dueCards, type PathUnit, type PracticeTopic } from '@luvani/core';
+import { buildPath, CAFE_LESSON, type PathUnit, type PracticeTopic } from '@luvani/core';
 import { paper, space, type } from '../theme.ts';
 import { Card, Label, OutlineButton, GhostButton } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { PathNodeRow } from '../practice/PathNodeRow.tsx';
 import { MIX_OFFER, offersMix } from '../practice/mix.ts';
+import { NEXT_STEP, nextStep, reviewLine, type NextStep } from '../practice/nextStep.ts';
+import { statusLine } from '../practice/statusLine.ts';
 import { seedTopicFor } from '../practice/talkAgain.ts';
+import { useProfile } from '../app/ProfileContext.tsx';
+import { tutorNameOf } from '../tutor/tutorName.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadDrillBank } from '../drill/store.ts';
 import { loadTopics } from '../topics/store.ts';
@@ -32,6 +36,8 @@ import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 export function PracticeTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { recheck } = useLive();
+  const { profile } = useProfile();
+  const tutorName = tutorNameOf(profile);
 
   // The locked row draws a pen that keeps moving. It has no reason to keep
   // moving while the learner is on another tab, and the scene cannot ask
@@ -39,7 +45,10 @@ export function PracticeTab() {
   // five of the places that render a scene mount above the navigator.
   const focused = useIsFocused();
   const [units, setUnits] = useState<PathUnit[] | null>(null);
-  const [due, setDue] = useState(0);
+  // What to do now, answered whole by practice/nextStep.ts: a due deck, the row
+  // the path already marked next, or nothing at all. The tab draws it and works
+  // out none of it, so due is never counted twice with two chances to disagree.
+  const [step, setStep] = useState<NextStep | null>(null);
   // Kept rather than thrown away after buildPath: a topic row's second door
   // needs the topic's own title in both languages to seed a conversation with.
   const [topics, setTopics] = useState<PracticeTopic[]>([]);
@@ -61,8 +70,9 @@ export function PracticeTab() {
         ([deck, bank, topics, lastLesson]) => {
           if (cancelled) return;
           const now = Date.now();
-          setUnits(buildPath(deck, bank, topics, { lessonDone: lastLesson !== null }, now));
-          setDue(dueCards(deck, now).length);
+          const units = buildPath(deck, bank, topics, { lessonDone: lastLesson !== null }, now);
+          setUnits(units);
+          setStep(nextStep(units, deck, now));
           setTopics(topics);
           setMixOffered(offersMix(deck, topics, now));
         },
@@ -137,8 +147,37 @@ export function PracticeTab() {
           title="Practice"
           purpose="Short drills from the lesson, and from your own conversations."
         />
+
+        {/* The one thing to do now, decided in practice/nextStep.ts and drawn
+            here as a door. A review step opens the deck; a node step opens
+            through the very handler the path's heavy-ruled row uses, so it is
+            never a second primary, only a shortcut to the same place. When the
+            deck is quiet and the path is done there is no step, and this draws
+            nothing rather than a cheerful message for a learner who is done. */}
+        {step !== null && (
+          <View style={{ marginBottom: space(6) }}>
+            <Label>{NEXT_STEP.label}</Label>
+            <View style={{ marginTop: space(3) }}>
+              {step.kind === 'review' ? (
+                <OutlineButton
+                  label={NEXT_STEP.review}
+                  sub={reviewLine(step.due)}
+                  onPress={() => nav.navigate('Review')}
+                />
+              ) : (
+                <OutlineButton
+                  label={step.node.title}
+                  sub={statusLine(step.node, tutorName)}
+                  disabled={checking}
+                  onPress={() => open(step.node)}
+                />
+              )}
+            </View>
+          </View>
+        )}
+
         {mixOffered && (
-          <View style={{ marginBottom: space(3) }}>
+          <View style={{ marginBottom: space(6) }}>
             {/* Offered only when the due phrases come from more than one topic,
                 because below that this is that topic's own sitting wearing a
                 bigger name. The rule is in practice/mix.ts. */}
@@ -146,16 +185,6 @@ export function PracticeTab() {
               label={MIX_OFFER.title}
               sub={MIX_OFFER.sub}
               onPress={() => nav.navigate('Drill', { mix: true })}
-            />
-          </View>
-        )}
-
-        {due > 0 && (
-          <View style={{ marginBottom: space(6) }}>
-            <OutlineButton
-              label="Review"
-              sub={due === 1 ? '1 card is ready' : `${due} cards are ready`}
-              onPress={() => nav.navigate('Review')}
             />
           </View>
         )}

@@ -133,9 +133,6 @@ function SignedInRoot({ user }: { user: AuthUser }) {
    */
   const [justOnboarded, setJustOnboarded] = useState(false);
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
-  // Bumped to force a remount after a progress reset, so every store re-reads
-  // from a now-empty disk instead of holding what it loaded at mount.
-  const [generation, setGeneration] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -201,11 +198,6 @@ function SignedInRoot({ user }: { user: AuthUser }) {
     };
   }, [user.id]);
 
-  const resetProgress = useCallback(async () => {
-    await clearActiveUserData();
-    setGeneration((g) => g + 1);
-  }, []);
-
   const deleteAccount = useCallback(async (reauthentication?: string): Promise<AuthResult> => {
     const reauthenticated = await auth.reauthenticateForDeletion(reauthentication);
     if (!reauthenticated.ok) return reauthenticated;
@@ -246,7 +238,6 @@ function SignedInRoot({ user }: { user: AuthUser }) {
 
   return (
     <ProfileGate
-      key={generation}
       onboarding={(existing, done) => (
         <OnboardingFlow
           existing={existing}
@@ -279,7 +270,6 @@ function SignedInRoot({ user }: { user: AuthUser }) {
         >
           <RootNavigator
             onSignOut={() => void auth.signOut()}
-            onResetProgress={() => void resetProgress()}
             onDeleteAccount={deleteAccount}
             startOnMissions={justOnboarded}
           />

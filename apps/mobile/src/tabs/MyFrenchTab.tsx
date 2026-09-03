@@ -1,14 +1,15 @@
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { missionStates, type MissionProgress } from '@luvani/core';
+import { missionStates, suggestedMission, type MissionProgress } from '@luvani/core';
 
-import { Card, GhostButton, Label, OutlineButton, PillButton, Stat } from '../components.tsx';
+import { Card, GhostButton, Label, OutlineButton, PillButton } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { paper, radius, signal, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
-import { buildPhrasebook, type Phrasebook } from '../phrases/phrasebook.ts';
+import { buildPhrasebook, hasPhrases, type Phrasebook } from '../phrases/phrasebook.ts';
+import { NEXT_SITUATION, situationAction, startLabel } from '../progress/portfolio.ts';
 import { PhrasebookScreen } from '../phrases/PhrasebookScreen.tsx';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { missionCompletionsFrom, missionStatus } from '../missions/chooserView.ts';
@@ -66,6 +67,9 @@ export function MyFrenchTab() {
   // null is "not read yet", which draws the same as a quiet week and is not the
   // same claim. The empty story is story.ts's to make, not this screen's.
   const [story, setStory] = useState<WeekStory | null>(null);
+  // The next situation to walk into, from core, exactly as Home reads it. This
+  // screen draws it and never decides which one; null draws nothing.
+  const [next, setNext] = useState<MissionProgress | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -85,6 +89,7 @@ export function MyFrenchTab() {
           setMissions(nextMissions);
           setBook(nextBook);
           setChecks(soundChecks);
+          setNext(suggestedMission(nextMissions));
           // The whole history, unnarrowed. Which seven days count is story.ts's
           // decision and filtering here would walk straight past it.
           setStory(storyFrom(history, now));
@@ -105,9 +110,6 @@ export function MyFrenchTab() {
 
   if (showingPhrases) return <PhrasebookScreen book={book} onDone={() => setShowingPhrases(false)} />;
 
-  const finished = missions.filter((item) => item.timesFinished > 0).length;
-  const independent = missions.filter((item) => item.independence === 'on-your-own').length;
-
   // Keyed rather than indexed: `stampsFrom` answers in the order it was given,
   // and a lookup by id stays right the first time somebody filters this list.
   const stamps = stampsFrom(missions);
@@ -124,13 +126,7 @@ export function MyFrenchTab() {
           purpose="The situations you have handled and the lines you have made yours."
         />
 
-        <View style={st.stats}>
-          <Stat value={String(finished)} label="Situations done" />
-          <Stat value={String(independent)} label="On your own" />
-          <Stat value={String(book.count)} label="Phrases kept" />
-        </View>
-
-        {book.count > 0 && (
+        {hasPhrases(book) && (
           <Card style={{ marginTop: space(6) }}>
             <Label>Your notebook</Label>
             <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>What you can say now</Text>
@@ -159,6 +155,9 @@ export function MyFrenchTab() {
           {missions.map((item) => {
             const check = latestCheck(item.mission.id, checks);
             const stamp = stampByMission.get(item.mission.id);
+            // The verb, the label and the screen-reader sentence come from
+            // portfolio.ts. The row branches on kind and spells none of it.
+            const action = situationAction(item);
             return (
               <View key={item.mission.id} style={st.mission}>
                 <View style={st.art}>
@@ -180,11 +179,11 @@ export function MyFrenchTab() {
                   {checkLine(check) && <Text style={[type.small, st.check]}>{checkLine(check)}</Text>}
                 </View>
                 <GhostButton
-                  label={item.timesFinished > 0 ? 'Check' : 'Start'}
+                  label={action.label}
                   color={paper.ink}
-                  accessibilityLabel={item.timesFinished > 0 ? `Sound check for ${item.mission.titleEn}` : `Start ${item.mission.titleEn}`}
+                  accessibilityLabel={action.accessibilityLabel}
                   onPress={() =>
-                    item.timesFinished > 0
+                    action.kind === 'refine'
                       ? nav.navigate('SoundCheck', { missionId: item.mission.id })
                       : (void trackProductEvent({
                           name: 'mission_started',
@@ -197,8 +196,42 @@ export function MyFrenchTab() {
           })}
         </View>
 
+        {next !== null && (
+          <View style={st.nextSituation}>
+            <Card>
+              <Label>{NEXT_SITUATION.label}</Label>
+              <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>{next.mission.title}</Text>
+              <Text style={[type.body, { color: paper.inkSoft, marginTop: space(0.5) }]}>{next.mission.titleEn}</Text>
+              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
+                {missionStatus(next.state, next.independence)}
+              </Text>
+              <View style={{ marginTop: space(4) }}>
+                {/* The tab's one primary. The learner hears which situation it
+                    opens from startLabel, since the title is a line above it. */}
+                <PillButton
+                  label={NEXT_SITUATION.action}
+                  accessibilityLabel={startLabel(next.mission.titleEn)}
+                  onPress={() => {
+                    void trackProductEvent({
+                      name: 'mission_started',
+                      properties: { missionId: next.mission.id, entry: 'my-french' },
+                    });
+                    nav.navigate('Convo', { missionId: next.mission.id });
+                  }}
+                />
+              </View>
+            </Card>
+          </View>
+        )}
+
+        {/* Always reachable, outside the next gate: a learner with no suggestion
+            can still choose. The quiet door, not a second primary. */}
         <View style={{ marginTop: space(6) }}>
-          <PillButton label="Choose another situation" onPress={() => nav.navigate('Missions')} />
+          <GhostButton
+            label="Choose another situation"
+            color={paper.ink}
+            onPress={() => nav.navigate('Missions')}
+          />
         </View>
       </View>
     </ScrollScreen>
@@ -207,7 +240,9 @@ export function MyFrenchTab() {
 
 const st = StyleSheet.create({
   scroll: { flexGrow: 1 },
-  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: space(4), marginTop: space(6) },
+  // The next situation, closing the screen. A top margin to lift it off the
+  // list; no bottom padding, because the frame owns the bottom edge (F340).
+  nextSituation: { marginTop: space(7) },
   // A week's account, at the head of the page of stamps rather than under it.
   // Sentences, so they are set in ink at body size: 4.5 is the floor for
   // something a learner reads, and the softer inks are below it.

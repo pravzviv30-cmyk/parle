@@ -1221,6 +1221,22 @@ describe('the device runbook carries the Pass 1b chrome checks — F343', () => 
   });
 });
 
+describe('the device runbook carries the Pass 2 content checks — F350', () => {
+  test('the device runbook carries the Pass 2 content checks', () => {
+    const runbook = readFileSync(join(ROOT, 'docs', 'DEVICE_VERIFICATION.md'), 'utf8');
+    assert.match(runbook, /## Pass 2 content/, 'the runbook has no Pass 2 content section');
+    const section = runbook.slice(runbook.indexOf('## Pass 2 content'));
+    const rows = section.split('\n').filter((l) => /\|\s*P2-\d/.test(l));
+    assert.equal(rows.length, 4, `the Pass 2 section names ${rows.length} rows; it should carry P2-1 through P2-4`);
+    for (let i = 1; i <= 4; i += 1) {
+      assert.match(section, new RegExp(`P2-${i}\\b`), `the Pass 2 runbook names no P2-${i} row`);
+    }
+    for (const row of rows) {
+      assert.match(row, /not run/, `a Pass 2 row is walked before a device has: ${row.trim()}`);
+    }
+  });
+});
+
 describe('one Monogram, borrowed everywhere — F344', () => {
   test('the app exports one Monogram, and the leaderboard borrows it', () => {
     // Two Monograms is two initials that drift: friends/ui.tsx drew a sans disc

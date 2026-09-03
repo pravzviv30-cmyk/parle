@@ -664,6 +664,27 @@ recorded. Owner: `frontend-engineer` for the build, `qa-release-engineer` for ru
 | P1b-5 | Soft-ink status lines, costs and captions stay legible on the ground and on a white card in daylight; no word reads as greyed out | not run | not run |
 | P1b-6 | On an SE-class phone the Tutor tab shows its header, then the scene, then the doors, then the one pill, in that order, and every one is reachable | not run | not run |
 
+## Pass 2 content
+
+The content work (F345–F350) is verified statically up to a point: the surface and
+tab tests read the source and fail if Practice grows a second primary, if My French
+draws a count with no module gate, or if a row spells its own verb instead of
+reading it from `progress/portfolio.ts`. What they cannot see is the headline and
+its button arriving first under the header at the largest reading size, the refine
+verb wrapping inside its row rather than clipping, or a whole tab of rows plus the
+closing card fitting a small phone in order. Those are a device's to prove, and this
+is where that pass is recorded. Owner: `frontend-engineer` for the build,
+`qa-release-engineer` for running it.
+
+`pass` / `fail` / `not run`. Every row is `not run` until a real device pass is walked.
+
+| Id | Check | iOS | Android |
+|---|---|---|---|
+| P2-1 | On Practice at iOS AX5 / Android font scale 2.0, the next-step headline and its one button sit first under the header, above the path, and both are reachable | not run | not run |
+| P2-2 | A finished situation's "Refine pronunciation" wraps inside its My French row from iOS AX3 through AX5, never clipping or pushing the row off the card | not run | not run |
+| P2-3 | On an SE-class phone My French shows its situation rows, then the next-situation card, then the one pill, then the quiet "Choose another situation" door, in that order, each reachable | not run | not run |
+| P2-4 | A brand-new account's My French shows no number anywhere: no stat rail, no notebook count, no week, no stamp until one is earned | not run | not run |
+
 ## Recording the result
 
 Fill the matrix in place, in this file, in the same commit as any ledger entry a

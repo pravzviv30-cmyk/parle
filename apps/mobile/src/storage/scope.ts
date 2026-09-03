@@ -105,9 +105,9 @@ export interface ClearHooks {
  * remove any attempt audio still on the device, and drop module caches. The
  * account itself survives; onboarding reruns.
  *
- * Both doors come through here: the progress reset in ProfileTab, and account
- * deletion, which deliberately keeps the local session alive until this has run
- * so the active namespace can still be resolved.
+ * One door comes through here: account deletion, which deliberately keeps the
+ * local session alive until this has run so the active namespace can still be
+ * resolved. The progress reset left with Profile's dead buttons.
  *
  * Three orderings, and each is load-bearing.
  *
