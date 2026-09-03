@@ -4856,3 +4856,103 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   get the whole sheet closed instead of page 1. Never strands, but the answer depended on render order.
   Leave those two sheets to their own hook.
 - verified-by: `a Profile sheet that answers back itself is not answered twice — F319`
+
+### F320 — Every raw colour lives in palette.ts and theme.ts carries no hex
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/palette.test.ts:109
+- note: `signal`, `orb` and `rungColor` values live in `theme.ts` and the contract test copies them and
+  greps source to keep the copies honest. Move the values into `palette.ts`, re-export from `theme.ts`,
+  import them in the test, and assert `theme.ts` contains no six-digit hex literal. Structural step every
+  value entry below depends on, so it builds first.
+- verified-by: `theme.ts carries no raw hex, every colour comes from palette.ts`
+
+### F321 — One ground: the five papers collapse to one and paperFor goes
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/palette.ts:55
+- note: five grounds at one lightness differing by ΔE under 16 were the muted scheme the founder
+  rejected. Delete `papers`, `paperFor`, `accents`, `Paper`, `PaperName`; ten screens read `paper.*`;
+  `inkFaint` becomes `#8A7996` so the inactive tab glyph clears the mark floor (was 2.91). The ground is
+  Porcelain (B): ground `#F4F2F7`, groundDeep `#E6E2EE`, line `#DAD5E3`, lineOnCard `#E9E5F0`; steps held
+  by ΔE, not by matching four siblings.
+- verified-by: `nothing asks for a paper by place any more`
+- verified-by: `the ground is pinned, and there is only one`
+- verified-by: `the card still reads as a card, and the hairlines still read on the ground`
+- verified-by: `faint ink is a mark on the inactive tab, so it clears 3 on the ground`
+- verified-by: `ink, soft ink, the fix colour and the violet all hold on the ground`
+
+### F322 — Signals re-saturated and held to the floor for what they are
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/theme.ts:102
+- note: `good #437A62`, `live #A9564F`, `correspondance #8B5578` are greys with a hue. Green and magenta
+  are words, held to 4.5 on the ground and a card; red is a mark only, held to 3. New values: `#12784A`,
+  `#DE3B2D`, `#B4008A`. The green's `onInk` glyph on the live SpeakCircle gets its own floor.
+- verified-by: `green and the fix colour are words, so they clear 4.5 on the ground and on a card`
+- verified-by: `the tutor's red is a mark, so it clears 3 on the ground`
+- verified-by: `the mic glyph still reads on a live green circle`
+- verified-by: `no two signals come within a Delta-E of 30, and none reads as a rung`
+- verified-by: `no accent comes within a Delta-E of 30 of any signal or rung`
+
+### F323 — The voice circle's traffic lights come back to full colour
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/theme.ts:127
+- note: `thinking #8A6A2D` is olive; speaking and yourTurn alias the muted signals. New amber `#B07510`
+  at 3.27 on the ground; speaking and yourTurn alias F322's red and green; ready stays the violet. The
+  rung-one separation floor rises from 20 to 30 (measured 43.2). Captions stay ink; the amber ceiling
+  tripwire is dropped (it was a ceiling, not a floor).
+- verified-by: `every orb state is legible as a mark against the ground`
+- verified-by: `the three traffic lights stay far apart, and none of them is rung one`
+- verified-by: `an orb caption is words, so it is held to the floor for words`
+
+### F324 — Support colours run hot to cool again as help is withdrawn
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/theme.ts:82
+- note: `#D6A846 #C8794A #5F95AA` are mustard, terracotta and slate; the ladder's heat is gone. New
+  `#FFCD00 #FF7B00 #6EC4E8` and ink. A rung colour is a fill under an ink numeral, not a state mark, so
+  the floors are ink ≥ 4.5 on each fill, ΔE ≥ 30 from the ground and from each other, and b\* strictly
+  decreasing. Say in the test comment why rung fills are not held to 3 against the ground.
+- verified-by: `a rung numeral in ink clears 4.5 on its own fill`
+- verified-by: `support cools as help is withdrawn: each rung is bluer than the last and rung four is ink`
+- verified-by: `no rung reads as another rung, as the ground, or as ink`
+
+### F325 — The active tab takes the identity violet
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx:88
+- note: the active tab is ink-on-ink today, the founder's "interactive layer has no colour" complaint in
+  one line. Focused glyph and label take `accent.primary` (6.64 on the Porcelain ground at 11pt);
+  inactive stays `inkFaint`/`inkSoft`. The pill lettering floor (`onInk` on `accent.primary`, 6.94) has
+  never been asserted and is added with the button it belongs to.
+- verified-by: `the active tab is set in the identity violet`
+- verified-by: `pill lettering clears 4.5 on the primary violet`
+
+### F326 — The micro-label and the primary are one violet
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/theme.ts:74
+- note: `accent.label` was the house paper's accent and is now simply `accent.primary`. Replaces the
+  "every room shares the same identity accent" assertion. P2 because the value does not change; the
+  assertion is a tripwire against a second identity colour creeping back.
+- verified-by: `the micro-label and the primary are one violet`
+
+### F327 — DESIGN.md records the palette the app ships
+- severity: P1
+- status: [ ]
+- where: DESIGN.md:50
+- note: DESIGN.md documents `live #DE3B2D` while the build shipped `#A9564F`; the doc had become a plan.
+  Replace the five-paper table with a single token table whose rows are `| token.path | #HEX |` and
+  assert every row equals the `palette.ts` export it names. Replaces J11's paper-table lock.
+- verified-by: `DESIGN.md records the palette the app ships`
+
+### F328 — The splash and the icon background are the ground
+- severity: P1
+- status: [ ]
+- where: apps/mobile/app.json:21
+- note: two hard-coded `#F3E8F3` values sit outside the palette. With Porcelain chosen the app would
+  flash lilac before every launch and the nav container would paint a different page edge than the
+  splash. Read `app.json` in the test and hold both to `paper.ground` (`#F4F2F7`).
+- verified-by: `the splash and the icon background are the ground`
