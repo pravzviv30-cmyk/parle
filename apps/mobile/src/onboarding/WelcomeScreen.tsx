@@ -31,9 +31,11 @@
  *
  * ## Two smaller decisions worth naming
  *
- * The body scrolls. Nothing here caps font scaling, so a learner with large
- * text set gets large text, and a promise that cannot be reached on a small
- * phone at that size is a promise they never read.
+ * The body scrolls, because the frame it sits in scrolls: nothing here caps
+ * font scaling, so a learner with large text set gets large text, and a promise
+ * that cannot be reached on a small phone at that size is a promise they never
+ * read. `ScrollScreen center` pins the short hero to the middle and the two ways
+ * in sit in the frame's footer, outside the scroll, where the notch is paid once.
  *
  * The scene is not paused. `paused` exists for scenes on a tab that stays
  * mounted after the learner leaves it; this screen unmounts the moment they
@@ -47,10 +49,10 @@
  * one exception should be visible here rather than hidden in the copy module.
  */
 
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet } from 'react-native';
 import { paper, space, type } from '../theme.ts';
 import { PillButton, GhostButton } from '../components.tsx';
+import { ScrollScreen } from '../layout.tsx';
 import { HeroCafe } from '../illustrations.tsx';
 import { DEFAULT_TUTOR_PERSONA } from '../tutor/tutorName.ts';
 import { WELCOME_SUBLINE } from './disclosure.ts';
@@ -62,34 +64,29 @@ export function WelcomeScreen({
   onCreateAccount: () => void;
   onSignIn: () => void;
 }) {
-  const insets = useSafeAreaInsets();
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
-      <ScrollView contentContainerStyle={st.hero} showsVerticalScrollIndicator={false}>
+    <ScrollScreen
+      center
+      footer={
+        <View style={st.ways}>
+          <PillButton label="Create account" onPress={onCreateAccount} />
+          <GhostButton label="I already have an account" onPress={onSignIn} color={paper.ink} />
+        </View>
+      }
+    >
+      <View style={st.hero}>
         <HeroCafe width={230} />
         <Text accessibilityRole="header" style={st.title}>
           Find your voice in French
         </Text>
         <Text style={st.subline}>{WELCOME_SUBLINE(DEFAULT_TUTOR_PERSONA)}</Text>
-      </ScrollView>
-
-      <View style={st.ways}>
-        <PillButton label="Create account" onPress={onCreateAccount} />
-        <GhostButton label="I already have an account" onPress={onSignIn} color={paper.ink} />
       </View>
-    </View>
+    </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(6), gap: space(6) },
-  hero: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: space(2),
-    paddingVertical: space(4),
-  },
+  hero: { alignItems: 'center', justifyContent: 'center' },
   title: { ...type.display, color: paper.ink, textAlign: 'center', marginTop: space(6) },
   subline: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
   ways: { gap: space(3) },

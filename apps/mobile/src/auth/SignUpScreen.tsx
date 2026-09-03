@@ -1,20 +1,26 @@
 /**
  * Create an account: email, password, or the Google door.
  * Errors are plain sentences under the field they belong to.
+ *
+ * It sits inside `ScrollScreen avoidKeyboard`: the frame pays the notch, lifts
+ * the fields above the keyboard, and draws the one back through `ScreenHeader`.
+ * The primary pill and the Google outline ride in the footer so a keyboard
+ * cannot scroll them out of reach, and the "Already have an account? Sign in"
+ * row stays at the end of the body, where a field is still visible over an
+ * SE-class keyboard rather than pinned under the buttons.
  */
 
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { paper, space, type, signal, HIT } from '../theme.ts';
-import { PillButton, OutlineButton, Field, ChevronLeft, GoogleMark } from '../components.tsx';
+import { PillButton, OutlineButton, Field, GoogleMark } from '../components.tsx';
+import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail, PASSWORD_MIN, passwordTooShort } from './validate.ts';
 import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 import { passwordHint } from './passwordHint.ts';
 
 export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignIn: () => void }) {
-  const insets = useSafeAreaInsets();
   const { adapter } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -71,77 +77,11 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      enabled={Platform.OS !== 'web'}
-    >
-      <ScrollView
-        style={{ backgroundColor: paper.ground }}
-        contentContainerStyle={[st.root, { paddingTop: insets.top + space(4), paddingBottom: insets.bottom + space(6) }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Back" style={st.back}>
-          <ChevronLeft />
-        </Pressable>
-
-        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Create your account</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
-          Your progress, your phrases, and your tutor's memory live here.
-        </Text>
-
-        <View style={{ gap: space(4), marginTop: space(6) }}>
-          <Field
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-            keyboardType="email-address"
-            autoComplete="email"
-            error={emailError}
-            returnKeyType="next"
-          />
-          <View style={{ gap: space(1.5) }}>
-            <Field
-              label="Password"
-              value={password}
-              onChangeText={(v) => {
-                setPassword(v);
-                // The complaint is from the last submit. Once they are typing
-                // again it is stale, and the hint below says the same thing
-                // without the red.
-                if (passwordError) setPasswordError(null);
-              }}
-              placeholder="Choose a password"
-              secure
-              autoComplete="new-password"
-              error={passwordError}
-              returnKeyType="next"
-            />
-            {passwordError == null && (
-              <Text style={[type.small, { color: hint.met ? signal.good : paper.inkSoft }]}>{hint.text}</Text>
-            )}
-          </View>
-          <Field
-            label="Confirm password"
-            value={confirm}
-            onChangeText={setConfirm}
-            placeholder="Once more"
-            secure
-            autoComplete="new-password"
-            error={confirmError}
-            returnKeyType="done"
-            onSubmitEditing={() => void submit()}
-          />
-        </View>
-
-        {formMessage != null && (
-          <Text style={[type.body, { color: formOk ? signal.good : signal.correspondance, marginTop: space(4) }]}>
-            {formMessage}
-          </Text>
-        )}
-
-        <View style={{ gap: space(3), marginTop: space(6) }}>
+    <ScrollScreen
+      avoidKeyboard
+      header={<ScreenHeader back={{ onPress: onBack }} />}
+      footer={
+        <View style={{ gap: space(3) }}>
           <PillButton
             label={authButtonLabel('createAccount', pending === 'createAccount')}
             onPress={() => void submit()}
@@ -153,19 +93,77 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
             disabled={busy}
             icon={<GoogleMark size={18} />}
           />
-          <Pressable onPress={onSignIn} accessibilityRole="button" style={st.switchRow}>
-            <Text style={[type.small, { color: paper.inkSoft }]}>
-              Already have an account? <Text style={{ color: paper.ink, fontFamily: type.bodyStrong.fontFamily }}>Sign in</Text>
-            </Text>
-          </Pressable>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      }
+    >
+      <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Create your account</Text>
+      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
+        Your progress, your phrases, and your tutor's memory live here.
+      </Text>
+
+      <View style={{ gap: space(4), marginTop: space(6) }}>
+        <Field
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          autoComplete="email"
+          error={emailError}
+          returnKeyType="next"
+        />
+        <View style={{ gap: space(1.5) }}>
+          <Field
+            label="Password"
+            value={password}
+            onChangeText={(v) => {
+              setPassword(v);
+              // The complaint is from the last submit. Once they are typing
+              // again it is stale, and the hint below says the same thing
+              // without the red.
+              if (passwordError) setPasswordError(null);
+            }}
+            placeholder="Choose a password"
+            secure
+            autoComplete="new-password"
+            error={passwordError}
+            returnKeyType="next"
+          />
+          {passwordError == null && (
+            <Text style={[type.small, { color: hint.met ? signal.good : paper.inkSoft }]}>{hint.text}</Text>
+          )}
+        </View>
+        <Field
+          label="Confirm password"
+          value={confirm}
+          onChangeText={setConfirm}
+          placeholder="Once more"
+          secure
+          autoComplete="new-password"
+          error={confirmError}
+          returnKeyType="done"
+          onSubmitEditing={() => void submit()}
+        />
+      </View>
+
+      {formMessage != null && (
+        <Text style={[type.body, { color: formOk ? signal.good : signal.correspondance, marginTop: space(4) }]}>
+          {formMessage}
+        </Text>
+      )}
+
+      {/* The switch row stays at the end of the body, not in the footer: over an
+          SE-class keyboard the footer buttons pin to the keyboard's top, and a
+          field has to stay visible above them rather than this row. */}
+      <Pressable onPress={onSignIn} accessibilityRole="button" style={st.switchRow}>
+        <Text style={[type.small, { color: paper.inkSoft }]}>
+          Already have an account? <Text style={{ color: paper.ink, fontFamily: type.bodyStrong.fontFamily }}>Sign in</Text>
+        </Text>
+      </Pressable>
+    </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  root: { flexGrow: 1, paddingHorizontal: space(6) },
-  back: { minHeight: HIT, minWidth: HIT, justifyContent: 'center', marginBottom: space(2), alignSelf: 'flex-start' },
-  switchRow: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
+  switchRow: { minHeight: HIT, alignItems: 'center', justifyContent: 'center', marginTop: space(6) },
 });

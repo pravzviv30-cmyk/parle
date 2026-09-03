@@ -5209,7 +5209,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F352 — The three onboarding screens sit inside the one frame
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/OnboardingFlow.tsx:209
 - note: WelcomeScreen, AgeGateScreen and OnboardingFlow each read the safe area and open their own
   ScrollView with a `space(6)` gutter (vs the frame's `space(5)`), three different top gaps, and a
@@ -5222,7 +5222,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F353 — The shared header can carry a title with no back and no leave
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/layout.tsx:158
 - note: `ScreenHeaderProps` requires one of `back`/`leave`, so a header holding only the progress dots on
   onboarding's first page does not typecheck (runtime already draws the empty slot). Make both optional
@@ -5231,7 +5231,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F354 — An option card tells a screen reader it is selected
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx:257
 - note: `OptionCard`'s Pressable has a role and label and no `accessibilityState`, so a VoiceOver learner
   picking a voice/goal/strictness/reminder hears nothing confirm it. The tab bar already does this
@@ -5240,7 +5240,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F355 — The voice ear shows which sample is sounding
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx:272
 - note: OnboardingFlow tracks `playing` and never hands it to the card; OptionCard has nowhere to put it,
   so tapping an ear changes nothing. Add `playing` (default false): while sounding, the ear sits on a
@@ -5250,7 +5250,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F356 — A refused learner has a way out, and hears the refusal
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/OnboardingFlow.tsx:247
 - note: the account is created before the gate; "younger than that" removes the pill and leaves a signed-in
   learner on a page with nothing behind it and no way to the Welcome; the refusal is a bare Text here and
@@ -5263,7 +5263,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F357 — The two auth screens sit inside the one frame, with the primary pinned
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/auth/SignUpScreen.tsx:74
 - note: SignUp/SignIn keep the primary pill inside their own ScrollView (scrolls away under a keyboard) and
   draw their own back with a `space(6)` gutter. Adopt `ScrollScreen avoidKeyboard`, `ScreenHeader back`, the
@@ -5274,7 +5274,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F358 — The step dots and the station line are one spoken element
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx:477
 - note: both containers carry an `accessibilityLabel` and no `accessible`, so iOS never focuses the group and
   "Step 1 of 4" / "Stop 2 of 5" is never read. Add `accessible`; no role (web progressbar wants value attrs
@@ -5283,7 +5283,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F359 — Meet Luc's four lines read as a paragraph, not a plaque
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/OnboardingFlow.tsx:371
 - note: the densest page sets four multi-sentence lines centred. Set `line` left under the centred title and
   art, so the disclosure reads as reassurance rather than fine print.
@@ -5291,7 +5291,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F360 — Typing is offered as a choice, not a fallback
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/disclosure.ts:165
 - note: "If you cannot speak out loud, tap Type instead…" narrows who the app is for. Not legally pinned
   (disclosure.test.ts:262 requires only `Type instead`). New line: "You can also type. Tap Type instead in a
@@ -5300,7 +5300,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F361 — The device runbook names what a source walk cannot see about the first run
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: docs/DEVICE_VERIFICATION.md:688
 - note: a `## Pass 3 first run` section, every row `not run`: the left edge does not move from the voice step
   into the chooser/Home; SignUp keyboard keeps the field + pill visible; an ear turns violet on tap, clears

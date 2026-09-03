@@ -162,3 +162,18 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     assert.match(design, /Monogram/, 'DESIGN.md does not name the monogram');
   });
 });
+
+describe('the shared header may hold a title alone — F353', () => {
+  test('the shared header takes a title with neither a back nor a leave, and still never both — F353', () => {
+    // Onboarding's first page holds only the progress dots: a title, no back, no
+    // leave. That typechecks only when both controls are optional inside their
+    // branch — the type text carries `back?:` and `leave?:`, not the bare `back:`
+    // and `leave:` that used to force a caller to choose one.
+    const props = region(layoutSource(), 'type ScreenHeaderProps =', 'export function ScreenHeader(');
+    assert.match(props, /back\?:\s*\{/, 'back is still a required key, so a title-only header does not typecheck');
+    assert.match(props, /leave\?:\s*\{/, 'leave is still a required key, so a title-only header does not typecheck');
+    // Never both: each branch still forbids the other with a `never`.
+    assert.match(props, /leave\?: never/, 'the back branch no longer forbids leave, so a header could offer both');
+    assert.match(props, /back\?: never/, 'the leave branch no longer forbids back, so a header could offer both');
+  });
+});

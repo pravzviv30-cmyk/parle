@@ -161,8 +161,8 @@ export function MEET_PRIVACY(persona: TutorPersona): string {
  */
 export const MEET_MIC = 'Your phone will ask to use the microphone when you start a scene.';
 
-/** The way through for anyone who cannot speak aloud, named after the real control. */
-export const MEET_TYPING = 'If you cannot speak out loud, tap Type instead in the scene and write your answer.';
+/** Typing offered as a choice in any scene, named after the real control. */
+export const MEET_TYPING = 'You can also type. Tap Type instead in a scene and write your answer.';
 
 /** Where the rest of it lives. A pointer to text that exists, not to a policy that does not. */
 export const MEET_MORE = 'Profile has the rest of what Luvani keeps.';

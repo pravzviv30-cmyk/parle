@@ -233,6 +233,11 @@ export function GhostButton({
 /**
  * A tappable option the learner can choose — the successor of the direction
  * plaque. French text in the serif, English gloss beneath, optional replay.
+ *
+ * `selected` is the heavier ink rule and is spoken to a screen reader; `playing`
+ * is the replay ear sounding, drawn as the accent glyph on a quiet disc with a
+ * "Stop" label. The two are orthogonal: a learner can audition one voice while
+ * another is the chosen one, so a card can be selected and playing at once.
  */
 export function OptionCard({
   text,
@@ -240,6 +245,7 @@ export function OptionCard({
   onPress,
   onHear,
   selected = false,
+  playing = false,
 }: {
   text: string;
   gloss?: string;
@@ -247,6 +253,8 @@ export function OptionCard({
   /** Replay this option aloud without choosing it. */
   onHear?: () => void;
   selected?: boolean;
+  /** This option's sample is sounding: the ear becomes a Stop on a lit disc. */
+  playing?: boolean;
 }) {
   // The hear control is a sibling of the main press target, not a child — a
   // button nested inside a button is invalid HTML on web. Pressed feedback is
@@ -260,6 +268,7 @@ export function OptionCard({
         onPressOut={() => setPressed(false)}
         accessibilityRole="button"
         accessibilityLabel={gloss ? `${text}, ${gloss}` : text}
+        accessibilityState={{ selected }}
         style={s.optionMain}
       >
         <View style={{ flex: 1 }}>
@@ -274,10 +283,17 @@ export function OptionCard({
           onPress={onHear}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel={`Hear ${text}`}
-          style={({ pressed: hearPressed }) => [{ padding: space(2) }, hearPressed && { opacity: 0.6 }]}
+          // A sounding ear stops on the next tap, so it says so — and the glyph
+          // lights on a quiet disc rather than moving, since there is nothing to
+          // reduce-motion here.
+          accessibilityLabel={playing ? `Stop ${text}` : `Hear ${text}`}
+          style={({ pressed: hearPressed }) => [
+            { padding: space(2) },
+            playing && { backgroundColor: paper.groundDeep, borderRadius: radius.pill },
+            hearPressed && { opacity: 0.6 },
+          ]}
         >
-          <EarGlyph size={18} color={paper.inkSoft} />
+          <EarGlyph size={18} color={playing ? accent.primary : paper.inkSoft} />
         </Pressable>
       )}
       <ArrowRight size={18} color={paper.inkFaint} />
@@ -474,7 +490,7 @@ export function Monogram({ initial, size = HIT }: { initial: string; size?: numb
 
 export function ProgressDots({ total, index }: { total: number; index: number }) {
   return (
-    <View style={s.dotsRow} accessibilityLabel={`Step ${index + 1} of ${total}`}>
+    <View style={s.dotsRow} accessible accessibilityLabel={`Step ${index + 1} of ${total}`}>
       {Array.from({ length: total }, (_, i) => (
         <View key={i} style={[s.dot, i === index && s.dotHere, i < index && { backgroundColor: paper.inkSoft }]} />
       ))}
@@ -560,7 +576,7 @@ export function LineBullet({ rung, active, size = 26 }: { rung: Rung; active: bo
 /** The lesson as a line: one stop per turn, the current one struck larger. */
 export function StationLine({ total, index }: { total: number; index: number }) {
   return (
-    <View style={s.stationRow} accessibilityLabel={`Stop ${index + 1} of ${total}`}>
+    <View style={s.stationRow} accessible accessibilityLabel={`Stop ${index + 1} of ${total}`}>
       {Array.from({ length: total }, (_, i) => {
         const done = i < index;
         const here = i === index;

@@ -238,9 +238,11 @@ function SignedInRoot({ user }: { user: AuthUser }) {
 
   return (
     <ProfileGate
+      onSignOut={() => void auth.signOut()}
       onboarding={(existing, done) => (
         <OnboardingFlow
           existing={existing}
+          onSignOut={() => void auth.signOut()}
           onDone={(answers) => {
             const built = existing === null ? createStoredProfile(answers) : completeProfile(existing, answers);
             // The voice step is the one onboarding answer neither constructor

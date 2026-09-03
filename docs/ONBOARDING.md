@@ -80,7 +80,7 @@ stops asking, and hands back whatever the record already carried.
 **Meet Luc arrived in its place.** One page, no question, the last thing before
 the voice step: the tutor is AI, he is a character somebody wrote, no
 person hears you, your phone will ask for the microphone at the first scene, and
-typing is there if you cannot speak out loud. Every line comes from
+typing is offered as a choice in any scene. Every line comes from
 `onboarding/disclosure.ts`, which also feeds the welcome subline and TutorIntro's
 persona page, so the three cannot drift apart.
 

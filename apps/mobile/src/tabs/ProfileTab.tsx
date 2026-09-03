@@ -543,6 +543,7 @@ export function ProfileTab({
               text={option.label}
               gloss={option.gloss}
               selected={tutorVoiceOf(profile) === option.value}
+              playing={samplePlaying === option.value}
               onPress={() => {
                 update(withTutorVoice(profile, option.value));
                 closeVoiceSheet();

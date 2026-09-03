@@ -712,6 +712,12 @@ const ADOPTERS = [
   'phrases/PhrasebookScreen.tsx',
   'tutor/TutorIntro.tsx',
   'legal/Acknowledgements.tsx',
+  // Pass 3: the first run adopts the frame too (F352, F357).
+  'onboarding/WelcomeScreen.tsx',
+  'onboarding/AgeGateScreen.tsx',
+  'onboarding/OnboardingFlow.tsx',
+  'auth/SignUpScreen.tsx',
+  'auth/SignInScreen.tsx',
 ];
 
 /**
@@ -719,21 +725,18 @@ const ADOPTERS = [
  *
  * `layout.tsx` owns it. `ConvoScreen` keeps its own scene layout this phase and
  * is not adopted. `RecapScreen` and the focus drill player are pushed screens
- * the design system has not reached yet. The auth, onboarding and friends
- * screens are the same: not adopted, so still framing themselves. Adjust this
- * list as those screens are adopted; a file dropping off it is the work landing.
+ * the design system has not reached yet. `SetNewPasswordScreen` is the one auth
+ * screen Pass 3 did not reach: it is the password-recovery landing, not a
+ * first-run surface, so it still frames itself. `friends` and the leaderboard
+ * are the same. The first-run auth and onboarding screens dropped off this list
+ * in Pass 3 (F352, F357); a file dropping off it is the work landing.
  */
 const SAFE_AREA_ALLOW = [
   'layout.tsx',
   'ConvoScreen.tsx',
   'RecapScreen.tsx',
   'drill/FocusDrillPlayer.tsx',
-  'auth/SignInScreen.tsx',
-  'auth/SignUpScreen.tsx',
   'auth/SetNewPasswordScreen.tsx',
-  'onboarding/WelcomeScreen.tsx',
-  'onboarding/OnboardingFlow.tsx',
-  'onboarding/AgeGateScreen.tsx',
   'friends/AddFriendsScreen.tsx',
   'tabs/LeaderboardTab.tsx',
 ];
@@ -741,14 +744,11 @@ const SAFE_AREA_ALLOW = [
 /**
  * The only files that may still draw a chevron by hand. `layout.tsx` draws the
  * one every adopted screen now borrows; the rest are the not-yet-adopted
- * auth/onboarding/friends screens, and they lose theirs when they are adopted.
+ * friends screen. The auth and onboarding screens gave theirs up in Pass 3.
  */
 const CHEVRON_ALLOW = [
   'layout.tsx',
-  'auth/SignInScreen.tsx',
-  'auth/SignUpScreen.tsx',
   'friends/AddFriendsScreen.tsx',
-  'onboarding/OnboardingFlow.tsx',
 ];
 
 describe('every screen sits inside the one frame — F307', () => {
@@ -799,6 +799,10 @@ describe('one way back, and it is the shared header — F309', () => {
     'phrases/PhrasebookScreen.tsx',
     'tutor/TutorIntro.tsx',
     'legal/Acknowledgements.tsx',
+    // Pass 3: the two auth screens are pushed from the welcome, so each shows
+    // exactly one way back and it is the shared header (F357).
+    'auth/SignUpScreen.tsx',
+    'auth/SignInScreen.tsx',
   ];
 
   test('a pushed screen has exactly one way back, and it is the shared header — F309', () => {
@@ -1252,5 +1256,119 @@ describe('one Monogram, borrowed everywhere — F344', () => {
       /import \{[^}]*\bMonogram\b[^}]*\} from '\.\.\/components\.tsx'/,
       'the leaderboard does not borrow the shared Monogram',
     );
+  });
+});
+
+/* ===========================================================================
+ * Pass 3: the first run sits inside the one frame (F352, F355, F356, F357,
+ * F359, F361).
+ *
+ * Same ceiling as everything above: a walk over source, not a renderer. What it
+ * catches is the regression a device pass would find by eye — a first-run screen
+ * that re-grows its own safe-area maths, an auth pill that scrolls away under a
+ * keyboard, a first-run chevron drawn by hand beside the shared header.
+ * =========================================================================== */
+
+describe('the first run sits inside the one frame — F352', () => {
+  /** The five first-run surfaces this pass moved onto the frame. */
+  const FIRST_RUN_ADOPTED = [
+    'onboarding/WelcomeScreen.tsx',
+    'onboarding/AgeGateScreen.tsx',
+    'onboarding/OnboardingFlow.tsx',
+    'auth/SignUpScreen.tsx',
+    'auth/SignInScreen.tsx',
+  ];
+
+  test('the first-run screens are adopters, not allow-listed — F352', () => {
+    for (const name of FIRST_RUN_ADOPTED) {
+      // On the adopters list, and off both allow lists: a screen that measures
+      // the notch itself and a screen that borrows the frame's cannot both be
+      // true, so the allow-list membership is the thing that has to be gone.
+      assert.ok(ADOPTERS.includes(name), `${name} is not on the adopters list, so nothing holds it to the frame`);
+      assert.ok(!SAFE_AREA_ALLOW.includes(name), `${name} is still allowed to read the safe area itself`);
+    }
+    // The three that hand-rolled a chevron give it up; the shared header is now
+    // their one way back.
+    for (const name of ['onboarding/OnboardingFlow.tsx', 'auth/SignUpScreen.tsx', 'auth/SignInScreen.tsx']) {
+      assert.ok(!CHEVRON_ALLOW.includes(name), `${name} is still allowed a hand-rolled chevron`);
+    }
+    // SetNewPassword is the recovery landing, not a first-run surface, so it is
+    // not part of this pass and keeps its own safe-area read.
+    assert.ok(
+      SAFE_AREA_ALLOW.includes('auth/SetNewPasswordScreen.tsx'),
+      'SetNewPassword was dropped from the safe-area allow list, but this pass did not adopt it',
+    );
+    // And each screen is actually built on the frame, with no safe-area read and
+    // no ScrollView of its own. (F307 and F309 now cover these five too, since
+    // they are on ADOPTERS; this is the F352-named check that they are adopted.)
+    for (const name of FIRST_RUN_ADOPTED) {
+      const body = named(name);
+      assert.match(body, /<(Screen|ScrollScreen)\b/, `${name} is not built on the shared frame`);
+      assert.ok(!body.includes('useSafeAreaInsets'), `${name} still measures the safe area itself`);
+      assert.ok(!body.includes('<ChevronLeft'), `${name} still hand-rolls a chevron beside the shared header`);
+    }
+  });
+});
+
+describe('the auth screens pin the primary action in the footer — F357', () => {
+  /** The balanced `footer={...}` prop of a screen, braces and all. */
+  function footerProp(body: string): string {
+    const at = body.indexOf('footer={');
+    assert.notEqual(at, -1, 'the screen has no footer slot at all');
+    const start = at + 'footer='.length;
+    let depth = 0;
+    for (let i = start; i < body.length; i += 1) {
+      if (body[i] === '{') depth += 1;
+      else if (body[i] === '}') {
+        depth -= 1;
+        if (depth === 0) return body.slice(start, i + 1);
+      }
+    }
+    return body.slice(start);
+  }
+
+  test('the auth screens pin their pills in the frame\'s footer — F357', () => {
+    for (const name of ['auth/SignUpScreen.tsx', 'auth/SignInScreen.tsx']) {
+      const body = named(name);
+      // Keyboard-aware, so the fields lift rather than hide; and the one back is
+      // the shared header, not a hand-rolled chevron.
+      assert.match(body, /<ScrollScreen\b[\s\S]*?avoidKeyboard/, `${name} is not a keyboard-aware ScrollScreen`);
+      assert.match(body, /<ScreenHeader\s+back=/, `${name} does not draw its one back through the shared header`);
+
+      // The primary pill and the Google outline live in the footer, where a
+      // keyboard cannot scroll them out of reach.
+      const footer = footerProp(body);
+      assert.match(footer, /<PillButton\b/, `${name} does not pin its primary pill in the footer`);
+      assert.match(footer, /<OutlineButton\b/, `${name} does not pin the Google door in the footer`);
+      assert.match(footer, /GoogleMark/, `${name}'s footer outline is not the Google door`);
+
+      // The switch row is NOT in the footer: it stays at the body's end so a
+      // field is visible over an SE-class keyboard rather than pinned under the
+      // buttons. It is the only Pressable on the screen, so the footer holding
+      // one would be the row in the wrong place.
+      assert.ok(!footer.includes('<Pressable'), `${name} pins its switch row in the footer instead of the body's end`);
+      assert.match(body, /<Pressable\b[\s\S]*?accessibilityRole="button"/, `${name} lost the switch row from the body`);
+    }
+  });
+});
+
+describe('the device runbook carries the Pass 3 first-run checks — F361', () => {
+  test('the device runbook carries the Pass 3 first-run checks — F361', () => {
+    // The frame work is verifiable statically up to a point: the left edge not
+    // moving from the voice step into the chooser, the keyboard keeping the pill
+    // and a field visible, the ear turning violet on tap and clearing on the
+    // clip's end, the refusal being spoken on both gates and Sign out landing on
+    // the welcome — those are a device's to prove. The runbook records that pass.
+    const runbook = readFileSync(join(ROOT, 'docs', 'DEVICE_VERIFICATION.md'), 'utf8');
+    assert.match(runbook, /## Pass 3 first run/, 'the runbook has no Pass 3 first run section');
+    const section = runbook.slice(runbook.indexOf('## Pass 3 first run'));
+    const rows = section.split('\n').filter((l) => /\|\s*P3-\d/.test(l));
+    assert.equal(rows.length, 6, `the Pass 3 section names ${rows.length} rows; it should carry P3-1 through P3-6`);
+    for (let i = 1; i <= 6; i += 1) {
+      assert.match(section, new RegExp(`P3-${i}\\b`), `the Pass 3 runbook names no P3-${i} row`);
+    }
+    for (const row of rows) {
+      assert.match(row, /not run/, `a Pass 3 row is walked before a device has: ${row.trim()}`);
+    }
   });
 });

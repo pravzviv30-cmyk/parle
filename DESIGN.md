@@ -154,7 +154,8 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
 - **OutlineButton / GhostButton** — the seconds: white pill with an ink rule, or
   bare text at full touch height.
 - **OptionCard** — a tappable choice: French in the serif, English gloss under,
-  quiet arrow, optional replay ear. Selection is a heavier ink rule.
+  quiet arrow, optional replay ear. Selection is a heavier ink rule; a replay ear
+  that is sounding is drawn as `accent.primary` on a `paper.groundDeep` disc.
 - **Field, TabBar, ProgressDots** — inputs are
   white with a 1.5 rule that turns ink on focus; the Home tabs are a soft track
   with a white active pill; onboarding dots stretch the current page.

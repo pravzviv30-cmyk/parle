@@ -156,8 +156,8 @@ export function ScrollScreen({
  * header that offered both would let a learner think a tab switch left the room.
  */
 type ScreenHeaderProps = { title?: ReactNode } & (
-  | { back: { onPress: () => void; label?: string }; leave?: never }
-  | { leave: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
+  | { back?: { onPress: () => void; label?: string }; leave?: never }
+  | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
 );
 
 /**

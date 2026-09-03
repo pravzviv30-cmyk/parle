@@ -78,3 +78,30 @@ describe('the drawn vocabulary keeps its promises — F332, F333', () => {
     );
   });
 });
+
+describe('the onboarding-polish primitives speak their state — F354, F358', () => {
+  test('an option card tells a screen reader it is selected, the way the tab bar does — F354', () => {
+    // The tab bar folds its active state into accessibilityState so VoiceOver
+    // says "selected" (components.tsx:426); the option card must do the same, or
+    // a learner picking a voice, goal, strictness or reminder hears nothing.
+    const option = region(componentsSource(), 'export function OptionCard(', 'export function Field(');
+    assert.match(
+      option,
+      /accessibilityState=\{\{ selected \}\}/,
+      'the option card does not tell a screen reader whether it is selected',
+    );
+  });
+
+  test('the step dots and the station line are one spoken element — F358', () => {
+    // Both carry an accessibilityLabel ("Step X of Y" / "Stop X of Y") but iOS
+    // never focuses the group and never reads it unless the container is marked
+    // `accessible`. The label without the flag is a promise the OS drops.
+    const dots = region(componentsSource(), 'export function ProgressDots(', 'export function SpeakCircle(');
+    assert.match(dots, /accessible(?![a-zA-Z])/, 'the step dots are not one focusable element, so their label is never read');
+    assert.match(dots, /accessibilityLabel/, 'the step dots carry no label to read');
+
+    const station = region(componentsSource(), 'export function StationLine(', 'export function fitDisplay(');
+    assert.match(station, /accessible(?![a-zA-Z])/, 'the station line is not one focusable element, so its label is never read');
+    assert.match(station, /accessibilityLabel/, 'the station line carries no label to read');
+  });
+});

@@ -25,6 +25,7 @@ import {
   AGE_DENY,
   AGE_QUESTION,
   AGE_REFUSAL,
+  AGE_REFUSAL_EXIT,
   AGE_SUB,
   NAME_LABEL,
   NAME_QUESTION,
@@ -53,6 +54,8 @@ function stripComments(source: string): string {
 
 const FLOW = stripComments(read('./OnboardingFlow.tsx'));
 const RULES = stripComments(read('./answers.ts'));
+const AGE_GATE = stripComments(read('./AgeGateScreen.tsx'));
+const REFUSAL = stripComments(read('./AgeRefusal.tsx'));
 const PROFILE_TAB = stripComments(read('../tabs/ProfileTab.tsx'));
 const DOC = read('../../../../docs/ONBOARDING.md');
 
@@ -230,10 +233,74 @@ describe('onboarding — the shape of the walk', () => {
   });
 
   test('nothing onboarding says to a learner carries an em dash or a scolding', () => {
-    for (const line of [AGE_QUESTION, AGE_SUB, AGE_CONFIRM, AGE_DENY, NAME_QUESTION, NAME_LABEL, NAME_SKIP_HINT]) {
+    for (const line of [AGE_QUESTION, AGE_SUB, AGE_CONFIRM, AGE_DENY, NAME_QUESTION, NAME_LABEL, NAME_SKIP_HINT, AGE_REFUSAL_EXIT]) {
       assert.ok(!/[—–]/.test(line), `"${line}" carries an em dash`);
       assert.ok(!/\b(wrong|bad|failed|must)\b/i.test(line), `"${line}" scolds`);
     }
+  });
+});
+
+describe('a refused learner has a way out, and hears the refusal — F356', () => {
+  test('a refused learner is offered a sign out on both gate surfaces, and hears the refusal — F356', () => {
+    // One component draws the refusal on both doors into the one gate, so the
+    // sign-out exit and the spoken refusal cannot be on one surface and not the
+    // other. Both screens render it, and hand it the same sign-out door.
+    for (const [where, src] of [['the first run', FLOW], ['the return gate', AGE_GATE]] as const) {
+      assert.match(
+        src,
+        /<AgeRefusal\s+text=\{refusal\}\s+onSignOut=\{onSignOut\}/,
+        `${where} does not render the shared refusal with a sign out`,
+      );
+    }
+
+    // The refusal is spoken, not merely drawn: the alert role and a polite live
+    // region cover Android and the web, and iOS is told out loud on mount — the
+    // same trio Field uses for an error the eye cannot see change.
+    assert.match(REFUSAL, /accessibilityRole="alert"/, 'the refusal is not announced as an alert');
+    assert.match(REFUSAL, /accessibilityLiveRegion="polite"/, 'Android is not told to read the refusal when it appears');
+    assert.match(
+      REFUSAL,
+      /AccessibilityInfo\.announceForAccessibility\(text\)/,
+      'iOS, which has neither the role nor the live region, is left with a refusal nothing speaks',
+    );
+
+    // And the only way off it is a sign out, never a pill: the account exists
+    // before the gate, so the honest exit is out, and a solid pill under a
+    // refusal reads as a second chance the boundary is not offering.
+    assert.match(REFUSAL, /<GhostButton\s+label=\{AGE_REFUSAL_EXIT\}/, 'the refusal offers no way out');
+    assert.ok(!REFUSAL.includes('PillButton'), 'the refusal is a full stop and must not offer a pill');
+    assert.equal(AGE_REFUSAL_EXIT, 'Sign out');
+  });
+
+  test('the way through disappears once the learner says they are younger — F356', () => {
+    // Tapping "I am younger than that" sets oldEnough false, and the deny ghost
+    // is gated on it, so the honest refusal is never shown with the way to say
+    // it again still sitting under it. Held on both gate surfaces.
+    for (const [where, src] of [['the first run', FLOW], ['the return gate', AGE_GATE]] as const) {
+      assert.match(
+        src,
+        /oldEnough !== false &&[\s\S]{0,160}GhostButton label=\{AGE_DENY\}/,
+        `${where} leaves the deny ghost tappable after the learner has already said they are younger`,
+      );
+    }
+  });
+});
+
+describe('the Meet page reads as a paragraph, not a plaque — F359', () => {
+  test('the Meet page sets its lines left, as a paragraph — F359', () => {
+    // Four multi-sentence lines set centred read as fine print. Left-set under
+    // the centred title and art, they read as reassurance. Only the lines move;
+    // the title stays centred.
+    assert.match(
+      FLOW,
+      /line:\s*\{[^}]*textAlign:\s*'left'/,
+      'the Meet lines are still centred, so the disclosure reads as a plaque',
+    );
+    assert.match(
+      FLOW,
+      /question:\s*\{[^}]*textAlign:\s*'center'/,
+      'the Meet title stopped being centred, which was never the ask',
+    );
   });
 });
 

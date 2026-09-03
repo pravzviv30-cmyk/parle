@@ -89,6 +89,14 @@ export const AGE_SUB = 'Luvani is made for teens and adults.';
 export const AGE_CONFIRM = 'I am 13 or older';
 export const AGE_DENY = 'I am younger than that';
 export const AGE_REFUSAL = 'Luvani is for learners thirteen and up. Come back and find us then.';
+/**
+ * The one door off a refusal, and it is a way out rather than a way past.
+ *
+ * The account exists before the gate, so a refused learner is signed in; signing
+ * back out is the honest exit, and it is a `GhostButton` rather than a pill so the
+ * boundary never reads as a second chance. `AgeRefusal` draws it on both surfaces.
+ */
+export const AGE_REFUSAL_EXIT = 'Sign out';
 
 /**
  * The same page, reached the second way: a session ended because the learner

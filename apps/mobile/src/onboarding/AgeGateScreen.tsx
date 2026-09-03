@@ -18,66 +18,68 @@
  * adult reading an accusation over a misheard sentence would be worse. The
  * words are in `answers.ts` with that argument written beside them; this file
  * is layout.
+ *
+ * It sits inside the shared frame like every other surface: `ScrollScreen
+ * center` pays the notch and pins the short body, and the confirm pill rides in
+ * the footer. The refusal, when it comes, is the shared `AgeRefusal` — the same
+ * spoken full stop and the same sign-out exit the first-run gate shows, so a
+ * refused learner meets one thing on both doors rather than two.
  */
 
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet } from 'react-native';
 import { paper, space, type } from '../theme.ts';
 import { PillButton, GhostButton } from '../components.tsx';
+import { ScrollScreen } from '../layout.tsx';
 import { OnboardCake } from '../illustrations.tsx';
 import { AGE_CONFIRM, AGE_DENY, AGE_RETURN_SUB, AGE_RETURN_TITLE, ageGate } from './answers.ts';
+import { AgeRefusal } from './AgeRefusal.tsx';
 
-export function AgeGateScreen({ onPass }: { onPass: () => void }) {
-  const insets = useSafeAreaInsets();
+export function AgeGateScreen({ onPass, onSignOut }: { onPass: () => void; onSignOut: () => void }) {
   // What they said on this pass. Null until they answer either way, so the
   // refusal only appears once it has been earned.
   const [oldEnough, setOldEnough] = useState<boolean | null>(null);
   const refusal = oldEnough === false ? ageGate(false).refusal : null;
 
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(6), paddingBottom: insets.bottom + space(6) }]}>
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
-        <View style={st.art}>
-          <OnboardCake width={170} />
-        </View>
-        <Text accessibilityRole="header" style={st.question}>
-          {AGE_RETURN_TITLE}
-        </Text>
-        <Text style={st.sub}>{AGE_RETURN_SUB}</Text>
-        {refusal !== null && (
-          <Text accessibilityLiveRegion="polite" style={st.refusal}>
-            {refusal}
-          </Text>
-        )}
+    <ScrollScreen
+      center
+      footer={
+        // Gone once they have said they are younger. A refusal with the way
+        // through still sitting under it is not a gate, it is a suggestion.
+        // Closing the app and coming back offers the question again, which is
+        // the escape hatch for a mis-tap and is deliberately not a button.
+        oldEnough !== false ? (
+          <PillButton
+            label={AGE_CONFIRM}
+            onPress={() => {
+              setOldEnough(true);
+              onPass();
+            }}
+          />
+        ) : undefined
+      }
+    >
+      <View style={st.art}>
+        <OnboardCake width={170} />
+      </View>
+      <Text accessibilityRole="header" style={st.question}>
+        {AGE_RETURN_TITLE}
+      </Text>
+      <Text style={st.sub}>{AGE_RETURN_SUB}</Text>
+      {refusal !== null && <AgeRefusal text={refusal} onSignOut={onSignOut} />}
+      {oldEnough !== false && (
         <View style={st.secondary}>
           <GhostButton label={AGE_DENY} onPress={() => setOldEnough(false)} />
         </View>
-      </ScrollView>
-
-      {/* Gone once they have said they are younger. A refusal with the way
-          through still sitting under it is not a gate, it is a suggestion.
-          Closing the app and coming back offers the question again, which is
-          the escape hatch for a mis-tap and is deliberately not a button. */}
-      {oldEnough !== false && (
-        <PillButton
-          label={AGE_CONFIRM}
-          onPress={() => {
-            setOldEnough(true);
-            onPass();
-          }}
-        />
       )}
-    </View>
+    </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(6) },
-  scroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: space(4) },
   art: { alignItems: 'center', marginBottom: space(5) },
   question: { ...type.display, color: paper.ink, textAlign: 'center' },
   sub: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
-  refusal: { ...type.bodyStrong, color: paper.ink, textAlign: 'center', marginTop: space(5) },
   secondary: { marginTop: space(5) },
 });

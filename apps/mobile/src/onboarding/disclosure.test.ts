@@ -265,6 +265,18 @@ describe('the first run says what a learner is talking to', () => {
     assert.match(PERSONA_BODY(DEFAULT_TUTOR_PERSONA), /\bAI tutor\b/, 'the persona page went back to a biography');
   });
 
+  test('typing is offered as a choice, not a fallback — F360', () => {
+    // The typing line used to read "If you cannot speak out loud, tap Type
+    // instead", which frames typing as a disability-only fallback and quietly
+    // narrows who the app is for. Typing is a choice available in any scene, so
+    // the copy offers it as one. The control it names stays literal — the
+    // :262 pin above still requires "Type instead".
+    assert.match(MEET_TYPING, /Type instead/, 'the typing line no longer names the control it points at');
+    assert.doesNotMatch(MEET_TYPING, /cannot|can't|unable/i, 'the typing line frames typing as a fallback again');
+    assert.ok(!/[—–]/.test(MEET_TYPING), 'the typing line carries an em dash');
+    assert.ok(!/\b(wrong|bad|failed|must)\b/i.test(MEET_TYPING), 'the typing line scolds');
+  });
+
   test('every first-run screen reads its AI disclosure from one module', () => {
     // The wiring, checked by identifier rather than by filename so it does not
     // depend on what a screen ends up being called. Red until the welcome, the

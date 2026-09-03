@@ -42,9 +42,16 @@ export function useProfile(): ProfileValue {
  * only draws the answer.
  */
 export function ProfileGate({
+  onSignOut,
   onboarding,
   children,
 }: {
+  /**
+   * The way off a refusal. The account exists before either gate, so a learner
+   * the age gate turns away is signed in with nothing behind them; signing back
+   * out is the honest exit, and the same door serves both gate surfaces.
+   */
+  onSignOut: () => void;
   /** Rendered when there is no usable profile. Calls back with the saved one. */
   onboarding: (existing: StoredProfile | null, done: (p: StoredProfile) => void) => React.ReactElement;
   children: React.ReactNode;
@@ -94,7 +101,7 @@ export function ProfileGate({
     // standalone gate to somebody with no record at all is the exact mistake
     // returning one value instead of two booleans exists to prevent.
     return profile === null ? onboarding(null, (p) => update(p)) : (
-      <AgeGateScreen onPass={() => update(withAgeGatePassed(profile))} />
+      <AgeGateScreen onPass={() => update(withAgeGatePassed(profile))} onSignOut={onSignOut} />
     );
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -250,6 +250,43 @@ describe('the voice audition and skip hold their three fixes — F303, F304, F30
     assert.match(FLOW, /if \(page !== 'voice'\) player\.pause\(\)/, 'stepping back off the voice page leaves the sample playing');
   });
 
+  test('the voice cards show which sample is sounding, on the first run and in the Profile sheet — F355', () => {
+    // The card takes `playing`, and both auditions hand it the row whose sample
+    // is sounding, so the ear that is lit is the one actually playing. Walked
+    // the same way F305 walks FLOW/SHEET/components: the wiring on each surface,
+    // then the drawing in the primitive.
+    for (const [src, where, state] of [
+      [FLOW, 'the first run', 'playing'],
+      [SHEET, 'the Profile sheet', 'samplePlaying'],
+    ] as const) {
+      assert.match(
+        src,
+        new RegExp(`playing=\\{${state} === option\\.value\\}`),
+        `${where} never tells the card which sample is sounding, so tapping an ear changes nothing`,
+      );
+    }
+
+    // And the card draws it the way the design system says: the ear tints to the
+    // accent on a quiet disc while it sounds, and its label reads Stop so a
+    // screen reader hears the toggle rather than a second Hear.
+    const COMPONENTS = stripComments(read('components.tsx'));
+    assert.match(
+      COMPONENTS,
+      /playing \? accent\.primary : paper\.inkSoft/,
+      'the sounding ear is not tinted in the accent',
+    );
+    assert.match(
+      COMPONENTS,
+      /playing && \{ backgroundColor: paper\.groundDeep, borderRadius: radius\.pill \}/,
+      'the sounding ear sits on no lit disc',
+    );
+    assert.match(
+      COMPONENTS,
+      /playing \? `Stop \$\{text\}` : `Hear \$\{text\}`/,
+      'the ear never says Stop while it is sounding',
+    );
+  });
+
   test('a clip that ends clears the selection so the next tap replays it — F305', () => {
     // `nextSample(playing, tapped)` returns null when the tapped voice is the one
     // already playing, which is how a second tap stops it. But a clip that ends

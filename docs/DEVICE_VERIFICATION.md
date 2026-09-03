@@ -685,6 +685,30 @@ is where that pass is recorded. Owner: `frontend-engineer` for the build,
 | P2-3 | On an SE-class phone My French shows its situation rows, then the next-situation card, then the one pill, then the quiet "Choose another situation" door, in that order, each reachable | not run | not run |
 | P2-4 | A brand-new account's My French shows no number anywhere: no stat rail, no notebook count, no week, no stamp until one is earned | not run | not run |
 
+## Pass 3 first run
+
+The first-run frame work (F352, F355, F356, F357, F359, F361) is verified statically
+up to a point: the surface, answers and voice-step tests read the source and fail if a
+first-run screen re-grows its own safe-area maths, if an auth pill leaves the footer, if
+the deny ghost survives a refusal, or if the Meet lines go back to centred. What they
+cannot see is the left edge holding still from the voice step into the chooser, the
+keyboard actually keeping a field and the pill visible, an ear turning violet and
+clearing when its clip ends, the refusal being spoken on both gates, or the dense Meet
+page wrapping as left-set paragraphs at AX5. Those are a device's to prove, and this is
+where that pass is recorded. Owner: `onboarding-ux-engineer` for the build,
+`qa-release-engineer` for running it.
+
+`pass` / `fail` / `not run`. Every row is `not run` until a real device pass is walked.
+
+| Id | Check | iOS | Android |
+|---|---|---|---|
+| P3-1 | The left edge does not move as a first run advances: the back chevron, the dots and every title sit on the same gutter from the voice step into the chooser and on into Home | not run | not run |
+| P3-2 | On SignUp with the keyboard up, an SE-class phone keeps a field and the Create account pill both visible; the pill does not scroll away and the switch row is not what sits above the keys | not run | not run |
+| P3-3 | On the voice step an ear turns violet on a quiet disc when tapped, clears on a second tap and again when the clip ends on its own, and VoiceOver reads "Stop Luc" while it sounds and "Hear Luc" once it stops | not run | not run |
+| P3-4 | Saying "I am younger than that" speaks the refusal on both the first-run gate and the return gate, removes the way through, and Sign out lands back on the welcome | not run | not run |
+| P3-5 | The progress dots read "Step 1 of 4" as one element, and a chosen voice reads selected to the screen reader | not run | not run |
+| P3-6 | The Meet page at iOS AX5 / Android font scale 2.0 wraps its four lines as left-set paragraphs under the centred title and art, with the one pill still pinned and reachable | not run | not run |
+
 ## Recording the result
 
 Fill the matrix in place, in this file, in the same commit as any ledger entry a
