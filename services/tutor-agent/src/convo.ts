@@ -70,6 +70,7 @@ import {
   type NewPhrase,
   type ScenarioFrame,
   type SessionRecap,
+  type Pace,
   type Strictness,
   type TurnView,
   missionFrame,
@@ -242,6 +243,18 @@ const STRICTNESSES: readonly Strictness[] = ['flow', 'balanced', 'strict'];
 export function strictnessOf(profile: LearnerProfile): Strictness {
   const stored: unknown = profile.preferences?.strictness;
   return STRICTNESSES.find((known) => known === stored) ?? 'balanced';
+}
+
+/**
+ * The pace a scene opens at, read the way strictness is: guarded, not trusted.
+ * A learner who asked in Profile for a slower tutor gets shorter sentences from
+ * the first line rather than after tapping Slower once per session. The field
+ * is optional on the profile and unknown off a device, so anything but the one
+ * word this app writes reads as 'normal', which is where every learner who has
+ * never asked already is.
+ */
+export function paceOf(profile: LearnerProfile): Pace {
+  return profile.preferences?.pace === 'slow' ? 'slow' : 'normal';
 }
 
 // ─────────────────────────────────────────────── the voice agent
@@ -1030,6 +1043,7 @@ export class LuvaniConversation extends voice.Agent {
     this.voiceless = opts.voiceless ?? false;
     this.state = createConversation(chooseFrame(profile), learnerSnapshotFrom(profile), {
       strictness: strictnessOf(profile),
+      pace: paceOf(profile),
       maxTurns: CONVO_MAX_TURNS,
     });
     this.client = opts.client ?? brainClient();
@@ -1423,6 +1437,7 @@ export class LuvaniConversation extends voice.Agent {
     try {
       this.state = createConversation(frame, learnerSnapshotFrom(this.profile), {
         strictness: strictnessOf(this.profile),
+        pace: paceOf(this.profile),
         maxTurns: CONVO_MAX_TURNS,
         // The engine's own flag: finishing every beat of a mission is a win to
         // be shown, not a session to be closed. Code decides that, not a prompt.
@@ -1494,6 +1509,7 @@ export class LuvaniConversation extends voice.Agent {
     try {
       this.state = createConversation(frame, learnerSnapshotFrom(this.profile), {
         strictness: strictnessOf(this.profile),
+        pace: paceOf(this.profile),
         maxTurns: CONVO_MAX_TURNS,
         // So a loanword the learner themself used is not read as a French leak
         // when the opening narration is checked.

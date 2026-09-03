@@ -65,6 +65,7 @@ import {
   frameDeadlineMs,
   missionOpening,
   openerFor,
+  paceOf,
   parseStoredProfile,
   postSessionDeadlineMs,
   seededOpening,
@@ -3498,5 +3499,57 @@ describe('the conversation speaks as the person the learner chose', () => {
     assert.deepEqual(client.frameRequests[0]!.system, buildSystemBlocks(), 'an unchosen session stopped matching the builder');
     assert.deepEqual(client.frameRequests[0]!.system, buildSystemBlocks(luc), 'and stopped being the catalogue default');
     assert.match(client.frameRequests[0]!.system.persona, /\bLuc\b/);
+  });
+});
+
+/**
+ * The pace a live session opens at — F371.
+ *
+ * `slow` used to be reachable only through the Slower control, one tap into
+ * every session, and it was the competition's most-cited failure that a tutor
+ * speeds back up. A learner can now ask ahead of time from Profile, and every
+ * door into a scene reads the same stored answer beside the strictness it
+ * already reads. The read is guarded the way strictness is: the field is
+ * optional on the profile and unknown off a device.
+ */
+describe('the pace a live session opens at', () => {
+  function storedWithPace(pace: unknown): LearnerProfile {
+    const fresh = createProfile();
+    return parseStoredProfile({ ...fresh, preferences: { ...fresh.preferences, pace } });
+  }
+
+  test("a live session opens at the learner's stored pace, on every door into a scene", async (t) => {
+    t.mock.method(console, 'warn', () => {});
+
+    // 1. The read itself. One word this app writes means slow; everything else,
+    //    including a profile that predates the field, is where a learner who
+    //    never asked already is.
+    assert.equal(paceOf(storedWithPace('slow')), 'slow');
+    assert.equal(paceOf(storedWithPace('normal')), 'normal');
+    assert.equal(paceOf(createProfile()), 'normal', 'a profile without the field reads as a learner who never asked');
+    for (const junk of ['SLOW', 'slower', 'fast', '', 1, true, null, {}, ['slow']]) {
+      assert.equal(paceOf(storedWithPace(junk)), 'normal', `${JSON.stringify(junk)} in the slot changed how the tutor paces somebody`);
+    }
+
+    // 2. Every door into a scene reads it. The constructor's choosing session,
+    //    the scene built on a topic the learner asked for, and the authored
+    //    mission scene all open slow for a learner who asked.
+    const slow = storedWithPace('slow');
+
+    const choosing = buildConvo(t, { profile: slow });
+    assert.equal(choosing.convo.conversationState.pace, 'slow', 'the session the constructor opens');
+
+    const asked = await inScene(t, { profile: slow });
+    assert.equal(asked.convo.conversationState.pace, 'slow', 'the scene built on a topic the learner asked for');
+
+    const mission = buildConvo(t, { profile: slow, missionId: 'mission:cafe' });
+    mission.convo.open(mission.session);
+    await sceneSettled();
+    assert.equal(mission.convo.conversationState.pace, 'slow', 'the authored mission scene');
+
+    // 3. And a learner who never asked opens exactly where they always did, so
+    //    the Slower control is still the thing that changes their session.
+    const usual = buildConvo(t, { profile: createProfile() });
+    assert.equal(usual.convo.conversationState.pace, 'normal');
   });
 });

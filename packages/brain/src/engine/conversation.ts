@@ -37,7 +37,7 @@ import type {
   SupportView,
   TutorTurn,
 } from '../contract/types.ts';
-import type { CefrBand, Strictness } from '../types.ts';
+import type { CefrBand, Pace, Strictness } from '../types.ts';
 import {
   NOTHING_WAS_WRONG,
   coachFallbackLine,
@@ -340,6 +340,12 @@ export function createConversation(
      * never feeds it.
      */
     startRung?: Rung;
+    /**
+     * Open at the learner's stored pace. Absent is 'normal', which is what
+     * every scene opened on before a learner could ask ahead of time; the
+     * Slower control still sets it mid-session and it stays sticky either way.
+     */
+    pace?: Pace;
   },
   now = Date.now(),
 ): ConversationState {
@@ -368,7 +374,7 @@ export function createConversation(
     // lines that a turn call can. Turn zero goes through the same guard.
     lastSupport: learnerSideSupport(frame.openingSupport, frame.openingLine.fr),
     assistanceDepth: 0,
-    pace: 'normal',
+    pace: config.pace ?? 'normal',
     lastLanguage: null,
     deferred: [],
     phrases: [],
