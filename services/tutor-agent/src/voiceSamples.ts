@@ -82,11 +82,7 @@ export function samplePath(key: TutorVoiceKey): string {
  */
 export function sampleText(key: TutorVoiceKey): string {
   const { name } = tutorVoice(key).persona;
-  // The English line is the translation, not commentary about the voice. The
-  // synthesis request stays French-language (see voice.ts), so the same French
-  // voice carries both sides of the sample rather than switching persona or
-  // accent halfway through.
-  return `Bonjour, je m’appelle ${name}. Hello, my name is ${name}.`;
+  return `Bonjour, je m’appelle ${name}. And this is how I sound in English.`;
 }
 
 /**
