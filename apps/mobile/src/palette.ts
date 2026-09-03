@@ -7,91 +7,100 @@
  * anything that reaches react-native can never be unit tested. Pulling the raw
  * values down here is what lets `palette.test.ts` hold them to a contract.
  *
- * Papers now whisper where the learner is instead of repainting the entire
- * app. Their hue shifts are deliberately low-chroma and the same violet carries
- * identity everywhere. State colours are muted too, while retaining accessible
- * contrast. The tests below this file hold both promises numerically.
+ * There is one ground now — Porcelain — not five papers keyed by place. The
+ * violet carries identity everywhere, the signals are saturated back up to full
+ * colour, and each family is held numerically by the tests below this file:
+ * words clear the text floor, marks clear the mark floor, and nothing that means
+ * one thing comes close enough to something that means another to be confused
+ * with it.
  */
 
-/** The ink, the card, and the two colours that are not anybody's paper. */
-export const ink = {
-  /** Near-black with a real violet cast so the page feels of a piece. */
+/** The single ground and its inks. Everything sits directly on this. */
+export const paper = {
+  /** The page itself. Everything sits directly on this. */
+  ground: '#F4F2F7',
+  /** One step deeper — pressed states, chip fills, the tab track. */
+  groundDeep: '#E6E2EE',
+  /** Card surface. Flat white, hairline rule, no shadow. */
+  card: '#FFFFFF',
+  /** The ink. Near-black with a real violet cast so the page feels of a piece. */
   ink: '#241633',
   /** Secondary text. */
   inkSoft: '#5F4E73',
-  /** Tertiary. Counts, placeholders, timestamps. */
-  inkFaint: '#94849F',
-  /** Card surface. Flat white, hairline rule, no shadow. */
-  card: '#FFFFFF',
-  /** Hairline divider inside a white card. Does not vary by paper. */
-  lineOnCard: '#EAE0F0',
+  /** Tertiary — counts, placeholders, timestamps, the inactive tab glyph. */
+  inkFaint: '#8A7996',
+  /** Hairline rule on the ground. */
+  line: '#DAD5E3',
+  /** Hairline divider inside a white card. */
+  lineOnCard: '#E9E5F0',
   /** Text and icons on a filled control. Warm violet-white, never pure. */
   onInk: '#FBF6FF',
 } as const;
 
-export interface Paper {
-  /** The page itself. Everything sits directly on this. */
-  readonly ground: string;
-  /** One step deeper. Pressed states, chip fills, the tab track. */
-  readonly groundDeep: string;
-  /** Hairline rule on the ground. */
-  readonly line: string;
-  /** The micro-label above a card, and a drawing's one solid fill. */
-  readonly accent: string;
-}
-
 /**
- * The accents, kept separately because two papers share one and because the
- * illustration layer wants them by name.
+ * The identity violet. One accent, two named jobs: the primary action and the
+ * micro-labels. `label` is simply `primary` — there is one identity colour, and
+ * this pins it so a second one cannot creep back in beside it.
  */
-export const accents = {
-  /** The identity, shared across rooms so navigation feels like one product. */
-  violet: '#6B3FA0',
-  bronze: '#755F50',
-  harbour: '#536B64',
-  iris: '#5C6378',
+export const accent = {
+  /** The primary action and the monogram. */
+  primary: '#6B3FA0',
+  /** Micro-labels — the caps line above a card. The same violet as primary. */
+  label: '#6B3FA0',
 } as const;
 
-export const papers = {
-  /** Everything that is not about one subject. The app's own light. */
-  house: { ground: '#F3E8F3', groundDeep: '#E4D3EE', line: '#D9C8E2', accent: accents.violet },
-  /** The cafe arc, and the recap of a conversation that happened there. */
-  sand: { ground: '#F2EAE6', groundDeep: '#E2D7D2', line: '#D8CCC6', accent: accents.violet },
-  /** Entre amis. */
-  sage: { ground: '#EAECE4', groundDeep: '#D7DAD0', line: '#CBCFC5', accent: accents.violet },
-  /** A topic the tutor wrote. */
-  lagoon: { ground: '#E7EDEB', groundDeep: '#D3DBD8', line: '#C7D0CC', accent: accents.violet },
-  /** Practice and its deck. A room rather than a subject, so it keeps violet. */
-  sky: { ground: '#E8ECF2', groundDeep: '#D3D9E1', line: '#C7CFD9', accent: accents.violet },
-} as const satisfies Record<string, Paper>;
-
-export type PaperName = keyof typeof papers;
-
-/** The papers a generated topic may be given, in a fixed order. */
-const HASHED: readonly PaperName[] = ['lagoon', 'sage', 'sand'];
+/**
+ * Signal colours, kept out of the rung set so state never reads as a rung.
+ * Green and magenta are words and clear the text floor; the tutor's red is a
+ * mark and clears the mark floor.
+ */
+export const signal = {
+  /** Something to change. Full magenta. */
+  correspondance: '#B4008A',
+  /** A sound that is working. Full green — the same green the learner speaks in. */
+  good: '#12784A',
+  /** The tutor's voice. A saturated red that says "listen" without shouting. */
+  live: '#DE3B2D',
+} as const;
 
 /**
- * The light for a place.
+ * The voice circle speaks traffic lights, and these are its three words:
+ * red, the tutor is talking, listen; green, your turn, speak; amber, it is
+ * thinking, one moment. The intro's final page teaches exactly this mapping,
+ * so these values changing means that page is teaching a lie — change both.
  *
- * Authored units are pinned by hand so the cafe is always sand. Everything the
- * learner's own conversations produce is hashed, because those ids are not
- * known when this file is written and a topic that changed colour between two
- * launches would read as a different topic.
- *
- * The hash is a plain sum of code units. It has to be stable forever, not
- * well distributed, so the boring one is the right one.
+ * Each is a MARK, and a mark that reports state is held to 3 against the ground
+ * it sits on, not to the 4.5 that words are held to. The captions are ink, which
+ * is the floor for words.
  */
-export function paperFor(id: string | null | undefined): Paper {
-  if (!id) return papers.house;
-  if (id === 'cafe' || id.startsWith('cafe:')) return papers.sand;
-  if (id === 'amis' || id.startsWith('amis:')) return papers.sage;
-  if (id === 'practice' || id === 'review' || id === 'drill') return papers.sky;
-  if (!id.startsWith('topic:')) return papers.house;
+export const orb = {
+  /** Red — the tutor is speaking. Listen. */
+  speaking: signal.live,
+  /** Green — your turn. Speak. */
+  yourTurn: signal.good,
+  /** Amber — the tutor is thinking. Muted, but still distinct from green/red. */
+  thinking: '#B07510',
+  /**
+   * Violet — the microphone is closed and the circle is waiting to be pressed.
+   *
+   * Not a fourth traffic light. Waiting to be tapped is not a state report, it
+   * is the primary control of the whole product, so it takes the primary
+   * colour exactly as the pill does. It stops being violet the instant the orb
+   * starts reporting anything.
+   */
+  ready: accent.primary,
+} as const;
 
-  let sum = 0;
-  for (let i = 0; i < id.length; i += 1) sum = (sum + id.charCodeAt(i)) % 4096;
-  // The `??` can never fire: the modulus is always in range. It is here because
-  // noUncheckedIndexedAccess is on, and a lie to the compiler is worse.
-  const name = HASHED[sum % HASHED.length] ?? 'lagoon';
-  return papers[name];
-}
+/**
+ * Support colours for the four rungs, cooling as help is withdrawn: hot yellow
+ * while the tutor carries the learner, plain ink once they walk alone. A rung
+ * colour is a fill under an ink numeral, not a state mark, so its floor is that
+ * ink clears the text floor on it, not that the fill clears the mark floor on
+ * the ground.
+ */
+export const rungColor: Record<1 | 2 | 3 | 4, string> = {
+  1: '#FFCD00',
+  2: '#FF7B00',
+  3: '#6EC4E8',
+  4: '#241633',
+};

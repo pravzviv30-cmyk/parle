@@ -5,7 +5,7 @@ import { getMission } from '@luvani/core';
 
 import { Card, EarGlyph, GhostButton, Label, PillButton, SpeakCircle, fitDisplay } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { HIT, paper, paperFor, space, type } from '../theme.ts';
+import { HIT, paper, space, type } from '../theme.ts';
 import { scoreRecordedAttempt } from '../speech/scoreAttempt.ts';
 import { consumeRecording, discardRecording } from '../speech/discardRecording.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
@@ -125,7 +125,6 @@ export function SoundCheckScreen({
 
   return (
     <ScrollScreen
-      ground={sheet.ground}
       center={noCheck}
       header={!noCheck && phase !== 'result' ? <ScreenHeader back={{ onPress: onDone }} /> : undefined}
       footer={noCheck || phase === 'result' ? <PillButton label="Done" onPress={onDone} /> : null}
@@ -183,7 +182,6 @@ export function SoundCheckScreen({
   );
 }
 
-const sheet = paperFor('drill');
 const st = StyleSheet.create({
   hear: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(3) },
   micBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space(3), marginTop: space(7) },

@@ -906,6 +906,27 @@ describe('the tab bar shows a word, and it is the page edge — F313', () => {
   });
 });
 
+describe('the active tab wears the identity violet — F325', () => {
+  const tabbar = named('nav/LuvaniTabBar.tsx');
+
+  test('the active tab is set in the identity violet', () => {
+    // Phase 1 marked the active tab in ink-on-ink, which read as no interactive
+    // layer at all. The focused glyph and label both take accent.primary now;
+    // the inactive ones stay inkFaint glyph and inkSoft label.
+    assert.match(
+      tabbar,
+      /color=\{focused \? accent\.primary : paper\.inkFaint\}/,
+      'the active tab glyph is not set in the identity violet',
+    );
+    assert.match(
+      tabbar,
+      /focused \? \{ color: accent\.primary, fontFamily: type\.button\.fontFamily \}/,
+      'the active tab label is not set in the identity violet at the heavier weight',
+    );
+    assert.match(tabbar, /\{ color: paper\.inkSoft \}/, 'the inactive tab label is no longer soft ink');
+  });
+});
+
 describe('the device runbook carries the Phase 1 checks — F315', () => {
   test('the device runbook carries the Phase 1 layout and back checks — F315', () => {
     // The layout and back work is verifiable statically only up to a point: the

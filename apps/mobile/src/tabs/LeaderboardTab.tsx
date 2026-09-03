@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { HAIRLINE, HIT, paper, paperFor, space, type } from '../theme.ts';
+import { HAIRLINE, HIT, paper, space, type } from '../theme.ts';
 import { Card, Label, TabBar } from '../components.tsx';
 import { NobodyYet } from '../illustrations.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -115,7 +115,7 @@ export function LeaderboardTab() {
           ]}
           active={board}
           onChange={setBoard}
-          tint={sheet.groundDeep}
+          tint={paper.groundDeep}
         />
       </View>
 
@@ -184,17 +184,9 @@ export function LeaderboardTab() {
   );
 }
 
-/**
- * This place's light: sage. Entre amis.
- * paperFor is how a place asks for its own paper. The house spread in `paper`
- * cannot follow a screen, because StyleSheet.create evaluates once at import,
- * so a screen that wants a different light names it here instead.
- */
-const sheet = paperFor('amis');
-
 const st = StyleSheet.create({
   emptyArt: { alignItems: 'center', marginBottom: space(4) },
-  root: { flex: 1, backgroundColor: sheet.ground, paddingHorizontal: space(5) },
+  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   addButton: {
     width: HIT,

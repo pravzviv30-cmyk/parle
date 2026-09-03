@@ -49,7 +49,7 @@ import {
   type TapTranslateExercise,
   drillXp,
 } from '@luvani/core';
-import { HAIRLINE, HIT, accent, font, paper, paperFor, radius, signal, space, type } from './theme.ts';
+import { HAIRLINE, HIT, accent, font, paper, radius, signal, space, type } from './theme.ts';
 import { recordActivity } from './progress/activity.ts';
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
@@ -409,7 +409,7 @@ function ListenTypeView({
           onPress={() => tutorVoice.speak(exercise.fr)}
           accessibilityRole="button"
           accessibilityLabel="Play the French line"
-          style={({ pressed }) => [ds.listenButton, pressed && { backgroundColor: sheet.groundDeep }]}
+          style={({ pressed }) => [ds.listenButton, pressed && { backgroundColor: paper.groundDeep }]}
         >
           <EarGlyph size={22} color={paper.ink} />
           <Text style={[type.button, { color: paper.ink }]}>Hear it</Text>
@@ -757,7 +757,7 @@ export function DrillScreen({
 
   if (session === null) {
     return (
-      <Screen ground={sheet.ground}>
+      <Screen>
         <View style={ds.loading}>
           <ActivityIndicator color={paper.inkSoft} />
         </View>
@@ -769,7 +769,7 @@ export function DrillScreen({
   // terminal card, so Done is its one door and it carries no back header.
   if (session.finished && session.answered.length === 0) {
     return (
-      <ScrollScreen center ground={sheet.ground} footer={<PillButton label="Done" onPress={finishAndLeave} />}>
+      <ScrollScreen center footer={<PillButton label="Done" onPress={finishAndLeave} />}>
         {/* An empty bank is the good outcome, not a dead end, so it gets the
             cleared table — the same scene, width and spacing the review deck
             uses, because these two screens say the same thing. No `paused`:
@@ -793,7 +793,7 @@ export function DrillScreen({
   if (session.finished) {
     const s = summariseDrill(session);
     return (
-      <ScrollScreen center ground={sheet.ground} footer={<PillButton label="Done" onPress={leave} />}>
+      <ScrollScreen center footer={<PillButton label="Done" onPress={leave} />}>
         <Card>
           <View style={ds.stats}>
             <View style={ds.stat}>
@@ -833,7 +833,6 @@ export function DrillScreen({
     <ScrollScreen
       avoidKeyboard
       center
-      ground={sheet.ground}
       // A sitting is an offer, not an obligation. Leaving persists what was
       // answered; the rest simply stays due. Never a count up here.
       header={<ScreenHeader leave={{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' }} />}
@@ -889,14 +888,6 @@ export function DrillScreen({
   );
 }
 
-/**
- * This place's light: sky. Practice and its deck share one light.
- * paperFor is how a place asks for its own paper. The house spread in `paper`
- * cannot follow a screen, because StyleSheet.create evaluates once at import,
- * so a screen that wants a different light names it here instead.
- */
-const sheet = paperFor('drill');
-
 const ds = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   feedbackArea: { minHeight: HIT + 8, justifyContent: 'center', paddingHorizontal: space(2) },
@@ -913,12 +904,12 @@ const ds = StyleSheet.create({
     gap: space(3),
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: sheet.line,
+    borderColor: paper.line,
     borderRadius: radius.card,
     paddingVertical: space(3),
     paddingHorizontal: space(4),
   },
-  choicePressed: { backgroundColor: sheet.groundDeep },
+  choicePressed: { backgroundColor: paper.groundDeep },
 
   // The paper text field, in the Field anatomy. Type styles from the theme,
   // minus lineHeight, which clips single-line TextInputs on iOS.
@@ -926,7 +917,7 @@ const ds = StyleSheet.create({
     minHeight: HIT + 8,
     backgroundColor: paper.card,
     borderWidth: 1.5,
-    borderColor: sheet.line,
+    borderColor: paper.line,
     borderRadius: radius.input,
     paddingVertical: space(3),
     paddingHorizontal: space(4),
@@ -953,7 +944,7 @@ const ds = StyleSheet.create({
     gap: space(2),
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: sheet.line,
+    borderColor: paper.line,
     borderRadius: radius.card,
     paddingVertical: space(2),
     paddingHorizontal: space(3),
@@ -964,7 +955,7 @@ const ds = StyleSheet.create({
     minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: sheet.groundDeep,
+    backgroundColor: paper.groundDeep,
     borderRadius: radius.chip,
     paddingVertical: space(1.5),
     paddingHorizontal: space(2.5),
@@ -976,7 +967,7 @@ const ds = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: sheet.line,
+    borderColor: paper.line,
     borderRadius: radius.chip,
     paddingVertical: space(2),
     paddingHorizontal: space(3),

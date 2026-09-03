@@ -951,7 +951,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the primary control, so it now reads as one.
 - verified-by: `a closed microphone offers a control, not a hairline`
 - verified-by: `the orb only goes quiet when there is nothing to tap`
-- verified-by: `every orb state is legible as a mark against its own paper`
+- verified-by: `every orb state is legible as a mark against the ground`
 
 ### J2 — Two of the three traffic lights fail the contrast floor for a mark
 - severity: P1
@@ -964,7 +964,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   reads amber, red still reads red, and both stay far from rung one's yellow. Separately
   the captions leave the state colour for ink, because 3 is the floor for a mark and 4.5
   is the floor for words, and "Speak" in green measured 3.64.
-- verified-by: `every orb state is legible as a mark against its own paper`
+- verified-by: `every orb state is legible as a mark against the ground`
 - verified-by: `an orb caption is words, so it is held to the floor for words`
 - verified-by: `the three traffic lights stay far apart, and none of them is rung one`
 
@@ -1060,8 +1060,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   nobody could see, and a design document that read as a plan rather than a record.
   Four of the five ship now; lagoon waits for a tutor-written topic to have a screen of
   its own, and the table says so. The lock reads both sides, so neither can drift again.
-- verified-by: `at least one screen asks for its own light`
-- verified-by: `DESIGN.md marks every paper no screen renders`
+- verified-by: `nothing asks for a paper by place any more`
+- verified-by: `DESIGN.md records the palette the app ships`
 
 ### J12 — One motion vocabulary, implemented four times
 - severity: P2
@@ -4859,7 +4859,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F320 — Every raw colour lives in palette.ts and theme.ts carries no hex
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/palette.test.ts:109
 - note: `signal`, `orb` and `rungColor` values live in `theme.ts` and the contract test copies them and
   greps source to keep the copies honest. Move the values into `palette.ts`, re-export from `theme.ts`,
@@ -4869,7 +4869,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F321 — One ground: the five papers collapse to one and paperFor goes
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/palette.ts:55
 - note: five grounds at one lightness differing by ΔE under 16 were the muted scheme the founder
   rejected. Delete `papers`, `paperFor`, `accents`, `Paper`, `PaperName`; ten screens read `paper.*`;
@@ -4884,7 +4884,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F322 — Signals re-saturated and held to the floor for what they are
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/theme.ts:102
 - note: `good #437A62`, `live #A9564F`, `correspondance #8B5578` are greys with a hue. Green and magenta
   are words, held to 4.5 on the ground and a card; red is a mark only, held to 3. New values: `#12784A`,
@@ -4897,7 +4897,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F323 — The voice circle's traffic lights come back to full colour
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/theme.ts:127
 - note: `thinking #8A6A2D` is olive; speaking and yourTurn alias the muted signals. New amber `#B07510`
   at 3.27 on the ground; speaking and yourTurn alias F322's red and green; ready stays the violet. The
@@ -4909,7 +4909,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F324 — Support colours run hot to cool again as help is withdrawn
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/theme.ts:82
 - note: `#D6A846 #C8794A #5F95AA` are mustard, terracotta and slate; the ladder's heat is gone. New
   `#FFCD00 #FF7B00 #6EC4E8` and ink. A rung colour is a fill under an ink numeral, not a state mark, so
@@ -4921,7 +4921,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F325 — The active tab takes the identity violet
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx:88
 - note: the active tab is ink-on-ink today, the founder's "interactive layer has no colour" complaint in
   one line. Focused glyph and label take `accent.primary` (6.64 on the Porcelain ground at 11pt);
@@ -4932,7 +4932,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F326 — The micro-label and the primary are one violet
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/theme.ts:74
 - note: `accent.label` was the house paper's accent and is now simply `accent.primary`. Replaces the
   "every room shares the same identity accent" assertion. P2 because the value does not change; the
@@ -4941,7 +4941,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F327 — DESIGN.md records the palette the app ships
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: DESIGN.md:50
 - note: DESIGN.md documents `live #DE3B2D` while the build shipped `#A9564F`; the doc had become a plan.
   Replace the five-paper table with a single token table whose rows are `| token.path | #HEX |` and
@@ -4950,7 +4950,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F328 — The splash and the icon background are the ground
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/app.json:21
 - note: two hard-coded `#F3E8F3` values sit outside the palette. With Porcelain chosen the app would
   flash lilac before every launch and the nav container would paint a different page edge than the

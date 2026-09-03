@@ -14,15 +14,12 @@
 
 import { useMemo } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { paper, papers, signal, space, type, radius, HAIRLINE } from '../theme.ts';
+import { accent, paper, signal, space, type, radius, HAIRLINE } from '../theme.ts';
 import { Label, Stat } from '../components.tsx';
 import { Screen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { Phrasebook as PhrasebookScene } from '../illustrations.tsx';
 import { LESSONS_GROUP, type Hold, type Phrase, type Phrasebook } from './phrasebook.ts';
-
-/** Practice and its deck have their own light, and this is part of that room. */
-const PAPER = papers.sky;
 
 const HOLD_LABEL: Record<Hold, string> = {
   steady: 'Steady',
@@ -56,7 +53,7 @@ export function PhrasebookScreen({ book, onDone }: { book: Phrasebook; onDone: (
   }, [book.topics]);
 
   return (
-    <Screen ground={PAPER.ground} bottom="inset" header={<ScreenHeader back={{ onPress: onDone }} />}>
+    <Screen bottom="inset" header={<ScreenHeader back={{ onPress: onDone }} />}>
       <FlatList
         data={rows}
         style={{ flex: 1 }}
@@ -85,7 +82,7 @@ export function PhrasebookScreen({ book, onDone }: { book: Phrasebook; onDone: (
         renderItem={({ item }) =>
           item.kind === 'group' ? (
             <View style={st.group}>
-              <Label color={item.groupId === LESSONS_GROUP ? paper.inkFaint : PAPER.accent}>{item.title}</Label>
+              <Label color={item.groupId === LESSONS_GROUP ? paper.inkFaint : accent.label}>{item.title}</Label>
             </View>
           ) : (
             <PhraseRow phrase={item.phrase} />
@@ -123,7 +120,7 @@ const st = StyleSheet.create({
     backgroundColor: paper.card,
     borderRadius: radius.card,
     borderWidth: HAIRLINE,
-    borderColor: PAPER.line,
+    borderColor: paper.line,
     padding: space(3.5),
     marginBottom: space(2),
   },
@@ -131,5 +128,5 @@ const st = StyleSheet.create({
   mark: { width: 12, height: 12, borderRadius: 6 },
   steady: { backgroundColor: signal.good },
   comingBack: { borderWidth: 2, borderColor: signal.correspondance },
-  new: { borderWidth: HAIRLINE, borderColor: PAPER.line },
+  new: { borderWidth: HAIRLINE, borderColor: paper.line },
 });

@@ -16,7 +16,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { buildPath, CAFE_LESSON, dueCards, type PathUnit, type PracticeTopic } from '@luvani/core';
-import { paper, paperFor, space, type } from '../theme.ts';
+import { paper, space, type } from '../theme.ts';
 import { Card, Label, OutlineButton, GhostButton } from '../components.tsx';
 import { ScrollScreen } from '../layout.tsx';
 import { PathNodeRow } from '../practice/PathNodeRow.tsx';
@@ -134,7 +134,7 @@ export function PracticeTab() {
   );
 
   return (
-    <ScrollScreen bottom="tab" ground={sheet.ground} header={header}>
+    <ScrollScreen bottom="tab" header={header}>
       <View style={st.scroll}>
         {mixOffered && (
           <View style={{ marginBottom: space(3) }}>
@@ -196,14 +196,6 @@ export function PracticeTab() {
     </ScrollScreen>
   );
 }
-
-/**
- * This place's light: sky. Practice and its deck share one light.
- * paperFor is how a place asks for its own paper. The house spread in `paper`
- * cannot follow a screen, because StyleSheet.create evaluates once at import,
- * so a screen that wants a different light names it here instead.
- */
-const sheet = paperFor('practice');
 
 const st = StyleSheet.create({
   scroll: { flexGrow: 1, paddingTop: space(5), paddingBottom: space(8) },

@@ -1,26 +1,18 @@
 /**
  * The colour contract.
  *
- * `palette.ts` claims two things that are easy to say and easy to break later:
- * that every paper sits at one lightness, and that every accent stays clear of
- * every signal. Both are arithmetic, so both can be held here rather than in a
- * comment somebody will contradict with an eyedropper in six months.
+ * There is one ground now — Porcelain — not five papers keyed by place, and the
+ * signals and traffic lights are saturated back up to full colour. Every raw
+ * value lives in `palette.ts`, which imports nothing, so this suite can hold the
+ * whole palette to a numeric contract rather than to a comment somebody will
+ * contradict with an eyedropper.
  *
- * What this deliberately does NOT do is assert that every colour passes the
- * 4.5 floor for text. Two do not: inkFaint at 2.91 and signal.good at 3.64,
- * both of which are used as marks and as secondary type. Asserting a floor
- * they never met would mean a red suite on day one.
- *
- * The orb colours USED to be listed here as exemptions too, and that was the
- * mistake J2 fixed. They are marks, and a mark that reports state is held to 3,
- * not to 4.5 — so the honest thing was never an exemption, it was the right
- * floor. Amber measured 1.79 and red 2.79 against their own paper. Both are
- * asserted below now, and the captions that used to be set in them are ink.
- *
- * So the contract is: hard floors where the app clears them, the mark floor on
- * anything that reports state, and no regression anywhere else. Equal lightness
- * makes the last one free, which turns it into a real tripwire against a sixth
- * paper picked by eye.
+ * The contract has three floors, and which one a colour is held to is the whole
+ * of it. Words clear 4.5 against whatever they sit on. A mark that reports state
+ * clears 3. Two colours that mean different things stay a Delta-E of 30 apart so
+ * neither reads as the other. Nothing is exempt from the floor it belongs to;
+ * where a colour cannot clear the floor for words it is used only as a mark and
+ * the words beside it are set in ink.
  */
 
 import { test, describe } from 'node:test';
@@ -28,7 +20,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { papers, accents, ink, paperFor, type Paper } from './palette.ts';
+import { paper, accent, signal, orb, rungColor } from './palette.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 
@@ -102,314 +94,273 @@ function deltaE(one: string, two: string): number {
   return Math.hypot(p.l - q.l, p.a - q.a, p.b - q.b);
 }
 
-// ── the colours this palette has to live beside ───────────────────────────
-// Copied in rather than imported, because theme.ts reaches react-native and
-// this suite must never load it. If they drift apart, the drift is the finding.
+const GROUND = paper.ground;
+const CARD = paper.card;
+const INK = paper.ink;
 
-const SIGNALS = {
-  good: '#437A62',
-  correspondance: '#8B5578',
-  live: '#A9564F',
-  rung1: '#D6A846',
-  rung2: '#C8794A',
-  rung3: '#5F95AA',
-} as const;
+// The three text floors, named once.
+const TEXT = 4.5;
+const MARK = 3;
+const APART = 30;
 
-/**
- * The voice circle's three words, which are NOT signals and never were.
- *
- * `orb.thinking` sat in the table above for a while and it does not belong
- * there: `signal.*` are the marks that appear inside a card, beside a label set
- * in that paper's accent, which is the adjacency the Delta-E rule below exists
- * to police. The orb is a hundred-point circle that owns its screen and never
- * shares one with an accent.
- *
- * Keeping it in the signals table had a cost, and the cost was the learner. The
- * only ambers far enough from `accents.bronze` to satisfy that rule sit around
- * L* 23 and read as dark olive; the one that satisfied it before was light
- * enough to measure 1.79 against its own paper. Legibility wins, and the orb
- * gets its own contract instead: the mark floor, and the three lights held
- * apart from each other and from rung one.
- */
-const ORB = {
-  speaking: SIGNALS.live,
-  yourTurn: SIGNALS.good,
-  thinking: '#8A6A2D',
-  ready: accents.violet,
-} as const;
+describe('every raw colour lives in palette.ts — F320', () => {
+  test('theme.ts carries no raw hex, every colour comes from palette.ts', () => {
+    // The values used to live in theme.ts and this suite copied them and grepped
+    // source to keep the copies honest. They live in palette.ts now, this suite
+    // imports them, and theme.ts must carry no six-digit hex literal at all — a
+    // hex in theme.ts is a value that escaped the one file the test can hold.
+    const theme = readFileSync(join(SRC, 'theme.ts'), 'utf8');
+    const stripped = theme.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    const hexes = stripped.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
+    assert.deepEqual(hexes, [], `theme.ts still writes raw hex: ${hexes.join(', ')}`);
 
-const HOUSE = papers.house;
-const ALL = Object.entries(papers) as [string, Paper][];
+    // And theme.ts really does re-export the five colour objects from palette.
+    assert.match(theme, /export\s*\{[^}]*\bpaper\b[^}]*\}\s*from\s*'\.\/palette\.ts'/);
+  });
+});
 
-/** The inks whose ratio must not move when the paper changes. */
-const CARRIED = { ...ink, ...SIGNALS, thinking: ORB.thinking, violet: accents.violet } as Record<string, string>;
-
-describe('every paper is the same light', () => {
-  test('all five grounds sit at L* 93.1', () => {
-    for (const [name, p] of ALL) {
-      const l = lab(p.ground).l;
+describe('one ground, pinned — F321', () => {
+  test('nothing asks for a paper by place any more', () => {
+    // paperFor and the five-paper table are gone. No screen may call the one nor
+    // reach into the other; there is a single `paper` object and that is the
+    // whole of the app's light.
+    for (const file of walk(SRC)) {
+      if (file.includes('.test.')) continue;
+      const body = readFileSync(file, 'utf8');
+      assert.ok(!/paperFor/.test(body), `${file} still calls paperFor; the five-paper system is gone`);
+      assert.ok(!/\bpapers\s*[.[]/.test(body), `${file} still reaches into a papers map; there is one ground now`);
+      assert.ok(!/\baccents\s*[.[]/.test(body), `${file} still reaches into an accents map; there is one accent now`);
+    }
+    const palette = readFileSync(join(SRC, 'palette.ts'), 'utf8');
+    for (const gone of ['paperFor', 'papers', 'accents', 'PaperName', 'Paper ']) {
       assert.ok(
-        Math.abs(l - 93.12) < 0.4,
-        `${name}'s ground is at L* ${l.toFixed(2)}, and every paper has to be 93.1 or contrast moves with it`,
+        !new RegExp(`export\\s[^\\n]*\\b${gone.trim()}\\b`).test(palette),
+        `palette.ts still exports ${gone.trim()}`,
       );
     }
   });
 
-  test('groundDeep and line hold their own steps too', () => {
-    for (const [name, p] of ALL) {
-      assert.ok(Math.abs(lab(p.groundDeep).l - 86.63) < 0.4, `${name}'s groundDeep drifted`);
-      assert.ok(Math.abs(lab(p.line).l - 82.67) < 0.6, `${name}'s line drifted`);
-    }
+  test('the ground is pinned, and there is only one', () => {
+    // Porcelain (B), the founder's pick. Pinned by value so a re-tint is a
+    // deliberate edit to this line, not a drift, and there is exactly one of it.
+    assert.equal(paper.ground, '#F4F2F7');
+    assert.equal(paper.groundDeep, '#E6E2EE');
+    assert.equal(paper.line, '#DAD5E3');
+    assert.equal(paper.lineOnCard, '#E9E5F0');
+    assert.equal(paper.card, '#FFFFFF');
   });
 
-  test('no ink changes contrast by more than 1% when the paper changes', () => {
-    for (const [key, colour] of Object.entries(CARRIED)) {
-      if (key === 'card' || key === 'onInk' || key === 'lineOnCard') continue;
-      const home = contrast(HOUSE.ground, colour);
-      for (const [name, p] of ALL) {
-        const here = contrast(p.ground, colour);
-        const drift = Math.abs(here - home) / home;
-        assert.ok(
-          drift < 0.01,
-          `${key} reads ${here.toFixed(2)} on ${name} but ${home.toFixed(2)} on house, a ${(drift * 100).toFixed(1)}% drift. Papers must not change how legible anything is.`,
-        );
-      }
-    }
+  test('the card still reads as a card, and the hairlines still read on the ground', () => {
+    // Lightness no longer carries the safety argument — one ground means there
+    // is nothing for it to hold still against. The steps are held by Delta-E
+    // instead: the card lifts off the ground, each hairline separates from what
+    // it rules, and groundDeep sits between the two.
+    assert.ok(deltaE(GROUND, paper.groundDeep) >= 5, `groundDeep is only ${deltaE(GROUND, paper.groundDeep).toFixed(1)} off the ground`);
+    assert.ok(deltaE(GROUND, paper.line) >= 8, `the ground hairline is only ${deltaE(GROUND, paper.line).toFixed(1)} off the ground`);
+    assert.ok(deltaE(CARD, GROUND) >= 4, `the card is only ${deltaE(CARD, GROUND).toFixed(1)} off the ground`);
+    assert.ok(deltaE(CARD, paper.lineOnCard) >= 6, `the card hairline is only ${deltaE(CARD, paper.lineOnCard).toFixed(1)} off the card`);
   });
 
-  test('the papers whisper rather than repainting the app', () => {
-    for (const [oneName, one] of ALL) {
-      for (const [twoName, two] of ALL) {
-        if (oneName >= twoName) continue;
-        const d = deltaE(one.ground, two.ground);
-        assert.ok(d >= 3, `${oneName} and ${twoName} collapsed into the same paper at ${d.toFixed(1)}`);
-        assert.ok(d <= 16, `${oneName} and ${twoName} are ${d.toFixed(1)} apart and read like different products`);
-      }
-    }
-  });
-});
-
-describe('the floors the app already clears', () => {
-  const FLOORS: Record<string, number> = {
-    ink: 7,
-    inkSoft: 4.5,
-    correspondance: 4.5,
-    violet: 4.5,
-  };
-
-  test('ink, soft ink, the fix colour and the violet all hold on every paper', () => {
-    for (const [key, floor] of Object.entries(FLOORS)) {
-      const colour = CARRIED[key];
-      assert.ok(colour, `${key} is not a colour this palette carries`);
-      for (const [name, p] of ALL) {
-        const r = contrast(p.ground, colour);
-        assert.ok(r >= floor, `${key} is ${r.toFixed(2)} on ${name}, under its floor of ${floor}`);
-      }
-    }
+  test('faint ink is a mark on the inactive tab, so it clears 3 on the ground', () => {
+    // inkFaint went from #94849F (2.91, under the mark floor) to #8A7996 so the
+    // inactive tab glyph reads. It is a mark, not words, so 3 is its floor.
+    assert.ok(
+      contrast(paper.inkFaint, GROUND) >= MARK,
+      `inkFaint is ${contrast(paper.inkFaint, GROUND).toFixed(2)} on the ground, under the ${MARK} floor for a mark`,
+    );
   });
 
-  test('ink still holds on a filled chip', () => {
-    for (const [name, p] of ALL) {
-      const r = contrast(p.groundDeep, ink.ink);
-      assert.ok(r >= 7, `ink is only ${r.toFixed(2)} on ${name}'s chip fill`);
-    }
+  test('ink, soft ink, the fix colour and the violet all hold on the ground', () => {
+    assert.ok(contrast(INK, GROUND) >= 7, `ink is ${contrast(INK, GROUND).toFixed(2)} on the ground`);
+    assert.ok(contrast(INK, paper.groundDeep) >= 7, `ink is ${contrast(INK, paper.groundDeep).toFixed(2)} on a chip fill`);
+    assert.ok(contrast(paper.inkSoft, GROUND) >= TEXT, `inkSoft is ${contrast(paper.inkSoft, GROUND).toFixed(2)} on the ground`);
+    assert.ok(contrast(signal.correspondance, GROUND) >= TEXT, `the fix colour is ${contrast(signal.correspondance, GROUND).toFixed(2)} on the ground`);
+    assert.ok(contrast(accent.primary, GROUND) >= TEXT, `the violet is ${contrast(accent.primary, GROUND).toFixed(2)} on the ground`);
+    assert.ok(contrast(accent.primary, paper.groundDeep) >= 4, `the violet is ${contrast(accent.primary, paper.groundDeep).toFixed(2)} on a chip fill`);
+    assert.ok(contrast(accent.label, GROUND) >= TEXT, `the label accent is ${contrast(accent.label, GROUND).toFixed(2)} on the ground`);
   });
 });
 
-describe('an accent is typographic, so it must never read as a signal', () => {
-  test('every accent clears 4.5 on its own paper', () => {
-    for (const [name, p] of ALL) {
-      const r = contrast(p.ground, p.accent);
-      assert.ok(r >= 4.5, `${name}'s accent is ${r.toFixed(2)}, under the small-text floor`);
+describe('signals are re-saturated and held to what they are — F322', () => {
+  test('green and the fix colour are words, so they clear 4.5 on the ground and on a card', () => {
+    for (const [name, hex] of [['green', signal.good], ['the fix colour', signal.correspondance]] as const) {
+      assert.ok(contrast(hex, GROUND) >= TEXT, `${name} is ${contrast(hex, GROUND).toFixed(2)} on the ground`);
+      assert.ok(contrast(hex, CARD) >= TEXT, `${name} is ${contrast(hex, CARD).toFixed(2)} on a card`);
     }
   });
 
-  test('every accent still holds on its own chip fill', () => {
-    for (const [name, p] of ALL) {
-      const r = contrast(p.groundDeep, p.accent);
-      assert.ok(r >= 4, `${name}'s accent is ${r.toFixed(2)} on its own chip`);
-    }
+  test('the tutor\'s red is a mark, so it clears 3 on the ground', () => {
+    // Red is the orb reporting "the tutor is speaking" and never carries words,
+    // so it is held to the mark floor. The caption beside it is ink.
+    assert.ok(contrast(signal.live, GROUND) >= MARK, `the red is ${contrast(signal.live, GROUND).toFixed(2)} on the ground`);
   });
 
-  test('every accent beats the label violet it replaces', () => {
-    const OLD_LABEL = '#8A5BBF';
-    for (const [name, p] of ALL) {
-      assert.ok(
-        contrast(p.ground, p.accent) > contrast(p.ground, OLD_LABEL),
-        `${name}'s accent is no better than the 4.08 it was brought in to fix`,
-      );
+  test('the mic glyph still reads on a live green circle', () => {
+    // The SpeakCircle fills with signal.good while the learner's mic is open and
+    // draws the microphone in onInk. The glyph is a mark on that fill.
+    assert.ok(contrast(paper.onInk, signal.good) >= MARK, `the mic glyph is ${contrast(paper.onInk, signal.good).toFixed(2)} on the live green`);
+  });
+
+  test('no two signals come within a Delta-E of 30, and none reads as a rung', () => {
+    const sigs = Object.entries(signal);
+    for (let i = 0; i < sigs.length; i += 1) {
+      for (let j = i + 1; j < sigs.length; j += 1) {
+        const d = deltaE(sigs[i]![1], sigs[j]![1]);
+        assert.ok(d >= APART, `${sigs[i]![0]} and ${sigs[j]![0]} are only ${d.toFixed(0)} apart`);
+      }
+    }
+    for (const [sName, s] of sigs) {
+      for (const rung of [1, 2, 3] as const) {
+        const d = deltaE(s, rungColor[rung]);
+        assert.ok(d >= APART, `${sName} is only ${d.toFixed(0)} from rung ${rung}, so a state reads as a rung`);
+      }
     }
   });
 
   test('no accent comes within a Delta-E of 30 of any signal or rung', () => {
-    const shipped = [...new Set(ALL.map(([, room]) => room.accent))];
-    for (const [aName, a] of shipped.entries()) {
-      for (const [sName, s] of Object.entries(SIGNALS)) {
-        const d = deltaE(a, s);
-        assert.ok(
-          d >= 30,
-          `${aName} is only ${d.toFixed(0)} from ${sName}. Green means go and red means listen, and a label that looks like either one makes the app lie.`,
-        );
+    // Green means go and red means listen; a label the colour of either makes the
+    // app lie. The rungs and the orb's amber are held off the accent too, because
+    // the same violet is the only accent everywhere now.
+    const rivals: Record<string, string> = {
+      good: signal.good,
+      live: signal.live,
+      correspondance: signal.correspondance,
+      rung1: rungColor[1],
+      rung2: rungColor[2],
+      rung3: rungColor[3],
+      thinking: orb.thinking,
+    };
+    for (const a of new Set([accent.primary, accent.label])) {
+      for (const [name, hex] of Object.entries(rivals)) {
+        const d = deltaE(a, hex);
+        assert.ok(d >= APART, `the accent is only ${d.toFixed(0)} from ${name}`);
       }
     }
   });
-
-  test('every room shares the same identity accent', () => {
-    for (const [name, room] of ALL) {
-      assert.equal(room.accent, accents.violet, `${name} introduced a competing identity colour`);
-    }
-  });
 });
 
-describe('which place gets which light', () => {
-  test('the house paper is still the lilac the app already had', () => {
-    assert.equal(HOUSE.ground, '#F3E8F3');
-    assert.equal(HOUSE.groundDeep, '#E4D3EE');
-    assert.equal(HOUSE.line, '#D9C8E2');
-    assert.equal(HOUSE.accent, '#6B3FA0');
-  });
-
-  test('the authored units are pinned', () => {
-    assert.equal(paperFor('cafe'), papers.sand);
-    assert.equal(paperFor('amis'), papers.sage);
-    assert.equal(paperFor('practice'), papers.sky);
-    assert.equal(paperFor('review'), papers.sky);
-  });
-
-  test('anything unrecognised falls back to the house paper', () => {
-    assert.equal(paperFor(null), HOUSE);
-    assert.equal(paperFor(undefined), HOUSE);
-    assert.equal(paperFor(''), HOUSE);
-    assert.equal(paperFor('mine:recent'), HOUSE);
-    assert.equal(paperFor('something nobody wrote'), HOUSE);
-  });
-
-  test('a learner topic gets a colour and keeps it', () => {
-    const id = 'topic:le-marche';
-    const first = paperFor(id);
-    assert.equal(paperFor(id), first, 'a topic that changed colour between launches reads as a different topic');
-    assert.notEqual(first, HOUSE, 'a topic is a subject, so it gets a subject colour');
-  });
-
-  test('learner topics do not all land on one colour', () => {
-    const ids = ['topic:le-marche', 'topic:mon-travail', 'topic:la-famille', 'topic:les-vacances', 'topic:le-sport'];
-    const seen = new Set(ids.map((id) => paperFor(id).ground));
-    assert.ok(seen.size > 1, 'the hash put every topic on the same paper');
-  });
-});
-
-describe('the voice circle is legible — J2', () => {
-  /**
-   * A mark that reports state is a graphical object, and the floor for one is
-   * 3 against whatever it sits on. Words are held to 4.5. Conflating the two is
-   * what let "One moment" ship at 1.79: the caption took the mark's colour, so
-   * it quietly inherited the mark's floor.
-   */
-  const MARK_FLOOR = 3;
-
-  test('every orb state is legible as a mark against its own paper', () => {
-    for (const [name, hex] of Object.entries(ORB)) {
-      const ratio = contrast(hex, HOUSE.ground);
-      assert.ok(ratio >= MARK_FLOOR, `orb.${name} is ${ratio.toFixed(2)} on house, below the ${MARK_FLOOR} floor for a mark`);
+describe('the voice circle is legible — F323', () => {
+  test('every orb state is legible as a mark against the ground', () => {
+    // A mark that reports state is a graphical object and clears 3 against the
+    // ground it sits on. All four states, red and amber included, now do.
+    for (const [name, hex] of Object.entries(orb)) {
+      const r = contrast(hex, GROUND);
+      assert.ok(r >= MARK, `orb.${name} is ${r.toFixed(2)} on the ground, below the ${MARK} floor for a mark`);
     }
-  });
-
-  test('an orb caption is words, so it is held to the floor for words', () => {
-    // The captions are set in ink for exactly this reason. Two of the three
-    // state colours cannot carry text on this paper and never could.
-    assert.ok(contrast(ink.ink, HOUSE.ground) >= 4.5, 'the caption ink itself has to clear the floor for text');
-    assert.ok(
-      contrast(ORB.thinking, HOUSE.ground) < 4.5,
-      'if amber ever clears the text floor this test is stale, not the code',
-    );
   });
 
   test('the three traffic lights stay far apart, and none of them is rung one', () => {
-    const lights = [ORB.speaking, ORB.yourTurn, ORB.thinking];
+    // rung one's yellow lives one screen away, so the separation from it is held
+    // to the full 30 now (it was 20). The three lights stay 30 from each other.
+    const lights = [orb.speaking, orb.yourTurn, orb.thinking];
     for (let i = 0; i < lights.length; i += 1) {
       for (let j = i + 1; j < lights.length; j += 1) {
-        assert.ok(deltaE(lights[i]!, lights[j]!) >= 30, `two of the tutor's three words are the same colour`);
+        assert.ok(deltaE(lights[i]!, lights[j]!) >= APART, `two of the tutor's three words are the same colour`);
       }
       assert.ok(
-        deltaE(lights[i]!, SIGNALS.rung1) >= 20,
-        `a traffic light reads as rung one's yellow, which lives one screen away`,
+        deltaE(lights[i]!, rungColor[1]) >= APART,
+        `a traffic light is only ${deltaE(lights[i]!, rungColor[1]).toFixed(0)} from rung one's yellow`,
       );
     }
   });
 
-  test('the copied orb values still match what theme.ts actually ships', () => {
-    // theme.ts reaches react-native and this suite must never load it, so the
-    // values above are copies. This is what keeps a copy from becoming a lie.
-    const source = readFileSync(join(SRC, 'theme.ts'), 'utf8');
-    for (const [name, hex] of Object.entries(ORB)) {
-      if (name === 'ready') continue; // an alias for accent.primary, asserted elsewhere
-      assert.ok(source.includes(hex), `theme.ts no longer ships ${hex} for orb.${name}; the copy above is stale`);
+  test('an orb caption is words, so it is held to the floor for words', () => {
+    // The captions are ink, exactly because the state colours are marks. The
+    // amber ceiling that used to sit here was a ceiling, not a floor, and it is
+    // gone: the caption clearing the text floor is the whole assertion now.
+    assert.ok(contrast(INK, GROUND) >= TEXT, 'the caption ink itself has to clear the floor for text');
+  });
+});
+
+describe('support colours run hot to cool again — F324', () => {
+  // A rung colour is a FILL under an ink numeral, not a state mark. That is why
+  // it is NOT held to 3 against the ground the way an orb light is: nothing reads
+  // it against the ground, an ink numeral reads against it. So its floor is that
+  // ink clears the text floor on the fill, plus that no rung is mistaken for
+  // another rung, for the ground, or for ink.
+  test('a rung numeral in ink clears 4.5 on its own fill', () => {
+    for (const rung of [1, 2, 3] as const) {
+      const r = contrast(INK, rungColor[rung]);
+      assert.ok(r >= TEXT, `the numeral on rung ${rung} is ${r.toFixed(2)} on its own fill`);
+    }
+    // Rung four is ink, so its numeral is onInk instead.
+    assert.ok(contrast(paper.onInk, rungColor[4]) >= TEXT, `the numeral on rung four is ${contrast(paper.onInk, rungColor[4]).toFixed(2)} on its ink fill`);
+  });
+
+  test('support cools as help is withdrawn: each rung is bluer than the last and rung four is ink', () => {
+    assert.ok(lab(rungColor[1]).b > lab(rungColor[2]).b, 'rung two is not cooler than rung one');
+    assert.ok(lab(rungColor[2]).b > lab(rungColor[3]).b, 'rung three is not cooler than rung two');
+    assert.equal(rungColor[4], INK, 'rung four is no longer plain ink');
+  });
+
+  test('no rung reads as another rung, as the ground, or as ink', () => {
+    const rungs = { 1: rungColor[1], 2: rungColor[2], 3: rungColor[3] } as const;
+    const entries = Object.entries(rungs);
+    for (let i = 0; i < entries.length; i += 1) {
+      for (let j = i + 1; j < entries.length; j += 1) {
+        assert.ok(deltaE(entries[i]![1], entries[j]![1]) >= APART, `rung ${entries[i]![0]} reads as rung ${entries[j]![0]}`);
+      }
+    }
+    for (const [name, hex] of entries) {
+      assert.ok(deltaE(hex, GROUND) >= APART, `rung ${name}'s fill is only ${deltaE(hex, GROUND).toFixed(0)} off the ground`);
+      assert.ok(deltaE(hex, INK) >= APART, `rung ${name} reads as ink`);
     }
   });
 });
 
-describe('a paper that nothing renders is not shipped — J11', () => {
-  /**
-   * The whole five-paper system had zero application callers while DESIGN.md
-   * described where each one is used, complete with a "Where" column naming
-   * the cafe arc and Entre amis. Roughly three hundred and seventy lines of
-   * tested arithmetic defending colours nobody could see, and a design document
-   * that read as a plan rather than a record.
-   *
-   * This is the lock, in both directions: a paper is shipped when a screen asks
-   * for it by calling paperFor, and DESIGN.md's table has to agree.
-   */
-  const shipped = (() => {
-    const calls = new Set<string>();
-    for (const file of walk(join(SRC))) {
-      if (file.includes('.test.')) continue;
-      for (const m of readFileSync(file, 'utf8').matchAll(/paperFor\(\s*'([^']+)'\s*\)/g)) {
-        calls.add(m[1]!);
-      }
-    }
-    const names = new Set<string>();
-    for (const id of calls) {
-      const resolved = paperFor(id);
-      for (const [name, p] of Object.entries(papers)) {
-        if (p.ground === resolved.ground) names.add(name);
-      }
-    }
-    // House does not go through paperFor and never needed to: it is the flat
-    // `paper` spread in theme.ts that thirty-odd modules read directly, which
-    // is the default light of the whole app.
-    for (const file of walk(join(SRC))) {
-      if (file.includes('.test.')) continue;
-      if (/\bpaper\.ground\b/.test(readFileSync(file, 'utf8'))) {
-        names.add('house');
-        break;
-      }
-    }
-    return names;
-  })();
-
-  const designTable = (() => {
-    const doc = readFileSync(join(SRC, '..', '..', '..', 'DESIGN.md'), 'utf8');
-    const rows = new Map<string, string>();
-    for (const m of doc.matchAll(/^\|\s*`(house|sand|sage|lagoon|sky)`\s*\|(?:[^|]*\|){3}[^|]*\|([^|]*)\|/gm)) {
-      rows.set(m[1]!, m[2]!.trim());
-    }
-    return rows;
-  })();
-
-  test('at least one screen asks for its own light', () => {
-    assert.ok(shipped.size > 1, 'nothing calls paperFor, so the whole system is still decoration');
+describe('the identity violet does its jobs — F325, F326', () => {
+  test('pill lettering clears 4.5 on the primary violet', () => {
+    // The pill and the active tab are both onInk on accent.primary. This floor
+    // has always been met and was never asserted; it is asserted with them now.
+    assert.ok(
+      contrast(paper.onInk, accent.primary) >= TEXT,
+      `pill lettering is ${contrast(paper.onInk, accent.primary).toFixed(2)} on the primary violet`,
+    );
   });
 
-  test('DESIGN.md marks every paper no screen renders', () => {
-    assert.equal(designTable.size, Object.keys(papers).length, 'the DESIGN.md paper table no longer lists every paper');
-    for (const name of Object.keys(papers)) {
-      const where = designTable.get(name)!;
-      const claimsUnshipped = /not shipped/i.test(where);
-      if (shipped.has(name)) {
-        assert.ok(!claimsUnshipped, `${name} is rendered by a screen but DESIGN.md says it is not shipped`);
-      } else {
-        assert.ok(claimsUnshipped, `nothing renders ${name}, and DESIGN.md claims it is used: "${where}"`);
-      }
+  test('the micro-label and the primary are one violet', () => {
+    // There is one identity colour. This is the tripwire against a second one
+    // creeping back in as a "lighter label" the way #8A5BBF once did.
+    assert.equal(accent.label, accent.primary);
+  });
+});
+
+describe('the recorded palette matches the code — F327, F328', () => {
+  /** Every shipped token, flattened to the path the doc and the app.json use. */
+  const tokens: Record<string, string> = {};
+  for (const [k, v] of Object.entries(paper)) tokens[`paper.${k}`] = v;
+  for (const [k, v] of Object.entries(accent)) tokens[`accent.${k}`] = v;
+  for (const [k, v] of Object.entries(signal)) tokens[`signal.${k}`] = v;
+  for (const [k, v] of Object.entries(orb)) tokens[`orb.${k}`] = v;
+  for (const k of [1, 2, 3, 4] as const) tokens[`rungColor[${k}]`] = rungColor[k];
+
+  test('DESIGN.md records the palette the app ships', () => {
+    // DESIGN.md is recorded from the built artifact, so its token table has to be
+    // the palette, row for row. Every row is `| `token.path` | `#HEX` |`, and the
+    // doc may list no token the code does not export and skip none it does.
+    const doc = readFileSync(join(SRC, '..', '..', '..', 'DESIGN.md'), 'utf8');
+    const recorded = new Map<string, string>();
+    for (const m of doc.matchAll(/^\|\s*`([^`]+)`\s*\|\s*`(#[0-9A-Fa-f]{6})`\s*\|/gm)) {
+      recorded.set(m[1]!, m[2]!.toUpperCase());
+    }
+    assert.equal(
+      recorded.size,
+      Object.keys(tokens).length,
+      `DESIGN.md records ${recorded.size} tokens and the palette exports ${Object.keys(tokens).length}`,
+    );
+    for (const [path, hex] of Object.entries(tokens)) {
+      assert.equal(recorded.get(path), hex.toUpperCase(), `DESIGN.md records ${path} as ${recorded.get(path)}, the app ships ${hex}`);
+    }
+  });
+
+  test('the splash and the icon background are the ground', () => {
+    // Two hard-coded backgrounds sat outside the palette and would have flashed
+    // the old lilac before every launch. Both are the ground now.
+    const appJson = readFileSync(join(SRC, '..', 'app.json'), 'utf8');
+    const backgrounds = [...appJson.matchAll(/"backgroundColor":\s*"(#[0-9A-Fa-f]{6})"/g)].map((m) => m[1]!.toUpperCase());
+    assert.ok(backgrounds.length >= 2, `app.json carries ${backgrounds.length} backgroundColor values, expected the splash and the icon`);
+    for (const bg of backgrounds) {
+      assert.equal(bg, paper.ground.toUpperCase(), 'a launch background is not the ground');
     }
   });
 });

@@ -18,7 +18,7 @@
     "android": {
       "package": "com.luvani.app",
       "adaptiveIcon": {
-        "backgroundColor": "#F3E8F3",
+        "backgroundColor": "#F4F2F7",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -44,7 +44,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F3E8F3"
+          "backgroundColor": "#F4F2F7"
         }
       ],
       "expo-notifications"

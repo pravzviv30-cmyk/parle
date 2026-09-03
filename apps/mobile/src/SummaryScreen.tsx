@@ -13,7 +13,7 @@
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@luvani/core';
-import { HAIRLINE, paper, paperFor, radius, signal, space, type } from './theme.ts';
+import { HAIRLINE, paper, radius, signal, space, type } from './theme.ts';
 import { Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
 import { ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useHardwareBack } from './nav/useHardwareBack.ts';
@@ -58,7 +58,7 @@ export function SummaryScreen({
   }
 
   return (
-    <ScrollScreen ground={sheet.ground} header={<ScreenHeader back={{ onPress: onDone }} />}>
+    <ScrollScreen header={<ScreenHeader back={{ onPress: onDone }} />}>
       <View style={st.scroll}>
         <View>
           <View style={st.postcard}>
@@ -222,14 +222,6 @@ export function SummaryScreen({
   );
 }
 
-/**
- * This place's light: sand. The cafe lesson ends here, so it ends on the cafe light.
- * paperFor is how a place asks for its own paper. The house spread in `paper`
- * cannot follow a screen, because StyleSheet.create evaluates once at import,
- * so a screen that wants a different light names it here instead.
- */
-const sheet = paperFor('cafe');
-
 const st = StyleSheet.create({
   scroll: { paddingTop: space(3), paddingBottom: space(8), gap: space(7) },
   postcard: { alignItems: 'center', marginBottom: space(4) },
@@ -258,7 +250,7 @@ const st = StyleSheet.create({
   word: {
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: sheet.line,
+    borderColor: paper.line,
     borderRadius: radius.chip,
     paddingVertical: space(1.5),
     paddingHorizontal: space(3),

@@ -32,7 +32,7 @@ import {
   TextInput,
 } from 'react-native';
 import { dueCards, reviewXp, type ReviewCard, type ReviewGrade } from '@luvani/core';
-import { HAIRLINE, HIT, font, paper, paperFor, radius, space, type } from './theme.ts';
+import { HAIRLINE, HIT, font, paper, radius, space, type } from './theme.ts';
 import { Card, Label, PillButton, EarGlyph, fitDisplay } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
 import { NothingDue } from './illustrations.tsx';
@@ -132,7 +132,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
   if (queue === null) {
     return (
-      <Screen ground={sheet.ground}>
+      <Screen>
         <View style={st.loading}>
           <ActivityIndicator color={paper.inkSoft} />
         </View>
@@ -147,7 +147,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   // terminal card, so Done is its one door and it carries no back header.
   if (!card || !view) {
     return (
-      <ScrollScreen center ground={sheet.ground} footer={<PillButton label="Done" onPress={onDone} />}>
+      <ScrollScreen center footer={<PillButton label="Done" onPress={onDone} />}>
         {/* An empty deck is the good outcome, not a dead end, so it gets the
             cleared table rather than a sentence sitting on its own. */}
         <View style={{ alignItems: 'center', marginBottom: space(5) }}>
@@ -313,7 +313,6 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       avoidKeyboard
       center
       bottom="inset"
-      ground={sheet.ground}
       // A sitting is an offer, not an obligation — the learner can put the deck
       // down mid-card and nothing is lost or counted against them.
       header={
@@ -346,14 +345,6 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   );
 }
 
-/**
- * This place's light: sky. Practice and its deck share one light.
- * paperFor is how a place asks for its own paper. The house spread in `paper`
- * cannot follow a screen, because StyleSheet.create evaluates once at import,
- * so a screen that wants a different light names it here instead.
- */
-const sheet = paperFor('review');
-
 const st = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // The card itself: the SessionView main-card anatomy, content centred.
@@ -374,11 +365,11 @@ const st = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: sheet.line,
+    borderColor: paper.line,
     borderRadius: radius.card,
     paddingVertical: space(2.5),
   },
-  gradePressed: { backgroundColor: sheet.groundDeep, borderColor: paper.ink },
+  gradePressed: { backgroundColor: paper.groundDeep, borderColor: paper.ink },
   // The attempt row, built out of the same plate as the grade row so the two
   // states of the bottom of this screen are the same object doing two jobs.
   attempt: { gap: space(2.5) },
@@ -397,7 +388,7 @@ const st = StyleSheet.create({
     minHeight: HIT + 8,
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: sheet.line,
+    borderColor: paper.line,
     borderRadius: radius.input,
     paddingHorizontal: space(4),
     paddingVertical: space(3),

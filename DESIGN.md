@@ -1,13 +1,13 @@
 # Design
 
 <!-- Recorded from the built artifact, not from intentions. Every value below is
-     read out of apps/mobile/src/theme.ts and the screens as shipped. The
+     read out of apps/mobile/src/palette.ts and the screens as shipped. The
      previous design system (enamel wayfinding, dark Métro-plaque green) lives
      in full at the repo's baseline commit. -->
 
 ## The world
 
-**Colourful calm.** A picture book for adults: pale lilac paper, violet-cast
+**Colourful calm.** A picture book for adults: a single pale porcelain ground, violet-cast
 ink, hand-drawn line-art illustrations, a serif that speaks and a sans that
 stays out of the way. Flat white cards on a hairline rule. Colour does jobs
 now: **violet is identity** (the primary pill, the micro-labels, the monogram),
@@ -30,129 +30,100 @@ one signal.
 
 ## Colour
 
-Light, and committed to one *lightness*. Every raw value lives in
-`apps/mobile/src/palette.ts`, which imports nothing so that
-`palette.test.ts` can hold it to a contract; `theme.ts` composes its tokens
-from there and its public exports are unchanged.
+One ground, and everything else earning its place against it. Every raw value
+lives in `apps/mobile/src/palette.ts`, which imports nothing so that
+`palette.test.ts` can hold it to a contract; `theme.ts` composes its tokens from
+there and carries no raw hex of its own. The tables below are that palette, read
+back out of the code: `palette.test.ts` fails if this document and the export
+disagree on a single value.
 
-### Five papers, one light
+### One ground: Porcelain
 
-**A paper with no caller is not shipped, and this table may not claim it is.**
-For most of this system's life every one of these was decoration: `paperFor`
-had no application caller at all, eighteen of nineteen screens rendered house,
-and the column on the right described places the colour had never reached.
-`palette.test.ts` now reads both sides — which ids the app actually passes to
-`paperFor`, and what this table says — and fails when they disagree.
-
-A paper is a place's light: a ground, one step deeper for chips and pressed
-states, a hairline, and the accent its small type is set in.
-
-| Paper | ground | groundDeep | line | accent | Where |
-|---|---|---|---|---|---|
-| `house` | `#F3E8F3` | `#E4D3EE` | `#D9C8E2` | violet `#6B3FA0` | Everything not about one subject, including the live conversation |
-| `sand` | `#FEE7DB` | `#FCCFC1` | `#EFC5B6` | bronze `#8C5800` | RecapScreen and SummaryScreen: the café arc as the learner just lived it |
-| `sage` | `#E8EED5` | `#DBDCB2` | `#CFD1A8` | harbour `#00689E` | Dormant social prototype screens, no longer reachable from primary navigation |
-| `lagoon` | `#CFF3EB` | `#AFE4D0` | `#A4D9C6` | iris `#445EB4` | Not shipped: reserved for a topic the tutor wrote, once those have a screen of their own |
-| `sky` | `#D5EFFE` | `#ABE1F5` | `#A1D6E9` | violet `#6B3FA0` | Practice and its deck: PracticeTab, ReviewScreen, DrillScreen, FocusDrillPlayer |
-
-All five grounds sit at **L\* 93.1**, the lightness the lilac already had, and
-that is the whole safety argument. Contrast is a function of relative
-luminance, luminance is a function of L\*, and the a/b axes do not enter the
-formula. Hold lightness still and every ink keeps the exact ratio it had, on
-every paper: measured drift across the set is under 0.3%. The other two steps
-are computed rather than picked, by the rule that reproduces the original
-lilac trio exactly (groundDeep at L\* 86.6, chroma +8.5, hue −11; line at
-L\* 82.7, chroma +8.1, hue −10).
-
-Papers are **place identity, not mode identity**. `paperFor(id)` pins the
-authored units and hashes learner topics over the rest, stably, because a
-topic that changed colour between two launches reads as a different topic.
-
-### The accents, and the one rule that keeps them safe
-
-The micro-label used to be a lighter violet `#8A5BBF`, which read **4.08**
-against the ground at 11.5pt bold and was under the floor for small text. Each
-paper now carries its own accent at **L\* 42**, all clearing 5.0 on their own
-paper and 4.2 on a filled chip, and all at least a Delta-E of **30** from every
-signal and rung colour. Bronze is bronze rather than the obvious plum because
-the contrast test refused a plum: at Delta-E 24 from `signal.correspondance`,
-the label above a card and the colour meaning "change this" were one colour.
-
-**An accent is typographic; a signal is a mark.** A label, a chip, or a
-drawing's one solid fill may take an accent. A dot, a ring, or anything
-reporting state never may. That separation is what lets colour vary by place
-without any of it reading as a verdict.
-
-### The house paper, unchanged
-
-Tokens from `apps/mobile/src/theme.ts`:
+The five place-keyed papers are gone. The founder rejected a muted scheme of five
+grounds a hair apart, so there is one ground — Porcelain — under the whole app,
+and colour earns attention by meaning something rather than by marking where the
+learner happens to be. The card lifts off the ground, each hairline separates
+from what it rules, and the steps are held by Delta-E rather than by matching
+four siblings at one lightness.
 
 | Token | Value | Role |
 |---|---|---|
-| `paper.ground` | `#F3E8F3` | The page — everything sits directly on it |
-| `paper.groundDeep` | `#E4D3EE` | Pressed states, chips, the tab track — lavender |
-| `paper.card` | `#FFFFFF` | Card surface, flat |
+| `paper.ground` | `#F4F2F7` | The page — everything sits directly on it |
+| `paper.groundDeep` | `#E6E2EE` | Pressed states, chip fills, the tab track |
+| `paper.card` | `#FFFFFF` | Card surface, flat, one hairline rule |
 | `paper.ink` | `#241633` | Near-black ink with a real violet cast |
 | `paper.inkSoft` | `#5F4E73` | Secondary text |
-| `paper.inkFaint` | `#94849F` | Tertiary — counts, placeholders, IPA |
-| `paper.line` | `#D9C8E2` | Hairline rule on the ground |
-| `paper.lineOnCard` | `#EAE0F0` | Hairline divider inside a card |
+| `paper.inkFaint` | `#8A7996` | Tertiary — counts, placeholders, the inactive tab glyph |
+| `paper.line` | `#DAD5E3` | Hairline rule on the ground |
+| `paper.lineOnCard` | `#E9E5F0` | Hairline divider inside a card |
 | `paper.onInk` | `#FBF6FF` | Text on a filled control — violet-white, never pure |
-| `accent.primary` | `#6B3FA0` | The identity violet: primary pill, monogram |
-| `accent.label` | `#8A5BBF` | Micro-labels — the caps line above a card |
 
-### Support colours still cool as help is withdrawn
+`inkFaint` moved from the old `#94849F` (2.91 against the ground, under the mark
+floor) to `#8A7996` so the inactive tab glyph reads as a mark.
 
-| Rung | Colour | Meaning |
+### One identity violet
+
+There is a single accent, and both of its named jobs are the same violet. The old
+"lighter label" `#8A5BBF` read 4.08 against the ground at 11.5pt bold and is gone;
+`accent.label` is now simply `accent.primary`, and `palette.test.ts` pins the two
+equal as a tripwire against a second identity colour creeping back in.
+
+| Token | Value | Role |
 |---|---|---|
-| 1 Echo | `#FFCD00` | Repeat after the tutor |
-| 2 Cued | `#FF7E2E` | Choose a reply and say it |
-| 3 Prompted | `#6EC4E8` | Say it in your own words |
-| 4 Free | `#241633` | Plain ink — no line left to follow |
+| `accent.primary` | `#6B3FA0` | The identity violet: primary pill, active tab, monogram |
+| `accent.label` | `#6B3FA0` | Micro-labels — the caps line above a card |
 
-### Signals
+**An accent is typographic; a signal is a mark.** A label, a chip, or a drawing's
+one solid fill may take the accent. A dot, a ring, or anything reporting state
+never may, and no accent comes within a Delta-E of 30 of any signal or rung.
 
-Kept out of the rung set so state never reads as a rung:
-`live #DE3B2D` (the tutor's voice — red never marks the learner's mic now) ·
-`good #1E8A5B` · `correspondance #B4008A` (the latter two darkened from the
-enamel era to hold on white cards; `live` darkened later, see below).
+### Signals, re-saturated
+
+Muted greys-with-a-hue became full colour again. Green and magenta are words and
+clear the 4.5 text floor on the ground and on a card; the tutor's red only ever
+marks the orb, so it is held to the 3 floor for a mark and its caption is ink.
+
+| Token | Value | Role |
+|---|---|---|
+| `signal.good` | `#12784A` | A sound that is working — the same green the learner speaks in |
+| `signal.correspondance` | `#B4008A` | Something to change |
+| `signal.live` | `#DE3B2D` | The tutor's voice, a mark and never words |
 
 ### The voice circle speaks traffic lights
 
-`theme.ts`'s `orb` block, taught to every new learner by TutorIntro's final
-page, so these values changing means that page is teaching a lie — change both:
+`orb` is taught to every new learner by TutorIntro's final page, so these values
+changing means that page is teaching a lie — change both. Each state is a mark and
+clears 3 against the ground; the caption below it is ink. The three lights stay a
+Delta-E of 30 from each other and from rung one's yellow.
 
-| State | Colour | Caption |
+| Token | Value | Caption / role |
 |---|---|---|
-| Waiting to be tapped | `orb.ready` violet `#6B3FA0` | Tap to talk |
-| Tutor speaking | `orb.speaking` red `#DE3B2D` | Listen |
-| Your turn | `orb.yourTurn` green `#1E8A5B` | Speak |
-| Thinking | `orb.thinking` amber `#B07510` | One moment |
+| `orb.speaking` | `#DE3B2D` | Listen: the tutor is speaking (aliases `signal.live`) |
+| `orb.yourTurn` | `#12784A` | Speak: your turn (aliases `signal.good`) |
+| `orb.thinking` | `#B07510` | One moment: the tutor is thinking |
+| `orb.ready` | `#6B3FA0` | Tap to talk: the untapped control (aliases `accent.primary`) |
 
-**Two floors, not one, and conflating them was a real bug.** A mark that
-reports state is a graphical object and clears **3** against its paper; words
-clear **4.5**. The captions used to be set in the state's own colour, which
-quietly held the word to the mark's floor — so "One moment" shipped at 1.79 and
-"Speak" at 3.64. Captions are ink now; the orb carries the colour and the word
-carries the meaning. Amber and red were darkened to clear the mark floor
-(`#E3A800` measured 1.79, `#FF4B3E` 2.79) and `palette.test.ts` asserts all
-three, plus that no two lights and no light and rung 1 come within Delta-E 30.
+Violet is not a fourth traffic light. A closed microphone waiting to be tapped is
+the primary control of the whole product, so it takes the primary colour exactly
+as the pill does, and it stops being violet the instant the orb reports anything.
 
-`orb.thinking` sits nearer `accents.bronze` than the accent rule would normally
-allow, and that is deliberate: every amber far enough from bronze to satisfy it
-sits around L\* 23 and reads as dark olive. The orb owns its screen and never
-shares one with a paper's accent, so legibility won. `orb.*` are therefore held
-to their own contract in the tests rather than folded into `signal.*`.
+### Support colours run hot to cool again
 
-**Violet is the fourth state and is not a traffic light.** A closed microphone
-waiting to be tapped is the primary control of the whole product, so it takes
-the primary colour exactly as the pill does. It used to be drawn in `paper.line`
-— the hairline token — which made the one thing a learner must press the
-faintest object in the app. It stops being violet the instant it reports
-anything.
+A rung colour is a fill under an ink numeral, not a state mark, so it is held to
+ink at 4.5 on the fill rather than to the mark floor against the ground — nothing
+reads a rung against the ground, an ink numeral reads against the rung. The b\*
+channel falls rung by rung, so support visibly cools as it is withdrawn, and rung
+four is plain ink: no line left to follow.
 
-Green is the same green everywhere the learner speaks: the orb's your-turn
-state, the lesson SpeakCircle, the Review button, the path's learned marks.
+| Token | Value | Meaning |
+|---|---|---|
+| `rungColor[1]` | `#FFCD00` | Echo — repeat after the tutor |
+| `rungColor[2]` | `#FF7B00` | Cued — choose a reply and say it |
+| `rungColor[3]` | `#6EC4E8` | Prompted — say it in your own words |
+| `rungColor[4]` | `#241633` | Free — plain ink, no line left to follow |
+
+Green is the same green everywhere the learner speaks: the orb's your-turn state,
+the lesson SpeakCircle, the Review button, the path's learned marks.
 
 ## Type
 
@@ -263,7 +234,7 @@ leaving a live session an explicit act rather than a tab switch — a room that
 survives a tab switch is a room the meter is still counting.
 
 Each tab is a glyph and a word. There is no filled-icon variant, because a solid
-icon would be the first two-weight mark in the app. Active is ink plus a heavier
+icon would be the first two-weight mark in the app. Active is the identity violet plus a heavier
 weight on both the glyph and its word, so the label carries the signal and there
 is no dot. A long word wraps and the bar grows to hold it.
 

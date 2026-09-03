@@ -18,7 +18,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, AccessibilityInfo } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { paper, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { accent, paper, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { dueCount } from '../review/store.ts';
 import { HomeIcon, TutorIcon, PracticeIcon, MyFrenchIcon, ProfileIcon, type TabIconProps } from './icons.tsx';
 
@@ -85,13 +85,13 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
             style={({ pressed }) => [st.cell, pressed && { opacity: 0.55 }]}
           >
             <View>
-              <Icon size={26} color={focused ? paper.ink : paper.inkFaint} />
+              <Icon size={26} color={focused ? accent.primary : paper.inkFaint} />
               {badged ? <View style={st.badge} /> : null}
             </View>
             <Text
               style={[
                 st.label,
-                focused ? { color: paper.ink, fontFamily: type.button.fontFamily } : { color: paper.inkSoft },
+                focused ? { color: accent.primary, fontFamily: type.button.fontFamily } : { color: paper.inkSoft },
               ]}
             >
               {label}

@@ -1,8 +1,8 @@
 /**
  * Colourful calm — the design system.
  *
- * The world is a picture book for adults: pale lilac paper, violet-cast ink,
- * hand-drawn line-art, a serif that speaks and a sans that stays out of the
+ * The world is a picture book for adults: one pale Porcelain ground, violet-cast
+ * ink, hand-drawn line-art, a serif that speaks and a sans that stays out of the
  * way. Cards are flat white with a hairline rule. Colour does jobs now: violet
  * is identity (the primary pill, the labels, the monogram), green means go
  * (your turn to speak), amber means the tutor is thinking, red means it is
@@ -14,77 +14,17 @@
  * size. What deliberately changed with this skin: the live microphone is
  * GREEN now, not red — green means "you speak" everywhere, so the orb's red
  * can mean "the tutor is speaking" without the two ever reading as one.
+ *
+ * Every raw colour value lives in `palette.ts`, which imports nothing, because
+ * this file imports `Platform` and the mobile test runner has no react-native.
+ * A colour you cannot test is a colour somebody will change with an eyedropper,
+ * so the palette is re-exported from here and the values are held to a contract
+ * in `palette.test.ts`.
  */
 
 import { Platform } from 'react-native';
-import { ink, papers, accents, paperFor, type Paper, type PaperName } from './palette.ts';
 
-/**
- * The papers, and which place gets which. Every raw value lives in
- * `palette.ts`, which imports nothing, because this file imports `Platform`
- * and the mobile test runner has no react-native. A colour you cannot test is
- * a colour somebody will change with an eyedropper.
- */
-export { papers, accents, paperFor };
-export type { Paper, PaperName };
-
-/**
- * The house paper, spread flat for the thirty-odd modules that read it inside
- * a `StyleSheet.create` block. Those evaluate once at import and cannot follow
- * a screen's paper, which is exactly why a screen that wants a different light
- * sets `backgroundColor` inline on its own root rather than reaching for a
- * context that could never have reached them.
- */
-export const paper = {
-  /** The page itself. Everything sits directly on this. */
-  ground: papers.house.ground,
-  /** One step deeper — pressed states, chip fills, the tab track. */
-  groundDeep: papers.house.groundDeep,
-  /** Card surface. Flat white, hairline rule, no shadow. */
-  card: ink.card,
-  /** The ink. Near-black with a real violet cast so the page feels of a piece. */
-  ink: ink.ink,
-  /** Secondary text. */
-  inkSoft: ink.inkSoft,
-  /** Tertiary — counts, placeholders, timestamps. */
-  inkFaint: ink.inkFaint,
-  /** Hairline rule on the lilac ground. */
-  line: papers.house.line,
-  /** Hairline divider inside a white card. */
-  lineOnCard: ink.lineOnCard,
-  /** Text and icons on a filled control. Warm violet-white, never pure. */
-  onInk: ink.onInk,
-} as const;
-
-/**
- * The identity violet. One accent, three jobs: the primary pill, the micro
- * labels, the monogram. Everything else keeps to paper and signals, so the
- * violet stays special.
- *
- * `label` is now the house paper's own accent rather than a lighter violet.
- * The old `#8A5BBF` read 4.08 against the ground at 11.5pt bold, which is
- * under the floor for small text; every paper's accent clears 5.0. A screen on
- * another paper takes that paper's accent instead, which is the one place
- * colour varies by where you are rather than by what a thing means.
- */
-export const accent = {
-  /** The primary action and the monogram. */
-  primary: accents.violet,
-  /** Micro-labels — the caps line above a card. */
-  label: papers.house.accent,
-} as const;
-
-/**
- * Support colours for the four rungs, cooling as help is withdrawn: hot yellow
- * while the tutor carries the learner, plain ink once they walk alone. The
- * semantics predate this skin and survive it.
- */
-export const rungColor: Record<1 | 2 | 3 | 4, string> = {
-  1: '#D6A846',
-  2: '#C8794A',
-  3: '#5F95AA',
-  4: '#241633',
-};
+export { paper, accent, signal, orb, rungColor } from './palette.ts';
 
 /**
  * What each rung asks of the learner, in words.
@@ -97,50 +37,6 @@ export const rungColor: Record<1 | 2 | 3 | 4, string> = {
  * can import is a decision nothing can check.
  */
 export { rungLabel } from './tutor/rungLabel.ts';
-
-/** Signal colours, kept out of the rung set so state never reads as a rung. */
-export const signal = {
-  /** Something to change, muted plum rather than neon magenta. */
-  correspondance: '#8B5578',
-  /** A sound that is working, muted eucalyptus rather than bright green. */
-  good: '#437A62',
-  /** The tutor's voice. A dusty red keeps "listen" distinct without shouting. */
-  live: '#A9564F',
-} as const;
-
-/**
- * The voice circle speaks traffic lights, and these are its three words:
- * red, the tutor is talking, listen; green, your turn, speak; amber, it is
- * thinking, one moment. The intro's final page teaches exactly this mapping,
- * so these values changing means that page is teaching a lie — change both.
- *
- * Each is a MARK, and a mark that reports state is held to 3 against the paper
- * it sits on, not to the 4.5 that words are held to. That distinction is the
- * whole of J2: the amber measured 1.79 and the red 2.79, and the captions were
- * being set in those same colours, so the word under the orb was the least
- * legible text in the app. The colours now clear the floor for a mark and the
- * captions are ink, which is the floor for words. Amber stays well clear of
- * rung 1's yellow; it sits nearer accents.bronze than anything else in the
- * palette, which is safe only because bronze is sand's accent and the orb only
- * ever appears on house.
- */
-export const orb = {
-  /** Red — the tutor is speaking. Listen. */
-  speaking: signal.live,
-  /** Green — your turn. Speak. */
-  yourTurn: signal.good,
-  /** Amber — the tutor is thinking. Muted, but still distinct from green/red. */
-  thinking: '#8A6A2D',
-  /**
-   * Violet — the microphone is closed and the circle is waiting to be pressed.
-   *
-   * Not a fourth traffic light. Waiting to be tapped is not a state report, it
-   * is the primary control of the whole product, so it takes the primary
-   * colour exactly as the pill does. It stops being violet the instant the orb
-   * starts reporting anything.
-   */
-  ready: accent.primary,
-} as const;
 
 export const font = {
   serif: 'Fraunces-SemiBold',

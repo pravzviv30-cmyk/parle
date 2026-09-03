@@ -13,7 +13,7 @@
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RecapPayload } from '@luvani/core';
-import { HAIRLINE, paper, paperFor, signal, space, type } from './theme.ts';
+import { HAIRLINE, paper, signal, space, type } from './theme.ts';
 import { Card, Label, PillButton } from './components.tsx';
 import { RecapPostcard } from './illustrations.tsx';
 
@@ -123,16 +123,8 @@ export function RecapScreen({ recap, onDone }: { recap: RecapPayload; onDone: ()
   );
 }
 
-/**
- * This place's light: sand. The recap of a conversation, which is the cafe arc as the learner lived it.
- * paperFor is how a place asks for its own paper. The house spread in `paper`
- * cannot follow a screen, because StyleSheet.create evaluates once at import,
- * so a screen that wants a different light names it here instead.
- */
-const sheet = paperFor('cafe');
-
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: sheet.ground },
+  root: { flex: 1, backgroundColor: paper.ground },
   scroll: { paddingHorizontal: space(5), paddingTop: space(3), gap: space(7) },
   header: { alignItems: 'center' },
   headerText: { alignItems: 'center', gap: space(2), marginTop: space(4) },
