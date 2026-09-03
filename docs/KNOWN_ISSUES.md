@@ -5119,3 +5119,80 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   sans, not hidden from assistive tech, while Home and Profile drew it in serif. Deleted the friends copy;
   `LeaderboardTab` imports the one `Monogram` from `components.tsx` with `initial={row.name.charAt(0)…}`.
 - verified-by: `the app exports one Monogram, and the leaderboard borrows it`
+
+### F345 — Practice decides what goes first in one pure rule
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/practice/nextStep.ts:1
+- note: `nextStep(units, deck, now)` answers "what now" for the Practice tab: cards due outrank the path's
+  next row because the deck covers every due card and a row covers its own; with nothing due the step is
+  exactly the node `buildPath` marked `isNext`; with nothing due and nothing marked there is no step, and
+  the tab draws nothing rather than a message. `reviewLine` moves out of the tab verbatim. Same shape as
+  `practice/mix.ts`: pure, clock-injected, copy exported.
+- verified-by: `review outranks the path's next row when cards are due`
+- verified-by: `with nothing due, the step is exactly the row the path marked next`
+- verified-by: `with nothing due and nothing to do, there is no step at all`
+- verified-by: `nothing the practice headline says carries a word that scolds`
+
+### F346 — Practice opens on its next step, and nothing competes with it
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/tabs/PracticeTab.tsx:140
+- note: under the header, `<Label>{NEXT_STEP.label}</Label>` and one `OutlineButton` built from `nextStep`;
+  a review step opens `Review`, a node step calls the frozen F154 `open(step.node)` with `disabled={checking}`.
+  The standalone Review block goes, the mix offer moves below the headline, the tab no longer imports
+  `dueCards`, and the pill count stays zero so the heavy-ruled row remains the single primary (F342).
+  `open` and `talkAgain` are called, not edited.
+- verified-by: `practice draws its next step from nextStep and decides nothing about it on the screen`
+- verified-by: `the practice headline is a door to the same handler as the ruled row, never a second primary`
+- verified-by: `the mix offer sits under the next step, not above it`
+
+### F347 — A situation's row action and the next-situation words are decided in one module
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/progress/portfolio.ts:1
+- note: `situationAction(item)` decides once whether a row offers Start or Refine pronunciation, with the
+  label and the screen-reader sentence; `startLabel` writes "Start <situation>" for the pill and the rows;
+  `NEXT_SITUATION` carries Home's exact words for the same card. No score, no number, no banned word, and
+  no import of `progress/story.ts`. Sibling of `passport.ts`, shaped like `practice/talkAgain.ts`.
+- verified-by: `a finished situation offers to refine pronunciation, an unfinished one offers to start`
+- verified-by: `the portfolio's words carry no score, no number and no word that scolds`
+- verified-by: `my french and home name the next situation in the same words`
+
+### F348 — My French draws nothing at zero and closes on the next situation
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/tabs/MyFrenchTab.tsx:127
+- note: the three-`Stat` rail goes and no count is drawn without its module's gate (`hasPhrases`, `hasStory`,
+  `hasStamps`); the screen names no independence literal anywhere. The list's rows use `situationAction`
+  and branch on `action.kind`; "Check" and "Sound check for" leave the file. `suggestedMission` picks the
+  next situation, drawn last in a card under `st.nextSituation` with the tab's one `PillButton` (F342 count
+  stays 1), and "Choose another situation" becomes the quiet `GhostButton` after it. F218's slice closes at
+  `st.nextSituation` in lockstep, and its order pins hold: notebook, week, situations, next, chooser.
+- verified-by: `my french draws no count at zero: the stat rail is gone and every block waits on its module's gate`
+- verified-by: `my french closes on the next situation, and the chooser is the quiet door`
+- verified-by: `a finished situation's row says refine pronunciation in the module's words, and goes where the module says`
+- verified-by: `the My French screen draws a stamp only for a scene finished unaided`
+- verified-by: `my french shows the week's story only where the learner goes looking`
+
+### F349 — The progress reset that no screen can reach is gone from the app and its documents
+- severity: P1
+- status: [ ]
+- where: apps/mobile/App.tsx:204
+- note: `resetProgress` and `onResetProgress` thread from `App.tsx` through `RootNavigator.tsx` to a `Tabs`
+  that never passes it on; `ProfileTab` stopped accepting it when its dead buttons went. Remove the callback
+  and the five prop lines, reword `storage/scope.ts:108`, `docs/STATE_AND_STORAGE.md:217` and the three
+  "Removed by" cells at `docs/PRIVACY_AND_SAFETY.md:28-30`, and narrow `scope.test.ts` to the one door that
+  exists. No learner-facing change.
+- verified-by: `the one door into a reset uses the real sweep, not a double`
+- verified-by: `nothing in the app still threads a progress reset that no screen can reach`
+
+### F350 — The device runbook names what a source walk cannot see about Pass 2
+- severity: P2
+- status: [ ]
+- where: docs/DEVICE_VERIFICATION.md:667
+- note: a `## Pass 2 content` section, every row `not run`: Practice's headline and its button first under the
+  header at AX5 and reachable before the path; "Refine pronunciation" wraps inside its row at AX3–AX5; on an
+  SE-class phone My French shows six rows, then the next-situation card, the pill and the quiet door in order;
+  a new account's My French shows no number anywhere.
+- verified-by: `the device runbook carries the Pass 2 content checks`
