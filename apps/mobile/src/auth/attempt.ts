@@ -62,6 +62,7 @@ export const GUARDED_METHODS = [
   'signUpWithPassword',
   'signInWithPassword',
   'signInWithGoogle',
+  'signInWithApple',
   'sendPasswordReset',
   'completePasswordReset',
   'reauthenticateForDeletion',

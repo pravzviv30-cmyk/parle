@@ -27,7 +27,7 @@ nothing is written to the profile when it is walked past.
 | # | Screen | The one thing it asks for | Skippable |
 |---|---|---|---|
 | 1 | Welcome (`onboarding/WelcomeScreen.tsx`) | Create account, or sign in | no, it is the door |
-| 2 | Sign up (`auth/SignUpScreen.tsx`) | Email and password, or Google | no |
+| 2 | Sign up (`auth/SignUpScreen.tsx`) | Email and password, Google, or Apple on iOS | no |
 | 3 | Age (`onboarding/OnboardingFlow.tsx`) | One tap: thirteen or older | no, it is the gate |
 | 4 | Name (`onboarding/OnboardingFlow.tsx`) | A name to be greeted by | yes, Continue with it empty |
 | 5 | Meet Luc (`onboarding/OnboardingFlow.tsx`) | Nothing. It is the app talking | no, but it is one tap |
@@ -94,6 +94,22 @@ the same rule; the flag is never persisted. This is the implemented mechanism,
 and a driven local mock-auth web journey proved the one-shot `/missions` landing
 and Back/reload behavior on 2026-08-27. Supabase, native and five-viewport evidence
 remain separate in `DEVICE_VERIFICATION.md`.
+
+**A third door, where the platform has one (F375, F376).** Sign up and sign in
+both draw "Continue with Apple" above the Google outline, and only when
+`appleSignInOffered()` in `auth/apple.native.ts` says the device can open it,
+which today means iOS. Android and web see exactly the two doors they saw
+before, because a button that opens onto an unconfigured flow costs more than a
+missing one. The screen count and the tap count above are unchanged: it is a
+third way through the same screen, not another screen.
+
+What is proven here is the wiring, not the sign-in. `auth/apple.test.ts` and
+`auth/appleNonce.test.ts` hold the preflight order, the nonce pairing, the
+button's placement and the build config. The sheet itself, Apple's signature
+over the nonce, and Supabase accepting the identity token all need the paid
+Apple Developer capability and the project's Apple provider, and neither exists
+on the machine this was written on. That half belongs to
+[DEVICE_VERIFICATION.md](DEVICE_VERIFICATION.md) and has not been run.
 
 Net: one page removed, one page added, one screen of splash removed twice over,
 and a learner who now knows what they are talking to before they talk to it.

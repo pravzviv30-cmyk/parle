@@ -57,6 +57,21 @@ export const GOOGLE_START_FAILED = 'Google sign in could not start. Try again, o
 export const GOOGLE_NOT_CONFIGURED = 'Google sign in is not available yet. Use your email and password for now.';
 
 /**
+ * The Apple door, in the same three shapes as the Google one and for the same
+ * reasons. Written here rather than in `apple.ts` and `apple.native.ts` so the
+ * two halves of the platform split cannot drift into two different apologies.
+ *
+ * Apple sign in has one failure Google does not: the system sheet belongs to
+ * iOS, and a learner can dismiss it with a swipe without ever choosing
+ * anything. That is not an error and must not read as one, so it gets its own
+ * sentence, and the sentence says the account was left alone rather than
+ * telling somebody to try again for something they meant to stop.
+ */
+export const APPLE_START_FAILED = 'Apple sign in could not start. Try again, or use your email and password.';
+export const APPLE_NOT_CONFIGURED = 'Apple sign in is not available yet. Use your email and password for now.';
+export const APPLE_CLOSED = 'The Apple sign in sheet was closed before it finished. Nothing was changed.';
+
+/**
  * What the adapter knows about a provider failure.
  *
  * The Supabase SDK's `AuthError` satisfies this as it stands: `code` is

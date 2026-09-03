@@ -19,7 +19,7 @@ interface MockAccount {
   id: string;
   email: string;
   passwordDigest: string;
-  provider: 'mock' | 'google';
+  provider: 'mock' | 'google' | 'apple';
 }
 
 interface MockStore {
@@ -59,7 +59,8 @@ function digest(email: string, password: string): Promise<string> {
 }
 
 function toUser(account: MockAccount): AuthUser {
-  return { id: account.id, email: account.email, provider: account.provider === 'google' ? 'google' : 'mock' };
+  const provider = account.provider === 'google' || account.provider === 'apple' ? account.provider : 'mock';
+  return { id: account.id, email: account.email, provider };
 }
 
 export function createMockAdapter(): AuthAdapter {
@@ -130,6 +131,23 @@ export function createMockAdapter(): AuthAdapter {
         email: key,
         passwordDigest: '',
         provider: 'google',
+      };
+      const next: MockStore = { ...store, users: { ...store.users, [key]: account } };
+      await setSession(next, account);
+      return { ok: true };
+    },
+
+    async signInWithApple(): Promise<AuthResult> {
+      // Same trade as Google above. Keyless dev has no Apple to talk to, and a
+      // stand-in account with a stable id keeps the button, the flow and the
+      // per-user data all testable without one.
+      const store = await readStore();
+      const key = 'apple-dev@luvani.local';
+      const account: MockAccount = store.users[key] ?? {
+        id: 'mock-apple-dev',
+        email: key,
+        passwordDigest: '',
+        provider: 'apple',
       };
       const next: MockStore = { ...store, users: { ...store.users, [key]: account } };
       await setSession(next, account);

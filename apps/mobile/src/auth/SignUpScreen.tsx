@@ -1,24 +1,30 @@
 /**
- * Create an account: email, password, or the Google door.
+ * Create an account: email, password, or a provider door.
  * Errors are plain sentences under the field they belong to.
  *
  * It sits inside `ScrollScreen avoidKeyboard`: the frame pays the notch, lifts
  * the fields above the keyboard, and draws the one back through `ScreenHeader`.
- * The primary pill and the Google outline ride in the footer so a keyboard
+ * The primary pill and the provider outlines ride in the footer so a keyboard
  * cannot scroll them out of reach, and the "Already have an account? Sign in"
  * row stays at the end of the body, where a field is still visible over an
  * SE-class keyboard rather than pinned under the buttons.
+ *
+ * The Apple outline sits above the Google one and only where the platform
+ * offers it, which today means iOS. Sign-in and sign-up draw the same doors in
+ * the same order on purpose: a learner who cannot remember which one they used
+ * last time should not have to find out from a screen that offers fewer.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { paper, space, type, signal, HIT } from '../theme.ts';
-import { PillButton, OutlineButton, Field, GoogleMark } from '../components.tsx';
+import { PillButton, OutlineButton, Field, GoogleMark, AppleMark } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail, PASSWORD_MIN, passwordTooShort } from './validate.ts';
 import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 import { passwordHint } from './passwordHint.ts';
+import { appleSignInOffered } from './apple.ts';
 
 export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignIn: () => void }) {
   const { adapter } = useAuth();
@@ -34,6 +40,18 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
   // the button that started it changes its words.
   const [pending, setPending] = useState<AuthAction | null>(null);
   const busy = pending !== null;
+  // Asked once, and false until it answers. The Apple door is drawn only where
+  // the platform actually opens it; Android and web never do.
+  const [appleOffered, setAppleOffered] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void appleSignInOffered().then((offered) => {
+      if (alive) setAppleOffered(offered);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
   // Recomputed on every keystroke, which is the point: the rule is on screen
   // while it is being met, not only after it has been broken.
   const hint = passwordHint(password);
@@ -76,6 +94,17 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
     }
   };
 
+  const apple = async () => {
+    if (busy) return;
+    setPending('apple');
+    const result = await adapter.signInWithApple();
+    setPending(null);
+    if (!result.ok) {
+      setFormOk(false);
+      setFormMessage(result.message);
+    }
+  };
+
   return (
     <ScrollScreen
       avoidKeyboard
@@ -87,6 +116,14 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
             onPress={() => void submit()}
             disabled={busy}
           />
+          {appleOffered && (
+            <OutlineButton
+              label={authButtonLabel('apple', pending === 'apple')}
+              onPress={() => void apple()}
+              disabled={busy}
+              icon={<AppleMark size={18} />}
+            />
+          )}
           <OutlineButton
             label={authButtonLabel('google', pending === 'google')}
             onPress={() => void google()}

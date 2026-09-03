@@ -14,6 +14,7 @@ function adapter(kind: 'supabase' | 'mock', token: string | null): AuthAdapter {
     signUpWithPassword: async () => ({ ok: true }),
     signInWithPassword: async () => ({ ok: true }),
     signInWithGoogle: async () => ({ ok: true }),
+    signInWithApple: async () => ({ ok: true }),
     sendPasswordReset: async () => ({ ok: true }),
     reauthenticateForDeletion: async () => ({ ok: true }),
     deleteAccount: async () => ({ ok: true }),

@@ -19,13 +19,17 @@
  * sees a browser knows which step did not happen.
  */
 
-export type AuthAction = 'signIn' | 'createAccount' | 'saveNewPassword' | 'google' | 'sendReset';
+export type AuthAction = 'signIn' | 'createAccount' | 'saveNewPassword' | 'google' | 'apple' | 'sendReset';
 
 const LABELS: Record<AuthAction, { readonly ready: string; readonly busy: string }> = {
   signIn: { ready: 'Sign in', busy: 'Signing in…' },
   createAccount: { ready: 'Create account', busy: 'Creating account…' },
   saveNewPassword: { ready: 'Save and continue', busy: 'Saving…' },
   google: { ready: 'Continue with Google', busy: 'Waiting for Google…' },
+  // Apple's wait is shorter than Google's — the sheet is the system's own and
+  // there is no browser to load — but it is still a wait somebody can start
+  // and then see nothing, and the sheet can take a moment to animate up.
+  apple: { ready: 'Continue with Apple', busy: 'Waiting for Apple…' },
   sendReset: { ready: 'Forgot password?', busy: 'Sending…' },
 };
 

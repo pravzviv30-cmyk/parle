@@ -130,6 +130,11 @@ describe('auth token hygiene — what a static walk can prove without a device',
     // renamed directory or a filter that quietly stops matching .tsx.
     for (const required of [
       'adapter.ts',
+      // Both halves of the Apple split, named for the same reason as the Google
+      // pair: they hold an identity token, a nonce and an email address, and a
+      // file that quietly stopped being walked is a file that can start logging.
+      'apple.native.ts',
+      'apple.ts',
       'authMode.ts',
       'installation.ts',
       'mockAdapter.ts',
@@ -144,7 +149,7 @@ describe('auth token hygiene — what a static walk can prove without a device',
     ]) {
       assert.ok(sources.some((s) => s.name === required), `${required} was not read, so nothing below says anything about it`);
     }
-    assert.ok(sources.length >= 14, `only ${sources.length} auth sources were read; the layer has more than that`);
+    assert.ok(sources.length >= 17, `only ${sources.length} auth sources were read; the layer has more than that`);
   });
 
   test('no bearer token is written to logs or plain storage by the auth layer', () => {
