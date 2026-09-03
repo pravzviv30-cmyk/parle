@@ -1220,3 +1220,21 @@ describe('the device runbook carries the Pass 1b chrome checks — F343', () => 
     }
   });
 });
+
+describe('one Monogram, borrowed everywhere — F344', () => {
+  test('the app exports one Monogram, and the leaderboard borrows it', () => {
+    // Two Monograms is two initials that drift: friends/ui.tsx drew a sans disc
+    // with radius.pill, components.tsx draws the serif decorative one. The tab
+    // that shows the learner their own row used the friends copy. One export now.
+    assert.doesNotMatch(
+      named('friends/ui.tsx'),
+      /export function Monogram/,
+      'friends/ui.tsx still exports its own Monogram',
+    );
+    assert.match(
+      named('tabs/LeaderboardTab.tsx'),
+      /import \{[^}]*\bMonogram\b[^}]*\} from '\.\.\/components\.tsx'/,
+      'the leaderboard does not borrow the shared Monogram',
+    );
+  });
+});

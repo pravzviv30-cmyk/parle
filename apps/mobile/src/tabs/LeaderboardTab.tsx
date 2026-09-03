@@ -18,7 +18,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { HAIRLINE, HIT, paper, space, type } from '../theme.ts';
-import { Card, Label, TabBar } from '../components.tsx';
+import { Card, Label, Monogram, TabBar } from '../components.tsx';
 import { NobodyYet } from '../illustrations.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
@@ -26,7 +26,7 @@ import { withUsername } from '../profile/store.ts';
 import { earnedXp } from '../progress/activity.ts';
 import { friends } from '../friends/adapter.ts';
 import { defaultUsername } from '../friends/logic.ts';
-import { Monogram, PersonPlusGlyph, SampleChip } from '../friends/ui.tsx';
+import { PersonPlusGlyph, SampleChip } from '../friends/ui.tsx';
 import type { FriendEntry } from '../friends/types.ts';
 
 type Board = 'global' | 'friends';
@@ -157,7 +157,7 @@ export function LeaderboardTab() {
             {rows.map((row, i) => (
               <View key={row.key} style={[st.row, i > 0 && st.rowRule]}>
                 <Text style={[type.small, { color: paper.inkSoft, width: space(5) }]}>{i + 1}</Text>
-                <Monogram letter={row.name} />
+                <Monogram initial={row.name.charAt(0).toUpperCase()} />
                 <View style={{ flex: 1 }}>
                   <View style={st.nameRow}>
                     <Text style={[type.bodyStrong, { color: paper.ink }]} numberOfLines={1}>

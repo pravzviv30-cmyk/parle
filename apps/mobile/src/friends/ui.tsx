@@ -10,7 +10,7 @@
 
 import { View, Text } from 'react-native';
 import Svg, { Path, Circle, G } from 'react-native-svg';
-import { accent, decorative, paper, radius, space, type, HIT, STROKE } from '../theme.ts';
+import { decorative, paper, radius, space, type, STROKE } from '../theme.ts';
 
 /** A person with a plus beside them — the add-friends mark. */
 export function PersonPlusGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
@@ -39,24 +39,6 @@ export function SampleChip() {
       }}
     >
       <Text style={[type.label, { color: paper.inkSoft }]}>Sample</Text>
-    </View>
-  );
-}
-
-/** The ink monogram circle, HomeTab's avatar idiom made reusable. */
-export function Monogram({ letter }: { letter: string }) {
-  return (
-    <View
-      style={{
-        width: HIT,
-        height: HIT,
-        borderRadius: radius.pill,
-        backgroundColor: accent.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Text style={[type.heading, { color: paper.onInk }]}>{letter.charAt(0).toUpperCase()}</Text>
     </View>
   );
 }

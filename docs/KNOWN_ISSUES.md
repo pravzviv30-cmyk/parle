@@ -5107,3 +5107,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   AX3–AX5; a pushed screen's centred title sits centred; soft-ink status lines read on ground and card;
   Tutor's header/scene/doors/pill in order and reachable on an SE-class phone.
 - verified-by: `the device runbook carries the Pass 1b chrome checks`
+
+### F344 — Two monograms: the friends list drew the learner's initial its own way
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/friends/ui.tsx:47
+- note: `friends/ui.tsx` exported `Monogram({ letter })` before Pass 1b — a HIT disc in `accent.primary`
+  with `radius.pill` and a sans `type.heading` initial, "HomeTab's avatar idiom made reusable". F332 added
+  the serif, `decorative` `Monogram({ initial, size })` in `components.tsx` and F337 adopted it on Home and
+  Profile, leaving the friends copy for LeaderboardTab. So the Leaderboard drew the learner's own initial in
+  sans, not hidden from assistive tech, while Home and Profile drew it in serif. Deleted the friends copy;
+  `LeaderboardTab` imports the one `Monogram` from `components.tsx` with `initial={row.name.charAt(0)…}`.
+- verified-by: `the app exports one Monogram, and the leaderboard borrows it`
