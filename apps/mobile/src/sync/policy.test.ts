@@ -735,4 +735,28 @@ describe('the storage doc says what the sync table does', () => {
     assert.match(contract, /newer than this\s+build writes|newer than this build writes/, 'the doc dropped the newer-schema rule');
     assert.match(contract, /Nothing is recomputed/, 'the doc dropped the no-recomputation rule');
   });
+
+  test('the storage doc names the profile version the store writes — F380', () => {
+    // The doc said "version 5" while the store wrote 6, and would have gone on
+    // saying it while the store wrote 7. The number and the shape are read out
+    // of profile/store.ts as text, for the same reason the writes test above
+    // does: importing the store drags AsyncStorage into a plain-node suite.
+    const source = readFileSync(join(MOBILE, 'src/profile/store.ts'), 'utf8');
+    const declared = source.match(/export interface StoredProfile \{\s*\n\s*version:\s*(\d+);/);
+    assert.ok(declared, 'StoredProfile no longer declares a literal version, so this test reads nothing');
+    const said = doc.match(/`profile` is at \*\*version (\d+)\*\*/);
+    assert.ok(said, 'the storage doc no longer says which version the profile is at');
+    assert.equal(said[1], declared[1], `the doc says version ${said[1]} and the store writes ${declared[1]}`);
+
+    // The shape block names the version the store writes, and the two fields
+    // that arrived after the doc was last true.
+    const shape = doc.match(/\{ version: (\d+),([^}]*)brain: LearnerProfile \}/);
+    assert.ok(shape, 'the storage doc no longer shows the stored profile shape');
+    assert.equal(shape[1], declared[1], 'the shape block shows an older version than the store writes');
+    for (const field of ['ageStopAt', 'tutorVoice', 'preferTyping']) {
+      assert.match(shape[2]!, new RegExp(`\\b${field}\\b`), `the shape block does not name ${field}`);
+    }
+    assert.match(doc, /returns a version-\d+ profile/, 'the doc no longer says what upgradeStored returns');
+    assert.match(doc, new RegExp(`returns a version-${declared[1]} profile`), 'the doc says upgradeStored returns an older version');
+  });
 });

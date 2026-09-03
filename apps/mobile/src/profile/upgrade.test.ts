@@ -94,7 +94,7 @@ describe('the profile version chain', () => {
   test('a v1 profile still reaches the latest version in one pass, brain intact', () => {
     const upgraded = upgradeStored({ version: 1, motivation: 'travel', onboardedAt: 123, brain: { seen: 1 } }, NOW);
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 6, 'the chain runs direct to the latest version, never a step at a time');
+    assert.equal(upgraded.version, 7, 'the chain runs direct to the latest version, never a step at a time');
     assert.equal(upgraded.name, null, 'v1 never asked for a name');
     assert.equal(upgraded.dob, null);
     assert.equal(upgraded.ageConfirmed, null, 'v1 never asked about age either, so nothing is claimed on the learner behalf');
@@ -124,7 +124,7 @@ describe('the profile version chain', () => {
     };
     const upgraded = upgradeStored(v2, NOW);
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 6);
+    assert.equal(upgraded.version, 7);
     assert.equal(upgraded.name, 'Camille');
     assert.equal(upgraded.dob, ADULT_DOB, 'the date they typed is theirs and stays');
     assert.equal(upgraded.motivation, 'work');
@@ -147,7 +147,7 @@ describe('the profile version chain', () => {
     };
     const upgraded = upgradeStored(v3, NOW);
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 6);
+    assert.equal(upgraded.version, 7);
     assert.equal(upgraded.username, 'camille.4821');
     assert.equal(upgraded.name, 'Camille');
   });
@@ -158,7 +158,7 @@ describe('the profile version chain', () => {
       NOW,
     );
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 6);
+    assert.equal(upgraded.version, 7);
     assert.equal(
       upgraded.ageConfirmed,
       true,
@@ -191,7 +191,7 @@ describe('the profile version chain', () => {
     };
     const upgraded = upgradeStored(v4, NOW);
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 6);
+    assert.equal(upgraded.version, 7);
     assert.equal(upgraded.ageConfirmed, true, 'a tap on the confirmation is an answer, and it survives every later read');
     assert.equal(upgraded.dob, null, 'a v4 learner was never asked for a date, and none is invented for them');
     assert.equal(upgraded.motivation, null, 'a skipped question stays skipped');
@@ -240,7 +240,7 @@ describe('the profile version chain', () => {
     for (const key of VOICES) {
       const upgraded = upgradeStored(v6(key), NOW);
       assert.ok(upgraded, `a v6 profile carrying ${key} still upgrades`);
-      assert.equal(upgraded.version, 6);
+      assert.equal(upgraded.version, 7);
       assert.equal(upgraded.tutorVoice, key, `${key} is a choice the learner made, and the read hands it straight back`);
     }
 
@@ -266,7 +266,7 @@ describe('the profile version chain', () => {
       const label = `v${String(blob.version)}`;
       const upgraded = upgradeStored(blob, NOW);
       assert.ok(upgraded, `${label} must still upgrade`);
-      assert.equal(upgraded.version, 6);
+      assert.equal(upgraded.version, 7);
       assert.equal(upgraded.tutorVoice, null, `${label} predates the voice question, so it has no answer to it`);
       assert.notEqual(
         upgraded.tutorVoice,
@@ -313,6 +313,39 @@ describe('the profile version chain', () => {
     const never = upgradeStored(absent, NOW);
     assert.ok(never);
     assert.equal(never.tutorVoice, null);
+  });
+
+  test('a v7 profile keeps the typing choice, every older version arrives without one, and junk reads as no — F370', () => {
+    // The field is a boolean and the only honest readings are "they said so"
+    // and "nobody has". A v7 blob's own true is the first; everything else,
+    // including a well-formed true planted in a v6 blob by a hand edit or a
+    // downgrade's leftovers, is the second, because nothing that happened
+    // before the field existed is an answer to it.
+    const v7 = (preferTyping: unknown): Record<string, unknown> => ({ ...v6(OTHER_VOICE), version: 7, preferTyping });
+    const chosen = upgradeStored(v7(true), NOW);
+    assert.ok(chosen);
+    assert.equal(chosen.version, 7);
+    assert.equal(chosen.preferTyping, true, 'a learner who asked to type was not heard');
+    assert.equal(chosen.tutorVoice, OTHER_VOICE, 'a v7 blob still keeps the voice a v6 one would');
+    assert.equal(chosen.name, 'Camille', 'and nothing else on the way past');
+
+    const declined = upgradeStored(v7(false), NOW);
+    assert.ok(declined);
+    assert.equal(declined.preferTyping, false);
+
+    for (const junk of [1, 'true', 'yes', {}, [], null, undefined]) {
+      const upgraded = upgradeStored(v7(junk), NOW);
+      assert.ok(upgraded, `a profile carrying ${JSON.stringify(junk)} in the slot still upgrades`);
+      assert.equal(upgraded.preferTyping, false, `${JSON.stringify(junk)} is not a boolean this app wrote, so it is not an answer`);
+    }
+
+    for (const blob of [...everyOlderVersion(undefined), v6(OTHER_VOICE)]) {
+      const planted = { ...blob, preferTyping: true };
+      const upgraded = upgradeStored(planted, NOW);
+      assert.ok(upgraded, `v${String(blob.version)} must still upgrade`);
+      assert.equal(upgraded.version, 7);
+      assert.equal(upgraded.preferTyping, false, `v${String(blob.version)} predates the question, so it has no answer to it`);
+    }
   });
 
   test('what is not a profile comes back null', () => {
