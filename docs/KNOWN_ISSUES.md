@@ -5206,3 +5206,105 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   Home should import `NEXT_SITUATION` and draw `NEXT_SITUATION.label` / `NEXT_SITUATION.action`, and the
   portfolio test should then assert the import rather than the literal. No learner-facing change.
 - verified-by: `home draws the next situation from portfolio.ts rather than spelling it`
+
+### F352 — The three onboarding screens sit inside the one frame
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/onboarding/OnboardingFlow.tsx:209
+- note: WelcomeScreen, AgeGateScreen and OnboardingFlow each read the safe area and open their own
+  ScrollView with a `space(6)` gutter (vs the frame's `space(5)`), three different top gaps, and a
+  hand-rolled back chevron. Adopt `ScrollScreen center` (Flow also `avoidKeyboard`), `ScreenHeader`
+  carrying the dots in its title slot, pills in the footer; drop the three from `SAFE_AREA_ALLOW` and
+  `CHEVRON_ALLOW`, add to `ADOPTERS`. Keep body-before-footer in source so the first-occurrence walks in
+  answers.test.ts / voiceStep.test.ts stay green untouched (hoist page bodies into a `const body`).
+- verified-by: `the first-run screens are adopters, not allow-listed — F352`
+- verified-by: `no adopted screen reads the safe area or opens a ScrollView for itself — F307`
+
+### F353 — The shared header can carry a title with no back and no leave
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/layout.tsx:158
+- note: `ScreenHeaderProps` requires one of `back`/`leave`, so a header holding only the progress dots on
+  onboarding's first page does not typecheck (runtime already draws the empty slot). Make both optional
+  inside their branches; each still forbids the other, so never both.
+- verified-by: `the shared header takes a title with neither a back nor a leave, and still never both — F353`
+
+### F354 — An option card tells a screen reader it is selected
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/components.tsx:257
+- note: `OptionCard`'s Pressable has a role and label and no `accessibilityState`, so a VoiceOver learner
+  picking a voice/goal/strictness/reminder hears nothing confirm it. The tab bar already does this
+  (`components.tsx:426`). One line, every caller.
+- verified-by: `an option card tells a screen reader it is selected, the way the tab bar does — F354`
+
+### F355 — The voice ear shows which sample is sounding
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/components.tsx:272
+- note: OnboardingFlow tracks `playing` and never hands it to the card; OptionCard has nowhere to put it,
+  so tapping an ear changes nothing. Add `playing` (default false): while sounding, the ear sits on a
+  `paper.groundDeep` disc in `accent.primary` and its label reads `Stop {name}`. Wire on the first run and
+  the Profile voice sheet (both, per F301). No animation.
+- verified-by: `the voice cards show which sample is sounding, on the first run and in the Profile sheet — F355`
+
+### F356 — A refused learner has a way out, and hears the refusal
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/onboarding/OnboardingFlow.tsx:247
+- note: the account is created before the gate; "younger than that" removes the pill and leaves a signed-in
+  learner on a page with nothing behind it and no way to the Welcome; the refusal is a bare Text here and
+  Android-only live on the return gate. One `AgeRefusal` component for the gate's two doors: the Field
+  announce trio (role alert, polite live region, iOS `announceForAccessibility`) and a `GhostButton`
+  `AGE_REFUSAL_EXIT` ("Sign out"), no pill. The door is `auth.signOut()` (App.tsx), threaded to both
+  surfaces; ProfileContext keeps `onPass` first.
+- verified-by: `a refused learner is offered a sign out on both gate surfaces, and hears the refusal — F356`
+- verified-by: `the way through disappears once the learner says they are younger — F356`
+
+### F357 — The two auth screens sit inside the one frame, with the primary pinned
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/auth/SignUpScreen.tsx:74
+- note: SignUp/SignIn keep the primary pill inside their own ScrollView (scrolls away under a keyboard) and
+  draw their own back with a `space(6)` gutter. Adopt `ScrollScreen avoidKeyboard`, `ScreenHeader back`, the
+  primary pill + Google outline in the footer; the switch row stays at the body's end so a field is visible
+  over an SE keyboard. Add both to `PUSHED_ONE_BACK`.
+- verified-by: `the auth screens pin their pills in the frame's footer — F357`
+- verified-by: `a pushed screen has exactly one way back, and it is the shared header — F309`
+
+### F358 — The step dots and the station line are one spoken element
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/components.tsx:477
+- note: both containers carry an `accessibilityLabel` and no `accessible`, so iOS never focuses the group and
+  "Step 1 of 4" / "Stop 2 of 5" is never read. Add `accessible`; no role (web progressbar wants value attrs
+  these lack).
+- verified-by: `the step dots and the station line are one spoken element — F358`
+
+### F359 — Meet Luc's four lines read as a paragraph, not a plaque
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/OnboardingFlow.tsx:371
+- note: the densest page sets four multi-sentence lines centred. Set `line` left under the centred title and
+  art, so the disclosure reads as reassurance rather than fine print.
+- verified-by: `the Meet page sets its lines left, as a paragraph — F359`
+
+### F360 — Typing is offered as a choice, not a fallback
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/disclosure.ts:165
+- note: "If you cannot speak out loud, tap Type instead…" narrows who the app is for. Not legally pinned
+  (disclosure.test.ts:262 requires only `Type instead`). New line: "You can also type. Tap Type instead in a
+  scene and write your answer." ONBOARDING.md:83 follows.
+- verified-by: `typing is offered as a choice, not a fallback — F360`
+
+### F361 — The device runbook names what a source walk cannot see about the first run
+- severity: P2
+- status: [ ]
+- where: docs/DEVICE_VERIFICATION.md:688
+- note: a `## Pass 3 first run` section, every row `not run`: the left edge does not move from the voice step
+  into the chooser/Home; SignUp keyboard keeps the field + pill visible; an ear turns violet on tap, clears
+  on second tap and clip end, VoiceOver reads "Stop Luc"/"Hear Luc"; the refusal is spoken on both gates and
+  "Sign out" lands on Welcome; the dots read "Step 1 of 4" as one element and a chosen voice reads selected;
+  Meet at AX5 wraps as left-set paragraphs with the pill pinned.
+- verified-by: `the device runbook carries the Pass 3 first-run checks — F361`
