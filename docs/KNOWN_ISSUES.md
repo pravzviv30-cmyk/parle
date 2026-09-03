@@ -4956,3 +4956,154 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   flash lilac before every launch and the nav container would paint a different page edge than the
   splash. Read `app.json` in the test and hold both to `paper.ground` (`#F4F2F7`).
 - verified-by: `the splash and the icon background are the ground`
+
+### F329 — The session's rung row draws a bare colour dot beside a rung it already names
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/SessionView.tsx:201
+- note: an 8pt `rungColor` fill with no numeral sits on the ground, where rung one's yellow reads ~1.4.
+  F324 holds rung fills to ink-on-fill on the premise that nothing reads a fill against the ground; this
+  dot does. The `LineBullet` row and the ink `rungLabel` on the same line already say the rung. Drop the
+  dot and `st.rungDot`, and `rungColor` leaves the import.
+- verified-by: `the rung row says the rung once, in the bullet and the label, and draws no bare dot`
+
+### F330 — Words set in the faint ink that was cleared as a mark
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/practice/PathNodeRow.tsx:85
+- note: `inkFaint` (#8A7996) clears 3.59 on the ground as a mark and 4.0 on a card; 87 sites use it and 66
+  are words (status lines, costs, timestamps, settings values, stat captions, caps labels). Raised to P1
+  because palette.test.ts states "words clear 4.5" and the screens contradict it. Rule: running text takes
+  `inkSoft`; a caps `Label` takes violet, or `ink`/`inkSoft` when it reports a state; `inkFaint` remains
+  only for placeholders, glyphs, fills, and the lettering of a control that is off (disabled/locked/used/
+  muted/empty draft/inactive bullet numeral). The walk allows exactly those forms.
+- verified-by: `faint ink colours marks and off controls, never a line a learner reads`
+- verified-by: `soft ink clears 4.5 on a card as well as on the ground`
+
+### F331 — One tab header, and it is a primitive
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/layout.tsx:145
+- note: five tabs set their title at two sizes and two alignments, and only two say what the tab is for.
+  `TabHeader({ title, purpose, trailing?, children? })` beside `ScreenHeader`: `type.display` in ink, left,
+  `accessibilityRole="header"`, no `numberOfLines` and no font cap; purpose in `type.body` on `inkSoft` at
+  `space(2)`; `trailing` on the title row; children under the purpose; `marginBottom: space(5)`. It mounts
+  in the scroll body, not the frame's `header` slot, because a fixed display title plus a purpose line is
+  taller than the screen at AX5.
+- verified-by: `the tab header sets its title at display size, left, as a heading, with a purpose line beneath and nothing capped`
+- verified-by: `DESIGN.md names the tab header and the monogram`
+
+### F332 — The learner's initial is one drawn thing
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/components.tsx:438
+- note: Home draws a filled 44 violet disc with a sans initial; Profile draws a hollow 96 ring with a serif
+  one. palette.ts calls the violet "the primary action and the monogram", so the fill is the design.
+  `Monogram({ initial, size = HIT })`: `accent.primary` disc, `paper.onInk` initial in `font.serif` at
+  `size * 0.44`, spread `decorative`.
+- verified-by: `the monogram is one filled violet disc with a warm-white initial, and it is hidden from assistive tech`
+
+### F333 — A pill and a ghost can carry a name for assistive tech
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/components.tsx:131
+- note: `DrillScreen`'s Check pills and My French's Check/Start word announce themselves. Collapsing them
+  onto `PillButton` and `GhostButton` (F339) needs an optional `accessibilityLabel` on both, forwarded to
+  the Pressable. Lands before F339.
+- verified-by: `a pill and a ghost can be given a name for assistive tech, and forward it`
+
+### F334 — The shared header centres its title between two equal slots
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/layout.tsx:177
+- note: the centre view is `flex: 1` with a 44pt chevron on the left and nothing on the right, so a card
+  count or a connection line sits half a hit target off centre. Three slots always: left `width: HIT`,
+  centre `flex: 1`, right `minWidth: HIT, alignItems: 'flex-end'`. `marginLeft: 'auto'` goes; the F318
+  `accessibilityLabel` line stays verbatim.
+- verified-by: `the shared header keeps a slot at the touch floor on both sides, whether or not it holds a control`
+
+### F335 — The frame owns the air above the tab bar
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/layout.tsx:137
+- note: every tab pads its own scroll bottom on top of the root's `space(3)`. `ScrollScreen`'s
+  contentContainerStyle takes `paddingBottom: space(8)` when `bottom === 'tab'` and nothing otherwise.
+- verified-by: `a scroll screen under the tab bar pads its own bottom, and one that is not does not`
+
+### F336 — Five tabs open the same way
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/tabs/TutorTab.tsx:131
+- note: each tab renders exactly one `TabHeader` as the first child of its scroll body with a `title` and a
+  required `purpose`; hand-rolled headers, `st.title`, `st.headline` and `st.subline` go; no tab spreads
+  `type.display` in a stylesheet; no tab passes a title into the frame's `header` slot (Practice's slot
+  holds only the F154 checking receipt). Tutor's hero moves under its header; Home's empty-state headline
+  steps down to `type.title`.
+- verified-by: `every tab opens with the one tab header and draws no headline of its own`
+- verified-by: `every tab says what it is for in one line, and the line carries no debt and no dash`
+
+### F337 — Home and Profile draw the initial with the one monogram
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:738
+- note: Home keeps its "Your profile" Pressable in the header's `trailing` slot with `<Monogram size={HIT}>`
+  inside; Profile draws `<Monogram size={72}>` above the name. `st.avatar` and `st.ring` go, so no tab pairs
+  `accent.primary` with `radius.pill` in a style of its own.
+- verified-by: `the learner's initial is drawn one way, on Home and on Profile`
+
+### F338 — A caps label is violet, or it reports a state in ink
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/tabs/HomeTab.tsx:178
+- note: `Label` defaults to violet and eighteen section heads override it to faint with no rule. Section
+  heads drop the override. Four labels that report a state take `inkSoft` or `ink`. No `<Label` carries
+  `inkFaint`. Shares its edits with F330.
+- verified-by: `a caps label is violet, or it reports a state in ink; none is faint`
+
+### F339 — The tabs and the drill use the app's own buttons
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/DrillScreen.tsx:929
+- note: `DrillScreen` hand-rolls the primary pill twice; My French sets `type.button` on a bare Pressable;
+  Tutor draws a bespoke card-button. They become `PillButton` (with `accessibilityLabel`),
+  `GhostButton color={paper.ink}` (with `accessibilityLabel`), and `OutlineButton label sub`. `ds.check`,
+  `ds.checkDisabled`, `st.smallAction`, `st.door` go. Scoped to the tabs and DrillScreen.
+- verified-by: `no tab draws a pill, a text button or a card-button of its own`
+- verified-by: `the drill's Check is the pill, twice, and nothing hand-rolled`
+- verified-by: `the tutor's quiet doors are outline buttons with a gloss`
+
+### F340 — No tab pads its own scroll
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:736
+- note: with F331 owning the top gap and F335 the bottom, every `scroll` style keeps only `flexGrow: 1`,
+  and no tab file writes `paddingBottom` at all (the voice sheet's included).
+- verified-by: `no tab pads its own scroll; the header gap and the bottom air come from the frame`
+
+### F341 — A chip is set in the French token, not a raw size
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/home/PhrasebookCard.tsx:73
+- note: `chipText` overrides `type.french` with `fontSize: 16, lineHeight: 22`. Drop both; the chip keeps
+  its ink. A raw size is allowed only in `components.tsx` (`fitDisplay`) and the two `TextInput` styles that
+  hold 16 to stop iOS zooming.
+- verified-by: `no text names a raw font size, except the inputs that hold iOS at 16`
+
+### F342 — A tab carries at most one primary pill, and a list tab carries none
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/PracticeTab.tsx:189
+- note: Home, Tutor and My French close with a pill; Practice's primary is the heavy-ruled next row and
+  Profile has no next action. A closing pill on either would be a second or false primary, so the rule is
+  pinned as counts rather than forced into presence.
+- verified-by: `a tab carries at most one primary pill, and Practice and Profile carry none`
+
+### F343 — The device runbook names what a source walk cannot see about the chrome
+- severity: P2
+- status: [ ]
+- where: docs/DEVICE_VERIFICATION.md:645
+- note: a `## Pass 1b chrome` section, every row `not run`: header scrolls with the body at AX5 and the
+  closing action is reachable; the five tops match on a swipe; the monogram initial stays inside its disc at
+  AX3–AX5; a pushed screen's centred title sits centred; soft-ink status lines read on ground and card;
+  Tutor's header/scene/doors/pill in order and reachable on an SE-class phone.
+- verified-by: `the device runbook carries the Pass 1b chrome checks`
