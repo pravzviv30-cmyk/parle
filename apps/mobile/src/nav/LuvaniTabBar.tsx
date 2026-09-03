@@ -6,8 +6,9 @@
  * shadow belongs to the live microphone and nothing else may borrow it.
  *
  * Saying which tab is active without a filled-icon variant: the word and glyph
- * both go ink, and the word takes the heavier sans. That keeps every mark in
- * the app at one stroke weight and needs no second signal, so there is no dot.
+ * both take the identity violet, and the word takes the heavier sans. That keeps
+ * every mark in the app at one stroke weight and needs no second signal, so
+ * there is no dot.
  * The Practice badge is the one dot left, and it sits on the glyph's shoulder.
  *
  * A long label wraps and the bar grows to hold it rather than truncating, and

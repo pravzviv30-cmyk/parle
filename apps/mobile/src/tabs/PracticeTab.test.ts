@@ -64,7 +64,7 @@ describe('Practice opens on its next step — F346', () => {
     assert.equal(headlines.length, 1, `Practice draws ${headlines.length} next-step headlines; it should draw one`);
   });
 
-  test('the practice headline is a door to the same handler as the ruled row, never a second primary', () => {
+  test('the practice headline is the tab\'s one pill, and it still opens the ruled row\'s handler — F365', () => {
     // The headline block sits between its own label and the mix offer below it.
     const headline = between(RENDER, 'NEXT_STEP.label', 'mixOffered', 'the next-step headline is drawn under the header');
 
@@ -73,11 +73,16 @@ describe('Practice opens on its next step — F346', () => {
     // doors are in the one headline, so it is never a rule of its own.
     assert.match(headline, /open\(\s*step\.node\s*\)/, 'the node step does not reuse the path row\'s open handler');
     assert.match(headline, /nav\.navigate\('Review'\)/, 'the review step does not open the Review deck');
-    assert.match(headline, /<OutlineButton\b/, 'the headline is not drawn as an OutlineButton');
-    assert.doesNotMatch(headline, /<PillButton\b/, 'the headline is a second solid pill, not a door to the ruled row');
+    // F365 reversed F346's shape: the tab had no pill at all, and the one thing
+    // to do now is the thing that deserves it. Both branches are the pill, and
+    // the line the outline used to carry as its sub still sits beneath.
+    assert.equal((headline.match(/<PillButton\b/g) ?? []).length, 2, 'both branches of the headline are not drawn as the pill');
+    assert.doesNotMatch(headline, /<OutlineButton\b/, 'the headline still draws an outline where the pill belongs');
+    assert.match(headline, /reviewLine\(step\.due\)/, 'the review branch lost its line');
+    assert.match(headline, /statusLine\(step\.node, tutorName\)/, 'the node branch lost its line');
 
-    // Not a second primary anywhere on the tab: the ruled row stays the one.
-    assert.equal((SCREEN.match(/<PillButton\b/g) ?? []).length, 0, 'Practice grew a primary pill (F342 keeps it at zero)');
+    // The pill, and only the pill: nothing else on the tab may be a second one.
+    assert.equal((SCREEN.match(/<PillButton\b/g) ?? []).length, 2, 'Practice draws a primary pill outside the headline');
 
     // The review word and its line moved into the module. Neither is typed here.
     assert.ok(!SCREEN.includes('label="Review"'), 'Practice still spells the review label itself; it is NEXT_STEP.review now');

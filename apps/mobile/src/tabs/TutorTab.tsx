@@ -19,18 +19,19 @@
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { missionStates, type MissionProgress } from '@luvani/core';
+import { MISSIONS, missionStates, type MissionProgress } from '@luvani/core';
 import { paper, space, type } from '../theme.ts';
 import { PillButton, GhostButton, OutlineButton, Card, Label } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
+import { MissionDisc } from '../missions/MissionDisc.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
 import { TUTOR_INTRO_LINK, TUTOR_OFFLINE, tutorDoors, tutorGate } from '../tutor/gate.ts';
 import { markTutorIntroSeen } from '../tutor/store.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
-import { missionCompletionsFrom, resumableMission } from '../missions/chooserView.ts';
+import { missionCompletionsFrom, missionStatus, resumableMission } from '../missions/chooserView.ts';
 import { loadDeck } from '../review/store.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 
@@ -103,7 +104,19 @@ export function TutorTab() {
     );
   }
 
-  const doors = tutorDoors(resume === null ? null : { title: resume.mission.title });
+  // The door model reads the mission off the catalogue here, once, so gate.ts
+  // stays free of it: the titles, the place its drawing belongs to, and the
+  // status line chooserView.ts already decides for every other surface.
+  const doors = tutorDoors(
+    resume === null
+      ? null
+      : {
+          title: resume.mission.title,
+          titleEn: resume.mission.titleEn,
+          place: resume.mission.place,
+          status: missionStatus(resume.state, resume.independence),
+        },
+  );
 
   const enter = (key: string) => {
     if (key === 'free') {
@@ -156,23 +169,45 @@ export function TutorTab() {
           </Card>
         )}
 
+        {/* Each door is a card that says what is behind it (F364): the
+            mission's drawing on its tint, the titles and where the learner
+            stands, or the six drawings as a teaser. gate.ts decides every
+            word and which one door carries the pill; this draws it with the
+            app's own buttons. */}
         <View style={st.doors}>
-          {doors.map((door) =>
-            door.primary ? (
-              <View key={door.key}>
-                <PillButton label={door.label} onPress={() => enter(door.key)} disabled={checking} />
-                <Text style={st.doorGloss}>{door.gloss}</Text>
+          {doors.map((door) => (
+            <Card key={door.key}>
+              <View style={st.doorHead}>
+                {door.art.kind === 'place' && <MissionDisc place={door.art.place} size={56} />}
+                <View style={st.doorWords}>
+                  <Text style={[type.bodyStrong, { color: paper.ink }]}>{door.label}</Text>
+                  {door.title !== null && (
+                    <Text style={[type.title, { color: paper.ink, marginTop: space(1) }]}>{door.title}</Text>
+                  )}
+                  <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{door.gloss}</Text>
+                  {door.detail.map((line) => (
+                    <Text key={line} style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>
+                      {line}
+                    </Text>
+                  ))}
+                </View>
               </View>
-            ) : (
-              <OutlineButton
-                key={door.key}
-                label={door.label}
-                sub={door.gloss}
-                disabled={checking}
-                onPress={() => enter(door.key)}
-              />
-            ),
-          )}
+              {door.art.kind === 'every-place' && (
+                <View style={st.teaser}>
+                  {MISSIONS.map((mission) => (
+                    <MissionDisc key={mission.id} place={mission.place} size={40} />
+                  ))}
+                </View>
+              )}
+              <View style={{ marginTop: space(3) }}>
+                {door.primary ? (
+                  <PillButton label={door.action} onPress={() => enter(door.key)} disabled={checking} />
+                ) : (
+                  <OutlineButton label={door.action} onPress={() => enter(door.key)} disabled={checking} />
+                )}
+              </View>
+            </Card>
+          ))}
         </View>
 
         <View style={st.quiet}>
@@ -188,6 +223,9 @@ const st = StyleSheet.create({
   scroll: { flexGrow: 1 },
   hero: { alignItems: 'center', marginBottom: space(3) },
   doors: { marginTop: space(6), gap: space(3) },
-  doorGloss: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
+  doorHead: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
+  doorWords: { flex: 1 },
+  // Six still drawings in a row: a teaser of the chooser, not the chooser.
+  teaser: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), marginTop: space(3) },
   quiet: { marginTop: 'auto', paddingTop: space(6), gap: space(1) },
 });

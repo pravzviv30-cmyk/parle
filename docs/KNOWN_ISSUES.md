@@ -5199,7 +5199,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F351 — Home spells the next-situation card itself while portfolio.ts mirrors it
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/HomeTab.tsx:143
 - note: `NEXT_SITUATION` in `progress/portfolio.ts` copies Home's "Next situation" / "Start this one" and a
   test reads HomeTab.tsx to keep them equal. That is two definitions held together by a test rather than one.
@@ -5311,7 +5311,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F362 — A tint is a paper under a mission's art, and never a mark
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/palette.ts:100
 - note: six soft tints (`tint.sand` #FEE7DB cafe, `tint.rose` #F8D8DF friends, `tint.lilac` #E4D3EE home,
   `tint.lagoon` #CFF3EB street, `tint.sage` #E8EED5 market, `tint.sky` #D5EFFE hotel), one per MissionPlace
@@ -5328,7 +5328,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F363 — The next situation shows its place and its goal, once, on Home and on My French
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/HomeTab.tsx:141
 - note: one home/NextSituationCard.tsx draws the label, the MissionDisc, the French and English titles, the
   mission's goalEn and the missionStatus line, and takes its actions as children so each tab keeps its own
@@ -5341,7 +5341,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F364 — The Tutor tab's three doors are cards that show what is behind them
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/gate.ts:106
 - note: tutorDoors takes the resumable mission (title, titleEn, place, status) and answers, per door, a
   card: label, gloss, an action word and art (one place, every place, or none). Resume: MissionDisc, titles,
@@ -5354,7 +5354,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F365 — Practice's next step is the tab's one pill
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/PracticeTab.tsx:161
 - note: both branches of the next step become PillButton, with the sub line kept beneath as type.small the
   way TutorTab draws its primary door's gloss. The handlers are unchanged. F342's Practice count becomes one
@@ -5364,7 +5364,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F366 — My French opens on the evidence, and draws nothing at zero
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/MyFrenchTab.tsx:129
 - note: progress/evidence.ts reads the missions (timesFinished > 0), the phrasebook (book.count) and the
   activity log (levelFor(totalXp)) and answers only what has been earned; hasEvidence false means no row, on
@@ -5510,18 +5510,18 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F378 — The tab bar's comments describe a dot it no longer draws
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/nav/icons.tsx:8
 - note: icons.tsx:8-10 and LuvaniTabBar.tsx:8-11 still say active is ink plus a dot. F313 removed the dot
   and F325 made active the identity violet plus weight. Rewrite both comments; a raw-source test pins the
   words.
 - verified-by: `the tab bar's comments say what the bar does — F378`
 
-### F379 — LIVE_VOICE.md counts eleven failures; failure.ts has eighteen
+### F379 — LIVE_VOICE.md counts eleven failures; failure.ts has nineteen
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: docs/LIVE_VOICE.md:161
-- note: the "When it fails" paragraph says eleven; the failure table in live/failure.ts has eighteen kinds.
+- note: the "When it fails" paragraph says eleven; the failure union in live/failure.ts has nineteen kinds.
   Replace the number word with a count the test reads back from the source.
 - verified-by: `the live-voice doc counts the failures failure.ts enumerates — F379`
 
@@ -5535,7 +5535,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F381 — The device runbook names what a source walk cannot see about this pass
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: docs/DEVICE_VERIFICATION.md:722
 - note: a `## Pass 4 mockup review` section, every row `not run`: the six discs read as discs at AX5; the
   Apple sheet opens on a signed build and a cancelled sheet leaves a sentence; a typed-by-default learner

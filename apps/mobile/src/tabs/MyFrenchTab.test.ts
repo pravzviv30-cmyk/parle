@@ -409,15 +409,13 @@ function at(marker: string): number {
 
 describe('My French draws nothing at zero and closes on the next situation — F348', () => {
   test('my french draws no count at zero: the stat rail is gone and every block waits on its module\'s gate', () => {
-    // The rail and its style are both gone. A Stat drew a bare count with no
-    // module deciding whether it belonged, which is the whole thing F348 removes.
-    assert.ok(!SCREEN.includes('<Stat'), 'the three-Stat rail is still drawn');
-    assert.ok(!SCREEN.includes('st.stats'), 'the stat rail style survives, so a count can still be rehung on it');
-    assert.doesNotMatch(
-      FLAT,
-      /import \{[^}]*\bStat\b[^}]*\} from '\.\.\/components\.tsx'/,
-      'My French still imports Stat, the primitive it no longer draws',
-    );
+    // F348 removed a rail of three Stats that drew bare counts with no module
+    // deciding whether they belonged. F366 brought three facts back behind a
+    // gate: the only Stat on the screen is the one evidence.ts hands over,
+    // inside hasEvidence, and nothing here can rehang a count outside it.
+    assert.equal((SCREEN.match(/<Stat\b/g) ?? []).length, 1, 'My French draws a Stat outside the evidence row');
+    assert.ok(!SCREEN.includes('st.stats'), 'the old stat rail style survives, so a count can still be rehung on it');
+    assert.match(FLAT, /hasEvidence\(evidence\) &&/, 'the evidence row is drawn without asking hasEvidence');
 
     // No count is drawn without its module's gate: the notebook waits on
     // hasPhrases the way the week waits on hasStory and the stamps on hasStamps.
@@ -433,6 +431,32 @@ describe('My French draws nothing at zero and closes on the next situation — F
       assert.ok(!SCREEN.includes(invented), `My French names ${invented} itself; that judgement belongs in passport.ts`);
     }
     assert.ok(!SCREEN.includes('.independence ==='), 'My French compares independence directly, which is the passport\'s comparison to make');
+  });
+
+  test('my french draws its evidence from evidence.ts, inside its gate, and decides none of it on the screen — F366', () => {
+    // Three facts at the head of the page, and every one of them decided one
+    // module away. The screen loads the activity log, hands everything to
+    // evidenceFrom, waits on hasEvidence, and maps the stats it is given. It
+    // never counts, never filters missions itself, and never names a level.
+    assert.match(
+      FLAT,
+      /import \{[^}]*evidenceFrom[^}]*hasEvidence[^}]*\} from '\.\.\/progress\/evidence\.ts'/,
+      'My French does not read its evidence from evidence.ts',
+    );
+    assert.match(FLAT, /import \{[^}]*\bStat\b[^}]*\} from '\.\.\/components\.tsx'/, 'My French does not draw the Stat primitive');
+    assert.match(FLAT, /loadActivity\(\)/, 'My French never reads the activity log, so it has no level to show');
+    assert.match(FLAT, /evidenceFrom\(\{ missions: nextMissions, book: nextBook, activity \}\)/, 'the evidence is not built from the same reads the rest of the screen uses');
+
+    // The row: gated, mapped, three to a row, and read as one summary.
+    const row = between(SCREEN, 'hasEvidence(evidence) &&', 'hasPhrases(book)', 'the evidence row is not drawn above the notebook');
+    assert.match(row, /evidence\.stats\.map\(/, 'the row does not map the stats the module handed over');
+    assert.match(row, /<Stat key=\{stat\.label\} value=\{stat\.value\} label=\{stat\.label\} columns=\{3\}/, 'a stat is not drawn three to a row from the module\'s own fields');
+    assert.match(row, /accessibilityRole="summary"/, 'the row is not read as one summary');
+
+    // The analytics event reads the same numbers, from the same module.
+    assert.match(FLAT, /situationsDone: nextEvidence\.situations, linesKept: nextEvidence\.lines/, 'the analytics event counts for itself instead of reading evidence.ts');
+    assert.ok(!SCREEN.includes('timesFinished > 0'), 'My French counts finished situations itself; that is evidence.ts\'s count');
+    assert.ok(!SCREEN.includes('levelFor('), 'My French names a level itself; that is evidence.ts\'s to say');
   });
 
   test('my french closes on the next situation, and the chooser is the quiet door', () => {

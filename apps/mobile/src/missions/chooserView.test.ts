@@ -159,7 +159,11 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     assert.ok(doors.includes(TALK_FREELY), 'the tutor tab dropped the free conversation entirely');
     assert.equal(doors[0], 'Start a practical mission', 'a beginner meets a situation first');
     assert.equal(doors[doors.length - 1], TALK_FREELY, '"say anything" is what a beginner says nothing to');
-    assert.equal(tutorDoors({ title: 'Au café du coin' }).at(-1)?.label, TALK_FREELY, 'and it stays last');
+    assert.equal(
+      tutorDoors({ title: 'Au café du coin', titleEn: 'Order at a café', place: 'cafe', status: 'Started' }).at(-1)?.label,
+      TALK_FREELY,
+      'and it stays last',
+    );
 
     const tab = stripComments(read('../tabs/TutorTab.tsx'));
     assert.match(tab, /doors\.map\(/, 'the tab draws its own order instead of the one that was decided');

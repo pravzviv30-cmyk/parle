@@ -83,6 +83,49 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
   const tab = stripComments(read('../tabs/TutorTab.tsx'));
   const profileTab = stripComments(read('../tabs/ProfileTab.tsx'));
   const intro = stripComments(read('./TutorIntro.tsx'));
+  /** A mission worth offering again, as the tab reads it off the catalogue. */
+  const RECENT = { title: 'Au café du coin', titleEn: 'Order at a café', place: 'cafe' as const, status: 'Started' };
+
+  test('each door is a card that says what is behind it, and exactly one carries the pill — F364', () => {
+    // The resume door shows the mission: its drawing, both titles, and where
+    // the learner stands with it, in the words chooserView.ts already uses.
+    const [resume, missions, free] = tutorDoors(RECENT);
+    assert.deepEqual(resume!.art, { kind: 'place', place: 'cafe' }, 'the resume door does not show its place');
+    assert.equal(resume!.title, 'Au café du coin');
+    assert.equal(resume!.gloss, 'Order at a café');
+    assert.deepEqual(resume!.detail, ['Started'], 'the resume door does not say where the learner stands');
+    assert.equal(resume!.action, 'Continue');
+    assert.equal(resume!.primary, true);
+
+    // The practical-mission door is a teaser of every situation, and it carries
+    // the pill only when there is nothing to continue.
+    assert.deepEqual(missions!.art, { kind: 'every-place' });
+    assert.equal(missions!.action, 'Choose a situation');
+    assert.equal(missions!.primary, false);
+    assert.equal(tutorDoors(null)[0]!.primary, true, 'with nothing to continue, choosing a situation is the pill');
+    assert.equal(tutorDoors(null)[0]!.action, 'Choose a situation', 'the word does not change with the button');
+
+    // Talk freely is never the pill, and shows no place: it has none.
+    assert.deepEqual(free!.art, { kind: 'none' });
+    assert.equal(free!.action, 'Start talking');
+    assert.equal(free!.primary, false);
+    assert.equal(tutorDoors(null).some((d) => d.key === 'free' && d.primary), false);
+
+    // Every word on every door: no count, no dash, nothing that scolds.
+    for (const door of [...tutorDoors(RECENT), ...tutorDoors(null)]) {
+      for (const line of [door.label, door.title ?? '', door.gloss, door.action, ...door.detail]) {
+        assert.ok(!/\d/.test(line), `"${line}" carries a number`);
+        assert.ok(!/—/.test(line), `"${line}" carries an em dash`);
+        assert.ok(!/\b(wrong|bad|failed|error|incorrect|streak)\b/i.test(line), `"${line}" scolds`);
+      }
+      assert.match(door.action, /^[A-Z][a-z]+(?: [a-z]+)*$/, `"${door.action}" is not sentence case`);
+    }
+
+    // And the tab draws what the model says, from the model.
+    for (const marker of ['door.art.kind', 'door.title', 'door.gloss', 'door.detail', 'door.action', '<MissionDisc']) {
+      assert.ok(tab.includes(marker), `the tab never draws ${marker}`);
+    }
+  });
 
   test('the tutor tab opens its doors without the intro standing in the way', () => {
     // Four explainer pages used to sit between a new account and the first
@@ -92,9 +135,9 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
     assert.deepEqual(doors.map((d) => d.key), ['missions', 'free'], 'the doors changed shape');
     assert.equal(doors.filter((d) => d.primary).length, 1, 'one primary action per screen');
 
-    const withRecent = tutorDoors({ title: 'Au café du coin' });
+    const withRecent = tutorDoors(RECENT);
     assert.deepEqual(withRecent.map((d) => d.key), ['resume', 'missions', 'free']);
-    assert.equal(withRecent[0]?.gloss, 'Au café du coin', 'continuing does not say which mission');
+    assert.equal(withRecent[0]?.title, 'Au café du coin', 'continuing does not say which mission');
     assert.equal(withRecent.filter((d) => d.primary).length, 1, 'two solid actions is no primary action');
 
     // And the tab itself no longer holds anybody at the door.

@@ -77,16 +77,52 @@ describe('the portfolio — a situation row and the next-situation words, decide
     }
   });
 
-  test('my french and home name the next situation in the same words', () => {
-    // HomeTab.tsx is the source of truth for this card's copy. If it stopped
-    // saying either literal, this module would be paraphrasing one screen at the
-    // other, and the words below would have to change with it.
-    const home = read('../tabs/HomeTab.tsx');
-    assert.ok(home.includes(NEXT_SITUATION.label), `Home no longer says "${NEXT_SITUATION.label}"`);
-    assert.ok(home.includes(NEXT_SITUATION.action), `Home no longer says "${NEXT_SITUATION.action}"`);
+  test('home draws the next situation from portfolio.ts rather than spelling it', () => {
+    // F351. Home used to spell "Next situation" and "Start this one" itself
+    // while this module mirrored the words and a test kept them in step. Now
+    // one card draws the situation for both tabs and reads its words from
+    // here, so neither tab spells them and the two cannot part company.
+    const home = stripComments(read('../tabs/HomeTab.tsx'));
+    const myFrench = stripComments(read('../tabs/MyFrenchTab.tsx'));
+    const card = stripComments(read('../home/NextSituationCard.tsx'));
+    for (const [name, source] of [['Home', home], ['My French', myFrench]] as const) {
+      assert.ok(source.includes('<NextSituationCard'), `${name} does not draw the shared next-situation card`);
+      assert.ok(!source.includes(`'${NEXT_SITUATION.label}'`) && !source.includes(`>${NEXT_SITUATION.label}<`), `${name} still spells "${NEXT_SITUATION.label}" itself`);
+      assert.ok(!source.includes(`"${NEXT_SITUATION.action}"`) && !source.includes(`'${NEXT_SITUATION.action}'`), `${name} still spells "${NEXT_SITUATION.action}" itself`);
+      assert.match(source, /label=\{NEXT_SITUATION\.action\}/, `${name}'s pill does not read its word from portfolio.ts`);
+    }
+    assert.match(card, /NEXT_SITUATION\.label/, 'the card does not read its label from portfolio.ts');
+    assert.match(card, /from '\.\.\/progress\/portfolio\.ts'/, 'the card does not import portfolio.ts');
 
     // F233 keeps a single reader of the weekly story. This module is not it.
     const portfolio = read('./portfolio.ts');
     assert.doesNotMatch(portfolio, /progress\/story\.ts/, 'portfolio.ts must not read the weekly story');
+  });
+
+  test('home and my french draw one next-situation card, with the place, the goal and the status — F363', () => {
+    // One card, one shape: the situation's drawing on its tint, the French and
+    // English titles, the mission's own goal line, and the status line that
+    // chooserView.ts decides. The actions come in as children so each tab
+    // keeps its own pill.
+    const card = stripComments(read('../home/NextSituationCard.tsx'));
+    assert.match(card, /<MissionDisc place=\{next\.mission\.place\}/, 'the card does not show the place on its tint');
+    assert.match(card, /next\.mission\.title\}/, 'the card lost the French title');
+    assert.match(card, /next\.mission\.titleEn\}/, 'the card lost the English title');
+    assert.match(card, /next\.mission\.goalEn\}/, 'the card does not say what the learner will be able to do');
+    assert.match(card, /missionStatus\(next\.state, next\.independence\)/, 'the card decides the status itself instead of asking chooserView.ts');
+    assert.match(card, /\{children\}/, 'the card draws its own actions instead of taking each tab\'s');
+    assert.doesNotMatch(card, /<PillButton|<OutlineButton|<GhostButton/, 'the card carries a button of its own, so a tab could end up with two');
+
+    // Home's pill is now in the card, and its way to the Tutor tab is an
+    // outline; My French's pill is in the card as before. One pill each.
+    const home = stripComments(read('../tabs/HomeTab.tsx'));
+    assert.match(home, /<NextSituationCard[\s\S]*?<PillButton[\s\S]*?<\/NextSituationCard>/, 'Home\'s pill is not inside the card');
+    assert.match(home, /<OutlineButton label=\{`Talk to \$\{tutorNameOf\(profile\)\}`\}/, 'Home\'s way to the tutor is not an outline');
+
+    // Every goal line in the catalogue obeys the card's copy rules.
+    for (const item of missionStates([], [], NOW)) {
+      assert.doesNotMatch(item.mission.goalEn, /—/, `${item.mission.id}'s goal carries an em dash`);
+      assert.doesNotMatch(item.mission.goalEn, /\d/, `${item.mission.id}'s goal carries a digit`);
+    }
   });
 });
