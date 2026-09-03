@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { paper, accent, signal, orb, rungColor } from './palette.ts';
+import { paper, accent, signal, orb, rungColor, tint } from './palette.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 
@@ -248,6 +248,81 @@ describe('signals are re-saturated and held to what they are — F322', () => {
   });
 });
 
+describe('a tint is paper under ink art, never a mark — F362', () => {
+  // A tint is a surface: the disc behind a mission's drawing and nothing else.
+  // So it is held to a paper's floors, not a mark's and not an accent's. A blue
+  // that clears thirty from rung three's blue cannot also read as a disc on the
+  // ground (every such blue sits under eight from it), which is why the rung
+  // floor here is twenty, with the lightness rule making sure no tint can be
+  // mistaken for a fill that means something.
+  const surfaces: Record<string, string> = {
+    ground: paper.ground,
+    groundDeep: paper.groundDeep,
+    card: paper.card,
+    lineOnCard: paper.lineOnCard,
+  };
+  const marks: Record<string, string> = {
+    good: signal.good,
+    live: signal.live,
+    correspondance: signal.correspondance,
+    thinking: orb.thinking,
+    accent: accent.primary,
+  };
+  const DISC = 8;
+  const RUNG_APART = 20;
+  const TWIN = 10;
+
+  test('ink clears the text floor on every tint, and every tint reads as a disc — F362', () => {
+    for (const [name, hex] of Object.entries(tint)) {
+      assert.ok(contrast(INK, hex) >= TEXT, `ink is ${contrast(INK, hex).toFixed(2)} on ${name}`);
+      for (const [surface, sh] of Object.entries(surfaces)) {
+        const d = deltaE(hex, sh);
+        assert.ok(d >= DISC, `${name} is only ${d.toFixed(1)} off the ${surface}, so it does not read as a disc`);
+      }
+    }
+  });
+
+  test('no tint comes within thirty of a signal or the accent, within twenty of a rung, or as dark as any mark — F362', () => {
+    const everyMark = [...Object.values(marks), rungColor[1], rungColor[2], rungColor[3]];
+    const maxMarkL = Math.max(...everyMark.map((h) => lab(h).l));
+    for (const [name, hex] of Object.entries(tint)) {
+      for (const [mark, mh] of Object.entries(marks)) {
+        const d = deltaE(hex, mh);
+        assert.ok(d >= APART, `${name} is only ${d.toFixed(0)} from ${mark}`);
+      }
+      for (const rung of [1, 2, 3, 4] as const) {
+        const d = deltaE(hex, rungColor[rung]);
+        assert.ok(d >= RUNG_APART, `${name} is only ${d.toFixed(0)} from rung ${rung}'s fill`);
+      }
+      assert.ok(lab(hex).l > maxMarkL, `${name} is as dark as a mark (L* ${lab(hex).l.toFixed(0)} against ${maxMarkL.toFixed(0)})`);
+    }
+  });
+
+  test('no two tints read as one, and nothing letters or signals in a tint — F362', () => {
+    const entries = Object.entries(tint);
+    for (let i = 0; i < entries.length; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        const d = deltaE(entries[i]![1], entries[j]![1]);
+        assert.ok(d >= TWIN, `${entries[i]![0]} and ${entries[j]![0]} are only ${d.toFixed(1)} apart`);
+      }
+    }
+
+    // The source walk: a tint may be reached only from the files that draw the
+    // disc, and never handed to a text colour, a stroke or a border anywhere.
+    const allowed = new Set(['palette.ts', 'theme.ts', 'components.tsx', 'missions/missionTint.ts']);
+    for (const file of walk(SRC)) {
+      if (/\.test\.tsx?$/.test(file)) continue;
+      const rel = file.slice(SRC.length);
+      const source = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      const reaches = /\btint\.[a-z]+\b|\btint\[/.test(source);
+      if (reaches && !allowed.has(rel)) {
+        assert.fail(`${rel} reaches a tint directly; only the disc may`);
+      }
+      assert.doesNotMatch(source, /(?:color|stroke|fill|borderColor)\s*[:=]\s*\{?\s*tint[.[]/, `${rel} letters or signals in a tint`);
+    }
+  });
+});
+
 describe('the voice circle is legible — F323', () => {
   test('every orb state is legible as a mark against the ground', () => {
     // A mark that reports state is a graphical object and clears 3 against the
@@ -342,6 +417,7 @@ describe('the recorded palette matches the code — F327, F328', () => {
   for (const [k, v] of Object.entries(signal)) tokens[`signal.${k}`] = v;
   for (const [k, v] of Object.entries(orb)) tokens[`orb.${k}`] = v;
   for (const k of [1, 2, 3, 4] as const) tokens[`rungColor[${k}]`] = rungColor[k];
+  for (const [k, v] of Object.entries(tint)) tokens[`tint.${k}`] = v;
 
   test('DESIGN.md records the palette the app ships', () => {
     // DESIGN.md is recorded from the built artifact, so its token table has to be

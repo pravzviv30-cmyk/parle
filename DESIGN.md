@@ -125,6 +125,32 @@ four is plain ink: no line left to follow.
 Green is the same green everywhere the learner speaks: the orb's your-turn state,
 the lesson SpeakCircle, the Review button, the path's learned marks.
 
+### Tints: paper under a drawing
+
+The founder's mockups put each situation's line art on a soft coloured disc, and
+that much of the retired five-paper scheme came back as six **tints**, one per
+place. A tint is a **surface**, not a mark and not an accent: it is drawn only as
+the disc behind a mission's drawing (`TintDisc`, via `MissionDisc`), never as
+lettering, never as a ring or a dot that reports state. So it is held to a
+paper's floors rather than a signal's. Ink clears 4.5 on every tint; every tint
+sits at least a Delta-E of 8 off the ground, the chip fill, the card and the
+card's hairline, so it reads as a disc; it stays 30 from every signal, the accent
+and the thinking amber; 20 from every rung fill and lighter than every mark (the
+lightest mark, rung one's yellow, is L* 84 and the darkest tint is 86); and no
+two tints come within 10 of each other. The sky is 26 from rung three's blue,
+which is why the rung floor is 20: nothing reads a disc under a café cup as a
+support colour, and `palette.test.ts` walks the source so nothing can letter or
+signal in a tint.
+
+| Token | Value | Place |
+|---|---|---|
+| `tint.sand` | `#FEE7DB` | Café: a warm paper under the cup |
+| `tint.rose` | `#F8D8DF` | Friends: a blush under the clinking bubbles |
+| `tint.lilac` | `#E4D3EE` | Home: the old house lilac, under the window and the moon |
+| `tint.lagoon` | `#CFF3EB` | The street: a cool lagoon under the signpost |
+| `tint.sage` | `#E8EED5` | The market: sage under the crate of tomatoes |
+| `tint.sky` | `#D5EFFE` | The hotel: sky under the front desk |
+
 ## Type
 
 **Fraunces** (SemiBold/Bold, the 72pt optical statics) carries anything with a
@@ -157,8 +183,13 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
   quiet arrow, optional replay ear. Selection is a heavier ink rule; a replay ear
   that is sounding is drawn as `accent.primary` on a `paper.groundDeep` disc.
 - **Field, TabBar, ProgressDots** — inputs are
-  white with a 1.5 rule that turns ink on focus; the Home tabs are a soft track
-  with a white active pill; onboarding dots stretch the current page.
+  white with a 1.5 rule that turns ink on focus, and a secure field carries a
+  44pt **Show / Hide** at its trailing edge so a password is not typed blind;
+  the segmented control is a soft track with a white active pill that can stand
+  with nothing chosen and names its group for a screen reader; onboarding dots
+  stretch the current page.
+- **TintDisc / MissionDisc** — a circle of one tint with a place's line art
+  inside, decorative to assistive tech. The only place a tint is ever drawn.
 - **SpeakCircle** — THE microphone: one 108pt circle used by every speaking
   surface. Green-ringed when waiting, green-filled (with the app's only shadow)
   when live — green means "you speak", matching the voice circle —

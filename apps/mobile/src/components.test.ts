@@ -105,3 +105,50 @@ describe('the onboarding-polish primitives speak their state — F354, F358', ()
     assert.match(station, /accessibilityLabel/, 'the station line carries no label to read');
   });
 });
+
+describe('the mockup-review primitives keep their promises — F362, F366, F368, F373', () => {
+  test('a secure field can be shown, and says so to a screen reader — F373', () => {
+    // A password typed blind is a password typed twice. The control is drawn
+    // only for a secure field, sits at the touch floor, and the input's secrecy
+    // follows the toggle rather than the prop alone. The F109 bindings around
+    // it (id, aria-labelledby, role="alert") are not this test's business and
+    // are held by surfaceContract.test.ts.
+    const field = region(componentsSource(), 'export function Field(', 'export function TabBar<');
+    assert.match(field, /secureTextEntry=\{secure && !revealed\}/, 'secrecy does not follow the Show/Hide toggle');
+    assert.match(field, /\{secure && \(/, 'the control is drawn for fields that are not secure');
+    assert.match(field, /accessibilityLabel=\{revealed \? 'Hide password' : 'Show password'\}/, 'the control does not say what it does');
+    assert.match(field, /\{revealed \? 'Hide' : 'Show'\}/, 'the control does not read Show or Hide');
+    assert.match(field, /minHeight: HIT/, 'the control is under the touch floor');
+    assert.match(field, /minWidth: HIT/, 'the control is under the touch floor');
+  });
+
+  test('a stat can sit three to a row — F366', () => {
+    // Two facts to a row is Home's shape; My French has three facts and one
+    // line, so the basis narrows to thirty percent when asked, and nothing else
+    // about the stat changes.
+    const stat = region(componentsSource(), 'export function Stat(', 'export function Monogram(');
+    assert.match(stat, /columns\?: 2 \| 3/, 'Stat takes no column count');
+    assert.match(stat, /columns === 3 \? '30%' : '46%'/, 'three to a row is not thirty percent each');
+  });
+
+  test('the tab bar can name itself and stand with nothing chosen — F368', () => {
+    // Inline on Profile, the segmented control is a setting: a learner who has
+    // not chosen a daily goal must see three quiet segments, not a lie, and a
+    // screen reader must hear what the three words are a choice of.
+    const bar = region(componentsSource(), 'export function TabBar<', 'export function Stat(');
+    assert.match(bar, /active: K \| null/, 'the tab bar cannot stand with nothing chosen');
+    assert.match(bar, /accessibilityLabel\?: string/, 'the tab bar cannot name its group');
+    assert.match(bar, /accessibilityRole="tablist" accessibilityLabel=\{accessibilityLabel\}/, 'the name is not on the group');
+    assert.match(bar, /accessibilityState=\{\{ selected: isActive \}\}/, 'a segment no longer says it is selected');
+  });
+
+  test('the tint disc is a circle of one tint, hidden from assistive tech — F362', () => {
+    // The one place a tint is drawn. Decorative, because the drawing inside it
+    // is decorative and the place is named beside it.
+    const disc = region(componentsSource(), 'export function TintDisc(', 'export function ProgressDots(');
+    assert.match(disc, /\{\.\.\.decorative\}/, 'the disc is not hidden from assistive tech');
+    assert.match(disc, /borderRadius: size \/ 2/, 'the disc is not a circle at its own size');
+    assert.match(disc, /backgroundColor: tint\[name\]/, 'the disc is not filled with the named tint');
+    assert.doesNotMatch(disc, /<Text/, 'the disc letters something');
+  });
+});
