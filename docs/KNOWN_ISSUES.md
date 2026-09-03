@@ -5196,3 +5196,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   SE-class phone My French shows six rows, then the next-situation card, the pill and the quiet door in order;
   a new account's My French shows no number anywhere.
 - verified-by: `the device runbook carries the Pass 2 content checks`
+
+### F351 — Home spells the next-situation card itself while portfolio.ts mirrors it
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/HomeTab.tsx:143
+- note: `NEXT_SITUATION` in `progress/portfolio.ts` copies Home's "Next situation" / "Start this one" and a
+  test reads HomeTab.tsx to keep them equal. That is two definitions held together by a test rather than one.
+  Home should import `NEXT_SITUATION` and draw `NEXT_SITUATION.label` / `NEXT_SITUATION.action`, and the
+  portfolio test should then assert the import rather than the literal. No learner-facing change.
+- verified-by: `home draws the next situation from portfolio.ts rather than spelling it`
