@@ -70,6 +70,13 @@ export function PreAccountOnboarding({
     const next: PreAccountOnboardingDraft = { ...draft, tutorVoice: voice };
     setDraft(next);
     onDraftChange(next);
+    // The bundled sample is deliberately the tutor's real, bilingual
+    // introduction: "Bonjour, je m'appelle [name]. Hello, my name is [name]."
+    // Playing it on selection makes the choice feel like meeting a person,
+    // while the ear remains available to replay or stop it deliberately.
+    setPlaying(voice);
+    player.replace(voiceSample(voice));
+    player.play();
   };
 
   const hearVoice = useCallback((voice: TutorVoiceKey) => {
@@ -123,7 +130,7 @@ export function PreAccountOnboarding({
       {page === 'voice' && (
         <>
           <Text accessibilityRole="header" style={st.title}>{`Meet ${persona.name}`}</Text>
-          <Text style={st.body}>Choose the AI tutor voice you would like to hear. Tap an ear to preview it; nothing plays by itself.</Text>
+          <Text style={st.body}>Choose the AI tutor voice you would like to hear. When you choose one, they introduce themselves in French and then in English.</Text>
           <View style={st.voices}>
             {TUTOR_VOICE_OPTIONS.map((option) => (
               <OptionCard
@@ -137,6 +144,7 @@ export function PreAccountOnboarding({
               />
             ))}
           </View>
+          <Text style={st.sampleLine}>{`“Bonjour, je m’appelle ${tutorVoice(selected).persona.name}. Hello, my name is ${tutorVoice(selected).persona.name}.”`}</Text>
         </>
       )}
 
@@ -194,5 +202,6 @@ const st = StyleSheet.create({
   english: { ...type.small, color: paper.inkSoft },
   reply: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
   voices: { gap: space(3), marginTop: space(6) },
+  sampleLine: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(4) },
   secondary: { marginTop: space(4), gap: space(2) },
 });

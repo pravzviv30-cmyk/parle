@@ -660,7 +660,7 @@ export function ProfileTab({
             />
             <SettingsRow
               label="Download my data"
-              value={exporting ? 'Preparing…' : 'JSON file'}
+              value={exporting ? 'Preparing…' : 'A copy of your learning history'}
               onPress={() => {
                 if (!user || exporting) return;
                 setExporting(true);

@@ -28,6 +28,18 @@ describe('the pre-account hand-off', () => {
     assert.match(source, /onCreateAccount\(draft\)/, 'the chosen voice is dropped before sign-up');
   });
 
+  test('a voice selection plays that tutor’s bundled bilingual introduction', () => {
+    // The audio assets are generated through the agent's real voice seam and
+    // each says, in French first, "Bonjour, je m'appelle [name]. Hello, my
+    // name is [name]." Selecting a card must therefore play the selected clip,
+    // not merely draw a tick and make the learner hunt for its ear control.
+    const choose = source.slice(source.indexOf('const chooseVoice'), source.indexOf('const hearVoice'));
+    assert.match(choose, /setPlaying\(voice\)/, 'selecting a tutor does not show their introduction as playing');
+    assert.match(choose, /player\.replace\(voiceSample\(voice\)\)/, 'selecting a tutor does not load that tutor’s own clip');
+    assert.match(choose, /player\.play\(\)/, 'the selected tutor introduction is loaded but never heard');
+    assert.match(source, /they introduce themselves in French and then in English/, 'the voice page does not explain the bilingual introduction');
+  });
+
   test('turns the draft into one account-scoped profile exactly once', () => {
     assert.match(app, /function PreAccountProfileBootstrap/, 'the account boundary has no pre-account bootstrap');
     assert.match(app, /if \(delivered\.current\) return/, 'strict mode can apply the draft more than once');
