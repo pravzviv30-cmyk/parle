@@ -291,6 +291,18 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Pass 4 mockup-review gate: **2,416 tests, 0 failing**; core 565, brain 382, tutor agent 430,
+  token server 172, playground 26, mobile 841. Typecheck is clean in all six workspaces and floors
+  were blessed to those counts. F362 to F381: fifteen Stitch mockups were reviewed and the ideas
+  that fit were folded into the existing structure, with tinted discs under mission art, one shared
+  next-situation card on Home and My French, the Tutor tab's doors as cards, Practice's next step as
+  the tab's pill, My French's evidence row, Profile's goal and corrections chosen in place, stored
+  preferences for typing and for a slower tutor, the replay ear and the tutor's name in the
+  transcript, Show/Hide on password fields, and sign in with Apple where the platform offers it.
+  Three ticked earlier entries (F339, F346, F347) named tests this pass renamed; each now names its
+  successor. Every tab and both auth screens were walked by eye on the web build with the mock
+  account. The Apple sheet, the lit ear, the slow first line and the typed-by-default opening are
+  device rows P4-1 to P4-6 in DEVICE_VERIFICATION.md, all not run.
 - Learner tutor-voice picker gate: **2,301 tests, 0 failing**; core 565, brain 380, tutor agent 429,
   token server 172, playground 26, mobile 729. Typecheck is clean in all six workspaces and floors
   were blessed to those counts. F299 is the entry worth reading: the app statically `require()`s

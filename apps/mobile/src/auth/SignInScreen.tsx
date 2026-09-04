@@ -4,20 +4,27 @@
  *
  * It sits inside `ScrollScreen avoidKeyboard`: the frame pays the notch, lifts
  * the fields above the keyboard, and draws the one back through `ScreenHeader`.
- * The Sign in pill and the Google outline ride in the footer so a keyboard
+ * The Sign in pill and the provider outlines ride in the footer so a keyboard
  * cannot scroll them out of reach. The forgot-password ghost, the form message
  * and the "New here?" row stay in the body, so a field is still visible over an
  * SE-class keyboard rather than pinned under the buttons.
+ *
+ * The Apple outline sits above the Google one and is drawn only where the
+ * platform offers it, which today means iOS. That order is Apple's own
+ * guidance where its button appears at all, and it costs an Android or web
+ * learner nothing, because there the button does not exist.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { paper, space, type, signal, HIT } from '../theme.ts';
-import { PillButton, OutlineButton, GhostButton, Field, GoogleMark } from '../components.tsx';
+import { PillButton, OutlineButton, GhostButton, Field, GoogleMark, AppleMark } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail } from './validate.ts';
 import { authButtonLabel, type AuthAction } from './busyLabel.ts';
+import { appleSignInOffered } from './apple.ts';
+import { SIGN_IN_PURPOSE } from './copy.ts';
 
 export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; onCreateAccount: () => void }) {
   const { adapter } = useAuth();
@@ -31,6 +38,20 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
   // the bug underneath; only the button that started it changes its words.
   const [pending, setPending] = useState<AuthAction | null>(null);
   const busy = pending !== null;
+  // Asked once, and false until it answers. A door is drawn only where the
+  // platform actually opens it: Android and web never offer Apple sign-in, and
+  // an iPhone too old for it says no as well. Drawing the button first and
+  // hiding it after would flash a door that was never there.
+  const [appleOffered, setAppleOffered] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void appleSignInOffered().then((offered) => {
+      if (alive) setAppleOffered(offered);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const submit = async () => {
     // The keyboard's return key is not a button and cannot be greyed out, so
@@ -53,6 +74,17 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
     if (busy) return;
     setPending('google');
     const result = await adapter.signInWithGoogle();
+    setPending(null);
+    if (!result.ok) {
+      setFormOk(false);
+      setFormMessage(result.message);
+    }
+  };
+
+  const apple = async () => {
+    if (busy) return;
+    setPending('apple');
+    const result = await adapter.signInWithApple();
     setPending(null);
     if (!result.ok) {
       setFormOk(false);
@@ -83,6 +115,14 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
       footer={
         <View style={{ gap: space(3) }}>
           <PillButton label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} disabled={busy} />
+          {appleOffered && (
+            <OutlineButton
+              label={authButtonLabel('apple', pending === 'apple')}
+              onPress={() => void apple()}
+              disabled={busy}
+              icon={<AppleMark size={18} />}
+            />
+          )}
           <OutlineButton
             label={authButtonLabel('google', pending === 'google')}
             onPress={() => void google()}
@@ -93,6 +133,7 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
       }
     >
       <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Welcome back</Text>
+      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{SIGN_IN_PURPOSE}</Text>
 
       <View style={{ gap: space(4), marginTop: space(6) }}>
         <Field

@@ -104,3 +104,33 @@ export const rungColor: Record<1 | 2 | 3 | 4, string> = {
   3: '#6EC4E8',
   4: '#241633',
 };
+
+/**
+ * Tints: soft paper under a place's line art, one per situation.
+ *
+ * A tint is a surface, not a mark and not an accent. It is drawn only as the
+ * disc behind a mission's drawing — never as lettering, never as a ring or a
+ * dot that reports state — so its floors are a paper's floors: ink clears the
+ * text floor on it, it sits far enough off the ground, the chip fill and the
+ * card to read as a disc, it stays thirty from every signal and the accent,
+ * twenty from every rung fill, lighter than every mark, and no two tints come
+ * within ten of each other. The sky is twenty-six from rung three's blue, which
+ * is why the rung floor is twenty and not thirty: nothing reads a disc under a
+ * café cup as a support colour, but nothing should have to squint either.
+ */
+export const tint = {
+  /** Café: a warm paper under the cup. */
+  sand: '#FEE7DB',
+  /** Friends: a blush under the clinking bubbles. */
+  rose: '#F8D8DF',
+  /** Home: the old house lilac, under the window and the moon. */
+  lilac: '#E4D3EE',
+  /** The street: a cool lagoon under the signpost. */
+  lagoon: '#CFF3EB',
+  /** The market: sage under the crate of tomatoes. */
+  sage: '#E8EED5',
+  /** The hotel: sky under the front desk. */
+  sky: '#D5EFFE',
+} as const;
+
+export type TintName = keyof typeof tint;

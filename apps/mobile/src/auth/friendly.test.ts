@@ -20,7 +20,15 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, test } from 'node:test';
 
-import { friendly, deletionFailure, GENERIC_FAILURE, GOOGLE_START_FAILED } from './friendly.ts';
+import {
+  friendly,
+  deletionFailure,
+  GENERIC_FAILURE,
+  GOOGLE_START_FAILED,
+  APPLE_START_FAILED,
+  APPLE_NOT_CONFIGURED,
+  APPLE_CLOSED,
+} from './friendly.ts';
 
 const AUTH_DIR = import.meta.dirname;
 const read = (name: string): string => readFileSync(path.join(AUTH_DIR, name), 'utf8');
@@ -178,6 +186,67 @@ describe('a provider error, translated — F153', () => {
         );
       }
     }
+  });
+
+  /**
+   * The Apple twin of the test above — F375.
+   *
+   * Three lines rather than two, because Apple has a failure Google does not:
+   * the sheet is the system's own and a learner can dismiss it deliberately.
+   * The rule is the same for all three. Nothing names a vendor's console,
+   * nothing asks somebody who cannot act on it to go and configure anything,
+   * and every line ends with somewhere to go.
+   */
+  test('the apple lines tell the learner what to do, not which vendor to configure — F375', () => {
+    const lines: [name: string, line: string][] = [
+      ['APPLE_START_FAILED', APPLE_START_FAILED],
+      ['APPLE_NOT_CONFIGURED', APPLE_NOT_CONFIGURED],
+      ['APPLE_CLOSED', APPLE_CLOSED],
+    ];
+
+    for (const [name, line] of lines) {
+      assert.doesNotMatch(
+        line,
+        /supabase|provider|setup|configur|dashboard|console|entitlement|capability|developer account/i,
+        `${name} hands an operator's instruction to a learner: "${line}"`,
+      );
+      assert.ok(!/—/.test(line), `${name} carries an em dash`);
+      assert.ok(!/\d/.test(line), `${name} carries a digit, which reads as a code or a timer`);
+      assert.ok(line.length <= 120, `${name} is ${line.length} characters, which is a paragraph under a button`);
+      assert.doesNotMatch(line, /sorry|oops|unfortunately|error|failed/i, `${name} apologises or scolds: "${line}"`);
+      // Nobody is left standing in front of a dead button.
+      assert.match(
+        line,
+        /try again|email and password|nothing was changed/i,
+        `${name} leaves the learner with nowhere to go: "${line}"`,
+      );
+    }
+
+    // The three are told apart, and each says the true thing about its own
+    // failure. "Try again" is a lie when the answer cannot change until
+    // somebody switches the provider on, and it is an argument when the learner
+    // is the one who closed the sheet.
+    assert.match(APPLE_START_FAILED, /try again/i, 'a failure that might not repeat does not offer a retry');
+    assert.doesNotMatch(APPLE_NOT_CONFIGURED, /try again/i, 'the switched-off line promises a retry that cannot help');
+    assert.match(APPLE_NOT_CONFIGURED, /email and password/i, 'the switched-off line does not point at the door still open');
+    assert.doesNotMatch(APPLE_CLOSED, /try again/i, 'the dismissed sheet argues with a learner who meant to stop');
+    assert.match(APPLE_CLOSED, /nothing was changed/i, 'a closed sheet does not say the account was left alone');
+    assert.equal(new Set(lines.map(([, line]) => line)).size, 3, 'two of the three apple lines are the same sentence');
+
+    // Both halves of the platform split use the shared words rather than their
+    // own, exactly as the Google pair does.
+    for (const name of ['apple.ts', 'apple.native.ts']) {
+      const source = read(name);
+      assert.match(source, /APPLE_START_FAILED/, `${name} writes its own Apple failure copy`);
+      for (const line of messages(source)) {
+        assert.doesNotMatch(
+          line,
+          /supabase|provider setup|configur|dashboard/i,
+          `${name} tells the learner to go and configure something: "${line}"`,
+        );
+      }
+    }
+    assert.match(read('apple.native.ts'), /APPLE_CLOSED/, 'the native sheet does not tell a dismissal apart from a failure');
   });
 });
 

@@ -16,8 +16,9 @@ import * as SecureStore from 'expo-secure-store';
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 import type { AuthAdapter, AuthResult, AuthUser } from './types.ts';
 import { startGoogleSignIn } from './oauth.ts';
-import { friendly, deletionFailure, GOOGLE_NOT_CONFIGURED } from './friendly.ts';
-import { googleAvailable } from './providerStatus.ts';
+import { startAppleSignIn } from './apple.ts';
+import { friendly, deletionFailure, GOOGLE_NOT_CONFIGURED, APPLE_NOT_CONFIGURED } from './friendly.ts';
+import { googleAvailable, appleAvailable } from './providerStatus.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { createSecureSessionStorage } from './secureSessionStorage.ts';
 import { installationId } from './installation.ts';
@@ -25,10 +26,15 @@ import { installationId } from './installation.ts';
 function toUser(session: Session | null): AuthUser | null {
   const user = session?.user;
   if (!user) return null;
+  // The provider decides what Profile offers: an Apple or Google account has no
+  // password this app could change, and its delete sheet asks a different
+  // question. Anything unrecognised reads as password, which is the shape that
+  // asks for proof rather than the shape that assumes a provider sheet.
+  const provider = user.app_metadata?.provider;
   return {
     id: user.id,
     email: user.email ?? null,
-    provider: user.app_metadata?.provider === 'google' ? 'google' : 'password',
+    provider: provider === 'google' || provider === 'apple' ? provider : 'password',
   };
 }
 
@@ -113,6 +119,19 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
       return startGoogleSignIn(client);
     },
 
+    async signInWithApple(): Promise<AuthResult> {
+      // Same preflight as Google, and it earns it twice over here: the button
+      // is only drawn where the *device* offers Apple sign-in, which says
+      // nothing at all about whether the project has the provider switched on.
+      // A learner on a new iPhone would otherwise meet a sheet that succeeds
+      // and a session that never arrives. `null` means the preflight could not
+      // tell, and then the sheet opens as it always did.
+      if ((await appleAvailable(url, anonKey)) === false) {
+        return { ok: false, message: APPLE_NOT_CONFIGURED };
+      }
+      return startAppleSignIn(client);
+    },
+
     async sendPasswordReset(email): Promise<AuthResult> {
       const { error } = await client.auth.resetPasswordForEmail(email, {
         ...(Platform.OS === 'web' ? { redirectTo: window.location.origin } : {}),
@@ -135,6 +154,16 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
         const result = await startGoogleSignIn(client);
         if (Platform.OS === 'web' && result.ok) {
           return { ok: false, message: 'Finish signing in with Google, then return here and delete the account again.' };
+        }
+        return result;
+      }
+      if (user.app_metadata?.provider === 'apple') {
+        // Native returns here with a session in hand; web has already left for
+        // the redirect, so "ok" only means the trip started and the deletion
+        // must not be read as confirmed.
+        const result = await startAppleSignIn(client);
+        if (Platform.OS === 'web' && result.ok) {
+          return { ok: false, message: 'Finish signing in with Apple, then return here and delete the account again.' };
         }
         return result;
       }

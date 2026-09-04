@@ -21,22 +21,31 @@
  * not hypothetical: it is what the first draft did, against the real project.
  */
 
+/**
+ * The social providers this app has a door for. Apple joined in F375, and the
+ * reading is one function rather than two because the settings document says
+ * `external.<name>` for every one of them: a second copy of this parser is how
+ * one of them ends up reading a shape the other stopped answering.
+ */
+export type SocialProvider = 'google' | 'apple';
+
 /** `true` enabled, `false` switched off, `null` could not tell. */
-export function googleEnabled(body: unknown): boolean | null {
+export function providerEnabled(body: unknown, name: SocialProvider): boolean | null {
   if (typeof body !== 'object' || body === null) return null;
   const external = (body as { external?: unknown }).external;
   if (typeof external !== 'object' || external === null) return null;
-  const google = (external as { google?: unknown }).google;
-  return typeof google === 'boolean' ? google : null;
+  const flag = (external as Record<string, unknown>)[name];
+  return typeof flag === 'boolean' ? flag : null;
 }
 
 /**
  * Ask the project what it has enabled. Never throws: every failure — offline,
  * a 500, HTML from a captive portal — is the same "could not tell" answer.
  */
-export async function googleAvailable(
+export async function providerAvailable(
   supabaseUrl: string,
   anonKey: string,
+  name: SocialProvider,
   request: typeof fetch = fetch,
   timeoutMs = 3_000,
 ): Promise<boolean | null> {
@@ -46,8 +55,26 @@ export async function googleAvailable(
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!response.ok) return null;
-    return googleEnabled(await response.json());
+    return providerEnabled(await response.json(), name);
   } catch {
     return null;
   }
 }
+
+/** The two doors, by name. Thin on purpose: the rule above is the only copy of it. */
+export const googleEnabled = (body: unknown): boolean | null => providerEnabled(body, 'google');
+export const appleEnabled = (body: unknown): boolean | null => providerEnabled(body, 'apple');
+
+export const googleAvailable = (
+  supabaseUrl: string,
+  anonKey: string,
+  request: typeof fetch = fetch,
+  timeoutMs = 3_000,
+): Promise<boolean | null> => providerAvailable(supabaseUrl, anonKey, 'google', request, timeoutMs);
+
+export const appleAvailable = (
+  supabaseUrl: string,
+  anonKey: string,
+  request: typeof fetch = fetch,
+  timeoutMs = 3_000,
+): Promise<boolean | null> => providerAvailable(supabaseUrl, anonKey, 'apple', request, timeoutMs);

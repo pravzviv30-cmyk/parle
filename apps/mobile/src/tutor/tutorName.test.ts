@@ -204,7 +204,7 @@ describe('the tutor is called one thing, in one place', () => {
 
     // The circle says who is thinking, speaking and ready, and the helper says
     // who is listening. Four more sentences that used to be about one man.
-    const base = { textMode: false, micOpen: true, thinking: false, tutorSpeaking: false, turns: [] as const };
+    const base = { textMode: false, typingOpen: false, micOpen: true, thinking: false, tutorSpeaking: false, turns: [] as const };
     const said = [
       { id: 't1', who: 'learner', fr: 'salut', frWritten: null, en: null },
     ] as const satisfies readonly TurnLine[];

@@ -17,7 +17,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { buildPath, CAFE_LESSON, type PathUnit, type PracticeTopic } from '@luvani/core';
 import { paper, space, type } from '../theme.ts';
-import { Card, Label, OutlineButton, GhostButton } from '../components.tsx';
+import { Card, Label, OutlineButton, GhostButton, PillButton } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { PathNodeRow } from '../practice/PathNodeRow.tsx';
 import { MIX_OFFER, offersMix } from '../practice/mix.ts';
@@ -158,19 +158,18 @@ export function PracticeTab() {
           <View style={{ marginBottom: space(6) }}>
             <Label>{NEXT_STEP.label}</Label>
             <View style={{ marginTop: space(3) }}>
+              {/* The tab's one pill (F365). The line under it is the same line
+                  the OutlineButton used to carry as its sub. */}
               {step.kind === 'review' ? (
-                <OutlineButton
-                  label={NEXT_STEP.review}
-                  sub={reviewLine(step.due)}
-                  onPress={() => nav.navigate('Review')}
-                />
+                <View>
+                  <PillButton label={NEXT_STEP.review} onPress={() => nav.navigate('Review')} />
+                  <Text style={st.stepSub}>{reviewLine(step.due)}</Text>
+                </View>
               ) : (
-                <OutlineButton
-                  label={step.node.title}
-                  sub={statusLine(step.node, tutorName)}
-                  disabled={checking}
-                  onPress={() => open(step.node)}
-                />
+                <View>
+                  <PillButton label={step.node.title} disabled={checking} onPress={() => open(step.node)} />
+                  <Text style={st.stepSub}>{statusLine(step.node, tutorName)}</Text>
+                </View>
               )}
             </View>
           </View>
@@ -229,4 +228,5 @@ export function PracticeTab() {
 
 const st = StyleSheet.create({
   scroll: { flexGrow: 1 },
+  stepSub: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
 });

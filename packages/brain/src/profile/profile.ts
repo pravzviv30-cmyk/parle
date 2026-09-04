@@ -15,7 +15,7 @@
 import { isMastered, normalise, type Rung } from '@luvani/core';
 
 import type { MemoryExtraction, MemoryFact, TutorTurn } from '../contract/types.ts';
-import { CEFR_BANDS, type CefrBand, type RegisterId, type Strictness } from '../types.ts';
+import { CEFR_BANDS, type CefrBand, type Pace, type RegisterId, type Strictness } from '../types.ts';
 import type { ConversationState, LearnerSnapshot } from '../engine/conversation.ts';
 import { normalizeErrorTag } from './errorTag.ts';
 
@@ -63,7 +63,12 @@ export interface LearnerProfile {
      */
     name: string | null;
   };
-  preferences: { strictness: Strictness; lastScenarios: string[] };
+  /**
+   * `pace` is optional because it arrived after the shape shipped: a profile
+   * without it is a learner who never asked, and reads as 'normal'. Set from
+   * Profile, read by the agent when a scene opens; never written by a session.
+   */
+  preferences: { strictness: Strictness; lastScenarios: string[]; pace?: Pace };
   stats: { sessions: number; totalTurns: number; rescues: number; lastRung: Rung | null };
 }
 

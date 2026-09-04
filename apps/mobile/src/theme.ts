@@ -24,7 +24,8 @@
 
 import { Platform } from 'react-native';
 
-export { paper, accent, signal, orb, rungColor } from './palette.ts';
+export { paper, accent, signal, orb, rungColor, tint } from './palette.ts';
+export type { TintName } from './palette.ts';
 
 /**
  * What each rung asks of the learner, in words.

@@ -14,7 +14,19 @@ import assert from 'node:assert/strict';
 
 import { DEFAULT_TUTOR_VOICE, TUTOR_VOICES, type TutorVoiceKey } from '@luvani/core';
 
-import { completeProfile, createStoredProfile, withDailyGoal, withTutorVoice, type StoredProfile } from './store.ts';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { setActiveUser } from '../storage/scope.ts';
+import {
+  completeProfile,
+  createStoredProfile,
+  loadProfile,
+  saveProfile,
+  withDailyGoal,
+  withPreferTyping,
+  withTutorVoice,
+  type StoredProfile,
+} from './store.ts';
 
 const NOW = Date.parse('2026-08-22T10:00:00Z');
 
@@ -31,7 +43,8 @@ describe('a new profile — what the app writes down about someone who just join
     const profile = createStoredProfile({ name: 'Camille', ageConfirmed: true, motivation: 'travel' }, NOW);
     assert.equal(profile.dob, null, 'the product stopped asking for a date, so there is none to keep');
     assert.equal(profile.ageConfirmed, true, 'what they actually told us is that they are old enough');
-    assert.equal(profile.version, 6);
+    assert.equal(profile.version, 7);
+    assert.equal(profile.preferTyping, false, 'nobody arrives preferring to type; the row in Profile is where that is said');
     assert.equal(profile.ageStopAt, null, 'nobody arrives already stopped');
     assert.equal(
       profile.tutorVoice,
@@ -126,5 +139,49 @@ describe("the tutor's voice — one field, one write path", () => {
     const before = existing({ tutorVoice: CHOICE });
     const after = completeProfile(before, { name: 'Cam', motivation: 'travel' }, NOW);
     assert.equal(after.tutorVoice, CHOICE, 'a flow that does not ask about the voice cannot unpick it');
+  });
+});
+
+describe('preferring typing — one field, one write path', () => {
+  /** One in-memory AsyncStorage, so the round trip is the real store's. */
+  function installDisk(): void {
+    const map = new Map<string, string>();
+    const shared = AsyncStorage as unknown as Record<string, unknown>;
+    shared.getItem = (key: string): Promise<string | null> => Promise.resolve(map.get(key) ?? null);
+    shared.setItem = (key: string, value: string): Promise<void> => {
+      map.set(key, value);
+      return Promise.resolve();
+    };
+    shared.removeItem = (key: string): Promise<void> => {
+      map.delete(key);
+      return Promise.resolve();
+    };
+  }
+
+  test('preferring typing changes that and nothing else, and survives the store\'s round trip — F370', async () => {
+    // A new learner has not said how they like to answer, so the circle is
+    // the way in. The door flips one boolean and touches nothing else.
+    const before = existing();
+    assert.equal(before.preferTyping, false, 'a new profile arrives preferring to type, which nobody said');
+    const typing = withPreferTyping(before, true);
+    assert.equal(typing.preferTyping, true);
+    assert.deepEqual({ ...typing, preferTyping: false }, before, 'the switch edits the preference, not the learner');
+    assert.equal(withPreferTyping(typing, false).preferTyping, false, 'the switch cannot be turned back off');
+
+    // And the store keeps it, through the same door the app reads on every
+    // launch: the version chain and repairProfile both run on the way out.
+    installDisk();
+    setActiveUser('77777777-7777-4777-8777-777777777777');
+    await saveProfile(typing);
+    const reloaded = await loadProfile();
+    assert.ok(reloaded, 'the profile did not survive its own round trip');
+    assert.equal(reloaded.preferTyping, true, 'the preference reset itself on the next launch');
+    assert.equal(reloaded.version, 7);
+    assert.equal(reloaded.name, 'Camille', 'and the learner kept everything else');
+
+    await saveProfile(withPreferTyping(reloaded, false));
+    const again = await loadProfile();
+    assert.ok(again);
+    assert.equal(again.preferTyping, false, 'turning it back off was lost');
   });
 });

@@ -52,15 +52,16 @@ function chain(stored: unknown, now: number): Record<string, unknown> | null {
   if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) return null;
   const r = stored as Record<string, unknown>;
   const version = r.version;
-  if (version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5 && version !== 6) return null;
+  if (version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5 && version !== 6 && version !== 7) return null;
   return {
-    version: 6,
+    version: 7,
     name: typeof r.name === 'string' ? r.name : null,
     dob: typeof r.dob === 'string' ? r.dob : null,
     ageConfirmed: r.ageConfirmed === true ? true : null,
     motivation: typeof r.motivation === 'string' ? r.motivation : null,
     dailyGoalMin: GOALS.has(r.dailyGoalMin) ? r.dailyGoalMin : null,
-    tutorVoice: version === 6 && isTutorVoiceKey(r.tutorVoice) ? r.tutorVoice : null,
+    tutorVoice: (version === 6 || version === 7) && isTutorVoiceKey(r.tutorVoice) ? r.tutorVoice : null,
+    preferTyping: version === 7 && r.preferTyping === true,
     onboardedAt: typeof r.onboardedAt === 'number' ? r.onboardedAt : now,
     username: typeof r.username === 'string' ? r.username : null,
     brain: r.brain,
@@ -94,7 +95,7 @@ function brain(over: Partial<LearnerProfile> = {}): LearnerProfile {
 
 function stored(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    version: 6,
+    version: 7,
     name: null,
     dob: null,
     ageConfirmed: null,
@@ -103,6 +104,7 @@ function stored(over: Record<string, unknown> = {}): Record<string, unknown> {
     // Never chosen, which is what the app writes for everybody until they pick
     // a voice. It is not the default: the default is the agent's to apply.
     tutorVoice: null,
+    preferTyping: false,
     onboardedAt: NOW,
     username: null,
     brain: createProfile(),
@@ -380,10 +382,10 @@ describe('merging two copies of one learner', () => {
     assert.ok(m !== null);
     // Two sides in, one result back out: three passes through the chain.
     assert.equal(chainCalls, 3);
-    // Re-pointed from 4 when the app's chain reached v6, which is the fact this
+    // Re-pointed from 4 when the app's chain reached v6, and again at v7, which is the fact this
     // line was always reading: the result comes back out through the chain and
     // therefore wears the version the chain writes, whatever that has become.
-    assert.equal(m.version, 6);
+    assert.equal(m.version, 7);
     assert.equal(m.ageConfirmed, null);
     assert.equal(m.motivation, 'want');
     // repairProfile brought the brain to version 2 and filled the memory it

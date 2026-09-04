@@ -5070,7 +5070,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `ds.checkDisabled`, `st.smallAction`, `st.door` go. Scoped to the tabs and DrillScreen.
 - verified-by: `no tab draws a pill, a text button or a card-button of its own`
 - verified-by: `the drill's Check is the pill, twice, and nothing hand-rolled`
-- verified-by: `the tutor's quiet doors are outline buttons with a gloss`
+- superseded: Pass 4 (F364) drew the doors as cards; the test below is that entry's successor.
+- verified-by: `the tutor's doors are cards drawn with the app's buttons, not a bespoke card-button — F364`
 
 ### F340 — No tab pads its own scroll
 - severity: P1
@@ -5144,7 +5145,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `dueCards`, and the pill count stays zero so the heavy-ruled row remains the single primary (F342).
   `open` and `talkAgain` are called, not edited.
 - verified-by: `practice draws its next step from nextStep and decides nothing about it on the screen`
-- verified-by: `the practice headline is a door to the same handler as the ruled row, never a second primary`
+- superseded: Pass 4 (F365) made the headline the tab's one pill; the test below is that entry's successor.
+- verified-by: `the practice headline is the tab's one pill, and it still opens the ruled row's handler — F365`
 - verified-by: `the mix offer sits under the next step, not above it`
 
 ### F347 — A situation's row action and the next-situation words are decided in one module
@@ -5157,7 +5159,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   no import of `progress/story.ts`. Sibling of `passport.ts`, shaped like `practice/talkAgain.ts`.
 - verified-by: `a finished situation offers to refine pronunciation, an unfinished one offers to start`
 - verified-by: `the portfolio's words carry no score, no number and no word that scolds`
-- verified-by: `my french and home name the next situation in the same words`
+- superseded: Pass 4 (F363) drew one card for both tabs; the test below is F351's and F363's successor.
+- verified-by: `home draws the next situation from portfolio.ts rather than spelling it`
 
 ### F348 — My French draws nothing at zero and closes on the next situation
 - severity: P1
@@ -5199,7 +5202,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F351 — Home spells the next-situation card itself while portfolio.ts mirrors it
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/HomeTab.tsx:143
 - note: `NEXT_SITUATION` in `progress/portfolio.ts` copies Home's "Next situation" / "Start this one" and a
   test reads HomeTab.tsx to keep them equal. That is two definitions held together by a test rather than one.
@@ -5308,3 +5311,237 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   "Sign out" lands on Welcome; the dots read "Step 1 of 4" as one element and a chosen voice reads selected;
   Meet at AX5 wraps as left-set paragraphs with the pill pinned.
 - verified-by: `the device runbook carries the Pass 3 first-run checks — F361`
+
+### F362 — A tint is a paper under a mission's art, and never a mark
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/palette.ts:100
+- note: six soft tints (`tint.sand` #FEE7DB cafe, `tint.rose` #F8D8DF friends, `tint.lilac` #E4D3EE home,
+  `tint.lagoon` #CFF3EB street, `tint.sage` #E8EED5 market, `tint.sky` #D5EFFE hotel), one per MissionPlace
+  in missions/missionTint.ts, drawn only by TintDisc/MissionDisc. A tint is a surface: ink clears 4.5 on it,
+  it sits at least 8 (Delta-E) off ground, groundDeep, card and lineOnCard, 30 off every signal, the accent
+  and orb.thinking, 20 off every rung and lighter than every mark (max mark L* 84, min tint L* 86), and no two
+  tints within 10. Sky vs rung 3 is 26, which is why the rung floor is 20 rather than 30. DESIGN.md gains a
+  Tints table.
+- verified-by: `ink clears the text floor on every tint, and every tint reads as a disc — F362`
+- verified-by: `no tint comes within thirty of a signal or the accent, within twenty of a rung, or as dark as any mark — F362`
+- verified-by: `no two tints read as one, and nothing letters or signals in a tint — F362`
+- verified-by: `every situation has one tint, every tint has a situation — F362`
+- verified-by: `DESIGN.md records the palette the app ships`
+
+### F363 — The next situation shows its place and its goal, once, on Home and on My French
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.tsx:141
+- note: one home/NextSituationCard.tsx draws the label, the MissionDisc, the French and English titles, the
+  mission's goalEn and the missionStatus line, and takes its actions as children so each tab keeps its own
+  pill. Home passes PillButton "Start this one" and the "See all situations" ghost; its closing
+  `Talk to {tutor}` becomes an OutlineButton. My French passes its pill. Closes F351: the card imports
+  NEXT_SITUATION from portfolio.ts and neither tab spells the copy.
+- verified-by: `home draws the next situation from portfolio.ts rather than spelling it`
+- verified-by: `home and my french draw one next-situation card, with the place, the goal and the status — F363`
+- verified-by: `a tab carries at most one primary pill, and Practice and Profile carry none`
+
+### F364 — The Tutor tab's three doors are cards that show what is behind them
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tutor/gate.ts:106
+- note: tutorDoors takes the resumable mission (title, titleEn, place, status) and answers, per door, a
+  card: label, gloss, an action word and art (one place, every place, or none). Resume: MissionDisc, titles,
+  status, pill "Continue". Practical mission: the six MissionDiscs at 40pt as a teaser, the gloss, and the
+  pill when there is no resume, otherwise outline "Choose a situation". Talk freely: outline "Start talking".
+  SpeakBubbles, the demo card and both ghosts stay. F339's tutor assertion is rewritten for cards.
+- verified-by: `each door is a card that says what is behind it, and exactly one carries the pill — F364`
+- verified-by: `the tutor's doors are cards drawn with the app's buttons, not a bespoke card-button — F364`
+- verified-by: `the tutor tab opens its doors without the intro standing in the way`
+
+### F365 — Practice's next step is the tab's one pill
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/PracticeTab.tsx:161
+- note: both branches of the next step become PillButton, with the sub line kept beneath as type.small the
+  way TutorTab draws its primary door's gloss. The handlers are unchanged. F342's Practice count becomes one
+  and F346's assertion becomes "the pill, and only the pill".
+- verified-by: `the practice headline is the tab's one pill, and it still opens the ruled row's handler — F365`
+- verified-by: `a tab carries at most one primary pill, and Practice and Profile carry none`
+
+### F366 — My French opens on the evidence, and draws nothing at zero
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/MyFrenchTab.tsx:129
+- note: progress/evidence.ts reads the missions (timesFinished > 0), the phrasebook (book.count) and the
+  activity log (levelFor(totalXp)) and answers only what has been earned; hasEvidence false means no row, on
+  progress/today.ts's rule. Three Stats sit in one row (Stat gains columns={3}) above the notebook card. The
+  analytics event reads the same module. F348's ban on `<Stat` becomes "only inside the hasEvidence gate".
+- verified-by: `nothing is drawn at zero, and each fact appears only once it is real — F366`
+- verified-by: `my french draws its evidence from evidence.ts, inside its gate, and decides none of it on the screen — F366`
+- verified-by: `a stat can sit three to a row — F366`
+
+### F367 — Profile says the learner's level under their name
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:625
+- note: the focus effect also loads the activity log; levelName() from evidence.ts (null at zero XP, the
+  same rule Home's level card keeps) is drawn as a type.small soft-ink line under the name, and nothing
+  when null.
+- verified-by: `the level name is said only once something has been earned — F367`
+- verified-by: `profile draws the level line from evidence.ts — F367`
+
+### F368 — The daily goal and the correction dial are chosen in place
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:460
+- note: the goal and strictness sheets go. settings/ChoiceRow.tsx draws a row title, a TabBar (three
+  segments, active K | null, an accessibilityLabel on the tablist) and the chosen option's gloss beneath.
+  profile/dailyGoal.ts carries GOALS, DAILY_GOAL_ROW, dailyGoalOf and goalLine. Strictness reuses
+  STRICTNESS_OPTIONS and withStrictness. Name, voice and reminder time keep their sheets. OnboardClock
+  leaves the illustration barrel with the sheet that drew it (J14).
+- verified-by: `the daily goal is a three-way choice with the chosen gloss beneath, written through withDailyGoal — F368`
+- verified-by: `the profile tab turns the strictness dial and the store keeps the choice`
+- verified-by: `the tab bar can name itself and stand with nothing chosen — F368`
+- verified-by: `every scene the barrel exports is drawn somewhere`
+
+### F369 — Profile's footer says which build this is
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:716
+- note: profile/appVersion.ts turns Constants.expoConfig?.version into "Luvani 0.1.0" or null, drawn as a
+  type.small soft-ink line (never faint, F330) under the legal text, absent when unknown.
+- verified-by: `the footer names the version app.json ships, and says nothing when there is none — F369`
+
+### F370 — Prefer typing is a stored choice the conversation opens on
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/profile/store.ts:65
+- note: StoredProfile v7 adds preferTyping: boolean (false from createStoredProfile, one door
+  withPreferTyping, every older version arrives false, junk reads false). sync/policy.ts writes 7.
+  ConvoScreen seeds its local typingOpen from prefersTyping(profile), so the box is open, the microphone
+  stays closed until the circle is tapped, and the tutor still speaks; choosingView gains a typingOpen
+  input so the choosing moment shows the box too while the orb stays the button and the quiet door stays.
+  Not the silent text mode; the lesson keeps its own door. Profile row "Prefer typing": "Conversations open
+  with the keyboard. You can still tap the circle to talk." STATE_AND_STORAGE.md moves from version 5 to 7.
+- verified-by: `a v7 profile keeps the typing choice, every older version arrives without one, and junk reads as no — F370`
+- verified-by: `preferring typing changes that and nothing else, and survives the store's round trip — F370`
+- verified-by: `a learner who prefers typing opens the conversation with the box showing and the circle still a button — F370`
+- verified-by: `the profile row writes the version the store writes`
+
+### F371 — A tutor asked to speak slower does so from the first line
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1031
+- note: LearnerProfile.preferences.pace ('normal' | 'slow', the engine's own words at
+  brain/src/engine/conversation.ts:132) is carried through repairProfile and finishSession.
+  createConversation takes pace in its config, and the agent reads paceOf(profile) beside strictnessOf at all
+  three scene builds. App side tutor/pace.ts carries paceOf, withPace and the row "Tutor speaks slower" with
+  "Shorter sentences and simpler words, one idea at a time, from the first line." The audio plays at the
+  cached speed (convo.ts:1894), so the copy promises the prompt, not the waveform.
+- verified-by: `a session can open slow when the learner asked before it began`
+- verified-by: `a live session opens at the learner's stored pace, on every door into a scene`
+- verified-by: `the profile tab sets the pace and the store keeps the choice — F371`
+- verified-by: `repairProfile and finishSession carry the pace preference through`
+
+### F372 — The last tutor bubble shows its ear, and every tutor bubble says who spoke
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tutor/Transcript.tsx:63
+- note: Transcript takes tutorName and tutorSpeaking. A caps Label with the name sits above each tutor
+  bubble. tutor/replayEar.ts decides the ear on the last tutor bubble: hidden with nothing to hear, an ink
+  EarGlyph when onReplayTutor is given, the accent on a groundDeep disc while the tutor sounds, exactly as
+  OptionCard's ear. The whole bubble stays the Pressable with `Hear that line again`. Both ConvoScreen call
+  sites pass tutorNameOf(profile).
+- verified-by: `the ear on the last tutor line is hidden, quiet or sounding, and never on a learner line — F372`
+- verified-by: `every tutor bubble is named, and both threads name the chosen tutor — F372`
+
+### F373 — A password can be shown while it is typed
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/components.tsx:328
+- note: Field with secure draws a trailing 44pt control reading "Show" / "Hide", announced "Show password"
+  / "Hide password", and sets secureTextEntry to secure && !revealed. SignIn, SignUp (both fields) and
+  SetNewPassword get it without being edited. The F109 bindings are untouched.
+- verified-by: `a secure field can be shown, and says so to a screen reader — F373`
+- verified-by: `every visible field label is bound to its input for assistive tech`
+
+### F374 — Sign in says what is waiting behind the door
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/SignInScreen.tsx:95
+- note: one soft-ink line under "Welcome back": "Your phrases, your progress and your tutor's memory are
+  where you left them." It lives in auth/copy.ts beside a test for the copy rules.
+- verified-by: `the sign-in purpose line is plain, short and carries no dash, digit or debt — F374`
+
+### F375 — The auth seam can sign in with Apple
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/types.ts:14
+- note: AuthUser.provider gains 'apple'; AuthAdapter.signInWithApple() joins GUARDED_METHODS.
+  auth/apple.native.ts makes a raw nonce and its SHA-256 (auth/appleNonce.ts, pure), calls
+  AppleAuthentication.signInAsync with the hash, then supabase.auth.signInWithIdToken with the raw nonce; a
+  dismissed sheet is a sentence. auth/apple.ts (web) mirrors oauth.ts and answers appleSignInOffered()
+  false. providerStatus.ts reads external.apple and the adapter asks before it opens the sheet;
+  reauthenticateForDeletion gains an apple branch; toUser maps the provider; the mock returns a stand-in
+  apple user; busyLabel gains apple. No log, no plain-storage write, no token in a URL (tokenHygiene).
+- verified-by: `the guarded list is every AuthResult method the interface declares`
+- verified-by: `the nonce Apple signs is the digest of the one Supabase checks — F375`
+- verified-by: `a project with apple off says so, and the adapter asks before it opens the sheet — F375`
+- verified-by: `the apple lines tell the learner what to do, not which vendor to configure — F375`
+- verified-by: `the walk actually covers the auth layer`
+
+### F376 — Continue with Apple is offered only where it works
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/SignInScreen.tsx:83
+- note: SignIn and SignUp ask appleSignInOffered() once on mount and, only when true, draw an OutlineButton
+  "Continue with Apple" with the line-art AppleMark above the Google outline. Android and web draw nothing.
+  The delete sheet says "Apple will ask you to sign in again before anything is deleted." for an apple
+  account. app.json asks for ios.usesAppleSignIn and the expo-apple-authentication plugin; ONBOARDING.md
+  names the third door. On-device proof needs the paid Apple Developer capability and the Supabase Apple
+  provider, and is recorded as Pass 4 runbook rows rather than claimed.
+- verified-by: `the apple door is drawn above the google one, only when the platform offers it — F376`
+- verified-by: `the delete sheet tells an apple account what will happen — F376`
+- verified-by: `app.json asks for the Apple capability and its plugin — F376`
+- verified-by: `every first-run screen leads with a heading role`
+
+### F377 — A speaking-time balance row on Profile (note only, not built)
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:641
+- note: the mockups carry a minutes-remaining row. The meter is server-side (core/src/metering/) and the
+  client cannot read it, and a number the phone cannot verify is the dead switch F239 refused. Not built.
+  Closes when a read endpoint exists.
+- verified-by: `the device runbook carries the Pass 4 checks — F381`
+
+### F378 — The tab bar's comments describe a dot it no longer draws
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/nav/icons.tsx:8
+- note: icons.tsx:8-10 and LuvaniTabBar.tsx:8-11 still say active is ink plus a dot. F313 removed the dot
+  and F325 made active the identity violet plus weight. Rewrite both comments; a raw-source test pins the
+  words.
+- verified-by: `the tab bar's comments say what the bar does — F378`
+
+### F379 — LIVE_VOICE.md counts eleven failures; failure.ts has nineteen
+- severity: P2
+- status: [x]
+- where: docs/LIVE_VOICE.md:161
+- note: the "When it fails" paragraph says eleven; the failure union in live/failure.ts has nineteen kinds.
+  Replace the number word with a count the test reads back from the source.
+- verified-by: `the live-voice doc counts the failures failure.ts enumerates — F379`
+
+### F380 — STATE_AND_STORAGE.md says the profile is at version 5
+- severity: P2
+- status: [x]
+- where: docs/STATE_AND_STORAGE.md:37
+- note: the doc predates v6 (tutorVoice) and would predate v7. Say 7, name tutorVoice and preferTyping,
+  and correct the stored shape it lists to the fields the store writes.
+- verified-by: `the storage doc names the profile version the store writes — F380`
+
+### F381 — The device runbook names what a source walk cannot see about this pass
+- severity: P2
+- status: [x]
+- where: docs/DEVICE_VERIFICATION.md:722
+- note: a `## Pass 4 mockup review` section, every row `not run`: the six discs read as discs at AX5; the
+  Apple sheet opens on a signed build and a cancelled sheet leaves a sentence; a typed-by-default learner
+  sees the box with the circle still tappable and no microphone prompt; a slow-pace session's first line is
+  short; the ear lights while the tutor sounds; Show/Hide keeps the caret on iOS.
+- verified-by: `the device runbook carries the Pass 4 checks — F381`

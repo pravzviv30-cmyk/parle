@@ -42,11 +42,11 @@ function tags(body: string, tag: string): string[] {
 }
 
 const SCREENS = ['auth/SignInScreen.tsx', 'auth/SignUpScreen.tsx', 'auth/SetNewPasswordScreen.tsx'] as const;
-const ACTIONS: AuthAction[] = ['signIn', 'createAccount', 'saveNewPassword', 'google', 'sendReset'];
+const ACTIONS: AuthAction[] = ['signIn', 'createAccount', 'saveNewPassword', 'google', 'apple', 'sendReset'];
 
 describe('a screen that is waiting says so — F152', () => {
   test('a busy auth button says what it is doing', () => {
-    // The four waits a learner can start from an auth screen, each named by the
+    // Every wait a learner can start from an auth screen, each named by the
     // thing that is happening rather than by a spinner.
     assert.equal(authButtonLabel('signIn', false), 'Sign in');
     assert.equal(authButtonLabel('signIn', true), 'Signing in…');
@@ -56,6 +56,8 @@ describe('a screen that is waiting says so — F152', () => {
     assert.equal(authButtonLabel('saveNewPassword', true), 'Saving…');
     assert.equal(authButtonLabel('google', false), 'Continue with Google');
     assert.equal(authButtonLabel('google', true), 'Waiting for Google…');
+    assert.equal(authButtonLabel('apple', false), 'Continue with Apple');
+    assert.equal(authButtonLabel('apple', true), 'Waiting for Apple…');
     assert.equal(authButtonLabel('sendReset', false), 'Forgot password?');
     assert.equal(authButtonLabel('sendReset', true), 'Sending…');
 
@@ -138,7 +140,16 @@ describe('a screen that is waiting says so — F152', () => {
     assert.match(ghost, /disabled \? paper\.inkFaint/, 'a disabled ghost looks exactly like a live one');
 
     // And the flag it reads is really raised for the whole request.
-    const forgotHandler = signIn.slice(signIn.indexOf('const forgot = async'), signIn.indexOf('return ('));
+    //
+    // The end marker is searched for *from* the handler rather than from the
+    // top of the file, the way surfaceContract.test.ts does it. A cleanup
+    // returned from a `useEffect` is also a `return (`, and the screen grew one
+    // when the Apple door arrived (F376), which silently emptied this slice and
+    // made the assertion below read nothing at all.
+    const forgotAt = signIn.indexOf('const forgot = async');
+    assert.ok(forgotAt >= 0, 'the forgot handler moved or was renamed; this test is reading nothing');
+    const forgotHandler = signIn.slice(forgotAt, signIn.indexOf('return (', forgotAt));
+    assert.ok(forgotHandler.length > 0, 'the forgot handler slice is empty, so the assertion below would pass on nothing');
     assert.match(
       forgotHandler,
       /setPending\('sendReset'\)[\s\S]*sendPasswordReset[\s\S]*setPending\(null\)/,

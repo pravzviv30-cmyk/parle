@@ -28,6 +28,18 @@ export interface ChoosingState {
   textMode: boolean;
   /** The learner has tapped the circle, so the microphone is published. */
   micOpen: boolean;
+  /**
+   * The reply box is showing, without the session having gone quiet.
+   *
+   * Deliberately a second input rather than a widening of `textMode`. A learner
+   * who prefers typing (F370), or who taps Type instead mid-scene, is in a
+   * session that still carries audio: the tutor speaks, the circle is still the
+   * control that opens the microphone, and the quiet door is still worth
+   * offering. `textMode` is the quiet twin and means none of those are true.
+   * Folding the two would have taken the voice away from somebody who only
+   * asked for a keyboard.
+   */
+  typingOpen: boolean;
   /** Said, and not yet answered. Outranks everything the circle can say. */
   thinking: boolean;
   /** The tutor holds the floor. */
@@ -173,7 +185,7 @@ export function anythingGoes(tutorName: string): string {
 export const QUIET_DOOR = 'Unable to speak right now?';
 
 export function choosingView(state: ChoosingState): ChoosingView {
-  const { textMode, micOpen, thinking, tutorSpeaking, turns, tutorName } = state;
+  const { textMode, micOpen, thinking, tutorSpeaking, turns, tutorName, typingOpen } = state;
 
   // A closed microphone is the only thing a tap can change. It stays tappable
   // while the tutor is still asking, because a learner who is ready before the
@@ -216,7 +228,11 @@ export function choosingView(state: ChoosingState): ChoosingView {
     orbIsButton,
     orbLabel,
     showTranscript: answered,
-    showInput: textMode,
+    // The box, either because the session is the quiet twin or because the
+    // learner asked for a keyboard. Only this line reads `typingOpen`: the
+    // circle, the quiet door and the helper are all unchanged by it, which is
+    // the whole difference between opening with a keyboard and going quiet.
+    showInput: textMode || typingOpen,
     showQuietDoor: !textMode,
     helper: textMode ? null : orbIsButton ? TAP_TO_TALK : anythingGoes(tutorName),
   };

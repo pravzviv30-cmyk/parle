@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import {
   MODE_CAPS,
@@ -31,7 +33,15 @@ const opening: ChoosingState = {
   tutorSpeaking: false,
   turns: asked,
   tutorName: CHOSEN,
+  typingOpen: false,
 };
+
+const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
+
+function stripComments(source: string): string {
+  const noBlocks = source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+  return noBlocks.replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
+}
 
 describe('the choosing moment — what the screen decides before a scene exists', () => {
   test('a free conversation keeps the microphone closed until the learner taps the circle', () => {
@@ -116,6 +126,52 @@ describe('the choosing moment — what the screen decides before a scene exists'
     assert.equal(typed.orb, 'idle', 'a session with no microphone must never show a circle saying speak');
     assert.equal(typed.orbIsButton, false, 'a circle that cannot open a microphone is not a control');
     assert.equal(typed.helper, null, 'the box already says what to type, and saying it twice is noise');
+  });
+
+  test('a learner who prefers typing opens the conversation with the box showing and the circle still a button — F370', () => {
+    // The whole of F370 in one state: the box is open, and nothing else moved.
+    // A learner who asked for a keyboard has not asked to be made silent, and
+    // the four assertions after the first are what keeps those two apart.
+    const typed = choosingView({ ...opening, typingOpen: true });
+    assert.equal(typed.showInput, true, 'the stored choice did not open the box, which is the whole of the setting');
+    assert.equal(
+      typed.orbIsButton,
+      true,
+      'preferring a keyboard closed the door to the microphone, which is the quiet twin and not what was asked for',
+    );
+    assert.equal(typed.orb, 'ready', 'the circle went quiet over a session that still carries a voice');
+    assert.equal(
+      typed.showQuietDoor,
+      true,
+      'the offer to go quiet is gone, so a learner who really cannot speak has nowhere left to say so',
+    );
+    assert.equal(typed.helper, TAP_TO_TALK, 'the circle lost the one line that says it can be pressed');
+
+    // And the box opens once the microphone is live too: this is a way of
+    // answering, not a stage the learner leaves by tapping the circle.
+    const speaking = choosingView({ ...opening, typingOpen: true, micOpen: true });
+    assert.equal(speaking.showInput, true, 'opening the microphone took the box away from somebody who wanted both');
+    assert.equal(speaking.orb, 'listening', 'the open microphone stopped saying the learner may speak');
+
+    // The quiet twin is unchanged by the new input, in both directions.
+    assert.equal(choosingView({ ...opening, textMode: true, typingOpen: false }).showInput, true, 'the quiet twin lost its box');
+    assert.equal(choosingView({ ...opening, textMode: true, typingOpen: true }).showQuietDoor, false);
+
+    // The screen's half. There is no renderer here, so the seed and the input
+    // are read out of the file: a rule nothing wires is the shape this had.
+    const convo = stripComments(read('../ConvoScreen.tsx'));
+    assert.match(
+      convo,
+      /useState\(prefersTyping\(profile\)\)/,
+      'the conversation opens with the box closed however the learner set it, so the setting does nothing',
+    );
+    const call = convo.slice(convo.indexOf('choosingView({'));
+    assert.ok(call.length > 0, 'the choosing moment no longer asks choosingView anything; this test is stale');
+    assert.match(
+      call.slice(0, call.indexOf('})')),
+      /typingOpen,/,
+      'the choosing moment decides the box without telling choosingView the box is open',
+    );
   });
 
   test('the circle and its label never say two different things', () => {

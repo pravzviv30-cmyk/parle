@@ -27,7 +27,9 @@ export { unit, place, frameHeight, restFor } from './timing.ts';
 export { HeroCafe } from './scenes/cafe.tsx';
 export { SpeakBubbles } from './scenes/bubbles.tsx';
 export { RecapPostcard } from './scenes/postcard.tsx';
-export { OnboardWave, OnboardCake, OnboardClock } from './scenes/onboarding.tsx';
+// `OnboardClock` left with the goal sheet it headed, the same way as the two
+// above: F368 put the daily goal on the Profile row itself, so nothing draws it.
+export { OnboardWave, OnboardCake } from './scenes/onboarding.tsx';
 
 // The six new ones: three empty states, two moments, two rooms.
 export { NothingDue, NobodyYet, StillWriting } from './scenes/empty.tsx';

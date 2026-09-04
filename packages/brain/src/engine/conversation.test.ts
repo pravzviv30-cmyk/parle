@@ -523,6 +523,20 @@ describe('reaching for English — the hand-back loop', () => {
 });
 
 describe('pace — slower is sticky', () => {
+  test('a session can open slow when the learner asked before it began', () => {
+    // Until now 'slow' was only ever reached by the Slower control, one tap into
+    // every session. A learner who asked in Profile gets it from the first line,
+    // and it is the same sticky flag: nothing that follows resets it.
+    const asked = createConversation(CAFE_FRAME, learner(), { strictness: 'balanced', maxTurns: 24, pace: 'slow' }, 1_000);
+    assert.equal(asked.pace, 'slow', 'the scene did not open at the pace the learner asked for');
+    const context = prepareTurn(asked, spoke()).messages.at(-1)!.text;
+    assert.match(context, /PACE: they asked you to slow down/, 'the first turn does not carry the pace');
+    assert.equal(integrateTurn(asked, spoke(), sampleTurn()).state.pace, 'slow', 'a turn reset the pace');
+
+    // And a caller that says nothing gets exactly what it always got.
+    assert.equal(fresh().pace, 'normal');
+  });
+
   test('once slow, every later turn context says so', () => {
     const state: ConversationState = { ...fresh(), pace: 'slow' };
     const context = prepareTurn(state, spoke()).messages.at(-1)!.text;

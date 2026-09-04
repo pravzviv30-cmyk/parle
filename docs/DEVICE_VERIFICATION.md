@@ -709,6 +709,34 @@ where that pass is recorded. Owner: `onboarding-ux-engineer` for the build,
 | P3-5 | The progress dots read "Step 1 of 4" as one element, and a chosen voice reads selected to the screen reader | not run | not run |
 | P3-6 | The Meet page at iOS AX5 / Android font scale 2.0 wraps its four lines as left-set paragraphs under the centred title and art, with the one pill still pinned and reachable | not run | not run |
 
+## Pass 4 mockup review
+
+The mockup-review pass (F362 to F381) is verified statically up to a point: the palette
+test holds every tint to a paper's floors, the screen tests read the source and fail if a
+tab grows a second pill, if the evidence row draws at zero, if a door stops reading its
+words from gate.ts, if the Field loses its Show/Hide, or if the Apple door is drawn where
+the platform does not offer it. What they cannot see is a disc reading as a disc at the
+largest reading size, the Apple sheet on a signed build, a typed-by-default learner
+meeting the box with the circle still tappable, a slow-pace first line being short, the
+ear lighting while the tutor sounds, or the caret surviving Show/Hide on iOS. Those are a
+device's to prove, and this is where that pass is recorded. Owner: `frontend-engineer`
+for the screens, `auth-engineer` for the Apple door, `qa-release-engineer` for running it.
+
+Apple Sign In needs the paid Apple Developer capability on the bundle id and the Supabase
+Apple provider configured before P4-2 can be walked at all; until then the row is
+`not run` for a reason the phone cannot fix.
+
+`pass` / `fail` / `not run`. Every row is `not run` until a real device pass is walked.
+
+| Id | Check | iOS | Android |
+|---|---|---|---|
+| P4-1 | At iOS AX5 / Android font scale 2.0 the six tinted discs on Home, Tutor and My French still read as discs under their drawings, and no tint is mistaken for a rung or a signal beside the orb | not run | not run |
+| P4-2 | On a signed iOS build, Continue with Apple opens the Apple sheet; cancelling it leaves one plain sentence and nothing else changed; completing it lands in the app with the provider recorded as apple. Android and web draw no Apple door | not run | not run |
+| P4-3 | With Prefer typing on, a conversation opens with the reply box showing, no microphone prompt, the tutor still speaking, and the circle still tappable; turning it off restores the circle-first opening | not run | not run |
+| P4-4 | With Tutor speaks slower on, the first line of a new conversation is short and simple, and stays so; the Slower chip still works for a learner who never asked | not run | not run |
+| P4-5 | The ear on the tutor's last bubble is ink while quiet and turns violet on a quiet disc while the tutor sounds; tapping the bubble replays the line; VoiceOver reads "Hear that line again" | not run | not run |
+| P4-6 | Show/Hide on every password field keeps the caret and the typed text in place on iOS, and VoiceOver reads "Show password" / "Hide password" | not run | not run |
+
 ## Recording the result
 
 Fill the matrix in place, in this file, in the same commit as any ledger entry a

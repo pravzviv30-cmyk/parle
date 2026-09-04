@@ -35,28 +35,35 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Switch } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import Constants from 'expo-constants';
 import { useFocusEffect } from '@react-navigation/native';
+import { levelFor, totalXp, type LevelStanding } from '@luvani/core';
 import { accent, paper, signal, space, type, HIT } from '../theme.ts';
 import { Card, Label, Monogram, OptionCard, OutlineButton, Field } from '../components.tsx';
 import { ScrollScreen, ScreenHeader, TabHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
-import { OnboardClock } from '../illustrations.tsx';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
+import { ChoiceRow } from '../settings/ChoiceRow.tsx';
+import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { Acknowledgements } from '../legal/Acknowledgements.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { downloadAccountData } from '../privacy/export.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
 import { TUTOR_INTRO_LINK } from '../tutor/gate.ts';
-import { withDailyGoal, withTutorVoice } from '../profile/store.ts';
+import { withDailyGoal, withPreferTyping, withTutorVoice } from '../profile/store.ts';
+import { DAILY_GOAL_ROW, GOALS, goalFor, goalKeyOf, goalLine, type GoalKey } from '../profile/dailyGoal.ts';
+import { PREFER_TYPING_ROW, PREFER_TYPING_SUB, prefersTyping } from '../profile/typing.ts';
+import { appVersionLine } from '../profile/appVersion.ts';
+import { loadActivity } from '../progress/activity.ts';
+import { levelName } from '../progress/evidence.ts';
+import { PACE_ROW, PACE_SUB, paceOf, withPace } from '../tutor/pace.ts';
 import {
   STRICTNESS_OPTIONS,
   STRICTNESS_ROW,
-  STRICTNESS_SUB,
-  STRICTNESS_TITLE,
-  strictnessLabel,
   strictnessOf,
   withStrictness,
+  type Strictness,
 } from '../tutor/strictness.ts';
 import {
   TUTOR_VOICE_OPTIONS,
@@ -91,23 +98,18 @@ import {
 import type { AuthResult } from '../auth/types.ts';
 
 /**
- * How much a day, asked here instead of on the way to a first conversation.
+ * The sheets that are left.
  *
- * It was the fourth onboarding page, which put a preference between a new
- * account and the first French sentence. Nothing in the app reads it yet, so
- * asking it before any value had been delivered was pure friction.
+ * Two went with F368. The daily goal and the correction dial each had three
+ * answers and a whole screen apiece, which is two taps and two screen changes
+ * to move a dial whose entire content is three words. Both are `ChoiceRow`s on
+ * the card now. What kept a sheet is what needs the room: a name needs a
+ * keyboard, eight voices need eight cards and an ear each, and the reminder
+ * presets need their glosses.
  */
-const GOALS = [
-  { minutes: 5, label: 'Five minutes', gloss: 'A gentle start' },
-  { minutes: 10, label: 'Ten minutes', gloss: 'The steady middle' },
-  { minutes: 15, label: 'Fifteen minutes', gloss: 'Serious momentum' },
-] as const;
-
 type Sheet =
   | 'none'
   | 'name'
-  | 'goal'
-  | 'strictness'
   | 'tutorVoice'
   | 'reminderTime'
   | 'intro'
@@ -259,6 +261,11 @@ export function ProfileTab({
   // for a frame to somebody who has never been asked.
   const [stored, setStored] = useState<StoredReminder | null>(null);
   const [permission, setPermission] = useState<ReminderPermission | null>(null);
+  // Where the learner stands, from the same activity log Home's level card
+  // reads. Null until the first read comes back, and `levelName` answers null
+  // again for anybody who has not earned anything yet, so the line under the
+  // name is absent rather than announcing a floor.
+  const [standing, setStanding] = useState<LevelStanding | null>(null);
   const [reminderBusy, setReminderBusy] = useState(false);
   // The line to show, rather than a flag, because there are two of them and
   // which one is shown is the whole of what this state says.
@@ -291,6 +298,17 @@ export function ProfileTab({
         // Nobody signed in, or storage unavailable. Nothing to draw and nothing
         // to say: the reminder is the one thing on this screen that can wait.
       });
+      // The level, on its own read rather than in the pair above: `loadReminder`
+      // throws when nobody is signed in, and one Promise.all would take the
+      // level down with it for a reason that has nothing to do with the level.
+      void loadActivity()
+        .then((activity) => {
+          if (cancelled) return;
+          setStanding(levelFor(totalXp(activity)));
+        })
+        .catch(() => {
+          // Same reasoning as above. A missing level line says nothing untrue.
+        });
       return () => {
         cancelled = true;
       };
@@ -298,6 +316,14 @@ export function ProfileTab({
   );
 
   const firstName = (profile.name ?? '').split(' ')[0] || 'you';
+  // The one line under the name, and progress/evidence.ts decides whether there
+  // is one: null at zero, which is the same rule Home's level card keeps. A
+  // learner who has not started is not told they are at the bottom of a ladder.
+  const levelLine = standing === null ? null : levelName(standing);
+  // Which build this is. The property read is here rather than in appVersion.ts
+  // because expo-constants cannot be loaded by the test runner; the rule that
+  // turns it into a line, or into nothing, is over there where a test can ask.
+  const versionLine = appVersionLine(Constants.expoConfig?.version);
   // Only an email sign-up has a password to change; Google and the device-local
   // demo account have nothing this screen could edit.
   const hasPassword = user?.provider === 'password';
@@ -427,6 +453,15 @@ export function ProfileTab({
             Google will ask you to sign in again before anything is deleted.
           </Text>
         )}
+        {/* The Apple twin of the line above. An Apple account has no password
+            this app could check, so the sheet says what will happen rather than
+            showing a field nobody can fill. Owed to auth/apple.test.ts, which
+            names the sentence rather than waiting for one to appear. */}
+        {user?.provider === 'apple' && (
+          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(4) }]}>
+            Apple will ask you to sign in again before anything is deleted.
+          </Text>
+        )}
         {deleteError && <Text style={[type.bodyStrong, { color: signal.correspondance, marginTop: space(4) }]}>{deleteError}</Text>}
         <View style={{ marginTop: space(7), gap: space(3) }}>
           <OutlineButton
@@ -452,66 +487,6 @@ export function ProfileTab({
               setSheet('none');
             }}
           />
-        </View>
-      </ScrollScreen>
-    );
-  }
-
-  if (sheet === 'goal') {
-    return (
-      <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: () => setSheet('none') }} />}>
-        <View style={{ alignItems: 'center', marginBottom: space(5) }}>
-          <OnboardClock width={150} />
-        </View>
-        <Text style={[type.display, { color: paper.ink }]}>How much time each day?</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
-          Small and daily beats big and rare. Change it whenever you like.
-        </Text>
-        <View style={{ marginTop: space(6), gap: space(3) }}>
-          {GOALS.map((g) => (
-            <OptionCard
-              key={g.minutes}
-              text={g.label}
-              gloss={g.gloss}
-              selected={profile.dailyGoalMin === g.minutes}
-              onPress={() => {
-                update(withDailyGoal(profile, g.minutes));
-                setSheet('none');
-              }}
-            />
-          ))}
-        </View>
-      </ScrollScreen>
-    );
-  }
-
-  /**
-   * How much the tutor corrects, which the learner has never been able to say.
-   *
-   * The three policies have been in the brain since the engine was written and
-   * the eval measures all three, but the field was overwritten by every session
-   * that finished, so it was a log rather than a preference and nothing offered
-   * it. Same shape as the goal sheet, because it is the same kind of question:
-   * three options, one tap, and nothing to fail.
-   */
-  if (sheet === 'strictness') {
-    return (
-      <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: () => setSheet('none') }} />}>
-        <Text style={[type.display, { color: paper.ink }]}>{STRICTNESS_TITLE}</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{STRICTNESS_SUB}</Text>
-        <View style={{ marginTop: space(6), gap: space(3) }}>
-          {STRICTNESS_OPTIONS.map((option) => (
-            <OptionCard
-              key={option.value}
-              text={option.label}
-              gloss={option.gloss}
-              selected={strictnessOf(profile) === option.value}
-              onPress={() => {
-                update(withStrictness(profile, option.value));
-                setSheet('none');
-              }}
-            />
-          ))}
         </View>
       </ScrollScreen>
     );
@@ -623,18 +598,52 @@ export function ProfileTab({
               name is said in the text beneath, so the disc is decorative. */}
           <Monogram initial={firstName.charAt(0).toUpperCase()} size={72} />
           <Text style={[type.title, { color: paper.ink, marginTop: space(3) }]}>{profile.name ?? 'You'}</Text>
+          {/* Where they stand, under their name, the way a badge sits under a
+              name on a card. Soft ink because it is words a learner reads. */}
+          {levelLine === null ? null : (
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{levelLine}</Text>
+          )}
         </View>
 
         <Label>Your learning</Label>
         <Card style={{ marginTop: space(2.5) }}>
           <SettingsRow first label="Name" value={profile.name ?? 'Not set'} onPress={() => setSheet('name')} />
-          <SettingsRow
-            label="Daily goal"
-            value={profile.dailyGoalMin === null ? 'Not set' : `${profile.dailyGoalMin} minutes a day`}
-            onPress={() => setSheet('goal')}
+          {/* Three words on a track, and what the chosen one means beneath. The
+              minutes are a number in the store and words on the screen. */}
+          <ChoiceRow<GoalKey>
+            title={DAILY_GOAL_ROW}
+            options={GOALS}
+            active={goalKeyOf(profile)}
+            onChange={(key) => update(withDailyGoal(profile, goalFor(key).minutes))}
+            gloss={goalLine(profile)}
+            accessibilityLabel={DAILY_GOAL_ROW}
           />
-          <SettingsRow label={STRICTNESS_ROW} value={strictnessLabel(profile)} onPress={() => setSheet('strictness')} />
+          <ChoiceRow<Strictness>
+            title={STRICTNESS_ROW}
+            options={STRICTNESS_OPTIONS.map((option) => ({ key: option.value, label: option.label }))}
+            active={strictnessOf(profile)}
+            onChange={(value) => update(withStrictness(profile, value))}
+            gloss={STRICTNESS_OPTIONS.find((option) => option.value === strictnessOf(profile))?.gloss ?? ''}
+            accessibilityLabel={STRICTNESS_ROW}
+          />
           <SettingsRow label={TUTOR_VOICE_ROW} value={tutorVoiceLabel(profile)} onPress={() => setSheet('tutorVoice')} />
+          {/* Two standing choices about the next conversation, both of which
+              keep every spoken path open: the circle is still there, and the
+              tutor still speaks. */}
+          <SwitchRow
+            title={PREFER_TYPING_ROW}
+            sub={PREFER_TYPING_SUB}
+            value={prefersTyping(profile)}
+            onChange={(next) => update(withPreferTyping(profile, next))}
+            accessibilityLabel={PREFER_TYPING_ROW}
+          />
+          <SwitchRow
+            title={PACE_ROW}
+            sub={PACE_SUB}
+            value={paceOf(profile) === 'slow'}
+            onChange={(next) => update(withPace(profile, next ? 'slow' : 'normal'))}
+            accessibilityLabel={PACE_ROW}
+          />
           <SettingsRow label={TUTOR_INTRO_LINK} onPress={() => setSheet('intro')} />
         </Card>
 
@@ -719,6 +728,15 @@ export function ProfileTab({
             to speech and language services so the tutor can answer. Nothing is shared with anyone else or sold for
             advertising.
           </Text>
+          {/* Which build this is, so a learner writing in about something that
+              went wrong can say which one it went wrong on. Soft ink, never
+              faint: it is words somebody is asked to read back (F330). Absent
+              rather than half written when the config carries no version. */}
+          {versionLine === null ? null : (
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
+              {versionLine}
+            </Text>
+          )}
         </View>
 
         {sheet === 'unavailable' && (

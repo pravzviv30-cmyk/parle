@@ -11,7 +11,7 @@ export interface AuthUser {
   /** Stable identity — the Supabase uid, or a per-account local id in mock mode. */
   id: string;
   email: string | null;
-  provider: 'password' | 'google' | 'mock';
+  provider: 'password' | 'google' | 'apple' | 'mock';
 }
 
 /** Inline-error contract: `message` is a plain sentence, never a provider code. */
@@ -31,6 +31,14 @@ export interface AuthAdapter {
   signUpWithPassword(email: string, password: string): Promise<AuthResult>;
   signInWithPassword(email: string, password: string): Promise<AuthResult>;
   signInWithGoogle(): Promise<AuthResult>;
+  /**
+   * Sign in with Apple. Every adapter implements it, including the ones on
+   * platforms that never offer the button: whether a *door is drawn* is
+   * `appleSignInOffered()` in `apple.ts` and its native sibling, and that is a
+   * separate question from whether the seam can carry the call. A method only
+   * one implementation has is a crash waiting for a config change.
+   */
+  signInWithApple(): Promise<AuthResult>;
   sendPasswordReset(email: string): Promise<AuthResult>;
   /** Finish a recovery: set the new password on the recovery session. */
   completePasswordReset?(newPassword: string): Promise<AuthResult>;

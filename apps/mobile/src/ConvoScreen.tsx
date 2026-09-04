@@ -50,6 +50,7 @@ import { connectionLine } from './live/connectionLine.ts';
 import { takeTypedDoor, typedDoorFor } from './live/typedDoor.ts';
 import { useProfile } from './app/ProfileContext.tsx';
 import { isUnderAgeStop } from './profile/age.ts';
+import { prefersTyping } from './profile/typing.ts';
 import { withAgeStop } from './profile/store.ts';
 import { VoiceOrb, type OrbState } from './tutor/VoiceOrb.tsx';
 import { Transcript } from './tutor/Transcript.tsx';
@@ -274,7 +275,11 @@ export function ConvoScreen({
   // The learner tapped Type instead during a voice scene. Local to the screen
   // and deliberately NOT the quiet door: this opens the box without asking the
   // session, so the microphone stays live and the scene survives.
-  const [typingOpen, setTypingOpen] = useState(false);
+  //
+  // Seeded from the stored choice, which is what "Prefer typing" means: the box
+  // is already open when the room is. Still not the quiet door, and the seed
+  // does not change that — the tutor speaks, and the circle is one tap away.
+  const [typingOpen, setTypingOpen] = useState(prefersTyping(profile));
   const live = useLiveSession(userId, 'convo-01', replay?.startRung, {
     mode: openedTyped ? 'convo-text' : 'convo',
     snapshot,
@@ -711,6 +716,7 @@ export function ConvoScreen({
       tutorSpeaking: live.tutorSpeaking,
       turns: live.turns,
       tutorName,
+      typingOpen,
     });
     const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
     return (
@@ -772,7 +778,13 @@ export function ConvoScreen({
           {/* Everything said so far, arriving with the app's one settle. This
               is what makes a sent topic land on screen at once instead of
               three to ten seconds later. */}
-          {choosing.showTranscript ? <Transcript turns={live.turns} /> : null}
+          {choosing.showTranscript ? (
+            <Transcript
+              turns={live.turns}
+              tutorName={tutorNameOf(profile)}
+              tutorSpeaking={live.tutorSpeaking && !typing}
+            />
+          ) : null}
 
           {/* The tutor steered away and said why. It stays until the learner
               puts it away, unlike the notice below it, which is a hiccup on a
@@ -988,6 +1000,8 @@ export function ConvoScreen({
         <Transcript
           turns={live.turns}
           onReplayTutor={listening && !typing ? () => live.sendHear('scene') : undefined}
+          tutorName={tutorNameOf(profile)}
+          tutorSpeaking={live.tutorSpeaking && !typing}
         />
 
         {card ? (

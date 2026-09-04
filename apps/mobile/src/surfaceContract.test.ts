@@ -1146,13 +1146,18 @@ describe('the tabs and the drill use the app buttons — F339', () => {
     assert.ok(!/accent\./.test(drill), 'the now-unused accent import lingers in DrillScreen');
   });
 
-  test("the tutor's quiet doors are outline buttons with a gloss", () => {
+  test("the tutor's doors are cards drawn with the app's buttons, not a bespoke card-button — F364", () => {
+    // F364 turned the three doors into cards that say what is behind them. The
+    // shape is still the app's: one Card per door, the pill or the outline from
+    // components.tsx for its action, and no hand-rolled pressable card.
     const tutor = named('tabs/TutorTab.tsx');
-    assert.match(
-      tutor,
-      /<OutlineButton[\s\S]{0,120}sub=\{door\.gloss\}/,
-      'the tutor draws its quiet doors without the OutlineButton gloss line',
-    );
+    const doors = tutor.slice(tutor.indexOf('doors.map('), tutor.indexOf('st.quiet'));
+    assert.ok(doors.length > 0, 'the tutor no longer maps its doors');
+    assert.match(doors, /<Card\b/, 'a door is not drawn as a Card');
+    assert.match(doors, /<PillButton\b/, 'the primary door is not the pill');
+    assert.match(doors, /<OutlineButton\b/, 'a quiet door is not an outline');
+    assert.match(doors, /door\.gloss/, 'the doors lost their gloss line');
+    assert.match(doors, /door\.action/, 'a door names its own button instead of reading the word from gate.ts');
     assert.doesNotMatch(tutor, /st\.door\b/, 'the tutor still draws a bespoke card-button for its quiet doors');
   });
 });
@@ -1199,7 +1204,9 @@ describe('one primary pill per tab, and none on a list — F342', () => {
       'tabs/HomeTab.tsx': 1,
       'tabs/TutorTab.tsx': 1,
       'tabs/MyFrenchTab.tsx': 1,
-      'tabs/PracticeTab.tsx': 0,
+      // F365: the next step is Practice's one pill. Two branches draw it, and
+      // exactly one renders.
+      'tabs/PracticeTab.tsx': 2,
       'tabs/ProfileTab.tsx': 0,
     };
     for (const [name, expected] of Object.entries(counts)) {
@@ -1370,5 +1377,59 @@ describe('the device runbook carries the Pass 3 first-run checks — F361', () =
     for (const row of rows) {
       assert.match(row, /not run/, `a Pass 3 row is walked before a device has: ${row.trim()}`);
     }
+  });
+});
+
+describe('the notes the mockup review left behind — F378, F379, F381', () => {
+  /** A tally in words, for a doc that says a count the way a sentence does. */
+  const IN_WORDS: Record<number, string> = {
+    4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten', 11: 'eleven', 12: 'twelve', 13: 'thirteen', 14: 'fourteen', 15: 'fifteen', 16: 'sixteen',
+    17: 'seventeen', 18: 'eighteen', 19: 'nineteen', 20: 'twenty', 21: 'twenty-one', 22: 'twenty-two',
+    23: 'twenty-three', 24: 'twenty-four', 25: 'twenty-five',
+  };
+
+  test("the tab bar's comments say what the bar does — F378", () => {
+    // Comments are read raw here on purpose: the whole point is what a reader
+    // is told. F313 removed the dot and F325 made active the identity violet
+    // plus weight; two headers went on describing ink and a dot for four passes.
+    for (const name of ['nav/icons.tsx', 'nav/LuvaniTabBar.tsx']) {
+      const raw = readFileSync(join(SRC, name), 'utf8');
+      const header = raw.slice(0, raw.indexOf('*/'));
+      assert.doesNotMatch(header, /dot underneath/, `${name} still says the active tab has a dot underneath`);
+      assert.doesNotMatch(header, /both go ink/, `${name} still says the active tab goes ink`);
+      assert.match(header, /identity violet/, `${name} does not say the active tab takes the identity violet`);
+      assert.match(header, /no dot|there is no dot/, `${name} does not say there is no dot`);
+    }
+  });
+
+  test('the live-voice doc counts the failures failure.ts enumerates — F379', () => {
+    // The doc said eleven while the table grew to eighteen. Both numbers are
+    // read back out of the source so the sentence cannot drift again.
+    const failure = stripComments(readFileSync(join(SRC, 'live', 'failure.ts'), 'utf8'));
+    const union = failure.slice(failure.indexOf('export type LiveFailure'));
+    const kinds = (union.slice(0, union.indexOf(';')).match(/'[a-z-]+'/g) ?? []).length;
+    const typed = (failure.match(/canType: true/g) ?? []).length;
+    assert.ok(kinds >= 11, `failure.ts enumerates ${kinds} failures, fewer than the doc ever claimed`);
+    const doc = readFileSync(join(ROOT, 'docs', 'LIVE_VOICE.md'), 'utf8');
+    const said = doc.match(/enumerates (\S+) distinct failures[^;]*; (\S+) carry `canType: true`/);
+    assert.ok(said, 'LIVE_VOICE.md no longer says how many failures failure.ts enumerates');
+    assert.equal(said[1], IN_WORDS[kinds], `the doc says ${said[1]} failures and failure.ts has ${kinds}`);
+    assert.equal(said[2], IN_WORDS[typed], `the doc says ${said[2]} typed routes and failure.ts has ${typed}`);
+  });
+
+  test('the device runbook carries the Pass 4 checks — F381', () => {
+    const runbook = readFileSync(join(ROOT, 'docs', 'DEVICE_VERIFICATION.md'), 'utf8');
+    assert.match(runbook, /## Pass 4 mockup review/, 'the runbook has no Pass 4 section');
+    const section = runbook.slice(runbook.indexOf('## Pass 4 mockup review'));
+    const rows = section.split('\n').filter((l) => /\|\s*P4-\d/.test(l));
+    assert.equal(rows.length, 6, `the Pass 4 section names ${rows.length} rows; it should carry P4-1 through P4-6`);
+    for (let i = 1; i <= 6; i += 1) {
+      assert.match(section, new RegExp(`P4-${i}\\b`), `the Pass 4 runbook names no P4-${i} row`);
+    }
+    for (const row of rows) {
+      assert.match(row, /not run/, `a Pass 4 row is walked before a device has: ${row.trim()}`);
+    }
+    // The one row a phone alone cannot walk says why.
+    assert.match(section, /paid Apple Developer capability/, 'the section does not say what P4-2 needs before it can run');
   });
 });

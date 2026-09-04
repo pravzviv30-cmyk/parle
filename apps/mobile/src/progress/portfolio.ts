@@ -23,14 +23,15 @@
  * action before they reach the situation's title above it, so "Start" on its own
  * names nothing; the sentence carries the situation with it.
  *
- * ## Home's words, said once
+ * ## The next situation's words, said once
  *
- * `NEXT_SITUATION` carries the exact copy Home's next-situation card already
- * uses. It is that card in a second place, so it has to be the same words: a
- * learner who meets "Next situation / Start this one" on Home and something
- * paraphrased here has been told the app keeps two names for one thing. HomeTab
- * is the source of truth and the test reads it, so a change there that is not
- * mirrored here fails rather than drifts.
+ * `NEXT_SITUATION` is the label and the verb on the next-situation card. One
+ * card draws it now, `home/NextSituationCard.tsx`, for Home and for My French
+ * alike, and it reads both words from here; neither tab spells them. That is
+ * F351 closed: the two tabs used to spell the card separately and a test kept
+ * the copy in step, and now they are identical by construction. The test reads
+ * both tabs and the card, so a tab that grew its own copy fails rather than
+ * drifts.
  *
  * ## What is deliberately absent
  *

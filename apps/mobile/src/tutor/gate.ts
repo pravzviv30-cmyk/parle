@@ -18,6 +18,8 @@
  * learner stops believing either of them.
  */
 
+import type { MissionPlace } from '@luvani/core';
+
 export interface TutorOfflineCopy {
   /** The micro-label above the card. Matches the one the tab already draws. */
   label: string;
@@ -86,39 +88,87 @@ export function tutorGate(serversAnswered: boolean, textMode = false): TutorGate
  */
 export type TutorDoorKey = 'resume' | 'missions' | 'free';
 
+/**
+ * What a door shows of the place behind it: one situation's drawing, every
+ * situation's drawing as a teaser, or nothing. The tab draws the art; this
+ * file only says which.
+ */
+export type TutorDoorArt = { kind: 'place'; place: MissionPlace } | { kind: 'every-place' } | { kind: 'none' };
+
 export interface TutorDoor {
   key: TutorDoorKey;
   label: string;
+  /** The French title of the mission behind the door, in the serif, or null. */
+  title: string | null;
   /** One short line under the label. Never a count, never a score. */
   gloss: string;
+  /** Lines under the gloss, in order: where the learner stands with it. */
+  detail: readonly string[];
+  /** The word on the door's button. Sentence case, never a count. */
+  action: string;
   /** Exactly one door carries the screen's solid action. */
   primary: boolean;
+  art: TutorDoorArt;
 }
 
 /** The quiet way back to the explainer, worded the same in both places. */
 export const TUTOR_INTRO_LINK = 'How the circle works';
 
 /**
- * `resume` is the mission worth offering again, or null when the learner has
- * never started one. It is a plain title rather than a mission record so this
- * file stays free of the catalogue.
+ * The mission worth offering again, as the tab reads it off the catalogue: the
+ * titles, the place its drawing belongs to, and the status line chooserView.ts
+ * already decides. Null when the learner has never started one. Plain fields
+ * rather than a mission record, so this file stays free of the catalogue and a
+ * test can build one in a line.
  */
-export function tutorDoors(resume: { title: string } | null): TutorDoor[] {
+export interface ResumableDoor {
+  title: string;
+  titleEn: string;
+  place: MissionPlace;
+  status: string;
+}
+
+/**
+ * Each door is a card that says what is behind it (F364). The resume door
+ * shows the mission's drawing, both titles and where the learner stands with
+ * it, and carries the pill. The practical-mission door shows every situation's
+ * drawing as a teaser and carries the pill only when there is nothing to
+ * resume. Talk freely is last, still a door, and never the pill: a beginner
+ * staring at "say anything" is a beginner who says nothing.
+ */
+export function tutorDoors(resume: ResumableDoor | null): TutorDoor[] {
   const doors: TutorDoor[] = [];
   if (resume !== null) {
-    doors.push({ key: 'resume', label: 'Continue a recent mission', gloss: resume.title, primary: true });
+    doors.push({
+      key: 'resume',
+      label: 'Continue a recent mission',
+      title: resume.title,
+      gloss: resume.titleEn,
+      detail: [resume.status],
+      action: 'Continue',
+      primary: true,
+      art: { kind: 'place', place: resume.place },
+    });
   }
   doors.push({
     key: 'missions',
     label: 'Start a practical mission',
+    title: null,
     gloss: 'Order a coffee, ask the way, check into a hotel.',
+    detail: [],
+    action: 'Choose a situation',
     primary: resume === null,
+    art: { kind: 'every-place' },
   });
   doors.push({
     key: 'free',
     label: 'Talk freely about something else',
+    title: null,
     gloss: 'Anything at all. Your tutor follows you.',
+    detail: [],
+    action: 'Start talking',
     primary: false,
+    art: { kind: 'none' },
   });
   return doors;
 }

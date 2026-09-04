@@ -3,11 +3,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { missionStates, suggestedMission, type MissionProgress } from '@luvani/core';
 
-import { Card, GhostButton, Label, OutlineButton, PillButton } from '../components.tsx';
+import { Card, GhostButton, Label, OutlineButton, PillButton, Stat } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { paper, radius, signal, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
+import { loadActivity } from '../progress/activity.ts';
+import { evidenceFrom, hasEvidence, type Evidence } from '../progress/evidence.ts';
+import { NextSituationCard } from '../home/NextSituationCard.tsx';
 import { buildPhrasebook, hasPhrases, type Phrasebook } from '../phrases/phrasebook.ts';
 import { NEXT_SITUATION, situationAction, startLabel } from '../progress/portfolio.ts';
 import { PhrasebookScreen } from '../phrases/PhrasebookScreen.tsx';
@@ -70,6 +73,10 @@ export function MyFrenchTab() {
   // The next situation to walk into, from core, exactly as Home reads it. This
   // screen draws it and never decides which one; null draws nothing.
   const [next, setNext] = useState<MissionProgress | null>(null);
+  // The three facts at the head of the page, decided in progress/evidence.ts.
+  // Starts empty, which is what an unread learner and a brand new one both
+  // draw: nothing, until something has been earned.
+  const [evidence, setEvidence] = useState<Evidence>(() => evidenceFrom({ missions: [], book: { count: 0 }, activity: [] }));
 
   useFocusEffect(
     useCallback(() => {
@@ -80,25 +87,26 @@ export function MyFrenchTab() {
         loadTopics(),
         loadSoundChecks(),
         loadHistory(),
+        loadActivity(),
       ]).then(
-        ([completions, deck, topics, soundChecks, history]) => {
+        ([completions, deck, topics, soundChecks, history, activity]) => {
           if (cancelled) return;
           const now = Date.now();
           const nextMissions = missionStates(missionCompletionsFrom(completions), deck, now);
           const nextBook = buildPhrasebook(deck, topics, now);
+          const nextEvidence = evidenceFrom({ missions: nextMissions, book: nextBook, activity });
           setMissions(nextMissions);
           setBook(nextBook);
           setChecks(soundChecks);
           setNext(suggestedMission(nextMissions));
+          setEvidence(nextEvidence);
           // The whole history, unnarrowed. Which seven days count is story.ts's
           // decision and filtering here would walk straight past it.
           setStory(storyFrom(history, now));
+          // The same numbers the row draws, from the same module.
           void trackProductEvent({
             name: 'my_french_opened',
-            properties: {
-              situationsDone: nextMissions.filter((item) => item.timesFinished > 0).length,
-              linesKept: nextBook.count,
-            },
+            properties: { situationsDone: nextEvidence.situations, linesKept: nextEvidence.lines },
           });
         },
       );
@@ -125,6 +133,17 @@ export function MyFrenchTab() {
           title="My French"
           purpose="The situations you have handled and the lines you have made yours."
         />
+
+        {/* The evidence, first: situations handled, lines kept, the level. Each
+            fact appears once it is real, and the row is absent until one is,
+            on progress/today.ts's rule. evidence.ts decides all of it. */}
+        {hasEvidence(evidence) && (
+          <View style={st.evidence} accessibilityRole="summary">
+            {evidence.stats.map((stat) => (
+              <Stat key={stat.label} value={stat.value} label={stat.label} columns={3} />
+            ))}
+          </View>
+        )}
 
         {hasPhrases(book) && (
           <Card style={{ marginTop: space(6) }}>
@@ -198,29 +217,22 @@ export function MyFrenchTab() {
 
         {next !== null && (
           <View style={st.nextSituation}>
-            <Card>
-              <Label>{NEXT_SITUATION.label}</Label>
-              <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>{next.mission.title}</Text>
-              <Text style={[type.body, { color: paper.inkSoft, marginTop: space(0.5) }]}>{next.mission.titleEn}</Text>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
-                {missionStatus(next.state, next.independence)}
-              </Text>
-              <View style={{ marginTop: space(4) }}>
-                {/* The tab's one primary. The learner hears which situation it
-                    opens from startLabel, since the title is a line above it. */}
-                <PillButton
-                  label={NEXT_SITUATION.action}
-                  accessibilityLabel={startLabel(next.mission.titleEn)}
-                  onPress={() => {
-                    void trackProductEvent({
-                      name: 'mission_started',
-                      properties: { missionId: next.mission.id, entry: 'my-french' },
-                    });
-                    nav.navigate('Convo', { missionId: next.mission.id });
-                  }}
-                />
-              </View>
-            </Card>
+            {/* The same card Home draws, so the two tabs cannot part company.
+                The tab's one primary. The learner hears which situation it
+                opens from startLabel, since the title is a line above it. */}
+            <NextSituationCard next={next}>
+              <PillButton
+                label={NEXT_SITUATION.action}
+                accessibilityLabel={startLabel(next.mission.titleEn)}
+                onPress={() => {
+                  void trackProductEvent({
+                    name: 'mission_started',
+                    properties: { missionId: next.mission.id, entry: 'my-french' },
+                  });
+                  nav.navigate('Convo', { missionId: next.mission.id });
+                }}
+              />
+            </NextSituationCard>
           </View>
         )}
 
@@ -247,6 +259,8 @@ const st = StyleSheet.create({
   // Sentences, so they are set in ink at body size: 4.5 is the floor for
   // something a learner reads, and the softer inks are below it.
   week: { marginTop: space(7), gap: space(2) },
+  // Three facts to a row, under the header. Absent entirely at zero.
+  evidence: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(2), columnGap: space(3), rowGap: space(4) },
   section: { marginTop: space(7), gap: space(3) },
   mission: {
     minHeight: HIT,

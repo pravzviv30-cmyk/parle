@@ -21,6 +21,14 @@ export const CEFR_BANDS = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const sa
 export type Strictness = 'flow' | 'balanced' | 'strict';
 
 /**
+ * How the tutor paces a conversation. `slow` is what the Slower control sets
+ * mid-session, sticky for the rest of it; a learner may also ask for it before
+ * a session begins, from Profile, and then a scene opens on it. It changes the
+ * prompt (shorter sentences, one idea at a time), not the audio.
+ */
+export type Pace = 'normal' | 'slow';
+
+/**
  * French registers, from street to formal. Every phrase the brain teaches carries
  * one of these, because knowing *who you can say it to* is the skill — a word
  * without its register is a trap, not vocabulary.

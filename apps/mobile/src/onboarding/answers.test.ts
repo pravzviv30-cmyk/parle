@@ -39,6 +39,7 @@ import {
   pageBefore,
 } from './answers.ts';
 import { createStoredProfile, completeProfile } from '../profile/store.ts';
+import { DAILY_GOAL_ROW } from '../profile/dailyGoal.ts';
 import { upgradeStored } from '../profile/upgrade.ts';
 
 /** A fixed clock, because a rule about who gets asked must not depend on today. */
@@ -124,9 +125,14 @@ describe('onboarding — three questions, and nothing that has to be answered', 
     assert.ok(!PAGES.includes('goal' as never), 'the goal is a page again');
 
     assert.ok(PROFILE_TAB.includes('withDailyGoal'), 'profile has no way to set the goal, so nowhere asks it');
+    // The words are in `profile/dailyGoal.ts` now and the screen imports them,
+    // which is the rule the reminder row already keeps: a name spelled in two
+    // places is a name that comes to mean two things. So the claim splits in
+    // two, and together they are the same claim as before.
+    assert.equal(DAILY_GOAL_ROW, 'Daily goal', 'the goal row has no name a learner could find it by');
     assert.ok(
-      PROFILE_TAB.includes('Daily goal'),
-      'the goal row has no name a learner could find it by',
+      PROFILE_TAB.includes('DAILY_GOAL_ROW'),
+      'profile spells the row name itself, or has no row for the goal at all',
     );
   });
 

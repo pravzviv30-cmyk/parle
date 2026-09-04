@@ -48,6 +48,14 @@
  * yet" and "asked for Luc" are different facts and the Profile row has to be
  * able to tell them apart. The field is bounded by construction: one key out of
  * eight, replaced on every choice, so nothing here grows per session.
+ *
+ * Version 7 is the one that remembers how the learner likes to answer.
+ * `preferTyping` is a plain boolean: true means a conversation opens with the
+ * reply box already showing and the microphone closed until the circle is
+ * tapped, and the tutor still speaks. It is deliberately not the silent text
+ * mode, which is a per-session door rather than a standing choice. False is
+ * what every new profile and every upgraded one gets, because nobody has said
+ * otherwise; `withPreferTyping` is its one door.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -62,7 +70,7 @@ import { upgradeStored } from './upgrade.ts';
 const KEY = () => userKey('profile');
 
 export interface StoredProfile {
-  version: 6;
+  version: 7;
   /** What they asked to be called. Null when they skipped the question. */
   name: string | null;
   /**
@@ -96,6 +104,13 @@ export interface StoredProfile {
    * disagree with its own voice.
    */
   tutorVoice: TutorVoiceKey | null;
+  /**
+   * Does a conversation open with the reply box showing? The microphone stays
+   * closed until the circle is tapped and the tutor still speaks, so this is a
+   * way of answering, not a way of going quiet. Written by `withPreferTyping`,
+   * one named door; false for everyone until they say otherwise.
+   */
+  preferTyping: boolean;
   /** Why they came, as the tag chosen during onboarding. Null when skipped. */
   motivation: string | null;
   /** The daily practice promise, set in Profile. Null until they pick one. */
@@ -277,7 +292,7 @@ function confirmedFrom(answers: OnboardingAnswers, now: Date): boolean | null {
 
 export function createStoredProfile(answers: OnboardingAnswers, now = Date.now()): StoredProfile {
   return {
-    version: 6,
+    version: 7,
     name: answers.name,
     // Data minimisation, discharged without touching one stored record: from
     // v4 on nobody is asked for a date, so nobody has one written down. While
@@ -293,6 +308,9 @@ export function createStoredProfile(answers: OnboardingAnswers, now = Date.now()
     // choice the learner never made, and would make the row unable to say
     // whether they had picked Luc or simply never looked.
     tutorVoice: null,
+    // And nobody arrives preferring to type. The row in Profile is where that
+    // is said, and until it is said the circle is the way in.
+    preferTyping: false,
     motivation: answers.motivation,
     dailyGoalMin: answers.dailyGoalMin ?? null,
     onboardedAt: now,
@@ -373,6 +391,18 @@ export function withDailyGoal(existing: StoredProfile, dailyGoalMin: 5 | 10 | 15
  */
 export function withTutorVoice(existing: StoredProfile, tutorVoice: TutorVoiceKey): StoredProfile {
   return { ...existing, tutorVoice };
+}
+
+/**
+ * Say whether conversations should open with the reply box showing.
+ *
+ * A plain spread beside the other doors, and a boolean rather than a mode: the
+ * microphone stays closed until the circle is tapped either way, and the tutor
+ * speaks either way. The session reads it through `prefersTyping` in
+ * `profile/typing.ts`, which is the one place the field is interpreted.
+ */
+export function withPreferTyping(existing: StoredProfile, preferTyping: boolean): StoredProfile {
+  return { ...existing, preferTyping };
 }
 
 /** Claim a leaderboard username. A plain spread, named so the field has one write path. */

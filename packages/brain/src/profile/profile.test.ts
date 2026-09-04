@@ -280,6 +280,30 @@ describe('finishSession', () => {
     assert.equal(createProfile().preferences.strictness, 'balanced');
   });
 
+  test('repairProfile and finishSession carry the pace preference through', () => {
+    // The pace rides beside strictness in the preferences block, and both doors
+    // a profile goes through, repair on the way in and finishSession on the way
+    // out, have to hand it back untouched. A session never writes it: the
+    // Slower control changes the session, not the learner's standing choice.
+    const asked: LearnerProfile = {
+      ...createProfile(),
+      preferences: { strictness: 'balanced', lastScenarios: [], pace: 'slow' },
+    };
+    assert.equal(repairProfile(asked).preferences.pace, 'slow', 'repair dropped the pace');
+    assert.equal(repairProfile(JSON.parse(JSON.stringify(asked))).preferences.pace, 'slow', 'a round trip through JSON dropped the pace');
+
+    let after = finishSession(asked, endedState('flow'));
+    assert.equal(after.preferences.pace, 'slow', 'finishing a session dropped the pace');
+    for (const ran of ['balanced', 'strict'] as const) after = finishSession(after, endedState(ran));
+    assert.equal(after.preferences.pace, 'slow', 'the pace drifted across sessions');
+    assert.equal(after.stats.sessions, 3, 'and everything else finishSession folds in is still folded in');
+
+    // A learner who never asked has no pace on file, which the agent reads as
+    // normal. The field is optional on purpose: nothing invents an answer.
+    assert.equal(createProfile().preferences.pace, undefined);
+    assert.equal(finishSession(createProfile(), endedState()).preferences.pace, undefined);
+  });
+
   test('the estimate moves at most one band per session, whatever the evidence says', () => {
     const profile: LearnerProfile = {
       ...createProfile(),

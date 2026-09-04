@@ -115,7 +115,7 @@ export function LeaderboardTab() {
           ]}
           active={board}
           onChange={setBoard}
-          tint={paper.groundDeep}
+          track={paper.groundDeep}
         />
       </View>
 

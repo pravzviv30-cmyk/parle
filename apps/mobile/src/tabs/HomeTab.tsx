@@ -28,6 +28,8 @@ import {
 } from '@luvani/core';
 import { paper, space, type, HIT } from '../theme.ts';
 import { Card, GhostButton, Label, Monogram, OutlineButton, PillButton, StationLine, Stat } from '../components.tsx';
+import { NextSituationCard } from '../home/NextSituationCard.tsx';
+import { NEXT_SITUATION, startLabel } from '../progress/portfolio.ts';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { SpeakBubbles } from '../illustrations.tsx';
 import { loadHistory } from '../progress/store.ts';
@@ -43,7 +45,7 @@ import { useProfile } from '../app/ProfileContext.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
-import { missionCompletionsFrom, missionStatus } from '../missions/chooserView.ts';
+import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { trackProductEvent } from '../analytics/track.ts';
 
 export function HomeTab() {
@@ -137,31 +139,24 @@ export function HomeTab() {
 
         {/* The next situation, and the door to the other five. First in the
             scroll on purpose: what a learner can go and do today outranks a
-            summary of what they did last week. */}
+            summary of what they did last week. The card is shared with My
+            French and carries the tab's one pill, so the primary action sits
+            where the eye lands rather than below the fold. */}
         {nextMission && (
-          <Card style={today ? { marginTop: space(5) } : undefined}>
-            <Label>Next situation</Label>
-            <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>{nextMission.mission.title}</Text>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(0.5) }]}>
-              {nextMission.mission.titleEn}
-            </Text>
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
-              {missionStatus(nextMission.state, nextMission.independence)}
-            </Text>
-            <View style={{ marginTop: space(4) }}>
-              <OutlineButton
-                label="Start this one"
-                onPress={() => {
-                  void trackProductEvent({
-                    name: 'mission_started',
-                    properties: { missionId: nextMission.mission.id, entry: 'home' },
-                  });
-                  nav.navigate('Convo', { missionId: nextMission.mission.id });
-                }}
-              />
-            </View>
+          <NextSituationCard next={nextMission} style={today ? { marginTop: space(5) } : undefined}>
+            <PillButton
+              label={NEXT_SITUATION.action}
+              accessibilityLabel={startLabel(nextMission.mission.titleEn)}
+              onPress={() => {
+                void trackProductEvent({
+                  name: 'mission_started',
+                  properties: { missionId: nextMission.mission.id, entry: 'home' },
+                });
+                nav.navigate('Convo', { missionId: nextMission.mission.id });
+              }}
+            />
             <GhostButton label="See all situations" onPress={() => nav.navigate('Missions')} />
-          </Card>
+          </NextSituationCard>
         )}
 
         {started && standing ? (
@@ -224,8 +219,10 @@ export function HomeTab() {
           </>
         )}
 
+        {/* The way to the Tutor tab's three doors. An outline now: the next
+            situation above carries the tab's one pill. */}
         <View style={st.actions}>
-          <PillButton label={`Talk to ${tutorNameOf(profile)}`} onPress={() => nav.navigate('Tutor')} />
+          <OutlineButton label={`Talk to ${tutorNameOf(profile)}`} onPress={() => nav.navigate('Tutor')} />
         </View>
       </View>
     </ScrollScreen>

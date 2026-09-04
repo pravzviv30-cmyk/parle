@@ -22,7 +22,22 @@ import {
   type KeyboardTypeOptions,
 } from 'react-native';
 import Svg, { Path, Circle, G } from 'react-native-svg';
-import { accent, decorative, font, paper, radius, signal, space, type, HAIRLINE, HIT, STROKE, rungColor } from './theme.ts';
+import {
+  accent,
+  decorative,
+  font,
+  paper,
+  radius,
+  signal,
+  space,
+  tint,
+  type,
+  HAIRLINE,
+  HIT,
+  STROKE,
+  rungColor,
+  type TintName,
+} from './theme.ts';
 import type { Rung } from '@luvani/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
@@ -100,6 +115,18 @@ export function GoogleMark({ size = 20, color = paper.ink }: { size?: number; co
       <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round">
         <Path d="M20.4 12.2A8.6 8.6 0 1 1 17.8 6" />
         <Path d="M12.6 12.2h7.8" />
+      </G>
+    </Svg>
+  );
+}
+
+/** A monochrome apple in the house line style, for the same reason as the G. */
+export function AppleMark({ size = 20, color = paper.ink }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
+      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M12 8.6c-1.3-1.2-3.4-1.4-4.9-.3-2.4 1.8-2.5 5.9-.5 9 1 1.6 2.2 2.7 3.5 2.7.8 0 1.2-.5 1.9-.5s1.1.5 1.9.5c1.3 0 2.5-1.1 3.5-2.7.5-.8.9-1.6 1.1-2.4-1.5-.6-2.4-2-2.4-3.5 0-1.3.7-2.5 1.7-3.2-1.3-1.4-3.3-1.7-4.6-.7z" />
+        <Path d="M12 8.6c0-1.9 1-3.4 2.6-4.1" />
       </G>
     </Svg>
   );
@@ -357,6 +384,9 @@ export function Field({
   center?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
+  // A password shown while it is typed. Off by default, and only a secure
+  // field ever draws the control that turns it on (F373).
+  const [revealed, setRevealed] = useState(false);
   const fieldId = useId();
   const labelId = `${fieldId}-label`;
   const errorId = `${fieldId}-error`;
@@ -382,27 +412,54 @@ export function Field({
           {label}
         </Text>
       )}
-      <TextInput
-        {...webError}
-        aria-label={name != null && error != null ? `${name}, ${error}` : name}
-        aria-labelledby={label != null ? labelId : undefined}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={paper.inkFaint}
-        secureTextEntry={secure}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        autoComplete={autoComplete}
-        autoCorrect={false}
-        returnKeyType={returnKeyType}
-        onSubmitEditing={onSubmitEditing}
-        autoFocus={autoFocus}
-        maxLength={maxLength}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        style={[s.field, center && { textAlign: 'center' }, focused && { borderColor: paper.ink }]}
-      />
+      <View style={{ justifyContent: 'center' }}>
+        <TextInput
+          {...webError}
+          aria-label={name != null && error != null ? `${name}, ${error}` : name}
+          aria-labelledby={label != null ? labelId : undefined}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={paper.inkFaint}
+          secureTextEntry={secure && !revealed}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
+          autoCorrect={false}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
+          autoFocus={autoFocus}
+          maxLength={maxLength}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={[
+            s.field,
+            secure && { paddingRight: space(16) },
+            center && { textAlign: 'center' },
+            focused && { borderColor: paper.ink },
+          ]}
+        />
+        {secure && (
+          <Pressable
+            onPress={() => setRevealed((r) => !r)}
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? 'Hide password' : 'Show password'}
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: 0,
+              bottom: 0,
+              minWidth: HIT,
+              minHeight: HIT,
+              paddingHorizontal: space(4),
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={[type.small, { fontFamily: font.sansMedium, color: paper.inkSoft }]}>{revealed ? 'Hide' : 'Show'}</Text>
+          </Pressable>
+        )}
+      </View>
       {error != null && (
         <Text
           id={errorId}
@@ -417,21 +474,27 @@ export function Field({
   );
 }
 
-/** The Home top tabs: a soft track with a white active pill. */
+/**
+ * A segmented choice: a soft track with a white active pill. `active` may be
+ * null, for a setting nobody has chosen yet, and the group can name itself so a
+ * screen reader says what the three words are a choice of (F368).
+ */
 export function TabBar<K extends string>({
   tabs,
   active,
   onChange,
-  tint = paper.groundDeep,
+  track = paper.groundDeep,
+  accessibilityLabel,
 }: {
   tabs: readonly { key: K; label: string }[];
-  active: K;
+  active: K | null;
   onChange: (key: K) => void;
-  /** The current room's quiet pressed-state colour. */
-  tint?: string;
+  /** The quiet pressed-state colour behind the pill. */
+  track?: string;
+  accessibilityLabel?: string;
 }) {
   return (
-    <View style={[s.tabTrack, { backgroundColor: tint }]} accessibilityRole="tablist">
+    <View style={[s.tabTrack, { backgroundColor: track }]} accessibilityRole="tablist" accessibilityLabel={accessibilityLabel}>
       {tabs.map((tab) => {
         const isActive = tab.key === active;
         return (
@@ -450,11 +513,13 @@ export function TabBar<K extends string>({
   );
 }
 
-/** Onboarding progress: one dot per page, the current one stretched. */
-/** One counted fact. End cards and Home both use it, so it lives here. */
-export function Stat({ value, label }: { value: string; label: string }) {
+/**
+ * One counted fact. End cards, Home and My French use it, so it lives here.
+ * Two to a row by default; three when a screen has three facts and one line.
+ */
+export function Stat({ value, label, columns = 2 }: { value: string; label: string; columns?: 2 | 3 }) {
   return (
-    <View style={{ flexBasis: '46%', flexGrow: 1 }}>
+    <View style={{ flexBasis: columns === 3 ? '30%' : '46%', flexGrow: 1 }}>
       <Text style={[type.title, { color: paper.ink }]}>{value}</Text>
       {/* The caption is words under a number, so it is soft ink, not the faint
           ink that was only ever cleared as a mark (F330). */}
@@ -488,6 +553,32 @@ export function Monogram({ initial, size = HIT }: { initial: string; size?: numb
   );
 }
 
+/**
+ * A soft paper disc under a place's line art: the one place a tint is ever
+ * drawn. A tint is a surface under ink, never a mark and never lettering
+ * (F362). Decorative to assistive tech, like the drawing it holds; the place is
+ * named in the text beside it.
+ */
+export function TintDisc({ tint: name, size = 64, children }: { tint: TintName; size?: number; children?: React.ReactNode }) {
+  return (
+    <View
+      {...decorative}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: tint[name],
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** Onboarding progress: one dot per page, the current one stretched. */
 export function ProgressDots({ total, index }: { total: number; index: number }) {
   return (
     <View style={s.dotsRow} accessible accessibilityLabel={`Step ${index + 1} of ${total}`}>

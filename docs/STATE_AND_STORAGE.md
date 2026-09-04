@@ -34,7 +34,13 @@ the session's phrases outright.
 
 ### The age stop, and exactly how strong it is
 
-`profile` is at **version 5**, and the field version 5 added is `ageStopAt`: the
+`profile` is at **version 7**. Version 6 added `tutorVoice`, the catalogue key of
+the voice the learner asked for, null until they choose. Version 7 added
+`preferTyping`, a plain boolean saying a conversation opens with the reply box
+showing and the microphone closed until the circle is tapped; false for everyone
+until they say otherwise in Profile, and false on every upgraded branch, because
+nothing that happened before the field existed is an answer to it. The field
+version 5 added is `ageStopAt`: the
 millisecond moment a session ended because the learner said, in a scene, that they
 are under thirteen. Null until one lands, null again once they pass the age gate.
 `upgradeStored` writes null on every branch below 5, because nothing that happened
@@ -352,16 +358,19 @@ when the credentials are absent.
 `apps/mobile/src/profile/store.ts` holds `StoredProfile`:
 
 ```ts
-{ version: 4, name, dob, ageConfirmed, motivation, dailyGoalMin, onboardedAt, username, brain: LearnerProfile }
+{ version: 7, name, dob, ageConfirmed, ageStopAt, tutorVoice, preferTyping, motivation, dailyGoalMin, onboardedAt, username, brain: LearnerProfile }
 ```
 
 `brain` is `@luvani/brain`'s learner model, stored verbatim — the app is its
 storage, not its author.
 
 `apps/mobile/src/profile/upgrade.ts` is the app-side forward migration.
-`upgradeStored` takes whatever was on disk and returns a version-4 profile or
+`upgradeStored` takes whatever was on disk and returns a version-7 profile or
 `null` if it cannot be read at all. Version 1 and version 2 records both gain
-`username: null`; a version-3 record keeps the username it already has.
+`username: null`; a version-3 record keeps the username it already has. Every
+branch below 5 writes no `ageStopAt`, every branch below 6 no `tutorVoice`, and
+every branch below 7 `preferTyping: false`: a field's slot on an older disk is
+never read as an answer the learner gave.
 
 Version 4 stopped asking for a date of birth and asks whether the learner is
 thirteen or over instead. `dob` stays on the type forever and nobody's is
