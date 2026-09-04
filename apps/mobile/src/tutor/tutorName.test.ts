@@ -40,11 +40,10 @@
  * closing it is what actually empties the list down to one.
  *
  * What the fix is NOT: onboarding no longer naming the default. A first-ever
- * run has genuinely nobody to name and the copy has to name somebody, so it
- * names the default, on purpose, and `WelcomeScreen.tsx` still says
- * `DEFAULT_TUTOR_PERSONA` out loud for that reason. The narrow thing that
- * changed is that the pages ask `tutorPersonaOf(existing)` first, and only get
- * the default when there is nobody on the record to get instead.
+ * run starts at the default on purpose, and `PreAccountOnboarding.tsx` changes
+ * that only when the learner selects another draft voice. The narrow thing that
+ * changed is that the recovery pages ask `tutorPersonaOf(existing)` first, and
+ * only get the default when there is nobody on the record to get instead.
  *
  * Nothing may be added to it. A file that names the tutor while holding a
  * profile has no excuse, and the walk says so by path.
@@ -260,7 +259,7 @@ describe('onboarding introduces the voice already on the record — F300', () =>
    * word, so a fix that quietly took the default away would be caught too.
    */
   const FLOW = stripComments(readFileSync(join(SRC, 'onboarding/OnboardingFlow.tsx'), 'utf8'));
-  const WELCOME = stripComments(readFileSync(join(SRC, 'onboarding/WelcomeScreen.tsx'), 'utf8'));
+  const WELCOME = stripComments(readFileSync(join(SRC, 'onboarding/PreAccountOnboarding.tsx'), 'utf8'));
 
   test('a learner who already chose a voice is re-introduced to that voice, not the default', () => {
     const chosen = tutorPersonaOf({ tutorVoice: 'celine' } as never);
@@ -373,7 +372,7 @@ describe('onboarding introduces the voice already on the record — F300', () =>
     // before an account exists. It says which persona it means out loud rather
     // than letting the copy module decide for it.
     assert.ok(
-      WELCOME.includes('WELCOME_SUBLINE(DEFAULT_TUTOR_PERSONA)'),
+      WELCOME.includes('WELCOME_SUBLINE(persona)'),
       'the welcome screen stopped saying which persona its subline is about',
     );
   });

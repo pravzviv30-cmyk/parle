@@ -11,6 +11,10 @@ the date, environment and evidence location. A blank item is a release block.
   `npm run audit:ci` from the exact release commit; attach their exit-zero logs.
 - [ ] Build and walk iOS and Android development/release candidates: first run,
   accessibility text, microphone, secure storage, export and account deletion.
+- [ ] On both platforms, complete one Tutor session, force-close immediately,
+  reopen while online, and verify exactly one server-owned Conversation Pack
+  becomes ready with review, continuation and delete-one/delete-all Pack
+  controls. Verify that deleting history leaves earned phrases and review cards.
 - [ ] Apply all eleven migrations to the target Supabase project, reload its API
   schema cache and run `npm run verify:supabase` against it.
 - [ ] Execute the rollback evidence procedure in `supabase/README.md` on a

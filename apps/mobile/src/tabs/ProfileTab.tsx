@@ -36,7 +36,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Switch } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import Constants from 'expo-constants';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { levelFor, totalXp, type LevelStanding } from '@luvani/core';
 import { accent, paper, signal, space, type, HIT } from '../theme.ts';
 import { Card, Label, Monogram, OptionCard, OutlineButton, Field } from '../components.tsx';
@@ -158,6 +158,7 @@ export function ProfileTab({
   onSignOut: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
+  const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { user, adapter } = useAuth();
   const { profile, update } = useProfile();
   const [sheet, setSheet] = useState<Sheet>('none');
@@ -652,6 +653,11 @@ export function ProfileTab({
           <Card style={{ marginTop: space(2.5) }}>
             <SettingsRow first label="Email" value={user?.email ?? 'Signed in'} />
             {user?.provider === 'mock' && <SettingsRow label="Account" value="Demo, stored on this device only" />}
+            <SettingsRow
+              label="Saved conversations"
+              value="Manage in My French"
+              onPress={() => nav.navigate('MyFrench')}
+            />
             <SettingsRow
               label="Download my data"
               value={exporting ? 'Preparing…' : 'JSON file'}

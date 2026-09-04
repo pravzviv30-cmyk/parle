@@ -114,11 +114,11 @@ export const VENDOR_PHRASE = 'speech and language services';
  * follows is the old auth welcome's promise, kept whole, because the honest
  * version of a good promise is still a good promise.
  *
- * The one surface with genuinely nobody to name: it is read before an account
- * exists, so there is no profile to ask and no choice to respect. It takes a
- * persona all the same and `WelcomeScreen.tsx` hands it the default by name,
- * because a screen that says which persona it means is a screen a reader can
- * check.
+ * It is read before an account exists, so there is no profile to ask. The
+ * pre-account flow passes the persona selected in its compact draft; a fresh
+ * draft starts at the catalogue default, which is the only case where that
+ * name is shown without a learner choosing it. The copy stays a function of a
+ * persona so a selected voice and the words beside it cannot disagree.
  */
 export function WELCOME_SUBLINE(persona: TutorPersona): string {
   const p = pronouns(persona);
@@ -306,7 +306,7 @@ export interface FirstRunSurface {
  */
 export function firstRunSurfaces(persona: TutorPersona): readonly FirstRunSurface[] {
   return [
-    { key: 'welcome', where: 'onboarding/WelcomeScreen.tsx', lines: [WELCOME_SUBLINE(persona)] },
+    { key: 'welcome', where: 'onboarding/PreAccountOnboarding.tsx', lines: [WELCOME_SUBLINE(persona)] },
     {
       key: 'meet',
       where: 'onboarding/OnboardingFlow.tsx',

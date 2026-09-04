@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { missionStates, suggestedMission, type MissionProgress } from '@luvani/core';
+import { missionStates, phraseKeyOf, suggestedMission, type ConversationPack, type MissionProgress } from '@luvani/core';
 
 import { Card, GhostButton, Label, OutlineButton, PillButton, Stat } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
@@ -23,6 +23,15 @@ import { trackProductEvent } from '../analytics/track.ts';
 import { hasStamps, isStamped, stampLabel, stampsFrom } from '../progress/passport.ts';
 import { hasStory, storyFrom, type WeekStory } from '../progress/story.ts';
 import { loadHistory } from '../progress/store.ts';
+import { useAuth } from '../auth/useAuth.tsx';
+import {
+  deleteAllConversationPacksForLearner,
+  deleteConversationPackForLearner,
+  loadConversationPacks,
+  refreshConversationPacks,
+} from '../conversationPacks/store.ts';
+import { latestReadyPack } from '../conversationPacks/model.ts';
+import { ConversationPackLibrary } from '../conversationPacks/ConversationPackLibrary.tsx';
 
 /** The stamp mark, at TodayRow's size, because it is TodayRow's mark. */
 const MARK = 10;
@@ -63,10 +72,13 @@ function checkLine(check: SoundCheckEvidence | null): string | null {
  */
 export function MyFrenchTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
+  const { user, adapter } = useAuth();
   const [missions, setMissions] = useState<readonly MissionProgress[]>([]);
   const [checks, setChecks] = useState<readonly SoundCheckEvidence[]>([]);
   const [book, setBook] = useState<Phrasebook>({ groups: [], count: 0, topics: 0 });
   const [showingPhrases, setShowingPhrases] = useState(false);
+  const [showingPacks, setShowingPacks] = useState(false);
+  const [packs, setPacks] = useState<ConversationPack[]>([]);
   // null is "not read yet", which draws the same as a quiet week and is not the
   // same claim. The empty story is story.ts's to make, not this screen's.
   const [story, setStory] = useState<WeekStory | null>(null);
@@ -110,13 +122,56 @@ export function MyFrenchTab() {
           });
         },
       );
+      // The local cache makes the library appear immediately; the authenticated
+      // pull is the recovery path for a Pack whose mobile session was closed
+      // before the ready signal reached it.
+      void loadConversationPacks().then((stored) => {
+        if (!cancelled) setPacks(stored);
+      });
+      if (user) {
+        void refreshConversationPacks(user, adapter).then((result) => {
+          if (!cancelled && result.ok) setPacks(result.packs);
+        });
+      }
       return () => {
         cancelled = true;
       };
-    }, []),
+    }, [user, adapter]),
   );
 
   if (showingPhrases) return <PhrasebookScreen book={book} onDone={() => setShowingPhrases(false)} />;
+  if (showingPacks) {
+    return (
+      <ConversationPackLibrary
+        packs={packs}
+        onBack={() => setShowingPacks(false)}
+        onReview={(pack) => nav.navigate('Drill', {
+          node: { id: pack.id, title: pack.title.en, phraseKeys: pack.keyPhrases.map((phrase) => phraseKeyOf(phrase.fr)) },
+        })}
+        onContinue={(pack) => nav.navigate('Convo', {
+          seedTopic: { fr: pack.continuationSeed.titleFr, en: pack.continuationSeed.titleEn },
+        })}
+        onDeleteOne={async (pack) => {
+          if (!user) return { ok: false, message: 'Please sign in again before changing your Tutor history.' };
+          const result = await deleteConversationPackForLearner(user, adapter, pack.id);
+          if (result.ok) {
+            setPacks(result.packs);
+            return { ok: true };
+          }
+          return result;
+        }}
+        onDeleteAll={async () => {
+          if (!user) return { ok: false, message: 'Please sign in again before changing your Tutor history.' };
+          const result = await deleteAllConversationPacksForLearner(user, adapter);
+          if (result.ok) {
+            setPacks(result.packs);
+            return { ok: true };
+          }
+          return result;
+        }}
+      />
+    );
+  }
 
   // Keyed rather than indexed: `stampsFrom` answers in the order it was given,
   // and a lookup by id stays right the first time somebody filters this list.
@@ -154,6 +209,19 @@ export function MyFrenchTab() {
             </Text>
             <View style={{ marginTop: space(4) }}>
               <OutlineButton label="Open my phrases" onPress={() => setShowingPhrases(true)} />
+            </View>
+          </Card>
+        )}
+
+        {packs.length > 0 && (
+          <Card style={{ marginTop: space(6) }}>
+            <Label>Your conversations</Label>
+            <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>
+              {latestReadyPack(packs)?.title.en ?? 'Your conversation is becoming practice'}
+            </Text>
+            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>Return to a real situation, its phrases and its next step whenever you need it.</Text>
+            <View style={{ marginTop: space(4) }}>
+              <OutlineButton label="Open conversation packs" onPress={() => setShowingPacks(true)} />
             </View>
           </Card>
         )}

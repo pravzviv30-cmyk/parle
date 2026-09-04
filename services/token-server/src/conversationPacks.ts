@@ -78,3 +78,21 @@ export async function deleteConversationPack(
   );
   if (!response.ok) throw new Error(`conversation pack delete failed (${response.status})`);
 }
+
+/**
+ * Delete every Pack owned by one caller. The generated drills deliberately do
+ * not live in this table, so deleting conversation history never locks a
+ * learner out of phrases or review cards they have already earned.
+ */
+export async function deleteAllConversationPacks(
+  baseUrl: string,
+  serviceRoleKey: string,
+  userId: string,
+  request: typeof fetch = fetch,
+): Promise<void> {
+  const response = await request(
+    `${root(baseUrl)}/rest/v1/conversation_packs?user_id=eq.${encodeURIComponent(userId)}`,
+    { method: 'DELETE', headers: { ...headers(serviceRoleKey), Prefer: 'return=minimal' }, signal: AbortSignal.timeout(5_000) },
+  );
+  if (!response.ok) throw new Error(`conversation pack bulk delete failed (${response.status})`);
+}

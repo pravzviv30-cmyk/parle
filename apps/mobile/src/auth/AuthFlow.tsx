@@ -9,13 +9,24 @@
  */
 
 import { useState } from 'react';
-import { WelcomeScreen } from '../onboarding/WelcomeScreen.tsx';
+import { PreAccountOnboarding } from '../onboarding/PreAccountOnboarding.tsx';
+import type { PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
 import { SignUpScreen } from './SignUpScreen.tsx';
 import { SignInScreen } from './SignInScreen.tsx';
 
 type AuthScreen = 'welcome' | 'signup' | 'signin';
 
-export function AuthFlow() {
+export function AuthFlow({
+  initialDraft,
+  onDraftChange,
+  onCreateAccount,
+  onSignIn,
+}: {
+  initialDraft: PreAccountOnboardingDraft | null;
+  onDraftChange: (draft: PreAccountOnboardingDraft) => void;
+  onCreateAccount: (draft: PreAccountOnboardingDraft) => void;
+  onSignIn: () => void;
+}) {
   const [screen, setScreen] = useState<AuthScreen>('welcome');
 
   if (screen === 'signup') {
@@ -24,5 +35,18 @@ export function AuthFlow() {
   if (screen === 'signin') {
     return <SignInScreen onBack={() => setScreen('welcome')} onCreateAccount={() => setScreen('signup')} />;
   }
-  return <WelcomeScreen onCreateAccount={() => setScreen('signup')} onSignIn={() => setScreen('signin')} />;
+  return (
+    <PreAccountOnboarding
+      initialDraft={initialDraft}
+      onDraftChange={onDraftChange}
+      onCreateAccount={(draft) => {
+        onCreateAccount(draft);
+        setScreen('signup');
+      }}
+      onSignIn={() => {
+        onSignIn();
+        setScreen('signin');
+      }}
+    />
+  );
 }

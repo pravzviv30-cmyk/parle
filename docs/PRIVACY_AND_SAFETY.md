@@ -25,10 +25,11 @@ Every durable store, with the retention that governs it. A row whose retention s
 | What | Where it lives | Why | Retention | Removed by |
 |---|---|---|---|---|
 | Email, name, sign-in provider | Supabase `auth.users` | There is no account without them | Life of the account | Account deletion |
+| Pre-account age confirmation and selected Tutor voice | Device, `@luvani/pre-account-onboarding/v1` | Carry the minimum first-run choice through account creation | Until the signed-in profile is created | Cleared after profile creation, clearing app data |
 | Age confirmation, and a date of birth for learners who joined when Luvani asked | Device, `luvani.u.<uid>.profile` | The 13+ gate, which is a gate and not a field | Life of the account on that device | Account deletion |
 | The moment a session stopped because the learner said they are under thirteen | Device, `luvani.u.<uid>.profile`, field `ageStopAt` | Keep the tutor doors shut until the age gate is answered again | Life of the account on that device, cleared the moment they pass the gate | Passing the age gate, reinstall, account deletion |
 | Learning state: history, review deck, journal phrases, missions, topics, drills, sound-check evidence | Device, `luvani.u.<uid>.*`, and `public.learner_state` once sync ships | It is the product | Life of the account | Account deletion, cascade |
-| Conversation Pack: curated phrases, corrections, short summary and exercises | `public.conversation_packs`, with a device cache | Recover post-session practice if the app closes | Life of the account | Account deletion, cascade; pack deletion |
+| Conversation Pack: curated phrases, corrections, short summary and exercises | `public.conversation_packs`, with a device cache | Recover post-session practice if the app closes | Life of the account | Account deletion, cascade; delete one/all Packs in My French |
 | Five content-free product events | `public.product_events` | Product decisions | 13 months from `occurred_at` | Scheduled delete, cascade |
 | Seconds of voice per session | `public.session_usage` | Bill each session at most once | 24 months from `reported_at` | Scheduled delete, cascade |
 | Plan and seconds used | `public.entitlements` | The allowance | Life of the account | Cascade |
@@ -86,9 +87,9 @@ before it is a branch.
 What a learner is told, before they say anything out loud, lives in
 `apps/mobile/src/onboarding/disclosure.ts` as exported constants, and
 `disclosure.test.ts` holds them. It is one module because it feeds three surfaces
-in the order a learner meets them: the welcome subline before an account exists,
-the Meet Luc page immediately before the first scene, and TutorIntro's persona page
-at the door of the tutor. Before it, the first run said nothing about AI at all and
+in the order a learner meets them: the pre-account welcome, the recovery-flow Meet
+page when an older profile needs it, and TutorIntro's persona page at the door of
+the tutor. Before it, the first run said nothing about AI at all and
 introduced Luc with a biography. `FIRST_RUN_SURFACES` names the three, and the test
 `every first-run screen reads its AI disclosure from one module` fails if a screen
 stops reading from here and starts writing its own version.
@@ -251,7 +252,7 @@ verified until it is.
 **Export.** Profile's **Download my data** writes a JSON file containing every
 per-account device key and, for a Supabase account, the authenticated learner's
 account metadata and rows from `learner_state`, `product_events`, `entitlements`,
-`session_usage` and `billing_events`. `GET /account/export` takes no user id: it
+`session_usage`, `billing_events` and `conversation_packs`. `GET /account/export` takes no user id: it
 resolves the bearer first, rate-limits the request by IP and account, and filters
 every table by that resolved id. It deliberately excludes raw audio and transcripts
 (neither is stored), access tokens, and `trial_installations` (the antifraud HMAC is

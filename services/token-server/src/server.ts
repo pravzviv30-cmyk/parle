@@ -25,7 +25,13 @@ import { productionConfigurationProblems } from './config.ts';
 import { deleteSupabaseUser, signedInRecently } from './accountDeletion.ts';
 import { exportSupabaseAccountData } from './accountExport.ts';
 import { insertProductEvent, parseProductEvent } from './productEvents.ts';
-import { deleteConversationPack, listConversationPacks, saveConversationPack, validConversationPackFor } from './conversationPacks.ts';
+import {
+  deleteAllConversationPacks,
+  deleteConversationPack,
+  listConversationPacks,
+  saveConversationPack,
+  validConversationPackFor,
+} from './conversationPacks.ts';
 import { applyHttpSecurity, createOriginPolicy } from './httpSecurity.ts';
 import {
   refreshSubscriber,
@@ -476,6 +482,18 @@ const server = createServer(async (req, res) => {
       if (!supabaseUrl || !serviceRoleKey) return json(res, 503, { error: 'Conversation Pack storage is not configured' });
       const packs = await listConversationPacks(supabaseUrl, serviceRoleKey, resolved.userId);
       return json(res, 200, { packs });
+    }
+
+    if (req.method === 'DELETE' && url.pathname === '/conversation-packs') {
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.conversationPackIp)]))) return;
+      const resolved = await users.resolve(req.headers.authorization, null);
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      if (!(await withinLimits(req, res, [[RATE_LIMITS.conversationPackUser, 'user', resolved.userId]]))) return;
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!supabaseUrl || !serviceRoleKey) return json(res, 503, { error: 'Conversation Pack storage is not configured' });
+      await deleteAllConversationPacks(supabaseUrl, serviceRoleKey, resolved.userId);
+      return json(res, 200, { deleted: true });
     }
 
     const packDelete = url.pathname.match(/^\/conversation-packs\/([0-9a-f-]{36})$/i);

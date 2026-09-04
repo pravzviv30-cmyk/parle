@@ -57,6 +57,7 @@ export function loadConversationPacks(): Promise<ConversationPack[]> {
 }
 
 export type ConversationPackSync = { ok: true; packs: ConversationPack[] } | { ok: false };
+export type ConversationPackMutation = { ok: true; packs: ConversationPack[] } | { ok: false; message: string };
 
 /**
  * Pull the source of truth, then bank pack exercises in the existing drill
@@ -88,6 +89,58 @@ export async function refreshConversationPacks(
   } catch {
     return { ok: false };
   }
+}
+
+async function authorisedDelete(
+  user: AuthUser,
+  adapter: AuthAdapter,
+  path: string,
+  locally: (packs: readonly ConversationPack[]) => ConversationPack[],
+  request: typeof fetch = fetch,
+): Promise<ConversationPackMutation> {
+  const current = await loadConversationPacks();
+  // The local adapter has no server-owned Pack table. Keeping this path useful
+  // for demos makes its privacy control truthful without pretending there was
+  // anything to delete remotely.
+  if (adapter.kind !== 'supabase') {
+    const packs = locally(current);
+    await replaceConversationPacks(packs);
+    return { ok: true, packs };
+  }
+  const token = await adapter.getAccessToken();
+  if (!token) return { ok: false, message: 'Please sign in again before changing your Tutor history.' };
+  try {
+    const response = await request(`${TOKEN_SERVER}${path}`, {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) return { ok: false, message: 'Your Tutor history was not changed. Please try again.' };
+    const packs = locally(current).filter((pack) => pack.learnerId === user.id);
+    await replaceConversationPacks(packs);
+    return { ok: true, packs };
+  } catch {
+    return { ok: false, message: 'Your Tutor history was not changed. Check your connection and try again.' };
+  }
+}
+
+/** Delete one Pack from the server and then replace only the local cache view. */
+export function deleteConversationPackForLearner(
+  user: AuthUser,
+  adapter: AuthAdapter,
+  packId: string,
+  request: typeof fetch = fetch,
+): Promise<ConversationPackMutation> {
+  return authorisedDelete(user, adapter, `/conversation-packs/${encodeURIComponent(packId)}`, (packs) => packs.filter((pack) => pack.id !== packId), request);
+}
+
+/** Delete all curated conversation history while leaving earned drills intact. */
+export function deleteAllConversationPacksForLearner(
+  user: AuthUser,
+  adapter: AuthAdapter,
+  request: typeof fetch = fetch,
+): Promise<ConversationPackMutation> {
+  return authorisedDelete(user, adapter, '/conversation-packs', () => [], request);
 }
 
 onUserScopeReset(() => {

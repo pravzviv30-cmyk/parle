@@ -54,6 +54,7 @@ function stripComments(source: string): string {
 }
 
 const FLOW = stripComments(read('./OnboardingFlow.tsx'));
+const PRE_ACCOUNT_FLOW = stripComments(read('./PreAccountOnboarding.tsx'));
 const RULES = stripComments(read('./answers.ts'));
 const AGE_GATE = stripComments(read('./AgeGateScreen.tsx'));
 const REFUSAL = stripComments(read('./AgeRefusal.tsx'));
@@ -410,26 +411,28 @@ describe('the age gate is a gate on screen, not only in the rule', () => {
 });
 
 describe('the onboarding doc counts the screens the code shows', () => {
-  test('the onboarding doc claims the same page count the flow renders', () => {
+  test('the onboarding doc claims the same pre-account page count the flow renders', () => {
     // A count written in prose rots the first time somebody adds a page, and a
     // document that miscounts the flow is worse than no document: it is read
     // instead of the code.
-    const claim = DOC.match(/Onboarding renders \*\*(\d+) pages\*\*: ([^.]+)\./);
-    assert.ok(claim, 'docs/ONBOARDING.md no longer says how many pages onboarding renders');
-    assert.equal(Number(claim[1]), PAGES.length, `the doc claims ${claim[1]} pages and PAGES holds ${PAGES.length}`);
+    const claim = DOC.match(/Pre-account onboarding renders \*\*(\d+) pages\*\*: ([^.]+)\./);
+    assert.ok(claim, 'docs/ONBOARDING.md no longer says how many pages pre-account onboarding renders');
+    const preAccountPages = ['welcome', 'situations', 'life', 'voice', 'ready'];
+    assert.equal(Number(claim[1]), preAccountPages.length, `the doc claims ${claim[1]} pages and the pre-account flow holds ${preAccountPages.length}`);
     assert.deepEqual(
       [...(claim[2] ?? '').matchAll(/`([a-z]+)`/g)].map((m) => m[1]),
-      [...PAGES],
+      preAccountPages,
       'the doc names different pages, or names them in a different order',
     );
+    assert.match(PRE_ACCOUNT_FLOW, /PRE_ACCOUNT_PAGES = \['welcome', 'situations', 'life', 'voice', 'ready'\]/, 'the five pages in the doc are not the five the pre-account flow renders');
 
-    // The screens either side of onboarding are the welcome, the sign-up and the
-    // chooser, so the total moves with the page count and cannot drift alone.
+    // Sign-up and the mission chooser follow the five pages. The age gate is
+    // part of Ready rather than a sixth marketing screen.
     const screens = DOC.match(/crosses \*\*(\d+) screens\*\*/);
     assert.ok(screens, 'the doc stopped counting the screens before the first scene');
     assert.equal(
       Number(screens[1]),
-      PAGES.length + 3,
+      preAccountPages.length + 2,
       'the doc counts screens that no longer match the pages plus the welcome, the sign-up and the chooser',
     );
 

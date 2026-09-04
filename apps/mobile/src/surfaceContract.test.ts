@@ -335,16 +335,16 @@ describe('one front door, not three — F105', () => {
     // auth welcome, and TutorIntro. Two are gone; the third was demoted to the
     // door of the tutor, where it explains a thing the learner is about to use
     // rather than the app they have already installed.
-    const definers = EVERYTHING.filter(({ body }) => /export function WelcomeScreen\b/.test(body)).map((f) =>
+    const definers = EVERYTHING.filter(({ body }) => /export function PreAccountOnboarding\b/.test(body)).map((f) =>
       rel(f.path),
     );
-    assert.deepEqual(definers, ['onboarding/WelcomeScreen.tsx'], 'the app introduces itself somewhere other than once');
+    assert.deepEqual(definers, ['onboarding/PreAccountOnboarding.tsx'], 'the app introduces itself somewhere other than once');
 
     // One importer, and it decides *when* the welcome shows rather than what it
     // says. Matched on an import statement, because disclosure.ts carries the
     // same filename as a string and a string is not a second front door.
     const importers = EVERYTHING.filter(({ body }) =>
-      /import\s*\{[^}]*\bWelcomeScreen\b[^}]*\}\s*from/.test(body),
+      /import\s*\{[^}]*\bPreAccountOnboarding\b[^}]*\}\s*from/.test(body),
     ).map((f) => rel(f.path));
     assert.deepEqual(importers, ['auth/AuthFlow.tsx'], 'the welcome is reached from somewhere other than the auth flow');
 
@@ -368,7 +368,7 @@ describe('one front door, not three — F105', () => {
       APP_ENTRY.body.indexOf('function Gate()'),
       APP_ENTRY.body.indexOf('export default function App()'),
     );
-    assert.ok(gate.includes('<AuthFlow />'), 'Gate no longer renders the auth flow; this test is reading the wrong thing');
+    assert.ok(gate.includes('<AuthFlow'), 'Gate no longer renders the auth flow; this test is reading the wrong thing');
     const returned = [...gate.matchAll(/return <([A-Z]\w*)/g)].map((m) => m[1]!);
     assert.deepEqual(
       returned.filter((name) => /Splash|Welcome|Onboard|Intro/.test(name)),
@@ -462,7 +462,7 @@ describe('a form says out loud what it shows — F109', () => {
  * page and the count comes from PAGES rather than from a number typed here.
  */
 const FIRST_RUN: readonly { where: string; headings: number }[] = [
-  { where: 'onboarding/WelcomeScreen.tsx', headings: 1 },
+  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 5 },
   { where: 'auth/SignUpScreen.tsx', headings: 1 },
   { where: 'auth/SignInScreen.tsx', headings: 1 },
   { where: 'onboarding/OnboardingFlow.tsx', headings: PAGES.length },
@@ -713,7 +713,7 @@ const ADOPTERS = [
   'tutor/TutorIntro.tsx',
   'legal/Acknowledgements.tsx',
   // Pass 3: the first run adopts the frame too (F352, F357).
-  'onboarding/WelcomeScreen.tsx',
+  'onboarding/PreAccountOnboarding.tsx',
   'onboarding/AgeGateScreen.tsx',
   'onboarding/OnboardingFlow.tsx',
   'auth/SignUpScreen.tsx',
@@ -1279,7 +1279,7 @@ describe('one Monogram, borrowed everywhere — F344', () => {
 describe('the first run sits inside the one frame — F352', () => {
   /** The five first-run surfaces this pass moved onto the frame. */
   const FIRST_RUN_ADOPTED = [
-    'onboarding/WelcomeScreen.tsx',
+    'onboarding/PreAccountOnboarding.tsx',
     'onboarding/AgeGateScreen.tsx',
     'onboarding/OnboardingFlow.tsx',
     'auth/SignUpScreen.tsx',

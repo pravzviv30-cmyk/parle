@@ -23,6 +23,11 @@ store, and "Attempt audio" below is what happens to it), `coachMarks` (which of 
 in-conversation controls have been pointed out, one key for all of them), and
 `journal`, and `conversationPacks` (a local cache of durable, server-owned Tutor Conversation Packs; it contains curated learning data and exercises only, never raw audio or a readable transcript).
 
+Before an account exists, the app may also hold `@luvani/pre-account-onboarding/v1`.
+It contains only `ageConfirmed: true` and a catalogue Tutor voice key, is not a
+user-scoped learning store, and is removed once `App.tsx` creates the signed-in
+profile. It never holds a name, free-form answer, transcript or audio.
+
 `journal` is the only store that is meant to be empty. A conversation's recap is
 written there the moment it arrives and deleted once every store that took part
 in banking it says the write reached the disk, so anything found at launch

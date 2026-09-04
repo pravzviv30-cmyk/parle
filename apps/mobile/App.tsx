@@ -28,7 +28,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
@@ -57,6 +57,12 @@ import { backfillFrom } from './src/progress/activity.ts';
 import { lessonXp } from '@luvani/core';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { withChosenVoice } from './src/onboarding/voiceStep.ts';
+import {
+  clearPreAccountDraft,
+  loadPreAccountDraft,
+  savePreAccountDraft,
+  type PreAccountOnboardingDraft,
+} from './src/onboarding/preAccountDraft.ts';
 import { ProfileGate } from './src/app/ProfileContext.tsx';
 import { LiveProvider } from './src/app/LiveContext.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
@@ -118,7 +124,43 @@ async function startAccountSync(uid: string): Promise<SyncEngine | null> {
  * reads a store renders — including the providers, which all read through
  * `userKey()` and would throw if hoisted above this.
  */
-function SignedInRoot({ user }: { user: AuthUser }) {
+function PreAccountProfileBootstrap({
+  draft,
+  done,
+  onConsumed,
+}: {
+  draft: PreAccountOnboardingDraft;
+  done: (profile: StoredProfile) => void;
+  onConsumed: () => void;
+}) {
+  // ProfileGate is intentionally the only owner of a user-scoped profile. The
+  // pre-account flow can therefore carry its two answers across auth without
+  // ever writing them to a shared account namespace. The effect is the bridge:
+  // it runs once, builds the ordinary profile through its named constructors,
+  // and lets ProfileGate move on to the app.
+  const delivered = useRef(false);
+  useEffect(() => {
+    // React's development strict mode may replay an effect. Creating a profile
+    // is idempotent in content, but the first-run navigation flag is an effect
+    // too, so keep the bridge explicitly once-only.
+    if (delivered.current) return;
+    delivered.current = true;
+    const built = createStoredProfile({ name: null, ageConfirmed: draft.ageConfirmed, motivation: null });
+    done(withChosenVoice(built, draft.tutorVoice));
+    onConsumed();
+  }, [draft, done, onConsumed]);
+  return <Loading />;
+}
+
+function SignedInRoot({
+  user,
+  preAccountDraft,
+  onPreAccountDraftConsumed,
+}: {
+  user: AuthUser;
+  preAccountDraft: PreAccountOnboardingDraft | null;
+  onPreAccountDraftConsumed: () => void;
+}) {
   const [ready, setReady] = useState(false);
   /**
    * Did this learner finish onboarding a moment ago, in this launch?
@@ -240,25 +282,36 @@ function SignedInRoot({ user }: { user: AuthUser }) {
     <ProfileGate
       onSignOut={() => void auth.signOut()}
       onboarding={(existing, done) => (
-        <OnboardingFlow
-          existing={existing}
-          onSignOut={() => void auth.signOut()}
-          onDone={(answers) => {
-            const built = existing === null ? createStoredProfile(answers) : completeProfile(existing, answers);
-            // The voice step is the one onboarding answer neither constructor
-            // carries. It is applied here, through `withTutorVoice` — the same
-            // named door the Profile sheet writes with — rather than by adding a
-            // second opinion about the field to `createStoredProfile`. A skip
-            // leaves the profile untouched, so the field still reads "never
-            // chosen" and both ends of the wire resolve it to the default.
-            const next: StoredProfile = withChosenVoice(built, answers.tutorVoice);
-            // Brand new, rather than someone answering a question that was
-            // added since they joined. Only the first kind is sent to the
-            // chooser; the second already has a Home worth returning to.
-            setJustOnboarded(existing === null);
-            done(next);
-          }}
-        />
+        existing === null && preAccountDraft !== null ? (
+          <PreAccountProfileBootstrap
+            draft={preAccountDraft}
+            onConsumed={onPreAccountDraftConsumed}
+            done={(profile) => {
+              setJustOnboarded(true);
+              done(profile);
+            }}
+          />
+        ) : (
+          <OnboardingFlow
+            existing={existing}
+            onSignOut={() => void auth.signOut()}
+            onDone={(answers) => {
+              const built = existing === null ? createStoredProfile(answers) : completeProfile(existing, answers);
+              // The voice step is the one onboarding answer neither constructor
+              // carries. It is applied here, through `withTutorVoice` — the same
+              // named door the Profile sheet writes with — rather than by adding a
+              // second opinion about the field to `createStoredProfile`. A skip
+              // leaves the profile untouched, so the field still reads "never
+              // chosen" and both ends of the wire resolve it to the default.
+              const next: StoredProfile = withChosenVoice(built, answers.tutorVoice);
+              // Brand new, rather than someone answering a question that was
+              // added since they joined. Only the first kind is sent to the
+              // chooser; the second already has a Home worth returning to.
+              setJustOnboarded(existing === null);
+              done(next);
+            }}
+          />
+        )
       )}
     >
       <LiveProvider>
@@ -296,13 +349,52 @@ function SignedInRoot({ user }: { user: AuthUser }) {
  */
 function Gate() {
   const { status, user, recovering, clearRecovery } = useAuth();
+  const [preAccountDraft, setPreAccountDraft] = useState<PreAccountOnboardingDraft | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
-  if (status === 'loading') return <Loading />;
+  useEffect(() => {
+    let cancelled = false;
+    void loadPreAccountDraft().then((draft) => {
+      if (!cancelled) {
+        setPreAccountDraft(draft);
+        setDraftLoaded(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const keepPreAccountDraft = useCallback((draft: PreAccountOnboardingDraft) => {
+    setPreAccountDraft(draft);
+    void savePreAccountDraft(draft);
+  }, []);
+
+  const discardPreAccountDraft = useCallback(() => {
+    setPreAccountDraft(null);
+    void clearPreAccountDraft();
+  }, []);
+
+  if (status === 'loading' || !draftLoaded) return <Loading />;
   if (status === 'signedIn' && user !== null) {
     if (recovering) return <SetNewPasswordScreen onDone={clearRecovery} />;
-    return <SignedInRoot key={user.id} user={user} />;
+    return (
+      <SignedInRoot
+        key={user.id}
+        user={user}
+        preAccountDraft={preAccountDraft}
+        onPreAccountDraftConsumed={discardPreAccountDraft}
+      />
+    );
   }
-  return <AuthFlow />;
+  return (
+    <AuthFlow
+      initialDraft={preAccountDraft}
+      onDraftChange={keepPreAccountDraft}
+      onCreateAccount={keepPreAccountDraft}
+      onSignIn={discardPreAccountDraft}
+    />
+  );
 }
 
 export default function App() {

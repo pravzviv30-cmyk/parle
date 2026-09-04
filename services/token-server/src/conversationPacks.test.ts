@@ -2,7 +2,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { buildConversationPack } from '@luvani/core';
-import { deleteConversationPack, listConversationPacks, saveConversationPack, validConversationPackFor } from './conversationPacks.ts';
+import {
+  deleteAllConversationPacks,
+  deleteConversationPack,
+  listConversationPacks,
+  saveConversationPack,
+  validConversationPackFor,
+} from './conversationPacks.ts';
 
 const pack = buildConversationPack({
   id: '01234567-89ab-4def-8123-456789abcdef',
@@ -44,4 +50,14 @@ test('pack deletion scopes the target to the authenticated learner', async () =>
   });
   assert.match(seenUrl, /id=eq\.01234567-89ab-4def-8123-456789abcdef/);
   assert.match(seenUrl, /user_id=eq\.learner%2Fone/);
+});
+
+test('bulk deletion is still scoped to the authenticated learner', async () => {
+  let seenUrl = '';
+  await deleteAllConversationPacks('https://project.supabase.co', 'secret', 'learner/one', async (url, init) => {
+    seenUrl = String(url);
+    assert.equal(init?.method, 'DELETE');
+    return new Response(null, { status: 204 });
+  });
+  assert.match(seenUrl, /conversation_packs\?user_id=eq\.learner%2Fone$/);
 });

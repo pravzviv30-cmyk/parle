@@ -10,33 +10,29 @@ test can reach them.
 
 ## The shape now
 
-Onboarding renders **4 pages**: `age`, `name`, `meet`, `voice`.
+Pre-account onboarding renders **5 pages**: `welcome`, `situations`, `life`, `voice`, `ready`.
 
-A brand-new learner crosses **7 screens** before the first scene, and taps **7 times**
-to get there. Before this phase it was **8 screens** and **8 taps**, across three
-different introductions to the same product.
+A brand-new learner crosses **7 screens** before the first scene: those five
+pages, account creation, and the mission chooser. The age confirmation is part
+of Ready, not a separate marketing screen.
 
-The sixth is the voice step, and it is the one screen on this path that was
-added back rather than removed. It costs a tap. What it buys is the only place a
-learner is ever shown that the tutor's voice is theirs to choose, and two of the
-eight voices are women, so a learner who never opens Profile would otherwise
-never meet six of the eight people the product can be. It is skippable in one
-tap and the skip is a real answer: the default is a person with a name, and
-nothing is written to the profile when it is walked past.
+The selected voice and the age confirmation are the only pre-account draft. It
+contains no name, transcript, raw audio or other free-form learner data, and is
+cleared as soon as it becomes the signed-in learner's normal profile.
 
-| # | Screen | The one thing it asks for | Skippable |
-|---|---|---|---|
-| 1 | Welcome (`onboarding/WelcomeScreen.tsx`) | Create account, or sign in | no, it is the door |
-| 2 | Sign up (`auth/SignUpScreen.tsx`) | Email and password, Google, or Apple on iOS | no |
-| 3 | Age (`onboarding/OnboardingFlow.tsx`) | One tap: thirteen or older | no, it is the gate |
-| 4 | Name (`onboarding/OnboardingFlow.tsx`) | A name to be greeted by | yes, Continue with it empty |
-| 5 | Meet Luc (`onboarding/OnboardingFlow.tsx`) | Nothing. It is the app talking | no, but it is one tap |
-| 6 | Voice (`onboarding/OnboardingFlow.tsx`) | Which of eight voices does the talking | yes, Skip for now |
-| 7 | Mission chooser (`missions/`) | Which situation to speak in | no, it is the choice itself |
+| # | Screen | The one thing it does |
+|---|---|---|
+| 1 | Welcome (`onboarding/PreAccountOnboarding.tsx`) | Makes one honest promise about speaking with an AI tutor |
+| 2 | Speak in real situations | Shows that a spoken conversation becomes future practice |
+| 3 | Life happens | Says progress remains without streak pressure |
+| 4 | Meet the selected Tutor | Lets the learner choose and manually preview one of eight voices |
+| 5 | Ready | Gives compact AI, microphone and history information, then records the 13+ confirmation |
+| 6 | Sign up (`auth/SignUpScreen.tsx`) | Creates an account by email/password, Google, or Apple on iOS |
+| 7 | Mission chooser (`missions/`) | Chooses the first situation to speak in |
 
 Then the scene, where the first French is spoken.
 
-## What it looked like before
+## Historical context
 
 | # | Screen | What it wanted |
 |---|---|---|
@@ -54,6 +50,11 @@ subline, and TutorIntro's first page on the Tutor tab. None of the three said th
 tutor is AI.
 
 ## What changed, and why each one
+
+The current path is the five-page pre-account flow above. The retained
+age/name/meet/voice flow below is a recovery path for older profiles, so its
+age-first ordering remains a safeguard without moving normal account creation
+behind a second onboarding sequence.
 
 **The splash is gone, and its café scene moved.** A device-level flag decided
 whether a two-page introduction ran before the app knew who the learner was; the
@@ -149,15 +150,17 @@ nothing about how long the flow takes.
 The stopwatch belongs to **F114** in [KNOWN_ISSUES.md](KNOWN_ISSUES.md), with the
 runbook in [DEVICE_VERIFICATION.md](DEVICE_VERIFICATION.md) — five viewports, both
 platforms, VoiceOver and TalkBack, and the time from first launch to first spoken
-French recorded per device. Until that pass runs, "shorter" here means six screens
-instead of eight, and that is all it means.
+French recorded per device. Until that pass runs, the table above is the only
+honest screen-count claim; it does not imply a measured time to first
+conversation.
 
 ## The files
 
 | What | Where |
 |---|---|
-| The welcome, the one front door | `apps/mobile/src/onboarding/WelcomeScreen.tsx` |
-| The four pages | `apps/mobile/src/onboarding/OnboardingFlow.tsx` |
+| The five-page pre-account front door | `apps/mobile/src/onboarding/PreAccountOnboarding.tsx` |
+| The four-page account recovery flow | `apps/mobile/src/onboarding/OnboardingFlow.tsx` |
+| The compact local hand-off | `apps/mobile/src/onboarding/preAccountDraft.ts` |
 | The rules: pages, the gate, the leaving guard | `apps/mobile/src/onboarding/answers.ts` |
 | The words about AI, privacy and the microphone | `apps/mobile/src/onboarding/disclosure.ts` |
 | Who is asked at all | `apps/mobile/src/app/ProfileContext.tsx` |
