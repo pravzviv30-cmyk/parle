@@ -5070,7 +5070,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `ds.checkDisabled`, `st.smallAction`, `st.door` go. Scoped to the tabs and DrillScreen.
 - verified-by: `no tab draws a pill, a text button or a card-button of its own`
 - verified-by: `the drill's Check is the pill, twice, and nothing hand-rolled`
-- verified-by: `the tutor's quiet doors are outline buttons with a gloss`
+- superseded: Pass 4 (F364) drew the doors as cards; the test below is that entry's successor.
+- verified-by: `the tutor's doors are cards drawn with the app's buttons, not a bespoke card-button — F364`
 
 ### F340 — No tab pads its own scroll
 - severity: P1
@@ -5144,7 +5145,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `dueCards`, and the pill count stays zero so the heavy-ruled row remains the single primary (F342).
   `open` and `talkAgain` are called, not edited.
 - verified-by: `practice draws its next step from nextStep and decides nothing about it on the screen`
-- verified-by: `the practice headline is a door to the same handler as the ruled row, never a second primary`
+- superseded: Pass 4 (F365) made the headline the tab's one pill; the test below is that entry's successor.
+- verified-by: `the practice headline is the tab's one pill, and it still opens the ruled row's handler — F365`
 - verified-by: `the mix offer sits under the next step, not above it`
 
 ### F347 — A situation's row action and the next-situation words are decided in one module
@@ -5157,7 +5159,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   no import of `progress/story.ts`. Sibling of `passport.ts`, shaped like `practice/talkAgain.ts`.
 - verified-by: `a finished situation offers to refine pronunciation, an unfinished one offers to start`
 - verified-by: `the portfolio's words carry no score, no number and no word that scolds`
-- verified-by: `my french and home name the next situation in the same words`
+- superseded: Pass 4 (F363) drew one card for both tabs; the test below is F351's and F363's successor.
+- verified-by: `home draws the next situation from portfolio.ts rather than spelling it`
 
 ### F348 — My French draws nothing at zero and closes on the next situation
 - severity: P1
