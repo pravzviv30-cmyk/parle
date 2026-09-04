@@ -28,6 +28,7 @@ Every durable store, with the retention that governs it. A row whose retention s
 | Age confirmation, and a date of birth for learners who joined when Luvani asked | Device, `luvani.u.<uid>.profile` | The 13+ gate, which is a gate and not a field | Life of the account on that device | Account deletion |
 | The moment a session stopped because the learner said they are under thirteen | Device, `luvani.u.<uid>.profile`, field `ageStopAt` | Keep the tutor doors shut until the age gate is answered again | Life of the account on that device, cleared the moment they pass the gate | Passing the age gate, reinstall, account deletion |
 | Learning state: history, review deck, journal phrases, missions, topics, drills, sound-check evidence | Device, `luvani.u.<uid>.*`, and `public.learner_state` once sync ships | It is the product | Life of the account | Account deletion, cascade |
+| Conversation Pack: curated phrases, corrections, short summary and exercises | `public.conversation_packs`, with a device cache | Recover post-session practice if the app closes | Life of the account | Account deletion, cascade; pack deletion |
 | Five content-free product events | `public.product_events` | Product decisions | 13 months from `occurred_at` | Scheduled delete, cascade |
 | Seconds of voice per session | `public.session_usage` | Bill each session at most once | 24 months from `reported_at` | Scheduled delete, cascade |
 | Plan and seconds used | `public.entitlements` | The allowance | Life of the account | Cascade |
@@ -64,8 +65,11 @@ stops being an accident:
   `missionId`, `reference`, `at`, `kind` and one learner-safe `focus` sentence.
   Never audio, and deliberately never a numeric score.
 - Transcripts are the same rule. Deepgram returns text so the tutor can answer; the
-  session engine grades it and drops it. What survives a session is the journal's
-  kept phrases and the learner model, both on the device, both the learner's own.
+  session engine grades it and drops it. A Conversation Pack may retain a curated
+  summary, selected learning phrases, corrections and exercises, but never the
+  turn-by-turn transcript or uncurated text. The core contract rejects fields
+  named `audio`, `recording`, `transcript` and `history` before either the server
+  or device cache accepts a pack.
 
 Audio does leave the device to four vendors while a session is live: LiveKit
 carries it, Deepgram transcribes it, ElevenLabs speaks the tutor's side, and
@@ -227,7 +231,8 @@ refreshed bearer is not reauthentication and a stolen session must not be able t
 erase somebody. Deletion is rate limited to 3 per account and 20 per IP per day.
 
 **What the delete removes.** The Supabase user, and by `on delete cascade`:
-`learner_state`, `product_events`, `entitlements` and `session_usage`. On the
+`learner_state`, `product_events`, `entitlements`, `session_usage` and
+`conversation_packs`. On the
 device, `clearActiveUserData` erases every per-account key in `USER_KEY_SUFFIXES`,
 and `App.tsx` deliberately holds the local session open until that finishes so the
 namespace can still be resolved. If the local erase fails the learner is told

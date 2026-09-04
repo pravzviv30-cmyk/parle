@@ -308,7 +308,7 @@ function blobFor(namespace: string, seed: number): unknown {
 
 // ──────────────────────────────────────────────────────────────────── tests
 
-describe('the per-domain conflict policy — thirteen namespaces, three classes, three exclusions', () => {
+describe('the per-domain conflict policy — fourteen namespaces, three classes, four exclusions', () => {
   test('every synced namespace has an explicit merge policy and every excluded one an explicit reason', () => {
     const suffixes = userKeySuffixes().filter((suffix) => suffix !== SYNC_STATE_SUFFIX);
     assert.ok(suffixes.length > 0, 'the scan read no suffixes out of scope.ts, so it is checking nothing');
@@ -336,7 +336,7 @@ describe('the per-domain conflict policy — thirteen namespaces, three classes,
     // about effort. journal, friends and reminder each have to be here by name: this list
     // is pinned so that excluding a namespace stays a decision somebody made on purpose
     // rather than a store that quietly slipped out of the merge table.
-    assert.deepEqual([...excluded].sort(), ['friends', 'journal', 'reminder']);
+    assert.deepEqual([...excluded].sort(), ['conversationPacks', 'friends', 'journal', 'reminder']);
     for (const exclusion of SYNC_EXCLUSIONS) {
       assert.ok(exclusion.reason.trim().length > 40, `${exclusion.namespace} has no real reason for being excluded`);
     }
@@ -695,7 +695,7 @@ describe('the per-domain conflict policy — thirteen namespaces, three classes,
 describe('the storage doc says what the sync table does', () => {
   const doc = readFileSync(join(MOBILE, '../../docs/STATE_AND_STORAGE.md'), 'utf8');
 
-  test('the storage doc names the pre-recap window, its owner and the phase that closes it', () => {
+  test('the storage doc names the pre-recap owner and its durable recovery path', () => {
     const window = doc.slice(doc.indexOf('### The pre-recap window'));
     assert.ok(window.length > 0, 'the storage doc no longer has a pre-recap window section');
 
@@ -705,20 +705,18 @@ describe('the storage doc says what the sync table does', () => {
     // Its owner, named as the thing that would have to change.
     assert.match(window, /Owner: tutor-agent/, 'the doc does not say who owns the window');
 
-    // The phase that closes it, and the two mechanisms that closing it needs.
-    assert.match(window, /Phase 5/, 'the doc does not say which phase closes the window');
-    assert.match(window, /redeliver/i, 'the doc does not name redelivery as what closing it takes');
-    assert.match(window, /protocol tag/, 'the doc does not name the protocol tag closing it needs');
+    // The server-owned artefact that closes the delivery loss.
+    assert.match(window, /Conversation Pack/, 'the doc does not name the durable recovery artefact');
+    assert.match(window, /conversation_packs/, 'the doc does not name the durable server table');
+    assert.match(window, /generating/, 'the doc does not name the early recovery state');
+    assert.match(window, /ready/, 'the doc does not name the curated recovery state');
 
     // The agent half, which fails silently and is the easiest half to forget.
     assert.match(window, /extractMemory/, 'the doc does not name the agent-side call that is dropped');
     assert.match(window, /curateAndDrill/, 'the doc does not name the agent-side call that is dropped');
     assert.match(window, /convo\.ts/, 'the doc does not say which file the dropped work is in');
 
-    // And the ledger still carries it, so the doc is a description rather than a promise.
-    const ledger = readFileSync(join(MOBILE, '../../docs/KNOWN_ISSUES.md'), 'utf8');
-    assert.match(ledger, /### F92 —/, 'F92 has left the ledger while the window is still open');
-    assert.match(window, /F92/, 'the doc does not point at the ledger entry that tracks the window');
+    assert.match(window, /outbox guarantee/, 'the doc does not name the remaining delivery limit');
   });
 
   test('the storage doc lists the namespaces the policy actually syncs and excludes', () => {

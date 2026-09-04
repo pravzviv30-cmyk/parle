@@ -77,12 +77,14 @@ import {
 } from '@luvani/brain';
 import {
   STUCK_SILENCE_MS,
+  buildConversationPack,
   decodeClientMessage,
   validateExercise,
   type MissionId,
   type Rung,
   type ServerMessage,
   type TutorPersona,
+  type DrillExercise,
 } from '@luvani/core';
 /**
  * The authored mission scenes, reached by file rather than through brain's
@@ -93,6 +95,7 @@ import {
  */
 
 import { reportUsage } from './usage.ts';
+import { reportConversationPack } from './conversationPacks.ts';
 import { outputGuard, recordSafetyDecision, safetyDecision } from './safety.ts';
 
 /**
@@ -891,6 +894,10 @@ export class LuvaniConversation extends voice.Agent {
   private momentHeld = false;
   private startedAt = Date.now();
   private ended = false;
+  /** One completion timestamp shared by the generating claim and ready upsert. */
+  private finishedAt: string | null = null;
+  /** A hard safety stop must never create a durable learning artefact. */
+  private safetyStopped = false;
   /**
    * Turns the learner actually produced: spoken, typed, or a help/skip tap.
    * Everything except the silence rescue, which is the one input the agent
@@ -1264,6 +1271,7 @@ export class LuvaniConversation extends voice.Agent {
     });
     const delivered = this.publish({ t: 'safety', category: decision.category, action: decision.action, message: decision.message });
     const spoken = this.say(decision.message, { allowInterruptions: false });
+    if (decision.action === 'stop') this.safetyStopped = true;
     if (decision.action === 'stop') void this.closeAfterStop(delivered, spoken);
     return true;
   }
@@ -2156,6 +2164,7 @@ export class LuvaniConversation extends voice.Agent {
   async finish(): Promise<void> {
     if (this.ended) return;
     this.ended = true;
+    this.finishedAt ??= new Date().toISOString();
     this.releaseMoment();
     this.clearRescue();
 
@@ -2197,9 +2206,16 @@ export class LuvaniConversation extends voice.Agent {
       utterancesScored: 0,
     });
 
-    // Only now, with the recap shipped and the seconds debited, the analyst
-    // does its background work. A learner who kills the app first loses this
-    // session's memory, practice topics and drills, and nothing else.
+    // Claim a durable record before the slower analyst calls start. If the app
+    // disappears at the recap, Practice can still show that its pack is being
+    // prepared; the later upsert replaces it with the curated ready version.
+    if (!this.safetyStopped) {
+      await reportConversationPack(this.conversationPackFor(recap, null, [], 'generating'));
+    }
+
+    // Only now, with the recap shipped, the seconds debited and a durable
+    // `generating` record claimed, the analyst does its background work. The
+    // app is no longer the owner of post-session practice recovery.
     // Curation runs BEFORE drills so the drill author works from the curated
     // keep-list rather than everything the session touched.
     //
@@ -2214,7 +2230,7 @@ export class LuvaniConversation extends voice.Agent {
     // `allSettled`, not `all`: both of these already swallow their own model
     // failures, and a throw from a publish must not cost the summary that would
     // have told us what the failed session cost.
-    await Promise.allSettled([this.extractMemory(state.turnCount), this.curateAndDrill(state)]);
+    await Promise.allSettled([this.extractMemory(state.turnCount), this.curateAndDrill(state, recap)]);
     this.logSpendSummary();
   }
 
@@ -2225,14 +2241,54 @@ export class LuvaniConversation extends voice.Agent {
    * does not. Drills are then authored from the same keep-list, so the two
    * artefacts describe the same practice instead of two different sessions.
    */
-  private async curateAndDrill(state: ConversationState): Promise<void> {
+  private async curateAndDrill(state: ConversationState, recap: SessionRecap): Promise<void> {
     const curated = await this.curatePractice(state);
     this.publish({
       t: 'practice',
       topics: curated.map((topic) => ({ titleFr: topic.title.fr, titleEn: topic.title.en, phrases: topic.phrases })),
     });
     const keepList = curated.flatMap((topic) => topic.phrases);
-    await this.generateDrills(state.turnCount, keepList.length > 0 ? keepList : undefined);
+    const exercises = await this.generateDrills(state.turnCount, keepList.length > 0 ? keepList : undefined);
+
+    // The app may close the instant it shows a recap; this agent continues and
+    // writes the audio-free learning artefact directly to the server. The
+    // server upserts on this signed session id, so retries cannot duplicate it.
+    // Safety stops retain no recap-derived record, even though their existing
+    // background work still closes its spend ledger before the room goes away.
+    if (!this.safetyStopped) await reportConversationPack(this.conversationPackFor(recap, curated, exercises, 'ready'));
+  }
+
+  /** The same safe fallback builds both the early claim and the final artefact. */
+  private conversationPackFor(
+    recap: SessionRecap,
+    curated: readonly CuratedTopic[] | null,
+    exercises: readonly DrillExercise[],
+    state: 'generating' | 'ready',
+  ) {
+    const fallbackTitle = recap.topics[0] ?? { fr: 'Votre conversation', en: 'Your conversation' };
+    const title = curated?.[0]?.title ?? fallbackTitle;
+    const phrases = curated?.flatMap((topic) => topic.phrases) ?? recap.phrases;
+    return buildConversationPack({
+      id: this.sessionId,
+      sessionId: this.sessionId,
+      learnerId: this.learnerId,
+      createdAt: this.finishedAt ?? new Date().toISOString(),
+      state,
+      title,
+      summary: recap.headline,
+      learnerGoal: this.seedTopic?.en ?? null,
+      tutorGoal: recap.nextFocus,
+      cefr: recap.cefr.estimate,
+      keyPhrases: phrases.map((phrase) => ({ fr: phrase.fr, frWritten: phrase.frWritten ?? null, en: phrase.en })),
+      wins: recap.wins,
+      corrections: recap.fixes.slice(0, 3).map((fix) => ({
+        quote: fix.quote,
+        better: fix.better,
+        betterEn: fix.betterEn,
+        why: fix.why,
+      })),
+      exercises,
+    });
   }
 
   /**
@@ -2332,8 +2388,8 @@ export class LuvaniConversation extends voice.Agent {
    * deterministic linter before it ships, because a broken drill teaches
    * broken French and a rejected one costs nothing — fixtures cover the gap.
    */
-  private async generateDrills(turnCount: number, keepList?: readonly NewPhrase[]): Promise<void> {
-    if (turnCount === 0) return;
+  private async generateDrills(turnCount: number, keepList?: readonly NewPhrase[]): Promise<DrillExercise[]> {
+    if (turnCount === 0) return [];
     // The curated keep-list when curation produced one; everything the session
     // recorded only as the fallback, so drills match the practice topics.
     const sessionPhrases = keepList ?? this.state.phrases;
@@ -2341,7 +2397,7 @@ export class LuvaniConversation extends voice.Agent {
       .filter((p) => !p.mastered)
       .slice(0, 10)
       .map((p) => ({ fr: p.fr, frWritten: p.frWritten, en: p.en }));
-    if (sessionPhrases.length === 0 && profilePhrases.length === 0) return;
+    if (sessionPhrases.length === 0 && profilePhrases.length === 0) return [];
 
     const errorTags = Object.entries(this.profile.errorPatterns)
       .sort((a, b) => b[1].count - a[1].count)
@@ -2367,11 +2423,13 @@ export class LuvaniConversation extends voice.Agent {
       const valid = result.batch.exercises.filter((exercise) => validateExercise(exercise).ok);
       const dropped = result.batch.exercises.length - valid.length;
       if (dropped > 0) console.warn(`[luvani] drill linter rejected ${dropped} of ${result.batch.exercises.length} exercises`);
-      if (valid.length === 0) return;
+      if (valid.length === 0) return [];
       this.publish({ t: 'drills', exercises: valid });
+      return valid;
     } catch (error) {
       this.recordFailedCall('drills', error);
       console.error('[luvani] drill generation failed; the fixture bank covers the gap:', error);
+      return [];
     }
   }
 }

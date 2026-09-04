@@ -7,6 +7,7 @@ export {
   type RepeatThisExercise,
   type TapTranslateExercise,
   type ListenTypeExercise,
+  type TranslationExercise,
 } from './types.ts';
 
 export {

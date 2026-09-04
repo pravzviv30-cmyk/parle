@@ -91,6 +91,12 @@ export function learnerVisibleStrings(exercise: DrillExercise): LabelledString[]
         { label: 'fr', text: exercise.fr },
         ...exercise.accepted.map((text, i) => ({ label: `accepted ${i}`, text })),
       ];
+    case 'translate':
+      return [
+        { label: 'fr', text: exercise.fr },
+        { label: 'en', text: exercise.en },
+        ...exercise.accepted.map((text, i) => ({ label: `accepted ${i}`, text })),
+      ];
   }
 }
 
@@ -115,6 +121,8 @@ function englishGlosses(exercise: DrillExercise): LabelledString[] {
       return [{ label: 'en', text: exercise.en }];
     case 'listen-type':
       return [];
+    case 'translate':
+      return [{ label: 'en', text: exercise.en }];
   }
 }
 
@@ -131,6 +139,7 @@ function expectedDifficulty(exercise: DrillExercise): DrillDifficulty {
       return 'recognition';
     case 'listen-type':
     case 'repeat-this':
+    case 'translate':
       return 'production';
   }
 }
@@ -267,6 +276,21 @@ export function validateExercise(exercise: DrillExercise): ValidationResult {
       // Typing exactly what was played must always be right.
       if (!exercise.accepted.some((a) => normalise(a) === normalise(exercise.fr))) {
         reasons.push('the played line itself is not an accepted answer');
+      }
+      break;
+    }
+
+    case 'translate': {
+      if (normalise(exercise.fr) === '') reasons.push('fr normalises to nothing');
+      if (normalise(exercise.en) === '') reasons.push('en normalises to nothing');
+      checkAccepted(exercise.accepted, reasons);
+      if (exercise.direction !== 'fr-en' && exercise.direction !== 'en-fr') {
+        reasons.push('direction must be fr-en or en-fr');
+      } else {
+        const expected = exercise.direction === 'fr-en' ? exercise.en : exercise.fr;
+        if (!exercise.accepted.some((answer) => normalise(answer) === normalise(expected))) {
+          reasons.push('the direct translation is not an accepted answer');
+        }
       }
       break;
     }

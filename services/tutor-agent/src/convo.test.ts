@@ -500,7 +500,12 @@ function captureDebits() {
   const debits: { sessionId: string; seconds: number }[] = [];
   const real = globalThis.fetch;
   globalThis.fetch = (async (_input: unknown, init?: { body?: unknown }) => {
-    debits.push(JSON.parse(String(init?.body)));
+    const body: unknown = JSON.parse(String(init?.body));
+    // Conversation Pack writes use the same injected fetch in these no-server
+    // tests. A debit is the one body that carries billable seconds.
+    if (typeof body === 'object' && body !== null && typeof (body as { seconds?: unknown }).seconds === 'number') {
+      debits.push(body as { sessionId: string; seconds: number });
+    }
     return { ok: true, json: async () => ({ secondsRemaining: 600 }) };
   }) as unknown as typeof fetch;
   return { debits, restore: () => { globalThis.fetch = real; } };

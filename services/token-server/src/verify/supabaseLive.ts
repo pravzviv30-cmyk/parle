@@ -162,6 +162,7 @@ const SCHEMA_OBJECTS: readonly (readonly [string, string])[] = [
   ['session_usage', 'session_id'],
   ['trial_installations', 'installation_hash'],
   ['billing_events', 'event_id'],
+  ['conversation_packs', 'session_id'],
 ];
 
 /**
@@ -783,13 +784,21 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
       const device = signal('installation', randomUUID());
       installations.push(device);
       await store.claimTrial(doomed.id, device, signal('user', doomed.id));
-      await doomedDb.from('learner_state').upsert({ user_id: doomed.id, namespace: 'profile', payload: { a: 1 } });
+    await doomedDb.from('learner_state').upsert({ user_id: doomed.id, namespace: 'profile', payload: { a: 1 } });
       // Checked, not fired and forgotten. An unwritten event cascades to empty for free,
       // which would make the product_events assertion below vacuous.
       const seeded = await doomedDb
         .from('product_events')
         .insert({ user_id: doomed.id, name: 'my_french_opened', properties: { situationsDone: 1, linesKept: 2 } });
-      expect(!seeded.error, `could not seed a product event to cascade: ${redact(seeded.error)}`);
+    expect(!seeded.error, `could not seed a product event to cascade: ${redact(seeded.error)}`);
+    const pack = await adminDb.from('conversation_packs').insert({
+      id: randomUUID(),
+      session_id: randomUUID(),
+      user_id: doomed.id,
+      state: 'ready',
+      payload: {},
+    });
+    expect(!pack.error, `could not seed a Conversation Pack to cascade: ${redact(pack.error)}`);
       await store.consume(doomed.id, 45, randomUUID());
 
       const removed = await admin.auth.admin.deleteUser(doomed.id);
@@ -797,7 +806,7 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
       const alreadyGone = created.indexOf(doomed.id);
       if (alreadyGone >= 0) created.splice(alreadyGone, 1);
 
-      for (const table of ['learner_state', 'product_events', 'entitlements', 'session_usage'] as const) {
+      for (const table of ['learner_state', 'product_events', 'entitlements', 'session_usage', 'conversation_packs'] as const) {
         const left = await adminDb.from(table).select('user_id').eq('user_id', doomed.id);
         expect((left.data ?? []).length === 0, `${table} kept rows for a deleted account`);
       }
@@ -806,7 +815,7 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
         .select('installation_hash')
         .eq('installation_hash', device);
       expect((antifraud.data ?? []).length === 1, 'the pseudonymous antifraud row did not survive account deletion');
-      return 'four learner tables cascaded to empty, the antifraud hash survived';
+      return 'five learner tables cascaded to empty, the antifraud hash survived';
     });
   } catch (err) {
     // A failure in the fixtures themselves is not a proof of anything. Everything that

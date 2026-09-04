@@ -1,6 +1,6 @@
 # Supabase runbook
 
-Everything Luvani keeps about a learner lives in six tables and four functions here. This
+Everything Luvani keeps about a learner lives in seven tables and four functions here. This
 file is how they get applied, backed up, rolled back and proved, by hand, from the SQL
 Editor.
 
@@ -36,6 +36,7 @@ of each before starting the next. Each file is idempotent: every create is
 | 8 | `migrations/202608300001_billing_events.sql` | F244: `billing_events`, its index and `record_billing_event`, so a webhook a payment vendor delivers twice is acted on once. RLS on with no policies, service role only. Adds one table, touches no existing object |
 | 9 | `migrations/202608300002_paid_period_lapse.sql` | F245: a paid period that ended more than 24 hours ago lapses to an exhausted trial instead of granting itself another thirty days. Replaces one function body, touches no rows |
 | 10 | `migrations/202608300003_paid_lapse_marker.sql` | F257: marks the paid-to-trial transition so a former subscriber is never told their free trial ended. Adds one boolean column and one trigger |
+| 11 | `migrations/202609040001_conversation_packs.sql` | Durable, idempotent Conversation Packs keyed by completed session. Curated phrases and exercises only: raw audio and readable transcripts have no column or payload contract. |
 
 Order is load-bearing in one direction only: everything after 1 names tables and
 functions that 1 creates, so 1 first. Files 3, 4, 5, 7 and 9 are each a single `create or
@@ -94,7 +95,7 @@ Take one before anything in `## Rollback` and before any migration that is not s
    Note the timestamp you are trusting.
 2. **Table export.** Dashboard → Table Editor → each of `learner_state`,
    `product_events`, `entitlements`, `session_usage`, `trial_installations`,
-   `billing_events` → Export CSV.
+   `billing_events`, `conversation_packs` → Export CSV.
    Slow and manual, but it is the only copy that exists on a free project between
    snapshots, and it is enough to reconstruct every row Luvani owns.
 
@@ -109,7 +110,7 @@ when a restore genuinely needs it, and never into this repo.
 1. Stop the token server, or the debit path will keep writing into a database you are
    about to overwrite.
 2. Restore the snapshot from Dashboard → Database → Backups, or re-import the CSVs in
-   dependency order: `entitlements`, `learner_state`, `product_events`, `billing_events`
+   dependency order: `entitlements`, `learner_state`, `product_events`, `billing_events`, `conversation_packs`
    (they reference `auth.users`), then `session_usage`, then `trial_installations`.
 3. Reload the API schema cache.
 4. Run the harness above. A restore that has not been verified is a hope.
@@ -126,6 +127,7 @@ depends on what the earlier ones built.
 
 | Rolling back | Script | Cost |
 |---|---|---|
+| `202609040001_conversation_packs.sql` | `rollback/202609040001_down.sql` | **DESTRUCTIVE.** Deletes server-owned Conversation Packs. Take the named backup first. |
 | `202608300003_paid_lapse_marker.sql` | `rollback/202608300003_down.sql` | Reopens F257. Former subscribers become indistinguishable from exhausted trials and receive the wrong explanation |
 | `202608300002_paid_period_lapse.sql` | `rollback/202608300002_down.sql` | Reopens F245. Every cancelled subscriber's row renews itself for thirty more days, free, on every read. Refuses to run until you set `luvani.reopen_f245` in the same session |
 | `202608300001_billing_events.sql` | `rollback/202608300001_down.sql` | Destroys the webhook replay ledger. Take the webhook endpoint out of service first: without the table every redelivered billing event is acted on again |
@@ -181,22 +183,22 @@ the project has real accounts on it.
 "We can roll back" is a claim, and this is how it becomes evidence. Do it on a disposable
 project, and keep the output:
 
-1. Apply all ten migrations. Run the harness. Record: twelve proofs, all passed.
-2. Note the row counts of all six tables (`select count(*) from public.<table>;`).
+1. Apply all eleven migrations. Run the harness. Record: twelve proofs, all passed.
+2. Note the row counts of all seven tables (`select count(*) from public.<table>;`).
 3. Take the backup from `## Backup`, and record its timestamp.
 4. Apply `rollback/202608240001_down.sql` with the interlock set. Re-run the harness and
    record that `trial-refused-second-installation` now **fails** — that failure is the
    evidence the rollback did something, and the evidence F73 was real.
 5. Re-apply `migrations/202608240001_claim_trial_null_fix.sql`. Re-run the harness and
    record twelve passes again.
-6. Apply `rollback/202608300003_down.sql`, then `rollback/202608300002_down.sql` with its interlock set, then
+6. Apply `rollback/202609040001_down.sql`, then `rollback/202608300003_down.sql`, then `rollback/202608300002_down.sql` with its interlock set, then
    `rollback/202608300001_down.sql`, then `rollback/202608270001_down.sql` with its
    interlock set, then `rollback/202608260001_down.sql`, then
    `rollback/202608250002_down.sql` and `rollback/202608250001_down.sql` with their
    interlocks set, then `rollback/202608230001_down.sql`, then
    `rollback/202608220001_down.sql`. Record that the harness now reports the schema as
    not applied, naming each missing object.
-7. Re-apply all ten migrations, restore from step 3, and record the row counts from
+7. Re-apply all eleven migrations, restore from step 3, and record the row counts from
    step 2 matching.
 
 Steps 4 and 5 are the cheap half and can be run on their own: they touch one function

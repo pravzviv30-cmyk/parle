@@ -47,6 +47,7 @@ import {
   type ListenTypeExercise,
   type RepeatThisExercise,
   type TapTranslateExercise,
+  type TranslationExercise,
   drillXp,
 } from '@luvani/core';
 import { HAIRLINE, HIT, font, paper, radius, signal, space, type } from './theme.ts';
@@ -87,6 +88,8 @@ function kindTag(exercise: DrillExercise): string {
       return 'Choose a reply';
     case 'tap-translate':
       return 'Build it in French';
+    case 'translate':
+      return exercise.direction === 'fr-en' ? 'Translate into English' : 'Translate into French';
     case 'listen-type':
       return 'Listen and type';
     case 'repeat-this':
@@ -162,12 +165,14 @@ function TypedAnswer({
   onSubmit,
   locked,
   placeholder,
+  accessibilityLabel = 'Your answer',
 }: {
   typed: string;
   onChange: (t: string) => void;
   onSubmit: () => void;
   locked: boolean;
   placeholder: string;
+  accessibilityLabel?: string;
 }) {
   const canSubmit = typed.trim() !== '' && !locked;
   return (
@@ -185,7 +190,7 @@ function TypedAnswer({
         }}
         placeholder={placeholder}
         placeholderTextColor={paper.inkFaint}
-        accessibilityLabel="Your answer in French"
+        accessibilityLabel={accessibilityLabel}
         style={ds.input}
       />
       <PillButton label="Check" disabled={!canSubmit} accessibilityLabel="Check your answer" onPress={onSubmit} />
@@ -413,6 +418,42 @@ function ListenTypeView({
         onSubmit={() => onAnswer(typed)}
         locked={locked}
         placeholder="What you hear"
+      />
+    </View>
+  );
+}
+
+function TranslationView({
+  exercise,
+  typed,
+  onChange,
+  onAnswer,
+  locked,
+}: {
+  exercise: TranslationExercise;
+  typed: string;
+  onChange: (t: string) => void;
+  onAnswer: (a: string) => void;
+  locked: boolean;
+}) {
+  const isFrenchPrompt = exercise.direction === 'fr-en';
+  const prompt = isFrenchPrompt ? exercise.fr : exercise.en;
+  return (
+    <View style={{ gap: space(4) }}>
+      <Card style={ds.exCard}>
+        <Label>{kindTag(exercise)}</Label>
+        <Text style={[isFrenchPrompt ? type.french : type.heading, { color: paper.ink, textAlign: 'center', marginTop: space(4) }]}>
+          {prompt}
+        </Text>
+        {isFrenchPrompt && <HearRow text={exercise.fr} />}
+      </Card>
+      <TypedAnswer
+        typed={typed}
+        onChange={onChange}
+        onSubmit={() => onAnswer(typed)}
+        locked={locked}
+        placeholder={isFrenchPrompt ? 'Meaning in English' : 'Answer in French'}
+        accessibilityLabel={isFrenchPrompt ? 'Your answer in English' : 'Your answer in French'}
       />
     </View>
   );
@@ -869,6 +910,9 @@ export function DrillScreen({
       )}
       {exercise.kind === 'listen-type' && (
         <ListenTypeView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
+      )}
+      {exercise.kind === 'translate' && (
+        <TranslationView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
       )}
       {exercise.kind === 'repeat-this' && (
         <RepeatThisView exercise={exercise} onAnswer={answer} onSpoke={spoke} onNoMic={goSilent} locked={locked} />

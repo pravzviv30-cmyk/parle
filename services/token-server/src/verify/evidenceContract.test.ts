@@ -810,7 +810,7 @@ describe('the evidence matrix is honest about what Phase 1 actually proved', () 
     //    the kind of sentence a person follows.
     const words = new Map([
       ['one', 1], ['two', 2], ['three', 3], ['four', 4], ['five', 5],
-      ['six', 6], ['seven', 7], ['eight', 8], ['nine', 9], ['ten', 10],
+      ['six', 6], ['seven', 7], ['eight', 8], ['nine', 9], ['ten', 10], ['eleven', 11],
     ]);
     const documents: [string, string][] = [
       ['docs/IMPLEMENTATION_EVIDENCE.md', evidence],
@@ -818,7 +818,7 @@ describe('the evidence matrix is honest about what Phase 1 actually proved', () 
       ['supabase/README.md', runbook],
     ];
     for (const [name, text] of documents) {
-      for (const match of text.matchAll(/\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+migrations\b/gi)) {
+      for (const match of text.matchAll(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|\d+)\s+migrations\b/gi)) {
         const counted = words.get(match[1]!.toLowerCase()) ?? Number(match[1]);
         assert.equal(
           counted,

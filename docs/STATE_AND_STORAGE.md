@@ -21,7 +21,7 @@ attempt evidence and a single learner-safe focus, never raw audio or a numeric s
 — the recording it was measured from is a file in the cache, not a value in the
 store, and "Attempt audio" below is what happens to it), `coachMarks` (which of the
 in-conversation controls have been pointed out, one key for all of them), and
-`journal`.
+`journal`, and `conversationPacks` (a local cache of durable, server-owned Tutor Conversation Packs; it contains curated learning data and exercises only, never raw audio or a readable transcript).
 
 `journal` is the only store that is meant to be empty. A conversation's recap is
 written there the moment it arrives and deleted once every store that took part
@@ -140,26 +140,24 @@ never wait on a disk. The screen moves on the beat the learner tapped, and a
 card that failed to persist is one card asked again, not a session lost.
 Acknowledgements are for the path that deletes the only copy of something.
 
-What is still lost, said plainly. A session killed before the recap, which is
-the next section and is not closable from the app. And a batch on a phone that
-never gets its space back, which stays in the journal, unbanked and unbankable,
-until it does. The proof is in `live/journal.test.ts` and
+What is still lost, said plainly. A batch on a phone that never gets its space
+back stays in the journal, unbanked and unbankable, until it does. The proof is in `live/journal.test.ts` and
 `storage/ack.test.ts`: storage-full on each store separately, a crash at each
 boundary, a launch that still cannot write, a duplicate delivery, and an
 account switch mid-recovery.
 
 ### The pre-recap window
 
-**Owner: tutor-agent. Closes in Phase 5. Open today, and it is a real loss.**
+**Owner: tutor-agent. Closed in code; deployment proof is still required.**
 
 The journal covers everything after the recap arrives. It cannot cover a session
 killed BEFORE it. The wire's `ConvoView` carries no phrase list, so until the
 recap the app holds a transcript and nothing else, and turning a transcript into
 review cards is curation, which the agent owns. A learner who talks for ten
-minutes and force-quits during the goodbye keeps the minutes they spent and none
-of the phrases they earned.
+minutes and force-quits during the goodbye used to keep the minutes they spent
+and none of the phrases they earned.
 
-**The agent side used to be worse and no longer is.** `finish()` in
+**The agent persists the recovery artefact.** `finish()` in
 `services/tutor-agent/src/convo.ts` ends with
 
 ```ts
@@ -176,23 +174,24 @@ disconnects on `finish().finally(...)`, never ahead of it. Both calls were
 the `void` sends the next engineer to fix a fixed thing and walk past the loss
 that is actually there.
 
-**What remains is a delivery window, which is a different thing.** `extractMemory`
-and `curateAndDrill` publish three frames into the room — `practice`, `drills`,
-and a second `recap` carrying the enriched profile. Nothing on the agent stores
-them and nothing redelivers them. `lastRecap` is replayed when a reconnecting app
-sends `ready`, but only inside the same live room, and there is no equivalent for
-`practice` or `drills` at all. So a learner who force-quits after the recap has
-that session's topics, drills and learner-model update computed, paid for, and
-published into a room they have already left. That is the `participantDisconnected`
-path, which is the path that calls `finish()` in the first place: the work runs
-precisely because they are gone, and lands nowhere because they are gone.
+The agent writes an audio-free `generating` Conversation Pack to
+`public.conversation_packs` immediately after the recap and upserts the same
+session to `ready` after curation and drill authoring. The authenticated Practice
+tab pulls that server-owned record and merges its exercises into the usual drill
+bank. A force-quit therefore loses only the live-room delivery, not the curated
+practice record; the app recovers it on the next authenticated refresh. The
+session id is unique in the table, so retries cannot create a second pack.
 
-Neither window is closable from the app. Both need the same two things: the agent
-persisting a recap server-side, and a **protocol tag that redelivers it into a
-later session** — which also needs cross-session identity and app-side dedup so
-a redelivered recap is banked once. That is wire-and-agent work, not data-sync
-work, and doing half of it would only narrow a window that Phase 5 removes.
-F92 in `docs/KNOWN_ISSUES.md` keeps it on the books.
+The live `practice`, `drills` and enriched `recap` frames still publish into the
+room. `lastRecap` remains the only in-room replay, and the
+`participantDisconnected` path can still leave before those frames arrive; the
+durable Conversation Pack is the cross-session recovery for the learning
+artefact rather than a second transcript or an unbounded room replay.
+
+This is not an outbox guarantee: the agent retries three times, but a token-server
+or database outage lasting longer than that is logged and needs operations follow-up.
+The migration and this recovery path still require an end-to-end deployed test
+before they can be described as release-proven.
 
 ### Attempt audio, and the one thing on the phone that is not a key
 
@@ -279,7 +278,7 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 ### The sync contract
 
 Since Phase 2, the account rather than the device is the durable home for ten of
-the thirteen stores. `apps/mobile/src/sync/` holds a **state-based reconciler**:
+the fourteen stores. `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
 compare-and-swap on the `revision` column. Losing the swap means another device
@@ -316,7 +315,7 @@ Four pieces, and each has one file:
 - **set-union** — `history`, `activity`, `missions`, `soundChecks`, `coachMarks`,
   `tutorIntro`.
 
-Three are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `journal`
+Four are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `journal`
 is a device-local crash buffer whose whole meaning is bank-then-delete, so
 syncing it would re-bank a session another device already banked. `friends` is a
 dormant surface running on labelled sample profiles, and syncing it would write
@@ -324,7 +323,10 @@ fixtures into the account where they would outlive the decision to ship the
 feature. `reminder` is a property of one phone: the OS holds the schedule and
 permission is asked for per install, so an account-level time would nudge one
 learner twice for one evening on two devices, and would tell a device that was
-never asked for permission that it already has a reminder.
+never asked for permission that it already has a reminder. `conversationPacks`
+is a device cache of a server-owned record: syncing it through `learner_state`
+would create two authorities and let an old device re-push a stale pack over the
+Tutor agent's completed-session upsert.
 
 Three rules hold the whole thing up:
 

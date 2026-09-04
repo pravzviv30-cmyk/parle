@@ -12,8 +12,9 @@
  * `Promise.allSettled`, and the worker now holds the room open for it. So an
  * engineer reading the doc would have gone and fixed a fixed thing, and walked
  * straight past the loss that is actually there: those calls publish three
- * frames into a room the learner may already have left, and nothing stores or
- * redelivers them.
+ * frames into a room the learner may already have left. A server-owned
+ * Conversation Pack now recovers the learning artefact, and this test keeps
+ * that promise connected to the actual reporter instead of the room frames.
  *
  * So this reads the agent's real `finish()` and the real publish sites and holds
  * the prose to them, the way `practice/practiceRecord.test.ts` holds the roadmap
@@ -22,9 +23,9 @@
  *
  * - **Positively**, so the doc cannot be made true by deleting the paragraph.
  *   If the source awaits, the doc has to say awaited.
- * - **Conditionally on the source**, so the day somebody does persist a recap
- *   server-side this test turns red and asks for the doc rather than asserting
- *   forever that a gap exists.
+ * - **Conditionally on the source**, so the day somebody changes the persistence
+ *   boundary this test turns red and asks for the doc rather than asserting an
+ *   obsolete delivery story forever.
  *
  * `sync/policy.test.ts` owns the other half of this section — the window, its
  * owner, the phase and the ledger entry — and this file does not repeat it.
@@ -66,7 +67,7 @@ function finishBody(): string {
 const flat = (text: string): string => text.replace(/\s+/g, ' ').trim();
 
 describe('the storage doc and the agent it describes', () => {
-  test('the storage doc describes the awaited publish and the loss window that remains', () => {
+  test('the storage doc describes the awaited publish and durable pack recovery', () => {
     const window = section('### The pre-recap window');
     const prose = flat(window);
     const body = finishBody();
@@ -127,8 +128,8 @@ describe('the storage doc and the agent it describes', () => {
     );
     assert.match(prose, /finish\(\)\.finally|holds the room open/i, 'the doc does not say the worker holds the room open for the analyst calls');
 
-    // ── 4. The loss that remains, which is what the doc was hiding.
-    //     Every frame those calls publish, and no store or redelivery for any.
+    // ── 4. The frames still publish into the live room, and the durable Pack
+    //     is what turns their learning content into cross-session recovery.
     const analyst = body + CONVO.slice(CONVO.indexOf('private async curateAndDrill'));
     for (const frame of ['practice', 'drills', 'recap']) {
       assert.ok(
@@ -155,18 +156,12 @@ describe('the storage doc and the agent it describes', () => {
       'the doc does not name the path that both triggers the analyst work and guarantees nobody is there to receive it',
     );
 
-    // ── 5. Conditional on the source, so a real fix flips this instead of
-    //     failing it. The day the agent persists a recap outside the room, the
-    //     doc has to stop calling the delivery window open.
-    const persistsServerSide = /recapStore|persistRecap|saveRecap|recap_store/.test(CONVO);
-    if (!persistsServerSide) {
-      assert.match(
-        prose,
-        /Nothing on the agent stores them and nothing redelivers them/,
-        'nothing in convo.ts persists a recap and the doc no longer says the delivery window is open',
-      );
-    } else {
-      assert.fail('convo.ts appears to persist a recap server-side now. Update this section and F92 before this test is changed.');
+    // ── 5. The server boundary is explicit. A room frame remains transient,
+    //     but the learner's selected practice is saved as an audio-free pack.
+    const persistsServerSide = /reportConversationPack\(/.test(CONVO);
+    assert.ok(persistsServerSide, 'convo.ts no longer reports the durable Conversation Pack');
+    for (const named of ['Conversation Pack', 'conversation_packs', 'generating', 'ready', 'outbox guarantee']) {
+      assert.ok(prose.includes(named), `the storage doc does not state the pack recovery contract: ${named}`);
     }
 
     // ── 6. Every path and code name the section cites still exists. A doc kept

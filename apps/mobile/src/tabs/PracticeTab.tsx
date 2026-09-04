@@ -15,7 +15,7 @@
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { buildPath, CAFE_LESSON, type PathUnit, type PracticeTopic } from '@luvani/core';
+import { buildPath, CAFE_LESSON, phraseKeyOf, type ConversationPack, type PathUnit, type PracticeTopic } from '@luvani/core';
 import { paper, space, type } from '../theme.ts';
 import { Card, Label, OutlineButton, GhostButton, PillButton } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
@@ -31,11 +31,15 @@ import { loadDrillBank } from '../drill/store.ts';
 import { loadTopics } from '../topics/store.ts';
 import { lastSummaryFor } from '../progress/store.ts';
 import { useLive } from '../app/LiveContext.tsx';
+import { useAuth } from '../auth/useAuth.tsx';
+import { loadConversationPacks, refreshConversationPacks } from '../conversationPacks/store.ts';
+import { latestReadyPack } from '../conversationPacks/model.ts';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 
 export function PracticeTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { recheck } = useLive();
+  const { user, adapter } = useAuth();
   const { profile } = useProfile();
   const tutorName = tutorNameOf(profile);
 
@@ -52,6 +56,7 @@ export function PracticeTab() {
   // Kept rather than thrown away after buildPath: a topic row's second door
   // needs the topic's own title in both languages to seed a conversation with.
   const [topics, setTopics] = useState<PracticeTopic[]>([]);
+  const [packs, setPacks] = useState<ConversationPack[]>([]);
   // Recomputed on every focus alongside everything else, which is the whole of
   // the daily refresh: the offer answers to today's due state, not to a clock.
   const [mixOffered, setMixOffered] = useState(false);
@@ -77,10 +82,21 @@ export function PracticeTab() {
           setMixOffered(offersMix(deck, topics, now));
         },
       );
+      // Draw the cache at once, then quietly replace it with the server-owned
+      // truth. A closed app can miss the original live delivery, so this pull
+      // is the recovery path rather than a decorative refresh.
+      void loadConversationPacks().then((stored) => {
+        if (!cancelled) setPacks(stored);
+      });
+      if (user) {
+        void refreshConversationPacks(user, adapter).then((result) => {
+          if (!cancelled && result.ok) setPacks(result.packs);
+        });
+      }
       return () => {
         cancelled = true;
       };
-    }, []),
+    }, [user, adapter]),
   );
 
   const open = (node: { id: string; kind: string; title: string; phraseKeys: readonly string[] }, textMode = false) => {
@@ -124,7 +140,29 @@ export function PracticeTab() {
     void recheck().then(go, go);
   };
 
+  const continuePack = (pack: ConversationPack) => {
+    if (checking) return;
+    setChecking(true);
+    const go = () => {
+      setChecking(false);
+      nav.navigate('Convo', { seedTopic: { fr: pack.continuationSeed.titleFr, en: pack.continuationSeed.titleEn } });
+    };
+    void recheck().then(go, go);
+  };
+
+  const practisePack = (pack: ConversationPack) => {
+    nav.navigate('Drill', {
+      node: {
+        id: pack.id,
+        title: pack.title.en,
+        phraseKeys: pack.keyPhrases.map((phrase) => phraseKeyOf(phrase.fr)),
+      },
+    });
+  };
+
   const lessonNode = units?.flatMap((u) => u.nodes).find((n) => n.kind === 'lesson') ?? null;
+  const latestPack = latestReadyPack(packs);
+  const pendingPack = packs.find((pack) => pack.state === 'generating') ?? null;
 
   return (
     <ScrollScreen
@@ -147,6 +185,30 @@ export function PracticeTab() {
           title="Practice"
           purpose="Short drills from the lesson, and from your own conversations."
         />
+
+        {latestPack && (
+          <View style={{ marginBottom: space(6) }}>
+            <Label>Continue conversation</Label>
+            <Card style={{ marginTop: space(3) }}>
+              <Text style={[type.bodyStrong, { color: paper.ink }]}>{latestPack.title.en}</Text>
+              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{latestPack.summary}</Text>
+              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Ready: {latestPack.keyPhrases.length} phrases</Text>
+              <View style={{ marginTop: space(3), gap: space(2) }}>
+                <OutlineButton label="Continue talking" disabled={checking} onPress={() => continuePack(latestPack)} />
+                <OutlineButton label="Review phrases" onPress={() => practisePack(latestPack)} />
+              </View>
+            </Card>
+          </View>
+        )}
+
+        {pendingPack && !latestPack && (
+          <View style={{ marginBottom: space(6) }}>
+            <Card>
+              <Text style={[type.bodyStrong, { color: paper.ink }]}>Your conversation is becoming practice.</Text>
+              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Come back in a moment. Your French is safely on its way here.</Text>
+            </Card>
+          </View>
+        )}
 
         {/* The one thing to do now, decided in practice/nextStep.ts and drawn
             here as a door. A review step opens the deck; a node step opens

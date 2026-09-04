@@ -11,7 +11,7 @@
 
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import type { DrillExercise, FillBlankExercise, TapTranslateExercise } from '@luvani/core';
+import type { DrillExercise, FillBlankExercise, TapTranslateExercise, TranslationExercise } from '@luvani/core';
 
 import { MAX_DRILL_EXERCISES, mergeExerciseBank } from './merge.ts';
 
@@ -42,6 +42,19 @@ function tapTranslate(over: Partial<TapTranslateExercise> = {}): TapTranslateExe
     tokens: ['Je', 'voudrais', 'un', 'café', 'thé'],
     accepted: ['Je voudrais un café'],
     ...over,
+  };
+}
+
+function translation(direction: TranslationExercise['direction']): TranslationExercise {
+  return {
+    id: `gen:coffee-${direction}`,
+    phraseKey: COFFEE,
+    kind: 'translate',
+    difficulty: 'production',
+    fr: 'Je voudrais un café.',
+    en: 'I would like a coffee.',
+    direction,
+    accepted: [direction === 'fr-en' ? 'I would like a coffee.' : 'Je voudrais un café.'],
   };
 }
 
@@ -96,6 +109,15 @@ describe('folding a generated batch into the drill bank — replace, never accum
       idsOf(merged),
       ['gen:coffee-fill', 'gen:coffee-tap'],
       'two formats of one phrase collapsed into one, so a rung of the ladder went missing',
+    );
+  });
+
+  test('both translation directions survive for one Conversation Pack phrase', () => {
+    const merged = mergeExerciseBank([], [translation('fr-en'), translation('en-fr')]);
+    assert.deepEqual(
+      idsOf(merged),
+      ['gen:coffee-fr-en', 'gen:coffee-en-fr'],
+      'the reverse translation replaced the first direction, leaving the pack unable to practise bilingual retrieval',
     );
   });
 

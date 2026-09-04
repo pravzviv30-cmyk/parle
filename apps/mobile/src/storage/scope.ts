@@ -72,6 +72,7 @@ export const USER_KEY_SUFFIXES = [
   'missions',
   'coachMarks',
   'soundChecks',
+  'conversationPacks',
   'reminder',
   // The sync engine's dirty set. It has to be here even though no `userKey`
   // call in the source names it — the engine resolves it through an injected

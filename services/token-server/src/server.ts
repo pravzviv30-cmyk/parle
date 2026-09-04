@@ -25,6 +25,7 @@ import { productionConfigurationProblems } from './config.ts';
 import { deleteSupabaseUser, signedInRecently } from './accountDeletion.ts';
 import { exportSupabaseAccountData } from './accountExport.ts';
 import { insertProductEvent, parseProductEvent } from './productEvents.ts';
+import { deleteConversationPack, listConversationPacks, saveConversationPack, validConversationPackFor } from './conversationPacks.ts';
 import { applyHttpSecurity, createOriginPolicy } from './httpSecurity.ts';
 import {
   refreshSubscriber,
@@ -196,7 +197,7 @@ const server = createServer(async (req, res) => {
   }
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
-      'access-control-allow-methods': 'GET,POST,OPTIONS',
+      'access-control-allow-methods': 'GET,POST,DELETE,OPTIONS',
       'access-control-allow-headers': 'content-type, authorization, x-luvani-installation',
       'access-control-max-age': '600',
     });
@@ -435,6 +436,61 @@ const server = createServer(async (req, res) => {
       if (!supabaseUrl || !serviceRoleKey) return json(res, 200, { accepted: false });
       await insertProductEvent(supabaseUrl, serviceRoleKey, resolved.userId, event);
       return json(res, 200, { accepted: true });
+    }
+
+    // The tutor agent writes a completed Pack after curation and drill
+    // generation. The pack is keyed by the signed session id, so retries are
+    // an update to one earned lesson, never a duplicate. This endpoint accepts
+    // curated learning data only; core rejects raw audio and transcripts.
+    if (req.method === 'POST' && url.pathname === '/conversation-packs/complete') {
+      if (!agentDebitAllowed(AGENT_SECRET, req.headers['x-luvani-agent'])) {
+        return json(res, 401, { error: 'agent authentication required' });
+      }
+      const body = await readJson(req);
+      const userId = typeof body.userId === 'string' ? body.userId : null;
+      const sessionId = typeof body.sessionId === 'string' ? body.sessionId : null;
+      if (!userId || !sessionId || !sessionIdPattern.test(sessionId) || !validConversationPackFor(body.pack, userId, sessionId)) {
+        return json(res, 400, { error: 'a valid, audio-free Conversation Pack for this session is required' });
+      }
+      if (!(await withinLimits(req, res, [
+        ipCheck(req, RATE_LIMITS.conversationPackIp),
+        [RATE_LIMITS.conversationPackUser, 'user', userId],
+      ]))) return;
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!supabaseUrl || !serviceRoleKey) return json(res, 503, { error: 'Conversation Pack storage is not configured' });
+      await saveConversationPack(supabaseUrl, serviceRoleKey, body.pack);
+      return json(res, 200, { saved: true, id: body.pack.id, state: body.pack.state });
+    }
+
+    // Packs are read and deleted through the authenticated caller, never a
+    // user id supplied by the device. The service role still filters on that
+    // resolved id, so an identifier alone cannot become cross-account access.
+    if (req.method === 'GET' && url.pathname === '/conversation-packs') {
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.conversationPackIp)]))) return;
+      const resolved = await users.resolve(req.headers.authorization, null);
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      if (!(await withinLimits(req, res, [[RATE_LIMITS.conversationPackUser, 'user', resolved.userId]]))) return;
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!supabaseUrl || !serviceRoleKey) return json(res, 503, { error: 'Conversation Pack storage is not configured' });
+      const packs = await listConversationPacks(supabaseUrl, serviceRoleKey, resolved.userId);
+      return json(res, 200, { packs });
+    }
+
+    const packDelete = url.pathname.match(/^\/conversation-packs\/([0-9a-f-]{36})$/i);
+    if (req.method === 'DELETE' && packDelete) {
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.conversationPackIp)]))) return;
+      const resolved = await users.resolve(req.headers.authorization, null);
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      if (!(await withinLimits(req, res, [[RATE_LIMITS.conversationPackUser, 'user', resolved.userId]]))) return;
+      const packId = packDelete[1];
+      if (!packId || !sessionIdPattern.test(packId)) return json(res, 400, { error: 'invalid Conversation Pack id' });
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!supabaseUrl || !serviceRoleKey) return json(res, 503, { error: 'Conversation Pack storage is not configured' });
+      await deleteConversationPack(supabaseUrl, serviceRoleKey, resolved.userId, packId);
+      return json(res, 200, { deleted: true });
     }
 
     // Called when a session ends. Metered seconds are debited here. This one

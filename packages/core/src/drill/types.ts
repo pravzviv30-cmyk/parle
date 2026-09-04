@@ -108,10 +108,30 @@ export interface ListenTypeExercise extends DrillExerciseBase {
   accepted: string[];
 }
 
+/**
+ * A deliberate translation task.  `tap-translate` is valuable scaffolding for
+ * English → French production, but it cannot stand in for understanding a
+ * French sentence in English.  Keeping both directions as first-class data
+ * means a Conversation Pack can promise both, rather than hoping a generator
+ * happened to make the reverse exercise.
+ */
+export interface TranslationExercise extends DrillExerciseBase {
+  kind: 'translate';
+  /** The French sentence the learner met in conversation. */
+  fr: string;
+  /** Its plain-English meaning. */
+  en: string;
+  /** Which side is shown before the learner answers. */
+  direction: 'fr-en' | 'en-fr';
+  /** Valid alternatives in the answer language, compared after `normalise`. */
+  accepted: string[];
+}
+
 export type DrillExercise =
   | FillBlankExercise
   | BestSentenceExercise
   | AppropriateReplyExercise
   | RepeatThisExercise
   | TapTranslateExercise
-  | ListenTypeExercise;
+  | ListenTypeExercise
+  | TranslationExercise;

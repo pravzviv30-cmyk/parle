@@ -31,10 +31,10 @@ test('account export returns only rows filtered to the authenticated learner', a
   assert.equal(exported.account.id, 'user/id');
   assert.equal(exported.account.email, 'learner@example.com');
   assert.deepEqual(Object.keys(exported.serverData), [
-    'learner_state', 'product_events', 'entitlements', 'session_usage', 'billing_events',
+    'learner_state', 'product_events', 'entitlements', 'session_usage', 'billing_events', 'conversation_packs',
   ]);
   const tableUrls = urls.filter((url) => url.includes('/rest/v1/'));
-  assert.equal(tableUrls.length, 5);
+  assert.equal(tableUrls.length, 6);
   for (const url of tableUrls) {
     assert.match(url, /\?user_id=eq\.user%2Fid&select=\*$/);
   }

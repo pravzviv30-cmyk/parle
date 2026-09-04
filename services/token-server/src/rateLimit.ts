@@ -258,4 +258,6 @@ export const RATE_LIMITS = {
   billingRefreshUser: { name: 'billing-refresh-user', limit: 10, windowSec: 60 },
   debitIp: { name: 'debit-ip', limit: 120, windowSec: 60 },
   debitUser: { name: 'debit-user', limit: 30, windowSec: 60 },
+  conversationPackIp: { name: 'conversation-pack-ip', limit: 120, windowSec: 60 },
+  conversationPackUser: { name: 'conversation-pack-user', limit: 60, windowSec: 60 },
 } as const satisfies Record<string, RateLimitRule>;

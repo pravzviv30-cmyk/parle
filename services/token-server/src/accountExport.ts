@@ -13,6 +13,7 @@ const OWNED_TABLES = [
   'entitlements',
   'session_usage',
   'billing_events',
+  'conversation_packs',
 ] as const;
 
 export type ExportedTable = (typeof OWNED_TABLES)[number];

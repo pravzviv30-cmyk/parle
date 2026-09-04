@@ -1,10 +1,10 @@
 /**
- * What happens when two devices disagree — one table, thirteen namespaces, no exceptions.
+ * What happens when two devices disagree — one table, fourteen namespaces, no exceptions.
  *
  * The engine in `engine.ts` decides *when* to reconcile. This file decides *what the
  * answer is*, and it is the only file in the app that holds an opinion about how two
  * copies of a learner become one. Ten namespaces are synced under three merge classes;
- * three are excluded with a stated reason, because a namespace that is silently absent
+ * four are excluded with a stated reason, because a namespace that is silently absent
  * from a sync table is indistinguishable from one somebody forgot.
  *
  * | namespace     | class      | the rule                                                  |
@@ -15,7 +15,7 @@
  * |               |            | beat nulls. Delegated, never reimplemented.                |
  * | `review`      | per-item   | core's `mergeDecks`: union by card id, the whole card from |
  * |               |            | the side with more grades applied. Scheduling is carried.  |
- * | `drills`      | per-item   | union on `(phraseKey, kind)` — `drill/merge.ts`'s identity |
+ * | `drills`      | per-item   | union on the drill identity — `drill/merge.ts`'s identity  |
  * |               |            | — then that file's own cap. `micSuppressedUntil` is later. |
  * | `topics`      | per-item   | union by topic id; sitting dates and deck ids unioned.     |
  * | `history`     | set-union  | union by session identity, oldest first, last 50.          |
@@ -27,6 +27,7 @@
  * | `journal`     | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `friends`     | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `reminder`    | **excluded** — see SYNC_EXCLUSIONS                          |
+ * | `conversationPacks` | **excluded** — see SYNC_EXCLUSIONS                   |
  *
  * ## Every policy is commutative and idempotent by construction
  *
@@ -88,7 +89,7 @@ import { mergeStoredProfiles } from '@luvani/brain/profile/merge';
 import { MAX_DISCUSSED_DATES, MAX_STORED_TOPICS, mergeDecks } from '@luvani/core';
 import type { DrillExercise, PracticeTopic } from '@luvani/core';
 import { upgradeStored } from '../profile/upgrade.ts';
-import { mergeExerciseBank } from '../drill/merge.ts';
+import { exerciseIdentity, mergeExerciseBank } from '../drill/merge.ts';
 
 // ─────────────────────────────────────────────────────── the stores' own caps
 //
@@ -220,11 +221,6 @@ function mergeReview(local: unknown, remote: unknown): unknown {
 function isExercise(value: unknown): value is DrillExercise {
   if (!isRecord(value)) return false;
   return typeof value.id === 'string' && typeof value.phraseKey === 'string' && typeof value.kind === 'string';
-}
-
-/** `drill/merge.ts`'s identity, stated once there and reused here rather than reinvented. */
-function exerciseIdentity(exercise: DrillExercise): string {
-  return `${exercise.phraseKey} ${exercise.kind}`;
 }
 
 /**
@@ -361,7 +357,7 @@ function mergeActivity(local: unknown, remote: unknown): unknown {
   const entries = unionBy(
     arrayOf(l.entries).filter(isActivityEntry),
     arrayOf(r.entries).filter(isActivityEntry),
-    (entry) => `${entry.at} ${entry.kind} ${entry.xp}`,
+    (entry) => `${entry.at}\u0000${entry.kind}\u0000${entry.xp}`,
   ).sort((x, y) => x.at - y.at || compareText(canonical(x), canonical(y)));
   const newest = entries.length === 0 ? 0 : (entries[entries.length - 1]?.at ?? 0);
   const cutoff = newest - ACTIVITY_KEEP_DAYS * DAY_MS;
@@ -397,7 +393,7 @@ function mergeMissions(local: unknown, remote: unknown): unknown {
   const all = unionBy(
     arrayOf(envelopeOf(local).completions).filter(isCompletion),
     arrayOf(envelopeOf(remote).completions).filter(isCompletion),
-    (row) => `${row.id} ${row.at}`,
+    (row) => `${row.id}\u0000${row.at}`,
   );
   const byMission = new Map<string, MissionCompletionish[]>();
   for (const row of all) {
@@ -530,7 +526,7 @@ export const SYNC_POLICIES: readonly NamespacePolicy[] = [
     namespace: 'drills',
     merges: 'per-item',
     writes: 1,
-    rule: 'union on (phraseKey, kind) under the drill bank cap; micSuppressedUntil takes the later',
+    rule: 'union on drill identity (including translation direction) under the drill bank cap; micSuppressedUntil takes the later',
     merge: (local, remote) => mergeDrills(local, remote),
   },
   {
@@ -591,7 +587,7 @@ export interface SyncExclusion {
 }
 
 /**
- * The three namespaces that are on the device and stay on the device.
+ * The four namespaces that are on the device and stay on the device.
  *
  * Each is here because syncing it is *wrong*, not because it is hard. A namespace
  * missing from the table above without an entry here is a store somebody forgot, and
@@ -612,6 +608,11 @@ export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
     namespace: 'reminder',
     reason:
       'a property of one phone rather than of one learner: the OS holds the schedule and permission is asked for per install, so an account-level time would arrive on every device someone is signed in on. Two phones nudging at six is one learner reminded twice for one evening, which is the pestering the fixed, practice-blind wording exists to avoid, and a device that was never asked for permission would be told it already has a reminder. What excluding it costs a learner is one tap among four presets.',
+  },
+  {
+    namespace: 'conversationPacks',
+    reason:
+      'a cache of an explicitly server-owned learning record. The Tutor agent writes the canonical pack after session completion and Practice refreshes from that authenticated API, so folding this cache through learner_state would create two authorities, allow an older device to push a stale deletion back over the server record, and duplicate the exercises the Pack already carries into the existing drill bank.',
   },
 ];
 

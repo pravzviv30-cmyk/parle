@@ -10,9 +10,10 @@
  *
  * Replace, never accumulate. A regenerated drill for the same phrase in the
  * same format takes the earlier take's slot, so a learner is never asked the
- * same phrase in the same format twice in one sitting. `(phraseKey, kind)` is
- * the real identity: a batch is free to re-issue ids, and two exercises for one
- * phrase in two different formats are two different drills, both wanted.
+ * same phrase in the same format twice in one sitting. `(phraseKey, kind, direction)`
+ * is the real identity for a directional translation; every other kind has no
+ * direction. A batch is free to re-issue ids, and two exercises for one phrase
+ * in two different formats are two different drills, both wanted.
  *
  * Plain `id` is the fallback, for batches that kept their ids while changing
  * key or kind — that exercise still has a home, it just moved. When a match on
@@ -26,6 +27,17 @@ import type { DrillExercise } from '@luvani/core';
 export const MAX_DRILL_EXERCISES = 160;
 
 /**
+ * A translation in each direction is two different retrieval tasks. Keep the
+ * direction inside the identity so a French-to-English prompt cannot replace
+ * the reverse prompt when a Conversation Pack reaches the ordinary drill bank.
+ */
+export function exerciseIdentity(exercise: DrillExercise): string {
+  return exercise.kind === 'translate'
+    ? `${exercise.phraseKey}\u0000${exercise.kind}\u0000${exercise.direction}`
+    : `${exercise.phraseKey}\u0000${exercise.kind}`;
+}
+
+/**
  * The bank after `incoming` lands on it. Neither argument is mutated; the
  * caller owns what it does with the result.
  */
@@ -35,7 +47,7 @@ export function mergeExerciseBank(
 ): DrillExercise[] {
   const merged: DrillExercise[] = [...bank];
   for (const exercise of incoming) {
-    const byKey = merged.findIndex((e) => e.phraseKey === exercise.phraseKey && e.kind === exercise.kind);
+    const byKey = merged.findIndex((e) => exerciseIdentity(e) === exerciseIdentity(exercise));
     const byId = merged.findIndex((e) => e.id === exercise.id);
     if (byKey !== -1) {
       merged[byKey] = exercise;

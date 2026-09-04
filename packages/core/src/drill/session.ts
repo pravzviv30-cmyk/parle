@@ -47,6 +47,7 @@ export function stageOf(exercise: DrillExercise): DrillStage {
     case 'tap-translate':
       return 'tap-tokens';
     case 'listen-type':
+    case 'translate':
       return 'typed';
     case 'repeat-this':
       return 'spoken';

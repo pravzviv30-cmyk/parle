@@ -45,6 +45,7 @@ function acceptedFor(exercise: DrillExercise): string[] {
     case 'fill-blank':
     case 'tap-translate':
     case 'listen-type':
+    case 'translate':
       return exercise.accepted;
     case 'repeat-this':
       return [exercise.reference];
@@ -130,6 +131,7 @@ export function gradeAnswer(exercise: DrillExercise, answer: string | number | n
     case 'fill-blank':
     case 'tap-translate':
     case 'listen-type':
+    case 'translate':
     case 'repeat-this':
       return gradeFreeText(exercise, typeof answer === 'string' ? answer : '');
   }
