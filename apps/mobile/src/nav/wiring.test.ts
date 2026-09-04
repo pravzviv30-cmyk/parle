@@ -327,3 +327,62 @@ describe('hardware back and the swipe cannot slip a metered room — F311', () =
     }
   });
 });
+
+describe('the recap handler keeps its identity between renders — F386', () => {
+  // ConvoScreen's recap effect keeps `onRecap` in its dependencies and calls it
+  // as soon as a recap exists. The handler writes the learner model, which
+  // re-renders this navigator, so an inline arrow here is a new identity every
+  // render and the effect re-fires until React refuses. Seen on a simulator:
+  // "Maximum update depth exceeded", roughly once a second, for as long as the
+  // recap stayed open.
+  const NAV = readFileSync(fileURLToPath(new URL('./RootNavigator.tsx', import.meta.url)), 'utf8');
+
+  /** One component's source, from its declaration to the next top-level one. */
+  function componentBody(source: string, name: string): string {
+    const start = source.indexOf(`function ${name}()`);
+    assert.notEqual(start, -1, `${name} is missing from RootNavigator.tsx`);
+    const rest = source.slice(start + 1);
+    const next = rest.indexOf('\nfunction ');
+    return next === -1 ? rest : rest.slice(0, next);
+  }
+
+  test('the navigator hands ConvoScreen a memoised recap handler, not an inline arrow — F386', () => {
+    assert.match(NAV, /onRecap=\{onRecap\}/, 'onRecap must be passed as a stable reference');
+    assert.doesNotMatch(NAV, /onRecap=\{\(/, 'an inline arrow gives onRecap a new identity every render');
+    const at = NAV.indexOf('const onRecap = useCallback(');
+    assert.notEqual(at, -1, 'onRecap is not declared with useCallback');
+    assert.match(NAV.slice(at, at + 400), /\[updateBrain\],/, 'the handler must depend only on the stable updateBrain');
+  });
+
+  test('the effect that calls it still keeps it in its dependencies — F386', () => {
+    // The memoisation is only worth anything while the effect really does
+    // depend on it: if that changes, this fix is load-bearing for nothing.
+    const convo = readFileSync(fileURLToPath(new URL('../ConvoScreen.tsx', import.meta.url)), 'utf8');
+    assert.match(convo, /\}, \[live\.recap, onRecap, stopped\]\);/, 'the recap effect no longer depends on onRecap');
+  });
+
+  // The rule the first version of this fix broke. Memoising onRecap cured the
+  // loop and, placed below `if (!replayRead)`, replaced it with a hard crash:
+  // a mission route renders Loading on its first pass, so the hook was reached
+  // only on the second and React threw "Rendered more hooks than during the
+  // previous render." A source-string match for the callback cannot see that,
+  // and there is no ESLint here to run react-hooks/rules-of-hooks, so the
+  // placement is asserted directly.
+  test('every hook in a navigator route runs before that route can return early — F386', () => {
+    for (const name of ['ConvoRoute', 'LessonRoute']) {
+      const body = componentBody(NAV, name);
+      const guard = body.search(/^  if \(.*\) (return|\{)/m);
+      if (guard === -1) continue;
+      const afterGuard = body.slice(guard);
+      const late = afterGuard
+        .split('\n')
+        .filter((line) => /^  (const|let) .*= use[A-Z]/.test(line) || /^  use[A-Z][A-Za-z]*\(/.test(line));
+      assert.deepEqual(
+        late,
+        [],
+        `${name} calls a hook after its first early return, so a render that takes the early path ` +
+          `and a render that does not call different numbers of hooks: ${late.join(' | ')}`,
+      );
+    }
+  });
+});

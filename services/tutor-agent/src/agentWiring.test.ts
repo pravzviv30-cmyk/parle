@@ -121,3 +121,26 @@ describe('the room the worker owns', () => {
     assert.match(CODE, /tutor\.attach\(publish\)/, 'the tutor is attached to something other than the publisher that reports delivery');
   });
 });
+
+describe('a job process does not re-verify the vendors — F384', () => {
+  // The framework starts every job as a fresh process from its own entry script
+  // and imports agent.ts again, so the module's top level runs once per session.
+  // The worker is the process whose entry script is this file; only it may pay
+  // for the three vendor round trips, and only it may exit loudly on a bad env.
+  test('preflight and the vendor check run only when this file is the entry script — F384', () => {
+    const guard = AGENT.indexOf('const isWorkerProcess = process.argv[1] === fileURLToPath(import.meta.url);');
+    assert.ok(guard > -1, 'agent.ts no longer decides whether it is the worker from its entry script');
+    const block = AGENT.slice(guard);
+    const open = block.indexOf('if (isWorkerProcess) {');
+    const close = block.indexOf('\n}\n', open);
+    assert.ok(open > -1 && close > open, 'the worker-only block is missing');
+    const inside = block.slice(open, close);
+    assert.match(inside, /\bpreflight\(\);/, 'preflight() left the worker-only block');
+    assert.match(inside, /reportVendors\(await verifyVendors\(/, 'the vendor check left the worker-only block');
+    const after = block.slice(close);
+    assert.match(after, /cli\.runApp\(new WorkerOptions\(/, 'runApp must stay outside the block: the framework needs the module to load in a job too');
+    // Nothing else at the top level asks a vendor before a job can answer.
+    const topLevel = AGENT.slice(AGENT.indexOf('\n});\n', AGENT.indexOf('export default defineAgent(')));
+    assert.equal((topLevel.match(/verifyVendors\(/g) ?? []).length, 1, 'verifyVendors is called more than once at the top level');
+  });
+});
