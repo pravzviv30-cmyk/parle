@@ -711,7 +711,7 @@ where that pass is recorded. Owner: `onboarding-ux-engineer` for the build,
 
 ## Pass 4 mockup review
 
-The mockup-review pass (F362 to F376) is verified statically up to a point: the palette
+The mockup-review pass (F362 to F381) is verified statically up to a point: the palette
 test holds every tint to a paper's floors, the screen tests read the source and fail if a
 tab grows a second pill, if the evidence row draws at zero, if a door stops reading its
 words from gate.ts, if the Field loses its Show/Hide, or if the Apple door is drawn where
