@@ -871,7 +871,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   green "your turn" between the tutor's own sentences. One utterance now, so the
   framework splits sentences inside a single handle and the cache keys are unchanged.
 - verified-by: `one turn is spoken as a single utterance`
-- verified-by: `the spoken turn keeps narration, coaching and the scene reply in that order`
+- verified-by: `the spoken turn keeps a scene shift and the French reply, without routine coaching`
 - verified-by: `a turn with nothing but a scene reply is spoken exactly as it was`
 - verified-by: `a scene shift is uninterruptible even at a high rung`
 
@@ -1263,7 +1263,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   holds every opening path to it.
 - verified-by: `the persona is a person before it is a policy`
 - verified-by: `he reacts to the learner before he advances the scene`
-- verified-by: `the fillers the pack already teaches are asked for in his own lines`
+- verified-by: `spoken French can use fillers naturally, without performing them`
 - verified-by: `his English stays plain, because it is the channel the beginner relies on`
 - verified-by: `he does not perform himself at the learner`
 - verified-by: `both prompts introduce the same person`
@@ -1996,7 +1996,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   agent-side recap persistence and a redelivery protocol tag, which is wire-and-agent work
   deferred to Phase 5. P2 because it cannot close in this phase and an unclosable P1 stops
   the repo. The doc must state the window, its owner and the closing phase.
-- verified-by: `the storage doc names the pre-recap window, its owner and the phase that closes it`
+- verified-by: `the storage doc names the pre-recap owner and its durable recovery path`
 
 ### F93 — Adopting a merge destroys a local write that landed during the pull
 - severity: P1
@@ -2282,7 +2282,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: before/after flow and the screen/tap counts standing in for time-to-first-useful-
   French, held to PAGES by a test so the doc cannot drift from the flow. Wall-clock
   measurement belongs to F114's device pass.
-- verified-by: `the onboarding doc claims the same page count the flow renders`
+- verified-by: `the onboarding doc claims the same pre-account page count the flow renders`
 
 ### F112 — Onboarding analytics reports only questions the flow asks
 - severity: P1
@@ -3230,7 +3230,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   allSettled, sending the next engineer to fix a fixed thing and past the loss that remains; one
   block correction covers both survey findings. Source-reading test, load-bearing because doc
   accuracy is the finding.
-- verified-by: `the storage doc describes the awaited publish and the loss window that remains`
+- verified-by: `the storage doc describes the awaited publish and durable pack recovery`
 
 ### F195 — The client rides a reconnect instead of dying of it
 - severity: P1

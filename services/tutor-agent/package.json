@@ -20,6 +20,7 @@
     "@livekit/agents-plugin-fishaudio": "1.6.2",
     "@livekit/agents-plugin-openai": "^1.6.2",
     "@livekit/agents-plugin-silero": "^1.6.2",
+    "@livekit/rtc-node": "^0.13.33",
     "@luvani/brain": "*",
     "@luvani/core": "*",
     "dotenv": "^16.4.7",
