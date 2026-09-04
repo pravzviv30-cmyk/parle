@@ -789,7 +789,8 @@ Three defects were found by running this and are fixed on the branch: the phone 
 the web stand-in of every native module (F382), every job process re-verified the vendors and timed
 out so no tutor ever joined (F384), and the tutor's lines rendered at zero width beside their own
 ear (F385). Two are recorded and one of those is fixed: My French at the largest text size (F383,
-open) and the recap's render loop (F386, fixed). One environment note that is not a product defect:
+open) and the recap's render loop (F386, fixed — the first attempt at that fix introduced a
+conditional-hook crash and was caught by review before it landed). One environment note that is not a product defect:
 the local token server's distributed rate limiter timed out against Upstash and answered 500 on
 `/session/start`; commenting the two `UPSTASH_*` lines out of `services/token-server/.env` let
 sessions start. That was not investigated further and is local configuration, not shipped code.

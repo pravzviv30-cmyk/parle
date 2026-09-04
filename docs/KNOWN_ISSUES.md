@@ -5603,7 +5603,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F386 — The recap re-renders itself until React gives up
 - severity: P1
 - status: [x]
-- where: apps/mobile/src/nav/RootNavigator.tsx:268
+- where: apps/mobile/src/nav/RootNavigator.tsx:234
 - note: seen on the Pass 4 simulator walk (iPhone 17 Pro, iOS 26) the moment the cafe scene's recap
   appeared: "Maximum update depth exceeded", roughly once a second, for as long as the recap stayed
   open. The chain: ConvoScreen's recap effect (:419) keeps `onRecap` in its dependencies and calls it
@@ -5612,5 +5612,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   which makes another identity. The recap itself is fine, and `recap`, `practice` and `drills` are
   plain state whose identities are stable, which is why nothing else looped. The handler is now a
   useCallback over the context's own stable `updateBrain`.
+- note: the first version of this fix put that useCallback BELOW ConvoRoute's three early returns,
+  which traded the loop for a crash: a mission route renders Loading on its first pass, so the hook
+  was reached only on the second and React threw "Rendered more hooks than during the previous
+  render." in both dev and release renderers. A pre-merge review caught it before it landed. The
+  repo has no ESLint, so react-hooks/rules-of-hooks never ran, and a source-string test for the
+  callback cannot see placement — hence the third test below, which reads each navigator route and
+  fails if any hook sits after that route's first early return.
 - verified-by: `the navigator hands ConvoScreen a memoised recap handler, not an inline arrow — F386`
 - verified-by: `the effect that calls it still keeps it in its dependencies — F386`
+- verified-by: `every hook in a navigator route runs before that route can return early — F386`
