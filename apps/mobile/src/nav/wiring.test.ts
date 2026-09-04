@@ -327,3 +327,27 @@ describe('hardware back and the swipe cannot slip a metered room — F311', () =
     }
   });
 });
+
+describe('the recap handler keeps its identity between renders — F386', () => {
+  // ConvoScreen's recap effect keeps `onRecap` in its dependencies and calls it
+  // as soon as a recap exists. The handler writes the learner model, which
+  // re-renders this navigator, so an inline arrow here is a new identity every
+  // render and the effect re-fires until React refuses. Seen on a simulator:
+  // "Maximum update depth exceeded", roughly once a second, for as long as the
+  // recap stayed open.
+  test('the navigator hands ConvoScreen a memoised recap handler, not an inline arrow — F386', () => {
+    const source = readFileSync(fileURLToPath(new URL('./RootNavigator.tsx', import.meta.url)), 'utf8');
+    assert.match(source, /onRecap=\{onRecap\}/, 'onRecap must be passed as a stable reference');
+    assert.doesNotMatch(source, /onRecap=\{\(/, 'an inline arrow gives onRecap a new identity every render');
+    const decl = source.slice(source.indexOf('const onRecap = useCallback('));
+    assert.ok(decl.length > 0, 'onRecap is not declared with useCallback');
+    assert.match(decl.slice(0, 400), /\[updateBrain\],/, 'the handler must depend only on the stable updateBrain');
+  });
+
+  test('the effect that calls it still keeps it in its dependencies — F386', () => {
+    // The memoisation is only worth anything while the effect really does
+    // depend on it: if that changes, this fix is load-bearing for nothing.
+    const convo = readFileSync(fileURLToPath(new URL('../ConvoScreen.tsx', import.meta.url)), 'utf8');
+    assert.match(convo, /\}, \[live\.recap, onRecap, stopped\]\);/, 'the recap effect no longer depends on onRecap');
+  });
+});

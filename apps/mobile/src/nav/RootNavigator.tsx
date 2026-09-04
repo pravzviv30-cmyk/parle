@@ -257,6 +257,19 @@ function ConvoRoute() {
   // the honest screen at once rather than a spinner over a disk read that
   // cannot help them.
   if (!replayRead) return <Loading />;
+  // Memoised, because ConvoScreen's recap effect keeps this callback in its
+  // dependencies and calls it as soon as a recap exists. An inline arrow is a
+  // new identity on every render, and the write below re-renders this screen,
+  // so the effect re-fired forever the moment the recap arrived (F386).
+  // `updateBrain` is a useCallback with no dependencies, so this holds.
+  const onRecap = useCallback(
+    (_recap: unknown, blob: unknown) => {
+      // The agent owns the learner model's shape; the app is its storage.
+      if (typeof blob === 'object' && blob !== null) updateBrain(blob as never);
+    },
+    [updateBrain],
+  );
+
   return (
     <Suspense fallback={<Loading />}>
       <LazyConvoScreen
@@ -265,10 +278,7 @@ function ConvoRoute() {
         // where the two are joined. Without it the tutor has no name to use: the
         // snapshot is the only thing that reaches the agent.
         snapshot={withLearnerName(profile.brain, profile.name)}
-        onRecap={(_recap, blob) => {
-          // The agent owns the learner model's shape; the app is its storage.
-          if (typeof blob === 'object' && blob !== null) updateBrain(blob as never);
-        }}
+        onRecap={onRecap}
         onExit={() => nav.goBack()}
         startInTextMode={route.params?.textMode ?? false}
         seedTopic={route.params?.seedTopic}

@@ -104,7 +104,12 @@ function Line({
             accessibilityLabel={`Hear that line again: ${turn.fr}`}
             style={({ pressed }) => [st.tutorBubble, st.withEar, pressed && { opacity: 0.7 }]}
           >
-            <View style={{ flex: 1 }}>{body}</View>
+            {/* flexShrink, never flex: 1. The bubble is sized by its content
+                and the row has no free space to grow into, so on a phone Yoga
+                gives a flex: 1 child a zero basis and the words vanish, leaving
+                a bubble the width of its ear. A browser sizes the same row from
+                its content, which is how F372 shipped looking whole (F385). */}
+            <View style={{ flexShrink: 1 }}>{body}</View>
             {ear === 'hidden' ? null : (
               <View style={ear === 'sounding' ? st.earSounding : st.ear}>
                 <EarGlyph size={18} color={ear === 'sounding' ? accent.primary : paper.ink} />

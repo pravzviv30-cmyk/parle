@@ -449,14 +449,26 @@ export default defineAgent({
   },
 });
 
-// Before anything registers with LiveKit. A worker that cannot serve a turn
-// must not advertise itself as able to — otherwise the first learner to arrive
-// gets a room that opens and then stays silent.
-preflight();
+// The worker runs this file directly (`node src/agent.ts dev`), so its entry
+// script is this module. Every job the worker takes is a fresh process that the
+// framework starts from its own entry script and which then imports this module
+// again, so everything at the top level here runs once per session as well.
+// The checks below belong to the worker alone: a job that re-asked three vendors
+// before it could answer gated the tutor's arrival on their latency, and on a
+// slow day overran the framework's ten-second start-up allowance, so every room
+// opened and stayed silent (F384).
+const isWorkerProcess = process.argv[1] === fileURLToPath(import.meta.url);
 
-// Presence is not health. The keys can all be filled in and still be rejected,
-// and the model named in one of them can have been retired since it was written
-// — both of which land on the learner as that same silent room.
-reportVendors(await verifyVendors(process.env, selectedBrain() === 'groq' ? defaultModel() : ''));
+if (isWorkerProcess) {
+  // Before anything registers with LiveKit. A worker that cannot serve a turn
+  // must not advertise itself as able to — otherwise the first learner to arrive
+  // gets a room that opens and then stays silent.
+  preflight();
+
+  // Presence is not health. The keys can all be filled in and still be rejected,
+  // and the model named in one of them can have been retired since it was written
+  // — both of which land on the learner as that same silent room.
+  reportVendors(await verifyVendors(process.env, selectedBrain() === 'groq' ? defaultModel() : ''));
+}
 
 cli.runApp(new WorkerOptions({ agent: fileURLToPath(import.meta.url) }));
