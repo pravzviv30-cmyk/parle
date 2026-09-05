@@ -51,10 +51,17 @@ describe('the greeting on Home', () => {
       'the words, or their order, no longer match the pool the founder asked for',
     );
 
-    // The band is not taste. The header sizes its slot by the widest word the
-    // pool can produce, so a shorter word leaves a gap after it and a longer
-    // one would be clipped by the slot that is meant to reveal it.
-    assert.equal(GREETING_WIDEST_WORD.length, 7, 'the widest word is no longer seven characters, so the slot changed size');
+    // The band used to be load-bearing: the header sized a fixed slot by the
+    // widest word, so a longer one would have had its tail clipped. F427 ended
+    // that, because the fixed slot is what left a hole after `Salut,`. The
+    // header hugs the words in flow now and nothing can be clipped, so this is a
+    // sanity bound on the content rather than a rule the layout depends on: a
+    // one-letter greeting or a sentence would both draw, and neither belongs on
+    // a display line beside somebody's name.
+    assert.ok(
+      GREETINGS.every((greeting) => greeting.word.length >= 5 && greeting.word.length <= 7),
+      'a greeting left the five to seven letter band, which is the shape a display line beside a name holds',
+    );
     for (const { word } of GREETINGS) {
       assert.ok(word.length >= 5, `"${word}" is shorter than five characters and leaves a hole in the header's slot`);
       assert.ok(

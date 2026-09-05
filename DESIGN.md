@@ -397,15 +397,19 @@ chrome speaks French.
 any time; "Bonjour" and "Morning" while it is still day; "Bonsoir" and "Evening"
 after six, through midnight. Teaching somebody to say Bonsoir at breakfast is
 teaching them wrong, so the pool is filtered by the hour rather than shuffled.
-Every word is five to seven letters, and the slot is sized by the widest of them,
-so a shorter word leaves the difference as space before the name. Measured on a
-375pt screen: `Morning,` fills the slot exactly, `Bonjour,` leaves 7pt, `Coucou,`
-16pt, and `Hello,` and `Salut,` leave about 50pt, which is eight spaces rather
-than one. The letter band narrows that spread; it does not close it, and an
-earlier note here claiming it kept the gap to a word-space was wrong. This is the
-price of a placeholder that never moves the name, it was chosen with that cost
-named, and the fallback if it reads badly on a device is the name on its own
-line rather than measuring the slot.
+**The word and the name stay tight, and the name travels rather than jumping.**
+The slot was sized by the widest word for exactly one build, so the name never
+moved; the founder ran it and saw the cost, which was about fifty points of empty
+space after `Salut,` and `Hello,` and nothing after `Morning,`. A gap-free line
+and a name that never moves are the same tradeoff seen from two sides: if the
+word is always tight against the name, the name's resting place moves with the
+word's width. So the slot hugs the words themselves, and the movement became part
+of the swipe. The header measures both words, and the name's `translateX` rides
+the same value the strip does, so at the moment the words change the flow shifts
+one way by exactly what the transform gives back. The name arrives; it never
+jumps. Both words sit in normal flow rather than one being absolute, because an
+absolutely positioned word is measured against its owner and a wide one would
+arrive with its tail cut off.
 
 **Only the word moves.** It slides up out of a slot that clips it and the next
 one rises in behind, one line, on the native driver. The name is outside the

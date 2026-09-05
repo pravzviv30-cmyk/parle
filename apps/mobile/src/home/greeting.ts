@@ -21,7 +21,7 @@
  *
  * ## Why every word is 5 to 7 characters
  *
- * The header holds the word in a fixed slot sized by the widest word the pool
+ * The header clips the word to one line and the slot hugs the words themselves,
  * can produce, so a shorter word leaves a gap after it. The band is what keeps
  * that gap to about a word-space rather than a hole, and it is tested rather
  * than remembered.
@@ -78,7 +78,12 @@ export const GREETINGS: readonly Greeting[] = [
 ];
 
 /**
- * The widest word the pool can produce, which is what sizes the header's slot.
+ * The longest word the pool can produce.
+ *
+ * Nothing sizes itself by this any more: F427 made the header hug the words in
+ * flow, which is what closed the hole a shorter word used to leave. It stays as a
+ * fact about the content, and the band below it is now a style choice rather than
+ * a constraint the layout depends on.
  *
  * Four words are seven characters, and this is the widest of those four in the
  * display serif: a capital M and a descending g are wider than anything in

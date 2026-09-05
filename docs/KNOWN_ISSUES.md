@@ -6007,7 +6007,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   in flow. Without a swap the plain branch is unchanged. No `Animated.timing`, no `.start(`, no
   `createAnimatedComponent`, no `numberOfLines`, no `maxFontSizeMultiplier`, no numeric width or
   height anywhere in the region.
-- verified-by: `the tab header sets the moving word in a clipped slot sized by the widest word, keeps the name in flow, and starts nothing — F418`
+- note: F427 stopped the slot being sized by the widest word, because that is what left the hole the
+  founder saw. The slot hugs the words themselves now, so this test was retitled to what it still
+  proves: the word is clipped to one line, the name is in flow, and the frame starts nothing.
+- verified-by: `the tab header clips the moving word to one line, keeps the name in flow, and starts nothing — F418`
 - verified-by: `the screen primitives never drive movement themselves, and never cap font scaling — F388`
 
 ### F419 — The swipe is timers, and no exit leaves the slot mid-swipe
@@ -6125,3 +6128,20 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
 - verified-by: `the device runbook carries the Pass 5 checks — F410`
 - verified-by: `the Pass 5 runbook expects the next step row on a fresh account — F413`
+
+### F427 — The greeting slot leaves a hole after a short word
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/layout.tsx:216
+- note: found by the founder on screen. F418 sized the slot to the widest word the pool can produce so
+  the name never moves, and the cost is a gap after every shorter word: measured at 375pt, `Morning,`
+  fills the slot, `Bonjour,` leaves 7pt and `Salut,` and `Hello,` leave about 50pt, which is eight
+  spaces. It reads as a hole rather than a space.
+  A gap-free line and a name that never moves are the same tradeoff seen from two sides: if the word
+  is always tight against the name, the name's resting place moves with the word's width. So the slot
+  hugs the current word, and the movement becomes part of the swipe instead of a jump. The header
+  measures the outgoing and incoming words with `onLayout` and interpolates the name's `translateX`
+  from zero to their difference across the same `progress` the strip rides; at the commit the flow
+  width changes by exactly that difference while the transform returns to zero, so the name travels
+  continuously and lands tight. The header still starts nothing.
+- verified-by: `the greeting word hugs the name, and the name travels with the swipe rather than jumping — F427`

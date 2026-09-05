@@ -15,7 +15,7 @@
  * frame may hold a value somebody else is moving, and stays out of the way.
  */
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Animated,
   View,
@@ -216,15 +216,14 @@ export function ScreenHeader(props: ScreenHeaderProps) {
 }
 
 /**
- * A word that moves through a fixed slot, beside a name that does not.
+ * A word that swipes through a slot, beside a name that travels with it.
  *
- * Home's greeting changes and the learner's name beside it must not, so the
- * greeting is not one line that fades: it is a placeholder the word travels
- * through. `word` is showing now and carries its own comma, because the comma
- * belongs to the greeting rather than to the name. `next` is the word rising in
- * behind it. `widest` is the widest word the pool can produce and is what gives
- * the slot its size. `rest` is the learner's real first name, or null when they
- * skipped it — never a stand-in name.
+ * Home's greeting changes and the learner's name sits beside it, so the greeting
+ * is not one line that fades: it is a slot the word rises through. `word` is
+ * showing now and carries its own comma, because the comma belongs to the
+ * greeting rather than to the name. `next` is the word rising in behind it.
+ * `rest` is the learner's real first name, or null when they skipped it — never
+ * a stand-in name.
  *
  * `progress` runs 0 to 1 across one swipe and is driven by whoever owns the
  * timing. The frame is handed the value; it never starts it.
@@ -234,8 +233,6 @@ export interface TitleSwap {
   word: string;
   /** The word rising in behind it. */
   next: string;
-  /** The widest word the pool can produce, for sizing. */
-  widest: string;
   /** The name, or null when the learner skipped it. */
   rest: string | null;
   /** 0 at rest, 1 when the swipe is complete. Somebody else drives it. */
@@ -304,24 +301,44 @@ export function TabHeader({ title, purpose, titleSwap, trailing, children }: Tab
 }
 
 /**
- * The greeting: one word rising through a fixed slot, the name holding still.
+ * The greeting: one word rising through a slot, and a name that arrives with it.
  *
- * The slot is sized by a ghost — the widest word the pool can produce, drawn in
- * normal flow at zero opacity — so the slot is exactly one line tall and wide
- * enough for any word in the pool at any OS reading size, without measuring
- * anything. Nothing in this app calls `onLayout`, and adding one here would buy
- * a first frame at the wrong size and a remeasure every time the reading size
- * changed, to learn what the type already knows.
+ * F418 sized this slot to a ghost of the widest word the pool could produce, so
+ * the name never had to move. On screen that bought a hole: `Hello,` sat 47pt
+ * from `Camille` at 375pt, about eight spaces. A gap-free line and a still name
+ * are the same tradeoff seen from two sides — if the word is always tight against
+ * the name, the name's resting place moves with the word's width — so the name
+ * moves, and it moves as part of the swipe rather than as a jump.
  *
- * Over the ghost sits an absolute strip holding both words stacked. `progress`
- * lifts it exactly one line and crosses the two opacities at the same time, so
- * what reads is one word replacing another rather than a strip sliding past.
- * The slot clips, so the arriving word does not exist until it arrives.
+ * The slot is one line tall and clips, and holds both real words in normal flow,
+ * one under the other. Two things follow from that and both matter. It is as wide
+ * as the wider of the two words without measuring anything, so no ghost is needed;
+ * and neither word is ever cut off, which an absolutely positioned one would be —
+ * an absolute child is measured against its owner's width on purpose (Yoga does it
+ * so text wraps to its owner, and react-native-web gives every Text
+ * `word-wrap: break-word`), so `Bonjour,` rising into a `Hello,`-sized box would
+ * arrive as `Bonjou`. The words are `flex-start` inside the strip so each hugs its
+ * own text: stretched, they would both report the slot's width to `onLayout`, the
+ * difference would go to zero, and the gap would come straight back.
  *
- * The name is outside the slot, in flow after it, joined to the word by a
- * non-breaking space so the gap grows with the type rather than staying at
- * whatever a number said once. The row wraps, so at the largest reading size a
- * long name drops to a second line instead of breaking mid-word.
+ * The name follows the slot in flow and is pulled back onto whichever word is
+ * showing by a `translateX` that runs the difference between the two measured
+ * widths across the same `progress` the words ride. That is what makes the commit
+ * continuous: `progress` snaps to 0 and the arriving word becomes the current one,
+ * and in that same frame the transform returns from the difference to zero while
+ * the slot's flow width changes by exactly the difference. The two cancel, so the
+ * name never jumps — it arrives, tight against the word, at both ends of the swipe.
+ *
+ * Measuring is the one new mechanism here, and there is no other way to know how
+ * far the name has to travel. It is self-correcting rather than fragile: a reading
+ * size change or a web font landing late relays both words and reports both widths
+ * again. Before anything is measured the difference is zero, so the first frame is
+ * a still line, not a wrong one.
+ *
+ * The travel stands down once the name has wrapped to its own line, which is what
+ * happens at the largest reading sizes. There it is not beside the word, so there
+ * is no gap to close, and pulling it left would walk the learner's own name off the
+ * edge of the screen.
  *
  * A screen reader hears one greeting: the row is a single accessible heading
  * labelled with the still line, and the slot is hidden from assistive tech
@@ -337,6 +354,20 @@ function TitleSwapRow({ title, swap }: { title: string; swap: TitleSwap }) {
   // Type change corrects on the next render. It is 1 on the web, where browser
   // zoom scales the CSS pixel itself.
   const line = type.display.lineHeight * PixelRatio.getFontScale();
+  // The two words as drawn, and which line the name landed on. All three start
+  // at 0, which is the honest answer before a layout pass: no difference, no
+  // travel, a still line at the right place.
+  const [wordWidth, setWordWidth] = useState(0);
+  const [nextWidth, setNextWidth] = useState(0);
+  const [nameTop, setNameTop] = useState(0);
+  // The slot is the wider of the two words, so the name is pulled back onto the
+  // one showing: by the difference when the word arriving is wider, and by
+  // nothing when it is narrower. Either way the two ends are the difference
+  // apart, which is exactly what the flow gives back at the commit.
+  const grow = nextWidth - wordWidth;
+  const beside = nameTop < line / 2;
+  const nameFrom = beside ? -Math.max(grow, 0) : 0;
+  const nameTo = beside ? Math.min(grow, 0) : 0;
   return (
     <View
       accessible
@@ -344,13 +375,10 @@ function TitleSwapRow({ title, swap }: { title: string; swap: TitleSwap }) {
       accessibilityLabel={title}
       style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}
     >
-      <View style={{ overflow: 'hidden' }} {...decorative}>
-        <Text style={[type.display, { color: paper.ink, opacity: 0 }]}>{swap.widest}</Text>
+      <View style={{ height: line, overflow: 'hidden' }} {...decorative}>
         <Animated.View
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
+            alignItems: 'flex-start',
             transform: [
               {
                 translateY: swap.progress.interpolate({
@@ -362,6 +390,7 @@ function TitleSwapRow({ title, swap }: { title: string; swap: TitleSwap }) {
           }}
         >
           <Animated.Text
+            onLayout={(e) => setWordWidth(e.nativeEvent.layout.width)}
             style={[
               type.display,
               {
@@ -373,6 +402,7 @@ function TitleSwapRow({ title, swap }: { title: string; swap: TitleSwap }) {
             {swap.word}
           </Animated.Text>
           <Animated.Text
+            onLayout={(e) => setNextWidth(e.nativeEvent.layout.width)}
             style={[
               type.display,
               {
@@ -386,9 +416,26 @@ function TitleSwapRow({ title, swap }: { title: string; swap: TitleSwap }) {
         </Animated.View>
       </View>
       {swap.rest != null ? (
-        <Text style={[type.display, { color: paper.ink, flexShrink: 1 }]}>
+        <Animated.Text
+          onLayout={(e) => setNameTop(e.nativeEvent.layout.y)}
+          style={[
+            type.display,
+            {
+              color: paper.ink,
+              flexShrink: 1,
+              transform: [
+                {
+                  translateX: swap.progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [nameFrom, nameTo],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           {'\u00A0' + swap.rest}
-        </Text>
+        </Animated.Text>
       ) : null}
     </View>
   );

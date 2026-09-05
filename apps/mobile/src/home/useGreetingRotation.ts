@@ -37,7 +37,6 @@ import {
   GREETING_CYCLE_MS,
   GREETING_HOLD_MS,
   GREETING_SWIPE_MS,
-  GREETING_WIDEST_WORD,
   greetingIndex,
   greetingLead,
   greetingPool,
@@ -169,7 +168,6 @@ export function useGreetingRotation(args: {
       : {
           word: greetingLead(wordAt(index), firstName),
           next: greetingLead(wordAt(index + 1), firstName),
-          widest: greetingLead(GREETING_WIDEST_WORD, firstName),
           rest: firstNameOf(firstName),
           progress,
         },
