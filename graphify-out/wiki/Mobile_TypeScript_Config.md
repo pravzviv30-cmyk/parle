@@ -24,7 +24,7 @@
 
 ## Relationships
 
-- [Auth Screens And Labels](Auth_Screens_And_Labels.md) (1 shared connections)
+- [UI Icon Components](UI_Icon_Components.md) (1 shared connections)
 
 ## Source Files
 

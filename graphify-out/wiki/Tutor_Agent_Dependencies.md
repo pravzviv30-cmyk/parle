@@ -1,20 +1,22 @@
 # Tutor Agent Dependencies
 
-> 38 nodes · cohesion 0.05
+> 43 nodes · cohesion 0.05
 
 ## Key Concepts
 
-- **dependencies** (11 connections) — `services/tutor-agent/package.json`
+- **dependencies** (13 connections) — `services/tutor-agent/package.json`
 - **tutor-agent/package.json** (8 connections) — `services/tutor-agent/package.json`
-- **scripts** (6 connections) — `services/tutor-agent/package.json`
+- **scripts** (7 connections) — `services/tutor-agent/package.json`
 - **devDependencies** (3 connections) — `services/tutor-agent/package.json`
 - **dotenv** (2 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents** (2 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents-plugin-anthropic** (2 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents-plugin-deepgram** (2 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents-plugin-elevenlabs** (2 connections) — `services/tutor-agent/package.json`
+- **@livekit/agents-plugin-fishaudio** (2 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents-plugin-openai** (2 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents-plugin-silero** (2 connections) — `services/tutor-agent/package.json`
+- **@livekit/rtc-node** (2 connections) — `services/tutor-agent/package.json`
 - **@luvani/brain** (2 connections) — `services/tutor-agent/package.json`
 - **@luvani/core** (2 connections) — `services/tutor-agent/package.json`
 - **zod** (2 connections) — `services/tutor-agent/package.json`
@@ -24,12 +26,10 @@
 - **@livekit/agents-plugin-anthropic** (1 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents-plugin-deepgram** (1 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents-plugin-elevenlabs** (1 connections) — `services/tutor-agent/package.json`
+- **@livekit/agents-plugin-fishaudio** (1 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents-plugin-openai** (1 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents-plugin-silero** (1 connections) — `services/tutor-agent/package.json`
-- **dotenv** (1 connections) — `services/tutor-agent/package.json`
-- **@luvani/brain** (1 connections) — `services/tutor-agent/package.json`
-- **@luvani/core** (1 connections) — `services/tutor-agent/package.json`
-- *... and 13 more nodes in this community*
+- *... and 18 more nodes in this community*
 
 ## Relationships
 
@@ -41,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 37 (100%)
+- EXTRACTED: 42 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

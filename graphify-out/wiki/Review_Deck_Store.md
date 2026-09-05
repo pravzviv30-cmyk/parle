@@ -27,18 +27,18 @@
 
 ## Relationships
 
-- [Session Journal Recovery](Session_Journal_Recovery.md) (11 shared connections)
-- [Phrasebook Mix Offer](Phrasebook_Mix_Offer.md) (8 shared connections)
-- [Evidence Mastery States](Evidence_Mastery_States.md) (8 shared connections)
-- [Mission Completions Store](Mission_Completions_Store.md) (8 shared connections)
-- [Live Session Context](Live_Session_Context.md) (6 shared connections)
-- [Persist Acknowledgement](Persist_Acknowledgement.md) (4 shared connections)
-- [Drill Screen Tests](Drill_Screen_Tests.md) (4 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (3 shared connections)
-- [UI Theme Primitives](UI_Theme_Primitives.md) (3 shared connections)
+- [Practice Journal Store](Practice_Journal_Store.md) (8 shared connections)
+- [Review Evidence Tracking](Review_Evidence_Tracking.md) (7 shared connections)
+- [Topic Mix Selection](Topic_Mix_Selection.md) (7 shared connections)
+- [My French Tab & Tracking](My_French_Tab_&_Tracking.md) (5 shared connections)
+- [Persistence Acknowledgement](Persistence_Acknowledgement.md) (4 shared connections)
+- [Session History Store](Session_History_Store.md) (4 shared connections)
+- [Drill Screen UI](Drill_Screen_UI.md) (4 shared connections)
+- [Lesson Content Definitions](Lesson_Content_Definitions.md) (3 shared connections)
+- [Session Journal Rules](Session_Journal_Rules.md) (3 shared connections)
 - [Store Binding Tests](Store_Binding_Tests.md) (3 shared connections)
-- [Review Card View](Review_Card_View.md) (2 shared connections)
-- [Topic Scheduling And Merge](Topic_Scheduling_And_Merge.md) (2 shared connections)
+- [Learning Path Structure](Learning_Path_Structure.md) (2 shared connections)
+- [Account Sync & Audio Sweep](Account_Sync_&_Audio_Sweep.md) (2 shared connections)
 
 ## Source Files
 

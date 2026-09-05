@@ -21,13 +21,14 @@
 
 ## Relationships
 
-- [Mission Completions Store](Mission_Completions_Store.md) (8 shared connections)
-- [Onboarding And Tracking](Onboarding_And_Tracking.md) (4 shared connections)
-- [UI Theme Primitives](UI_Theme_Primitives.md) (3 shared connections)
+- [Drill Screen UI](Drill_Screen_UI.md) (9 shared connections)
+- [Session History Store](Session_History_Store.md) (4 shared connections)
 - [Store Binding Tests](Store_Binding_Tests.md) (3 shared connections)
-- [Live Session Context](Live_Session_Context.md) (3 shared connections)
-- [Drill Screen Tests](Drill_Screen_Tests.md) (2 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (2 shared connections)
+- [My French Tab & Tracking](My_French_Tab_&_Tracking.md) (3 shared connections)
+- [Account Sync & Audio Sweep](Account_Sync_&_Audio_Sweep.md) (2 shared connections)
+- [Review Engine Tests](Review_Engine_Tests.md) (2 shared connections)
+- [Activity Store](Activity_Store.md) (1 shared connections)
+- [Bookmarks Store](Bookmarks_Store.md) (1 shared connections)
 - [Sync Engine Core](Sync_Engine_Core.md) (1 shared connections)
 
 ## Source Files

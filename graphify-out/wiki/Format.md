@@ -1,8 +1,8 @@
 # Format
 
-> God node · 298 connections · `docs/KNOWN_ISSUES.md`
+> God node · 498 connections · `docs/KNOWN_ISSUES.md`
 
-**Community:** [Known Issues Ledger](Known_Issues_Ledger.md)
+**Community:** [Voice Pipeline Bug Ledger](Voice_Pipeline_Bug_Ledger.md)
 
 ## Connections by Relation
 
@@ -24,8 +24,8 @@
 - B5 — A live lesson has no quiet path `EXTRACTED`
 - E4 — A delivery knob could change what the vendor was asked for while the cache replayed the old answer `EXTRACTED`
 - K1 — The tutor corrected on every single turn, on its loosest setting `EXTRACTED`
-- K2 — The tutor was a rules list, and said its fixed lines the same way forever `EXTRACTED`
 - B6 — Anyone can debit anyone's minutes `EXTRACTED`
+- K2 — The tutor was a rules list, and said its fixed lines the same way forever `EXTRACTED`
 - K3 — The app introduced a person and then called him "your tutor" twenty times `EXTRACTED`
 
 ---

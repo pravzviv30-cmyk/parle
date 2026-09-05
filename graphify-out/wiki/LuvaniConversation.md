@@ -1,8 +1,8 @@
 # LuvaniConversation
 
-> God node · 63 connections · `services/tutor-agent/src/convo.ts`
+> God node · 65 connections · `services/tutor-agent/src/convo.ts`
 
-**Community:** [Luvani Conversation Orchestrator](Luvani_Conversation_Orchestrator.md)
+**Community:** [Conversation Engine Core](Conversation_Engine_Core.md)
 
 ## Connections by Relation
 
@@ -16,32 +16,33 @@
 
 ### method
 - .runBrainTurn() `EXTRACTED`
-- .publish() `EXTRACTED`
-- .startScene() `EXTRACTED`
-- .routeClientMessage() `EXTRACTED`
 - .finish() `EXTRACTED`
+- .startScene() `EXTRACTED`
+- .publish() `EXTRACTED`
+- .routeClientMessage() `EXTRACTED`
+- .constructor() `EXTRACTED`
 - .handleSafety() `EXTRACTED`
 - .armRescue() `EXTRACTED`
 - .curatePractice() `EXTRACTED`
-- .open() `EXTRACTED`
-- .clearRescue() `EXTRACTED`
 - .generateDrills() `EXTRACTED`
-- .say() `EXTRACTED`
+- .open() `EXTRACTED`
 - .openMission() `EXTRACTED`
+- .clearRescue() `EXTRACTED`
+- .say() `EXTRACTED`
 - .extractMemory() `EXTRACTED`
-- .constructor() `EXTRACTED`
 - .recordBrainUsage() `EXTRACTED`
 - .buildFrame() `EXTRACTED`
 - .openScene() `EXTRACTED`
+- .curateAndDrill() `EXTRACTED`
 - .returnToChoosing() `EXTRACTED`
-- .recordFailedCall() `EXTRACTED`
 
 ### references
 - [LlmUsage](LlmUsage.md) `EXTRACTED`
-- [Rung](Rung.md) `EXTRACTED`
+- Rung `EXTRACTED`
 - LlmClient `EXTRACTED`
 - LearnerProfile `EXTRACTED`
 - ConversationState `EXTRACTED`
+- TutorPersona `EXTRACTED`
 - ServerMessage `EXTRACTED`
 - MissionId `EXTRACTED`
 

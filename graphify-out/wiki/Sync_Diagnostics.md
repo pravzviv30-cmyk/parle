@@ -33,9 +33,10 @@
 
 ## Relationships
 
-- [App Root Auth Bootstrap](App_Root_Auth_Bootstrap.md) (3 shared connections)
 - [Sync Engine Core](Sync_Engine_Core.md) (3 shared connections)
-- [Sync Engine Tests](Sync_Engine_Tests.md) (1 shared connections)
+- [App Bootstrap & Gate](App_Bootstrap_&_Gate.md) (2 shared connections)
+- [Account Sync & Audio Sweep](Account_Sync_&_Audio_Sweep.md) (1 shared connections)
+- [Review Engine Tests](Review_Engine_Tests.md) (1 shared connections)
 
 ## Source Files
 

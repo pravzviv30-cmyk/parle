@@ -1,39 +1,38 @@
 # paper
 
-> God node · 52 connections · `apps/mobile/src/theme.ts`
+> God node · 66 connections · `apps/mobile/src/palette.ts`
 
-**Community:** [UI Theme Primitives](UI_Theme_Primitives.md)
+**Community:** [UI Icon Components](UI_Icon_Components.md)
 
 ## Connections by Relation
 
 ### contains
-- src/theme.ts `EXTRACTED`
+- palette.ts `EXTRACTED`
 
 ### imports
 - ConvoScreen.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
+- MyFrenchTab.tsx `EXTRACTED`
+- components.tsx `EXTRACTED`
 - RootNavigator.tsx `EXTRACTED`
 - DrillScreen.tsx `EXTRACTED`
-- components.tsx `EXTRACTED`
 - App.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
-- HomeTab.tsx `EXTRACTED`
-- MyFrenchTab.tsx `EXTRACTED`
-- OnboardingFlow.tsx `EXTRACTED`
-- LiveSessionScreen.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
-- ReviewScreen.tsx `EXTRACTED`
+- OnboardingFlow.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
-- SoundCheckScreen.tsx `EXTRACTED`
-- LeaderboardTab.tsx `EXTRACTED`
-- AddFriendsScreen.tsx `EXTRACTED`
+- HomeTab.tsx `EXTRACTED`
+- LiveSessionScreen.tsx `EXTRACTED`
+- layout.tsx `EXTRACTED`
+- ReviewScreen.tsx `EXTRACTED`
 - MissionsScreen.tsx `EXTRACTED`
+- PreAccountOnboarding.tsx `EXTRACTED`
+- SoundCheckScreen.tsx `EXTRACTED`
 - SummaryScreen.tsx `EXTRACTED`
 - SessionView.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`
 
-### rationale_for
-- Paper & Ink design world `EXTRACTED`
-- Paper colour token set `EXTRACTED`
+### re_exports
+- src/theme.ts `EXTRACTED`
 
 ---
 

@@ -22,9 +22,9 @@
 
 ## Relationships
 
-- [Safety Category Taxonomy](Safety_Category_Taxonomy.md) (5 shared connections)
-- [Output Safety Guard](Output_Safety_Guard.md) (3 shared connections)
-- [Safety Policy Corpus](Safety_Policy_Corpus.md) (1 shared connections)
+- [Safety Policy Categories](Safety_Policy_Categories.md) (5 shared connections)
+- [Safety Output Guard](Safety_Output_Guard.md) (3 shared connections)
+- [Safety Policy Records](Safety_Policy_Records.md) (1 shared connections)
 
 ## Source Files
 

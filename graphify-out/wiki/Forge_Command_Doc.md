@@ -1,30 +1,22 @@
 # Forge Command Doc
 
-> 9 nodes · cohesion 0.22
+> 1 nodes · cohesion 1.00
 
 ## Key Concepts
 
-- **/forge** (9 connections) — `docs/FORGE.md`
-- **Looping it** (1 connections) — `docs/FORGE.md`
-- **Not wired yet: the unattended loop** (1 connections) — `docs/FORGE.md`
-- **The contract** (1 connections) — `docs/FORGE.md`
-- **The gate watches the wiring too** (1 connections) — `docs/FORGE.md`
-- **Watch for judge drift** (1 connections) — `docs/FORGE.md`
-- **Who actually builds it** (1 connections) — `docs/FORGE.md`
-- **Why the judge's findings go in the ledger** (1 connections) — `docs/FORGE.md`
-- **Why two models** (1 connections) — `docs/FORGE.md`
+- **forge.md** (0 connections) — `.claude/commands/forge.md`
 
 ## Relationships
 
-- [Docs Index](Docs_Index.md) (1 shared connections)
+- No strong cross-community connections detected
 
 ## Source Files
 
-- `docs/FORGE.md`
+- `.claude/commands/forge.md`
 
 ## Audit Trail
 
-- EXTRACTED: 9 (100%)
+- EXTRACTED: 0 (0%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

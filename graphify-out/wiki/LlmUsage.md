@@ -2,12 +2,12 @@
 
 > God node · 54 connections · `packages/brain/src/llm/client.ts`
 
-**Community:** [Brain LLM Schemas](Brain_LLM_Schemas.md)
+**Community:** [LLM Schema Definitions](LLM_Schema_Definitions.md)
 
 ## Connections by Relation
 
 ### contains
-- client.ts `EXTRACTED`
+- llm/client.ts `EXTRACTED`
 
 ### imports
 - convo.ts `EXTRACTED`

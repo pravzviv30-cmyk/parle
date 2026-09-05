@@ -1,8 +1,8 @@
 # ConvoScreen()
 
-> God node · 42 connections · `apps/mobile/src/ConvoScreen.tsx`
+> God node · 47 connections · `apps/mobile/src/ConvoScreen.tsx`
 
-**Community:** [Conversation Screen](Conversation_Screen.md)
+**Community:** [Conversation Screen UI](Conversation_Screen_UI.md)
 
 ## Connections by Relation
 
@@ -11,30 +11,30 @@
 - useLiveSession() `EXTRACTED`
 - phraseKeyOf() `EXTRACTED`
 - useProfile() `EXTRACTED`
-- trackProductEvent() `EXTRACTED`
-- fitDisplay() `EXTRACTED`
+- tutorNameOf() `EXTRACTED`
 - recordActivity() `EXTRACTED`
-- journalDrills() `EXTRACTED`
+- fitDisplay() `EXTRACTED`
+- tutorVoiceOf() `EXTRACTED`
 - mergeExercises() `EXTRACTED`
+- journalDrills() `EXTRACTED`
+- trackProductEvent() `EXTRACTED`
 - stoppedBySafety() `EXTRACTED`
+- recordScenarioProgress() `EXTRACTED`
 - safetySurface `EXTRACTED`
-- journalPractice() `EXTRACTED`
-- connectingTick() `EXTRACTED`
 - recordMissionCompletion() `EXTRACTED`
+- journalPractice() `EXTRACTED`
+- leaveConfirmCopy `EXTRACTED`
+- connectingTick() `EXTRACTED`
 - markCoachMarkSeen() `EXTRACTED`
 - connectingView `EXTRACTED`
-- typedDoorFor() `EXTRACTED`
-- takeTypedDoor() `EXTRACTED`
-- isUnderAgeStop() `EXTRACTED`
-- withAgeStop() `EXTRACTED`
 
 ### contains
 - ConvoScreen.tsx `EXTRACTED`
 
 ### indirect_call
 - bankPractice() `INFERRED`
-- dismissCoachMark() `INFERRED`
 - dismissWin() `INFERRED`
+- dismissCoachMark() `INFERRED`
 
 ### re_exports
 - LiveScreenModule.ts `EXTRACTED`

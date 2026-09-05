@@ -1,23 +1,24 @@
 # Entitlement Store
 
-> 37 nodes · cohesion 0.11
+> 40 nodes · cohesion 0.10
 
 ## Key Concepts
 
-- **Entitlement** (24 connections) — `packages/core/src/metering/meter.ts`
-- **src/store.ts** (19 connections) — `services/token-server/src/store.ts`
-- **FileEntitlementStore** (13 connections) — `services/token-server/src/store.ts`
-- **EntitlementStore** (10 connections) — `services/token-server/src/store.ts`
-- **InMemoryEntitlementStore** (10 connections) — `services/token-server/src/store.ts`
-- **SupabaseEntitlementStore** (10 connections) — `services/token-server/src/store.ts`
-- **Plan** (8 connections) — `packages/core/src/metering/meter.ts`
-- **DevelopmentEntitlementStore** (8 connections) — `services/token-server/src/store.ts`
+- **Entitlement** (27 connections) — `packages/core/src/metering/meter.ts`
+- **src/store.ts** (21 connections) — `services/token-server/src/store.ts`
+- **FileEntitlementStore** (15 connections) — `services/token-server/src/store.ts`
+- **InMemoryEntitlementStore** (13 connections) — `services/token-server/src/store.ts`
+- **EntitlementStore** (12 connections) — `services/token-server/src/store.ts`
+- **SupabaseEntitlementStore** (11 connections) — `services/token-server/src/store.ts`
+- **Plan** (10 connections) — `packages/core/src/metering/meter.ts`
+- **DevelopmentEntitlementStore** (10 connections) — `services/token-server/src/store.ts`
+- **store.supabase.test.ts** (5 connections) — `services/token-server/src/store.supabase.test.ts`
 - **.consume()** (5 connections) — `services/token-server/src/store.ts`
 - **.get()** (5 connections) — `services/token-server/src/store.ts`
+- **.#headers()** (5 connections) — `services/token-server/src/store.ts`
 - **.save()** (5 connections) — `services/token-server/src/store.ts`
 - **.consume()** (4 connections) — `services/token-server/src/store.ts`
 - **.get()** (4 connections) — `services/token-server/src/store.ts`
-- **.#headers()** (4 connections) — `services/token-server/src/store.ts`
 - **.constructor()** (3 connections) — `services/token-server/src/store.ts`
 - **.#read()** (3 connections) — `services/token-server/src/store.ts`
 - **.save()** (3 connections) — `services/token-server/src/store.ts`
@@ -28,17 +29,19 @@
 - **.save()** (2 connections) — `services/token-server/src/store.ts`
 - **entitlementFrom()** (2 connections) — `services/token-server/src/store.ts`
 - **.consume()** (2 connections) — `services/token-server/src/store.ts`
-- **.get()** (2 connections) — `services/token-server/src/store.ts`
-- *... and 12 more nodes in this community*
+- *... and 15 more nodes in this community*
 
 ## Relationships
 
-- [Session Metering And Plans](Session_Metering_And_Plans.md) (9 shared connections)
-- [HTTP Security And Deletion](HTTP_Security_And_Deletion.md) (8 shared connections)
-- [LiveKit Session Token Grants](LiveKit_Session_Token_Grants.md) (6 shared connections)
+- [RevenueCat Billing](RevenueCat_Billing.md) (10 shared connections)
+- [Session Metering & Cost](Session_Metering_&_Cost.md) (9 shared connections)
+- [Account Deletion & Agent Auth](Account_Deletion_&_Agent_Auth.md) (8 shared connections)
+- [Session Token Grants](Session_Token_Grants.md) (6 shared connections)
+- [Out of Minutes Test](Out_of_Minutes_Test.md) (2 shared connections)
 - [Supabase Live Checks](Supabase_Live_Checks.md) (2 shared connections)
 - [Voice Lifecycle Checks](Voice_Lifecycle_Checks.md) (1 shared connections)
-- [Drill Merge And Scene Controls](Drill_Merge_And_Scene_Controls.md) (1 shared connections)
+- [Live Session Audio Lifecycle](Live_Session_Audio_Lifecycle.md) (1 shared connections)
+- [Path Node Row UI](Path_Node_Row_UI.md) (1 shared connections)
 
 ## Source Files
 
@@ -48,7 +51,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 101 (100%)
+- EXTRACTED: 119 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

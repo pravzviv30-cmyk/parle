@@ -1,64 +1,51 @@
 # Mission Completions Store
 
-> 48 nodes · cohesion 0.09
+> 17 nodes · cohesion 0.20
 
 ## Key Concepts
 
-- **progress/store.ts** (32 connections) — `apps/mobile/src/progress/store.ts`
-- **missions/store.ts** (31 connections) — `apps/mobile/src/missions/store.ts`
-- **userKey()** (31 connections) — `apps/mobile/src/storage/scope.ts`
-- **markDirty()** (25 connections) — `apps/mobile/src/sync/registry.ts`
-- **registerSyncAdopter()** (24 connections) — `apps/mobile/src/sync/registry.ts`
-- **tutor/store.ts** (24 connections) — `apps/mobile/src/tutor/store.ts`
-- **SyncFold** (13 connections) — `apps/mobile/src/sync/registry.ts`
-- **SyncAdoption** (12 connections) — `apps/mobile/src/sync/registry.ts`
-- **recordMissionCompletion()** (7 connections) — `apps/mobile/src/missions/store.ts`
-- **recordSession()** (7 connections) — `apps/mobile/src/progress/store.ts`
-- **markCoachMarkSeen()** (7 connections) — `apps/mobile/src/tutor/store.ts`
+- **missions/store.ts** (34 connections) — `apps/mobile/src/missions/store.ts`
+- **recordMissionCompletion()** (9 connections) — `apps/mobile/src/missions/store.ts`
 - **adoptMissionCompletions()** (6 connections) — `apps/mobile/src/missions/store.ts`
-- **adoptHistory()** (6 connections) — `apps/mobile/src/progress/store.ts`
-- **loadSeenCoachMarks()** (6 connections) — `apps/mobile/src/tutor/store.ts`
-- **markTutorIntroSeen()** (6 connections) — `apps/mobile/src/tutor/store.ts`
-- **adoptCoachMarks()** (5 connections) — `apps/mobile/src/tutor/store.ts`
-- **readSeen()** (5 connections) — `apps/mobile/src/tutor/store.ts`
 - **KEY()** (4 connections) — `apps/mobile/src/missions/store.ts`
 - **readCompletions()** (4 connections) — `apps/mobile/src/missions/store.ts`
 - **saveCompletions()** (4 connections) — `apps/mobile/src/missions/store.ts`
 - **serialized()** (4 connections) — `apps/mobile/src/missions/store.ts`
-- **KEY()** (4 connections) — `apps/mobile/src/progress/store.ts`
-- **saveHistory()** (4 connections) — `apps/mobile/src/progress/store.ts`
-- **serialized()** (4 connections) — `apps/mobile/src/progress/store.ts`
-- **adoptTutorIntro()** (4 connections) — `apps/mobile/src/tutor/store.ts`
-- *... and 23 more nodes in this community*
+- **history.test.ts** (3 connections) — `apps/mobile/src/missions/history.test.ts`
+- **isCompletion()** (3 connections) — `apps/mobile/src/missions/store.ts`
+- **registerAdopter()** (3 connections) — `apps/mobile/src/missions/store.ts`
+- **COMPLETIONS_PER_MISSION** (2 connections) — `apps/mobile/src/missions/store.ts`
+- **persistedCompletions()** (2 connections) — `apps/mobile/src/missions/store.ts`
+- **source** (1 connections) — `apps/mobile/src/missions/history.test.ts`
+- **MissionCompletion** (1 connections) — `apps/mobile/src/missions/store.ts`
+- **StoredMissions** (1 connections) — `apps/mobile/src/missions/store.ts`
+- **writeChain** (1 connections) — `apps/mobile/src/missions/store.ts`
+- **WriteOrigin** (1 connections) — `apps/mobile/src/missions/store.ts`
 
 ## Relationships
 
-- [Live Session Context](Live_Session_Context.md) (15 shared connections)
-- [Sync Engine Core](Sync_Engine_Core.md) (12 shared connections)
-- [Store Binding Tests](Store_Binding_Tests.md) (10 shared connections)
-- [Drill Screen Tests](Drill_Screen_Tests.md) (8 shared connections)
-- [Conversation Screen](Conversation_Screen.md) (8 shared connections)
-- [Drill Exercise Store](Drill_Exercise_Store.md) (8 shared connections)
-- [Learner Profile Store](Learner_Profile_Store.md) (8 shared connections)
-- [Activity History Store](Activity_History_Store.md) (8 shared connections)
-- [Review Deck Store](Review_Deck_Store.md) (8 shared connections)
-- [Sound Check Store](Sound_Check_Store.md) (8 shared connections)
-- [Persist Acknowledgement](Persist_Acknowledgement.md) (8 shared connections)
-- [Sync Policy And Live](Sync_Policy_And_Live.md) (6 shared connections)
+- [Scenario Progress Store](Scenario_Progress_Store.md) (5 shared connections)
+- [My French Tab & Tracking](My_French_Tab_&_Tracking.md) (5 shared connections)
+- [Session History Store](Session_History_Store.md) (4 shared connections)
+- [Conversation Screen UI](Conversation_Screen_UI.md) (3 shared connections)
+- [Account Sync & Audio Sweep](Account_Sync_&_Audio_Sweep.md) (2 shared connections)
+- [Review Engine Tests](Review_Engine_Tests.md) (2 shared connections)
+- [Store Binding Tests](Store_Binding_Tests.md) (2 shared connections)
+- [Activity Store](Activity_Store.md) (1 shared connections)
+- [Bookmarks Store](Bookmarks_Store.md) (1 shared connections)
+- [Sync Engine Core](Sync_Engine_Core.md) (1 shared connections)
+- [Tab Bar Icons](Tab_Bar_Icons.md) (1 shared connections)
+- [Live Context & Bookmarks](Live_Context_&_Bookmarks.md) (1 shared connections)
 
 ## Source Files
 
 - `apps/mobile/src/missions/history.test.ts`
 - `apps/mobile/src/missions/store.ts`
-- `apps/mobile/src/progress/store.ts`
-- `apps/mobile/src/storage/scope.ts`
-- `apps/mobile/src/sync/registry.ts`
-- `apps/mobile/src/tutor/store.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 220 (95%)
-- INFERRED: 11 (5%)
+- EXTRACTED: 52 (93%)
+- INFERRED: 4 (7%)
 - AMBIGUOUS: 0 (0%)
 
 ---

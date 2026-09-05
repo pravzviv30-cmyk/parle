@@ -1,8 +1,8 @@
 # type
 
-> God node · 39 connections · `apps/mobile/src/theme.ts`
+> God node · 49 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [UI Theme Primitives](UI_Theme_Primitives.md)
+**Community:** [UI Icon Components](UI_Icon_Components.md)
 
 ## Connections by Relation
 
@@ -11,25 +11,25 @@
 
 ### imports
 - ConvoScreen.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
+- MyFrenchTab.tsx `EXTRACTED`
+- components.tsx `EXTRACTED`
 - RootNavigator.tsx `EXTRACTED`
 - DrillScreen.tsx `EXTRACTED`
-- components.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
-- HomeTab.tsx `EXTRACTED`
-- MyFrenchTab.tsx `EXTRACTED`
-- OnboardingFlow.tsx `EXTRACTED`
-- LiveSessionScreen.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
-- ReviewScreen.tsx `EXTRACTED`
+- OnboardingFlow.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
-- SoundCheckScreen.tsx `EXTRACTED`
-- LeaderboardTab.tsx `EXTRACTED`
-- AddFriendsScreen.tsx `EXTRACTED`
+- HomeTab.tsx `EXTRACTED`
+- LiveSessionScreen.tsx `EXTRACTED`
+- layout.tsx `EXTRACTED`
+- ReviewScreen.tsx `EXTRACTED`
 - MissionsScreen.tsx `EXTRACTED`
+- PreAccountOnboarding.tsx `EXTRACTED`
+- SoundCheckScreen.tsx `EXTRACTED`
 - SummaryScreen.tsx `EXTRACTED`
 - SessionView.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`
-- PhrasebookScreen.tsx `EXTRACTED`
+- LeaderboardTab.tsx `EXTRACTED`
 
 ### rationale_for
 - Fraunces speaks, DM Sans is furniture `EXTRACTED`

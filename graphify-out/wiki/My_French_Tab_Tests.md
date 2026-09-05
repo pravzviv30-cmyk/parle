@@ -1,10 +1,10 @@
 # My French Tab Tests
 
-> 15 nodes · cohesion 0.17
+> 16 nodes · cohesion 0.16
 
 ## Key Concepts
 
-- **MyFrenchTab.test.ts** (16 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
+- **MyFrenchTab.test.ts** (17 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **between()** (3 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **literals()** (2 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **markTag()** (2 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
@@ -12,6 +12,7 @@
 - **style()** (2 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **tags()** (2 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **week()** (2 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
+- **at()** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **FLAT** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **read()** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **SCREEN** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
@@ -22,7 +23,7 @@
 
 ## Relationships
 
-- [Copy Guilt Ban Checks](Copy_Guilt_Ban_Checks.md) (2 shared connections)
+- [Auth & Guilt Copy](Auth_&_Guilt_Copy.md) (2 shared connections)
 
 ## Source Files
 
@@ -30,7 +31,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 20 (100%)
+- EXTRACTED: 21 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

@@ -79,8 +79,10 @@ each, and a second opinion about them is how a repo grows two ladders.
 
 ## graphify
 
-This project has a knowledge graph at `graphify-out/` — 4309 nodes, 10225 links
-across the source files, grouped into 225 named communities.
+This project has a knowledge graph at `graphify-out/` — 6203 nodes, 14723 links
+across the source files, grouped into 297 named communities. Re-measured 2026-09-05;
+every figure below was read out of `graph.json` rather than carried forward, because
+the previous set had drifted by half and the hub order in it was wrong.
 
 **Route by the shape of the question, and name real symbols.** Reaching for a bare
 `graphify query` is the wrong default here: it truncates. A prose live-voice question
@@ -110,8 +112,8 @@ Rules:
   to a directed search and reports "No directed path found" on edges that do exist.
 - `affected` and `explain` are the precise commands — both cite `file:line`. Prefer
   them whenever the question names a symbol, which is most of the time.
-- Start broad navigation at `graphify-out/wiki/index.md` (236 concept articles, ~3.9k
-  tokens) rather than `GRAPH_REPORT.md` (~11k tokens).
+- Start broad navigation at `graphify-out/wiki/index.md` (307 concept articles, ~5k
+  tokens) rather than `GRAPH_REPORT.md`, which is now ~15k.
 - Going straight to a file to edit or debug specific lines is fine. The graph is for
   orientation, not a gate.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only,
@@ -122,18 +124,19 @@ Rules:
   falls back to filename labels.
 
 Known limits (do not mistake these for working):
-- **Docs do not link to code.** The 358 nodes under `docs/` form a closed island — 364
-  edges among themselves and zero into source, measured — so prose cannot route you to a
-  symbol. Closing this needs a `--mode deep` rebuild. It keeps growing and still carries
-  the single most connected node in the whole graph, `docs_known_issues_format` at 188
-  edges, which is the ledger's own format block. Ranking nodes by degree therefore
-  puts a docs node first that cannot reach one line of source: read hub lists source-side
-  or they will point you at prose.
+- **Docs do not link to code.** The 692 nodes under `docs/` form a closed island — 697
+  edges among themselves and **zero** into source, measured again on 2026-09-05 — so prose
+  cannot route you to a symbol. Closing this needs a `--mode deep` rebuild. The island has
+  nearly doubled and its grip has tightened: the single most connected node in the whole
+  graph is still the ledger's own format block, `Format` from `docs/KNOWN_ISSUES.md`, and
+  it is now at **498** edges, close to three times the largest real code node. Ranking
+  nodes by degree therefore puts a docs node first that cannot reach one line of source:
+  read hub lists source-side or they will point you at prose.
 - **Theme primitives inflate the hubs, but no longer top them.** `space()` from
-  `apps/mobile/src/theme.ts` sits at 84 edges and stays fifth source-side, behind
-  `core/src/index.ts` (107), `convo.ts` (106), `convo.test.ts` (92) and
-  `ConvoScreen.tsx` (91). It still pulls the styling layer into UI-adjacent traversals,
-  and `--context call` still sidesteps it.
+  `apps/mobile/src/theme.ts` sits at 102 edges and has slipped to sixth source-side. The
+  order is now `core/src/index.ts` (185), `ConvoScreen.tsx` (137), `convo.ts` (122),
+  `ProfileTab.tsx` (112), `convo.test.ts` (111), then `space()`. It still pulls the
+  styling layer into UI-adjacent traversals, and `--context call` still sidesteps it.
 - **Seeding is lexical, not semantic.** Asking "what counts as a *right* answer" seeds
   on a node named `counts` and on `ArrowRight()`. This is the same trap as the first
   rule above, and it is the single most common way to waste a query here.

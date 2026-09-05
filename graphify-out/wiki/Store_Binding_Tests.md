@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **storeBinding.test.ts** (72 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
+- **storeBinding.test.ts** (78 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
 - **landingOf()** (5 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
 - **SyncedStore** (5 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
 - **QueuedWrite** (3 connections) — `apps/mobile/src/storage/storeBinding.test.ts`
@@ -33,18 +33,18 @@
 
 ## Relationships
 
-- [Mission Completions Store](Mission_Completions_Store.md) (10 shared connections)
-- [Sync Engine Core](Sync_Engine_Core.md) (5 shared connections)
-- [Learner Profile Store](Learner_Profile_Store.md) (5 shared connections)
-- [Live Session Context](Live_Session_Context.md) (4 shared connections)
-- [Session Journal Recovery](Session_Journal_Recovery.md) (3 shared connections)
-- [Drill Screen Tests](Drill_Screen_Tests.md) (3 shared connections)
-- [Persist Acknowledgement](Persist_Acknowledgement.md) (3 shared connections)
+- [Session History Store](Session_History_Store.md) (8 shared connections)
+- [Profile Gate & Age Stop](Profile_Gate_&_Age_Stop.md) (5 shared connections)
+- [My French Tab & Tracking](My_French_Tab_&_Tracking.md) (5 shared connections)
+- [Account Sync & Audio Sweep](Account_Sync_&_Audio_Sweep.md) (4 shared connections)
+- [Bookmarks Store & Envelope](Bookmarks_Store_&_Envelope.md) (4 shared connections)
+- [Scenario Progress Store](Scenario_Progress_Store.md) (4 shared connections)
+- [Persistence Acknowledgement](Persistence_Acknowledgement.md) (3 shared connections)
+- [Bookmarks Store](Bookmarks_Store.md) (3 shared connections)
 - [Review Deck Store](Review_Deck_Store.md) (3 shared connections)
 - [Sound Check Store](Sound_Check_Store.md) (3 shared connections)
-- [Sync Policy And Live](Sync_Policy_And_Live.md) (2 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (2 shared connections)
-- [Drill Exercise Store](Drill_Exercise_Store.md) (2 shared connections)
+- [Progress Export & Trends](Progress_Export_&_Trends.md) (2 shared connections)
+- [Sync Engine Core](Sync_Engine_Core.md) (2 shared connections)
 
 ## Source Files
 
@@ -52,7 +52,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 83 (100%)
+- EXTRACTED: 89 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

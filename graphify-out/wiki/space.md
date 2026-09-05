@@ -1,57 +1,57 @@
 # space()
 
-> God node · 88 connections · `apps/mobile/src/theme.ts`
+> God node · 102 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [UI Theme Primitives](UI_Theme_Primitives.md)
+**Community:** [Drill Screen UI](Drill_Screen_UI.md)
 
 ## Connections by Relation
 
 ### calls
 - [ConvoScreen()](ConvoScreen.md) `EXTRACTED`
-- DrillScreen() `EXTRACTED`
-- MyFrenchTab() `EXTRACTED`
-- HomeTab() `EXTRACTED`
+- [MyFrenchTab()](MyFrenchTab.md) `EXTRACTED`
 - ProfileTab() `EXTRACTED`
-- LiveSessionScreen() `EXTRACTED`
-- SoundCheckScreen() `EXTRACTED`
-- OutlineButton() `EXTRACTED`
-- ReviewScreen() `EXTRACTED`
+- DrillScreen() `EXTRACTED`
+- ScrollScreen() `EXTRACTED`
 - PracticeTab() `EXTRACTED`
 - TutorTab() `EXTRACTED`
+- LiveSessionScreen() `EXTRACTED`
+- OutlineButton() `EXTRACTED`
+- OnboardingFlow() `EXTRACTED`
+- SoundCheckScreen() `EXTRACTED`
+- ReviewScreen() `EXTRACTED`
 - MissionsScreen() `EXTRACTED`
 - SignUpScreen() `EXTRACTED`
 - Field() `EXTRACTED`
 - ConvoRoute() `EXTRACTED`
-- Stat() `EXTRACTED`
-- AddFriendsScreen() `EXTRACTED`
-- OnboardingFlow() `EXTRACTED`
+- PathNodeRow() `EXTRACTED`
 - SummaryScreen() `EXTRACTED`
-- LeaderboardTab() `EXTRACTED`
+- TutorIntro() `EXTRACTED`
+- SignInScreen() `EXTRACTED`
 
 ### contains
 - src/theme.ts `EXTRACTED`
 
 ### imports
 - ConvoScreen.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
+- MyFrenchTab.tsx `EXTRACTED`
+- components.tsx `EXTRACTED`
 - RootNavigator.tsx `EXTRACTED`
 - DrillScreen.tsx `EXTRACTED`
-- components.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
-- HomeTab.tsx `EXTRACTED`
-- MyFrenchTab.tsx `EXTRACTED`
-- OnboardingFlow.tsx `EXTRACTED`
-- LiveSessionScreen.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
-- ReviewScreen.tsx `EXTRACTED`
+- OnboardingFlow.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
-- SoundCheckScreen.tsx `EXTRACTED`
-- LeaderboardTab.tsx `EXTRACTED`
-- AddFriendsScreen.tsx `EXTRACTED`
+- HomeTab.tsx `EXTRACTED`
+- LiveSessionScreen.tsx `EXTRACTED`
+- layout.tsx `EXTRACTED`
+- ReviewScreen.tsx `EXTRACTED`
 - MissionsScreen.tsx `EXTRACTED`
+- PreAccountOnboarding.tsx `EXTRACTED`
+- SoundCheckScreen.tsx `EXTRACTED`
 - SummaryScreen.tsx `EXTRACTED`
 - SessionView.tsx `EXTRACTED`
 - TutorIntro.tsx `EXTRACTED`
-- PhrasebookScreen.tsx `EXTRACTED`
+- LeaderboardTab.tsx `EXTRACTED`
 
 ---
 

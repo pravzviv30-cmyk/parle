@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **startOwnership.test.ts** (24 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **startOwnership.test.ts** (25 connections) — `apps/mobile/src/live/startOwnership.test.ts`
 - **startOwnership.ts** (7 connections) — `apps/mobile/src/live/startOwnership.ts`
 - **startStillOwns()** (6 connections) — `apps/mobile/src/live/startOwnership.ts`
 - **liveHook()** (6 connections) — `apps/mobile/src/live/startOwnership.test.ts`
@@ -27,11 +27,12 @@
 
 ## Relationships
 
-- [Live Session Hook](Live_Session_Hook.md) (8 shared connections)
-- [Turns And Mode Caps](Turns_And_Mode_Caps.md) (5 shared connections)
-- [App Agent Protocol](App_Agent_Protocol.md) (1 shared connections)
-- [Drill Merge And Scene Controls](Drill_Merge_And_Scene_Controls.md) (1 shared connections)
-- [Fake Room Test Double](Fake_Room_Test_Double.md) (1 shared connections)
+- [Live Session Audio Lifecycle](Live_Session_Audio_Lifecycle.md) (8 shared connections)
+- [Session Opening Turns](Session_Opening_Turns.md) (5 shared connections)
+- [Tutor Agent Smoke Test](Tutor_Agent_Smoke_Test.md) (1 shared connections)
+- [Onboarding Voice Step](Onboarding_Voice_Step.md) (1 shared connections)
+- [Path Node Row UI](Path_Node_Row_UI.md) (1 shared connections)
+- [Fake LiveKit Room](Fake_LiveKit_Room.md) (1 shared connections)
 
 ## Source Files
 
@@ -40,8 +41,8 @@
 
 ## Audit Trail
 
-- EXTRACTED: 43 (91%)
-- INFERRED: 4 (9%)
+- EXTRACTED: 44 (92%)
+- INFERRED: 4 (8%)
 - AMBIGUOUS: 0 (0%)
 
 ---

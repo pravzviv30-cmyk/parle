@@ -1,8 +1,8 @@
 # react
 
-> God node · 40 connections · `apps/mobile/tsconfig.json`
+> God node · 48 connections · `apps/mobile/tsconfig.json`
 
-**Community:** [Auth Screens And Labels](Auth_Screens_And_Labels.md)
+**Community:** [UI Icon Components](UI_Icon_Components.md)
 
 ## Connections by Relation
 
@@ -11,23 +11,23 @@
 
 ### imports_from
 - ConvoScreen.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
+- MyFrenchTab.tsx `EXTRACTED`
+- components.tsx `EXTRACTED`
 - RootNavigator.tsx `EXTRACTED`
 - DrillScreen.tsx `EXTRACTED`
-- components.tsx `EXTRACTED`
 - useLiveSession.ts `EXTRACTED`
 - App.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
-- HomeTab.tsx `EXTRACTED`
-- MyFrenchTab.tsx `EXTRACTED`
-- OnboardingFlow.tsx `EXTRACTED`
-- LiveSessionScreen.tsx `EXTRACTED`
 - TutorTab.tsx `EXTRACTED`
-- ReviewScreen.tsx `EXTRACTED`
+- OnboardingFlow.tsx `EXTRACTED`
 - PracticeTab.tsx `EXTRACTED`
-- SoundCheckScreen.tsx `EXTRACTED`
-- LeaderboardTab.tsx `EXTRACTED`
-- AddFriendsScreen.tsx `EXTRACTED`
+- HomeTab.tsx `EXTRACTED`
+- LiveSessionScreen.tsx `EXTRACTED`
+- layout.tsx `EXTRACTED`
+- ReviewScreen.tsx `EXTRACTED`
 - MissionsScreen.tsx `EXTRACTED`
+- PreAccountOnboarding.tsx `EXTRACTED`
+- SoundCheckScreen.tsx `EXTRACTED`
 - SummaryScreen.tsx `EXTRACTED`
 - SessionView.tsx `EXTRACTED`
 

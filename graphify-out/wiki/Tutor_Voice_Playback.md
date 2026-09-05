@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **tutorVoice.ts** (12 connections) — `apps/mobile/src/speech/tutorVoice.ts`
+- **speech/tutorVoice.ts** (12 connections) — `apps/mobile/src/speech/tutorVoice.ts`
 - **frenchVoice()** (4 connections) — `apps/mobile/src/speech/tutorVoice.ts`
 - **speak()** (4 connections) — `apps/mobile/src/speech/tutorVoice.ts`
 - **loadVoices()** (3 connections) — `apps/mobile/src/speech/tutorVoice.ts`
@@ -15,9 +15,9 @@
 
 ## Relationships
 
-- [UI Theme Primitives](UI_Theme_Primitives.md) (3 shared connections)
+- [UI Icon Components](UI_Icon_Components.md) (2 shared connections)
+- [Drill Screen UI](Drill_Screen_UI.md) (2 shared connections)
 - [Mock Speech Session](Mock_Speech_Session.md) (2 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (1 shared connections)
 
 ## Source Files
 

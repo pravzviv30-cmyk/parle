@@ -1,6 +1,6 @@
 # Secure Session Storage
 
-> 18 nodes · cohesion 0.22
+> 19 nodes · cohesion 0.20
 
 ## Key Concepts
 
@@ -10,6 +10,7 @@
 - **chunkKey()** (5 connections) — `apps/mobile/src/auth/secureSessionStorage.ts`
 - **readSecure()** (5 connections) — `apps/mobile/src/auth/secureSessionStorage.ts`
 - **MemoryStorage** (5 connections) — `apps/mobile/src/auth/secureSessionStorage.test.ts`
+- **createSecureSessionStorage()** (4 connections) — `apps/mobile/src/auth/secureSessionStorage.ts`
 - **removeGeneration()** (4 connections) — `apps/mobile/src/auth/secureSessionStorage.ts`
 - **secureSessionStorage.test.ts** (4 connections) — `apps/mobile/src/auth/secureSessionStorage.test.ts`
 - **.getItem()** (3 connections) — `apps/mobile/src/auth/secureSessionStorage.ts`
@@ -25,7 +26,7 @@
 
 ## Relationships
 
-- [Friendly Error Copy](Friendly_Error_Copy.md) (3 shared connections)
+- [OAuth & Supabase Auth](OAuth_&_Supabase_Auth.md) (3 shared connections)
 
 ## Source Files
 
@@ -34,7 +35,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 36 (100%)
+- EXTRACTED: 38 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
