@@ -1593,7 +1593,16 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
       /It fades rather than\s+slides/,
       'DESIGN.md still says the greeting fades rather than slides, and it swipes now',
     );
-    assert.match(design, /rises up out of a fixed slot/, 'DESIGN.md does not describe the greeting slot');
+    assert.match(design, /rises up out of its slot/, 'DESIGN.md does not describe the greeting slot');
+    // F427 closed the hole and F428 fixed the frame it closed it on. The doc may
+    // not go back to promising a name that never moves: that promise and a tight
+    // line are the same tradeoff seen from two sides, and this is the side that
+    // shipped.
+    assert.doesNotMatch(
+      design,
+      /name is outside the\s+slot and never moves/,
+      'DESIGN.md promises a name that never moves, which is the version that left a hole after Salut',
+    );
     assert.match(
       design,
       /Seven greetings, and the hour decides which/,
@@ -1731,7 +1740,7 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     // The four things this pass added that no test in this repository can see.
     for (const [what, pattern] of [
       ['the greeting word sliding up out of its slot', /slides up out of its slot/],
-      ['the name holding still while it does', /does not move sideways/],
+      ['the name staying tight to the word', /never overlapping it and never leaving a hole/],
       ['reduce motion resting the greeting', /reduce motion on/],
       ['a screen reader hearing one greeting', /VoiceOver and TalkBack read one greeting/],
       ['a fresh account meeting four momentum cards with start lines in them', /fresh account/],
