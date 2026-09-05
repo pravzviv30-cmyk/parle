@@ -198,7 +198,7 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
 - **Icons** — authored SVG at the illustration stroke (2.2), ink by default.
   The Google mark is a monochrome line-art G: no brand-colour asset in v1. Two
   icons wear the accent and no more: the replay ear while it is sounding, and
-  **BadgeGlyph**, the tick inside a ring beside Home's mastery figure, where the
+  **BadgeGlyph**, the tick inside a ring beside Home's recall figure, where the
   violet labels the card and reports no state.
 - **TabHeader**: the tab's title block. A `display` title on the left, one plain
   purpose line beneath it in soft ink, and an optional trailing `Monogram` on the

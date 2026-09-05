@@ -6284,7 +6284,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `signal.good` on a `paper.groundDeep` well sized by a named constant, `label`, `sub`, the week pill
   (`paper.ground` fill, `gain` style), the count row gated on `retained.count !== null`,
   `chips.map`, `moreLine`, a hairline, `foot` and `<GhostButton label={retained.link}`. Tiles keep
-  `tiles`/`tile` names with `flex: 1, minWidth: 0`; days tile unchanged in drawing; mastery tile
+  `tiles`/`tile` names with `flex: 1, minWidth: 0`; days tile unchanged in drawing; the Recall tile
   draws `<BadgeGlyph color={accent.primary} />`, `percentLabel`, `words`, `line` in `signal.good`.
   Goal: `amount` gated, track inside `goal.target !== null`, `accessibilityValue` text
   `goal.percentLabel ?? goal.note`, `fill` in `signal.good`. `accent.` exactly once and never in the
@@ -6293,7 +6293,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `home draws the four momentum cards in tokens, green for ground covered, the accent once on the badge and never on a bar — F436`
 - verified-by: `home and tutor wrap every line, cap no reading size, and keep every row at the touch floor — F409`
 
-### F437 — A badge glyph for the mastery tile
+### F437 — A badge glyph for the Recall tile
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/components.tsx:194

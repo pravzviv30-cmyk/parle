@@ -188,7 +188,7 @@ export function TargetGlyph({ size = 18, color = paper.ink }: { size?: number; c
  * learner remembered rather than a prize somebody handed them.
  *
  * Ink by default, so it stays neutral wherever nobody colours it. Home draws it
- * in the accent beside the mastery figure, where the violet labels the card and
+ * in the accent beside the Recall tile's figure, where the violet labels the card and
  * reports no state.
  */
 export function BadgeGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
