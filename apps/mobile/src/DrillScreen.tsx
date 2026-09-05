@@ -634,6 +634,10 @@ export function DrillScreen({
   // Grades leave this screen exactly once, whether by finishing or by Leave.
   const persistedRef = useRef(false);
   const gradeWritesRef = useRef<Promise<void>>(Promise.resolve());
+  // When the sitting started. Wall clock on the device, which is what Home's
+  // speaking goal measures; it is not the metered minutes and must never be
+  // shown as those.
+  const openedAt = useRef(Date.now());
 
   // Per-exercise input state, cleared on every advance.
   const [typed, setTyped] = useState('');
@@ -697,7 +701,12 @@ export function DrillScreen({
     ).then(() => undefined);
     // What the sitting was worth. Clean answers count double, because getting
     // it right without being shown the spelling is the harder thing.
-    void recordActivity('drill', drillXp({ clean: summary.resolved - summary.typos, typoCorrected: summary.typos }));
+    void recordActivity(
+      'drill',
+      drillXp({ clean: summary.resolved - summary.typos, typoCorrected: summary.typos }),
+      Date.now(),
+      { durationMs: Date.now() - openedAt.current },
+    );
   }, []);
 
   const answer = useCallback(

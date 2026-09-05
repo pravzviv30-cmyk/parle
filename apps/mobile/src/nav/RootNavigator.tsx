@@ -108,7 +108,16 @@ function LessonRoute() {
     // since-you-started block when it lands. A slow disk must not delay it.
     setSummary(s);
     void recordSession(s).then(setReport);
-    void recordActivity('lesson', lessonXp({ wordsProduced: s.wordsProduced, unassistedRate: s.unassistedRate }));
+    // How long the sitting took, from the summary core already computed rather
+    // than from a second clock this screen would have to keep. Home's speaking
+    // goal is the only reader; a summary written before F395 carries no
+    // duration and counts zero minutes, which is honest.
+    void recordActivity(
+      'lesson',
+      lessonXp({ wordsProduced: s.wordsProduced, unassistedRate: s.unassistedRate }),
+      Date.now(),
+      { durationMs: Math.round(s.durationSec * 1000) },
+    );
     // The session's words become review cards, through the outbox the
     // conversation has used since Phase 4. `addFromSummary` still compiles and
     // still writes, and that is exactly the trap: it awaited the disk's answer

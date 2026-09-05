@@ -337,10 +337,22 @@ describe('the review sitting on screen', () => {
     assert.match(screen, /dealtAt\.current = now/, 'the sitting no longer pins the instant it was dealt');
     assert.match(screen, /dueCards\(deck, now\)/, 'the cards and their presentation are chosen against different clocks');
     const body = screen.slice(screen.indexOf('export function ReviewScreen'));
+    // Three reads now, and the third is named rather than allowed. F395 gave the
+    // sitting a duration, and a duration needs an end. What this rule was always
+    // protecting is that no ad-hoc clock read decides what a card IS: the sitting
+    // is dealt against `dealtAt` and `now` and nothing else, and the third read
+    // is a stopwatch stopping, not a fourth opinion about whether a card is due.
+    // Its start is `dealtAt`, deliberately, so the screen holds one instant for
+    // when the sitting began rather than two that can disagree.
     assert.equal(
       (body.match(/Date\.now\(\)/g) ?? []).length,
-      2,
-      'the screen reads the clock somewhere other than the two places that deal the sitting',
+      3,
+      'the screen reads the clock somewhere other than dealing the sitting and ending it',
+    );
+    assert.match(
+      body,
+      /durationMs: endedAt - dealtAt\.current/,
+      'the sitting measures its length against something other than the instant it was dealt',
     );
   });
 
@@ -566,10 +578,13 @@ describe('the delayed test, said out loud — F220', () => {
       'the sitting is ordered against something other than the cards dueCards dealt',
     );
     assert.doesNotMatch(screen, /firstReturn/, 'the screen decides for itself which cards are back, which is a second copy of the rule');
-    // Still the one clock, still no microphone, still nothing counted at the
-    // learner. The opener is a sentence, not a tally.
+    // Still the one clock for dealing, still no microphone, still nothing counted
+    // at the learner. The opener is a sentence, not a tally. Three reads since
+    // F395: dealing the sitting, its `now`, and the stopwatch stopping when the
+    // sitting is banked. A fourth would be the opener growing an opinion about
+    // the date, which is what this counts.
     const body = screen.slice(screen.indexOf('export function ReviewScreen'));
-    assert.equal((body.match(/Date\.now\(\)/g) ?? []).length, 2, 'the opener brought a third clock read with it');
+    assert.equal((body.match(/Date\.now\(\)/g) ?? []).length, 3, 'the opener brought a clock read with it');
     assert.match(screen, /\{opener\}/, 'nothing on the screen prints the line');
   });
 });

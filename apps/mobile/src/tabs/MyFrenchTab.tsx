@@ -1,7 +1,16 @@
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { missionStates, phraseKeyOf, suggestedMission, type ConversationPack, type MissionProgress } from '@luvani/core';
+import {
+  DAILY_SCENARIOS,
+  missionStates,
+  phraseKeyOf,
+  seedTopicOf,
+  suggestedMission,
+  type ConversationPack,
+  type DailyScenario,
+  type MissionProgress,
+} from '@luvani/core';
 
 import { Card, GhostButton, Label, OutlineButton, PillButton, Stat } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
@@ -11,6 +20,8 @@ import { loadTopics } from '../topics/store.ts';
 import { loadActivity } from '../progress/activity.ts';
 import { evidenceFrom, hasEvidence, type Evidence } from '../progress/evidence.ts';
 import { NextSituationCard } from '../home/NextSituationCard.tsx';
+import { SAVED_SITUATIONS_LABEL, SAVED_SITUATION_ACTION, hasSaved, savedSituations } from '../bookmarks/view.ts';
+import { loadBookmarks } from '../bookmarks/store.ts';
 import { buildPhrasebook, hasPhrases, type Phrasebook } from '../phrases/phrasebook.ts';
 import { NEXT_SITUATION, situationAction, startLabel } from '../progress/portfolio.ts';
 import { PhrasebookScreen } from '../phrases/PhrasebookScreen.tsx';
@@ -85,6 +96,10 @@ export function MyFrenchTab() {
   // The next situation to walk into, from core, exactly as Home reads it. This
   // screen draws it and never decides which one; null draws nothing.
   const [next, setNext] = useState<MissionProgress | null>(null);
+  // The situations the learner bookmarked on Home, newest decision first.
+  // `savedSituations` folds the store's decisions and drops any id this build
+  // no longer carries; empty draws nothing at all.
+  const [saved, setSaved] = useState<readonly DailyScenario[]>([]);
   // The three facts at the head of the page, decided in progress/evidence.ts.
   // Starts empty, which is what an unread learner and a brand new one both
   // draw: nothing, until something has been earned.
@@ -100,8 +115,9 @@ export function MyFrenchTab() {
         loadSoundChecks(),
         loadHistory(),
         loadActivity(),
+        loadBookmarks(),
       ]).then(
-        ([completions, deck, topics, soundChecks, history, activity]) => {
+        ([completions, deck, topics, soundChecks, history, activity, bookmarks]) => {
           if (cancelled) return;
           const now = Date.now();
           const nextMissions = missionStates(missionCompletionsFrom(completions), deck, now);
@@ -112,6 +128,7 @@ export function MyFrenchTab() {
           setChecks(soundChecks);
           setNext(suggestedMission(nextMissions));
           setEvidence(nextEvidence);
+          setSaved(savedSituations(bookmarks, DAILY_SCENARIOS));
           // The whole history, unnarrowed. Which seven days count is story.ts's
           // decision and filtering here would walk straight past it.
           setStory(storyFrom(history, now));
@@ -209,6 +226,30 @@ export function MyFrenchTab() {
             </Text>
             <View style={{ marginTop: space(4) }}>
               <OutlineButton label="Open my phrases" onPress={() => setShowingPhrases(true)} />
+            </View>
+          </Card>
+        )}
+
+        {/* What the learner saved from Home, to come back to. Absent entirely
+            when nothing is saved: a shelf that says it is empty says the
+            learner failed to fill it. `bookmarks/view.ts` owns both words. */}
+        {hasSaved(saved) && (
+          <Card style={{ marginTop: space(6) }}>
+            <Label>{SAVED_SITUATIONS_LABEL}</Label>
+            <View style={st.saved}>
+              {saved.map((situation) => (
+                <View key={situation.id} style={st.savedRow}>
+                  <View style={st.words}>
+                    <Text style={[type.bodyStrong, { color: paper.ink }]}>{situation.titleEn}</Text>
+                  </View>
+                  <GhostButton
+                    label={SAVED_SITUATION_ACTION}
+                    color={paper.ink}
+                    accessibilityLabel={startLabel(situation.titleEn)}
+                    onPress={() => nav.navigate('Convo', { seedTopic: seedTopicOf(situation) })}
+                  />
+                </View>
+              ))}
             </View>
           </Card>
         )}
@@ -330,6 +371,10 @@ const st = StyleSheet.create({
   // Three facts to a row, under the header. Absent entirely at zero.
   evidence: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(2), columnGap: space(3), rowGap: space(4) },
   section: { marginTop: space(7), gap: space(3) },
+  // One saved situation to a row, the whole row at the touch floor so the verb
+  // beside it is reachable one handed.
+  saved: { marginTop: space(2) },
+  savedRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT },
   mission: {
     minHeight: HIT,
     flexDirection: 'row',

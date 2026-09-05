@@ -177,3 +177,90 @@ describe('the storage doc and the agent it describes', () => {
     }
   });
 });
+
+/**
+ * The two stores the daily home added, and the field the sitting gained.
+ *
+ * Written in the same two directions as the test above. **Positively**, so the
+ * doc cannot be made true by leaving the new stores out of it: the source is
+ * read for the key each one writes, and the doc has to name it. And
+ * **conditionally on the source**, so the day one of them is deleted or renamed
+ * this asks for the doc instead of asserting a store nobody ships.
+ *
+ * `durationMs` gets the strictest half. An optional field on a shape that
+ * already exists on phones is the kind of thing a reader assumes is always
+ * there, and reading absent as zero would put a "minutes today" figure under a
+ * learner who has been studying for a year. So the doc has to say both that it
+ * is optional and that the entries written before it exist without it.
+ */
+describe('the storage doc and the stores the daily home added', () => {
+  const STORES = [
+    { suffix: 'bookmarks', file: 'apps/mobile/src/bookmarks/store.ts' },
+    { suffix: 'scenarioProgress', file: 'apps/mobile/src/missions/progressStore.ts' },
+  ] as const;
+
+  test("the storage doc names the two daily stores and the sitting's duration — F408", () => {
+    const stores = section('## On the device');
+    const contract = section('### The sync contract');
+
+    for (const { suffix, file } of STORES) {
+      // Read the store first. A doc entry for a key nothing writes is drift in the
+      // other direction, and it is the harder one to notice.
+      const source = read(file);
+      assert.ok(
+        source.includes(`userKey('${suffix}')`),
+        `${file} no longer writes userKey('${suffix}'), so the doc entry describes a store that is gone`,
+      );
+      assert.ok(
+        source.includes(`registerSyncAdopter('${suffix}'`),
+        `${file} no longer registers an adopter, so it cannot take a merge back and the sync entry is wrong`,
+      );
+      assert.match(
+        stores,
+        new RegExp(`\`${suffix}\``),
+        `the stores list does not name ${suffix}, so a learner's data lives somewhere the doc does not say`,
+      );
+      assert.match(
+        contract,
+        new RegExp(`\\*\\*per-item\\*\\*[^\\n]*(?:\\n[^\\n]*)?\`${suffix}\``),
+        `${suffix} is not under the per-item class in the sync contract`,
+      );
+    }
+
+    // The per-item choice is the load-bearing one for bookmarks, and the doc has to
+    // carry the reason rather than only the classification.
+    assert.match(
+      contract,
+      /un-save[^.]*\b(back|again)\b|newer\s+decision/,
+      'the doc classifies bookmarks as per-item without saying why a set of saved ids cannot express a removal',
+    );
+
+    // `beatsTotal` is the count that is deliberately not stored. If the store ever
+    // starts holding it, this asks for the doc before anything else does.
+    const partial = read('apps/mobile/src/missions/progressStore.ts');
+    assert.ok(!/beatsTotal\s*:/.test(partial), 'progressStore.ts now stores beatsTotal, which the doc says it never does');
+    assert.match(flat(stores), /never the beat total|beatsTotal is never stored/i, 'the doc does not say the beat total is not stored');
+
+    // And the sitting's duration: optional in the source, optional in the doc, and
+    // absent on everything written before it existed.
+    const activity = read('apps/mobile/src/progress/activity.ts');
+    assert.match(
+      activity,
+      /durationMs\?:\s*number/,
+      'ActivityEntry no longer declares durationMs as optional, so the doc claim about older entries is stale',
+    );
+    const said = flat(stores);
+    assert.match(said, /`durationMs`/, 'the stores list does not name durationMs at all');
+    assert.match(said, /optional/i, 'the doc does not say durationMs is optional');
+    assert.match(
+      said,
+      /absent on\s+\*\*?every entry written before it existed|absent on every entry written before it existed/i,
+      'the doc does not say durationMs is absent on entries written before this pass',
+    );
+    assert.match(
+      said,
+      /never as zero|not measured/i,
+      'the doc does not say what absence means, and a reader who treats it as zero invents minutes nobody spent',
+    );
+  });
+});

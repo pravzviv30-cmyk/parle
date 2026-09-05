@@ -568,7 +568,7 @@ function planCapCases(sql: string): Record<string, number>[] {
 // ------------------------------------------------------------------ rollbacks
 
 interface CreatedObject {
-  readonly kind: 'table' | 'index' | 'policy' | 'function' | 'trigger';
+  readonly kind: 'table' | 'index' | 'policy' | 'function' | 'trigger' | 'constraint';
   readonly name: string;
   /** What the rollback must contain to count as naming and undoing this object. */
   readonly undone: readonly RegExp[];
@@ -620,6 +620,25 @@ function createdObjects(sql: string): CreatedObject[] {
       kind: 'trigger',
       name: `${name} on ${table}`,
       undone: [new RegExp(`drop trigger if exists ${escape(name!)} on ${escape(table!)}`, 'i')],
+    });
+  }
+
+  // F411 added the first migration that creates none of the five above: it widens a check
+  // constraint and nothing else. Until this loop existed, such a migration failed the
+  // pairing test on "appears to create nothing" rather than on anything true, and a
+  // migration that quietly dropped a constraint and never put one back would have gone
+  // unread. A named constraint is undone either by dropping it or by adding it again with
+  // a different body, which is what narrowing a whitelist back looks like.
+  for (const [, table, name] of flat.matchAll(
+    /alter table (public\.\w+) add constraint (\w+)/gi,
+  )) {
+    objects.push({
+      kind: 'constraint',
+      name: `${name} on ${table}`,
+      undone: [
+        new RegExp(`drop constraint if exists ${escape(name!)}`, 'i'),
+        new RegExp(`add constraint ${escape(name!)}`, 'i'),
+      ],
     });
   }
 

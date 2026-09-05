@@ -15,7 +15,7 @@ the date, environment and evidence location. A blank item is a release block.
   reopen while online, and verify exactly one server-owned Conversation Pack
   becomes ready with review, continuation and delete-one/delete-all Pack
   controls. Verify that deleting history leaves earned phrases and review cards.
-- [ ] Apply all eleven migrations to the target Supabase project, reload its API
+- [ ] Apply all twelve migrations to the target Supabase project, reload its API
   schema cache and run `npm run verify:supabase` against it.
 - [ ] Execute the rollback evidence procedure in `supabase/README.md` on a
   disposable project, including a backup/restore and re-application.

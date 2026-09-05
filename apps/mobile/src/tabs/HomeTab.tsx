@@ -1,228 +1,173 @@
 /**
- * Home — where the learner sees that they are getting better.
+ * Home — what there is to do today.
  *
- * The level card, then the evidence, then one way in. What is deliberately NOT
- * here is a streak: PRODUCT.md calls streaks a guilt mechanic implicated in
- * intermediate-plateau churn, and that commitment stands. What replaces it is a
- * ladder whose every input is production — words said, turns composed unaided,
- * phrases resolved, cards recalled — so the number going up always means the
- * learner got better, never that they merely showed up.
+ * The tab used to open on a summary of the past: a level, a rail of totals, a
+ * list of headlines. The founder's mockup opens on something to do instead, and
+ * that is the whole of this rewrite. Six blocks, top to bottom:
  *
- * `buildProgressReport` deliberately says nothing at all without data, so the
- * empty state is not optional: a first-run learner must not meet a rail of
- * zeros telling them they have achieved nothing yet.
+ *   1. the greeting, alone, cycling Salut, Bonjour, Hello;
+ *   2. the word of the day;
+ *   3. today's situation, and the one way into a spoken conversation;
+ *   4. daily momentum, when there is any;
+ *   5. the next step, as a row;
+ *   6. the sprout note.
+ *
+ * Nothing on this screen decides anything. The greeting is `home/greeting.ts`
+ * and `home/useGreetingRotation.ts`, the two daily cards are `dailyPick` over
+ * core's pools, the three counts are `progress/momentum.ts`, the next situation
+ * is core's `suggestedMission`, the two next-step words are
+ * `progress/portfolio.ts`, and whether a start starts anything is
+ * `tutor/gate.ts`. There is no renderer in this workspace, so a rule that hid
+ * in this file would be a rule nothing could ask a question about.
+ *
+ * ## What is deliberately absent
+ *
+ * A streak, still: PRODUCT.md calls it a guilt mechanic implicated in
+ * intermediate-plateau churn, and "Days active" is built so that it cannot
+ * become one (see `momentum.ts`). A score, a percentage of anything spoken, and
+ * a red bar: none of the three exists here. And every count at zero, which is
+ * the harder promise. A learner on their first run meets the greeting, a word,
+ * a situation, a way in and a kind line. Not one empty rail, not one nudge.
+ *
+ * ## One clock, one day
+ *
+ * `now` is read once per focus and every "today" on the screen comes from that
+ * one reading: the word, the situation, the day marks and the goal. A screen
+ * that read the clock four times could show two different days at midnight.
  */
 
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import {
-  buildProgressReport,
-  levelFor,
+  DAILY_SCENARIOS,
+  DAILY_WORDS,
+  dailyPick,
   missionStates,
   suggestedMission,
-  totalXp,
-  type LevelStanding,
+  type DailyScenario,
+  type DailyWord,
   type MissionProgress,
-  type ProgressReport,
 } from '@luvani/core';
-import { paper, space, type, HIT } from '../theme.ts';
-import { Card, GhostButton, Label, Monogram, OutlineButton, PillButton, StationLine, Stat } from '../components.tsx';
-import { NextSituationCard } from '../home/NextSituationCard.tsx';
-import { NEXT_SITUATION, startLabel } from '../progress/portfolio.ts';
+
+import { SproutGlyph } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
-import { SpeakBubbles } from '../illustrations.tsx';
-import { loadHistory } from '../progress/store.ts';
-import { loadActivity } from '../progress/activity.ts';
-import { todayFrom, type Today } from '../progress/today.ts';
-import { loadDeck } from '../review/store.ts';
-import { loadTopics } from '../topics/store.ts';
-import { buildPhrasebook, type Phrasebook } from '../phrases/phrasebook.ts';
-import { PhrasebookScreen } from '../phrases/PhrasebookScreen.tsx';
-import { TodayRow } from '../home/TodayRow.tsx';
-import { PhrasebookCard } from '../home/PhrasebookCard.tsx';
+import { paper, space, type } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { useLive } from '../app/LiveContext.tsx';
-import { tutorNameOf } from '../tutor/tutorName.ts';
+import { greetingRest } from '../home/greeting.ts';
+import { useGreetingRotation } from '../home/useGreetingRotation.ts';
+import { WordOfDayCard } from '../home/WordOfDayCard.tsx';
+import { SituationCard } from '../home/SituationCard.tsx';
+import { MomentumCards } from '../home/MomentumCards.tsx';
+import { NextStepRow } from '../home/NextStepRow.tsx';
+import { isBookmarked } from '../bookmarks/view.ts';
+import { loadBookmarks, setBookmark, type BookmarkItem } from '../bookmarks/store.ts';
+import { momentumFrom, type Momentum } from '../progress/momentum.ts';
+import { loadActivity } from '../progress/activity.ts';
+import { loadDeck } from '../review/store.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
-import { trackProductEvent } from '../analytics/track.ts';
+import { firstNameOf } from '../tutor/dashboard.ts';
 
 export function HomeTab() {
   // A bottom tab stays mounted after its first visit, so a looping scene here
   // keeps animating behind whatever the learner is actually doing. The scene
   // cannot ask for itself — useIsFocused throws outside a NavigationContainer,
   // and several scenes render above the navigator — so the tab passes it down.
+  // The greeting's own timers stop on the same signal.
   const focused = useIsFocused();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { profile } = useProfile();
-  const { live } = useLive();
 
-  const [report, setReport] = useState<ProgressReport | null>(null);
-  const [standing, setStanding] = useState<LevelStanding | null>(null);
-  const [today, setToday] = useState<Today | null>(null);
-  const [book, setBook] = useState<Phrasebook | null>(null);
-  const [showingPhrases, setShowingPhrases] = useState(false);
-  // The next situation to walk into. Core decides which one; this screen draws
-  // it and offers the door to the rest.
+  // One name rule for the whole app. A learner who skipped the question is
+  // greeted by the word alone, never by "you".
+  const firstName = firstNameOf(profile.name);
+  const greeting = useGreetingRotation({ firstName, focused });
+
+  const [word, setWord] = useState<DailyWord | null>(null);
+  const [scenario, setScenario] = useState<DailyScenario | null>(null);
+  const [momentum, setMomentum] = useState<Momentum | null>(null);
   const [nextMission, setNextMission] = useState<MissionProgress | null>(null);
+  const [bookmarks, setBookmarks] = useState<readonly BookmarkItem[]>([]);
 
   // Re-read on every return: finishing a sitting anywhere in the app should be
-  // visible here the moment the learner comes back to look.
+  // visible here the moment the learner comes back to look, and a phone that
+  // was asleep at midnight gets today's word the moment it is opened.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      // The deck and the topics are the only record of what a conversation
-      // produced: `recordSession` is called from the end of a guided lesson and
-      // nowhere else, so history alone cannot see a learner who only ever talks.
-      // All independent reads cross the native storage bridge together. The
-      // activity log is read once and feeds both level and today's evidence.
-      void Promise.all([loadHistory(), loadActivity(), loadDeck(), loadTopics(), loadMissionCompletions()]).then(
-        ([history, activity, deck, topics, missions]) => {
+      const now = Date.now();
+      // Neither daily card waits on storage. Both are a pure function of the
+      // day and the pool, so they are on screen before the bridge answers.
+      setWord(dailyPick(DAILY_WORDS, now));
+      setScenario(dailyPick(DAILY_SCENARIOS, now));
+      // All independent reads cross the native storage bridge together.
+      void Promise.all([loadActivity(), loadDeck(), loadMissionCompletions(), loadBookmarks()]).then(
+        ([activity, deck, completions, saved]) => {
           if (cancelled) return;
-          const now = Date.now();
-          setReport(history.length > 0 ? buildProgressReport(history) : null);
-          setStanding(levelFor(totalXp(activity)));
-          setToday(todayFrom(activity, now));
-          setBook(buildPhrasebook(deck, topics, now));
-          setNextMission(suggestedMission(missionStates(missionCompletionsFrom(missions), deck, now)));
+          setMomentum(momentumFrom({ activity, deck, profile, now }));
+          setNextMission(suggestedMission(missionStates(missionCompletionsFrom(completions), deck, now)));
+          setBookmarks(saved);
         },
       );
       return () => {
         cancelled = true;
       };
-    }, []),
+    }, [profile]),
   );
 
-  const firstName = (profile.name ?? '').split(' ')[0] || 'you';
-  const started = standing !== null && standing.xp > 0;
-
-  if (showingPhrases && book) {
-    return <PhrasebookScreen book={book} onDone={() => setShowingPhrases(false)} />;
-  }
-
-  const profileButton = (
-    <Pressable
-      onPress={() => nav.navigate('Profile')}
-      accessibilityRole="button"
-      accessibilityLabel="Your profile"
-      style={({ pressed }) => pressed && { opacity: 0.7 }}
-    >
-      {/* The initial is decorative here; the name reaches a screen reader in the
-          title beside it, so the disc is the one drawn everywhere. */}
-      <Monogram initial={firstName.charAt(0).toUpperCase()} size={HIT} />
-    </Pressable>
-  );
+  const toggleBookmark = (id: string, saved: boolean) => {
+    // Written, then read back, so what is drawn is what the store holds rather
+    // than what this screen assumed it would hold.
+    void setBookmark(id, !saved)
+      .then(() => loadBookmarks())
+      .then(setBookmarks);
+  };
 
   return (
     // bottom="tab": the tab bar owns the bottom edge, so the frame leaves it the
     // inset rather than paying it twice on a notched phone.
     <ScrollScreen bottom="tab">
       <View style={st.scroll}>
+        {/* The greeting alone. No purpose line and no monogram beside it: the
+            founder asked for one line, and `titleAccessibilityLabel` is what a
+            screen reader hears instead of a header renaming itself every few
+            seconds. */}
         <TabHeader
-          title={`Bonjour, ${firstName}`}
-          purpose="What to do next, and how far you have come."
-          trailing={profileButton}
-        >
-          {/* Demo reports a state — the tutor is not live — so it is soft ink,
-              not the faint ink that only ever cleared as a mark. */}
-          {!live && (
-            <View style={{ marginTop: space(2) }}>
-              <Label color={paper.inkSoft}>Demo</Label>
-            </View>
-          )}
-        </TabHeader>
+          title={greeting.line}
+          titleOpacity={greeting.opacity}
+          titleAccessibilityLabel={greetingRest(firstName)}
+        />
 
-        {/* Today, and only today. Absent entirely until the learner has done
-            something, which is what stops a daily count becoming a streak. */}
-        {today && <TodayRow today={today} />}
+        {word !== null && <WordOfDayCard word={word} paused={!focused} />}
 
-        {/* The next situation, and the door to the other five. First in the
-            scroll on purpose: what a learner can go and do today outranks a
-            summary of what they did last week. The card is shared with My
-            French and carries the tab's one pill, so the primary action sits
-            where the eye lands rather than below the fold. */}
-        {nextMission && (
-          <NextSituationCard next={nextMission} style={today ? { marginTop: space(5) } : undefined}>
-            <PillButton
-              label={NEXT_SITUATION.action}
-              accessibilityLabel={startLabel(nextMission.mission.titleEn)}
-              onPress={() => {
-                void trackProductEvent({
-                  name: 'mission_started',
-                  properties: { missionId: nextMission.mission.id, entry: 'home' },
-                });
-                nav.navigate('Convo', { missionId: nextMission.mission.id });
-              }}
-            />
-            <GhostButton label="See all situations" onPress={() => nav.navigate('Missions')} />
-          </NextSituationCard>
+        {scenario !== null && (
+          <SituationCard
+            scenario={scenario}
+            saved={isBookmarked(bookmarks, scenario.id)}
+            onToggleBookmark={() => toggleBookmark(scenario.id, isBookmarked(bookmarks, scenario.id))}
+          />
         )}
 
-        {started && standing ? (
-          <>
-            <Card style={today || nextMission ? { marginTop: space(5) } : undefined}>
-              <Label>Your level</Label>
-              <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>{standing.name}</Text>
-              <View style={{ marginTop: space(3) }}>
-                {/* Six levels is exactly the sequence StationLine already
-                    draws, so no new progress primitive is invented for this. */}
-                <StationLine total={6} index={standing.index} />
-              </View>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>
-                {standing.next
-                  ? `${standing.next.xpAway} XP to ${standing.next.name}`
-                  : 'You have come the whole way along this line.'}
-              </Text>
-            </Card>
+        {/* Absent at zero, in three independent pieces. Not a zero, not an
+            empty state, not a nudge. */}
+        {momentum !== null && <MomentumCards momentum={momentum} />}
 
-            {report && (
-              <View style={{ marginTop: space(6) }}>
-                <Label>What you have</Label>
-                <View style={st.stats}>
-                  <Stat value={String(report.wordsKnown.length)} label="Words said" />
-                  <Stat value={String(report.sessionCount)} label="Sessions" />
-                  <Stat value={`${report.longestTurnEverSec.toFixed(1)}s`} label="Longest turn" />
-                  <Stat value={String(standing.xp)} label="XP earned" />
-                </View>
-              </View>
-            )}
-
-            {book && (
-              <View style={{ marginTop: space(6) }}>
-                <PhrasebookCard book={book} onOpen={() => setShowingPhrases(true)} />
-              </View>
-            )}
-
-            {report && report.headlines.length > 0 && (
-              <Card style={{ marginTop: space(6) }}>
-                <Label>Since you started</Label>
-                <View style={{ marginTop: space(2.5), gap: space(2) }}>
-                  {report.headlines.map((h) => (
-                    <Text key={h} style={[type.bodyStrong, { color: paper.ink }]}>
-                      {h}
-                    </Text>
-                  ))}
-                </View>
-              </Card>
-            )}
-          </>
-        ) : (
-          <>
-            <View style={st.hero}>
-              <SpeakBubbles width={170} paused={!focused} />
-            </View>
-            <Text style={st.headline}>Nothing here yet</Text>
-            <Text style={st.subline}>
-              Talk to your tutor once and this fills with what you said, which sounds held up, and how far along you are.
-            </Text>
-          </>
+        {nextMission !== null && (
+          <NextStepRow
+            next={nextMission}
+            onViewPath={() => nav.navigate('Practice')}
+            // The chooser confirms the choice before a session spends any time,
+            // which is the door every other surface goes through. Nothing is
+            // tracked here for that reason: this row opens the chooser, and the
+            // chooser is what records a mission actually being started.
+            onOpen={() => nav.navigate('Missions', { focus: nextMission.mission.id })}
+          />
         )}
 
-        {/* The way to the Tutor tab's three doors. An outline now: the next
-            situation above carries the tab's one pill. */}
-        <View style={st.actions}>
-          <OutlineButton label={`Talk to ${tutorNameOf(profile)}`} onPress={() => nav.navigate('Tutor')} />
+        <View style={st.footer}>
+          <SproutGlyph />
+          <Text style={st.note}>No pressure of perfection. Speak at your own pace.</Text>
         </View>
       </View>
     </ScrollScreen>
@@ -231,11 +176,15 @@ export function HomeTab() {
 
 const st = StyleSheet.create({
   scroll: { flexGrow: 1 },
-  hero: { alignItems: 'center', marginBottom: space(4) },
-  // A screen never carries two display lines: TabHeader owns the one at the top,
-  // so the empty-state headline steps down to the title size.
-  headline: { ...type.title, color: paper.ink, textAlign: 'center' },
-  subline: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
-  stats: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(3), rowGap: space(5), columnGap: space(3) },
-  actions: { marginTop: 'auto', paddingTop: space(6) },
+  // Pushed to the foot of a short screen. No bottom padding: the frame owns the
+  // air above the tab bar, once.
+  footer: {
+    marginTop: 'auto',
+    paddingTop: space(7),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space(2),
+  },
+  note: { ...type.small, color: paper.inkSoft, flexShrink: 1 },
 });

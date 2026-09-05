@@ -83,8 +83,10 @@ const KEPT = [
   'Say this',
   'Tell them this, in French',
   'The waiter',
-  'Your level',
-  'What you have',
+  // 'Your level' and 'What you have' left with F399: the level card and the
+  // four-stat rail are My French's alone now, and Home opens on what there is
+  // to do today. Both labels still exist where they are drawn; neither is a
+  // label Home says any more.
   'What moved today',
   'Since you started',
   'Your notebook',

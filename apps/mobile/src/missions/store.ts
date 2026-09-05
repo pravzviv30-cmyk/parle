@@ -23,6 +23,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
+import { clearScenarioProgress } from './progressStore.ts';
 
 /** Resolved per call: the active account can change between calls. */
 const KEY = () => userKey('missions');
@@ -109,9 +110,18 @@ export function loadMissionCompletions(): Promise<MissionCompletion[]> {
 /**
  * Write the win. Called once at the moment the mission completes, with the
  * rung the view carried.
+ *
+ * **And forget where they left this scene.** A finished mission has nothing left
+ * in it, so a partial record from an earlier walk-out would sit under the tutor's
+ * resume door claiming minutes remaining on a scene the learner has already
+ * come out the far side of. `progressStore.ts` keeps its own chain, so the two
+ * writes are independent; both are asked for here, in this tick, so both bind
+ * the account that earned the win rather than whoever is signed in when the
+ * queues drain.
  */
 export function recordMissionCompletion(id: string, rung: number, at = Date.now()): Promise<void> {
-  return serialized(async (key) => {
+  const cleared = clearScenarioProgress(id);
+  const written = serialized(async (key) => {
     const existing = await readCompletions(key);
     const mine = [...existing.filter((c) => c.id === id), { id, at, rung }]
       .sort((a, b) => a.at - b.at)
@@ -119,6 +129,7 @@ export function recordMissionCompletion(id: string, rung: number, at = Date.now(
     const completions = [...existing.filter((c) => c.id !== id), ...mine];
     await saveCompletions(key, completions, 'local');
   });
+  return Promise.all([written, cleared]).then(() => undefined);
 }
 
 async function saveCompletions(

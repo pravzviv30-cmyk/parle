@@ -133,14 +133,29 @@ describe('nothing animates where nobody is looking — J7', () => {
     // Bottom tabs stay mounted after their first visit, so an unpaused loop
     // here runs for the rest of the session behind whatever the learner is
     // actually doing. DESIGN.md says scenes stop; these four did not.
-    for (const name of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx']) {
+    // F391 moved Home's scene out of the tab and into the card that draws it, so
+    // reading the two tab files alone would now find nothing and pass. The
+    // surfaces are the tabs AND the cards they lifted out; the scene list is the
+    // barrel's, so a scene added there cannot slip through unpaused.
+    const SCENE = 'SpeakBubbles|NobodyYet|HeroCafe|LearnStack|NothingDue|EveningIn|WordSprout|StillWriting|Phrasebook|RecapPostcard|StreetCorner|MarketStall|FrontDesk';
+    const SURFACES = ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx', 'home/WordOfDayCard.tsx', 'home/SituationCard.tsx'];
+    let drawn = 0;
+    for (const name of SURFACES) {
       const body = named(name);
-      const scenes = body.match(/<(SpeakBubbles|NobodyYet|HeroCafe|LearnStack|NothingDue)\b[^/>]*\/>/g) ?? [];
-      assert.ok(scenes.length > 0, `${name} no longer renders a scene; this test is stale`);
+      const scenes = body.match(new RegExp(`<(${SCENE})\\b[^/>]*\\/>`, 'g')) ?? [];
+      drawn += scenes.length;
       for (const scene of scenes) {
         assert.ok(scene.includes('paused='), `${name} loops a scene off-screen: ${scene}`);
       }
-      assert.ok(body.includes('useIsFocused'), `${name} passes paused without knowing whether it is focused`);
+    }
+    assert.ok(drawn > 0, 'none of the tab surfaces renders a scene any more; this test is stale');
+    // Only a tab can ask whether it is focused: the hook throws outside a
+    // navigator, so a card takes `paused` as a prop from the tab above it.
+    for (const name of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx']) {
+      assert.ok(
+        named(name).includes('useIsFocused'),
+        `${name} passes paused without knowing whether it is focused`,
+      );
     }
   });
 });
@@ -248,7 +263,10 @@ describe('the tokens are the vocabulary — J13', () => {
 
 describe('nothing ships that nothing renders — J14', () => {
   /** Exports the app used to carry and never called. */
-  const RETIRED = ['Chip', 'Bloom', 'OffTheHook'];
+  // TodayRow and PhrasebookCard left Home in F399 and F400. Home was their only
+  // caller; the daily count's philosophy stays in progress/today.ts with its
+  // suite, and the phrasebook is still drawn on My French.
+  const RETIRED = ['Chip', 'Bloom', 'OffTheHook', 'TodayRow', 'PhrasebookCard'];
 
   test('the components and scenes nothing imported are gone', () => {
     for (const name of RETIRED) {
@@ -1095,11 +1113,29 @@ describe('the five tabs open the same way — F336', () => {
     }
   });
 
-  test('every tab says what it is for in one line, and the line carries no debt and no dash', () => {
-    for (const name of TABS) {
+  /**
+   * Home is the one tab with no purpose line, and it is named here so a second
+   * one cannot go quietly.
+   *
+   * The founder's mockup opens Home on the rotating greeting and nothing else,
+   * and a sentence under it would be the app explaining a screen that is already
+   * a word of the day and one situation. Every other tab still says what it is
+   * for, and the assertion below is what stops that becoming a habit.
+   */
+  test('every tab but Home says what it is for in one line — F406', () => {
+    const WITHOUT_PURPOSE = ['tabs/HomeTab.tsx'];
+    assert.doesNotMatch(
+      named('tabs/HomeTab.tsx'),
+      /purpose=/,
+      'Home grew a purpose line back; the founder asked for the greeting alone',
+    );
+    for (const name of TABS.filter((t) => !WITHOUT_PURPOSE.includes(t))) {
       const body = named(name);
-      const m = /purpose=(?:"([^"]*)"|\{`([^`]*)`\})/.exec(body);
+      // A quoted literal, a template, or a constant read from a `.ts` — the
+      // Tutor tab reads TUTOR_PURPOSE, which is where its words belong.
+      const m = /purpose=(?:"([^"]*)"|\{`([^`]*)`\}|\{([A-Z_]+)\})/.exec(body);
       assert.ok(m, `${name} opens a TabHeader with no purpose line`);
+      if (m![3] !== undefined) continue;
       const purpose = m![1] ?? m![2] ?? '';
       assert.ok(purpose.length > 0, `${name}'s purpose line is empty`);
       assert.doesNotMatch(purpose, /—/, `${name}'s purpose line carries an em dash`);
@@ -1109,11 +1145,16 @@ describe('the five tabs open the same way — F336', () => {
 });
 
 describe('the learner initial is one drawn thing — F337', () => {
-  test("the learner's initial is drawn one way, on Home and on Profile", () => {
-    for (const name of ['tabs/HomeTab.tsx', 'tabs/ProfileTab.tsx']) {
-      const body = named(name);
-      assert.match(body, /<Monogram\b/, `${name} no longer draws the shared Monogram`);
-    }
+  test('the learner\'s initial is drawn once, on Profile — F406', () => {
+    // Home's monogram went with its purpose line: the founder's mockup opens on
+    // the greeting alone. Profile is still reachable from the bottom bar, and it
+    // is still the one place the disc is drawn, which is what F337 was for.
+    assert.match(named('tabs/ProfileTab.tsx'), /<Monogram\b/, 'Profile no longer draws the shared Monogram');
+    assert.doesNotMatch(
+      named('tabs/HomeTab.tsx'),
+      /<Monogram\b/,
+      'Home drew the initial again; the founder asked for the greeting alone',
+    );
     // Neither hand-rolls its own disc any more.
     assert.ok(!named('tabs/HomeTab.tsx').includes('st.avatar'), 'Home still hand-rolls its avatar disc');
     assert.ok(!named('tabs/ProfileTab.tsx').includes('st.ring'), 'Profile still hand-rolls its identity ring');
@@ -1154,8 +1195,14 @@ describe('the tabs and the drill use the app buttons — F339', () => {
     const doors = tutor.slice(tutor.indexOf('doors.map('), tutor.indexOf('st.quiet'));
     assert.ok(doors.length > 0, 'the tutor no longer maps its doors');
     assert.match(doors, /<Card\b/, 'a door is not drawn as a Card');
-    assert.match(doors, /<PillButton\b/, 'the primary door is not the pill');
-    assert.match(doors, /<OutlineButton\b/, 'a quiet door is not an outline');
+    assert.match(doors, /<PillButton\b/, 'a door that should be pressable is not the pill');
+    // F405 replaced the guided door's single outline with the list the founder's
+    // screenshot draws: every situation is its own row, so the door needs no
+    // button of its own and each row is the way in. The check moves from "a
+    // quiet door is an outline" to "the quiet door is the rows", which is the
+    // same rule about not hand-rolling a control, read off what is actually there.
+    assert.match(doors, /MISSIONS\.map\(/, 'the guided door no longer lists its situations as rows');
+    assert.match(doors, /<MissionDisc\b/, 'the situation rows lost the disc that says where each one is');
     assert.match(doors, /door\.gloss/, 'the doors lost their gloss line');
     assert.match(doors, /door\.action/, 'a door names its own button instead of reading the word from gate.ts');
     assert.doesNotMatch(tutor, /st\.door\b/, 'the tutor still draws a bespoke card-button for its quiet doors');
@@ -1198,11 +1245,39 @@ describe('a chip is set in the token, not a raw size — F341', () => {
   });
 });
 
-describe('one primary pill per tab, and none on a list — F342', () => {
-  test('a tab carries at most one primary pill, and Practice and Profile carry none', () => {
+describe('one primary pill per door, and none on a list — F342, F406', () => {
+  /**
+   * F406 changed this rule in two ways, both from the founder's own drawings.
+   *
+   * The Tutor screenshot pills two doors, Resume and Open conversation, so the
+   * rule is now one pill per DOOR rather than one per tab. It is pinned at
+   * exactly two rather than loosened to "at most", so a third cannot appear.
+   *
+   * And Home's one pill moved into `home/SituationCard.tsx` when the tab was
+   * broken into cards, so counting `tabs/HomeTab.tsx` alone would read zero and
+   * pass while the card grew a second. The count is over the tab AND every card
+   * it draws, which is stricter than what it replaced.
+   */
+  test('a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406', () => {
+    const HOME_SURFACES = [
+      'tabs/HomeTab.tsx',
+      'home/WordOfDayCard.tsx',
+      'home/SituationCard.tsx',
+      'home/MomentumCards.tsx',
+      'home/NextStepRow.tsx',
+    ];
+    const homePills = HOME_SURFACES.flatMap((name) =>
+      (named(name).match(/<PillButton\b/g) ?? []).map(() => name),
+    );
+    assert.deepEqual(
+      homePills,
+      ['home/SituationCard.tsx'],
+      `Home draws its pills in ${homePills.join(', ') || 'nowhere'}; the one pill is Start oral session, on the situation card`,
+    );
+
     const counts: Record<string, number> = {
-      'tabs/HomeTab.tsx': 1,
-      'tabs/TutorTab.tsx': 1,
+      'tabs/HomeTab.tsx': 0,
+      'tabs/TutorTab.tsx': 2,
       'tabs/MyFrenchTab.tsx': 1,
       // F365: the next step is Practice's one pill. Two branches draw it, and
       // exactly one renders.
@@ -1431,5 +1506,120 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     }
     // The one row a phone alone cannot walk says why.
     assert.match(section, /paid Apple Developer capability/, 'the section does not say what P4-2 needs before it can run');
+  });
+
+  /**
+   * Pass 5 is the daily Home and the rebuilt Tutor.
+   *
+   * More of this pass than usual is invisible to a source walk, which is why the section
+   * exists. A fade at a measured timing, a screen reader meeting text that changes every
+   * few seconds, a column at the largest reading size on a small phone, and whether two
+   * pills can be reached with one thumb are all things a test can only take somebody's
+   * word for. Naming them here is what makes "not run" an honest answer rather than a
+   * silence.
+   */
+  /**
+   * DESIGN.md is read here for the same reason F313 reads it: a doc that
+   * describes a screen nobody draws any more is worse than no doc, because it is
+   * believed. This pass changed enough of two tabs that four of its sentences
+   * became false at once, and the four are checked against the source rather
+   * than against each other.
+   */
+  test('the design doc describes the greeting, the daily situation and the tutor\'s pills as the tabs draw them — F407', () => {
+    const design = readFileSync(join(ROOT, 'DESIGN.md'), 'utf8');
+    const home = named('tabs/HomeTab.tsx');
+    const tutor = named('tabs/TutorTab.tsx');
+
+    // 1. The greeting. The doc used to call "Bonjour, {name}" Home's single
+    //    French flourish, which stopped being true when it started cycling.
+    for (const word of ['Salut', 'Bonjour', 'Hello']) {
+      assert.ok(design.includes(word), `DESIGN.md never names "${word}", which Home's greeting cycles through`);
+    }
+    assert.doesNotMatch(
+      design,
+      /single flourish/,
+      'DESIGN.md still calls the greeting a single flourish, and it is three words on a loop now',
+    );
+
+    // 2. Home's header. The doc has to say Home is the exception, because the
+    //    guard above lets exactly one tab be one.
+    assert.match(design, /Home is the one tab that carries no purpose line/, 'DESIGN.md does not name Home as the tab without a purpose line');
+    assert.doesNotMatch(home, /purpose=/, 'Home draws a purpose line the design doc says it does not');
+
+    // 3. The pill rule, which changed from per tab to per door.
+    assert.match(design, /One primary pill per door/, 'DESIGN.md still states the rule as one pill per tab');
+    assert.equal(
+      (tutor.match(/<PillButton\b/g) ?? []).length,
+      2,
+      'the design doc says Tutor carries two pills and the tab draws a different number',
+    );
+
+    // 4. The retired pair, so nobody reinstates them from a stale doc.
+    for (const gone of ['TodayRow', 'PhrasebookCard']) {
+      assert.ok(design.includes(gone), `DESIGN.md never records that ${gone} left Home`);
+    }
+    assert.ok(design.includes('WordSprout'), 'DESIGN.md never names the scene Home draws for the word of the day');
+  });
+
+  /**
+   * A runbook row that asks for the wrong thing is worse than no row: a tester
+   * follows it and marks a correct build FAIL. This one did. A beginner DOES
+   * meet the next step, with the first situation in it, because
+   * `suggestedMission` falls through to the head of the catalogue and a blank
+   * page is not what a first run should be.
+   */
+  test('the Pass 5 runbook expects the next step row on a fresh account — F413', () => {
+    const runbook = readFileSync(join(ROOT, 'docs', 'DEVICE_VERIFICATION.md'), 'utf8');
+    const section = runbook.slice(runbook.indexOf('## Pass 5 daily home'));
+    const p54 = section.split('\n').find((l) => l.includes('P5-4'));
+    assert.ok(p54, 'the Pass 5 runbook has no P5-4 row about a fresh account');
+    assert.doesNotMatch(
+      p54!,
+      /no next step/,
+      'the Pass 5 runbook tells a tester a fresh account shows no next step, and Home draws one',
+    );
+    assert.match(p54!, /next step row/, 'the Pass 5 runbook does not say the next step row is there on day one');
+    // And the screen still agrees: the row is outside every momentum gate.
+    const home = named('tabs/HomeTab.tsx');
+    assert.match(home, /<NextStepRow\b/, 'Home no longer draws the row the runbook says a beginner meets');
+    assert.doesNotMatch(
+      home,
+      /hasMomentum\([^)]*\)\s*&&[\s\S]{0,80}<NextStepRow/,
+      'the next step row hides behind the momentum gate, so a beginner would meet a blank page',
+    );
+  });
+
+  test('the device runbook carries the Pass 5 checks — F410', () => {
+    const runbook = readFileSync(join(ROOT, 'docs', 'DEVICE_VERIFICATION.md'), 'utf8');
+    assert.match(runbook, /## Pass 5 daily home/, 'the runbook has no Pass 5 section');
+    const section = runbook.slice(runbook.indexOf('## Pass 5 daily home'));
+    const rows = section.split('\n').filter((l) => /\|\s*P5-\d/.test(l));
+    assert.equal(rows.length, 9, `the Pass 5 section names ${rows.length} rows; it should carry P5-1 through P5-9`);
+    for (let i = 1; i <= 9; i += 1) {
+      assert.match(section, new RegExp(`P5-${i}\\b`), `the Pass 5 runbook names no P5-${i} row`);
+    }
+    for (const row of rows) {
+      // Every row still owes a device. One is allowed to carry evidence from the
+      // web build beside that debt, because the greeting's timing was measured
+      // there and hiding a real measurement is its own dishonesty; what it may
+      // not do is drop the `not run` and read as finished. A bare `pass` in
+      // either column without a device walk is the thing this catches.
+      assert.match(row, /not run/, `a Pass 5 row claims to be finished before a device walked it: ${row.trim()}`);
+      const claimed = row.match(/\|\s*(pass|fail)\s*\|/g) ?? [];
+      assert.equal(
+        claimed.length,
+        0,
+        `a Pass 5 row is marked without naming the platform it was walked on: ${row.trim()}`,
+      );
+    }
+    // The four things this pass added that no test in this repository can see.
+    for (const [what, pattern] of [
+      ['the greeting fading rather than sliding', /fading rather than sliding/],
+      ['reduce motion resting the greeting', /reduce motion on/],
+      ['a screen reader hearing one greeting', /VoiceOver and TalkBack read one greeting/],
+      ['a fresh account seeing no momentum', /fresh account/],
+    ] as const) {
+      assert.match(section, pattern, `the Pass 5 section never asks anyone to check ${what}`);
+    }
   });
 });

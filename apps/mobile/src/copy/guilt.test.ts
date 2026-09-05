@@ -24,6 +24,8 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { BANNED_IN_COPY, guiltIn } from './guilt.ts';
 
 /**
@@ -103,5 +105,36 @@ describe('the words no Luvani surface may say', () => {
       BANNED_IN_COPY.length,
       'the union carries a duplicate, which means two surfaces were merged by hand',
     );
+  });
+});
+
+/**
+ * The brand commitment, and the third time it was asked.
+ *
+ * PRODUCT.md records two refusals of a streak. A "Days active" tile ships now,
+ * and it is not the thing that was refused: it only ever rises, reads no
+ * yesterday, has no state a loss could be written into, and is absent at zero.
+ * Those properties are held by name in `progress/momentum.test.ts`. What this
+ * checks is that the commitment itself says so, because the next reader of
+ * PRODUCT.md, human or agent, will otherwise see a days tile beside a sentence
+ * saying days tiles were dropped, and one of the two will get changed on a
+ * guess.
+ */
+describe('the brand commitment records what shipped — F414', () => {
+  test('PRODUCT.md records why days active is not the streak it refused — F414', () => {
+    const product = readFileSync(fileURLToPath(new URL('../../../../PRODUCT.md', import.meta.url)), 'utf8');
+    assert.match(product, /No streak guilt/, 'PRODUCT.md no longer carries the commitment this is about');
+    assert.match(product, /Days active/, 'PRODUCT.md never names the tile that ships, beside the streak it refused');
+    for (const [property, pattern] of [
+      ['that it only ever rises', /only ever rises/],
+      ['that it reads no yesterday', /yesterday is never read/],
+      ['that it has no loss state', /no state a loss could be written into/],
+      ['that it is absent at zero', /absent entirely until there is one/],
+    ] as const) {
+      assert.match(product, pattern, `PRODUCT.md does not say ${property}, which is what makes the tile legal`);
+    }
+    // And the word itself is still unsayable to a learner.
+    assert.equal(guiltIn('Days active'), undefined, 'the tile label itself trips the ban list');
+    assert.ok(BANNED_IN_COPY.includes('streak'), 'the word this commitment is about left the ban list');
   });
 });

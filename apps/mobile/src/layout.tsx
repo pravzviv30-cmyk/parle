@@ -16,6 +16,7 @@
 
 import type { ReactNode } from 'react';
 import {
+  Animated,
   View,
   ScrollView,
   Text,
@@ -215,8 +216,12 @@ export function ScreenHeader(props: ScreenHeaderProps) {
 type TabHeaderProps = {
   /** The tab's name, set large. */
   title: string;
-  /** One plain line saying what the tab is for. */
-  purpose: string;
+  /** One plain line saying what the tab is for. Home is the one tab without one. */
+  purpose?: string;
+  /** Fade the title with this. Given one, the title is drawn as Animated.Text. */
+  titleOpacity?: Animated.Value;
+  /** One fixed announcement for a title that changes on a timer. */
+  titleAccessibilityLabel?: string;
   /** An optional control on the title row — the learner's monogram on Home. */
   trailing?: ReactNode;
   /** Anything the tab wants under the purpose, still inside the header block. */
@@ -225,23 +230,70 @@ type TabHeaderProps = {
 
 /**
  * The one tab header. A tab opens with its name set at display size and left,
- * a plain purpose line beneath it, and an optional control on the title row.
+ * a plain purpose line beneath it where it has one, and an optional control on
+ * the title row.
  *
  * It is the FIRST child of a tab's scroll body, not the frame's `header` slot:
  * a fixed display title over a purpose line is taller than the screen at the
  * largest reading size, so it has to scroll with the content rather than pin
  * to the top. Nothing here caps the reading size or truncates the title.
+ *
+ * Three of the props are optional, and each one is here for a reason Home
+ * gave it.
+ *
+ * `purpose` used to be required, and every tab still says what it is for in
+ * one line. Home is the exception the founder asked for: its header is the
+ * greeting alone, so the line is absent rather than empty. A tab that passes
+ * one is drawn exactly as it was.
+ *
+ * `titleOpacity` is the only way a title can fade without `type.display`
+ * leaving this file. Home's greeting cycles Salut, Bonjour, Hello, and the
+ * alternative was a tab spreading the display line into a stylesheet of its
+ * own, which is how five tabs end up with five slightly different titles.
+ * Given a value, the title becomes `Animated.Text` and the value drives its
+ * opacity; given nothing, it is the plain `Text` it has always been. The frame
+ * still starts no animation and owns no timer: it is handed a value that
+ * somebody else is driving.
+ *
+ * `titleAccessibilityLabel` is what assistive tech reads instead of a title
+ * that keeps changing. A header renaming itself every few seconds, announced
+ * each time, is the most hostile thing this app could do to somebody
+ * listening to it, so the spoken version is one fixed greeting and there is no
+ * live region anywhere near this row.
  */
-export function TabHeader({ title, purpose, trailing, children }: TabHeaderProps) {
+export function TabHeader({
+  title,
+  purpose,
+  titleOpacity,
+  titleAccessibilityLabel,
+  trailing,
+  children,
+}: TabHeaderProps) {
   return (
     <View style={{ marginBottom: space(5) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
-        <Text accessibilityRole="header" style={[type.display, { color: paper.ink, flex: 1 }]}>
-          {title}
-        </Text>
+        {titleOpacity != null ? (
+          <Animated.Text
+            accessibilityRole="header"
+            accessibilityLabel={titleAccessibilityLabel}
+            style={[type.display, { color: paper.ink, flex: 1, opacity: titleOpacity }]}
+          >
+            {title}
+          </Animated.Text>
+        ) : (
+          <Text
+            accessibilityRole="header"
+            accessibilityLabel={titleAccessibilityLabel}
+            style={[type.display, { color: paper.ink, flex: 1 }]}
+          >
+            {title}
+          </Text>
+        )}
         {trailing != null ? trailing : null}
       </View>
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{purpose}</Text>
+      {purpose != null ? (
+        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{purpose}</Text>
+      ) : null}
       {children != null ? children : null}
     </View>
   );

@@ -39,3 +39,7 @@ export { Phrasebook } from './scenes/rooms.tsx';
 // Four places, one per mission that did not already have a drawing. The cafe
 // keeps HeroCafe and the evening with friends keeps SpeakBubbles.
 export { StreetCorner, MarketStall, FrontDesk, EveningIn } from './scenes/missions.tsx';
+
+// The word of the day. Drawn by `home/WordOfDayCard.tsx`, and nowhere else:
+// the seedling is that card's picture, not a general-purpose growth mark.
+export { WordSprout } from './scenes/sprout.tsx';

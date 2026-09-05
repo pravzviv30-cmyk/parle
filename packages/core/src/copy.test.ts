@@ -8,6 +8,8 @@ import { GOOD_FEEDBACK, missFeedback, typoFeedback } from './drill/session.ts';
 import { DRILL_FIXTURES } from './drill/fixtures.ts';
 import { learnerVisibleStrings } from './drill/validate.ts';
 import { MISSIONS } from './missions/missions.ts';
+import { DAILY_WORDS } from './daily/words.ts';
+import { DAILY_SCENARIOS } from './daily/scenarios.ts';
 
 /**
  * Copy rules for anything a learner reads.
@@ -78,6 +80,28 @@ describe('learner-visible copy stays plain and human', () => {
         mission.winEn.trim().length > 0,
         `${mission.id} has nothing to say at the moment that matters most`,
       );
+    }
+  });
+
+  test('the word of the day and the daily situation', () => {
+    // Home opens on these two cards, which makes them the most-read authored
+    // strings in the product. They are walked here as well as in
+    // daily.test.ts on purpose: this file owns the shared rule, and a pool
+    // that carried its own private copy check would be free to disagree with
+    // the rest of core about what plain writing is.
+    for (const word of DAILY_WORDS) {
+      check(`${word.id} fr`, word.fr);
+      check(`${word.id} en`, word.en);
+      check(`${word.id} note`, word.note);
+      check(`${word.id} exampleFr`, word.exampleFr);
+      check(`${word.id} exampleEn`, word.exampleEn);
+    }
+    for (const scenario of DAILY_SCENARIOS) {
+      check(`${scenario.id} titleEn`, scenario.titleEn);
+      check(`${scenario.id} titleFr`, scenario.titleFr);
+      check(`${scenario.id} bodyEn`, scenario.bodyEn);
+      check(`${scenario.id} openingFr`, scenario.openingFr);
+      check(`${scenario.id} openingEn`, scenario.openingEn);
     }
   });
 

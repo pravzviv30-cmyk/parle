@@ -25,6 +25,43 @@ export interface ActivityEntry {
   at: number;
   kind: ActivityKind;
   xp: number;
+  /**
+   * How long the sitting took, in wall-clock milliseconds on the device that
+   * ran it.
+   *
+   * Optional, and absent on every entry written before this field existed —
+   * which is most of the log on any phone that has been used. A reader that
+   * needs minutes must treat absence as "not measured" and say so, never as
+   * zero: a sitting that took ten minutes and did not record it is not a
+   * ten-minute claim of nothing.
+   *
+   * It is device wall clock, not metered minutes, so it is never the balance.
+   */
+  durationMs?: number;
+}
+
+/**
+ * What the screen measured about the sitting, beyond the XP.
+ *
+ * An options bag rather than a fifth positional argument, because everything
+ * that arrives here later is another measurement of the same sitting and a
+ * caller must never have to pass a placeholder to reach the one it has.
+ */
+export interface ActivityDetail {
+  /** Wall-clock milliseconds from the screen opening to the sitting banking. */
+  readonly durationMs?: number;
+}
+
+/**
+ * A duration this store is willing to hold: finite and at or above zero.
+ *
+ * Absent is a legitimate answer and always has been. A present value that is
+ * not a number, or is negative, or is an infinity, is a measurement that went
+ * wrong somewhere, and a log is a worse place to discover that than the screen
+ * that produced it.
+ */
+function isDuration(value: unknown): boolean {
+  return value === undefined || (typeof value === 'number' && Number.isFinite(value) && value >= 0);
 }
 
 interface Stored {
@@ -63,7 +100,8 @@ function isEntry(value: unknown): value is ActivityEntry {
     Number.isFinite(entry.at) &&
     typeof entry.xp === 'number' &&
     Number.isFinite(entry.xp) &&
-    (entry.kind === 'lesson' || entry.kind === 'convo' || entry.kind === 'drill' || entry.kind === 'review')
+    (entry.kind === 'lesson' || entry.kind === 'convo' || entry.kind === 'drill' || entry.kind === 'review') &&
+    isDuration(entry.durationMs)
   );
 }
 
@@ -148,10 +186,29 @@ function prune(entries: readonly ActivityEntry[], now: number): ActivityEntry[] 
   return entries.filter((e) => e.at >= cutoff);
 }
 
-/** Record one finished sitting. Fire and forget; nothing waits on it. */
-export async function recordActivity(kind: ActivityKind, xp: number, now = Date.now()): Promise<void> {
+/**
+ * Record one finished sitting. Fire and forget; nothing waits on it.
+ *
+ * The `xp <= 0` return is unchanged and stays first, deliberately. A sitting
+ * that produced no French leaves no mark, so it leaves no minutes either: a log
+ * that carried the duration of a session with nothing in it would let a "time
+ * spent" number climb while nothing was learned, which is the one thing a
+ * minutes figure must never be able to do.
+ *
+ * A duration the validator would refuse is dropped rather than stored, so this
+ * store can never hold a row its own reader throws away.
+ */
+export async function recordActivity(
+  kind: ActivityKind,
+  xp: number,
+  now = Date.now(),
+  detail: ActivityDetail = {},
+): Promise<void> {
   if (xp <= 0) return;
-  await mutate((stored) => ({ ...stored, entries: prune([...stored.entries, { at: now, kind, xp }], now) }));
+  const entry: ActivityEntry = isDuration(detail.durationMs)
+    ? { at: now, kind, xp, ...(detail.durationMs === undefined ? {} : { durationMs: detail.durationMs }) }
+    : { at: now, kind, xp };
+  await mutate((stored) => ({ ...stored, entries: prune([...stored.entries, entry], now) }));
 }
 
 export async function loadActivity(): Promise<ActivityEntry[]> {
@@ -198,6 +255,13 @@ export async function backfillFrom(sessions: readonly { endedAt: number }[], bas
  * chain, between the read and the write, with the log this store holds at that
  * instant, and the union is by `(at, kind, xp)` so folding twice is the same as
  * folding once.
+ *
+ * The identity stayed `(at, kind, xp)` when `durationMs` arrived, on purpose:
+ * widening it would make the same sitting two rows on a device that synced
+ * before the field existed and one row after, and the XP would be counted
+ * twice. Instead the policy's pick prefers the copy that carries a duration, so
+ * an older device folding its copy in cannot erase a measurement a newer one
+ * made.
  *
  * Validated as if it came off a stranger's disk, because in effect it did: it
  * was merged from a payload another device wrote. `backfilled` is still ORed

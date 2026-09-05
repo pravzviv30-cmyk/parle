@@ -23,7 +23,7 @@
  * the rest simply wait their turn, unannounced.
  */
 
-import { addEvidence, isDue, presentationOf, type PhraseEvidence } from './evidence.ts';
+import { addEvidence, isDue, isSettled, presentationOf, type PhraseEvidence } from './evidence.ts';
 
 export type ReviewCardKind = 'vocab' | 'phoneme' | 'turn';
 
@@ -60,6 +60,27 @@ export interface ReviewCard {
    * is allowed to claim.
    */
   evidence?: PhraseEvidence;
+  /**
+   * Epoch ms of the grade at which this card first became settled.
+   *
+   * `isSettled` already says *whether* a card is settled, from `due`, `reps`
+   * and `intervalDays`. It cannot say *when*, and no amount of reading the
+   * counters recovers it: they are where the card is now, not the moment it
+   * arrived. So a screen that wants to say what a week of review actually
+   * retained has nothing to count, and this is the one field that gives it
+   * something honest to count.
+   *
+   * Absent means one of two things, and neither is a zero. Either the card is
+   * not settled, or it settled before this field existed. Both are "we do not
+   * know when", and a reader must treat them the same way: leave the claim out
+   * rather than substitute a date.
+   *
+   * Cleared on `again`, deliberately. A lapsed card is not settled any more,
+   * and when it settles again that is a second, real transition on a date a
+   * counter may honestly use. Keeping the old timestamp would date a memory to
+   * a week the learner had already forgotten it.
+   */
+  settledAt?: number;
 }
 
 /**
@@ -134,25 +155,35 @@ export function applyGrade(card: ReviewCard, grade: ReviewGrade, now: number, co
     // A lapse earns no evidence, whatever the attempt was. Forgetting is
     // rescheduling rather than failing, and it is equally not proof of
     // anything: the counters record what came out right.
-    case 'again':
+    case 'again': {
+      // The key is dropped rather than set to undefined. `mergeDecks` renders
+      // a card's own keys to break its last tie, so a card carrying an explicit
+      // `settledAt: undefined` and a card that never had the key would compare
+      // as different cards while meaning exactly the same thing.
+      const { settledAt: _lapsed, ...unsettled } = card;
       return {
-        ...card,
+        ...unsettled,
         due: now + AGAIN_RETRY_MS,
         intervalDays: 0,
         ease: Math.max(MIN_EASE, roundEase(card.ease - 0.15)),
         lapses: card.lapses + 1,
       };
+    }
 
     case 'good': {
       const intervalDays = goodIntervalDays(card);
-      return earned(
-        {
-          ...card,
-          due: now + intervalDays * DAY_MS,
-          intervalDays,
-          reps: card.reps + 1,
-        },
-        context,
+      return dated(
+        earned(
+          {
+            ...card,
+            due: now + intervalDays * DAY_MS,
+            intervalDays,
+            reps: card.reps + 1,
+          },
+          context,
+        ),
+        card,
+        now,
       );
     }
 
@@ -162,15 +193,19 @@ export function applyGrade(card: ReviewCard, grade: ReviewGrade, now: number, co
       // "good" would have, including on the graduation and relearning steps.
       const good = goodIntervalDays(card);
       const intervalDays = Math.max(good + 1, Math.round(good * EASY_BONUS));
-      return earned(
-        {
-          ...card,
-          due: now + intervalDays * DAY_MS,
-          intervalDays,
-          ease: roundEase(card.ease + 0.1),
-          reps: card.reps + 1,
-        },
-        context,
+      return dated(
+        earned(
+          {
+            ...card,
+            due: now + intervalDays * DAY_MS,
+            intervalDays,
+            ease: roundEase(card.ease + 0.1),
+            reps: card.reps + 1,
+          },
+          context,
+        ),
+        card,
+        now,
       );
     }
   }
@@ -190,6 +225,32 @@ function earned(card: ReviewCard, context: GradeContext): ReviewCard {
     retrievals: context.attempt === undefined ? 0 : 1,
     transfers: context.transfer === true ? 1 : 0,
   });
+}
+
+/**
+ * Stamp the grade that settled this card, and only that grade.
+ *
+ * Three refusals, and each one is a false claim avoided:
+ *
+ * A card that already carries a date keeps it. The claim is when this memory
+ * first held, not when it was last confirmed, and overwriting would turn a
+ * two-month-old phrase into a fresh one every time it came round.
+ *
+ * A card that was already settled before this grade gets nothing new. Nothing
+ * transitioned, so there is nothing to date. This is also what protects a deck
+ * written before the field existed: an old settled card graded today would
+ * otherwise be stamped with today, and a retention count reading it would
+ * report a week's worth of memory that was actually a year's.
+ *
+ * A card that is still not settled gets nothing. `isSettled` owns the rule,
+ * here as everywhere else, so the moment recorded is the moment that predicate
+ * changed its mind and not a second opinion about what settled means.
+ */
+function dated(next: ReviewCard, before: ReviewCard, now: number): ReviewCard {
+  if (next.settledAt !== undefined) return next;
+  if (isSettled(before, now)) return next;
+  if (!isSettled(next, now)) return next;
+  return { ...next, settledAt: now };
 }
 
 /**

@@ -1,9 +1,9 @@
 /**
- * What happens when two devices disagree — one table, fourteen namespaces, no exceptions.
+ * What happens when two devices disagree — one table, sixteen namespaces, no exceptions.
  *
  * The engine in `engine.ts` decides *when* to reconcile. This file decides *what the
  * answer is*, and it is the only file in the app that holds an opinion about how two
- * copies of a learner become one. Ten namespaces are synced under three merge classes;
+ * copies of a learner become one. Twelve namespaces are synced under three merge classes;
  * four are excluded with a stated reason, because a namespace that is silently absent
  * from a sync table is indistinguishable from one somebody forgot.
  *
@@ -18,8 +18,13 @@
  * | `drills`      | per-item   | union on the drill identity — `drill/merge.ts`'s identity  |
  * |               |            | — then that file's own cap. `micSuppressedUntil` is later. |
  * | `topics`      | per-item   | union by topic id; sitting dates and deck ids unioned.     |
+ * | `bookmarks`   | per-item   | union by situation; the newer decision wins, so an un-save |
+ * |               |            | survives. Oldest first, last 200.                          |
+ * | `scenarioProgress` | per-item | union by mission; the newer record wins. Oldest first,   |
+ * |               |            | last 40. `beatsTotal` is never stored, so never merged.    |
  * | `history`     | set-union  | union by session identity, oldest first, last 50.          |
- * | `activity`    | set-union  | union by `(at, kind, xp)`, 400-day prune, `backfilled` OR. |
+ * | `activity`    | set-union  | union by `(at, kind, xp)`, the copy carrying a `durationMs` |
+ * |               |            | winning the pick, 400-day prune, `backfilled` OR.          |
  * | `missions`    | set-union  | union by `(id, at)`, then the per-mission cap.             |
  * | `soundChecks` | set-union  | union by attempt identity, oldest first, last 60.          |
  * | `coachMarks`  | set-union  | union of ids seen. Seen anywhere is seen.                  |
@@ -93,7 +98,7 @@ import { exerciseIdentity, mergeExerciseBank } from '../drill/merge.ts';
 
 // ─────────────────────────────────────────────────────── the stores' own caps
 //
-// Four numbers below belong to store files this engine cannot import: they all reach
+// Six numbers below belong to store files this engine cannot import: they all reach
 // AsyncStorage, and the sync engine has to load under plain node. They are copied here,
 // each naming its owner, and `policy.test.ts` reads the owning source and fails if the
 // two ever drift. A cap applied here that disagreed with the cap applied by the adopter
@@ -108,6 +113,10 @@ export const MAX_SOUND_CHECKS = 60;
 export const MAX_COMPLETIONS_PER_MISSION = 20;
 /** `KEEP_DAYS` in progress/activity.ts. */
 export const ACTIVITY_KEEP_DAYS = 400;
+/** `MAX_BOOKMARKS` in bookmarks/store.ts. */
+export const MAX_BOOKMARKS = 200;
+/** `MAX_SCENARIO_RECORDS` in missions/progressStore.ts. */
+export const MAX_SCENARIO_RECORDS = 40;
 
 const DAY_MS = 86_400_000;
 
@@ -301,6 +310,101 @@ function mergeTopicList(local: unknown, remote: unknown): unknown {
   return { version: 1, topics: topics.slice(-MAX_STORED_TOPICS) };
 }
 
+// ──────────────────────────────────────────────── bookmarks and partial scenes
+
+/**
+ * The later of two decisions about the same thing, ties broken canonically.
+ *
+ * A wall clock, and this file says everywhere else not to trust one. It is trusted here
+ * because these two domains have nothing else: a bookmark tap and a walk-out of a scene
+ * produce no count that goes up, no grade, no session, so there is no clock-free evidence
+ * to order two of them by. The alternative is a canonical max, which would mean the answer
+ * to "is this saved" was decided by which string sorts higher, and would make an un-save
+ * permanent or impossible depending on the id. `at` is a real observation of the learner's
+ * own device; the order it induces is total, so the fold is still commutative, associative
+ * and idempotent, which is what the engine actually needs from it.
+ */
+function newerOf<T extends { at: number }>(x: T, y: T): T {
+  if (x.at !== y.at) return x.at > y.at ? x : y;
+  return laterOf(x, y);
+}
+
+interface Bookmarkish {
+  scenarioId: string;
+  at: number;
+  saved: boolean;
+}
+
+function isBookmark(value: unknown): value is Bookmarkish {
+  return (
+    isRecord(value) &&
+    typeof value.scenarioId === 'string' &&
+    value.scenarioId.length > 0 &&
+    isFiniteNumber(value.at) &&
+    typeof value.saved === 'boolean'
+  );
+}
+
+/**
+ * One row per situation, the newer decision winning, oldest first, capped.
+ *
+ * The `saved: false` rows are the reason this namespace is per-item rather than a set
+ * union. A union of saved ids can only add, so an un-save on one phone would be undone
+ * the next time any other device folded its older copy in — silently, and again every
+ * cycle. Keeping the decision, and taking the newer of two decisions, is what lets a
+ * learner take something off the list and have it stay off.
+ */
+function mergeBookmarks(local: unknown, remote: unknown): unknown {
+  const items = unionBy(
+    arrayOf(envelopeOf(local).items).filter(isBookmark),
+    arrayOf(envelopeOf(remote).items).filter(isBookmark),
+    (item) => item.scenarioId,
+    newerOf,
+  ).sort((x, y) => x.at - y.at || compareText(x.scenarioId, y.scenarioId) || compareText(canonical(x), canonical(y)));
+  return { version: 1, items: items.slice(-MAX_BOOKMARKS) };
+}
+
+interface ScenarioRecordish {
+  missionId: string;
+  at: number;
+  elapsedMs: number;
+  beatsDone: number;
+}
+
+function isScenarioRecord(value: unknown): value is ScenarioRecordish {
+  return (
+    isRecord(value) &&
+    typeof value.missionId === 'string' &&
+    value.missionId.length > 0 &&
+    isFiniteNumber(value.at) &&
+    isFiniteNumber(value.elapsedMs) &&
+    value.elapsedMs >= 0 &&
+    isFiniteNumber(value.beatsDone) &&
+    value.beatsDone >= 0
+  );
+}
+
+/**
+ * One row per mission, the newer walk-out winning, oldest first, capped.
+ *
+ * Nothing is recomputed and nothing is combined: two devices that each left the same
+ * scene hold two accounts of one thing, and the older one is stale rather than partial.
+ * Adding the elapsed times, or taking the further `beatsDone`, would invent a sitting
+ * that never happened and put a pace estimate under it.
+ *
+ * `beatsTotal` is not in this shape, so it cannot be merged. It lives in the mission
+ * catalogue, where a build can correct it, instead of in two devices that can disagree.
+ */
+function mergeScenarioProgress(local: unknown, remote: unknown): unknown {
+  const records = unionBy(
+    arrayOf(envelopeOf(local).records).filter(isScenarioRecord),
+    arrayOf(envelopeOf(remote).records).filter(isScenarioRecord),
+    (record) => record.missionId,
+    newerOf,
+  ).sort((x, y) => x.at - y.at || compareText(x.missionId, y.missionId) || compareText(canonical(x), canonical(y)));
+  return { version: 1, records: records.slice(-MAX_SCENARIO_RECORDS) };
+}
+
 // ────────────────────────────────────────────────────────────────── history
 
 interface StoredSessionish {
@@ -328,12 +432,42 @@ interface ActivityEntryish {
   at: number;
   kind: string;
   xp: number;
+  durationMs?: number;
 }
 
+/**
+ * The same shape `isEntry` accepts in progress/activity.ts, `durationMs` included, so
+ * the merge and the disk agree on which rows exist. A validator here that was looser
+ * than the store's would answer with entries the adopter then drops, and the engine
+ * would find the disk different from the fold on every single cycle.
+ */
 function isActivityEntry(value: unknown): value is ActivityEntryish {
   return (
-    isRecord(value) && isFiniteNumber(value.at) && isFiniteNumber(value.xp) && ACTIVITY_KINDS.has(String(value.kind))
+    isRecord(value) &&
+    isFiniteNumber(value.at) &&
+    isFiniteNumber(value.xp) &&
+    ACTIVITY_KINDS.has(String(value.kind)) &&
+    (value.durationMs === undefined || (isFiniteNumber(value.durationMs) && value.durationMs >= 0))
   );
+}
+
+/**
+ * Between two copies of the same sitting, the one that recorded how long it took.
+ *
+ * The identity is still `(at, kind, xp)`, so a device that logged the sitting before
+ * `durationMs` existed and a device that logged it after are the same row rather than
+ * two, and the XP is counted once. That leaves the question of which copy survives, and
+ * only one answer is safe: the measurement, every time. The other order would let the
+ * older device erase a number the newer one actually observed, on every cycle, quietly.
+ *
+ * A max over `(has a duration, canonical rendering)`, which is a total order, so this is
+ * commutative, associative and idempotent like every other pick in this file.
+ */
+function withDuration(x: ActivityEntryish, y: ActivityEntryish): ActivityEntryish {
+  const xHas = x.durationMs === undefined ? 0 : 1;
+  const yHas = y.durationMs === undefined ? 0 : 1;
+  if (xHas !== yHas) return xHas > yHas ? x : y;
+  return laterOf(x, y);
 }
 
 /**
@@ -358,6 +492,7 @@ function mergeActivity(local: unknown, remote: unknown): unknown {
     arrayOf(l.entries).filter(isActivityEntry),
     arrayOf(r.entries).filter(isActivityEntry),
     (entry) => `${entry.at}\u0000${entry.kind}\u0000${entry.xp}`,
+    withDuration,
   ).sort((x, y) => x.at - y.at || compareText(canonical(x), canonical(y)));
   const newest = entries.length === 0 ? 0 : (entries[entries.length - 1]?.at ?? 0);
   const cutoff = newest - ACTIVITY_KEEP_DAYS * DAY_MS;
@@ -537,6 +672,20 @@ export const SYNC_POLICIES: readonly NamespacePolicy[] = [
     merge: (local, remote) => mergeTopicList(local, remote),
   },
   {
+    namespace: 'bookmarks',
+    merges: 'per-item',
+    writes: 1,
+    rule: 'union by situation id; the newer decision wins, so an un-save survives a fold, oldest first under the store cap',
+    merge: (local, remote) => mergeBookmarks(local, remote),
+  },
+  {
+    namespace: 'scenarioProgress',
+    merges: 'per-item',
+    writes: 1,
+    rule: 'union by mission id; the newer record of where a scene was left wins, and the beat total is never stored',
+    merge: (local, remote) => mergeScenarioProgress(local, remote),
+  },
+  {
     namespace: 'history',
     merges: 'set-union',
     writes: null,
@@ -547,7 +696,7 @@ export const SYNC_POLICIES: readonly NamespacePolicy[] = [
     namespace: 'activity',
     merges: 'set-union',
     writes: 1,
-    rule: 'union by (at, kind, xp), pruned to 400 days from the newest entry, backfilled ORed',
+    rule: 'union by (at, kind, xp) with the copy carrying a durationMs winning, pruned to 400 days from the newest entry, backfilled ORed',
     merge: (local, remote) => mergeActivity(local, remote),
   },
   {

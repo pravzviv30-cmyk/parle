@@ -82,14 +82,50 @@ describe('the layout primitives keep their promises — F306', () => {
       /maxFontSizeMultiplier/,
       'a layout primitive caps how far its text may grow, which is the same refusal wearing a number',
     );
-    // No motion library reaches this file, so no motion rule can be broken in it.
+    assert.doesNotMatch(source, /\bAlert\b/, 'a layout primitive reaches for Alert instead of ConfirmSheet');
+  });
+
+  /**
+   * F388 narrowed this rule rather than deleting it.
+   *
+   * It used to ban the word `Animated` from the frame outright, on the reasoning that
+   * movement belongs to the scenes. Home's rotating greeting made that too blunt: the
+   * display style lives only in `layout.tsx` (F336), so the one place the title can fade
+   * is inside `TabHeader`, and a tab that spread `type.display` into its own stylesheet
+   * to get around that would break the older rule to satisfy this one.
+   *
+   * So the ban moves from the noun to the verb. The frame may hold an `Animated.Value`
+   * somebody else drives and may render an `Animated.Text`; it may not start, loop or
+   * sequence anything itself. A timer growing in this file still fails, which is what
+   * the original assertion was actually protecting.
+   */
+  test('the screen primitives never drive movement themselves, and never cap font scaling — F388', () => {
+    const source = layoutSource();
     assert.doesNotMatch(
       source,
-      /\bimport\b[^;]*\bAnimated\b/,
-      'the layout primitives import Animated; movement belongs to the scenes, not the frame',
+      /Animated\.(timing|spring|loop|sequence|stagger|decay|parallel|delay)\b/,
+      'a layout primitive drives an animation; the frame holds a value, it does not move on its own',
     );
-    assert.doesNotMatch(source, /\bAnimated\./, 'a layout primitive drives an animation; the frame does not move');
-    assert.doesNotMatch(source, /\bAlert\b/, 'a layout primitive reaches for Alert instead of ConfirmSheet');
+    assert.doesNotMatch(
+      source,
+      /\.start\s*\(/,
+      'a layout primitive starts an animation; whoever owns the value owns the timing',
+    );
+    assert.doesNotMatch(
+      source,
+      /createAnimatedComponent/,
+      'a layout primitive wraps a component for animation, which the motion vocabulary forbids everywhere',
+    );
+    assert.doesNotMatch(
+      source,
+      /allowFontScaling\s*[=:]\s*\{?\s*false/,
+      'a layout primitive switches off font scaling, so a learner with large text set does not get it',
+    );
+    assert.doesNotMatch(
+      source,
+      /maxFontSizeMultiplier/,
+      'a layout primitive caps how far its text may grow, which is the same refusal wearing a number',
+    );
   });
 });
 

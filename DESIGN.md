@@ -244,6 +244,15 @@ Plus `RewardMark`, which is not a scene: one tick arriving beside a drill
 verdict, in the reserved-height slot the screen already keeps. There is no
 `miss` variant on purpose, because a drawing scolds louder than a word.
 
+And `WordSprout`, drawn for Home's word of the day: a seedling being watered,
+with the service bell `FrontDesk` already draws rather than a second one. Only
+the water moves, on one loop; the figure and the can stay still, because the
+figure is the subject and tilting the can would pull the eye off the word beside
+it. Two components left with the same pass: `TodayRow` and `PhrasebookCard` were
+Home's alone, and Home now opens on the day instead of on a count of it. The
+daily count's philosophy stays where it always lived, in `progress/today.ts` and
+its suite, which is the standing refusal to turn it into a streak.
+
 ## Structure
 
 A two-page moving welcome on first launch (the café scene says hello; page two
@@ -261,8 +270,8 @@ still there. Passing it is one tap and nothing else is asked twice.
 
 | Tab | What it is |
 |---|---|
-| Home | The next situation first, on its tinted disc with its goal line and the tab's one pill inside the card; then the level card and the evidence; the way to the Tutor tab is an outline at the foot |
-| Tutor | Three doors, each a card that says what is behind it: continue a recent mission (its drawing, both titles, where the learner stands, the pill), start a practical one (the six drawings as a teaser), or talk freely. The four-page intro that used to stand in front of them is a quiet "How the circle works" link here and in Profile |
+| Home | The day, not a summary. A greeting that cycles Salut, Bonjour, Hello with the learner's name, alone at the top; the word of the day under it; today's situation with its starting line, a bookmark and the tab's one pill; daily momentum, each of its three parts absent unless it has something true to say; the next step as a row; a sprout note at the foot. The level, the evidence and the phrasebook moved to My French rather than being drawn twice |
+| Tutor | The tutor by name, the voice circle, then three doors. Resume is a card with the scene's drawing, its French title, what the learner came to do, how long is left of it when their own pace has said, and a full-width pill. Guided practice missions is a heading with the count, one line saying what is behind it, and every situation as its own tappable row. Open conversation is last: a card whose button sits centred under its drawing. The four-page intro that used to stand in front of them is a quiet "How the voice circle works" link here and in Profile |
 | Practice | The next step as the tab's one pill, then the path, the guided lesson, the drill bank, the review deck — plus one topic card per conversation subject, projected live from the deck |
 | My French | An evidence row that is absent at zero (situations handled, lines kept, the level), the notebook, the week, the situations with their stamps, and the same next-situation card Home draws |
 | Profile | The level under the name; the daily goal and the correction dial chosen in place as three-way controls with the chosen gloss beneath; the tutor's voice; prefer typing; tutor speaks slower; account (download, permanent deletion), the reminder, sign out, the legal footer and the build's version line |
@@ -272,10 +281,20 @@ body: a display title on the left, one plain purpose line beneath it in soft ink
 and an optional trailing **Monogram** for the learner's initial. It is not passed
 to the frame's `header` slot, because a fixed display title over a purpose line is
 taller than the screen at the largest reading size and has to scroll with the
-content. Two rules ride with the block. A tab carries at most one primary pill,
-so the eye has one place to go. And a caps `Label` is violet, or it reports a
-state in ink, never faint: faint ink was only ever cleared as a mark, not as a
-line a learner reads.
+content. Home is the one tab that carries no purpose line and no monogram: it
+opens on the greeting and goes straight to the day, and `surfaceContract.test.ts`
+names it as the single exception so a second tab cannot drop its line quietly.
+The header can also fade its title, through a `titleOpacity` the caller drives;
+that exists so Home's greeting can cycle without the display style leaving this
+file.
+
+Two rules ride with the block. **One primary pill per door**, so the eye has one
+place to go on each thing it can act on. That used to read "one per tab", and
+Tutor now carries two because its screenshot pills both the scene to resume and
+the open conversation; the count is pinned per tab at exactly what each one
+draws, rather than loosened, so a third cannot appear. And a caps `Label` is
+violet, or it reports a state in ink, never faint: faint ink was only ever
+cleared as a mark, not as a line a learner reads.
 
 Navigation is React Navigation: a root stack whose first screen is the tab
 navigator, with the lesson, the conversation, drills, review and the mission
@@ -356,8 +375,13 @@ app's one settle and shows exactly once, at the turn the mission completes.
 **Chrome is plain English.** Sentence case on buttons; the caps look lives only
 in the micro-`label`. French appears exactly where it is content: tutor lines,
 lesson text, phrases and their glosses, review fronts, register vocabulary —
-and the single flourish "Bonjour, {name}" on Home, which is lesson-one
-vocabulary. The conversation OPENS in English (the spoken question, no menu)
+and on Home, where the greeting cycles "Salut", "Bonjour" and "Hello" with the
+learner's name, and where the word of the day and the daily situation's starting
+line are French because they are the content. The greeting is lesson-one
+vocabulary and it is the one place the chrome speaks French. It fades rather than
+slides, holds still on "Bonjour" for a learner who has asked for less movement,
+and announces itself once: a header that renamed itself every few seconds to a
+screen reader would be the most hostile thing in the app. The conversation OPENS in English (the spoken question, no menu)
 with the French riding along on screen as exposure. The old FRENCH · ENGLISH
 paired furniture is retired.
 

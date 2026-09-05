@@ -113,6 +113,7 @@ import {
 } from './tutor/coachMarks.ts';
 import { loadSeenCoachMarks, markCoachMarkSeen } from './tutor/store.ts';
 import { recordMissionCompletion } from './missions/store.ts';
+import { recordScenarioProgress } from './missions/progressStore.ts';
 import { replayNote, type MissionReplay } from './missions/chooserView.ts';
 import { trackProductEvent } from './analytics/track.ts';
 import { MOMENT_ANSWER_MS, momentAnswer } from './practice/statusLine.ts';
@@ -404,6 +405,19 @@ export function ConvoScreen({
   // and tonight's generated drills — arrives seconds AFTER the recap, and a
   // torn-down room would lose both. onRecap persists; it no longer navigates.
   const bankedRef = useRef(false);
+  /**
+   * When the room actually opened, which is the first view off the wire rather
+   * than the mount.
+   *
+   * A learner sits on the connecting screen while a token is minted and a room
+   * is joined, and none of that is time they spent speaking French. Home's
+   * speaking goal counts what this measures, so it starts when there is
+   * something to speak to. It is device wall clock and includes the tutor's
+   * thinking and any reconnect, because that is time the learner spent; it is
+   * not the metered seconds and is never shown as those.
+   */
+  const openedAtRef = useRef<number | null>(null);
+  if (openedAtRef.current === null && live.convo !== null) openedAtRef.current = Date.now();
   useEffect(() => {
     // A stopped session hands nothing on and earns nothing. The recap is where
     // both used to happen on the same tick as the emergency number arriving.
@@ -414,7 +428,13 @@ export function ConvoScreen({
     if (!bankedRef.current) {
       bankedRef.current = true;
       const { phrases, stats } = live.recap.recap;
-      void recordActivity('convo', conversationXp({ phraseCount: phrases.length, unassistedRate: stats.unassistedRate }));
+      const openedAt = openedAtRef.current;
+      // One clock read for both the instant and the length. The room's opening
+      // is the start, not the mount: the connecting screen is not time anybody
+      // spent speaking French.
+      const endedAt = Date.now();
+      const xp = conversationXp({ phraseCount: phrases.length, unassistedRate: stats.unassistedRate });
+      void recordActivity('convo', xp, endedAt, openedAt === null ? {} : { durationMs: endedAt - openedAt });
     }
   }, [live.recap, onRecap, stopped]);
 
@@ -582,6 +602,30 @@ export function ConvoScreen({
   }, [live.practice, live.drills, live.recap, stopped]);
 
   const leaveNow = () => {
+    // F402 — where they got to, so the tutor's resume card can offer it back
+    // with a minutes line instead of a bare title.
+    //
+    // Four conditions, and each one is a thing that must NOT write. A free
+    // conversation has no mission to come back to. A finished mission is not
+    // half done, and `recordMissionCompletion` clears the record anyway, so
+    // writing one here would be a race with the clear. A session the tutor
+    // stopped leaves nothing behind at all, which is the same rule the recap,
+    // the practice bank and the completion all follow above. And a room that
+    // never opened has no elapsed time to report.
+    //
+    // The beat comes off the wire rather than being counted here: `position` is
+    // the beat the learner is ON, so the number DONE is one less. The pace is
+    // extrapolated in `missions/resume.ts`, which is also where it decides that
+    // zero beats done means no estimate rather than a guess.
+    const openedAt = openedAtRef.current;
+    if (missionId !== undefined && live.convo !== null && !live.convo.missionDone && !stopped && openedAt !== null) {
+      void recordScenarioProgress({
+        missionId,
+        at: Date.now(),
+        elapsedMs: Date.now() - openedAt,
+        beatsDone: Math.max(0, live.convo.beat.position - 1),
+      });
+    }
     // Leaving before the practice message landed: bank a minimal version from
     // the recap (its first few phrases under the session's own topic) so an
     // early exit never loses what the learner said. Through the same outbox as

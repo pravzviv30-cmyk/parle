@@ -81,10 +81,10 @@ export function tutorGate(serversAnswered: boolean, textMode = false): TutorGate
  * one quiet link away from here and from Profile. Deleting it would have taken
  * that lesson with it.
  *
- * Talk freely is last and is still a door. Last because a beginner staring at
- * "say anything" is a beginner who says nothing, and still a door because the
- * learner who knows exactly what they want to talk about must not have to walk
- * through a mission to get there.
+ * The open conversation is last and is still a door. Last because a beginner
+ * staring at "say anything" is a beginner who says nothing, and still a door
+ * because the learner who knows exactly what they want to talk about must not
+ * have to walk through a mission to get there.
  */
 export type TutorDoorKey = 'resume' | 'missions' | 'free';
 
@@ -95,79 +95,147 @@ export type TutorDoorKey = 'resume' | 'missions' | 'free';
  */
 export type TutorDoorArt = { kind: 'place'; place: MissionPlace } | { kind: 'every-place' } | { kind: 'none' };
 
+/**
+ * One door, and everything the tab needs to draw it.
+ *
+ * Two fields are numbers rather than sentences, and that is the point of them.
+ * The founder's screenshot puts a scenario count beside a heading and an
+ * estimate of what is left of a scene under it, and both of those used to be
+ * the sort of thing a screen spells into a string. A numeral inside prose is a
+ * numeral nothing can round, pluralise or withhold, so the counts travel as
+ * `number | null` and `scenarioCountLine` and `minutesRemainingLine` are the
+ * only two places in the app that turn one into words.
+ */
 export interface TutorDoor {
   key: TutorDoorKey;
+  /** The caps heading above the door. The screenshot's section name. */
   label: string;
   /** The French title of the mission behind the door, in the serif, or null. */
   title: string | null;
-  /** One short line under the label. Never a count, never a score. */
+  /** One short line under the heading. Never a count, never a score. */
   gloss: string;
-  /** Lines under the gloss, in order: where the learner stands with it. */
-  detail: readonly string[];
   /** The word on the door's button. Sentence case, never a count. */
   action: string;
-  /** Exactly one door carries the screen's solid action. */
+  /**
+   * This door is drawn as a pill. It used to mean "the tab's one pill"; the
+   * founder's screenshot gives the resume card and the open conversation a
+   * button each and turns the missions door into a list of rows, so the rule
+   * is one pill per door now and the missions door has none.
+   */
   primary: boolean;
+  /** How many situations sit behind this door, or null when it is not a count. */
+  /**
+   * Where the learner stands, as a number rather than a sentence.
+   *
+   * This replaced a `detail` slot carrying the status line ("Started") that the
+   * founder's screenshot drew as an orange pill. The pill went with the
+   * screenshot's own correction and the line went with it: what the resume card
+   * says now is how long is left, which is a measurement. A measurement travels
+   * as a number so `minutesRemainingLine` can own the words and every prose
+   * field on every door can stay digit-free.
+   */
+  count: number | null;
+  /**
+   * Minutes left of the scene behind this door, or null when nothing has
+   * measured it. Null for every learner until `missions/resume.ts` lands: an
+   * authored constant dressed as a measurement is the one thing this field
+   * must never carry.
+   */
+  minutesRemaining: number | null;
   art: TutorDoorArt;
 }
 
 /** The quiet way back to the explainer, worded the same in both places. */
-export const TUTOR_INTRO_LINK = 'How the circle works';
+export const TUTOR_INTRO_LINK = 'How the voice circle works';
 
 /**
- * The mission worth offering again, as the tab reads it off the catalogue: the
- * titles, the place its drawing belongs to, and the status line chooserView.ts
- * already decides. Null when the learner has never started one. Plain fields
- * rather than a mission record, so this file stays free of the catalogue and a
- * test can build one in a line.
+ * How many situations are behind the missions door, in words.
+ *
+ * Here rather than on the tab because it is the only place a numeral and a noun
+ * meet, and a noun that does not agree with its number is the sort of thing
+ * nobody notices until there is exactly one of something.
  */
-export interface ResumableDoor {
-  title: string;
-  titleEn: string;
-  place: MissionPlace;
-  status: string;
+export function scenarioCountLine(n: number): string {
+  return n === 1 ? '1 scenario' : `${n} scenarios`;
 }
 
 /**
- * Each door is a card that says what is behind it (F364). The resume door
- * shows the mission's drawing, both titles and where the learner stands with
- * it, and carries the pill. The practical-mission door shows every situation's
- * drawing as a teaser and carries the pill only when there is nothing to
- * resume. Talk freely is last, still a door, and never the pill: a beginner
- * staring at "say anything" is a beginner who says nothing.
+ * What is left of a scene, in words.
+ *
+ * "About" is load-bearing rather than polite. The number behind it is
+ * extrapolated from the learner's own pace through the beats they have already
+ * done, so it is an estimate and the sentence has to say so. A bare "3 min
+ * remaining" is a claim about the future that nothing in this app can support.
  */
-export function tutorDoors(resume: ResumableDoor | null): TutorDoor[] {
+export function minutesRemainingLine(n: number): string {
+  return n === 1 ? 'About 1 min remaining' : `About ${n} min remaining`;
+}
+
+/**
+ * The mission worth offering again, as the tab reads it off the catalogue: the
+ * French title, the English line that says what the scene is, the place its
+ * drawing belongs to, and the pace estimate if there is one. Null when the
+ * learner has never started one. Plain fields rather than a mission record, so
+ * this file stays free of the catalogue and a test can build one in a line.
+ */
+export interface ResumableDoor {
+  /** The scene's French title, set in the serif. */
+  title: string;
+  /** The one English line that says what the scene is. */
+  goalEn: string;
+  place: MissionPlace;
+  /** Minutes left at the learner's own pace, or null when nothing measured it. */
+  minutesRemaining: number | null;
+}
+
+/**
+ * Each door is a card that says what is behind it (F364, F404).
+ *
+ * The resume door shows the scene's drawing, its French title and its English
+ * line, and carries a pill. The missions door is a heading with a count and a
+ * list of rows, so it carries no button of its own; it keeps an `action` only
+ * so the three doors stay one shape. The open conversation is last, still a
+ * door, and carries the second pill: a learner who knows what they want to say
+ * should not have to walk through a mission to say it.
+ *
+ * `missionCount` arrives as an argument rather than being read off the
+ * catalogue here, so this file can still be reasoned about on its own.
+ */
+export function tutorDoors(resume: ResumableDoor | null, missionCount: number): TutorDoor[] {
   const doors: TutorDoor[] = [];
   if (resume !== null) {
     doors.push({
       key: 'resume',
-      label: 'Continue a recent mission',
+      label: 'Resume',
       title: resume.title,
-      gloss: resume.titleEn,
-      detail: [resume.status],
-      action: 'Continue',
+      gloss: resume.goalEn,
+      action: 'Resume',
       primary: true,
+      count: null,
+      minutesRemaining: resume.minutesRemaining,
       art: { kind: 'place', place: resume.place },
     });
   }
   doors.push({
     key: 'missions',
-    label: 'Start a practical mission',
+    label: 'Guided practice missions',
     title: null,
     gloss: 'Order a coffee, ask the way, check into a hotel.',
-    detail: [],
     action: 'Choose a situation',
-    primary: resume === null,
+    primary: false,
+    count: missionCount,
+    minutesRemaining: null,
     art: { kind: 'every-place' },
   });
   doors.push({
     key: 'free',
-    label: 'Talk freely about something else',
-    title: null,
-    gloss: 'Anything at all. Your tutor follows you.',
-    detail: [],
-    action: 'Start talking',
-    primary: false,
+    label: 'Open conversation',
+    title: 'Talk about your day',
+    gloss: 'Share whatever made you smile today or a curious thought. No grammar score, just finding your rhythm.',
+    action: 'Open conversation',
+    primary: true,
+    count: null,
+    minutesRemaining: null,
     art: { kind: 'none' },
   });
   return doors;

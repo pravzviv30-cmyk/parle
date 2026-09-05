@@ -10,7 +10,19 @@ gone wrong.
 is deliberate — a store read before the auth gate is a bug, and a silent global
 fallback would leak one learner's history into another's session.
 
-Stores: `profile`, `history`, `review`, `drills`, `tutorIntro`, `activity`,
+Stores: `profile`, `history`, `review`, `drills`, `tutorIntro`, `activity`
+(one dated row per sitting, carrying the XP it earned and, since F395, a
+`durationMs` saying how long it took; that field is **optional and absent on
+every entry written before it existed**, so a reader treats absence as "not
+measured" and never as zero, and it is device wall clock rather than metered
+minutes so it is never shown as the balance),
+`bookmarks` (the situations a learner saved, one row per situation with the
+state they chose and the moment they chose it, so an un-save is a decision the
+store can hold rather than an id missing from a set),
+`scenarioProgress` (where a learner left a scene part way through: one row per
+mission with the moment they left, how long they had been in it and how many
+beats were behind them, and never the beat total, which belongs to the mission
+catalogue),
 `topics` (the practice topics a learner's conversations produced — titles,
 sitting dates, and the review-deck ids they drill; strength is never stored,
 it is a projection of the deck), `friends` (the local friends adapter's
@@ -282,8 +294,8 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 
 ### The sync contract
 
-Since Phase 2, the account rather than the device is the durable home for ten of
-the fourteen stores. `apps/mobile/src/sync/` holds a **state-based reconciler**:
+Since Phase 2, the account rather than the device is the durable home for twelve
+of the sixteen stores. `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
 compare-and-swap on the `revision` column. Losing the swap means another device
@@ -313,12 +325,32 @@ Four pieces, and each has one file:
 | `sync/engine.ts` | when to reconcile, the compare-and-swap, quarantine, the size refusal |
 | `sync/policy.ts` | **what the answer is** when two devices disagree |
 
-`sync/policy.ts` is the one to read. Ten namespaces under three merge classes:
+`sync/policy.ts` is the one to read. Twelve namespaces under three merge classes:
 
 - **structured** — `profile`, delegated to `@luvani/brain`'s `mergeStoredProfiles`.
-- **per-item** — `review` (delegated to core's `mergeDecks`), `drills`, `topics`.
+- **per-item** — `review` (delegated to core's `mergeDecks`), `drills`, `topics`,
+  `bookmarks`, `scenarioProgress`.
 - **set-union** — `history`, `activity`, `missions`, `soundChecks`, `coachMarks`,
   `tutorIntro`.
+
+Two of those per-item rules are worth stating, because the obvious smaller shape
+is wrong in both cases. `bookmarks` unions by situation and keeps the **newer
+decision**, not a union of saved ids: a union can only ever add, so an un-save
+would come back the next time any other device folded its older copy in.
+`scenarioProgress` unions by mission and keeps the **newer record**, and it
+combines nothing — adding two devices' elapsed times, or taking the further
+`beatsDone`, would invent a sitting that never happened and then put a pace
+estimate under it. Both take the device clock as the ordering, which the rest of
+this table refuses to do, and they do it because a bookmark tap and a walk-out
+produce no count that goes up: there is no clock-free evidence to order two of
+them by, and the order the clock gives is at least total.
+
+`activity` keeps its `(at, kind, xp)` identity now that entries carry a
+`durationMs`. Widening the identity would make one sitting two rows across the
+upgrade and count its XP twice, so the identity stayed and the **pick** changed:
+where two copies of the same sitting meet, the one carrying a duration wins, and
+a device that synced before the field existed cannot erase a measurement a newer
+one made.
 
 Four are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `journal`
 is a device-local crash buffer whose whole meaning is bank-then-delete, so
@@ -451,9 +483,28 @@ one-time trial claim, read, plan save, and idempotent session consumption.
 `supabase/migrations/202608220001_luvani_learning.sql` creates the durable
 entitlements, privacy-filtered product events and a row-level-secured
 `learner_state` envelope for cross-device sync. `learner_state.namespace` carries
-a check constraint naming the twelve stores, so a namespace that is not on that
-list cannot be written at all — which is also why `syncState`, the engine's own
+a check constraint naming the stores it will accept, so a namespace that is not on
+that list cannot be written at all — which is also why `syncState`, the engine's own
 dirty set, never leaves the device.
+
+That list named twelve stores and did not name `bookmarks` or `scenarioProgress`,
+which is F411: `sync/policy.ts` merged both and both converged correctly between
+two copies, while every push was refused at the door with a 400 the engine filed
+as `http-error` and retried under backoff forever. Nothing corrupted and nothing
+a learner could see changed, because the stores are offline-first and write
+locally first exactly as every other store does. What it cost was the second
+copy: a learner's saved situations and half finished scenes stayed on the phone
+they were made on. `202609050001_learner_state_daily_namespaces.sql` widens the
+constraint to fourteen names and closes it, and
+`apps/mobile/src/sync/policy.test.ts` now reads both halves so the two lists
+cannot part company again silently.
+
+That migration is written and paired with its rollback, and like every other
+migration in this repository it takes effect only once an operator applies it to
+the project that ships. `supabase/README.md` carries it as file 12 in the apply
+order. Until it is applied to a given project, these two namespaces behave there
+exactly as described above: device-local in practice, however the client table
+reads.
 `202608230001_session_usage_idempotency.sql` adds the unique session debit ledger,
 atomic three-argument consume RPC, pseudonymous trial claims, and exact event validation.
 `202608260001_learner_state_revision.sql` adds the `revision` column and its

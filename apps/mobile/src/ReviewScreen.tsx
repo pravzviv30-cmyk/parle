@@ -96,7 +96,14 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       // gesture, a tab switch or an unmount is still a sitting that happened.
       if (!banked.current && recalled.current > 0) {
         banked.current = true;
-        void recordActivity('review', reviewXp({ recalled: recalled.current }));
+        // One clock read, and the sitting's start is the instant it was dealt
+        // rather than a second ref saying the same thing. Wall clock on the
+        // device, which is what Home's speaking goal measures; it is not the
+        // metered seconds and is never shown as those.
+        const endedAt = Date.now();
+        void recordActivity('review', reviewXp({ recalled: recalled.current }), endedAt, {
+          durationMs: endedAt - dealtAt.current,
+        });
       }
     };
   }, []);

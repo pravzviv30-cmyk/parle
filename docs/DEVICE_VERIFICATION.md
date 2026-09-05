@@ -737,6 +737,38 @@ Apple provider configured before P4-2 can be walked at all; until then the row i
 | P4-5 | The ear on the tutor's last bubble is ink while quiet and turns violet on a quiet disc while the tutor sounds; tapping the bubble replays the line; VoiceOver reads "Hear that line again" | not run | not run |
 | P4-6 | Show/Hide on every password field keeps the caret and the typed text in place on iOS, and VoiceOver reads "Show password" / "Hide password" | not run | not run |
 
+## Pass 5 daily home
+
+The daily-home pass (F387 to F410) is verified statically up to a point: the greeting rule
+is a plain module with its clock injected, the daily pick is a pure function of the day
+key, momentum is absent at zero by construction, and the source walk fails if a tab grows
+a third pill, if a line caps its reading size, or if a row falls under the touch floor.
+What no test in this repo can see is a fade at the measured timing, a screen reader meeting
+text that changes every few seconds, a column at the largest reading size on a small phone,
+or whether the two pills can be reached with one thumb. Those are a device's to prove, and
+this is where that pass is recorded. Owner: `frontend-engineer` for the screens,
+`design-system-engineer` for the scene and the contrast, `qa-release-engineer` for running it.
+
+`pass` / `fail` / `not run`. Every row is `not run` until a real device pass is walked.
+
+One row is not. P5-1 was walked in the web build on 2026-09-05 and the greeting cycled at 3760ms and
+3744ms against the 3750ms measured off the founder's video, so it is recorded as `web: pass` in the iOS
+column with the platform named. That is evidence about the rule and the timing, not about a phone; the
+iOS and Android columns still need a device. The same run found F415 and F416, which is what a screen
+nobody had looked at is for.
+
+| Id | Check | iOS | Android |
+|---|---|---|---|
+| P5-1 | Home's greeting cycles Salut, Bonjour, Hello, holding about three seconds each, fading rather than sliding, and the rest of the column does not move while it does | web: pass | not run |
+| P5-2 | With reduce motion on, the greeting stops on Bonjour and stays legible, the word of the day scene holds its final frame, and nothing on Home is blank | not run | not run |
+| P5-3 | VoiceOver and TalkBack read one greeting on Home and do not announce it again while it cycles; the word of the day drawing is walked past in silence | not run | not run |
+| P5-4 | On a fresh account, Home shows the greeting, the word of the day, today's situation and the next step row offering the first situation, and shows no momentum tiles and no goal bar; after one conversation the momentum tiles and the goal bar appear with real numbers | not run | not run |
+| P5-5 | At iOS AX5 / Android font scale 2.0 on an SE-sized phone, Home and Tutor show no clipped line, no truncated title and no horizontal scroll, and the two momentum tiles stay side by side or stack cleanly | not run | not run |
+| P5-6 | The speaking goal bar announces its value to a screen reader, and its green reads as progress rather than as the live microphone | not run | not run |
+| P5-7 | Leaving a guided mission part way makes the Tutor resume card offer it back with a minutes line; finishing that mission clears the line | not run | not run |
+| P5-8 | Resume and Open conversation are both reachable one-handed on a large phone, and each is comfortably above the touch floor | not run | not run |
+| P5-9 | Bookmarking today's situation on Home makes it appear under My French; un-bookmarking removes it, and it stays removed after a relaunch | not run | not run |
+
 ## Recording the result
 
 Fill the matrix in place, in this file, in the same commit as any ledger entry a

@@ -500,3 +500,78 @@ describe('My French draws nothing at zero and closes on the next situation — F
     assert.ok(!SCREEN.includes('Sound check for'), 'My French still spells the sound-check sentence itself');
   });
 });
+
+/* ===========================================================================
+ * F394 — the situations the learner saved, and nothing when they saved none.
+ *
+ * Home's daily situation card carries a Bookmark, and what it saves has to
+ * arrive somewhere the learner can find it again. That somewhere is here,
+ * beside the notebook and the scenes they have already walked into.
+ *
+ * Everything with a decision in it is `bookmarks/view.ts`: which situations are
+ * saved, in which order, what the block is called and what the verb on a row
+ * is. This screen asks and draws. The assertion with weight in it is the gate:
+ * a shelf that says it is empty says the learner failed to fill it, which is
+ * the rule `progress/evidence.ts` and `progress/today.ts` already hold.
+ * =========================================================================== */
+
+describe('My French carries the saved situations — F394', () => {
+  test('my french draws saved situations inside hasSaved and starts one through the seed topic — F394', () => {
+    // The fold is the module's, over the store's decisions and core's pool. A
+    // screen that filtered the items itself would be a second opinion about
+    // what "saved" means, one import away from the only one.
+    const imported = FLAT.match(/import \{([^}]*)\} from '\.\.\/bookmarks\/view\.ts'/);
+    assert.ok(imported, 'My French never imports the saved-situations view, so it has nothing to draw');
+    for (const name of ['SAVED_SITUATIONS_LABEL', 'SAVED_SITUATION_ACTION', 'hasSaved', 'savedSituations']) {
+      assert.ok(imported[1]!.includes(name), `My French imports the bookmarks view without ${name}`);
+    }
+    assert.match(FLAT, /loadBookmarks\(\)/, 'the screen never reads the bookmark store');
+    assert.match(
+      FLAT,
+      /savedSituations\(bookmarks, DAILY_SCENARIOS\)/,
+      "the saved list is not folded from the store against core's pool, so a retired id could draw a blank row",
+    );
+    for (const meddling of ['.sort(', '.filter(', '.reverse(', '.slice(']) {
+      assert.ok(!SCREEN.includes(`saved${meddling}`), `the screen writes saved${meddling}; the list arrives ordered and is drawn as it arrives`);
+    }
+
+    // Nothing at zero. Not an empty state, not a hint, not a nudge to go and
+    // save something: a learner who has saved nothing has not failed at
+    // anything, and a panel telling them the shelf is empty says they have.
+    const drawn = SCREEN.indexOf('<Label>{SAVED_SITUATIONS_LABEL}');
+    assert.notEqual(drawn, -1, 'there is no saved block to gate');
+    const gate = SCREEN.lastIndexOf('hasSaved(saved)', drawn);
+    assert.notEqual(gate, -1, 'the saved block is drawn with nothing holding it back');
+    assert.ok(drawn - gate < 160, 'the hasSaved gate is somewhere else on the screen, not on the block it is meant to hold back');
+
+    // The block's own words are the module's, both of them.
+    assert.match(SCREEN, /<Label>\{SAVED_SITUATIONS_LABEL\}<\/Label>/, 'the screen spells the saved heading itself');
+    assert.ok(!SCREEN.includes("'Saved situations'"), 'the screen spells the saved heading itself');
+    assert.ok(!SCREEN.includes('label="Start"'), 'the screen spells the saved verb itself');
+
+    // A row says which situation it is, in English, and opens it as a
+    // conversation through the same seed-topic pipe Home starts one with. No
+    // mission id: a daily situation is not a mission and never claims to be.
+    const saved = between(SCREEN, '<Label>{SAVED_SITUATIONS_LABEL}', 'packs.length', 'the saved block sits above the conversation packs');
+    assert.match(saved, /\{situation\.titleEn\}/, 'a saved row does not name the situation');
+    assert.match(saved, /label=\{SAVED_SITUATION_ACTION\}/, 'a saved row does not read its verb from the module');
+    assert.match(
+      saved.replace(/\s+/g, ' '),
+      /nav\.navigate\('Convo', \{ seedTopic: seedTopicOf\(situation\) \}\)/,
+      'a saved row does not open the conversation on the scene it names',
+    );
+    assert.match(saved, /accessibilityLabel=\{startLabel\(situation\.titleEn\)\}/, 'a saved row leaves a screen reader with a bare verb');
+    assert.doesNotMatch(saved, /<PillButton/, 'a saved row is drawn as a second primary; the tab has one pill and it is the next situation');
+
+    // The row is reachable one handed, like every other row in the app.
+    assert.match(style('savedRow'), /minHeight: HIT/, 'a saved row falls under the touch floor');
+
+    // And the block adds no words a learner could read as a debt, and no count.
+    const said = literals(saved);
+    for (const line of said) {
+      const banned = guiltIn(line);
+      assert.equal(banned, undefined, `the saved block says ${line}, which carries the banned word "${banned}"`);
+      assert.doesNotMatch(line, /\d/, `the saved block says ${line}; a shelf of saved scenes is never a count`);
+    }
+  });
+});

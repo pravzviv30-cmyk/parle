@@ -93,6 +93,18 @@ Two hard behavioural commitments, both derived from confirmed research:
   asked for a days-active streak: the streak was dropped and a level ladder
   shipped instead.
 
+  Asked a third time, by the daily-Home mockup, the answer was different and the
+  reason is worth keeping. Home now carries a **Days active** tile, and it is not
+  the thing that was refused twice. A streak is a chain: it reads yesterday, it
+  can be broken, and the product asks you to protect it. This counts the distinct
+  days that have an entry, so it only ever rises, a quiet day costs nothing,
+  yesterday is never read, and there is no state a loss could be written into. It
+  is absent entirely until there is one, so a first-run learner never meets a
+  zero. The properties are held by name in `apps/mobile/src/progress/momentum.ts`
+  and its suite, and every word on the tile still has to pass the ban list in
+  `apps/mobile/src/copy/guilt.ts`, which is why the word "streak" appears nowhere
+  a learner can read it.
+
 - **The ladder displays evidence; it is not a new incentive.** Six levels
   (Beginner → Rookie → General → Captain → Master → Veteran) over XP that can
   only be earned by producing French — words said, turns composed unaided,

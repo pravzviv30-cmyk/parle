@@ -2,7 +2,8 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { applyGrade, dueCards, firstReturn, mergeCards, newCard, AGAIN_RETRY_MS, DEFAULT_EASE, DUE_CAP, MIN_EASE, type ReviewCard } from './scheduler.ts';
-import { presentationOf } from './evidence.ts';
+import { isSettled, presentationOf } from './evidence.ts';
+import { mergeDecks } from './merge.ts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const NOW = 1_700_000_000_000;
@@ -310,5 +311,100 @@ describe('firstReturn — the delayed test, named', () => {
       ['vocab', 'turn'],
       'spoken and written cards return the same way; a sound never does',
     );
+  });
+});
+
+describe('settledAt — the one transition the counters cannot recover', () => {
+  test('a card records the grade that settled it, once, and forgets it on a lapse — F397', () => {
+    // `isSettled` reads due, reps and intervalDays, so it can always say
+    // whether a card is settled right now. What it can never say is when that
+    // became true, because none of those three fields remembers a moment. A
+    // count of "phrases retained this week" needs the moment, so the moment is
+    // recorded at the grade that produced it and nowhere else.
+    const fresh = card();
+    assert.equal(fresh.settledAt, undefined, 'a card nobody has reviewed has settled nothing, so there is no date to hold');
+
+    const first = applyGrade(fresh, 'good', NOW);
+    assert.equal(isSettled(first, NOW), false, 'one success on a one-day interval is not a settled memory');
+    assert.equal(first.settledAt, undefined, 'nothing settled, so nothing was dated');
+
+    const second = applyGrade(first, 'good', NOW + DAY_MS);
+    assert.equal(second.intervalDays, 3, 'the second success walks to three days, which is still short of settled');
+    assert.equal(second.settledAt, undefined, 'the second success is still not the transition');
+
+    // The third success multiplies by ease and clears the settled threshold.
+    const settledNow = NOW + 4 * DAY_MS;
+    const third = applyGrade(second, 'good', settledNow);
+    assert.equal(isSettled(third, settledNow), true, 'the substrate this reads: reps and interval have both crossed the settled line');
+    assert.equal(third.settledAt, settledNow, 'the grade that settled the card is the moment recorded, not the moment anyone later asked');
+
+    // Once set it is left alone. The claim is when this memory first held, and
+    // a later confirmation is not a new first.
+    const fourth = applyGrade(third, 'good', settledNow + 8 * DAY_MS);
+    assert.equal(isSettled(fourth, settledNow + 8 * DAY_MS), true, 'still settled, and still the same memory');
+    assert.equal(fourth.settledAt, settledNow, 'a settled card was re-dated by a later review, so any weekly count would count it twice');
+
+    const early = applyGrade(fourth, 'easy', settledNow + 9 * DAY_MS);
+    assert.equal(early.settledAt, settledNow, 'an easy grade on an already settled card is not a new transition either');
+
+    // A lapse un-settles the card, and the date goes with it. The key is
+    // dropped rather than blanked, because `mergeDecks` renders a card's keys
+    // to break its last tie and two spellings of absent must not differ.
+    const lapsed = applyGrade(early, 'again', settledNow + 20 * DAY_MS);
+    assert.equal(isSettled(lapsed, settledNow + 20 * DAY_MS), false, 'a forgotten phrase is not a settled one');
+    assert.equal(lapsed.settledAt, undefined, 'a lapsed card kept the date it settled on, and would still be counted as retained');
+    assert.equal('settledAt' in lapsed, false, 'absent must be spelled one way, or two devices holding the same card compare as different cards');
+
+    // And it can settle again, on the later date, because the second time is a
+    // real second transition rather than a repeat of the first.
+    const relearnFrom = settledNow + 21 * DAY_MS;
+    let climbing = lapsed;
+    for (const step of [1, 2, 3]) {
+      climbing = applyGrade(climbing, 'good', relearnFrom + step * DAY_MS);
+      assert.equal(climbing.settledAt, undefined, `success ${step} of the climb back is still short of the settled line, so there is nothing to date yet`);
+    }
+    const resettledAt = relearnFrom + 4 * DAY_MS;
+    const resettled = applyGrade(climbing, 'good', resettledAt);
+    assert.equal(isSettled(resettled, resettledAt), true, 'the relearned card has crossed the line again');
+    assert.equal(resettled.settledAt, resettledAt, 'a phrase that was lost and learned again settled on the second date, and may be counted then');
+
+    // A deck written before this field exists reads back exactly as it was.
+    // The card below is already settled and has no date, which is the honest
+    // state for "settled at a moment nobody recorded": stamping it with today
+    // would report a year-old memory as this week's retention.
+    const old: ReviewCard = {
+      id: 'vocab:merci',
+      kind: 'vocab',
+      front: 'merci',
+      back: 'Merci = Thank you',
+      context: 'Merci = Thank you',
+      ipa: 'mɛʁ.si',
+      addedAt: NOW - 400 * DAY_MS,
+      due: NOW + 30 * DAY_MS,
+      intervalDays: 40,
+      ease: 2.5,
+      reps: 6,
+      lapses: 1,
+    };
+    assert.equal(isSettled(old, NOW), true, 'the card this is about: settled long before the field existed');
+    assert.equal('settledAt' in old, false, 'the shape a deck on disk actually has');
+    const graded = applyGrade(old, 'good', NOW);
+    assert.equal('settledAt' in graded, false, 'an old settled card was stamped with today, which would date a year-old memory to this week');
+    assert.deepEqual(
+      mergeDecks([old], []),
+      [old],
+      'a deck written before this field must survive a sync fold byte for byte',
+    );
+
+    // The merge carries the date with the card it belongs to. It never blends:
+    // a settled date belongs to one device's scheduling history, and the copy
+    // with more grades behind it is the copy that keeps its whole card.
+    const other: ReviewCard = { ...third, id: 'vocab:bonjour' };
+    const behindOnGrades: ReviewCard = { ...second, id: 'vocab:bonjour' };
+    const [merged] = mergeDecks([behindOnGrades], [other]);
+    assert.equal(merged?.settledAt, settledNow, 'the winning copy lost the date that came with it');
+    const [alone] = mergeDecks([], [other]);
+    assert.equal(alone?.settledAt, settledNow, 'a card only one device has seen must keep its date across the fold');
+    assert.deepEqual(mergeDecks([other], [other]), [other], 'merging a settled card with itself must not move its date');
   });
 });

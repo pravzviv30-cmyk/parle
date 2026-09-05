@@ -31,8 +31,10 @@ import { sameData, stableStringify } from './envelope.ts';
 import { SYNC_STATE_SUFFIX } from './registry.ts';
 import {
   ACTIVITY_KEEP_DAYS,
+  MAX_BOOKMARKS,
   MAX_COMPLETIONS_PER_MISSION,
   MAX_HISTORY_SESSIONS,
+  MAX_SCENARIO_RECORDS,
   MAX_SOUND_CHECKS,
   SYNC_EXCLUSIONS,
   SYNC_POLICIES,
@@ -239,11 +241,15 @@ function genHistory(pick: Chooser): unknown {
 function genActivity(pick: Chooser): unknown {
   const entries: unknown[] = [];
   for (let i = 0; i < pick.int(6); i += 1) {
-    entries.push({
+    // Some entries carry a duration and some do not, which is what every real log
+    // looks like after F395: the rows written before the field existed keep no
+    // minutes, and the merge has to fold the two kinds together.
+    const base = {
       at: BASE + pick.int(500) * DAY,
       kind: pick.one(['lesson', 'convo', 'drill', 'review']),
       xp: 1 + pick.int(30),
-    });
+    };
+    entries.push(pick.bool() ? { ...base, durationMs: pick.int(900_000) } : base);
   }
   return pick.bool() ? { version: 1, entries, backfilled: true } : { version: 1, entries };
 }
@@ -274,6 +280,31 @@ function genSoundChecks(pick: Chooser): unknown {
   return { version: 1, evidence };
 }
 
+function genBookmarks(pick: Chooser): unknown {
+  const items: unknown[] = [];
+  for (let i = 0; i < pick.int(6); i += 1) {
+    items.push({
+      scenarioId: pick.one(['scene:market', 'scene:pharmacy', 'scene:taxi', 'scene:neighbour']),
+      at: BASE + pick.int(90) * DAY,
+      saved: pick.bool(),
+    });
+  }
+  return { version: 1, items };
+}
+
+function genScenarioProgress(pick: Chooser): unknown {
+  const records: unknown[] = [];
+  for (let i = 0; i < pick.int(5); i += 1) {
+    records.push({
+      missionId: pick.one(['mission:cafe', 'mission:train', 'mission:market']),
+      at: BASE + pick.int(90) * DAY,
+      elapsedMs: pick.int(600_000),
+      beatsDone: pick.int(8),
+    });
+  }
+  return { version: 1, records };
+}
+
 function genCoachMarks(pick: Chooser): unknown {
   const marks: string[] = [];
   for (let i = 0; i < pick.int(4); i += 1) marks.push(pick.one(['mic', 'hint', 'done', 'slow', 'future-mark']));
@@ -293,6 +324,8 @@ const GENERATORS: Record<string, (pick: Chooser) => unknown> = {
   activity: genActivity,
   missions: genMissions,
   soundChecks: genSoundChecks,
+  bookmarks: genBookmarks,
+  scenarioProgress: genScenarioProgress,
   coachMarks: genCoachMarks,
   tutorIntro: genTutorIntro,
 };
@@ -308,7 +341,7 @@ function blobFor(namespace: string, seed: number): unknown {
 
 // ──────────────────────────────────────────────────────────────────── tests
 
-describe('the per-domain conflict policy — fourteen namespaces, three classes, four exclusions', () => {
+describe('the per-domain conflict policy — sixteen namespaces, three classes, four exclusions', () => {
   test('every synced namespace has an explicit merge policy and every excluded one an explicit reason', () => {
     const suffixes = userKeySuffixes().filter((suffix) => suffix !== SYNC_STATE_SUFFIX);
     assert.ok(suffixes.length > 0, 'the scan read no suffixes out of scope.ts, so it is checking nothing');
@@ -562,6 +595,16 @@ describe('the per-domain conflict policy — fourteen namespaces, three classes,
       constantIn('src/progress/activity.ts', 'KEEP_DAYS'),
       'the activity retention window in policy.ts no longer matches progress/activity.ts',
     );
+    assert.equal(
+      MAX_BOOKMARKS,
+      constantIn('src/bookmarks/store.ts', 'MAX_BOOKMARKS'),
+      'the bookmark cap in policy.ts no longer matches bookmarks/store.ts',
+    );
+    assert.equal(
+      MAX_SCENARIO_RECORDS,
+      constantIn('src/missions/progressStore.ts', 'MAX_SCENARIO_RECORDS'),
+      'the partial-scene cap in policy.ts no longer matches missions/progressStore.ts',
+    );
 
     // And the caps actually bite, rather than being constants nothing reads.
     const many = Array.from({ length: MAX_HISTORY_SESSIONS + 20 }, (_, i) => ({
@@ -589,6 +632,31 @@ describe('the per-domain conflict policy — fourteen namespaces, three classes,
     }));
     const missions = merge('missions', { version: 1, completions: finishes }, null) as { completions: unknown[] };
     assert.equal(missions.completions.length, MAX_COMPLETIONS_PER_MISSION);
+
+    // The two daily stores are capped by decision rather than by content, so their caps
+    // are checked on distinct ids: one row per situation and one row per mission means a
+    // list only reaches the ceiling when the learner has that many different opinions.
+    const taps = Array.from({ length: MAX_BOOKMARKS + 15 }, (_, i) => ({
+      scenarioId: `scene:${String(i).padStart(4, '0')}`,
+      at: BASE + i * 1000,
+      saved: true,
+    }));
+    const saved = merge('bookmarks', { version: 1, items: taps }, null) as { items: { scenarioId: string }[] };
+    assert.equal(saved.items.length, MAX_BOOKMARKS);
+    assert.equal(
+      saved.items[saved.items.length - 1]?.scenarioId,
+      taps[taps.length - 1]?.scenarioId,
+      'the bookmark cap dropped the newest decision instead of the oldest',
+    );
+
+    const walkOuts = Array.from({ length: MAX_SCENARIO_RECORDS + 8 }, (_, i) => ({
+      missionId: `mission:${String(i).padStart(4, '0')}`,
+      at: BASE + i * 1000,
+      elapsedMs: 60_000,
+      beatsDone: 2,
+    }));
+    const partial = merge('scenarioProgress', { version: 1, records: walkOuts }, null) as { records: unknown[] };
+    assert.equal(partial.records.length, MAX_SCENARIO_RECORDS);
 
     // The activity prune is measured from the newest entry, never from a clock: two
     // devices with different clocks would otherwise sit either side of the cutoff and
@@ -756,5 +824,67 @@ describe('the storage doc says what the sync table does', () => {
     }
     assert.match(doc, /returns a version-\d+ profile/, 'the doc no longer says what upgradeStored returns');
     assert.match(doc, new RegExp(`returns a version-${declared[1]} profile`), 'the doc says upgradeStored returns an older version');
+  });
+});
+
+/**
+ * The other side of the wire.
+ *
+ * `SYNC_POLICIES` is the app's half of the contract and, until F411, it was the only
+ * half anything checked. The database has a half too: `learner_state.namespace` carries
+ * a check constraint listing the names it will accept, and a namespace missing from it
+ * is refused with a 400 that `sync/engine.ts` files as `http-error` and retries under
+ * backoff forever. Nothing corrupts, nothing on screen changes, and the data never
+ * leaves the phone. That is the quietest failure in this system, and it is why the two
+ * lists are compared here rather than trusted to stay in step.
+ *
+ * The migrations are read rather than a copy of the list being kept: a second copy is
+ * how the first one stopped being the rule. The newest `add constraint` on the
+ * namespace column wins, because a later migration may widen or narrow what an earlier
+ * one set, and what a deployed database ends up with is the last one applied.
+ */
+describe('the app and the database agree about what a namespace is — F411', () => {
+  test('every namespace the sync policy merges is one the database will accept — F411', () => {
+    const migrationsDir = fileURLToPath(new URL('../../../../supabase/migrations/', import.meta.url));
+    const files = readdirSync(migrationsDir)
+      .filter((name) => name.endsWith('.sql'))
+      .sort();
+    assert.ok(files.length > 0, 'no migrations were found, so this test is reading the wrong directory');
+
+    // Every definition of the whitelist, oldest first; the last one is what a database
+    // that applied them all ends up enforcing.
+    const definitions: string[][] = [];
+    for (const name of files) {
+      const sql = readFileSync(join(migrationsDir, name), 'utf8').replace(/\s+/g, ' ');
+      for (const [, list] of sql.matchAll(/namespace (?:text not null )?(?:in|check \(namespace in) \(([^)]*)\)/gi)) {
+        const names = [...list!.matchAll(/'([^']+)'/g)].map((m) => m[1]!);
+        if (names.length > 0) definitions.push(names);
+      }
+    }
+    assert.ok(
+      definitions.length > 0,
+      'no namespace whitelist was found in any migration, so this test cannot see the database half at all',
+    );
+
+    const accepted = new Set(definitions[definitions.length - 1]);
+    for (const policy of SYNC_POLICIES) {
+      assert.ok(
+        accepted.has(policy.namespace),
+        `the sync policy merges "${policy.namespace}" but learner_state will refuse it, so it never leaves the device`,
+      );
+    }
+
+    // And nothing the database accepts is a name the app has simply forgotten. A
+    // namespace may be merged, or it may be excluded on purpose with a reason written
+    // down; what it may not be is neither, because that is a row a device can write and
+    // nothing will ever fold.
+    const merged = new Set(SYNC_POLICIES.map((policy) => policy.namespace));
+    const excluded = new Set(SYNC_EXCLUSIONS.map((exclusion) => exclusion.namespace));
+    for (const namespace of accepted) {
+      assert.ok(
+        merged.has(namespace) || excluded.has(namespace),
+        `learner_state accepts "${namespace}" but the app neither merges nor excludes it, so a row could be written that nothing folds`,
+      );
+    }
   });
 });

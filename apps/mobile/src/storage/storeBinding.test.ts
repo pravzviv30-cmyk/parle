@@ -44,6 +44,8 @@ import { loadHistory, recordSession } from '../progress/store.ts';
 import { loadActivity, recordActivity } from '../progress/activity.ts';
 import { loadTopics, mergeSessionTopics } from '../topics/store.ts';
 import { loadMissionCompletions, recordMissionCompletion } from '../missions/store.ts';
+import { loadScenarioProgress, recordScenarioProgress } from '../missions/progressStore.ts';
+import { loadBookmarks, setBookmark } from '../bookmarks/store.ts';
 import { loadSoundChecks, recordSoundCheck } from '../soundcheck/store.ts';
 import {
   hasSeenTutorIntro,
@@ -188,6 +190,12 @@ const QUEUED_WRITES: readonly QueuedWrite[] = [
   { store: 'progress/store.ts', suffix: 'history', write: () => recordSession(summary('cafe-order'), 5) },
   { store: 'review/store.ts', suffix: 'review', write: () => addPhrases([phrase('Ça marche', 'coming up')]) },
   { store: 'missions/store.ts', suffix: 'missions', write: () => recordMissionCompletion('cafe-order', 2, 5) },
+  {
+    store: 'missions/progressStore.ts',
+    suffix: 'scenarioProgress',
+    write: () => recordScenarioProgress({ missionId: 'cafe-order', at: 5, elapsedMs: 60_000, beatsDone: 2 }),
+  },
+  { store: 'bookmarks/store.ts', suffix: 'bookmarks', write: () => setBookmark('scene:market', true, 5) },
   { store: 'tutor/store.ts', suffix: 'coachMarks', write: () => markCoachMarkSeen('mic') },
   {
     store: 'soundcheck/store.ts',
@@ -507,6 +515,40 @@ const SYNCED_STORES: readonly SyncedStore[] = [
         (await loadMissionCompletions()).map((c) => c.id).sort(),
         ['bakery', 'cafe-order', 'market'],
         'the mission finished during the cycle was written over by the account\'s wins',
+      );
+    },
+  },
+  {
+    namespace: 'scenarioProgress',
+    write: () => recordScenarioProgress({ missionId: 'cafe-order', at: 5, elapsedMs: 60_000, beatsDone: 2 }),
+    merged: { version: 1, records: [{ missionId: 'market', at: 9, elapsedMs: 30_000, beatsDone: 1 }] },
+    read: async () => (await loadScenarioProgress()).map((r) => r.missionId),
+    expected: ['market'],
+    corrupt: { version: 99, records: [] },
+    during: () => recordScenarioProgress({ missionId: 'market', at: 6, elapsedMs: 30_000, beatsDone: 1 }),
+    remote: { version: 1, records: [{ missionId: 'bakery', at: 9, elapsedMs: 12_000, beatsDone: 3 }] },
+    survived: async () => {
+      assert.deepEqual(
+        (await loadScenarioProgress()).map((r) => r.missionId).sort(),
+        ['bakery', 'cafe-order', 'market'],
+        "the scene left during the cycle was written over by the account's records",
+      );
+    },
+  },
+  {
+    namespace: 'bookmarks',
+    write: () => setBookmark('scene:market', true, 5),
+    merged: { version: 1, items: [{ scenarioId: 'scene:merged', at: 9, saved: true }] },
+    read: async () => (await loadBookmarks()).map((item) => item.scenarioId),
+    expected: ['scene:merged'],
+    corrupt: { version: 99, items: [] },
+    during: () => setBookmark('scene:taxi', true, 6),
+    remote: { version: 1, items: [{ scenarioId: 'scene:pharmacy', at: 9, saved: true }] },
+    survived: async () => {
+      assert.deepEqual(
+        (await loadBookmarks()).map((item) => item.scenarioId).sort(),
+        ['scene:market', 'scene:pharmacy', 'scene:taxi'],
+        "the situation saved during the cycle was written over by the account's list",
       );
     },
   },

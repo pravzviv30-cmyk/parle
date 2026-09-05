@@ -33,6 +33,8 @@ import {
   type Rung,
 } from '@luvani/core';
 
+import type { ScenarioRecord } from './progressStore.ts';
+
 /** Shown before the first conversation, and never again. */
 export const PROMISE = "You'll say your first useful French line in the next two minutes.";
 
@@ -178,11 +180,53 @@ export function hasSpokenBefore(activity: readonly { kind: string }[]): boolean 
 }
 
 /**
+ * The mission carrying the newest record the learner has not since finished, or
+ * null when there is no such record.
+ *
+ * "Not since finished" is the same rule `missions/resume.ts` applies to the
+ * minutes line, stated here for the same reason: a record left behind by a race
+ * with `clearScenarioProgress` describes a scene the learner has already walked
+ * out of, and offering to resume it would send them back into a room they
+ * finished. A tie on `at` keeps the first record in the list, which the store
+ * orders deterministically, so the same set always chooses the same mission.
+ */
+function newestLeftMission(
+  progress: readonly MissionProgress[],
+  records: readonly ScenarioRecord[],
+): MissionProgress | null {
+  let best: { at: number; progress: MissionProgress } | null = null;
+  for (const record of records) {
+    const mine = progress.find((p) => p.mission.id === record.missionId);
+    if (mine === undefined) continue;
+    if (mine.lastFinishedAt !== null && record.at <= mine.lastFinishedAt) continue;
+    if (best === null || record.at > best.at) best = { at: record.at, progress: mine };
+  }
+  return best === null ? null : best.progress;
+}
+
+/**
  * The mission the Tutor tab offers to continue, or null when there is nothing
  * to continue. Started but unfinished comes before finished, because that is
  * the one the learner walked away from.
+ *
+ * `records` is where the learner actually left a scene part way, from
+ * `missions/progressStore.ts`, and it wins when it says anything: a projected
+ * state is what the completion log implies, and a record is the learner walking
+ * out of a room mid-sentence. Offering them anything else is the app not paying
+ * attention.
+ *
+ * It stays optional, and the one-argument answer stays exactly what it was.
+ * Two screens still call it that way, and a screen that has not learned to read
+ * the store yet must keep getting the door it has always got rather than a
+ * quietly different one.
  */
-export function resumableMission(progress: readonly MissionProgress[]): MissionProgress | null {
+export function resumableMission(
+  progress: readonly MissionProgress[],
+  records?: readonly ScenarioRecord[],
+): MissionProgress | null {
+  const left = records === undefined ? null : newestLeftMission(progress, records);
+  if (left !== null) return left;
+
   const started = progress.filter((p) => p.state !== 'new');
   return (
     started.find((p) => p.state === 'in-progress') ??

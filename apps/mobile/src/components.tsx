@@ -108,6 +108,80 @@ export function HelpGlyph({ size = 16, color = paper.inkSoft }: { size?: number;
   );
 }
 
+/**
+ * A seedling: a stem and two leaves, the same figure the word-of-the-day scene
+ * draws at full size. Home marks the days it has been used with it, and signs
+ * the bottom of the screen with it.
+ */
+/**
+ * The mark beside the days a learner has been active.
+ *
+ * The founder's mockup draws an emoji flame here. This app has no emoji in it
+ * anywhere, and one would be the first thing on any screen not drawn in the pen
+ * the rest of it uses, at a weight and a palette nothing else shares. So the
+ * flame is drawn: the same shape, the same meaning beside the same number, in
+ * the one stroke weight.
+ *
+ * It is a flame and not a chain. The tile it sits on counts days that have
+ * happened and can only go up, and nothing in this app asks a learner to
+ * protect it, which is what PRODUCT.md refused twice. The picture is warmth,
+ * not debt.
+ */
+export function FlameGlyph({ size = 18, color = signal.correspondance }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
+      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M13 2.6c3.4 3 5 5.8 5 8.6a6 6 0 0 1-12 0c0-1.5.5-2.9 1.6-4.2.3 1.2.9 2 1.8 2.3.5-2.7 1.7-5 3.6-6.7z" />
+        <Path d="M12 20a2.7 2.7 0 0 1-2.7-2.7c0-1.3.9-2.4 2.7-4 1.8 1.6 2.7 2.7 2.7 4A2.7 2.7 0 0 1 12 20z" />
+      </G>
+    </Svg>
+  );
+}
+
+export function SproutGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
+      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M12 21c-.2-5 .1-8 .8-10.4" />
+        <Path d="M12.8 12.6c.4-4 3-6.4 6.8-6.6.2 3.8-2.4 6.4-6.4 6.8z" />
+        <Path d="M11.4 16.4c-.4-3.4-2.6-5.6-6-5.8-.2 3.2 2 5.6 5.6 5.8z" />
+      </G>
+    </Svg>
+  );
+}
+
+/** An outline bookmark. Drawn on the control that saves a situation, not on a saved one. */
+export function BookmarkGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
+      <Path
+        d="M6.4 4.2h11.2v16.2L12 16.6l-5.6 3.8z"
+        fill="none"
+        stroke={color}
+        strokeWidth={STROKE}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * Concentric rings. The mark beside a goal for today, so the number it sits
+ * next to reads as something aimed at rather than something scored.
+ */
+export function TargetGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
+      <G fill="none" stroke={color} strokeWidth={STROKE}>
+        <Circle cx={12} cy={12} r={8.6} />
+        <Circle cx={12} cy={12} r={4.4} />
+        <Circle cx={12} cy={12} r={1.3} fill={color} stroke="none" />
+      </G>
+    </Svg>
+  );
+}
+
 /** A monochrome G in the house line style — no brand-colour asset needed. */
 export function GoogleMark({ size = 20, color = paper.ink }: { size?: number; color?: string }) {
   return (
@@ -190,18 +264,29 @@ export function OutlineButton({
   onPress,
   disabled = false,
   icon,
+  accessibilityLabel,
 }: {
   label: string;
   sub?: string;
   onPress: () => void;
   disabled?: boolean;
   icon?: React.ReactNode;
+  /**
+   * What a screen reader hears, when the word alone names nothing.
+   *
+   * Home's Bookmark button is the case that needed it: "Bookmark" and "Saved"
+   * are states of a control sitting under a heading a blind learner passed
+   * several lines ago, so the button has to carry the situation with it the way
+   * `startLabel` already does for the next-situation pill.
+   */
+  accessibilityLabel?: string;
 }) {
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
+      {...(accessibilityLabel === undefined ? {} : { accessibilityLabel })}
       style={({ pressed }) => [s.outline, pressed && !disabled && { backgroundColor: paper.groundDeep }, disabled && { opacity: 0.45 }]}
     >
       <View style={s.outlineRow}>

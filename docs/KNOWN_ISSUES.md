@@ -5039,8 +5039,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `type.display` in a stylesheet; no tab passes a title into the frame's `header` slot (Practice's slot
   holds only the F154 checking receipt). Tutor's hero moves under its header; Home's empty-state headline
   steps down to `type.title`.
+- note: F406 renamed this test when the founder's mockups moved the rule it names. The behaviour it checks is unchanged or stricter; only the sentence on the front of it moved. See F406.
 - verified-by: `every tab opens with the one tab header and draws no headline of its own`
-- verified-by: `every tab says what it is for in one line, and the line carries no debt and no dash`
+- verified-by: `every tab but Home says what it is for in one line — F406`
 
 ### F337 — Home and Profile draw the initial with the one monogram
 - severity: P1
@@ -5049,7 +5050,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Home keeps its "Your profile" Pressable in the header's `trailing` slot with `<Monogram size={HIT}>`
   inside; Profile draws `<Monogram size={72}>` above the name. `st.avatar` and `st.ring` go, so no tab pairs
   `accent.primary` with `radius.pill` in a style of its own.
-- verified-by: `the learner's initial is drawn one way, on Home and on Profile`
+- note: F406 renamed this test when the founder's mockups moved the rule it names. The behaviour it checks is unchanged or stricter; only the sentence on the front of it moved. See F406.
+- verified-by: `the learner's initial is drawn once, on Profile — F406`
 
 ### F338 — A caps label is violet, or it reports a state in ink
 - severity: P1
@@ -5097,7 +5099,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Home, Tutor and My French close with a pill; Practice's primary is the heavy-ruled next row and
   Profile has no next action. A closing pill on either would be a second or false primary, so the rule is
   pinned as counts rather than forced into presence.
-- verified-by: `a tab carries at most one primary pill, and Practice and Profile carry none`
+- note: F406 renamed this test when the founder's mockups moved the rule it names. The behaviour it checks is unchanged or stricter; only the sentence on the front of it moved. See F406.
+- verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
 
 ### F343 — The device runbook names what a source walk cannot see about the chrome
 - severity: P2
@@ -5157,10 +5160,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   label and the screen-reader sentence; `startLabel` writes "Start <situation>" for the pill and the rows;
   `NEXT_SITUATION` carries Home's exact words for the same card. No score, no number, no banned word, and
   no import of `progress/story.ts`. Sibling of `passport.ts`, shaped like `practice/talkAgain.ts`.
+- note: F406 renamed this test when the founder's mockups moved the rule it names. The behaviour it checks is unchanged or stricter; only the sentence on the front of it moved. See F406.
 - verified-by: `a finished situation offers to refine pronunciation, an unfinished one offers to start`
 - verified-by: `the portfolio's words carry no score, no number and no word that scolds`
 - superseded: Pass 4 (F363) drew one card for both tabs; the test below is F351's and F363's successor.
-- verified-by: `home draws the next situation from portfolio.ts rather than spelling it`
+- verified-by: `the tab that draws the next situation reads its words from portfolio.ts rather than spelling them`
 
 ### F348 — My French draws nothing at zero and closes on the next situation
 - severity: P1
@@ -5208,7 +5212,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   test reads HomeTab.tsx to keep them equal. That is two definitions held together by a test rather than one.
   Home should import `NEXT_SITUATION` and draw `NEXT_SITUATION.label` / `NEXT_SITUATION.action`, and the
   portfolio test should then assert the import rather than the literal. No learner-facing change.
-- verified-by: `home draws the next situation from portfolio.ts rather than spelling it`
+- note: F406 renamed this test when the founder's mockups moved the rule it names. The behaviour it checks is unchanged or stricter; only the sentence on the front of it moved. See F406.
+- verified-by: `the tab that draws the next situation reads its words from portfolio.ts rather than spelling them`
 
 ### F352 — The three onboarding screens sit inside the one frame
 - severity: P1
@@ -5338,9 +5343,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   pill. Home passes PillButton "Start this one" and the "See all situations" ghost; its closing
   `Talk to {tutor}` becomes an OutlineButton. My French passes its pill. Closes F351: the card imports
   NEXT_SITUATION from portfolio.ts and neither tab spells the copy.
-- verified-by: `home draws the next situation from portfolio.ts rather than spelling it`
-- verified-by: `home and my french draw one next-situation card, with the place, the goal and the status — F363`
-- verified-by: `a tab carries at most one primary pill, and Practice and Profile carry none`
+- note: F406 renamed this test when the founder's mockups moved the rule it names. The behaviour it checks is unchanged or stricter; only the sentence on the front of it moved. See F406.
+- verified-by: `the tab that draws the next situation reads its words from portfolio.ts rather than spelling them`
+- verified-by: `my french draws one next-situation card, with the place, the goal and the status — F363`
+- verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
 
 ### F364 — The Tutor tab's three doors are cards that show what is behind them
 - severity: P1
@@ -5351,7 +5357,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   status, pill "Continue". Practical mission: the six MissionDiscs at 40pt as a teaser, the gloss, and the
   pill when there is no resume, otherwise outline "Choose a situation". Talk freely: outline "Start talking".
   SpeakBubbles, the demo card and both ghosts stay. F339's tutor assertion is rewritten for cards.
-- verified-by: `each door is a card that says what is behind it, and exactly one carries the pill — F364`
+- note: F404 and F406 changed two clauses of this and the entry stays closed under the rest. The founder's
+  screenshot took the status pill off the resume card, so the `detail` slot that carried its sentence went
+  with it and what is left of a scene travels as a number instead. And "exactly one carries the pill" MOVED
+  rather than went: `surfaceContract.test.ts` now pins the count per tab, which catches a third pill in a
+  place asserting it from the model could not. The test below is renamed to what it still proves.
+- verified-by: `each door is a card that says what is behind it — F364`
 - verified-by: `the tutor's doors are cards drawn with the app's buttons, not a bespoke card-button — F364`
 - verified-by: `the tutor tab opens its doors without the intro standing in the way`
 
@@ -5362,8 +5373,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: both branches of the next step become PillButton, with the sub line kept beneath as type.small the
   way TutorTab draws its primary door's gloss. The handlers are unchanged. F342's Practice count becomes one
   and F346's assertion becomes "the pill, and only the pill".
+- note: F406 renamed this test when the founder's mockups moved the rule it names. The behaviour it checks is unchanged or stricter; only the sentence on the front of it moved. See F406.
 - verified-by: `the practice headline is the tab's one pill, and it still opens the ruled row's handler — F365`
-- verified-by: `a tab carries at most one primary pill, and Practice and Profile carry none`
+- verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
 
 ### F366 — My French opens on the evidence, and draws nothing at zero
 - severity: P1
@@ -5545,3 +5557,332 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   sees the box with the circle still tappable and no microphone prompt; a slow-pace session's first line is
   short; the ear lights while the tutor sounds; Show/Hide keeps the caret on iOS.
 - verified-by: `the device runbook carries the Pass 4 checks — F381`
+
+### F387 — The greeting is a rule, not a screen
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/home/greeting.ts:1
+- note: the three words in video order, the four timing constants summing to 3750, `greetingIndex(elapsedMs,
+  count)`, `greetingLine(word, firstName)` with the no-name fallback being the bare word (never "you"), and
+  `greetingRest(firstName)` as the Bonjour line. No em dash, no digit, no banned word in any line it returns.
+- verified-by: `the greeting cycles Salut, Bonjour, Hello on a 3.75s clock and rests on Bonjour — F387`
+- verified-by: `a learner who skipped their name is greeted by the word alone — F387`
+
+### F388 — Home's title fades through TabHeader and holds still for reduce motion and screen readers
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/layout.tsx:235
+- note: `TabHeader` gains optional `purpose`, `titleOpacity` and `titleAccessibilityLabel`; with `titleOpacity`
+  it draws `Animated.Text` in `type.display` (no `createAnimatedComponent`, `useNativeDriver: true` on every
+  timing, none of them 380ms). `home/useGreetingRotation.ts` clears its chain when `!focused` or `reduced`,
+  pins opacity to 1 and the word to `greetingRest` under reduce motion, and Home passes a fixed
+  `titleAccessibilityLabel` and no live region. Home's `TabHeader` carries no `purpose`, no `trailing`, no
+  children. `layout.test.ts`'s F306 banned the word `Animated` from the frame outright; the ban narrows to
+  the frame DRIVING movement (`Animated.timing|spring|loop|sequence|stagger|decay`, and `.start(`), which
+  still catches a timer growing in layout.tsx while allowing the two passive uses the fade needs: an
+  `Animated.Value` as a prop type and `Animated.Text` as an element.
+- verified-by: `home opens on the rotating greeting alone, faded inside TabHeader, still under reduce motion, and read once by a screen reader — F388`
+- verified-by: `the screen primitives never drive movement themselves, and never cap font scaling — F388`
+
+### F389 — A word and a situation for every day, authored in core
+- severity: P1
+- status: [x]
+- where: packages/core/src/daily/scenarios.ts:1
+- note: `DAILY_WORDS` (at least 90) and `DAILY_SCENARIOS` (at least 60) with unique ids; every learner-facing
+  string free of em dashes and digits; `openingFr` and `exampleFr` non-empty; `bodyEn` and `titleFr` within
+  `SEED_TOPIC_MAX = 120`; `place` a `MissionPlace`; `seedTopicOf` returns `{ fr: titleFr, en: bodyEn }`. An
+  app-side test runs `guiltIn` over every string, because core cannot import the ban list.
+- verified-by: `the daily pools are large, unique, plain and short enough to ride the seed topic pipe — F389`
+- verified-by: `no daily word or situation says a word Luvani has banned — F389`
+
+### F390 — Today's pick is a function of the day, never a stored choice
+- severity: P1
+- status: [x]
+- where: packages/core/src/daily/pick.ts:1
+- note: `dayIndex('2026-09-04')` is whole days since 1970 via `Date.UTC`; `dailyPick(pool, now)` indexes by
+  `dayIndex(localDayKey(now)) % pool.length`. Same pick at 00:01 and 23:59 local, a different pick the next
+  day, the same pick on a fresh install and an old one, and no `Date.now()` inside.
+- verified-by: `the same local day always picks the same word and situation, and midnight changes both — F390`
+
+### F391 — The word of the day card, with the watering scene
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/home/WordOfDayCard.tsx:1
+- note: `WordSprout` in `illustrations/scenes/sprout.tsx` through `useSceneMotion` (one loop, `paused` prop,
+  spreads `decorative`, stroke 2.2), exported from the barrel and drawn only here. The card reads
+  `dailyPick(DAILY_WORDS, now)` from Home's focus effect, draws the label, the word in the serif, the meaning,
+  the note and the example, and no caption line.
+- verified-by: `home draws the word of the day from core's pool under a paused, decorative sprout scene — F391`
+
+### F392 — Today's situation card starts a spoken session through the tutor's gate
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/home/SituationCard.tsx:1
+- note: label "Today's situation", English title, body, the starting line inset with the place disc, a
+  full-width "Bookmark"/"Saved" outline, and the tab's one `PillButton` "Start oral session". The pill calls
+  `recheck()` then `tutorGate(answered, false)`, navigates `Convo` with `seedTopic: seedTopicOf(scenario)` on
+  go, and draws `TUTOR_OFFLINE.body` with "Check again" on heldBack. No "Listen to accent", no "Immersive
+  audio", no level pill, and the Demo label lives in this card's eyebrow row only when `!live`.
+- verified-by: `home's situation card carries the tab's one pill, opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
+
+### F393 — Bookmarks are a per-item store that can un-save
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/bookmarks/store.ts:1
+- note: `userKey('bookmarks')`, `{ version: 1, items: [{ scenarioId, at, saved }] }`, one item per scenario
+  with the newest `at` winning, cap 200 sorted by `at`, a serialised write chain,
+  `registerSyncAdopter('bookmarks')`, `onUserScopeReset`, the suffix in `USER_KEY_SUFFIXES`, a per-item row in
+  `SYNC_POLICIES` whose merge is commutative and idempotent, and the doc naming it.
+- verified-by: `a bookmark toggled off on one device stays off after the other device's copy folds in — F393`
+
+### F394 — Saved situations surface on My French and are absent at zero
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/bookmarks/view.ts:1
+- note: `bookmarkLabel(saved)`, `savedSituations(items, pool)` (saved only, unknown ids dropped, newest first)
+  and `hasSaved`. My French draws a "Saved situations" card only inside `hasSaved`, each row `titleEn` with a
+  "Start" ghost opening `Convo` with `seedTopicOf`; no copy at zero.
+- verified-by: `saved situations drop unknown ids, read newest first, and draw nothing when none is saved — F394`
+- verified-by: `my french draws saved situations inside hasSaved and starts one through the seed topic — F394`
+
+### F395 — A sitting records how long it took
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/progress/activity.ts:23
+- note: `durationMs?: number` on `ActivityEntry`, accepted by `isEntry` only when finite and non-negative,
+  written by `recordActivity(kind, xp, now, { durationMs })` from ConvoScreen (`openedAtRef` to recap),
+  LessonRoute (`endedAt - startedAt`), ReviewScreen and DrillScreen (mount to bank). Entries with `xp <= 0`
+  still write nothing. Sync identity stays `(at, kind, xp)` and the entry carrying a duration wins the pick.
+- verified-by: `an activity entry carries its duration, an old one without it still reads, and sync keeps the copy that has one — F395`
+- verified-by: `every screen that records activity records how long the sitting took — F395`
+
+### F396 — Momentum is decided in one module and absent at zero
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/progress/momentum.ts:1
+- note: `momentumFrom({ activity, deck, profile, now })`. `days`: distinct local days with an entry, all-time,
+  plus seven booleans for the last seven local days, null with no entries, never lower after a quiet day.
+  `retained`: settled cards and those with `settledAt` in the last seven days, null at zero, the weekly line
+  absent at zero. `goal`: whole spoken minutes today (convo, lesson and drill; review is not speaking) against
+  `dailyGoalOf`, null when unset or at zero minutes. Every string free of digits except the numerals it
+  returns as numbers, no em dash, no banned word, singular at one.
+- verified-by: `a learner with no progress has no momentum block at all — F396`
+- verified-by: `days active only ever rises and a quiet day costs nothing — F396`
+- verified-by: `today's speaking goal is absent without a goal or without minutes, and counts only spoken sittings — F396`
+- verified-by: `momentum copy has no streak, no debt and no dash — F396`
+
+### F397 — A card remembers when it settled
+- severity: P1
+- status: [x]
+- where: packages/core/src/review/scheduler.ts:32
+- note: `settledAt?: number` on `ReviewCard`; `applyGrade` sets it to `now` on the `good` or `easy` grade where
+  `isSettled` goes from false to true, leaves it alone once set, and clears it on `again`. A deck written
+  before this field reads unchanged, and `mergeDecks` carries it with the card.
+- verified-by: `a card records the grade that settled it, once, and forgets it on a lapse — F397`
+
+### F398 — Momentum is drawn in tokens, green for ground covered
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/home/MomentumCards.tsx:1
+- note: two `flex: 1, minWidth: 0` tiles in a row with `gap`, the days tile with the flame the founder kept,
+  the seven marks in TodayRow's grammar (`signal.good` filled, `paper.line` hairline), the retained tile with
+  `MicGlyph color={signal.good}` and the weekly line in `signal.good`; the goal card's bar fill is
+  `signal.good` on `paper.groundDeep` with `accessibilityRole="progressbar"`; every size a `type` token;
+  nothing drawn outside `momentum !== null` gates.
+- verified-by: `home draws momentum only inside its gates, in tokens, with green for ground covered and never the accent on a bar — F398`
+
+### F399 — Next step is a row, and the next-situation card leaves Home for My French
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/home/NextStepRow.tsx:1
+- note: `NEXT_STEP = { label: 'Next step', link: 'View learning path' }` in `portfolio.ts`; Home draws
+  `<NextStepRow` for `suggestedMission`, the link goes to the Practice tab, the row goes to `Missions
+  { focus }`, and Home no longer draws `<NextSituationCard`, the "Talk to" outline, or `SpeakBubbles`. My
+  French still draws the card with its pill. `portfolio.test.ts`'s Home assertions change to say exactly this.
+- verified-by: `home draws the next step as a row from portfolio's words and leaves the next-situation card to my french — F399`
+
+### F400 — The footer note, and the two home cards nothing draws any more
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.tsx:1
+- note: `SproutGlyph` and "No pressure of perfection. Speak at your own pace." closes the scroll.
+  `TodayRow.tsx` and `PhrasebookCard.tsx` are deleted and added to J14's `RETIRED` list; `progress/today.ts`
+  and its tests stay.
+- verified-by: `home closes on the sprout note and imports nothing it does not draw — F400`
+
+### F401 — Where a learner left a scene is a store, cleared by finishing it
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/missions/progressStore.ts:1
+- note: `userKey('scenarioProgress')`, `{ version: 1, records: [{ missionId, at, elapsedMs, beatsDone }] }`,
+  one record per mission with the newest `at` winning, `beatsTotal` never stored, `recordMissionCompletion`
+  clears the record, adopter and reset registered, the suffix listed, a per-item row in `SYNC_POLICIES`, and
+  the doc naming it.
+- verified-by: `a partial scene record replaces its older self, is cleared by the finish, and survives a fold — F401`
+
+### F402 — Leaving a mission mid-way writes the record, and nothing else does
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:584
+- note: in `leaveNow`, only when `missionId` is set, `live.convo` is non-null, `!live.convo.missionDone` and
+  `!stopped`, from `live.convo.beat.position - 1` and the `openedAtRef` set on the first non-null `live.convo`.
+  A free conversation, a finished mission and a safety stop write nothing.
+- verified-by: `the conversation screen writes the partial scene on leave from the beat on the wire, and never for a free talk, a win or a stop — F402`
+
+### F403 — Minutes remaining come from the learner's own pace or not at all
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/missions/resume.ts:1
+- note: `minutesRemaining(record, beatsTotal)` is null with no record, with `beatsDone === 0`, or when the
+  record predates `lastFinishedAt`; otherwise `max(1, ceil(elapsedMs / beatsDone * (beatsTotal - beatsDone) /
+  60000))`. `resumableMission(progress, records)` prefers the mission with the newest live record, then its
+  old rule.
+- verified-by: `minutes remaining is an estimate from the learner's pace, and absent without a pace — F403`
+- verified-by: `the resume door prefers the scene the learner actually left — F403`
+
+### F404 — The tutor's doors carry counts as numbers and words as words
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tutor/gate.ts:98
+- note: `TutorDoor` gains `count: number | null` (missions door, from a `missionCount` argument, so gate.ts
+  stays catalogue-free) and `minutesRemaining: number | null` (resume door); `primary` now means "drawn as the
+  pill" and is true on resume and free, false on missions; the free door reads "Talk about your day" with the
+  body as its gloss; `scenarioCountLine(n)` and `minutesRemainingLine(n)` format the numerals with singulars;
+  `TUTOR_INTRO_LINK` is "How the voice circle works" in both places; `dashboard.ts` gains `tutorHeading(name)`
+  and `TUTOR_PURPOSE`, and `tutorGreeting` is gone. Every prose field on every door stays digit-free.
+- verified-by: `the tutor's doors say their counts as numbers, their words without a digit, and pill the resume and the open conversation — F404`
+- verified-by: `the tutor heading names the tutor and the subline is the screenshot's — F404`
+
+### F405 — The tutor tab is the screenshot, drawn from the door model
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/TutorTab.tsx:128
+- note: header, orb card, Demo card as now; then `doors.map(`: resume with the disc, French title, `goalEn`,
+  the minutes line only when non-null, a full-width `PillButton` "Resume", no status pill and no `EarGlyph`;
+  missions with the count right-aligned, `door.gloss` as the description, and `MISSIONS.map(` rows at
+  `minHeight: HIT` each opening `Missions { focus }`; free with `EveningIn` paused off-focus and a full-width
+  centred `PillButton` "Open conversation" under it, no "Free improvisation". Footer keeps `open(true)`, the
+  intro link with `HelpGlyph`, and `MICROPHONE_NOTICE`. `doors.map(` and `open(true)` stay so chooserView's
+  guard holds.
+- verified-by: `the tutor tab draws the resume, the missions and the open conversation exactly as the doors say, with rows, one pill per door and no ear — F405`
+
+### F406 — The surface guards are changed on purpose, each with its reason
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/surfaceContract.test.ts:1204
+- note: F342 counts become Home 1, Tutor 2 (one pill per door, no third); the purpose test names Home as the
+  one tab with no purpose line and asserts `purpose=` is absent there and present elsewhere; F337 asserts Home
+  draws no `<Monogram` and Profile still does; J7's scene list gains `WordSprout|EveningIn`; F364 drops the
+  `<OutlineButton` requirement for the doors slice and requires `MISSIONS.map(` and `<MissionDisc` instead;
+  F340, F336, F307, J5, J13 and F341 are unchanged and must still pass on the new files.
+- verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
+- verified-by: `every tab but Home says what it is for in one line — F406`
+- verified-by: `the learner's initial is drawn once, on Profile — F406`
+
+### F407 — DESIGN.md says what Home and Tutor now are
+- severity: P1
+- status: [x]
+- where: DESIGN.md:264
+- note: the Home and Tutor rows, the TabHeader paragraph (purpose optional on Home, a fading title), the
+  one-pill rule rewritten as one pill per door with Tutor named, the French flourish sentence widened to the
+  rotating greeting and the daily situation, `WordSprout` in the scenes table, TodayRow and PhrasebookCard
+  noted as retired, and the green bar rule.
+- verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
+
+### F408 — The storage doc names the two new stores and the duration
+- severity: P1
+- status: [x]
+- where: docs/STATE_AND_STORAGE.md:13
+- note: `bookmarks` and `scenarioProgress` in the stores list with one line each, both under the per-item class
+  in the sync contract, and `activity`'s entry naming `durationMs` as optional and absent on older entries.
+- verified-by: `the storage doc names the two daily stores and the sitting's duration — F408`
+
+### F409 — The two tabs fit a phone at every reading size
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.test.ts:1
+- note: a source-reading test over `tabs/HomeTab.tsx`, `tabs/TutorTab.tsx` and every file under `home/`: both
+  tabs sit on `ScrollScreen bottom="tab"`; no `numberOfLines`, no `maxFontSizeMultiplier`, no `ellipsizeMode`;
+  no fixed `width:` on a `Text` container (discs and glyphs excepted); every tappable row and tile row declares
+  `minHeight: HIT`; side-by-side tiles are `flex: 1` with `minWidth: 0`; no `paddingBottom`; no raw `fontSize`.
+- verified-by: `home and tutor wrap every line, cap no reading size, and keep every row at the touch floor — F409`
+
+### F410 — The device runbook names what a source walk cannot see about this pass
+- severity: P2
+- status: [x]
+- where: docs/DEVICE_VERIFICATION.md:740
+- note: a `## Pass 5 daily home` section, every row `not run`: the greeting fades at the measured timing and
+  holds on Bonjour with reduce motion on; VoiceOver reads one greeting; the Home column at AX5 on an SE-sized
+  phone shows no clipped line and no horizontal scroll; the goal bar announces its value; the Resume and Open
+  conversation pills are reachable one-handed.
+- verified-by: `the device runbook carries the Pass 5 checks — F410`
+
+### F411 — Two new namespaces the database will not accept
+- severity: P1
+- status: [x]
+- where: supabase/migrations/202608220001_luvani_learning.sql:6
+- note: F393 and F401 added `bookmarks` and `scenarioProgress` to `SYNC_POLICIES`, and both merge correctly,
+  but `learner_state.namespace` carries a check constraint listing twelve namespaces and neither is among
+  them. A push of either comes back 400, `sync/engine.ts` files it as `http-error` and retries under backoff:
+  nothing corrupts and nothing on screen changes, but neither namespace ever reaches the account, so a
+  learner's bookmarks and the scene they left half finished stay on one device. A forward-only migration
+  widens the constraint, with the rollback `databaseContract.test.ts` requires, and the limitation comes back
+  out of `docs/STATE_AND_STORAGE.md` once it is deployed.
+- verified-by: `every namespace the sync policy merges is one the database will accept — F411`
+
+### F412 — Days active can fall on the write that prunes the activity log
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/progress/momentum.ts:185
+- note: `daysFrom` counts distinct days in whatever `loadActivity` returns, and `progress/activity.ts` prunes
+  entries older than `KEEP_DAYS` (400) on every `recordActivity`. Entries on day 0 and day 5, then a sitting
+  recorded on day 410: the tile read "2 days" before the write and "1 day" after it, on the very sitting that
+  should have raised it. The module claims "all time" and "Nothing subtracts", and the suite only walks 30
+  days ahead. Say the window honestly rather than keeping a second count: the smaller shape is the comment.
+- verified-by: `days active counts the days the log still holds, and its copy claims nothing older — F412`
+
+### F413 — The Pass 5 runbook tells a device tester to expect no next step on a fresh account
+- severity: P2
+- status: [x]
+- where: docs/DEVICE_VERIFICATION.md:759
+- note: P5-4 reads "shows no momentum tiles, no goal bar and no next step" on a fresh account.
+  `suggestedMission(missionStates([], [], now))` returns `mission:cafe` in state `new`, so Home draws the next
+  step row on day one, which is what a beginner should meet instead of a blank page. A tester following the
+  row would mark a correct build FAIL.
+- verified-by: `the Pass 5 runbook expects the next step row on a fresh account — F413`
+
+### F414 — PRODUCT.md records only the refusal of a days-active tile
+- severity: P2
+- status: [x]
+- where: PRODUCT.md:93
+- note: the brand commitment says the five-tab redesign asked for a days-active streak and the streak was
+  dropped. A "Days active" tile ships now, and the reason it is not the thing that was refused (an all-time
+  set of distinct days, no chain, no loss state, absent at zero) lives only in `momentum.ts` and its suite.
+  The next reader of that commitment, human or agent, will flag the tile as a violation. One paragraph
+  recording the third decision closes it.
+- verified-by: `PRODUCT.md records why days active is not the streak it refused — F414`
+
+### F415 — The voice circle draws its caption on top of the card's own
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/TutorTab.tsx:177
+- note: `VoiceOrb`'s `withCaption` defaults to true, so the orb draws "Tap to talk" in its own caps caption
+  while the card draws "Tap to speak" underneath it. The two overlap, on top of each other, and the result is
+  unreadable. It predates this pass and reached a screenshot the founder drew with one caption on it, which is
+  what noticed. The card owns the words here, because it says two lines and the orb only ever says one.
+- verified-by: `the tutor's circle lets the card do the talking — F415`
+
+### F416 — A frame that never lands leaves the greeting invisible for good
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/home/useGreetingRotation.ts:83
+- note: found by running it, not by reading it. The rotation chained each step off the previous
+  `Animated.timing`'s completion callback, so the whole cycle depended on animation frames arriving. They do
+  not always arrive: a browser freezes them for a hidden tab, and the fade-out had left `opacity` at 0. The
+  header then held a word nobody could see, with no timer pending to bring it back, until the screen was
+  rebuilt. Measured in the running app: `Bonjour, Camille` present in the DOM at computed opacity 0 across
+  two captures seconds apart.
+  The chain moves onto timers alone, which throttle but do not die, and the animation becomes decorative
+  alongside it. A frozen frame can then cost a fade, never the greeting. The teardown also lands opacity back
+  at 1, so no exit can leave it invisible either.
+- verified-by: `the greeting survives a frame that never lands, and no exit leaves it invisible — F416`

@@ -1,0 +1,179 @@
+/**
+ * What the Tutor tab is allowed to decide about its own doors — F405.
+ *
+ * There is no renderer in this suite (docs/TESTING.md), so this reads the
+ * screen, the way `PracticeTab.test.ts` reads its own. The rule it guards is
+ * the one F404 finished pulling into `tutor/gate.ts` and `tutor/dashboard.ts`:
+ * the tab draws the doors, it does not word them and it does not count them.
+ *
+ * Half of this is about what the founder took OFF the screenshot, and a
+ * removal is the one thing a source read holds better than a renderer would:
+ * the orange "In progress" pill, the purple ear beside the resume title and
+ * the "Free improvisation" line under the open conversation are each named
+ * here, so putting one back fails by name rather than by a screenshot nobody
+ * compares. The pill count is here for the same reason — the rule became one
+ * pill per door, which is exactly the kind of loosened rule that drifts into
+ * three.
+ */
+
+import { describe, test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
+
+/** Comments may say anything; only what reaches glass is under test. */
+function stripComments(source: string): string {
+  const noBlocks = source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+  return noBlocks.replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
+}
+
+const SCREEN = stripComments(read('./TutorTab.tsx'));
+const FLAT = SCREEN.replace(/\s+/g, ' ');
+/** The render only, so the ordering checks read JSX and not the state hooks. */
+const RENDER = SCREEN.slice(SCREEN.indexOf('<ScrollScreen'));
+
+/**
+ * The text between two markers, with both proven present.
+ *
+ * The same guard `PracticeTab.test.ts`'s `between` writes: `indexOf` answers -1
+ * for something that is not there, and a slice from -1 is a slice of the wrong
+ * part of the file.
+ */
+function between(text: string, open: string, close: string, why: string): string {
+  const from = text.indexOf(open);
+  assert.notEqual(from, -1, `${why}; \`${open}\` is not there at all`);
+  const to = text.indexOf(close, from + open.length);
+  assert.notEqual(to, -1, `${why}; \`${close}\` is not there at all`);
+  return text.slice(from, to);
+}
+
+/** Where a marker sits in the render, proven present first. */
+function at(marker: string): number {
+  const i = RENDER.indexOf(marker);
+  assert.notEqual(i, -1, `\`${marker}\` is not on the screen at all`);
+  return i;
+}
+
+describe('the tutor tab is the screenshot, drawn from the door model — F405', () => {
+  test('the tutor tab draws the resume, the missions and the open conversation exactly as the doors say, with rows, one pill per door and no ear — F405', () => {
+    // Every word on the page comes from a module that a test can reach. The tab
+    // spells no heading, no purpose line and no notice of its own.
+    const dashboard = FLAT.match(/import \{([^}]*)\} from '\.\.\/tutor\/dashboard\.ts'/);
+    assert.ok(dashboard, 'the tab never imports tutor/dashboard.ts, so it has no header words to draw');
+    for (const name of ['tutorHeading', 'TUTOR_PURPOSE', 'TUTOR_ORB_SUBLINE']) {
+      assert.ok(dashboard[1]!.includes(name), `the tab imports the header module without ${name}`);
+    }
+    const gate = FLAT.match(/import \{([^}]*)\} from '\.\.\/tutor\/gate\.ts'/);
+    assert.ok(gate, 'the tab never imports tutor/gate.ts, so it has no doors to draw');
+    for (const name of ['minutesRemainingLine', 'scenarioCountLine', 'tutorDoors']) {
+      assert.ok(gate[1]!.includes(name), `the tab imports the door module without ${name}`);
+    }
+    assert.match(FLAT, /\{tutorHeading\(tutorName\)\}/, 'the tab writes its own header instead of asking dashboard.ts');
+    assert.match(
+      FLAT,
+      /MICROPHONE_NOTICE/,
+      'the tab makes a second microphone promise instead of the one the chooser already makes',
+    );
+
+    // The count is the catalogue's, handed in rather than counted twice.
+    assert.match(FLAT, /tutorDoors\([\s\S]{0,400}MISSIONS\.length/, 'the doors are asked for without the number of situations');
+
+    // ── the resume door ────────────────────────────────────────────────────
+    const resume = between(RENDER, "door.key === 'resume'", "door.key === 'missions'", 'the resume door is drawn first');
+    assert.match(resume, /<MissionDisc\b/, 'the resume door lost the drawing of the place it resumes');
+    assert.match(resume, /type\.title[\s\S]{0,60}\{door\.title\}/, 'the resume door does not set its French title in the serif');
+    assert.match(resume, /\{door\.gloss\}/, 'the resume door lost the line saying what the scene is');
+    assert.match(
+      resume,
+      /door\.minutesRemaining !== null &&[\s\S]*minutesRemainingLine\(door\.minutesRemaining\)/,
+      'the minutes line is drawn without checking that anything measured it, which is how a null becomes a claim',
+    );
+    assert.match(resume, /<PillButton\s+label=\{door\.action\}/, 'the resume door does not carry the pill the founder asked to be bigger');
+    // What the founder took off this card. Both were drawn in the screenshot
+    // and both are gone: a status pill mid-session is a report card, and the
+    // ear said "audio" beside a title that was never a sound.
+    assert.ok(!SCREEN.includes('<EarGlyph'), 'the purple ear is back on the resume card');
+    assert.ok(!SCREEN.includes('In progress'), 'the orange In progress pill is back on the resume card');
+
+    // ── the guided practice missions door ──────────────────────────────────
+    const missions = between(RENDER, "door.key === 'missions'", "door.key === 'free'", 'the missions door is drawn second');
+    assert.match(missions, /\{door\.label\}/, 'the missions door lost its heading');
+    assert.match(missions, /scenarioCountLine\(door\.count\)/, 'the count is spelled on the screen instead of formatted by gate.ts');
+    assert.match(missions, /\{door\.gloss\}/, 'the missions door lost the description line the founder asked for');
+    assert.match(missions, /MISSIONS\.map\(/, 'the missions door lost its list of rows');
+    assert.match(missions, /<MissionDisc place=\{mission\.place\} size=\{48\}/, 'a row lost its drawing');
+    assert.match(missions, /\{mission\.titleEn\}/, 'a row never says which situation it is');
+    assert.match(missions, /\{mission\.goalEn\}/, 'a row never says what the learner will be able to do');
+    assert.match(missions, /<ArrowRight\b/, 'a row that opens a screen does not say so');
+    assert.match(missions, /style=\{\(\{ pressed \}\) => \[st\.row\b/, 'a row never says it was pressed, so a tap on it looks like nothing');
+    // The floor is in the style, so the claim has to be read there rather than
+    // beside the Pressable that wears it.
+    const rowStyle = between(SCREEN, 'row: {', '}', 'the rows are drawn with a style that is not defined');
+    assert.match(rowStyle, /minHeight: HIT/, 'a row is built under the 44pt touch floor');
+    assert.match(missions, /\{ focus: mission\.id \}/, 'a row opens the chooser without naming the situation it promised');
+    assert.doesNotMatch(missions, /<PillButton\b|<OutlineButton\b/, 'the missions door grew a button; it is a list of rows now');
+
+    // ── the open conversation ──────────────────────────────────────────────
+    const free = between(RENDER, "door.key === 'free'", 'st.quiet', 'the open conversation is drawn last');
+    assert.match(free, /<EveningIn[^/]*paused=/, 'the open conversation loops its drawing while the tab is not looked at');
+    assert.match(free, /<PillButton\s+label=\{door\.action\}/, 'the open conversation lost the button under its drawing');
+    assert.ok(
+      free.indexOf('<EveningIn') < free.indexOf('<PillButton'),
+      'the button sits above the drawing; the founder asked for it centred directly underneath',
+    );
+    assert.ok(!SCREEN.includes('Free improvisation'), 'the Free improvisation line is back under the open conversation');
+
+    // One pill per door, and no third anywhere: the resume and the open
+    // conversation each carry one, the list of rows carries none.
+    const pills = (SCREEN.match(/<PillButton\b/g) ?? []).length;
+    assert.equal(pills, 2, `the tab draws ${pills} pills; one for the resume and one for the open conversation is all there is`);
+
+    // The order the founder drew, read off the render rather than the model.
+    assert.ok(at('<TabHeader') < at('<VoiceOrb'), 'the voice circle sits above the header');
+    assert.ok(at('<VoiceOrb') < at('doors.map('), 'the doors sit above the voice circle');
+    assert.ok(at("door.key === 'resume'") < at("door.key === 'missions'"), 'the missions come before the scene to pick back up');
+    assert.ok(at("door.key === 'missions'") < at("door.key === 'free'"), 'the open conversation is not last');
+
+    // The screen spells no numeral. Both counts travel as numbers and are
+    // worded by the two formatters, so a digit in a string here would be a
+    // second answer to a question gate.ts already answers.
+    const doors = between(RENDER, 'doors.map(', 'st.quiet', 'the tab draws its doors from the model');
+    for (const literal of doors.match(/'[^']*'|"[^"]*"/g) ?? []) {
+      assert.ok(!/\d/.test(literal), `the doors block spells a numeral itself: ${literal}`);
+    }
+
+    // And the quiet footer, which is the only way through for someone who
+    // cannot speak where they are sitting.
+    const quiet = SCREEN.slice(SCREEN.indexOf('st.quiet'));
+    assert.match(quiet, /open\(true\)/, 'the quiet typed door left the foot of the tab');
+    assert.match(quiet, /TUTOR_INTRO_LINK/, 'the way back to the explainer left the foot of the tab');
+    assert.match(quiet, /<HelpGlyph\b/, 'the intro link lost the mark that says it is help');
+    assert.match(quiet, /\{MICROPHONE_NOTICE\}/, 'the microphone promise is decided and never reaches glass');
+  });
+});
+
+/**
+ * The orb and the card were both talking.
+ *
+ * `VoiceOrb` captions itself by default, which is right on the live screen where
+ * it is the only thing on the page. On this card it is not: the card says "Tap
+ * to speak" and a second line under it, and the orb's own caption rendered on
+ * top of both. It looked like a rendering fault and it had been there since the
+ * card was built. The founder's screenshot has one caption on it.
+ */
+describe('the tutor card owns its words — F415', () => {
+  test("the tutor's circle lets the card do the talking — F415", () => {
+    const orbs = FLAT.match(/<VoiceOrb\b[^>]*\/>/g) ?? [];
+    assert.equal(orbs.length, 1, 'the tutor tab draws a number of voice circles other than one');
+    assert.match(
+      orbs[0]!,
+      /withCaption=\{false\}/,
+      'the circle captions itself on a card that already says two lines, and the two land on top of each other',
+    );
+    // And the card still says them, so silencing the orb did not silence the card.
+    assert.match(FLAT, /Tap to speak/, 'the card lost the words the circle was told not to say');
+    assert.match(FLAT, /TUTOR_ORB_SUBLINE/, 'the card lost its second line');
+  });
+});

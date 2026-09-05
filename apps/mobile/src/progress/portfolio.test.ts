@@ -1,12 +1,18 @@
 /**
- * The portfolio — one row's verb, and the words the next situation is named in.
+ * The portfolio — one row's verb, and the words two blocks are named in.
  *
  * Three things are held here, and only the first is about the module in
  * isolation. The second is the same promise every surface under `progress/`
  * makes: no score, no number, no word that scolds. The third is a claim about
- * two screens agreeing — that My French and Home call the next situation by the
- * one name, read straight off HomeTab.tsx so a change there that is not mirrored
- * fails rather than drifts.
+ * the screens agreeing with the module: whichever tab draws the next-situation
+ * card reads its two words from here rather than spelling them, read straight
+ * off the source so a change that is not mirrored fails rather than drifts.
+ *
+ * F399 moved one of those claims. Home no longer draws the next-situation card
+ * at all: its mockup gives that place to today's situation, and what is left of
+ * the next step is a row reading `NEXT_STEP`. So the assertions about Home say
+ * that now, and the ones about My French are untouched, because the card and
+ * its pill did not move.
  *
  * The fixtures go through `missionStates` rather than hand-rolling a
  * `MissionProgress`, the same choice `passport.test.ts` makes and for the same
@@ -20,7 +26,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { missionStates, type MissionProgress } from '@luvani/core';
 
-import { NEXT_SITUATION, SITUATION_ACTION, situationAction, startLabel } from './portfolio.ts';
+import { NEXT_SITUATION, NEXT_STEP, SITUATION_ACTION, situationAction, startLabel } from './portfolio.ts';
 
 /** A fixed clock, because the rule under test never reads one. */
 const NOW = Date.parse('2026-08-22T10:00:00Z');
@@ -60,7 +66,14 @@ describe('the portfolio — a situation row and the next-situation words, decide
     const SCORE = /score|percent|%|\bmark\b/i;
     const SCOLD = /wrong|incorrect|bad|fail|behind|streak/i;
 
-    const constants = [NEXT_SITUATION.label, NEXT_SITUATION.action, SITUATION_ACTION.start, SITUATION_ACTION.refine];
+    const constants = [
+      NEXT_SITUATION.label,
+      NEXT_SITUATION.action,
+      NEXT_STEP.label,
+      NEXT_STEP.link,
+      SITUATION_ACTION.start,
+      SITUATION_ACTION.refine,
+    ];
 
     // Every screen-reader sentence the module can produce, across every
     // situation and both verbs, not only the café fixture above.
@@ -77,15 +90,20 @@ describe('the portfolio — a situation row and the next-situation words, decide
     }
   });
 
-  test('home draws the next situation from portfolio.ts rather than spelling it', () => {
-    // F351. Home used to spell "Next situation" and "Start this one" itself
-    // while this module mirrored the words and a test kept them in step. Now
-    // one card draws the situation for both tabs and reads its words from
-    // here, so neither tab spells them and the two cannot part company.
+  test('the tab that draws the next situation reads its words from portfolio.ts rather than spelling them', () => {
+    // F351. Two tabs used to spell "Next situation" and "Start this one"
+    // themselves while this module mirrored the words and a test kept them in
+    // step. One card draws the situation now and reads its words from here, so
+    // a tab cannot part company with the module.
+    //
+    // F399 left one tab drawing it. Home's mockup gives that place to today's
+    // situation, so the card and its pill are My French's alone, and the pair
+    // of assertions that used to run over both now runs over the one and is
+    // matched by the pair below saying Home does not draw it.
     const home = stripComments(read('../tabs/HomeTab.tsx'));
     const myFrench = stripComments(read('../tabs/MyFrenchTab.tsx'));
     const card = stripComments(read('../home/NextSituationCard.tsx'));
-    for (const [name, source] of [['Home', home], ['My French', myFrench]] as const) {
+    for (const [name, source] of [['My French', myFrench]] as const) {
       assert.ok(source.includes('<NextSituationCard'), `${name} does not draw the shared next-situation card`);
       assert.ok(!source.includes(`'${NEXT_SITUATION.label}'`) && !source.includes(`>${NEXT_SITUATION.label}<`), `${name} still spells "${NEXT_SITUATION.label}" itself`);
       assert.ok(!source.includes(`"${NEXT_SITUATION.action}"`) && !source.includes(`'${NEXT_SITUATION.action}'`), `${name} still spells "${NEXT_SITUATION.action}" itself`);
@@ -94,12 +112,23 @@ describe('the portfolio — a situation row and the next-situation words, decide
     assert.match(card, /NEXT_SITUATION\.label/, 'the card does not read its label from portfolio.ts');
     assert.match(card, /from '\.\.\/progress\/portfolio\.ts'/, 'the card does not import portfolio.ts');
 
+    // Home draws the row instead, and reads both of its words from here too, so
+    // the block that replaced the card is held to the same rule the card was.
+    assert.ok(!home.includes('<NextSituationCard'), 'Home draws the next-situation card again; that card is My French\'s now');
+    assert.ok(!home.includes(`'${NEXT_STEP.label}'`) && !home.includes(`>${NEXT_STEP.label}<`), `Home spells "${NEXT_STEP.label}" itself`);
+    assert.ok(!home.includes(`'${NEXT_STEP.link}'`) && !home.includes(`>${NEXT_STEP.link}<`), `Home spells "${NEXT_STEP.link}" itself`);
+    assert.match(home, /<NextStepRow/, 'Home draws neither the card nor the row, so there is no next step at all');
+    const row = stripComments(read('../home/NextStepRow.tsx'));
+    assert.match(row, /NEXT_STEP\.label/, 'the row does not read its heading from portfolio.ts');
+    assert.match(row, /NEXT_STEP\.link/, 'the row does not read its link from portfolio.ts');
+    assert.match(row, /from '\.\.\/progress\/portfolio\.ts'/, 'the row does not import portfolio.ts');
+
     // F233 keeps a single reader of the weekly story. This module is not it.
     const portfolio = read('./portfolio.ts');
     assert.doesNotMatch(portfolio, /progress\/story\.ts/, 'portfolio.ts must not read the weekly story');
   });
 
-  test('home and my french draw one next-situation card, with the place, the goal and the status — F363', () => {
+  test('my french draws one next-situation card, with the place, the goal and the status — F363', () => {
     // One card, one shape: the situation's drawing on its tint, the French and
     // English titles, the mission's own goal line, and the status line that
     // chooserView.ts decides. The actions come in as children so each tab
@@ -113,11 +142,17 @@ describe('the portfolio — a situation row and the next-situation words, decide
     assert.match(card, /\{children\}/, 'the card draws its own actions instead of taking each tab\'s');
     assert.doesNotMatch(card, /<PillButton|<OutlineButton|<GhostButton/, 'the card carries a button of its own, so a tab could end up with two');
 
-    // Home's pill is now in the card, and its way to the Tutor tab is an
-    // outline; My French's pill is in the card as before. One pill each.
+    // My French's pill is inside the card, and it is that tab's only one.
+    const myFrench = stripComments(read('../tabs/MyFrenchTab.tsx'));
+    assert.match(myFrench, /<NextSituationCard[\s\S]*?<PillButton[\s\S]*?<\/NextSituationCard>/, 'My French\'s pill is not inside the card');
+
+    // F399. Home carries neither the card nor the outline that used to sit
+    // under it: today's situation is its headline and the tutor is a tab away,
+    // so a second door to the same place would be a second primary in disguise.
     const home = stripComments(read('../tabs/HomeTab.tsx'));
-    assert.match(home, /<NextSituationCard[\s\S]*?<PillButton[\s\S]*?<\/NextSituationCard>/, 'Home\'s pill is not inside the card');
-    assert.match(home, /<OutlineButton label=\{`Talk to \$\{tutorNameOf\(profile\)\}`\}/, 'Home\'s way to the tutor is not an outline');
+    assert.ok(!home.includes('<NextSituationCard'), 'the next-situation card is back on Home beside the daily one');
+    assert.ok(!home.includes('Talk to '), 'the outline to the tutor is back on Home');
+    assert.ok(!home.includes('tutorNameOf'), 'Home names the tutor again, which is the Tutor tab\'s to do');
 
     // Every goal line in the catalogue obeys the card's copy rules.
     for (const item of missionStates([], [], NOW)) {
