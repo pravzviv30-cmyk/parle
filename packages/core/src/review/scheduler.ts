@@ -51,7 +51,33 @@ export interface ReviewCard {
   ease: number;
   /** Successful reviews so far. */
   reps: number;
-  /** Times the learner pressed "again". Never shown to the learner. */
+  /**
+   * Times the learner pressed "again".
+   *
+   * This used to say it was never shown to the learner, and from 2026-09-05 it
+   * is shown — in exactly one shape, and the shape is the whole permission.
+   * Home's Recall tile reads right over asked across the deck
+   * (`apps/mobile/src/progress/momentum.ts`), and "asked" is NOT the sum of
+   * `reps + lapses`: it is the sum of `reps - 1` plus the sum of `lapses`, over
+   * non-phoneme cards that have succeeded at least once. The dropped success is
+   * each card's first, which `presentationOf` calls an introduction because the
+   * answer was on screen. Summing `reps` outright read 100% on a learner's first
+   * morning, which is why the shipped fold does not. A lapse reaches the learner
+   * only as one unit inside that denominator, pooled with every other card's.
+   *
+   * Never per card, and never as a count of its own. A number beside a phrase
+   * saying how many times it was missed is a tally of failures handed back to
+   * the person who made them, and a deck that keeps that scoreboard is one a
+   * learner starts avoiding rather than one they open. A share over a hundred
+   * reviews says something different and useful: it describes a habit, which
+   * is a thing that can be acted on, and no single bad afternoon is legible
+   * inside it. That is why the aggregate is allowed out and the raw count is
+   * not — the pooling is the safety, not a formatting choice.
+   *
+   * So a reader may pool this into a deck-wide denominator and divide. It may
+   * not display it, sort or rank by it, colour a card with it, or put it
+   * anywhere a learner can read one card's worth.
+   */
   lapses: number;
   /**
    * What this phrase has been shown to be worth. Monotone counters, and absent

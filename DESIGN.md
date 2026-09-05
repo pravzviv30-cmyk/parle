@@ -163,7 +163,8 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
 | `display` | Fraunces Bold 32 | Screen headline |
 | `title` | Fraunces 24 | Section / card head, big stat (not the tab title, which is `display` in `TabHeader`) |
 | `frenchLg` | Fraunces 28 | The line to say (`fitDisplay()` steps 28 → 24 → 20 by length) |
-| `french` | Fraunces 21 | Inline French — options, cards, chips |
+| `french` | Fraunces 21 | Inline French — options and cards |
+| `frenchSm` | Fraunces 17 | French in a chip — the momentum hero's sample lines, where a real sentence at 21 wraps and stops reading as a chip |
 | `heading` | DM Sans Bold 17 | Screen titles in chrome |
 | `body` / `bodyStrong` | DM Sans 16 | Prose |
 | `small` | DM Sans 13.5 | Secondary lines |
@@ -195,7 +196,10 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
   when live — green means "you speak", matching the voice circle —
   hairline-muted when the tutor holds the floor.
 - **Icons** — authored SVG at the illustration stroke (2.2), ink by default.
-  The Google mark is a monochrome line-art G: no brand-colour asset in v1.
+  The Google mark is a monochrome line-art G: no brand-colour asset in v1. Two
+  icons wear the accent and no more: the replay ear while it is sounding, and
+  **BadgeGlyph**, the tick inside a ring beside Home's mastery figure, where the
+  violet labels the card and reports no state.
 - **TabHeader**: the tab's title block. A `display` title on the left, one plain
   purpose line beneath it in soft ink, and an optional trailing `Monogram` on the
   title row. It mounts as the first child of a tab's scroll body, never in the
@@ -283,7 +287,7 @@ still there. Passing it is one tap and nothing else is asked twice.
 
 | Tab | What it is |
 |---|---|
-| Home | The day, not a summary. A greeting alone at the top, where only the word changes: it rises up out of a fixed slot and the next one comes in behind it, while the learner's name stays exactly where it is; the word of the day under it; today's situation with its starting line, a bookmark and the tab's one pill; daily momentum, each of its three parts absent unless it has something true to say; the next step as a row; a sprout note at the foot. The level, the evidence and the phrasebook moved to My French rather than being drawn twice |
+| Home | The day, not a summary. A greeting alone at the top, where only the word changes: it rises up out of a fixed slot and the next one comes in behind it, while the learner's name stays exactly where it is; the word of the day under it; today's situation with its starting line, a bookmark and the tab's one pill; daily momentum as four cards, there from the first day and worded as a start where a number would be nought: retained phrases with two of the learner's own lines, days active with the week rail, recall over reviews once ten of them are behind it, and today's speaking goal; the next step as a row; a sprout note at the foot. The level, the evidence and the phrasebook moved to My French rather than being drawn twice |
 | Tutor | The tutor by name, the voice circle, then three doors. Resume is a card with the scene's drawing, its French title, what the learner came to do, how long is left of it when their own pace has said, and a full-width pill. Guided practice missions is a heading with the count, one line saying what is behind it, and every situation as its own tappable row. Open conversation is last: a card whose button sits centred under its drawing. The four-page intro that used to stand in front of them is a quiet "How the voice circle works" link here and in Profile |
 | Practice | The next step as the tab's one pill, then the path, the guided lesson, the drill bank, the review deck — plus one topic card per conversation subject, projected live from the deck |
 | My French | An evidence row that is absent at zero (situations handled, lines kept, the level), the notebook, the week, the situations with their stamps, and the same next-situation card Home draws |

@@ -1614,6 +1614,56 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
   });
 
   /**
+   * The same reason as F407, on the sentence the founder's decision of
+   * 2026-09-05 rewrote.
+   *
+   * DESIGN.md described Home's momentum as three tiles that were absent at zero
+   * for as long as that was what shipped. It is four cards now, present from a
+   * learner's first day, and the four names in that sentence are the four the
+   * module exports, read out of `momentum.ts` rather than copied here — a doc
+   * checked against another doc is two documents agreeing about a screen
+   * neither of them has seen.
+   */
+  test('the design doc describes the momentum block as four cards there from the first day — F440', () => {
+    const design = readFileSync(join(ROOT, 'DESIGN.md'), 'utf8');
+    const row = design.split('\n').find((line) => line.startsWith('| Home |'));
+    assert.ok(row, 'DESIGN.md no longer carries a Home row in the tab table');
+
+    // Four, and the source says four: one hero, two half tiles and the goal.
+    const block = named('home/MomentumCards.tsx');
+    const cards = (block.match(/<Card\b/g) ?? []).length;
+    assert.equal(cards, 4, `MomentumCards draws ${cards} cards; the design doc says four`);
+    assert.match(row!, /four cards/, 'DESIGN.md does not say the momentum block is four cards');
+
+    // The overturn itself, in the two phrases PRODUCT.md uses for it, so the
+    // doc cannot drift back to describing a block nobody would meet on day one.
+    assert.match(row!, /there from the first day/, 'DESIGN.md does not record that the momentum block ships on a first run');
+    assert.match(row!, /worded as a start/, 'DESIGN.md does not record that a count at nought is worded as a start');
+    assert.doesNotMatch(row!, /momentum[^|]{0,80}absent at zero/, 'DESIGN.md still says the momentum block is absent at zero, and it ships from day one now');
+
+    // And it names all four cards, in the module's own words. A doc that names
+    // three of them is a doc that will be believed about the fourth.
+    const module = named('progress/momentum.ts');
+    const labelOf = (name: string): string => {
+      const found = new RegExp(`export const ${name} = (?:'([^']*)'|"([^"]*)")`).exec(module);
+      assert.ok(found, `momentum.ts no longer exports ${name}, so this check reads nothing`);
+      return (found![1] ?? found![2])!;
+    };
+    for (const name of ['RETAINED_LABEL', 'DAYS_LABEL', 'MASTERY_LABEL', 'GOAL_TITLE']) {
+      const label = labelOf(name);
+      assert.ok(
+        row!.toLowerCase().includes(label.toLowerCase()),
+        `DESIGN.md's Home row never names "${label}", which is one of the four cards Home draws`,
+      );
+    }
+    // The week rail is drawn and described, and it is a picture rather than a
+    // quota, which is the one part of this block that has ever been mistaken
+    // for one.
+    assert.match(row!, /week rail/, "DESIGN.md does not describe the days card's week rail");
+    assert.match(block, /days\.week\.map\(/, 'the days card no longer draws the week rail the design doc describes');
+  });
+
+  /**
    * A runbook row that asks for the wrong thing is worse than no row: a tester
    * follows it and marks a correct build FAIL. This one did. A beginner DOES
    * meet the next step, with the first situation in it, because
@@ -1623,7 +1673,10 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
   test('the Pass 5 runbook expects the next step row on a fresh account — F413', () => {
     const runbook = readFileSync(join(ROOT, 'docs', 'DEVICE_VERIFICATION.md'), 'utf8');
     const section = runbook.slice(runbook.indexOf('## Pass 5 daily home'));
-    const p54 = section.split('\n').find((l) => l.includes('P5-4'));
+    // The table row, not any line that happens to name it. The prose above the
+    // table explains why this row changed with F432, and reading that sentence
+    // as the row would fail a runbook that is correct.
+    const p54 = section.split('\n').find((l) => /^\|\s*P5-4\b/.test(l));
     assert.ok(p54, 'the Pass 5 runbook has no P5-4 row about a fresh account');
     assert.doesNotMatch(
       p54!,
@@ -1631,12 +1684,20 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
       'the Pass 5 runbook tells a tester a fresh account shows no next step, and Home draws one',
     );
     assert.match(p54!, /next step row/, 'the Pass 5 runbook does not say the next step row is there on day one');
-    // And the screen still agrees: the row is outside every momentum gate.
+    // And the screen still agrees: the row is outside every momentum gate. It
+    // is drawn on its own situation and on nothing else, which is what makes a
+    // first run a page with something on it rather than a blank one.
     const home = named('tabs/HomeTab.tsx');
     assert.match(home, /<NextStepRow\b/, 'Home no longer draws the row the runbook says a beginner meets');
-    assert.doesNotMatch(
+    assert.match(
       home,
-      /hasMomentum\([^)]*\)\s*&&[\s\S]{0,80}<NextStepRow/,
+      /\{nextMission !== null && \(\s*<NextStepRow/,
+      'the next step row is drawn behind some other condition than having a situation to offer',
+    );
+    const gated = home.split('\n').find((l) => l.includes('momentum !== null &&'));
+    assert.ok(gated, 'Home no longer gates the momentum block at all, so this check reads nothing');
+    assert.ok(
+      !gated!.includes('NextStepRow'),
       'the next step row hides behind the momentum gate, so a beginner would meet a blank page',
     );
   });
@@ -1673,7 +1734,7 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
       ['the name holding still while it does', /does not move sideways/],
       ['reduce motion resting the greeting', /reduce motion on/],
       ['a screen reader hearing one greeting', /VoiceOver and TalkBack read one greeting/],
-      ['a fresh account seeing no momentum', /fresh account/],
+      ['a fresh account meeting four momentum cards with start lines in them', /fresh account/],
       ['the gap after a short word', /word-space rather than a hole/],
       ['a drawing that changes with the day', /different drawing appears on a different day/],
     ] as const) {

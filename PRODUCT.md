@@ -98,9 +98,14 @@ Two hard behavioural commitments, both derived from confirmed research:
   the thing that was refused twice. A streak is a chain: it reads yesterday, it
   can be broken, and the product asks you to protect it. This counts the distinct
   days that have an entry, so it only ever rises, a quiet day costs nothing,
-  yesterday is never read, and there is no state a loss could be written into. It
-  is absent entirely until there is one, so a first-run learner never meets a
-  zero. The properties are held by name in `apps/mobile/src/progress/momentum.ts`
+  yesterday is never read, and there is no state a loss could be written into.
+  The tile is present from the first day and worded as a start: where the count
+  would be nought no numeral is drawn at all, the line beside it points forward,
+  and it names no target to fall short of. That is the founder's decision of
+  2026-09-05, overturning an earlier rule that kept the whole block absent until
+  there was a number in it. A learner should be able to see what this app will
+  ever claim about them before it can claim any of it.
+  The properties are held by name in `apps/mobile/src/progress/momentum.ts`
   and its suite, and every word on the tile still has to pass the ban list in
   `apps/mobile/src/copy/guilt.ts`, which is why the word "streak" appears nowhere
   a learner can read it.

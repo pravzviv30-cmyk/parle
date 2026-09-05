@@ -5056,7 +5056,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F338 — A caps label is violet, or it reports a state in ink
 - severity: P1
 - status: [x]
-- where: apps/mobile/src/tabs/HomeTab.tsx:178
+- where: apps/mobile/src/tabs/HomeTab.tsx:193
 - note: `Label` defaults to violet and eighteen section heads override it to faint with no rule. Section
   heads drop the override. Four labels that report a state take `inkSoft` or `ink`. No `<Label` carries
   `inkFaint`. Shares its edits with F330.
@@ -5753,9 +5753,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   absent at zero. `goal`: whole spoken minutes today (convo, lesson and drill; review is not speaking) against
   `dailyGoalOf`, null when unset or at zero minutes. Every string free of digits except the numerals it
   returns as numbers, no em dash, no banned word, singular at one.
-- verified-by: `a learner with no progress has no momentum block at all — F396`
+  **The absent-at-zero half of this was overturned by the founder on 2026-09-05 and is now F432.** The block
+  is present from a learner's first day and worded as a start, so the zero test that this entry named is
+  replaced by F432's, and the goal test is retitled to F435's. The three properties that made the days count
+  legal did not move: it only ever rises, it reads no yesterday, and there is no state a loss could be
+  written into. The two tests below are the ones this entry still owns, under their unchanged titles.
 - verified-by: `days active only ever rises and a quiet day costs nothing — F396`
-- verified-by: `today's speaking goal is absent without a goal or without minutes, and counts only spoken sittings — F396`
 - verified-by: `momentum copy has no streak, no debt and no dash — F396`
 
 ### F397 — A card remembers when it settled
@@ -5776,7 +5779,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `MicGlyph color={signal.good}` and the weekly line in `signal.good`; the goal card's bar fill is
   `signal.good` on `paper.groundDeep` with `accessibilityRole="progressbar"`; every size a `type` token;
   nothing drawn outside `momentum !== null` gates.
-- verified-by: `home draws momentum only inside its gates, in tokens, with green for ground covered and never the accent on a bar — F398`
+  **Amended by F436 on 2026-09-05.** The block is four cards now and the part-level gates went with the
+  founder's overturn of absent-at-zero, so this entry's test is retitled rather than dropped: the colour
+  grammar, the token rule and the score refusal it existed for are all still asserted, and more strictly.
+  The gate moved down a level, from the part to the field.
+- verified-by: `home draws the four momentum cards in tokens, green for ground covered, the accent once on the badge and never on a bar — F436`
 
 ### F399 — Next step is a row, and the next-situation card leaves Home for My French
 - severity: P1
@@ -6145,3 +6152,162 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   width changes by exactly that difference while the transform returns to zero, so the name travels
   continuously and lands tight. The header still starts nothing.
 - verified-by: `the greeting word hugs the name, and the name travels with the swipe rather than jumping — F427`
+
+### F432 — Momentum is present from the first day and worded as a start
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/progress/momentum.ts:1
+- note: owner progress-retention-engineer. Founder's decision of 2026-09-05, overturning F396's
+  absent-at-zero rule openly. `Momentum` becomes `{ retained, days, mastery, goal }`, none null;
+  `hasMomentum` is deleted. Where a number would be nought the `count`/`percentLabel` field is null
+  and the `words` field carries `DAYS_START`, `RETAINED_START`, `MASTERY_EARLY` or, on the goal card,
+  `GOAL_START`; the week rail is seven false marks. The days count keeps every F396 property:
+  distinct local days in the log the module names by `KEEP_DAYS`, monotone, no chain, no loss field,
+  never the words "all-time". Every string clears `guiltIn` and carries no em dash.
+- verified-by: `a learner with no progress meets all four cards, worded as a start — F432`
+- verified-by: `days active only ever rises and a quiet day costs nothing — F396`
+- verified-by: `momentum copy has no streak, no debt and no dash — F396`
+
+### F433 — Retained phrases are the ones said in conversation, with two chips and a week pill dated by arrival
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/progress/momentum.ts:410
+- note: owner progress-retention-engineer. `retainedFrom` counts non-phoneme cards with
+  `evidenceOf(card).convoUses >= 1`, never the settled count, and never reads `settledAt`. `thisWeek`
+  is the counted cards whose `addedAt` is within the last seven local days, null at zero; `weekLine`
+  is `'+N this week'`. Chips: sort by `convoUses` desc, `addedAt` desc, `id` asc; take
+  `RETAINED_CHIPS = 2` fronts; `moreLine` `'+N more'` for the rest, null when none. At one: one chip,
+  singular words, no more line. `foot` is `RETAINED_FOOT` and `link` is `RETAINED_LINK`, both null at
+  zero. A deck with no `evidence` block, or a null one, reads as zero without throwing.
+- verified-by: `retained phrases are the ones used in conversation, with two chips, a more line and a week pill dated by arrival — F433`
+
+### F434 — Recall is right over asked, each card's introduction dropped, withheld under ten
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/progress/momentum.ts:455
+- note: owner progress-retention-engineer. Over non-phoneme cards with `reps >= 1`,
+  `right` is the sum of `reps - 1` and `asked` is `right` plus the sum of `lapses`;
+  `percent = floor(100 * right / asked)`, null when `asked` is 0 or below
+  `MIN_REVIEWS_FOR_RECALL` (10), and then `words = MASTERY_EARLY` and `line` null. At or above:
+  `percentLabel` `'88%'`, `line` from `MASTERY_LINES` by `RECALL_STEADY = 90` and
+  `RECALL_SETTLING = 75`.
+  The `- 1` is the correction the learning-science engineer found and the founder approved on
+  2026-09-05, and it is the whole point of the entry. `presentationOf` calls a card's first sitting
+  an introduction: the answer was on screen. The contract's first formula summed `reps` outright, so
+  ten fresh cards all graded good read **100% recall** on a learner's first day, which is exactly
+  what withholding was meant to prevent. Flooring does not touch a genuine ten out of ten, and a
+  floor counted in total grades counts the very grades it should exclude. Dropping each card's one
+  guaranteed introduction win needs no `evidence` field, so every existing deck is grandfathered: a
+  first sitting returns null, a mature deck returns a figure at once. Residual error is in the modest
+  direction — lapses before a card's first success stay in the denominator and cannot be told apart.
+  Known quirk to state in the header rather than hide: a wide shallow deck whose every card was
+  reviewed exactly once reads as withheld, which is true and can still look odd.
+  The tile is labelled `'Recall'`, not `'Mastery'` — `isMastered` in core already means three
+  unprompted conversation uses, and Home may not disagree with My French about the word.
+  Lapses leave the module only inside the `asked` aggregate, never per card and never as a number of
+  their own; the `scheduler.ts` comment on `lapses` is updated to say so.
+- verified-by: `mastery is right over asked across the deck, withheld under ten reviews, and banded in three warm lines — F434`
+
+### F435 — Today's speaking goal is present without a promise and at zero minutes
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/progress/momentum.ts:517
+- note: owner progress-retention-engineer. `goalFrom` always returns a card. No target: `target`,
+  `amount`, `remaining`, `percentLabel` null, `percent` 0, `note` is `DAILY_GOAL_UNSET` imported from
+  `profile/dailyGoal.ts`. Target and zero minutes: `amount` `'10 min'`, `percentLabel` null, `note`
+  `GOAL_UNTIMED` when a spoken entry today carries no `durationMs`, else `GOAL_START`. Review
+  minutes, yesterday's minutes and under a whole minute all read as zero. From one minute up the card
+  is as F396 left it: `'6 / 10 min'`, the remaining line, `'60%'`, `GOAL_MET` at the promise.
+- verified-by: `today's speaking goal is present from day one, carries the profile's own unset line, and counts only timed spoken sittings — F435`
+
+### F436 — MomentumCards draws the four cards in tokens, the accent once on the badge
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/home/MomentumCards.tsx:1
+- note: owner frontend-engineer. Props `{ momentum, onReviewPhrases }`. Hero: `MicGlyph` in
+  `signal.good` on a `paper.groundDeep` well sized by a named constant, `label`, `sub`, the week pill
+  (`paper.ground` fill, `gain` style), the count row gated on `retained.count !== null`,
+  `chips.map`, `moreLine`, a hairline, `foot` and `<GhostButton label={retained.link}`. Tiles keep
+  `tiles`/`tile` names with `flex: 1, minWidth: 0`; days tile unchanged in drawing; mastery tile
+  draws `<BadgeGlyph color={accent.primary} />`, `percentLabel`, `words`, `line` in `signal.good`.
+  Goal: `amount` gated, track inside `goal.target !== null`, `accessibilityValue` text
+  `goal.percentLabel ?? goal.note`, `fill` in `signal.good`. `accent.` exactly once and never in the
+  stylesheet; no `hasMomentum`, no `return null`, no `Math.`, `toFixed`, `.length`, `<PillButton`,
+  `numberOfLines`, raw `fontSize`, numeric `width`, `paddingBottom`; imports only `type Momentum`.
+- verified-by: `home draws the four momentum cards in tokens, green for ground covered, the accent once on the badge and never on a bar — F436`
+- verified-by: `home and tutor wrap every line, cap no reading size, and keep every row at the touch floor — F409`
+
+### F437 — A badge glyph for the mastery tile
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/components.tsx:194
+- note: owner design-system-engineer. `BadgeGlyph({ size = 18, color = paper.ink })`: a circle at
+  `STROKE` with a tick inside, decorative, exported beside `TargetGlyph`, drawn by
+  `MomentumCards.tsx` and nowhere else. No fill but the stroke colour, no second colour, no
+  animation.
+- verified-by: `every drawing in the app is hidden from assistive technology`
+- verified-by: `home draws the four momentum cards in tokens, green for ground covered, the accent once on the badge and never on a bar — F436`
+
+### F438 — Home wires the phrase bank link and tells the truth in its header
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.tsx:178
+- note: owner frontend-engineer. `{momentum !== null && <MomentumCards momentum={momentum}
+  onReviewPhrases={() => nav.navigate('Review')} />}`, the same door Practice's pill opens;
+  `momentumFrom({ activity, deck, profile, now })` unchanged; `<NextStepRow` stays outside every
+  momentum gate. `momentum !== null` stays because null means not loaded yet, and without it a
+  returning learner meets the start lines for a frame before their own numbers arrive. The header's
+  "What is deliberately absent" paragraph stops claiming every count is absent at zero and names the
+  one percentage Home now shows, recall over reviews, and the date it was decided.
+- verified-by: `home wires the phrase bank link to the review deck and keeps the next step outside every momentum gate — F438`
+- verified-by: `the Pass 5 runbook expects the next step row on a fresh account — F413`
+
+### F439 — The guards and the closed entries change on purpose, each with the founder's reason
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.test.ts:351
+- note: owner frontend-engineer for `tabs/`, `surfaceContract.test.ts` and `copy/guilt.test.ts`;
+  progress-retention-engineer for `momentum.test.ts`. F398's test is retitled to F436's and amended:
+  `hasMomentum` and `return null` refused, no part-level null gate, the field-level gates required,
+  eighteen drawn fields, multiword spelled list, `accent.` once on the badge and never in the
+  stylesheet, the `?? goal.note` accessibility line, the score list kept, `Math.`/`toFixed`/`.length`
+  refused. F396's four tests: zero test replaced by F432's, retained and goal tests retitled to F433
+  and F435, days and copy tests keep their titles, and the file header records the overturn. F414's
+  body swaps `/absent entirely until there is one/` for `/present from the first day/` and
+  `/worded as a start/`. F410's descriptor string is reworded, pattern unchanged. The closed F396 and
+  F398 entries have their `verified-by` lines retitled to follow, and F396's note records the
+  overturn and the date.
+- verified-by: `a learner with no progress meets all four cards, worded as a start — F432`
+- verified-by: `home draws the four momentum cards in tokens, green for ground covered, the accent once on the badge and never on a bar — F436`
+- verified-by: `PRODUCT.md records why days active is not the streak it refused — F414`
+- verified-by: `the device runbook carries the Pass 5 checks — F410`
+
+### F440 — The docs say what the block now is
+- severity: P1
+- status: [x]
+- where: PRODUCT.md:102
+- note: owner frontend-engineer for PRODUCT.md and the runbook, design-system-engineer for
+  DESIGN.md, learning-science-engineer for the `scheduler.ts` comment. PRODUCT.md's sentence becomes
+  the present-from-the-first-day one, matching `/present from the first day/` and
+  `/worded as a start/`. DESIGN.md's Home row describes four cards there from the first day. P5-4 and
+  P5-5 are rewritten, eleven rows, all `not run`, `fresh account` and `next step row` still present,
+  `no next step` absent. `scheduler.ts` says lapses are shown only in aggregate on Home.
+- verified-by: `PRODUCT.md records why days active is not the streak it refused — F414`
+- verified-by: `the design doc describes the momentum block as four cards there from the first day — F440`
+- verified-by: `the device runbook carries the Pass 5 checks — F410`
+
+### F441 — The scheduler's lapses comment described the recall formula decision 7 replaced
+- severity: P2
+- status: [x]
+- where: packages/core/src/review/scheduler.ts:60
+- note: found by work-judge after the round was otherwise green. The comment beside `lapses` was
+  written for the contract's first formula and said "asked" is the sum of `reps + lapses` over every
+  card in the deck. The shipped fold is the sum of `reps - 1` plus the sum of `lapses`, over
+  non-phoneme cards with `reps >= 1` — the difference is the whole of decision 7, because summing
+  `reps` outright read a hundred per cent on a learner's first morning. A comment in `packages/core`
+  teaching the discarded arithmetic is worse than none, since the next reader trusts core over the
+  fold. The permission the comment sets (aggregate only, never per card) was right and is kept
+  word for word. Swept the pre-build `where:` lines on F433, F434, F435, F437 and F438 in the same
+  pass, and corrected two headers that claimed no line on the block asks anybody for anything: the
+  goal card's zero state carries `DAILY_GOAL_UNSET`, "Pick a daily promise", which does ask.
+- verified-by: `the scheduler's lapses comment states the recall formula momentum actually uses — F441`

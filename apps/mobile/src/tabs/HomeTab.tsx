@@ -9,14 +9,14 @@
  *   2. the word of the day, pitched at the learner's level, under the day's
  *      drawing;
  *   3. today's situation, and the one way into a spoken conversation;
- *   4. daily momentum, when there is any;
+ *   4. daily momentum, four cards, there from the first day;
  *   5. the next step, as a row;
  *   6. the sprout note.
  *
  * Nothing on this screen decides anything. The greeting is `home/greeting.ts`
  * and `home/useGreetingRotation.ts`, the two daily cards are `dailyPick` over
- * core's pools, the three counts are `progress/momentum.ts`, the next situation
- * is core's `suggestedMission`, the two next-step words are
+ * core's pools, the four momentum cards are `progress/momentum.ts`, the next
+ * situation is core's `suggestedMission`, the two next-step words are
  * `progress/portfolio.ts`, which of the twenty drawings today gets is
  * `home/wordScenes.ts` and `home/WordScene.tsx`, and whether a start starts
  * anything is `tutor/gate.ts`. There is no renderer in this workspace, so a
@@ -27,10 +27,24 @@
  *
  * A streak, still: PRODUCT.md calls it a guilt mechanic implicated in
  * intermediate-plateau churn, and "Days active" is built so that it cannot
- * become one (see `momentum.ts`). A score, a percentage of anything spoken, and
- * a red bar: none of the three exists here. And every count at zero, which is
- * the harder promise. A learner on their first run meets the greeting, a word,
- * a situation, a way in and a kind line. Not one empty rail, not one nudge.
+ * become one (see `momentum.ts`). A score of the learner, a mark out of ten and
+ * a red bar: none of the three exists here.
+ *
+ * One percentage does. Home shows how much of the review deck comes back when
+ * it is asked for, as "Recall", and only once ten real reviews are behind it;
+ * it is a fact about a deck rather than a verdict on a person, and below that
+ * floor it is withheld rather than guessed. Nothing on this page scores how
+ * well anything was pronounced or spoken.
+ *
+ * What is no longer absent is the block itself. Until 2026-09-05 the four
+ * counts were held back entirely until one of them was real, so a first-run
+ * learner met no tile at all. The founder overturned that: the four cards ship
+ * from day one so a learner can see what this app will ever claim about them,
+ * and where a count would be nought the numeral is simply not drawn and
+ * `momentum.ts`'s own start line stands in its place. No empty rail names a
+ * target. The one line that asks for anything is the goal card's, and it asks
+ * for a promise rather than for work: with no daily goal set it carries
+ * Profile's own `DAILY_GOAL_UNSET`, "Pick a daily promise".
  *
  * ## One clock, one day
  *
@@ -173,9 +187,12 @@ export function HomeTab() {
           />
         )}
 
-        {/* Absent at zero, in three independent pieces. Not a zero, not an
-            empty state, not a nudge. */}
-        {momentum !== null && <MomentumCards momentum={momentum} />}
+        {/* Null here means the storage read has not answered yet, not that
+            there is nothing to say. Without this gate a learner who has been
+            practising for months would meet the four start lines for a frame
+            before their own numbers arrived, which is the app appearing to
+            forget them. */}
+        {momentum !== null && <MomentumCards momentum={momentum} onReviewPhrases={() => nav.navigate('Review')} />}
 
         {nextMission !== null && (
           <NextStepRow

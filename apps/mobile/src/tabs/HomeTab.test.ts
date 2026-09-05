@@ -1,6 +1,14 @@
 /**
- * What Home is allowed to decide, draw and leave out — F420, F391, F392, F398,
- * F399, F400 and F409.
+ * What Home is allowed to decide, draw and leave out — F420, F391, F392, F436,
+ * F438, F399, F400 and F409.
+ *
+ * F436 is F398 amended rather than replaced. F398 held the momentum block to
+ * "absent until there is something true to say"; on 2026-09-05 the founder
+ * overturned that and the four cards ship from the learner's first day, worded
+ * as a start. What did not move is the reason F398 existed: the block still
+ * writes none of its own words, still says nothing at zero that names a target,
+ * still scores nobody, and still keeps the violet off every bar and mark. Those
+ * assertions are stricter here than they were, not looser.
  *
  * There is no renderer in this suite (docs/TESTING.md), so this reads the
  * screen, the way `PracticeTab.test.ts` and `MyFrenchTab.test.ts` do, and with
@@ -41,7 +49,17 @@ function stripComments(source: string): string {
 /** One line, so a regex about an expression reads code and not the wrapping. */
 const flat = (body: string): string => body.replace(/\s+/g, ' ');
 
-const SCREEN = stripComments(read('./HomeTab.tsx'));
+/**
+ * Home with its comments, for the one assertion that is about a comment.
+ *
+ * Everything else here reads the stripped file, because a comment cannot reach
+ * glass. The exception is the file header: it is the only record of which rules
+ * this screen is keeping and which the founder overturned, and a header that
+ * describes the screen a file used to draw is what the next change gets built
+ * from.
+ */
+const SCREEN_RAW = read('./HomeTab.tsx');
+const SCREEN = stripComments(SCREEN_RAW);
 const FLAT = flat(SCREEN);
 /** The render only, so the ordering checks read JSX and not the state hooks. */
 const RENDER = SCREEN.slice(SCREEN.indexOf('<ScrollScreen'));
@@ -347,41 +365,86 @@ describe('Home opens on the day rather than on a summary — F420, F391, F392', 
   });
 });
 
-describe('Home draws momentum and the next step, or neither — F398, F399', () => {
-  test('home draws momentum only inside its gates, in tokens, with green for ground covered and never the accent on a bar — F398', () => {
-    // The block is absent until there is something true to say, and each of its
-    // three parts is absent on its own. A rail of empty marks is a quota, and a
-    // quota you have not met is guilt wearing a different hat.
-    assert.match(FLAT, /\{momentum !== null && <MomentumCards momentum=\{momentum\} \/>\}/, 'Home draws the momentum block with nothing holding it back');
-    assert.match(FLAT, /momentumFrom\(\{ activity, deck, profile, now \}\)/, 'the three counts are not folded by the one module that owns them');
-    assert.match(flat(MOMENTUM), /if \(!hasMomentum\(momentum\)\) return null;/, 'the block draws itself with no momentum at all');
-    for (const part of ['days', 'retained', 'goal']) {
-      assert.ok(MOMENTUM.includes(`${part} !== null &&`), `the ${part} tile is drawn outside its own null gate`);
+describe('Home draws the four momentum cards and the next step — F436, F399, F438', () => {
+  test('home draws the four momentum cards in tokens, green for ground covered, the accent once on the badge and never on a bar — F436', () => {
+    // The block is there from the learner's first day (founder, 2026-09-05).
+    // The gate on Home is about the storage read, not about having anything to
+    // say: `momentum` is null only until the deck and the log answer, and
+    // dropping it would show a returning learner the four start lines for a
+    // frame before their own numbers arrived.
+    assert.match(FLAT, /\{momentum !== null && <MomentumCards momentum=\{momentum\} onReviewPhrases=\{\(\) => nav\.navigate\('Review'\)\} \/>\}/, 'Home draws the momentum block with nothing holding it back, or with no way to the phrase bank');
+    assert.match(FLAT, /momentumFrom\(\{ activity, deck, profile, now \}\)/, 'the four counts are not folded by the one module that owns them');
+    assert.ok(!MOMENTUM.includes('hasMomentum'), 'the block holds itself back again; the four cards are there from day one');
+    assert.ok(!MOMENTUM.includes('return null'), 'the block draws nothing at all in some branch; the founder overturned that on 2026-09-05');
+    for (const part of ['days', 'retained', 'mastery', 'goal']) {
+      assert.ok(!MOMENTUM.includes(`${part} !== null &&`), `the ${part} card is held behind a gate of its own; all four are always drawn`);
+    }
+
+    // The refusal moved down a level rather than going. Every numeral is drawn
+    // only where the field beside it is non-null, so a count is never a nought
+    // and the module's start line stands in its place.
+    const gates = [
+      'days.count', 'retained.count', 'retained.weekLine', 'retained.moreLine', 'retained.foot',
+      'retained.link', 'mastery.percentLabel', 'mastery.line', 'goal.amount', 'goal.target',
+      'goal.percentLabel',
+    ];
+    for (const gate of gates) {
+      assert.ok(MOMENTUM.includes(`${gate} !== null &&`), `${gate} is drawn without being checked, so a nought or an empty line can reach the card`);
     }
 
     // Not one of the words is written here. `momentum.ts` decides every label,
-    // every unit and every line, and a tile that spelled its own could say
-    // "Days active" over a number counting something else.
+    // every line and every start line, and a tile that spelled its own could
+    // say "Days active" over a number counting something else.
     const fields = [
-      'days.label', 'days.unit', 'days.count',
-      'retained.label', 'retained.unit', 'retained.count', 'retained.weekLine',
+      'days.label', 'days.count', 'days.words',
+      'retained.label', 'retained.sub', 'retained.count', 'retained.words',
+      'retained.weekLine', 'retained.moreLine', 'retained.foot',
+      'mastery.label', 'mastery.percentLabel', 'mastery.words', 'mastery.line',
       'goal.title', 'goal.amount', 'goal.note', 'goal.percentLabel',
     ];
     for (const field of fields) {
       assert.ok(MOMENTUM.includes(`{${field}}`), `the block does not draw ${field}, so something else is saying it`);
     }
-    for (const spelled of ['Days active', 'Retained', "Today's speaking goal", 'this week', 'daily cadence', 'phrases']) {
+    assert.ok(MOMENTUM.includes('retained.chips.map('), "the hero draws none of the learner's own lines");
+    assert.ok(MOMENTUM.includes('label={retained.link}'), 'the way to the phrase bank spells its own word');
+    // Multiword, because the fields are named `retained`, `mastery` and `words`
+    // now and a one-word ban would trip on an identifier rather than on copy.
+    // This is a substring sweep: no style name in the file may contain one.
+    for (const spelled of [
+      'Days active', 'Retained phrases', "Today's speaking goal", 'this week', 'daily cadence',
+      'spoken naturally', 'Active vocabulary', 'Review phrase bank', 'land here', 'Takes shape',
+      'Settling in', 'of reviews',
+    ]) {
       assert.ok(!MOMENTUM.includes(spelled), `the block spells "${spelled}" itself; that word is momentum.ts's`);
     }
 
-    // Green means ground already covered, here as everywhere. The accent is
-    // identity and never reports a state, so it is not in this file at all.
+    // And it works nothing out either. Every number arrived decided; a second
+    // opinion about one is how two halves of a card come to disagree.
+    for (const worked of ['Math.', 'toFixed', '.length']) {
+      assert.ok(!MOMENTUM.includes(worked), `the block computes with ${worked}; momentum.ts owns every number on it`);
+    }
+
+    // Green means ground already covered, here as everywhere.
     assert.match(style(MOMENTUM, 'fill'), /backgroundColor: signal\.good/, 'the goal bar is not filled in the green that means the learner produced French');
     assert.match(style(MOMENTUM, 'markDone'), /backgroundColor: signal\.good/, 'a day that happened is not a filled green mark');
     assert.match(style(MOMENTUM, 'gain'), /color: signal\.good/, "the week's gain is not set in green");
-    assert.ok(!MOMENTUM.includes('accent.'), 'the accent reached the momentum block; violet is identity, not a state');
     assert.ok(!MOMENTUM.includes('signal.live'), "the tutor's red reached a block about the learner");
     assert.ok(!MOMENTUM.includes('rungColor'), 'a rung colour reached the signal set, so a state could read as a rung');
+
+    // The violet appears once on the whole block, on the badge beside the
+    // recall figure, where it labels a card and reports nothing. It is not a
+    // fill, a bar or a mark, so it is not in the stylesheet at all: identity is
+    // the colour of the thing you press, never the colour of a state.
+    assert.equal(
+      (MOMENTUM.match(/accent\./g) ?? []).length,
+      1,
+      'the accent is used more than once in the momentum block; the violet labels one glyph and nothing else',
+    );
+    assert.match(flat(MOMENTUM), /<BadgeGlyph color=\{accent\.primary\} \/>/, 'the one violet is somewhere other than the badge on the recall tile');
+    assert.ok(
+      !MOMENTUM.slice(MOMENTUM.indexOf('StyleSheet.create')).includes('accent.'),
+      'the accent reached the momentum stylesheet; violet is identity, not a fill, a bar or a mark',
+    );
 
     // A day that has not happened is not a state worth signalling, so it is a
     // hairline and not a colour. TodayRow's rule, kept.
@@ -390,19 +453,59 @@ describe('Home draws momentum and the next step, or neither — F398, F399', () 
     assert.match(waiting, /borderColor: paper\.line/, 'the waiting mark is not the hairline');
 
     // The bar says its value out loud, because a bar is a picture and a picture
-    // is not readable by everyone.
+    // is not readable by everyone. At zero minutes the spoken value is the
+    // invitation rather than a nought, because a bar that announces "0%" has
+    // said the one thing the words beside it were written to avoid.
     assert.match(flat(MOMENTUM), /accessibilityRole="progressbar"/, 'the goal bar reaches a screen reader as an unnamed view');
     assert.match(
       flat(MOMENTUM),
-      /accessibilityValue=\{\{ min: 0, max: 100, now: goal\.percent, text: goal\.percentLabel \}\}/,
-      'the bar announces no value',
+      /accessibilityValue=\{\{ min: 0, max: 100, now: goal\.percent, text: goal\.percentLabel \?\? goal\.note \}\}/,
+      'the bar announces no value, or announces a nought where the invitation should be',
     );
 
-    // No score anywhere. A share of a goal the learner set for today is not a
-    // mark out of ten, and nothing here turns it into one.
+    // No score anywhere, and the list is unchanged. The figure on the recall
+    // tile is a share of the deck's own reviews, not a mark out of ten, and
+    // this is what catches it drifting into being one.
     for (const scored of ['score', 'Score', 'accuracy', 'correct']) {
       assert.ok(!MOMENTUM.includes(scored), `the block says ${scored}; nothing on Home scores a learner`);
     }
+    // One primary action on the page, and it is the spoken one. A hero card is
+    // exactly where a second pill would appear.
+    assert.ok(!MOMENTUM.includes('<PillButton'), "the momentum block grew a primary pill; Home's one pill is the spoken session");
+  });
+
+  test('home wires the phrase bank link to the review deck and keeps the next step outside every momentum gate — F438', () => {
+    // The hero's link is the quiet one, and it opens the door Practice's pill
+    // opens. Two surfaces sending a learner to two different decks would be two
+    // answers to one question.
+    assert.match(flat(MOMENTUM), /<GhostButton label=\{retained\.link\} onPress=\{onReviewPhrases\} \/>/, 'the phrase bank link is not the quiet control reading its word from the module');
+    assert.match(FLAT, /onReviewPhrases=\{\(\) => nav\.navigate\('Review'\)\}/, 'the phrase bank link does not open the review deck');
+    const practice = stripComments(read('./PracticeTab.tsx'));
+    assert.match(practice, /nav\.navigate\('Review'\)/, 'Practice no longer opens the review deck, so Home and Practice have drifted apart');
+
+    // The next step is not part of the block and never was. It is drawn for a
+    // learner with nothing behind them, and a gate around it would be a blank
+    // page on a first run.
+    assert.ok(at('<NextStepRow') > at('<MomentumCards'), 'the next step is drawn above the momentum cards');
+    assert.match(
+      SCREEN,
+      /\{nextMission !== null && \(\s*<NextStepRow/,
+      'the next step row is drawn behind some other condition than having a situation to offer',
+    );
+    for (const line of SCREEN.split('\n').filter((l) => l.includes('momentum'))) {
+      assert.ok(
+        !line.includes('NextStepRow'),
+        'the next step row sits inside a momentum gate, so a beginner could meet a page with nothing on it',
+      );
+    }
+
+    // And the header says what the page now does, rather than the rule the
+    // founder overturned. A file whose header describes the screen it used to
+    // draw is a file somebody will build the next change from.
+    const header = SCREEN_RAW.slice(0, SCREEN_RAW.indexOf('*/'));
+    assert.doesNotMatch(header, /every count at zero/, "Home's header still promises no count at zero, and four cards ship from day one now");
+    assert.match(header, /2026-09-05/, 'Home\'s header does not date the decision that put the block on a first run');
+    assert.match(header, /[Rr]ecall/, 'Home\'s header names no percentage, and the page shows one');
   });
 
   test("home draws the next step as a row from portfolio's words and leaves the next-situation card to my french — F399", () => {

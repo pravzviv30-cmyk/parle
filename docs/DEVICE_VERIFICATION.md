@@ -739,15 +739,23 @@ Apple provider configured before P4-2 can be walked at all; until then the row i
 
 ## Pass 5 daily home
 
-The daily-home pass (F387 to F410) is verified statically up to a point: the greeting rule
-is a plain module with its clock injected, the daily pick is a pure function of the day
-key, momentum is absent at zero by construction, and the source walk fails if a tab grows
-a third pill, if a line caps its reading size, or if a row falls under the touch floor.
+The daily-home pass (F387 to F410, extended by F432 to F440) is verified statically up to a
+point: the greeting rule is a plain module with its clock injected, the daily pick is a pure
+function of the day key, every momentum numeral is gated on its own field by construction, and
+the source walk fails if a tab grows a third pill, if a line caps its reading size, or if a row
+falls under the touch floor.
 What no test in this repo can see is a fade at the measured timing, a screen reader meeting
 text that changes every few seconds, a column at the largest reading size on a small phone,
 or whether the two pills can be reached with one thumb. Those are a device's to prove, and
 this is where that pass is recorded. Owner: `frontend-engineer` for the screens,
 `design-system-engineer` for the scene and the contrast, `qa-release-engineer` for running it.
+
+P5-4 changed with F432. The founder decided on 2026-09-05 that the four momentum cards are
+present from the learner's first day, worded as a start, overturning the earlier rule that kept
+them off a fresh account entirely. The row now asks a tester to look at exactly the screen that
+rule was protecting: four cards with no numbers in them. What it is checking is that they read
+as an invitation and not as a scoreboard of noughts, which is the one thing no source walk in
+this repository can answer.
 
 `pass` / `fail` / `not run`. Every row is `not run` until a real device pass is walked.
 
@@ -763,8 +771,8 @@ nobody had looked at is for.
 | P5-1 | Home's greeting word slides up out of its slot and the next one rises in behind it, about every three and a half seconds, and the learner's name does not move sideways by a pixel while it happens | not run | not run |
 | P5-2 | With reduce motion on, the greeting stops on one still word, Bonjour by day and Bonsoir after six, the day's word scene holds its final frame, and nothing on Home is blank | not run | not run |
 | P5-3 | VoiceOver and TalkBack read one greeting on Home and do not announce it again while it cycles; the word of the day drawing is walked past in silence | not run | not run |
-| P5-4 | On a fresh account, Home shows the greeting, the word of the day, today's situation and the next step row offering the first situation, and shows no momentum tiles and no goal bar; after one conversation the momentum tiles and the goal bar appear with real numbers | not run | not run |
-| P5-5 | At iOS AX5 / Android font scale 2.0 on an SE-sized phone, Home and Tutor show no clipped line, no truncated title and no horizontal scroll, and the two momentum tiles stay side by side or stack cleanly | not run | not run |
+| P5-4 | On a fresh account, Home shows the greeting, the word of the day, today's situation, the next step row offering the first situation, and all four momentum cards. Every one of the four carries a start line where a number would be, and not one draws a nought, a percentage, a target or a word asking for anything: the week rail is seven empty marks, the goal card has no bar because no promise has been made, and the phrase bank link is not there yet. After one conversation the counts, the chips, the bar and the link appear with real numbers | not run | not run |
+| P5-5 | At iOS AX5 / Android font scale 2.0 on an SE-sized phone, Home and Tutor show no clipped line, no truncated title and no horizontal scroll; the two momentum tiles stay side by side or stack cleanly, the hero's French chips wrap onto further lines rather than being cut off, and the phrase bank link stays reachable at the touch floor | not run | not run |
 | P5-6 | The speaking goal bar announces its value to a screen reader, and its green reads as progress rather than as the live microphone | not run | not run |
 | P5-7 | Leaving a guided mission part way makes the Tutor resume card offer it back with a minutes line; finishing that mission clears the line | not run | not run |
 | P5-8 | Resume and Open conversation are both reachable one-handed on a large phone, and each is comfortably above the touch floor | not run | not run |

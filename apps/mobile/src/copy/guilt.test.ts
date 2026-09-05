@@ -129,7 +129,14 @@ describe('the brand commitment records what shipped — F414', () => {
       ['that it only ever rises', /only ever rises/],
       ['that it reads no yesterday', /yesterday is never read/],
       ['that it has no loss state', /no state a loss could be written into/],
-      ['that it is absent at zero', /absent entirely until there is one/],
+      // F396 kept the whole block off a first run and PRODUCT.md said so. The
+      // founder overturned that on 2026-09-05, so the commitment now rests on
+      // the wording rather than on the absence: the tile ships from day one and
+      // writes a start line where a nought would have gone. Both halves are
+      // checked, because "present" without "worded as a start" is the version
+      // of this that would be a scoreboard of noughts.
+      ['that it ships on a first run', /present from the first day/],
+      ['that a nought is worded as a start instead', /worded as a start/],
     ] as const) {
       assert.match(product, pattern, `PRODUCT.md does not say ${property}, which is what makes the tile legal`);
     }

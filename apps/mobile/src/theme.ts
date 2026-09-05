@@ -60,8 +60,17 @@ export const type = {
   title: { fontFamily: font.serif, fontSize: 24, lineHeight: 30 },
   /** The French line to say. Sentence case, never caps. */
   frenchLg: { fontFamily: font.serif, fontSize: 28, lineHeight: 36 },
-  /** Inline French content — options, cards, chips. */
+  /** Inline French content — options and cards. */
   french: { fontFamily: font.serif, fontSize: 21, lineHeight: 28 },
+  /**
+   * French in a chip, where the phrase is a sample rather than the thing to
+   * say. Momentum's hero shows two of the learner's own lines beside a count,
+   * and at `french` a real sentence wraps to two lines and the chip stops
+   * being a chip. Nothing is ever clipped to make it fit — no `numberOfLines`
+   * anywhere in this app — so the size is the only lever, and this is the
+   * smallest Fraunces that still reads as the voice rather than the furniture.
+   */
+  frenchSm: { fontFamily: font.serif, fontSize: 17, lineHeight: 23 },
   heading: { fontFamily: font.sansBold, fontSize: 17, lineHeight: 22 },
   body: { fontFamily: font.sans, fontSize: 16, lineHeight: 23 },
   bodyStrong: { fontFamily: font.sansMedium, fontSize: 16, lineHeight: 23 },

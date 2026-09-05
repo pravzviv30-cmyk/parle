@@ -182,6 +182,26 @@ export function TargetGlyph({ size = 18, color = paper.ink }: { size?: number; c
   );
 }
 
+/**
+ * A tick inside a ring. The mark beside how much of the deck is coming back,
+ * drawn as a check and not a medal, because the figure under it is what a
+ * learner remembered rather than a prize somebody handed them.
+ *
+ * Ink by default, so it stays neutral wherever nobody colours it. Home draws it
+ * in the accent beside the mastery figure, where the violet labels the card and
+ * reports no state.
+ */
+export function BadgeGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
+      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
+        <Circle cx={12} cy={12} r={8.6} />
+        <Path d="M8.2 12 11 14.8l4.8-5.6" />
+      </G>
+    </Svg>
+  );
+}
+
 /** A monochrome G in the house line style — no brand-colour asset needed. */
 export function GoogleMark({ size = 20, color = paper.ink }: { size?: number; color?: string }) {
   return (
