@@ -5558,6 +5558,82 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   short; the ear lights while the tutor sounds; Show/Hide keeps the caret on iOS.
 - verified-by: `the device runbook carries the Pass 4 checks — F381`
 
+### F382 — The phone runs the web stand-in of every native module
+- severity: P0
+- status: [x]
+- where: apps/mobile/metro.config.js:1
+- note: every import in the app names its file (`./apple.ts`) so the tests can run under node
+  --experimental-strip-types. Metro applies `.ios.ts` and `.native.ts` only to an extensionless
+  request, so the iOS bundle served to the first native run (the Pass 4 simulator walk, 2026-09-04)
+  carried auth/apple.ts, auth/oauth.ts, live/globals.ts, purchases/adapter.ts, progress/saveFile.ts,
+  speech/removeRecording.ts, storage/attemptAudio.ts and reminders/schedule.ts, and none of their
+  native twins. live/globals.ts is a no-op, so LiveKit's globals were never registered on a phone;
+  auth/apple.ts answers that Apple is never offered, so the door F376 draws never appeared on iOS.
+  metro.config.js now strips a relative source request's extension (metro.platform.cjs) and lets
+  Metro's own resolver choose the platform file, which is what an extensionless import gets.
+- verified-by: `a relative source request loses its extension so Metro can choose the platform file — F382`
+- verified-by: `metro.config.js routes every request through it — F382`
+- verified-by: `every native variant has the web file its extensionless request falls back to — F382`
+
+### F383 — My French draws nothing below its subtitle at the largest text size
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/MyFrenchTab.tsx:131
+- note: seen on the Pass 4 simulator walk (iPhone 17 Pro, iOS 26, text size accessibility XXXL): the
+  header and subtitle render, the situations list and the closing next-situation card do not, and the
+  screen cannot scroll past the subtitle. At the default size the same tab scrolls and shows all of it.
+  Home and Tutor render fully at the same size, so the difference is this tab's own layout: the content
+  sits in a `flexGrow: 1` wrapper inside ScrollScreen where Tutor uses none. A learner at that size loses
+  the whole tab. Filed from the walk, not yet repaired; P4-1 fails on iOS because of it.
+- verified-by: `my french lays its list out the way the other tabs do, with no wrapper that can swallow it — F383`
+
+### F384 — Every job process re-asked the vendors before the tutor could answer
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:455
+- note: the worker runs agent.ts as its entry script; the framework starts each job as a new process
+  from its own entry and imports agent.ts again, so the top-level `preflight()` and
+  `reportVendors(await verifyVendors(...))` ran once per session inside the job child. Standalone the
+  child initialised in two seconds; under the worker on 2026-09-04 the vendor round trips never
+  finished inside the framework's ten-second start-up allowance, every job died with "runner
+  initialization timed out", and every room opened and stayed silent ("Tutor did not answer"). The two
+  checks now run only when this file is the process's entry script. Found on the Pass 4 simulator walk.
+- verified-by: `preflight and the vendor check run only when this file is the entry script — F384`
+
+### F385 — On a phone the tutor's lines vanish behind their own ear
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tutor/Transcript.tsx:106
+- note: F372 put the replay ear in a row with the words and wrapped the words in `flex: 1`. Yoga
+  resolves that to a zero flex basis, and inside a bubble sized by its content there is nothing to
+  grow into, so on the Pass 4 simulator walk every tutor bubble was the width of its ear with no
+  French in it, while the audio played. A browser sizes the row from its content, so the web never
+  showed it. The body is now `flexShrink: 1`, which keeps its content width and still yields to the
+  bubble's maximum.
+- verified-by: `the bubble body shrinks to fit rather than growing from nothing — F385`
+
+### F386 — The recap re-renders itself until React gives up
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/nav/RootNavigator.tsx:234
+- note: seen on the Pass 4 simulator walk (iPhone 17 Pro, iOS 26) the moment the cafe scene's recap
+  appeared: "Maximum update depth exceeded", roughly once a second, for as long as the recap stayed
+  open. The chain: ConvoScreen's recap effect (:419) keeps `onRecap` in its dependencies and calls it
+  as soon as a recap exists; the navigator passed an inline arrow, so it was a new identity on every
+  render; the handler writes the learner model through `updateBrain`, which re-renders the navigator,
+  which makes another identity. The recap itself is fine, and `recap`, `practice` and `drills` are
+  plain state whose identities are stable, which is why nothing else looped. The handler is now a
+  useCallback over the context's own stable `updateBrain`.
+- note: the first version of this fix put that useCallback BELOW ConvoRoute's three early returns,
+  which traded the loop for a crash: a mission route renders Loading on its first pass, so the hook
+  was reached only on the second and React threw "Rendered more hooks than during the previous
+  render." in both dev and release renderers. A pre-merge review caught it before it landed. The
+  repo has no ESLint, so react-hooks/rules-of-hooks never ran, and a source-string test for the
+  callback cannot see placement — hence the third test below, which reads each navigator route and
+  fails if any hook sits after that route's first early return.
+- verified-by: `the navigator hands ConvoScreen a memoised recap handler, not an inline arrow — F386`
+- verified-by: `the effect that calls it still keeps it in its dependencies — F386`
+- verified-by: `every hook in a navigator route runs before that route can return early — F386`
 ### F387 — The greeting is a rule, not a screen
 - severity: P1
 - status: [x]

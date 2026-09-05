@@ -730,7 +730,7 @@ Apple provider configured before P4-2 can be walked at all; until then the row i
 
 | Id | Check | iOS | Android |
 |---|---|---|---|
-| P4-1 | At iOS AX5 / Android font scale 2.0 the six tinted discs on Home, Tutor and My French still read as discs under their drawings, and no tint is mistaken for a rung or a signal beside the orb | not run | not run |
+| P4-1 | At iOS AX5 / Android font scale 2.0 the six tinted discs on Home, Tutor and My French still read as discs under their drawings, and no tint is mistaken for a rung or a signal beside the orb | fail | not run |
 | P4-2 | On a signed iOS build, Continue with Apple opens the Apple sheet; cancelling it leaves one plain sentence and nothing else changed; completing it lands in the app with the provider recorded as apple. Android and web draw no Apple door | not run | not run |
 | P4-3 | With Prefer typing on, a conversation opens with the reply box showing, no microphone prompt, the tutor still speaking, and the circle still tappable; turning it off restores the circle-first opening | not run | not run |
 | P4-4 | With Tutor speaks slower on, the first line of a new conversation is short and simple, and stays so; the Slower chip still works for a learner who never asked | not run | not run |
@@ -787,6 +787,46 @@ and a runbook that exists is not a run.
 
 Do not include tokens, passwords, access tokens, full email addresses, log
 excerpts containing any of those, or screenshots of them. Counts and verdicts only.
+
+Run: 2026-09-04 — Claude (Pass 4 walk) — iOS 26 on iPhone 17 Pro Simulator, debug build from
+     `apps/mobile/ios` at `de9aae6` plus the fixes below — Android not run, no device
+Result: 0 pass, 1 fail, 5 not run
+Filed: F382, F383, F384, F385, F386
+
+What the walk actually established, row by row. A simulator is not a device, so nothing here
+is a substitute for P1 to P4 on real hardware; what it can prove it proved.
+
+- **P4-1 fail.** The tinted discs themselves read correctly at accessibility XXXL: the sand disc
+  on Home stayed a disc with its drawing inside, and the Tutor tab's six-disc teaser drew six
+  distinct tinted discs. The row fails on its third surface: at that text size My French draws its
+  header and subtitle and nothing else, and will not scroll (F383).
+- **P4-2 not run.** The build is unsigned, so no real Apple sheet can open. What the walk did
+  establish is the half above it: `Continue with Apple` is drawn on iOS, above the Google door,
+  and was absent on the same screens on web. Tapping it completed through the mock adapter into
+  the first-run flow. The sheet, a cancel, and a real provider round trip still need a signed
+  build and the Supabase Apple provider.
+- **P4-3 not run.** With Prefer typing on, a live cafe session opened with the reply box and Send
+  showing, the circle still labelled "Tap to talk", the tutor speaking, and no microphone prompt.
+  The other half of the row, that turning it off restores the circle-first opening, was not walked.
+- **P4-4 not run.** Tutor speaks slower was on and the opening line was short, but a mission opens
+  on its authored line with no model call (`openScene` in convo.ts), so that says nothing about
+  pace. This needs the talk-freely door, where the first line comes from the model.
+- **P4-5 not run.** The ear draws on the tutor's last bubble now that F385 is fixed. Its lit state
+  while the tutor sounds, tap-to-replay, and the VoiceOver label were not verified.
+- **P4-6 not run.** On iOS, Show revealed the typed password with the caret held after the last
+  character and Hide restored the dots, both without losing the text. The VoiceOver announcement
+  was not heard, so the row is not complete.
+
+Three defects were found by running this and are fixed on the branch: the phone was being served
+the web stand-in of every native module (F382), every job process re-verified the vendors and timed
+out so no tutor ever joined (F384), and the tutor's lines rendered at zero width beside their own
+ear (F385). Two are recorded and one of those is fixed: My French at the largest text size (F383,
+open) and the recap's render loop (F386, fixed — the first attempt at that fix introduced a
+conditional-hook crash and was caught by review before it landed). One environment note that is not a product defect:
+the local token server's distributed rate limiter timed out against Upstash and answered 500 on
+`/session/start`; commenting the two `UPSTASH_*` lines out of `services/token-server/.env` let
+sessions start. That was not investigated further and is local configuration, not shipped code.
+
 
 ## What this runbook cannot prove
 

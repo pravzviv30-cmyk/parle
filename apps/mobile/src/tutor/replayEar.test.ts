@@ -155,3 +155,16 @@ describe('the ear on the tutor line — F372', () => {
     );
   });
 });
+
+describe('the words beside the ear keep their width on a phone — F385', () => {
+  // Yoga resolves `flex: 1` to a zero flex basis; in a content-sized row that is
+  // zero width, and the tutor's line disappears behind its own ear. A browser
+  // sizes the row from its content, which is why the web never showed it.
+  test('the bubble body shrinks to fit rather than growing from nothing — F385', () => {
+    const source = readFileSync(fileURLToPath(new URL('./Transcript.tsx', import.meta.url)), 'utf8');
+    const row = source.slice(source.indexOf('st.withEar'), source.indexOf('</Pressable>'));
+    assert.ok(row.length > 0, 'the ear row is missing from Transcript.tsx');
+    assert.match(row, /<View style=\{\{ flexShrink: 1 \}\}>\{body\}<\/View>/, 'the body beside the ear must be a flexShrink: 1 view');
+    assert.doesNotMatch(row, /style=\{\{ flex: 1 \}\}/, 'a flex: 1 body collapses to zero width on a phone');
+  });
+});

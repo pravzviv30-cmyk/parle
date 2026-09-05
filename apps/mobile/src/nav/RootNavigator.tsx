@@ -232,6 +232,22 @@ function ConvoRoute() {
     };
   }, [missionId]);
 
+  // Above the guards below, and deliberately: every hook in this component has
+  // to run on every render. ConvoScreen's recap effect keeps this callback in
+  // its dependencies and calls it as soon as a recap exists, so an inline arrow
+  // is a new identity each render and the write re-renders this screen, which
+  // is the loop F386 filed. Memoising it fixes that; memoising it BELOW
+  // `if (!replayRead)` swaps the loop for a crash, because a mission route
+  // renders Loading first and would then add a hook on the second render.
+  // `updateBrain` is a useCallback with no dependencies, so this holds.
+  const onRecap = useCallback(
+    (_recap: unknown, blob: unknown) => {
+      // The agent owns the learner model's shape; the app is its storage.
+      if (typeof blob === 'object' && blob !== null) updateBrain(blob as never);
+    },
+    [updateBrain],
+  );
+
   if (!user) return <Loading />;
   if (!live) {
     return (
@@ -274,10 +290,7 @@ function ConvoRoute() {
         // where the two are joined. Without it the tutor has no name to use: the
         // snapshot is the only thing that reaches the agent.
         snapshot={withLearnerName(profile.brain, profile.name)}
-        onRecap={(_recap, blob) => {
-          // The agent owns the learner model's shape; the app is its storage.
-          if (typeof blob === 'object' && blob !== null) updateBrain(blob as never);
-        }}
+        onRecap={onRecap}
         onExit={() => nav.goBack()}
         startInTextMode={route.params?.textMode ?? false}
         seedTopic={route.params?.seedTopic}
