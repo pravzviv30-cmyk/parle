@@ -283,7 +283,7 @@ still there. Passing it is one tap and nothing else is asked twice.
 
 | Tab | What it is |
 |---|---|
-| Home | The day, not a summary. A greeting alone at the top, where only the word changes: it rises up out of a fixed slot and the next one comes in behind it, while the learner's name stays exactly where it is; the word of the day under it; today's situation with its starting line, a bookmark and the tab's one pill; daily momentum, each of its three parts absent unless it has something true to say; the next step as a row; a sprout note at the foot. The level, the evidence and the phrasebook moved to My French rather than being drawn twice |
+| Home | The day, not a summary. A greeting alone at the top, where only the word changes: it rises up out of its slot and the next comes in behind it, and the name travels with it so the two stay tight; the word of the day under it; today's situation with its starting line, a bookmark and the tab's one pill; daily momentum, each of its three parts absent unless it has something true to say; the next step as a row; a sprout note at the foot. The level, the evidence and the phrasebook moved to My French rather than being drawn twice |
 | Tutor | The tutor by name, the voice circle, then three doors. Resume is a card with the scene's drawing, its French title, what the learner came to do, how long is left of it when their own pace has said, and a full-width pill. Guided practice missions is a heading with the count, one line saying what is behind it, and every situation as its own tappable row. Open conversation is last: a card whose button sits centred under its drawing. The four-page intro that used to stand in front of them is a quiet "How the voice circle works" link here and in Profile |
 | Practice | The next step as the tab's one pill, then the path, the guided lesson, the drill bank, the review deck — plus one topic card per conversation subject, projected live from the deck |
 | My French | An evidence row that is absent at zero (situations handled, lines kept, the level), the notebook, the week, the situations with their stamps, and the same next-situation card Home draws |
@@ -411,12 +411,10 @@ jumps. Both words sit in normal flow rather than one being absolute, because an
 absolutely positioned word is measured against its owner and a wide one would
 arrive with its tail cut off.
 
-**Only the word moves.** It slides up out of a slot that clips it and the next
-one rises in behind, one line, on the native driver. The name is outside the
-slot and never moves, because the thing changing is the greeting and not who is
-being greeted. The slot takes its size from an invisible copy of the widest word
-rather than from a measurement, so it grows with the reading size and there is no
-first frame where it is the wrong shape. A learner who asked for less movement
+**Only the word changes.** It slides up out of a slot that clips it and the next
+rises in behind, one line, on the native driver. The name is outside the slot and
+moves only as far as the words differ, so the line is never loose and never
+overlaps. A learner who asked for less movement
 gets one still word, the hour's French one, and a screen reader hears that same
 line once: a header that renamed itself every few seconds to somebody listening
 would be the most hostile thing in the app. The conversation OPENS in English (the spoken question, no menu)

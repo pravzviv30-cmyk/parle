@@ -322,18 +322,31 @@ export function TabHeader({ title, purpose, titleSwap, trailing, children }: Tab
  * difference would go to zero, and the gap would come straight back.
  *
  * The name follows the slot in flow and is pulled back onto whichever word is
- * showing by a `translateX` that runs the difference between the two measured
- * widths across the same `progress` the words ride. That is what makes the commit
- * continuous: `progress` snaps to 0 and the arriving word becomes the current one,
- * and in that same frame the transform returns from the difference to zero while
- * the slot's flow width changes by exactly the difference. The two cancel, so the
- * name never jumps — it arrives, tight against the word, at both ends of the swipe.
+ * showing by a `translateX` that runs the difference between the two drawn widths
+ * across the same `progress` the words ride. At the commit `progress` snaps to 0
+ * with the arriving word already the current one: the slot's flow width changes by
+ * exactly that difference while the transform returns from it to zero, and the two
+ * cancel, so the name arrives rather than jumping.
+ *
+ * That cancellation only holds if the difference describes the pair that is on
+ * screen now, which is why the widths are keyed by the string that drew them and
+ * not by which line of the strip reported them (F428). Held by line they are one
+ * render stale at the one frame that matters: the new pair has already rendered,
+ * the flow width is already right because it comes from the real text, and
+ * `onLayout` for that pair cannot have fired, because it fires after the render is
+ * laid out. `Salut,` to `Bonjour,` at 375pt left the transform at -43 against a
+ * slot that had already grown, and the name was drawn 43pt inside `Bonjour,` for a
+ * frame. Keyed by text, both widths are already known: the word showing spent the
+ * whole cycle before as the strip's lower line, and the word arriving went through
+ * the slot on an earlier turn of the pool.
  *
  * Measuring is the one new mechanism here, and there is no other way to know how
  * far the name has to travel. It is self-correcting rather than fragile: a reading
  * size change or a web font landing late relays both words and reports both widths
- * again. Before anything is measured the difference is zero, so the first frame is
- * a still line, not a wrong one.
+ * again, under the same keys. A word's very first appearance is the one unmeasured
+ * case, and there the difference is zero and the name simply does not travel that
+ * once — the same honest answer as the first frame before anything is measured,
+ * and a frame with no travel is a gap where a stale one was an overlap.
  *
  * The travel stands down once the name has wrapped to its own line, which is what
  * happens at the largest reading sizes. There it is not beside the word, so there
@@ -354,17 +367,32 @@ function TitleSwapRow({ title, swap }: { title: string; swap: TitleSwap }) {
   // Type change corrects on the next render. It is 1 on the web, where browser
   // zoom scales the CSS pixel itself.
   const line = type.display.lineHeight * PixelRatio.getFontScale();
-  // The two words as drawn, and which line the name landed on. All three start
-  // at 0, which is the honest answer before a layout pass: no difference, no
-  // travel, a still line at the right place.
-  const [wordWidth, setWordWidth] = useState(0);
-  const [nextWidth, setNextWidth] = useState(0);
+  // Every word as drawn, under the text that drew it, and which line the name
+  // landed on. An empty map and a 0 are the honest answers before a layout pass:
+  // no difference, no travel, a still line at the right place.
+  //
+  // Keyed by text rather than by which line of the strip reported it, because a
+  // width held by line belongs to the previous pair on the frame the words change
+  // (F428). This map cannot grow without bound: its keys are the greetings
+  // themselves, seven of them in `home/greeting.ts` and only the ones this hour
+  // allows, so it settles at one entry per word rather than one per swipe.
+  const [widths, setWidths] = useState<Record<string, number>>({});
   const [nameTop, setNameTop] = useState(0);
+  // `onLayout` fires on every relayout, so a write that always builds a fresh
+  // object is a loop: the new map re-renders, the re-render relays out, the
+  // layout writes again. Only a width that actually changed is worth a render,
+  // and returning the same map is how React is told to stop.
+  const measure = (text: string, drawn: number) =>
+    setWidths((seen) => (seen[text] === drawn ? seen : { ...seen, [text]: drawn }));
   // The slot is the wider of the two words, so the name is pulled back onto the
   // one showing: by the difference when the word arriving is wider, and by
   // nothing when it is narrower. Either way the two ends are the difference
-  // apart, which is exactly what the flow gives back at the commit.
-  const grow = nextWidth - wordWidth;
+  // apart, which is exactly what the flow gives back at the commit. Until both
+  // words have been drawn once there is no difference to run, and standing still
+  // is better than travelling a number that is not about these two words.
+  const shownWidth = widths[swap.word];
+  const arrivingWidth = widths[swap.next];
+  const grow = shownWidth != null && arrivingWidth != null ? arrivingWidth - shownWidth : 0;
   const beside = nameTop < line / 2;
   const nameFrom = beside ? -Math.max(grow, 0) : 0;
   const nameTo = beside ? Math.min(grow, 0) : 0;
@@ -390,7 +418,7 @@ function TitleSwapRow({ title, swap }: { title: string; swap: TitleSwap }) {
           }}
         >
           <Animated.Text
-            onLayout={(e) => setWordWidth(e.nativeEvent.layout.width)}
+            onLayout={(e) => measure(swap.word, e.nativeEvent.layout.width)}
             style={[
               type.display,
               {
@@ -402,7 +430,7 @@ function TitleSwapRow({ title, swap }: { title: string; swap: TitleSwap }) {
             {swap.word}
           </Animated.Text>
           <Animated.Text
-            onLayout={(e) => setNextWidth(e.nativeEvent.layout.width)}
+            onLayout={(e) => measure(swap.next, e.nativeEvent.layout.width)}
             style={[
               type.display,
               {

@@ -21,10 +21,12 @@
  *
  * ## Why every word is 5 to 7 characters
  *
- * The header clips the word to one line and the slot hugs the words themselves,
- * can produce, so a shorter word leaves a gap after it. The band is what keeps
- * that gap to about a word-space rather than a hole, and it is tested rather
- * than remembered.
+ * Nothing in the layout depends on this any more. The header clips the word to
+ * one line and the slot hugs the words themselves, so a longer word cannot be
+ * cut off and a shorter one cannot leave a hole: the name travels the difference
+ * instead. The band is a shape a display line beside somebody's name holds, and
+ * it is tested so the pool does not drift into a one-letter greeting or a
+ * sentence.
  *
  * The two phase numbers were measured off the founder's mockup video. They are
  * the specification rather than a taste, which is why `GREETING_CYCLE_MS` is

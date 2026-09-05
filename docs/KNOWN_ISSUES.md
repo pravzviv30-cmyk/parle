@@ -6145,3 +6145,59 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   width changes by exactly that difference while the transform returns to zero, so the name travels
   continuously and lands tight. The header still starts nothing.
 - verified-by: `the greeting word hugs the name, and the name travels with the swipe rather than jumping — F427`
+
+### F428 — The name jumps at every greeting commit because its travel is measured one render late
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/layout.tsx:367
+- note: found by the judge, confirmed by walking the commit frame. `grow`, `nameFrom` and `nameTo`
+  come from `wordWidth` and `nextWidth`, which are state fed by `onLayout`. At the commit `setIndex`
+  re-renders with the new `swap.word` and `swap.next` and `progress` at 0, but both widths still hold
+  the previous pair, because `onLayout` cannot fire until after that render is laid out. Salut to
+  Bonjour with Hello next: the slot is already Bonjour-wide, `grow` is still +43, `translateX` is
+  -43, and the name is drawn 43pt inside Bonjour until the measurement lands. Bonjour to Hello leaves
+  `grow` at -40 so the transform is 0 while the slot is Coucou-wide, and a hole reopens. Four of the
+  five morning transitions glitch. The resting-state measurement that passed this could not see it,
+  because it only ever sampled a settled frame.
+  The fix is to key the measured widths by the string rather than by position: a `Record<string,
+  number>` filled by each word's own `onLayout`, so `grow` for a `(word, next)` pair is looked up by
+  text and is right on the commit frame from the second cycle on. Only a word's first ever appearance
+  is unmeasured, and there the travel is zero, which is the honest answer.
+- verified-by: `the name's travel is right on the frame the words change, not one layout later — F428`
+
+### F429 — The docs and the runbook still describe the header F427 replaced
+- severity: P2
+- status: [x]
+- where: DESIGN.md:414
+- note: DESIGN.md carries both stories at once: the new paragraph says the name travels and the
+  header measures both words, and an older one still says "Only the word moves", "The name is outside
+  the slot and never moves" and that the slot takes its size from an invisible copy of the widest
+  word. The tab row at :286 still says the name "stays exactly where it is". `DEVICE_VERIFICATION.md`
+  P5-1 asks a tester to confirm "the learner's name does not move sideways by a pixel", which is now
+  a designed fail, and `surfaceContract.test.ts` pins that phrase. `home/greeting.ts` has a
+  half-edited sentence. All four describe the shape F428 settles, and the F407 and F410 tests pin the
+  new description and refuse the old.
+- verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
+- verified-by: `the device runbook carries the Pass 5 checks — F410`
+
+### F430 — A word-of-the-day note reads "everybody s ticket"
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/words.ts:452
+- note: `le contrôleur`'s note is "asking to see everybody s ticket"; the apostrophe was dropped to
+  fit a single-quoted string and a learner reads it as written. The file already uses double quotes
+  where an apostrophe is needed. Fix the note and add a tripwire over `en`, `note` and `exampleEn`
+  for an orphan single letter between spaces, which is what a dropped apostrophe looks like.
+- verified-by: `no daily word carries a dropped apostrophe or an orphan letter — F430`
+
+### F431 — The slang in tier two does not always say where it does not belong
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/words.ts:1148
+- note: `une meuf`'s note is "Femme said backwards, which is a whole French habit worth spotting",
+  which is etymology. Its neighbours each say where they do not belong: `la bouffe` "far too casual
+  at a formal table", `un gosse` names Quebec. `meuf` is verlan, young, and reads as reductive said
+  by a man about a woman he does not know; a learner who uses it at a counter will be heard as rude.
+  One clause of register belongs in the note, and `un mec`'s "Neutral in speech" is generous for the
+  same reason.
+- verified-by: `the slang in tier two says where it does not belong — F431`

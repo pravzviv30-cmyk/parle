@@ -760,7 +760,7 @@ nobody had looked at is for.
 
 | Id | Check | iOS | Android |
 |---|---|---|---|
-| P5-1 | Home's greeting word slides up out of its slot and the next one rises in behind it, about every three and a half seconds, and the learner's name does not move sideways by a pixel while it happens | not run | not run |
+| P5-1 | Home's greeting word slides up out of its slot and the next rises in behind it, about every three and a half seconds; the name stays tight against the word throughout, never overlapping it and never leaving a hole, including on the first rotation after a cold start | not run | not run |
 | P5-2 | With reduce motion on, the greeting stops on one still word, Bonjour by day and Bonsoir after six, the day's word scene holds its final frame, and nothing on Home is blank | not run | not run |
 | P5-3 | VoiceOver and TalkBack read one greeting on Home and do not announce it again while it cycles; the word of the day drawing is walked past in silence | not run | not run |
 | P5-4 | On a fresh account, Home shows the greeting, the word of the day, today's situation and the next step row offering the first situation, and shows no momentum tiles and no goal bar; after one conversation the momentum tiles and the goal bar appear with real numbers | not run | not run |

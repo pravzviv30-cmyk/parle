@@ -397,7 +397,9 @@ describe('the greeting word rises through a fixed slot — F418', () => {
  * the current one: the flow width changes by exactly that difference in the same
  * frame the transform returns from it to zero, and the two cancel. That is the whole
  * reason the name arrives rather than jumping, and it only holds while the travel is
- * measured from the words themselves.
+ * measured from the words themselves — which is why F428 keys the widths by the
+ * string that drew them. Held by slot they described the previous pair on the one
+ * frame the cancellation depends on, and the test below it says so in numbers.
  *
  * Nothing in the slot may be positioned absolutely. An absolute child is measured
  * against its owner's width — Yoga constrains it deliberately so text wraps to its
@@ -460,16 +462,23 @@ describe('the greeting word hugs the name — F427', () => {
       /import \{[^}]*\buseState\b[^}]*\} from 'react';/,
       'the header holds no state, so it cannot know how far the name has to travel',
     );
-    assert.match(header, /const \[wordWidth, setWordWidth\] = useState\(0\);/, 'the width of the word showing is not held');
-    assert.match(header, /const \[nextWidth, setNextWidth\] = useState\(0\);/, 'the width of the word arriving is not held');
+    // F428 moved the widths from two positional slots to one map keyed by the
+    // string that drew them. What F427 defends is that both words are measured
+    // at all and that the travel is their difference, so these follow the shape;
+    // pinning the positional pair here would have pinned the stale-frame bug.
     assert.match(
       header,
-      /onLayout=\{\(e\) => setWordWidth\(e\.nativeEvent\.layout\.width\)\}/,
+      /const \[widths, setWidths\] = useState<Record<string, number>>\(\{\}\);/,
+      'the drawn widths are not held, so the header cannot know how far the name has to travel',
+    );
+    assert.match(
+      header,
+      /onLayout=\{\(e\) => measure\(swap\.word, e\.nativeEvent\.layout\.width\)\}/,
       'the word showing is not measured, so its width is a guess',
     );
     assert.match(
       header,
-      /onLayout=\{\(e\) => setNextWidth\(e\.nativeEvent\.layout\.width\)\}/,
+      /onLayout=\{\(e\) => measure\(swap\.next, e\.nativeEvent\.layout\.width\)\}/,
       'the word arriving is not measured, so its width is a guess',
     );
     assert.match(
@@ -482,7 +491,7 @@ describe('the greeting word hugs the name — F427', () => {
     // whichever one is showing, and nothing at all once the name has wrapped.
     assert.match(
       header,
-      /const grow = nextWidth - wordWidth;/,
+      /const grow =[^;]*arrivingWidth - shownWidth[^;]*;/,
       'the travel is not the difference between the two measured words, so the name cannot land tight against either',
     );
     assert.match(
@@ -521,5 +530,112 @@ describe('the greeting word hugs the name — F427', () => {
     );
     assert.doesNotMatch(header, /\.start\s*\(/, 'the header starts an animation, so the frame owns a timer it cannot pause');
     assert.doesNotMatch(header, /createAnimatedComponent/, 'the header wraps a component for animation, which the motion vocabulary forbids');
+  });
+});
+/**
+ * The travel is right on the frame the words change — F428.
+ *
+ * F427 held the two widths by position: `wordWidth` was whatever the strip's
+ * upper line last reported, `nextWidth` whatever the lower one did, and `grow`
+ * was their difference. Both are one render stale at exactly the frame they
+ * matter. At a commit the rotation re-renders with the new `swap.word` and
+ * `swap.next` and `progress` back at 0. The slot's flow width is already right,
+ * because it comes from the real text — but `onLayout` for the new pair cannot
+ * have fired yet, since it fires after the new render is laid out. So the
+ * transform still described the pair that had just left.
+ *
+ * Walked with the drawn widths at 375pt (Salut 90, Bonjour 133, Hello 93, Coucou
+ * 125, Morning 140): on `Salut, -> Bonjour,` with `Hello,` next, the slot is
+ * already 133 wide while `grow` is still +43, so `translateX` is -43 and the name
+ * is drawn 43pt inside `Bonjour,` until the measurement lands. On `Bonjour, ->
+ * Hello,` with `Coucou,` next, `grow` is still -40, so the transform is 0 while
+ * the slot is Coucou-wide and the hole F427 closed reopens. `Morning, -> Salut,`
+ * reopens the original 43pt hole. Four of the five morning transitions glitched.
+ * The resting-state measurement that passed F427 only ever sampled settled
+ * frames, which is why it saw none of it.
+ *
+ * Keying the widths by the string that drew them is the whole fix. The `(word,
+ * next)` pair becomes a lookup by text, and by the time a pair reaches a commit
+ * both of its words have been through the slot already: the word showing was the
+ * strip's lower line for the cycle before, and the word arriving went through on
+ * an earlier turn of the pool. Only a word's very first appearance is unmeasured,
+ * and there the travel is zero — the same honest answer as the first frame before
+ * anything is measured at all, and a frame with no travel is a gap for one frame
+ * where the stale pair was an overlap.
+ *
+ * There is no renderer in this suite, so a commit cannot be driven. What is
+ * proved here is the structure that makes the stale frame impossible: one map
+ * keyed by text, each word writing under its own string, `grow` looked up by
+ * `swap.word` and `swap.next` rather than by slot, zero travel while either word
+ * is unmeasured, and a guarded write — `onLayout` fires on every relayout, and a
+ * fresh object on each one is a render loop rather than a measurement.
+ */
+describe('the greeting travels by word, not by slot — F428', () => {
+  test("the name's travel is right on the frame the words change, not one layout later — F428", () => {
+    const header = region(
+      layoutSource(),
+      'export function TabHeader(',
+      'type ConfirmSheetProps',
+    );
+
+    // One map, keyed by the string that drew the width, and no width left over
+    // that belongs to a slot instead of to a word.
+    assert.match(
+      header,
+      /const \[widths, setWidths\] = useState<Record<string, number>>\(\{\}\);/,
+      'the drawn widths are not one map keyed by string, so a width still belongs to a slot rather than to the word in it',
+    );
+    assert.doesNotMatch(
+      header,
+      /setWordWidth|setNextWidth/,
+      'a width is still held by position, and a positional width describes the previous pair on the frame the words change',
+    );
+
+    // Each word reports under its own text. The order pins which is which: a
+    // word that wrote under the other word's key would mislabel every
+    // measurement by one slot and read as correct from a distance.
+    const writesWord = header.indexOf('measure(swap.word, e.nativeEvent.layout.width)');
+    const drawsWord = header.indexOf('{swap.word}');
+    const writesNext = header.indexOf('measure(swap.next, e.nativeEvent.layout.width)');
+    const drawsNext = header.indexOf('{swap.next}');
+    assert.ok(
+      writesWord !== -1 && writesNext !== -1,
+      'the words are not measured under their own text, so the map is keyed by something other than what was drawn',
+    );
+    assert.ok(
+      writesWord < drawsWord && drawsWord < writesNext && writesNext < drawsNext,
+      "a word reports its width under the other word's key, which mislabels every measurement by one slot",
+    );
+
+    // The travel is a lookup by text, with zero standing in for a word nobody
+    // has drawn yet — never a difference against a missing width.
+    assert.match(
+      header,
+      /const shownWidth = widths\[swap\.word\];/,
+      'the width of the word showing is not looked up by the word showing',
+    );
+    assert.match(
+      header,
+      /const arrivingWidth = widths\[swap\.next\];/,
+      'the width of the word arriving is not looked up by the word arriving',
+    );
+    assert.match(
+      header,
+      /const grow =\s*shownWidth != null && arrivingWidth != null \? arrivingWidth - shownWidth : 0;/,
+      'grow is not the difference between the two words looked up by text, standing down to no travel while either is unmeasured',
+    );
+    assert.doesNotMatch(
+      header,
+      /nextWidth - wordWidth/,
+      'grow is still the difference between two positional widths, which is the pair that just left rather than the pair on screen',
+    );
+
+    // The write is guarded, because onLayout fires on every relayout and a fresh
+    // object every time re-renders, relays out, and writes again.
+    assert.match(
+      header,
+      /setWidths\(\(seen\) => \(seen\[text\] === drawn \? seen : \{ \.\.\.seen, \[text\]: drawn \}\)\);/,
+      'the measurement writes state on every layout pass instead of only when a width changed, which is a render loop',
+    );
   });
 });

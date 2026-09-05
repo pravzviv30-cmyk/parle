@@ -257,6 +257,56 @@ describe('the authored pools Home draws its two daily cards from', () => {
   });
 });
 
+/**
+ * A dropped apostrophe reads as a typo to a learner and as nothing to a test.
+ *
+ * `le contrôleur`'s note shipped as "everybody s ticket", because the apostrophe
+ * was dropped to fit a single-quoted string and the file keeps double quotes for
+ * exactly that case. What a dropped apostrophe leaves behind is an orphan letter
+ * between two spaces, and that is a thing a machine can look for even though the
+ * missing punctuation is not.
+ */
+describe('the daily pools are typed as well as written — F430', () => {
+  test('no daily word carries a dropped apostrophe or an orphan letter — F430', () => {
+    const ORPHAN = / (?:s|t|d|l|m|n|j|c|y) /i;
+    for (const word of DAILY_WORDS) {
+      for (const [field, line] of [
+        ['en', word.en],
+        ['note', word.note],
+        ['exampleEn', word.exampleEn],
+      ] as const) {
+        assert.doesNotMatch(
+          line,
+          ORPHAN,
+          `${word.id}'s ${field} carries a letter alone between two spaces, which is what a dropped apostrophe leaves: "${line}"`,
+        );
+      }
+    }
+  });
+});
+
+/**
+ * Slang that does not say where it does not belong teaches a learner to be rude.
+ *
+ * Tier two carries real spoken register, which is the point of it. Every one of
+ * those words has a place it is wrong, and a card that gives the meaning without
+ * the register hands somebody a word to use at a counter.
+ */
+describe('the slang says where it does not belong — F431', () => {
+  test('the slang in tier two says where it does not belong — F431', () => {
+    const PLACED = /casual|formal|friends|among|out of place|reductive|Quebec|stranger|young/i;
+    for (const fr of ['une meuf', 'un mec', 'la bouffe', 'un gosse', 'le taf', 'ouais']) {
+      const word = DAILY_WORDS.find((entry) => entry.fr === fr);
+      if (word === undefined) continue;
+      assert.match(
+        word.note,
+        PLACED,
+        `"${fr}" is taught without saying where it does not belong, so a learner will use it where it is heard as rude: "${word.note}"`,
+      );
+    }
+  });
+});
+
 describe('the day decides, and nothing is stored', () => {
   test('the same local day always picks the same word and situation, and midnight changes both — F390', () => {
     // Known keys, counted by hand. The first is the epoch itself, and the
