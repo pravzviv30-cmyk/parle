@@ -415,11 +415,23 @@ jumps. Both words sit in normal flow rather than one being absolute, because an
 absolutely positioned word is measured against its owner and a wide one would
 arrive with its tail cut off.
 
+**Three shapes were tried here in two days, so they are written down.** A fixed
+slot sized by an invisible copy of the widest word came first, and it is the one
+to not go back to: it keeps the name perfectly still and buys that with the fifty
+points above. Then the slot hugged the words but took their widths by position,
+which is wrong on the one frame that matters, because `onLayout` cannot report a
+word until after the render that drew it: at the change the transform still
+described the previous pair and the name landed inside the word. The widths are
+keyed by the string that drew them now, so a pair is a lookup by text and is
+right on the commit frame. Measuring was rejected in the design and then turned
+out to be the only way to know how far the name has to travel; it is not an
+oversight to be simplified away. If the line ever reads wrong again, the next
+move is the name on its own second line, not a fourth measuring scheme.
+
 **Only the word changes.** It slides up out of a slot that clips it and the next
 rises in behind, one line, on the native driver. The name is outside the slot and
 moves only as far as the words differ, so the line is never loose and never
-overlaps. A learner who asked for less movement
-gets one still word, the hour's French one, and a screen reader hears that same
+overlaps. A learner who asked for less movement gets one still word, the hour's French one, and a screen reader hears that same
 line once: a header that renamed itself every few seconds to somebody listening
 would be the most hostile thing in the app. The conversation OPENS in English (the spoken question, no menu)
 with the French riding along on screen as exposure. The old FRENCH · ENGLISH
