@@ -244,12 +244,25 @@ Plus `RewardMark`, which is not a scene: one tick arriving beside a drill
 verdict, in the reserved-height slot the screen already keeps. There is no
 `miss` variant on purpose, because a drawing scolds louder than a word.
 
-And `WordSprout`, drawn for Home's word of the day: a seedling being watered,
+And the **daily pack**: twenty drawings for Home's word of the day, one a day, chosen by the date
+the same way the word and the situation are. `WordSprout` is one of them and the rest are a
+kettle, a croissant, a candle, a casserole, a teapot, an umbrella, a cloud, a kite, falling
+leaves, a snowflake, a postbox, a bicycle, a fountain, a pigeon, a lantern, shutters, a snail, a
+cat and a sailboat. Every one moves, because the card is the same card every day and the drawing
+is the thing that tells a learner it is a new one. They are drawn through the same switch shape
+`MissionArt` uses, which is not taste: the guard that proves nothing ships unrendered finds a
+scene by looking for it written as a tag, and a table of bare names would hide all twenty from it.
+
+`WordSprout` itself is a seedling being watered,
 with the service bell `FrontDesk` already draws rather than a second one. Only
 the water moves, on one loop; the figure and the can stay still, because the
 figure is the subject and tilting the can would pull the eye off the word beside
 it. Two components left with the same pass: `TodayRow` and `PhrasebookCard` were
 Home's alone, and Home now opens on the day instead of on a count of it. The
+**Demo mode** label left the situation card later, for a different reason: a
+badge reporting that a server is down, worn before the learner has asked for
+anything, is the app talking about itself. The honest signal is the answer to the
+tap, which the card already gives and still does. The
 daily count's philosophy stays where it always lived, in `progress/today.ts` and
 its suite, which is the standing refusal to turn it into a streak.
 
@@ -270,7 +283,7 @@ still there. Passing it is one tap and nothing else is asked twice.
 
 | Tab | What it is |
 |---|---|
-| Home | The day, not a summary. A greeting that cycles Salut, Bonjour, Hello with the learner's name, alone at the top; the word of the day under it; today's situation with its starting line, a bookmark and the tab's one pill; daily momentum, each of its three parts absent unless it has something true to say; the next step as a row; a sprout note at the foot. The level, the evidence and the phrasebook moved to My French rather than being drawn twice |
+| Home | The day, not a summary. A greeting alone at the top, where only the word changes: it rises up out of a fixed slot and the next one comes in behind it, while the learner's name stays exactly where it is; the word of the day under it; today's situation with its starting line, a bookmark and the tab's one pill; daily momentum, each of its three parts absent unless it has something true to say; the next step as a row; a sprout note at the foot. The level, the evidence and the phrasebook moved to My French rather than being drawn twice |
 | Tutor | The tutor by name, the voice circle, then three doors. Resume is a card with the scene's drawing, its French title, what the learner came to do, how long is left of it when their own pace has said, and a full-width pill. Guided practice missions is a heading with the count, one line saying what is behind it, and every situation as its own tappable row. Open conversation is last: a card whose button sits centred under its drawing. The four-page intro that used to stand in front of them is a quiet "How the voice circle works" link here and in Profile |
 | Practice | The next step as the tab's one pill, then the path, the guided lesson, the drill bank, the review deck — plus one topic card per conversation subject, projected live from the deck |
 | My French | An evidence row that is absent at zero (situations handled, lines kept, the level), the notebook, the week, the situations with their stamps, and the same next-situation card Home draws |
@@ -375,13 +388,34 @@ app's one settle and shows exactly once, at the turn the mission completes.
 **Chrome is plain English.** Sentence case on buttons; the caps look lives only
 in the micro-`label`. French appears exactly where it is content: tutor lines,
 lesson text, phrases and their glosses, review fronts, register vocabulary —
-and on Home, where the greeting cycles "Salut", "Bonjour" and "Hello" with the
+and on Home, where the greeting takes turns through seven words with the
 learner's name, and where the word of the day and the daily situation's starting
-line are French because they are the content. The greeting is lesson-one
-vocabulary and it is the one place the chrome speaks French. It fades rather than
-slides, holds still on "Bonjour" for a learner who has asked for less movement,
-and announces itself once: a header that renamed itself every few seconds to a
-screen reader would be the most hostile thing in the app. The conversation OPENS in English (the spoken question, no menu)
+line are French because they are the content. The greeting is the one place the
+chrome speaks French.
+
+**Seven greetings, and the hour decides which.** "Salut", "Hello" and "Coucou"
+any time; "Bonjour" and "Morning" while it is still day; "Bonsoir" and "Evening"
+after six, through midnight. Teaching somebody to say Bonsoir at breakfast is
+teaching them wrong, so the pool is filtered by the hour rather than shuffled.
+Every word is five to seven letters, and the slot is sized by the widest of them,
+so a shorter word leaves the difference as space before the name. Measured on a
+375pt screen: `Morning,` fills the slot exactly, `Bonjour,` leaves 7pt, `Coucou,`
+16pt, and `Hello,` and `Salut,` leave about 50pt, which is eight spaces rather
+than one. The letter band narrows that spread; it does not close it, and an
+earlier note here claiming it kept the gap to a word-space was wrong. This is the
+price of a placeholder that never moves the name, it was chosen with that cost
+named, and the fallback if it reads badly on a device is the name on its own
+line rather than measuring the slot.
+
+**Only the word moves.** It slides up out of a slot that clips it and the next
+one rises in behind, one line, on the native driver. The name is outside the
+slot and never moves, because the thing changing is the greeting and not who is
+being greeted. The slot takes its size from an invisible copy of the widest word
+rather than from a measurement, so it grows with the reading size and there is no
+first frame where it is the wrong shape. A learner who asked for less movement
+gets one still word, the hour's French one, and a screen reader hears that same
+line once: a header that renamed itself every few seconds to somebody listening
+would be the most hostile thing in the app. The conversation OPENS in English (the spoken question, no menu)
 with the French riding along on screen as exposure. The old FRENCH · ENGLISH
 paired furniture is retired.
 

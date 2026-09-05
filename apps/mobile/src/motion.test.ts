@@ -148,8 +148,12 @@ describe('the illustration module keeps its own rules', () => {
     // unlabelled image. A scene may satisfy this either by drawing through the
     // pen's primitives, which spread `decorative` on every Svg they render, or
     // by spreading it itself when it renders its own.
+    //
+    // The pen is matched at any depth because a scene may sit in a subfolder of
+    // `scenes/` — the daily pack does — and `../../pen.tsx` is the same pen as
+    // `../pen.tsx`. The rule is unchanged: reach the pen, or hide yourself.
     const offenders = scenes
-      .filter((f) => !f.body.includes('decorative') && !/from '\.\.\/pen\.tsx'/.test(f.body))
+      .filter((f) => !f.body.includes('decorative') && !/from '(?:\.\.\/)+pen\.tsx'/.test(f.body))
       .map((f) => f.short);
     assert.deepEqual(offenders, [], `A scene that is announced as an unlabelled image:\n${offenders.join('\n')}`);
   });

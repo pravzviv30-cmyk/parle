@@ -5,8 +5,9 @@
  * list of headlines. The founder's mockup opens on something to do instead, and
  * that is the whole of this rewrite. Six blocks, top to bottom:
  *
- *   1. the greeting, alone, cycling Salut, Bonjour, Hello;
- *   2. the word of the day;
+ *   1. the greeting, alone, one word swiping up out of a fixed slot;
+ *   2. the word of the day, pitched at the learner's level, under the day's
+ *      drawing;
  *   3. today's situation, and the one way into a spoken conversation;
  *   4. daily momentum, when there is any;
  *   5. the next step, as a row;
@@ -16,9 +17,11 @@
  * and `home/useGreetingRotation.ts`, the two daily cards are `dailyPick` over
  * core's pools, the three counts are `progress/momentum.ts`, the next situation
  * is core's `suggestedMission`, the two next-step words are
- * `progress/portfolio.ts`, and whether a start starts anything is
- * `tutor/gate.ts`. There is no renderer in this workspace, so a rule that hid
- * in this file would be a rule nothing could ask a question about.
+ * `progress/portfolio.ts`, which of the twenty drawings today gets is
+ * `home/wordScenes.ts` and `home/WordScene.tsx`, and whether a start starts
+ * anything is `tutor/gate.ts`. There is no renderer in this workspace, so a
+ * rule that hid in this file would be a rule nothing could ask a question
+ * about.
  *
  * ## What is deliberately absent
  *
@@ -32,8 +35,16 @@
  * ## One clock, one day
  *
  * `now` is read once per focus and every "today" on the screen comes from that
- * one reading: the word, the situation, the day marks and the goal. A screen
- * that read the clock four times could show two different days at midnight.
+ * one reading: the word, the drawing beside it, the situation, the day marks
+ * and the goal. A screen that read the clock five times could show two
+ * different days at midnight.
+ *
+ * The situation and the drawing are on screen before the bridge answers,
+ * because both are a pure function of the day and a pool. The word is not, and
+ * that is deliberate: it is pitched at the learner's tier, the tier comes from
+ * the level standing, and the level standing is XP that has to be read. A word
+ * drawn before the read would be a tier one word replaced a moment later,
+ * which is the app appearing to change its mind about a learner.
  */
 
 import { useCallback, useState } from 'react';
@@ -43,8 +54,11 @@ import {
   DAILY_SCENARIOS,
   DAILY_WORDS,
   dailyPick,
+  levelFor,
   missionStates,
   suggestedMission,
+  totalXp,
+  wordsForLevel,
   type DailyScenario,
   type DailyWord,
   type MissionProgress,
@@ -54,9 +68,9 @@ import { SproutGlyph } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { paper, space, type } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { greetingRest } from '../home/greeting.ts';
 import { useGreetingRotation } from '../home/useGreetingRotation.ts';
 import { WordOfDayCard } from '../home/WordOfDayCard.tsx';
+import { WORD_SCENES, type WordSceneKey } from '../home/wordScenes.ts';
 import { SituationCard } from '../home/SituationCard.tsx';
 import { MomentumCards } from '../home/MomentumCards.tsx';
 import { NextStepRow } from '../home/NextStepRow.tsx';
@@ -85,6 +99,7 @@ export function HomeTab() {
   const greeting = useGreetingRotation({ firstName, focused });
 
   const [word, setWord] = useState<DailyWord | null>(null);
+  const [scene, setScene] = useState<WordSceneKey | null>(null);
   const [scenario, setScenario] = useState<DailyScenario | null>(null);
   const [momentum, setMomentum] = useState<Momentum | null>(null);
   const [nextMission, setNextMission] = useState<MissionProgress | null>(null);
@@ -97,14 +112,23 @@ export function HomeTab() {
     useCallback(() => {
       let cancelled = false;
       const now = Date.now();
-      // Neither daily card waits on storage. Both are a pure function of the
-      // day and the pool, so they are on screen before the bridge answers.
-      setWord(dailyPick(DAILY_WORDS, now));
+      // The situation and today's drawing do not wait on storage. Both are a
+      // pure function of the day and a pool, so they are on screen before the
+      // bridge answers, and both are picked from the one `now` above.
       setScenario(dailyPick(DAILY_SCENARIOS, now));
+      setScene(dailyPick(WORD_SCENES, now));
       // All independent reads cross the native storage bridge together.
       void Promise.all([loadActivity(), loadDeck(), loadMissionCompletions(), loadBookmarks()]).then(
         ([activity, deck, completions, saved]) => {
           if (cancelled) return;
+          // The word is pitched, so it waits. `wordsForLevel` narrows the pool
+          // to the learner's tier and `dailyPick` takes today out of what is
+          // left, on the same `now` as everything else on the screen. The
+          // standing is the app's one level rule, read rather than re-derived:
+          // a second opinion about how far a learner has come would disagree
+          // with My French on the tab next door.
+          const standing = levelFor(totalXp(activity));
+          setWord(dailyPick(wordsForLevel(DAILY_WORDS, standing.index), now));
           setMomentum(momentumFrom({ activity, deck, profile, now }));
           setNextMission(suggestedMission(missionStates(missionCompletionsFrom(completions), deck, now)));
           setBookmarks(saved);
@@ -130,16 +154,16 @@ export function HomeTab() {
     <ScrollScreen bottom="tab">
       <View style={st.scroll}>
         {/* The greeting alone. No purpose line and no monogram beside it: the
-            founder asked for one line, and `titleAccessibilityLabel` is what a
-            screen reader hears instead of a header renaming itself every few
+            founder asked for one line. `title` is the still line, which is what
+            a screen reader hears and what a learner who asked for less movement
+            reads; `titleSwap` is the moving half, and it is null when nothing
+            may move. Neither is a header that renames itself out loud every few
             seconds. */}
-        <TabHeader
-          title={greeting.line}
-          titleOpacity={greeting.opacity}
-          titleAccessibilityLabel={greetingRest(firstName)}
-        />
+        <TabHeader title={greeting.rest} titleSwap={greeting.swap} />
 
-        {word !== null && <WordOfDayCard word={word} paused={!focused} />}
+        {word !== null && scene !== null && (
+          <WordOfDayCard word={word} scene={scene} paused={!focused} />
+        )}
 
         {scenario !== null && (
           <SituationCard

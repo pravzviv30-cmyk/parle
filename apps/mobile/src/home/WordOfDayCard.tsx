@@ -8,12 +8,15 @@
  * day in `packages/core/src/daily/pick.ts`, which is the only place that
  * question is answered.
  *
- * The drawing is `WordSprout`, the figure being gently watered. It is
- * decorative in the strict sense: every word on this card is on the card in
- * text, so a learner who never sees the picture loses nothing at all. It owns
- * its own reduce-motion branch and takes `paused` from the tab, because a
- * bottom tab stays mounted after its first visit and a loop left running here
- * would water a plant nobody is looking at for the rest of the session.
+ * The drawing is today's, one of twenty. Which one is `dailyPick(WORD_SCENES,
+ * now)` on Home's single clock reading, and the key becomes a drawing in
+ * `home/WordScene.tsx`; this card is handed the key and hands it on, exactly
+ * as it is handed the word. It is decorative in the strict sense: every word
+ * on this card is on the card in text, so a learner who never sees the picture
+ * loses nothing at all. Each scene owns its own reduce-motion branch and takes
+ * `paused` from the tab, because a bottom tab stays mounted after its first
+ * visit and a loop left running here would move a picture nobody is looking at
+ * for the rest of the session.
  *
  * The words take the rest of the row at `flex: 1, minWidth: 0`, so at the
  * largest reading size they wrap rather than push the scene off the card.
@@ -23,14 +26,23 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { DailyWord } from '@luvani/core';
 
 import { Card, Label } from '../components.tsx';
-import { WordSprout } from '../illustrations.tsx';
 import { paper, space, type } from '../theme.ts';
+import { WordScene } from './WordScene.tsx';
+import type { WordSceneKey } from './wordScenes.ts';
 
-export function WordOfDayCard({ word, paused }: { word: DailyWord; paused: boolean }) {
+export function WordOfDayCard({
+  word,
+  scene,
+  paused,
+}: {
+  word: DailyWord;
+  scene: WordSceneKey;
+  paused: boolean;
+}) {
   return (
     <Card style={st.card}>
       <View style={st.head}>
-        <WordSprout width={108} paused={paused} />
+        <WordScene scene={scene} width={108} paused={paused} />
         <View style={st.words}>
           <Label>Word of the day</Label>
           <Text style={st.word}>{word.fr}</Text>

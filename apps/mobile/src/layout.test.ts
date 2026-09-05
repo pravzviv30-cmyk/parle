@@ -213,3 +213,198 @@ describe('the shared header may hold a title alone — F353', () => {
     assert.match(props, /back\?: never/, 'the leave branch no longer forbids back, so a header could offer both');
   });
 });
+
+/**
+ * The greeting moves, the name does not — F418.
+ *
+ * Home's greeting used to cross-fade the whole line. The founder circled the word
+ * alone and asked for a swipe that moves up to reveal the next greeting in that
+ * placeholder, which makes the shape a fixed slot the word travels through with
+ * the learner's own name holding still beside it.
+ *
+ * There is no renderer here, so what is checked is the construction — and the
+ * construction is where every one of those promises actually lives. Four of them
+ * are load-bearing enough to be worth a tripwire:
+ *
+ * The slot is sized by a ghost rather than by a number, because a number is the
+ * right size at exactly one OS reading size and wrong at the other eleven, and
+ * because measuring instead would cost a first frame at the wrong size and a
+ * remeasure every time the reading size changed.
+ *
+ * The strip rises exactly one rendered line, which is the line height times the
+ * font scale, because a transform is in device pixels while the line height grows
+ * with the reading size. Drop the scale and the swipe lands short of the next word
+ * at every size but the default.
+ *
+ * The name sits outside the clipping slot. Inside it, a long name would be cut off
+ * at the ghost's width and would ride up with the word, which is the one thing the
+ * founder asked not to happen.
+ *
+ * And the row is one fixed announcement with no live region, because a header that
+ * renames itself every few seconds and says so each time is the most hostile thing
+ * this app could do to somebody listening to it.
+ */
+describe('the greeting word rises through a fixed slot — F418', () => {
+  test('the tab header sets the moving word in a clipped slot sized by the widest word, keeps the name in flow, and starts nothing — F418', () => {
+    const source = layoutSource();
+    const header = region(source, 'export function TabHeader(', 'type ConfirmSheetProps');
+
+    // The prop that arrived, and the two that left with Home's fade.
+    const props = region(source, 'type TabHeaderProps = {', 'export function TabHeader(');
+    assert.match(
+      props,
+      /titleSwap\?: TitleSwap \| null;/,
+      'TabHeader takes no optional swap, so the only way to move a title is to spread the display line into a tab',
+    );
+    assert.doesNotMatch(
+      source,
+      /titleOpacity/,
+      'the header still takes the fade opacity it replaced; two ways to move one title is how the five tabs drift apart',
+    );
+    assert.doesNotMatch(
+      source,
+      /titleAccessibilityLabel/,
+      'the header still takes a separate spoken label; with a swap the still line IS the label, and a second one can disagree with it',
+    );
+
+    const swapType = region(source, 'export interface TitleSwap {', 'type TabHeaderProps = {');
+    for (const field of [
+      'word: string;',
+      'next: string;',
+      'widest: string;',
+      'rest: string | null;',
+      'progress: Animated.Value;',
+    ]) {
+      assert.ok(
+        swapType.includes(field),
+        `TitleSwap is missing \`${field}\`: the header needs the word showing, the word arriving, the widest word to size by, the name or its absence, and the value somebody else drives`,
+      );
+    }
+
+    // The slot clips, and assistive tech walks straight past it.
+    assert.match(
+      header,
+      /<View style=\{\{ overflow: 'hidden' \}\} \{\.\.\.decorative\}>/,
+      'the slot does not clip, or is not hidden from assistive tech: an unclipped slot shows both words at once, and an announced one reads the greeting twice',
+    );
+
+    // The ghost gives the slot its width and its one-line height, in normal flow.
+    assert.match(
+      header,
+      /<Text style=\{\[type\.display, \{ color: paper\.ink, opacity: 0 \}\]\}>\{swap\.widest\}<\/Text>/,
+      'the widest word is not drawn in the display type at zero opacity, so nothing sizes the slot',
+    );
+    const ghostAt = header.indexOf('{swap.widest}');
+    const stripAt = header.indexOf('<Animated.View');
+    const absoluteAt = header.indexOf("position: 'absolute'");
+    assert.ok(
+      ghostAt !== -1 && stripAt > ghostAt && absoluteAt > stripAt,
+      'the ghost does not come first in the slot, ahead of the absolute strip, which is the order that lets it size anything',
+    );
+    assert.equal(
+      header.split("position: 'absolute'").length - 1,
+      1,
+      'more than one thing in the header is positioned absolutely; the ghost has to stay in normal flow or the slot has no size at all',
+    );
+    assert.doesNotMatch(
+      header,
+      /\b(width|height):\s*\d/,
+      'the slot is given a number for a size; a number is right at one reading size and wrong at every other, which is why the ghost is there',
+    );
+
+    // One line up, in the units a transform speaks.
+    assert.match(
+      source,
+      /import \{[^}]*\bPixelRatio\b[^}]*\} from 'react-native';/,
+      'PixelRatio is not imported, so nothing can convert a line height into the device pixels a transform moves in',
+    );
+    assert.match(
+      header,
+      /const line = type\.display\.lineHeight \* PixelRatio\.getFontScale\(\);/,
+      'the rise is not the display line height times the current font scale, so the swipe lands short of the next word at every reading size but the default',
+    );
+    assert.match(
+      header,
+      /translateY: swap\.progress\.interpolate\(\{\s*inputRange: \[0, 1\],\s*outputRange: \[0, -line\],?\s*\}\)/,
+      'the strip does not travel from rest to exactly one line up as progress runs 0 to 1',
+    );
+
+    // The two words cross, so it reads as a replacement rather than a slide.
+    const leavingAt = header.search(
+      /opacity: swap\.progress\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \[1, 0\] \}\)/,
+    );
+    const arrivingAt = header.search(
+      /opacity: swap\.progress\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \[0, 1\] \}\)/,
+    );
+    assert.ok(
+      leavingAt !== -1 && arrivingAt !== -1,
+      'the two words do not cross-fade across the swipe, so a strip is seen sliding rather than a word being replaced',
+    );
+    const wordAt = header.indexOf('{swap.word}');
+    const nextAt = header.indexOf('{swap.next}');
+    assert.ok(
+      leavingAt < wordAt && wordAt < arrivingAt && arrivingAt < nextAt,
+      'the fades are on the wrong words: the word showing now must be the one going to 0, and the word rising in the one coming from 0',
+    );
+
+    // The name is outside the slot, joined to the word by a space that scales.
+    const stripCloses = header.indexOf('</Animated.View>');
+    const slotCloses = header.indexOf('</View>', stripCloses);
+    const nameAt = header.indexOf('swap.rest');
+    assert.ok(
+      stripCloses !== -1 && slotCloses !== -1 && nameAt > slotCloses,
+      'the name is drawn inside the clipped slot, where a long one is cut off at the ghost and rides up with the word',
+    );
+    assert.match(
+      header,
+      /<Text style=\{\[type\.display, \{ color: paper\.ink, flexShrink: 1 \}\]\}>/,
+      'the name is not display type that may shrink, so a long one pushes the row instead of giving way',
+    );
+    assert.match(
+      header,
+      /\{'\\u00A0' \+ swap\.rest\}/,
+      'the name is not joined to the word by a non-breaking space, so the gap either stops scaling with the type or breaks across a line',
+    );
+    assert.match(
+      header,
+      /flexWrap: 'wrap'/,
+      'the title row does not wrap, so at the largest reading size a long name breaks mid-word instead of dropping to a second line',
+    );
+
+    // One greeting, said once, and never re-announced.
+    assert.match(
+      header,
+      /accessible\s+accessibilityRole="header"\s+accessibilityLabel=\{title\}/,
+      'the moving row is not one accessible heading labelled with the still line, so a screen reader reads the slot word by word',
+    );
+    assert.doesNotMatch(
+      header,
+      /accessibilityLiveRegion|aria-live/,
+      'the greeting is a live region, so assistive tech announces a new greeting every few seconds',
+    );
+
+    // The plain branch the other four tabs still render, and nothing capped.
+    assert.match(
+      header,
+      /<Text accessibilityRole="header" style=\{\[type\.display, \{ color: paper\.ink, flex: 1 \}\]\}>\s*\{title\}\s*<\/Text>/,
+      'a tab without a swap no longer gets the bare display heading it has always had',
+    );
+    assert.doesNotMatch(
+      header,
+      /numberOfLines|ellipsizeMode/,
+      'the header truncates a title, which at the largest reading size is how a name disappears',
+    );
+
+    // The frame holds the value; it does not drive it.
+    assert.doesNotMatch(
+      header,
+      /Animated\.(timing|spring|loop|sequence|stagger|decay|parallel|delay)\b/,
+      'the header drives the swipe itself; whoever owns the value owns the timing, and only they can stop it off-screen or under reduce motion',
+    );
+    assert.doesNotMatch(
+      header,
+      /\.start\s*\(/,
+      'the header starts an animation, so the frame now owns a timer it cannot pause',
+    );
+  });
+});

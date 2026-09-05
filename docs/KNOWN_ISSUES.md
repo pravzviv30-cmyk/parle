@@ -5641,7 +5641,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: the three words in video order, the four timing constants summing to 3750, `greetingIndex(elapsedMs,
   count)`, `greetingLine(word, firstName)` with the no-name fallback being the bare word (never "you"), and
   `greetingRest(firstName)` as the Bonjour line. No em dash, no digit, no banned word in any line it returns.
-- verified-by: `the greeting cycles Salut, Bonjour, Hello on a 3.75s clock and rests on Bonjour — F387`
+- note: F417 widened the pool to seven words with hour windows and F419 turned the fade into a swipe,
+  so the test this named was retitled rather than deleted. The behaviour it checked, that the greeting
+  takes turns on a 3750ms clock and rests on a French word, is still checked under the new title; the
+  cycle length is deliberately unchanged.
+- verified-by: `the greeting pool is wide, time-appropriate, and rests on the hour's French word — F417`
 - verified-by: `a learner who skipped their name is greeted by the word alone — F387`
 
 ### F388 — Home's title fades through TabHeader and holds still for reduce motion and screen readers
@@ -5657,7 +5661,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the frame DRIVING movement (`Animated.timing|spring|loop|sequence|stagger|decay`, and `.start(`), which
   still catches a timer growing in layout.tsx while allowing the two passive uses the fade needs: an
   `Animated.Value` as a prop type and `Animated.Text` as an element.
-- verified-by: `home opens on the rotating greeting alone, faded inside TabHeader, still under reduce motion, and read once by a screen reader — F388`
+- note: F418 replaced the fade with a slot the word swipes through, so `titleOpacity` and
+  `titleAccessibilityLabel` left `TabHeader` and this test was retitled rather than deleted. What it
+  checked is unchanged and stricter: Home still opens on the greeting alone, still holds still for
+  reduce motion, and a screen reader still hears it once. See F420.
+- verified-by: `home opens on the swiping greeting alone, held still for reduce motion and read once by a screen reader — F420`
 - verified-by: `the screen primitives never drive movement themselves, and never cap font scaling — F388`
 
 ### F389 — A word and a situation for every day, authored in core
@@ -5688,7 +5696,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   spreads `decorative`, stroke 2.2), exported from the barrel and drawn only here. The card reads
   `dailyPick(DAILY_WORDS, now)` from Home's focus effect, draws the label, the word in the serif, the meaning,
   the note and the example, and no caption line.
-- verified-by: `home draws the word of the day from core's pool under a paused, decorative sprout scene — F391`
+- note: F422 rewrote the pool above the phrasebook bar, F423 pitched it at the learner's tier, and
+  F425 turned the one drawing into twenty. The test was retitled to say so; every assertion it made
+  about the card drawing its word from core and pausing its scene still holds.
+- verified-by: `home draws the word of the day from the learner's tier under a paused, decorative daily scene — F391`
 
 ### F392 — Today's situation card starts a spoken session through the tutor's gate
 - severity: P1
@@ -5962,3 +5973,155 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   alongside it. A frozen frame can then cost a fade, never the greeting. The teardown also lands opacity back
   at 1, so no exit can leave it invisible either.
 - verified-by: `the greeting survives a frame that never lands, and no exit leaves it invisible — F416`
+
+### F417 — The greeting pool is wide and knows the hour
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/home/greeting.ts:26
+- note: owner frontend-engineer. `GREETINGS` becomes seven `Greeting { word, hours?, rest? }`
+  entries: Salut, Bonjour (05 to 18, rest), Hello, Coucou, Morning (05 to 12), Bonsoir (18 to 05,
+  rest), Evening (18 to 05). `greetingPool(now)` filters by `localHour(now)` with wrap-around
+  windows; `greetingRest(firstName, now)` is the hour's rest word line; `greetingLead(word,
+  firstName)` is the word with its comma; `GREETING_WIDEST_WORD = 'Morning'` with no word longer
+  and none shorter than 5. The band narrows the slot's width spread rather than closing it: measured
+  at 375pt, `Morning,` fills the slot, `Bonjour,` leaves 7pt and `Salut,` leaves about 50pt, which is
+  eight spaces. That cost was accepted when the founder chose a slot the name never moves in. Phases: `GREETING_HOLD_MS 3300 + GREETING_SWIPE_MS 450 ===
+  GREETING_CYCLE_MS 3750`. Every line still passes `guiltIn`, carries no digit, no em dash, and
+  never says "you". At 08:00 no Bonsoir or Evening; at 20:00 no Bonjour or Morning; at 02:00 the
+  evening pool; exactly one rest word at every hour of the day.
+- verified-by: `the greeting pool is wide, time-appropriate, and rests on the hour's French word — F417`
+- verified-by: `a learner who skipped their name is greeted by the word alone — F387`
+
+### F418 — The header holds the greeting word in a fixed slot and the name never moves
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/layout.tsx:216
+- note: owner design-system-engineer. `TabHeader` gains `titleSwap?: TitleSwap | null`
+  (`{ word, next, widest, rest, progress }`) and drops `titleOpacity` and
+  `titleAccessibilityLabel`. With a swap: a `View` rolled `accessibilityRole="header"`,
+  `accessible`, `accessibilityLabel={title}`, a wrapping row; inside it a slot `View` with
+  `overflow: 'hidden'` and hidden from assistive tech, holding a ghost `Text` in `type.display`
+  at `opacity: 0` with `widest`, and an absolute `Animated.View` strip translated by `progress`
+  from 0 to `-(type.display.lineHeight * PixelRatio.getFontScale())`, holding two
+  `Animated.Text`s in `type.display` whose opacities interpolate 1 to 0 and 0 to 1; then the name
+  in flow. Without a swap the plain branch is unchanged. No `Animated.timing`, no `.start(`, no
+  `createAnimatedComponent`, no `numberOfLines`, no `maxFontSizeMultiplier`, no numeric width or
+  height anywhere in the region.
+- verified-by: `the tab header sets the moving word in a clipped slot sized by the widest word, keeps the name in flow, and starts nothing — F418`
+- verified-by: `the screen primitives never drive movement themselves, and never cap font scaling — F388`
+
+### F419 — The swipe is timers, and no exit leaves the slot mid-swipe
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/home/useGreetingRotation.ts:38
+- note: owner frontend-engineer. Returns `{ rest, swap }`. One `Animated.Value` `progress` at 0.
+  Reads `Date.now()` once when the effect starts on focus to get `greetingPool` and
+  `greetingRest`. Cycle: `after(GREETING_HOLD_MS, ...)` starts `Animated.timing(progress, {
+  toValue: 1, duration: GREETING_SWIPE_MS, useNativeDriver: true })` with no callback;
+  `after(GREETING_SWIPE_MS, ...)` sets the index through `greetingIndex`, calls
+  `progress.setValue(0)`, and schedules the next cycle. Reduce motion: `swap` is null and nothing
+  runs. Unfocused: nothing runs, `progress` rests at 0 with the current word. Teardown: clear the
+  one timer, stop the timing, `progress.setValue(0)`.
+- verified-by: `the greeting survives a frame that never lands, and no exit leaves it invisible — F416`
+
+### F420 — Home wires the two-part greeting
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.tsx:127
+- note: owner frontend-engineer. `<TabHeader title={greeting.rest} titleSwap={greeting.swap} />`,
+  still the only header, still no `purpose`, `trailing` or `<Monogram`, still no
+  `accessibilityLiveRegion`, `setTimeout`, `Animated.timing` or `...type.display` in the tab.
+  `useGreetingRotation({ firstName, focused })` and `firstNameOf(profile.name)` unchanged. The
+  `greetingRest` import leaves the tab because the hook now owns the clock.
+- verified-by: `home opens on the swiping greeting alone, held still for reduce motion and read once by a screen reader — F420`
+
+### F421 — Demo mode leaves the situation card
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/home/SituationCard.tsx:83
+- note: owner frontend-engineer. The eyebrow row draws exactly one `Label`, "Today's situation".
+  `TUTOR_OFFLINE.label` and `live` are no longer read by the card; `recheck`, `checking`,
+  `heldBack`, `TUTOR_OFFLINE.body` and the `Check again` outline stay exactly as F392 pins them,
+  because the tap's answer is the honest offline signal. `TUTOR_OFFLINE.label` itself stays in
+  `tutor/gate.ts` for the Tutor tab and the Convo guard.
+- verified-by: `the situation card carries no demo label; a start that cannot happen is answered on the tap — F421`
+- verified-by: `home's situation card carries the tab's one pill, opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
+
+### F422 — The word pool clears the phrasebook bar and is tiered
+- severity: P1
+- status: [x]
+- where: packages/core/src/daily/words.ts:37
+- note: owner learning-science-engineer. `DailyWord.tier: 1 | 2 | 3`. Tier 1 is the French a
+  beginner meets in week two rather than day one; tier 2 is what French people say and textbooks
+  skip; tier 3 is the vocabulary that makes a French speaker look up. At least 80 per tier, 240
+  to 400 in total so the 400-day walk still meets every word. A `PHRASEBOOK_FIRST_PAGE` list in
+  the test names the words no `fr` may equal, `bonjour` and `merci` among them. Surviving words
+  keep their ids; every other existing rule (id shape, lengths, no digit, no em dash, `guiltIn`
+  over `en`, `note`, `exampleEn`) holds on the new pool.
+- verified-by: `every daily word clears the phrasebook bar, carries a tier, and each tier is deep enough to last a season — F422`
+- verified-by: `no daily word or situation says a word Luvani has banned — F389`
+
+### F423 — The word of the day is pitched at the learner's level
+- severity: P1
+- status: [x]
+- where: packages/core/src/daily/tier.ts:1
+- note: owner learning-science-engineer for core, frontend-engineer for the tab.
+  `wordTierFor(levelIndex)`: 0 and 1 give 1, 2 and 3 give 2, 4 and above give 3, anything
+  non-finite or negative gives 1. `wordsForLevel(pool, levelIndex)` returns the words of that
+  tier in pool order, never empty for the shipped pool. `dailyPick` is untouched. Home, inside
+  the `Promise.all` it already awaits, reads `levelFor(totalXp(activity))` and picks from that
+  tier on the same `now` as the situation and the scene. A brand new learner gets a tier 1 word
+  on day one; the day after a promotion the tier changes and the sequence re-phases.
+- verified-by: `the learner's level picks the tier by one rule, and the tier picks the word by the day — F423`
+- verified-by: `home draws the word of the day from the learner's tier under a paused, decorative daily scene — F391`
+
+### F424 — The situations say what people say, in both languages, and keep their ids
+- severity: P1
+- status: [x]
+- where: packages/core/src/daily/scenarios.ts:428
+- note: owner learning-science-engineer. `situation:hotel-internet-code` keeps its id and becomes
+  titleEn "The wifi password", titleFr "Le code wifi", with the opening line changed on both
+  sides. `hotel-morning-meal` stops avoiding "breakfast" with a calque. `market-half` and
+  `street-wrong-direction` are rewritten. The audit rule for the other 67: every English line is
+  what a native speaker would say and every French line is what a French speaker would say in
+  that place; where the ban list blocks the natural English word, the situation's line changes on
+  both sides so the two stay honest translations; no id is renamed, retired or reused. The test
+  carries the 71 shipped ids as a snapshot and a `CALQUES` tripwire.
+- verified-by: `the situations say what a person would say in both languages, and every id that ever shipped is still there — F424`
+- verified-by: `the daily pools are large, unique, plain and short enough to ride the seed topic pipe — F389`
+
+### F425 — Twenty daily scenes, one a day
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/home/WordScene.tsx:1
+- note: owner design-system-engineer for the drawings, barrel and J7; frontend-engineer for the
+  chooser, keys, card and tab. `home/wordScenes.ts` exports `WORD_SCENES` as twenty keys;
+  `home/WordScene.tsx` switches on `WordSceneKey` and returns each scene as `<WordX width={width}
+  paused={paused} />`; Home picks `dailyPick(WORD_SCENES, now)` on its one clock and the card
+  draws `<WordScene scene={scene} width={108} paused={paused} />`. The nineteen new scenes, each
+  through `Frame`, `Stipple`, `Moving`, `Scene` and `useSceneMotion`, 4:3, one stroke weight,
+  `fill="none"` but for tiny accents, one oversized object, at most two loops, transform and
+  opacity only. All twenty exported from `illustrations/index.ts` and each reached as `<Name` in
+  the chooser, which is what J14 needs; J7's alternation gains `WordScene`.
+- verified-by: `twenty daily scenes rotate by the day, each reached from the chooser and paused from the card — F425`
+- verified-by: `every scene the barrel exports is drawn somewhere`
+- verified-by: `every scene hides itself from a screen reader`
+- verified-by: `every scene draws at the one stroke weight`
+- verified-by: `a scene on a tab that is not focused stops moving`
+
+### F426 — The guards, the docs and the older ledger lines changed on purpose
+- severity: P1
+- status: [x]
+- where: docs/KNOWN_ISSUES.md:5637
+- note: owner frontend-engineer for tests under `tabs/` and `home/` and the runbook rows;
+  design-system-engineer for `layout.test.ts`, J7 and `DESIGN.md`. Three tests are retitled and
+  the closed entries that name them follow: F387's first test becomes F417's title, F388's
+  becomes F420's, F391's is retitled for the tier. F416's test keeps its title with a new body.
+  J7's `SCENE` list gains `WordScene`. `DESIGN.md` names the seven greetings (so F407 still finds
+  Salut, Bonjour and Hello), the slot, the pack of twenty with `WordSprout`, and records that
+  Demo mode left the situation card. `docs/DEVICE_VERIFICATION.md` rewrites P5-1 for the swipe
+  and the still name and returns it to `not run` because the web walk measured a fade; P5-2 names
+  Bonjour by day, Bonsoir by evening, and the daily scene. Nine rows stay nine so F410 passes.
+- verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
+- verified-by: `the device runbook carries the Pass 5 checks — F410`
+- verified-by: `the Pass 5 runbook expects the next step row on a fresh account — F413`

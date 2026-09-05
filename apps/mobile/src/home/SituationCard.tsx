@@ -26,6 +26,15 @@
  * are named in `tabs/HomeTab.test.ts` so putting one back fails by name rather
  * than drifting back in. What is left is two controls: the quiet one saves the
  * scene into My French, and the loud one opens the conversation.
+ *
+ * The demo label went with them, and it is the interesting one. It reported a
+ * server state on the first screen of the app, to a learner who had not asked
+ * about a server and could do nothing with the answer, and it did it before
+ * they had tried anything. The honest signal is the one below: the learner taps
+ * Start oral session, sees the probe run, and gets the module's own sentence
+ * about why it could not open along with the way to try again. That path is
+ * pinned by F392 and none of it moved. A badge is not a signal; an answer to a
+ * tap is.
  */
 
 import { useState } from 'react';
@@ -51,7 +60,7 @@ export function SituationCard({
   onToggleBookmark: () => void;
 }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
-  const { live, recheck } = useLive();
+  const { recheck } = useLive();
   const [checking, setChecking] = useState(false);
   /** The start that did not happen, so the retry is the same start. */
   const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
@@ -74,13 +83,11 @@ export function SituationCard({
 
   return (
     <Card style={st.card}>
-      {/* The eyebrow. Demo reports a state, the tutor is not live, so it is
-          soft ink rather than the identity violet beside it. */}
+      {/* The eyebrow, and it says one thing: what this card is. */}
       <View style={st.eyebrow}>
         <View style={st.eyebrowWords}>
           <Label>{"Today's situation"}</Label>
         </View>
-        {!live && <Label color={paper.inkSoft}>{TUTOR_OFFLINE.label}</Label>}
       </View>
 
       <Text style={st.title}>{scenario.titleEn}</Text>

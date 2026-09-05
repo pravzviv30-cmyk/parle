@@ -14,7 +14,7 @@
  * the pools across it. That is the same arrangement `progress/story.ts` explains
  * for learner-facing progress copy, and the reason is the same one.
  *
- * The pools are 127 words and 71 situations of authored French and English, and
+ * The pools are 284 words and 71 situations of authored French and English, and
  * every one of them reaches a learner on Home. `guiltIn` matches by substring
  * and catches ordinary words on purpose, so this is a check somebody has to
  * pass rather than a formality: it is what stops a warm sentence about not

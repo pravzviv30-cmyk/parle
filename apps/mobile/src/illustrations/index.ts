@@ -43,3 +43,35 @@ export { StreetCorner, MarketStall, FrontDesk, EveningIn } from './scenes/missio
 // The word of the day. Drawn by `home/WordOfDayCard.tsx`, and nowhere else:
 // the seedling is that card's picture, not a general-purpose growth mark.
 export { WordSprout } from './scenes/sprout.tsx';
+
+// The daily pack: nineteen more drawings for that same card, which rotates
+// through them a day at a time. `WordSprout` above is the twentieth, so a
+// learner sees three weeks of mornings before one comes round again.
+//
+// They are grouped by subject rather than by what moves, because the card
+// picks one for the day and never picks by kind. Every one of them takes the
+// same `SceneProps` as the seedling and moves once: swap any for any other and
+// the card does not notice.
+export {
+  WordKettle,
+  WordCroissant,
+  WordCandle,
+  WordCasserole,
+  WordTeapot,
+} from './scenes/daily/kitchen.tsx';
+export {
+  WordUmbrella,
+  WordCloud,
+  WordKite,
+  WordLeaves,
+  WordSnowflake,
+} from './scenes/daily/weather.tsx';
+export {
+  WordPostbox,
+  WordBicycle,
+  WordFountain,
+  WordPigeon,
+  WordLantern,
+  WordShutters,
+} from './scenes/daily/street.tsx';
+export { WordSnail, WordCat, WordSailboat } from './scenes/daily/garden.tsx';

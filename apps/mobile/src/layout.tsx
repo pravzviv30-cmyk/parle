@@ -10,8 +10,9 @@
  * body. `ScreenHeader` is the one header row, a back arrow or a leave word, never
  * both. `ConfirmSheet` is the one way to ask before leaving something metered.
  *
- * Nothing here moves and nothing here draws its own glyphs: movement belongs to
- * the scenes and the pen already drew the chevron. The frame stays out of the way.
+ * Nothing here drives movement and nothing here draws its own glyphs: timing
+ * belongs to whoever owns the value and the pen already drew the chevron. The
+ * frame may hold a value somebody else is moving, and stays out of the way.
  */
 
 import type { ReactNode } from 'react';
@@ -22,12 +23,13 @@ import {
   Text,
   Pressable,
   Platform,
+  PixelRatio,
   KeyboardAvoidingView,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Card, PillButton, OutlineButton } from './components.tsx';
-import { paper, space, type, HIT } from './theme.ts';
+import { decorative, paper, space, type, HIT } from './theme.ts';
 
 /** Where the bottom of a screen ends. */
 export type ScreenBottom = 'tab' | 'inset' | 'none';
@@ -213,15 +215,43 @@ export function ScreenHeader(props: ScreenHeaderProps) {
   );
 }
 
+/**
+ * A word that moves through a fixed slot, beside a name that does not.
+ *
+ * Home's greeting changes and the learner's name beside it must not, so the
+ * greeting is not one line that fades: it is a placeholder the word travels
+ * through. `word` is showing now and carries its own comma, because the comma
+ * belongs to the greeting rather than to the name. `next` is the word rising in
+ * behind it. `widest` is the widest word the pool can produce and is what gives
+ * the slot its size. `rest` is the learner's real first name, or null when they
+ * skipped it — never a stand-in name.
+ *
+ * `progress` runs 0 to 1 across one swipe and is driven by whoever owns the
+ * timing. The frame is handed the value; it never starts it.
+ */
+export interface TitleSwap {
+  /** The word showing now, comma included: 'Salut,' */
+  word: string;
+  /** The word rising in behind it. */
+  next: string;
+  /** The widest word the pool can produce, for sizing. */
+  widest: string;
+  /** The name, or null when the learner skipped it. */
+  rest: string | null;
+  /** 0 at rest, 1 when the swipe is complete. Somebody else drives it. */
+  progress: Animated.Value;
+}
+
 type TabHeaderProps = {
   /** The tab's name, set large. */
   title: string;
   /** One plain line saying what the tab is for. Home is the one tab without one. */
   purpose?: string;
-  /** Fade the title with this. Given one, the title is drawn as Animated.Text. */
-  titleOpacity?: Animated.Value;
-  /** One fixed announcement for a title that changes on a timer. */
-  titleAccessibilityLabel?: string;
+  /**
+   * Draw the title as a moving word in a fixed slot with a still name beside
+   * it. Given nothing, the title is the plain line it has always been.
+   */
+  titleSwap?: TitleSwap | null;
   /** An optional control on the title row — the learner's monogram on Home. */
   trailing?: ReactNode;
   /** Anything the tab wants under the purpose, still inside the header block. */
@@ -238,54 +268,28 @@ type TabHeaderProps = {
  * largest reading size, so it has to scroll with the content rather than pin
  * to the top. Nothing here caps the reading size or truncates the title.
  *
- * Three of the props are optional, and each one is here for a reason Home
- * gave it.
+ * Two of the props are optional for reasons Home gave them.
  *
  * `purpose` used to be required, and every tab still says what it is for in
  * one line. Home is the exception the founder asked for: its header is the
  * greeting alone, so the line is absent rather than empty. A tab that passes
  * one is drawn exactly as it was.
  *
- * `titleOpacity` is the only way a title can fade without `type.display`
- * leaving this file. Home's greeting cycles Salut, Bonjour, Hello, and the
- * alternative was a tab spreading the display line into a stylesheet of its
- * own, which is how five tabs end up with five slightly different titles.
- * Given a value, the title becomes `Animated.Text` and the value drives its
- * opacity; given nothing, it is the plain `Text` it has always been. The frame
- * still starts no animation and owns no timer: it is handed a value that
- * somebody else is driving.
- *
- * `titleAccessibilityLabel` is what assistive tech reads instead of a title
- * that keeps changing. A header renaming itself every few seconds, announced
- * each time, is the most hostile thing this app could do to somebody
- * listening to it, so the spoken version is one fixed greeting and there is no
- * live region anywhere near this row.
+ * `titleSwap` is the only way a title can move without `type.display` leaving
+ * this file. Home's greeting changes through the day, and the alternative was a
+ * tab spreading the display line into a stylesheet of its own, which is how
+ * five tabs end up with five slightly different titles. Given a swap, the row
+ * is `TitleSwapRow` below; given nothing, it is the plain `Text` it has always
+ * been, which is what the other four tabs still render.
  */
-export function TabHeader({
-  title,
-  purpose,
-  titleOpacity,
-  titleAccessibilityLabel,
-  trailing,
-  children,
-}: TabHeaderProps) {
+export function TabHeader({ title, purpose, titleSwap, trailing, children }: TabHeaderProps) {
   return (
     <View style={{ marginBottom: space(5) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
-        {titleOpacity != null ? (
-          <Animated.Text
-            accessibilityRole="header"
-            accessibilityLabel={titleAccessibilityLabel}
-            style={[type.display, { color: paper.ink, flex: 1, opacity: titleOpacity }]}
-          >
-            {title}
-          </Animated.Text>
+        {titleSwap != null ? (
+          <TitleSwapRow title={title} swap={titleSwap} />
         ) : (
-          <Text
-            accessibilityRole="header"
-            accessibilityLabel={titleAccessibilityLabel}
-            style={[type.display, { color: paper.ink, flex: 1 }]}
-          >
+          <Text accessibilityRole="header" style={[type.display, { color: paper.ink, flex: 1 }]}>
             {title}
           </Text>
         )}
@@ -295,6 +299,97 @@ export function TabHeader({
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{purpose}</Text>
       ) : null}
       {children != null ? children : null}
+    </View>
+  );
+}
+
+/**
+ * The greeting: one word rising through a fixed slot, the name holding still.
+ *
+ * The slot is sized by a ghost — the widest word the pool can produce, drawn in
+ * normal flow at zero opacity — so the slot is exactly one line tall and wide
+ * enough for any word in the pool at any OS reading size, without measuring
+ * anything. Nothing in this app calls `onLayout`, and adding one here would buy
+ * a first frame at the wrong size and a remeasure every time the reading size
+ * changed, to learn what the type already knows.
+ *
+ * Over the ghost sits an absolute strip holding both words stacked. `progress`
+ * lifts it exactly one line and crosses the two opacities at the same time, so
+ * what reads is one word replacing another rather than a strip sliding past.
+ * The slot clips, so the arriving word does not exist until it arrives.
+ *
+ * The name is outside the slot, in flow after it, joined to the word by a
+ * non-breaking space so the gap grows with the type rather than staying at
+ * whatever a number said once. The row wraps, so at the largest reading size a
+ * long name drops to a second line instead of breaking mid-word.
+ *
+ * A screen reader hears one greeting: the row is a single accessible heading
+ * labelled with the still line, and the slot is hidden from assistive tech
+ * outright. There is no live region anywhere near this row — a header that
+ * renamed itself every few seconds and announced each one is the most hostile
+ * thing this app could do to somebody listening to it.
+ */
+function TitleSwapRow({ title, swap }: { title: string; swap: TitleSwap }) {
+  // One line, in the units a transform speaks. A translateY is device pixels
+  // while the rendered line height grows with the OS reading size, so the two
+  // only agree once the scale is multiplied back in; this is the only way to
+  // move exactly one line without measuring one. Read at render, so a Dynamic
+  // Type change corrects on the next render. It is 1 on the web, where browser
+  // zoom scales the CSS pixel itself.
+  const line = type.display.lineHeight * PixelRatio.getFontScale();
+  return (
+    <View
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel={title}
+      style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}
+    >
+      <View style={{ overflow: 'hidden' }} {...decorative}>
+        <Text style={[type.display, { color: paper.ink, opacity: 0 }]}>{swap.widest}</Text>
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            transform: [
+              {
+                translateY: swap.progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -line],
+                }),
+              },
+            ],
+          }}
+        >
+          <Animated.Text
+            style={[
+              type.display,
+              {
+                color: paper.ink,
+                opacity: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+              },
+            ]}
+          >
+            {swap.word}
+          </Animated.Text>
+          <Animated.Text
+            style={[
+              type.display,
+              {
+                color: paper.ink,
+                opacity: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
+              },
+            ]}
+          >
+            {swap.next}
+          </Animated.Text>
+        </Animated.View>
+      </View>
+      {swap.rest != null ? (
+        <Text style={[type.display, { color: paper.ink, flexShrink: 1 }]}>
+          {'\u00A0' + swap.rest}
+        </Text>
+      ) : null}
     </View>
   );
 }

@@ -1,13 +1,13 @@
 /**
- * What Home is allowed to decide, draw and leave out — F388, F391, F392, F398,
+ * What Home is allowed to decide, draw and leave out — F420, F391, F392, F398,
  * F399, F400 and F409.
  *
  * There is no renderer in this suite (docs/TESTING.md), so this reads the
  * screen, the way `PracticeTab.test.ts` and `MyFrenchTab.test.ts` do, and with
  * the same machinery. That is a blunt tool and its ceiling is honest: it proves
  * the greeting is wired to the hook rather than to a timer of its own, never
- * that a word faded on a phone. `docs/DEVICE_VERIFICATION.md`'s Pass 5 owns the
- * half a source walk cannot see.
+ * that a word slid up a slot on a phone. `docs/DEVICE_VERIFICATION.md`'s Pass 5
+ * owns the half a source walk cannot see.
  *
  * The class of bug it is pointed at is the one a renderer would not catch
  * either: a screen quietly growing a second opinion about a rule that already
@@ -52,10 +52,21 @@ const SITUATION = stripComments(read('../home/SituationCard.tsx'));
 const MOMENTUM = stripComments(read('../home/MomentumCards.tsx'));
 const NEXT_ROW = stripComments(read('../home/NextStepRow.tsx'));
 
-/** Home's own file and every card it draws, which together are the surface. */
+/**
+ * Home's own file, every card it draws, and the two files behind the word
+ * card's drawing, which together are the surface.
+ *
+ * The chooser and its pool are on this list for the reason the cards are: a
+ * pill moved off a card into a file the card imports is still a pill on the
+ * screen, and a word spelled one directory further away is still a word the
+ * learner reads. `wordScenes.test.ts` owns what those two say about the
+ * rotation; this file owns what they are allowed to put on the page.
+ */
 const HOME_SURFACE = [
   ['HomeTab.tsx', SCREEN],
   ['WordOfDayCard.tsx', WORD_CARD],
+  ['WordScene.tsx', stripComments(read('../home/WordScene.tsx'))],
+  ['wordScenes.ts', stripComments(read('../home/wordScenes.ts'))],
   ['SituationCard.tsx', SITUATION],
   ['MomentumCards.tsx', MOMENTUM],
   ['NextStepRow.tsx', NEXT_ROW],
@@ -130,12 +141,13 @@ function spoken(body: string): string[] {
   return [...literals(body), ...text];
 }
 
-describe('Home opens on the day rather than on a summary — F388, F391, F392', () => {
-  test('home opens on the rotating greeting alone, faded inside TabHeader, still under reduce motion, and read once by a screen reader — F388', () => {
+describe('Home opens on the day rather than on a summary — F420, F391, F392', () => {
+  test('home opens on the swiping greeting alone, held still for reduce motion and read once by a screen reader — F420', () => {
     // The rotation is the hook's, whole. Home holds no timer, no interval and
-    // no Animated value of its own: `useGreetingRotation` owns the chain, the
-    // native-driver fade, the reduce-motion final frame and the teardown, and a
-    // second copy of any of that here is a second answer to a settled question.
+    // no Animated value of its own: `useGreetingRotation` owns the two timers,
+    // the native-driver swipe, the commit frame, the reduce-motion branch and
+    // the teardown, and a second copy of any of that here is a second answer to
+    // a settled question.
     assert.match(
       FLAT,
       /import \{ useGreetingRotation \} from '\.\.\/home\/useGreetingRotation\.ts'/,
@@ -150,25 +162,27 @@ describe('Home opens on the day rather than on a summary — F388, F391, F392', 
       assert.ok(!SCREEN.includes(forbidden), `Home drives the greeting itself with ${forbidden}; that chain lives in the hook`);
     }
 
-    // Exactly one header, faded through the frame's own prop rather than by a
-    // display line escaping layout.tsx into this stylesheet.
+    // Exactly one header, and the movement crosses into it as one value the
+    // frame interpolates rather than as a display line escaping layout.tsx
+    // into this stylesheet.
     assert.equal((SCREEN.match(/<TabHeader\b/g) ?? []).length, 1, 'Home draws more than one tab header');
     const header = tags(RENDER, 'TabHeader')[0];
     assert.ok(header, 'Home does not open on a tab header');
-    assert.match(header, /title=\{greeting\.line\}/, 'the header does not draw the rotating line');
-    assert.match(header, /titleOpacity=\{greeting\.opacity\}/, 'the header is handed no opacity, so nothing fades');
+    assert.match(header, /titleSwap=\{greeting\.swap\}/, 'the header is handed no swap, so the greeting never moves');
     assert.ok(!SCREEN.includes('...type.display'), 'Home spreads the display line into its own stylesheet; that line lives in layout.tsx');
 
-    // One fixed announcement. A header renaming itself every few seconds and
-    // announcing each new name is the most hostile thing this app could do to
-    // somebody listening to it, so the spoken version rests on Bonjour and
-    // there is no live region anywhere near this row.
-    assert.match(
-      header,
-      /titleAccessibilityLabel=\{greetingRest\(firstName\)\}/,
-      'the header announces the moving title instead of one fixed greeting',
+    // One fixed announcement, and it is the still line. A header renaming
+    // itself every few seconds and announcing each new name is the most hostile
+    // thing this app could do to somebody listening to it, so `title` is the
+    // whole greeting at rest, which is also what a learner who asked for less
+    // movement reads, and there is no live region anywhere near this row.
+    assert.match(header, /title=\{greeting\.rest\}/, 'the header draws the moving word as its title instead of the still line');
+    assert.ok(!header.includes('titleOpacity'), 'the header is still handed the fade the swipe replaced');
+    assert.ok(
+      !SCREEN.includes('titleAccessibilityLabel'),
+      'Home still names the header separately; the still line is the title now, so a second label would be a second greeting',
     );
-    assert.match(FLAT, /import \{ greetingRest \} from '\.\.\/home\/greeting\.ts'/, 'Home spells the resting greeting instead of reading it');
+    assert.ok(!SCREEN.includes('greetingRest'), 'Home assembles the resting greeting itself; the hook returns it');
     assert.ok(!SCREEN.includes('accessibilityLiveRegion'), 'Home carries a live region, so the greeting would be announced again and again');
 
     // The greeting alone. The founder took all three of these off the header.
@@ -184,20 +198,60 @@ describe('Home opens on the day rather than on a summary — F388, F391, F392', 
     assert.ok(!SCREEN.includes("'you'"), 'Home falls back to calling the learner "you"');
   });
 
-  test("home draws the word of the day from core's pool under a paused, decorative sprout scene — F391", () => {
+  test("home draws the word of the day from the learner's tier under a paused, decorative daily scene — F391", () => {
     // The pool and the pick are core's. Home reads them with the one `now` it
     // takes per focus and stores nothing, so the same day gives the same word
     // on a fresh install and on a two-year-old one.
     assert.match(FLAT, /import \{[^}]*\bDAILY_WORDS\b[^}]*\} from '@luvani\/core'/, "Home never imports core's word pool");
     assert.match(FLAT, /import \{[^}]*\bdailyPick\b[^}]*\} from '@luvani\/core'/, 'Home never imports the daily pick');
-    assert.match(FLAT, /setWord\(dailyPick\(DAILY_WORDS, now\)\)/, "the word of the day is not picked by core's rule from the screen's one clock reading");
+    assert.match(FLAT, /import \{[^}]*\bwordsForLevel\b[^}]*\} from '@luvani\/core'/, "Home never imports the tier rule, so every learner meets the same pool");
     assert.ok(!SCREEN.includes('Math.random'), 'Home picks the word at random, so it would change under the learner mid-day');
-    assert.match(FLAT, /\{word !== null && <WordOfDayCard word=\{word\} paused=\{!focused\} \/>\}/, 'the word card is drawn without a word, or without being told when the tab is off top');
+
+    // The word is pitched, so it waits on storage: the tier comes from the
+    // level standing and the level standing is XP that has to be read. Picked
+    // before the read it would be a tier one word replaced a moment later,
+    // which is the app appearing to change its mind about a learner.
+    const awaited = between(
+      FLAT,
+      'void Promise.all(',
+      'return () => {',
+      'Home no longer folds its storage reads together, so this walk reads the wrong half of the effect',
+    );
+    assert.match(
+      awaited,
+      /const standing = levelFor\(totalXp\(activity\)\);/,
+      "the tier is not read from the app's one level standing, so Home has grown a second opinion about how far a learner has come",
+    );
+    assert.match(
+      awaited,
+      /setWord\(dailyPick\(wordsForLevel\(DAILY_WORDS, standing\.index\), now\)\)/,
+      "the word of the day is not today's word from the learner's tier, on the screen's one clock reading",
+    );
+    assert.ok(
+      FLAT.indexOf('setWord(') > FLAT.indexOf('void Promise.all('),
+      'the word is picked before the XP is read, so a learner would watch it change tier a moment after it appeared',
+    );
+
+    // The drawing does not wait. It is a pure function of the day and a pool,
+    // taken from the same `now` as the situation beside it.
+    assert.match(FLAT, /import \{ WORD_SCENES, type WordSceneKey \} from '\.\.\/home\/wordScenes\.ts'/, 'Home never imports the scene pool');
+    assert.match(FLAT, /setScene\(dailyPick\(WORD_SCENES, now\)\)/, "the day's drawing is not picked by the day, from the screen's one clock reading");
+    assert.ok(
+      FLAT.indexOf('setScene(') < FLAT.indexOf('void Promise.all('),
+      'the drawing waits on storage; it is a function of the day alone and belongs on screen before the bridge answers',
+    );
+    assert.match(
+      FLAT,
+      /\{word !== null && scene !== null && \( <WordOfDayCard word=\{word\} scene=\{scene\} paused=\{!focused\} \/> \)\}/,
+      'the word card is drawn without a word, without the day it is being drawn for, or without being told when the tab is off top',
+    );
 
     // Nothing loops behind a tab nobody is looking at. The scene cannot ask for
-    // itself, so the tab passes the answer down and the card passes it on.
-    assert.match(WORD_CARD, /import \{ WordSprout \} from '\.\.\/illustrations\.tsx'/, 'the card does not draw the watering scene');
-    assert.match(WORD_CARD, /<WordSprout width=\{\d+\} paused=\{paused\} \/>/, 'the scene is drawn without being told to stop');
+    // itself, so the tab passes the answer down and the card passes it on to
+    // whichever of the twenty today is.
+    assert.match(WORD_CARD, /import \{ WordScene \} from '\.\/WordScene\.tsx'/, 'the card does not reach the day through the chooser');
+    assert.ok(!WORD_CARD.includes('WordSprout'), 'the card still names one fixed drawing, so nineteen days of the rotation never reach it');
+    assert.match(WORD_CARD, /<WordScene scene=\{scene\} width=\{\d+\} paused=\{paused\} \/>/, 'the scene is drawn without a day, or without being told to stop');
     assert.match(SCREEN, /useIsFocused/, 'Home passes paused without knowing whether it is focused');
 
     // Every field of the entry, and not one word of it spelled here. The card
@@ -281,8 +335,14 @@ describe('Home opens on the day rather than on a summary — F388, F391, F392', 
       }
     }
     // The level chrome went with them: the ladder is My French's to draw.
-    for (const gone of ['levelFor', 'StationLine', '<Stat', 'totalXp', 'buildProgressReport']) {
-      assert.ok(!SCREEN.includes(gone), `Home still reaches for ${gone}; the level and the evidence are My French's now`);
+    //
+    // `levelFor` and `totalXp` came back in F423 and are deliberately not on
+    // this list any more. Home reads the standing to pitch one word and draws
+    // none of it: no name, no rung, no rail, no number. What the founder took
+    // off this page was the level being *shown*, and the four names below are
+    // the ways it would be.
+    for (const gone of ['StationLine', '<Stat', 'buildProgressReport', 'standing.name']) {
+      assert.ok(!SCREEN.includes(gone), `Home still reaches for ${gone}; the level and the evidence are My French's to draw`);
     }
   });
 });

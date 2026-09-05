@@ -751,16 +751,17 @@ this is where that pass is recorded. Owner: `frontend-engineer` for the screens,
 
 `pass` / `fail` / `not run`. Every row is `not run` until a real device pass is walked.
 
-One row is not. P5-1 was walked in the web build on 2026-09-05 and the greeting cycled at 3760ms and
-3744ms against the 3750ms measured off the founder's video, so it is recorded as `web: pass` in the iOS
-column with the platform named. That is evidence about the rule and the timing, not about a phone; the
-iOS and Android columns still need a device. The same run found F415 and F416, which is what a screen
+P5-1 was walked in the web build on 2026-09-05 and the greeting cycled at 3760ms and 3744ms against
+the 3750ms measured off the founder's video. **That walk is withdrawn.** The founder then asked for a
+swipe rather than a fade, and a measurement of the old motion is not evidence about the new one. The
+cadence between words is deliberately unchanged, so the number is likely to hold; the row is back to
+`not run` because likely is not walked. That same run found F415 and F416, which is what a screen
 nobody had looked at is for.
 
 | Id | Check | iOS | Android |
 |---|---|---|---|
-| P5-1 | Home's greeting cycles Salut, Bonjour, Hello, holding about three seconds each, fading rather than sliding, and the rest of the column does not move while it does | web: pass | not run |
-| P5-2 | With reduce motion on, the greeting stops on Bonjour and stays legible, the word of the day scene holds its final frame, and nothing on Home is blank | not run | not run |
+| P5-1 | Home's greeting word slides up out of its slot and the next one rises in behind it, about every three and a half seconds, and the learner's name does not move sideways by a pixel while it happens | not run | not run |
+| P5-2 | With reduce motion on, the greeting stops on one still word, Bonjour by day and Bonsoir after six, the day's word scene holds its final frame, and nothing on Home is blank | not run | not run |
 | P5-3 | VoiceOver and TalkBack read one greeting on Home and do not announce it again while it cycles; the word of the day drawing is walked past in silence | not run | not run |
 | P5-4 | On a fresh account, Home shows the greeting, the word of the day, today's situation and the next step row offering the first situation, and shows no momentum tiles and no goal bar; after one conversation the momentum tiles and the goal bar appear with real numbers | not run | not run |
 | P5-5 | At iOS AX5 / Android font scale 2.0 on an SE-sized phone, Home and Tutor show no clipped line, no truncated title and no horizontal scroll, and the two momentum tiles stay side by side or stack cleanly | not run | not run |
@@ -768,6 +769,8 @@ nobody had looked at is for.
 | P5-7 | Leaving a guided mission part way makes the Tutor resume card offer it back with a minutes line; finishing that mission clears the line | not run | not run |
 | P5-8 | Resume and Open conversation are both reachable one-handed on a large phone, and each is comfortably above the touch floor | not run | not run |
 | P5-9 | Bookmarking today's situation on Home makes it appear under My French; un-bookmarking removes it, and it stays removed after a relaunch | not run | not run |
+| P5-10 | The gap between the greeting word and the name reads as a word-space rather than a hole, at every word in the hour's pool and at the largest reading size; no word is clipped by the slot, and a long name wraps rather than breaking | not run | not run |
+| P5-11 | A different drawing appears on a different day, each one moving, and the situation card carries no Demo mode label even with the tutor servers down | not run | not run |
 
 ## Recording the result
 

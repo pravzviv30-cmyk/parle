@@ -137,8 +137,29 @@ describe('nothing animates where nobody is looking — J7', () => {
     // reading the two tab files alone would now find nothing and pass. The
     // surfaces are the tabs AND the cards they lifted out; the scene list is the
     // barrel's, so a scene added there cannot slip through unpaused.
-    const SCENE = 'SpeakBubbles|NobodyYet|HeroCafe|LearnStack|NothingDue|EveningIn|WordSprout|StillWriting|Phrasebook|RecapPostcard|StreetCorner|MarketStall|FrontDesk';
-    const SURFACES = ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx', 'home/WordOfDayCard.tsx', 'home/SituationCard.tsx'];
+    // The daily pack moved Home's drawing behind a chooser, and that nearly made
+    // this test blind: once `WordOfDayCard.tsx` stopped naming `WordSprout`, the
+    // only scene left on the Home side was `EveningIn` over on Tutor, so
+    // `drawn > 0` still held while nothing about the twenty was checked. So the
+    // chooser is a surface, and every scene it can draw is a name here.
+    const DAILY = [
+      'WordSprout', 'WordKettle', 'WordCroissant', 'WordCandle', 'WordCasserole', 'WordTeapot',
+      'WordUmbrella', 'WordCloud', 'WordKite', 'WordLeaves', 'WordSnowflake', 'WordPostbox',
+      'WordBicycle', 'WordFountain', 'WordPigeon', 'WordLantern', 'WordShutters', 'WordSnail',
+      'WordCat', 'WordSailboat',
+    ];
+    const SCENE = [
+      'SpeakBubbles', 'NobodyYet', 'HeroCafe', 'LearnStack', 'NothingDue', 'EveningIn',
+      'StillWriting', 'Phrasebook', 'RecapPostcard', 'StreetCorner', 'MarketStall', 'FrontDesk',
+      'WordScene', ...DAILY,
+    ].join('|');
+    const SURFACES = [
+      'tabs/HomeTab.tsx',
+      'tabs/TutorTab.tsx',
+      'home/WordOfDayCard.tsx',
+      'home/SituationCard.tsx',
+      'home/WordScene.tsx',
+    ];
     let drawn = 0;
     for (const name of SURFACES) {
       const body = named(name);
@@ -149,6 +170,16 @@ describe('nothing animates where nobody is looking — J7', () => {
       }
     }
     assert.ok(drawn > 0, 'none of the tab surfaces renders a scene any more; this test is stale');
+    // And the chooser draws every one of the twenty, so a key added without a
+    // drawing, or a case that forgets to pass `paused` down, fails here too.
+    const chooser = named('home/WordScene.tsx');
+    for (const name of DAILY) {
+      assert.match(
+        chooser,
+        new RegExp(`<${name}\\b[^/>]*paused=`),
+        `the word-of-the-day chooser draws ${name} without telling it to stop when the tab is not on top`,
+      );
+    }
     // Only a tab can ask whether it is focused: the hook throws outside a
     // navigator, so a card takes `paused` as a prop from the tab above it.
     for (const name of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx']) {
@@ -1554,7 +1585,28 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
       'the design doc says Tutor carries two pills and the tab draws a different number',
     );
 
-    // 4. The retired pair, so nobody reinstates them from a stale doc.
+    // 4. The revision. The doc described a fade through three words for exactly
+    //    one day; these are the claims that replaced it, and a doc that drifts
+    //    back to the old ones is a doc somebody will build from.
+    assert.doesNotMatch(
+      design,
+      /It fades rather than\s+slides/,
+      'DESIGN.md still says the greeting fades rather than slides, and it swipes now',
+    );
+    assert.match(design, /rises up out of a fixed slot/, 'DESIGN.md does not describe the greeting slot');
+    assert.match(
+      design,
+      /Seven greetings, and the hour decides which/,
+      'DESIGN.md does not record that the greeting pool is filtered by the hour',
+    );
+    assert.match(design, /daily pack/i, 'DESIGN.md never names the pack of drawings Home rotates through');
+    assert.match(
+      design,
+      /Demo mode\*{0,2} label left the situation card/,
+      'DESIGN.md does not record that the demo label left the situation card',
+    );
+
+    // 5. The retired pair, so nobody reinstates them from a stale doc.
     for (const gone of ['TodayRow', 'PhrasebookCard']) {
       assert.ok(design.includes(gone), `DESIGN.md never records that ${gone} left Home`);
     }
@@ -1594,8 +1646,11 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.match(runbook, /## Pass 5 daily home/, 'the runbook has no Pass 5 section');
     const section = runbook.slice(runbook.indexOf('## Pass 5 daily home'));
     const rows = section.split('\n').filter((l) => /\|\s*P5-\d/.test(l));
-    assert.equal(rows.length, 9, `the Pass 5 section names ${rows.length} rows; it should carry P5-1 through P5-9`);
-    for (let i = 1; i <= 9; i += 1) {
+    // Eleven since the Home revision: the swipe's gap at every reading size, and
+    // a scene that changes with the day, are two more things no source walk can
+    // see. The count is asserted rather than a floor so a row cannot go quietly.
+    assert.equal(rows.length, 11, `the Pass 5 section names ${rows.length} rows; it should carry P5-1 through P5-11`);
+    for (let i = 1; i <= 11; i += 1) {
       assert.match(section, new RegExp(`P5-${i}\\b`), `the Pass 5 runbook names no P5-${i} row`);
     }
     for (const row of rows) {
@@ -1614,10 +1669,13 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     }
     // The four things this pass added that no test in this repository can see.
     for (const [what, pattern] of [
-      ['the greeting fading rather than sliding', /fading rather than sliding/],
+      ['the greeting word sliding up out of its slot', /slides up out of its slot/],
+      ['the name holding still while it does', /does not move sideways/],
       ['reduce motion resting the greeting', /reduce motion on/],
       ['a screen reader hearing one greeting', /VoiceOver and TalkBack read one greeting/],
       ['a fresh account seeing no momentum', /fresh account/],
+      ['the gap after a short word', /word-space rather than a hole/],
+      ['a drawing that changes with the day', /different drawing appears on a different day/],
     ] as const) {
       assert.match(section, pattern, `the Pass 5 section never asks anyone to check ${what}`);
     }
