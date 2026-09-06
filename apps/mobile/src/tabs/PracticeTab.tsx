@@ -18,12 +18,22 @@
  * on, because a screen that can count is a screen that can draw a nought.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { DAILY_SCENARIOS, phraseKeyOf, seedTopicOf, type ConversationPack, type DailyScenario, type ReviewCard } from '@luvani/core';
+import {
+  DAILY_SCENARIOS,
+  levelFor,
+  phraseKeyOf,
+  scenariosForLevel,
+  seedTopicOf,
+  totalXp,
+  type ConversationPack,
+  type DailyScenario,
+  type ReviewCard,
+} from '@luvani/core';
 import { paper, space, type } from '../theme.ts';
-import { Card, Label, PillButton } from '../components.tsx';
+import { Card, Label, OutlineButton, PillButton } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import {
   archiveFrom,
@@ -31,6 +41,7 @@ import {
   ARCHIVE_LABEL,
   CLOSING,
   FEED,
+  UNREAD,
   type Archive,
   type FilterKey,
 } from '../practice/archive.ts';
@@ -39,9 +50,10 @@ import { SessionRow } from '../practice/SessionRow.tsx';
 import { VaultCard } from '../practice/VaultCard.tsx';
 import { ScenarioCard } from '../practice/ScenarioCard.tsx';
 import { NEXT_STEP, nextStep, packLine, reviewLine, type NextStep } from '../practice/nextStep.ts';
-import { nextOffset, suggestionFor, SUGGESTION } from '../practice/suggestion.ts';
-import { loadSuggestionOffset, saveSuggestionOffset } from '../practice/suggestionStore.ts';
+import { reshuffle, suggestionFor, walkOn, SUGGESTION, type Walk } from '../practice/suggestion.ts';
+import { firstWalk, loadWalk, saveWalk } from '../practice/suggestionStore.ts';
 import { loadDeck } from '../review/store.ts';
+import { loadActivity } from '../progress/activity.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { loadConversationPacks, refreshConversationPacks } from '../conversationPacks/store.ts';
@@ -62,27 +74,57 @@ export function PracticeTab() {
   // Which filter the learner chose. Resets to nothing on purpose when the row
   // stops earning its place, since sessionsUnder falls back to the whole feed.
   const [filter, setFilter] = useState<FilterKey>('all');
-  // How far along the suggestion card has walked the authored pool.
-  const [offset, setOffset] = useState(0);
+  // The learner's own deal of the pool, and where they are in it.
+  const [walk, setWalk] = useState<Walk | null>(null);
+  // Which tier of the pool this learner is pitched at. The same rule the word
+  // of the day already reads, so the two cannot disagree about how far somebody
+  // has come. Null until the activity log answers.
+  const [levelIndex, setLevelIndex] = useState<number | null>(null);
   // A probe is in flight. The one door here that touches the network runs one
   // before it navigates, and without the flag the tap does nothing visible for
   // up to a second and a half and a second tap queues a second navigation.
   const [checking, setChecking] = useState(false);
+  // The read did not finish, and the learner is told so.
+  //
+  // Without this there is no third state: `archive` was null both while storage
+  // was answering and after something threw, and every gate below is
+  // `x !== null && draw`, so a failure was invisible by construction. That is
+  // exactly how F449 reached a real phone as a screen that sat there loading
+  // and never said a word.
+  const [failed, setFailed] = useState(false);
   // The clock, read once per focus and held. The suggestion is a pure function
   // of the day and the offset, and reading Date.now() while rendering would
   // let a redraw at midnight move the card under the learner's thumb.
   const [day, setDay] = useState<number | null>(null);
+  // Whether the learner has moved the suggestion card since this focus began.
+  // A ref rather than state: nothing renders from it, and it has to be readable
+  // by the storage callback that resolves after the tap.
+  const movedRef = useRef(false);
 
-  // Rebuilt on every return: a conversation that just finished must be on the
-  // feed the moment the learner lands back here.
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
+  /**
+   * Read everything the tab draws, and say so if it cannot.
+   *
+   * A `useCallback` rather than an inline effect body because the failure card
+   * offers Try again, and the retry has to be the same work rather than a
+   * second copy of it that could drift.
+   *
+   * `.catch` and not a second argument to `.then`: a throw inside the
+   * fulfilment handler rejects the promise `.then` returns, and an `onRejected`
+   * passed alongside it does not see that. The whole point here is the throw
+   * inside the handler, so it has to be a `.catch` at the end of the chain, and
+   * the inner refresh is returned rather than floated so its failures land in
+   * the same place.
+   */
+  const load = useCallback(
+    (cancelled: () => boolean) => {
       const now = Date.now();
       setDay(now);
+      setFailed(false);
 
-      void loadSuggestionOffset().then((stored) => {
-        if (!cancelled) setOffset(stored);
+      void loadWalk(now).then((stored) => {
+        // Only if the learner has not already moved the card themselves. A slow
+        // disk answering after a tap used to snap the suggestion back.
+        if (!cancelled() && !movedRef.current) setWalk(stored);
       });
 
       const draw = (packs: readonly ConversationPack[], deck: readonly ReviewCard[]) => {
@@ -93,23 +135,43 @@ export function PracticeTab() {
       // Draw the cache at once, then quietly replace it with the server-owned
       // truth. A closed app can miss the original live delivery, so this pull
       // is the recovery path rather than a decorative refresh.
-      void Promise.all([loadConversationPacks(), loadDeck()]).then(([packs, deck]) => {
-        if (cancelled) return;
-        draw(packs, deck);
+      void Promise.all([loadConversationPacks(), loadDeck(), loadActivity()])
+        .then(([packs, deck, activity]) => {
+          if (cancelled()) return undefined;
+          draw(packs, deck);
+          setLevelIndex(levelFor(totalXp(activity)).index);
 
-        if (user === null) return;
-        void refreshConversationPacks(user, adapter).then((result) => {
-          if (!cancelled && result.ok) draw(result.packs, deck);
+          if (user === null) return undefined;
+          return refreshConversationPacks(user, adapter).then((result) => {
+            if (!cancelled() && result.ok) draw(result.packs, deck);
+          });
+        })
+        .catch(() => {
+          if (!cancelled()) setFailed(true);
         });
-      });
+    },
+    [user, adapter],
+  );
 
+  // Rebuilt on every return: a conversation that just finished must be on the
+  // feed the moment the learner lands back here.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      movedRef.current = false;
+      load(() => cancelled);
       return () => {
         cancelled = true;
       };
-    }, [user, adapter]),
+    }, [load]),
   );
 
-  const scenario: DailyScenario | null = day === null ? null : suggestionFor(DAILY_SCENARIOS, day, offset);
+  // Pitched, then dealt. `scenariosForLevel` narrows the pool to the learner's
+  // tier and the walk decides which of what is left they are looking at. Both
+  // wait on storage, so the card arrives with the rest of the screen rather
+  // than showing a beginner something meant for somebody two levels up.
+  const pool = levelIndex === null ? [] : scenariosForLevel(DAILY_SCENARIOS, levelIndex);
+  const scenario: DailyScenario | null = walk === null ? null : suggestionFor(pool, walk);
 
   /**
    * Back to the tutor, about this suggestion.
@@ -135,10 +197,21 @@ export function PracticeTab() {
     nav.navigate('Drill', { node: { id: node.id, title: node.title, phraseKeys: node.phraseKeys } });
   };
 
+  /**
+   * Another situation, from the same deal.
+   *
+   * When the walk comes back round to the top the pool is reshuffled rather
+   * than repeated, so a learner who has been through all of them meets a new
+   * order instead of the same one again. That is the whole of "shuffle" as far
+   * as the learner is concerned, and it needs no second control on the card:
+   * one button that never repeats until it has to.
+   */
   const another = () => {
-    const moved = nextOffset(offset, DAILY_SCENARIOS.length);
-    setOffset(moved);
-    void saveSuggestionOffset(moved);
+    movedRef.current = true;
+    const stepped = walkOn(walk ?? firstWalk(Date.now()), pool.length);
+    const moved = stepped.position === 0 ? reshuffle(Date.now()) : stepped;
+    setWalk(moved);
+    void saveWalk(moved);
   };
 
   const shown = archive === null ? [] : sessionsUnder(archive, filter);
@@ -169,6 +242,20 @@ export function PracticeTab() {
             here as the tab's only pill. When the deck is quiet and every
             conversation has been revisited there is no step, and this draws
             nothing rather than a cheerful message for a learner who is done. */}
+        {/* The read did not finish. Said plainly, with the same work offered
+            again rather than an instruction to leave and come back. */}
+        {failed && (
+          <View style={st.block}>
+            <Card>
+              <Text style={st.openingTitle}>{UNREAD.title}</Text>
+              <Text style={st.openingBody}>{UNREAD.body}</Text>
+              <View style={st.blockBody}>
+                <OutlineButton label={UNREAD.retry} onPress={() => load(() => false)} />
+              </View>
+            </Card>
+          </View>
+        )}
+
         {step !== null && (
           <View style={st.block}>
             <Label>{NEXT_STEP.label}</Label>
@@ -245,7 +332,7 @@ export function PracticeTab() {
                 scenario={scenario}
                 checking={checking}
                 onAnother={another}
-                onDrill={() => nav.navigate('Drill', { mix: true })}
+                onDrill={archive?.canDrill === true ? () => nav.navigate('Drill', { mix: true }) : null}
                 onTutor={() => talkAbout(scenario)}
               />
             </View>

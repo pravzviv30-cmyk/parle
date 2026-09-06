@@ -747,7 +747,7 @@ export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
   {
     namespace: 'suggestions',
     reason:
-      'a cursor into an authored pool rather than anything a learner has learned. The stored number is an index, and the pool grows between releases, so the same value names a different situation on two builds: syncing it would carry a phone that is three suggestions along onto a tablet that lands somewhere unrelated. What excluding it costs is one repeated suggestion on a second device, against a value that cannot mean the same thing twice.',
+      'a seed and a position in one learner\'s deal of the authored pool, rather than anything they have learned. The position is an index into an order the seed produced over a pool that grows between releases, so the same pair names a different situation on two builds: syncing it would carry a phone that is three suggestions along onto a tablet that lands somewhere unrelated. What excluding it costs is one repeated suggestion on a second device, against a value that cannot mean the same thing twice.',
   },
   {
     namespace: 'journal',

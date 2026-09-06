@@ -37,7 +37,7 @@ export function VaultCard({ vault }: { vault: Vault }) {
 
       <View style={st.rail}>
         {vault.stats.map((stat) => (
-          <Stat key={stat.label} value={stat.value} label={stat.label} columns={3} />
+          <Stat key={stat.label} value={stat.value} label={stat.label} columns={vault.stats.length >= 3 ? 3 : 2} />
         ))}
       </View>
     </Card>

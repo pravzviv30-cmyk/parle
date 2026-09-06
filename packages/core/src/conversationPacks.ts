@@ -66,7 +66,14 @@ export interface ConversationPack {
    * read it as `pack.durationSec ?? null` rather than assuming a number.
    */
   durationSec: number | null;
-  /** Empty on a pack stored before this field existed, never absent after. */
+  /**
+   * The subjects the conversation opened.
+   *
+   * Absent, not empty, on any pack written before this field existed, which is
+   * what `isConversationPack` allows and what `normaliseConversationPack` is
+   * for. Read a pack that has been through that function and this is an array;
+   * read one straight off the wire and it may not be there at all.
+   */
   topics: ConversationPackTopic[];
   keyPhrases: ConversationPackPhrase[];
   wins: string[];
@@ -189,6 +196,36 @@ export function ensureTranslationExercises(
     (exercise) => !existing.has(`${exercise.phraseKey}\u0000${exercise.direction}`),
   );
   return [...valid, ...required];
+}
+
+/**
+ * A stored pack, made safe to read.
+ *
+ * `durationSec` and `topics` were added after packs were already on disk and in
+ * the server's table, so every pack written before them carries neither key.
+ * `isConversationPack` accepts that deliberately: a whole conversation is not
+ * worth discarding over a card decoration. The cost of that decision is that a
+ * value typed as present can be absent at runtime, and a screen that trusted
+ * the type went blank on the founder's phone rather than saying anything.
+ *
+ * So the compatibility is paid here, once, at the boundary where a pack enters
+ * the app, rather than by every reader remembering a `?? []`. One reader who
+ * forgets is one silent blank screen, and the next field added will have the
+ * same shape as these two.
+ *
+ * Everything else is passed through untouched. This fills gaps; it does not
+ * validate. `isConversationPack` is still what decides whether a pack is a pack.
+ */
+export function normaliseConversationPack(pack: ConversationPack): ConversationPack {
+  const topics = Array.isArray(pack.topics) ? pack.topics : [];
+  const durationSec = durationOf(pack.durationSec);
+  if (topics === pack.topics && durationSec === pack.durationSec) return pack;
+  return { ...pack, topics, durationSec };
+}
+
+/** Every pack in a stored or fetched list, made safe to read. */
+export function normaliseConversationPacks(packs: readonly ConversationPack[]): ConversationPack[] {
+  return packs.map(normaliseConversationPack);
 }
 
 export function buildConversationPack(input: BuildConversationPackInput): ConversationPack {

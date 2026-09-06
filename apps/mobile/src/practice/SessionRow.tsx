@@ -14,7 +14,7 @@
 
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { ArrowRight, Card } from '../components.tsx';
-import { HAIRLINE, HIT, paper, radius, signal, space, type } from '../theme.ts';
+import { HIT, paper, radius, signal, space, type } from '../theme.ts';
 import type { SessionCard } from './sessionCard.ts';
 
 /** The standing dot. Small, because it marks rather than announces. */

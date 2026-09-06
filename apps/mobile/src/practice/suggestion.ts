@@ -9,14 +9,16 @@
  * draws its daily situation from, and the button says "Suggest another"
  * because that is what it does. Nothing here reaches the network.
  *
- * Where the walk starts is the day's own pick, so the first thing a learner
- * sees on this card is the situation the app already chose for them today.
- * Tapping walks forward from there, one at a time, all the way round.
+ * The order is the learner's own. Walking the authored order was worse than it
+ * looked: the pool is grouped by theme, so tapping through met eleven cafés and
+ * then twelve hotels. `shuffledPick` deals a permutation instead, seeded per
+ * learner, so nothing repeats until every situation has been seen and two
+ * devices signed into one account deal the same hand.
  *
- * Pure and clock-injected. The offset lives in `suggestionStore.ts`.
+ * Pure. The seed and the position live in `suggestionStore.ts`.
  */
 
-import { dailyPick, type DailyScenario } from '@luvani/core';
+import { nextPosition, shuffledPick, type DailyScenario } from '@luvani/core';
 
 /** Everything the card says, spelled once. */
 export const SUGGESTION = {
@@ -25,38 +27,47 @@ export const SUGGESTION = {
   blurb: 'Luvani can suggest a real conversation to have next, somewhere you are likely to find yourself.',
   suggested: 'Suggested for you',
   another: 'Suggest another',
-  drill: 'Practice drill',
+  reshuffle: 'Shuffle them again',
+  // Not "Practice drill". The door opens a sitting over the learner's whole
+  // deck, which has nothing to do with the scenario above it, and a button
+  // named after the card it sits on was promising something it never did.
+  drill: 'Practise your phrases',
   tutor: 'With tutor',
 } as const;
+
+/** Where the learner has got to in their own deal of the pool. */
+export interface Walk {
+  seed: number;
+  position: number;
+}
 
 /**
  * Which situation the card is showing.
  *
- * `dailyPick` decides where the walk starts, so this does not grow a second
- * opinion about what today's situation is. From there the offset steps through
- * the pool in authored order and wraps, which means a learner who taps their
- * way round meets every situation once before meeting any of them twice.
- *
- * A negative or fractional offset is folded back to a whole step rather than
- * throwing: it can only arrive from a corrupt stored value, and a card that
- * refuses to draw is worse than a card showing the first situation.
+ * Every guard about a corrupt seed or position lives in `shuffledPick`, so this
+ * is the seam and not a second copy of the rules.
  */
-export function suggestionFor(
-  pool: readonly DailyScenario[],
-  now: number,
-  offset: number,
-): DailyScenario | null {
-  if (pool.length === 0) return null;
-
-  const today = dailyPick(pool, now);
-  const start = pool.findIndex((scenario) => scenario.id === today.id);
-  const step = Number.isFinite(offset) ? Math.abs(Math.trunc(offset)) : 0;
-  return pool[(Math.max(0, start) + step) % pool.length] ?? null;
+export function suggestionFor(pool: readonly DailyScenario[], walk: Walk): DailyScenario | null {
+  return shuffledPick(pool, walk.seed, walk.position);
 }
 
-/** The next offset, kept inside the pool so the stored number cannot run away. */
-export function nextOffset(offset: number, poolSize: number): number {
-  if (poolSize <= 0) return 0;
-  const step = Number.isFinite(offset) ? Math.abs(Math.trunc(offset)) : 0;
-  return (step + 1) % poolSize;
+/**
+ * One step along the same deal.
+ *
+ * The seed is untouched, which is the whole point: the order a learner is
+ * walking survives until they ask for a different one.
+ */
+export function walkOn(walk: Walk, poolSize: number): Walk {
+  return { seed: walk.seed, position: nextPosition(walk.position, poolSize) };
+}
+
+/**
+ * A fresh deal, from the top.
+ *
+ * The new seed is passed in rather than drawn here, so this file still reads no
+ * clock and no global and a test can hand it the seed it wants. The caller has
+ * a clock; this does not need one.
+ */
+export function reshuffle(seed: number): Walk {
+  return { seed: Math.trunc(Number.isFinite(seed) ? seed : 0), position: 0 };
 }

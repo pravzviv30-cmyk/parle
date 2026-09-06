@@ -33,6 +33,8 @@ const scenario = (id: string, titleEn = 'A seat on the terrace'): DailyScenario 
     { fr: 'Je peux attendre, ça ne me dérange pas.', en: 'I can wait, that is fine by me.' },
     { fr: 'Parfait, je prends celle-là. Merci !', en: 'Great, I will take that one. Thank you!' },
   ],
+  theme: 'cafe-and-food',
+  tier: 1,
   place: 'cafe',
 });
 

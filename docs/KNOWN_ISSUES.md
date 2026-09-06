@@ -6510,6 +6510,67 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a scenario does not open with the same sentence twice`
 - verified-by: `the lines are short enough to be said by somebody nervous`
 - verified-by: `the situations say what a person would say in both languages, and every id that ever shipped is still there — F424`
-- verified-by: `the first thing a learner sees is the situation the app already chose for today`
-- verified-by: `tapping walks forward one at a time and meets every situation before repeating`
+- note: F450 replaced the walk this entry's last two tests described. The card no longer
+  starts on the day's own pick and no longer steps through the authored order, because
+  that order is grouped by theme; it deals a shuffled one instead. The claim this entry is
+  actually about, that the pool is authored and the button reaches no model, is unchanged
+  and is what the successors below check.
+- verified-by: `walking meets every situation in the pool before repeating one`
+- verified-by: `two learners get different orders, and one learner gets the same one twice`
 - verified-by: `the card says what it does, and what it does is suggest rather than generate`
+
+### F449 — Practice sat there loading and never said why
+- severity: P1
+- status: [x]
+- where: packages/core/src/conversationPacks.ts:69
+- note: the founder ran the rebuilt tab and one screen "just kept loading". `topics` and
+  `durationSec` were added to `ConversationPack` in F442 as required fields, and the
+  comment on `topics` claimed it was "never absent after". Nothing enforced that:
+  `isConversationPack` accepts a pack carrying neither key, deliberately, because a whole
+  conversation is not worth discarding over a card decoration, and the cache read handed
+  the value straight through. So `topicsOf` read `.filter` on `undefined` and threw inside
+  an un-caught promise chain, `setArchive` never ran, and the tab's only failure state was
+  the same `null` it uses for "storage has not answered yet". A header and a floating
+  suggestion card is what that looks like from the outside.
+  Three things were wrong and all three are fixed rather than the one that showed:
+  the compatibility is now paid once at the boundary by `normaliseConversationPack`
+  instead of by every reader remembering a `?? []`; the tab has a third state that says
+  so and offers the work again; and the deck read stopped being a bare cast, so one
+  malformed card can no longer throw in the same silent place. Every test was green
+  because every fixture written for F442 included the field.
+- verified-by: `an older pack passes validation, which is why nothing downstream may assume the fields`
+- verified-by: `the archive folds an older pack instead of throwing behind a rendered screen`
+- verified-by: `normalising is what makes it safe, and it changes nothing about a current pack`
+
+### F450 — The suggestion card walked the pool in the order it was written
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/practice/suggestion.ts:1
+- note: the pool is grouped by theme, so walking it in authored order met eleven cafés and
+  then twelve hotels, which is the opposite of what a card called "Suggest another" is
+  for. It deals a permutation now, seeded per learner: nothing repeats until every
+  situation has been seen, and coming back round reshuffles rather than repeating, so
+  there is no second control on the card. Nothing in the repo permuted anything, so the
+  primitive is new and follows `mixQueue`'s stated contract that a reorder never adds,
+  drops or re-picks. It reads no clock and no global; the one clock reading, for a first
+  learner's seed, is in the store where a test can avoid it.
+- verified-by: `the deal is a permutation: nothing added, nothing dropped, nothing repeated`
+- verified-by: `it actually shuffles, rather than handing back the pool in order`
+- verified-by: `walking the whole pool meets every item exactly once, then comes round`
+- verified-by: `it reads no clock and no global, so a test can hand it every input`
+- verified-by: `walking meets every situation in the pool before repeating one`
+- verified-by: `the order is the learner's own, not the order the pool was written in`
+
+### F451 — A beginner could be shown a situation pitched at somebody two levels up
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/tier.ts:97
+- note: the word of the day has been pitched at the learner's level since `tier.ts`
+  shipped, and situations deliberately were not: at a hundred everyday scenes it did not
+  matter. The founder grew the pool to five hundred on 2026-09-06 and the range widened
+  from ordering a coffee to explaining a problem to an official, so it started to. Every
+  situation carries a tier now and both surfaces read it through `wordTierFor`, the one
+  rule that already decides this, rather than a second opinion about how far somebody has
+  come. A tier is a pitch and not an assessment, which `tier.ts` says at length and is
+  worth not re-litigating.
+- verified-by: `the pool is pitched, so a beginner never meets a scene meant for somebody else`

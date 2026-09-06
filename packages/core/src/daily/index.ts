@@ -8,6 +8,7 @@
  */
 
 export { DAILY_WORDS, type DailyWord } from './words.ts';
-export { wordTierFor, wordsForLevel, type WordTier } from './tier.ts';
+export { wordTierFor, wordsForLevel, scenariosForLevel, type WordTier } from './tier.ts';
+export { shuffledOrder, shuffledPick, nextPosition } from './shuffle.ts';
 export { DAILY_SCENARIOS, SEED_TOPIC_MAX, seedTopicOf, type DailyScenario } from './scenarios.ts';
 export { dailyPick, dayIndex } from './pick.ts';

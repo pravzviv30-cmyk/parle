@@ -52,7 +52,49 @@ export interface DailyScenario {
   lines: readonly ScenarioLine[];
   /** Which place this happens in. Picks the disc art. */
   place: MissionPlace;
+  /**
+   * What kind of life this scene belongs to.
+   *
+   * Ten of them, and they are not `place`: `place` picks which of six drawings
+   * sits behind the card, and a pharmacy and a post office share one. The theme
+   * is what the scene is about, and it exists so the pool can be authored and
+   * checked for an even spread rather than quietly becoming four hundred
+   * restaurants. Nothing on screen reads it yet.
+   */
+  theme: ScenarioTheme;
+  /**
+   * Who this is pitched at, one, two or three.
+   *
+   * The same three tiers `tier.ts` already pitches the word of the day with,
+   * and read through the same function, so the app cannot grow a second opinion
+   * about how far a learner has come. A tier is a pitch and not an assessment:
+   * being shown a tier three scene is not a claim that somebody has mastered
+   * tier one.
+   */
+  tier: ScenarioTier;
 }
+
+/**
+ * The ten kinds of everyday life the pool covers.
+ *
+ * The founder chose this set on 2026-09-06 over a travel-weighted one, for
+ * somebody living in France rather than visiting: what they actually do in a
+ * week, in roughly the order they meet it.
+ */
+export type ScenarioTheme =
+  | 'cafe-and-food'
+  | 'shops-and-markets'
+  | 'transport'
+  | 'home-and-neighbours'
+  | 'friends-and-small-talk'
+  | 'work-and-study'
+  | 'health-and-pharmacy'
+  | 'admin-and-paperwork'
+  | 'going-out'
+  | 'culture-and-days-off';
+
+/** One, two or three, and the same scale the word pool is pitched on. */
+export type ScenarioTier = 1 | 2 | 3;
 
 /** One thing the learner could say, and what it means. */
 export interface ScenarioLine {
@@ -87,6 +129,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Parfait, je prends celle-là. Merci !', en: 'Great, I will take that one. Thank you!' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 1,
   },
   {
     id: 'situation:cafe-first-coffee',
@@ -101,6 +145,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Je vous dois combien ?', en: 'How much is that?' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 1,
   },
   {
     id: 'situation:cafe-bill',
@@ -115,6 +161,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Merci, gardez la monnaie.', en: 'Thank you, keep the change.' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 1,
   },
   {
     id: 'situation:cafe-bakery-counter',
@@ -129,6 +177,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Ce sera tout, merci. Bonne journée !', en: 'That will be all, thank you. Have a good day!' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 1,
   },
   {
     id: 'situation:cafe-menu-question',
@@ -143,6 +193,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Très bien, je vais prendre ça.', en: 'Very good, I will have that.' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 2,
   },
   {
     id: 'situation:cafe-water',
@@ -157,6 +209,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Et un verre de plus, s'il vous plaît.", en: 'And one more glass, please.' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 1,
   },
   {
     id: 'situation:cafe-take-away',
@@ -171,6 +225,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Merci, je suis pressé. Bonne journée !', en: 'Thank you, I am in a hurry. Have a good day!' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 1,
   },
   {
     id: 'situation:cafe-wrong-order',
@@ -185,6 +241,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Ce n'est pas grave, merci beaucoup.", en: 'It is no trouble at all, thank you very much.' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 2,
   },
   {
     id: 'situation:cafe-sharing-table',
@@ -199,6 +257,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Bonne journée, et merci encore.', en: 'Have a good day, and thank you again.' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 1,
   },
   {
     id: 'situation:cafe-paying-card',
@@ -213,6 +273,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Sans contact, c'est bon ?", en: 'Is contactless fine?' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 1,
   },
   {
     id: 'situation:cafe-evening-drink',
@@ -227,6 +289,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "C'est moi qui offre, ce soir.", en: 'This one is on me tonight.' },
     ],
     place: 'cafe',
+    theme: 'going-out',
+    tier: 2,
   },
 
   // The market and the shops. Short exchanges, a lot of numbers, and a seller
@@ -244,6 +308,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Ce sera tout, merci. C'est combien ?", en: 'That is everything, thank you. How much is it?' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 1,
   },
   {
     id: 'situation:market-cheese',
@@ -258,6 +324,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Parfait, je prends celui-là. Un petit morceau, s'il vous plaît.", en: 'Perfect, I will take that one. A small piece, please.' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:market-price',
@@ -272,6 +340,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Très bien, j'en prends deux, merci.", en: 'Alright, I will take two of them, thank you.' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 1,
   },
   {
     id: 'situation:market-bag',
@@ -286,6 +356,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Je mets tout dedans, ça ira. Merci beaucoup.', en: 'I will put everything in it, that works. Thank you very much.' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 1,
   },
   {
     id: 'situation:market-taste',
@@ -300,6 +372,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Je le prends, alors. Merci de m'avoir fait goûter.", en: 'I will take it, then. Thank you for the taste.' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:market-half',
@@ -314,6 +388,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Voilà, c'est très bien comme ça. Merci.", en: 'There, that is just right. Thank you.' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:market-strawberries',
@@ -328,6 +404,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Bon, j'en prends une quand même. Merci !", en: 'Alright, I will take one anyway. Thank you!' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:market-change',
@@ -342,6 +420,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Ah, merci beaucoup. Bonne journée !', en: 'Ah, thank you very much. Have a good day!' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 3,
   },
   {
     id: 'situation:market-last-stall',
@@ -356,6 +436,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "C'est gentil, merci. À la semaine prochaine !", en: 'That is kind, thank you. See you next week!' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:market-pharmacy',
@@ -370,6 +452,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "D'accord, je prends ça. C'est combien de fois par jour ?", en: 'Alright, I will take that. How many times a day is it?' },
     ],
     place: 'market',
+    theme: 'health-and-pharmacy',
+    tier: 2,
   },
   {
     id: 'situation:market-butcher',
@@ -384,6 +468,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Parfait. Il faut le cuire combien de temps ?', en: 'Perfect. How long does it need to cook?' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:market-supermarket-till',
@@ -398,6 +484,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Par carte. Voilà, merci, bonne journée !', en: 'By card. There we go, thank you, have a good day!' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 1,
   },
 
   // The street, the métro and the station. Short questions to strangers, which
@@ -415,6 +503,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Je peux payer par carte ? Merci beaucoup.', en: 'Can I pay by card? Thanks very much.' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 2,
   },
   {
     id: 'situation:street-which-line',
@@ -429,6 +519,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "D'accord, donc direction Château de Vincennes. Merci !", en: 'Right, so towards Château de Vincennes. Thank you!' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 2,
   },
   {
     id: 'situation:street-wrong-direction',
@@ -443,6 +535,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Ah, je suis du mauvais côté. Merci !', en: 'Ah, I am on the wrong platform. Thank you!' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 2,
   },
   {
     id: 'situation:street-asking-directions',
@@ -457,6 +551,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Donc tout droit, puis à gauche. Merci beaucoup !', en: 'So straight on, then left. Thank you very much!' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 2,
   },
   {
     id: 'situation:street-museum',
@@ -471,6 +567,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Ah, c'est juste après l'église. Merci !", en: 'Ah, it is just past the church. Thank you!' },
     ],
     place: 'street',
+    theme: 'culture-and-days-off',
+    tier: 2,
   },
   {
     id: 'situation:street-taxi',
@@ -485,6 +583,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Vous prenez la carte ?', en: 'Do you take cards?' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 2,
   },
   {
     id: 'situation:street-train-late',
@@ -499,6 +599,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "D'accord, j'attends sur le quai. Merci !", en: 'All right, I will wait on the platform. Thank you!' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 2,
   },
   {
     id: 'situation:street-platform',
@@ -513,6 +615,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Merci, je cours !', en: 'Thank you, I am running!' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 1,
   },
   {
     id: 'situation:street-exit',
@@ -527,6 +631,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Merci, je vais suivre les panneaux.', en: 'Thank you, I will follow the signs.' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 2,
   },
   {
     id: 'situation:street-bag-on-the-train',
@@ -541,6 +647,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Je fais quoi maintenant ?', en: 'What should I do now?' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 3,
   },
   {
     id: 'situation:street-bus',
@@ -555,6 +663,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Vous pouvez me dire quand descendre ?', en: 'Could you tell me when to get off?' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 2,
   },
   {
     id: 'situation:street-an-hour-to-spare',
@@ -569,6 +679,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Parfait, j'ai le temps. Merci du conseil !", en: 'Perfect, I have time. Thanks for the tip!' },
     ],
     place: 'street',
+    theme: 'culture-and-days-off',
+    tier: 2,
   },
 
   // The hotel desk. One person, patient, and used to being asked things twice.
@@ -585,6 +697,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Merci. C'est à quel étage ?", en: 'Thank you. Which floor is it on?' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 1,
   },
   {
     id: 'situation:hotel-late-arrival',
@@ -599,6 +713,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'La réception est encore ouverte à cette heure-là ?', en: 'Will the front desk still be open then?' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 3,
   },
   {
     id: 'situation:hotel-quieter-room',
@@ -613,6 +729,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Merci beaucoup, je prends celle-là.', en: 'Thank you very much, I will take that one.' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 2,
   },
   {
     id: 'situation:hotel-morning-meal',
@@ -627,6 +745,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Merci, je descends vers cinq heures et demie.', en: 'Thank you, I will come down at about half past five.' },
     ],
     place: 'hotel',
+    theme: 'cafe-and-food',
+    tier: 2,
   },
   {
     id: 'situation:hotel-leaving-the-key',
@@ -641,6 +761,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "D'accord, je sonne à la porte. Bonne soirée !", en: 'Alright, I will ring the bell. Have a good evening!' },
     ],
     place: 'hotel',
+    theme: 'going-out',
+    tier: 2,
   },
   {
     id: 'situation:hotel-internet-code',
@@ -655,6 +777,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Merci. Ça marche aussi dans les chambres ?', en: 'Thank you. Does it work in the rooms too?' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 1,
   },
   {
     id: 'situation:hotel-luggage',
@@ -669,6 +793,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Parfait, je repasse les prendre en fin d'après-midi.", en: 'Perfect, I will come back for them late in the afternoon.' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 2,
   },
   {
     id: 'situation:hotel-extra-night',
@@ -683,6 +809,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "C'est le même prix que cette semaine ?", en: 'Is it the same price as this week?' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 2,
   },
   {
     id: 'situation:hotel-where-to-eat',
@@ -697,6 +825,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Il faut réserver ou on peut y aller comme ça ?', en: 'Do we need to book, or can we just turn up?' },
     ],
     place: 'hotel',
+    theme: 'cafe-and-food',
+    tier: 2,
   },
   {
     id: 'situation:hotel-cold-room',
@@ -711,6 +841,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Merci, je vous rappelle si ça ne va pas mieux.', en: 'Thank you, I will ring you again if it is no better.' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 2,
   },
   {
     id: 'situation:hotel-check-out',
@@ -725,6 +857,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Merci pour tout, c'était très agréable.", en: 'Thank you for everything, it was very pleasant.' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 1,
   },
   {
     id: 'situation:hotel-taxi-request',
@@ -739,6 +873,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Très bien, j'attends devant l'hôtel.", en: 'Very good, I will wait in front of the hotel.' },
     ],
     place: 'hotel',
+    theme: 'transport',
+    tier: 2,
   },
 
   // Friends. Nobody is being paid to be patient here, which is exactly the
@@ -756,6 +892,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "C'était sympa de discuter. À tout à l'heure !", en: 'It was nice talking. See you later!' },
     ],
     place: 'friends',
+    theme: 'friends-and-small-talk',
+    tier: 1,
   },
   {
     id: 'situation:friends-where-from',
@@ -770,6 +908,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Pardon, tu peux répéter le nom de ta ville ?', en: 'Sorry, can you say the name of your town again?' },
     ],
     place: 'friends',
+    theme: 'friends-and-small-talk',
+    tier: 1,
   },
   {
     id: 'situation:friends-catch-up',
@@ -784,6 +924,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'On se refait ça bientôt ?', en: 'Shall we do this again soon?' },
     ],
     place: 'friends',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:friends-plans-tonight',
@@ -798,6 +940,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Super, à ce soir alors !', en: 'Great, see you this evening then!' },
     ],
     place: 'friends',
+    theme: 'going-out',
+    tier: 2,
   },
   {
     id: 'situation:friends-invite',
@@ -812,6 +956,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "C'est noté alors : samedi, chez moi.", en: 'It is settled then: Saturday, at my place.' },
     ],
     place: 'friends',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:friends-running-late',
@@ -826,6 +972,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Commencez sans moi, je vous rejoins.', en: 'Start without me, I will join you.' },
     ],
     place: 'friends',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:friends-birthday',
@@ -840,6 +988,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Allez, on trinque ! À toi !', en: 'Come on, cheers! To you!' },
     ],
     place: 'friends',
+    theme: 'going-out',
+    tier: 2,
   },
   {
     id: 'situation:friends-what-you-do',
@@ -854,6 +1004,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Ça a l'air intéressant, ton travail.", en: 'Your job sounds interesting.' },
     ],
     place: 'friends',
+    theme: 'work-and-study',
+    tier: 2,
   },
   {
     id: 'situation:friends-film-talk',
@@ -868,6 +1020,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "On en reparle, j'ai envie de le revoir.", en: 'Let us talk about it again, I want to see it a second time.' },
     ],
     place: 'friends',
+    theme: 'culture-and-days-off',
+    tier: 3,
   },
   {
     id: 'situation:friends-leaving-a-party',
@@ -882,6 +1036,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Salut tout le monde, à très bientôt !', en: 'Bye everyone, see you very soon!' },
     ],
     place: 'friends',
+    theme: 'going-out',
+    tier: 2,
   },
   {
     id: 'situation:friends-weekend',
@@ -896,6 +1052,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Bonne semaine, on se voit tout à l'heure.", en: 'Have a good week, see you later on.' },
     ],
     place: 'friends',
+    theme: 'culture-and-days-off',
+    tier: 2,
   },
   {
     id: 'situation:friends-language-swap',
@@ -910,6 +1068,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Vas-y doucement, je débute.', en: 'Go gently, I am a beginner.' },
     ],
     place: 'friends',
+    theme: 'work-and-study',
+    tier: 2,
   },
 
   // Home. Someone else's kitchen, and the small courtesies that go with it.
@@ -926,6 +1086,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Désolé, j'ai un peu de retard, le métro était lent.", en: 'Sorry, I am a little late, the métro was slow.' },
     ],
     place: 'home',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:home-compliment-the-food',
@@ -940,6 +1102,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Vous me donnez la recette ?', en: 'Will you give me the recipe?' },
     ],
     place: 'home',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:home-second-helping',
@@ -954,6 +1118,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "C'était délicieux, je me suis régalé.", en: 'That was delicious, I really enjoyed it.' },
     ],
     place: 'home',
+    theme: 'friends-and-small-talk',
+    tier: 1,
   },
   {
     id: 'situation:home-turning-down-a-dish',
@@ -968,6 +1134,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Ne vous inquiétez pas, il y a plein d'autres choses.", en: 'No need to worry, there is lots of other food.' },
     ],
     place: 'home',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:home-helping-in-the-kitchen',
@@ -982,6 +1150,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Laissez, je m'occupe de la vaisselle.", en: 'Leave it, I will take care of the washing up.' },
     ],
     place: 'home',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:home-meeting-the-family',
@@ -996,6 +1166,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Merci de m'accueillir, c'est très gentil.", en: 'Thank you for having me, that is very kind.' },
     ],
     place: 'home',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:home-neighbour',
@@ -1010,6 +1182,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "C'est noté, je fais attention. Bonne soirée !", en: 'Understood, I will watch out for it. Have a good evening!' },
     ],
     place: 'home',
+    theme: 'home-and-neighbours',
+    tier: 2,
   },
   {
     id: 'situation:home-phone-call',
@@ -1024,6 +1198,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Vous pouvez m'envoyer un message ? Je comprends mieux à l'écrit.", en: 'Could you send me a message? I understand better in writing.' },
     ],
     place: 'home',
+    theme: 'work-and-study',
+    tier: 3,
   },
   {
     id: 'situation:home-a-parcel',
@@ -1038,6 +1214,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'La prochaine fois, vous pouvez le laisser chez la gardienne.', en: 'Next time you can leave it with the caretaker.' },
     ],
     place: 'home',
+    theme: 'home-and-neighbours',
+    tier: 2,
   },
   {
     id: 'situation:home-what-time-dinner',
@@ -1052,6 +1230,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Ce soir je rentre tard, ne m'attendez pas.", en: 'This evening I will be home late, please start without me.' },
     ],
     place: 'home',
+    theme: 'home-and-neighbours',
+    tier: 2,
   },
   {
     id: 'situation:home-tea-or-coffee',
@@ -1066,6 +1246,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "C'était parfait. Je débarrasse les tasses ?", en: 'That was perfect. Shall I clear the cups?' },
     ],
     place: 'home',
+    theme: 'friends-and-small-talk',
+    tier: 1,
   },
   {
     id: 'situation:home-thanking-your-host',
@@ -1080,6 +1262,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Bonne nuit, et encore merci. À très vite !', en: 'Good night, and thanks again. See you very soon!' },
     ],
     place: 'home',
+    theme: 'friends-and-small-talk',
+    tier: 1,
   },
 
   // Authored 2026-09-06 alongside the Practice rebuild (F448). The pool needed
@@ -1099,6 +1283,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "C'est bon, je vais prendre ça.", en: 'I am ready, I will have that.' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 2,
   },
   {
     id: 'situation:cafe-counter-price',
@@ -1113,6 +1299,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "D'accord, je le prends au comptoir alors.", en: 'Alright, I will have it at the counter then.' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 2,
   },
   {
     id: 'situation:cafe-kitchen-closed',
@@ -1127,6 +1315,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Alors juste un café et une part de tarte, merci.', en: 'Then just a coffee and a slice of tart, thank you.' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 2,
   },
   {
     id: 'situation:cafe-tabac',
@@ -1141,6 +1331,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Je règle le tout ensemble ?', en: 'May I pay for it all together?' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 2,
   },
   {
     id: 'situation:cafe-pointing-at-a-pastry',
@@ -1155,6 +1347,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Parfait, j'en prends un. Merci !", en: 'Perfect, I will take one. Thank you!' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 1,
   },
   {
     id: 'situation:cafe-a-round-for-the-table',
@@ -1169,6 +1363,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "C'est bien ça, merci. On règle à la fin.", en: 'That is right, thank you. We will settle at the end.' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 2,
   },
   {
     id: 'situation:cafe-working-here',
@@ -1183,6 +1379,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Je vous reprends un café, merci !', en: 'I will have another coffee, thank you!' },
     ],
     place: 'cafe',
+    theme: 'cafe-and-food',
+    tier: 2,
   },
   {
     id: 'situation:cafe-watching-the-match',
@@ -1197,6 +1395,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "On sera quatre. À tout à l'heure !", en: 'There will be four of us. See you later!' },
     ],
     place: 'cafe',
+    theme: 'going-out',
+    tier: 2,
   },
   {
     id: 'situation:friends-la-bise',
@@ -1211,6 +1411,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Désolé, je m'y perds encore. Enchanté !", en: 'Sorry, I still get it muddled. Nice to meet you!' },
     ],
     place: 'friends',
+    theme: 'friends-and-small-talk',
+    tier: 1,
   },
   {
     id: 'situation:friends-tu-or-vous',
@@ -1225,6 +1427,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Pardon, je vous dis encore vous, c'est l'habitude.", en: 'Sorry, I am still saying vous, it is habit.' },
     ],
     place: 'friends',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:friends-apero-invitation',
@@ -1239,6 +1443,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "J'apporte une bouteille, ça te va ?", en: 'I will bring a bottle, does that suit you?' },
     ],
     place: 'friends',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:friends-splitting-the-bill',
@@ -1253,6 +1459,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "J'ai pas de liquide, je te rends ça demain.", en: 'I have no cash on me, I will pay you back tomorrow.' },
     ],
     place: 'friends',
+    theme: 'cafe-and-food',
+    tier: 3,
   },
   {
     id: 'situation:friends-saying-no-warmly',
@@ -1267,6 +1475,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'On dit la semaine prochaine ?', en: 'Shall we say next week?' },
     ],
     place: 'friends',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:friends-stay-in-french',
@@ -1281,6 +1491,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Merci de m'avoir laissé essayer.", en: 'Thank you for letting me try.' },
     ],
     place: 'friends',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:friends-back-in-the-conversation',
@@ -1295,6 +1507,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Voilà, j'ai compris. Continuez !", en: 'There, I have it. Carry on!' },
     ],
     place: 'friends',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:friends-neighbours-party',
@@ -1309,6 +1523,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Bonne soirée, et à bientôt dans l'escalier !", en: 'Have a good evening, and see you on the stairs!' },
     ],
     place: 'friends',
+    theme: 'home-and-neighbours',
+    tier: 2,
   },
   {
     id: 'situation:home-water-leak',
@@ -1323,6 +1539,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'On appelle le propriétaire ensemble ?', en: 'Shall we call the landlord together?' },
     ],
     place: 'home',
+    theme: 'home-and-neighbours',
+    tier: 3,
   },
   {
     id: 'situation:home-locked-out',
@@ -1337,6 +1555,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Le serrurier arrive dans une heure, j'attends ici.", en: 'The locksmith is coming in an hour, I will wait here.' },
     ],
     place: 'home',
+    theme: 'home-and-neighbours',
+    tier: 3,
   },
   {
     id: 'situation:home-party-warning',
@@ -1351,6 +1571,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Passez boire un verre si vous voulez !', en: 'Come and have a drink if you like!' },
     ],
     place: 'home',
+    theme: 'home-and-neighbours',
+    tier: 2,
   },
   {
     id: 'situation:home-landlord-heating',
@@ -1365,6 +1587,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Vous pouvez envoyer quelqu'un cette semaine ?", en: 'Could you send someone this week?' },
     ],
     place: 'home',
+    theme: 'home-and-neighbours',
+    tier: 3,
   },
   {
     id: 'situation:home-selling-a-chair',
@@ -1379,6 +1603,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Allez, je vous la laisse à ce prix-là.', en: 'Alright, I will let you have it at that price.' },
     ],
     place: 'home',
+    theme: 'home-and-neighbours',
+    tier: 3,
   },
   {
     id: 'situation:home-no-lift',
@@ -1393,6 +1619,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Merci beaucoup, vous pouvez le poser dans la cuisine ?', en: 'Thank you very much, could you put it in the kitchen?' },
     ],
     place: 'home',
+    theme: 'home-and-neighbours',
+    tier: 2,
   },
   {
     id: 'situation:home-neighbour-cat',
@@ -1407,6 +1635,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Envoyez-moi un message quand vous rentrez.', en: 'Send me a message when you get back.' },
     ],
     place: 'home',
+    theme: 'home-and-neighbours',
+    tier: 2,
   },
   {
     id: 'situation:home-cooking-for-friends',
@@ -1421,6 +1651,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Resservez-vous, il y en a encore plein.', en: 'Have some more, there is lots left.' },
     ],
     place: 'home',
+    theme: 'friends-and-small-talk',
+    tier: 2,
   },
   {
     id: 'situation:hotel-key-card',
@@ -1435,6 +1667,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Vous pouvez monter avec moi pour vérifier ?', en: 'Could you come up with me and check?' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 2,
   },
   {
     id: 'situation:hotel-not-the-room',
@@ -1449,6 +1683,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Vous pouvez regarder si vous avez autre chose ?', en: 'Could you see whether you have anything else?' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 3,
   },
   {
     id: 'situation:hotel-wake-up-call',
@@ -1463,6 +1699,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Et si je ne réponds pas, vous pouvez rappeler ?', en: 'And if there is no answer, could you ring again?' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 2,
   },
   {
     id: 'situation:hotel-hot-water',
@@ -1477,6 +1715,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Quelqu'un peut venir voir ce soir ?", en: 'Could somebody come and look this evening?' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 2,
   },
   {
     id: 'situation:hotel-shirt-pressed',
@@ -1491,6 +1731,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Sinon, vous auriez un fer à repasser ?', en: 'Otherwise, would you have an iron I could use?' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 2,
   },
   {
     id: 'situation:hotel-dining-room',
@@ -1505,6 +1747,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Merci beaucoup, je fais vite.', en: 'Thank you very much, I will be quick.' },
     ],
     place: 'hotel',
+    theme: 'cafe-and-food',
+    tier: 2,
   },
   {
     id: 'situation:hotel-forgotten-charger',
@@ -1519,6 +1763,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Vous pouvez me l'envoyer ? Je vous donne l'adresse.", en: 'Could you send it to me? I will give you the address.' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 3,
   },
   {
     id: 'situation:hotel-week-rate',
@@ -1533,6 +1779,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Même sans le petit déjeuner, ça m'irait très bien.", en: 'Even with no coffee in the morning, that would suit me well.' },
     ],
     place: 'hotel',
+    theme: 'admin-and-paperwork',
+    tier: 3,
   },
   {
     id: 'situation:market-flea-mirror',
@@ -1547,6 +1795,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "D'accord pour quarante. Je le prends, merci !", en: 'Alright, forty it is. I will take it, thank you!' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 3,
   },
   {
     id: 'situation:market-trying-on',
@@ -1561,6 +1811,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Celle-là me va bien. Je la prends, merci !', en: 'This one fits me well. I will take it, thank you!' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:market-exchange',
@@ -1575,6 +1827,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Vous l'avez en bleu ? Sinon, je repasse demain.", en: 'Do you have it in blue? Otherwise, I will come back tomorrow.' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:market-fishmonger',
@@ -1589,6 +1843,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Merci. Et je le fais cuire combien de temps ?', en: 'Thank you. And how long do I cook it for?' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:market-cake-order',
@@ -1603,6 +1859,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Je passe le chercher dimanche matin. Je paie maintenant ?', en: 'I will pick it up on Sunday morning. Do I pay now?' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:market-cash-only',
@@ -1617,6 +1875,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Vous pouvez me le garder ? Je reviens tout de suite.', en: 'Could you keep it for me? I will be right back.' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:market-bouquet',
@@ -1631,6 +1891,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Vous pouvez faire un joli paquet ? Merci beaucoup.', en: 'Could you wrap it nicely? Thank you very much.' },
     ],
     place: 'market',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:market-blisters',
@@ -1645,6 +1907,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Je prends la petite boîte. Je peux marcher demain avec ça ?', en: 'I will take the small box. Can I walk tomorrow with these on?' },
     ],
     place: 'market',
+    theme: 'health-and-pharmacy',
+    tier: 2,
   },
   {
     id: 'situation:street-ticket-machine-stuck',
@@ -1659,6 +1923,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Ah, il fallait appuyer ici. Merci beaucoup !', en: 'Ah, I had to press here. Thanks very much!' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 2,
   },
   {
     id: 'situation:street-ticket-inspector',
@@ -1673,6 +1939,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Désolé, j'ai mis du temps. Bonne journée !", en: 'Sorry that took a moment. Have a good day!' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 3,
   },
   {
     id: 'situation:street-city-bike',
@@ -1687,6 +1955,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Ça y est, ça marche. Merci du coup de main !', en: 'There we go, it works. Thanks for the hand!' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 2,
   },
   {
     id: 'situation:street-open-on-sunday',
@@ -1701,6 +1971,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "Une supérette près du métro, d'accord. Merci !", en: 'A corner shop by the métro, got it. Thank you!' },
     ],
     place: 'street',
+    theme: 'shops-and-markets',
+    tier: 2,
   },
   {
     id: 'situation:street-changing-your-ticket',
@@ -1715,6 +1987,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: "D'accord, je prends celui du matin. Merci !", en: 'All right, I will take the morning one. Thank you!' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 2,
   },
   {
     id: 'situation:street-strike-day',
@@ -1729,6 +2003,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Bon, je vais marcher. Merci quand même !', en: 'Right, I will walk then. Thanks all the same!' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 3,
   },
   {
     id: 'situation:street-someone-asks-you',
@@ -1743,6 +2019,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Désolé, je ne suis pas sûr. Bonne chance !', en: 'Sorry, I am not certain. Good luck!' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 3,
   },
   {
     id: 'situation:street-left-luggage',
@@ -1757,6 +2035,8 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
       { fr: 'Parfait, je reviens avant la fermeture. Merci !', en: 'Perfect, I will be back before it shuts. Thank you!' },
     ],
     place: 'street',
+    theme: 'transport',
+    tier: 2,
   },
 ];
 

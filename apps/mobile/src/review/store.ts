@@ -68,7 +68,13 @@ async function readDeck(key: string): Promise<ReviewCard[]> {
     const raw = await AsyncStorage.getItem(key);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as ReviewCard[]) : [];
+    // Every element checked, not just the array. This used to be a bare
+    // `as ReviewCard[]`, so one malformed entry travelled into `dueCards`,
+    // `evidenceOf` and every screen that folds the deck, and threw there
+    // instead of here. A screen that throws inside a promise chain goes blank
+    // and says nothing, which is how F449 reached a real phone.
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isCard);
   } catch {
     // A corrupt deck is not worth crashing over. Start fresh.
     return [];

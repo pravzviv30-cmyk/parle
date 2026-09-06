@@ -1,7 +1,7 @@
 /** Local cache for server-owned Conversation Packs. */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { isConversationPack, type ConversationPack } from '@luvani/core';
+import { isConversationPack, normaliseConversationPacks, type ConversationPack } from '@luvani/core';
 import type { AuthAdapter, AuthUser } from '../auth/types.ts';
 import { mergeExercises } from '../drill/store.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
@@ -38,7 +38,12 @@ async function read(key: string): Promise<ConversationPack[]> {
     const raw = await AsyncStorage.getItem(key);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
-    return readable(parsed) ? orderedConversationPacks(parsed.packs) : [];
+    // Normalised here rather than by each reader. `isConversationPack` accepts
+    // a pack written before `topics` and `durationSec` existed, so the fields
+    // the type promises can be absent on anything already on disk. Paying that
+    // once at the boundary is what stopped Practice going blank on a real
+    // learner's phone (F449).
+    return readable(parsed) ? normaliseConversationPacks(orderedConversationPacks(parsed.packs)) : [];
   } catch {
     return [];
   }
@@ -70,9 +75,14 @@ export async function refreshConversationPacks(
   request: typeof fetch = fetch,
 ): Promise<ConversationPackSync> {
   if (adapter.kind !== 'supabase') return { ok: false };
-  const token = await adapter.getAccessToken();
-  if (!token) return { ok: false };
   try {
+    // Inside the try, not above it. `getAccessToken` refreshes the session over
+    // the network when the access token is stale, so an expired refresh token
+    // on a poor connection rejects here. Outside, that rejection escaped as an
+    // unhandled one into whichever screen asked, rather than becoming the
+    // `{ ok: false }` every caller is written against.
+    const token = await adapter.getAccessToken();
+    if (!token) return { ok: false };
     const response = await request(`${TOKEN_SERVER}/conversation-packs`, {
       headers: { authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(8_000),
@@ -82,7 +92,7 @@ export async function refreshConversationPacks(
     const packs = typeof body === 'object' && body !== null && Array.isArray((body as { packs?: unknown }).packs)
       ? (body as { packs: unknown[] }).packs.filter((pack): pack is ConversationPack => isConversationPack(pack) && pack.learnerId === user.id)
       : [];
-    const ordered = orderedConversationPacks(packs);
+    const ordered = normaliseConversationPacks(orderedConversationPacks(packs));
     await replaceConversationPacks(ordered);
     await mergeExercises(ordered.flatMap((pack) => pack.exercises));
     return { ok: true, packs: ordered };

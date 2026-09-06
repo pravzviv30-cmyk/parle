@@ -64,6 +64,19 @@ export const OPENING = {
   body: 'Talk with your tutor and this fills with what you said, the phrases worth keeping, and short drills built from them.',
 } as const;
 
+/**
+ * What the learner reads when the read itself did not finish.
+ *
+ * It says the one thing they will actually be worried about, which is whether
+ * their conversations survived, and it offers the same work again rather than
+ * asking them to leave and come back. No apology, no error code.
+ */
+export const UNREAD = {
+  title: 'This did not open.',
+  body: 'Your conversations are safe on your account, and the tutor is unaffected.',
+  retry: 'Try again',
+} as const;
+
 /** The closing note at the foot of the tab. */
 export const CLOSING = {
   title: 'No hurry, and nothing to protect',
@@ -106,6 +119,15 @@ export interface Archive {
   /** The words that stand in for an empty archive, or null once there is one. */
   opening: { title: string; body: string } | null;
   /**
+   * Whether the deck has anything in it at all.
+   *
+   * The suggestion card's second door opens a sitting over the whole deck, and
+   * on a fresh account that sitting is empty. Offering it anyway put "Nothing
+   * to review" directly under a card promising a scene, which reads as the app
+   * contradicting itself rather than as an empty deck.
+   */
+  canDrill: boolean;
+  /**
    * The ids inside the recent window, carried rather than recomputed.
    *
    * `sessionsUnder` needs it and would otherwise have to be handed the packs
@@ -133,7 +155,7 @@ export function archiveFrom({ packs, deck, now }: ArchiveInput): Archive {
   const sessions = ordered.map((pack) => sessionCardOf(pack, due, now));
 
   if (sessions.length === 0) {
-    return { vault: null, sessions: [], filters: [], order: null, opening: { ...OPENING }, recent: [] };
+    return { vault: null, sessions: [], filters: [], order: null, opening: { ...OPENING }, recent: [], canDrill: deck.length > 0 };
   }
 
   const recent = ordered.filter((pack) => isRecent(pack, now)).map((pack) => pack.id);
@@ -148,6 +170,7 @@ export function archiveFrom({ packs, deck, now }: ArchiveInput): Archive {
     order: sessions.length > 1 ? FEED.order : null,
     opening: null,
     recent,
+    canDrill: deck.length > 0,
   };
 }
 

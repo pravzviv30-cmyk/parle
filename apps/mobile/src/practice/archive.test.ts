@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { buildConversationPack, newCard, phraseKeyOf, type ConversationPack, type ReviewCard } from '@luvani/core';
+import {
+  buildConversationPack,
+  isConversationPack,
+  newCard,
+  normaliseConversationPack,
+  phraseKeyOf,
+  type ConversationPack,
+  type ReviewCard,
+} from '@luvani/core';
 
 import {
   archiveFrom,
@@ -48,6 +56,56 @@ function six(): ConversationPack[] {
     pack('f', 40),
   ];
 }
+
+/**
+ * A pack as it sits on disk from a build before `topics` and `durationSec`
+ * existed: the keys are not empty, they are not there at all.
+ *
+ * The cast is the point of the test. `isConversationPack` accepts this shape
+ * deliberately, so the type says the fields are present and the runtime value
+ * disagrees. That gap is what took the tab blank on the founder's phone.
+ */
+function olderPack(id: string, daysAgo: number): ConversationPack {
+  const full = pack(id, daysAgo);
+  const { topics: _topics, durationSec: _durationSec, ...rest } = full;
+  return rest as ConversationPack;
+}
+
+describe('a conversation stored before the card grew two fields — F449', () => {
+  test('an older pack passes validation, which is why nothing downstream may assume the fields', () => {
+    // Not an accident and not to be tightened: a whole conversation is not
+    // worth discarding over a card decoration. It is the reason the boundary
+    // has to fill the gap instead.
+    const older = olderPack('older', 1);
+    assert.ok(isConversationPack(older), 'the validator started rejecting packs learners already have');
+    assert.equal((older as { topics?: unknown }).topics, undefined, 'this fixture is not actually missing the field');
+  });
+
+  test('the archive folds an older pack instead of throwing behind a rendered screen', () => {
+    // The bug, exactly. `topicsOf` read `pack.topics.filter` on a value that
+    // was not there, inside an un-caught promise chain, so the tab kept its
+    // loading state for ever and said nothing.
+    const archive = archiveFrom({ packs: [normaliseConversationPack(olderPack('older', 1))], deck: [], now: NOW });
+
+    assert.equal(archive.sessions.length, 1, 'an older conversation vanished from the feed');
+    assert.equal(archive.sessions[0]?.topics, null, 'a pack with no topics drew a topics box anyway');
+    assert.equal(archive.sessions[0]?.spoken, null, 'a pack that was never timed claimed a number of minutes');
+    assert.ok(archive.vault !== null, 'the vault did not open for a learner whose only pack is an older one');
+  });
+
+  test('normalising is what makes it safe, and it changes nothing about a current pack', () => {
+    // Proven by removing the normalise call: this is the line that would have
+    // caught the defect, so it is asserted rather than assumed.
+    assert.throws(
+      () => archiveFrom({ packs: [olderPack('raw', 1)], deck: [], now: NOW }),
+      TypeError,
+      'an un-normalised older pack no longer throws, so this test has stopped guarding anything',
+    );
+
+    const current = pack('current', 1, { topics: [{ fr: 'Le café', en: 'Ordering drinks' }] });
+    assert.equal(normaliseConversationPack(current), current, 'a pack that needs nothing was copied anyway');
+  });
+});
 
 describe('the Practice archive grows with the learner, and draws no noughts on the way', () => {
   test('day one is quiet: no vault, no feed, no filters, and words instead', () => {

@@ -363,10 +363,11 @@ learner twice for one evening on two devices, and would tell a device that was
 never asked for permission that it already has a reminder. `conversationPacks`
 is a device cache of a server-owned record: syncing it through `learner_state`
 would create two authorities and let an old device re-push a stale pack over the
-Tutor agent's completed-session upsert. `suggestions` is a cursor into the
-authored scenario pool rather than anything a learner has learned: the stored
-value is an index, and the pool grows between releases, so the same number names
-a different situation on two builds.
+Tutor agent's completed-session upsert. `suggestions` is a seed and a
+position in one learner's deal of the authored scenario pool rather than anything
+they have learned: the position indexes an order the seed produced over a pool
+that grows between releases, so the same pair names a different situation on two
+builds.
 
 Three rules hold the whole thing up:
 

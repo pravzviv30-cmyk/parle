@@ -29,7 +29,8 @@ export function ScenarioCard({
   scenario: DailyScenario;
   checking: boolean;
   onAnother: () => void;
-  onDrill: () => void;
+  /** Null when the deck is empty, so the door is not drawn onto nothing. */
+  onDrill: (() => void) | null;
   onTutor: () => void;
 }) {
   return (
@@ -70,9 +71,11 @@ export function ScenarioCard({
       <View style={st.actions}>
         <OutlineButton label={SUGGESTION.another} onPress={onAnother} />
         <View style={st.pair}>
-          <View style={st.half}>
-            <OutlineButton label={SUGGESTION.drill} onPress={onDrill} />
-          </View>
+          {onDrill !== null && (
+            <View style={st.half}>
+              <OutlineButton label={SUGGESTION.drill} onPress={onDrill} />
+            </View>
+          )}
           <View style={st.half}>
             <OutlineButton
               label={SUGGESTION.tutor}

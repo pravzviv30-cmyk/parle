@@ -14,8 +14,13 @@
  * the pools across it. That is the same arrangement `progress/story.ts` explains
  * for learner-facing progress copy, and the reason is the same one.
  *
- * The pools are 284 words and 71 situations of authored French and English, and
- * every one of them reaches a learner on Home. `guiltIn` matches by substring
+ * The pools are hundreds of words and situations of authored French and
+ * English, and every one of them reaches a learner, on Home or on Practice. The
+ * counts are deliberately not written here any more: they were "284 words and
+ * 71 situations", and the situations had been 119 for two days before anybody
+ * noticed the sentence. A number in prose beside a pool that grows is a number
+ * that will be wrong, and the floors at the foot of this test are the claim
+ * that is actually checked. `guiltIn` matches by substring
  * and catches ordinary words on purpose, so this is a check somebody has to
  * pass rather than a formality: it is what stops a warm sentence about not
  * breaking bread, or a market stall that sells flowers, reaching the card.
@@ -43,11 +48,17 @@ describe('the daily pools speak the way Luvani promised — F389', () => {
     }
 
     for (const situation of DAILY_SCENARIOS) {
-      for (const [field, line] of [
+      // The three lines are read on Practice's suggestion card, so their
+      // English halves are Luvani's voice exactly as much as the title is.
+      // They were added without joining this sweep, which left the newest
+      // strings in the pool as the only ones nothing checked.
+      const english = [
         ['titleEn', situation.titleEn],
         ['bodyEn', situation.bodyEn],
         ['openingEn', situation.openingEn],
-      ] as const) {
+        ...situation.lines.map((line, i) => [`lines[${i}].en`, line.en] as const),
+      ] as const;
+      for (const [field, line] of english) {
         const banned = guiltIn(line);
         assert.equal(
           banned,

@@ -42,6 +42,7 @@
  *   pitching at all. My French and the situation card are unaffected.
  */
 
+import type { DailyScenario } from './scenarios.ts';
 import type { DailyWord } from './words.ts';
 
 export type WordTier = 1 | 2 | 3;
@@ -77,4 +78,23 @@ export function wordTierFor(levelIndex: number): WordTier {
 export function wordsForLevel(pool: readonly DailyWord[], levelIndex: number): readonly DailyWord[] {
   const tier = wordTierFor(levelIndex);
   return pool.filter((word) => word.tier === tier);
+}
+
+/**
+ * The same three tiers, over the situations.
+ *
+ * A second name for one rule, not a second rule: `wordTierFor` decides, and
+ * this filters. The founder asked on 2026-09-06 for situations to be pitched
+ * the way words already are, once the pool grew past a hundred and the range
+ * widened from ordering a coffee to explaining a problem to an official. A
+ * beginner meeting a police station on their second morning is the anxiety this
+ * product exists to lower.
+ *
+ * Note what this changes beyond Practice: Home draws today's situation from the
+ * same pool, so Home is pitched now too. That was the founder's decision with
+ * the consequence stated, and it is written here so nobody reads it as a leak.
+ */
+export function scenariosForLevel(pool: readonly DailyScenario[], levelIndex: number): readonly DailyScenario[] {
+  const tier = wordTierFor(levelIndex);
+  return pool.filter((scenario) => scenario.tier === tier);
 }
