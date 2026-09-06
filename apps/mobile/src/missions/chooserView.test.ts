@@ -13,6 +13,7 @@ import { describe, test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
+  CAFE_LESSON,
   FIRST_MISSION,
   MISSIONS,
   missionStates,
@@ -159,7 +160,7 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     // among six situations, so it has to say what "else" means; there it is a
     // card with a drawing and a button, and "Open conversation" is what the
     // founder's screenshot calls it.
-    const doors = tutorDoors(null, MISSIONS.length).map((d) => d.label);
+    const doors = tutorDoors(null, MISSIONS.length, CAFE_LESSON.title).map((d) => d.label);
     assert.ok(doors.includes('Open conversation'), 'the tutor tab dropped the free conversation entirely');
     assert.equal(doors[0], 'Guided practice missions', 'a beginner meets a situation first');
     assert.equal(doors[doors.length - 1], 'Open conversation', '"say anything" is what a beginner says nothing to');
@@ -167,6 +168,7 @@ describe('the first-win chooser — what a learner who has never spoken is shown
       tutorDoors(
         { title: 'Au café du coin', goalEn: 'Order at a café', place: 'cafe', minutesRemaining: null },
         MISSIONS.length,
+        CAFE_LESSON.title,
       ).at(-1)?.key,
       'free',
       'and it stays last',

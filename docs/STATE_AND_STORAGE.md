@@ -352,7 +352,7 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Four are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `journal`
+Five are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `journal`
 is a device-local crash buffer whose whole meaning is bank-then-delete, so
 syncing it would re-bank a session another device already banked. `friends` is a
 dormant surface running on labelled sample profiles, and syncing it would write
@@ -363,7 +363,10 @@ learner twice for one evening on two devices, and would tell a device that was
 never asked for permission that it already has a reminder. `conversationPacks`
 is a device cache of a server-owned record: syncing it through `learner_state`
 would create two authorities and let an old device re-push a stale pack over the
-Tutor agent's completed-session upsert.
+Tutor agent's completed-session upsert. `suggestions` is a cursor into the
+authored scenario pool rather than anything a learner has learned: the stored
+value is an index, and the pool grows between releases, so the same number names
+a different situation on two builds.
 
 Three rules hold the whole thing up:
 

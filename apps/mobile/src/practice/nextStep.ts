@@ -1,56 +1,80 @@
 /**
  * The Practice tab's one question: what should the learner do now?
  *
- * The tab used to answer it inline — a Review block here, the path's rows there,
- * and the eye left to work out which came first. This says it once. A phrase the
- * scheduler wants back beats new ground, because a phrase slipping away matters
- * more than the next thing to learn (`buildPath` orders the path's own rows by
- * exactly the same rule). Below the due deck the step is the single row the path
- * already marked `next` — this does not re-decide which one, it reads the flag
- * `buildPath` sets on exactly one node. And when the deck is quiet and the path
- * is finished there is no step, so the tab can draw nothing rather than invent a
- * cheerful message for a learner who is simply done.
+ * It used to read the authored path, because the path was what the tab drew.
+ * The tab is the archive of the learner's own conversations now, so the step
+ * reads that instead, and the two branches it has left are the two things this
+ * screen can honestly offer: a deck the scheduler wants back, and the newest
+ * conversation nobody has practised yet.
  *
- * `dueCards` from `@luvani/core`, like practice/mix.ts uses it, so the count
- * here and the sitting the Review screen opens are the same capped set. Pure and
- * clock-injected for the same reason as its sibling: PracticeTab can be a layout
- * and this can be a test.
+ * Due cards win, and the reason has not changed: a phrase slipping away
+ * matters more than new ground. Below that, the newest ready pack the learner
+ * has never come back to, because the conversation that just happened is the
+ * one whose French is still warm. When the deck is quiet and every pack has
+ * been revisited there is no step at all, and the tab draws no headline rather
+ * than inventing a cheerful message for somebody who is simply up to date.
+ *
+ * `dueCards` from `@luvani/core`, so the count here and the sitting the Review
+ * screen opens are the same capped set. Pure and clock-injected, so PracticeTab
+ * can be a layout and this can be a test.
  */
 
-import { dueCards, type PathNode, type PathUnit, type ReviewCard } from '@luvani/core';
+import { dueCards, type ConversationPack, type ReviewCard } from '@luvani/core';
+import { orderedConversationPacks } from '../conversationPacks/model.ts';
 
 /** The headline over the step, and the word on a review step's button. */
 export const NEXT_STEP = { label: 'Your next step', review: 'Review' } as const;
 
-/** What to do now: review a due deck, open a marked row, or nothing at all. */
+/** What to do now: review a due deck, revisit a conversation, or nothing. */
 export type NextStep =
   | { kind: 'review'; due: number }
-  | { kind: 'node'; node: PathNode };
+  | { kind: 'pack'; pack: ConversationPack };
 
 /**
- * The review step's one line, moved verbatim from the tab's Review button.
+ * The review step's one line.
  *
- * Counts a card, not a percentage or a streak: "1 card is ready", "3 cards are
- * ready". Singular at one, plural everywhere else, and nothing that scolds.
+ * Counts a card, not a percentage and not a run of days: "1 card is ready",
+ * "3 cards are ready". Singular at one, plural everywhere else.
  */
 export function reviewLine(due: number): string {
   return due === 1 ? '1 card is ready' : `${due} cards are ready`;
 }
 
 /**
+ * The line under a pack step, which says where the phrases came from.
+ *
+ * It names the conversation rather than counting days since it happened. How
+ * long ago is already on that conversation's own card, and a second reading of
+ * the same fact is how two parts of one screen start to disagree.
+ */
+export function packLine(pack: ConversationPack): string {
+  const n = pack.keyPhrases.length;
+  const phrases = n === 1 ? '1 phrase' : `${n} phrases`;
+  return `${phrases} from this conversation, ready when you are`;
+}
+
+/**
  * The step, decided in exactly two branches then nothing.
  *
- * Due cards win. Failing that, the row the path marked next. Failing that, null,
- * which is the tab's cue to draw no headline at all.
+ * A pack qualifies when it is ready, carries phrases, and has never been
+ * practised. `lastPractisedAt` is the only honest signal available for that:
+ * it is a date rather than a tally, so this asks it the one question it can
+ * actually answer.
  */
-export function nextStep(units: readonly PathUnit[], deck: readonly ReviewCard[], now: number): NextStep | null {
-  // Computed once and read twice: the count that decides the branch is the same
-  // count the branch carries, so they can never disagree.
+export function nextStep(
+  deck: readonly ReviewCard[],
+  packs: readonly ConversationPack[],
+  now: number,
+): NextStep | null {
+  // Computed once and read twice: the count that decides the branch is the
+  // same count the branch carries, so they can never disagree.
   const due = dueCards(deck, now).length;
   if (due > 0) return { kind: 'review', due };
 
-  const node = units.flatMap((u) => u.nodes).find((n) => n.isNext);
-  if (node !== undefined) return { kind: 'node', node };
+  const fresh = orderedConversationPacks(packs).find(
+    (pack) => pack.state === 'ready' && pack.keyPhrases.length > 0 && pack.lastPractisedAt === null,
+  );
+  if (fresh !== undefined) return { kind: 'pack', pack: fresh };
 
   return null;
 }

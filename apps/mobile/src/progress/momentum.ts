@@ -401,6 +401,18 @@ function isPhrase(card: ReviewCard): boolean {
 }
 
 /**
+ * A phrase the learner has produced in a real conversation at least once.
+ *
+ * Exported because Practice's archive counts the same thing under the same
+ * name. Two screens reading one predicate cannot tell a learner two different
+ * numbers for "phrases retained", which is exactly what a second copy of this
+ * one-line rule would eventually do.
+ */
+export function isRetained(card: ReviewCard): boolean {
+  return isPhrase(card) && evidenceOf(card).convoUses >= 1;
+}
+
+/**
  * The phrases this learner has actually used in conversation.
  *
  * Sorted most-used first, then newest, then by id, so the two chips the hero
@@ -411,9 +423,8 @@ function retainedFrom(deck: readonly ReviewCard[], now: number): MomentumRetaine
   // Each card's evidence is read once here rather than inside the comparator,
   // so a deck of any size costs one pass and the sort compares plain numbers.
   const used = deck
-    .filter(isPhrase)
-    .map((card) => ({ card, uses: evidenceOf(card).convoUses }))
-    .filter((entry) => entry.uses >= 1);
+    .filter(isRetained)
+    .map((card) => ({ card, uses: evidenceOf(card).convoUses }));
   const count = used.length === 0 ? null : used.length;
 
   const week = new Set(recentDayKeys(now, MOMENTUM_WEEK_DAYS));

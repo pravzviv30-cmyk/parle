@@ -4,7 +4,7 @@
  * The engine in `engine.ts` decides *when* to reconcile. This file decides *what the
  * answer is*, and it is the only file in the app that holds an opinion about how two
  * copies of a learner become one. Twelve namespaces are synced under three merge classes;
- * four are excluded with a stated reason, because a namespace that is silently absent
+ * five are excluded with a stated reason, because a namespace that is silently absent
  * from a sync table is indistinguishable from one somebody forgot.
  *
  * | namespace     | class      | the rule                                                  |
@@ -33,6 +33,7 @@
  * | `friends`     | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `reminder`    | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `conversationPacks` | **excluded** — see SYNC_EXCLUSIONS                   |
+ * | `suggestions` | **excluded** — see SYNC_EXCLUSIONS                          |
  *
  * ## Every policy is commutative and idempotent by construction
  *
@@ -743,6 +744,11 @@ export interface SyncExclusion {
  * `policy.test.ts` cannot tell the two apart unless the reason is written down.
  */
 export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
+  {
+    namespace: 'suggestions',
+    reason:
+      'a cursor into an authored pool rather than anything a learner has learned. The stored number is an index, and the pool grows between releases, so the same value names a different situation on two builds: syncing it would carry a phone that is three suggestions along onto a tablet that lands somewhere unrelated. What excluding it costs is one repeated suggestion on a second device, against a value that cannot mean the same thing twice.',
+  },
   {
     namespace: 'journal',
     reason:

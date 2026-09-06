@@ -1,168 +1,147 @@
 /**
- * Practice — the path.
+ * Practice — the archive of everything the learner has said.
  *
- * Two authored units over the phrases the bank can actually drill, plus one
- * that fills itself from the learner's own conversations. Node state is read
- * from the review deck rather than stored, so the map and the scheduler can
- * never disagree about whether something has been learned.
+ * This tab used to draw an authored path: seven units of rows over the phrases
+ * the bank could drill. The founder replaced it with their own mockup, and the
+ * shape that arrived is better because it is the learner's, not ours. Every
+ * conversation they finish becomes a card here with what it was called in both
+ * languages, the topics it opened, how long they spoke and how many phrases it
+ * left behind. The scripted café lesson and the drill bank did not disappear
+ * with the path; the lesson is a door on the Tutor tab now, and the bank is
+ * behind this tab's scenario card.
  *
- * Honest about its length. The repo holds one lesson and one fixture bank, so
- * this is seven authored stops and no more; a longer map would be empty rooms.
- * The terminus says where the rest comes from, because that is true and it is
- * also the product's whole argument.
+ * The mockup is drawn full, and a learner on their first morning has none of
+ * it. So the tab grows: no vault and no feed until there is a conversation, no
+ * ordering line until there are two, no filters until four. Every one of those
+ * decisions is in `practice/archive.ts` and none of them is here. This file is
+ * null gates and a stylesheet, the same shape `home/MomentumCards.tsx` settled
+ * on, because a screen that can count is a screen that can draw a nought.
  */
 
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { buildPath, CAFE_LESSON, phraseKeyOf, type ConversationPack, type PathUnit, type PracticeTopic } from '@luvani/core';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { DAILY_SCENARIOS, phraseKeyOf, seedTopicOf, type ConversationPack, type DailyScenario, type ReviewCard } from '@luvani/core';
 import { paper, space, type } from '../theme.ts';
-import { Card, Label, OutlineButton, GhostButton, PillButton } from '../components.tsx';
+import { Card, Label, PillButton } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
-import { PathNodeRow } from '../practice/PathNodeRow.tsx';
-import { MIX_OFFER, offersMix } from '../practice/mix.ts';
-import { NEXT_STEP, nextStep, reviewLine, type NextStep } from '../practice/nextStep.ts';
-import { statusLine } from '../practice/statusLine.ts';
-import { seedTopicFor } from '../practice/talkAgain.ts';
-import { useProfile } from '../app/ProfileContext.tsx';
-import { tutorNameOf } from '../tutor/tutorName.ts';
+import {
+  archiveFrom,
+  sessionsUnder,
+  ARCHIVE_LABEL,
+  CLOSING,
+  FEED,
+  type Archive,
+  type FilterKey,
+} from '../practice/archive.ts';
+import { SessionFilters } from '../practice/SessionFilters.tsx';
+import { SessionRow } from '../practice/SessionRow.tsx';
+import { VaultCard } from '../practice/VaultCard.tsx';
+import { ScenarioCard } from '../practice/ScenarioCard.tsx';
+import { NEXT_STEP, nextStep, packLine, reviewLine, type NextStep } from '../practice/nextStep.ts';
+import { nextOffset, suggestionFor, SUGGESTION } from '../practice/suggestion.ts';
+import { loadSuggestionOffset, saveSuggestionOffset } from '../practice/suggestionStore.ts';
 import { loadDeck } from '../review/store.ts';
-import { loadDrillBank } from '../drill/store.ts';
-import { loadTopics } from '../topics/store.ts';
-import { lastSummaryFor } from '../progress/store.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { loadConversationPacks, refreshConversationPacks } from '../conversationPacks/store.ts';
-import { latestReadyPack } from '../conversationPacks/model.ts';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 
 export function PracticeTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { recheck } = useLive();
   const { user, adapter } = useAuth();
-  const { profile } = useProfile();
-  const tutorName = tutorNameOf(profile);
 
-  // The locked row draws a pen that keeps moving. It has no reason to keep
-  // moving while the learner is on another tab, and the scene cannot ask
-  // this for itself: useIsFocused throws outside a NavigationContainer, and
-  // five of the places that render a scene mount above the navigator.
-  const focused = useIsFocused();
-  const [units, setUnits] = useState<PathUnit[] | null>(null);
-  // What to do now, answered whole by practice/nextStep.ts: a due deck, the row
-  // the path already marked next, or nothing at all. The tab draws it and works
-  // out none of it, so due is never counted twice with two chances to disagree.
+  // Null while storage has not answered yet, which is not the same as a learner
+  // with nothing: an archive drawn from an unanswered read would flash the
+  // first-conversation words at somebody who has had thirty.
+  const [archive, setArchive] = useState<Archive | null>(null);
+  // What to do now, answered whole by practice/nextStep.ts: a due deck, the
+  // newest conversation nobody has come back to, or nothing at all.
   const [step, setStep] = useState<NextStep | null>(null);
-  // Kept rather than thrown away after buildPath: a topic row's second door
-  // needs the topic's own title in both languages to seed a conversation with.
-  const [topics, setTopics] = useState<PracticeTopic[]>([]);
-  const [packs, setPacks] = useState<ConversationPack[]>([]);
-  // Recomputed on every focus alongside everything else, which is the whole of
-  // the daily refresh: the offer answers to today's due state, not to a clock.
-  const [mixOffered, setMixOffered] = useState(false);
-  // A probe is in flight. Both doors below run one before they navigate, and
-  // both used to fire it with no flag at all: the tap did nothing visible for
-  // up to a second and a half, and a second tap queued a second navigation.
-  // TutorTab already carried this guard and this word for it.
+  // Which filter the learner chose. Resets to nothing on purpose when the row
+  // stops earning its place, since sessionsUnder falls back to the whole feed.
+  const [filter, setFilter] = useState<FilterKey>('all');
+  // How far along the suggestion card has walked the authored pool.
+  const [offset, setOffset] = useState(0);
+  // A probe is in flight. The one door here that touches the network runs one
+  // before it navigates, and without the flag the tap does nothing visible for
+  // up to a second and a half and a second tap queues a second navigation.
   const [checking, setChecking] = useState(false);
+  // The clock, read once per focus and held. The suggestion is a pure function
+  // of the day and the offset, and reading Date.now() while rendering would
+  // let a redraw at midnight move the card under the learner's thumb.
+  const [day, setDay] = useState<number | null>(null);
 
-  // Rebuilt on every return: a sitting that just finished must be visible on
-  // the map the moment the learner lands back on it.
+  // Rebuilt on every return: a conversation that just finished must be on the
+  // feed the moment the learner lands back here.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void Promise.all([loadDeck(), loadDrillBank(), loadTopics(), lastSummaryFor(CAFE_LESSON.id)]).then(
-        ([deck, bank, topics, lastLesson]) => {
-          if (cancelled) return;
-          const now = Date.now();
-          const units = buildPath(deck, bank, topics, { lessonDone: lastLesson !== null }, now);
-          setUnits(units);
-          setStep(nextStep(units, deck, now));
-          setTopics(topics);
-          setMixOffered(offersMix(deck, topics, now));
-        },
-      );
+      const now = Date.now();
+      setDay(now);
+
+      void loadSuggestionOffset().then((stored) => {
+        if (!cancelled) setOffset(stored);
+      });
+
+      const draw = (packs: readonly ConversationPack[], deck: readonly ReviewCard[]) => {
+        setArchive(archiveFrom({ packs, deck, now }));
+        setStep(nextStep(deck, packs, now));
+      };
+
       // Draw the cache at once, then quietly replace it with the server-owned
       // truth. A closed app can miss the original live delivery, so this pull
       // is the recovery path rather than a decorative refresh.
-      void loadConversationPacks().then((stored) => {
-        if (!cancelled) setPacks(stored);
-      });
-      if (user) {
+      void Promise.all([loadConversationPacks(), loadDeck()]).then(([packs, deck]) => {
+        if (cancelled) return;
+        draw(packs, deck);
+
+        if (user === null) return;
         void refreshConversationPacks(user, adapter).then((result) => {
-          if (!cancelled && result.ok) setPacks(result.packs);
+          if (!cancelled && result.ok) draw(result.packs, deck);
         });
-      }
+      });
+
       return () => {
         cancelled = true;
       };
     }, [user, adapter]),
   );
 
-  const open = (node: { id: string; kind: string; title: string; phraseKeys: readonly string[] }, textMode = false) => {
-    if (node.kind === 'lesson') {
-      // One probe in flight is enough; two would open two lessons.
-      if (checking) return;
-      setChecking(true);
-      // Either way, the same way: the Lesson route is gated, so a learner whose
-      // servers are down lands on honest words rather than on a tap that
-      // appeared to do nothing. `go` is passed twice so a probe that ever threw
-      // still lets go of the flag instead of retiring the tab.
-      const go = () => {
-        setChecking(false);
-        nav.navigate('Lesson', textMode ? { textMode: true } : undefined);
-      };
-      void recheck().then(go, go);
-      return;
-    }
-    // A drill is local. Nothing to probe, so nothing to wait for.
+  const scenario: DailyScenario | null = day === null ? null : suggestionFor(DAILY_SCENARIOS, day, offset);
+
+  /**
+   * Back to the tutor, about this suggestion.
+   *
+   * Probed first, so a server that came up after launch is used. The navigation
+   * happens either way because the Convo route is gated: a learner whose
+   * servers are down lands on honest words with Check again and Back, rather
+   * than on a press that appears to do nothing. `go` is passed twice so a probe
+   * that ever threw still lets go of the flag instead of retiring the tab.
+   */
+  const talkAbout = (seed: DailyScenario) => {
+    if (checking) return;
+    setChecking(true);
+    const go = () => {
+      setChecking(false);
+      nav.navigate('Convo', { seedTopic: seedTopicOf(seed) });
+    };
+    void recheck().then(go, go);
+  };
+
+  /** A drill is local. Nothing to probe, so nothing to wait for. */
+  const revisit = (node: { id: string; title: string; phraseKeys: readonly string[] }) => {
     nav.navigate('Drill', { node: { id: node.id, title: node.title, phraseKeys: node.phraseKeys } });
   };
 
-  /**
-   * Back to the tutor, about this topic.
-   *
-   * Probed first, the way the lesson row already does, so a server that came up
-   * after launch is used. The navigation happens either way because the Convo
-   * route is gated: a learner whose servers are down lands on honest words with
-   * Check again and Back, rather than on a press that appears to do nothing.
-   * The seed is dropped rather than sent empty when the stored title is half
-   * written.
-   */
-  const talkAgain = (node: { id: string }) => {
-    if (checking) return;
-    const seed = seedTopicFor(node.id, topics);
-    setChecking(true);
-    const go = () => {
-      setChecking(false);
-      nav.navigate('Convo', seed ? { seedTopic: seed } : {});
-    };
-    void recheck().then(go, go);
+  const another = () => {
+    const moved = nextOffset(offset, DAILY_SCENARIOS.length);
+    setOffset(moved);
+    void saveSuggestionOffset(moved);
   };
 
-  const continuePack = (pack: ConversationPack) => {
-    if (checking) return;
-    setChecking(true);
-    const go = () => {
-      setChecking(false);
-      nav.navigate('Convo', { seedTopic: { fr: pack.continuationSeed.titleFr, en: pack.continuationSeed.titleEn } });
-    };
-    void recheck().then(go, go);
-  };
-
-  const practisePack = (pack: ConversationPack) => {
-    nav.navigate('Drill', {
-      node: {
-        id: pack.id,
-        title: pack.title.en,
-        phraseKeys: pack.keyPhrases.map((phrase) => phraseKeyOf(phrase.fr)),
-      },
-    });
-  };
-
-  const lessonNode = units?.flatMap((u) => u.nodes).find((n) => n.kind === 'lesson') ?? null;
-  const latestPack = latestReadyPack(packs);
-  const pendingPack = packs.find((pack) => pack.state === 'generating') ?? null;
+  const shown = archive === null ? [] : sessionsUnder(archive, filter);
 
   return (
     <ScrollScreen
@@ -183,45 +162,17 @@ export function PracticeTab() {
       <View style={st.scroll}>
         <TabHeader
           title="Practice"
-          purpose="Short drills from the lesson, and from your own conversations."
+          purpose="Everything you have said to your tutor, and what to do with it next."
         />
 
-        {latestPack && (
-          <View style={{ marginBottom: space(6) }}>
-            <Label>Continue conversation</Label>
-            <Card style={{ marginTop: space(3) }}>
-              <Text style={[type.bodyStrong, { color: paper.ink }]}>{latestPack.title.en}</Text>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{latestPack.summary}</Text>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Ready: {latestPack.keyPhrases.length} phrases</Text>
-              <View style={{ marginTop: space(3), gap: space(2) }}>
-                <OutlineButton label="Continue talking" disabled={checking} onPress={() => continuePack(latestPack)} />
-                <OutlineButton label="Review phrases" onPress={() => practisePack(latestPack)} />
-              </View>
-            </Card>
-          </View>
-        )}
-
-        {pendingPack && !latestPack && (
-          <View style={{ marginBottom: space(6) }}>
-            <Card>
-              <Text style={[type.bodyStrong, { color: paper.ink }]}>Your conversation is becoming practice.</Text>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Come back in a moment. Your French is safely on its way here.</Text>
-            </Card>
-          </View>
-        )}
-
         {/* The one thing to do now, decided in practice/nextStep.ts and drawn
-            here as a door. A review step opens the deck; a node step opens
-            through the very handler the path's heavy-ruled row uses, so it is
-            never a second primary, only a shortcut to the same place. When the
-            deck is quiet and the path is done there is no step, and this draws
+            here as the tab's only pill. When the deck is quiet and every
+            conversation has been revisited there is no step, and this draws
             nothing rather than a cheerful message for a learner who is done. */}
         {step !== null && (
-          <View style={{ marginBottom: space(6) }}>
+          <View style={st.block}>
             <Label>{NEXT_STEP.label}</Label>
-            <View style={{ marginTop: space(3) }}>
-              {/* The tab's one pill (F365). The line under it is the same line
-                  the OutlineButton used to carry as its sub. */}
+            <View style={st.blockBody}>
               {step.kind === 'review' ? (
                 <View>
                   <PillButton label={NEXT_STEP.review} onPress={() => nav.navigate('Review')} />
@@ -229,60 +180,82 @@ export function PracticeTab() {
                 </View>
               ) : (
                 <View>
-                  <PillButton label={step.node.title} disabled={checking} onPress={() => open(step.node)} />
-                  <Text style={st.stepSub}>{statusLine(step.node, tutorName)}</Text>
+                  <PillButton
+                    label={step.pack.title.en}
+                    onPress={() => revisit({ id: step.pack.id, title: step.pack.title.en, phraseKeys: step.pack.keyPhrases.map((phrase) => phraseKeyOf(phrase.fr)) })}
+                  />
+                  <Text style={st.stepSub}>{packLine(step.pack)}</Text>
                 </View>
               )}
             </View>
           </View>
         )}
 
-        {mixOffered && (
-          <View style={{ marginBottom: space(6) }}>
-            {/* Offered only when the due phrases come from more than one topic,
-                because below that this is that topic's own sitting wearing a
-                bigger name. The rule is in practice/mix.ts. */}
-            <OutlineButton
-              label={MIX_OFFER.title}
-              sub={MIX_OFFER.sub}
-              onPress={() => nav.navigate('Drill', { mix: true })}
-            />
+        {archive !== null && archive.vault !== null && (
+          <View style={st.block}>
+            <Label>{ARCHIVE_LABEL}</Label>
+            {archive.filters.length > 0 && (
+              <View style={st.blockBody}>
+                <SessionFilters filters={archive.filters} active={filter} onChange={setFilter} />
+              </View>
+            )}
+            <View style={st.blockBody}>
+              <VaultCard vault={archive.vault} />
+            </View>
           </View>
         )}
 
-        {units?.map((unit) => (
-          <View key={unit.id} style={{ marginBottom: space(7) }}>
-            <Label>{unit.title}</Label>
-            <View style={{ marginTop: space(3), gap: space(2.5) }}>
-              {unit.nodes.map((node) => (
-                <PathNodeRow
-                  key={node.id}
-                  node={node}
-                  onPress={() => open(node)}
-                  onTalkAgain={() => talkAgain(node)}
-                  paused={!focused}
+        {shown.length > 0 && (
+          <View style={st.block}>
+            <View style={st.feedHead}>
+              <View style={st.feedWords}>
+                <Label color={paper.ink}>{FEED.label}</Label>
+              </View>
+              {archive?.order != null && <Text style={st.order}>{archive.order}</Text>}
+            </View>
+            <View style={st.feed}>
+              {shown.map((session) => (
+                <SessionRow
+                  key={session.id}
+                  session={session}
+                  onRevisit={() => revisit({ id: session.id, title: session.titleEn, phraseKeys: session.phraseKeys })}
                 />
               ))}
             </View>
           </View>
-        ))}
+        )}
 
-        {lessonNode && (
-          <View style={{ marginBottom: space(6) }}>
-            <GhostButton
-              label="Unable to speak right now?"
-              disabled={checking}
-              onPress={() => open(lessonNode, true)}
-            />
+        {/* What a learner with no conversations reads instead of an archive.
+            Gated on the model rather than on the feed's length, so it cannot
+            appear for half a second while storage is still answering. */}
+        {archive?.opening != null && (
+          <View style={st.block}>
+            <Card>
+              <Text style={st.openingTitle}>{archive.opening.title}</Text>
+              <Text style={st.openingBody}>{archive.opening.body}</Text>
+            </Card>
           </View>
         )}
 
-        <Card>
-          <Text style={[type.bodyStrong, { color: paper.ink }]}>Practice from your conversations</Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
-            Your tutor turns useful moments from free conversation into short, focused practice here.
-          </Text>
-        </Card>
+        {scenario !== null && (
+          <View style={st.block}>
+            <Label>{SUGGESTION.label}</Label>
+            <View style={st.blockBody}>
+              <ScenarioCard
+                scenario={scenario}
+                checking={checking}
+                onAnother={another}
+                onDrill={() => nav.navigate('Drill', { mix: true })}
+                onTutor={() => talkAbout(scenario)}
+              />
+            </View>
+          </View>
+        )}
+
+        <View style={st.closing}>
+          <Text style={st.closingTitle}>{CLOSING.title}</Text>
+          <Text style={st.closingBody}>{CLOSING.body}</Text>
+        </View>
       </View>
     </ScrollScreen>
   );
@@ -290,5 +263,16 @@ export function PracticeTab() {
 
 const st = StyleSheet.create({
   scroll: { flexGrow: 1 },
+  block: { marginTop: space(7) },
+  blockBody: { marginTop: space(3) },
+  feedHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  feedWords: { flex: 1, minWidth: 0 },
+  order: { ...type.small, color: paper.inkSoft },
+  feed: { marginTop: space(3), gap: space(3) },
   stepSub: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
+  openingTitle: { ...type.bodyStrong, color: paper.ink },
+  openingBody: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
+  closing: { marginTop: space(7) },
+  closingTitle: { ...type.bodyStrong, color: paper.ink },
+  closingBody: { ...type.small, color: paper.inkSoft, marginTop: space(1) },
 });

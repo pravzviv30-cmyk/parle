@@ -288,8 +288,8 @@ still there. Passing it is one tap and nothing else is asked twice.
 | Tab | What it is |
 |---|---|
 | Home | The day, not a summary. A greeting alone at the top, where only the word changes: it rises up out of its slot and the next comes in behind it, and the name travels with it so the two stay tight; the word of the day under it; today's situation with its starting line, a bookmark and the tab's one pill; daily momentum as four cards, there from the first day and worded as a start where a number would be nought: retained phrases with two of the learner's own lines, days active with the week rail, recall over reviews once ten of them are behind it, and today's speaking goal; the next step as a row; a sprout note at the foot. The level, the evidence and the phrasebook moved to My French rather than being drawn twice |
-| Tutor | The tutor by name, the voice circle, then three doors. Resume is a card with the scene's drawing, its French title, what the learner came to do, how long is left of it when their own pace has said, and a full-width pill. Guided practice missions is a heading with the count, one line saying what is behind it, and every situation as its own tappable row. Open conversation is last: a card whose button sits centred under its drawing. The four-page intro that used to stand in front of them is a quiet "How the voice circle works" link here and in Profile |
-| Practice | The next step as the tab's one pill, then the path, the guided lesson, the drill bank, the review deck — plus one topic card per conversation subject, projected live from the deck |
+| Tutor | The tutor by name, the voice circle, then four doors. Resume is a card with the scene's drawing, its French title, what the learner came to do, how long is left of it when their own pace has said, and a full-width pill. Guided practice missions is a heading with the count, one line saying what is behind it, and every situation as its own tappable row. Pronunciation lesson is third: the café scene's drawing, its French title, one line saying the words are written out and the tutor listens to how you say them, an outline button rather than a pill, and its own quiet "Read and type this one instead" link, because it is the one live screen with no typed door of its own until something breaks. Open conversation is last: a card whose button sits centred under its drawing. The four-page intro that used to stand in front of them is a quiet "How the voice circle works" link here and in Profile |
+| Practice | The archive of the learner's own conversations, from the founder's mockup. The next step is still the tab's one pill; under it a vault card counts what has been recorded, the topics opened and the phrases retained, then one card per finished conversation carrying when it was, how long they spoke, the topics it opened and the phrases it left behind, then a card that suggests the next conversation out of the authored pool. **It grows.** There is no vault and no feed until the first conversation, no ordering line until the second and no filter row until the fourth, and a count with nothing behind it is left out of the rail rather than drawn as a nought. The authored path, its rows and its mix offer are gone; the scripted café lesson is a door on Tutor and the drill bank is behind the suggestion card |
 | My French | An evidence row that is absent at zero (situations handled, lines kept, the level), the notebook, the week, the situations with their stamps, and the same next-situation card Home draws |
 | Profile | The level under the name; the daily goal and the correction dial chosen in place as three-way controls with the chosen gloss beneath; the tutor's voice; prefer typing; tutor speaks slower; account (download, permanent deletion), the reminder, sign out, the legal footer and the build's version line |
 
@@ -504,11 +504,21 @@ is the one place worth spending one later.
 
 Written down so nobody "fixes" them back:
 
-- **The practice path does not gate.** Every authored node is open in any
-  order; sequence is one node marked as next. PRODUCT.md principle 1 is that
-  support is withdrawn as the learner improves, never withheld until earned.
-  The only thing that locks is practice written from conversations the learner
-  has not had yet.
+- **Practice counts, and it withholds rather than rounding down.** The archive
+  is not mid-session, so it may say six conversations and ninety-two phrases.
+  What it may never say is nought: a count with nothing behind it is left out
+  of the rail, a session nobody timed carries no minutes line rather than "0
+  min spoken", and a filter that would select everything or nothing is not
+  drawn at all. `practice/archive.ts` owns every one of those decisions, so the
+  screen has nothing to round.
+
+  This replaced a different divergence, and it is worth saying why rather than
+  letting the old one look forgotten. The authored practice path deliberately
+  did not gate: every node was open in any order and sequence was one node
+  marked next. The founder replaced the whole path with their own mockup, so
+  there is no longer a path to gate or not gate. The principle it protected,
+  that support is withdrawn as the learner improves and never withheld until
+  earned, is unchanged and lives in the ladder.
 - **Home and My French may count.** DESIGN.md's rule is that no
   *mid-session* message contains a number. Home is not mid-session, so the
   board counts and the tutor still does not — no numerals in watchdog copy, no

@@ -48,6 +48,7 @@ import {
   encodeMessage,
   tutorVoice,
   type ClientMessage,
+  type ConversationPack,
   type Rung,
   type ServerMessage,
   type TutorPersona,
@@ -3567,5 +3568,54 @@ describe('the pace a live session opens at', () => {
     //    the Slower control is still the thing that changes their session.
     const usual = buildConvo(t, { profile: createProfile() });
     assert.equal(usual.convo.conversationState.pace, 'normal');
+  });
+});
+
+/**
+ * The Practice feed asks a finished conversation two questions: how long the
+ * learner spoke for, and what it was about. The agent has known both since the
+ * recap was assembled and threw them away at the pack, so a card had nothing
+ * true to show. This is plumbing, and it changes nothing the tutor says.
+ */
+describe('what a finished conversation writes down about itself', () => {
+  /** Backdate the room's start, the way the billing tests do. */
+  function ranFor(convo: LuvaniConversation, seconds: number): void {
+    (convo as unknown as { startedAt: number }).startedAt = Date.now() - seconds * 1_000;
+  }
+
+  /** Catch the packs a finished session writes, with no token server in the room. */
+  function capturePacks() {
+    const packs: ConversationPack[] = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = (async (_input: unknown, init?: { body?: unknown }) => {
+      const body: unknown = JSON.parse(String(init?.body));
+      if (typeof body === 'object' && body !== null && 'pack' in body) {
+        packs.push((body as { pack: ConversationPack }).pack);
+      }
+      return { ok: true, json: async () => ({ secondsRemaining: 600 }) };
+    }) as unknown as typeof fetch;
+    return { packs, restore: () => { globalThis.fetch = real; } };
+  }
+
+  test('the pack carries the session wall clock and the topics the recap already knew', async (t) => {
+    const { packs, restore } = capturePacks();
+    t.after(restore);
+
+    const { convo } = await inScene(t, { sessionId: '99999999-9999-4999-8999-999999999999' });
+    await convo.settled();
+    convo.clearRescue();
+    ranFor(convo, 487);
+
+    await convo.finish();
+
+    const topics = convo.conversationState.topics.map((topic) => ({ fr: topic.fr, en: topic.en }));
+    assert.ok(topics.length >= 1, 'the scene names its own topic, so there is something to carry');
+    assert.equal(packs.length, 2, 'the generating claim and the ready upsert');
+    for (const pack of packs) {
+      assert.equal(pack.durationSec, 487, 'eight minutes of speaking reached the card as eight minutes');
+      assert.deepEqual(pack.topics, topics.slice(0, 4));
+    }
+    assert.equal(packs[0]!.state, 'generating');
+    assert.equal(packs[1]!.state, 'ready');
   });
 });

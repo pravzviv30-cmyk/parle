@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { guiltIn } from '../copy/guilt.ts';
 import {
   TUTOR_INTRO_LINK,
+  TUTOR_LESSON_QUIET_LINK,
   TUTOR_OFFLINE,
+  lessonStart,
   minutesRemainingLine,
   scenarioCountLine,
   tutorDoors,
@@ -95,15 +97,17 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
   const RECENT = { title: 'Au café du coin', goalEn: 'Order at a café', place: 'cafe' as const, minutesRemaining: null };
   /** How many situations the catalogue holds, as the tab hands it in. */
   const SITUATIONS = 6;
+  /** The scripted lesson's French title, as the tab reads it off the catalogue. */
+  const LESSON = 'Commander un café';
 
   test("the tutor's doors say their counts as numbers, their words without a digit, and pill the resume and the open conversation — F404", () => {
-    const [resume, missions, free] = tutorDoors(RECENT, SITUATIONS);
+    const [resume, missions, lesson, free] = tutorDoors(RECENT, SITUATIONS, LESSON);
 
     // The two counts travel as numbers, because a numeral inside prose is a
     // numeral nothing can round, pluralise or withhold. The count is handed in
     // rather than read off the catalogue here, so gate.ts stays on its own.
     assert.equal(missions!.count, SITUATIONS, 'the missions door does not carry how many situations are behind it');
-    assert.equal(tutorDoors(null, 3)[0]!.count, 3, 'the door counts the catalogue itself instead of being told');
+    assert.equal(tutorDoors(null, 3, LESSON)[0]!.count, 3, 'the door counts the catalogue itself instead of being told');
     assert.equal(resume!.count, null, 'the resume door counts something; there is one scene behind it, not a list');
     assert.equal(free!.count, null, 'the open conversation counts something; there is nothing there to count');
 
@@ -113,11 +117,12 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
     // must never carry.
     assert.equal(resume!.minutesRemaining, null, 'the resume door invents an estimate that nothing measured');
     assert.equal(
-      tutorDoors({ ...RECENT, minutesRemaining: 3 }, SITUATIONS)[0]!.minutesRemaining,
+      tutorDoors({ ...RECENT, minutesRemaining: 3 }, SITUATIONS, LESSON)[0]!.minutesRemaining,
       3,
       'a measurement that exists does not reach the door that would show it',
     );
     assert.equal(missions!.minutesRemaining, null);
+    assert.equal(lesson!.minutesRemaining, null, 'the scripted lesson carries an estimate nothing measured');
     assert.equal(free!.minutesRemaining, null);
 
     // And exactly two functions turn a number into words, singulars included,
@@ -136,7 +141,7 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
     // open conversation a button each and turns the missions door into a list
     // of rows, so the missions door carries none.
     assert.deepEqual(
-      tutorDoors(RECENT, SITUATIONS).filter((d) => d.primary).map((d) => d.key),
+      tutorDoors(RECENT, SITUATIONS, LESSON).filter((d) => d.primary).map((d) => d.key),
       ['resume', 'free'],
       'the pill sits somewhere other than the scene to pick up and the open conversation',
     );
@@ -148,7 +153,7 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
 
     // Every word on every door: no count, no dash, nothing that scolds, and
     // nothing off the one shared list of words this app promised not to say.
-    for (const door of [...tutorDoors(RECENT, SITUATIONS), ...tutorDoors(null, 1)]) {
+    for (const door of [...tutorDoors(RECENT, SITUATIONS, LESSON), ...tutorDoors(null, 1, LESSON)]) {
       for (const line of [door.label, door.title ?? '', door.gloss, door.action]) {
         assert.ok(!/\d/.test(line), `"${line}" carries a number`);
         assert.ok(!/—/.test(line), `"${line}" carries an em dash`);
@@ -175,7 +180,7 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
    * beside the formatter that words it.
    */
   test('each door is a card that says what is behind it — F364', () => {
-    const [resume, missions, free] = tutorDoors(RECENT, SITUATIONS);
+    const [resume, missions, lesson, free] = tutorDoors(RECENT, SITUATIONS, LESSON);
     assert.deepEqual(resume!.art, { kind: 'place', place: 'cafe' }, 'the resume door does not show its place');
     assert.equal(resume!.title, 'Au café du coin', 'the resume door does not name the scene in French');
     assert.equal(resume!.gloss, RECENT.goalEn, 'the resume door does not say what the learner came to do');
@@ -189,10 +194,15 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
     assert.equal(missions!.primary, false, 'the missions door grew a button, and its rows are the way in');
     assert.equal(missions!.count, SITUATIONS, 'the missions door does not say how many situations there are');
     assert.equal(
-      tutorDoors(null, SITUATIONS).find((d) => d.key === 'missions')!.primary,
+      tutorDoors(null, SITUATIONS, LESSON).find((d) => d.key === 'missions')!.primary,
       false,
       'with nothing to continue the missions door took a pill, and its rows are still the way in',
     );
+
+    // The scripted lesson stands between the two, and it is the one door with a
+    // fixed script behind it. Its own block below owns the rest of what it says.
+    assert.equal(lesson!.key, 'lesson', 'the scripted lesson is not the third door any more');
+    assert.equal(lesson!.primary, false, 'the scripted lesson took a pill, and the tab draws exactly two');
 
     // Talk freely shows no place, because it has none, and it is a pill now:
     // the founder's screenshot draws it as one, centred under its drawing.
@@ -200,13 +210,13 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
     assert.equal(free!.action, 'Open conversation');
     assert.equal(free!.primary, true);
     assert.equal(
-      tutorDoors(null, SITUATIONS).at(-1)!.key,
+      tutorDoors(null, SITUATIONS, LESSON).at(-1)!.key,
       'free',
       'talk freely is no longer the last door, so a beginner meets it before the guided ones',
     );
 
     // Every word on every door: no count, no dash, nothing that scolds.
-    for (const door of [...tutorDoors(RECENT, SITUATIONS), ...tutorDoors(null, SITUATIONS)]) {
+    for (const door of [...tutorDoors(RECENT, SITUATIONS, LESSON), ...tutorDoors(null, SITUATIONS, LESSON)]) {
       for (const line of [door.label, door.title ?? '', door.gloss, door.action]) {
         assert.ok(!/\d/.test(line), `"${line}" carries a number`);
         assert.ok(!/—/.test(line), `"${line}" carries an em dash`);
@@ -225,16 +235,16 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
     // Four explainer pages used to sit between a new account and the first
     // French sentence, which is the one place in this product nothing is
     // allowed to sit. The doors do not know the intro exists.
-    const doors = tutorDoors(null, SITUATIONS);
-    assert.deepEqual(doors.map((d) => d.key), ['missions', 'free'], 'the doors changed shape');
+    const doors = tutorDoors(null, SITUATIONS, LESSON);
+    assert.deepEqual(doors.map((d) => d.key), ['missions', 'lesson', 'free'], 'the doors changed shape');
     assert.deepEqual(
       doors.filter((d) => d.primary).map((d) => d.key),
       ['free'],
       'with nothing to pick back up, the open conversation is the only door with a button on it',
     );
 
-    const withRecent = tutorDoors(RECENT, SITUATIONS);
-    assert.deepEqual(withRecent.map((d) => d.key), ['resume', 'missions', 'free']);
+    const withRecent = tutorDoors(RECENT, SITUATIONS, LESSON);
+    assert.deepEqual(withRecent.map((d) => d.key), ['resume', 'missions', 'lesson', 'free']);
     assert.equal(withRecent[0]?.title, 'Au café du coin', 'continuing does not say which mission');
     // The rule is one pill per door rather than one per screen (F404): the
     // missions door became a list of rows, and a list with a button at the
@@ -267,5 +277,104 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
     assert.ok(intro.includes('OrbWalkthrough'), 'the intro lost the page that teaches the circle');
     assert.ok(intro.includes('Amber, it is thinking'), 'the intro stopped naming the thinking colour');
     assert.ok(intro.includes('Green, your turn'), 'the intro stopped saying green means you speak');
+  });
+});
+
+/**
+ * The scripted lesson had one way in, and it was on another tab.
+ *
+ * `tabs/PracticeTab.tsx` held the only `navigate('Lesson')` in the whole app,
+ * so a Practice tab rebuilt without that row deletes the scripted lesson from
+ * the product without deleting a line of it. That is the kind of removal
+ * nothing notices: the screen still builds, the tests still pass, and the
+ * feature is simply unreachable.
+ *
+ * It is not a mission and it is not free conversation. The script is known in
+ * advance, which is the only reason pronunciation can be scored at all
+ * (docs/ARCHITECTURE.md, "Two paths, one ladder"), so it gets a door of its own
+ * here rather than a row inside the mission chooser, where it would read as a
+ * seventh situation and lose the one thing that makes it different.
+ */
+describe('the scripted lesson is a door of its own on the tutor tab', () => {
+  /** A mission worth offering again, as the tab reads it off the catalogue. */
+  const RECENT = { title: 'Au café du coin', goalEn: 'Order at a café', place: 'cafe' as const, minutesRemaining: null };
+  const SITUATIONS = 6;
+  const LESSON = 'Commander un café';
+
+  test('the lesson stands between the guided situations and the open conversation, and takes no pill', () => {
+    assert.deepEqual(
+      tutorDoors(RECENT, SITUATIONS, LESSON).map((d) => d.key),
+      ['resume', 'missions', 'lesson', 'free'],
+      'the scripted lesson has no door, or it is not the one between the situations and the open conversation',
+    );
+    assert.deepEqual(
+      tutorDoors(null, SITUATIONS, LESSON).map((d) => d.key),
+      ['missions', 'lesson', 'free'],
+      'the lesson door comes and goes with the resume card, and it has nothing to do with one',
+    );
+
+    const lesson = tutorDoors(RECENT, SITUATIONS, LESSON).find((d) => d.key === 'lesson')!;
+    // Not first. The guided situations are what a beginner should meet, which
+    // `chooserView.test.ts` pins from the other side, and the open conversation
+    // stays last for the reason it has always been last.
+    assert.equal(lesson.primary, false, 'the lesson took a pill; the tab draws exactly two and both were spoken for');
+    assert.equal(lesson.count, null, 'the lesson door counts something; there is one script behind it, not a list');
+    assert.equal(lesson.minutesRemaining, null, 'the lesson door carries an estimate nothing measured');
+    assert.deepEqual(lesson.art, { kind: 'place', place: 'cafe' }, 'the lesson door lost the drawing of where it is set');
+  });
+
+  test('the lesson door reads its title off the catalogue rather than spelling it', () => {
+    // The resume door's title arrives as data for the same reason: a title
+    // spelled twice is a door that lies the day core renames the scene behind
+    // it. `missionCount` set this precedent, and this follows it exactly.
+    assert.equal(tutorDoors(null, SITUATIONS, LESSON).find((d) => d.key === 'lesson')!.title, LESSON);
+    assert.equal(
+      tutorDoors(null, SITUATIONS, 'Autre chose').find((d) => d.key === 'lesson')!.title,
+      'Autre chose',
+      'the title is written into gate.ts, so a lesson renamed in core leaves this door saying the old name',
+    );
+  });
+
+  test('the lesson door says what is different about it, in words nothing else has to round', () => {
+    const lesson = tutorDoors(RECENT, SITUATIONS, LESSON).find((d) => d.key === 'lesson')!;
+    // The one honest reason to send someone here rather than into a mission:
+    // the words are given, so the tutor can listen to how they are said.
+    assert.match(lesson.gloss, /listens/, 'the lesson door never says what it is for');
+    assert.notEqual(lesson.label, 'Guided practice missions', 'the lesson door wears the missions heading');
+    assert.match(lesson.action, /^[A-Z][a-z]+(?: [a-z]+)*$/, `"${lesson.action}" is not sentence case`);
+    for (const line of [lesson.label, lesson.title ?? '', lesson.gloss, lesson.action, TUTOR_LESSON_QUIET_LINK]) {
+      assert.ok(!/\d/.test(line), `"${line}" carries a number`);
+      assert.ok(!/—/.test(line), `"${line}" carries an em dash`);
+      assert.equal(guiltIn(line), undefined, `"${line}" says a word the app promised never to say`);
+    }
+    // Two controls on one card, so they cannot ask the same question. The
+    // footer's "Unable to speak right now?" belongs to the conversation and is
+    // worded as a question; this one names its own door.
+    assert.notEqual(
+      TUTOR_LESSON_QUIET_LINK,
+      'Unable to speak right now?',
+      'the lesson borrows the conversation\'s words, so one screen asks the same question twice and means two places',
+    );
+  });
+
+  test('the lesson opens whether or not the probe came back, because there is an offline lesson to open', () => {
+    assert.deepEqual(lessonStart(false), { screen: 'Lesson', params: undefined }, 'the spoken lesson asks for text mode');
+    assert.deepEqual(lessonStart(true), { screen: 'Lesson', params: { textMode: true } }, 'the quiet lesson opens spoken');
+
+    // This is the whole reason the lesson is not held back the way the
+    // conversation is. `tutorGate` refuses a dead server because there is no
+    // conversation without one; with no token server the navigator mounts the
+    // mock session instead, which runs the entire ladder locally, so holding
+    // the learner back here would refuse them the one thing the offline card
+    // already promises: "Practice still works." If either half of that goes,
+    // this fails and the decision gets taken again rather than inherited.
+    const navigator = stripComments(read('../nav/RootNavigator.tsx'));
+    assert.match(
+      navigator,
+      /<SessionScreen key="mock"/,
+      'the offline lesson is gone, so opening the lesson on a dead server is a dead end now',
+    );
+    assert.match(TUTOR_OFFLINE.headline, /Practice still works/, 'the offline card stopped promising the practice that still works');
+    assert.match(navigator, /textMode=\{textMode\}/, 'the Lesson route stopped honouring textMode, so the quiet door leads nowhere');
   });
 });

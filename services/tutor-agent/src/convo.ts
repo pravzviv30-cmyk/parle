@@ -896,6 +896,13 @@ export class LuvaniConversation extends voice.Agent {
   private ended = false;
   /** One completion timestamp shared by the generating claim and ready upsert. */
   private finishedAt: string | null = null;
+  /**
+   * The measured wall clock, shared by those same two writes.
+   *
+   * Null until `finish` measures it, so a pack written by any other path is
+   * honestly untimed instead of claiming a conversation took no time.
+   */
+  private durationSec: number | null = null;
   /** A hard safety stop must never create a durable learning artefact. */
   private safetyStopped = false;
   /**
@@ -2183,6 +2190,10 @@ export class LuvaniConversation extends voice.Agent {
     this.publish(this.lastRecap);
 
     const wallClockSec = Math.round((Date.now() - this.startedAt) / 1000);
+    // The same number the bill is built from, kept for the pack: Practice
+    // shows the learner how long they spoke, and the agent is the only place
+    // that ever knew. `buildConversationPack` decides what counts as timed.
+    this.durationSec = wallClockSec;
     console.log(
       `[luvani] convo complete — ${recap.stats.turns} turns (${this.learnerTurns} from the learner), ` +
         `${recap.stats.rescues} rescues, ${wallClockSec}s, cefr=${recap.cefr.estimate} (${recap.cefr.confidence})`,
@@ -2279,6 +2290,8 @@ export class LuvaniConversation extends voice.Agent {
       learnerGoal: this.seedTopic?.en ?? null,
       tutorGoal: recap.nextFocus,
       cefr: recap.cefr.estimate,
+      durationSec: this.durationSec,
+      topics: recap.topics,
       keyPhrases: phrases.map((phrase) => ({ fr: phrase.fr, frWritten: phrase.frWritten ?? null, en: phrase.en })),
       wins: recap.wins,
       corrections: recap.fixes.slice(0, 3).map((fix) => ({

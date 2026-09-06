@@ -6,6 +6,13 @@
  * compared to the mock: no silence timer (the agent runs the rescue), no grading,
  * no mic-press handler (the learner just talks), and option cards are read-along
  * support rather than buttons — saying it aloud is the product.
+ *
+ * Four things can be the whole window here, and the route has no system chrome
+ * above or below it. The three status branches sit on the still frame from
+ * `layout.tsx`, which pays the notch and the home indicator once. The live scene
+ * is `SessionView`, which is already on the frame, so it is handed what belongs
+ * above its header rather than being wrapped in a second one. See
+ * `live/safeArea.test.ts`.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -14,7 +21,7 @@ import { usePreventRemove } from '@react-navigation/native';
 import type { Lesson, Rung, SessionSummary } from '@luvani/core';
 import { paper, space, type, HIT } from './theme.ts';
 import { Card, PillButton, GhostButton } from './components.tsx';
-import { ConfirmSheet } from './layout.tsx';
+import { ConfirmSheet, Screen } from './layout.tsx';
 import { SessionView } from './SessionView.tsx';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { CONNECTING_TICK_MS, connectingTick, connectingView } from './live/connectingView.ts';
@@ -192,33 +199,37 @@ export function LiveSessionScreen({
     // live/startOwnership.ts.
     const connecting = connectingView(connectingMs);
     return (
-      <View style={st.center}>
-        <ActivityIndicator color={paper.inkSoft} />
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[type.small, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}
-        >
-          {connecting.headline}
-        </Text>
-        <View style={{ marginTop: space(6) }}>
-          <GhostButton label={connecting.leaveLabel} onPress={leaveNow} />
+      <Screen padded={false}>
+        <View style={st.center}>
+          <ActivityIndicator color={paper.inkSoft} />
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[type.small, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}
+          >
+            {connecting.headline}
+          </Text>
+          <View style={{ marginTop: space(6) }}>
+            <GhostButton label={connecting.leaveLabel} onPress={leaveNow} />
+          </View>
         </View>
-      </View>
+      </Screen>
     );
   }
 
   if (live.status.phase === 'out-of-minutes') {
     return (
-      <View style={st.center}>
-        <Text style={[type.title, { color: paper.ink, textAlign: 'center' }]}>Out of minutes</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
-          {live.status.message}
-        </Text>
-        <Paywall userId={userId} />
-        <View style={{ marginTop: space(6) }}>
-          <PillButton label="Back" onPress={onExit} />
+      <Screen padded={false}>
+        <View style={st.center}>
+          <Text style={[type.title, { color: paper.ink, textAlign: 'center' }]}>Out of minutes</Text>
+          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
+            {live.status.message}
+          </Text>
+          <Paywall userId={userId} />
+          <View style={{ marginTop: space(6) }}>
+            <PillButton label="Back" onPress={onExit} />
+          </View>
         </View>
-      </View>
+      </Screen>
     );
   }
 
@@ -253,23 +264,34 @@ export function LiveSessionScreen({
     // tutor/waitingView.ts.
     const waiting = waitingView({ waitingForTutor: live.waitingForTutor, safety, tutorName });
     return (
-      <View style={st.center}>
-        {waiting.banner ? (
-          <View style={st.waitingBanner}>
-            <SafetyBanner surface={waiting.banner} onDismiss={live.dismissSafety} />
+      <Screen padded={false}>
+        <View style={st.center}>
+          {waiting.banner ? (
+            <View style={st.waitingBanner}>
+              <SafetyBanner surface={waiting.banner} onDismiss={live.dismissSafety} />
+            </View>
+          ) : null}
+          <ActivityIndicator color={paper.inkSoft} />
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{waiting.headline}</Text>
+          <View style={{ marginTop: space(6) }}>
+            <GhostButton label={waiting.leaveLabel} onPress={leaveNow} />
           </View>
-        ) : null}
-        <ActivityIndicator color={paper.inkSoft} />
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{waiting.headline}</Text>
-        <View style={{ marginTop: space(6) }}>
-          <GhostButton label={waiting.leaveLabel} onPress={leaveNow} />
         </View>
-      </View>
+      </Screen>
     );
   }
 
-  return (
-    <View style={st.root}>
+  // Everything the scene draws above the Leave row, handed to the frame rather
+  // than stacked on top of it.
+  //
+  // SessionView is the frame here: it is a ScrollScreen, so it already pays the
+  // notch and the home indicator once. These two used to be its siblings, which
+  // put them above that padding and under the Dynamic Island on every iPhone
+  // since the X, and a second Screen around the pair would have paid the top
+  // inset twice and pushed the whole lesson down by it. So they go in through
+  // the surface's own slot, inside the one frame, above the one Leave.
+  const aboveTheScene = (
+    <>
       {live.audioBlocked && (
         // The browser wants a gesture before it will play the tutor. One calm
         // white card, gone the moment it is tapped.
@@ -291,7 +313,13 @@ export function LiveSessionScreen({
           <SafetyBanner surface={safety} onDismiss={live.dismissSafety} />
         </View>
       ) : null}
+    </>
+  );
+
+  return (
+    <View style={st.root}>
       <SessionView
+        above={aboveTheScene}
         lessonTitle={lesson.title}
         cefr={lesson.cefr}
         prompt={live.prompt}
@@ -339,9 +367,11 @@ export function LiveSessionScreen({
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground },
-  center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
-  listen: { minHeight: HIT, paddingHorizontal: space(5), paddingTop: space(3) },
-  banner: { paddingHorizontal: space(5), paddingTop: space(2) },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
+  // Both are drawn in the frame's header slot, which pays the horizontal pad,
+  // so neither repeats it. See `aboveTheScene`.
+  listen: { minHeight: HIT, paddingTop: space(3) },
+  banner: { paddingTop: space(2) },
   // The waiting screen centres its children, so the banner has to be told to
   // take the width: a safety sentence shrink-wrapped to its longest word is
   // unreadable, and this one is the whole reason the branch draws anything.

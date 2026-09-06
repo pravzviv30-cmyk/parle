@@ -9,6 +9,8 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
+      "requireFullScreen": true,
+      "deploymentTarget": "16.4",
       "bundleIdentifier": "com.luvani.app",
       "buildNumber": "1",
       "usesAppleSignIn": true,

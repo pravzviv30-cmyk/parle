@@ -68,7 +68,7 @@ export function tutorGate(serversAnswered: boolean, textMode = false): TutorGate
 }
 
 /**
- * The three doors the tab opens onto.
+ * The four doors the tab opens onto.
  *
  * The intro used to stand in front of all of them: a four-page explainer that
  * every learner had to walk through before the tab would show them anything.
@@ -86,7 +86,7 @@ export function tutorGate(serversAnswered: boolean, textMode = false): TutorGate
  * because the learner who knows exactly what they want to talk about must not
  * have to walk through a mission to get there.
  */
-export type TutorDoorKey = 'resume' | 'missions' | 'free';
+export type TutorDoorKey = 'resume' | 'missions' | 'lesson' | 'free';
 
 /**
  * What a door shows of the place behind it: one situation's drawing, every
@@ -149,6 +149,42 @@ export interface TutorDoor {
 export const TUTOR_INTRO_LINK = 'How the voice circle works';
 
 /**
+ * The scripted lesson's own quiet way in.
+ *
+ * Deliberately not the footer's "Unable to speak right now?". That control
+ * belongs to the conversation and is worded as a question; a second copy of the
+ * same question on the same screen, leading somewhere else, is a screen that
+ * asks one thing and means two. This one names its own door instead.
+ *
+ * It exists because the lesson is the one live screen with no typed door of its
+ * own. `ConvoScreen` offers the quiet door mid-session; `LiveSessionScreen`
+ * offers it only on a failure, so without a link here a learner who cannot
+ * speak can reach the typed lesson only by first having the session break.
+ */
+export const TUTOR_LESSON_QUIET_LINK = 'Read and type this one instead';
+
+/**
+ * Where the scripted lesson opens, and why the probe cannot stop it.
+ *
+ * `tutorGate` holds a learner back from a conversation because there is no
+ * conversation without a server. The lesson has a second half: with no token
+ * server the navigator mounts the mock session, which runs the whole ladder
+ * locally against fabricated speech. Holding the learner back here would refuse
+ * them the exact thing the offline card promises them one card higher up the
+ * page, which is that practice still works.
+ *
+ * So this decides only the route and its parameter, and the tab still probes
+ * before calling it. The probe is not wasted: it is what picks up a server that
+ * came up after launch, and what stops a tap looking dead for a second and a
+ * half. It simply is not allowed to be a refusal.
+ */
+export type LessonStart = { screen: 'Lesson'; params: { textMode: true } | undefined };
+
+export function lessonStart(textMode: boolean): LessonStart {
+  return { screen: 'Lesson', params: textMode ? { textMode: true } : undefined };
+}
+
+/**
  * How many situations are behind the missions door, in words.
  *
  * Here rather than on the tab because it is the only place a numeral and a noun
@@ -194,14 +230,17 @@ export interface ResumableDoor {
  * The resume door shows the scene's drawing, its French title and its English
  * line, and carries a pill. The missions door is a heading with a count and a
  * list of rows, so it carries no button of its own; it keeps an `action` only
- * so the three doors stay one shape. The open conversation is last, still a
- * door, and carries the second pill: a learner who knows what they want to say
- * should not have to walk through a mission to say it.
+ * so the four doors stay one shape. The scripted lesson is third and carries an
+ * outline rather than a pill. The open conversation is last, still a door, and
+ * carries the second pill: a learner who knows what they want to say should not
+ * have to walk through a mission to say it.
  *
- * `missionCount` arrives as an argument rather than being read off the
- * catalogue here, so this file can still be reasoned about on its own.
+ * `missionCount` and `lessonTitle` arrive as arguments rather than being read
+ * off the catalogue here, so this file can still be reasoned about on its own.
+ * The title travels for the reason the resume door's does: a French title
+ * spelled in two files is a door that lies the day core renames the scene.
  */
-export function tutorDoors(resume: ResumableDoor | null, missionCount: number): TutorDoor[] {
+export function tutorDoors(resume: ResumableDoor | null, missionCount: number, lessonTitle: string): TutorDoor[] {
   const doors: TutorDoor[] = [];
   if (resume !== null) {
     doors.push({
@@ -226,6 +265,35 @@ export function tutorDoors(resume: ResumableDoor | null, missionCount: number): 
     count: missionCount,
     minutesRemaining: null,
     art: { kind: 'every-place' },
+  });
+  // Third, and the position is the argument.
+  //
+  // Not first: the guided situations are what a beginner should meet, which is
+  // the rule `chooserView.test.ts` holds from the other side, and a fixed
+  // script is not where somebody who has never spoken French should be sent.
+  // Not last: the open conversation keeps that place for the reason it has
+  // always had it.
+  //
+  // So it sits between them, with the two deliberate doors together at the
+  // foot of the page: a learner reaches for either one knowing what they want.
+  // The lesson is the narrow one, where every line is given and the tutor can
+  // score how it sounded; the open conversation is the wide one. Putting it
+  // directly above the situations instead would have set "Commander un café"
+  // immediately over a row reading "Order at a café", which is the same scene
+  // told twice and reads as a duplicate rather than as a different offer.
+  //
+  // No pill. `surfaceContract.test.ts` pins this tab at exactly two and both
+  // were spoken for; a secondary door is the outline everywhere else in the app.
+  doors.push({
+    key: 'lesson',
+    label: 'Pronunciation lesson',
+    title: lessonTitle,
+    gloss: 'Every line is written out for you, and the tutor listens to how you say it.',
+    action: 'Start the lesson',
+    primary: false,
+    count: null,
+    minutesRemaining: null,
+    art: { kind: 'place', place: 'cafe' },
   });
   doors.push({
     key: 'free',

@@ -18,8 +18,9 @@
  */
 
 import { useEffect } from 'react';
-import { AccessibilityInfo, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
 import { paper, space, type, radius, HAIRLINE } from '../theme.ts';
+import { ScrollScreen } from '../layout.tsx';
 import { GhostButton, PillButton } from '../components.tsx';
 import type { SafetySurface } from './safetyView.ts';
 
@@ -50,6 +51,10 @@ function useAnnounced(announce: string | null, politeness: 'polite' | 'assertive
  *
  * One primary action, and it is the way out. There is deliberately nothing here
  * to carry on with.
+ *
+ * It is the whole window on a route with no system chrome, so it sits on the
+ * shared frame: the notch and the home indicator are paid once, in `layout.tsx`,
+ * rather than measured again here.
  */
 export function SafetyStopView({
   surface,
@@ -60,12 +65,16 @@ export function SafetyStopView({
 }) {
   useAnnounced(surface.announce, surface.politeness);
 
+  // The scrolling frame, because this is the one screen in the app whose words a
+  // learner must be able to read at any reading size, and the message is the
+  // longest sentence the tutor ever sends. `center` pins a short stop to the
+  // middle the way this screen always drew it, and the frame pays the notch and
+  // the home indicator, which nothing above a pushed route does. Its own pad
+  // stays at space(8) horizontal: the frame's space(5) is the tab measure, and a
+  // crisis sentence wants the narrower column.
   return (
-    <View style={st.screen}>
-      {/* A scroll, because this is the one screen in the app whose words a
-          learner must be able to read at any reading size, and the message is
-          the longest sentence the tutor ever sends. */}
-      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
+    <ScrollScreen padded={false} center>
+      <View style={st.body}>
         <View
           accessibilityRole="alert"
           accessibilityLiveRegion={surface.politeness}
@@ -80,8 +89,8 @@ export function SafetyStopView({
         <View style={st.action}>
           <PillButton label={surface.buttonLabel} onPress={onClose} />
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollScreen>
   );
 }
 
@@ -124,13 +133,7 @@ export function SafetyBanner({
 }
 
 const st = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: paper.ground },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: space(8),
-    paddingVertical: space(10),
-  },
+  body: { paddingHorizontal: space(8), paddingVertical: space(4) },
   action: { marginTop: space(8), alignSelf: 'stretch' },
   banner: {
     backgroundColor: paper.card,

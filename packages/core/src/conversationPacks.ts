@@ -29,6 +29,12 @@ export interface ConversationPackCorrection {
   why: string;
 }
 
+/** What the conversation was about, in both languages, for a Practice card. */
+export interface ConversationPackTopic {
+  fr: string;
+  en: string;
+}
+
 export interface ConversationPackSeed {
   titleFr: string;
   titleEn: string;
@@ -50,6 +56,18 @@ export interface ConversationPack {
   learnerGoal: string | null;
   tutorGoal: string | null;
   cefr: string | null;
+  /**
+   * Seconds the conversation ran for, or null when the session was not timed.
+   *
+   * Null and never 0. `apps/mobile/src/progress/momentum.ts` settled this for
+   * the goal bar: nothing measured is not zero minutes of speaking, and a card
+   * reading a nought over a real conversation tells the learner it did not
+   * happen. A pack stored before this field existed carries no key at all, so
+   * read it as `pack.durationSec ?? null` rather than assuming a number.
+   */
+  durationSec: number | null;
+  /** Empty on a pack stored before this field existed, never absent after. */
+  topics: ConversationPackTopic[];
   keyPhrases: ConversationPackPhrase[];
   wins: string[];
   corrections: ConversationPackCorrection[];
@@ -69,6 +87,9 @@ export interface BuildConversationPackInput {
   learnerGoal?: string | null;
   tutorGoal?: string | null;
   cefr?: string | null;
+  /** Wall clock seconds, when the caller measured any. */
+  durationSec?: number | null;
+  topics?: readonly ConversationPackTopic[];
   keyPhrases: readonly ConversationPackPhrase[];
   wins?: readonly string[];
   corrections?: readonly ConversationPackCorrection[];
@@ -77,6 +98,15 @@ export interface BuildConversationPackInput {
 }
 
 const PACK_STATES: readonly ConversationPackState[] = ['generating', 'ready', 'failed', 'archived'];
+/**
+ * How many topics a Practice card carries.
+ *
+ * Four for the same reason `wins` stops at six: a card is a glance, not a
+ * report. A conversation that names more than a handful of subjects touched
+ * them rather than covered them, and a row of ten chips under a title stops
+ * summarising the conversation and starts hiding it.
+ */
+const MAX_TOPICS = 4;
 const FORBIDDEN_KEYS = new Set(['audio', 'rawaudio', 'recording', 'recordings', 'transcript', 'history']);
 
 function text(value: string): string {
@@ -97,6 +127,26 @@ function correctionOf(value: ConversationPackCorrection): ConversationPackCorrec
   const betterEn = text(value.betterEn);
   const why = text(value.why);
   return quote && better && betterEn && why ? { quote, better, betterEn, why } : null;
+}
+
+function topicOf(value: ConversationPackTopic): ConversationPackTopic | null {
+  const fr = text(value.fr);
+  const en = text(value.en);
+  return fr && en ? { fr, en } : null;
+}
+
+/**
+ * Seconds spoken, or null.
+ *
+ * Zero is rejected along with the impossible values, because zero is what a
+ * missing measurement looks like once it has been rounded, and the one thing
+ * this field must never say is that a conversation the learner remembers
+ * having lasted no time at all.
+ */
+function durationOf(value: number | null | undefined): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  const seconds = Math.round(value);
+  return seconds > 0 ? seconds : null;
 }
 
 /**
@@ -150,6 +200,17 @@ export function buildConversationPack(input: BuildConversationPackInput): Conver
     .slice(0, 3);
   const correctionFocus = corrections[0]?.better ?? null;
   const state = input.state ?? 'ready';
+  const seen = new Set<string>();
+  const topics = (input.topics ?? [])
+    .map(topicOf)
+    .filter((topic): topic is ConversationPackTopic => {
+      if (topic === null) return false;
+      const key = `${topic.fr}\u0000${topic.en}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, MAX_TOPICS);
 
   return {
     version: CONVERSATION_PACK_VERSION,
@@ -164,6 +225,8 @@ export function buildConversationPack(input: BuildConversationPackInput): Conver
     learnerGoal: input.learnerGoal ? text(input.learnerGoal) || null : null,
     tutorGoal: input.tutorGoal ? text(input.tutorGoal) || null : null,
     cefr: input.cefr ? text(input.cefr) || null : null,
+    durationSec: durationOf(input.durationSec),
+    topics,
     keyPhrases,
     wins: [...new Set((input.wins ?? []).map(text).filter(Boolean))].slice(0, 6),
     corrections,
@@ -202,5 +265,13 @@ export function isConversationPack(value: unknown): value is ConversationPack {
     !record(seed) || typeof seed.titleFr !== 'string' || typeof seed.titleEn !== 'string'
   ) return false;
   if (!value.keyPhrases.every((phrase) => record(phrase) && typeof phrase.fr === 'string' && typeof phrase.en === 'string')) return false;
+  // The whole compatibility story: packs written before these two fields
+  // existed carry neither key, and a stored conversation is not worth
+  // discarding over a card decoration. Absent is fine, present must be typed.
+  if (value.durationSec !== undefined && value.durationSec !== null && typeof value.durationSec !== 'number') return false;
+  if (value.topics !== undefined && (
+    !Array.isArray(value.topics) ||
+    !value.topics.every((topic) => record(topic) && typeof topic.fr === 'string' && typeof topic.en === 'string')
+  )) return false;
   return value.exercises.every((exercise) => validateExercise(exercise as DrillExercise).ok);
 }

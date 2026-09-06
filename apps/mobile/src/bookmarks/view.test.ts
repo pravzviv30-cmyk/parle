@@ -28,6 +28,11 @@ const scenario = (id: string, titleEn = 'A seat on the terrace'): DailyScenario 
   bodyEn: 'The terrace is full and you would rather sit outside.',
   openingFr: 'Bonjour, il y a une place en terrasse ?',
   openingEn: 'Hello, is there a seat on the terrace?',
+  lines: [
+    { fr: "Bonjour, on peut s'asseoir dehors ?", en: 'Hello, may we sit outside?' },
+    { fr: 'Je peux attendre, ça ne me dérange pas.', en: 'I can wait, that is fine by me.' },
+    { fr: 'Parfait, je prends celle-là. Merci !', en: 'Great, I will take that one. Thank you!' },
+  ],
   place: 'cafe',
 });
 

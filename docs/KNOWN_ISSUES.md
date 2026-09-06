@@ -2833,7 +2833,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   flag, so the tap is dead for up to a second and a half and a second tap queues a
   second navigation. TutorTab.tsx:78 already solved this with a checking guard and the
   gate's own "Checking" copy; the tab mirrors it at both call sites.
-- verified-by: `a practice tap during the probe is acknowledged and never doubled`
+- note: F442 replaced the authored path with the founder's archive, which moved the handlers
+  and the branches this entry names. The behaviour it checks is unchanged or stricter; the
+  sentences on the front of the tests moved with the screen. Same treatment as F406's rename
+  of F365's test, recorded rather than quietly repointed.
+- verified-by: `a tap during the probe is acknowledged and never doubled`
+- verified-by: `the quiet door for a learner who cannot speak is still on the Tutor tab`
+- verified-by: `the one door that touches the network guards its tap and says so — F154`
 
 ### F155 — Finish says a recap is coming
 - severity: P1
@@ -5133,10 +5139,18 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   exactly the node `buildPath` marked `isNext`; with nothing due and nothing marked there is no step, and
   the tab draws nothing rather than a message. `reviewLine` moves out of the tab verbatim. Same shape as
   `practice/mix.ts`: pure, clock-injected, copy exported.
-- verified-by: `review outranks the path's next row when cards are due`
-- verified-by: `with nothing due, the step is exactly the row the path marked next`
-- verified-by: `with nothing due and nothing to do, there is no step at all`
-- verified-by: `nothing the practice headline says carries a word that scolds`
+- note: F442 replaced the authored path with the founder's archive, which moved the handlers
+  and the branches this entry names. The behaviour it checks is unchanged or stricter; the
+  sentences on the front of the tests moved with the screen. Same treatment as F406's rename
+  of F365's test, recorded rather than quietly repointed.
+  The second branch also changed in substance and not only in name: with nothing due the step
+  used to be the path row `buildPath` marked next, and is now the newest conversation the
+  learner has never come back to. The rule this entry is about, that one pure module answers
+  "what now" and the tab decides none of it, is what survived.
+- verified-by: `a due deck outranks a conversation waiting to be practised`
+- verified-by: `with a quiet deck the step is the newest conversation nobody has come back to`
+- verified-by: `a learner with nothing at all gets no step, and no cheerful message`
+- verified-by: `the step counts a card and a phrase, singular at one, and never scolds`
 
 ### F346 — Practice opens on its next step, and nothing competes with it
 - severity: P1
@@ -5147,10 +5161,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   The standalone Review block goes, the mix offer moves below the headline, the tab no longer imports
   `dueCards`, and the pill count stays zero so the heavy-ruled row remains the single primary (F342).
   `open` and `talkAgain` are called, not edited.
-- verified-by: `practice draws its next step from nextStep and decides nothing about it on the screen`
-- superseded: Pass 4 (F365) made the headline the tab's one pill; the test below is that entry's successor.
-- verified-by: `the practice headline is the tab's one pill, and it still opens the ruled row's handler — F365`
-- verified-by: `the mix offer sits under the next step, not above it`
+- superseded: Pass 4 (F365) made the headline the tab's one pill, and F442 replaced everything under
+  it with the archive. The mix offer left with the path, so the leg of this entry that ordered the two
+  has no subject any more and is retired rather than repointed at something it never checked. What is
+  still true, and still tested, is that the step is drawn first and that nothing else on the tab
+  competes with it for the eye.
+- verified-by: `the whole archive is folded by practice/archive.ts, and the tab counts nothing`
+- verified-by: `the tab keeps exactly one primary pill, in two branches, and one of them is the deck — F442`
+- verified-by: `the blocks arrive in the order the mockup draws them`
 
 ### F347 — A situation's row action and the next-situation words are decided in one module
 - severity: P1
@@ -5374,7 +5392,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   way TutorTab draws its primary door's gloss. The handlers are unchanged. F342's Practice count becomes one
   and F346's assertion becomes "the pill, and only the pill".
 - note: F406 renamed this test when the founder's mockups moved the rule it names. The behaviour it checks is unchanged or stricter; only the sentence on the front of it moved. See F406.
-- verified-by: `the practice headline is the tab's one pill, and it still opens the ruled row's handler — F365`
+- note: F442 renamed it again for the same reason: the ruled row it opened left with the path, and the
+  second branch is a conversation now. The count it pins, one pill in two branches, is untouched.
+- verified-by: `the tab keeps exactly one primary pill, in two branches, and one of them is the deck — F442`
 - verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
 
 ### F366 — My French opens on the evidence, and draws nothing at zero
@@ -6367,3 +6387,129 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   pass, and corrected two headers that claimed no line on the block asks anybody for anything: the
   goal card's zero state carries `DAILY_GOAL_UNSET`, "Pick a daily promise", which does ask.
 - verified-by: `the scheduler's lapses comment states the recall formula momentum actually uses — F441`
+
+### F442 — Practice promised an authored path and the founder drew an archive
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/PracticeTab.tsx:1
+- note: the tab drew seven authored units of rows over a fixture bank, which meant a
+  learner's own conversations appeared on it as a single "Continue conversation" card and
+  everything else on the screen was ours. The founder's mockup inverts that: the archive
+  of what they have actually said is the tab, and the authored material is behind it. The
+  rebuild follows the mockup, with the profile monogram removed from the header because
+  Profile is already a tab in the bar below. What is new and not in the mockup is the
+  growth: the mockup is drawn full, and a learner on their first morning has none of it,
+  so `practice/archive.ts` decides which blocks exist at all and the screen is null gates.
+  No vault or feed until the first conversation, no ordering line until the second, no
+  filter row until the fourth, and a count with nothing behind it is left out of the rail
+  rather than drawn as a nought. The founder chose that quieter first morning explicitly
+  over the Home treatment (F432), where the frame is present from day one.
+- verified-by: `day one is quiet: no vault, no feed, no filters, and words instead`
+- verified-by: `the first conversation brings the vault and the feed, and nothing else`
+- verified-by: `a count with nothing behind it is left out of the rail rather than drawn as nought`
+- verified-by: `the filter row waits until there are enough cards for it to do any work`
+- verified-by: `a filter that would select everything, or nothing, is not drawn`
+- verified-by: `the whole archive is folded by practice/archive.ts, and the tab counts nothing`
+- verified-by: `the path, its rows and its mix offer are gone, and nothing here re-grows them`
+- verified-by: `the header carries the tab title and a purpose, and no monogram`
+- verified-by: `the design doc describes Practice as the archive the tab actually draws — F442`
+
+### F443 — a drill opened from Practice could be handed French instead of deck keys
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/PracticeTab.tsx:185
+- note: the review deck is indexed by `phrase:` keys from `phraseKeyOf`, and a pack stores
+  the French lines themselves. The next-step pill's conversation branch built its drill
+  node straight from `keyPhrases`, so it would have opened a sitting matching nothing, with
+  nothing on screen saying why. Caught by writing the test before the screen was run.
+- verified-by: `a drill is opened with deck keys, never with the French lines themselves`
+- verified-by: `one pack folds into one card, and its drill keys are deck keys`
+
+### F446 — a conversation nobody timed would have read as nought minutes spoken
+- severity: P2
+- status: [x]
+- where: packages/core/src/conversationPacks.ts:68
+- note: the mockup's card carries "8 min spoken", and the pack had no duration at all, so
+  every card written before the field existed has none. `momentum.ts` settled this argument
+  once already for the speaking goal: nothing measured is not zero minutes, and a card
+  reading a nought over a real conversation tells the learner it did not happen. The field
+  is `number | null` and the line is absent rather than zero. Same for the topics the card
+  lists: the tutor computed them and discarded them, and an empty list draws no box.
+- verified-by: `a session nobody timed says nothing about time, rather than nought minutes`
+- verified-by: `the topics box and the phrase count are absent rather than empty`
+
+### F444 — Three full-screen live surfaces drew under the notch and the home indicator
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/LiveSessionScreen.tsx:1
+- note: `LiveSessionScreen`, `tutor/SafetyStopView.tsx` and `live/LiveErrorView.tsx` were
+  each a bare `View` with `flex: 1`, and all three mount under `headerShown: false`, so
+  nothing above them paid the inset either. On every iPhone from X to 17 Pro Max their
+  content collided with the Dynamic Island at the top and the home indicator at the
+  bottom, and one of them is the live conversation, which is a metered screen. The F307
+  guard could not see them: it only fires on a file that calls `useSafeAreaInsets`, and a
+  screen that pays nothing at all calls nothing. All three sit on the shared frame now,
+  and `SessionView` is left as the single payer where the pair nests, because paying the
+  inset twice is its own bug.
+- verified-by: `nothing above these three screens pays the inset for them`
+- verified-by: `all three are built on the shared frame rather than a bare View`
+- verified-by: `none of the three re-grows the safe-area maths of its own`
+- verified-by: `the bottom inset is paid too, not just the notch`
+- verified-by: `every status branch of the lesson returns the frame, not a bare centred View`
+- verified-by: `the live scene draws nothing above the frame SessionView owns`
+
+### F445 — Nothing in version control said which devices Luvani supports
+- severity: P2
+- status: [x]
+- where: apps/mobile/app.json:10
+- note: `apps/mobile/ios/` is gitignored, so the 16.4 deployment target was Expo's default
+  arriving through a regenerated Podfile rather than a decision anybody made. It happens to
+  include iPhone X, by luck. `supportsTablet` was true with `UIRequiresFullScreen` false,
+  so an iPad could resize the window to Slide Over width, around 320pt, which is narrower
+  than any phone this app has ever been drawn for. The founder set the range on 2026-09-06
+  as iPhone X onward plus iPad, so both are pinned in `app.json` where prebuild reads them:
+  the floor at 16.4, and full screen required. The 460pt centred column in `App.tsx` was
+  already doing the wide-screen half of the job on every platform.
+- verified-by: `an iPad cannot resize the app below the width it has a design for`
+- verified-by: `the iOS floor is pinned rather than left to whatever Expo defaults to`
+
+### F447 — Replacing the practice path left the scripted lesson with no door in the app
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tutor/gate.ts:288
+- note: `PracticeTab.tsx` was the only route to the `Lesson` screen anywhere, so F442's
+  rewrite would have made the scripted café lesson unreachable without deleting a line of
+  it. It is a door on Tutor now, third of four, which is where guided practice already
+  lives. It is not a mission: the script is known in advance, which is the only reason
+  pronunciation can be scored at all, so it is named rather than folded into the chooser.
+  It takes an outline and not a pill, so Tutor's pinned count of two is untouched, and it
+  keeps its own quiet typed way in because it is the one live screen whose text mode had
+  no door of its own.
+- verified-by: `the Lesson route is reachable from the tutor tab, and the tab words none of it`
+- verified-by: `the lesson door probes before it navigates, the way every other door here does`
+- verified-by: `the lesson carries its own quiet way in, and the footer control keeps its one destination`
+- verified-by: `the lesson stands between the guided situations and the open conversation, and takes no pill`
+- verified-by: `the lesson opens whether or not the probe came back, because there is an offline lesson to open`
+
+### F448 — The suggestion card needed three lines per situation and the pool had one
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/scenarios.ts:29
+- note: the founder's mockup draws three sample phrases under each suggested scenario, and
+  `DailyScenario` carried a single opening line. The founder ruled out a model call for
+  this outright, so that the button costs nothing and waits for nothing however many times
+  a nervous learner taps it. So the pool was authored rather than generated: three
+  learner-side lines on every one of the 71 existing situations, and 48 new ones on top,
+  reaching a little further than the everyday set while staying inside the six places that
+  have drawings. 119 situations, against a floor of 60. `learnerStrings` in the suite now
+  walks the lines too, so the new strings are held to the calque and plainness rules rather
+  than being the one part of the pool nothing checked. Two authored strings were reworded
+  before landing because "closes" and "exploser" each contain "lose", and the banned-word
+  scan matches on substrings.
+- verified-by: `three lines, in both languages, on every situation in the pool`
+- verified-by: `a scenario does not open with the same sentence twice`
+- verified-by: `the lines are short enough to be said by somebody nervous`
+- verified-by: `the situations say what a person would say in both languages, and every id that ever shipped is still there — F424`
+- verified-by: `the first thing a learner sees is the situation the app already chose for today`
+- verified-by: `tapping walks forward one at a time and meets every situation before repeating`
+- verified-by: `the card says what it does, and what it does is suggest rather than generate`

@@ -504,19 +504,33 @@ screenshot tool.
 | Id | Viewport | Representative |
 |---|---|---|
 | V-S | Small iPhone | iPhone SE, 375 x 667 pt |
+| V-X | Notched iPhone at the narrow floor | iPhone 13 mini, 375 x 812 pt |
 | V-L | Large iPhone | iPhone Pro Max, 430 x 932 pt |
 | V-A | Android | Pixel-class, ~412 x 915 dp |
 | V-W | Narrow web | Browser at 360 px wide |
 | V-D | Wide web | Browser at 1440 px wide |
+| V-T | iPad | iPad Air 11-inch, 820 x 1180 pt portrait and 1180 x 820 landscape |
 
-| Id | Check | V-S | V-L | V-A | V-W | V-D |
-|---|---|---|---|---|---|---|
-| O1 | Every first-run screen is fully reachable at default text size | not run | not run | not run | not run | not run |
-| O2 | The same at the largest accessibility text size | not run | not run | not run | not run | not run |
-| O3 | Reduce motion shows the café scene's final frame, not an empty box | not run | not run | not run | not run | not run |
-| O4 | The screen reader reads the heading first and the name field by its label | not run | not run | not run | not run | not run |
-| O5 | The keyboard reaches every control, in order, with focus visible | n/a | n/a | n/a | not run | not run |
-| O6 | Time from first launch to the first French spoken aloud | not run | not run | not run | not run | not run |
+**V-X and V-T were added on 2026-09-06**, when the founder set the supported range as
+iPhone X onward plus iPad. The matrix above them jumped from a 667pt-tall phone with no
+notch straight to a 932pt one, so the geometry the founder actually named as the floor,
+375 x 812 with a notch and a home indicator, was not represented at all. iPhone 13 mini
+stands in for it: iPhone X, XS, 11 Pro, 12 mini and 13 mini are all 375 x 812, and 13
+mini is the one of them the installed iOS 26 runtime can still boot.
+
+V-T exists because `app.json` sets `supportsTablet: true`, so the App Store lists the app
+on iPad whether or not anybody designed for it. What it should show is the 460pt centred
+column `App.tsx` already clamps every platform to, reading as a deliberate phone column
+rather than as a stretched screen.
+
+| Id | Check | V-S | V-X | V-L | V-A | V-W | V-D | V-T |
+|---|---|---|---|---|---|---|---|---|
+| O1 | Every first-run screen is fully reachable at default text size | not run | not run | not run | not run | not run | not run | not run |
+| O2 | The same at the largest accessibility text size | not run | not run | not run | not run | not run | not run | not run |
+| O3 | Reduce motion shows the café scene's final frame, not an empty box | not run | not run | not run | not run | not run | not run | not run |
+| O4 | The screen reader reads the heading first and the name field by its label | not run | not run | not run | not run | not run | not run | not run |
+| O5 | The keyboard reaches every control, in order, with focus visible | n/a | n/a | n/a | n/a | not run | not run | n/a |
+| O6 | Time from first launch to the first French spoken aloud | not run | not run | not run | not run | not run | not run | not run |
 
 ### O1 — every first-run screen is reachable
 

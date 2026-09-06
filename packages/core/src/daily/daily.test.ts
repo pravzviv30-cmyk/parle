@@ -108,6 +108,55 @@ const SHIPPED_SITUATION_IDS: readonly string[] = [
   'situation:home-meeting-the-family', 'situation:home-neighbour', 'situation:home-phone-call',
   'situation:home-a-parcel', 'situation:home-what-time-dinner', 'situation:home-tea-or-coffee',
   'situation:home-thanking-your-host',
+  // Added 2026-09-06 with the Practice rebuild, F448.
+  'situation:cafe-not-ready-yet',
+  'situation:cafe-counter-price',
+  'situation:cafe-kitchen-closed',
+  'situation:cafe-tabac',
+  'situation:cafe-pointing-at-a-pastry',
+  'situation:cafe-a-round-for-the-table',
+  'situation:cafe-working-here',
+  'situation:cafe-watching-the-match',
+  'situation:friends-la-bise',
+  'situation:friends-tu-or-vous',
+  'situation:friends-apero-invitation',
+  'situation:friends-splitting-the-bill',
+  'situation:friends-saying-no-warmly',
+  'situation:friends-stay-in-french',
+  'situation:friends-back-in-the-conversation',
+  'situation:friends-neighbours-party',
+  'situation:home-water-leak',
+  'situation:home-locked-out',
+  'situation:home-party-warning',
+  'situation:home-landlord-heating',
+  'situation:home-selling-a-chair',
+  'situation:home-no-lift',
+  'situation:home-neighbour-cat',
+  'situation:home-cooking-for-friends',
+  'situation:hotel-key-card',
+  'situation:hotel-not-the-room',
+  'situation:hotel-wake-up-call',
+  'situation:hotel-hot-water',
+  'situation:hotel-shirt-pressed',
+  'situation:hotel-dining-room',
+  'situation:hotel-forgotten-charger',
+  'situation:hotel-week-rate',
+  'situation:market-flea-mirror',
+  'situation:market-trying-on',
+  'situation:market-exchange',
+  'situation:market-fishmonger',
+  'situation:market-cake-order',
+  'situation:market-cash-only',
+  'situation:market-bouquet',
+  'situation:market-blisters',
+  'situation:street-ticket-machine-stuck',
+  'situation:street-ticket-inspector',
+  'situation:street-city-bike',
+  'situation:street-open-on-sunday',
+  'situation:street-changing-your-ticket',
+  'situation:street-strike-day',
+  'situation:street-someone-asks-you',
+  'situation:street-left-luggage',
 ];
 
 /**
@@ -154,6 +203,14 @@ function learnerStrings(entry: DailyWord | DailyScenario): { label: string; text
         { label: 'bodyEn', text: entry.bodyEn },
         { label: 'openingFr', text: entry.openingFr },
         { label: 'openingEn', text: entry.openingEn },
+        // The three lines are strings a learner reads on a card, so they are
+        // held to the calque rule and the plainness rule like everything else.
+        // Left off this list they would be the one part of the pool nothing
+        // checked, which is how the calques got in the first time.
+        ...entry.lines.flatMap((line, i) => [
+          { label: `lines[${i}].fr`, text: line.fr },
+          { label: `lines[${i}].en`, text: line.en },
+        ]),
       ];
 }
 
@@ -586,6 +643,49 @@ describe('the tier rises with the learner, and the day still picks the word', ()
       /empty pool/,
       'an empty tier drew a card from somewhere, which would hide a content bug on Home',
     );
+  });
+});
+
+describe('every situation carries three lines the learner could actually say — F448', () => {
+  test('three lines, in both languages, on every situation in the pool', () => {
+    // Three and not "at least one": Practice's suggestion card draws a row of
+    // chips, and a card showing one chip where its neighbour shows three reads
+    // as a scenario somebody did not finish writing rather than as a shorter
+    // scene. The number is fixed so the pool cannot grow a ragged edge.
+    for (const scenario of DAILY_SCENARIOS) {
+      assert.equal(scenario.lines.length, 3, `${scenario.id} carries ${scenario.lines.length} lines rather than three`);
+      for (const [i, line] of scenario.lines.entries()) {
+        assert.ok(line.fr.trim().length > 0, `${scenario.id} line ${i} has no French, so there is nothing to say`);
+        assert.ok(line.en.trim().length > 0, `${scenario.id} line ${i} has no English, so nothing says what it means`);
+      }
+    }
+  });
+
+  test('a scenario does not open with the same sentence twice', () => {
+    // The opening line and the first of the three are separate fields on
+    // purpose. A card that draws both would show the learner one sentence in
+    // two places and call it two things they could say.
+    for (const scenario of DAILY_SCENARIOS) {
+      assert.notEqual(
+        scenario.lines[0]?.fr.trim(),
+        scenario.openingFr.trim(),
+        `${scenario.id} repeats its opening line as its first chip, so the card says one thing twice`,
+      );
+    }
+  });
+
+  test('the lines are short enough to be said by somebody nervous', () => {
+    // Not a style rule. The whole product is a person saying a sentence out
+    // loud for the first time, and a line they have to read twice before they
+    // can start is a line they will not use.
+    for (const scenario of DAILY_SCENARIOS) {
+      for (const line of scenario.lines) {
+        assert.ok(
+          line.fr.length <= SEED_TOPIC_MAX,
+          `${scenario.id} has a ${line.fr.length} character line, past the ${SEED_TOPIC_MAX} the rest of this pool is held to`,
+        );
+      }
+    }
   });
 });
 

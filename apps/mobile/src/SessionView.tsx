@@ -6,7 +6,7 @@
  * cannot diverge — there is exactly one rendering of a session.
  */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
 import type { SessionPrompt } from '@luvani/core';
 import { paper, radius, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
@@ -143,6 +143,22 @@ export interface SessionViewProps {
    * The live path fills it from `connectionLine`; the mock path has none.
    */
   headerLine?: string;
+  /**
+   * Anything the driver wants drawn above the Leave row, inside this frame.
+   *
+   * The live path puts two things here: the card asking a browser for the
+   * gesture it wants before it will play the tutor, and the banner a safety
+   * redirect leaves on screen. Both used to be siblings of this component in
+   * `LiveSessionScreen`, which is the same as being above the frame, so on every
+   * iPhone since the X they were drawn under the Dynamic Island. The frame pays
+   * the inset exactly once and a second one around it would pay it twice, so
+   * they come in here instead of the driver growing a root of its own.
+   *
+   * It is a slot rather than a prop per thing on purpose: what goes above the
+   * header is the driver's business, and this surface's business is that it is
+   * inside the safe area and above the Leave.
+   */
+  above?: ReactNode;
   /** Replay the line on the card. Every cued turn should be hearable on demand. */
   onHearLine?: () => void;
   /** Replay a rung-2 option aloud without submitting it. */
@@ -273,23 +289,26 @@ export function SessionView(props: SessionViewProps) {
     <ScrollScreen
       topGap={space(2)}
       header={
-        <ScreenHeader
-          leave={{ onPress: props.onLeave, label: 'Leave', accessibilityLabel: 'Leave the lesson' }}
-          // The connection line is a status line: a learner mid-scene whose room
-          // is being rebuilt must both see it and hear it. It is drawn as its own
-          // polite live region here rather than handed to the header as a bare
-          // string, which Fabric would drop in silence.
-          title={
-            props.headerLine ? (
-              <Text
-                accessibilityLiveRegion="polite"
-                style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}
-              >
-                {props.headerLine}
-              </Text>
-            ) : undefined
-          }
-        />
+        <>
+          {props.above}
+          <ScreenHeader
+            leave={{ onPress: props.onLeave, label: 'Leave', accessibilityLabel: 'Leave the lesson' }}
+            // The connection line is a status line: a learner mid-scene whose room
+            // is being rebuilt must both see it and hear it. It is drawn as its own
+            // polite live region here rather than handed to the header as a bare
+            // string, which Fabric would drop in silence.
+            title={
+              props.headerLine ? (
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}
+                >
+                  {props.headerLine}
+                </Text>
+              ) : undefined
+            }
+          />
+        </>
       }
       footer={footer}
     >

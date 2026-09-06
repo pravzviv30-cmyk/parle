@@ -2,9 +2,10 @@
  * The Tutor landing page — a calm moment before a live conversation.
  *
  * The page is a dashboard, not an instruction manual. It opens on the tutor,
- * offers the circle, and then the three ways back into French: a scene already
- * under way, the guided situations, or an open conversation. Which doors those
- * are, what they say and which of them carry a pill is `tutor/gate.ts`; the
+ * offers the circle, and then the four ways back into French: a scene already
+ * under way, the guided situations, the scripted lesson, or an open
+ * conversation. Which doors those are, what they say and which of them carry a
+ * pill is `tutor/gate.ts`; the
  * header and the two lines under it are `tutor/dashboard.ts`. This file draws
  * them and decides nothing, which is the only way a screen in this workspace
  * can be checked at all: there is no renderer here.
@@ -17,7 +18,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { MISSIONS, missionStates, type MissionProgress } from '@luvani/core';
+import { CAFE_LESSON, MISSIONS, missionStates, type MissionProgress } from '@luvani/core';
 
 import { ArrowRight, Card, GhostButton, HelpGlyph, Label, OutlineButton, PillButton } from '../components.tsx';
 import { useLive } from '../app/LiveContext.tsx';
@@ -35,7 +36,9 @@ import { HIT, paper, space, type } from '../theme.ts';
 import { TUTOR_ORB_SUBLINE, TUTOR_PURPOSE, tutorHeading } from '../tutor/dashboard.ts';
 import {
   TUTOR_INTRO_LINK,
+  TUTOR_LESSON_QUIET_LINK,
   TUTOR_OFFLINE,
+  lessonStart,
   minutesRemainingLine,
   scenarioCountLine,
   tutorDoors,
@@ -108,6 +111,28 @@ export function TutorTab() {
     });
   };
 
+  /**
+   * The scripted lesson, probed the same way and refused by nothing.
+   *
+   * Same guard as `open` above: one probe in flight, one lesson. What differs
+   * is the answer it is allowed to give. `tutorGate` can hold a learner back
+   * from a conversation because there is no conversation without a server; the
+   * lesson falls back to the mock session, so `lessonStart` opens either way
+   * and the learner lands on the live lesson or the honest demo of it. `go` is
+   * passed twice so a probe that ever threw still lets go of the flag instead
+   * of retiring the tab.
+   */
+  const openLesson = (textMode: boolean) => {
+    if (checking) return;
+    setChecking(true);
+    const go = () => {
+      setChecking(false);
+      const start = lessonStart(textMode);
+      nav.navigate(start.screen, start.params);
+    };
+    void recheck().then(go, go);
+  };
+
   if (showingIntro) {
     return (
       <TutorIntro
@@ -142,11 +167,16 @@ export function TutorTab() {
           ),
         },
     MISSIONS.length,
+    CAFE_LESSON.title,
   );
 
   const enter = (key: string) => {
     if (key === 'free') {
       open(false);
+      return;
+    }
+    if (key === 'lesson') {
+      openLesson(false);
       return;
     }
     // The chooser makes a mission choice visible before a session spends any
@@ -259,6 +289,28 @@ export function TutorTab() {
                 </>
               )}
 
+              {door.key === 'lesson' && (
+                <>
+                  <Label>{door.label}</Label>
+                  <View style={st.resumeHead}>
+                    {door.art.kind === 'place' && <MissionDisc place={door.art.place} size={56} />}
+                    <View style={st.doorWords}>
+                      {door.title !== null && <Text style={[type.title, { color: paper.ink }]}>{door.title}</Text>}
+                      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{door.gloss}</Text>
+                    </View>
+                  </View>
+                  <View style={st.doorAction}>
+                    <OutlineButton label={door.action} onPress={() => enter(door.key)} disabled={checking} />
+                  </View>
+                  {/* The lesson's own quiet way in, because it is the one live
+                      screen that offers no typed door until something breaks.
+                      The footer's control keeps pointing at the conversation. */}
+                  <View style={st.lessonQuiet}>
+                    <GhostButton label={TUTOR_LESSON_QUIET_LINK} disabled={checking} onPress={() => openLesson(true)} />
+                  </View>
+                </>
+              )}
+
               {door.key === 'free' && (
                 <>
                   <Label>{door.label}</Label>
@@ -311,6 +363,7 @@ const st = StyleSheet.create({
   rowWords: { flex: 1 },
   scene: { alignItems: 'center', marginTop: space(3) },
   doorAction: { marginTop: space(4) },
+  lessonQuiet: { marginTop: space(1), alignItems: 'center' },
   quiet: { marginTop: 'auto', paddingTop: space(6), gap: space(1) },
   introRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2) },
   notice: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },

@@ -622,54 +622,66 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
 });
 
 describe('a tap that starts with a network probe — F154', () => {
-  // Ceiling: this reads the tab as text. It cannot prove a second tap did
+  // Ceiling: this reads the tabs as text. It cannot prove a second tap did
   // nothing on a device; it proves the guard and the acknowledgement are inside
-  // the two handlers that fire the probe, which is where they were missing.
-  const tab = named('tabs/PracticeTab.tsx');
-  const bodyOf = (opens: string): string => {
-    const from = tab.indexOf(opens);
-    assert.notEqual(from, -1, `${opens} is gone from PracticeTab; this test is stale`);
-    const to = tab.indexOf('\n  };\n', from);
-    assert.notEqual(to, -1, `${opens} no longer closes at component level`);
-    return tab.slice(from, to);
+  // every handler that fires the probe, which is where they were missing.
+  //
+  // The list used to be two handlers on PracticeTab, named there. Both left
+  // with the authored path in F442: the lesson row is a door on Tutor now, and
+  // "talk about it again" became the suggestion card's tutor door. The rule did
+  // not leave with them, so the test follows the behaviour rather than the file
+  // it used to live in, and a new probing handler joins this table or it is not
+  // covered.
+  const PROBING = [
+    ['the suggestion card\'s tutor door', 'tabs/PracticeTab.tsx', 'const talkAbout = ('],
+    ['the tutor tab\'s doors', 'tabs/TutorTab.tsx', 'const open = ('],
+  ] as const;
+
+  const bodyOf = (file: string, opens: string): string => {
+    const source = named(file);
+    const from = source.indexOf(opens);
+    assert.notEqual(from, -1, `${opens} is gone from ${file}; this test is stale`);
+    const to = source.indexOf('\n  };\n', from);
+    assert.notEqual(to, -1, `${opens} no longer closes at component level in ${file}`);
+    return source.slice(from, to);
   };
 
-  test('a practice tap during the probe is acknowledged and never doubled', () => {
-    // Both call sites fired recheck() and navigated with no flag at all, so for
-    // up to a second and a half the tap did nothing visible and a second tap
-    // queued a second navigation. TutorTab already solved this; the tab was the
-    // one place it had not been copied to.
-    for (const [name, opens] of [
-      ['the lesson row', 'const open = ('],
-      ['talk again', 'const talkAgain = ('],
-    ] as const) {
-      const body = bodyOf(opens);
+  test('a tap during the probe is acknowledged and never doubled', () => {
+    // Both call sites once fired recheck() with no flag at all, so for up to a
+    // second and a half the tap did nothing visible and a second tap queued a
+    // second navigation.
+    for (const [name, file, opens] of PROBING) {
+      const body = bodyOf(file, opens);
       assert.match(body, /recheck\(\)/, `${name} no longer probes, so this test is stale`);
       assert.match(body, /if \(checking\) return;/, `${name} lets a second tap queue a second navigation`);
       assert.match(body, /setChecking\(false\)/, `${name} never lets go, so one probe disables the tab for good`);
-      // The probe cannot reject today, but a handler that would strand the tab
-      // if it ever did is a handler that will.
-      assert.match(
-        body,
-        /\.then\(go, go\)/,
-        `${name} clears its flag on success only, so a probe that threw would leave the tab dead`,
-      );
     }
 
     // The acknowledgement itself, in the gate's own words rather than a second
     // vocabulary for the same wait.
-    assert.match(tab, /TUTOR_OFFLINE/, 'the tab writes its own word for checking instead of the gate\'s');
-    assert.match(tab, /\{TUTOR_OFFLINE\.checking\}/, 'nothing on the tab says a probe is running');
+    for (const [, file] of PROBING) {
+      const source = named(file);
+      assert.match(source, /TUTOR_OFFLINE/, `${file} writes its own word for checking instead of the gate's`);
+      assert.match(source, /\{TUTOR_OFFLINE\.checking\}/, `nothing on ${file} says a probe is running`);
+      assert.match(
+        source,
+        // The paren is optional: Practice wraps its receipt in the frame's
+        // header slot and Tutor draws it inline, and both are the same claim.
+        /\{checking && \(?\s*<Text[\s\S]{0,240}accessibilityLiveRegion="polite"[\s\S]{0,240}TUTOR_OFFLINE\.checking/,
+        `${file}'s acknowledgement is either not a live region or not tied to the flag, so it is invisible to a screen reader or never goes away`,
+      );
+    }
+  });
+
+  test('the quiet door for a learner who cannot speak is still on the Tutor tab', () => {
+    // It used to be drawn twice, on Practice and on Tutor. Practice's copy left
+    // with the lesson it opened; this is the assertion that the remaining one
+    // did not leave with it, because it is the way out for a learner who cannot
+    // speak aloud right now and there is no second one.
     assert.match(
-      tab,
-      /\{checking && \([\s\S]{0,200}accessibilityLiveRegion="polite"[\s\S]{0,200}TUTOR_OFFLINE\.checking/,
-      'the acknowledgement is either not a live region or not tied to the flag, so it is invisible to a screen reader or never goes away',
-    );
-    // And the one control on the tab that can show a disabled state does.
-    assert.match(
-      tab,
-      /<GhostButton\s+label="Unable to speak right now\?"\s+disabled=\{checking\}/,
-      'the quiet door stays live-looking while the probe it would start is already running',
+      named('tabs/TutorTab.tsx'),
+      /<GhostButton\s+label="Unable to speak right now\?"/,
+      'the quiet door is gone, and a learner who cannot speak aloud has no way through',
     );
   });
 
@@ -685,11 +697,8 @@ describe('a tap that starts with a network probe — F154', () => {
     // raised, and only then the network is touched. Read as three positions in
     // one handler, because a flag raised inside `.then` is a flag raised after
     // the second and a half it exists to cover.
-    for (const [name, opens] of [
-      ['the lesson row', 'const open = ('],
-      ['talk again', 'const talkAgain = ('],
-    ] as const) {
-      const body = bodyOf(opens);
+    for (const [name, file, opens] of PROBING) {
+      const body = bodyOf(file, opens);
       assert.ok(
         body.includes('setChecking(true)'),
         `${name} never raises the checking flag, so the tap it starts says nothing for as long as the probe runs`,
@@ -1556,6 +1565,32 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
    * became false at once, and the four are checked against the source rather
    * than against each other.
    */
+  test('the design doc describes Practice as the archive the tab actually draws — F442', () => {
+    // The row for this tab described the authored path for as long as the tab
+    // drew one. It is pinned here rather than left to prose because the whole
+    // point of the rewrite is a screen that grows, and a doc that still promises
+    // a path is what the next change would be built from.
+    const design = readFileSync(join(ROOT, 'DESIGN.md'), 'utf8');
+    const row = design.split('\n').find((line) => line.startsWith('| Practice |'));
+    assert.ok(row !== undefined, 'DESIGN.md has no Practice row in the tab table');
+
+    for (const claim of ['archive', 'grows', 'nought']) {
+      assert.ok(row.includes(claim), `the Practice row never mentions "${claim}", which is what the tab now is`);
+    }
+    assert.ok(!/the path, the guided lesson/.test(row), 'the Practice row still promises the authored path');
+
+    // And the claims held against the source rather than against each other, so
+    // a doc and a screen cannot drift together into agreeing on something false.
+    const tab = named('tabs/PracticeTab.tsx');
+    assert.ok(!tab.includes('buildPath'), 'DESIGN.md says the path is gone and the tab still builds one');
+    assert.match(tab, /archiveFrom/, 'DESIGN.md says Practice draws an archive and the tab does not fold one');
+    assert.equal(
+      (tab.match(/<PillButton\b/g) ?? []).length,
+      2,
+      'the design doc says Practice keeps one pill in two branches and the tab draws a different number',
+    );
+  });
+
   test('the design doc describes the greeting, the daily situation and the tutor\'s pills as the tabs draw them — F407', () => {
     const design = readFileSync(join(ROOT, 'DESIGN.md'), 'utf8');
     const home = named('tabs/HomeTab.tsx');

@@ -98,7 +98,10 @@ describe('the tutor tab is the screenshot, drawn from the door model — F405', 
     assert.ok(!SCREEN.includes('In progress'), 'the orange In progress pill is back on the resume card');
 
     // ── the guided practice missions door ──────────────────────────────────
-    const missions = between(RENDER, "door.key === 'missions'", "door.key === 'free'", 'the missions door is drawn second');
+    // The slice ends where the missions door ends, which is the scripted lesson
+    // now rather than the open conversation. Reading to `'free'` would swallow
+    // the lesson's outline button and report it as a button on this door.
+    const missions = between(RENDER, "door.key === 'missions'", "door.key === 'lesson'", 'the missions door is drawn second');
     assert.match(missions, /\{door\.label\}/, 'the missions door lost its heading');
     assert.match(missions, /scenarioCountLine\(door\.count\)/, 'the count is spelled on the screen instead of formatted by gate.ts');
     assert.match(missions, /\{door\.gloss\}/, 'the missions door lost the description line the founder asked for');
@@ -134,7 +137,8 @@ describe('the tutor tab is the screenshot, drawn from the door model — F405', 
     assert.ok(at('<TabHeader') < at('<VoiceOrb'), 'the voice circle sits above the header');
     assert.ok(at('<VoiceOrb') < at('doors.map('), 'the doors sit above the voice circle');
     assert.ok(at("door.key === 'resume'") < at("door.key === 'missions'"), 'the missions come before the scene to pick back up');
-    assert.ok(at("door.key === 'missions'") < at("door.key === 'free'"), 'the open conversation is not last');
+    assert.ok(at("door.key === 'missions'") < at("door.key === 'lesson'"), 'the scripted lesson comes before the guided situations');
+    assert.ok(at("door.key === 'lesson'") < at("door.key === 'free'"), 'the open conversation is not last');
 
     // The screen spells no numeral. Both counts travel as numbers and are
     // worded by the two formatters, so a digit in a string here would be a
@@ -175,5 +179,86 @@ describe('the tutor card owns its words — F415', () => {
     // And the card still says them, so silencing the orb did not silence the card.
     assert.match(FLAT, /Tap to speak/, 'the card lost the words the circle was told not to say');
     assert.match(FLAT, /TUTOR_ORB_SUBLINE/, 'the card lost its second line');
+  });
+});
+
+/**
+ * The scripted lesson's only route into the app used to be on another tab.
+ *
+ * `tabs/PracticeTab.tsx` held the single `navigate('Lesson')` in the whole
+ * source, so a Practice tab rebuilt without that row would have deleted the
+ * scripted lesson from the product without deleting a line of it: the screen
+ * still builds, the suites still pass, and no learner can ever reach it again.
+ * This is the assertion that fails if the door goes.
+ *
+ * The rest is the same rule the rest of this file guards. The lesson is a door
+ * like the other three: `tutor/gate.ts` words it, orders it and says it takes
+ * no pill, and the tab draws it and decides nothing.
+ */
+describe('the scripted lesson has a door on the tutor tab', () => {
+  test('the Lesson route is reachable from the tutor tab, and the tab words none of it', () => {
+    // Reachable at all. Everything else on this door is decoration next to it.
+    assert.match(FLAT, /nav\.navigate\(start\.screen, start\.params\)/, 'the tutor tab has no way to the Lesson route');
+    assert.match(FLAT, /lessonStart\(/, 'the tab decides where the lesson opens instead of reading it from gate.ts');
+
+    const gate = FLAT.match(/import \{([^}]*)\} from '\.\.\/tutor\/gate\.ts'/);
+    assert.ok(gate, 'the tab never imports tutor/gate.ts, so it has no doors to draw');
+    for (const name of ['lessonStart', 'TUTOR_LESSON_QUIET_LINK']) {
+      assert.ok(gate[1]!.includes(name), `the tab imports the door module without ${name}`);
+    }
+
+    // The title is the catalogue's, handed in the way the mission count is, so
+    // a lesson renamed in core cannot leave this door saying the old name.
+    assert.match(FLAT, /tutorDoors\([\s\S]{0,600}CAFE_LESSON\.title/, 'the doors are asked for without the title the catalogue holds');
+    assert.ok(!SCREEN.includes('Commander un café'), 'the tab spells the lesson title itself');
+
+    const lesson = between(RENDER, "door.key === 'lesson'", "door.key === 'free'", 'the lesson door is drawn third');
+    assert.match(lesson, /\{door\.label\}/, 'the lesson door lost its heading');
+    assert.match(lesson, /type\.title[\s\S]{0,80}\{door\.title\}/, 'the lesson door does not set its French title in the serif');
+    assert.match(lesson, /\{door\.gloss\}/, 'the lesson door lost the line saying what it is for');
+    assert.match(lesson, /<MissionDisc\b/, 'the lesson door lost the drawing of where it is set');
+    assert.match(
+      lesson,
+      /<OutlineButton\s+label=\{door\.action\}/,
+      'the lesson door names its own button instead of reading the word from gate.ts',
+    );
+    // No pill. The tab draws exactly two and both were spoken for before this
+    // door existed; `surfaceContract.test.ts` pins that number per tab, and a
+    // secondary door is the outline, which is what the rest of the app uses.
+    assert.doesNotMatch(lesson, /<PillButton\b/, 'the lesson door took a third pill');
+  });
+
+  test('the lesson door probes before it navigates, the way every other door here does', () => {
+    const opener = between(FLAT, 'const openLesson', 'if (showingIntro)', 'the tab has an opener for the lesson');
+    assert.match(opener, /if \(checking\) return;/, 'a second tap during the probe opens a second lesson');
+    assert.ok(
+      opener.indexOf('setChecking(true)') < opener.indexOf('recheck()'),
+      'the probe runs before the flag is raised, which is the dead press the flag exists to stop',
+    );
+    assert.match(opener, /recheck\(\)\.then\(go, go\)/, 'a probe that threw leaves the tab retired behind a raised flag');
+    assert.match(opener, /setChecking\(false\)/, 'the flag is raised and never lowered');
+    assert.match(opener, /lessonStart\(textMode\)/, 'the opener throws away the route the learner chose');
+
+    // Both controls on the card go through it, the spoken one and the quiet one.
+    const lesson = between(RENDER, "door.key === 'lesson'", "door.key === 'free'", 'the lesson door is drawn third');
+    assert.match(lesson, /openLesson\(true\)/, 'the quiet control on the lesson door skips the probe');
+    assert.match(FLAT, /openLesson\(false\)/, 'the lesson button skips the probe');
+  });
+
+  test('the lesson carries its own quiet way in, and the footer control keeps its one destination', () => {
+    // "Unable to speak right now?" at the foot of the tab reaches the
+    // conversation and nothing else. One control cannot honestly reach two
+    // places, so the lesson carries its own link on its own card, worded to
+    // name its own door rather than asking the same question a second time.
+    const quiet = SCREEN.slice(SCREEN.indexOf('st.quiet'));
+    assert.match(quiet, /open\(true\)/, 'the quiet typed door left the foot of the tab');
+    assert.ok(!quiet.includes('openLesson'), 'the footer control now guesses between the conversation and the lesson');
+
+    // And the lesson's own one is there, because the live lesson offers the
+    // typed door only after a failure. ConvoScreen offers it mid-session and
+    // LiveSessionScreen does not, so without this the typed lesson is reachable
+    // only by first breaking.
+    const lesson = between(RENDER, "door.key === 'lesson'", "door.key === 'free'", 'the lesson door is drawn third');
+    assert.match(lesson, /\{TUTOR_LESSON_QUIET_LINK\}/, 'the lesson has no quiet way in from the tab');
   });
 });

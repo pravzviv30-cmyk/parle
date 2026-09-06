@@ -11,11 +11,18 @@
  *    whatever string an exception happened to carry.
  *  - The details are there, folded away. "What happened?" is for whoever is
  *    debugging this at eleven at night, and is closed for everyone else.
+ *
+ * It is the whole window, pushed under `headerShown: false`, so nothing above
+ * it pays the safe-area inset. It sits on the still frame for that: the diagnostics
+ * panel is thirteen rows tall and used to open straight under the Dynamic Island.
+ * The frame pays the notch and the home indicator once, which is why nothing here
+ * reads the window for itself.
  */
 
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
+import { Screen } from '../layout.tsx';
 import { Label, PillButton, OutlineButton, GhostButton } from '../components.tsx';
 import { failureCopy, type LiveFailure } from './failure.ts';
 import type { LiveDiagnostics } from './useLiveSession.ts';
@@ -70,61 +77,63 @@ export function LiveErrorView({
   const canType = copy.canType && onType !== null;
 
   return (
-    <View style={st.center}>
-      <Label color={paper.inkSoft}>{copy.label}</Label>
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>{message}</Text>
+    <Screen padded={false}>
+      <View style={st.center}>
+        <Label color={paper.inkSoft}>{copy.label}</Label>
+        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>{message}</Text>
 
-      {canType ? (
-        <>
-          <View style={st.action}>
-            <PillButton label="Continue by typing" onPress={onType} />
-          </View>
-          <View style={st.secondary}>
-            <GhostButton label="Back" onPress={onBack} />
-          </View>
-        </>
-      ) : (
-        <View style={st.action}>
-          <OutlineButton label="Back" onPress={onBack} />
-        </View>
-      )}
-
-      {diagnostics ? (
-        <View style={st.diagnostics}>
-          <Pressable
-            onPress={() => setOpen((v) => !v)}
-            accessibilityRole="button"
-            accessibilityLabel={open ? 'Hide the details' : 'Show what happened'}
-            accessibilityState={{ expanded: open }}
-            style={({ pressed }) => [st.disclosure, pressed && { opacity: 0.6 }]}
-          >
-            <Text style={[type.small, { color: paper.inkSoft }]}>{open ? 'Hide details' : 'What happened?'}</Text>
-          </Pressable>
-          {open ? (
-            <View style={st.panel}>
-              <Row name="Cause" value={failure} />
-              <Row name="Token server" value={diagnostics.tokenServer} />
-              <Row name="Token reply" value={show(diagnostics.tokenStatus)} />
-              <Row name="Auth headers" value={diagnostics.authMs === null ? 'not reached' : `${diagnostics.authMs} ms`} />
-              <Row name="Session token" value={diagnostics.tokenMs === null ? 'not reached' : `${diagnostics.tokenMs} ms`} />
-              <Row name="Server phases" value={show(diagnostics.tokenServerTiming)} />
-              <Row name="Room service" value={show(diagnostics.livekitUrl)} />
-              <Row name="Connected in" value={diagnostics.connectMs === null ? 'not reached' : `${diagnostics.connectMs} ms`} />
-              <Row name="Microphone published" value={show(diagnostics.micPublished)} />
-              <Row name="Tutor joined the room" value={show(diagnostics.agentJoined)} />
-              <Row name="Tutor audio arrived" value={show(diagnostics.audioTrackSubscribed)} />
-              <Row name="Tutor sent anything" value={show(diagnostics.firstServerMessage)} />
-              <Row name="Session actually opened" value={show(diagnostics.sessionOpened)} />
+        {canType ? (
+          <>
+            <View style={st.action}>
+              <PillButton label="Continue by typing" onPress={onType} />
             </View>
-          ) : null}
-        </View>
-      ) : null}
-    </View>
+            <View style={st.secondary}>
+              <GhostButton label="Back" onPress={onBack} />
+            </View>
+          </>
+        ) : (
+          <View style={st.action}>
+            <OutlineButton label="Back" onPress={onBack} />
+          </View>
+        )}
+
+        {diagnostics ? (
+          <View style={st.diagnostics}>
+            <Pressable
+              onPress={() => setOpen((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={open ? 'Hide the details' : 'Show what happened'}
+              accessibilityState={{ expanded: open }}
+              style={({ pressed }) => [st.disclosure, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={[type.small, { color: paper.inkSoft }]}>{open ? 'Hide details' : 'What happened?'}</Text>
+            </Pressable>
+            {open ? (
+              <View style={st.panel}>
+                <Row name="Cause" value={failure} />
+                <Row name="Token server" value={diagnostics.tokenServer} />
+                <Row name="Token reply" value={show(diagnostics.tokenStatus)} />
+                <Row name="Auth headers" value={diagnostics.authMs === null ? 'not reached' : `${diagnostics.authMs} ms`} />
+                <Row name="Session token" value={diagnostics.tokenMs === null ? 'not reached' : `${diagnostics.tokenMs} ms`} />
+                <Row name="Server phases" value={show(diagnostics.tokenServerTiming)} />
+                <Row name="Room service" value={show(diagnostics.livekitUrl)} />
+                <Row name="Connected in" value={diagnostics.connectMs === null ? 'not reached' : `${diagnostics.connectMs} ms`} />
+                <Row name="Microphone published" value={show(diagnostics.micPublished)} />
+                <Row name="Tutor joined the room" value={show(diagnostics.agentJoined)} />
+                <Row name="Tutor audio arrived" value={show(diagnostics.audioTrackSubscribed)} />
+                <Row name="Tutor sent anything" value={show(diagnostics.firstServerMessage)} />
+                <Row name="Session actually opened" value={show(diagnostics.sessionOpened)} />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    </Screen>
   );
 }
 
 const st = StyleSheet.create({
-  center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
   action: { marginTop: space(6), alignSelf: 'stretch' },
   secondary: { marginTop: space(2), alignSelf: 'stretch' },
   diagnostics: { marginTop: space(7), alignSelf: 'stretch' },

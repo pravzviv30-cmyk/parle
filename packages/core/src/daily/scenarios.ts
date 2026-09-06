@@ -39,8 +39,25 @@ export interface DailyScenario {
   openingFr: string;
   /** That line in English. */
   openingEn: string;
+  /**
+   * Three beats of the learner's own side of the scene: how you open it, how
+   * you handle the middle of it, how you close it.
+   *
+   * Practice's suggestion card draws all three as chips, which is what the
+   * founder's mockup asks for and what `openingFr` alone could not give it.
+   * They are always the LEARNER's lines and never the other person's, so a
+   * learner reading the card is reading things they could say rather than
+   * things they will have to understand.
+   */
+  lines: readonly ScenarioLine[];
   /** Which place this happens in. Picks the disc art. */
   place: MissionPlace;
+}
+
+/** One thing the learner could say, and what it means. */
+export interface ScenarioLine {
+  fr: string;
+  en: string;
 }
 
 /**
@@ -64,6 +81,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The terrace looks full and you would rather sit outside. You ask the waiter anyway.',
     openingFr: 'Bonjour, il y a une place en terrasse ?',
     openingEn: 'Hello, is there a seat on the terrace?',
+    lines: [
+      { fr: "Bonjour, on peut s'asseoir dehors ?", en: 'Hello, may we sit outside?' },
+      { fr: 'Je peux attendre, ça ne me dérange pas.', en: 'I can wait, that is fine by me.' },
+      { fr: 'Parfait, je prends celle-là. Merci !', en: 'Great, I will take that one. Thank you!' },
+    ],
     place: 'cafe',
   },
   {
@@ -73,6 +95,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are standing at the counter before work. You order a coffee and pay for it.',
     openingFr: "Bonjour, un café, s'il vous plaît.",
     openingEn: 'Hello, a coffee, please.',
+    lines: [
+      { fr: 'Bonjour, je vais prendre un café.', en: 'Hello, I will have a coffee.' },
+      { fr: "Sur place, au comptoir, s'il vous plaît.", en: 'Here at the counter, please.' },
+      { fr: 'Je vous dois combien ?', en: 'How much is that?' },
+    ],
     place: 'cafe',
   },
   {
@@ -82,6 +109,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You have finished and the waiter is busy. You catch their eye and ask to pay.',
     openingFr: "Excusez-moi, l'addition, s'il vous plaît.",
     openingEn: 'Excuse me, the bill, please.',
+    lines: [
+      { fr: "Quand vous avez une minute, l'addition, s'il vous plaît.", en: 'When you have a moment, the bill, please.' },
+      { fr: 'On peut payer séparément ?', en: 'May we pay separately?' },
+      { fr: 'Merci, gardez la monnaie.', en: 'Thank you, keep the change.' },
+    ],
     place: 'cafe',
   },
   {
@@ -91,6 +123,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The queue is long and it moves fast. You order bread and answer one quick question.',
     openingFr: "Bonjour, une baguette, s'il vous plaît.",
     openingEn: 'Hello, a baguette, please.',
+    lines: [
+      { fr: "Bonjour, une tradition, s'il vous plaît.", en: 'Hello, one traditional baguette, please.' },
+      { fr: "Bien cuite, s'il vous plaît.", en: 'Well baked, please.' },
+      { fr: 'Ce sera tout, merci. Bonne journée !', en: 'That will be all, thank you. Have a good day!' },
+    ],
     place: 'cafe',
   },
   {
@@ -100,6 +137,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The dish of the day is on a board and means nothing to you. You ask what is in it.',
     openingFr: "Excusez-moi, c'est quoi, le plat du jour ?",
     openingEn: 'Excuse me, what is the dish of the day?',
+    lines: [
+      { fr: 'Il y a quoi dedans, le plat du jour ?', en: 'What is in the dish of the day?' },
+      { fr: "C'est servi avec des légumes ?", en: 'Does it come with vegetables?' },
+      { fr: 'Très bien, je vais prendre ça.', en: 'Very good, I will have that.' },
+    ],
     place: 'cafe',
   },
   {
@@ -109,6 +151,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are thirsty and the bottles are expensive. You ask for tap water instead.',
     openingFr: "Une carafe d'eau, s'il vous plaît.",
     openingEn: 'A jug of tap water, please.',
+    lines: [
+      { fr: "Vous pouvez m'apporter une carafe, s'il vous plaît ?", en: 'Could you bring me a jug of water, please?' },
+      { fr: "De l'eau du robinet, oui, c'est parfait.", en: 'Tap water, yes, that is perfect.' },
+      { fr: "Et un verre de plus, s'il vous plaît.", en: 'And one more glass, please.' },
+    ],
     place: 'cafe',
   },
   {
@@ -118,6 +165,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are in a hurry and the counter asks the usual question. You answer it.',
     openingFr: "À emporter, s'il vous plaît.",
     openingEn: 'To take away, please.',
+    lines: [
+      { fr: "C'est pour emporter, s'il vous plaît.", en: 'It is to take away, please.' },
+      { fr: 'Vous pouvez mettre un couvercle ?', en: 'Could you put a lid on it?' },
+      { fr: 'Merci, je suis pressé. Bonne journée !', en: 'Thank you, I am in a hurry. Have a good day!' },
+    ],
     place: 'cafe',
   },
   {
@@ -127,6 +179,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'A tea lands on your table and you ordered coffee. You say so, kindly.',
     openingFr: "Pardon, j'avais commandé un café.",
     openingEn: 'Sorry, I had ordered a coffee.',
+    lines: [
+      { fr: "Excusez-moi, je crois qu'il y a une erreur.", en: 'Excuse me, I think there is a mistake.' },
+      { fr: "J'avais demandé un café, pas un thé.", en: 'I had asked for a coffee, not a tea.' },
+      { fr: "Ce n'est pas grave, merci beaucoup.", en: 'It is no trouble at all, thank you very much.' },
+    ],
     place: 'cafe',
   },
   {
@@ -136,6 +193,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Every table is taken except one with a stranger at it. You ask to sit down.',
     openingFr: 'Bonjour, la place est libre ?',
     openingEn: 'Hello, is this seat free?',
+    lines: [
+      { fr: "Excusez-moi, je peux m'asseoir ici ?", en: 'Excuse me, may I sit here?' },
+      { fr: 'Merci, je ne reste pas longtemps.', en: 'Thank you, I am not staying long.' },
+      { fr: 'Bonne journée, et merci encore.', en: 'Have a good day, and thank you again.' },
+    ],
     place: 'cafe',
   },
   {
@@ -145,6 +207,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You have no cash and a very small bill. You check whether the card is fine.',
     openingFr: 'Je peux payer par carte ?',
     openingEn: 'May I pay by card?',
+    lines: [
+      { fr: 'La carte, ça marche pour un café ?', en: 'Is a card alright for one coffee?' },
+      { fr: "Je n'ai pas de liquide sur moi, désolé.", en: 'I have no cash on me, sorry.' },
+      { fr: "Sans contact, c'est bon ?", en: 'Is contactless fine?' },
+    ],
     place: 'cafe',
   },
   {
@@ -154,6 +221,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You meet a colleague and the bar is loud. You order for both of you.',
     openingFr: "Deux verres de vin rouge, s'il vous plaît.",
     openingEn: 'Two glasses of red wine, please.',
+    lines: [
+      { fr: 'Bonsoir, on prend deux verres de rouge.', en: 'Good evening, we will have two glasses of red.' },
+      { fr: 'Pardon, je répète : deux verres de rouge.', en: 'Sorry, I will say it again: two glasses of red.' },
+      { fr: "C'est moi qui offre, ce soir.", en: 'This one is on me tonight.' },
+    ],
     place: 'cafe',
   },
 
@@ -166,6 +238,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The stall is busy and the seller is quick. You ask for a kilo and pay.',
     openingFr: "Bonjour, un kilo de pommes, s'il vous plaît.",
     openingEn: 'Hello, a kilo of apples, please.',
+    lines: [
+      { fr: "Bonjour, je voudrais un kilo de pommes, s'il vous plaît.", en: 'Hello, I would like a kilo of apples, please.' },
+      { fr: "Les rouges, s'il vous plaît. Elles sont bonnes pour un gâteau ?", en: 'The red ones, please. Are they good for a cake?' },
+      { fr: "Ce sera tout, merci. C'est combien ?", en: 'That is everything, thank you. How much is it?' },
+    ],
     place: 'market',
   },
   {
@@ -175,6 +252,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You want cheese for tonight and there are thirty of them. You ask for advice.',
     openingFr: 'Bonjour, je cherche un fromage pour ce soir.',
     openingEn: 'Hello, I am looking for a cheese for this evening.',
+    lines: [
+      { fr: 'Bonjour, vous me conseillez quoi comme fromage ?', en: 'Hello, which cheese would you recommend?' },
+      { fr: "On est quatre, et j'aimerais quelque chose de doux.", en: 'There are four of us, and I would like something mild.' },
+      { fr: "Parfait, je prends celui-là. Un petit morceau, s'il vous plaît.", en: 'Perfect, I will take that one. A small piece, please.' },
+    ],
     place: 'market',
   },
   {
@@ -184,6 +266,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Nothing on this stall has a label on it. You point and ask what it costs.',
     openingFr: "C'est combien, s'il vous plaît ?",
     openingEn: 'How much is it, please?',
+    lines: [
+      { fr: 'Excusez-moi, ça coûte combien, ça ?', en: 'Excuse me, how much does this cost?' },
+      { fr: "Et au kilo, c'est combien ?", en: 'And by the kilo, how much is it?' },
+      { fr: "Très bien, j'en prends deux, merci.", en: 'Alright, I will take two of them, thank you.' },
+    ],
     place: 'market',
   },
   {
@@ -193,6 +280,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Your hands are full at the till. You ask whether you can have a bag.',
     openingFr: 'Est-ce que je peux avoir un sac ?',
     openingEn: 'May I have a bag?',
+    lines: [
+      { fr: 'Pardon, vous auriez un sac ?', en: 'Sorry, would you have a bag?' },
+      { fr: 'Oui, je veux bien, merci. Il est à combien ?', en: 'Yes, gladly, thank you. How much is it?' },
+      { fr: 'Je mets tout dedans, ça ira. Merci beaucoup.', en: 'I will put everything in it, that works. Thank you very much.' },
+    ],
     place: 'market',
   },
   {
@@ -202,6 +294,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The seller offers you a sliver of cheese. You take it and say what you think.',
     openingFr: 'Je peux goûter ?',
     openingEn: 'May I taste it?',
+    lines: [
+      { fr: 'Je peux en goûter un petit morceau ?', en: 'May I taste a small piece?' },
+      { fr: "Mmm, c'est très bon. Il est fort, non ?", en: "Mmm, it is very good. Quite strong, isn't it?" },
+      { fr: "Je le prends, alors. Merci de m'avoir fait goûter.", en: 'I will take it, then. Thank you for the taste.' },
+    ],
     place: 'market',
   },
   {
@@ -211,6 +308,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The seller reaches for far more than you need. You ask for about half of it.',
     openingFr: 'La moitié, ça ira très bien, merci.',
     openingEn: 'Half of that will be fine, thank you.',
+    lines: [
+      { fr: "Oh, c'est un peu trop pour moi.", en: 'Oh, that is a bit too much for me.' },
+      { fr: 'Vous pouvez en enlever un peu ? Oui, comme ça.', en: 'Could you take a little off? Yes, like that.' },
+      { fr: "Voilà, c'est très bien comme ça. Merci.", en: 'There, that is just right. Thank you.' },
+    ],
     place: 'market',
   },
   {
@@ -220,6 +322,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The fruit at the front looks good and the price is high. You buy a small basket.',
     openingFr: "Une petite barquette de fraises, s'il vous plaît.",
     openingEn: 'A small basket of strawberries, please.',
+    lines: [
+      { fr: 'Bonjour, je vais prendre une barquette de fraises.', en: 'Hello, I will take a basket of strawberries.' },
+      { fr: "Elles viennent d'où ? Elles sont sucrées ?", en: 'Where are they from? Are they sweet?' },
+      { fr: "Bon, j'en prends une quand même. Merci !", en: 'Alright, I will take one anyway. Thank you!' },
+    ],
     place: 'market',
   },
   {
@@ -229,6 +336,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You paid with a large note and the seller turned away. You ask politely.',
     openingFr: "Excusez-moi, la monnaie, s'il vous plaît.",
     openingEn: 'Excuse me, my change, please.',
+    lines: [
+      { fr: "Pardon, je crois qu'il me manque la monnaie.", en: 'Sorry, I think there is change still to come.' },
+      { fr: "J'ai donné un billet de vingt.", en: 'I gave you a twenty note.' },
+      { fr: 'Ah, merci beaucoup. Bonne journée !', en: 'Ah, thank you very much. Have a good day!' },
+    ],
     place: 'market',
   },
   {
@@ -238,6 +350,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The stalls are coming down around you. You buy the last thing on your list.',
     openingFr: 'Bonjour, il vous reste des tomates ?',
     openingEn: 'Hello, do you have any tomatoes left?',
+    lines: [
+      { fr: 'Bonjour, vous avez encore des tomates ?', en: 'Hello, do you still have tomatoes?' },
+      { fr: "Je prends tout ce qu'il vous reste, alors.", en: 'I will take whatever you have left, then.' },
+      { fr: "C'est gentil, merci. À la semaine prochaine !", en: 'That is kind, thank you. See you next week!' },
+    ],
     place: 'market',
   },
   {
@@ -247,6 +364,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You have a sore throat and no idea what to buy. You describe it and listen.',
     openingFr: "Bonjour, j'ai mal à la gorge.",
     openingEn: 'Hello, I have a sore throat.',
+    lines: [
+      { fr: "Bonjour, j'ai la gorge qui gratte depuis hier.", en: 'Hello, my throat has been scratchy since yesterday.' },
+      { fr: 'Vous avez quelque chose sans ordonnance ?', en: 'Do you have something I can get without a prescription?' },
+      { fr: "D'accord, je prends ça. C'est combien de fois par jour ?", en: 'Alright, I will take that. How many times a day is it?' },
+    ],
     place: 'market',
   },
   {
@@ -256,6 +378,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are cooking for friends tonight. You ask for chicken and say how much.',
     openingFr: "Bonjour, un poulet, s'il vous plaît.",
     openingEn: 'Hello, a chicken, please.',
+    lines: [
+      { fr: "Bonjour, il me faudrait un poulet, s'il vous plaît.", en: 'Hello, I need a chicken, please.' },
+      { fr: "C'est pour six personnes. Celui-là est assez gros ?", en: 'It is for six people. Is that one big enough?' },
+      { fr: 'Parfait. Il faut le cuire combien de temps ?', en: 'Perfect. How long does it need to cook?' },
+    ],
     place: 'market',
   },
   {
@@ -265,6 +392,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The queue is long and the cashier asks two questions. You answer both.',
     openingFr: "Bonjour. Par carte, s'il vous plaît.",
     openingEn: 'Hello. By card, please.',
+    lines: [
+      { fr: "Bonjour ! Non, je n'ai pas la carte du magasin.", en: 'Hello! No, I have no loyalty card for the shop.' },
+      { fr: 'Un sac, oui, je veux bien.', en: 'A bag, yes, I would like one.' },
+      { fr: 'Par carte. Voilà, merci, bonne journée !', en: 'By card. There we go, thank you, have a good day!' },
+    ],
     place: 'market',
   },
 
@@ -277,6 +409,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The machine is in French and the queue is long. You ask at the window instead.',
     openingFr: "Bonjour, un ticket, s'il vous plaît.",
     openingEn: 'Hello, one ticket, please.',
+    lines: [
+      { fr: "Bonjour, je voudrais un carnet, s'il vous plaît.", en: 'Hello, I would like a book of tickets, please.' },
+      { fr: 'Ça marche aussi dans le bus ?', en: 'Does it work on the bus as well?' },
+      { fr: 'Je peux payer par carte ? Merci beaucoup.', en: 'Can I pay by card? Thanks very much.' },
+    ],
     place: 'street',
   },
   {
@@ -286,6 +423,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are in a big station and the map is a knot. You ask a member of staff.',
     openingFr: 'Excusez-moi, quelle ligne va à Bastille ?',
     openingEn: 'Excuse me, which line goes to Bastille?',
+    lines: [
+      { fr: 'Pardon, je cherche la ligne pour Bastille.', en: 'Sorry, I am looking for the line to Bastille.' },
+      { fr: 'Il faut changer quelque part ?', en: 'Do I have to change anywhere?' },
+      { fr: "D'accord, donc direction Château de Vincennes. Merci !", en: 'Right, so towards Château de Vincennes. Thank you!' },
+    ],
     place: 'street',
   },
   {
@@ -295,6 +437,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are on the platform and the signs are unclear. You check with someone waiting.',
     openingFr: 'Pardon, ce train va bien à Nation ?',
     openingEn: 'Sorry, does this train go to Nation?',
+    lines: [
+      { fr: "Excusez-moi, c'est bien la direction Nation ?", en: 'Excuse me, is this the right way for Nation?' },
+      { fr: "Et ça s'arrête à République ?", en: 'And does it stop at République?' },
+      { fr: 'Ah, je suis du mauvais côté. Merci !', en: 'Ah, I am on the wrong platform. Thank you!' },
+    ],
     place: 'street',
   },
   {
@@ -304,6 +451,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The street you want is not on your map. You stop someone and ask.',
     openingFr: 'Excusez-moi, où est la rue de Rivoli ?',
     openingEn: 'Excuse me, where is rue de Rivoli?',
+    lines: [
+      { fr: 'Pardon, je cherche la rue de Rivoli.', en: 'Sorry, I am looking for rue de Rivoli.' },
+      { fr: "C'est loin à pied ?", en: 'Is it far to walk?' },
+      { fr: 'Donc tout droit, puis à gauche. Merci beaucoup !', en: 'So straight on, then left. Thank you very much!' },
+    ],
     place: 'street',
   },
   {
@@ -313,6 +465,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are nearly at the museum and cannot see it. You ask a passer by.',
     openingFr: "Excusez-moi, le musée est loin d'ici ?",
     openingEn: 'Excuse me, is the museum far from here?',
+    lines: [
+      { fr: "Excusez-moi, je cherche le musée. C'est par où ?", en: 'Excuse me, I am looking for the museum. Which way is it?' },
+      { fr: "Vous savez s'il est ouvert aujourd'hui ?", en: 'Do you know if it is open today?' },
+      { fr: "Ah, c'est juste après l'église. Merci !", en: 'Ah, it is just past the church. Thank you!' },
+    ],
     place: 'street',
   },
   {
@@ -322,6 +479,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'It is raining and you have a train to catch. You give the driver the address.',
     openingFr: "Bonjour, à la gare de Lyon, s'il vous plaît.",
     openingEn: 'Hello, to gare de Lyon, please.',
+    lines: [
+      { fr: "Bonjour, vous pouvez m'emmener à la gare de Lyon ?", en: 'Hello, can you take me to gare de Lyon?' },
+      { fr: "J'ai un train dans une heure, on arrive à temps ?", en: 'I have a train in an hour, will we get there in time?' },
+      { fr: 'Vous prenez la carte ?', en: 'Do you take cards?' },
+    ],
     place: 'street',
   },
   {
@@ -331,6 +493,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The board says your train is late and says nothing else. You ask at the desk.',
     openingFr: 'Bonjour, le train pour Lille a du retard ?',
     openingEn: 'Hello, is the train to Lille running late?',
+    lines: [
+      { fr: 'Bonjour, vous avez des nouvelles du train pour Lille ?', en: 'Hello, do you have any news about the train to Lille?' },
+      { fr: 'Il part vers quelle heure, à peu près ?', en: 'Roughly what time will it leave?' },
+      { fr: "D'accord, j'attends sur le quai. Merci !", en: 'All right, I will wait on the platform. Thank you!' },
+    ],
     place: 'street',
   },
   {
@@ -340,6 +507,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Your train leaves soon and the platform is not up yet. You ask.',
     openingFr: "Excusez-moi, c'est quel quai pour Rouen ?",
     openingEn: 'Excuse me, which platform is it for Rouen?',
+    lines: [
+      { fr: 'Bonjour, le train pour Rouen part de quel quai ?', en: 'Hello, which platform does the train to Rouen leave from?' },
+      { fr: "Pardon, vous pouvez répéter, s'il vous plaît ?", en: 'Sorry, could you say that again, please?' },
+      { fr: 'Merci, je cours !', en: 'Thank you, I am running!' },
+    ],
     place: 'street',
   },
   {
@@ -349,6 +521,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The station has six exits and you want one street. You ask which one.',
     openingFr: 'Excusez-moi, quelle sortie pour la rue Monge ?',
     openingEn: 'Excuse me, which exit is it for rue Monge?',
+    lines: [
+      { fr: 'Pardon, quelle sortie pour aller rue Monge ?', en: 'Sorry, which exit do I take for rue Monge?' },
+      { fr: "C'est la sortie du fond, là-bas ?", en: 'Is it the one at the far end, over there?' },
+      { fr: 'Merci, je vais suivre les panneaux.', en: 'Thank you, I will follow the signs.' },
+    ],
     place: 'street',
   },
   {
@@ -358,6 +535,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You get off and your bag is still on the seat. You tell the staff at once.',
     openingFr: "Bonjour, j'ai oublié mon sac dans le train.",
     openingEn: 'Hello, I left my bag on the train.',
+    lines: [
+      { fr: "Bonjour, j'ai laissé mon sac dans le train.", en: 'Hello, I left my bag on the train.' },
+      { fr: 'Il est noir, avec mon passeport dedans.', en: 'It is black, with my passport in it.' },
+      { fr: 'Je fais quoi maintenant ?', en: 'What should I do now?' },
+    ],
     place: 'street',
   },
   {
@@ -367,6 +549,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The stop serves two lines and has no map. You ask the driver before you get on.',
     openingFr: 'Bonjour, ce bus va au marché ?',
     openingEn: 'Hello, does this bus go to the market?',
+    lines: [
+      { fr: 'Bonjour, vous allez bien au marché ?', en: 'Hello, are you going to the market?' },
+      { fr: "C'est combien d'arrêts ?", en: 'How many stops is it?' },
+      { fr: 'Vous pouvez me dire quand descendre ?', en: 'Could you tell me when to get off?' },
+    ],
     place: 'street',
   },
   {
@@ -376,6 +563,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Your train is not for an hour and the station is dull. You ask what is worth seeing.',
     openingFr: 'Excusez-moi, il y a quoi à voir dans le coin ?',
     openingEn: 'Excuse me, what is there to see around here?',
+    lines: [
+      { fr: "Excusez-moi, il y a quelque chose à voir près d'ici ?", en: 'Excuse me, is there anything to see near here?' },
+      { fr: "C'est à combien de minutes à pied ?", en: 'How many minutes is it on foot?' },
+      { fr: "Parfait, j'ai le temps. Merci du conseil !", en: 'Perfect, I have time. Thanks for the tip!' },
+    ],
     place: 'street',
   },
 
@@ -387,6 +579,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You arrive with a booking and a heavy bag. You give your name and take the key.',
     openingFr: "Bonjour, j'ai une réservation au nom de Martin.",
     openingEn: 'Hello, I have a booking in the name of Martin.',
+    lines: [
+      { fr: "Bonjour, j'ai réservé pour deux nuits.", en: 'Hello, I booked for two nights.' },
+      { fr: 'Tenez, voilà mon passeport.', en: 'Here you go, here is my passport.' },
+      { fr: "Merci. C'est à quel étage ?", en: 'Thank you. Which floor is it on?' },
+    ],
     place: 'hotel',
   },
   {
@@ -396,6 +593,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Your train is late and the desk shuts at ten. You call ahead to say so.',
     openingFr: 'Bonjour, je vais arriver après dix heures.',
     openingEn: 'Hello, I am going to arrive after ten.',
+    lines: [
+      { fr: "Bonjour, j'appelle pour ma réservation de ce soir.", en: 'Hello, I am calling about my booking for tonight.' },
+      { fr: "Mon train a du retard, j'arrive vers onze heures.", en: 'My train is running late, so I will get in around eleven.' },
+      { fr: 'La réception est encore ouverte à cette heure-là ?', en: 'Will the front desk still be open then?' },
+    ],
     place: 'hotel',
   },
   {
@@ -405,6 +607,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Your room is over the street and it is loud. You ask for another one.',
     openingFr: "Est-ce qu'il y a une chambre plus calme ?",
     openingEn: 'Is there a quieter room?',
+    lines: [
+      { fr: "Bonjour, ma chambre donne sur la rue, c'est très bruyant.", en: 'Hello, my room looks onto the street and it is very noisy.' },
+      { fr: 'Vous auriez une chambre côté cour ?', en: 'Would you have a room on the courtyard side?' },
+      { fr: 'Merci beaucoup, je prends celle-là.', en: 'Thank you very much, I will take that one.' },
+    ],
     place: 'hotel',
   },
   {
@@ -414,6 +621,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Your train goes at dawn and the dining room opens later. You ask about coffee before then.',
     openingFr: 'Bonjour, je pars très tôt, je peux avoir un café avant ?',
     openingEn: 'Hello, I am leaving very early, may I have a coffee before then?',
+    lines: [
+      { fr: 'Bonsoir, je pars très tôt demain matin.', en: 'Good evening, I am leaving very early tomorrow morning.' },
+      { fr: 'Est-ce que je peux avoir un café avant de partir ?', en: 'May I have a coffee before I go?' },
+      { fr: 'Merci, je descends vers cinq heures et demie.', en: 'Thank you, I will come down at about half past five.' },
+    ],
     place: 'hotel',
   },
   {
@@ -423,6 +635,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are going out for the evening. You leave the key and ask about the door.',
     openingFr: 'Bonsoir, je vous laisse la clé.',
     openingEn: 'Good evening, I will leave the key with you.',
+    lines: [
+      { fr: 'Je sors dîner, je vous rends la clé.', en: 'I am going out for dinner, here is the key back.' },
+      { fr: 'Je rentre tard, comment je fais pour entrer ?', en: 'I will be back late, how do I get in?' },
+      { fr: "D'accord, je sonne à la porte. Bonne soirée !", en: 'Alright, I will ring the bell. Have a good evening!' },
+    ],
     place: 'hotel',
   },
   {
@@ -432,6 +649,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You have one message to send and no signal. You ask the desk for the wifi password.',
     openingFr: "Bonjour, je peux avoir le code wifi, s'il vous plaît ?",
     openingEn: 'Hello, may I have the wifi password, please?',
+    lines: [
+      { fr: 'Excusez-moi, vous avez le wifi ici ?', en: 'Excuse me, do you have wifi here?' },
+      { fr: "Le mot de passe, c'est quoi, s'il vous plaît ?", en: 'What is the password, please?' },
+      { fr: 'Merci. Ça marche aussi dans les chambres ?', en: 'Thank you. Does it work in the rooms too?' },
+    ],
     place: 'hotel',
   },
   {
@@ -441,6 +663,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Your room goes at eleven and your train is at six. You ask to leave the bags.',
     openingFr: "Je peux laisser mes bagages jusqu'à ce soir ?",
     openingEn: 'May I leave my bags until this evening?',
+    lines: [
+      { fr: 'Bonjour, je libère la chambre, mais mon train est ce soir.', en: 'Hello, I am giving the room back, but my train is this evening.' },
+      { fr: "Vous pouvez garder mes valises jusqu'à cinq heures ?", en: 'Can you keep my suitcases until five?' },
+      { fr: "Parfait, je repasse les prendre en fin d'après-midi.", en: 'Perfect, I will come back for them late in the afternoon.' },
+    ],
     place: 'hotel',
   },
   {
@@ -450,6 +677,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You want to stay one more night. You ask whether a room is free.',
     openingFr: 'Bonjour, je peux rester une nuit de plus ?',
     openingEn: 'Hello, may I stay one more night?',
+    lines: [
+      { fr: 'Bonjour, je devais partir demain, mais je voudrais rester.', en: 'Hello, I was meant to go tomorrow, but I would like to stay.' },
+      { fr: 'Vous avez encore une chambre pour samedi soir ?', en: 'Do you still have a room for Saturday night?' },
+      { fr: "C'est le même prix que cette semaine ?", en: 'Is it the same price as this week?' },
+    ],
     place: 'hotel',
   },
   {
@@ -459,6 +691,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are hungry and the street looks quiet. You ask the desk where to eat.',
     openingFr: "Vous connaissez un bon restaurant près d'ici ?",
     openingEn: 'Do you know a good restaurant near here?',
+    lines: [
+      { fr: 'Bonsoir, on cherche un endroit pour dîner dans le quartier.', en: 'Good evening, we are looking for somewhere to eat in this area.' },
+      { fr: 'Pas trop cher, et pas trop loin, si possible.', en: 'Not too expensive, and not too far, if possible.' },
+      { fr: 'Il faut réserver ou on peut y aller comme ça ?', en: 'Do we need to book, or can we just turn up?' },
+    ],
     place: 'hotel',
   },
   {
@@ -468,6 +705,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The radiator is cold and the night will be too. You call the front desk.',
     openingFr: 'Bonsoir, il fait froid dans ma chambre.',
     openingEn: 'Good evening, it is cold in my room.',
+    lines: [
+      { fr: 'Bonsoir, le radiateur ne chauffe pas dans ma chambre.', en: 'Good evening, the radiator is not heating in my room.' },
+      { fr: 'Vous auriez une couverture en plus ?', en: 'Would you have an extra blanket?' },
+      { fr: 'Merci, je vous rappelle si ça ne va pas mieux.', en: 'Thank you, I will ring you again if it is no better.' },
+    ],
     place: 'hotel',
   },
   {
@@ -477,6 +719,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are on your way out and the bill is ready. You pay and say goodbye.',
     openingFr: 'Bonjour, je pars ce matin, je peux régler ?',
     openingEn: 'Hello, I am leaving this morning, may I settle up?',
+    lines: [
+      { fr: 'Bonjour, chambre douze, je pars ce matin.', en: 'Hello, room twelve, I am leaving this morning.' },
+      { fr: "Je règle par carte, c'est bon ?", en: 'I will pay by card, is that alright?' },
+      { fr: "Merci pour tout, c'était très agréable.", en: 'Thank you for everything, it was very pleasant.' },
+    ],
     place: 'hotel',
   },
   {
@@ -486,6 +733,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Your train goes in an hour and the street is empty. You ask them to call one.',
     openingFr: 'Bonjour, vous pouvez appeler un taxi ?',
     openingEn: 'Hello, can you call a taxi?',
+    lines: [
+      { fr: 'Bonjour, je voudrais un taxi pour la gare.', en: 'Hello, I would like a taxi to the station.' },
+      { fr: 'Mon train part dans une heure, il arrive quand ?', en: 'My train goes in an hour, when will it get here?' },
+      { fr: "Très bien, j'attends devant l'hôtel.", en: 'Very good, I will wait in front of the hotel.' },
+    ],
     place: 'hotel',
   },
 
@@ -498,6 +750,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'A friend introduces you to someone at a party. You give your name and ask theirs.',
     openingFr: "Salut, moi c'est Alex. Et toi ?",
     openingEn: 'Hi, I am Alex. And you?',
+    lines: [
+      { fr: "Salut ! Enchanté, tu t'appelles comment ?", en: 'Hi! Nice to meet you, what is your name?' },
+      { fr: 'Tu connais Julie comment ?', en: 'How do you know Julie?' },
+      { fr: "C'était sympa de discuter. À tout à l'heure !", en: 'It was nice talking. See you later!' },
+    ],
     place: 'friends',
   },
   {
@@ -507,6 +764,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Someone asks where you are from and waits. You answer and ask them back.',
     openingFr: 'Je viens de Londres, et toi ?',
     openingEn: 'I come from London, and you?',
+    lines: [
+      { fr: 'Moi, je suis anglais, je viens de Londres.', en: 'Me, I am English, I come from London.' },
+      { fr: 'Je suis à Paris depuis quelques mois.', en: 'I have been in Paris for a few months.' },
+      { fr: 'Pardon, tu peux répéter le nom de ta ville ?', en: 'Sorry, can you say the name of your town again?' },
+    ],
     place: 'friends',
   },
   {
@@ -516,6 +778,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You have not seen this friend since the spring. You ask how they have been.',
     openingFr: 'Salut ! Ça fait longtemps. Ça va ?',
     openingEn: 'Hi! It has been a long time. How are you?',
+    lines: [
+      { fr: 'Salut ! Ça fait un bail, dis donc.', en: 'Hi! It has been ages.' },
+      { fr: "Ça va, oui. J'ai beaucoup travaillé, mais ça va.", en: 'Yes, I am well. Lots of work, but I am well.' },
+      { fr: 'On se refait ça bientôt ?', en: 'Shall we do this again soon?' },
+    ],
     place: 'friends',
   },
   {
@@ -525,6 +792,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are both free this evening. You suggest a film and a time.',
     openingFr: 'On va au cinéma ce soir ?',
     openingEn: 'Shall we go to the cinema this evening?',
+    lines: [
+      { fr: 'Ça te dit, un ciné ce soir ?', en: 'Do you fancy a film this evening?' },
+      { fr: 'On se retrouve devant à huit heures ?', en: 'Shall we meet outside at eight?' },
+      { fr: 'Super, à ce soir alors !', en: 'Great, see you this evening then!' },
+    ],
     place: 'friends',
   },
   {
@@ -534,6 +806,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are cooking on Saturday and want company. You invite a friend.',
     openingFr: 'Tu es libre samedi soir ?',
     openingEn: 'Are you free on Saturday evening?',
+    lines: [
+      { fr: 'Tu fais quoi samedi soir ?', en: 'What are you doing on Saturday evening?' },
+      { fr: 'Je fais à manger chez moi, viens si tu veux.', en: 'I am cooking at my place, come if you like.' },
+      { fr: "C'est noté alors : samedi, chez moi.", en: 'It is settled then: Saturday, at my place.' },
+    ],
     place: 'friends',
   },
   {
@@ -543,6 +820,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are stuck underground and expected in ten minutes. You send word.',
     openingFr: "Je suis en retard, j'arrive dans dix minutes.",
     openingEn: 'I am running late, I will be there in ten minutes.',
+    lines: [
+      { fr: 'Salut, désolé, je vais avoir un peu de retard.', en: 'Hi, sorry, I am going to be a bit late.' },
+      { fr: "Je suis coincé dans le métro, j'arrive dans dix minutes.", en: 'I am stuck in the métro, I will be there in ten minutes.' },
+      { fr: 'Commencez sans moi, je vous rejoins.', en: 'Start without me, I will join you.' },
+    ],
     place: 'friends',
   },
   {
@@ -552,6 +834,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: "It is a friend's birthday and the group is loud. You wish them well and order.",
     openingFr: 'Bon anniversaire ! Tu bois quoi ?',
     openingEn: 'Happy birthday! What are you drinking?',
+    lines: [
+      { fr: 'Joyeux anniversaire ! Ça fait plaisir de te voir.', en: 'Happy birthday! It is good to see you.' },
+      { fr: "C'est ma tournée. Tu bois quoi ?", en: 'It is my round. What are you drinking?' },
+      { fr: 'Allez, on trinque ! À toi !', en: 'Come on, cheers! To you!' },
+    ],
     place: 'friends',
   },
   {
@@ -561,6 +848,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The person next to you asks what you do. You answer and ask them back.',
     openingFr: 'Je travaille dans un bureau, et toi ?',
     openingEn: 'I work in an office, and you?',
+    lines: [
+      { fr: 'Moi, je travaille dans un bureau. Et toi, tu fais quoi ?', en: 'Me, I work in an office. And you, what do you do?' },
+      { fr: "C'est pas mal, mais les journées sont longues.", en: 'It is alright, but the days are long.' },
+      { fr: "Ça a l'air intéressant, ton travail.", en: 'Your job sounds interesting.' },
+    ],
     place: 'friends',
   },
   {
@@ -570,6 +862,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You both saw the same film last week. You say what you thought of it.',
     openingFr: "J'ai bien aimé le film, et toi ?",
     openingEn: 'I liked the film, and you?',
+    lines: [
+      { fr: "Moi, j'ai bien aimé. Tu en as pensé quoi ?", en: 'Me, I liked it. What did you think of it?' },
+      { fr: "La fin, franchement, j'ai pas tout compris.", en: 'Honestly, I understood only half of the ending.' },
+      { fr: "On en reparle, j'ai envie de le revoir.", en: 'Let us talk about it again, I want to see it a second time.' },
+    ],
     place: 'friends',
   },
   {
@@ -579,6 +876,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'It is late and you have an early start. You thank the host and go.',
     openingFr: 'Merci pour la soirée, je vais y aller.',
     openingEn: 'Thank you for the evening, I am going to go.',
+    lines: [
+      { fr: "Merci pour ce soir, c'était vraiment sympa.", en: 'Thank you for this evening, it was really nice.' },
+      { fr: 'Je vais y aller, je me lève tôt demain.', en: 'I am going to head off, I am up early tomorrow.' },
+      { fr: 'Salut tout le monde, à très bientôt !', en: 'Bye everyone, see you very soon!' },
+    ],
     place: 'friends',
   },
   {
@@ -588,6 +890,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'A colleague asks how your weekend went. You answer, and you ask about theirs.',
     openingFr: "J'ai passé un bon week-end, et toi ?",
     openingEn: 'I had a good weekend, and you?',
+    lines: [
+      { fr: 'Ça va ! Un week-end tranquille. Et toi ?', en: 'Good! A quiet weekend. And you?' },
+      { fr: "J'ai vu des amis, et j'ai beaucoup dormi.", en: 'I saw friends, and I slept a lot.' },
+      { fr: "Bonne semaine, on se voit tout à l'heure.", en: 'Have a good week, see you later on.' },
+    ],
     place: 'friends',
   },
   {
@@ -597,6 +904,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You meet someone who wants to practise English. You agree how to split the hour.',
     openingFr: 'Salut, on parle français en premier ?',
     openingEn: 'Hi, shall we speak French first?',
+    lines: [
+      { fr: 'Salut ! On commence par le français ?', en: 'Hi! Shall we start with French?' },
+      { fr: 'Une demi-heure chacun, ça te va ?', en: 'Half an hour each, does that suit you?' },
+      { fr: 'Vas-y doucement, je débute.', en: 'Go gently, I am a beginner.' },
+    ],
     place: 'friends',
   },
 
@@ -608,6 +920,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You arrive with a bottle and a small gift. You greet the host at the door.',
     openingFr: "Bonsoir, merci de l'invitation.",
     openingEn: 'Good evening, thank you for the invitation.',
+    lines: [
+      { fr: "Bonsoir ! Tenez, c'est pour vous.", en: 'Good evening! Here, this is for you.' },
+      { fr: 'Je mets mon manteau où ?', en: 'Where should I put my coat?' },
+      { fr: "Désolé, j'ai un peu de retard, le métro était lent.", en: 'Sorry, I am a little late, the métro was slow.' },
+    ],
     place: 'home',
   },
   {
@@ -617,6 +934,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The main dish arrives and it is very good. You say so before you eat more.',
     openingFr: "C'est délicieux, merci.",
     openingEn: 'It is delicious, thank you.',
+    lines: [
+      { fr: "Mmm, c'est vraiment très bon.", en: 'Mmm, this is really good.' },
+      { fr: "C'est quoi dedans ? Il y a du citron ?", en: 'What is in it? Is there lemon?' },
+      { fr: 'Vous me donnez la recette ?', en: 'Will you give me the recipe?' },
+    ],
     place: 'home',
   },
   {
@@ -626,6 +948,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The host offers you more and you want some. You accept and say how much.',
     openingFr: "Oui, un peu, s'il vous plaît.",
     openingEn: 'Yes, a little, please.',
+    lines: [
+      { fr: 'Oui, avec plaisir, une petite part.', en: 'Yes, gladly, a small helping.' },
+      { fr: "Là c'est bon, merci, sinon je ne finis pas.", en: 'That is enough for me, thank you, or I will burst.' },
+      { fr: "C'était délicieux, je me suis régalé.", en: 'That was delicious, I really enjoyed it.' },
+    ],
     place: 'home',
   },
   {
@@ -635,6 +962,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'One dish has something you cannot eat. You say no kindly and explain.',
     openingFr: 'Merci, ce sera sans poisson pour moi.',
     openingEn: 'Thank you, I will pass on the fish.',
+    lines: [
+      { fr: "C'est très gentil, mais je ne mange jamais de poisson.", en: 'That is very kind, but I never eat fish.' },
+      { fr: 'Je vais prendre des légumes à la place.', en: 'I will have some vegetables instead.' },
+      { fr: "Ne vous inquiétez pas, il y a plein d'autres choses.", en: 'No need to worry, there is lots of other food.' },
+    ],
     place: 'home',
   },
   {
@@ -644,6 +976,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Everyone is busy and you want to help. You offer, and you take a job.',
     openingFr: 'Je peux donner un coup de main ?',
     openingEn: 'Can I give you a hand?',
+    lines: [
+      { fr: 'Je peux faire quelque chose ?', en: 'Can I do something to help?' },
+      { fr: 'Je mets la table ? Les assiettes sont où ?', en: 'Shall I set the table? Where are the plates?' },
+      { fr: "Laissez, je m'occupe de la vaisselle.", en: 'Leave it, I will take care of the washing up.' },
+    ],
     place: 'home',
   },
   {
@@ -653,6 +990,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: "You meet your friend's parents for the first time. You greet each of them.",
     openingFr: 'Bonjour madame, enchanté.',
     openingEn: 'Hello madam, pleased to meet you.',
+    lines: [
+      { fr: 'Bonsoir, je suis Alex, un ami de Camille.', en: 'Good evening, I am Alex, a friend of Camille.' },
+      { fr: 'Vous habitez ici depuis longtemps ?', en: 'Have you lived here long?' },
+      { fr: "Merci de m'accueillir, c'est très gentil.", en: 'Thank you for having me, that is very kind.' },
+    ],
     place: 'home',
   },
   {
@@ -662,6 +1004,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Your neighbour knocks about the bins downstairs. You listen and answer.',
     openingFr: "Bonjour, oui, c'est pour les poubelles ?",
     openingEn: 'Hello, yes, is it about the bins?',
+    lines: [
+      { fr: 'Bonjour, il y a un souci avec les poubelles ?', en: 'Hello, is there a problem with the bins?' },
+      { fr: "Ah pardon, je croyais que c'était le mercredi.", en: 'Oh sorry, I thought it was Wednesday.' },
+      { fr: "C'est noté, je fais attention. Bonne soirée !", en: 'Understood, I will watch out for it. Have a good evening!' },
+    ],
     place: 'home',
   },
   {
@@ -671,6 +1018,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Someone calls and you catch about one word in five. You ask them to slow down.',
     openingFr: 'Pardon, pouvez-vous parler plus lentement ?',
     openingEn: 'Sorry, can you speak more slowly?',
+    lines: [
+      { fr: "Allô, oui, bonjour, c'est bien moi.", en: 'Hello? Yes, hello, speaking.' },
+      { fr: 'Excusez-moi, je parle mal français. Vous pouvez répéter ?', en: 'Sorry, my French is poor. Could you say that again?' },
+      { fr: "Vous pouvez m'envoyer un message ? Je comprends mieux à l'écrit.", en: 'Could you send me a message? I understand better in writing.' },
+    ],
     place: 'home',
   },
   {
@@ -680,6 +1032,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The courier is at the door with a parcel and a form. You sign for it.',
     openingFr: "Bonjour, oui, c'est bien pour moi.",
     openingEn: 'Hello, yes, that is for me.',
+    lines: [
+      { fr: "C'est bien à mon nom, oui. Je signe où ?", en: 'Yes, that is my name on it. Where do I sign?' },
+      { fr: "Attention, c'est fragile, il y a des verres dedans.", en: 'Careful, it is fragile, there are glasses inside.' },
+      { fr: 'La prochaine fois, vous pouvez le laisser chez la gardienne.', en: 'Next time you can leave it with the caretaker.' },
+    ],
     place: 'home',
   },
   {
@@ -689,6 +1046,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'You are staying with a family for a week. You ask what time dinner is served.',
     openingFr: 'Le dîner est à quelle heure ?',
     openingEn: 'What time is dinner?',
+    lines: [
+      { fr: "On mange vers quelle heure, d'habitude ?", en: 'Around what time do you usually eat?' },
+      { fr: "D'accord. Je peux apporter quelque chose ?", en: 'Alright. Can I bring something?' },
+      { fr: "Ce soir je rentre tard, ne m'attendez pas.", en: 'This evening I will be home late, please start without me.' },
+    ],
     place: 'home',
   },
   {
@@ -698,6 +1060,11 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'Your host asks what you would like after the meal. You choose and thank them.',
     openingFr: "Un café, s'il vous plaît.",
     openingEn: 'A coffee, please.',
+    lines: [
+      { fr: 'Je prendrais bien un café, si ça ne vous dérange pas.', en: 'I would love a coffee, if that is no trouble.' },
+      { fr: 'Sans sucre, merci, juste un nuage de lait.', en: 'No sugar, thank you, just a drop of milk.' },
+      { fr: "C'était parfait. Je débarrasse les tasses ?", en: 'That was perfect. Shall I clear the cups?' },
+    ],
     place: 'home',
   },
   {
@@ -707,7 +1074,689 @@ export const DAILY_SCENARIOS: readonly DailyScenario[] = [
     bodyEn: 'The evening is over and your coat is on. You thank them properly.',
     openingFr: 'Merci beaucoup pour ce soir.',
     openingEn: 'Thank you very much for this evening.',
+    lines: [
+      { fr: 'Merci pour tout, on a passé une très bonne soirée.', en: 'Thank you for everything, we had a really good evening.' },
+      { fr: "La prochaine fois, c'est chez moi, je fais la cuisine.", en: 'Next time it is at my place, I will cook.' },
+      { fr: 'Bonne nuit, et encore merci. À très vite !', en: 'Good night, and thanks again. See you very soon!' },
+    ],
     place: 'home',
+  },
+
+  // Authored 2026-09-06 alongside the Practice rebuild (F448). The pool needed
+  // to be worth tapping through, not merely large: these reach a little further
+  // than the everyday set above, the way a flea market reaches further than a
+  // greengrocer, while staying inside the six places that have drawings.
+  {
+    id: 'situation:cafe-not-ready-yet',
+    titleEn: 'Not ready to order yet',
+    titleFr: 'Pas encore choisi',
+    bodyEn: 'The waiter arrives and you have not read the menu. You ask for a moment and then order.',
+    openingFr: 'Je peux avoir encore une minute ?',
+    openingEn: 'May I have another minute?',
+    lines: [
+      { fr: "Pardon, je n'ai pas encore choisi.", en: 'Sorry, I have not chosen yet.' },
+      { fr: "Qu'est-ce que vous me conseillez ?", en: 'What would you recommend?' },
+      { fr: "C'est bon, je vais prendre ça.", en: 'I am ready, I will have that.' },
+    ],
+    place: 'cafe',
+  },
+  {
+    id: 'situation:cafe-counter-price',
+    titleEn: 'The price at the counter',
+    titleFr: 'Le prix au comptoir',
+    bodyEn: 'A coffee costs more on the terrace than at the counter. You ask before you choose a seat.',
+    openingFr: "C'est le même prix en terrasse ?",
+    openingEn: 'Is it the same price on the terrace?',
+    lines: [
+      { fr: 'Excusez-moi, le café est à combien au comptoir ?', en: 'Excuse me, how much is a coffee at the counter?' },
+      { fr: "Et en terrasse, c'est plus cher ?", en: 'And on the terrace, is it more expensive?' },
+      { fr: "D'accord, je le prends au comptoir alors.", en: 'Alright, I will have it at the counter then.' },
+    ],
+    place: 'cafe',
+  },
+  {
+    id: 'situation:cafe-kitchen-closed',
+    titleEn: 'Arriving after the kitchen shuts',
+    titleFr: 'La cuisine est fermée',
+    bodyEn: 'You arrive in the middle of the afternoon and lunch is over. You ask what you can still eat.',
+    openingFr: 'On peut encore manger quelque chose ?',
+    openingEn: 'Is it still possible to eat something?',
+    lines: [
+      { fr: 'Bonjour, vous servez encore à manger ?', en: 'Hello, are you still serving food?' },
+      { fr: 'Un croque ou une salade, ça irait très bien.', en: 'A toasted sandwich or a salad would be great.' },
+      { fr: 'Alors juste un café et une part de tarte, merci.', en: 'Then just a coffee and a slice of tart, thank you.' },
+    ],
+    place: 'cafe',
+  },
+  {
+    id: 'situation:cafe-tabac',
+    titleEn: 'A coffee and some stamps',
+    titleFr: 'Un café et des timbres',
+    bodyEn: 'The café sells stamps at the same counter as the coffee. You order both at once.',
+    openingFr: "Bonjour, un café et des timbres, s'il vous plaît.",
+    openingEn: 'Hello, a coffee and some stamps, please.',
+    lines: [
+      { fr: 'Vous vendez des timbres, ici ?', en: 'Do you sell stamps here?' },
+      { fr: "Des timbres pour l'Angleterre, s'il vous plaît.", en: 'Stamps for England, please.' },
+      { fr: 'Je règle le tout ensemble ?', en: 'May I pay for it all together?' },
+    ],
+    place: 'cafe',
+  },
+  {
+    id: 'situation:cafe-pointing-at-a-pastry',
+    titleEn: 'The pastry you cannot name',
+    titleFr: "Ce gâteau, ça s'appelle comment ?",
+    bodyEn: 'You want the pastry in the window and have no name for it. You point and ask what it is.',
+    openingFr: "Celui-là, il s'appelle comment ?",
+    openingEn: 'That one, what is it called?',
+    lines: [
+      { fr: "Excusez-moi, c'est quoi, celui-là ?", en: 'Excuse me, what is that one?' },
+      { fr: 'Il y a quoi dedans ?', en: 'What is inside it?' },
+      { fr: "Parfait, j'en prends un. Merci !", en: 'Perfect, I will take one. Thank you!' },
+    ],
+    place: 'cafe',
+  },
+  {
+    id: 'situation:cafe-a-round-for-the-table',
+    titleEn: 'Ordering for the whole table',
+    titleFr: 'Commander pour toute la table',
+    bodyEn: 'Your friends give you their orders all at once. You say the whole round to the waiter.',
+    openingFr: "Alors, deux demis et trois cafés, s'il vous plaît.",
+    openingEn: 'So, two beers and three coffees, please.',
+    lines: [
+      { fr: 'Je commande pour tout le monde.', en: 'I am ordering for everybody.' },
+      { fr: 'Pardon, je reprends : deux demis, trois cafés.', en: 'Sorry, let me start again: two beers, three coffees.' },
+      { fr: "C'est bien ça, merci. On règle à la fin.", en: 'That is right, thank you. We will settle at the end.' },
+    ],
+    place: 'cafe',
+  },
+  {
+    id: 'situation:cafe-working-here',
+    titleEn: 'Working from a café',
+    titleFr: 'Travailler au café',
+    bodyEn: 'You have an hour of work and a low battery. You ask about a socket and stay for a while.',
+    openingFr: 'Il y a une prise quelque part ?',
+    openingEn: 'Is there a socket somewhere?',
+    lines: [
+      { fr: "Bonjour, je peux m'installer là pour travailler ?", en: 'Hello, may I settle in over there to work?' },
+      { fr: 'Vous avez le wifi ? Je peux avoir le code ?', en: 'Do you have wifi? May I have the code?' },
+      { fr: 'Je vous reprends un café, merci !', en: 'I will have another coffee, thank you!' },
+    ],
+    place: 'cafe',
+  },
+  {
+    id: 'situation:cafe-watching-the-match',
+    titleEn: 'Watching the match at the bar',
+    titleFr: 'Le match au bar',
+    bodyEn: 'The game is on this evening and the bar has one screen. You ask whether they are showing it.',
+    openingFr: 'Vous passez le match ce soir ?',
+    openingEn: 'Are you showing the match this evening?',
+    lines: [
+      { fr: 'Bonsoir, le match est sur quelle chaîne ?', en: 'Good evening, which channel is the match on?' },
+      { fr: 'On peut réserver une table pour ce soir ?', en: 'May we book a table for this evening?' },
+      { fr: "On sera quatre. À tout à l'heure !", en: 'There will be four of us. See you later!' },
+    ],
+    place: 'cafe',
+  },
+  {
+    id: 'situation:friends-la-bise',
+    titleEn: 'Kiss or handshake',
+    titleFr: 'La bise ou la main',
+    bodyEn: 'You arrive and everyone is greeting everyone. You work out what to do with your hands.',
+    openingFr: 'Bonsoir ! On se fait la bise ?',
+    openingEn: 'Good evening! Do we do the kiss on the cheek?',
+    lines: [
+      { fr: 'Salut ! Je te fais la bise ou je te serre la main ?', en: 'Hi! A kiss on the cheek, or a handshake?' },
+      { fr: "Pardon, c'est combien de bises, ici ?", en: 'Sorry, how many kisses is it here?' },
+      { fr: "Désolé, je m'y perds encore. Enchanté !", en: 'Sorry, I still get it muddled. Nice to meet you!' },
+    ],
+    place: 'friends',
+  },
+  {
+    id: 'situation:friends-tu-or-vous',
+    titleEn: 'Moving to tu',
+    titleFr: 'Tu ou vous',
+    bodyEn: 'You have said vous for an hour and it feels stiff now. You offer to switch to tu.',
+    openingFr: 'On peut se tutoyer ?',
+    openingEn: 'May we use tu with each other?',
+    lines: [
+      { fr: 'Ça vous gêne si on se tutoie ?', en: 'Would you mind if we used tu?' },
+      { fr: 'Dis-moi tu, ce sera plus simple.', en: 'Say tu to me, it will be simpler.' },
+      { fr: "Pardon, je vous dis encore vous, c'est l'habitude.", en: 'Sorry, I am still saying vous, it is habit.' },
+    ],
+    place: 'friends',
+  },
+  {
+    id: 'situation:friends-apero-invitation',
+    titleEn: 'Invited for an apéro',
+    titleFr: "Invité à l'apéro",
+    bodyEn: 'A friend says come round at seven for an apéro. You ask whether dinner comes after it.',
+    openingFr: "Merci ! C'est à quelle heure, l'apéro ?",
+    openingEn: 'Thanks! What time is the apéro?',
+    lines: [
+      { fr: 'Avec plaisir, je passe vers sept heures.', en: 'Gladly, I will come by around seven.' },
+      { fr: 'On mange après, ou je dîne avant ?', en: 'Are we eating afterwards, or should I have dinner first?' },
+      { fr: "J'apporte une bouteille, ça te va ?", en: 'I will bring a bottle, does that suit you?' },
+    ],
+    place: 'friends',
+  },
+  {
+    id: 'situation:friends-splitting-the-bill',
+    titleEn: 'Splitting the bill',
+    titleFr: "Partager l'addition",
+    bodyEn: 'The group meal is over and one bill arrives. You sort out who pays for what.',
+    openingFr: "On partage l'addition ?",
+    openingEn: 'Shall we split the bill?',
+    lines: [
+      { fr: "Alors, on fait comment pour l'addition ?", en: 'So, how are we doing the bill?' },
+      { fr: "Moi, j'ai pris juste une salade et un café.", en: 'Me, I only had a salad and a coffee.' },
+      { fr: "J'ai pas de liquide, je te rends ça demain.", en: 'I have no cash on me, I will pay you back tomorrow.' },
+    ],
+    place: 'friends',
+  },
+  {
+    id: 'situation:friends-saying-no-warmly',
+    titleEn: 'Saying no to a plan',
+    titleFr: 'Décliner gentiment',
+    bodyEn: 'A friend suggests Friday and you are already tired. You say no and offer another day.',
+    openingFr: 'Vendredi, ça va être compliqué pour moi.',
+    openingEn: 'Friday is going to be tricky for me.',
+    lines: [
+      { fr: 'Ah, vendredi, je peux pas, désolé.', en: 'Ah, Friday I cannot, sorry.' },
+      { fr: "J'ai envie de venir, mais je suis crevé cette semaine.", en: 'I want to come, but I am worn out this week.' },
+      { fr: 'On dit la semaine prochaine ?', en: 'Shall we say next week?' },
+    ],
+    place: 'friends',
+  },
+  {
+    id: 'situation:friends-stay-in-french',
+    titleEn: 'Staying in French',
+    titleFr: 'On reste en français',
+    bodyEn: 'Someone hears your accent and switches to English. You ask to carry on in French.',
+    openingFr: "On peut rester en français ? Ça m'aide beaucoup.",
+    openingEn: 'Can we stay in French? It helps me a lot.',
+    lines: [
+      { fr: 'On continue en français, si ça te va ?', en: 'Shall we carry on in French, if that suits you?' },
+      { fr: 'Parle normalement, je te dis si je comprends pas.', en: 'Talk at your normal speed, I will say if I stop following.' },
+      { fr: "Merci de m'avoir laissé essayer.", en: 'Thank you for letting me try.' },
+    ],
+    place: 'friends',
+  },
+  {
+    id: 'situation:friends-back-in-the-conversation',
+    titleEn: 'Back into the conversation',
+    titleFr: 'Revenir dans la conversation',
+    bodyEn: 'The table is talking fast and you stopped following. You ask for the thread again.',
+    openingFr: 'Attends, vous parlez de quoi, là ?',
+    openingEn: 'Hang on, what are you all talking about?',
+    lines: [
+      { fr: 'Pardon, tu peux répéter, plus doucement ?', en: 'Sorry, can you say that again, more slowly?' },
+      { fr: 'Ça veut dire quoi, ce mot ?', en: 'What does that word mean?' },
+      { fr: "Voilà, j'ai compris. Continuez !", en: 'There, I have it. Carry on!' },
+    ],
+    place: 'friends',
+  },
+  {
+    id: 'situation:friends-neighbours-party',
+    titleEn: 'The building party',
+    titleFr: 'La fête des voisins',
+    bodyEn: 'The whole building is in the courtyard with food on a table. You meet the people upstairs.',
+    openingFr: "Bonsoir, je suis nouveau, j'habite au troisième.",
+    openingEn: 'Good evening, I am new, I live on the third floor.',
+    lines: [
+      { fr: "Bonsoir ! Moi, c'est Alex, j'habite juste au-dessus.", en: 'Good evening! I am Alex, I live just above you.' },
+      { fr: "J'ai apporté un gâteau, servez-vous.", en: 'I brought a cake, please help yourselves.' },
+      { fr: "Bonne soirée, et à bientôt dans l'escalier !", en: 'Have a good evening, and see you on the stairs!' },
+    ],
+    place: 'friends',
+  },
+  {
+    id: 'situation:home-water-leak',
+    titleEn: 'Water coming through the ceiling',
+    titleFr: 'Une fuite au plafond',
+    bodyEn: 'Water is coming through your ceiling from the flat above. You go up and knock.',
+    openingFr: "Bonjour, désolé de vous déranger, il y a de l'eau chez moi.",
+    openingEn: 'Hello, sorry to bother you, there is water coming into my flat.',
+    lines: [
+      { fr: "Bonjour, j'habite juste en dessous. Vous avez une fuite ?", en: 'Hello, I live right below you. Do you have a leak?' },
+      { fr: 'Ça coule au plafond de ma salle de bains.', en: 'It is dripping from my bathroom ceiling.' },
+      { fr: 'On appelle le propriétaire ensemble ?', en: 'Shall we call the landlord together?' },
+    ],
+    place: 'home',
+  },
+  {
+    id: 'situation:home-locked-out',
+    titleEn: 'Locked out on the landing',
+    titleFr: "La porte s'est refermée",
+    bodyEn: 'The door shut and your keys are inside. You ring the neighbour for help.',
+    openingFr: "Bonjour, je suis désolé, ma porte s'est refermée.",
+    openingEn: 'Hello, I am so sorry, my door shut on me.',
+    lines: [
+      { fr: "Mes clés sont restées à l'intérieur.", en: 'My keys are still inside the flat.' },
+      { fr: 'Je peux passer un coup de fil de chez vous ?', en: 'May I make a phone call from your place?' },
+      { fr: "Le serrurier arrive dans une heure, j'attends ici.", en: 'The locksmith is coming in an hour, I will wait here.' },
+    ],
+    place: 'home',
+  },
+  {
+    id: 'situation:home-party-warning',
+    titleEn: 'Warning the neighbours about Saturday',
+    titleFr: 'Prévenir les voisins pour samedi',
+    bodyEn: 'You are having friends over on Saturday. You knock on two doors first.',
+    openingFr: "Bonsoir, je vous préviens, j'ai des amis samedi soir.",
+    openingEn: 'Good evening, just to let you know, I have friends over on Saturday.',
+    lines: [
+      { fr: "Bonsoir, j'habite à côté, au troisième.", en: 'Good evening, I live next door, on the third floor.' },
+      { fr: 'Ça finira vers minuit, pas plus tard.', en: 'It will finish around midnight, no later.' },
+      { fr: 'Passez boire un verre si vous voulez !', en: 'Come and have a drink if you like!' },
+    ],
+    place: 'home',
+  },
+  {
+    id: 'situation:home-landlord-heating',
+    titleEn: 'Calling the landlord about the heating',
+    titleFr: 'Appeler le propriétaire pour le chauffage',
+    bodyEn: 'The heating has stopped and the flat is cold. You call the landlord.',
+    openingFr: 'Bonjour, je vous appelle, le chauffage ne marche plus.',
+    openingEn: 'Hello, I am calling because the heating has stopped working.',
+    lines: [
+      { fr: "Bonjour, c'est Alex, le locataire du deuxième.", en: 'Hello, this is Alex, your tenant on the second floor.' },
+      { fr: 'Les radiateurs sont froids depuis hier soir.', en: 'The radiators have been cold since last night.' },
+      { fr: "Vous pouvez envoyer quelqu'un cette semaine ?", en: 'Could you send someone this week?' },
+    ],
+    place: 'home',
+  },
+  {
+    id: 'situation:home-selling-a-chair',
+    titleEn: 'Selling a chair at your door',
+    titleFr: 'Vendre une chaise à la porte',
+    bodyEn: 'A stranger comes to collect a chair you sold online. They ask for a better price.',
+    openingFr: 'Bonjour, oui, entrez, la chaise est là.',
+    openingEn: 'Hello, yes, come in, the chair is right here.',
+    lines: [
+      { fr: 'Bonjour, vous venez pour la chaise ? Elle est ici.', en: 'Hello, are you here for the chair? It is here.' },
+      { fr: 'Elle est en bon état, il y a juste une petite marque.', en: 'It is in good shape, there is just a small mark.' },
+      { fr: 'Allez, je vous la laisse à ce prix-là.', en: 'Alright, I will let you have it at that price.' },
+    ],
+    place: 'home',
+  },
+  {
+    id: 'situation:home-no-lift',
+    titleEn: 'A fridge and no lift',
+    titleFr: "Un frigo et pas d'ascenseur",
+    bodyEn: 'The delivery driver is downstairs with a fridge. You explain the stairs and the flat.',
+    openingFr: "Bonjour, oui, c'est au quatrième, sans ascenseur.",
+    openingEn: 'Hello, yes, it is on the fourth floor, with no lift.',
+    lines: [
+      { fr: "Bonjour, c'est bien pour le frigo ? Je vous ouvre.", en: 'Hello, is this about the fridge? I will let you in.' },
+      { fr: "Attention, l'escalier est étroit après le deuxième.", en: 'Careful, the stairs get narrow after the second floor.' },
+      { fr: 'Merci beaucoup, vous pouvez le poser dans la cuisine ?', en: 'Thank you very much, could you put it in the kitchen?' },
+    ],
+    place: 'home',
+  },
+  {
+    id: 'situation:home-neighbour-cat',
+    titleEn: "Looking after the neighbour's cat",
+    titleFr: 'Garder le chat de la voisine',
+    bodyEn: 'Your neighbour is away for a week and gives you the keys. You take the instructions.',
+    openingFr: "Bonjour, oui, bien sûr, je peux m'occuper du chat.",
+    openingEn: 'Hello, yes, of course, I can look after the cat.',
+    lines: [
+      { fr: 'Pas de souci, je passerai matin et soir.', en: 'No trouble at all, I will come by morning and evening.' },
+      { fr: 'Il mange quoi, et il sort ou pas ?', en: 'What does he eat, and does he go outside?' },
+      { fr: 'Envoyez-moi un message quand vous rentrez.', en: 'Send me a message when you get back.' },
+    ],
+    place: 'home',
+  },
+  {
+    id: 'situation:home-cooking-for-friends',
+    titleEn: 'Cooking for French friends',
+    titleFr: 'Cuisiner pour des amis français',
+    bodyEn: 'You cook a dish from home in your own kitchen. You explain what is in it.',
+    openingFr: "Alors, c'est un plat de chez moi, j'espère que ça vous plaira.",
+    openingEn: 'So, this is a dish from home, I hope you will like it.',
+    lines: [
+      { fr: 'Installez-vous, ce sera prêt dans cinq minutes.', en: 'Take a seat, it will be ready in five minutes.' },
+      { fr: "C'est du riz avec des épices, ce n'est pas trop fort.", en: 'It is rice with spices, it is not too hot.' },
+      { fr: 'Resservez-vous, il y en a encore plein.', en: 'Have some more, there is lots left.' },
+    ],
+    place: 'home',
+  },
+  {
+    id: 'situation:hotel-key-card',
+    titleEn: 'The key that stopped working',
+    titleFr: 'La clé ne marche plus',
+    bodyEn: 'Your key opens nothing and your room is on the top floor. You go back down to the desk.',
+    openingFr: 'Bonjour, ma clé ne marche plus.',
+    openingEn: 'Hello, my key is not working any more.',
+    lines: [
+      { fr: "Excusez-moi, je n'arrive pas à ouvrir ma porte.", en: 'Excuse me, I cannot get my door open.' },
+      { fr: 'La carte ne fait rien, la petite lumière reste rouge.', en: 'The card does nothing, the little light stays red.' },
+      { fr: 'Vous pouvez monter avec moi pour vérifier ?', en: 'Could you come up with me and check?' },
+    ],
+    place: 'hotel',
+  },
+  {
+    id: 'situation:hotel-not-the-room',
+    titleEn: 'Not the room you booked',
+    titleFr: "Ce n'est pas la chambre réservée",
+    bodyEn: 'You booked a room for two and this one has a single bed. You say so at the desk.',
+    openingFr: "Bonjour, je crois qu'il y a une erreur de chambre.",
+    openingEn: 'Hello, I think there has been a mix-up with the room.',
+    lines: [
+      { fr: "J'avais réservé une chambre double, avec un grand lit.", en: 'I had booked a double room, with one big bed.' },
+      { fr: "Là, il y a un lit simple, ce n'est pas ça.", en: 'This one has a single bed, so that is not it.' },
+      { fr: 'Vous pouvez regarder si vous avez autre chose ?', en: 'Could you see whether you have anything else?' },
+    ],
+    place: 'hotel',
+  },
+  {
+    id: 'situation:hotel-wake-up-call',
+    titleEn: 'A call in the morning',
+    titleFr: 'Un réveil téléphonique',
+    bodyEn: 'You have an early flight and no faith in your alarm. You ask the desk to call you.',
+    openingFr: 'Bonjour, vous pouvez me réveiller demain matin ?',
+    openingEn: 'Hello, could you wake me up tomorrow morning?',
+    lines: [
+      { fr: "Bonsoir, je voudrais un réveil pour demain, s'il vous plaît.", en: 'Good evening, I would like a wake-up call for tomorrow, please.' },
+      { fr: 'Vers six heures, ce serait parfait.', en: 'Around six would be perfect.' },
+      { fr: 'Et si je ne réponds pas, vous pouvez rappeler ?', en: 'And if there is no answer, could you ring again?' },
+    ],
+    place: 'hotel',
+  },
+  {
+    id: 'situation:hotel-hot-water',
+    titleEn: 'No hot water',
+    titleFr: "Il n'y a pas d'eau chaude",
+    bodyEn: 'The water in your bathroom runs cold and it is late. You call the front desk.',
+    openingFr: "Bonsoir, il n'y a pas d'eau chaude dans ma chambre.",
+    openingEn: 'Good evening, there is no hot water in my room.',
+    lines: [
+      { fr: "Bonsoir, l'eau reste froide dans la salle de bains.", en: 'Good evening, the water stays cold in the bathroom.' },
+      { fr: "J'ai laissé couler cinq minutes, ça ne change rien.", en: 'I let it run for five minutes and nothing changed.' },
+      { fr: "Quelqu'un peut venir voir ce soir ?", en: 'Could somebody come and look this evening?' },
+    ],
+    place: 'hotel',
+  },
+  {
+    id: 'situation:hotel-shirt-pressed',
+    titleEn: 'A shirt for the morning',
+    titleFr: 'Une chemise à repasser',
+    bodyEn: 'You have a meeting tomorrow and your shirt came out of the bag creased. You ask at the desk.',
+    openingFr: 'Bonjour, vous pouvez faire repasser une chemise ?',
+    openingEn: 'Hello, could you have a shirt ironed?',
+    lines: [
+      { fr: "Bonjour, ma chemise est toute froissée, et j'ai un rendez-vous demain.", en: 'Hello, my shirt is all creased and I have a meeting tomorrow.' },
+      { fr: "C'est possible de l'avoir avant huit heures ?", en: 'Is it possible to have it back before eight?' },
+      { fr: 'Sinon, vous auriez un fer à repasser ?', en: 'Otherwise, would you have an iron I could use?' },
+    ],
+    place: 'hotel',
+  },
+  {
+    id: 'situation:hotel-dining-room',
+    titleEn: 'Late down to the dining room',
+    titleFr: 'La salle du petit déjeuner',
+    bodyEn: 'You came down late and the tables are being cleared. You ask whether you may still eat.',
+    openingFr: 'Bonjour, je peux encore prendre le petit déjeuner ?',
+    openingEn: 'Hello, am I too late to eat something?',
+    lines: [
+      { fr: "Bonjour, je sais que c'est un peu tard, je peux encore manger ?", en: 'Hello, I know it is a bit late, may I still eat?' },
+      { fr: 'Juste un café et du pain, ça suffira.', en: 'Just a coffee and some bread, that will do.' },
+      { fr: 'Merci beaucoup, je fais vite.', en: 'Thank you very much, I will be quick.' },
+    ],
+    place: 'hotel',
+  },
+  {
+    id: 'situation:hotel-forgotten-charger',
+    titleEn: 'Something left in the room',
+    titleFr: 'Un oubli dans la chambre',
+    bodyEn: 'You are on the train and your charger is on the bedside table. You call the hotel.',
+    openingFr: "Bonjour, j'ai oublié quelque chose dans ma chambre.",
+    openingEn: 'Hello, I left something in my room.',
+    lines: [
+      { fr: 'Bonjour, je suis parti ce matin, chambre douze.', en: 'Hello, I left this morning, room twelve.' },
+      { fr: "J'ai laissé mon chargeur sur la table de nuit.", en: 'I left my charger on the bedside table.' },
+      { fr: "Vous pouvez me l'envoyer ? Je vous donne l'adresse.", en: 'Could you send it to me? I will give you the address.' },
+    ],
+    place: 'hotel',
+  },
+  {
+    id: 'situation:hotel-week-rate',
+    titleEn: 'A price for the week',
+    titleFr: 'Un prix pour la semaine',
+    bodyEn: 'You want to stay a whole week and the nightly rate adds up. You ask for a better price.',
+    openingFr: 'Bonjour, vous faites un prix pour la semaine ?',
+    openingEn: 'Hello, do you do a rate for the week?',
+    lines: [
+      { fr: 'Bonjour, je voudrais rester une semaine entière.', en: 'Hello, I would like to stay a whole week.' },
+      { fr: "C'est un peu cher pour moi, vous pouvez faire un geste ?", en: 'It is a bit expensive for me, could you meet me halfway?' },
+      { fr: "Même sans le petit déjeuner, ça m'irait très bien.", en: 'Even with no coffee in the morning, that would suit me well.' },
+    ],
+    place: 'hotel',
+  },
+  {
+    id: 'situation:market-flea-mirror',
+    titleEn: 'Haggling for a mirror',
+    titleFr: 'Marchander un miroir aux puces',
+    bodyEn: 'An old mirror at the flea market has caught your eye. You ask the price and try for less.',
+    openingFr: 'Bonjour, il est à combien, ce miroir ?',
+    openingEn: 'Hello, how much is this mirror?',
+    lines: [
+      { fr: 'Bonjour, il est beau. Il date de quand ?', en: 'Hello, it is beautiful. How old is it?' },
+      { fr: "Il me plaît, mais c'est un peu cher. Vous me faites un prix ?", en: 'I like it, but it is a bit expensive. Could you do a better price?' },
+      { fr: "D'accord pour quarante. Je le prends, merci !", en: 'Alright, forty it is. I will take it, thank you!' },
+    ],
+    place: 'market',
+  },
+  {
+    id: 'situation:market-trying-on',
+    titleEn: 'Trying on a jacket',
+    titleFr: 'Essayer une veste',
+    bodyEn: 'A jacket in the window is exactly your colour. You try it on and ask for another size.',
+    openingFr: 'Bonjour, je peux essayer cette veste ?',
+    openingEn: 'Hello, may I try on this jacket?',
+    lines: [
+      { fr: "Bonjour, la cabine est où, s'il vous plaît ?", en: 'Hello, where is the fitting room, please?' },
+      { fr: "Elle me serre un peu. Vous l'avez en plus grand ?", en: 'It is a bit tight. Do you have it in a bigger size?' },
+      { fr: 'Celle-là me va bien. Je la prends, merci !', en: 'This one fits me well. I will take it, thank you!' },
+    ],
+    place: 'market',
+  },
+  {
+    id: 'situation:market-exchange',
+    titleEn: 'Bringing something back',
+    titleFr: 'Échanger un article',
+    bodyEn: 'The shirt you bought yesterday is too small. You bring it back and ask to change it.',
+    openingFr: "Bonjour, j'ai acheté cette chemise hier.",
+    openingEn: 'Hello, I bought this shirt yesterday.',
+    lines: [
+      { fr: 'Bonjour, je voudrais échanger cette chemise.', en: 'Hello, I would like to exchange this shirt.' },
+      { fr: "Elle est trop petite. J'ai le ticket, le voilà.", en: 'It is too small. I have the receipt, here it is.' },
+      { fr: "Vous l'avez en bleu ? Sinon, je repasse demain.", en: 'Do you have it in blue? Otherwise, I will come back tomorrow.' },
+    ],
+    place: 'market',
+  },
+  {
+    id: 'situation:market-fishmonger',
+    titleEn: 'At the fish stall',
+    titleFr: 'Chez le poissonnier',
+    bodyEn: 'You are cooking fish tonight and have never bought a whole one. You ask them to prepare it.',
+    openingFr: "Bonjour, qu'est-ce qui est bon aujourd'hui ?",
+    openingEn: 'Hello, what is good today?',
+    lines: [
+      { fr: 'Bonjour, je voudrais du poisson pour ce soir.', en: 'Hello, I would like some fish for this evening.' },
+      { fr: 'Vous pouvez le vider et enlever la tête ?', en: 'Could you clean it and take the head off?' },
+      { fr: 'Merci. Et je le fais cuire combien de temps ?', en: 'Thank you. And how long do I cook it for?' },
+    ],
+    place: 'market',
+  },
+  {
+    id: 'situation:market-cake-order',
+    titleEn: 'Ordering a cake',
+    titleFr: 'Commander un gâteau',
+    bodyEn: 'Friends are coming on Sunday and you want a cake. You order one at the counter.',
+    openingFr: 'Bonjour, je voudrais commander un gâteau pour dimanche.',
+    openingEn: 'Hello, I would like to order a cake for Sunday.',
+    lines: [
+      { fr: 'Bonjour, on peut commander un gâteau ici ?', en: 'Hello, can I order a cake here?' },
+      { fr: "Pour huit personnes, au chocolat. C'est possible ?", en: 'For eight people, chocolate. Is that possible?' },
+      { fr: 'Je passe le chercher dimanche matin. Je paie maintenant ?', en: 'I will pick it up on Sunday morning. Do I pay now?' },
+    ],
+    place: 'market',
+  },
+  {
+    id: 'situation:market-cash-only',
+    titleEn: 'The stall takes no card',
+    titleFr: 'Le marchand ne prend pas la carte',
+    bodyEn: 'Your basket is full and this stall takes cash only. You sort it out on the spot.',
+    openingFr: 'Bonjour, vous prenez la carte ?',
+    openingEn: 'Hello, do you take card?',
+    lines: [
+      { fr: "Ah, c'est en espèces seulement ?", en: 'Ah, it is cash only?' },
+      { fr: "Il y a un distributeur près d'ici ?", en: 'Is there a cash machine near here?' },
+      { fr: 'Vous pouvez me le garder ? Je reviens tout de suite.', en: 'Could you keep it for me? I will be right back.' },
+    ],
+    place: 'market',
+  },
+  {
+    id: 'situation:market-bouquet',
+    titleEn: 'A bouquet for tonight',
+    titleFr: 'Un bouquet pour ce soir',
+    bodyEn: 'You are invited to dinner and want to bring a bouquet. You pick one at the stall.',
+    openingFr: 'Bonjour, je cherche un bouquet, pas trop cher.',
+    openingEn: 'Hello, I am looking for a bouquet, nothing too expensive.',
+    lines: [
+      { fr: "Bonjour, c'est pour offrir ce soir. Vous me conseillez quoi ?", en: 'Hello, it is a gift for this evening. What would you suggest?' },
+      { fr: "Celles-là, oui. Mais pas de rouge, c'est pour des amis.", en: 'Those ones, yes. But nothing red, it is for friends.' },
+      { fr: 'Vous pouvez faire un joli paquet ? Merci beaucoup.', en: 'Could you wrap it nicely? Thank you very much.' },
+    ],
+    place: 'market',
+  },
+  {
+    id: 'situation:market-blisters',
+    titleEn: 'Something for sore feet',
+    titleFr: 'Des pansements à la pharmacie',
+    bodyEn: 'You walked all day and your shoes have rubbed. You ask the pharmacy for plasters.',
+    openingFr: "Bonjour, j'ai des ampoules aux pieds.",
+    openingEn: 'Hello, I have blisters on my feet.',
+    lines: [
+      { fr: "Bonjour, j'ai beaucoup marché et j'ai mal aux pieds.", en: 'Hello, I have walked a lot and my feet hurt.' },
+      { fr: 'Vous avez des pansements pour les ampoules ?', en: 'Do you have plasters for blisters?' },
+      { fr: 'Je prends la petite boîte. Je peux marcher demain avec ça ?', en: 'I will take the small box. Can I walk tomorrow with these on?' },
+    ],
+    place: 'market',
+  },
+  {
+    id: 'situation:street-ticket-machine-stuck',
+    titleEn: 'The machine will not take your card',
+    titleFr: 'La borne refuse ma carte',
+    bodyEn: 'The ticket machine says no and a queue is forming. You ask the person next to you.',
+    openingFr: 'Pardon, la borne refuse ma carte, vous savez pourquoi ?',
+    openingEn: 'Sorry, the machine will not take my card, do you know why?',
+    lines: [
+      { fr: "Excusez-moi, je n'arrive pas à acheter mon ticket.", en: 'Excuse me, I cannot manage to buy my ticket.' },
+      { fr: 'Elle refuse ma carte, il faut de la monnaie ?', en: 'It will not take my card, do I need coins?' },
+      { fr: 'Ah, il fallait appuyer ici. Merci beaucoup !', en: 'Ah, I had to press here. Thanks very much!' },
+    ],
+    place: 'street',
+  },
+  {
+    id: 'situation:street-ticket-inspector',
+    titleEn: 'The inspector asks for your ticket',
+    titleFr: 'Le contrôleur demande les billets',
+    bodyEn: 'An inspector gets on at the next stop. You find your ticket and answer one question.',
+    openingFr: 'Bonjour, voilà mon billet.',
+    openingEn: 'Hello, here is my ticket.',
+    lines: [
+      { fr: 'Bonjour, oui, une seconde, je le cherche.', en: 'Hello, yes, one moment, I am looking for it.' },
+      { fr: "Le voilà. Je l'ai validé à l'entrée.", en: 'Here it is. I validated it on the way in.' },
+      { fr: "Désolé, j'ai mis du temps. Bonne journée !", en: 'Sorry that took a moment. Have a good day!' },
+    ],
+    place: 'street',
+  },
+  {
+    id: 'situation:street-city-bike',
+    titleEn: 'A bike that stays locked',
+    titleFr: 'Un vélo qui reste bloqué',
+    bodyEn: 'You paid for a city bike and the dock holds on to it. You ask someone at the stand.',
+    openingFr: 'Pardon, le vélo ne se débloque pas. Vous savez comment faire ?',
+    openingEn: 'Sorry, the bike will not come out. Do you know how it works?',
+    lines: [
+      { fr: "Bonjour, j'ai payé mais le vélo reste bloqué.", en: 'Hello, I paid but the bike is still stuck.' },
+      { fr: 'Il faut attendre le petit bip vert ?', en: 'Do I wait for the little green beep?' },
+      { fr: 'Ça y est, ça marche. Merci du coup de main !', en: 'There we go, it works. Thanks for the hand!' },
+    ],
+    place: 'street',
+  },
+  {
+    id: 'situation:street-open-on-sunday',
+    titleEn: 'Nothing is open on a Sunday',
+    titleFr: 'Tout est fermé le dimanche',
+    bodyEn: 'The street is shuttered and you need one thing. You ask a passer by what is open.',
+    openingFr: "Excusez-moi, il y a quelque chose d'ouvert dans le quartier ?",
+    openingEn: 'Excuse me, is anything open around here?',
+    lines: [
+      { fr: "Pardon, tout est fermé, c'est normal le dimanche ?", en: 'Sorry, everything is shut, is that usual on a Sunday?' },
+      { fr: "Je cherche juste une bouteille d'eau.", en: 'I am only after a bottle of water.' },
+      { fr: "Une supérette près du métro, d'accord. Merci !", en: 'A corner shop by the métro, got it. Thank you!' },
+    ],
+    place: 'street',
+  },
+  {
+    id: 'situation:street-changing-your-ticket',
+    titleEn: 'Changing your train ticket',
+    titleFr: 'Changer mon billet de train',
+    bodyEn: 'You need to travel a day earlier than your ticket says. You ask the counter to change it.',
+    openingFr: 'Bonjour, je voudrais changer mon billet pour demain.',
+    openingEn: 'Hello, I would like to change my ticket to tomorrow.',
+    lines: [
+      { fr: 'Bonjour, je dois partir un jour plus tôt.', en: 'Hello, I need to travel a day earlier.' },
+      { fr: 'Il y a un supplément à payer ?', en: 'Is there an extra charge?' },
+      { fr: "D'accord, je prends celui du matin. Merci !", en: 'All right, I will take the morning one. Thank you!' },
+    ],
+    place: 'street',
+  },
+  {
+    id: 'situation:street-strike-day',
+    titleEn: 'A strike day',
+    titleFr: 'Un jour de grève',
+    bodyEn: 'The board is red and the platform is packed. You ask how to get across town.',
+    openingFr: "Bonjour, est-ce que le métro roule aujourd'hui ?",
+    openingEn: 'Hello, is the métro running today?',
+    lines: [
+      { fr: "Bonjour, il y a une grève aujourd'hui ?", en: 'Hello, is there a strike today?' },
+      { fr: 'Un bus remplace la ligne, ou pas du tout ?', en: 'Is there a bus replacing the line, or nothing at all?' },
+      { fr: 'Bon, je vais marcher. Merci quand même !', en: 'Right, I will walk then. Thanks all the same!' },
+    ],
+    place: 'street',
+  },
+  {
+    id: 'situation:street-someone-asks-you',
+    titleEn: 'Someone asks you the way',
+    titleFr: 'On me demande le chemin',
+    bodyEn: 'A stranger stops you and takes you for a local. You help as far as you can.',
+    openingFr: "Alors, je crois que c'est par là.",
+    openingEn: 'So, I think it is that way.',
+    lines: [
+      { fr: 'Attendez, je regarde sur mon téléphone.', en: 'Hang on, let me look on my phone.' },
+      { fr: "Je crois que c'est tout droit, puis à droite.", en: 'I think it is straight on, then right.' },
+      { fr: 'Désolé, je ne suis pas sûr. Bonne chance !', en: 'Sorry, I am not certain. Good luck!' },
+    ],
+    place: 'street',
+  },
+  {
+    id: 'situation:street-left-luggage',
+    titleEn: 'Left luggage at the station',
+    titleFr: 'La consigne de la gare',
+    bodyEn: 'You have hours to fill and a heavy case. You ask where the lockers are.',
+    openingFr: "Bonjour, la consigne, c'est par où ?",
+    openingEn: 'Hello, which way is left luggage?',
+    lines: [
+      { fr: "Bonjour, je cherche la consigne, s'il vous plaît.", en: 'Hello, I am looking for the left luggage, please.' },
+      { fr: "C'est ouvert jusqu'à quelle heure ?", en: 'How late does it stay open?' },
+      { fr: 'Parfait, je reviens avant la fermeture. Merci !', en: 'Perfect, I will be back before it shuts. Thank you!' },
+    ],
+    place: 'street',
   },
 ];
 
