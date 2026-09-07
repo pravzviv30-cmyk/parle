@@ -769,10 +769,24 @@ export function LineBullet({ rung, active, size = 26 }: { rung: Rung; active: bo
   );
 }
 
-/** The lesson as a line: one stop per turn, the current one struck larger. */
+/**
+ * The lesson as a line: one stop per turn, the current one struck larger.
+ *
+ * It counts nothing out loud. The dots were made numberless for sighted
+ * learners on purpose, and for a while the accessible name still said "Stop
+ * three of seven" every turn, which meant the one invariant this app is
+ * strictest about, that no score is shown mid-session, held for everybody
+ * except the learner using a screen reader. `docs/PEDAGOGY.md` states it and
+ * `SessionView.tsx` explains it in as many words: a count mid-session is a
+ * score.
+ *
+ * So the rail is decorative to assistive tech, exactly as the week rail on Home
+ * already is. Nothing is lost by it: what a learner needs to know mid-session
+ * is what to say next, and that is the card above, read aloud, in words.
+ */
 export function StationLine({ total, index }: { total: number; index: number }) {
   return (
-    <View style={s.stationRow} accessible accessibilityLabel={`Stop ${index + 1} of ${total}`}>
+    <View style={s.stationRow} {...decorative}>
       {Array.from({ length: total }, (_, i) => {
         const done = i < index;
         const here = i === index;

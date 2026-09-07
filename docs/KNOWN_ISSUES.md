@@ -5305,7 +5305,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: both containers carry an `accessibilityLabel` and no `accessible`, so iOS never focuses the group and
   "Step 1 of 4" / "Stop 2 of 5" is never read. Add `accessible`; no role (web progressbar wants value attrs
   these lack).
-- verified-by: `the step dots and the station line are one spoken element — F358`
+- note: F458 split this entry's two halves apart. The step dots still speak as one element,
+  which is what this entry was about; the station line is silent now, because the only thing
+  it had to say was a count and a count mid-session is a score. The renamed test holds both.
+- verified-by: `the step dots speak as one element, and the station line speaks not at all — F358, F458`
 
 ### F359 — Meet Luc's four lines read as a paragraph, not a plaque
 - severity: P2
@@ -6686,3 +6689,35 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   better than one that appears first and is replaced under somebody.
 - verified-by: `home's situation card carries the tab's one pill, opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
 - verified-by: `the pool is pitched, so a beginner never meets a scene meant for somebody else`
+
+### F458 — The lesson counted the learner's position out loud to a screen reader
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/components.tsx:772
+- note: the progress dots were made numberless for sighted learners deliberately, and both
+  screens that draw them say why in their own headers: a count mid-session is a score, and
+  `docs/PEDAGOGY.md` lists "No score is ever shown mid-session" as an invariant. The
+  accessible name on the rail still said "Stop three of seven", every turn. So the one
+  rule this app is strictest about held for everybody except the learner using a screen
+  reader, which is the worst possible direction for an accessibility gap to run. The rail
+  is decorative now, the way Home's week rail already is. Nothing is lost by it: what a
+  learner needs mid-session is what to say next, and that is the card above it, in words.
+  The onboarding step dots keep their count, because a first run is not mid-session.
+- verified-by: `the step dots speak as one element, and the station line speaks not at all — F358, F458`
+
+### F459 — Three mid-session controls were off and looked exactly as live as the ones beside them
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:1151
+- note: Help me out, Slower and In English are disabled while the tutor holds the floor,
+  and carried no disabled appearance at all, so they sat in one row looking identical to
+  Give me a moment, which is deliberately live. A learner taps, nothing happens, and they
+  stop believing the row. `components.tsx` argues this at length for the shared controls
+  and these three are raw Pressables that bypassed it.
+  Worth recording how the fix went wrong first: dimming by style caught all five controls
+  in that row, including the two that must stay live because they are the ways out of a
+  turn that is going badly, and setting the words in faint ink broke F330's rule that
+  faint ink is a mark and never a line a learner reads. The first was caught by reading
+  the diff, the second by the guard itself. The three are on `OFF_CONTROL` now, which is
+  the mechanism that exists for exactly this.
+- verified-by: `faint ink colours marks and off controls, never a line a learner reads`

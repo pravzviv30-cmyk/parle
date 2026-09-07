@@ -1098,6 +1098,14 @@ describe('faint ink is a mark, not a word — F330, F338', () => {
     '<Text style={[type.bodyStrong, { color: draft.trim().length === 0 ? paper.inkFaint : paper.ink }]}>Send</Text>',
     '<Text style={[type.french, { color: used ? paper.inkFaint : paper.ink }]}>{token}</Text>',
     '<Text style={[type.bodyStrong, { color: locked ? paper.inkFaint : paper.ink }]}>{node.title}</Text>',
+    // The three mid-session controls that are turned off while the tutor holds
+    // the floor. They are off controls in exactly the sense this allow-set is
+    // for, and the fourth and fifth in that row are deliberately NOT here,
+    // because "Give me a moment" and "Type your reply instead" stay live: they
+    // are the two ways out of a turn that is going badly.
+    '<Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Help me out</Text>',
+    '<Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Slower</Text>',
+    '<Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>In English</Text>',
   ]);
 
   test('a caps label is violet, or it reports a state in ink; none is faint', () => {

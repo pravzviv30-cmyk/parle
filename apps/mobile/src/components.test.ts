@@ -92,7 +92,7 @@ describe('the onboarding-polish primitives speak their state — F354, F358', ()
     );
   });
 
-  test('the step dots and the station line are one spoken element — F358', () => {
+  test('the step dots speak as one element, and the station line speaks not at all — F358, F458', () => {
     // Both carry an accessibilityLabel ("Step X of Y" / "Stop X of Y") but iOS
     // never focuses the group and never reads it unless the container is marked
     // `accessible`. The label without the flag is a promise the OS drops.
@@ -100,9 +100,16 @@ describe('the onboarding-polish primitives speak their state — F354, F358', ()
     assert.match(dots, /accessible(?![a-zA-Z])/, 'the step dots are not one focusable element, so their label is never read');
     assert.match(dots, /accessibilityLabel/, 'the step dots carry no label to read');
 
+    // The station line is the exception, and it changed direction on purpose.
+    // It used to be one focusable element reading "Stop three of seven", which
+    // meant the invariant this app is strictest about, that no score is shown
+    // mid-session, held for everybody except the learner using a screen reader.
+    // It is decorative now, like the week rail on Home. Nothing is lost: what a
+    // learner needs mid-session is what to say next, and that is the card above
+    // it, in words.
     const station = region(componentsSource(), 'export function StationLine(', 'export function fitDisplay(');
-    assert.match(station, /accessible(?![a-zA-Z])/, 'the station line is not one focusable element, so its label is never read');
-    assert.match(station, /accessibilityLabel/, 'the station line carries no label to read');
+    assert.match(station, /\{\.\.\.decorative\}/, 'the station line is not hidden from assistive tech, so it may be counting out loud again');
+    assert.ok(!station.includes('accessibilityLabel'), 'the station line carries a label again, and the only thing it can say is a count');
   });
 });
 

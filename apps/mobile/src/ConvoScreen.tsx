@@ -1148,10 +1148,10 @@ export function ConvoScreen({
                 disabled={!listening}
                 accessibilityRole="button"
                 accessibilityLabel="Ask for help with this line"
-                style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
+                style={({ pressed }) => [st.helpItem, !listening && st.helpItemOff, pressed && listening && { opacity: 0.6 }]}
               >
                 <HelpGlyph size={15} />
-                <Text style={[type.small, { color: paper.inkSoft }]}>Help me out</Text>
+                <Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Help me out</Text>
               </Pressable>
               {/* Not disabled while the tutor talks, unlike the rest of this row.
                   Everything else here asks for a line and would talk over them;
@@ -1175,9 +1175,9 @@ export function ConvoScreen({
                     disabled={!listening}
                     accessibilityRole="button"
                     accessibilityLabel={`Ask ${tutorName} to slow down`}
-                    style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
+                    style={({ pressed }) => [st.helpItem, !listening && st.helpItemOff, pressed && listening && { opacity: 0.6 }]}
                   >
-                    <Text style={[type.small, { color: paper.inkSoft }]}>Slower</Text>
+                    <Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Slower</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => {
@@ -1187,9 +1187,9 @@ export function ConvoScreen({
                     disabled={!listening}
                     accessibilityRole="button"
                     accessibilityLabel="Ask for it in English"
-                    style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
+                    style={({ pressed }) => [st.helpItem, !listening && st.helpItemOff, pressed && listening && { opacity: 0.6 }]}
                   >
-                    <Text style={[type.small, { color: paper.inkSoft }]}>In English</Text>
+                    <Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>In English</Text>
                   </Pressable>
                 </>
               ) : null}
@@ -1307,6 +1307,12 @@ const st = StyleSheet.create({
     backgroundColor: paper.groundDeep,
     borderRadius: radius.chip,
   },
+  // Off, and it looks it. `components.tsx` argues this at length for the shared
+  // controls: a control that is disabled and looks live is a control a learner
+  // taps twice and then stops believing. These three are turned off while the
+  // tutor holds the floor, and "Give me a moment" beside them deliberately is
+  // not, so the difference has to be visible or the row is lying.
+  helpItemOff: { opacity: 0.55 },
   helpItem: {
     minHeight: HIT,
     flexDirection: 'row',
