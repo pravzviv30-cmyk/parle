@@ -6641,3 +6641,48 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the saved list is folded once per read, not twice per render`
 - verified-by: `the bookmark button says the write is running, and says when it did not take`
 - verified-by: `the fold is asked for once and answered many times`
+
+### F456 — The situation pool was too small to shuffle through
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/scenes/cafeAndFood.ts:1
+- note: the founder asked for five hundred situations so a learner can tap Suggest another
+  for a long time without meeting the same scene twice, and asked for them authored rather
+  than generated so the button costs nothing and waits for nothing. The pool went from 119
+  to 500: ten themes of everyday life in France, weighted to the start because a beginner
+  only ever sees tier one and lives there for months. Every entry carries three
+  learner-side lines, a theme and a tier.
+  It is split into `daily/scenes/`, one file per theme, because five hundred entries is
+  seven thousand lines and a diff nobody can read is a diff nobody checks. Nothing changed
+  at runtime: `scenarios.ts` still assembles the one array in a fixed order.
+  Two things the authoring got wrong and the tests caught, both worth recording because
+  they are what parallel authoring does: ten agents that cannot see each other wrote the
+  same trip to the cinema three times, and four more scenes ended up sharing a title with
+  a different scene in another theme. Ids caught the first; the second needed a test that
+  did not exist, and now does.
+  Measured cost, on 2026-09-07: 256 KB on the main web bundle, 13.5% of it. Hermes
+  compiles to bytecode so there is no startup parse cost on a phone; what it buys is
+  download and disk. `MAX_SCENE_BYTES` is the ceiling so the next growth is deliberate.
+- verified-by: `every theme carries a real share, and every tier can be lived in`
+- verified-by: `the beginner tier is the one a learner lives in longest, and is sized for it`
+- verified-by: `no two situations are the same scene under two names`
+- verified-by: `the pool has not quietly grown a second time`
+- verified-by: `the situations say what a person would say in both languages, and every id that ever shipped is still there — F424`
+- verified-by: `three lines, in both languages, on every situation in the pool`
+
+### F457 — Home showed a beginner whatever the day landed on
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.tsx:163
+- note: the other half of F451. Practice was pitched when the tier landed; Home was still
+  drawing today's situation from the whole pool, which was harmless at 119 everyday scenes
+  and stopped being harmless at 500. It reads the same `wordsForLevel` rule the word of
+  the day already reads, so the two cards on that screen cannot disagree about how far a
+  learner has come.
+  One thing changed that was previously deliberate and is worth naming rather than
+  slipping through: the situation used to be drawn before storage answered, because it was
+  a pure function of the day. Pitching it means it needs the learner's standing, so it
+  waits alongside the word now. A card that arrives a beat later beside its neighbour is
+  better than one that appears first and is replaced under somebody.
+- verified-by: `home's situation card carries the tab's one pill, opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
+- verified-by: `the pool is pitched, so a beginner never meets a scene meant for somebody else`

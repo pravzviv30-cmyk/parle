@@ -72,6 +72,7 @@ import {
   missionStates,
   suggestedMission,
   totalXp,
+  scenariosForLevel,
   wordsForLevel,
   type DailyScenario,
   type DailyWord,
@@ -135,10 +136,8 @@ export function HomeTab() {
     useCallback(() => {
       let cancelled = false;
       const now = Date.now();
-      // The situation and today's drawing do not wait on storage. Both are a
-      // pure function of the day and a pool, so they are on screen before the
-      // bridge answers, and both are picked from the one `now` above.
-      setScenario(dailyPick(DAILY_SCENARIOS, now));
+      // Today's drawing does not wait on storage: it is a pure function of the
+      // day and a pool of twenty, and it says nothing about the learner.
       setScene(dailyPick(WORD_SCENES, now));
       // All independent reads cross the native storage bridge together.
       void Promise.all([loadActivity(), loadDeck(), loadMissionCompletions(), loadBookmarks()])
@@ -152,6 +151,16 @@ export function HomeTab() {
           // with My French on the tab next door.
           const standing = levelFor(totalXp(activity));
           setWord(dailyPick(wordsForLevel(DAILY_WORDS, standing.index), now));
+          // The situation is pitched too, since the founder grew the pool to
+          // five hundred and the range widened from ordering a coffee to
+          // explaining a problem to an official. It used to be drawn before
+          // storage answered, and that is what changed: it joins the word in
+          // waiting rather than appearing first and being replaced, because a
+          // card that changes under somebody is worse than one that arrives a
+          // beat later beside its neighbour. Same `now`, same standing, same
+          // rule as the word, so the two cannot disagree about the day or about
+          // how far this learner has come.
+          setScenario(dailyPick(scenariosForLevel(DAILY_SCENARIOS, standing.index), now));
           setMomentum(momentumFrom({ activity, deck, profile, now }));
           setNextMission(suggestedMission(missionStates(missionCompletionsFrom(completions), deck, now)));
           setBookmarks(saved);
@@ -171,6 +180,10 @@ export function HomeTab() {
           // storage fault, and the greeting, the word, the situation and the
           // one pill are all still there.
           setWord(gentlestWord(now));
+          // The situation is pitched off the same unreadable standing, so it
+          // takes the same gentlest tier for the same reason. A pitch claims
+          // nothing about somebody nobody could measure.
+          setScenario(dailyPick(scenariosForLevel(DAILY_SCENARIOS, 0), now));
         });
       return () => {
         cancelled = true;

@@ -1,5 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readdirSync, statSync } from 'node:fs';
 
 import { DAILY_WORDS, type DailyWord } from './words.ts';
 import { DAILY_SCENARIOS, SEED_TOPIC_MAX, seedTopicOf, type DailyScenario } from './scenarios.ts';
@@ -10,7 +11,10 @@ import { MISSIONS } from '../missions/missions.ts';
 
 /** The minimum sizes the ledger asks for. A pool this size repeats every few months. */
 const MIN_WORDS = 90;
-const MIN_SCENARIOS = 60;
+// Raised from 60 with the pool itself. A floor a long way under the real count
+// stops noticing anything: at five hundred, sixty would survive losing seven
+// eighths of the situations without a word.
+const MIN_SCENARIOS = 460;
 
 /** Every tier has to last a season on its own, because a learner only ever sees one. */
 const MIN_WORDS_PER_TIER = 80;
@@ -157,6 +161,388 @@ const SHIPPED_SITUATION_IDS: readonly string[] = [
   'situation:street-strike-day',
   'situation:street-someone-asks-you',
   'situation:street-left-luggage',
+  // Added 2026-09-07 when the founder grew the pool to five hundred, F456.
+  'situation:cafe-croissant',
+  'situation:cafe-sugar',
+  'situation:cafe-toilets',
+  'situation:cafe-small-beer',
+  'situation:cafe-decaf',
+  'situation:cafe-coffee-with-milk',
+  'situation:cafe-same-again',
+  'situation:cafe-lunch-sandwich',
+  'situation:cafe-what-time-you-shut',
+  'situation:cafe-hot-chocolate',
+  'situation:cafe-ice-in-the-glass',
+  'situation:cafe-a-clean-glass',
+  'situation:cafe-the-menu-please',
+  'situation:cafe-orange-juice',
+  'situation:cafe-two-pastries',
+  'situation:cafe-table-for-two',
+  'situation:cafe-tea-and-milk',
+  'situation:cafe-rain-move-inside',
+  'situation:cafe-booking-a-table',
+  'situation:cafe-changing-your-mind',
+  'situation:cafe-nothing-with-meat',
+  'situation:cafe-lunch-formule',
+  'situation:cafe-a-table-away-from-the-door',
+  'situation:cafe-with-a-child',
+  'situation:cafe-dog-at-the-table',
+  'situation:cafe-wine-with-the-dish',
+  'situation:cafe-sharing-one-dish',
+  'situation:cafe-waiting-for-someone',
+  'situation:cafe-how-you-want-the-steak',
+  'situation:cafe-the-rest-in-a-box',
+  'situation:cafe-happy-hour',
+  'situation:cafe-card-machine-down',
+  'situation:cafe-something-you-never-ordered',
+  'situation:cafe-the-dish-came-cold',
+  'situation:cafe-a-jacket-on-the-chair',
+  'situation:cafe-the-food-is-taking-long',
+  'situation:cafe-a-receipt-for-work',
+  'situation:cafe-booking-for-a-big-group',
+  'situation:cafe-cancelling-tonights-table',
+  'situation:cafe-telling-them-about-an-allergy',
+  'situation:market-baguette-not-too-baked',
+  'situation:market-whose-turn',
+  'situation:market-half-a-dozen-eggs',
+  'situation:market-finding-the-rice',
+  'situation:market-slices-of-ham',
+  'situation:market-olives-by-weight',
+  'situation:market-a-ripe-melon',
+  'situation:market-local-honey',
+  'situation:market-the-receipt',
+  'situation:market-where-you-pay',
+  'situation:market-newspaper-and-a-pen',
+  'situation:market-a-coin-for-the-trolley',
+  'situation:market-shoes-in-your-size',
+  'situation:market-coffee-ground-for-you',
+  'situation:market-a-bottle-for-dinner',
+  'situation:market-sandwich-for-the-train',
+  'situation:market-a-cable-for-your-phone',
+  'situation:market-the-top-shelf',
+  'situation:market-picking-your-own',
+  'situation:market-the-bread-has-run-out',
+  'situation:market-paying-with-a-big-note',
+  'situation:market-a-spare-key',
+  'situation:market-a-book-you-can-read',
+  'situation:market-a-present-for-a-child',
+  'situation:market-wrapped-as-a-gift',
+  'situation:market-the-sale-rail',
+  'situation:market-an-umbrella-in-the-rain',
+  'situation:market-changing-your-mind-at-the-till',
+  'situation:market-the-self-service-till',
+  'situation:market-weighing-your-own',
+  'situation:market-putting-it-aside',
+  'situation:market-which-days-you-are-here',
+  'situation:market-a-kettle-in-pieces',
+  'situation:market-a-return-with-no-receipt',
+  'situation:market-the-shelf-price',
+  'situation:market-asking-them-to-order-it',
+  'situation:market-getting-the-table-delivered',
+  'situation:market-a-stain-on-a-jacket',
+  'situation:market-fruit-for-jam',
+  'situation:market-a-heel-that-came-off',
+  'situation:street-validating-a-ticket',
+  'situation:street-ticket-on-the-bus',
+  'situation:street-lift-in-the-station',
+  'situation:street-where-is-the-bus-stop',
+  'situation:street-next-train',
+  'situation:street-is-this-seat-free',
+  'situation:street-getting-off-at-the-next-stop',
+  'situation:street-return-ticket',
+  'situation:street-taxi-rank',
+  'situation:street-tram-stop',
+  'situation:street-topping-up-a-travel-card',
+  'situation:street-ticket-good-all-day',
+  'situation:street-help-with-a-suitcase',
+  'situation:street-how-far-to-the-station',
+  'situation:street-last-metro',
+  'situation:street-station-toilets',
+  'situation:street-window-seat',
+  'situation:street-coach-luggage',
+  'situation:street-finding-your-carriage',
+  'situation:street-someone-in-your-seat',
+  'situation:street-past-your-stop',
+  'situation:street-wrong-bus',
+  'situation:street-taxi-receipt',
+  'situation:street-station-shut-for-works',
+  'situation:street-tight-connection',
+  'situation:street-gate-stays-shut',
+  'situation:street-bike-on-the-train',
+  'situation:street-driver-cannot-find-the-address',
+  'situation:street-watching-my-bag',
+  'situation:street-night-bus-home',
+  'situation:street-everyone-off-the-tram',
+  'situation:street-a-ticket-for-the-little-one',
+  'situation:street-a-fine-on-the-metro',
+  'situation:street-rebooking-after-a-delay',
+  'situation:street-asking-for-a-refund',
+  'situation:street-a-phone-in-the-taxi',
+  'situation:street-car-will-not-start',
+  'situation:street-a-fine-on-the-windscreen',
+  'situation:street-picking-up-a-hire-car',
+  'situation:street-monthly-travel-pass',
+  'situation:home-bin-night',
+  'situation:home-front-door-code',
+  'situation:home-name-on-the-letterbox',
+  'situation:home-sugar-next-door',
+  'situation:home-hello-on-the-stairs',
+  'situation:home-in-the-lift',
+  'situation:home-anything-from-the-shop',
+  'situation:home-how-the-shutters-work',
+  'situation:home-letter-not-for-you',
+  'situation:home-the-buzzer',
+  'situation:home-where-the-glass-goes',
+  'situation:home-washing-on-the-balcony',
+  'situation:home-morning-caretaker',
+  'situation:home-watering-the-plants',
+  'situation:home-cellar-key',
+  'situation:home-bike-in-the-hallway',
+  'situation:home-new-neighbour-hello',
+  'situation:home-drilling-upstairs',
+  'situation:home-delivery-slip',
+  'situation:home-blocked-sink',
+  'situation:home-washing-machine-stopped',
+  'situation:home-lift-out-of-order',
+  'situation:home-smell-of-burning',
+  'situation:home-radiator-noise',
+  'situation:home-music-late',
+  'situation:home-moving-day',
+  'situation:home-post-while-away',
+  'situation:home-no-hot-water',
+  'situation:home-building-meeting',
+  'situation:home-leaving-a-key',
+  'situation:home-inventory-on-the-way-out',
+  'situation:home-deposit-back',
+  'situation:home-rent-receipts',
+  'situation:home-noise-complaint-about-you',
+  'situation:home-bulky-items-collection',
+  'situation:home-insurance-after-the-leak',
+  'situation:home-giving-notice',
+  'situation:home-who-pays-for-the-repair',
+  'situation:friends-name-again',
+  'situation:friends-phone-number',
+  'situation:friends-bumping-into-someone',
+  'situation:friends-the-flatmate',
+  'situation:friends-weather-talk',
+  'situation:friends-where-are-the-toilets',
+  'situation:friends-meeting-the-dog',
+  'situation:friends-nice-jumper',
+  'situation:friends-goodbye-at-the-metro',
+  'situation:friends-spelling-your-name',
+  'situation:friends-how-long-in-french',
+  'situation:friends-do-you-like-it-here',
+  'situation:friends-which-neighbourhood',
+  'situation:friends-new-year-wishes',
+  'situation:friends-before-the-holidays',
+  'situation:friends-introducing-your-partner',
+  'situation:friends-what-time-shall-we-say',
+  'situation:friends-what-shall-i-bring',
+  'situation:friends-you-are-vegetarian',
+  'situation:friends-why-you-moved-here',
+  'situation:friends-introducing-two-people',
+  'situation:friends-a-new-job',
+  'situation:friends-asking-for-a-coffee',
+  'situation:friends-rain-changes-the-plan',
+  'situation:friends-the-joke',
+  'situation:friends-loud-bar',
+  'situation:friends-a-word-you-cannot-find',
+  'situation:friends-talking-about-family',
+  'situation:friends-a-game-on-sunday',
+  'situation:friends-your-accent',
+  'situation:friends-cancelling-on-the-day',
+  'situation:friends-help-moving-flats',
+  'situation:friends-paying-a-friend-back',
+  'situation:friends-a-mix-up-about-the-day',
+  'situation:friends-telling-a-story',
+  'situation:friends-a-polite-disagreement',
+  'situation:friends-asked-to-translate',
+  'situation:friends-a-wedding-invitation',
+  'situation:work-first-day-hello',
+  'situation:work-coffee-machine',
+  'situation:work-meeting-room',
+  'situation:work-printer-paper',
+  'situation:work-lunch-invite',
+  'situation:work-what-time-it-starts',
+  'situation:work-name-again',
+  'situation:work-answering-the-phone',
+  'situation:work-borrow-a-pen',
+  'situation:work-leaving-for-the-day',
+  'situation:work-reception-sign-in',
+  'situation:study-arriving-late-to-class',
+  'situation:study-repeat-please',
+  'situation:study-how-do-you-say-it',
+  'situation:study-homework-date',
+  'situation:study-which-classroom',
+  'situation:study-tutor-first-lesson',
+  'situation:work-asking-a-colleague-for-help',
+  'situation:work-please-speak-slowly',
+  'situation:work-swapping-a-shift',
+  'situation:work-bad-sound-on-the-call',
+  'situation:work-taking-a-message',
+  'situation:work-asking-for-a-day-off',
+  'situation:work-kitchen-small-talk',
+  'situation:work-introducing-yourself-in-a-meeting',
+  'situation:study-pairing-up-in-class',
+  'situation:study-moving-a-lesson',
+  'situation:work-a-form-you-cannot-fill-in',
+  'situation:work-visitor-at-reception',
+  'situation:study-asking-for-an-example',
+  'situation:work-a-date-that-will-not-work',
+  'situation:work-explaining-a-mistake',
+  'situation:work-disagreeing-in-a-meeting',
+  'situation:work-handover-before-holiday',
+  'situation:work-chasing-a-document-by-phone',
+  'situation:study-talking-about-a-mark',
+  'situation:study-signing-up-for-a-course',
+  'situation:work-question-on-the-payslip',
+  'situation:pharmacy-headache',
+  'situation:pharmacy-cough-syrup',
+  'situation:pharmacy-runny-nose',
+  'situation:pharmacy-cut-finger',
+  'situation:pharmacy-opening-time',
+  'situation:pharmacy-sore-stomach',
+  'situation:pharmacy-too-much-sun',
+  'situation:pharmacy-mosquito-bites',
+  'situation:pharmacy-thermometer',
+  'situation:doctor-booking-a-visit',
+  'situation:doctor-giving-your-name',
+  'situation:doctor-where-it-hurts',
+  'situation:dentist-ringing-up',
+  'situation:pharmacy-feeling-tired',
+  'situation:pharmacy-sleeping-badly',
+  'situation:pharmacy-tired-eyes',
+  'situation:pharmacy-open-tonight',
+  'situation:pharmacy-generic-box',
+  'situation:pharmacy-last-tablets',
+  'situation:doctor-nothing-before-next-week',
+  'situation:pharmacy-allergic-to-that',
+  'situation:dentist-a-filling-came-out',
+  'situation:pharmacy-how-to-take-it',
+  'situation:doctor-a-note-for-work',
+  'situation:pharmacy-for-a-friend',
+  'situation:pharmacy-something-stronger',
+  'situation:doctor-sent-for-a-blood-test',
+  'situation:pharmacy-twisted-ankle',
+  'situation:doctor-coming-back-again',
+  'situation:doctor-signing-up-locally',
+  'situation:health-refund-never-arrived',
+  'situation:pharmacy-wrong-box-in-the-bag',
+  'situation:doctor-an-old-injury',
+  'situation:health-long-wait-at-emergency',
+  'situation:health-card-refused',
+  'situation:dentist-the-price-first',
+  'situation:doctor-putting-a-pain-into-words',
+  'situation:pharmacy-nobody-has-it',
+  'situation:admin-stamps-for-a-postcard',
+  'situation:admin-sending-a-parcel',
+  'situation:admin-collecting-a-parcel',
+  'situation:admin-taking-a-ticket',
+  'situation:admin-which-counter',
+  'situation:admin-asking-for-a-form',
+  'situation:admin-asking-for-an-appointment',
+  'situation:admin-how-late-they-are-open',
+  'situation:admin-seeing-the-bank-advisor',
+  'situation:admin-finding-the-cash-machine',
+  'situation:admin-buying-a-sim-card',
+  'situation:admin-how-much-a-month',
+  'situation:admin-spelling-your-name',
+  'situation:admin-giving-your-address',
+  'situation:admin-asking-for-a-receipt',
+  'situation:admin-a-photocopy',
+  'situation:admin-where-to-sign',
+  'situation:admin-registered-letter',
+  'situation:admin-parcel-went-back',
+  'situation:admin-opening-an-account',
+  'situation:admin-card-never-arrived',
+  'situation:admin-bill-is-higher',
+  'situation:admin-one-paper-short',
+  'situation:admin-moving-an-appointment',
+  'situation:admin-arriving-late',
+  'situation:admin-a-box-on-the-form',
+  'situation:admin-check-my-form',
+  'situation:admin-identity-photos',
+  'situation:admin-library-card',
+  'situation:admin-setting-up-a-transfer',
+  'situation:admin-contesting-a-fine',
+  'situation:admin-chasing-a-document',
+  'situation:admin-cancelling-a-contract',
+  'situation:admin-a-charge-you-never-made',
+  'situation:admin-asking-for-more-time',
+  'situation:admin-a-mistake-on-the-paper',
+  'situation:admin-returned-to-sender',
+  'situation:admin-proving-where-you-live',
+  'situation:bar-a-beer',
+  'situation:cinema-one-ticket',
+  'situation:cinema-tonight-showing',
+  'situation:bar-a-table-inside',
+  'situation:bar-toilets',
+  'situation:bar-same-again',
+  'situation:invite-a-drink-tonight',
+  'situation:night-last-metro',
+  'situation:night-walking-home',
+  'situation:cinema-which-screen',
+  'situation:bar-something-soft',
+  'situation:invite-saying-yes',
+  'situation:gig-ticket-at-the-door',
+  'situation:club-cloakroom',
+  'situation:night-sharing-a-taxi',
+  'situation:invite-bringing-a-friend',
+  'situation:bar-evening-prices',
+  'situation:cinema-dubbed-or-subtitled',
+  'situation:bar-someone-talks-to-you',
+  'situation:gig-finding-the-venue',
+  'situation:club-at-the-door',
+  'situation:invite-moving-the-evening',
+  'situation:bar-music-too-loud',
+  'situation:night-bus-home',
+  'situation:bar-settling-up',
+  'situation:party-knowing-one-person',
+  'situation:cinema-seat-taken',
+  'situation:bar-turning-down-another',
+  'situation:cinema-sound-cut-out',
+  'situation:club-turned-away',
+  'situation:night-taxi-long-way',
+  'situation:gig-ticket-will-not-scan',
+  'situation:party-neighbour-at-the-door',
+  'situation:gig-spare-ticket',
+  'situation:bar-a-drink-on-the-bill',
+  'situation:night-last-train-gone',
+  'situation:museum-one-ticket',
+  'situation:museum-cloakroom',
+  'situation:museum-plan',
+  'situation:gallery-photos',
+  'situation:pool-one-entry',
+  'situation:pool-lockers',
+  'situation:park-closing-time',
+  'situation:beach-deckchair',
+  'situation:photo-of-the-two-of-us',
+  'situation:market-town-which-day',
+  'situation:walk-how-long',
+  'situation:public-holiday-tomorrow',
+  'situation:festival-free-entry',
+  'situation:class-a-place-left',
+  'situation:museum-reduced-rate',
+  'situation:museum-where-to-start',
+  'situation:cinema-original-version',
+  'situation:beach-swimming-today',
+  'situation:park-a-spot-on-the-grass',
+  'situation:petanque-invitation',
+  'situation:tourist-desk-one-day',
+  'situation:boat-trip-last-one-back',
+  'situation:festival-where-to-meet',
+  'situation:pool-which-lane',
+  'situation:walk-path-back',
+  'situation:library-joining',
+  'situation:museum-room-shut',
+  'situation:class-signing-up-late',
+  'situation:gym-ending-membership',
+  'situation:pool-goggles-left',
+  'situation:boat-trip-called-off',
+  'situation:library-book-late',
+  'situation:museum-toilets',
+  'situation:museum-postcard',
+  'situation:festival-called-off',
 ];
 
 /**
@@ -643,6 +1029,84 @@ describe('the tier rises with the learner, and the day still picks the word', ()
       /empty pool/,
       'an empty tier drew a card from somewhere, which would hide a content bug on Home',
     );
+  });
+});
+
+/**
+ * A ceiling on the pool's own weight.
+ *
+ * Measured on 2026-09-07: growing the pool from a hundred and nineteen to five
+ * hundred put 256 KB on the main web bundle, 13.5% of it. That is a real cost
+ * and it was a deliberate one, paid for five hundred hand-written situations.
+ * What it must not become is a cost nobody notices being paid again.
+ *
+ * The bytes counted are the source, not the bundle. A bundle export takes a
+ * minute and the gate runs on every push; the source size moves with the pool
+ * and catches the same thing. Hermes compiles the app to bytecode, so what this
+ * defends is download and disk rather than startup: there is no parse cost on a
+ * phone for any of it.
+ *
+ * Raise it deliberately, with a number from a real export beside the reason.
+ */
+const MAX_SCENE_BYTES = 420_000;
+
+describe('the pool is five hundred situations, spread on purpose — F456', () => {
+  test('the pool has not quietly grown a second time', () => {
+    const dir = new URL('./scenes/', import.meta.url);
+    const files = readdirSync(dir).filter((name) => name.endsWith('.ts'));
+    assert.ok(files.length === 10, `the pool is split into ${files.length} theme files; ten were authored`);
+    const bytes = files.reduce((total, name) => total + statSync(new URL(name, dir)).size, 0);
+    assert.ok(
+      bytes <= MAX_SCENE_BYTES,
+      `the situation pool is ${bytes} bytes of source, past the ${MAX_SCENE_BYTES} ceiling. Every one of those bytes ships to every learner on every platform, so raise this on purpose or not at all`,
+    );
+  });
+
+
+  test('every theme carries a real share, and every tier can be lived in', () => {
+    // Not a count for its own sake. The founder asked for five hundred so a
+    // learner can tap through for a long time, and for an everyday spread
+    // rather than four hundred restaurants, so both are held here. Ten themes
+    // authored separately is exactly the arrangement that silently becomes
+    // nine, which is what a floor per theme is for.
+    const byTheme = new Map<string, number>();
+    for (const scenario of DAILY_SCENARIOS) {
+      byTheme.set(scenario.theme, (byTheme.get(scenario.theme) ?? 0) + 1);
+    }
+    assert.equal(byTheme.size, 10, `the pool covers ${byTheme.size} themes; ten were authored`);
+    for (const [theme, count] of byTheme) {
+      assert.ok(count >= 30, `${theme} carries only ${count} situations, so it will repeat long before the others do`);
+    }
+  });
+
+  test('the beginner tier is the one a learner lives in longest, and is sized for it', () => {
+    // A beginner is only ever shown tier one, so tier one is what most learners
+    // meet for months. It is the tier that must not run dry, which is why the
+    // founder weighted the pool to the start rather than splitting it evenly.
+    const byTier = new Map<number, number>();
+    for (const scenario of DAILY_SCENARIOS) {
+      byTier.set(scenario.tier, (byTier.get(scenario.tier) ?? 0) + 1);
+    }
+    for (const tier of [1, 2, 3]) {
+      assert.ok((byTier.get(tier) ?? 0) >= 60, `tier ${tier} holds ${byTier.get(tier) ?? 0} situations, which a learner exhausts in weeks`);
+    }
+    assert.ok(
+      (byTier.get(1) ?? 0) >= (byTier.get(3) ?? 0),
+      'the hardest tier is larger than the one a beginner lives in, which is the pool weighted at the wrong end',
+    );
+  });
+
+  test('no two situations are the same scene under two names', () => {
+    // Ten agents authored ten themes without seeing each other, and three of
+    // them wrote the same trip to the cinema. Ids caught that; a title would
+    // catch the next one, which is a scene renamed rather than repeated.
+    const titles = new Map<string, string>();
+    for (const scenario of DAILY_SCENARIOS) {
+      const key = scenario.titleEn.trim().toLowerCase();
+      const seen = titles.get(key);
+      assert.equal(seen, undefined, `${scenario.id} and ${seen} are both called "${scenario.titleEn}"`);
+      titles.set(key, scenario.id);
+    }
   });
 });
 

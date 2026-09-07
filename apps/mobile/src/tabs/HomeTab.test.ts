@@ -345,8 +345,24 @@ describe('Home opens on the day rather than on a summary — F420, F391, F392', 
       'Home decides for itself what the bookmark button says, or asks without the fold it already built',
     );
 
-    // The situation is the day's, and the title on it is English.
-    assert.match(FLAT, /setScenario\(dailyPick\(DAILY_SCENARIOS, now\)\)/, "today's situation is not picked by the day");
+    // The situation is the day's, pitched at the learner, and titled in English.
+    //
+    // It used to be `dailyPick(DAILY_SCENARIOS, now)` drawn before storage
+    // answered. The founder grew the pool to five hundred on 2026-09-07 and the
+    // range widened from ordering a coffee to explaining a problem to an
+    // official, so it is filtered by tier now and waits alongside the word,
+    // rather than arriving first and being replaced under somebody. Read
+    // through the same `wordsForLevel` rule the word uses, never a second
+    // opinion about how far a learner has come.
+    assert.match(
+      FLAT,
+      /setScenario\(dailyPick\(scenariosForLevel\(DAILY_SCENARIOS, standing\.index\), now\)\)/,
+      "today's situation is not picked by the day, or is not pitched at the learner it is shown to",
+    );
+    assert.ok(
+      !FLAT.includes('setScenario(dailyPick(DAILY_SCENARIOS, now))'),
+      'the unpitched pick is back, so a beginner can meet a scene written for somebody two levels up',
+    );
     assert.ok(SITUATION.includes('{scenario.titleEn}'), 'the card does not title the scene in English');
     assert.ok(SITUATION.includes('{scenario.bodyEn}'), 'the card does not say what the learner is doing there');
     assert.ok(SITUATION.includes('{scenario.openingFr}'), 'the card does not offer the first line to say');
