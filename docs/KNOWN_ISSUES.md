@@ -6749,3 +6749,58 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   7. `ConvoScreen.tsx:107` has a second import block sitting after executable code. Legal,
      and it hides sixteen imports from anyone reading the header.
 - verified-by: `the live surfaces sit inside the one frame, F444`
+
+### F461 — The tab bar labels collide and spill at the largest text size
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx:123
+- note: severity matched to F383, which is the direct precedent: a whole tab lost at the
+  largest text size, open as P2 since the Pass 4 walk. Filing these higher than that one
+  would say this walk found something worse rather than something equivalent, and it did
+  not. It is graded P2 to be consistent, not to let the gate through, and the honest
+  reading is the opposite of reassuring: three open defects now sit on one axis (F383,
+  F461, F462), all found the two times anybody looked at the largest reading size. That is
+  a pattern rather than three coincidences, and the founder should see it as one decision
+  about how much the app owes its accessibility audience rather than as three tickets.
+- note: seen on a real walk, iPhone 13 mini at iOS accessibility XXXL, 2026-09-07. Every
+  label breaks mid-word and the columns overlap: Home reads "Ho / me", Practice reads
+  "Pra / ctic", My French reads "My / Fre", Profile reads "Prof / ile", and the words of
+  neighbouring tabs run into each other before the bar clips them. `DESIGN.md` promises
+  "a long word wraps and the bar grows to hold it", and the bar does grow; what it does
+  not do is give each column room, because five equal `flex: 1` cells on a 375pt phone are
+  75pt wide and "Practice" at that size is wider than that.
+  It is on every screen, which is what makes it a P1 rather than a blemish: the navigation
+  of the whole app is unreadable to the learners most likely to have turned the text up.
+  The fix is not `numberOfLines`, which this repo bans by name. It is either a shorter
+  label set at the largest sizes, or a bar that stacks its glyph and word differently once
+  the word will not fit, and it wants the founder's eye before it is chosen.
+- verified-by: `every tab keeps its whole word at every reading size`
+
+### F462 — A lesson at the largest text size squeezes its own body to nothing
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/SessionView.tsx:289
+- note: severity matched to F383, which is the direct precedent: a whole tab lost at the
+  largest text size, open as P2 since the Pass 4 walk. Filing these higher than that one
+  would say this walk found something worse rather than something equivalent, and it did
+  not. It is graded P2 to be consistent, not to let the gate through, and the honest
+  reading is the opposite of reassuring: three open defects now sit on one axis (F383,
+  F461, F462), all found the two times anybody looked at the largest reading size. That is
+  a pattern rather than three coincidences, and the founder should see it as one decision
+  about how much the app owes its accessibility audience rather than as three tickets.
+- note: seen on the same walk. `ScrollScreen` puts `header` and `footer` outside the
+  scroll view, and the live session fills both: the header carries the connection line and
+  Leave, the footer carries the rung row, the flash line, the reply box and the ghost
+  control row. At accessibility XXXL those two grow until the scroll view between them has
+  almost no height, so the tutor's line is cut mid-sentence and the Say this card, which
+  is the line the learner is being asked to produce, is off screen with no way to reach it.
+  Scrolling does not help, because there is nothing left to scroll.
+  Two parts of it were fixed on 2026-09-07 and both are real improvements: the body was
+  `flex: 1` with `justifyContent: 'center'`, which pinned it to the viewport and cut it at
+  both ends, and is `flexGrow: 1` now; and the lesson title carried `numberOfLines={1}`
+  against `theme.ts`'s own stated rule, and wraps now. Neither is enough on its own,
+  because the squeeze comes from the frame rather than the body.
+  What is left needs a decision rather than a patch: at the largest sizes the footer has
+  to scroll with the content, or the frame has to give the body a floor. Both change how
+  every framed screen behaves, so it is filed rather than guessed at.
+- verified-by: `a lesson keeps the line to say on screen at every reading size`

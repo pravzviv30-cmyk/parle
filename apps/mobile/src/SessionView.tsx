@@ -320,7 +320,10 @@ export function SessionView(props: SessionViewProps) {
         <View style={st.headerRow}>
           <Label>Level {props.cefr}</Label>
         </View>
-        <Text style={[type.heading, { color: paper.ink, marginTop: space(1) }]} numberOfLines={1}>
+        {/* Wrapping, never clipped. `theme.ts` states it outright: nothing in
+            this app is cut to fit, and a lesson title truncated at the largest
+            reading size is the learner losing the name of what they are in. */}
+        <Text style={[type.heading, { color: paper.ink, marginTop: space(1) }]}>
           {props.lessonTitle}
         </Text>
         <View style={{ marginTop: space(2.5) }}>
@@ -377,7 +380,19 @@ const st = StyleSheet.create({
   send: { paddingHorizontal: space(3), paddingVertical: space(2.5), minHeight: HIT },
   header: { paddingBottom: space(3) },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  body: { flex: 1, paddingTop: space(3), paddingBottom: space(5), gap: space(5), justifyContent: 'center' },
+  // `flexGrow`, never `flex: 1`, and no vertical centring.
+  //
+  // `flex: 1` inside a ScrollScreen pins the body to the height of the viewport,
+  // so content that grows past it is clipped instead of scrolled, and
+  // `justifyContent: 'center'` then cuts it off symmetrically at both ends. At
+  // the largest reading size that took the lesson title, the Leave control and
+  // the whole Say this card off a session in progress: a learner could not see
+  // the line they were being asked to say, and could not scroll to it. Same
+  // defect as F383 on My French, in a worse place.
+  //
+  // `flexGrow: 1` still fills a short screen, which is all the centring was for,
+  // and lets a tall one scroll.
+  body: { flexGrow: 1, paddingTop: space(3), paddingBottom: space(5), gap: space(5) },
   tutorBlock: { borderLeftWidth: HAIRLINE + 1, borderLeftColor: paper.line, paddingLeft: space(3.5) },
   tutorHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   mainCard: { alignItems: 'center' },

@@ -903,3 +903,32 @@ sessions start. That was not investigated further and is local configuration, no
 - **The server side of deletion.** That the Supabase rows actually cascade is one
   of the checks in the blocked Supabase harness (`F63`), not something a phone can
   show you.
+
+Run: 2026-09-07 — Claude — iOS 26.5 on iPhone 13 mini Simulator (375 x 812, the V-X row),
+     dev client against the full local stack from `npm run dev`, at `a1da4d6` plus the two
+     SessionView fixes — Android not run, no device
+Result: 4 pass, 2 fail, the rest not run
+Filed: F461, F462
+
+What the walk established, and what it did not.
+
+**Passed.** Practice opens correctly on a fresh account with no vault, no feed and no
+zeros, which is the screen F449 broke. Home draws the day, pitches the word and the
+situation at the learner's tier, and its momentum block shows four cards with invitation
+lines and not one nought. A scripted lesson runs end to end: the tutor speaks, a typed
+answer is graded, the rail advances, and the rail carries no count. The new pool reaches
+the tutor agent intact, verified in the room metadata as a seed topic authored yesterday.
+Home scrolls fully at accessibility XXXL.
+
+**Failed.** The tab bar at accessibility XXXL (F461) and the live session at the same size
+(F462). Both are recorded rather than repaired, and both are the same axis as the open
+F383.
+
+**Not reached: a free conversation with the tutor.** The room opened, the token server
+issued the grant and the agent worker was registered with vendors verified, but LiveKit
+never dispatched a job to it, so nobody joined. That is local dispatch configuration
+rather than app code, and the app answered it exactly as designed: "Your tutor did not
+pick up. The room opened but nobody joined it, so nothing has been counted against your
+minutes", with a way back. So `ConvoScreen` itself, and the three controls dimmed there by
+F459, remain unwalked on a device. `LiveErrorView` was walked, and it pays its inset, which
+is one of the three screens F444 moved onto the shared frame.
