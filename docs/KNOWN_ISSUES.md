@@ -6721,3 +6721,31 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the diff, the second by the guard itself. The three are on `OFF_CONTROL` now, which is
   the mechanism that exists for exactly this.
 - verified-by: `faint ink colours marks and off controls, never a line a learner reads`
+
+### F460 — Seven live-session findings from the 2026-09-07 audit, unfixed
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tutor/Transcript.tsx:169
+- note: the audit that produced F452 to F455, F458 and F459 found seven more inside the
+  conversation. The agent sent at them died on a session rate limit before writing a line,
+  and they are recorded here rather than left in a transcript nobody will read again. None
+  is a defect a learner would name; all seven are the kind that make a screen slowly worse.
+  1. `Transcript.tsx:169` copies and reverses the whole turn list in the render body, and
+     Transcript re-renders on every keystroke into the reply box. There is no `React.memo`
+     anywhere in this app, so every line re-renders with it. A backward loop removes it.
+  2. `ConvoScreen.tsx:420` writes a ref and reads the clock in the render body. Under
+     concurrent rendering a discarded render can stamp it, and it feeds the duration the
+     session banks.
+  3. `SessionView.tsx:323` sets `numberOfLines={1}` on the lesson title, against
+     `theme.ts:68`, which states outright that nothing in this app is ever clipped to fit.
+     At the largest reading size the title truncates.
+  4. `Transcript.tsx:185` is not a live region, and everything else on that screen that
+     changes async is one. It matters most in typed mode, where there is no voice and
+     nothing announces the tutor's reply. Announce the newest turn, never the whole thread.
+  5. `ConvoScreen.tsx:482` schedules the fifteen-second recap bail with a stale closure
+     over `live.convo.beat.position` and `live.drills`, under an eslint-disable.
+  6. `ConvoScreen.tsx:261` computes `tutorName`, and `:828` and `:1047` call
+     `tutorNameOf(profile)` again inline. Three call sites is three chances to drift.
+  7. `ConvoScreen.tsx:107` has a second import block sitting after executable code. Legal,
+     and it hides sixteen imports from anyone reading the header.
+- verified-by: `the live surfaces sit inside the one frame, F444`
