@@ -6804,3 +6804,140 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   to scroll with the content, or the frame has to give the body a floor. Both change how
   every framed screen behaves, so it is filed rather than guessed at.
 - verified-by: `a lesson keeps the line to say on screen at every reading size`
+
+### F463 — My French was a record of the learner's French, and not a place to use it
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/MyFrenchTab.tsx:1
+- note: the founder's question about the mockup was not about chrome. It was that My French
+  read as the Practice tab with different headings, and gave a learner no reason to open it.
+  Both tabs were archives; only one of them needs to be. Practice keeps the session as its
+  unit and answers what happened and what to redo. My French now takes the phrase as its
+  unit and answers which lines are the learner's, ordered by `review/evidence.ts`'s ladder:
+  `introduced` is never drawn, `recalled` is the single card the page asks for out loud, and
+  `used` and `transferred` are the one list under the phrase worth naming. That is the climb
+  rendered as a layout, which is the only answer to "no percentage and no bar" that is not
+  merely an absence. The mockup's per-situation percentages are not implemented in any form:
+  `progress/passport.ts` omits the fields deliberately so the fraction cannot be rendered,
+  and `phrases/phrasebook.ts` refuses the same number again for a second reason.
+- verified-by: `the screen works nothing out for itself`
+- verified-by: `the tab deals one line, and never a second`
+- verified-by: `exactly one primary renders, and one module decides which`
+- verified-by: `the two branches are mutually exclusive over every combination`
+- verified-by: `the featured phrase is the phrase Home calls first, by construction`
+- verified-by: `a first return outranks a due phrase the learner already uses`
+
+### F464 — The sound line was decided inside the screen, where no test could reach it
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/myfrench/sounds.ts:1
+- note: `latestCheck` and `checkLine` sat at the top of `MyFrenchTab.tsx` deciding
+  learner-facing copy. There is no renderer in this workspace, so that was the one judgement
+  on the tab nothing defended. Lifting it into a module is the same move `progress/passport.ts`
+  and `progress/portfolio.ts` already made, and it is what let the guard below exist at all.
+- verified-by: `the sound line left the screen, where nothing could test it`
+- verified-by: `every kind of check has a sentence, and none of them is a number`
+
+### F465 — A stored pronunciation focus could still say "today" months later
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/myfrench/sounds.ts:70
+- note: `SoundCheckEvidence.focus` is written at the moment of the check and read whenever
+  the learner opens the tab. `phonemes/scoring.ts` can write a reason carrying a count or a
+  word about time, and a sentence that was true once is a small lie by the time it is read.
+  A focus carrying a digit or a time word now falls back to the timeless line. The check is
+  blunt on `copy/guilt.ts`'s reasoning: a false positive costs one sentence its detail, a
+  false negative tells a learner something untrue about their own mouth.
+- verified-by: `a focus that dates itself is replaced, however warmly it is worded`
+- verified-by: `a focus that counts is replaced, because the count was true once`
+
+### F466 — A review card could print its own prompt back as the sentence it came from
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/review/cardView.ts:226
+- note: found while building My French's one-line card, and it is a live defect on the
+  shipped Review screen rather than anything new. `cardView` blanked `context` only when it
+  matched the answer, but `packages/core/src/review/cards.ts` builds a lesson vocabulary card
+  with the gloss on `back` and on `context` alike. A retrieval on that card asks with the
+  gloss and answers with the word, so the duplicate came through underneath as provenance it
+  never had. Blanked against both faces now.
+- verified-by: `a lesson vocabulary card does not print its gloss twice`
+- verified-by: `a real sentence still arrives with the answer`
+
+### F467 — A tint could only ever be a disc, and the colour stopped at the drawing
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/components.tsx:687
+- note: the founder's mockup carried each situation's colour through to the row itself, and
+  the rule said a tint is drawn only as the disc behind a mission's drawing. The choice was
+  between keeping that sentence and widening it to what it was actually protecting, and it was
+  widened deliberately rather than routed around: a tint is a SURFACE, so it may be the disc
+  or the ground under a row about that same place, and it is still never lettering, a stroke,
+  a border, or a mark that reports state. The hex still lives in four files, so a screen names
+  a place and never a colour. The colour maths needed nothing, every tint already sitting at
+  least eight from every surface, thirty from every signal and lighter than every mark. The
+  enforcing test got stricter in the same change: its ban read `borderColor` case-sensitively
+  and so missed `backgroundColor` by accident rather than by permission, which meant a tint
+  ground would have passed silently even under the old rule. All five places that recorded the
+  old sentence were rewritten, not just the one the test reads.
+  The founder then asked for the section to match the mockup exactly, so the situations became a
+  titled white card with the rows inside it and the status moved into a pill on the right, which
+  is also what let the passport's separate green dot go: the pill says the same thing in words,
+  so the claim is made once. The pill's words are short because the sentence version broke the
+  row, hyphenating "réception" through the middle at 375pt, and the sentence still exists for
+  anywhere with room for it. Three of the mockup's four pills could not be told the truth and
+  said something else instead: percentages have no denominator here, and nothing is ever locked.
+- verified-by: `no two tints read as one, and nothing letters or signals in a tint — F362`
+- verified-by: `the My French screen draws a stamp only for a scene finished unaided`
+- verified-by: `only a scene handled with nothing handed over is filled`
+- verified-by: `every combination says something, and nothing says it is locked`
+- verified-by: `a pill is short enough to sit beside a title`
+- verified-by: `it counts, and it never divides`
+
+### F468 — The assessor knew which sound it meant, and threw it away
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/soundcheck/model.ts:51
+- note: `soundCheckDecision` read `report.focus.reason` while `report.focus.phoneme.ipa` sat
+  in scope unread, so every later surface had prose it could print and nothing it could look
+  up. My French could say one sound was ready to revisit and never say which. The key is
+  nullable at `version: 1` on purpose: this store has no upgrade function and `read` returns
+  an empty array on a version it does not recognise, so a bump would have silently deleted
+  every check every learner has recorded, up to sixty each. It is written on every row, null
+  included, so whole-row merge identity does not read one attempt as two across builds. That
+  unlocked the acoustic panel, which is authored content in `phonemes/inventory.ts` and
+  `phonemes/drills.ts` that had never been drawn on this tab.
+- verified-by: `an assessed focus carries its phoneme, so a later screen can look the sound up`
+- verified-by: `a row with no phoneme at all is kept, not discarded`
+- verified-by: `a check that named no sound stores no sound, rather than a guess`
+- verified-by: `the hardest French vowel arrives with its cue, its trick and its pair`
+- verified-by: `a learner whose checks named no sound gets no panel at all`
+
+### F469 — The cadence words existed and no learner could find them
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/connectors.ts:1
+- note: a beginner's French becomes a conversation at the point where they can join a thought
+  or hedge one, and ten of those words were already authored in `DAILY_WORDS` with notes and
+  examples, reachable only by chance on the day the word of the day happened to land on one.
+  They are now a curated id list rather than a new field, because a `kind` on `DailyWord`
+  would mean deciding a kind for the other two hundred and seventy-four. The mockup wanted a
+  count beside each one; the count is real and is still not drawn, because a count invites a
+  target and a target you are under is a quota. The mark is earned instead, from `isRetained`.
+- verified-by: `every connector is a word the pool actually carries`
+- verified-by: `a connector is theirs only once they used it unprompted`
+- verified-by: `nothing anywhere in it counts at the learner`
+- verified-by: `a learner on their first morning still meets the whole set`
+
+### F470 — A voice started on My French would have followed the learner off it
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/myfrench/AcousticCard.tsx:32
+- note: the tab had no audio until this pass. `tutorVoice.speak` calls `Speech.stop()` before
+  it starts, so two Listens interrupt each other, which is what a minimal pair wants, but
+  nothing stops the last one when the learner leaves. That is F304 on a different surface, and
+  it is filed rather than merely fixed because four components on this tab can start a voice
+  and a fifth could be added without thinking about it. The source walk holds all of them.
+- verified-by: `anything that starts a voice also stops one when it goes`
+- verified-by: `every control that plays says what it will play`
+- verified-by: `nothing here listens, records or scores`

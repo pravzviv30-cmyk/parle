@@ -291,6 +291,38 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- My French colour-and-panels gate: **2,703 tests, 0 failing**; core 605, brain 383, tutor agent 434,
+  token server 178, playground 26, mobile 1077. Typecheck is clean in all six workspaces and floors
+  were blessed to those counts. F467 to F470, the second pass over the same mockup. F467 widened the
+  tint rule deliberately: a tint is a surface, so it is the disc under a drawing OR the ground under
+  a row about that place, and every situation row now carries its place's colour. All five records of
+  the old sentence were rewritten and the enforcing test got stricter, because its ban read
+  `borderColor` case-sensitively and missed `backgroundColor` by accident rather than by permission.
+  F468 persisted the phoneme a sound check names, which the assessor had always known and always
+  discarded; the key is nullable at `version: 1` because this store has no upgrade function and a
+  bump would have deleted every learner's checks. That unlocked the acoustic panel, which is
+  authored `phonemes/` content that had never been drawn on this tab. F469 surfaced ten connectors
+  already in `DAILY_WORDS`, marked when the learner has produced them unprompted. F470 holds every
+  component here that can start a voice to stopping it, which is F304 on a new surface.
+  Three things the mockup asked for were refused rather than approximated: the per-situation
+  percentages (no denominator exists and `passport.ts` omits the fields so none can be computed),
+  the per-word "Mastered" badge (no per-word pronunciation history exists), and "Record variation"
+  (`PRIVACY_AND_SAFETY.md` makes keeping learner audio a consent and disclosure change, not a branch).
+  What this does NOT prove: none of it has been seen on a device, and the largest-text-size walk that
+  found F383, F461 and F462 on this same tab has still not been repeated against the new layout.
+- My French evidence-ledger gate: **2,668 tests, 0 failing**; core 601, brain 383, tutor agent 434,
+  token server 178, playground 26, mobile 1046. Typecheck is clean in all six workspaces and floors
+  were blessed to those counts. F463 to F466: My French was rebuilt around `review/evidence.ts`'s
+  ladder rather than around recency, so the tab's unit is the phrase where Practice's is the session.
+  It opens on one card from the deck with the French withheld until an attempt lands, chosen by
+  `myfrench/oneLine.ts`'s four tiers and graded through the existing `gradeCard`, so a visit raises
+  real retrieval evidence rather than a view count; under it a Spoken Map and Memory Deck switch,
+  absent whenever one half would be empty. Six new logic modules carry every judgement the screen
+  used to make. The mockup's per-situation percentages were not implemented in any form and no
+  replacement was invented: `progress/passport.ts` omits the fields so the fraction cannot be drawn.
+  F466 was a live defect on the shipped Review screen found while building the card, not new work.
+  What this does NOT prove: none of it has been seen on a device, and the largest-text-size walk that
+  found F383, F461 and F462 on this same tab has not been repeated against the new layout.
 - Pass 4 mockup-review gate: **2,416 tests, 0 failing**; core 565, brain 382, tutor agent 430,
   token server 172, playground 26, mobile 841. Typecheck is clean in all six workspaces and floors
   were blessed to those counts. F362 to F381: fifteen Stitch mockups were reviewed and the ideas

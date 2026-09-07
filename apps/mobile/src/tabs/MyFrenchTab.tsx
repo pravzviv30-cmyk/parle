@@ -10,9 +10,10 @@ import {
   type ConversationPack,
   type DailyScenario,
   type MissionProgress,
+  type ReviewCard,
 } from '@luvani/core';
 
-import { Card, GhostButton, Label, OutlineButton, PillButton, Stat } from '../components.tsx';
+import { Card, GhostButton, Label, OutlineButton, PillButton, Stat, TabBar } from '../components.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { paper, radius, signal, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
@@ -23,15 +24,13 @@ import { NextSituationCard } from '../home/NextSituationCard.tsx';
 import { SAVED_SITUATIONS_LABEL, SAVED_SITUATION_ACTION, hasSaved, savedSituations } from '../bookmarks/view.ts';
 import { loadBookmarks } from '../bookmarks/store.ts';
 import { buildPhrasebook, hasPhrases, type Phrasebook } from '../phrases/phrasebook.ts';
-import { NEXT_SITUATION, situationAction, startLabel } from '../progress/portfolio.ts';
+import { NEXT_SITUATION, startLabel } from '../progress/portfolio.ts';
 import { PhrasebookScreen } from '../phrases/PhrasebookScreen.tsx';
 import { loadMissionCompletions } from '../missions/store.ts';
-import { missionCompletionsFrom, missionStatus } from '../missions/chooserView.ts';
-import { MissionArt } from '../missions/MissionArt.tsx';
+import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { loadSoundChecks } from '../soundcheck/store.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { trackProductEvent } from '../analytics/track.ts';
-import { hasStamps, isStamped, stampLabel, stampsFrom } from '../progress/passport.ts';
 import { hasStory, storyFrom, type WeekStory } from '../progress/story.ts';
 import { loadHistory } from '../progress/store.ts';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -43,53 +42,66 @@ import {
 } from '../conversationPacks/store.ts';
 import { latestReadyPack } from '../conversationPacks/model.ts';
 import { ConversationPackLibrary } from '../conversationPacks/ConversationPackLibrary.tsx';
-
-/** The stamp mark, at TodayRow's size, because it is TodayRow's mark. */
-const MARK = 10;
-
-function latestCheck(missionId: string, checks: readonly SoundCheckEvidence[]): SoundCheckEvidence | null {
-  return checks
-    .filter((item) => item.missionId === missionId)
-    .sort((a, b) => b.at - a.at)[0] ?? null;
-}
-
-function checkLine(check: SoundCheckEvidence | null): string | null {
-  if (!check) return null;
-  if (check.kind === 'assessed-focus') return check.focus ?? 'One sound is ready to revisit';
-  if (check.kind === 'assessed-clear') return 'No single sound needed calling out';
-  if (check.kind === 'self-guided') return 'Last line was practised without assessment';
-  return 'Last check did not return enough evidence';
-}
+import { OPENING, hasMyFrench, myFrenchFrom, type MyFrench } from '../myfrench/model.ts';
+import { LANES, LANES_LABEL, MY_FRENCH_PURPOSE, openingLane, showLanes, type Lane } from '../myfrench/lanes.ts';
+import { primaryFor } from '../myfrench/primary.ts';
+import { OneLineCard } from '../myfrench/OneLineCard.tsx';
+import { LedgerLane } from '../myfrench/LedgerLane.tsx';
+import { SituationsCard } from '../myfrench/SituationsCard.tsx';
+import { AcousticCard } from '../myfrench/AcousticCard.tsx';
+import { CadenceCard } from '../myfrench/CadenceCard.tsx';
 
 /**
- * Durable, personal evidence replaces the placeholder social leaderboard.
+ * My French — the ledger of what has become the learner's.
  *
- * The marks down the situations list are the passport, and every judgement in
- * them is made in `progress/passport.ts`. This file asks `isStamped` and picks a
- * style; it never asks what rung anybody reached. That is the whole reason the
- * module exists, and a ternary on `independence` here would be a second ladder
- * one screen away from the first.
+ * Practice is the archive of everything they have said: its unit is the
+ * session, and its question is what happened and what to redo. This is the
+ * other question, and it has a different unit. Its unit is the phrase, and it
+ * asks which lines are theirs now and which one is closest to joining them.
  *
- * The week's account above the passport works the same way and for the same
- * reason. `progress/story.ts` reads the whole history, narrows it to seven local
- * days and writes every word; this file passes the history in, asks `hasStory`
- * and draws the sentences in the order they came back. There is no conditional
- * here about what the week contained, because a second opinion about a week is
- * how two screens end up telling a learner two different things about it.
+ * ## The page is the evidence ladder
  *
- * It is drawn here, in a tab somebody opened, and nowhere else. That is the
- * on-demand half of "read on demand, never pushed"; the other half is held from
- * the far side, where nothing under `reminders/` may import `progress/` at all.
+ * `review/evidence.ts` ranks a phrase by what the learner has shown they can do
+ * with it, and this page is that ranking rendered as a layout rather than as a
+ * bar. `introduced` is never drawn, because a card nobody has recalled is not
+ * something they can say. `recalled` is not a list either: it is the single
+ * card at the top that asks for one line right now. `used` and `transferred`
+ * are the one list, headed by the phrase worth naming. That is what makes the
+ * climb visible without a percentage, which `progress/passport.ts` refuses and
+ * `phrases/phrasebook.ts` refuses again for a second reason.
+ *
+ * ## Two lanes, one spine
+ *
+ * The founder's segmented switch separates two readings of one body of
+ * evidence: the Spoken Map is keyed by place, the Memory Deck by phrase. The
+ * one line card and the chooser sit outside both, so the page keeps a spine
+ * whichever lane is showing and the primary never vanishes under a toggle.
+ *
+ * ## This file decides nothing
+ *
+ * Every judgement is `myfrench/model.ts`'s, and everything that module composes
+ * is owned somewhere else again. There is no renderer in this workspace, so a
+ * ternary here is a rule no test can reach; that is why the sound line, which
+ * used to be decided in this file, is now `myfrench/sounds.ts`.
+ *
+ * The week's story is the one thing still read here rather than through the
+ * model, and deliberately: F233 holds `progress/story.ts` to exactly one
+ * importer in the whole app, so that nothing scheduled or notified can carry a
+ * learner's week anywhere. This screen is that importer.
  */
 export function MyFrenchTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { user, adapter } = useAuth();
+  const [deck, setDeck] = useState<readonly ReviewCard[]>([]);
   const [missions, setMissions] = useState<readonly MissionProgress[]>([]);
   const [checks, setChecks] = useState<readonly SoundCheckEvidence[]>([]);
   const [book, setBook] = useState<Phrasebook>({ groups: [], count: 0, topics: 0 });
   const [showingPhrases, setShowingPhrases] = useState(false);
   const [showingPacks, setShowingPacks] = useState(false);
   const [packs, setPacks] = useState<ConversationPack[]>([]);
+  // Which lane is showing. Component state on purpose: it dies with the mount,
+  // and nothing on the page claims it is remembered.
+  const [lane, setLane] = useState<Lane | null>(null);
   // null is "not read yet", which draws the same as a quiet week and is not the
   // same claim. The empty story is story.ts's to make, not this screen's.
   const [story, setStory] = useState<WeekStory | null>(null);
@@ -97,13 +109,11 @@ export function MyFrenchTab() {
   // screen draws it and never decides which one; null draws nothing.
   const [next, setNext] = useState<MissionProgress | null>(null);
   // The situations the learner bookmarked on Home, newest decision first.
-  // `savedSituations` folds the store's decisions and drops any id this build
-  // no longer carries; empty draws nothing at all.
   const [saved, setSaved] = useState<readonly DailyScenario[]>([]);
-  // The three facts at the head of the page, decided in progress/evidence.ts.
-  // Starts empty, which is what an unread learner and a brand new one both
-  // draw: nothing, until something has been earned.
+  // The three facts at the head of the Map lane, decided in progress/evidence.ts.
   const [evidence, setEvidence] = useState<Evidence>(() => evidenceFrom({ missions: [], book: { count: 0 }, activity: [] }));
+  // Bumped after a grade, so the page re-reads the deck it just wrote to.
+  const [graded, setGraded] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -117,12 +127,13 @@ export function MyFrenchTab() {
         loadActivity(),
         loadBookmarks(),
       ]).then(
-        ([completions, deck, topics, soundChecks, history, activity, bookmarks]) => {
+        ([completions, cards, topics, soundChecks, history, activity, bookmarks]) => {
           if (cancelled) return;
           const now = Date.now();
-          const nextMissions = missionStates(missionCompletionsFrom(completions), deck, now);
-          const nextBook = buildPhrasebook(deck, topics, now);
+          const nextMissions = missionStates(missionCompletionsFrom(completions), cards, now);
+          const nextBook = buildPhrasebook(cards, topics, now);
           const nextEvidence = evidenceFrom({ missions: nextMissions, book: nextBook, activity });
+          setDeck(cards);
           setMissions(nextMissions);
           setBook(nextBook);
           setChecks(soundChecks);
@@ -132,16 +143,12 @@ export function MyFrenchTab() {
           // The whole history, unnarrowed. Which seven days count is story.ts's
           // decision and filtering here would walk straight past it.
           setStory(storyFrom(history, now));
-          // The same numbers the row draws, from the same module.
           void trackProductEvent({
             name: 'my_french_opened',
             properties: { situationsDone: nextEvidence.situations, linesKept: nextEvidence.lines },
           });
         },
       );
-      // The local cache makes the library appear immediately; the authenticated
-      // pull is the recovery path for a Pack whose mobile session was closed
-      // before the ready signal reached it.
       void loadConversationPacks().then((stored) => {
         if (!cancelled) setPacks(stored);
       });
@@ -153,7 +160,7 @@ export function MyFrenchTab() {
       return () => {
         cancelled = true;
       };
-    }, [user, adapter]),
+    }, [user, adapter, graded]),
   );
 
   if (showingPhrases) return <PhrasebookScreen book={book} onDone={() => setShowingPhrases(false)} />;
@@ -190,162 +197,172 @@ export function MyFrenchTab() {
     );
   }
 
-  // Keyed rather than indexed: `stampsFrom` answers in the order it was given,
-  // and a lookup by id stays right the first time somebody filters this list.
-  const stamps = stampsFrom(missions);
-  const stampByMission = new Map(stamps.map((stamp) => [stamp.missionId, stamp]));
-  // Nothing is drawn until one has been earned. A rail of empty marks is a
-  // quota, which is the thing progress/today.ts refuses to render.
-  const showStamps = hasStamps(stamps);
+  const model: MyFrench = myFrenchFrom({
+    deck,
+    missions,
+    checks,
+    evidence,
+    book,
+    saved,
+    next,
+    packs,
+    now: Date.now(),
+  });
+  const primary = primaryFor(model);
+  const lanes = showLanes(model);
+  const showing: Lane = lane ?? openingLane(model);
+  const onMap = !lanes || showing === 'map';
+  const onDeck = !lanes || showing === 'deck';
 
   return (
     <ScrollScreen bottom="tab">
       <View style={st.scroll}>
-        <TabHeader
-          title="My French"
-          purpose="The situations you have handled and the lines you have made yours."
-        />
+        <TabHeader title="My French" purpose={MY_FRENCH_PURPOSE} />
 
-        {/* The evidence, first: situations handled, lines kept, the level. Each
-            fact appears once it is real, and the row is absent until one is,
-            on progress/today.ts's rule. evidence.ts decides all of it. */}
-        {hasEvidence(evidence) && (
-          <View style={st.evidence} accessibilityRole="summary">
-            {evidence.stats.map((stat) => (
-              <Stat key={stat.label} value={stat.value} label={stat.label} columns={3} />
-            ))}
+        {/* The one card this visit deals, above the switch, so the thing worth
+            doing is never behind a toggle. Absent entirely on an empty deck. */}
+        {model.oneLine !== null && (
+          <OneLineCard line={model.oneLine} onGraded={() => setGraded((n) => n + 1)} />
+        )}
+
+        {lanes && (
+          <View style={st.lanes}>
+            <TabBar tabs={LANES} active={showing} onChange={setLane} accessibilityLabel={LANES_LABEL} />
           </View>
         )}
 
-        {hasPhrases(book) && (
+        {/* Nothing is yours yet. One warm sentence and one door, drawn instead
+            of a page of empty headings. */}
+        {!hasMyFrench(model) && (
           <Card style={{ marginTop: space(6) }}>
-            <Label>Your notebook</Label>
-            <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>What you can say now</Text>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>
-              {book.count} {book.count === 1 ? 'line' : 'lines'} from your own conversations and practice.
-            </Text>
+            <Text style={[type.title, { color: paper.ink }]}>{OPENING.title}</Text>
+            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{OPENING.body}</Text>
             <View style={{ marginTop: space(4) }}>
-              <OutlineButton label="Open my phrases" onPress={() => setShowingPhrases(true)} />
+              <OutlineButton label={OPENING.action} onPress={() => nav.navigate('Convo')} />
             </View>
           </Card>
         )}
 
-        {/* What the learner saved from Home, to come back to. Absent entirely
-            when nothing is saved: a shelf that says it is empty says the
-            learner failed to fill it. `bookmarks/view.ts` owns both words. */}
-        {hasSaved(saved) && (
-          <Card style={{ marginTop: space(6) }}>
-            <Label>{SAVED_SITUATIONS_LABEL}</Label>
-            <View style={st.saved}>
-              {saved.map((situation) => (
-                <View key={situation.id} style={st.savedRow}>
-                  <View style={st.words}>
-                    <Text style={[type.bodyStrong, { color: paper.ink }]}>{situation.titleEn}</Text>
-                  </View>
-                  <GhostButton
-                    label={SAVED_SITUATION_ACTION}
-                    color={paper.ink}
-                    accessibilityLabel={startLabel(situation.titleEn)}
-                    onPress={() => nav.navigate('Convo', { seedTopic: seedTopicOf(situation) })}
-                  />
-                </View>
-              ))}
-            </View>
-          </Card>
-        )}
-
-        {packs.length > 0 && (
-          <Card style={{ marginTop: space(6) }}>
-            <Label>Your conversations</Label>
-            <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>
-              {latestReadyPack(packs)?.title.en ?? 'Your conversation is becoming practice'}
-            </Text>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>Return to a real situation, its phrases and its next step whenever you need it.</Text>
-            <View style={{ marginTop: space(4) }}>
-              <OutlineButton label="Open conversation packs" onPress={() => setShowingPacks(true)} />
-            </View>
-          </Card>
-        )}
-
-        {story !== null && hasStory(story) && (
-          <View style={st.week} accessibilityRole="summary">
-            <Label>Your week</Label>
-            {story.sentences.map((sentence) => (
-              <Text key={sentence} style={[type.body, { color: paper.ink }]}>
-                {sentence}
-              </Text>
-            ))}
-          </View>
-        )}
-
-        <View style={st.section}>
-          <Label>Your situations</Label>
-          {missions.map((item) => {
-            const check = latestCheck(item.mission.id, checks);
-            const stamp = stampByMission.get(item.mission.id);
-            // The verb, the label and the screen-reader sentence come from
-            // portfolio.ts. The row branches on kind and spells none of it.
-            const action = situationAction(item);
-            return (
-              <View key={item.mission.id} style={st.mission}>
-                <View style={st.art}>
-                  <MissionArt place={item.mission.place} width={74} paused />
-                </View>
-                {showStamps && stamp && (
-                  <View
-                    style={[st.stampMark, isStamped(stamp) ? st.stampEarned : st.stampNotYet]}
-                    accessibilityRole="image"
-                    accessibilityLabel={stampLabel(stamp)}
-                  />
-                )}
-                <View style={st.words}>
-                  <Text style={[type.bodyStrong, { color: paper.ink }]}>{item.mission.title}</Text>
-                  <Text style={[type.small, { color: paper.inkSoft }]}>{item.mission.titleEn}</Text>
-                  <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>
-                    {missionStatus(item.state, item.independence)}
-                  </Text>
-                  {checkLine(check) && <Text style={[type.small, st.check]}>{checkLine(check)}</Text>}
-                </View>
-                <GhostButton
-                  label={action.label}
-                  color={paper.ink}
-                  accessibilityLabel={action.accessibilityLabel}
-                  onPress={() =>
-                    action.kind === 'refine'
-                      ? nav.navigate('SoundCheck', { missionId: item.mission.id })
-                      : (void trackProductEvent({
-                          name: 'mission_started',
-                          properties: { missionId: item.mission.id, entry: 'my-french' },
-                        }), nav.navigate('Convo', { missionId: item.mission.id }))
-                  }
-                />
+        {onMap && (
+          <View>
+            {/* The evidence, first: situations handled, lines kept, the level.
+                Each fact appears once it is real, and the row is absent until
+                one is. evidence.ts decides all of it. */}
+            {hasEvidence(model.evidence) && (
+              <View style={st.evidence} accessibilityRole="summary">
+                {model.evidence.stats.map((stat) => (
+                  <Stat key={stat.label} value={stat.value} label={stat.label} columns={3} />
+                ))}
               </View>
-            );
-          })}
-        </View>
+            )}
 
-        {next !== null && (
-          <View style={st.nextSituation}>
-            {/* The same card Home draws, so the two tabs cannot part company.
-                The tab's one primary. The learner hears which situation it
-                opens from startLabel, since the title is a line above it. */}
-            <NextSituationCard next={next}>
-              <PillButton
-                label={NEXT_SITUATION.action}
-                accessibilityLabel={startLabel(next.mission.titleEn)}
-                onPress={() => {
-                  void trackProductEvent({
-                    name: 'mission_started',
-                    properties: { missionId: next.mission.id, entry: 'my-french' },
-                  });
-                  nav.navigate('Convo', { missionId: next.mission.id });
-                }}
-              />
-            </NextSituationCard>
+            {/* What the learner saved from Home, to come back to. Absent
+                entirely when nothing is saved: a shelf that says it is empty
+                says the learner failed to fill it. */}
+            {hasSaved(model.saved) && (
+              <Card style={{ marginTop: space(6) }}>
+                <Label>{SAVED_SITUATIONS_LABEL}</Label>
+                <View style={st.saved}>
+                  {model.saved.map((situation) => (
+                    <View key={situation.id} style={st.savedRow}>
+                      <View style={st.words}>
+                        <Text style={[type.bodyStrong, { color: paper.ink }]}>{situation.titleEn}</Text>
+                      </View>
+                      <GhostButton
+                        label={SAVED_SITUATION_ACTION}
+                        color={paper.ink}
+                        accessibilityLabel={startLabel(situation.titleEn)}
+                        onPress={() => nav.navigate('Convo', { seedTopic: seedTopicOf(situation) })}
+                      />
+                    </View>
+                  ))}
+                </View>
+              </Card>
+            )}
+
+            {story !== null && hasStory(story) && (
+              <View style={st.week} accessibilityRole="summary">
+                <Label>Your week</Label>
+                {story.sentences.map((sentence) => (
+                  <Text key={sentence} style={[type.body, { color: paper.ink }]}>
+                    {sentence}
+                  </Text>
+                ))}
+              </View>
+            )}
+
+            <SituationsCard
+              model={model}
+              onOpen={(missionId, refine) =>
+                refine
+                  ? nav.navigate('SoundCheck', { missionId })
+                  : (void trackProductEvent({
+                      name: 'mission_started',
+                      properties: { missionId, entry: 'my-french' },
+                    }), nav.navigate('Convo', { missionId }))
+              }
+            />
+
+            {model.acoustic !== null && <AcousticCard acoustic={model.acoustic} />}
+
+            {primary?.kind === 'situation' && model.next !== null && (
+              <View style={st.nextSituation}>
+                {/* The same card Home draws, so the two tabs cannot part
+                    company. Drawn only when the deck cannot deal a line, so a
+                    first morning is never left without a primary. */}
+                <NextSituationCard next={model.next}>
+                  <PillButton
+                    label={NEXT_SITUATION.action}
+                    accessibilityLabel={startLabel(model.next.mission.titleEn)}
+                    onPress={() => {
+                      void trackProductEvent({
+                        name: 'mission_started',
+                        properties: { missionId: model.next!.mission.id, entry: 'my-french' },
+                      });
+                      nav.navigate('Convo', { missionId: model.next!.mission.id });
+                    }}
+                  />
+                </NextSituationCard>
+              </View>
+            )}
           </View>
         )}
 
-        {/* Always reachable, outside the next gate: a learner with no suggestion
+        {onDeck && (
+          <View>
+            <LedgerLane ledger={model.ledger} onOpenPhrases={() => setShowingPhrases(true)} />
+
+            {hasPhrases(model.book) && (
+              <Card style={{ marginTop: space(6) }}>
+                <Label>Your notebook</Label>
+                <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>What you can say now</Text>
+                <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>
+                  {model.book.count} {model.book.count === 1 ? 'line' : 'lines'} from your own conversations and practice.
+                </Text>
+                <View style={{ marginTop: space(4) }}>
+                  <OutlineButton label="Open my phrases" onPress={() => setShowingPhrases(true)} />
+                </View>
+              </Card>
+            )}
+
+            <CadenceCard cadence={model.cadence} />
+
+            {model.packs.length > 0 && (
+              <Card style={{ marginTop: space(6) }}>
+                <Label>Your conversations</Label>
+                <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>
+                  {latestReadyPack(model.packs)?.title.en ?? 'Your conversation is becoming practice'}
+                </Text>
+                <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>Return to a real situation, its phrases and its next step whenever you need it.</Text>
+                <View style={{ marginTop: space(4) }}>
+                  <OutlineButton label="Open conversation packs" onPress={() => setShowingPacks(true)} />
+                </View>
+              </Card>
+            )}
+          </View>
+        )}
+
+        {/* Always reachable, outside both lanes: a learner with no suggestion
             can still choose. The quiet door, not a second primary. */}
         <View style={{ marginTop: space(6) }}>
           <GhostButton
@@ -361,7 +378,9 @@ export function MyFrenchTab() {
 
 const st = StyleSheet.create({
   scroll: { flexGrow: 1 },
-  // The next situation, closing the screen. A top margin to lift it off the
+  // The switch, lifted off the card above it.
+  lanes: { marginTop: space(6) },
+  // The next situation, closing the Map lane. A top margin to lift it off the
   // list; no bottom padding, because the frame owns the bottom edge (F340).
   nextSituation: { marginTop: space(7) },
   // A week's account, at the head of the page of stamps rather than under it.
@@ -370,29 +389,9 @@ const st = StyleSheet.create({
   week: { marginTop: space(7), gap: space(2) },
   // Three facts to a row, under the header. Absent entirely at zero.
   evidence: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(2), columnGap: space(3), rowGap: space(4) },
-  section: { marginTop: space(7), gap: space(3) },
   // One saved situation to a row, the whole row at the touch floor so the verb
   // beside it is reachable one handed.
   saved: { marginTop: space(2) },
   savedRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT },
-  mission: {
-    minHeight: HIT,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space(3),
-    padding: space(3),
-    backgroundColor: paper.card,
-    borderRadius: radius.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.lineOnCard,
-  },
-  art: { width: 78, alignItems: 'center' },
-  // TodayRow's two marks, the same size and the same grammar: filled means the
-  // learner produced French, and a hairline is not a colour, because a thing
-  // that has not happened is not a state worth signalling.
-  stampMark: { width: MARK, height: MARK, borderRadius: MARK / 2 },
-  stampEarned: { backgroundColor: signal.good },
-  stampNotYet: { borderWidth: HAIRLINE + 0.4, borderColor: paper.line },
   words: { flex: 1 },
-  check: { color: paper.ink, marginTop: space(1.5) },
 });

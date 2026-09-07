@@ -413,6 +413,30 @@ export function isRetained(card: ReviewCard): boolean {
 }
 
 /**
+ * The learner's retained phrases, in the one order two screens may read.
+ *
+ * Most-used first, then newest, then by id, so the chips Home shows are stable
+ * across renders rather than however the deck happened to be written. Exported
+ * for the same reason `isRetained` is: My French features the top of this list
+ * as the phrase it puts a name to, and a second comparator a screen away would
+ * eventually feature a different phrase from the one Home called first. One
+ * order, two readers.
+ */
+export function retainedOrder(deck: readonly ReviewCard[]): readonly ReviewCard[] {
+  // Evidence is read once per card rather than inside the comparator, so a deck
+  // of any size costs one pass and the sort compares plain numbers.
+  return deck
+    .filter(isRetained)
+    .map((card) => ({ card, uses: evidenceOf(card).convoUses }))
+    .sort((a, b) => {
+      if (a.uses !== b.uses) return b.uses - a.uses;
+      if (a.card.addedAt !== b.card.addedAt) return b.card.addedAt - a.card.addedAt;
+      return a.card.id < b.card.id ? -1 : a.card.id > b.card.id ? 1 : 0;
+    })
+    .map((entry) => entry.card);
+}
+
+/**
  * The phrases this learner has actually used in conversation.
  *
  * Sorted most-used first, then newest, then by id, so the two chips the hero
@@ -431,12 +455,8 @@ function retainedFrom(deck: readonly ReviewCard[], now: number): MomentumRetaine
   const recent = used.filter((entry) => week.has(localDayKey(entry.card.addedAt)));
   const thisWeek = recent.length === 0 ? null : recent.length;
 
-  const ranked = [...used].sort((a, b) => {
-    if (a.uses !== b.uses) return b.uses - a.uses;
-    if (a.card.addedAt !== b.card.addedAt) return b.card.addedAt - a.card.addedAt;
-    return a.card.id < b.card.id ? -1 : a.card.id > b.card.id ? 1 : 0;
-  });
-  const chips = ranked.slice(0, RETAINED_CHIPS).map((entry) => entry.card.front);
+  const ranked = retainedOrder(deck);
+  const chips = ranked.slice(0, RETAINED_CHIPS).map((card) => card.front);
   const more = used.length - chips.length;
 
   return {

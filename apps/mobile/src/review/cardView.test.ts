@@ -245,6 +245,34 @@ describe('which face is hidden — the inversion F120 was filed about', () => {
   });
 });
 
+describe('the context never repeats a face the learner is already reading — F466', () => {
+  test('a lesson vocabulary card does not print its gloss twice', () => {
+    // packages/core/src/review/cards.ts builds a lesson vocab card with the
+    // gloss on BOTH `back` and `context`. A retrieval on that card asks with
+    // the gloss and answers with the word, so blanking only against the answer
+    // leaves the prompt reprinted underneath it as though it were the sentence
+    // the phrase came out of. It never was: it is the question, said again.
+    const gloss = 'the bill';
+    const lesson = card({ front: 'addition', back: gloss, context: gloss, ipa: '' });
+
+    const asked = cardView(lesson, NOW, { ...CARD_START, attempt: 'said' });
+
+    assert.equal(asked.prompt, gloss, 'this fixture is only interesting while the gloss is the prompt');
+    assert.equal(
+      asked.answer?.context,
+      '',
+      'the gloss came back as context under an answer whose prompt was that same gloss',
+    );
+  });
+
+  test('a real sentence still arrives with the answer', () => {
+    // The blanking must stay narrow. A card whose context is neither face is
+    // carrying the thing this field exists for, and it is drawn.
+    const asked = cardView(card(), NOW, { ...CARD_START, attempt: 'said' });
+    assert.equal(asked.answer?.context, card().context, 'the sentence it came out of was blanked with the duplicates');
+  });
+});
+
 describe('what an attempt is worth', () => {
   test('a typed attempt and a said attempt each reach the deck as the attempt it was', () => {
     for (const attempt of ['typed', 'said'] as const) {

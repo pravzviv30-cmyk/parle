@@ -3,8 +3,9 @@
  *
  * One place decides it, so Home, Tutor and My French cannot put the café on
  * three different tints. The mapping is by place rather than by mission id
- * because the art is by place too (`MissionArt`), and a tint is a paper under a
- * drawing, never a mark for a mission. Every place has one tint and every tint
+ * because the art is by place too (`MissionArt`), and a tint is a paper for a
+ * place — under its drawing, and since F467 under its row — never a mark for a
+ * mission. Every place has one tint and every tint
  * has one place; the test walks the catalogue to hold both halves.
  *
  * This file imports nothing that reaches react-native, so the test can import

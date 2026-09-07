@@ -201,7 +201,7 @@ const QUEUED_WRITES: readonly QueuedWrite[] = [
     store: 'soundcheck/store.ts',
     suffix: 'soundChecks',
     write: () =>
-      recordSoundCheck({ missionId: 'cafe-order', reference: 'Ça marche', at: 5, kind: 'self-guided', focus: null }),
+      recordSoundCheck({ missionId: 'cafe-order', reference: 'Ça marche', at: 5, kind: 'self-guided', focus: null, phoneme: null }),
   },
   { store: 'profile/store.ts', suffix: 'profile', write: () => saveProfile(createStoredProfile({ name: 'A', motivation: null }, 5)) },
   { store: 'tutor/store.ts (intro)', suffix: 'tutorIntro', write: () => markTutorIntroSeen() },
@@ -555,19 +555,19 @@ const SYNCED_STORES: readonly SyncedStore[] = [
   {
     namespace: 'soundChecks',
     write: () =>
-      recordSoundCheck({ missionId: 'cafe-order', reference: 'Ça marche', at: 5, kind: 'self-guided', focus: null }),
+      recordSoundCheck({ missionId: 'cafe-order', reference: 'Ça marche', at: 5, kind: 'self-guided', focus: null, phoneme: null }),
     merged: {
       version: 1,
-      evidence: [{ missionId: 'market', reference: 'Un kilo', at: 9, kind: 'assessed-clear', focus: null }],
+      evidence: [{ missionId: 'market', reference: 'Un kilo', at: 9, kind: 'assessed-clear', focus: null, phoneme: null }],
     },
     read: async () => (await loadSoundChecks()).map((e) => e.at),
     expected: [9],
     corrupt: { version: 99, evidence: [] },
     during: () =>
-      recordSoundCheck({ missionId: 'market', reference: 'Un kilo', at: 6, kind: 'self-guided', focus: null }),
+      recordSoundCheck({ missionId: 'market', reference: 'Un kilo', at: 6, kind: 'self-guided', focus: null, phoneme: null }),
     remote: {
       version: 1,
-      evidence: [{ missionId: 'bakery', reference: 'Une baguette', at: 9, kind: 'assessed-clear', focus: null }],
+      evidence: [{ missionId: 'bakery', reference: 'Une baguette', at: 9, kind: 'assessed-clear', focus: null, phoneme: null }],
     },
     survived: async () => {
       assert.deepEqual(

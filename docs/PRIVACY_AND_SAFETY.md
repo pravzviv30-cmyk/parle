@@ -63,8 +63,12 @@ stops being an accident:
 - The TTS cache in `services/tutor-agent/src/ttsCache.ts` stores **tutor** speech
   only. A cached WAV is a line the product wrote, never a line a learner said.
 - Sound-check evidence in `apps/mobile/src/soundcheck/store.ts` is
-  `missionId`, `reference`, `at`, `kind` and one learner-safe `focus` sentence.
-  Never audio, and deliberately never a numeric score.
+  `missionId`, `reference`, `at`, `kind`, one learner-safe `focus` sentence and
+  the IPA symbol of the sound it was about (`phoneme`, null when none was named).
+  Never audio, and deliberately never a numeric score. The symbol was added in
+  F468 so a later screen can look the sound up in the authored inventory instead
+  of only reprinting a sentence about it; it identifies a French phoneme, not a
+  learner, and it carries no measurement.
 - Transcripts are the same rule. Deepgram returns text so the tutor can answer; the
   session engine grades it and drops it. A Conversation Pack may retain a curated
   summary, selected learning phrases, corrections and exercises, but never the

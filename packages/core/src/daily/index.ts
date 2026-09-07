@@ -12,3 +12,4 @@ export { wordTierFor, wordsForLevel, scenariosForLevel, type WordTier } from './
 export { shuffledOrder, shuffledPick, nextPosition } from './shuffle.ts';
 export { DAILY_SCENARIOS, SEED_TOPIC_MAX, seedTopicOf, type DailyScenario } from './scenarios.ts';
 export { dailyPick, dayIndex } from './pick.ts';
+export { CONNECTOR_IDS, connectorWords } from './connectors.ts';

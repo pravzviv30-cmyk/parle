@@ -659,10 +659,12 @@ export function Monogram({ initial, size = HIT }: { initial: string; size?: numb
 }
 
 /**
- * A soft paper disc under a place's line art: the one place a tint is ever
- * drawn. A tint is a surface under ink, never a mark and never lettering
- * (F362). Decorative to assistive tech, like the drawing it holds; the place is
- * named in the text beside it.
+ * A soft paper disc under a place's line art.
+ *
+ * A tint is a surface under ink, never a mark and never lettering (F362).
+ * This was the only place one was ever drawn until F467 added the ground under
+ * a row about one place; the rule it obeys is unchanged, and both live in this
+ * file so a screen never names a colour.
  */
 export function TintDisc({ tint: name, size = 64, children }: { tint: TintName; size?: number; children?: React.ReactNode }) {
   return (
@@ -681,6 +683,39 @@ export function TintDisc({ tint: name, size = 64, children }: { tint: TintName; 
       {children}
     </View>
   );
+}
+
+/**
+ * The ground under a row about one place, in that place's own tint.
+ *
+ * The founder asked for the mockup's colour to reach the rows themselves rather
+ * than stopping at the disc, and the honest way to do that was to widen the
+ * rule in the open rather than to route around the test that held it (F467).
+ * The rule is now: a tint is a SURFACE. It is the disc under a drawing, or the
+ * ground under a row that is about one place, and it is never lettering, never
+ * a stroke, never a border, and never a mark that reports state. Everything the
+ * old rule was protecting still holds, and `palette.test.ts` catches lettering
+ * more tightly than it did before, because the ban used to miss
+ * `backgroundColor` by an accident of casing rather than by permission.
+ *
+ * The colour maths needed nothing: every tint already sits at least eight from
+ * the ground, the deeper fill, the card and the card's rule, thirty from every
+ * signal and the accent, twenty from every rung, and lighter than every mark,
+ * with ink clearing 4.5 on all six.
+ *
+ * Not decorative, unlike the disc. A row has words in it, and hiding the
+ * container would take its contents with it.
+ */
+export function TintPanel({
+  tint: name,
+  children,
+  style,
+}: {
+  tint: TintName;
+  children?: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return <View style={[{ backgroundColor: tint[name], borderRadius: radius.card }, style]}>{children}</View>;
 }
 
 /** Onboarding progress: one dot per page, the current one stretched. */

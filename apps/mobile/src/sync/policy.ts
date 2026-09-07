@@ -562,6 +562,7 @@ interface SoundCheckish {
   at: number;
   kind: string;
   focus: string | null;
+  phoneme?: string | null;
 }
 
 function isSoundCheck(value: unknown): value is SoundCheckish {
@@ -571,7 +572,8 @@ function isSoundCheck(value: unknown): value is SoundCheckish {
     typeof value.reference === 'string' &&
     isFiniteNumber(value.at) &&
     SOUND_CHECK_KINDS.has(String(value.kind)) &&
-    (value.focus === null || typeof value.focus === 'string')
+    (value.focus === null || typeof value.focus === 'string') &&
+    (value.phoneme === undefined || value.phoneme === null || typeof value.phoneme === 'string')
   );
 }
 

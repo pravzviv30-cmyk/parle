@@ -125,13 +125,23 @@ four is plain ink: no line left to follow.
 Green is the same green everywhere the learner speaks: the orb's your-turn state,
 the lesson SpeakCircle, the Review button, the path's learned marks.
 
-### Tints: paper under a drawing
+### Tints: paper for a place
 
 The founder's mockups put each situation's line art on a soft coloured disc, and
 that much of the retired five-paper scheme came back as six **tints**, one per
-place. A tint is a **surface**, not a mark and not an accent: it is drawn only as
-the disc behind a mission's drawing (`TintDisc`, via `MissionDisc`), never as
-lettering, never as a ring or a dot that reports state. So it is held to a
+place. A tint is a **surface**, not a mark and not an accent: it is drawn as the
+disc behind a mission's drawing (`TintDisc`, via `MissionDisc`) and as the ground
+under a row about that same place (`TintPanel`), never as lettering, never as a
+stroke or a border, never as a ring or a dot that reports state.
+
+The second of those is F467 and it is the founder's decision, taken the way
+Theme C was. A later mockup carried the colour through to the rows themselves,
+and the choice was between keeping a rule that said the disc was the only place
+a tint is ever drawn, or widening it to what the rule was actually protecting.
+It was widened, in the open: the hex still lives in four files so a screen names
+a place and never a colour, and `palette.test.ts` now catches lettering in a
+tint more tightly than it did before, because the old ban missed
+`backgroundColor` through an accident of casing rather than by permission. So it is held to a
 paper's floors rather than a signal's. Ink clears 4.5 on every tint; every tint
 sits at least a Delta-E of 8 off the ground, the chip fill, the card and the
 card's hairline, so it reads as a disc; it stays 30 from every signal, the accent
@@ -190,7 +200,11 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
   with nothing chosen and names its group for a screen reader; onboarding dots
   stretch the current page.
 - **TintDisc / MissionDisc** — a circle of one tint with a place's line art
-  inside, decorative to assistive tech. The only place a tint is ever drawn.
+  inside, decorative to assistive tech.
+- **TintPanel** — the ground under a row about one place, in that place's tint.
+  Not decorative: a row has words in it. With the disc, one of the two places a
+  tint is ever drawn, and both of them live in `components.tsx` so no screen
+  ever names a colour.
 - **SpeakCircle** — THE microphone: one 108pt circle used by every speaking
   surface. Green-ringed when waiting, green-filled (with the app's only shadow)
   when live — green means "you speak", matching the voice circle —
@@ -290,7 +304,7 @@ still there. Passing it is one tap and nothing else is asked twice.
 | Home | The day, not a summary. A greeting alone at the top, where only the word changes: it rises up out of its slot and the next comes in behind it, and the name travels with it so the two stay tight; the word of the day under it; today's situation with its starting line, a bookmark and the tab's one pill; daily momentum as four cards, there from the first day and worded as a start where a number would be nought: retained phrases with two of the learner's own lines, days active with the week rail, recall over reviews once ten of them are behind it, and today's speaking goal; the next step as a row; a sprout note at the foot. The level, the evidence and the phrasebook moved to My French rather than being drawn twice |
 | Tutor | The tutor by name, the voice circle, then four doors. Resume is a card with the scene's drawing, its French title, what the learner came to do, how long is left of it when their own pace has said, and a full-width pill. Guided practice missions is a heading with the count, one line saying what is behind it, and every situation as its own tappable row. Pronunciation lesson is third: the café scene's drawing, its French title, one line saying the words are written out and the tutor listens to how you say them, an outline button rather than a pill, and its own quiet "Read and type this one instead" link, because it is the one live screen with no typed door of its own until something breaks. Open conversation is last: a card whose button sits centred under its drawing. The four-page intro that used to stand in front of them is a quiet "How the voice circle works" link here and in Profile |
 | Practice | The archive of the learner's own conversations, from the founder's mockup. The next step is still the tab's one pill; under it a vault card counts what has been recorded, the topics opened and the phrases retained, then one card per finished conversation carrying when it was, how long they spoke, the topics it opened and the phrases it left behind, then a card that suggests the next conversation out of the authored pool. **It grows.** There is no vault and no feed until the first conversation, no ordering line until the second and no filter row until the fourth, and a count with nothing behind it is left out of the rail rather than drawn as a nought. The authored path, its rows and its mix offer are gone; the scripted café lesson is a door on Tutor and the drill bank is behind the suggestion card |
-| My French | An evidence row that is absent at zero (situations handled, lines kept, the level), the notebook, the week, the situations with their stamps, and the same next-situation card Home draws |
+| My French | The ledger of what has become the learner's, and the one tab whose unit is the phrase rather than the session. It opens on **one line, right now**: a single card from the deck, the English showing and the French withheld until an attempt lands, chosen by where that phrase sits on the evidence ladder and carrying the reason it was chosen. One card, two grades, one closing line, and no way to ask for another, because a queue here is the sitting Practice already owns. Under it a segmented switch, absent whenever one half would be empty: **Spoken Map** is keyed by place and carries the evidence row, the saved shelf, the week, the situations with their stamps, and one sound: every situation row now sits on the tint of the place it happens in, with its drawing on a white field inside, and the caps heading carries the count handled alone beside it. Under the list, when a sound check has ever named one, the acoustic panel: the sound, its authored articulation cue and physical trick, and the minimal pair that tells it from the English sound it is not, either half of which can be heard. No badge on either word, because nothing here keeps a per-word history to earn one; **Memory Deck** is keyed by phrase and carries the retained expression set large with the one claim its counters license, the lines that came out unasked with whole lines ordered first, then the cadence set (ten authored connectors, each with the note it was written with and a way to hear it, the ones the learner has produced unprompted marked with the passport's own green and lifted to the top), then the notebook and the conversation packs. The chooser closes the page outside both. There is no percentage anywhere on it and none is available to be drawn: the climb is the layout |
 | Profile | The level under the name; the daily goal and the correction dial chosen in place as three-way controls with the chosen gloss beneath; the tutor's voice; prefer typing; tutor speaks slower; account (download, permanent deletion), the reminder, sign out, the legal footer and the build's version line |
 
 Every tab opens the same way. A **TabHeader** is the first thing in its scroll
@@ -309,7 +323,11 @@ Two rules ride with the block. **One primary pill per door**, so the eye has one
 place to go on each thing it can act on. That used to read "one per tab", and
 Tutor now carries two because its screenshot pills both the scene to resume and
 the open conversation; the count is pinned per tab at exactly what each one
-draws, rather than loosened, so a third cannot appear. And a caps `Label` is
+draws, rather than loosened, so a third cannot appear. My French draws two
+primaries across two files and renders exactly one, and it did not need the
+count moved: the one-line card is its own component, so each file still holds a
+single pill and `myfrench/primary.ts` is the only thing that knows which of them
+is on screen. And a caps `Label` is
 violet, or it reports a state in ink, never faint: faint ink was only ever
 cleared as a mark, not as a line a learner reads.
 

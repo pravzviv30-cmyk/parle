@@ -210,6 +210,23 @@ function hearable(
  * way it was the first time. A moving clock here would quietly turn a retrieval
  * into an introduction partway through a sitting.
  */
+/**
+ * The sentence a phrase came out of, or nothing.
+ *
+ * Blanked against BOTH faces rather than against the answer alone. A lesson
+ * vocabulary card is built with the gloss on `back` and on `context` alike
+ * (`packages/core/src/review/cards.ts`), and a retrieval on that card asks with
+ * the gloss and answers with the word. Checking only the answer therefore let
+ * the prompt be reprinted underneath itself, dressed as provenance it never
+ * had. Context is worth drawing when it says something neither face already
+ * said, and worth nothing otherwise (F466).
+ */
+function contextUnder(card: ReviewCard, prompt: string, answer: string): string {
+  const context = card.context;
+  if (context === '') return '';
+  return context === answer || context === prompt ? '' : context;
+}
+
 export function cardView(card: ReviewCard, now: number, turn: ReviewTurn = CARD_START): CardView {
   const mode = presentationOf(card, now);
   const { prompt, answer } = faces(card, mode);
@@ -223,7 +240,7 @@ export function cardView(card: ReviewCard, now: number, turn: ReviewTurn = CARD_
     prompt,
     ask: mode === 'retrieval' ? RETRIEVAL_ASK : null,
     revealed,
-    answer: revealed ? { text: answer, context: card.context === answer ? '' : card.context, ipa: card.ipa } : null,
+    answer: revealed ? { text: answer, context: contextUnder(card, prompt, answer), ipa: card.ipa } : null,
     hear: hearable(french, mode, revealed),
     flippable: mode === 'introduction',
     asksForAttempt: mode === 'retrieval' && !revealed,

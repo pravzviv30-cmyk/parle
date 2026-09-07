@@ -58,7 +58,7 @@ export const DRILLS: readonly Drill[] = [
     why: 'This is the single most meaning-destroying vowel error an English speaker makes in French. Each pair below is two different words.',
     durationSec: 60,
     pairs: [
-      { a: { word: 'tu', ipa: 'ty', gloss: 'you' }, b: { word: 'tout', ipa: 'tu', gloss: 'all' } },
+      { a: { word: 'tu', ipa: 'ty', gloss: 'you (informal)' }, b: { word: 'tout', ipa: 'tu', gloss: 'all, everything' } },
       { a: { word: 'rue', ipa: 'ʁy', gloss: 'street' }, b: { word: 'roue', ipa: 'ʁu', gloss: 'wheel' } },
       { a: { word: 'vu', ipa: 'vy', gloss: 'seen' }, b: { word: 'vous', ipa: 'vu', gloss: 'you (formal)' } },
       { a: { word: 'su', ipa: 'sy', gloss: 'known' }, b: { word: 'sous', ipa: 'su', gloss: 'under' } },

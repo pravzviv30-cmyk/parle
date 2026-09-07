@@ -307,8 +307,29 @@ describe('a tint is paper under ink art, never a mark — F362', () => {
       }
     }
 
-    // The source walk: a tint may be reached only from the files that draw the
-    // disc, and never handed to a text colour, a stroke or a border anywhere.
+    // The source walk. A tint is a SURFACE: the disc under a place's line art,
+    // or the ground under a row about one place (F467, the founder's call). It
+    // is never lettering, never a stroke, never a border and never a mark that
+    // reports state, and the hex is still reachable from four files only, so a
+    // screen names a place and never a colour.
+    //
+    // The ban used to read `(?:color|stroke|fill|borderColor)` with no `i` and
+    // no boundary, which quietly matched nothing in `backgroundColor` — so a
+    // tint ground passed by accident rather than by permission. Now the
+    // permission is explicit and the ban is real: the lookbehind lets
+    // `backgroundColor` through and holds `borderColor`, `tintColor` and a bare
+    // `color` however they are cased.
+    const LETTERS_IN_A_TINT = /(?<!background)(?:[Cc]olor|stroke|fill)\s*[:=]\s*\{?\s*tint[.[]/;
+
+    // The refutations first, so a regex that stopped catching anything fails
+    // here rather than going quietly green over the whole app.
+    for (const forbidden of ['color: tint.sage', 'borderColor: tint.sky', 'stroke={tint.rose}', 'fill: tint.lilac']) {
+      assert.match(forbidden, LETTERS_IN_A_TINT, `"${forbidden}" is lettering or a stroke in a tint and must be caught`);
+    }
+    for (const permitted of ['backgroundColor: tint.sage', 'backgroundColor: tint[name]']) {
+      assert.doesNotMatch(permitted, LETTERS_IN_A_TINT, `"${permitted}" is a surface, which is what a tint is`);
+    }
+
     const allowed = new Set(['palette.ts', 'theme.ts', 'components.tsx', 'missions/missionTint.ts']);
     for (const file of walk(SRC)) {
       if (/\.test\.tsx?$/.test(file)) continue;
@@ -316,9 +337,9 @@ describe('a tint is paper under ink art, never a mark — F362', () => {
       const source = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
       const reaches = /\btint\.[a-z]+\b|\btint\[/.test(source);
       if (reaches && !allowed.has(rel)) {
-        assert.fail(`${rel} reaches a tint directly; only the disc may`);
+        assert.fail(`${rel} reaches a tint directly; a screen names a place, and the primitive names the colour`);
       }
-      assert.doesNotMatch(source, /(?:color|stroke|fill|borderColor)\s*[:=]\s*\{?\s*tint[.[]/, `${rel} letters or signals in a tint`);
+      assert.doesNotMatch(source, LETTERS_IN_A_TINT, `${rel} letters or signals in a tint`);
     }
   });
 });

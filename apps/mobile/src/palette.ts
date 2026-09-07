@@ -106,11 +106,12 @@ export const rungColor: Record<1 | 2 | 3 | 4, string> = {
 };
 
 /**
- * Tints: soft paper under a place's line art, one per situation.
+ * Tints: soft paper for a place, one per situation.
  *
- * A tint is a surface, not a mark and not an accent. It is drawn only as the
- * disc behind a mission's drawing — never as lettering, never as a ring or a
- * dot that reports state — so its floors are a paper's floors: ink clears the
+ * A tint is a surface, not a mark and not an accent. It is drawn as the disc
+ * behind a mission's drawing and as the ground under a row about that same
+ * place (F467) — never as lettering, never as a stroke or a border, and never
+ * as a ring or a dot that reports state — so its floors are a paper's floors: ink clears the
  * text floor on it, it sits far enough off the ground, the chip fill and the
  * card to read as a disc, it stays thirty from every signal and the accent,
  * twenty from every rung fill, lighter than every mark, and no two tints come

@@ -9,11 +9,27 @@ export interface SoundCheckEvidence {
   kind: SoundCheckKind;
   /** The assessor's one learner-safe sentence. Never a number. */
   focus: string | null;
+  /**
+   * Which sound it was about, as an IPA symbol, or null when nothing was named.
+   *
+   * The assessor has always known this and always thrown it away: `focus` kept
+   * the sentence and the identity went with the report. That left every later
+   * surface with prose it could print and nothing it could look up, so My
+   * French could say "one sound is ready to revisit" and never say which. The
+   * key is nullable at `version: 1` rather than a new version on purpose: this
+   * store has no upgrade function and returns an empty array on a version it
+   * does not recognise, so a bump would silently delete every check every
+   * learner has ever recorded. It is written on every row, `null` included, so
+   * a device on this build and one on the old do not read the same attempt as
+   * two rows under whole-row merge identity (F468).
+   */
+  phoneme: string | null;
 }
 
 export interface SoundCheckDecision {
   kind: SoundCheckKind;
   focus: string | null;
+  phoneme: string | null;
   headline: string;
   detail: string;
 }
@@ -44,6 +60,7 @@ export function soundCheckDecision(
     return {
       kind: 'unavailable',
       focus: null,
+      phoneme: null,
       headline: 'No pronunciation verdict this time.',
       detail: 'Your attempt still counts as practice. The assessor did not return enough evidence to judge it reliably.',
     };
@@ -52,6 +69,7 @@ export function soundCheckDecision(
     return {
       kind: 'assessed-focus',
       focus: report.focus.reason,
+      phoneme: report.focus.phoneme.ipa,
       headline: 'One sound to try again.',
       detail: report.focus.reason,
     };
@@ -59,6 +77,7 @@ export function soundCheckDecision(
   return {
     kind: 'assessed-clear',
     focus: null,
+    phoneme: null,
     headline: 'That line held together.',
     detail: 'The assessor found no single sound with enough evidence to call out.',
   };
@@ -67,6 +86,7 @@ export function soundCheckDecision(
 export const SELF_GUIDED: SoundCheckDecision = {
   kind: 'self-guided',
   focus: null,
+  phoneme: null,
   headline: 'You said the line.',
   detail: 'This was listen-and-repeat practice. Luvani did not assess your pronunciation.',
 };

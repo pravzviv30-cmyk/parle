@@ -621,6 +621,7 @@ describe('the per-domain conflict policy — seventeen namespaces, three classes
       at: BASE + i * 1000,
       kind: 'assessed-clear',
       focus: null,
+      phoneme: null,
     }));
     const checks = merge('soundChecks', { version: 1, evidence: attempts }, null) as { evidence: unknown[] };
     assert.equal(checks.evidence.length, MAX_SOUND_CHECKS);

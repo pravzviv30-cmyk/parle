@@ -51,7 +51,10 @@ function isEvidence(value: unknown): value is SoundCheckEvidence {
     typeof item.reference === 'string' &&
     typeof item.at === 'number' &&
     isKind(item.kind) &&
-    (item.focus === null || typeof item.focus === 'string')
+    (item.focus === null || typeof item.focus === 'string') &&
+    // Absent is legal: a row written before F468 carries no phoneme, and
+    // discarding it would be the data loss a version bump would have caused.
+    (item.phoneme === undefined || item.phoneme === null || typeof item.phoneme === 'string')
   );
 }
 

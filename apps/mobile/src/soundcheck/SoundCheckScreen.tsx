@@ -57,6 +57,7 @@ export function SoundCheckScreen({
         at: Date.now(),
         kind: decision.kind,
         focus: decision.focus,
+        phoneme: decision.phoneme,
       });
       void trackProductEvent({
         name: 'sound_check_completed',
