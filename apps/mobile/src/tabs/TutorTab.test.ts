@@ -262,3 +262,121 @@ describe('the scripted lesson has a door on the tutor tab', () => {
     assert.match(lesson, /\{TUTOR_LESSON_QUIET_LINK\}/, 'the lesson has no quiet way in from the tab');
   });
 });
+
+/**
+ * The three ways this tab used to stop working while still looking fine.
+ *
+ * None of them is visible in a screenshot, which is why they lasted. A bottom
+ * tab stays mounted after its first visit, so the voice circle went on
+ * breathing behind every other tab for the rest of the session. The `checking`
+ * flag had one handler, so a probe that ever threw would leave every door, row
+ * and link on the page disabled with nothing on screen to say why. And the
+ * storage read had none at all, so a disk that would not answer took the
+ * resume door away in silence.
+ *
+ * Read as source, because there is no renderer in this suite (docs/TESTING.md).
+ * The ceiling is honest: this proves the pause is threaded, the flag is let go
+ * of on both paths and the read has a rejection path, never that a phone
+ * stopped drawing or that a learner saw a door.
+ */
+describe('the tutor tab keeps working after a tab switch, a probe that threw and a disk that said no', () => {
+  test('the voice circle stops breathing when the tab is not the one on top', () => {
+    const orbs = FLAT.match(/<VoiceOrb\b[^>]*\/>/g) ?? [];
+    assert.equal(orbs.length, 1, 'the tutor tab draws a number of voice circles other than one');
+    assert.match(
+      orbs[0]!,
+      /paused=\{!focused\}/,
+      'the circle is never told the tab was left, so two native-driver loops run behind Home, Practice and Profile for the rest of the session',
+    );
+    // Only a tab can ask this: the hook throws outside a navigator, and the
+    // intro draws mini orbs above one. So the answer comes from here.
+    assert.match(FLAT, /const focused = useIsFocused\(\);/, 'the tab passes a pause without knowing whether it is looked at');
+    // The drawing beside the open conversation has done this since it was
+    // added. The circle is the same claim, and it was the one thing on the page
+    // exempt from it.
+    assert.match(FLAT, /<EveningIn width=\{176\} paused=\{!focused\} \/>/, 'the drawing stopped taking the pause the circle now takes');
+  });
+
+  test('a probe that threw lets go of the checking flag instead of retiring the tab', () => {
+    const opener = between(FLAT, 'const open = (', 'const openLesson', 'the tab has an opener for the conversation');
+    assert.match(opener, /if \(checking\) return;/, 'a second tap during the probe opens a second room');
+    // One flag disables the speak card, all four doors, every mission row and
+    // all three links at the foot. Raised and never lowered, it is the whole
+    // tab.
+    assert.match(
+      opener,
+      /\.catch\(/,
+      'the probe has one handler, so a rejection leaves the flag up and every door, row and link on the tab disabled behind it',
+    );
+    assert.ok(
+      opener.indexOf('.then(') < opener.indexOf('.catch('),
+      'the rejection is handled before the answer is, so the chain reads backwards',
+    );
+    // At the END of the chain, not beside the fulfilment handler. A throw
+    // inside `.then` rejects the promise `.then` returns, and an onRejected
+    // passed alongside it never sees that throw, which is the shape that
+    // reached a phone on Practice this week.
+    assert.doesNotMatch(
+      opener,
+      /\}, \(\) => \{/,
+      'the rejection is a second argument to .then, which cannot see a throw from the handler beside it',
+    );
+    assert.equal(
+      (opener.match(/setChecking\(false\)/g) ?? []).length,
+      2,
+      'the flag is let go of on one path only, so the other one leaves the tab inert',
+    );
+    // The learner is never left in front of a dead control: the start that did
+    // not happen is kept, so the retry is the same start.
+    assert.match(opener, /setHeldBack\(\{ textMode \}\)/, 'a start lost to a throw is dropped rather than kept for the retry');
+
+    // And the lesson door, which has had both paths since it was written, is
+    // still the model this follows.
+    const lesson = between(FLAT, 'const openLesson', 'if (showingIntro)', 'the tab has an opener for the lesson');
+    assert.match(lesson, /recheck\(\)\.then\(go, go\)/, 'the lesson opener lost the shape the conversation opener now matches');
+  });
+
+  test('a disk that will not answer takes the resume door and nothing else off the tab', () => {
+    const effect = between(FLAT, 'useFocusEffect(', 'const open = (', 'the tab reads its storage on focus');
+    assert.match(
+      effect,
+      /\.catch\(/,
+      'the storage read is never answered when it fails, so the read escapes as an unhandled rejection and the tab waits on a disk that already said no',
+    );
+    assert.ok(
+      effect.indexOf('.then(') < effect.indexOf('.catch('),
+      'the rejection is handled before the answer is, so a throw from inside the fulfilment handler still escapes',
+    );
+    assert.doesNotMatch(
+      effect,
+      /\}, \(\) => \{/,
+      'the rejection is a second argument to .then, which cannot see a throw from the handler beside it',
+    );
+    // What the failure must NOT do. The speak card, the situations, the lesson
+    // and the open conversation are all on the page without the disk, so a read
+    // that failed leaves the page it found: a re-read that did not answer is
+    // not evidence that the scene the learner walked out of is gone.
+    const rescue = effect.slice(effect.indexOf('.catch('));
+    assert.ok(!rescue.includes('setResume('), 'a failed read takes away the door a successful one drew');
+    assert.ok(!rescue.includes('setRecords('), 'a failed read clears the records the minutes line is measured from');
+  });
+
+  test('the doors are built when a read answers, not on every render', () => {
+    // `tutorDoors` allocates four door objects and the record scan walks every
+    // scene, and both used to run in the render body: on every flip of the
+    // checking flag, every focus change and every toggle of the intro.
+    assert.match(
+      FLAT,
+      /const doors = useMemo\(/,
+      'the door model and the record scan are rebuilt on every render, including on every flip of the checking flag',
+    );
+    const memo = between(FLAT, 'const doors = useMemo(', 'const enter = (', 'the doors are built in a memo');
+    assert.match(memo, /tutorDoors\(/, 'the memo holds something other than the door model');
+    assert.match(memo, /records\.find\(/, 'the record scan is still outside the memo, so it runs on every render anyway');
+    assert.match(
+      memo,
+      /\[records, resume\]/,
+      'the memo does not name the two reads the doors are built from, so it is either stale or not a memo',
+    );
+  });
+});

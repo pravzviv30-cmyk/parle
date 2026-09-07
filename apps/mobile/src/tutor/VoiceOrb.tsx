@@ -29,6 +29,7 @@ import { useEffect, useRef } from 'react';
 import { View, Text, Animated, Easing, StyleSheet, AccessibilityInfo } from 'react-native';
 import { orb, paper, space, type, STROKE, decorative } from '../theme.ts';
 import { useReduceMotion } from '../motion.ts';
+import { orbRests } from './orbRest.ts';
 
 export type OrbState = 'ready' | 'idle' | 'speaking' | 'listening' | 'thinking' | 'error';
 
@@ -126,6 +127,7 @@ export function VoiceOrb({
   size = RINGS[0],
   withCaption = true,
   announce = true,
+  paused = false,
 }: {
   state: OrbState;
   size?: number;
@@ -139,6 +141,16 @@ export function VoiceOrb({
    * labels on one thing read to a screen reader as two things.
    */
   announce?: boolean;
+  /**
+   * True when the screen holding the orb is no longer the one on top.
+   *
+   * The orb cannot ask for itself: `useIsFocused` throws outside a
+   * NavigationContainer and the intro's mini orbs render above the navigator,
+   * so this is a prop the screen passes down, exactly as every drawing in
+   * `illustrations/` takes it. Defaulted to false because the live screen is a
+   * pushed screen and the only orb on it, so it is never behind anything.
+   */
+  paused?: boolean;
 }) {
   const look = LOOKS[state];
   // One driver per ring so the two can be offset and drift apart rather than
@@ -150,6 +162,7 @@ export function VoiceOrb({
   useEffect(() => {
     let cancelled = false;
     const running: Animated.CompositeAnimation[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
     const stopAll = () => {
       for (const a of running) a.stop();
@@ -158,7 +171,7 @@ export function VoiceOrb({
 
     const run = () => {
       if (cancelled) return;
-      if (reduced || (look.amplitude === 0 && !look.shimmer)) {
+      if (orbRests({ amplitude: look.amplitude, shimmer: look.shimmer, reduced, paused })) {
         // The final frame. The orb still says which state it is in through
         // colour and caption; only the movement is withheld.
         for (const d of drivers) d.setValue(0.5);
@@ -187,10 +200,16 @@ export function VoiceOrb({
           ]),
         );
         running.push(loop);
-        // The inner ring starts a beat after the outer one.
-        setTimeout(() => {
-          if (!cancelled) loop.start();
-        }, i * 400);
+        // The inner ring starts a beat after the outer one. The guard AND the
+        // handle both matter, the way useSceneMotion keeps both: an orb
+        // unmounted inside the delay window would otherwise start a loop that
+        // nothing owns.
+        timers.push(
+          setTimeout(() => {
+            if (cancelled) return;
+            loop.start();
+          }, i * 400),
+        );
       });
     };
 
@@ -198,13 +217,16 @@ export function VoiceOrb({
 
     return () => {
       cancelled = true;
+      for (const t of timers) clearTimeout(t);
       stopAll();
     };
     // `drivers` and `dim` are refs and never change identity. `reduced` is a
     // dependency because the setting is watched now: a learner who turns
-    // reduce motion on while the orb is breathing is answered at once.
+    // reduce motion on while the orb is breathing is answered at once, and
+    // `paused` for the same reason: a tab left behind stops on the way out and
+    // picks its breathing back up when the learner comes back to it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, reduced]);
+  }, [state, reduced, paused]);
 
   const scale = size / RINGS[0];
 
@@ -239,18 +261,17 @@ export function VoiceOrb({
           ]}
         />
       ))}
+      {/* Sized, coloured and dimmed from the state, so there is nothing left
+          for a stylesheet entry to hold. */}
       <Animated.View
         pointerEvents="none"
-        style={[
-          st.centre,
-          {
-            width: CENTRE * scale,
-            height: CENTRE * scale,
-            borderRadius: (CENTRE * scale) / 2,
-            backgroundColor: look.centre,
-            opacity: dim,
-          },
-        ]}
+        style={{
+          width: CENTRE * scale,
+          height: CENTRE * scale,
+          borderRadius: (CENTRE * scale) / 2,
+          backgroundColor: look.centre,
+          opacity: dim,
+        }}
       />
       {withCaption && look.caption ? (
         <Text style={[type.label, st.caption, { color: look.captionColor }]}>{look.caption}</Text>
@@ -266,6 +287,5 @@ const st = StyleSheet.create({
     borderWidth: STROKE,
     backgroundColor: 'transparent',
   },
-  centre: {},
   caption: { position: 'absolute', bottom: -space(6) },
 });

@@ -6574,3 +6574,70 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   come. A tier is a pitch and not an assessment, which `tier.ts` says at length and is
   worth not re-litigating.
 - verified-by: `the pool is pitched, so a beginner never meets a scene meant for somebody else`
+
+### F452 — The voice circle kept breathing behind every other tab
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tutor/VoiceOrb.tsx:1
+- note: a bottom tab stays mounted after its first visit, and the orb started two
+  native-driver loops in an effect with no way to be told to stop. So one trip to Tutor
+  left two animations running behind Home, Practice and Profile for the rest of the
+  session. The J7 guard could not see it: its list is illustration names, and the orb is
+  the one animated thing in the app that is not a drawing. `orbRest.ts` now answers the
+  four reasons the circle holds still, in one place, the way `useSceneMotion` already does
+  for every scene. Resting is never blanking: a paused circle keeps its colour and its
+  caption, so it still says which state the tutor is in.
+- verified-by: `a circle on a tab that is not on top holds its final frame`
+- verified-by: `any one reason is enough, and no reason means it moves`
+- verified-by: `the orb takes a paused prop, keys its effect on it, and rests through orbRests`
+- verified-by: `the voice circle stops breathing when the tab is not the one on top`
+
+### F453 — A disk that would not answer left Home and Tutor holding nothing, silently
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.tsx:135
+- note: the same shape as F449, found by auditing for it. Both tabs folded their storage
+  reads with `Promise.all(...).then(...)` and no rejection handler, so a read that failed
+  left the word, the four counts and the next step null for the rest of the visit, and
+  Tutor lost its Resume door, with nothing anywhere saying so. Neither tab needs an error
+  card: they have plenty worth drawing without the disk. So Home keeps the day and pitches
+  the word at the gentlest tier, because a pitch claims nothing about a learner nobody
+  could measure, and withholds every count, because a nought where a real number belongs
+  is the app forgetting somebody who has been practising for months. Nothing on either
+  screen mentions storage; a learner cannot act on a storage fault.
+  The `.catch` is at the end of the chain and not a second argument to `.then`, which is
+  the distinction F449 turned on: an `onRejected` beside a handler cannot see that handler
+  throw, and `dailyPick` throws on an empty pool by design.
+- verified-by: `a storage read that fails still leaves today on the page, and claims nothing about the learner`
+- verified-by: `a learner with no readable standing meets the gentlest tier, not an empty card`
+- verified-by: `a disk that will not answer takes the resume door and nothing else off the tab`
+
+### F454 — A probe that threw would have retired the one pill on Home
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/home/SituationCard.tsx:67
+- note: `checking` disables the card's pill and its retry, and the probe had one handler,
+  so a rejection would have left a learner in front of a dead primary control with no way
+  back. TutorTab had diagnosed this in its own file twelve lines from the defect and fixed
+  only one of its two doors. Both are handled now, and so is the drill sitting, which had
+  a bare spinner with no header and no way out behind the same class of read.
+- verified-by: `a start that could not happen is answered on the card that asked, however it failed`
+- verified-by: `a probe that threw lets go of the checking flag instead of retiring the tab`
+
+### F455 — The bookmark tap said nothing for two storage round-trips, then lied if it failed
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/bookmarks/view.ts:93
+- note: saving a situation is a write and a read back. The button carried no pending state
+  for either, so the learner tapped, nothing moved, and they tapped again; and with no
+  rejection handler a write that never landed left the label exactly where it started,
+  claiming the shelf had changed when it had not. Three states now, all worded in
+  `bookmarks/view.ts` rather than on the screen, and the failed one says what the store is
+  still in rather than apologising, with the button left live because the way to try again
+  is the thing they already pressed. Nobody is told they did anything wrong, because they
+  did not. While in there, the fold that answered "is this saved" stopped being rebuilt on
+  every render to answer one boolean.
+- verified-by: `the bookmark tap says it is working, and says when the write did not take`
+- verified-by: `the saved list is folded once per read, not twice per render`
+- verified-by: `the bookmark button says the write is running, and says when it did not take`
+- verified-by: `the fold is asked for once and answered many times`

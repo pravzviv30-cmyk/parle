@@ -47,7 +47,9 @@ export function NextSituationCard({
 
 const st = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(3) },
-  titles: { flex: 1 },
+  // `minWidth: 0` beside `flex: 1`, or a French title beside the disc pushes
+  // its neighbour off the screen at the largest reading size.
+  titles: { flex: 1, minWidth: 0 },
   goal: { ...type.body, color: paper.ink, marginTop: space(3) },
   status: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
   actions: { marginTop: space(4) },

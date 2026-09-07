@@ -58,7 +58,7 @@ import { gradeCards, loadDeck } from './review/store.ts';
 import { NothingDue, RewardMark } from './illustrations.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
 import { loadTopics } from './topics/store.ts';
-import { sittingTitle, topicGroups } from './practice/mix.ts';
+import { DRILL_UNREAD, sittingTitle, topicGroups } from './practice/mix.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 import { scoreRecordedAttempt } from './speech/scoreAttempt.ts';
 import { consumeRecording, discardRecording } from './speech/discardRecording.ts';
@@ -643,12 +643,17 @@ export function DrillScreen({
   const [typed, setTyped] = useState('');
   const [assembled, setAssembled] = useState<number[]>([]);
 
+  // The sitting could not be read. Told, rather than shown as a spinner that
+  // never resolves.
+  const [unread, setUnread] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     // Topics are read only for the mix: they are the lanes the round robin runs
     // over, and an ordinary sitting has no use for them.
     const topicsSoon = mix ? loadTopics() : Promise.resolve([]);
-    void Promise.all([loadDeck(), loadDrillBank(), getMicSuppressedUntil(), topicsSoon]).then(
+    void Promise.all([loadDeck(), loadDrillBank(), getMicSuppressedUntil(), topicsSoon])
+      .then(
       ([deck, bank, until, topics]) => {
         if (cancelled) return;
         const now = Date.now();
@@ -665,7 +670,14 @@ export function DrillScreen({
         }
         setSession(built);
       },
-    );
+    )
+      .catch(() => {
+        // A disk that will not answer is not a reason to strand somebody on a
+        // spinner. The screen below draws a way out instead, which is the same
+        // treatment the Practice tab got in F449 and for the same reason: a
+        // loading state that is also the failure state says nothing at all.
+        if (!cancelled) setUnread(true);
+      });
     return () => {
       cancelled = true;
       tutorVoice.stop();
@@ -793,6 +805,17 @@ export function DrillScreen({
   // What this sitting calls itself. A learner who opened Today's mix and landed
   // on a screen headed "Drills" would have no way to tell the two apart.
   const heading = sittingTitle({ mix });
+
+  if (unread) {
+    return (
+      <ScrollScreen center footer={<PillButton label="Done" onPress={finishAndLeave} />}>
+        <Text style={[type.title, { color: paper.ink, textAlign: 'center' }]}>{DRILL_UNREAD.title}</Text>
+        <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(3) }]}>
+          {DRILL_UNREAD.body}
+        </Text>
+      </ScrollScreen>
+    );
+  }
 
   if (session === null) {
     return (

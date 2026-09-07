@@ -63,3 +63,15 @@ export function offersMix(deck: readonly ReviewCard[], topics: readonly Practice
 export function sittingTitle(opts?: { mix?: boolean }): string {
   return opts?.mix === true ? MIX_OFFER.title : 'Drills';
 }
+
+/**
+ * What a learner reads when the sitting could not be read off the disk.
+ *
+ * It says the true thing, which is that nothing they have done is affected, and
+ * it gives them the same door the empty sitting gives them. No error code, no
+ * apology, nothing suggesting they did something.
+ */
+export const DRILL_UNREAD = {
+  title: 'This sitting did not open.',
+  body: 'Nothing you have practised is affected. Try again in a moment, or come back to it later.',
+} as const;

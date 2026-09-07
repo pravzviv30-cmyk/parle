@@ -44,7 +44,7 @@ import { seedTopicOf, type DailyScenario } from '@luvani/core';
 
 import { BookmarkGlyph, Card, Label, MicGlyph, OutlineButton, PillButton } from '../components.tsx';
 import { useLive } from '../app/LiveContext.tsx';
-import { bookmarkAccessibilityLabel, bookmarkLabel } from '../bookmarks/view.ts';
+import { type BookmarkControl } from '../bookmarks/view.ts';
 import { MissionDisc } from '../missions/MissionDisc.tsx';
 import { paper, radius, space, type } from '../theme.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
@@ -52,11 +52,14 @@ import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
 export function SituationCard({
   scenario,
   saved,
+  bookmark,
   onToggleBookmark,
 }: {
   scenario: DailyScenario;
   /** Whether the learner has this scene saved. Decided in `bookmarks/view.ts`. */
   saved: boolean;
+  /** Every word on the bookmark button, already decided in `bookmarks/view.ts`. */
+  bookmark: BookmarkControl;
   onToggleBookmark: () => void;
 }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
@@ -69,6 +72,14 @@ export function SituationCard({
     // A second tap while the connection check runs cannot open a second room.
     if (checking) return;
     setChecking(true);
+    // Handled twice, for the reason TutorTab's `openLesson` states: a probe
+    // that ever threw would leave `checking` raised for good, and this card's
+    // one pill is the primary action of the whole screen. A refusal is treated
+    // as an unanswered probe, which is what `tutorGate` already does with one.
+    // Handled twice, for the reason TutorTab's `openLesson` states: a probe
+    // that ever threw would leave `checking` raised for good, and this card's
+    // one pill is the primary action of the whole screen. A refusal is an
+    // unanswered probe, which `tutorGate` already knows what to do with.
     void recheck().then((answered) => {
       setChecking(false);
       const decision = tutorGate(answered, false);
@@ -78,6 +89,12 @@ export function SituationCard({
       }
       setHeldBack(null);
       nav.navigate(decision.screen, { ...decision.params, seedTopic: seedTopicOf(scenario) });
+    }).catch(() => {
+      // At the end of the chain rather than beside the handler, so a throw from
+      // the navigation above is caught too. The start is kept, so the retry is
+      // the same start rather than a guess at what they were doing.
+      setChecking(false);
+      setHeldBack({ textMode: false });
     });
   };
 
@@ -108,10 +125,14 @@ export function SituationCard({
       <View style={st.actions}>
         {/* Not disabled while the probe runs: saving a scene to come back to
             has nothing to do with whether a server answered. */}
+        {/* Not disabled while the probe runs: saving a scene to come back to
+            has nothing to do with whether a server answered. It IS disabled
+            while its own write is in flight, so one tap is one write. */}
         <OutlineButton
-          label={bookmarkLabel(saved)}
-          accessibilityLabel={bookmarkAccessibilityLabel(saved, scenario.titleEn)}
+          label={bookmark.label}
+          accessibilityLabel={bookmark.accessibilityLabel}
           icon={<BookmarkGlyph />}
+          disabled={bookmark.busy}
           onPress={onToggleBookmark}
         />
         <PillButton

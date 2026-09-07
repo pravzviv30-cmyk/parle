@@ -794,6 +794,41 @@ nobody had looked at is for.
 | P5-10 | The gap between the greeting word and the name reads as a word-space rather than a hole, at every word in the hour's pool and at the largest reading size; no word is clipped by the slot, and a long name wraps rather than breaking | not run | not run |
 | P5-11 | A different drawing appears on a different day, each one moving, and the situation card carries no Demo mode label even with the tutor servers down | not run | not run |
 
+## Pass 6 Practice, and the audit that came with it
+
+The Practice rebuild (F442 to F448) and the repair of what running it exposed (F449 to
+F455) are verified statically up to a point: the archive is a pure module with its clock
+injected and its growth tested at nought, one, three and six conversations; the shuffle is
+tested as a permutation rather than a sample; a pack written before `topics` existed is
+folded rather than thrown on; and the source walk fails if the tab counts anything itself,
+grows a second pill, or drops the monogram rule.
+
+What no test in this repository can see is the thing that actually went wrong. F449 was a
+screen that sat there loading, and every suite was green while it did, because every
+fixture written for the feature included the field the real device did not have. A source
+walk cannot open a tab. So the rows below are the ones that need a phone, and the first of
+them is the one that matters.
+
+`pass` / `fail` / `not run`. Owner: `frontend-engineer` for the screens,
+`qa-release-engineer` for running them.
+
+| Id | Check | iOS | Android |
+|---|---|---|---|
+| P6-1 | On an account whose packs were written before `topics` existed, Practice draws its vault, its feed and its next step rather than a header and a floating suggestion card | not run | not run |
+| P6-2 | With storage made to fail, Practice says the read did not finish and Try again re-runs it, rather than showing a screen that cannot be told apart from a slow one | not run | not run |
+| P6-3 | Tapping Suggest another five hundred times meets five hundred different situations, and the five hundred and first is a fresh order rather than the first one again | not run | not run |
+| P6-4 | A brand new account is shown only tier one situations, on Home and on Practice, and a learner past General is shown tier two | not run | not run |
+| P6-5 | The voice circle stops moving when the Tutor tab loses focus, and starts again when it returns | not run | not run |
+| P6-6 | VoiceOver on the lesson and the conversation reads the progress rail without speaking a count | not run | not run |
+| P6-7 | At iOS AX5 on a 375 x 812 phone, Practice shows the vault, the feed, a session card and the suggestion card in order, with no clipped line and no horizontal scroll | not run | not run |
+| P6-8 | Every door out of Practice lands somewhere that agrees with the card that opened it: both next-step branches, Revisit topics, Suggest another, Practise your phrases, With tutor | not run | not run |
+
+P6-1 is the row this whole pass exists for, and it is worth saying how to set it up,
+because the obvious way to run it proves nothing. A pack built by the current code always
+carries the field. The row needs a pack written by the previous build, or one edited into
+the app container by hand with `topics` and `durationSec` deleted. Anything else is
+testing the fixture rather than the learner's phone.
+
 ## Recording the result
 
 Fill the matrix in place, in this file, in the same commit as any ledger entry a

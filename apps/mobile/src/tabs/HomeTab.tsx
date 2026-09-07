@@ -61,7 +61,7 @@
  * which is the app appearing to change its mind about a learner.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import {
@@ -83,12 +83,13 @@ import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { paper, space, type } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { useGreetingRotation } from '../home/useGreetingRotation.ts';
+import { gentlestWord } from '../home/gentlestWord.ts';
 import { WordOfDayCard } from '../home/WordOfDayCard.tsx';
 import { WORD_SCENES, type WordSceneKey } from '../home/wordScenes.ts';
 import { SituationCard } from '../home/SituationCard.tsx';
 import { MomentumCards } from '../home/MomentumCards.tsx';
 import { NextStepRow } from '../home/NextStepRow.tsx';
-import { isBookmarked } from '../bookmarks/view.ts';
+import { bookmarkControl, bookmarkDecisions, isBookmarkedIn, type BookmarkWrite } from '../bookmarks/view.ts';
 import { loadBookmarks, setBookmark, type BookmarkItem } from '../bookmarks/store.ts';
 import { momentumFrom, type Momentum } from '../progress/momentum.ts';
 import { loadActivity } from '../progress/activity.ts';
@@ -118,6 +119,14 @@ export function HomeTab() {
   const [momentum, setMomentum] = useState<Momentum | null>(null);
   const [nextMission, setNextMission] = useState<MissionProgress | null>(null);
   const [bookmarks, setBookmarks] = useState<readonly BookmarkItem[]>([]);
+  // Where the bookmark tap has got to. A save is a write and a read back, which
+  // is two trips over the storage bridge, and the button said the same word for
+  // the whole of it.
+  const [bookmarkWrite, setBookmarkWrite] = useState<BookmarkWrite>('idle');
+
+  // Folded once per change rather than once per render. This was a whole Map
+  // rebuilt on every render to answer one boolean.
+  const decisions = useMemo(() => bookmarkDecisions(bookmarks), [bookmarks]);
 
   // Re-read on every return: finishing a sitting anywhere in the app should be
   // visible here the moment the learner comes back to look, and a phone that
@@ -132,8 +141,8 @@ export function HomeTab() {
       setScenario(dailyPick(DAILY_SCENARIOS, now));
       setScene(dailyPick(WORD_SCENES, now));
       // All independent reads cross the native storage bridge together.
-      void Promise.all([loadActivity(), loadDeck(), loadMissionCompletions(), loadBookmarks()]).then(
-        ([activity, deck, completions, saved]) => {
+      void Promise.all([loadActivity(), loadDeck(), loadMissionCompletions(), loadBookmarks()])
+        .then(([activity, deck, completions, saved]) => {
           if (cancelled) return;
           // The word is pitched, so it waits. `wordsForLevel` narrows the pool
           // to the learner's tier and `dailyPick` takes today out of what is
@@ -146,20 +155,51 @@ export function HomeTab() {
           setMomentum(momentumFrom({ activity, deck, profile, now }));
           setNextMission(suggestedMission(missionStates(missionCompletionsFrom(completions), deck, now)));
           setBookmarks(saved);
-        },
-      );
+        })
+        .catch(() => {
+          if (cancelled) return;
+          // What survives is the word, because it is a fact about the day and a
+          // pool rather than a claim about this learner. It is pitched at the
+          // gentlest tier for the reason `tier.ts` already gives: a learner
+          // whose standing could not be read should meet the gentlest pool
+          // rather than a blank screen, and a pitch claims nothing.
+          //
+          // What does not survive is every count. A nought where a real number
+          // belongs is the app forgetting somebody who has been practising for
+          // months, so the momentum block and the next step stay absent.
+          // Nothing on screen mentions the disk: a learner cannot act on a
+          // storage fault, and the greeting, the word, the situation and the
+          // one pill are all still there.
+          setWord(gentlestWord(now));
+        });
       return () => {
         cancelled = true;
       };
     }, [profile]),
   );
 
+  /**
+   * Save a situation to come back to, or take it off the shelf.
+   *
+   * Written, then read back, so what is drawn is what the store holds rather
+   * than what this screen assumed it would hold. The flag around it is what
+   * makes the wait visible: without it the learner tapped, nothing moved for
+   * two bridge crossings, and they tapped again.
+   *
+   * A write that will not land says so and leaves the button live, because the
+   * way to try again is the thing they already pressed. Nothing tells them they
+   * did anything wrong, because they did not.
+   */
   const toggleBookmark = (id: string, saved: boolean) => {
-    // Written, then read back, so what is drawn is what the store holds rather
-    // than what this screen assumed it would hold.
+    if (bookmarkWrite === 'writing') return;
+    setBookmarkWrite('writing');
     void setBookmark(id, !saved)
       .then(() => loadBookmarks())
-      .then(setBookmarks);
+      .then((rows) => {
+        setBookmarks(rows);
+        setBookmarkWrite('idle');
+      })
+      .catch(() => setBookmarkWrite('refused'));
   };
 
   return (
@@ -182,8 +222,9 @@ export function HomeTab() {
         {scenario !== null && (
           <SituationCard
             scenario={scenario}
-            saved={isBookmarked(bookmarks, scenario.id)}
-            onToggleBookmark={() => toggleBookmark(scenario.id, isBookmarked(bookmarks, scenario.id))}
+            saved={isBookmarkedIn(decisions, scenario.id)}
+            bookmark={bookmarkControl(isBookmarkedIn(decisions, scenario.id), scenario.titleEn, bookmarkWrite)}
+            onToggleBookmark={() => toggleBookmark(scenario.id, isBookmarkedIn(decisions, scenario.id))}
           />
         )}
 

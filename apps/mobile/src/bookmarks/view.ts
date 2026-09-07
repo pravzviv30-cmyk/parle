@@ -57,13 +57,73 @@ export function bookmarkAccessibilityLabel(saved: boolean, titleEn: string): str
 }
 
 /**
- * The learner's current decision about one situation.
+ * Where a tap has got to: nothing in flight, a write running, or one that did
+ * not take.
  *
- * Latest decision wins, and a tie on the instant falls to the later row, which
- * is the order the store already writes in.
+ * `refused` rather than any of the obvious words for it, because this string is
+ * written into a screen and `copy/guilt.ts` bans the obvious one from anything
+ * a learner could read.
  */
-export function isBookmarked(items: readonly BookmarkItem[], scenarioId: string): boolean {
-  return latestFor(items).get(scenarioId)?.saved === true;
+export type BookmarkWrite = 'idle' | 'writing' | 'refused';
+
+/** Everything the Bookmark button needs, decided in one place. */
+export interface BookmarkControl {
+  /** The word on the button. */
+  label: string;
+  /** The same thing, as a sentence that names the situation. */
+  accessibilityLabel: string;
+  /** True while a write is in flight, so one tap is one write. */
+  busy: boolean;
+}
+
+/**
+ * The Bookmark button, in whichever of the three states it is in.
+ *
+ * A save is a write and a read back, which is two trips across the native
+ * storage bridge, and until this existed the button said the same word for the
+ * whole of it: the learner tapped, nothing moved, and they tapped again. Worse
+ * was the end of it, because a write that failed left the word where it started
+ * with nothing anywhere saying the shelf had not changed.
+ *
+ * So the failed state says the state the store is still in rather than
+ * apologising, and the button stays live: the way to try again is the thing
+ * they already pressed. Nobody is told they did anything wrong, because they
+ * did not.
+ */
+export function bookmarkControl(saved: boolean, titleEn: string, write: BookmarkWrite): BookmarkControl {
+  if (write === 'writing') {
+    return {
+      label: saved ? 'Removing' : 'Saving',
+      accessibilityLabel: saved ? `Removing ${titleEn} from saved situations` : `Saving ${titleEn}`,
+      busy: true,
+    };
+  }
+  if (write === 'refused') {
+    return {
+      label: saved ? 'Still saved' : 'Not saved yet',
+      accessibilityLabel: saved
+        ? `${titleEn} is still saved. Tap to try again.`
+        : `${titleEn} is not saved yet. Tap to try again.`,
+      busy: false,
+    };
+  }
+  return {
+    label: bookmarkLabel(saved),
+    accessibilityLabel: bookmarkAccessibilityLabel(saved, titleEn),
+    busy: false,
+  };
+}
+
+/**
+ * The learner's current decision about one situation, out of a fold.
+ *
+ * Takes the fold rather than the rows because the caller draws once and asks
+ * twice: Home used to hand the raw list to a function that rebuilt the whole
+ * Map to answer one boolean, on every render. `bookmarkDecisions` is the fold,
+ * memoised where it is read, and this is every reader of it.
+ */
+export function isBookmarkedIn(decisions: ReadonlyMap<string, BookmarkItem>, scenarioId: string): boolean {
+  return decisions.get(scenarioId)?.saved === true;
 }
 
 /**
@@ -77,7 +137,7 @@ export function savedSituations(
   pool: readonly DailyScenario[],
 ): readonly DailyScenario[] {
   const known = new Map(pool.map((s) => [s.id, s]));
-  return [...latestFor(items).values()]
+  return [...bookmarkDecisions(items).values()]
     .filter((item) => item.saved)
     .sort((a, b) => b.at - a.at)
     .map((item) => known.get(item.scenarioId))
@@ -95,8 +155,11 @@ export function hasSaved(saved: readonly DailyScenario[]): boolean {
  * A plain fold rather than a sort, so two rows claiming the same instant settle
  * on the one written later, which is the store's own order and the only tie
  * break available without inventing evidence.
+ *
+ * Exported so a screen can fold once and ask many times. It was private, and
+ * the one question Home asks of it ran the whole fold again on every render.
  */
-function latestFor(items: readonly BookmarkItem[]): Map<string, BookmarkItem> {
+export function bookmarkDecisions(items: readonly BookmarkItem[]): Map<string, BookmarkItem> {
   const latest = new Map<string, BookmarkItem>();
   for (const item of items) {
     const held = latest.get(item.scenarioId);

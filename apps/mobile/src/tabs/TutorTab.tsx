@@ -15,7 +15,7 @@
  * removals is named in `TutorTab.test.ts`, so putting one back fails by name.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { CAFE_LESSON, MISSIONS, missionStates, type MissionProgress } from '@luvani/core';
@@ -79,36 +79,68 @@ export function TutorTab() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void Promise.all([loadMissionCompletions(), loadDeck(), loadScenarioProgress()]).then(
-        ([completions, deck, scenes]) => {
+      void Promise.all([loadMissionCompletions(), loadDeck(), loadScenarioProgress()])
+        .then(([completions, deck, scenes]) => {
           if (cancelled) return;
           setRecords(scenes);
           // The records decide which scene comes back, not only how long is left
           // of it: a learner who walked out of the market half way through meant
           // the market, whatever the deck says is due.
           setResume(resumableMission(missionStates(missionCompletionsFrom(completions), deck, Date.now()), scenes));
-        },
-      );
+        })
+        // A disk that will not answer takes the resume door with it and nothing
+        // else. The speak card, the situations, the lesson and the open
+        // conversation are all on this page without reading anything, so the
+        // tab stays a way into French rather than becoming a message about
+        // storage. Nothing is cleared here on purpose: a re-read that failed is
+        // not evidence that the scene the learner walked out of is gone.
+        //
+        // `.catch` at the end of the chain rather than a second argument to
+        // `.then`, because a throw inside the handler above rejects the promise
+        // `.then` returns and an onRejected passed alongside it never sees it.
+        .catch(() => {});
       return () => {
         cancelled = true;
       };
     }, []),
   );
 
+  /**
+   * The conversation, probed before it opens.
+   *
+   * The rejection path is the whole reason this is not three lines. `checking`
+   * disables the speak card, all four doors, every mission row and the three
+   * links at the foot, so a probe that ever threw would not fail one tap: it
+   * would retire the tab for the rest of the session with nothing on screen
+   * saying why.
+   *
+   * `.catch` at the end of the chain rather than a second argument to `.then`,
+   * because a throw inside the fulfilment handler rejects the promise `.then`
+   * returns and an onRejected passed beside it never sees that throw. The
+   * handler navigates, so it is a real thrower.
+   */
   const open = (textMode: boolean) => {
     // A second tap while the connection check runs cannot open a second room.
     if (checking) return;
     setChecking(true);
-    void recheck().then((answered) => {
-      setChecking(false);
-      const decision = tutorGate(answered, textMode);
-      if (!decision.go) {
-        setHeldBack(decision.heldBack);
-        return;
-      }
-      setHeldBack(null);
-      nav.navigate(decision.screen, decision.params);
-    });
+    void recheck()
+      .then((answered) => {
+        setChecking(false);
+        const decision = tutorGate(answered, textMode);
+        if (!decision.go) {
+          setHeldBack(decision.heldBack);
+          return;
+        }
+        setHeldBack(null);
+        nav.navigate(decision.screen, decision.params);
+      })
+      .catch(() => {
+        // A probe that threw is a probe that did not answer, so the start is
+        // held back rather than lost: the flag goes down, the tab is live
+        // again, and the retry is the same start the learner asked for.
+        setChecking(false);
+        setHeldBack({ textMode });
+      });
   };
 
   /**
@@ -153,21 +185,31 @@ export function TutorTab() {
   // nothing rather than guessing in both cases. `beatsTotal` comes from the
   // catalogue here and is never stored, so a mission that gains a beat cannot
   // leave a stale total behind on a phone.
-  const doors = tutorDoors(
-    resume === null
-      ? null
-      : {
-          title: resume.mission.title,
-          goalEn: resume.mission.goalEn,
-          place: resume.mission.place,
-          minutesRemaining: minutesRemaining(
-            records.find((record) => record.missionId === resume.mission.id) ?? null,
-            resume.mission.beatIds.length,
-            resume.lastFinishedAt,
-          ),
-        },
-    MISSIONS.length,
-    CAFE_LESSON.title,
+  //
+  // In a memo because it is built from the two reads and nothing else: four
+  // fresh door objects and a walk over every stored scene used to be allocated
+  // in the render body, so they ran again on every flip of the checking flag,
+  // every focus change and every toggle of the intro. `MISSIONS` and
+  // `CAFE_LESSON` are the catalogue's and constant.
+  const doors = useMemo(
+    () =>
+      tutorDoors(
+        resume === null
+          ? null
+          : {
+              title: resume.mission.title,
+              goalEn: resume.mission.goalEn,
+              place: resume.mission.place,
+              minutesRemaining: minutesRemaining(
+                records.find((record) => record.missionId === resume.mission.id) ?? null,
+                resume.mission.beatIds.length,
+                resume.lastFinishedAt,
+              ),
+            },
+        MISSIONS.length,
+        CAFE_LESSON.title,
+      ),
+    [records, resume],
   );
 
   const enter = (key: string) => {
@@ -207,7 +249,7 @@ export function TutorTab() {
             {/* The card says the words here, so the orb says none: its own
                 caption would land on top of the two lines below it, which is
                 exactly what it did until F415. */}
-            <VoiceOrb state={checking ? 'thinking' : 'ready'} size={116} announce={false} withCaption={false} />
+            <VoiceOrb state={checking ? 'thinking' : 'ready'} size={116} announce={false} withCaption={false} paused={!focused} />
             <Text style={st.speakTitle}>{checking ? TUTOR_OFFLINE.checking : 'Tap to speak'}</Text>
             <Text style={st.speakSubline}>{TUTOR_ORB_SUBLINE}</Text>
           </Pressable>
@@ -355,12 +397,12 @@ const st = StyleSheet.create({
   // The disc and the words sit on one row, and the words take what is left, so
   // a long title wraps instead of pushing the card sideways at large text.
   resumeHead: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(2) },
-  doorWords: { flex: 1 },
+  doorWords: { flex: 1, minWidth: 0 },
   headRow: { flexDirection: 'row', alignItems: 'baseline', gap: space(2) },
-  headWords: { flex: 1 },
+  headWords: { flex: 1, minWidth: 0 },
   rows: { marginTop: space(2) },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
-  rowWords: { flex: 1 },
+  rowWords: { flex: 1, minWidth: 0 },
   scene: { alignItems: 'center', marginTop: space(3) },
   doorAction: { marginTop: space(4) },
   lessonQuiet: { marginTop: space(1), alignItems: 'center' },

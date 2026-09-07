@@ -315,29 +315,35 @@ describe('Home opens on the day rather than on a summary — F420, F391, F392', 
     assert.match(heldBack, /label=\{checking \? TUTOR_OFFLINE\.checking : TUTOR_OFFLINE\.retry\}/, 'there is no way to check again');
     assert.match(heldBack, /<OutlineButton/, 'the way to check again is drawn as a second primary');
 
-    // Bookmark is the quiet control and its word is the module's. Home writes
-    // the decision and reads the store back rather than assuming it took.
-    assert.match(
-      SITUATION,
-      /import \{ bookmarkAccessibilityLabel, bookmarkLabel \} from '\.\.\/bookmarks\/view\.ts'/,
-      'the card spells the bookmark word itself',
-    );
+    // Bookmark is the quiet control and every word on it is the module's. The
+    // card is handed the whole button and decides none of it, because "Saved",
+    // "Saving" and "Not saved yet" are three answers to one question and a card
+    // holding two of them would be a second opinion about a store it cannot
+    // read. Home writes the decision and reads the store back rather than
+    // assuming it took.
     assert.match(
       flat(SITUATION),
-      /<OutlineButton label=\{bookmarkLabel\(saved\)\}/,
-      'the bookmark is not the quiet outline reading its word from the module',
+      /<OutlineButton label=\{bookmark\.label\}/,
+      'the bookmark is not the quiet outline reading its word from the model',
     );
     // "Bookmark" and "Saved" name nothing on their own: a blind learner reaches
     // this button several lines below the title it belongs to, so the sentence
     // carries the situation with it, the way startLabel does for the pill.
     assert.match(
       flat(SITUATION),
-      /accessibilityLabel=\{bookmarkAccessibilityLabel\(saved, scenario\.titleEn\)\}/,
+      /accessibilityLabel=\{bookmark\.accessibilityLabel\}/,
       'the bookmark button reads as a bare word to a screen reader, naming no situation',
     );
+    for (const word of ['Bookmark', 'Saved', 'Saving', 'Removing']) {
+      assert.ok(!SITUATION.includes(`'${word}'`), `the card spells "${word}" itself; that word is bookmarks/view.ts's`);
+    }
     assert.match(FLAT, /setBookmark\(id, !saved\)/, 'Home never writes the bookmark decision');
     assert.match(FLAT, /\.then\(\(\) => loadBookmarks\(\)\)/, 'Home assumes the write took instead of reading the store back');
-    assert.match(FLAT, /isBookmarked\(bookmarks, scenario\.id\)/, 'Home decides for itself whether a scene is saved');
+    assert.match(
+      FLAT,
+      /bookmarkControl\(isBookmarkedIn\(decisions, scenario\.id\), scenario\.titleEn, bookmarkWrite\)/,
+      'Home decides for itself what the bookmark button says, or asks without the fold it already built',
+    );
 
     // The situation is the day's, and the title on it is English.
     assert.match(FLAT, /setScenario\(dailyPick\(DAILY_SCENARIOS, now\)\)/, "today's situation is not picked by the day");
@@ -652,6 +658,21 @@ describe('the two tabs fit a phone at every reading size — F409', () => {
     assert.match(tile, /flex: 1/, 'a tile does not take its share of the row');
     assert.match(tile, /minWidth: 0/, 'a tile cannot shrink, so its neighbour goes off the screen at large text');
 
+    // Every column of words that takes the rest of a row can shrink. `flex: 1`
+    // alone gives a column its share and forbids it going below its content's
+    // width, so at the largest reading size a French title beside a 56pt disc
+    // pushes the disc, and then the card, off the screen. Four of these were
+    // written without the pair while every Home equivalent had it.
+    for (const { path, body } of files) {
+      for (const rule of body.match(/\w+: \{[^}]*flex: 1[^}]*\}/g) ?? []) {
+        assert.match(
+          rule,
+          /minWidth: 0/,
+          `${path} gives a column its share of a row without letting it shrink, so its neighbour goes off the screen at large text: ${rule}`,
+        );
+      }
+    }
+
     // Every row a learner can press on Home declares the touch floor, sized for
     // one hand while walking.
     for (const { path, body } of files.filter((file) => file.path.startsWith('home'))) {
@@ -667,5 +688,152 @@ describe('the two tabs fit a phone at every reading size — F409', () => {
       /minHeight: HIT/,
       'the tutor rows fall under the touch floor',
     );
+  });
+});
+
+/**
+ * The three ways Home stopped answering while still looking fine.
+ *
+ * A storage read with no rejection path leaves the day's word, the four counts
+ * and the next step null for the rest of the visit, with no error and nothing
+ * to press. A bookmark tap with no acknowledgement leaves the word still while
+ * two round-trips run, and no rejection path leaves a failed write looking
+ * exactly like one that took. And one boolean about the saved list was rebuilt
+ * out of the whole decision store, twice, on every render.
+ *
+ * Read as source, because there is no renderer in this suite (docs/TESTING.md).
+ * The ceiling is honest: this proves the rejection paths exist and say what
+ * they say, never that a learner saw a card.
+ */
+describe('Home keeps its day when the disk will not answer', () => {
+  test('a storage read that fails still leaves today on the page, and claims nothing about the learner', () => {
+    const read = between(FLAT, 'void Promise.all(', 'return () => {', 'Home folds its storage reads together');
+    assert.match(
+      read,
+      /\.catch\(/,
+      'the storage read is never answered when it fails, so the word, the four counts and the next step stay null for the rest of the visit',
+    );
+    assert.ok(
+      read.indexOf('.then(') < read.indexOf('.catch('),
+      'the rejection is handled before the answer is, so the chain reads backwards',
+    );
+    // At the END of the chain, not beside the fulfilment handler. `dailyPick`
+    // throws on an empty pool by design, so the handler above is a real
+    // thrower, and an onRejected passed alongside it would never see it.
+    assert.doesNotMatch(
+      read,
+      /\}, \(\) => \{/,
+      'the rejection is a second argument to .then, which cannot see a throw from the handler beside it',
+    );
+
+    const rescue = read.slice(read.indexOf('.catch('));
+    // What survives: the word. It is a fact about the day and a pool, pitched
+    // at the gentlest tier because nobody could read a standing to pitch it at.
+    assert.match(
+      rescue,
+      /setWord\(gentlestWord\(now\)\)/,
+      'a failed read leaves Home with a hole where the word of the day goes, or picks the word somewhere other than the one module that answers this',
+    );
+    assert.match(
+      FLAT,
+      /import \{ gentlestWord \} from '\.\.\/home\/gentlestWord\.ts'/,
+      'Home decides for itself what to draw for a learner it could not measure',
+    );
+    // And what does not. A nought where a real number belongs is the app
+    // forgetting somebody who has been practising for months, so the counts and
+    // the suggestion are withheld rather than invented.
+    for (const invented of ['setMomentum(', 'setNextMission(', 'momentumFrom(', 'suggestedMission(']) {
+      assert.ok(!rescue.includes(invented), `a failed read draws ${invented} out of nothing, which is a count about a learner nobody could read`);
+    }
+    // Nothing is shown about the disk either. A learner cannot act on a storage
+    // fault, and the page still carries the greeting, the word, the situation
+    // and the one pill.
+    for (const shouted of ['Something went wrong', 'Try again', 'error', 'Error']) {
+      assert.ok(!SCREEN.includes(shouted), `Home answers a storage fault with "${shouted}", which is a screen about itself`);
+    }
+  });
+
+  test('the bookmark tap says it is working, and says when the write did not take', () => {
+    const toggle = between(FLAT, 'const toggleBookmark', 'return (', 'Home has a bookmark toggle');
+    assert.match(toggle, /if \(bookmarkWrite === 'writing'\) return;/, 'a second tap can queue a second write over the first');
+    assert.ok(
+      toggle.indexOf("setBookmarkWrite('writing')") < toggle.indexOf('setBookmark('),
+      'the write starts before anything says so, so the button is dead for two storage round-trips',
+    );
+    assert.match(
+      toggle,
+      /\.catch\(/,
+      'a write that failed is swallowed, so the label never changes and the learner taps a button that will never move',
+    );
+    assert.ok(
+      toggle.indexOf('.then(') < toggle.indexOf('.catch('),
+      'the rejection is handled before the answer is, so the chain reads backwards',
+    );
+    assert.doesNotMatch(
+      toggle,
+      /\}, \(\) => \{/,
+      'the rejection is a second argument to .then, which cannot see a throw from the handler beside it',
+    );
+    assert.match(toggle, /setBookmarkWrite\('refused'\)/, 'a write that failed leaves the button claiming the shelf changed');
+    assert.match(toggle, /setBookmarkWrite\('idle'\)/, 'the button never goes back to reporting the store');
+
+    // The three words themselves are the module's, and the busy state is too:
+    // a card that worked out its own disabled would be a second answer to when
+    // a control is off.
+    assert.match(
+      flat(SITUATION),
+      /disabled=\{bookmark\.busy\}/,
+      'the bookmark button stays tappable while its own write is in flight, or decides for itself when it is off',
+    );
+    assert.match(
+      flat(SITUATION),
+      /import \{ type BookmarkControl \} from '\.\.\/bookmarks\/view\.ts'|import \{ bookmarkAccessibilityLabel/,
+      'the card takes the bookmark button as something other than the model the module decides',
+    );
+  });
+
+  test('the saved list is folded once per read, not twice per render', () => {
+    // `isBookmarked` walked every stored decision into a fresh Map to answer
+    // one boolean, and Home asked it twice in one render.
+    assert.match(
+      FLAT,
+      /const decisions = useMemo\(\(\) => bookmarkDecisions\(bookmarks\), \[bookmarks\]\)/,
+      'Home rebuilds the whole decision store to answer one boolean, on every render',
+    );
+    assert.ok(!SCREEN.includes('isBookmarked('), 'Home still asks the question that folds the store to answer it');
+    assert.match(
+      FLAT,
+      /import \{ bookmarkControl, bookmarkDecisions, isBookmarkedIn/,
+      'Home reads the saved list through something other than the module that folds it',
+    );
+  });
+
+  test('a start that could not happen is answered on the card that asked, however it failed', () => {
+    // The same defect the Tutor tab had, in the card that carries Home's one
+    // pill: `checking` disables the pill and the retry, so a probe that threw
+    // would leave the learner in front of a dead primary control.
+    const opener = between(flat(SITUATION), 'const open = ', 'return (', 'the card has an opener');
+    assert.match(opener, /if \(checking\) return;/, 'a second tap while the probe is in flight can open a second room');
+    assert.match(
+      opener,
+      /\.catch\(/,
+      'the probe has one handler, so a rejection leaves the flag up and the one pill on Home disabled behind it',
+    );
+    assert.ok(
+      opener.indexOf('.then(') < opener.indexOf('.catch('),
+      'the rejection is handled before the answer is, so the chain reads backwards',
+    );
+    assert.doesNotMatch(
+      opener,
+      /\}, \(\) => \{/,
+      'the rejection is a second argument to .then, which cannot see a throw from the handler beside it',
+    );
+    assert.equal(
+      (opener.match(/setChecking\(false\)/g) ?? []).length,
+      2,
+      'the flag is let go of on one path only, so the other one leaves the card inert',
+    );
+    // And the start is kept, so the retry is the same start rather than a guess.
+    assert.match(opener, /setHeldBack\(\{ textMode: false \}\)/, 'a start lost to a throw is dropped rather than kept for the retry');
   });
 });
