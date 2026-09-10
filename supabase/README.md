@@ -38,6 +38,7 @@ of each before starting the next. Each file is idempotent: every create is
 | 10 | `migrations/202608300003_paid_lapse_marker.sql` | F257: marks the paid-to-trial transition so a former subscriber is never told their free trial ended. Adds one boolean column and one trigger |
 | 11 | `migrations/202609040001_conversation_packs.sql` | Durable, idempotent Conversation Packs keyed by completed session. Curated phrases and exercises only: raw audio and readable transcripts have no column or payload contract. |
 | 12 | `migrations/202609050001_learner_state_daily_namespaces.sql` | F411: widens `learner_state`'s namespace whitelist to accept `bookmarks` and `scenarioProgress`, so the situations a learner saved and the scene they left half finished reach the account instead of being refused at the door. Recreates one named check constraint, touches no rows |
+| 13 | `migrations/202609100001_max_allowance_three_hundred.sql` | Reprices Max from 450 minutes to 300 to match `PLANS.regular` in core, which moved to $29. Replaces one function body, creates nothing, touches no rows. At $29 the old 450 minutes had a negative worst-case margin; 300 leaves 29.7%. No entitlement row carries `regular` today, so this moves nobody |
 
 Order is load-bearing in one direction only: everything after 1 names tables and
 functions that 1 creates, so 1 first. Files 3, 4, 5, 7 and 9 are each a single `create or
@@ -128,6 +129,7 @@ depends on what the earlier ones built.
 
 | Rolling back | Script | Cost |
 |---|---|---|
+| `202609100001_max_allowance_three_hundred.sql` | `rollback/202609100001_down.sql` | Restores 202608300002's function body. Inert today on purpose: the migration changed only a number that `PLANS.regular` owns, so this file carries the current allowance rather than the old one. Reverting the cap is a core change first, then every allowance table under `supabase/`, then a new forward migration. The file's own header spells out the order |
 | `202609050001_learner_state_daily_namespaces.sql` | `rollback/202609050001_down.sql` | **DESTRUCTIVE.** Narrowing the whitelist cannot succeed while a row uses one of the two names, so the script deletes every server copy of a learner's saved situations and half finished scenes first. The device copies survive; a learner who changes phone loses both. Take the named backup first. |
 | `202609040001_conversation_packs.sql` | `rollback/202609040001_down.sql` | **DESTRUCTIVE.** Deletes server-owned Conversation Packs. Take the named backup first. |
 | `202608300003_paid_lapse_marker.sql` | `rollback/202608300003_down.sql` | Reopens F257. Former subscribers become indistinguishable from exhausted trials and receive the wrong explanation |
@@ -185,7 +187,7 @@ the project has real accounts on it.
 "We can roll back" is a claim, and this is how it becomes evidence. Do it on a disposable
 project, and keep the output:
 
-1. Apply all twelve migrations. Run the harness. Record: twelve proofs, all passed.
+1. Apply all thirteen migrations. Run the harness. Record: twelve proofs, all passed.
 2. Note the row counts of all seven tables (`select count(*) from public.<table>;`).
 3. Take the backup from `## Backup`, and record its timestamp.
 4. Apply `rollback/202608240001_down.sql` with the interlock set. Re-run the harness and
@@ -193,14 +195,14 @@ project, and keep the output:
    evidence the rollback did something, and the evidence F73 was real.
 5. Re-apply `migrations/202608240001_claim_trial_null_fix.sql`. Re-run the harness and
    record twelve passes again.
-6. Apply `rollback/202609050001_down.sql`, then `rollback/202609040001_down.sql`, then `rollback/202608300003_down.sql`, then `rollback/202608300002_down.sql` with its interlock set, then
+6. Apply `rollback/202609100001_down.sql`, then `rollback/202609050001_down.sql`, then `rollback/202609040001_down.sql`, then `rollback/202608300003_down.sql`, then `rollback/202608300002_down.sql` with its interlock set, then
    `rollback/202608300001_down.sql`, then `rollback/202608270001_down.sql` with its
    interlock set, then `rollback/202608260001_down.sql`, then
    `rollback/202608250002_down.sql` and `rollback/202608250001_down.sql` with their
    interlocks set, then `rollback/202608230001_down.sql`, then
    `rollback/202608220001_down.sql`. Record that the harness now reports the schema as
    not applied, naming each missing object.
-7. Re-apply all twelve migrations, restore from step 3, and record the row counts from
+7. Re-apply all thirteen migrations, restore from step 3, and record the row counts from
    step 2 matching.
 
 Steps 4 and 5 are the cheap half and can be run on their own: they touch one function

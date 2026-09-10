@@ -332,7 +332,24 @@ describe('margins after the store takes its cut', () => {
       'changing a price means changing three things together: PLANS.priceUsd, the margin floors in ' +
       'this file, and the tier in App Store Connect. Change one and the other two quietly lie.';
     assert.equal(PLANS.starter.priceUsd, 19, note);
-    assert.equal(PLANS.regular.priceUsd, 39, note);
+    assert.equal(PLANS.regular.priceUsd, 29, note);
     assert.equal(PLANS.trial.priceUsd, 0, note);
+  });
+
+  test('an allowance change is a nine-file change, and this is the only line that says so', () => {
+    // The price above is pinned in one place. The allowance is not: every
+    // migration and rollback that defines the debit carries its own copy of
+    // this table in SQL, and databaseContract.test.ts holds all of them equal
+    // to PLANS. Repricing Max from 450 to 300 minutes moved seven SQL files
+    // and needed an eighth to replace the function on a database that had
+    // already run the old one. Nothing pinned the seconds before that change,
+    // so the size of the job was discovered rather than known.
+    const note =
+      'changing an allowance means changing this constant, every allowance table in ' +
+      'supabase/migrations and supabase/rollback, and a new forward migration replacing ' +
+      'consume_entitlement. databaseContract.test.ts fails on any copy left behind.';
+    assert.equal(PLANS.trial.secondsPerPeriod, 30 * 60, note);
+    assert.equal(PLANS.starter.secondsPerPeriod, 180 * 60, note);
+    assert.equal(PLANS.regular.secondsPerPeriod, 300 * 60, note);
   });
 });

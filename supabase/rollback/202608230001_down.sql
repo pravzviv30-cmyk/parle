@@ -57,7 +57,7 @@ begin
   update public.entitlements
   set
     seconds_used = least(
-      case plan when 'trial' then 1800 when 'starter' then 10800 when 'regular' then 27000 else 0 end,
+      case plan when 'trial' then 1800 when 'starter' then 10800 when 'regular' then 18000 else 0 end,
       case
         when period_end is not null and period_end <= now() then p_seconds
         else seconds_used + p_seconds

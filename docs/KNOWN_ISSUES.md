@@ -7639,3 +7639,37 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   guards were mutation-tested rather than assumed: putting a digit back fails each one.
 - verified-by: `no spoken safety line hands a bare number to a French text normalizer`
 - verified-by: `the canned lines obey the learner-copy rules`
+
+### F512 — Max is three hundred minutes at twenty nine dollars, and every allowance table says so
+- severity: P1
+- status: [x]
+- where: packages/core/src/metering/meter.ts:50
+- note: the second paid tier was 450 minutes at $39. It is now 300 at $29. The price came first and
+  the minutes had to follow it: serving 450 minutes costs about $26.01 and $29 nets $24.65 after the
+  small business store fee, so at the old allowance the heaviest Max subscriber was a loss, at minus
+  5.5% worst-case margin. The twenty percent floor is a strict inequality and breaks at 341 minutes.
+  300 costs about $17.34 and leaves 29.7%, and still 14.6% at the standard store rate, which is the
+  arm the other margin test asserts stays below twenty — a test that fails from the profitable side,
+  so whoever moves this next reads its message rather than fixing its number.
+  The allowance is not owned by one line. Every migration and rollback that defines the debit carries
+  its own copy of the `case plan ... end` table, and `databaseContract.test.ts` holds all of them
+  equal to PLANS, so seven SQL files moved with the constant. Rewriting a file does not touch a
+  database that already ran it, so an eighth migration replaces the function body, and its rollback
+  restores the previous definition rather than the previous number: a database serving 450 while the
+  app and the token server both believe 300 would keep starting sessions after the balance the server
+  reports has run out, and the refusal that raises the subscription wall would never fire.
+  Nobody is moved by this. `paidPlan` in `services/token-server/src/billing/revenuecat.ts:66` is the
+  only thing that writes a paid plan, and it is reachable only through a billing configuration that
+  is all-or-nothing over five unset environment variables, so no entitlement row carries `regular`.
+  The stored id stays `regular` and only the label becomes "Max", which keeps a check constraint on
+  the payment path out of this change entirely.
+  Nothing pinned the seconds before now, so the size of this job was discovered rather than known.
+  It is pinned in `meter.test.ts` beside the price, which is the entry's own lesson.
+- verified-by: `a price change is a three-part change: this constant, these floors, and the store tier`
+- verified-by: `an allowance change is a nine-file change, and this is the only line that says so`
+- verified-by: `the atomic debit uses the same plan limits as core`
+- verified-by: `both paid plans clear twenty percent worst-case margin after the small business store fee`
+- verified-by: `the standard store rate is why Small Business enrolment is a requirement, not a nicety`
+- verified-by: `every migration ships a rollback that names each object it created`
+- verified-by: `the supabase runbook applies every migration in order and pairs each with its rollback`
+- verified-by: `the outstanding schema instruction names every migration in the runbook`

@@ -132,7 +132,7 @@ begin
     seconds_used = case
       when plan <> 'trial' and period_end is not null and period_end < now() - interval '24 hours' then 1800
       else least(
-        case plan when 'trial' then 1800 when 'starter' then 10800 when 'regular' then 27000 else 0 end,
+        case plan when 'trial' then 1800 when 'starter' then 10800 when 'regular' then 18000 else 0 end,
         seconds_used + p_seconds
       )
     end,

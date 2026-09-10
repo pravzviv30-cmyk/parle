@@ -35,10 +35,19 @@ export interface PlanSpec {
  * voice — more than the paid plan earns. Thirty minutes once is enough to feel
  * the product work and cannot be farmed.
  */
+/**
+ * The second paid tier is stored as `regular` and shown as "Max".
+ *
+ * The id is a value in a database check constraint and in four migrations'
+ * allowance tables; the label is a word on a screen. Renaming the id to match
+ * the label would buy nothing and cost a constraint migration on the payment
+ * path, so the two are allowed to differ and this is the note that says so.
+ * `label` is the only thing a learner ever reads.
+ */
 export const PLANS: Record<Plan, PlanSpec> = {
   trial: { id: 'trial', label: 'Trial', secondsPerPeriod: 30 * 60, periodDays: null, priceUsd: 0 },
   starter: { id: 'starter', label: 'Starter', secondsPerPeriod: 180 * 60, periodDays: 30, priceUsd: 19 },
-  regular: { id: 'regular', label: 'Regular', secondsPerPeriod: 450 * 60, periodDays: 30, priceUsd: 39 },
+  regular: { id: 'regular', label: 'Max', secondsPerPeriod: 300 * 60, periodDays: 30, priceUsd: 29 },
 };
 
 /**
