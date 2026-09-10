@@ -143,7 +143,7 @@ export const PROFILE_ANSWER_FIELDS = [
   // app-level key `@luvani/core` owns. It is here rather than riding with the
   // heavier side because losing it does not degrade to "some other voice": two
   // of the eight voices are women and the tutor's persona is derived from the
-  // key, so a null overwriting `celine` makes the tutor introduce herself as a
+  // key, so a null overwriting `marie` makes the tutor introduce herself as a
   // man on the busier device. Null means never chosen, and the agent — not this
   // merge — is what resolves never-chosen to the default, so the merge never
   // writes a key nobody picked.

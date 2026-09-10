@@ -13,7 +13,7 @@
  *
  * ## The defect this exists for
  *
- * Two of the eight voices are women. A chooser that shows its own hand-written
+ * Half of the six voices are women. A chooser that shows its own hand-written
  * list of names, or its own hand-written descriptions, is a second opinion
  * about who these people are, and the first thing it gets wrong is a pronoun.
  * Every row below therefore comes off `TUTOR_VOICES` in core, which is also
@@ -38,7 +38,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { DEFAULT_TUTOR_VOICE, TUTOR_VOICES, tutorVoice, type TutorVoiceKey } from '@luvani/core';
+import {
+  tutorSampleLine, DEFAULT_TUTOR_VOICE, TUTOR_VOICES, tutorVoice, type TutorVoiceKey } from '@luvani/core';
 import { guiltIn } from '../copy/guilt.ts';
 import {
   TUTOR_VOICE_COPY,
@@ -104,7 +105,7 @@ describe('the voice on the Profile tab', () => {
       Object.keys(TUTOR_VOICES),
       'the sheet offers a list of its own, so a voice added in core would never appear on a phone',
     );
-    assert.equal(TUTOR_VOICE_OPTIONS.length, 8, 'the catalogue has eight voices and the sheet must offer all of them');
+    assert.equal(TUTOR_VOICE_OPTIONS.length, 6, 'the catalogue has six voices and the sheet must offer all of them');
     for (const option of TUTOR_VOICE_OPTIONS) {
       const entry = tutorVoice(option.value);
       assert.equal(option.label, entry.persona.name, `${option.value} is offered under a name that is not the persona's`);
@@ -117,7 +118,7 @@ describe('the voice on the Profile tab', () => {
     assert.equal(tutorVoiceOf(null), DEFAULT_TUTOR_VOICE, 'a learner who has never chosen is stranded without a voice');
     assert.equal(tutorVoiceOf(undefined), DEFAULT_TUTOR_VOICE);
     assert.equal(tutorVoiceOf({ tutorVoice: null } as never), DEFAULT_TUTOR_VOICE);
-    assert.equal(tutorVoiceOf({ tutorVoice: 'celine' } as never), 'celine', 'a chosen voice was not read back');
+    assert.equal(tutorVoiceOf({ tutorVoice: 'marie' } as never), 'marie', 'a chosen voice was not read back');
     assert.equal(tutorVoiceOf({ tutorVoice: 'constructor' } as never), DEFAULT_TUTOR_VOICE, 'the prototype chain is reachable from a stored blob');
     // Shaped like a vendor handle and deliberately not one of the real ones:
     // the ids live in the agent, and a copy of one in the app's test tree is a
@@ -163,7 +164,7 @@ describe('the voice on the Profile tab', () => {
     // choosing a voice is choosing a person, not a supplier, and the supplier
     // is a thing that can change under them without the voice changing at all.
     const vendors = /deepgram|elevenlabs|eleven labs|openai|anthropic|cartesia|fish|livekit|azure|google|playht|resemble/i;
-    // The eight vendor ids are twenty-character opaque handles. A learner must
+    // The vendor ids are twenty-character opaque handles. A learner must
     // never read one, and neither must anything that ships in the app bundle.
     const vendorId = /\b[A-Za-z0-9]{18,}\b/;
     // Nothing comparative. Every one of these would be a claim about the other
@@ -216,16 +217,16 @@ describe('the voice on the Profile tab', () => {
     // learner who never taps an ear still gets a voice.
     assert.ok(
       writtenBefore(VOICE_SHEET, 'onPress=', 'onHear='),
-      'the listen has taken the place of the choice, and a learner is now made to audition eight people',
+      'the listen has taken the place of the choice, and a learner is now made to audition everybody',
     );
   });
 
   test('starting one sample stops the one already playing', () => {
     // The rule. A second sample joining the first tells a learner nothing about
     // either voice, which is the entire purpose of the control.
-    assert.equal(nextSample(null, 'luc'), 'luc', 'the first tap plays nothing');
-    assert.equal(nextSample('luc', 'celine'), 'celine', 'the second voice did not take over from the first');
-    assert.equal(nextSample('luc', 'luc'), null, 'the control that started a sound cannot stop it');
+    assert.equal(nextSample(null, 'alexandre'), 'alexandre', 'the first tap plays nothing');
+    assert.equal(nextSample('alexandre', 'marie'), 'marie', 'the second voice did not take over from the first');
+    assert.equal(nextSample('alexandre', 'alexandre'), null, 'the control that started a sound cannot stop it');
     assert.equal(nextSample(null, 'emilie'), 'emilie');
 
     // Every pair, so "takes over" is not a property of one lucky ordering.
@@ -247,5 +248,19 @@ describe('the voice on the Profile tab', () => {
       writtenBefore(TAB, 'samplePlayer.replace(voiceSample(next))', 'samplePlayer.play()'),
       'the player is told to play before it is given the clip, so the previous voice sounds again',
     );
+  });
+});
+
+describe('the bilingual introduction the sample speaks', () => {
+  test('the bilingual introduction is copy this module owns, not a sentence typed into a screen', () => {
+    // Two things at once. Each option carries the catalogue's introduction rather
+    // than a sentence written here, and every one of them is in TUTOR_VOICE_COPY,
+    // which is what puts them under the sweep above: vendor names, vendor-shaped
+    // ids, comparatives, em dashes and guilt words, for free and forever.
+    for (const option of TUTOR_VOICE_OPTIONS) {
+      assert.equal(option.sample, tutorSampleLine(option.value), `${option.value}'s introduction is not the catalogue's`);
+      assert.ok(option.sample.includes(option.label), `${option.value}'s introduction does not name ${option.label}`);
+      assert.ok(TUTOR_VOICE_COPY.includes(option.sample), `${option.value}'s introduction escapes the copy scan`);
+    }
   });
 });

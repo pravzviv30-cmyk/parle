@@ -38,14 +38,12 @@ import type { TutorVoiceKey } from '@luvani/core';
 export type VoiceSample = ReturnType<typeof require>;
 
 export const VOICE_SAMPLES: Record<TutorVoiceKey, VoiceSample> = {
-  luc: require('../../assets/voices/luc.m4a'),
   alexandre: require('../../assets/voices/alexandre.m4a'),
-  enrick: require('../../assets/voices/enrick.m4a'),
-  mathieu: require('../../assets/voices/mathieu.m4a'),
-  guillaume: require('../../assets/voices/guillaume.m4a'),
-  benoit: require('../../assets/voices/benoit.m4a'),
-  celine: require('../../assets/voices/celine.m4a'),
   emilie: require('../../assets/voices/emilie.m4a'),
+  guillaume: require('../../assets/voices/guillaume.m4a'),
+  marie: require('../../assets/voices/marie.m4a'),
+  anatole: require('../../assets/voices/anatole.m4a'),
+  sarah: require('../../assets/voices/sarah.m4a'),
 };
 
 /** The clip for one voice. Total, because the parameter is the closed union. */

@@ -11,6 +11,7 @@ initializeLogger({ pretty: false, level: 'silent' });
 
 import { DEFAULT_TUTOR_VOICE, TUTOR_VOICES, type TutorVoiceKey } from '@luvani/core';
 import {
+  OUTPUT_ENCODING,
   ELEVEN_VOICES,
   buildTTS,
   LANGUAGE_CODE,
@@ -64,6 +65,24 @@ afterEach(() => {
 });
 
 describe('the voice configuration', () => {
+  test('the output encoding is pinned, not left to the plugin default', () => {
+    // F506. This file pins the model, the settings and the language so a plugin
+    // upgrade cannot move the sound on its own, and for months it forgot this
+    // knob, so the format was whatever the plugin happened to default to.
+    //
+    // 22050 is not a preference, it is the ceiling: pcm_44100 is refused on this
+    // account with a 403 naming the Pro tier. Pinning what the plugin was already
+    // producing re-keys nothing, because the rate has always been in the cache
+    // hash via inner.sampleRate. Widening it is a subscription, not an edit.
+    assert.equal(OUTPUT_ENCODING, 'pcm_22050', 'the output format is no longer the one F506 measured as the ceiling');
+    assert.equal(buildTTS().sampleRate, 22050, 'the built TTS does not produce the rate this file pins');
+
+    // And it is actually handed to the plugin, rather than pinned in a constant
+    // nothing reads — which is the shape the old bug had.
+    const source = readFileSync(new URL('./voice.ts', import.meta.url), 'utf8');
+    assert.match(source, /encoding: OUTPUT_ENCODING/, 'the pinned encoding never reaches the vendor request');
+  });
+
   test('the model is pinned, not left to the plugin default', () => {
     assert.equal(buildTTS().model, 'eleven_multilingual_v2');
   });
@@ -79,7 +98,7 @@ describe('the voice configuration', () => {
     // catalogue key gets a new id and therefore a new cache.
     assert.equal(
       buildTTS().opts.voiceKey,
-      'elevenlabs:IPgYtHTNLjC7Bq7IPHrm:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true',
+      'elevenlabs:c365oriviHmAhyLhpuN6:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true',
     );
   });
 

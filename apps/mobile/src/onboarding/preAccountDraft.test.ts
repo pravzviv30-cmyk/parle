@@ -30,9 +30,11 @@ describe('the pre-account hand-off', () => {
 
   test('a voice selection plays that tutor’s bundled bilingual introduction', () => {
     // The audio assets are generated through the agent's real voice seam and
-    // each says, in French first, "Bonjour, je m'appelle [name]. Hello, my
-    // name is [name]." Selecting a card must therefore play the selected clip,
-    // not merely draw a tick and make the learner hunt for its ear control.
+    // each speaks the bilingual introduction `tutorSampleLine` owns, French
+    // first. The words are deliberately not quoted here: a comment that quotes
+    // them is a copy that can drift and can never fail. Selecting a card must
+    // play the selected clip, not merely draw a tick and make the learner hunt
+    // for its ear control.
     const choose = source.slice(source.indexOf('const chooseVoice'), source.indexOf('const hearVoice'));
     assert.match(choose, /setPlaying\(voice\)/, 'selecting a tutor does not show their introduction as playing');
     assert.match(choose, /player\.replace\(voiceSample\(voice\)\)/, 'selecting a tutor does not load that tutor’s own clip');
@@ -46,5 +48,26 @@ describe('the pre-account hand-off', () => {
     assert.match(app, /createStoredProfile\(\{ name: null, ageConfirmed: draft\.ageConfirmed, motivation: null \}\)/, 'the age confirmation is not carried into the account profile');
     assert.match(app, /done\(withChosenVoice\(built, draft\.tutorVoice\)\)/, 'the selected voice is not written through the ordinary profile door');
     assert.match(app, /onConsumed\(\)/, 'the pre-account draft is not cleared after profile creation');
+  });
+});
+
+describe('the introduction the voice page shows', () => {
+  test('the introduction on the voice page is rendered from the catalogue, never typed in', () => {
+    // This is the surface the defect actually shipped on, and the one with no
+    // guard at all until now: the agent's copy had a test and the clip bytes had
+    // a test, while the sentence a learner reads was a hand-typed template
+    // literal that went a week disagreeing with the audio.
+    assert.match(
+      source,
+      /<Text style=\{st\.sampleLine\}>\{`“\$\{tutorSampleLine\(selected\)\}”`\}<\/Text>/,
+      'the voice page does not render the introduction from the catalogue',
+    );
+    assert.match(source, /tutorSampleLine/, 'the screen does not import the catalogue introduction at all');
+
+    // Nothing of the sentence may be written in this screen, in any form. The
+    // curly quotation marks are presentation and stay; the words never do.
+    assert.doesNotMatch(source, /Bonjour, je m/, 'the voice page writes the French opener out by hand');
+    assert.doesNotMatch(source, /my name is/, 'the voice page writes the English half out by hand');
+    assert.doesNotMatch(source, /persona\.name\}\. Hello/, 'the old two-sentence caption is still here');
   });
 });

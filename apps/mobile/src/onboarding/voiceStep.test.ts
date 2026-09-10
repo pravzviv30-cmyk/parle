@@ -5,7 +5,7 @@
  * Two halves, in this folder's idiom. The first reads values, because the
  * copy and the rules are values and a value is the one thing this workspace can
  * assert about without a renderer. The second reads `OnboardingFlow.tsx` as
- * source, because "eight voices are on the screen and each one can be played"
+ * source, because "every voice is on the screen and each one can be played"
  * is a claim about glass, and a rule module nobody renders is a rule nobody
  * reads.
  *
@@ -55,7 +55,7 @@ describe('first run introduces the voices and lets the learner choose one — F2
     // object the Profile sheet renders. Two lists built separately is how a
     // ninth voice ends up offered in one place and missing in the other.
     assert.equal(VOICE_STEP_OPTIONS, TUTOR_VOICE_OPTIONS, 'the first run built a second list of voices');
-    assert.equal(VOICE_STEP_OPTIONS.length, 8, 'the catalogue has eight voices and the first run must showcase all of them');
+    assert.equal(VOICE_STEP_OPTIONS.length, 6, 'the catalogue has six voices and the first run must showcase all of them');
     assert.deepEqual(
       VOICE_STEP_OPTIONS.map((option) => option.value),
       Object.keys(TUTOR_VOICES),
@@ -80,7 +80,7 @@ describe('first run introduces the voices and lets the learner choose one — F2
     assert.match(FLOW, /selected=\{voice === option\.value\}/, 'nothing marks which voice is selected');
 
     // Playing them is the same machinery the Profile sheet uses, down to the
-    // one-at-a-time rule. One player, `nextSample` deciding the key: with eight
+    // one-at-a-time rule. One player, `nextSample` deciding the key: with six
     // players a learner comparing two voices hears both at once.
     assert.match(FLOW, /import \{ useAudioPlayer, useAudioPlayerStatus \} from 'expo-audio'/, 'the voice page has no player');
     assert.match(FLOW, /nextSample\(playing, key\)/, 'the step does not stop the clip that is already playing');
@@ -195,7 +195,7 @@ describe('first run introduces the voices and lets the learner choose one — F2
     assert.match(VOICE_AI, /\bAI tutor\b/, 'AI is said, but not next to what he is');
     assert.ok(
       VOICE_STEP_COPY.some((line) => /\bAI tutor\b/.test(line)),
-      'the words on the voice page never say what the eight voices are voices of',
+      'the words on the voice page never say what the voices are voices of',
     );
 
     // The disclosure is on the page, not merely in the module.
@@ -212,10 +212,10 @@ describe('first run introduces the voices and lets the learner choose one — F2
     );
     assert.ok(FLOW.indexOf('{VOICE_AI}') > -1, 'the AI line is imported and never rendered');
 
-    // And it says AI before the eight names, not underneath them.
+    // And it says AI before the names, not underneath them.
     assert.ok(
       FLOW.indexOf('{VOICE_AI}') < FLOW.indexOf('VOICE_STEP_OPTIONS.map('),
-      'the eight voices are introduced before the learner is told what they are',
+      'the voices are introduced before the learner is told what they are',
     );
 
     // The copy itself is one flat list so a sentence added to the page is

@@ -569,7 +569,7 @@ describe('a tapped option passes the safety boundary', () => {
  * So these drive the real object and read back the prompt the model would get.
  */
 describe('the tutor speaks as the person the learner chose', () => {
-  const celine = tutorVoice('celine').persona;
+  const marie = tutorVoice('marie').persona;
 
   /** The prompt the model would be handed right now, as a string. */
   function promptOf(tutor: LuvaniTutor): string {
@@ -579,11 +579,11 @@ describe('the tutor speaks as the person the learner chose', () => {
   }
 
   test('a non-default persona reaches the lesson prompt through the tutor, not just the builder', () => {
-    const { tutor } = build(RUNGS.PROMPTED, { persona: celine });
+    const { tutor } = build(RUNGS.PROMPTED, { persona: marie });
     const prompt = promptOf(tutor);
 
-    assert.match(prompt, /You are Céline\b/, 'the tutor opens as somebody the learner will never hear');
-    assert.doesNotMatch(prompt, /\bLuc\b/, "the default persona's name is still in the prompt somewhere");
+    assert.match(prompt, /You are Marie\b/, 'the tutor opens as somebody the learner will never hear');
+    assert.doesNotMatch(prompt, /\bAlexandre\b/, "the default persona's name is still in the prompt somewhere");
     // The pronoun rides with the name or she says "je suis content" out loud in
     // a woman's voice on the first turn. prompt.test.ts makes this assertion of
     // the builder; this one makes it of the object that calls the builder.
@@ -592,11 +592,11 @@ describe('the tutor speaks as the person the learner chose', () => {
     // And it is exactly what the builder produces for her, so this cannot pass
     // on a prompt the tutor assembled some other way.
     const { turn, directive } = currentPrompt(CAFE_LESSON, tutor.sessionState);
-    assert.equal(prompt, buildPrompt(CAFE_LESSON, turn, directive, celine));
+    assert.equal(prompt, buildPrompt(CAFE_LESSON, turn, directive, marie));
   });
 
   test('a non-default persona survives a mid-lesson prompt rebuild', async () => {
-    const { tutor } = build(RUNGS.PROMPTED, { persona: celine });
+    const { tutor } = build(RUNGS.PROMPTED, { persona: marie });
 
     // One right answer, which is the ordinary case rather than an edge: every
     // applied turn re-renders the whole prompt for the next one. That rebuild is
@@ -609,11 +609,11 @@ describe('the tutor speaks as the person the learner chose', () => {
     assert.equal(tutor.sessionState.turnIndex, 1, 'the lesson never moved on, so no rebuild was proved');
 
     const prompt = promptOf(tutor);
-    assert.match(prompt, /You are Céline\b/, 'the tutor became somebody else partway through the lesson');
-    assert.doesNotMatch(prompt, /\bLuc\b/, 'the default persona came back on the second turn');
+    assert.match(prompt, /You are Marie\b/, 'the tutor became somebody else partway through the lesson');
+    assert.doesNotMatch(prompt, /\bAlexandre\b/, 'the default persona came back on the second turn');
 
     const { turn, directive } = currentPrompt(CAFE_LESSON, tutor.sessionState);
-    assert.equal(prompt, buildPrompt(CAFE_LESSON, turn, directive, celine), 'the rebuilt prompt is not hers');
+    assert.equal(prompt, buildPrompt(CAFE_LESSON, turn, directive, marie), 'the rebuilt prompt is not hers');
     tutor.clearRescue();
   });
 
@@ -629,6 +629,6 @@ describe('the tutor speaks as the person the learner chose', () => {
 
     assert.equal(promptOf(tutor), buildPrompt(CAFE_LESSON, turn, directive), 'an unchosen lesson stopped matching the builder');
     assert.equal(promptOf(tutor), buildPrompt(CAFE_LESSON, turn, directive, luc), 'and stopped being the catalogue default');
-    assert.match(promptOf(tutor), /\bLuc\b/);
+    assert.match(promptOf(tutor), /\bAlexandre\b/);
   });
 });

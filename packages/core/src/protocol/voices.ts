@@ -1,9 +1,12 @@
 /**
  * The tutor's voice, and the person that voice belongs to.
  *
- * A learner picks who teaches them. Eight voices, each one a real French
- * speaker, each verified to read both French and English so the tutor can gloss
- * a word without changing who is talking.
+ * A learner picks who teaches them. Six voices, each one a real French speaker,
+ * each verified by the vendor to read French AND English-with-a-French-accent on
+ * the model the agent pins, so the tutor can gloss a word without changing who
+ * is talking. That last part is not a formality: it was once true of none of
+ * them, and the tutor said its English half in an American accent for weeks
+ * (F508). Six that hold the promise beat eight that do not.
  *
  * Why this is a catalogue in core and not a dropdown in the app:
  *
@@ -19,11 +22,13 @@
  *      every learner's stored preference survives it. Store a vendor id in a
  *      profile and you have promised that supplier forever.
  *
- *   3. The persona must follow the voice. Two of the eight are women. A single
- *      hardcoded "Luc, he" persona means Celine opens her first sentence
- *      introducing herself as a man, and no amount of prompt wording fixes a
- *      mismatch the code created. The pronoun travels with the sound, in the
- *      same row, so they cannot drift apart.
+ *   3. The persona must follow the voice. Half of them are women. A single
+ *      hardcoded "he" persona means Marie opens her first sentence introducing
+ *      herself as a man, and no amount of prompt wording fixes a mismatch the
+ *      code created. The pronoun travels with the sound, in the same row, so
+ *      they cannot drift apart. It is also why a key never changes gender: the
+ *      name is the persona, so a woman's voice under a man's name is the same
+ *      mismatch wearing a different hat. Keys retire; they do not transition.
  *
  * On `sound`: it is learner-facing copy and it may state only what has actually
  * been verified about the recording. Gender, where the accent is from, and
@@ -43,22 +48,20 @@
  * this source back to prove it. Core reaches the phone in the app bundle.
  */
 
-/** The eight voices. A closed union, so a typo is a compile error. */
+/** The six voices. A closed union, so a typo is a compile error. */
 export type TutorVoiceKey =
-  | 'luc'
   | 'alexandre'
-  | 'enrick'
-  | 'mathieu'
+  | 'emilie'
   | 'guillaume'
-  | 'benoit'
-  | 'celine'
-  | 'emilie';
+  | 'marie'
+  | 'anatole'
+  | 'sarah';
 
 /**
  * Who the tutor is, as far as a prompt is concerned. Deliberately two fields
  * and no more: a name to introduce and a pronoun to agree with. Everything else
  * about the tutor's character is one shared persona and stays that way, because
- * eight characters is eight sets of pedagogy to keep in step.
+ * six characters is six sets of pedagogy to keep in step.
  */
 export interface TutorPersona {
   /** Introduced in the first line, so it carries its accents. */
@@ -101,61 +104,48 @@ export interface TutorVoice {
  * first, then the rest. Nothing depends on it, but a reader will assume it.
  */
 export const TUTOR_VOICES: Readonly<Record<TutorVoiceKey, TutorVoice>> = Object.freeze({
-  luc: {
-    key: 'luc',
-    persona: { name: 'Luc', pronoun: 'he' },
-    sound: "A man's voice, from Quebec.",
-    gender: 'male',
-    ageBand: 'middle-aged',
-  },
   alexandre: {
     key: 'alexandre',
     persona: { name: 'Alexandre', pronoun: 'he' },
-    sound: "A man's voice, from Paris.",
-    gender: 'male',
-    ageBand: 'middle-aged',
-  },
-  enrick: {
-    key: 'enrick',
-    persona: { name: 'Enrick', pronoun: 'he' },
     sound: "A man's voice, from France.",
     gender: 'male',
-    ageBand: 'middle-aged',
-  },
-  mathieu: {
-    key: 'mathieu',
-    persona: { name: 'Mathieu', pronoun: 'he' },
-    sound: "A man's voice, from France.",
-    gender: 'male',
-    ageBand: 'middle-aged',
-  },
-  guillaume: {
-    key: 'guillaume',
-    persona: { name: 'Guillaume', pronoun: 'he' },
-    sound: "A man's voice, from Paris.",
-    gender: 'male',
-    ageBand: 'middle-aged',
-  },
-  benoit: {
-    // The key is ASCII and the name is not. A key travels through a URL, a
-    // profile file and a signed token; a name is only ever read.
-    key: 'benoit',
-    persona: { name: 'Benoît', pronoun: 'he' },
-    sound: "A man's voice, from Paris.",
-    gender: 'male',
-    ageBand: 'middle-aged',
-  },
-  celine: {
-    key: 'celine',
-    persona: { name: 'Céline', pronoun: 'she' },
-    sound: "A woman's voice, from France.",
-    gender: 'female',
     ageBand: 'middle-aged',
   },
   emilie: {
     key: 'emilie',
     persona: { name: 'Émilie', pronoun: 'she' },
-    sound: "A young woman's voice, from Paris.",
+    sound: "A woman's voice, from Paris.",
+    gender: 'female',
+    ageBand: 'middle-aged',
+  },
+  guillaume: {
+    key: 'guillaume',
+    persona: { name: 'Guillaume', pronoun: 'he' },
+    sound: "A man's voice, from France.",
+    gender: 'male',
+    ageBand: 'middle-aged',
+  },
+  marie: {
+    key: 'marie',
+    persona: { name: 'Marie', pronoun: 'she' },
+    sound: "A woman's voice, from France.",
+    gender: 'female',
+    ageBand: 'middle-aged',
+  },
+  anatole: {
+    key: 'anatole',
+    persona: { name: 'Anatole', pronoun: 'he' },
+    sound: "A young man's voice, from France.",
+    gender: 'male',
+    ageBand: 'young',
+  },
+  // The key is ASCII and the name is not, the same way it was for Benoît before
+  // her. A learner reads "Sarah"; every path that stores or signs a choice
+  // carries the key.
+  sarah: {
+    key: 'sarah',
+    persona: { name: 'Sarah', pronoun: 'she' },
+    sound: "A young woman's voice, from France.",
     gender: 'female',
     ageBand: 'young',
   },
@@ -163,10 +153,15 @@ export const TUTOR_VOICES: Readonly<Record<TutorVoiceKey, TutorVoice>> = Object.
 
 /**
  * Who a learner gets before they have chosen, and who they keep if they never
- * do. Luc is the voice the first-run copy already describes, so changing this
- * without changing that copy introduces the tutor by the wrong name.
+ * do. Every line of first-run copy that names the tutor derives from this entry
+ * rather than spelling a name out, so moving the default moves the copy with it.
+ *
+ * It moved once, from Luc, and the reason is worth keeping: no voice the vendor
+ * verifies for French-accented English sounded anything like the recording Luc
+ * had, so keeping the name would have introduced the tutor as a man who no
+ * longer sounds like himself. A name is cheaper to change than a promise.
  */
-export const DEFAULT_TUTOR_VOICE: TutorVoiceKey = 'luc';
+export const DEFAULT_TUTOR_VOICE: TutorVoiceKey = 'alexandre';
 
 /**
  * Is this one of ours?
@@ -192,4 +187,42 @@ export function isTutorVoiceKey(value: unknown): value is TutorVoiceKey {
  */
 export function tutorVoice(key: TutorVoiceKey): TutorVoice {
   return TUTOR_VOICES[key];
+}
+
+/**
+ * How a voice introduces itself, in the clip a learner plays before choosing.
+ *
+ * TWO SENTENCES: the French introduction, then the same introduction in English.
+ * A learner choosing a voice is choosing both languages, because the tutor
+ * speaks French in the scene and English when it explains, and the shortest
+ * honest demonstration is one of each.
+ *
+ * It was one sentence for a day, joined by "and in English", on the theory that
+ * a single request carrying both languages would let the French half prime the
+ * accent of the English half. The clips were made and played, and it did not:
+ * the accent follows the RECORDING, not the request, and the recordings were
+ * not verified for French-accented English at all (F508, then F502). So the
+ * mechanism bought nothing, and it cost something real, because "and in English,
+ * my name is Luc" is a person saying their own name twice as though the second
+ * one were a translation. Names do not translate. It reads as a joke.
+ *
+ * The count is still worth pinning, at two. Not for the accent any more, but
+ * because two is what the provenance manifest records, what the beat is inserted
+ * between, and what a live session would send for the same text. One means the
+ * bridge crept back; three means a stray period ships inside every download.
+ *
+ * IT LIVES HERE because the screen that shows these words and the script that
+ * speaks them are different processes, and this is the only module both import.
+ * It was written out by hand in both, drifted, and shipped a caption that
+ * disagreed with the audio for a week. Composing it from `persona.name` is also
+ * what stops a clip introducing itself as somebody else: half of them are women,
+ * and a line saying "Guillaume" in Marie's voice is the mismatch the catalogue
+ * exists to prevent.
+ *
+ * The copy rules that police it are asserted in the agent's own suite, beside
+ * the script that pays to synthesise it, rather than duplicated here.
+ */
+export function tutorSampleLine(key: TutorVoiceKey): string {
+  const { name } = tutorVoice(key).persona;
+  return `Bonjour, je m’appelle ${name}. Hi, my name is ${name}.`;
 }

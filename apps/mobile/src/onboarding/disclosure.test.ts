@@ -348,7 +348,7 @@ describe('the first-run disclosure follows the chosen persona — F294', () => {
    * that happens to work for Céline is not a rule.
    */
   test('the persona page describes the chosen persona in the right words, and still says AI tutor', () => {
-    assert.equal(EVERY_PERSONA.length, 8, 'the catalogue stopped having eight people to introduce');
+    assert.equal(EVERY_PERSONA.length, 6, 'the catalogue stopped having six people to introduce');
 
     for (const persona of EVERY_PERSONA) {
       const p = pronouns(persona);

@@ -291,6 +291,22 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Voice roster and sample gate: **2,717 tests, 0 failing**; core 607, brain 383, tutor agent 444,
+  token server 178, playground 26, mobile 1079. Typecheck clean in all six workspaces and floors
+  blessed to those counts. F502 to F506, plus F507 and F508 closed. The tutor said its English half
+  in an American accent, and three explanations were tried in order: the request shape (one sentence
+  carrying both languages, F507) did nothing; the vendor's own `en-french` label (F502) turned out to
+  be unreliable per recording, and only an ear separates the voices that honour it from the ones that
+  do not. The founder auditioned all sixteen candidates on one identical English sentence through the
+  real pipeline and picked six. What is verified by machine is the provenance: every clip records the
+  text, the two requests, the voice key, the rate, its sha256 and what the vendor had verified about
+  that recording, and the suite compares all of it against the committed bytes offline on every run.
+  What is not, and cannot be, is the accent itself — no test here can hear, so each clip carries a
+  dated line from the person who played it, and the gate refuses while any is blank. Sample rate is
+  capped at 22050 by the ElevenLabs tier (`pcm_44100` returns 403), which is recorded in F506 rather
+  than rediscovered; within that ceiling the clips went to 64 kbps at maximum codec quality and are
+  levelled to -1 dBFS.
+
 - My French colour-and-panels gate: **2,703 tests, 0 failing**; core 605, brain 383, tutor agent 434,
   token server 178, playground 26, mobile 1077. Typecheck is clean in all six workspaces and floors
   were blessed to those counts. F467 to F470, the second pass over the same mockup. F467 widened the

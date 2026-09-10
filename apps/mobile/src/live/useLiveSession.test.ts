@@ -1265,8 +1265,8 @@ describe('the voice the learner chose, on its way to the agent — F291', () => 
   test('every session start sends the chosen voice, and the default when none is chosen', () => {
     // Chosen. The key travels, never a vendor id: the ids live in the agent,
     // which is the only process holding the account that bills for them.
-    const chosen = startBody(world('celine'));
-    assert.equal(chosen.tutorVoice, 'celine', 'the learner picked a voice and the session opened in somebody else');
+    const chosen = startBody(world('marie'));
+    assert.equal(chosen.tutorVoice, 'marie', 'the learner picked a voice and the session opened in somebody else');
     assert.ok(isTutorVoiceKey(chosen.tutorVoice), 'what rides the wire is not one of our keys');
 
     // Unchosen, which is the ordinary state of a new account. The default is
@@ -1279,7 +1279,7 @@ describe('the voice the learner chose, on its way to the agent — F291', () => 
       'an unchosen voice sends no field, so the app and the agent are each free to pick a different person',
     );
     assert.equal(unchosen.tutorVoice, DEFAULT_TUTOR_VOICE);
-    assert.equal(unchosen.tutorVoice, chosen.tutorVoice === 'celine' ? DEFAULT_TUTOR_VOICE : unchosen.tutorVoice);
+    assert.equal(unchosen.tutorVoice, chosen.tutorVoice === 'marie' ? DEFAULT_TUTOR_VOICE : unchosen.tutorVoice);
 
     // Nothing else about the body moved. seedTopic and missionId stay absent
     // when they have nothing to say, which is what tells them apart from this.

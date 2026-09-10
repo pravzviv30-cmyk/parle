@@ -1,0 +1,150 @@
+{
+  "$comment": "Written by `npm run voice-samples -w @luvani/tutor-agent`. Only `heard` is written by hand. voiceSamples.test.ts compares every other field against the committed clips and the pinned voice configuration, so hand-editing this file makes the gate vouch for audio nobody made.",
+  "version": 2,
+  "clips": {
+    "alexandre": {
+      "text": "Bonjour, je m’appelle Alexandre. Hi, my name is Alexandre.",
+      "requests": [
+        "Bonjour, je m’appelle Alexandre.",
+        "Hi, my name is Alexandre."
+      ],
+      "voiceKey": "elevenlabs:c365oriviHmAhyLhpuN6:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
+      "sampleRate": 22050,
+      "bytes": 31628,
+      "sha256": "11b785eac1a9955b2ac685b23072f0acfa61bc4cedc6052fe3befcdb3fd9c692",
+      "vendor": {
+        "name": "Adrien Clairon - French Modern for Narration, Podcasts and Commercials",
+        "category": "professional",
+        "gender": "male",
+        "age": "middle_aged",
+        "accent": {
+          "fr": "standard",
+          "en": "en-french"
+        },
+        "model": "eleven_multilingual_v2",
+        "readAt": "2026-09-10T17:06:05.973Z"
+      },
+      "heard": "\"they all sound french now\" — founder, 2026-09-10, after playing all six clips on a page that asked specifically about the English half of each one."
+    },
+    "emilie": {
+      "text": "Bonjour, je m’appelle Émilie. Hi, my name is Émilie.",
+      "requests": [
+        "Bonjour, je m’appelle Émilie.",
+        "Hi, my name is Émilie."
+      ],
+      "voiceKey": "elevenlabs:GYzIdoKkRyANjBvkKYfO:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
+      "sampleRate": 22050,
+      "bytes": 28378,
+      "sha256": "2c797f9548beab12771e724325f6903f7c235cd959f50ee654b747cc57f5e82b",
+      "vendor": {
+        "name": "Koraly - Smooth and Captivating",
+        "category": "professional",
+        "gender": "female",
+        "age": "middle_aged",
+        "accent": {
+          "fr": "parisian",
+          "en": "en-french"
+        },
+        "model": "eleven_multilingual_v2",
+        "readAt": "2026-09-10T17:06:05.973Z"
+      },
+      "heard": "\"they all sound french now\" — founder, 2026-09-10, after playing all six clips on a page that asked specifically about the English half of each one."
+    },
+    "guillaume": {
+      "text": "Bonjour, je m’appelle Guillaume. Hi, my name is Guillaume.",
+      "requests": [
+        "Bonjour, je m’appelle Guillaume.",
+        "Hi, my name is Guillaume."
+      ],
+      "voiceKey": "elevenlabs:Qrl71rx6Yg8RvyPYRGCQ:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
+      "sampleRate": 22050,
+      "bytes": 28435,
+      "sha256": "058fcc8f58e1f635b7f89402ef18ad52382715e66fafe46cf18f4fd4256edd8c",
+      "vendor": {
+        "name": "Olivier - Narration and Voiceover",
+        "category": "professional",
+        "gender": "male",
+        "age": "middle_aged",
+        "accent": {
+          "fr": "standard",
+          "en": "en-french"
+        },
+        "model": "eleven_multilingual_v2",
+        "readAt": "2026-09-10T17:06:05.973Z"
+      },
+      "heard": "\"they all sound french now\" — founder, 2026-09-10, after playing all six clips on a page that asked specifically about the English half of each one."
+    },
+    "marie": {
+      "text": "Bonjour, je m’appelle Marie. Hi, my name is Marie.",
+      "requests": [
+        "Bonjour, je m’appelle Marie.",
+        "Hi, my name is Marie."
+      ],
+      "voiceKey": "elevenlabs:sANWqF1bCMzR6eyZbCGw:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
+      "sampleRate": 22050,
+      "bytes": 32269,
+      "sha256": "fd000f35dc8d9d557b955e027b8c4de182b5d419f456227bcf076f44f8a1edb7",
+      "vendor": {
+        "name": "Marie",
+        "category": "professional",
+        "gender": "female",
+        "age": "middle_aged",
+        "accent": {
+          "fr": "standard",
+          "en": "en-french"
+        },
+        "model": "eleven_multilingual_v2",
+        "readAt": "2026-09-10T17:06:05.973Z"
+      },
+      "heard": "\"they all sound french now\" — founder, 2026-09-10, after playing all six clips on a page that asked specifically about the English half of each one."
+    },
+    "anatole": {
+      "text": "Bonjour, je m’appelle Anatole. Hi, my name is Anatole.",
+      "requests": [
+        "Bonjour, je m’appelle Anatole.",
+        "Hi, my name is Anatole."
+      ],
+      "voiceKey": "elevenlabs:Jrq4GqCKqYpigdQsZRkP:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
+      "sampleRate": 22050,
+      "bytes": 28561,
+      "sha256": "71a1448e724c1514b6554e165d9ff8221a9e0c78070f6b855b371217e4934c15",
+      "vendor": {
+        "name": "Anatole - Teenager-like voice",
+        "category": "professional",
+        "gender": "male",
+        "age": "young",
+        "accent": {
+          "fr": "standard",
+          "en": "en-french"
+        },
+        "model": "eleven_multilingual_v2",
+        "readAt": "2026-09-10T17:06:05.973Z"
+      },
+      "heard": "\"they all sound french now\" — founder, 2026-09-10, after playing all six clips on a page that asked specifically about the English half of each one."
+    },
+    "sarah": {
+      "text": "Bonjour, je m’appelle Sarah. Hi, my name is Sarah.",
+      "requests": [
+        "Bonjour, je m’appelle Sarah.",
+        "Hi, my name is Sarah."
+      ],
+      "voiceKey": "elevenlabs:b6nVfb3l2zshrLZTvqbs:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
+      "sampleRate": 22050,
+      "bytes": 30545,
+      "sha256": "bad2184c7c697bae928fec44346a0ca8e627e2ee79e0e612e5d324c82bbf8fa7",
+      "vendor": {
+        "name": "Miss Radio",
+        "category": "professional",
+        "gender": "female",
+        "age": "young",
+        "accent": {
+          "fr": "standard",
+          "en": "en-french"
+        },
+        "model": "eleven_multilingual_v2",
+        "readAt": "2026-09-10T17:06:05.973Z"
+      },
+      "heard": "\"they all sound french now\" — founder, 2026-09-10, after playing all six clips on a page that asked specifically about the English half of each one."
+    }
+  }
+}

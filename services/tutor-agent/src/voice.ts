@@ -100,22 +100,29 @@ export const VOICE_KEY: Record<VoiceVendor, string> = {
  * that opens and a tutor that never speaks. That is not a bug anyone finds from
  * the outside.
  *
- * Every one of these eight is verified by the vendor for BOTH French and
- * English on the model pinned below. That pairing is not a formality — the
- * tutor glosses a French word in English mid-sentence and it has to stay one
- * person doing it. Read verified_languages from /v2/voices before adding a
- * ninth, and preflight proves on every boot that the account still lists all of
- * them.
+ * Every one of these six is verified by the vendor for French AND for English
+ * WITH A FRENCH ACCENT (`en-french`) on the model pinned below. That pairing is
+ * not a formality and it is not a claim anyone should take on trust here: the
+ * previous eight were described in this very comment as verified for both, and
+ * when the vendor was finally asked, not one of them was. Their English came
+ * back labelled american, british, singaporean or unlabelled, and the default
+ * had no English row at all, which is exactly what a founder heard (F508).
+ *
+ * So the claim is no longer made in a comment. `npm run voice-samples` reads
+ * verified_languages for each id and writes it into the sample manifest beside
+ * the clip it made, and the suite fails if what is recorded there stops matching
+ * this table or the catalogue's copy. A comment cannot be checked; that can.
+ *
+ * Preflight still proves on every boot that the account lists all six. It does
+ * not check languages, which is why the manifest exists.
  */
 export const ELEVEN_VOICES: Record<TutorVoiceKey, string> = {
-  luc: 'IPgYtHTNLjC7Bq7IPHrm',
-  alexandre: 'gP52hjM48hyNoVCbizxO',
-  enrick: '0xHziZolI8Tp6rLtUqh2',
-  mathieu: 'wQjKP9DkO6pDLKdaqFn6',
-  guillaume: '3HZyQcLKlT0a3RDeXVsP',
-  benoit: '6O7stE7T9DovYmAe1JiJ',
-  celine: '3fxbs2pB9bs8S6Z1N38A',
-  emilie: 'i6ke7jvmGEVUyV4zjSaT',
+  alexandre: 'c365oriviHmAhyLhpuN6',
+  emilie: 'GYzIdoKkRyANjBvkKYfO',
+  guillaume: 'Qrl71rx6Yg8RvyPYRGCQ',
+  marie: 'sANWqF1bCMzR6eyZbCGw',
+  anatole: 'Jrq4GqCKqYpigdQsZRkP',
+  sarah: 'b6nVfb3l2zshrLZTvqbs',
 };
 
 /**
@@ -194,6 +201,23 @@ const STREAMING_LATENCY = 3;
  * ("Voilà.") being detected as English, which is worse than an accent.
  */
 export const LANGUAGE_CODE: string | undefined = 'fr';
+
+/**
+ * The wire format the vendor returns, pinned for the same reason everything
+ * else in this file is: so a plugin upgrade cannot move the sound on its own.
+ * This was the one knob the file forgot, and it inherited the plugin's own
+ * `pcm_22050` default for months.
+ *
+ * 22050 is not a preference, it is the ceiling. `pcm_44100` is refused on this
+ * account with `403 Output format 'pcm_44100' is only available on the Pro tier
+ * and above`, measured 2026-09-10. Raising it is a subscription decision, not a
+ * code one, and it would re-key every cached WAV and widen live bandwidth, so it
+ * gets its own change when the plan moves (F506).
+ *
+ * Pinning the value the plugin was already producing re-keys nothing: the rate
+ * has always been part of the cache hash, through `inner.sampleRate`.
+ */
+export const OUTPUT_ENCODING = 'pcm_22050' as const;
 
 /**
  * How the tutor delivers a line, written down instead of inherited from
@@ -335,6 +359,7 @@ export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, ...hooks }: BuildTTSOpti
     streamingLatency: STREAMING_LATENCY,
     voiceSettings: VOICE_SETTINGS,
     ...(LANGUAGE_CODE ? { languageCode: LANGUAGE_CODE } : {}),
+    encoding: OUTPUT_ENCODING,
     voiceId,
   });
 

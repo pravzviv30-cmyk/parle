@@ -313,7 +313,7 @@ describe('merging two copies of one learner', () => {
   test('a chosen voice beats a null one from either side, and the merge still absorbs its inputs', () => {
     // The voice is the answered question where losing the answer changes who the
     // tutor *is*. Two of the eight catalogue voices are women and the persona is
-    // derived from the key, so a null that overwrote `celine` would not degrade
+    // derived from the key, so a null that overwrote `marie` would not degrade
     // to "some other voice" — it would have the tutor introduce herself as a man
     // on the device the learner uses most. That is the whole reason this field is
     // an answer rather than something that rides with the evidence-heavier side.
@@ -322,13 +322,13 @@ describe('merging two copies of one learner', () => {
       brain: brain({ stats: { sessions: 20, totalTurns: 90, rescues: 0, lastRung: null } }),
     });
     const quiet = stored({
-      tutorVoice: 'celine',
+      tutorVoice: 'marie',
       brain: brain({ stats: { sessions: 1, totalTurns: 2, rescues: 0, lastRung: null } }),
     });
 
     for (const m of [merge(busy, quiet), merge(quiet, busy)]) {
       assert.ok(m !== null);
-      assert.equal(m.tutorVoice, 'celine', 'the busier device with no voice overwrote the one the learner chose');
+      assert.equal(m.tutorVoice, 'marie', 'the busier device with no voice overwrote the one the learner chose');
       assert.ok(isTutorVoiceKey(m.tutorVoice), 'the merge produced something that is not a catalogue key');
     }
 
@@ -344,7 +344,7 @@ describe('merging two copies of one learner', () => {
 
     // Never chosen on either side stays never chosen. Writing the default here
     // would record a choice nobody made, and the picker could no longer tell a
-    // learner who asked for Luc from one who has never been asked at all.
+    // learner who asked for the default from one who has never been asked at all.
     const untouched = merge(stored(), stored());
     assert.equal(untouched?.tutorVoice, null);
     assert.notEqual(untouched?.tutorVoice, DEFAULT_TUTOR_VOICE);

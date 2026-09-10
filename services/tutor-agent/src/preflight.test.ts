@@ -266,7 +266,7 @@ describe('the voice the tutor is configured to use', () => {
   // Same failure, eight times the surface: the learner picks the voice now, so
   // the probe has to prove ALL of them rather than the one an env var named.
   test('a catalogue voice the account does not list is fatal and names the key to remove', async () => {
-    const missing = ELEVEN_VOICES.celine;
+    const missing = ELEVEN_VOICES.marie;
     const checks = await verifyVendors(
       FULL,
       '',
@@ -276,9 +276,9 @@ describe('the voice the tutor is configured to use', () => {
 
     assert.ok(eleven, 'a voice a learner can choose and the account cannot speak must be reported');
     assert.equal(eleven.fatal, true);
-    assert.match(eleven.detail, /celine/, 'the KEY, because that is what a reader has to act on');
+    assert.match(eleven.detail, /marie/, 'the KEY, because that is what a reader has to act on');
     assert.match(eleven.detail, /voices\.ts/, 'and where the catalogue lives, so the fix is findable');
-    assert.ok(!eleven.detail.includes(ELEVEN_VOICES.luc), 'a voice that IS listed must not be named as missing');
+    assert.ok(!eleven.detail.includes(ELEVEN_VOICES.alexandre), 'a voice that IS listed must not be named as missing');
   });
 
   test('a key rotated onto a new account is fatal, and names every voice it cannot speak', async () => {
@@ -337,9 +337,9 @@ describe('the voice the tutor is configured to use', () => {
     // Both findings can be true at once and probe() returns one check. A voice
     // that cannot be spoken with at all beats a voice with a date on it: the
     // first is a silent room today, the second is a task for this quarter.
-    const listedWithoutCeline = {
+    const listedWithoutMarie = {
       status: 200,
-      body: ALL_VOICE_IDS.filter((id) => id !== ELEVEN_VOICES.celine).map((voice_id) => ({
+      body: ALL_VOICE_IDS.filter((id) => id !== ELEVEN_VOICES.marie).map((voice_id) => ({
         voice_id,
         category: 'premade',
       })),
@@ -347,7 +347,7 @@ describe('the voice the tutor is configured to use', () => {
     const checks = await verifyVendors(
       FULL,
       '',
-      fakeFetch({ 'api.elevenlabs.io': { status: 200, body: { voices: listedWithoutCeline.body } } }) as never,
+      fakeFetch({ 'api.elevenlabs.io': { status: 200, body: { voices: listedWithoutMarie.body } } }) as never,
     );
     assert.equal(checks.filter((c) => c.vendor === 'ElevenLabs').length, 1);
     assert.equal(checks.find((c) => c.vendor === 'ElevenLabs')?.fatal, true);
