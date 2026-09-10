@@ -7789,3 +7789,40 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `every situation is either on the path or beyond it, and none is both`
 - verified-by: `the path climbs, rather than putting both A1 rooms first`
 - verified-by: `nothing a row carries mentions a plan, a price or a lock`
+
+### F517 — Every decision the wall makes had nowhere to live but a screen
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/wall/wallCopy.ts:1
+- note: apps/mobile has no renderer, so a decision inside a `.tsx` is a decision nothing can ask a
+  question about, which is the reason `subscription.ts` gives for its own shape. A four page
+  purchase surface is the worst possible place to learn that lesson late, so the copy, the page
+  list and page two's one decision are plain modules with tests that call them.
+  The copy deck carries no digit and no currency symbol, held by a scan: every number the wall
+  shows comes off the wire. It also refuses a line that counts the situations or the plans, and
+  that caught one on the way in. "Two plans" was true when written, and would have become false
+  the day annual arrives, silently, because prose does not typecheck.
+  The page list is computed rather than a constant. Page four is impossible without a store, so
+  three pages have to stand alone, which is also what lets the whole flow be reviewed before the
+  first RevenueCat key exists. The Settings door goes straight to the price. And `ProgressDots`
+  takes a total, so a total that lies tells a learner the wall is longer than it is exactly when
+  they are deciding whether to go on.
+  `WallPage` and `WallEntry` double as two analytics events' property values and the compiler
+  cannot see the agreement, so a test reads it out of both files. Page two counts nothing for
+  itself either: `progress/momentum.ts` owns every count in this app and Home draws the same
+  numbers, so a second fold would be a second answer to a question with one owner.
+- verified-by: `every line clears the guilt list, the em dash walk and the price rule`
+- verified-by: `nothing this module exports is missing from the scan`
+- verified-by: `the free promise is said once, and it is what stays rather than what stops`
+- verified-by: `the paid promise is about having conversations, not about keeping anything`
+- verified-by: `no line counts the situations on the path`
+- verified-by: `the plans page says what a subscription is, which Apple asks for and a learner is owed`
+- verified-by: `a real mission phrase would be refused by the guilt list, which is why it is not scanned`
+- verified-by: `with a store there are four pages, and the price is last`
+- verified-by: `with no store there are three, and the wall ends on the free promise`
+- verified-by: `somebody who came to buy is not sold to`
+- verified-by: `the value pages never vary by what the learner has done`
+- verified-by: `a learner with none is an invitation rather than a nought`
+- verified-by: `page two counts nothing for itself`
+- verified-by: `WallPage and wall_page_seen name exactly the same pages`
+- verified-by: `WallEntry and wall_shown name exactly the same doors`

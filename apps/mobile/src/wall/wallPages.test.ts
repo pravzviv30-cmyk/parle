@@ -1,0 +1,130 @@
+/**
+ * How long the wall is this time, and page two's one decision.
+ *
+ * The agreement test at the bottom is the one worth keeping. `WallPage` and
+ * `WallEntry` are also the property values of two analytics events, and a funnel
+ * split by a different set of doors than the code has is a funnel nobody can
+ * read. The compiler cannot see that, because both sides are string literal
+ * unions that happen to agree, so it is read out of the two files instead.
+ */
+
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { describe, test } from 'node:test';
+
+import { canBuy, endsOnPlans, wallPages, type WallEntry } from './wallPages.ts';
+import { wallFrench } from './wallFrench.ts';
+import type { Momentum } from '../progress/momentum.ts';
+
+const HERE = new URL('.', import.meta.url);
+const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, HERE)), 'utf8');
+
+/** The literals one `field: 'a' | 'b'` declaration names, from either file. */
+function literals(source: string, field: string): string[] {
+  const match = new RegExp(`${field}: ('[^;]*')`).exec(source);
+  assert.ok(match?.[1], `no ${field} union found`);
+  return [...match[1].matchAll(/'([^']+)'/g)].map((hit) => hit[1]!).sort();
+}
+
+describe('the wall is as long as it has something to show', () => {
+  test('with a store there are four pages, and the price is last', () => {
+    const pages = wallPages({ entry: 'path-complete', storeHasPlans: true });
+    assert.deepEqual([...pages], ['map', 'french', 'yours', 'plans']);
+    assert.equal(canBuy(pages), true);
+    assert.equal(endsOnPlans(pages), true);
+  });
+
+  test('with no store there are three, and the wall ends on the free promise', () => {
+    // Web, Expo Go, and every build without a RevenueCat key. Three pages of
+    // appetite ending in a button to nowhere would be worse than not opening the
+    // wall at all, so the last word is the promise page three just made.
+    for (const entry of ['path-complete', 'refused', 'recap'] as const) {
+      const pages = wallPages({ entry, storeHasPlans: false });
+      assert.deepEqual([...pages], ['map', 'french', 'yours'], `${entry} drew a page that cannot exist`);
+      assert.equal(canBuy(pages), false);
+      assert.equal(endsOnPlans(pages), false);
+    }
+  });
+
+  test('somebody who came to buy is not sold to', () => {
+    // The Settings row opens the price directly. Walking a decided customer
+    // through their own progress first is a pitch delivered to somebody who has
+    // already said yes.
+    assert.deepEqual([...wallPages({ entry: 'settings', storeHasPlans: true })], ['plans']);
+    assert.deepEqual([...wallPages({ entry: 'settings', storeHasPlans: false })], []);
+  });
+
+  test('no door draws a page that is not there, whatever the door', () => {
+    const doors: readonly WallEntry[] = ['path-complete', 'refused', 'settings', 'recap'];
+    for (const entry of doors) {
+      for (const storeHasPlans of [true, false]) {
+        const pages = wallPages({ entry, storeHasPlans });
+        assert.equal(canBuy(pages), storeHasPlans && pages.length > 0);
+        assert.equal(new Set(pages).size, pages.length, `${entry} drew the same page twice`);
+      }
+    }
+  });
+
+  test('the value pages never vary by what the learner has done', () => {
+    // Page one is four rows for everybody and page two has a start line, so
+    // nothing here takes a learner's progress as an input at all. The designs
+    // this one beat both dropped their opening page for a thin learner, which
+    // hands the weakest version of the wall to the cohort it most needs.
+    const source = read('./wallPages.ts').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    for (const word of ['progress', 'deck', 'retained', 'timesFinished', 'momentum', 'hasEvidence']) {
+      assert.doesNotMatch(source, new RegExp(word, 'i'), `the page list is reading ${word}`);
+    }
+  });
+});
+
+describe("page two draws either way", () => {
+  const momentumWith = (count: number | null): Momentum =>
+    ({
+      retained: { count, thisWeek: null, weekLine: null, chips: [], moreLine: null },
+      days: { count: null, week: [false, false, false, false, false, false, false] },
+    }) as unknown as Momentum;
+
+  test('a learner with phrases has evidence', () => {
+    const french = wallFrench(momentumWith(6));
+    assert.equal(french.hasEvidence, true);
+    assert.equal(french.count, 6);
+  });
+
+  test('a learner with none is an invitation rather than a nought', () => {
+    const french = wallFrench(momentumWith(null));
+    assert.equal(french.hasEvidence, false);
+    assert.equal(french.count, null, 'the page is about to draw a zero');
+  });
+
+  test('page two counts nothing for itself', () => {
+    // momentum.ts owns every count in this app and Home draws the same numbers.
+    // A wall that counted for itself would be a second answer to a question with
+    // one owner, and the two would disagree the first time either moved.
+    const source = read('./wallFrench.ts').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    assert.doesNotMatch(source, /Math\.|\.length|\.filter\(|\.map\(|toFixed|\+ 1|reduce\(/, 'page two is doing arithmetic');
+  });
+});
+
+describe('the pages and the funnel name the same things', () => {
+  test('WallPage and wall_page_seen name exactly the same pages', () => {
+    const union = read('../analytics/track.ts');
+    const declared = [...read('./wallPages.ts').matchAll(/export type WallPage = ([^;]+);/g)]
+      .flatMap(([, body]) => [...body!.matchAll(/'([^']+)'/g)].map((hit) => hit[1]!))
+      .sort();
+    assert.deepEqual(declared, literals(union, 'page'), 'a page exists that the funnel cannot report');
+  });
+
+  test('WallEntry and wall_shown name exactly the same doors', () => {
+    const union = read('../analytics/track.ts');
+    const declared = [...read('./wallPages.ts').matchAll(/export type WallEntry = ([^;]+);/g)]
+      .flatMap(([, body]) => [...body!.matchAll(/'([^']+)'/g)].map((hit) => hit[1]!))
+      .sort();
+    // `entry` appears twice in the union: mission_started has one too. The wall's
+    // is the four-door one, so it is read off the wall_shown line rather than the
+    // first match in the file.
+    const wallShown = union.split('\n').find((line) => line.includes("name: 'wall_shown'"));
+    assert.ok(wallShown, 'the union has no wall_shown variant');
+    assert.deepEqual(declared, literals(wallShown, 'entry'), 'a door exists that the funnel cannot report');
+  });
+});

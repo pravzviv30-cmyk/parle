@@ -291,6 +291,28 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Wall decisions gate: **2,832 tests, 0 failing**; core 608, brain 383, tutor agent 445,
+  token server 183, playground 26, mobile 1187. Floors blessed to those counts. F517 closed.
+  Everything the wall decides now lives in plain modules that can be called, because apps/mobile
+  has no renderer and a decision inside a `.tsx` is a decision nothing can ask a question about.
+  The copy deck is thirty seven lines, every one checked against the real guilt list rather than
+  reviewed by eye, with no digit and no currency symbol anywhere: every number the wall shows comes
+  off the wire, a price from the store's own localised string and an allowance from the catalogue
+  the server sends. A scan also refuses any line that counts the situations or the plans, and it
+  caught one on the way in. "Two plans" was true when it was written and would have gone stale
+  silently, because prose does not typecheck.
+  The page list is computed, for three reasons that each bite. Page four cannot exist without a
+  store, so a hardcoded four would draw a dot onto a page that is never coming, and three pages
+  standing alone is what lets all of this be reviewed before the first RevenueCat key exists.
+  Somebody arriving from the Settings row goes straight to the price, because walking a decided
+  customer through their own progress is a pitch delivered to somebody who already said yes. And
+  `ProgressDots` takes a total, so a total that lies tells a learner the wall is longer than it is
+  at the moment they are deciding whether to continue.
+  `WallPage` and `WallEntry` are also two analytics events' property values, and the compiler
+  cannot see that both sides are string unions that happen to agree. A test reads it out of the two
+  files instead: adding a fifth page fails by name, because a funnel split by a different set of
+  doors than the code has is a funnel nobody can read.
+
 - Wall first page gate: **2,814 tests, 0 failing**; core 608, brain 383, tutor agent 445,
   token server 183, playground 26, mobile 1169. Floors blessed to those counts. F516 closed.
   The free tier has a shape now, and it needed no new content. `MISSIONS` was already six authored
