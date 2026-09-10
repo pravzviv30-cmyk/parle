@@ -7588,3 +7588,20 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   false in the opposite direction from the staleness it replaced.
 - verified-by: `the tutor's English lines are spoken by a voice verified for English`
 
+
+### F510 — Retiring a voice threw away the whole pre-account draft
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/preAccountDraft.ts:50
+- note: found by merging F502's roster change into main's consent work, which is the only place the
+  two could meet. `readable` required the stored `tutorVoice` to be a live catalogue key, so once
+  F503 retired five of the eight, a draft written before that failed the check and `loadPreAccountDraft`
+  returned null. That does not merely lose a voice choice: the draft is what carries the age
+  confirmation and the usage-data answer across sign-up, so the learner was asked every question
+  again and a recorded "yes" to analytics quietly became "not asked". A retired key is a repair and
+  not a corruption, which the rest of the stack already knows: `resolveTutorVoice` at the agent and
+  `tutorVoiceOf` on a stored profile both land an unknown key on the default and never throw. The
+  draft loader now does the same, and an unreadable draft — a version that is not 1, an age that was
+  never confirmed — is still refused rather than repaired into a confirmation nobody gave.
+- verified-by: `a retired voice becomes the default, and the rest of the draft survives`
+- verified-by: `the draft carries the answer and a missing one reads as no`

@@ -120,3 +120,46 @@ describe('the introduction the voice page shows', () => {
     assert.doesNotMatch(source, /persona\.name\}\. Hello/, 'the old two-sentence caption is still here');
   });
 });
+
+describe('a draft that names a voice the catalogue no longer has', () => {
+  test('a retired voice becomes the default, and the rest of the draft survives', async () => {
+    // F510. The catalogue went from eight voices to six, so a draft written
+    // before that names somebody who has left it. `readable` used to require a
+    // live catalogue key, which meant the whole draft was discarded: the learner
+    // lost their age confirmation AND the usage-data answer this draft exists to
+    // carry across sign-up, and was asked every question again.
+    //
+    // A retired key is a repair, not a corruption. The agent's `resolveTutorVoice`
+    // and the app's `tutorVoiceOf` both land an unknown key on the default and
+    // never throw; loading a draft now does the same.
+    const map = new Map<string, string>();
+    const shared = AsyncStorage as unknown as Record<string, unknown>;
+    shared.getItem = (key: string): Promise<string | null> => Promise.resolve(map.get(key) ?? null);
+    shared.setItem = (key: string, value: string): Promise<void> => {
+      map.set(key, value);
+      return Promise.resolve();
+    };
+    const KEY = '@luvani/pre-account-onboarding/v1';
+
+    for (const retired of ['luc', 'benoit', 'celine', 'enrick', 'mathieu']) {
+      map.set(KEY, JSON.stringify({ version: 1, ageConfirmed: true, tutorVoice: retired, analyticsConsent: true }));
+      const loaded = await loadPreAccountDraft();
+      assert.ok(loaded, `a draft naming the retired voice ${retired} was thrown away instead of repaired`);
+      assert.equal(loaded.tutorVoice, DEFAULT_TUTOR_VOICE, `${retired} did not become the default`);
+      assert.equal(loaded.ageConfirmed, true, `${retired}'s draft lost the age confirmation`);
+      assert.equal(loaded.analyticsConsent, true, `${retired}'s draft lost the usage-data answer, which is the one that matters`);
+    }
+
+    // A live key is still carried through untouched, so the repair cannot be
+    // hiding a bug where every draft silently lands on the default.
+    map.set(KEY, JSON.stringify({ version: 1, ageConfirmed: true, tutorVoice: 'marie', analyticsConsent: false }));
+    const kept = await loadPreAccountDraft();
+    assert.equal(kept?.tutorVoice, 'marie', 'a voice still in the catalogue was overwritten with the default');
+    assert.equal(kept?.analyticsConsent, false, 'a no became a yes on the way through');
+
+    // And a draft that is genuinely unreadable is still refused rather than
+    // repaired into a learner who never confirmed their age.
+    map.set(KEY, JSON.stringify({ version: 1, ageConfirmed: false, tutorVoice: 'marie' }));
+    assert.equal(await loadPreAccountDraft(), null, 'an unconfirmed age was repaired into a confirmation');
+  });
+});

@@ -48,10 +48,15 @@ export function freshPreAccountDraft(): PreAccountOnboardingDraft {
 
 /** The two answers that decide whether a draft is a draft at all. */
 function readable(value: unknown): boolean {
+  // The VOICE is deliberately not part of this. A key that has left the
+  // catalogue is a repair, not a corruption: `repaired` lands it on the default
+  // the same way `resolveTutorVoice` does at the agent and `tutorVoiceOf` does
+  // on a stored profile. Requiring it here meant that retiring a voice threw the
+  // whole draft away, and with it the learner's age confirmation and their
+  // usage-data answer — the one thing this draft exists to carry across sign-up.
   return typeof value === 'object' && value !== null &&
     (value as { version?: unknown }).version === 1 &&
-    (value as { ageConfirmed?: unknown }).ageConfirmed === true &&
-    isTutorVoiceKey((value as { tutorVoice?: unknown }).tutorVoice);
+    (value as { ageConfirmed?: unknown }).ageConfirmed === true;
 }
 
 /**
@@ -66,7 +71,11 @@ function repaired(value: object): PreAccountOnboardingDraft {
   return {
     version: 1,
     ageConfirmed: true,
-    tutorVoice: draft.tutorVoice,
+    // A retired key becomes the default rather than nothing. Six voices replaced
+    // eight in F503, so a draft written last week can name somebody who is no
+    // longer in the catalogue, and that learner should meet the default tutor
+    // rather than be asked every question again.
+    tutorVoice: isTutorVoiceKey(draft.tutorVoice) ? draft.tutorVoice : DEFAULT_TUTOR_VOICE,
     analyticsConsent: (value as { analyticsConsent?: unknown }).analyticsConsent === true,
   };
 }
