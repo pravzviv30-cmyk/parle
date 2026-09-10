@@ -1,6 +1,6 @@
 # Progress Story Summary
 
-> 27 nodes · cohesion 0.14
+> 28 nodes · cohesion 0.13
 
 ## Key Concepts
 
@@ -11,6 +11,7 @@
 - **storyOf()** (5 connections) — `apps/mobile/src/progress/story.ts`
 - **randomWeek()** (5 connections) — `apps/mobile/src/progress/story.test.ts`
 - **session()** (5 connections) — `apps/mobile/src/progress/story.test.ts`
+- **hasStory()** (4 connections) — `apps/mobile/src/progress/story.ts`
 - **goodWeek()** (4 connections) — `apps/mobile/src/progress/story.test.ts`
 - **randomPast()** (4 connections) — `apps/mobile/src/progress/story.test.ts`
 - **win()** (4 connections) — `apps/mobile/src/progress/story.test.ts`
@@ -28,17 +29,18 @@
 - **NOTHING** (1 connections) — `apps/mobile/src/progress/story.ts`
 - **NOON** (1 connections) — `apps/mobile/src/progress/story.test.ts`
 - **SOUNDS** (1 connections) — `apps/mobile/src/progress/story.test.ts`
-- **STORY_CODE** (1 connections) — `apps/mobile/src/progress/story.test.ts`
-- *... and 2 more nodes in this community*
+- *... and 3 more nodes in this community*
 
 ## Relationships
 
-- [My French Tab & Tracking](My_French_Tab_&_Tracking.md) (6 shared connections)
-- [Momentum & Progress Derivations](Momentum_&_Progress_Derivations.md) (3 shared connections)
-- [Progress Export & Trends](Progress_Export_&_Trends.md) (3 shared connections)
-- [Path Node Row UI](Path_Node_Row_UI.md) (2 shared connections)
-- [Auth & Guilt Copy](Auth_&_Guilt_Copy.md) (2 shared connections)
+- [Bookmark Saved Situations](Bookmark_Saved_Situations.md) (4 shared connections)
+- [Daily Goal Settings](Daily_Goal_Settings.md) (3 shared connections)
+- [Progress Export & Trends](Progress_Export_&_Trends.md) (2 shared connections)
+- [Onboarding First Run](Onboarding_First_Run.md) (2 shared connections)
+- [My French Lanes](My_French_Lanes.md) (2 shared connections)
+- [Guilt-Free Copy Rules](Guilt-Free_Copy_Rules.md) (2 shared connections)
 - [Drill Definitions](Drill_Definitions.md) (2 shared connections)
+- [Live Session Screen](Live_Session_Screen.md) (1 shared connections)
 
 ## Source Files
 
@@ -48,7 +50,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 67 (100%)
+- EXTRACTED: 69 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

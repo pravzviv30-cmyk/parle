@@ -1,8 +1,8 @@
 # Format
 
-> God node · 498 connections · `docs/KNOWN_ISSUES.md`
+> God node · 558 connections · `docs/KNOWN_ISSUES.md`
 
-**Community:** [Voice Pipeline Bug Ledger](Voice_Pipeline_Bug_Ledger.md)
+**Community:** [Known Issues Ledger](Known_Issues_Ledger.md)
 
 ## Connections by Relation
 

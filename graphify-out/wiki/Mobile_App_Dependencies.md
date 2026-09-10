@@ -5,7 +5,7 @@
 ## Key Concepts
 
 - **dependencies** (38 connections) — `apps/mobile/package.json`
-- **@config-plugins/react-native-webrtc** (2 connections) — `apps/mobile/package.json`
+- **expo** (2 connections) — `apps/mobile/package.json`
 - **expo-constants** (2 connections) — `apps/mobile/package.json`
 - **expo-crypto** (2 connections) — `apps/mobile/package.json`
 - **expo-linking** (2 connections) — `apps/mobile/package.json`
@@ -14,7 +14,7 @@
 - **react-native-safe-area-context** (2 connections) — `apps/mobile/package.json`
 - **@react-navigation/native** (2 connections) — `apps/mobile/package.json`
 - **@supabase/supabase-js** (2 connections) — `apps/mobile/package.json`
-- **@config-plugins/react-native-webrtc** (1 connections) — `apps/mobile/package.json`
+- **expo** (1 connections) — `apps/mobile/package.json`
 - **expo-constants** (1 connections) — `apps/mobile/package.json`
 - **expo-crypto** (1 connections) — `apps/mobile/package.json`
 - **expo-linking** (1 connections) — `apps/mobile/package.json`
@@ -27,17 +27,17 @@
 ## Relationships
 
 - [Mobile Package Manifest](Mobile_Package_Manifest.md) (1 shared connections)
-- [Expo Metro Runtime Dependency](Expo_Metro_Runtime_Dependency.md) (1 shared connections)
-- [LiveKit React Native SDK](LiveKit_React_Native_SDK.md) (1 shared connections)
-- [LiveKit WebRTC Module](LiveKit_WebRTC_Module.md) (1 shared connections)
-- [Luvani Brain Package](Luvani_Brain_Package.md) (1 shared connections)
-- [Luvani Core Package](Luvani_Core_Package.md) (1 shared connections)
-- [React Navigation Bottom Tabs](React_Navigation_Bottom_Tabs.md) (1 shared connections)
-- [React Navigation Native Stack](React_Navigation_Native_Stack.md) (1 shared connections)
-- [Expo Core Dependency](Expo_Core_Dependency.md) (1 shared connections)
-- [Expo Apple Authentication](Expo_Apple_Authentication.md) (1 shared connections)
-- [Expo Audio Dependency](Expo_Audio_Dependency.md) (1 shared connections)
-- [Expo Dev Client Dependency](Expo_Dev_Client_Dependency.md) (1 shared connections)
+- [WebRTC Config Plugin Dependency](WebRTC_Config_Plugin_Dependency.md) (1 shared connections)
+- [Metro Runtime Dependency](Metro_Runtime_Dependency.md) (1 shared connections)
+- [LiveKit React Native Dependency](LiveKit_React_Native_Dependency.md) (1 shared connections)
+- [LiveKit WebRTC Dependency](LiveKit_WebRTC_Dependency.md) (1 shared connections)
+- [Brain Package Dependency](Brain_Package_Dependency.md) (1 shared connections)
+- [Core Package Dependency](Core_Package_Dependency.md) (1 shared connections)
+- [Bottom Tabs Navigation Dependency](Bottom_Tabs_Navigation_Dependency.md) (1 shared connections)
+- [Native Stack Navigation Dependency](Native_Stack_Navigation_Dependency.md) (1 shared connections)
+- [Apple Authentication Dependency](Apple_Authentication_Dependency.md) (1 shared connections)
+- [Audio Dependency](Audio_Dependency.md) (1 shared connections)
+- [Dev Client Dependency](Dev_Client_Dependency.md) (1 shared connections)
 
 ## Source Files
 

@@ -2,22 +2,22 @@
 
 > God node · 47 connections · `apps/mobile/src/ConvoScreen.tsx`
 
-**Community:** [Conversation Screen UI](Conversation_Screen_UI.md)
+**Community:** [Conversation Screen Connecting](Conversation_Screen_Connecting.md)
 
 ## Connections by Relation
 
 ### calls
 - [space()](space.md) `EXTRACTED`
-- useLiveSession() `EXTRACTED`
 - phraseKeyOf() `EXTRACTED`
+- useLiveSession() `EXTRACTED`
 - useProfile() `EXTRACTED`
-- tutorNameOf() `EXTRACTED`
 - recordActivity() `EXTRACTED`
+- trackProductEvent() `EXTRACTED`
 - fitDisplay() `EXTRACTED`
+- tutorNameOf() `EXTRACTED`
 - tutorVoiceOf() `EXTRACTED`
 - mergeExercises() `EXTRACTED`
 - journalDrills() `EXTRACTED`
-- trackProductEvent() `EXTRACTED`
 - stoppedBySafety() `EXTRACTED`
 - recordScenarioProgress() `EXTRACTED`
 - safetySurface `EXTRACTED`

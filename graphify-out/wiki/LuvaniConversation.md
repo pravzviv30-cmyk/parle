@@ -2,7 +2,7 @@
 
 > God node · 65 connections · `services/tutor-agent/src/convo.ts`
 
-**Community:** [Conversation Engine Core](Conversation_Engine_Core.md)
+**Community:** [Conversation Session Management](Conversation_Session_Management.md)
 
 ## Connections by Relation
 

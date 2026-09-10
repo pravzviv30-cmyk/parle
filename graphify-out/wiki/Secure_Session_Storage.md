@@ -1,6 +1,6 @@
 # Secure Session Storage
 
-> 19 nodes · cohesion 0.20
+> 20 nodes · cohesion 0.19
 
 ## Key Concepts
 
@@ -19,6 +19,7 @@
 - **parseMeta()** (3 connections) — `apps/mobile/src/auth/secureSessionStorage.ts`
 - **removeAllGenerations()** (3 connections) — `apps/mobile/src/auth/secureSessionStorage.ts`
 - **.setItem()** (2 connections) — `apps/mobile/src/auth/secureSessionStorage.ts`
+- **createSupabaseAdapter()** (2 connections) — `apps/mobile/src/auth/supabaseAdapter.ts`
 - **StoredMeta** (1 connections) — `apps/mobile/src/auth/secureSessionStorage.ts`
 - **.getItem()** (1 connections) — `apps/mobile/src/auth/secureSessionStorage.test.ts`
 - **.removeItem()** (1 connections) — `apps/mobile/src/auth/secureSessionStorage.test.ts`
@@ -26,16 +27,17 @@
 
 ## Relationships
 
-- [OAuth & Supabase Auth](OAuth_&_Supabase_Auth.md) (3 shared connections)
+- [OAuth Sign-In Adapters](OAuth_Sign-In_Adapters.md) (3 shared connections)
 
 ## Source Files
 
 - `apps/mobile/src/auth/secureSessionStorage.test.ts`
 - `apps/mobile/src/auth/secureSessionStorage.ts`
+- `apps/mobile/src/auth/supabaseAdapter.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 38 (100%)
+- EXTRACTED: 39 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

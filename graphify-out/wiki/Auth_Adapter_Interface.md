@@ -1,12 +1,13 @@
 # Auth Adapter Interface
 
-> 23 nodes · cohesion 0.09
+> 24 nodes · cohesion 0.10
 
 ## Key Concepts
 
 - **AuthAdapter** (24 connections) — `apps/mobile/src/auth/types.ts`
 - **privacy/export.ts** (15 connections) — `apps/mobile/src/privacy/export.ts`
 - **export.test.ts** (9 connections) — `apps/mobile/src/privacy/export.test.ts`
+- **downloadAccountData()** (6 connections) — `apps/mobile/src/privacy/export.ts`
 - **saveTextFile()** (4 connections) — `apps/mobile/src/progress/saveFile.ts`
 - **AuthContextValue** (3 connections) — `apps/mobile/src/auth/useAuth.tsx`
 - **saveFile.ts** (3 connections) — `apps/mobile/src/progress/saveFile.ts`
@@ -30,15 +31,17 @@
 
 ## Relationships
 
-- [OAuth & Supabase Auth](OAuth_&_Supabase_Auth.md) (7 shared connections)
-- [Pre-Account Onboarding Draft](Pre-Account_Onboarding_Draft.md) (5 shared connections)
-- [My French Tab & Tracking](My_French_Tab_&_Tracking.md) (4 shared connections)
-- [Account Sync & Audio Sweep](Account_Sync_&_Audio_Sweep.md) (4 shared connections)
-- [Auth Adapter Guard](Auth_Adapter_Guard.md) (2 shared connections)
-- [Auth Screens & Labels](Auth_Screens_&_Labels.md) (2 shared connections)
-- [UI Icon Components](UI_Icon_Components.md) (2 shared connections)
-- [App Bootstrap & Gate](App_Bootstrap_&_Gate.md) (1 shared connections)
-- [Mock Auth Adapter](Mock_Auth_Adapter.md) (1 shared connections)
+- [OAuth Sign-In Adapters](OAuth_Sign-In_Adapters.md) (7 shared connections)
+- [Consent Storage](Consent_Storage.md) (4 shared connections)
+- [Conversation Packs Storage](Conversation_Packs_Storage.md) (3 shared connections)
+- [Auth Mode Selection](Auth_Mode_Selection.md) (2 shared connections)
+- [Guarded Auth Attempts](Guarded_Auth_Attempts.md) (2 shared connections)
+- [Auth Flow Screens](Auth_Flow_Screens.md) (2 shared connections)
+- [Token Server URL Config](Token_Server_URL_Config.md) (2 shared connections)
+- [Settings Sections](Settings_Sections.md) (2 shared connections)
+- [UI Components Library](UI_Components_Library.md) (2 shared connections)
+- [Phone Settings Links](Phone_Settings_Links.md) (1 shared connections)
+- [App Root and Live Context](App_Root_and_Live_Context.md) (1 shared connections)
 
 ## Source Files
 
@@ -50,8 +53,8 @@
 
 ## Audit Trail
 
-- EXTRACTED: 52 (100%)
-- INFERRED: 0 (0%)
+- EXTRACTED: 54 (98%)
+- INFERRED: 1 (2%)
 - AMBIGUOUS: 0 (0%)
 
 ---

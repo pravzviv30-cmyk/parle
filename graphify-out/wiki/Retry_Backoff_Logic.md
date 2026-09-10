@@ -24,8 +24,7 @@
 
 ## Relationships
 
-- [Sync Engine Core](Sync_Engine_Core.md) (3 shared connections)
-- [Sync Queue & Reconcile](Sync_Queue_&_Reconcile.md) (1 shared connections)
+- [Sync Engine](Sync_Engine.md) (4 shared connections)
 - [Sync Engine Live Checks](Sync_Engine_Live_Checks.md) (1 shared connections)
 
 ## Source Files

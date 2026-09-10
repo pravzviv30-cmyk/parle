@@ -1,6 +1,6 @@
 # Sync Diagnostics
 
-> 32 nodes · cohesion 0.11
+> 33 nodes · cohesion 0.10
 
 ## Key Concepts
 
@@ -8,6 +8,7 @@
 - **diagnostics.test.ts** (19 connections) — `apps/mobile/src/sync/diagnostics.test.ts`
 - **createSyncDiagnostics()** (8 connections) — `apps/mobile/src/sync/diagnostics.ts`
 - **record()** (8 connections) — `apps/mobile/src/sync/diagnostics.ts`
+- **startAccountSync()** (6 connections) — `apps/mobile/App.tsx`
 - **formatSyncDiagnostic()** (5 connections) — `apps/mobile/src/sync/diagnostics.ts`
 - **isSyncAlarm()** (4 connections) — `apps/mobile/src/sync/diagnostics.ts`
 - **token()** (4 connections) — `apps/mobile/src/sync/diagnostics.ts`
@@ -28,26 +29,28 @@
 - **ALARM_STATUSES** (1 connections) — `apps/mobile/src/sync/diagnostics.ts`
 - **entries()** (1 connections) — `apps/mobile/src/sync/diagnostics.ts`
 - **SILENT_STATUSES** (1 connections) — `apps/mobile/src/sync/diagnostics.ts`
-- **SyncDiagnostics** (1 connections) — `apps/mobile/src/sync/diagnostics.ts`
-- *... and 7 more nodes in this community*
+- *... and 8 more nodes in this community*
 
 ## Relationships
 
-- [Sync Engine Core](Sync_Engine_Core.md) (3 shared connections)
-- [App Bootstrap & Gate](App_Bootstrap_&_Gate.md) (2 shared connections)
-- [Account Sync & Audio Sweep](Account_Sync_&_Audio_Sweep.md) (1 shared connections)
-- [Review Engine Tests](Review_Engine_Tests.md) (1 shared connections)
+- [Sync Engine](Sync_Engine.md) (4 shared connections)
+- [App Root and Live Context](App_Root_and_Live_Context.md) (3 shared connections)
+- [Consent Storage](Consent_Storage.md) (1 shared connections)
+- [Auth Mode Selection](Auth_Mode_Selection.md) (1 shared connections)
+- [Tutor Coach Marks Store](Tutor_Coach_Marks_Store.md) (1 shared connections)
+- [Spaced Repetition Engine](Spaced_Repetition_Engine.md) (1 shared connections)
 
 ## Source Files
 
+- `apps/mobile/App.tsx`
 - `apps/mobile/src/sync/diagnostics.test.ts`
 - `apps/mobile/src/sync/diagnostics.ts`
 - `apps/mobile/src/sync/engine.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 57 (95%)
-- INFERRED: 3 (5%)
+- EXTRACTED: 61 (94%)
+- INFERRED: 4 (6%)
 - AMBIGUOUS: 0 (0%)
 
 ---

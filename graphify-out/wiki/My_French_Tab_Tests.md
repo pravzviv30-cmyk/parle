@@ -1,10 +1,10 @@
 # My French Tab Tests
 
-> 16 nodes · cohesion 0.16
+> 21 nodes · cohesion 0.11
 
 ## Key Concepts
 
-- **MyFrenchTab.test.ts** (17 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
+- **MyFrenchTab.test.ts** (22 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **between()** (3 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **literals()** (2 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **markTag()** (2 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
@@ -14,8 +14,13 @@
 - **week()** (2 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **at()** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **FLAT** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
+- **MODEL** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
+- **MODEL_FLAT** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
+- **ONE_LINE** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **read()** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
+- **ROW** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **SCREEN** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
+- **SITUATION_COPY** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **SITUATIONS** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **sourceFiles()** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
 - **SRC** (1 connections) — `apps/mobile/src/tabs/MyFrenchTab.test.ts`
@@ -23,7 +28,7 @@
 
 ## Relationships
 
-- [Auth & Guilt Copy](Auth_&_Guilt_Copy.md) (2 shared connections)
+- [Guilt-Free Copy Rules](Guilt-Free_Copy_Rules.md) (2 shared connections)
 
 ## Source Files
 
@@ -31,7 +36,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 21 (100%)
+- EXTRACTED: 26 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

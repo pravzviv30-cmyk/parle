@@ -34,8 +34,8 @@
 ## Relationships
 
 - [Supabase Live Checks](Supabase_Live_Checks.md) (2 shared connections)
-- [Session Metering & Cost](Session_Metering_&_Cost.md) (1 shared connections)
-- [Path Node Row UI](Path_Node_Row_UI.md) (1 shared connections)
+- [Session Metering and Plans](Session_Metering_and_Plans.md) (1 shared connections)
+- [Onboarding First Run](Onboarding_First_Run.md) (1 shared connections)
 
 ## Source Files
 

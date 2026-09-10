@@ -25,12 +25,12 @@
 ## Relationships
 
 - [Entitlement Store](Entitlement_Store.md) (6 shared connections)
-- [Session Metering & Cost](Session_Metering_&_Cost.md) (6 shared connections)
-- [Account Deletion & Agent Auth](Account_Deletion_&_Agent_Auth.md) (5 shared connections)
-- [Path Node Row UI](Path_Node_Row_UI.md) (2 shared connections)
+- [Session Metering and Plans](Session_Metering_and_Plans.md) (6 shared connections)
+- [Account Deletion and Export](Account_Deletion_and_Export.md) (5 shared connections)
+- [Onboarding First Run](Onboarding_First_Run.md) (2 shared connections)
 - [Gate Evidence Ledger](Gate_Evidence_Ledger.md) (2 shared connections)
-- [Situation Chooser UI](Situation_Chooser_UI.md) (1 shared connections)
-- [Onboarding Voice Step](Onboarding_Voice_Step.md) (1 shared connections)
+- [Mission Chooser View](Mission_Chooser_View.md) (1 shared connections)
+- [Pre-Account Draft](Pre-Account_Draft.md) (1 shared connections)
 
 ## Source Files
 

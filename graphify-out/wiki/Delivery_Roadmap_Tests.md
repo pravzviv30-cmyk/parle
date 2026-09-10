@@ -33,13 +33,13 @@
 
 ## Relationships
 
-- [Phase Six Contract Analysis](Phase_Six_Contract_Analysis.md) (5 shared connections)
-- [Git Landing Facts](Git_Landing_Facts.md) (4 shared connections)
-- [Phase Six Row Analysis](Phase_Six_Row_Analysis.md) (4 shared connections)
-- [Git Facts Reader](Git_Facts_Reader.md) (3 shared connections)
-- [Session Metering & Cost](Session_Metering_&_Cost.md) (2 shared connections)
-- [Phase Criteria Rows](Phase_Criteria_Rows.md) (2 shared connections)
-- [Path Node Row UI](Path_Node_Row_UI.md) (1 shared connections)
+- [Phase Six Ledger Parsing](Phase_Six_Ledger_Parsing.md) (5 shared connections)
+- [Git Facts Utilities](Git_Facts_Utilities.md) (4 shared connections)
+- [Phase Six Row Parsing](Phase_Six_Row_Parsing.md) (4 shared connections)
+- [Git Facts Helpers](Git_Facts_Helpers.md) (3 shared connections)
+- [Session Metering and Plans](Session_Metering_and_Plans.md) (2 shared connections)
+- [Phase Criteria Parsing](Phase_Criteria_Parsing.md) (2 shared connections)
+- [Onboarding First Run](Onboarding_First_Run.md) (1 shared connections)
 
 ## Source Files
 

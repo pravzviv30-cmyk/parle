@@ -13,7 +13,7 @@
 
 ## Relationships
 
-- [Account Deletion & Agent Auth](Account_Deletion_&_Agent_Auth.md) (2 shared connections)
+- [Account Deletion and Export](Account_Deletion_and_Export.md) (2 shared connections)
 
 ## Source Files
 

@@ -33,8 +33,8 @@
 
 ## Relationships
 
-- [HTTP Security & CORS](HTTP_Security_&_CORS.md) (3 shared connections)
-- [Brain Preflight Checks](Brain_Preflight_Checks.md) (3 shared connections)
+- [HTTP Security Origins](HTTP_Security_Origins.md) (3 shared connections)
+- [Agent Preflight Checks](Agent_Preflight_Checks.md) (3 shared connections)
 
 ## Source Files
 

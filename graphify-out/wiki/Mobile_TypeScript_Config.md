@@ -24,7 +24,7 @@
 
 ## Relationships
 
-- [UI Icon Components](UI_Icon_Components.md) (1 shared connections)
+- [UI Components Library](UI_Components_Library.md) (1 shared connections)
 
 ## Source Files
 

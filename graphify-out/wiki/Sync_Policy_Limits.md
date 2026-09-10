@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **policy.test.ts** (47 connections) — `apps/mobile/src/sync/policy.test.ts`
+- **sync/policy.test.ts** (47 connections) — `apps/mobile/src/sync/policy.test.ts`
 - **ACTIVITY_KEEP_DAYS** (2 connections) — `apps/mobile/src/sync/policy.ts`
 - **MAX_BOOKMARKS** (2 connections) — `apps/mobile/src/sync/policy.ts`
 - **MAX_COMPLETIONS_PER_MISSION** (2 connections) — `apps/mobile/src/sync/policy.ts`
@@ -33,15 +33,15 @@
 
 ## Relationships
 
-- [Exercise Bank Merging](Exercise_Bank_Merging.md) (8 shared connections)
-- [Bookmarks Store & Envelope](Bookmarks_Store_&_Envelope.md) (3 shared connections)
+- [Sync Merge Policy](Sync_Merge_Policy.md) (8 shared connections)
+- [Sync Engine](Sync_Engine.md) (4 shared connections)
 - [Profile Merge Logic](Profile_Merge_Logic.md) (2 shared connections)
-- [Sync Engine Core](Sync_Engine_Core.md) (2 shared connections)
-- [Age Verification & Upgrade](Age_Verification_&_Upgrade.md) (2 shared connections)
+- [Age Gate & Upgrade](Age_Gate_&_Upgrade.md) (2 shared connections)
 - [Review Evidence Tracking](Review_Evidence_Tracking.md) (1 shared connections)
-- [Sync Merge Strategies](Sync_Merge_Strategies.md) (1 shared connections)
-- [Profile Gate & Age Stop](Profile_Gate_&_Age_Stop.md) (1 shared connections)
-- [Path Node Row UI](Path_Node_Row_UI.md) (1 shared connections)
+- [Data Merge Utilities](Data_Merge_Utilities.md) (1 shared connections)
+- [Activity Store](Activity_Store.md) (1 shared connections)
+- [Consent and Analytics](Consent_and_Analytics.md) (1 shared connections)
+- [Onboarding First Run](Onboarding_First_Run.md) (1 shared connections)
 
 ## Source Files
 
