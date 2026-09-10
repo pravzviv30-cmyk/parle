@@ -291,6 +291,24 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Voice roster and sample gate, merged with the Profile and Settings split: **2,787 tests, 0
+  failing**; core 607, brain 383, tutor agent 444, token server 178, playground 26, mobile 1149.
+  Typecheck clean in all six workspaces and floors blessed to those counts. F502 to F508 closed,
+  F509 filed open, F510 found by the merge itself. The tutor said its English half in an American
+  accent, and three explanations were tried in order: the request shape (one sentence carrying both
+  languages) did nothing, because the accent follows the recording and not the request; the vendor's
+  own `en-french` label narrowed the field but turned out to vary per recording; only an ear
+  separates the voices that honour it. All sixteen candidates were synthesised saying one identical
+  English sentence through the real pipeline and the founder picked six. What is verified by machine
+  is the provenance: every clip records its text, both requests, the voice key, the rate, its sha256
+  and what the vendor had verified about that recording, and the suite compares all of it against
+  the committed bytes offline. What cannot be is the accent, so each clip carries a dated line from
+  the person who played it and the gate refuses while any is blank. F510 is the defect the merge
+  exposed and nothing else could have: retiring five voice keys made the pre-account draft loader
+  discard any draft naming one, taking the age confirmation and the usage-data answer with it. Rate
+  is capped at 22050 by the ElevenLabs tier (`pcm_44100` returns 403); within that the clips are 64
+  kbps at maximum codec quality, levelled to -1 dBFS, and `encoding` is pinned like every other knob.
+
 - My French colour-and-panels gate: **2,703 tests, 0 failing**; core 605, brain 383, tutor agent 434,
   token server 178, playground 26, mobile 1077. Typecheck is clean in all six workspaces and floors
   were blessed to those counts. F467 to F470, the second pass over the same mockup. F467 widened the

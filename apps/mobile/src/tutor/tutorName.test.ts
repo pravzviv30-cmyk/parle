@@ -125,7 +125,7 @@ describe('the tutor is called one thing, in one place', () => {
     // opinion about who DEFAULT_TUTOR_VOICE is, and nothing would ever say the
     // two had drifted.
     assert.equal(TUTOR_NAME, DEFAULT_TUTOR_PERSONA.name);
-    assert.deepEqual(DEFAULT_TUTOR_PERSONA, tutorVoice('luc').persona, 'the default persona is not the default voice');
+    assert.deepEqual(DEFAULT_TUTOR_PERSONA, tutorVoice('alexandre').persona, 'the default persona is not the default voice');
 
     // The reader. Sceptical about a stored key for the same reason
     // `strictnessOf` is, and never answers with nobody.
@@ -173,17 +173,17 @@ describe('the tutor is called one thing, in one place', () => {
   });
 
   test('the rung label and the waiting line name the chosen persona', () => {
-    const celine = tutorVoice('celine').persona;
-    const luc = tutorVoice('luc').persona;
+    const marie = tutorVoice('marie').persona;
+    const fallback = tutorVoice('alexandre').persona;
 
     // Rung one is the one rung that names anybody, and it was a frozen table.
-    assert.equal(rungLabel(1, celine.name), `Repeat after ${celine.name}`);
-    assert.equal(rungLabel(1, luc.name), `Repeat after ${luc.name}`);
-    assert.notEqual(rungLabel(1, celine.name), rungLabel(1, luc.name), 'the rung label is still a constant');
+    assert.equal(rungLabel(1, marie.name), `Repeat after ${marie.name}`);
+    assert.equal(rungLabel(1, fallback.name), `Repeat after ${fallback.name}`);
+    assert.notEqual(rungLabel(1, marie.name), rungLabel(1, fallback.name), 'the rung label is still a constant');
     for (const rung of [2, 3, 4] as const) {
       assert.equal(
-        rungLabel(rung, celine.name),
-        rungLabel(rung, luc.name),
+        rungLabel(rung, marie.name),
+        rungLabel(rung, fallback.name),
         'a rung above the first named somebody, and a rung describes how much help is left, not who is talking',
       );
     }
@@ -192,11 +192,11 @@ describe('the tutor is called one thing, in one place', () => {
     // is open and nobody has spoken yet.
     const safety = { kind: 'none' } as const;
     assert.equal(
-      waitingView({ waitingForTutor: true, safety, tutorName: celine.name }).headline,
-      `Waiting for ${celine.name}…`,
+      waitingView({ waitingForTutor: true, safety, tutorName: marie.name }).headline,
+      `Waiting for ${marie.name}…`,
     );
     assert.equal(
-      waitingView({ waitingForTutor: false, safety, tutorName: celine.name }).headline,
+      waitingView({ waitingForTutor: false, safety, tutorName: marie.name }).headline,
       ONE_MOMENT,
       'the vague line stopped being vague, and now names a fault that has not happened',
     );
@@ -208,29 +208,29 @@ describe('the tutor is called one thing, in one place', () => {
       { id: 't1', who: 'learner', fr: 'salut', frWritten: null, en: null },
     ] as const satisfies readonly TurnLine[];
     assert.equal(
-      choosingView({ ...base, thinking: true, tutorName: celine.name }).orbLabel,
-      `${celine.name} is thinking`,
+      choosingView({ ...base, thinking: true, tutorName: marie.name }).orbLabel,
+      `${marie.name} is thinking`,
     );
     assert.equal(
-      choosingView({ ...base, tutorSpeaking: true, tutorName: celine.name }).orbLabel,
-      `${celine.name} is speaking`,
+      choosingView({ ...base, tutorSpeaking: true, tutorName: marie.name }).orbLabel,
+      `${marie.name} is speaking`,
     );
     assert.equal(
-      choosingView({ ...base, micOpen: false, turns: said, tutorName: celine.name }).orbLabel,
+      choosingView({ ...base, micOpen: false, turns: said, tutorName: marie.name }).orbLabel,
       'Tap the circle when you are ready to talk',
       'the untapped circle reports a state instead of asking to be pressed',
     );
-    assert.equal(choosingView({ ...base, turns: said, tutorName: celine.name }).helper, anythingGoes(celine.name));
-    assert.match(anythingGoes(celine.name), new RegExp(`\\b${celine.name}\\b`));
+    assert.equal(choosingView({ ...base, turns: said, tutorName: marie.name }).helper, anythingGoes(marie.name));
+    assert.match(anythingGoes(marie.name), new RegExp(`\\b${marie.name}\\b`));
 
     // The two quiet lines outside a live scene.
-    assert.equal(momentAnswer(celine.name), `${celine.name} will wait.`);
+    assert.equal(momentAnswer(marie.name), `${marie.name} will wait.`);
     assert.equal(
-      statusLine({ state: 'locked', kind: 'topic' } as never, celine.name),
-      `${celine.name} is still writing this one`,
+      statusLine({ state: 'locked', kind: 'topic' } as never, marie.name),
+      `${marie.name} is still writing this one`,
     );
     assert.equal(
-      statusLine({ state: 'locked', kind: 'mine' } as never, celine.name),
+      statusLine({ state: 'locked', kind: 'mine' } as never, marie.name),
       'Your conversations write this one',
       'a node the learner writes started naming the tutor',
     );
@@ -262,9 +262,9 @@ describe('onboarding introduces the voice already on the record — F300', () =>
   const WELCOME = stripComments(readFileSync(join(SRC, 'onboarding/PreAccountOnboarding.tsx'), 'utf8'));
 
   test('a learner who already chose a voice is re-introduced to that voice, not the default', () => {
-    const chosen = tutorPersonaOf({ tutorVoice: 'celine' } as never);
+    const chosen = tutorPersonaOf({ tutorVoice: 'marie' } as never);
     assert.notEqual(chosen.name, TUTOR_NAME, 'the record under test no longer holds a voice other than the default');
-    assert.deepEqual(chosen, tutorVoice('celine').persona);
+    assert.deepEqual(chosen, tutorVoice('marie').persona);
 
     // The four sentences the flow reads to somebody it has a record for. Each
     // one used to name the default and only the default.

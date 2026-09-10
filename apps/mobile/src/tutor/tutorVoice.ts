@@ -33,6 +33,7 @@ import {
   TUTOR_VOICES,
   isTutorVoiceKey,
   tutorVoice,
+  tutorSampleLine,
   type TutorVoiceKey,
 } from '@luvani/core';
 import type { StoredProfile } from '../profile/store.ts';
@@ -56,6 +57,14 @@ export interface TutorVoiceOption {
   label: string;
   /** The catalogue's own `sound` line, carried through untouched. */
   gloss: string;
+  /**
+   * The bilingual introduction this voice speaks in its sample clip, off the
+   * catalogue unchanged. It is here for the same reason `gloss` is: the first-run
+   * voice page prints it and the sample clip says it, so it is copy a learner
+   * reads, and it belongs in the scan below. It was once typed out inside the
+   * screen instead, and the screen and the audio drifted apart.
+   */
+  sample: string;
 }
 
 /**
@@ -68,6 +77,7 @@ export const TUTOR_VOICE_OPTIONS: readonly TutorVoiceOption[] = TUTOR_VOICE_ORDE
   value,
   label: tutorVoice(value).persona.name,
   gloss: tutorVoice(value).sound,
+  sample: tutorSampleLine(value),
 }));
 
 /** The row label on Profile. Says whose voice, not which field. */
@@ -90,7 +100,7 @@ export const TUTOR_VOICE_COPY: readonly string[] = [
   TUTOR_VOICE_ROW,
   TUTOR_VOICE_TITLE,
   TUTOR_VOICE_SUB,
-  ...TUTOR_VOICE_OPTIONS.flatMap((option) => [option.label, option.gloss]),
+  ...TUTOR_VOICE_OPTIONS.flatMap((option) => [option.label, option.gloss, option.sample]),
 ];
 
 /**

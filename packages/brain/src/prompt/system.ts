@@ -19,7 +19,7 @@
  * point. It used to open "You are a responsive French conversation tutor" and
  * then list twenty-two rules, fourteen of them starting with "Never". A model
  * given only constraints produces constrained output, which is what the founder
- * heard as "purely robotic". Luc comes first now; the commitments are all still
+ * heard as "purely robotic". The name comes first now; the commitments are all still
  * here, at the bottom, because each one exists because a competitor shipped
  * without it and their users complained.
  */
@@ -54,7 +54,7 @@ const DEFAULT_PERSONA: TutorPersona = tutorVoice(DEFAULT_TUTOR_VOICE).persona;
  *
  * French agrees with its speaker and the agreement is audible: the t at the end
  * of "contente" is pronounced and the one in "content" is not. Two of the eight
- * catalogue voices are women, so a prompt that names Céline but never says
+ * catalogue voices are women, so a prompt that names Marie but never says
  * which agreement she takes has her say "je suis content" out loud, in a
  * woman's voice, on her first turn. That is the same defect as introducing
  * herself as a man, one layer down, which is why `TutorPersona` carries a

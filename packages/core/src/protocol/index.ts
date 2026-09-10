@@ -28,6 +28,7 @@ export {
   DEFAULT_TUTOR_VOICE,
   isTutorVoiceKey,
   tutorVoice,
+  tutorSampleLine,
   type TutorVoiceKey,
   type TutorPersona,
   type TutorVoice,

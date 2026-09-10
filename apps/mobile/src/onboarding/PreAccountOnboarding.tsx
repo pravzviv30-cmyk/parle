@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { tutorVoice, type TutorVoiceKey } from '@luvani/core';
+import { tutorSampleLine, tutorVoice, type TutorVoiceKey } from '@luvani/core';
 import { paper, space, type } from '../theme.ts';
 import { Card, GhostButton, OptionCard, PillButton, ProgressDots } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
@@ -72,10 +72,12 @@ export function PreAccountOnboarding({
     const next: PreAccountOnboardingDraft = { ...draft, tutorVoice: voice };
     setDraft(next);
     onDraftChange(next);
-    // The bundled sample is deliberately the tutor's real, bilingual
-    // introduction: "Bonjour, je m'appelle [name]. Hello, my name is [name]."
-    // Playing it on selection makes the choice feel like meeting a person,
-    // while the ear remains available to replay or stop it deliberately.
+    // The bundled sample is deliberately the tutor's real bilingual
+    // introduction, which `tutorSampleLine` owns. Quoting the words here was how
+    // the caption below came to disagree with the audio for a week, so this
+    // comment names the function and never the sentence. Playing it on selection
+    // makes the choice feel like meeting a person, while the ear remains
+    // available to replay or stop it deliberately.
     setPlaying(voice);
     player.replace(voiceSample(voice));
     player.play();
@@ -162,7 +164,9 @@ export function PreAccountOnboarding({
               />
             ))}
           </View>
-          <Text style={st.sampleLine}>{`“Bonjour, je m’appelle ${tutorVoice(selected).persona.name}. Hello, my name is ${tutorVoice(selected).persona.name}.”`}</Text>
+          {/* Read from the catalogue, never typed here: the clip and this line
+              have to be the same words, and a hand-typed copy is what drifted. */}
+          <Text style={st.sampleLine}>{`“${tutorSampleLine(selected)}”`}</Text>
         </>
       )}
 

@@ -4389,7 +4389,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   "young". `luc` is the default. App-level keys rather than vendor ids, so a re-clone or a vendor
   move is a one-table edit and a learner's stored preference outlives both. No vendor name and no
   vendor id may appear anywhere a learner can read, which `failure.test.ts:319` already polices.
-- verified-by: `the catalogue offers eight voices, one default, every key lowercase and vendor-free`
+- verified-by: `the catalogue offers six voices, three men and three women, with one default`
 - verified-by: `an unknown or malformed key is not a tutor voice`
 
 ### F283 — buildTTS speaks the chosen catalogue voice, and ELEVEN_VOICE_ID is retired
@@ -4554,6 +4554,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `apps/mobile/assets/voices/<key>.m4a`. Through the seam, so the clip is exactly what the tutor
   will sound like rather than an approximation, and cached so a rerun is free. Bundle size is the
   constraint: keep each clip under about 150KB.
+- note 2026-09-10: two claims in the note above were overtaken and one of them was never true.
+  The line is no longer one French sentence and one English one: F507 made it a single bilingual
+  sentence, because two sentences meant two vendor requests and the English one arrived with no
+  French around it. And "exactly what the tutor will sound like" did not survive contact: these
+  clips went a week saying the sentence c611bcc had replaced, because nothing tied the words to
+  the bytes. F507 adds the record that does. Read F508 before trusting the accent. And then back
+  again the same day: F505 returned the line to two sentences once the one-sentence clip had been
+  heard, so this note's "one French sentence, one English" is true once more.
 - verified-by: `the sample script writes one clip per catalogue voice through the same voice seam`
 - verified-by: `every catalogue voice has a bundled sample the app can play`
 
@@ -7431,3 +7439,169 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   sentence means, that nothing more about that session leaves after the work above is done, without
   counting.
 - verified-by: `no sentence in the notice depends on how many vendors there are`
+### F502 — The roster is re-picked for voices the vendor verifies for French-accented English
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/voice.ts:110
+- note: F508 established that not one of the eight was labelled `en-french` on the pinned model and
+  that the default had no English row at all, so the American a founder heard was the vendor's own
+  label and no copy could move it. Of 1,500 library French voices, 16 are verified for French AND
+  `en-french` on `eleven_multilingual_v2`. The founder picked from their free previews by ear, and
+  where a voice they liked had to be replaced the shortlist was ranked by measured pitch and
+  spectral centroid against the voice being replaced, so a swap keeps the timbre it can. All six
+  were confirmed to synthesise and to be listed on the account before any of this landed, because
+  preflight refuses to boot on a voice the account cannot see.
+- verified-by: `every voice the catalogue offers is verified for French and English on the model the tutor pins`
+- verified-by: `the committed clips record the text, the voice and the settings that made them`
+- verified-by: `a clip nobody has listened to cannot be recorded as heard`
+
+### F503 — Six voices, three and three, and the default moves off a voice that was retired
+- severity: P1
+- status: [x]
+- where: packages/core/src/protocol/voices.ts:47
+- note: eight was six men and two women, and half of them were voices the founder called muffled.
+  Six that carry the product beats eight that do not. `luc`, `enrick`, `mathieu`, `benoit` and
+  `celine` retire; `anatole`, `marie` and `sarah` arrive; `alexandre`, `guillaume` and `emilie`
+  keep their names and get new recordings behind them. `luc` was the default and no verified voice
+  sits near it acoustically, so keeping the name would have meant introducing the tutor as someone
+  who no longer sounds like himself; the default becomes `alexandre`. A stored retired key lands on
+  the default at both ends of the wire, which `resolveTutorVoice` already does and `upgrade.ts`
+  already documents, and nothing has shipped to a store. Catalogue order alternates gender so the
+  first screen of the chooser shows both.
+- verified-by: `the catalogue offers six voices, three men and three women, with one default`
+- verified-by: `anything else resolves to the default, and never throws`
+- verified-by: `every bundled clip is on disk, so the app can be built at all`
+
+### F504 — A sound line says only what the vendor's label and the recording can back
+- severity: P1
+- status: [x]
+- where: packages/core/src/protocol/voices.ts:103
+- note: five of the eight lines claimed Paris or Quebec. None of the 16 candidates is Québécois and
+  the accent labels are mostly `standard`, so the old lines would have been false under the new
+  voices. The rule is now mechanical: `A {young }{man's|woman's} voice, from {place}.` where
+  `young` appears if and only if the age band is young, the noun follows `gender`, and `place` comes
+  from the vendor's own French accent label. Nothing else may appear, and none of the vendor's
+  marketing words. The shape is pinned by regex in core and cross-checked in the agent's suite
+  against the vendor block the sample run records, so a line is honest by machine and not by eye.
+- verified-by: `a sound line says gender, age band and where the vendor places the accent, and nothing else`
+- verified-by: `the catalogue's sound lines agree with what the vendor says about each recording`
+
+### F505 — The introduction is two plain sentences again, and the accent is the voice's job
+- severity: P1
+- status: [x]
+- where: packages/core/src/protocol/voices.ts:226
+- note: F507 made the line one sentence so a single request would carry both languages and the
+  French clause could prime the English one. The founder listened on 2026-09-10 and the accent had
+  not moved, and "and in English, my name is" read as absurd, because a name does not translate and
+  the second half carried nothing new. Reversed deliberately: `Bonjour, je m’appelle ${name}. Hi, my
+  name is ${name}.` Two sentences, two requests, one beat between them, and the accent comes from
+  F502's voices instead. The count is still pinned, at two, because it is what the manifest records
+  and what a live session would send: one means the bridge is back, three means a stray period ships
+  in every download.
+- verified-by: `every voice introduces itself in two short sentences the catalogue owns, French first`
+- verified-by: `the English sentence reaches the vendor on its own, short and in the same voice`
+- verified-by: `the introduction is written in one place, and every screen reads it from there`
+- verified-by: `the introduction on the voice page is rendered from the catalogue, never typed in`
+
+### F506 — The output encoding was the plugin's default, and the clips were quieter than they needed to be
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/voice.ts:333
+- note: `voice.ts` pins the model, the settings and the language so a plugin upgrade cannot move the
+  sound on its own, and forgot `encoding`, which silently inherited `pcm_22050`. A founder called the
+  voices muffled, and three causes were tangled together: the vendor sample rate, our codec, and the
+  recordings. Measured on 2026-09-10: `pcm_44100` is refused on this account with `403 Output format
+  'pcm_44100' is only available on the Pro tier and above`, so 22050 is the ceiling until the
+  subscription changes and that is recorded here rather than discovered again. Within that ceiling
+  two things were free and are now taken: the clip bitrate goes from 48 to 64 kbps at maximum codec
+  quality (72 and above are refused at this rate), and the vendor hands back audio peaking near
+  -4.8 dBFS which is lifted to -1 dBFS, changing loudness and nothing else. The encoding is now
+  passed explicitly, which re-keys nothing because the rate was already in the cache hash.
+- verified-by: `the output encoding is pinned, not left to the plugin default`
+- verified-by: `a sample clip is levelled and encoded the way the script says, not the way a default decided`
+### F507 — The voice samples said words the app had stopped showing
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/voiceSamples.ts:89
+- note: the eight clips in `apps/mobile/assets/voices/` were synthesised in 5a49cce and never
+  regenerated. `sampleText` was rewritten hours later in c611bcc, so for a week the caption on the
+  first-run voice page read one sentence while the audio spoke another. Nothing could tell: the
+  sentence was hand-typed in three places and the clips recorded nothing about themselves, and the
+  only existing guard is an existence check, which F299 installed and which is green on clips
+  saying anything at all. Presence, then existence, now content. The line moves to
+  `tutorSampleLine` in core so the agent and the screen read one literal, and the generator writes
+  a provenance record whose sha256 of each committed clip cannot be satisfied by editing a string.
+  The clip also becomes one bilingual sentence, which the splitter keeps whole, so one request
+  carries both languages instead of two requests carrying one each.
+- note 2026-09-10, later: the one-sentence half of this was heard and did not work. The clips were
+  regenerated, the founder listened, and the English was still American, because the cause was the
+  voice and not the request shape (F508, then F502). The line is two sentences again under F505 and
+  the two test titles that pinned the single request are retired with it. What stands, and what made
+  the reversal checkable at all, is the staleness half: the sentence living once in core, the
+  provenance manifest, and the sha256 of every committed clip.
+- verified-by: `the committed clips record the text, the voice and the settings that made them`
+- verified-by: `the introduction is written in one place, and every screen reads it from there`
+- verified-by: `a clip nobody has listened to cannot be recorded as heard`
+- verified-by: `the introduction on the voice page is rendered from the catalogue, never typed in`
+
+### F508 — No voice in the catalogue is verified for French-accented English on the pinned model
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/voice.ts:102
+- note: the comment there claims all eight are verified by the vendor for BOTH French and English
+  on `MODEL`. Read back from the vendor on 2026-09-10 that is false for `luc`, the DEFAULT voice,
+  which has no English row on the pinned model at all; its only English row sits on a different
+  model and is labelled `northern`. For the other seven the pinned model's English accent label is
+  `en-american` (alexandre, guillaume), `en-british` (mathieu, emilie), `en-singaporean` (benoit)
+  or `other` (enrick, celine). Not one is `en-french`. So the American English a founder reported
+  is the vendor's own label, and F507's one-request change is necessary for the words and is not
+  expected to fix the accent on its own. The ladder, cheapest first: the four voices labelled
+  `en-french` carry that label on `eleven_flash_v2_5` and `eleven_turbo_v2_5`, so a model move is
+  one lever but it re-keys every warmed WAV and still leaves four voices wrong; re-picking the
+  roster for voices verified `en-french` on the pinned model is the only lever that delivers what
+  was asked, and a first read of 100 library French voices found only three candidates; dropping
+  the English half and shipping a French-only sample is the honest fallback. Do not reach for
+  `LANGUAGE_CODE`: it was already `fr` when these clips were made.
+- note 2026-09-10, later: confirmed by ear. The one-sentence clips were regenerated and the English
+  half was still American, which is what this entry predicted from the labels. The fix is F502: the
+  roster is re-picked from the 16 library voices verified `fr` and `en-french` on the pinned model.
+  The evidence a test can read is the vendor block the sample run now records per clip; the evidence
+  no test can read is the `heard` line, which is why this cannot be ticked until a person has played
+  the new clips and said what the English sounded like.
+- verified-by: `every voice the catalogue offers is verified for French and English on the model the tutor pins`
+- verified-by: `every listen says what the English half sounded like`
+
+### F509 — The live session's English is synthesised with no French around it
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/voice.ts:196
+- note: the opener, the scene-setting narration and every coaching line are English, and each
+  reaches the vendor as its own request because the framework's sentence adapter splits on
+  sentence boundaries by construction. That is ten times the surface of one onboarding clip, and
+  `LANGUAGE_CODE`'s own docstring already says the pin stays until two takes have been compared by
+  ear, which never happened. This is NOT F507's fix applied again: those lines are generated by
+  the brain at runtime, so there is no copy to comma-join, and a narration cannot be one sentence.
+  It is a configuration question, whether a language can be chosen per line rather than pinned for
+  the session, or the voice question F508 describes. Filed separately so nobody attempts the
+  comma and abandons it. Note also the honesty debt F507 creates: once the sample's English is
+  better than the session's, F295's promise that the clip is exactly what the tutor sounds like is
+  false in the opposite direction from the staleness it replaced.
+- verified-by: `the tutor's English lines are spoken by a voice verified for English`
+
+
+### F510 — Retiring a voice threw away the whole pre-account draft
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/preAccountDraft.ts:50
+- note: found by merging F502's roster change into main's consent work, which is the only place the
+  two could meet. `readable` required the stored `tutorVoice` to be a live catalogue key, so once
+  F503 retired five of the eight, a draft written before that failed the check and `loadPreAccountDraft`
+  returned null. That does not merely lose a voice choice: the draft is what carries the age
+  confirmation and the usage-data answer across sign-up, so the learner was asked every question
+  again and a recorded "yes" to analytics quietly became "not asked". A retired key is a repair and
+  not a corruption, which the rest of the stack already knows: `resolveTutorVoice` at the agent and
+  `tutorVoiceOf` on a stored profile both land an unknown key on the default and never throw. The
+  draft loader now does the same, and an unreadable draft — a version that is not 1, an age that was
+  never confirmed — is still refused rather than repaired into a confirmation nobody gave.
+- verified-by: `a retired voice becomes the default, and the rest of the draft survives`
+- verified-by: `the draft carries the answer and a missing one reads as no`

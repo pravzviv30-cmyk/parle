@@ -84,11 +84,11 @@ describe('the stable prefix', () => {
     // French conversation tutor for an English-speaking learner" and then list
     // twenty-two rules, fourteen beginning with "Never". A model handed only
     // constraints produces constrained output, and that is what "purely
-    // robotic" sounded like. Someone deleting Luc to tidy the prompt should
+    // robotic" sounded like. Someone deleting the name to tidy the prompt should
     // have to delete this test too.
     const { persona } = buildSystemBlocks();
     const opening = persona.slice(0, 400);
-    assert.match(opening, /you are luc/i, 'the tutor has no name in the first thing the model reads');
+    assert.match(opening, /you are alexandre/i, 'the tutor has no name in the first thing the model reads');
     // He has a life, not just rules — that is what this line has always held.
     // It used to prove it with "Lyon". The town came out under F281 because the
     // learner's chosen voice can be Québécois and a persona may assert only what

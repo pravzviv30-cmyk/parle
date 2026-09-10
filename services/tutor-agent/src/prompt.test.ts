@@ -124,7 +124,7 @@ describe('one tutor, two pipelines', () => {
    * while the other opens with Luc is two different tutors in the same session,
    * and the learner hears the switch immediately.
    */
-  const NAME = /\bLuc\b/;
+  const NAME = /\bAlexandre\b/;
 
   test('both prompts introduce the same person', () => {
     assert.match(baseInstructions(lesson), NAME, 'the scripted lesson tutor is anonymous again');
@@ -132,37 +132,37 @@ describe('one tutor, two pipelines', () => {
   });
 
   test('both prompts introduce the chosen persona by name, and Luc when nothing is chosen', () => {
-    // F292. Two of the eight catalogue voices are women. A prompt that says
+    // F292. Half of the catalogue voices are women. A prompt that says
     // "You are Luc" while a woman's voice speaks it makes her introduce herself
     // as a man in her own first sentence, and no wording further down repairs a
     // mismatch the code created. So the name travels with the voice through
     // both pipelines, or through neither.
-    const celine = tutorVoice('celine').persona;
+    const marie = tutorVoice('marie').persona;
 
     for (const [where, text] of [
-      ['lesson', baseInstructions(lesson, celine)],
-      ['conversation', buildSystemBlocks(celine).persona],
+      ['lesson', baseInstructions(lesson, marie)],
+      ['conversation', buildSystemBlocks(marie).persona],
       // buildPrompt is what tutor.ts actually hands the model. A persona that
       // reached baseInstructions and stopped at the seam would help nobody.
-      ['assembled', buildPrompt(lesson, turn, directiveFor(RUNGS.CUED), celine)],
+      ['assembled', buildPrompt(lesson, turn, directiveFor(RUNGS.CUED), marie)],
     ] as const) {
-      assert.match(text, /You are Céline\b/, `the ${where} prompt introduces someone the learner will not hear`);
-      assert.doesNotMatch(text, NAME, `the ${where} prompt still has Luc's name somewhere in it`);
+      assert.match(text, /You are Marie\b/, `the ${where} prompt introduces someone the learner will not hear`);
+      assert.doesNotMatch(text, NAME, `the ${where} prompt still has the default's name somewhere in it`);
     }
 
-    // Nothing chosen is Luc, and he is read out of the catalogue rather than
+    // Nothing chosen is the default, and they is read out of the catalogue rather than
     // written here a second time, so this default cannot drift from the one the
     // agent resolves to or the one the Profile row shows.
-    const luc = tutorVoice(DEFAULT_TUTOR_VOICE).persona;
-    assert.equal(luc.name, 'Luc', 'the catalogue default is no longer the person these prompts describe');
+    const fallback = tutorVoice(DEFAULT_TUTOR_VOICE).persona;
+    assert.equal(fallback.name, 'Alexandre', 'the catalogue default is no longer the person these prompts describe');
     assert.equal(
       baseInstructions(lesson),
-      baseInstructions(lesson, luc),
+      baseInstructions(lesson, fallback),
       'the lesson prompt falls back to someone other than the catalogue default',
     );
     assert.deepEqual(
       buildSystemBlocks(),
-      buildSystemBlocks(luc),
+      buildSystemBlocks(fallback),
       'the conversation prompt falls back to someone other than the catalogue default',
     );
     assert.match(baseInstructions(lesson), NAME);
@@ -175,20 +175,20 @@ describe('one tutor, two pipelines', () => {
     // t at the end of "contente" is pronounced, the one in "content" is not. A
     // prompt that names Céline but never says which agreement she takes has her
     // say "je suis content" out loud, in a woman's voice, on the first turn.
-    const celine = tutorVoice('celine').persona;
-    const luc = tutorVoice(DEFAULT_TUTOR_VOICE).persona;
+    const marie = tutorVoice('marie').persona;
+    const fallback = tutorVoice(DEFAULT_TUTOR_VOICE).persona;
 
     for (const [where, text] of [
-      ['lesson', baseInstructions(lesson, celine)],
-      ['conversation', buildSystemBlocks(celine).persona],
+      ['lesson', baseInstructions(lesson, marie)],
+      ['conversation', buildSystemBlocks(marie).persona],
     ] as const) {
       assert.match(text, /you are a woman/i, `the ${where} prompt never says which agreement she takes`);
       assert.match(text, /contente/, `the ${where} prompt states the rule without the form it produces`);
     }
 
     for (const [where, text] of [
-      ['lesson', baseInstructions(lesson, luc)],
-      ['conversation', buildSystemBlocks(luc).persona],
+      ['lesson', baseInstructions(lesson, fallback)],
+      ['conversation', buildSystemBlocks(fallback).persona],
     ] as const) {
       assert.match(text, /you are a man/i, `the ${where} prompt never says which agreement he takes`);
     }

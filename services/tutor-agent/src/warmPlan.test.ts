@@ -33,41 +33,41 @@ describe('the warm plan decides which voices a run pays for', () => {
     assert.deepEqual(voicesToWarm({ [WARM_VOICES_ENV]: ' , ' }), [DEFAULT_TUTOR_VOICE]);
 
     // A comma list warms exactly those, and nothing else.
-    assert.deepEqual(voicesToWarm({ [WARM_VOICES_ENV]: 'celine' }), ['celine']);
-    assert.deepEqual(voicesToWarm({ [WARM_VOICES_ENV]: 'celine, emilie' }), ['celine', 'emilie']);
+    assert.deepEqual(voicesToWarm({ [WARM_VOICES_ENV]: 'marie' }), ['marie']);
+    assert.deepEqual(voicesToWarm({ [WARM_VOICES_ENV]: 'marie, emilie' }), ['emilie', 'marie']);
 
     // Case and stray spacing are the shape of a value typed at a shell prompt,
     // and neither is a different request.
-    assert.deepEqual(voicesToWarm({ [WARM_VOICES_ENV]: ' CELINE ,emilie ' }), ['celine', 'emilie']);
+    assert.deepEqual(voicesToWarm({ [WARM_VOICES_ENV]: ' MARIE ,emilie ' }), ['emilie', 'marie']);
 
     // Asked twice is billed once, and the order is the catalogue's rather than
     // the operator's, so two runs of the same set print comparable reports.
-    assert.deepEqual(voicesToWarm({ [WARM_VOICES_ENV]: 'emilie,celine,emilie' }), ['celine', 'emilie']);
+    assert.deepEqual(voicesToWarm({ [WARM_VOICES_ENV]: 'emilie,marie,emilie' }), ['emilie', 'marie']);
   });
 
   test('LUVANI_WARM_VOICES=all warms every catalogue voice and reports the characters per voice', () => {
     assert.deepEqual(voicesToWarm({ [WARM_VOICES_ENV]: 'all' }), CATALOGUE);
     assert.deepEqual(voicesToWarm({ [WARM_VOICES_ENV]: ' ALL ' }), CATALOGUE, 'the word, however it is typed');
-    assert.equal(CATALOGUE.length, 8, 'eight voices, so `all` is eight times the bill');
+    assert.equal(CATALOGUE.length, 6, 'six voices, so `all` is six times the bill');
 
     // The cost is stated before a character is spent, per voice and in total,
     // because "warm everything" is the request most likely to be typed without
     // knowing what it costs.
     const cost = warmCost(CATALOGUE, CORPUS);
-    assert.equal(cost.voices, 8);
+    assert.equal(cost.voices, 6);
     assert.equal(cost.lines, CORPUS.length);
     assert.equal(cost.charsPerVoice, CORPUS.reduce((n, l) => n + l.length, 0));
-    assert.equal(cost.charsTotal, cost.charsPerVoice * 8, 'a voice is a whole second copy of the corpus');
+    assert.equal(cost.charsTotal, cost.charsPerVoice * 6, 'a voice is a whole second copy of the corpus');
 
     const planned = warmPlanLine(cost);
-    assert.match(planned, /8 voices/, 'says how many voices it is about to pay for');
+    assert.match(planned, /6 voices/, 'says how many voices it is about to pay for');
     assert.match(planned, new RegExp(`${cost.charsPerVoice} characters per voice`), 'and the per-voice number');
     assert.match(planned, new RegExp(`${cost.charsTotal}`), 'and what that comes to');
 
     // The per-voice line after the fact reports what was actually billed, which
     // is not the estimate: a rerun is nearly all hits and costs nothing.
-    const spent = warmVoiceLine('celine', { cached: 60, synthesized: 2, chars: 34 });
-    assert.match(spent, /celine/);
+    const spent = warmVoiceLine('marie', { cached: 60, synthesized: 2, chars: 34 });
+    assert.match(spent, /marie/);
     assert.match(spent, /60 already cached/);
     assert.match(spent, /2 synthesized/);
     assert.match(spent, /34 chars/, 'the characters this voice actually cost');
@@ -77,7 +77,7 @@ describe('the warm plan decides which voices a run pays for', () => {
     // A typo must not warm seven voices and then stop. It is a pure parse, so
     // the refusal happens before the vendor is ever constructed.
     assert.throws(
-      () => voicesToWarm({ [WARM_VOICES_ENV]: 'celine,hendrick' }),
+      () => voicesToWarm({ [WARM_VOICES_ENV]: 'marie,hendrick' }),
       (err: Error) => {
         assert.match(err.message, /hendrick/, 'names the key that is wrong');
         for (const key of CATALOGUE) {
@@ -91,7 +91,7 @@ describe('the warm plan decides which voices a run pays for', () => {
 
     // A vendor id is the wrong kind of name and the most likely paste. It gets
     // the same refusal rather than a 404 eight lines into a paid run.
-    assert.throws(() => voicesToWarm({ [WARM_VOICES_ENV]: 'IPgYtHTNLjC7Bq7IPHrm' }), /not in the catalogue/);
+    assert.throws(() => voicesToWarm({ [WARM_VOICES_ENV]: 'c365oriviHmAhyLhpuN6' }), /not in the catalogue/);
 
     // And the run itself refuses, exit 1, before it asks for a key or a voice.
     // Spawned with no credentials at all and in an empty cwd so dotenv finds no

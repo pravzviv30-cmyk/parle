@@ -3434,7 +3434,7 @@ describe('switching to text without leaving the scene', () => {
  * brain's `prepareTurn`, and every one of them compiles perfectly well without
  * a persona. Missing one costs nothing visible. That path simply introduces the
  * catalogue default while the rest of the session is somebody else, and the
- * learner hears a woman's voice call herself Luc.
+ * learner hears a woman's voice call herself Alexandre.
  *
  * So this is proved twice. Once by driving a whole session and reading the
  * blocks off every request the brain actually received, and once by reading
@@ -3443,7 +3443,7 @@ describe('switching to text without leaving the scene', () => {
  * one that will be missed.
  */
 describe('the conversation speaks as the person the learner chose', () => {
-  const celine = tutorVoice('celine').persona;
+  const marie = tutorVoice('marie').persona;
 
   /** A turn that closes the scene, so the post-session calls all run. */
   const closingScene = () =>
@@ -3454,7 +3454,7 @@ describe('the conversation speaks as the person the learner chose', () => {
 
   test('every system-block call in a conversation carries the chosen persona', async (t) => {
     const client = new MockLlmClient({ turns: [closingScene()] });
-    const { convo } = await inScene(t, { client, persona: celine });
+    const { convo } = await inScene(t, { client, persona: marie });
 
     // One spoken turn that ends the scene, then room for the post-session
     // pipeline: curation, memory and drills are fire-and-forget, so their
@@ -3474,8 +3474,8 @@ describe('the conversation speaks as the person the learner chose', () => {
     for (const [kind, requests] of calls) {
       assert.ok(requests.length > 0, `the ${kind} call never ran, so this test proves nothing about it`);
       for (const request of requests) {
-        assert.match(request.system.persona, /You are Céline\b/, `the ${kind} prompt is somebody the learner will not hear`);
-        assert.doesNotMatch(request.system.persona, /\bLuc\b/, `the ${kind} prompt still names the catalogue default`);
+        assert.match(request.system.persona, /You are Marie\b/, `the ${kind} prompt is somebody the learner will not hear`);
+        assert.doesNotMatch(request.system.persona, /\bAlexandre\b/, `the ${kind} prompt still names the catalogue default`);
         // The pronoun rides with the name, or the tutor says "je suis content"
         // in her voice. Same assertion prompt.test.ts makes of the builder.
         assert.match(request.system.persona, /you are a woman/i, `the ${kind} prompt drops the agreement her French takes`);
@@ -3515,7 +3515,7 @@ describe('the conversation speaks as the person the learner chose', () => {
     assert.ok(client.frameRequests.length > 0);
     assert.deepEqual(client.frameRequests[0]!.system, buildSystemBlocks(), 'an unchosen session stopped matching the builder');
     assert.deepEqual(client.frameRequests[0]!.system, buildSystemBlocks(luc), 'and stopped being the catalogue default');
-    assert.match(client.frameRequests[0]!.system.persona, /\bLuc\b/);
+    assert.match(client.frameRequests[0]!.system.persona, /\bAlexandre\b/);
   });
 });
 

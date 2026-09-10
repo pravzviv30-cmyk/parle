@@ -7,6 +7,7 @@ import {
   TUTOR_VOICES,
   isTutorVoiceKey,
   tutorVoice,
+  tutorSampleLine,
   type TutorVoiceKey,
 } from './voices.ts';
 
@@ -32,16 +33,52 @@ const COMPARATIVE = /\b(best|better|more|most|native|authentic|proper|correct|pe
 const VENDOR_WORDS = /eleven|labs|openai|anthropic|cartesia|deepgram|fish|azure|google|amazon|polly/i;
 
 describe('the tutor voice catalogue', () => {
-  test('the catalogue offers eight voices, one default, every key lowercase and vendor-free', () => {
+  test('a sound line says gender, age band and where the vendor places the accent, and nothing else', () => {
+    // F504. A sound line is learner-facing copy about a recording, and the only
+    // party who can back a claim in it is the vendor who made the recording. So
+    // the shape is fixed: gender, the age band, and a place. Nothing about warmth,
+    // timbre or quality, because nobody in this file has ever heard these voices.
+    //
+    // Five of the eight lines this replaced claimed Paris or Quebec, and under the
+    // new recordings most of those would have been false. The agent's suite has
+    // the other half of this: it cross-checks the place against the label the
+    // vendor recorded beside the clip, so a line cannot merely be well-formed.
+    const SOUND = /^A (young )?(man|woman)'s voice, from (France|Paris|Belgium)\.$/;
+
+    for (const key of Object.keys(TUTOR_VOICES) as TutorVoiceKey[]) {
+      const entry = tutorVoice(key);
+      assert.match(entry.sound, SOUND, `${key}'s sound line says something it cannot back`);
+      assert.equal(
+        entry.sound.includes("woman's"),
+        entry.gender === 'female',
+        `${key}'s sound line and its gender disagree`,
+      );
+      assert.equal(
+        /young/i.test(entry.sound),
+        entry.ageBand === 'young',
+        `${key}'s sound line and its age band disagree`,
+      );
+    }
+  });
+
+  test('the catalogue offers six voices, three men and three women, with one default', () => {
     const keys = Object.keys(TUTOR_VOICES) as TutorVoiceKey[];
 
     assert.deepEqual(
       [...keys].sort(),
-      ['alexandre', 'benoit', 'celine', 'emilie', 'enrick', 'guillaume', 'luc', 'mathieu'],
-      'the eight voices are the eight verified on the account for both French and English. Adding a ninth here without proving it exists at the vendor is a room that opens and a tutor that never speaks.',
+      ['alexandre', 'anatole', 'emilie', 'guillaume', 'marie', 'sarah'],
+      'these six are the ones the vendor verifies for French AND French-accented English on the model the agent pins. Adding a seventh here without proving that at the vendor is how the tutor came to speak American English for weeks.',
     );
 
-    assert.equal(DEFAULT_TUTOR_VOICE, 'luc', 'Luc is who a learner who has never chosen gets, and he is who the first-run copy describes.');
+    // The keys that were here and are not any more. A stored preference naming
+    // one of them lands on the default, which is what `resolveTutorVoice` does
+    // and what the profile upgrade documents, so this list is a reminder rather
+    // than a rule: never revive one of these names for a different voice.
+    for (const retired of ['luc', 'benoit', 'celine', 'enrick', 'mathieu']) {
+      assert.ok(!keys.includes(retired as TutorVoiceKey), `${retired} retired in F503 and must not come back`);
+    }
+
+    assert.equal(DEFAULT_TUTOR_VOICE, 'alexandre', 'the default is who a learner who has never chosen gets, and who every line of first-run copy names.');
     assert.ok(isTutorVoiceKey(DEFAULT_TUTOR_VOICE), 'the default has to be in the catalogue it defaults to');
 
     const names = new Set<string>();
@@ -80,7 +117,13 @@ describe('the tutor voice catalogue', () => {
       );
     }
 
-    assert.equal(keys.filter((k) => TUTOR_VOICES[k].gender === 'female').length, 2, 'the two women are the reason the persona follows the voice. Losing them loses the point.');
+    // Three and three. The women are the reason the persona follows the voice at
+    // all: one hardcoded "he" and Marie introduces herself as a man in her own
+    // first sentence. The balance is also a product decision, made after a roster
+    // of six men and two women, and it is asserted so it cannot erode quietly.
+    assert.equal(keys.filter((k) => TUTOR_VOICES[k].gender === 'female').length, 3, 'three of the six are women');
+    assert.equal(keys.filter((k) => TUTOR_VOICES[k].gender === 'male').length, 3, 'three of the six are men');
+
 
     // Vendor ids live in exactly one place: the agent, which is the only
     // process holding the key that bills for them. If one ever appears here it
@@ -129,6 +172,50 @@ describe('the tutor voice catalogue', () => {
     ];
     for (const bad of rejected) {
       assert.equal(isTutorVoiceKey(bad), false, `${JSON.stringify(bad) ?? String(bad)} was accepted as a tutor voice`);
+    }
+  });
+});
+
+/**
+ * The introduction the sample clips speak, which lives here because the screen
+ * that prints it and the script that synthesizes it are different processes.
+ *
+ * This file's other copy rules police the `sound` field only, so without this a
+ * learner-facing sentence would sit in core with nothing checking it, which is
+ * how core would become the next place an unpoliced line lives.
+ */
+describe('the bilingual introduction', () => {
+  test('every voice introduces itself in two short sentences the catalogue owns, French first', () => {
+    const seen = new Set<string>();
+    for (const key of Object.keys(TUTOR_VOICES) as TutorVoiceKey[]) {
+      const line = tutorSampleLine(key);
+      const { name } = tutorVoice(key).persona;
+
+      // French, then the same introduction in English. Two sentences, because
+      // that is what the manifest records and what a live session would send for
+      // this text. It was one sentence joined by "and in English" for a day, to
+      // try to carry the accent across in a single request; it did not work, and
+      // it read as a person translating their own name (F505).
+      assert.equal(line, `Bonjour, je m’appelle ${name}. Hi, my name is ${name}.`, `${key}'s introduction`);
+      assert.doesNotMatch(line, /in English/i, `${key}'s introduction still explains itself`);
+
+      // Names itself and nobody else. Half of them are women, so a line saying
+      // the wrong name is the exact mismatch this catalogue exists to prevent.
+      for (const other of Object.keys(TUTOR_VOICES) as TutorVoiceKey[]) {
+        const otherName = tutorVoice(other).persona.name;
+        if (other === key || name.includes(otherName)) continue;
+        assert.ok(!line.includes(otherName), `${key}'s introduction names ${otherName}`);
+      }
+      assert.ok(!seen.has(line), `${key} has its own introduction`);
+      seen.add(line);
+
+      // The same copy rules the `sound` lines answer to: a learner reads this one
+      // on the first-run voice page and hears it in the clip.
+      assert.ok(line.length < 90, `${key}'s introduction stays short: ${line.length} characters`);
+      assert.doesNotMatch(line, /—/, `"${line}" uses an em dash, which this repo's copy never does`);
+      assert.doesNotMatch(line, COMPARATIVE, `"${line}" ranks this voice against the others`);
+      assert.doesNotMatch(line, VENDOR_WORDS, `"${line}" names the machinery to a learner`);
+      assert.doesNotMatch(line, /repeat|say it|répétez|essayez/i, `"${line}" asks the learner to speak`);
     }
   });
 });
