@@ -1,10 +1,10 @@
 /**
- * What happens when two devices disagree — one table, sixteen namespaces, no exceptions.
+ * What happens when two devices disagree — one table, eighteen namespaces, no exceptions.
  *
  * The engine in `engine.ts` decides *when* to reconcile. This file decides *what the
  * answer is*, and it is the only file in the app that holds an opinion about how two
  * copies of a learner become one. Twelve namespaces are synced under three merge classes;
- * five are excluded with a stated reason, because a namespace that is silently absent
+ * six are excluded with a stated reason, because a namespace that is silently absent
  * from a sync table is indistinguishable from one somebody forgot.
  *
  * | namespace     | class      | the rule                                                  |
@@ -34,6 +34,7 @@
  * | `reminder`    | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `conversationPacks` | **excluded** — see SYNC_EXCLUSIONS                   |
  * | `suggestions` | **excluded** — see SYNC_EXCLUSIONS                          |
+ * | `analytics`   | **excluded** — see SYNC_EXCLUSIONS                          |
  *
  * ## Every policy is commutative and idempotent by construction
  *
@@ -739,7 +740,7 @@ export interface SyncExclusion {
 }
 
 /**
- * The four namespaces that are on the device and stay on the device.
+ * The six namespaces that are on the device and stay on the device.
  *
  * Each is here because syncing it is *wrong*, not because it is hard. A namespace
  * missing from the table above without an entry here is a store somebody forgot, and
@@ -765,6 +766,11 @@ export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
     namespace: 'reminder',
     reason:
       'a property of one phone rather than of one learner: the OS holds the schedule and permission is asked for per install, so an account-level time would arrive on every device someone is signed in on. Two phones nudging at six is one learner reminded twice for one evening, which is the pestering the fixed, practice-blind wording exists to avoid, and a device that was never asked for permission would be told it already has a reminder. What excluding it costs a learner is one tap among four presets.',
+  },
+  {
+    namespace: 'analytics',
+    reason:
+      'a consent, which is given to the device that asked for it and to nothing else. Every merge in this table resolves a disagreement by picking a winner, and the only winner a permission may have is the most recent thing the learner actually said: a fold that can carry an older yes over a newer no would turn a withdrawal into a setting that comes back by itself, which is why it is not a field on the profile either, where mergeStoredProfiles picks scalars by evidence weight. What excluding it costs is a second device that reports nothing until it is asked in Settings, and reporting nothing is the answer we are content to be wrong with.',
   },
   {
     namespace: 'conversationPacks',

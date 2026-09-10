@@ -10,9 +10,12 @@ smaller part **states what must become true before real learners arrive**, and
 every one of those is collected in [Not true yet](#not-true-yet) rather than
 scattered through the prose where it could be mistaken for a promise already kept.
 
-Nothing in this file is a substitute for a reviewed privacy policy and terms.
-Neither exists. The app says so in plain words in the Profile footer, and inventing
-them would be worse than their absence.
+Nothing in this file is a substitute for a *reviewed* privacy policy and terms.
+The words now exist: `apps/mobile/src/legal/policy.ts` carries the learner-facing
+notice, assembled from this file, and `legal/terms.ts` names Apple's standard
+licence. Neither has been read by a lawyer, so both keep saying so in plain words,
+through `LEGAL_REVIEW_PENDING` in `legal/company.ts`. Accurate words are not cleared
+words, and implying otherwise would be worse than their absence.
 
 `docs/STATE_AND_STORAGE.md` says where the learner's data *lives*. This file says
 what we are allowed to do with it.
@@ -33,6 +36,8 @@ Every durable store, with the retention that governs it. A row whose retention s
 | Five content-free product events | `public.product_events` | Product decisions | 13 months from `occurred_at` | Scheduled delete, cascade |
 | Seconds of voice per session | `public.session_usage` | Bill each session at most once | 24 months from `reported_at` | Scheduled delete, cascade |
 | Plan and seconds used | `public.entitlements` | The allowance | Life of the account | Cascade |
+| One row per purchase delivery already seen: vendor event id, account, event type | `public.billing_events` | A retried webhook grants an entitlement once | Life of the account | Cascade |
+| The account id a purchase is filed under, and what that account bought | RevenueCat, as `appUserID` | Take the payment and tell the app what was bought | Not true yet: vendor-side, and nothing here sets it | Nothing in this repo, and not account deletion |
 | Two salted antifraud HMACs | `public.trial_installations` | One free trial per installation | 24 months from `claimed_at` | Scheduled delete only, never account deletion |
 | Rate-limit counters and session leases | Upstash, `luvani:*` | Abuse and cost limits | The window TTL, 60 seconds to 24 hours | Key expiry |
 | A random installation id | Device, `luvani.installation.v1` | The input the antifraud HMAC is made from | Until app data is cleared | Clearing app data, uninstall |
@@ -78,9 +83,139 @@ stops being an accident:
 
 Audio does leave the device to four vendors while a session is live: LiveKit
 carries it, Deepgram transcribes it, ElevenLabs speaks the tutor's side, and
-Speechace scores a pronunciation attempt. What each vendor retains on its own
-side is a vendor question and is **not verified** by this repo. Naming their
-retention in the learner-facing privacy text is a launch blocker, listed below.
+Speechace scores a pronunciation attempt.
+
+**A fifth vendor receives the words themselves, as text.** The language model
+`brainClient` returns in `services/tutor-agent/src/convo.ts` (Anthropic, OpenAI or
+Groq, chosen by `TUTOR_LLM`) is sent every learner turn by `runBrainTurn`, because
+that is the call that writes the reply the tutor speaks. It is the recipient that
+*reads* what was said rather than only carrying or transcribing it, and it is
+therefore the one a recipients list must not leave out: the learner-facing text in
+`legal/policy.ts` names it among the services a live conversation needs, in the same
+by-function words as the other four.
+
+What the turn call is sent is set by `prepareTurn` in
+`packages/brain/src/engine/conversation.ts` and `buildTurnContext` in
+`packages/brain/src/prompt/turnContext.ts`: the learner's turn as text, the turns
+already taken in this session, the scene being practised, the learner's name where one
+is set, and the CEFR estimate with the watch-for list, which is derived from the learner
+profile the server keeps.
+
+The turn is not the only call, and the scene call hands over more than a derived
+estimate. `buildFrame` in `services/tutor-agent/src/convo.ts` sends
+`profile.memory.facts.slice(-5)` to the same vendor, as `REAL ACCOUNT MEMORY` in
+`packages/brain/src/prompt/scenarioPrompt.ts`, with the unmastered phrases and the
+recent scene list beside it. Those are stored rows, and they are about the learner's
+real life: `extractMemory` writes them after each session from what was volunteered
+around the scene, interests, events coming up and goals
+(`packages/brain/src/prompt/extractPrompt.ts`), and the profile carries up to twelve of
+them from one session into the next (`docs/STATE_AND_STORAGE.md`). So a learner who
+mentions a job interview on Monday has that sentence sent to the model vendor on
+Wednesday to build the next scene. The email and the sign-in identity are never handed
+over, and no audio ever is.
+
+**The recent scene list beside those facts is not learner words.**
+`preferences.lastScenarios`, which `buildFrame` sends as `RECENT SCENARIOS, AVOID
+REPETITION UNLESS REQUESTED`, holds `state.frame.title` values written by
+`finishSession` in `packages/brain/src/profile/profile.ts`. Those titles are the
+scenario builder's own text, so what goes back is the last few scenes the vendor wrote,
+sent so that the next one is not a repeat of them. It is still a list of what a learner
+has been practising lately, which "your level and the things to watch for" does not
+cover, so the notice names it, and names it for what it is rather than as something the
+learner said.
+
+**The sending is not over when the session is.** `endSession` in
+`services/tutor-agent/src/convo.ts` makes three more calls to the same vendor after the
+learner has gone. `extractMemory` sends that session's turn-by-turn `history` together
+with `knownFacts: profile.memory.facts`, every fact on file up to twelve, rendered as
+`Already on file:` by `packages/brain/src/prompt/extractPrompt.ts`; `curatePractice` and
+`generateDrills` send the session's phrases and topics with the CEFR estimate and the
+top error tags. No category crosses there that has not already crossed during the
+session, and no audio and no identity ever do. Two things follow for the notice all the
+same. The memory facts go over twice, when a scene is set up and again once the session
+has ended, so the notice says both rather than only the first. And "while a session is
+running" was the wrong frame for the whole recipients section, because it tells a
+learner the sending stops when they stop.
+
+The notice says all of it in the learner's words: the turn, what the tutor remembers,
+the recent scenes, and that the last of it happens after the session has ended. A
+recipients section that names a recipient and hides what it receives, or that implies a
+window narrower than the real one, has moved the omission rather than closed it.
+
+What each of the five vendors retains on its own side is a vendor question and is
+**not verified** by this repo. Naming their retention in the learner-facing privacy
+text is a launch blocker, listed below.
+
+**A purchase reaches a company that hears none of it.**
+`apps/mobile/src/purchases/adapter.native.ts` calls
+`Purchases.configure({ apiKey, appUserID: userId })` and `Purchases.logIn(userId)`, so the
+Supabase user id *is* the purchase processor's `appUserID`, and `fetchSubscriber` in
+`services/token-server/src/billing/revenuecat.ts` sends that same id to
+`https://api.revenuecat.com/v1/subscribers/{userId}` every time the server re-projects an
+entitlement. What crosses is the account id and the record of what that account bought.
+No audio, no transcript, no learning state, no email and no sign-in identity: nothing in the
+app calls `setAttributes` or `collectDeviceIdentifiers`, and the id is the only thing the
+SDK is handed. It receives none of the things the five conversation vendors receive, and it
+is a recipient all the same, so the notice names it for what it does: it takes the payment
+and tells the app what was bought.
+
+**Recipients are bounded by purpose, not by a count.** Three ledger entries in one change
+were one defect. The recipients section ended in a number, and each recipient nobody had
+counted falsified it: F481 was the language model, F484 the cross-session memory that rides
+the scene call, and F488 the purchase processor, which "nothing goes to anyone beyond the
+five services that make a conversation happen" denied existed while `adapter.native.ts` was
+handing it an account id. A count is falsified by the next vendor and by every vendor the
+writer did not think of, so `legal/policy.ts` now closes on the purposes named above it
+rather than on how many companies there are: carrying a conversation, answering the learner,
+keeping what they have learned, and taking a payment. A new vendor is still a new paragraph
+in both files. What changed is that the closing sentence does not quietly become a lie while
+nobody writes it.
+
+**No learner-facing sentence says how many vendors there are.** The bound stopped counting in
+F488 and the sentences around it did not. `legal/policy.ts` still read "A fifth is the language
+model", "What you say reaches all five" and "Nothing about that session goes to any of the five
+after that", and `onboarding/disclosure.ts` still ended the first-run line with "and nothing is
+shared with anyone else". Each was defensible as a back-reference to the list immediately above
+it on the day it was written, which is what makes the shape dangerous rather than safe:
+`voiceVendorOf` in `services/shared/devPlan.ts` picks a voice supplier from `LUVANI_TTS_VENDOR`,
+so a fallback voice, a second transcriber or a second model arrives as an environment variable
+rather than as an edit to the notice, and every count in it would go stale with the suite still
+green. F500 and F501 took the last two out. A recipient is named for what it does; a sentence
+pointing back at the list points at the services rather than at how many of them there are; and
+the first-run line in `MEET_PRIVACY` bounds what a learner says by the purposes it leaves for,
+which are carrying a conversation, answering them and keeping what they have learned. Taking a
+payment is deliberately not among those three, because no word of French reaches the company
+that takes the payment. What is still a list of jobs rather than a count is the opening
+enumeration: one service carries the audio, one transcribes, one speaks and one scores, and a
+new vendor edits that sentence the way it edits this file. The counts in **this** document stay,
+where they describe today's vendor set beside the code that proves it. What they may not do is
+reach a sentence a learner reads.
+
+**Our server is somebody else's computer.** The database behind every Supabase row in the
+table above is run by Supabase, and the rate-limit counters and session leases are Upstash
+keys. Upstash sees a 43-character HMAC of the account rather than the account itself
+(`privateSignal` in `services/token-server/src/rateLimit.ts`, and `verify/upstashLive.ts`
+checks every live `luvani:*` key against that shape); Supabase holds the email, the name and
+the learning itself. "Our server" in learner-facing copy therefore covers two companies we
+pay to hold things, and neither was named in the notice either. The notice says so now, in
+the same by-function words as the rest, rather than letting a rented database read as a
+machine of ours.
+
+**Account deletion does not reach the purchase processor.** `POST /account/delete` deletes
+the Supabase user and everything that cascades from it. Nothing in this repo calls the
+vendor's delete API, so the subscriber record and its purchase history stay where they are.
+That is a gap rather than a decision, and it is listed below.
+
+The half of it that could be closed without server work is the disclosure, and it is closed.
+The notice's "Your rights" section says, beside the two things we keep on purpose, that
+the company that took the payment keeps its own record of what was bought, and that
+deleting the Luvani account does not reach it. It is written as who holds it and what it is
+rather than as a list, so the day the deletion path does call the vendor, one sentence
+changes rather than a closed list being rediscovered. Saying it there rather than only among the recipients is the
+point: a learner asking what survives deletion reads that section and stops. The bound holds
+in the other direction too, because overclaiming a gap is the same defect as hiding one, and
+what stays with the vendor is an account id and what that account bought, never audio, never
+words, never learning. **Calling the vendor's delete API is still owed**, and is ledger F498.
 
 The rule for anyone extending this: a feature that needs to keep a recording is a
 new consent, a new retention period and a new disclosure, and it is an escalation
@@ -108,17 +243,25 @@ Four rules, each with a test behind it:
   is the same position this file takes in [Escalation and what Luvani is
   not](#escalation-and-what-luvani-is-not) and a learner decides what to say before
   the scene, not after it.
-- **One vendor vocabulary.** The line about where speech goes is the Profile
-  footer's words, character for character, and the test reads both files. Two
-  sentences about one pipeline is how a document and a screen start disagreeing.
+- **One vendor vocabulary, bounded the way the footer is.** The line about where
+  speech goes is the Profile footer's words, character for character, and the test
+  reads both files. Two sentences about one pipeline is how a document and a screen
+  start disagreeing. It ended "and nothing is shared with anyone else" until F500,
+  which is the flat denial F481 struck out of the notice and F497 struck off the
+  footer, left standing on the page every learner reads; it now bounds what a
+  learner says by the purposes it leaves for, in the notice's own words, and
+  `disclosure.test.ts` reads that list off `legal/policy.ts` rather than retyping
+  it.
 - **No policy that does not exist.** Terms and a privacy policy are not written, so
   nothing in the first run implies a document, a certification or a guarantee behind
   it. The microphone line stops at the ask and makes no claim about what happens to
   the audio, because the attempt recordings in [Not true yet](#not-true-yet) mean
   this repo cannot honestly make that one yet.
 
-The antifraud identifier is still not disclosed anywhere, including here. When that
-text is written, this module is where it goes.
+The antifraud identifier is disclosed now, and not here: it is a section of the
+privacy notice in `apps/mobile/src/legal/policy.ts`, where it can carry the purpose,
+the two-year limit and what the markers are not. The first run stays short and points
+at Settings for the rest, which is what `MEET_MORE` says.
 
 ## Analytics: consent, opt-out and retention
 
@@ -160,19 +303,23 @@ removed in TypeScript is not a property removed from Luvani: the compiler holds 
 client's half of this, so the parser, the trigger and this table are a manual step every
 time.
 
-**What is true today:** the five events fire from seven call sites in the app with
-no consent gate, no opt-out anywhere in the UI, and `public.product_events` rows
-are kept forever.
+**What is true today:** every event passes `analyticsAllowed` in
+`apps/mobile/src/analytics/consent.ts` before the network call, inside the `try` that
+already swallows failures, and only a stored literal `true` counts. A learner who has
+not answered emits nothing. `public.product_events` rows are still kept forever: the
+thirteen months below is stated in the published notice and no scheduled delete
+enforces it.
 
 **What must be true before real learners arrive:**
 
-1. **Disclosure before collection.** The Profile legal text names the five events
-   in plain words, says they carry no learner content, and says how long they are
-   kept. It says the same thing this file says.
-2. **A real opt-out.** One switch in Profile. When it is off, `trackProductEvent`
-   returns before the network call, so an opted-out learner emits nothing rather
-   than emitting something the server discards. The switch is per account and is
-   readable back, so a learner can check what it says.
+1. **Disclosure before collection.** The privacy notice in Settings names the five
+   events in plain words, says they carry no learner content, and says how long they
+   are kept. It says the same thing this file says.
+2. **A real opt-out.** One switch in Settings, and the same question asked once on the
+   pre-account Ready page. When it is off, `trackProductEvent` returns before the
+   network call, so an opted-out learner emits nothing rather than emitting something
+   the server discards. The switch is per account and is readable back, so a learner
+   can check what it says.
 3. **Analytics is never a condition of use.** Nothing in the product degrades
    because a learner opted out. `trackProductEvent` is already fire-and-forget and
    already swallows its own failures; that stays.
@@ -182,6 +329,12 @@ are kept forever.
 5. **Opting out is not retroactive deletion.** A learner who wants the past removed
    as well deletes their account, which cascades. If we ever offer erase-events
    without account deletion, it goes in this file first.
+
+Where they stand: 1, 2 and 3 are code. The disclosure is the "Usage data, and your
+choice" section of `legal/policy.ts`, the gate is `analytics/consent.ts` read by
+`analytics/track.ts`, and nothing in the product changes when the answer is no. 4 is
+not: no scheduled delete exists, and the notice states the period anyway, which is
+recorded in [Not true yet](#not-true-yet) rather than softened. 5 is unchanged.
 
 ## Antifraud identifiers: purpose, retention and disclosure
 
@@ -215,11 +368,14 @@ trade being made, deliberately.
 hash unmatchable. Rows made under a retired salt are dead weight and must be
 dropped in the same change that rotates it, not left behind.
 
-**Disclosure.** This identifier is **not disclosed to learners today**, and that is
-the gap this section exists to close. Before launch the privacy text says, in the
-learner's words: Luvani keeps a scrambled marker for the device the free trial was
-claimed on, so the trial cannot be claimed twice; it is not linked to any advert,
-it is not shared, and it is kept for two years.
+**Disclosure.** The text this section asked for is written. It is the "Keeping one
+free trial honest" section of `apps/mobile/src/legal/policy.ts`, and in the learner's
+words it says: our server keeps two scrambled markers for the installation a free
+trial was claimed on, so one installation cannot claim the same trial twice; they are
+not an advertising identifier, not a device fingerprint, not an email and not an
+account; they are kept for two years and then deleted; and they stay when an account
+is deleted, because a trial that resets by signing up again is not a trial.
+`policy.test.ts` holds every one of those clauses against this section.
 
 **If a learner objects.** The honest answer is the purpose, the two-year limit, and
 the fact that no profile hangs off it. Deleting a single row on request defeats the
@@ -236,8 +392,8 @@ refreshed bearer is not reauthentication and a stolen session must not be able t
 erase somebody. Deletion is rate limited to 3 per account and 20 per IP per day.
 
 **What the delete removes.** The Supabase user, and by `on delete cascade`:
-`learner_state`, `product_events`, `entitlements`, `session_usage` and
-`conversation_packs`. On the
+`learner_state`, `product_events`, `entitlements`, `session_usage`, `billing_events`
+and `conversation_packs`. On the
 device, `clearActiveUserData` erases every per-account key in `USER_KEY_SUFFIXES`,
 and `App.tsx` deliberately holds the local session open until that finishes so the
 namespace can still be resolved. If the local erase fails the learner is told
@@ -248,12 +404,18 @@ On the device, `luvani.installation.v1` and the legacy-migration marker survive,
 because the installation signal is exactly the thing a fresh account must not be
 able to reset. Neither carries learning, content or identity.
 
+**What survives without anybody deciding it should.** The purchase processor's record of the
+account and what it bought, because no code here asks the vendor to delete anything. That one
+is a gap rather than a choice, it is described under "Account deletion does not reach the
+purchase processor" above and listed in [Not true yet](#not-true-yet), and the notice tells a
+learner about it in the same section that tells them what deletion does.
+
 **What is not proven.** The cascade has never been executed against a live
 database, and the device wipe has never been run on a real iOS or Android build.
 Both are open ledger work (F63, F71), and neither may be described to a learner as
 verified until it is.
 
-**Export.** Profile's **Download my data** writes a JSON file containing every
+**Export.** Settings' **Download my data** writes a JSON file containing every
 per-account device key and, for a Supabase account, the authenticated learner's
 account metadata and rows from `learner_state`, `product_events`, `entitlements`,
 `session_usage`, `billing_events` and `conversation_packs`. `GET /account/export` takes no user id: it
@@ -586,11 +748,11 @@ promise already kept.
 
 | Gap | Consequence | Where it is tracked |
 |---|---|---|
-| No consent gate and no analytics opt-out in the UI | The five events fire for every signed-in learner | This file, section above |
 | `product_events` and `session_usage` have no scheduled delete | The 13-month and 24-month retentions are policy, not mechanism | This file, table above |
 | `trial_installations` has no scheduled delete | The 24-month antifraud retention is not enforced by anything | This file, section above |
-| The antifraud identifier is not disclosed to learners | Undisclosed pseudonymous identifier at launch | Risk register, P0 before users |
-| Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified | The privacy text cannot yet describe what they keep | Not filed |
+| The published notice commits to retention periods nothing enforces | Thirteen months for events and two years for usage and trial markers are a promise made in a learner-facing document with no scheduled delete behind it | This file, rows above; `legal/policy.ts` |
+| Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified, and so is the language model vendor's, and so is the purchase processor's | The privacy text cannot yet describe what any of them keep | Not filed |
+| Account deletion does not reach the purchase processor | The subscriber record and the purchase history stay with the vendor after the Supabase user is gone; nothing here calls its delete API. Disclosed to learners in the notice; the call itself is still owed | Ledger F498 |
 | Attempt recordings are deleted in code, but that has never been watched happen on a device | The discard and the reset sweep are proven by test only; a phone has never been checked | Ledger F115 (closed), device proof owed by F114 |
 | The deletion cascade has never run against a live database | "Deletion removes everything" is unproven | Ledger F63 |
 | Device deletion and token hygiene are unproven on a real build | The device half of deletion is unproven | Ledger F71 |

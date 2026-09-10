@@ -33,12 +33,23 @@ attempt evidence and a single learner-safe focus, never raw audio or a numeric s
 — the recording it was measured from is a file in the cache, not a value in the
 store, and "Attempt audio" below is what happens to it), `coachMarks` (which of the
 in-conversation controls have been pointed out, one key for all of them), and
-`journal`, and `conversationPacks` (a local cache of durable, server-owned Tutor Conversation Packs; it contains curated learning data and exercises only, never raw audio or a readable transcript).
+`journal`, and `conversationPacks` (a local cache of durable, server-owned Tutor Conversation Packs; it contains curated learning data and exercises only, never raw audio or a readable transcript),
+and `analytics` (one boolean: whether the learner agreed to usage data being
+sent. It is a store of its own rather than a field on `profile` because
+`mergeStoredProfiles` picks scalar answers by evidence weight, so a consent on
+the profile could let an older yes from a heavier device win against a
+withdrawal made on a lighter one, and a consent that can resurrect itself is a
+privacy defect. `null` from `loadConsent` means nobody has been asked, which is
+deliberately a different fact from a stored `false`).
 
 Before an account exists, the app may also hold `@luvani/pre-account-onboarding/v1`.
-It contains only `ageConfirmed: true` and a catalogue Tutor voice key, is not a
-user-scoped learning store, and is removed once `App.tsx` creates the signed-in
-profile. It never holds a name, free-form answer, transcript or audio.
+It contains only `ageConfirmed: true`, a catalogue Tutor voice key and
+`analyticsConsent`, the answer to the usage-data question the first run asks
+once. It is not a user-scoped learning store, and is removed once `App.tsx`
+creates the signed-in profile. It never holds a name, free-form answer,
+transcript or audio. The draft stays at **version 1** with the consent added,
+because a missing field reads `false` on load: a draft written before the
+question existed is a learner who was never asked, and never asked is opted out.
 
 `journal` is the only store that is meant to be empty. A conversation's recap is
 written there the moment it arrives and deleted once every store that took part
@@ -295,7 +306,7 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 ### The sync contract
 
 Since Phase 2, the account rather than the device is the durable home for twelve
-of the sixteen stores. `apps/mobile/src/sync/` holds a **state-based reconciler**:
+of the eighteen stores. `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
 compare-and-swap on the `revision` column. Losing the swap means another device
@@ -352,7 +363,7 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Five are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `journal`
+Six are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `journal`
 is a device-local crash buffer whose whole meaning is bank-then-delete, so
 syncing it would re-bank a session another device already banked. `friends` is a
 dormant surface running on labelled sample profiles, and syncing it would write
@@ -367,7 +378,12 @@ Tutor agent's completed-session upsert. `suggestions` is a seed and a
 position in one learner's deal of the authored scenario pool rather than anything
 they have learned: the position indexes an order the seed produced over a pool
 that grows between releases, so the same pair names a different situation on two
-builds.
+builds. `analytics` is a consent, and every merge in the table resolves a
+disagreement by picking a winner: the only winner a permission may have is the
+most recent thing the learner actually said, so a fold that could carry an older
+yes over a newer no would turn a withdrawal into a setting that comes back by
+itself. The price is that a consent is per account per device, and someone who
+says yes on a phone finds the switch off on a tablet.
 
 Three rules hold the whole thing up:
 

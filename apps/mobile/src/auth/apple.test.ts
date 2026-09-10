@@ -250,21 +250,28 @@ describe('the Apple door is offered only where it works — F376', () => {
    * check, so the sheet must say what will happen instead of showing a field
    * that cannot be filled.
    *
-   * `tabs/ProfileTab.tsx` is another engineer's file. This test is written
-   * against the sentence it owes rather than written after the fact.
+   * `settings/SettingsScreen.tsx` is another engineer's file. This test is
+   * written against the sentence it owes rather than written after the fact.
+   *
+   * The sheet moved there whole with F473, when Profile stopped holding the
+   * account: sign out, delete, the export and the legal footer are all one
+   * pushed screen now. The sentences moved with it verbatim, which is what this
+   * test can actually see, so the file it reads is the only thing that changed
+   * here. It is checked below that the sheet did not stay behind on Profile as
+   * well, because two delete sheets is worse than either one.
    */
   test('the delete sheet tells an apple account what will happen — F376', () => {
-    const profile = readSrc('tabs/ProfileTab.tsx');
+    const settings = readSrc('settings/SettingsScreen.tsx');
     const APPLE_LINE = 'Apple will ask you to sign in again before anything is deleted.';
     const GOOGLE_LINE = 'Google will ask you to sign in again before anything is deleted.';
 
     assert.ok(
-      profile.includes(APPLE_LINE),
+      settings.includes(APPLE_LINE),
       `the delete sheet does not say "${APPLE_LINE}", so an Apple account meets a sheet that asks for nothing and then opens a system prompt`,
     );
-    assert.ok(profile.includes(GOOGLE_LINE), 'the Google twin of that sentence is gone');
+    assert.ok(settings.includes(GOOGLE_LINE), 'the Google twin of that sentence is gone');
     assert.match(
-      profile,
+      settings,
       /provider === 'apple'/,
       'the Apple sentence is not gated on the provider, so a password account is told Apple will ask it something',
     );
@@ -272,9 +279,17 @@ describe('the Apple door is offered only where it works — F376', () => {
     // No password field for an account that has no password. `hasPassword` is
     // the flag that decides it, and it is true only for a password sign-up.
     assert.match(
-      profile,
+      settings,
       /const hasPassword = user\?\.provider === 'password'/,
       'the delete sheet decides whether to ask for a password some other way, so an Apple account may be shown a field it cannot fill',
+    );
+
+    // One sheet, in one place. A copy left behind on Profile would be a second
+    // wording of the most consequential question the app asks, and the one that
+    // stopped being edited would be the one somebody read.
+    assert.ok(
+      !readSrc('tabs/ProfileTab.tsx').includes(APPLE_LINE),
+      'the delete sheet is drawn on Profile as well as on Settings, so there are two of it to keep in step',
     );
   });
 });

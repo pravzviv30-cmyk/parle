@@ -115,13 +115,14 @@ through `createUserResolver`, so a live session at all is proof the app sent a
 bearer the server could verify — the mock's `getAccessToken()` returns `null` and
 would be refused with `Sign in to use this.`
 
-**Fail looks like:** the session starts anyway with no account, or the Profile tab
-shows an email ending `@luvani.local`. That is `mockAdapter`, and it means a
-development flag reached this build. Stop; nothing else in this runbook is valid.
+**Fail looks like:** the session starts anyway with no account, or the Email row
+under Account on Profile → Settings shows an address ending `@luvani.local`. That
+is `mockAdapter`, and it means a development flag reached this build. Stop;
+nothing else in this runbook is valid.
 
 ### D1 — a session survives backgrounding, cold start and reboot
 
-1. Sign in with `A`. Note the email shown in Profile.
+1. Sign in with `A`. Note the email shown on Profile → Settings, under Account.
 2. Background the app for five minutes, return.
 3. Force-quit, relaunch.
 4. Reboot the phone, relaunch **without** unlocking anything else first, then
@@ -159,8 +160,8 @@ base64 string. Count it, do not copy it, and file it as a P0.
 This is the iOS-specific one. Keychain items are **not** removed when an app is
 deleted, so a reinstalled Luvani can find a session written by the previous install.
 
-1. Sign in as `A`. Delete the account from Profile → Delete account and complete
-   the flow (see D9).
+1. Sign in as `A`. Delete the account from Profile → Settings → Delete account and
+   complete the flow (see D9).
 2. Delete the app. Reinstall it. Launch.
 
 **Expect:** the welcome screen. `deleteAccount()` is followed by `auth.signOut()`
@@ -239,7 +240,7 @@ not have), or being signed out while the plaintext key is still in AsyncStorage
 2. If the project requires confirmation, confirm the sentence shown is the one the
    adapter sends: *Almost there. Check your email for a confirmation link, then
    sign in.* Then confirm the email and sign in.
-3. Sign out from Profile. Confirm the welcome screen.
+3. Sign out from Profile → Settings. Confirm the welcome screen.
 4. Sign in again with the right password.
 5. Sign in with a deliberately wrong password.
 
@@ -290,7 +291,7 @@ or the app landing on Home without ever asking for a new password.
 
 1. Sign in as `A` and leave the app open for **more than five minutes** without
    signing in again.
-2. Profile → Delete account. Enter the correct password. Confirm.
+2. Profile → Settings → Delete account. Enter the correct password. Confirm.
 
 **Expect:** the account is deleted, and the app returns to the welcome screen.
 `reauthenticateForDeletion(password)` calls `signInWithPassword` against the
@@ -311,7 +312,7 @@ refresh the sign-in timestamp, and it is a real defect rather than a test error.
 ### D10 — deletion demands a recent Google reauthentication
 
 1. Sign in with the Google account, wait more than five minutes.
-2. Profile → Delete account.
+2. Profile → Settings → Delete account.
 
 **Expect:** the sheet explains that Google will ask you to sign in again, the
 Google sheet opens, and after completing it the deletion goes through. On native
@@ -324,9 +325,12 @@ message.
 
 ### D11 — a failed local wipe is reported honestly
 
-The order in `App.tsx` is deliberate: reauthenticate, delete server-side, then
-`clearActiveUserData()`, then sign out. The local wipe can fail on a device with no
-free storage, and the learner is told the truth when it does.
+The order in `auth/deleteAccountFlow.ts`, wired up in `App.tsx`, is deliberate:
+reauthenticate, delete server-side, then `clearActiveUserData`, then sign out. The
+local wipe can fail on a device with no free storage, and the learner is told the
+truth when it does. Where that sentence is drawn matters as much as the words: the
+sign-out unmounts the whole signed-in tree, so it is raised before the sign-out and
+read on a screen of its own on the far side of it (F496).
 
 Temporary local patch, never committed — make the wipe throw:
 
@@ -336,13 +340,16 @@ export async function clearActiveUserData(): Promise<void> { throw new Error('de
 
 1. Sign in as a disposable account, delete it.
 
-**Expect:** exactly this sentence on screen — *Your online account was deleted, but
-this device could not finish erasing its local copy. Clear the app data before
-sharing this device.* — and the app signs out anyway and lands on welcome. No
-screen claims the deletion succeeded cleanly, and the learner is not stranded.
+**Expect:** the app signs out anyway, and the screen it lands on is headed *This
+device kept a copy* and carries exactly this sentence — *Your online account was
+deleted, but this device could not finish erasing its local copy. Clear the app data
+before sharing this device.* — with one control, *Got it*, which leads to the
+welcome. A screen reader must speak the sentence when the screen appears. No screen
+claims the deletion succeeded cleanly, and the learner is not stranded.
 
-**Fail looks like:** a success screen, a silent swallow, a crash, or a session that
-stays signed in to an account the server has deleted.
+**Fail looks like:** a success screen, a silent swallow, a crash, the welcome
+arriving with no warning in front of it, or a session that stays signed in to an
+account the server has deleted.
 
 2. Revert the patch. `git diff` must be empty.
 
@@ -378,13 +385,13 @@ its presence is a P0.
 ### D13 — two accounts on one device never see each other's learning
 
 1. Sign in as `A`, finish a short session so there is progress to see.
-2. Sign out. Sign in as `B`.
+2. Sign out from Profile → Settings. Sign in as `B`.
 
 **Expect:** `B` sees an empty history and their own onboarding. Every store keys
 through `userKey` in `storage/scope.ts`, which namespaces by uid and **throws** if
 nothing is signed in.
 
-3. Sign out, sign back in as `A`.
+3. Sign out the same way, sign back in as `A`.
 
 **Expect:** `A`'s progress is exactly as it was.
 
@@ -635,7 +642,7 @@ Those are a device's to prove, and this is where that pass is recorded. Owner:
 | P1-2 | The **tab bar** label wraps rather than truncating at iOS AX3–AX5 / Android font scale 2.0 on a 320pt device, and the bar grows to hold it | not run | not run |
 | P1-3 | VoiceOver and TalkBack read each tab as "…, tab, selected" and read the label once, not twice | not run | not run |
 | P1-4 | Inside a live room, the iOS edge **swipe** back is blocked and raises the leave confirm; Staying keeps the room, Leaving ends it | not run | not run |
-| P1-5 | Android **hardware back** raises the same confirm in a live room, and closes in place on Phrasebook, each Profile sheet, and TutorIntro page one (which leaves) | not run | not run |
+| P1-5 | Android **hardware back** raises the same confirm in a live room, and closes in place on Phrasebook, each Profile sheet, the delete confirmation on Profile → Settings, and TutorIntro page one (which leaves) | not run | not run |
 | P1-6 | The notched bottom inset is paid once on every `bottom="inset"` screen, and once by the bar on every tab | not run | not run |
 | P1-7 | Web at a short viewport (600px tall) scrolls every ScrollScreen to reveal what grew | not run | not run |
 
@@ -886,6 +893,55 @@ conditional-hook crash and was caught by review before it landed). One environme
 the local token server's distributed rate limiter timed out against Upstash and answered 500 on
 `/session/start`; commenting the two `UPSTASH_*` lines out of `services/token-server/.env` let
 sessions start. That was not investigated further and is local configuration, not shipped code.
+
+
+## Pass 7 settings
+
+Profile split in two (F473). What stayed is the learner and their tutor; what moved is the
+account, the subscription, the analytics consent, the two legal documents, the phone's own
+permissions and the version line, all behind one row on a pushed `Settings` screen.
+
+It is verified statically up to a point, and the point is unusually clear here. Every rule
+is a pure module with its own suite: `phoneRows` is a truth table over nine states,
+`subscriptionGroup` answers null with no store, `analyticsAllowed` reads only a literal
+true, `companyLine` and `contactRow` answer nothing for a fact nobody has supplied, and the
+source walk fails if a row spells its own label, if a label carries a digit, or if either
+screen reaches the operating system anywhere but through the platform pair.
+
+What no test in this repository can see is every one of the rows below, and they are the
+nine things this pass actually promises. A source walk cannot open iOS Settings, cannot
+make the App Store show a subscription sheet, cannot restore a purchase, cannot open Mail,
+and cannot read a long document at the largest reading size. Two of the nine are the same
+axis as the still-open F383, so they are worth running early. P7-9 is F489's own row: a
+refusal drawn beside the row that caused it is the whole of that fix, and where a line is
+drawn on a scroll is the one thing a source walk cannot see.
+
+`pass` / `fail` / `not run`. Every row is `not run` until a real device pass is walked.
+Owner: `frontend-engineer` for the screens, `qa-release-engineer` for running them.
+
+| Id | Check | iOS | Android |
+|---|---|---|---|
+| P7-1 | With the microphone refused in the phone's own settings, the Microphone row appears under Phone on Settings, and tapping it opens Luvani's own page in Settings rather than the top of the settings app | not run | not run |
+| P7-2 | With notifications refused the same way, the Notifications row appears and does the same, and the reminder card on Profile still says notifications are off rather than showing a live switch | not run | not run |
+| P7-3 | Allowing either permission and taking the ordinary walk back into the app makes that row go away without a relaunch, and allowing both leaves no Phone group at all | not run | not run |
+| P7-4 | On a signed build with store keys, Manage subscription opens the store's own subscription sheet, and dismissing it says nothing at all; on a build without keys the whole Subscription group is absent rather than showing two rows that open onto nothing | not run | not run |
+| P7-5 | Restore purchases on a fresh install reports that the store was checked, with no number, no price and no claim about speaking time, and the same tap on the paywall behaves the way it always did | not run | not run |
+| P7-6 | Privacy policy reads end to end at the largest text size on a small phone: every section scrolls into view, no line is clipped, the screen scrolls past the intro, and the line saying a review is still required is present and legible | not run | not run |
+| P7-7 | Once a support address is set, Contact us appears under Help and opens Mail with the address filled in and no subject; on a phone with no mail account the row says the phone would not open it and the address is still readable on screen | not run | not run |
+| P7-8 | The Share usage data switch is off on a fresh install, survives a relaunch after being turned on, and is gone after Delete account, so a new account on the same phone starts off again | not run | not run |
+| P7-9 | With the phone offline, Download my data says why in the Data and privacy card, beside the row that was tapped and without the list scrolling anywhere, the row goes back from Preparing on its own, and the next Android back press leaves Settings rather than being eaten | not run | not run |
+
+P7-6 is the row worth setting up carefully. The policy is the longest piece of text in the
+app, and the failure it is looking for is the one F383 records on My French: the header
+renders, everything below it does not, and the screen will not scroll past it. Set the text
+size to accessibility XXXL before opening the screen rather than after, because a layout
+that has already measured itself at the default size can pass a check the first open would
+have failed.
+
+P7-4 and P7-5 need a signed build with real store keys. In Expo Go, on the web, and on any
+build without keys the store answers with no product, `subscriptionGroup` returns null, and
+there is nothing on screen to walk. That is the designed behaviour rather than a blocker,
+and it is what P7-4's second clause checks.
 
 
 ## What this runbook cannot prove

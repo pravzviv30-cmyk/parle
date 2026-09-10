@@ -770,6 +770,14 @@ const ADOPTERS = [
   'phrases/PhrasebookScreen.tsx',
   'tutor/TutorIntro.tsx',
   'legal/Acknowledgements.tsx',
+  // F473: the account, the documents and the phone's permissions left Profile
+  // for one pushed screen, and the two legal documents got screens of their own.
+  // All three take the frame from the day they are written, so none of them
+  // re-derives a safe area or opens a ScrollView the way the screens above had
+  // to be walked back from.
+  'settings/SettingsScreen.tsx',
+  'legal/PolicyScreen.tsx',
+  'legal/TermsScreen.tsx',
   // Pass 3: the first run adopts the frame too (F352, F357).
   'onboarding/PreAccountOnboarding.tsx',
   'onboarding/AgeGateScreen.tsx',
@@ -913,6 +921,12 @@ describe('the hardware back button is answered in place — F312', () => {
     'legal/Acknowledgements.tsx',
     'tabs/ProfileTab.tsx',
     'SummaryScreen.tsx',
+    // F473. Settings opens the delete confirmation and the export failure in
+    // place, and the two document screens are opened in place by Settings and
+    // answer the press themselves so two handlers never race (F319).
+    'settings/SettingsScreen.tsx',
+    'legal/PolicyScreen.tsx',
+    'legal/TermsScreen.tsx',
   ];
 
   test('every in-place sub-view answers the hardware back button — F312', () => {
@@ -1040,16 +1054,54 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
     }
   });
 
+  /**
+   * F319's rule, now on two screens, and one expression each.
+   *
+   * A sheet that renders a whole screen of its own carries its own
+   * `useHardwareBack`, so the screen that opened it must stand its own hook
+   * down for exactly that sheet. Two handlers on one press race, and the loser
+   * closes the wrong thing: the sub-view's back closes the sheet from page two
+   * instead of turning a page.
+   *
+   * It is one assertion per screen rather than one shared regex, because the
+   * exclusion list is different on each and the whole point is that it names
+   * every self-answering sheet. A shared pattern would pass on a screen that
+   * had grown a sixth sheet and forgotten it.
+   *
+   * F473 moved three sheets from Profile to Settings, which is why Profile now
+   * excludes only the intro. Both expressions are checked in full, so a sheet
+   * added to either without its exclusion fails here rather than on a phone.
+   */
   test('a Profile sheet that answers back itself is not answered twice — F319', () => {
-    // The intro and acknowledgements sheets render their own screens with their
-    // own hardware-back hook. ProfileTab's hook stands down for them, so two
-    // handlers never race and close the whole sheet from page two.
-    const src = stripComments(readFileSync(join(SRC, 'tabs', 'ProfileTab.tsx'), 'utf8'));
+    // Profile keeps the tutor intro, which renders its own screen with its own
+    // hook. The name, voice and reminder sheets do not, so Profile answers for
+    // them. The acknowledgements sheet left with F473 and is Settings' now.
+    const profile = stripComments(readFileSync(join(SRC, 'tabs', 'ProfileTab.tsx'), 'utf8'));
     assert.match(
-      src,
-      /useHardwareBack\(\s*sheet !== 'none' && sheet !== 'intro' && sheet !== 'acknowledgements'/,
+      profile,
+      /useHardwareBack\(sheet !== 'none' && sheet !== 'intro', closeCurrentSheet\)/,
       "ProfileTab's hardware back also fires for the sheets that answer it themselves",
     );
+    assert.ok(
+      !profile.includes("sheet === 'acknowledgements'"),
+      'the acknowledgements sheet is still drawn on Profile as well as on Settings',
+    );
+
+    // Settings holds three that answer for themselves: acknowledgements, the
+    // privacy notice and the terms. Its own hook is for the delete
+    // confirmation and the export failure, which are drawn in place.
+    const settings = stripComments(readFileSync(join(SRC, 'settings', 'SettingsScreen.tsx'), 'utf8'));
+    assert.match(
+      settings,
+      /useHardwareBack\(\s*sheet !== 'none' && sheet !== 'acknowledgements' && sheet !== 'policy' && sheet !== 'terms',/,
+      "SettingsScreen's hardware back also fires for the three sheets that answer it themselves",
+    );
+    for (const own of ['acknowledgements', 'policy', 'terms']) {
+      assert.ok(
+        settings.includes(`if (sheet === '${own}')`),
+        `Settings names no ${own} sheet, so the exclusion above stands down for something that is not there`,
+      );
+    }
   });
 });
 

@@ -43,7 +43,7 @@ const APP = stripComments(readFileSync(fileURLToPath(new URL('../../App.tsx', im
 
 /** Just enough of a learner to write a field onto. */
 const fresh = (): StoredProfile =>
-  createStoredProfile(answersFrom({ name: 'Camille', ageConfirmed: true, motivation: null, tutorVoice: null }), 1_700_000_000_000);
+  createStoredProfile(answersFrom({ name: 'Camille', ageConfirmed: true, motivation: null, tutorVoice: null, analyticsConsent: null }), 1_700_000_000_000);
 
 /** A catalogue voice that is not the default, so a no-op cannot pass as a write. */
 const CHOICE: TutorVoiceKey =

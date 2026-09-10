@@ -117,6 +117,69 @@ describe('the chooser is a stack screen a first run can leave', () => {
   });
 });
 
+/**
+ * The address bar is a two-way door, and only one side of it was checked.
+ *
+ * `linking.config.screens` is deliberately explicit rather than a catch-all, so
+ * nothing resolves by accident and `luvani://auth/callback` is never swallowed
+ * by the navigator. The cost of explicit is that a root screen added without a
+ * line in it produces an address on the way in that resolves to nothing on the
+ * way back: React Navigation falls back to the raw route name in the bar, and
+ * feeding that path in returns undefined, so a reload or a shared link drops
+ * the learner on Home.
+ *
+ * Settings was the one screen that had it, which is the worst one to have it:
+ * it holds delete account and the data export. F493.
+ */
+describe('every root screen has an address on the web — F493', () => {
+  test('every root screen the navigator can push has a path it can be read back from', () => {
+    const routes = strip(read('./types.ts'));
+    const start = routes.indexOf('export type RootStackParamList = {');
+    assert.notEqual(start, -1, 'the root route map moved or was renamed; this test is reading nothing');
+    const block = routes.slice(start, routes.indexOf('\n};', start));
+    const declared = [...block.matchAll(/^ {2}(\w+):/gm)].map((m) => m[1]!);
+    assert.ok(declared.length > 5, `only ${declared.length} root routes were found; this test is reading the wrong block`);
+
+    // What the navigator can actually push, which is the set that matters: a
+    // route declared in the type and never registered cannot be reached, and a
+    // screen registered and never declared would not compile.
+    const navigator = strip(read('./RootNavigator.tsx'));
+    const registered = [...navigator.matchAll(/<Stack\.Screen name="(\w+)"/g)].map((m) => m[1]!);
+    assert.deepEqual(
+      [...registered].sort(),
+      [...declared].sort(),
+      'the root stack registers a different set of screens than the route map declares',
+    );
+
+    // And every one of them has a line in the map. Tabs is the container and
+    // takes the empty path with its five children below it; everything else is
+    // a word.
+    const linkingSource = strip(read('./theme.ts'));
+    const config = linkingSource.slice(linkingSource.indexOf('screens: {'));
+    const paths = new Map<string, string>();
+    for (const name of registered) {
+      const match = config.match(new RegExp(`\\b${name}:\\s*(?:'([^']*)'|\\{[\\s\\S]*?path: '([^']*)')`));
+      assert.ok(match != null, `${name} is a root screen with no path, so its address is a raw route name nothing can read back`);
+      paths.set(name, match[1] ?? match[2]!);
+    }
+
+    // A path that can be read back is a path that is unique and, apart from the
+    // container, not empty. Two screens on one address resolve to whichever the
+    // map met first, which is the same lost learner by a different route.
+    const written = [...paths.entries()].filter(([name]) => name !== 'Tabs');
+    for (const [name, path] of written) {
+      assert.notEqual(path, '', `${name} takes the container's own empty path, so its address is indistinguishable from Home`);
+      assert.match(path, /^[a-z][a-z-]*$/, `${name} has a path a browser cannot carry cleanly: ${path}`);
+    }
+    const all = [...paths.values()];
+    assert.equal(new Set(all).size, all.length, `two root screens share one address: ${all.join(', ')}`);
+
+    // The one this entry was filed about, named rather than left to the sweep,
+    // because it is the screen holding delete account and the data export.
+    assert.equal(paths.get('Settings'), 'settings', 'Settings has no address of its own');
+  });
+});
+
 describe('the mission id has to survive the route, not just be declared on it', () => {
   /** The props block passed to ConvoScreen inside the conversation route. */
   function convoScreenProps(source: string): string {

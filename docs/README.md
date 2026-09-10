@@ -17,6 +17,7 @@ re-deriving the architecture from source every time.
 | Building something new: Fable designs, Opus builds, Fable judges | [FORGE.md](FORGE.md) |
 | Who owns which part of the codebase, and which agent to call | [TEAM.md](TEAM.md) |
 | What is known to be broken right now | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
+| How the privacy and support pages get hosted, and what App Store Connect needs | [LEGAL_HOSTING.md](LEGAL_HOSTING.md) |
 | What is implemented, local-only, missing, or externally blocked | [IMPLEMENTATION_EVIDENCE.md](IMPLEMENTATION_EVIDENCE.md) |
 | The current runtime path and replacement dependency graph | [CURRENT_STATE_MAP.md](CURRENT_STATE_MAP.md) |
 | The controlled product/security/release phases | [DELIVERY_ROADMAP.md](DELIVERY_ROADMAP.md) |

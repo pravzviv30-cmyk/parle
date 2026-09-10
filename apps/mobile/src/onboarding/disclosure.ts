@@ -147,9 +147,30 @@ export function MEET_AI(persona: TutorPersona): string {
   return `${persona.name} is an AI tutor. The ${person} who ran a bar for twenty years is a character we wrote for ${p.object}, because a person is easier to talk to than a program. ${p.Subject} is made up. The French is real.`;
 }
 
-/** Where the words go, in the footer's vocabulary, and who does not hear them. */
+/**
+ * Where the words go, in the footer's vocabulary, and who does not hear them.
+ *
+ * It ended "and nothing is shared with anyone else" until F500, which is the
+ * same flat denial F481 struck out of the notice and F497 struck off the
+ * Settings footer, left standing on the one page every learner reads. It was
+ * narrower here than in either of those, because the subject is what a learner
+ * says during a session and neither the company that takes the payment nor the
+ * counter store is ever sent that. It was still not true: the short summary the
+ * session leaves behind is derived from what was said, and it is kept in a
+ * database another company runs for us.
+ *
+ * So this bounds what it says by the purposes what a learner says leaves for,
+ * in `privacyNote`'s own words, rather than by denying that anything leaves.
+ * Three of the notice's four purposes, because taking a payment is the one no
+ * word of French ever reaches, and a first-run line that named it would be
+ * longer and less true at once. `disclosure.test.ts` reads the notice's list
+ * and holds this line to it, so a purpose added there cannot leave this behind.
+ *
+ * It stays two sentences. A learner is ninety seconds into the app here, and
+ * the notice is a tap away in Settings for everything this does not say.
+ */
 export function MEET_PRIVACY(persona: TutorPersona): string {
-  return `No person hears you. What you say goes to ${VENDOR_PHRASE} so ${persona.name} can answer, and nothing is shared with anyone else.`;
+  return `No person hears you. What you say goes to ${VENDOR_PHRASE} so ${persona.name} can answer, and nothing about it goes anywhere for any purpose other than carrying a conversation, answering you and keeping what you have learned.`;
 }
 
 /**
@@ -164,8 +185,15 @@ export const MEET_MIC = 'Your phone will ask to use the microphone when you star
 /** Typing offered as a choice in any scene, named after the real control. */
 export const MEET_TYPING = 'You can also type. Tap Type instead in a scene and write your answer.';
 
-/** Where the rest of it lives. A pointer to text that exists, not to a policy that does not. */
-export const MEET_MORE = 'Profile has the rest of what Luvani keeps.';
+/**
+ * Where the rest of it lives.
+ *
+ * A pointer to text that exists rather than to a policy that does not. It said
+ * Profile until the note, the export and the deletion moved behind Settings,
+ * and a pointer that names the wrong screen is worse than none: a learner who
+ * looks and finds nothing reads it as a claim that was never true.
+ */
+export const MEET_MORE = 'Settings has the rest of what Luvani keeps.';
 
 /**
  * The one action that ends the first run.

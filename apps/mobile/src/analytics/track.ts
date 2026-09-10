@@ -1,6 +1,8 @@
 import { auth, authHeaders } from '../auth/adapter.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import type { SoundCheckKind } from '../soundcheck/model.ts';
+import { analyticsAllowed } from './consent.ts';
+import { loadConsent } from './consentStore.ts';
 
 /**
  * The five events, and every property any of them may carry.
@@ -23,11 +25,25 @@ export type ProductEvent =
   | { name: 'sound_check_completed'; properties: { missionId: string; kind: SoundCheckKind } }
   | { name: 'my_french_opened'; properties: { situationsDone: number; linesKept: number } };
 
-/** Fire-and-forget product evidence. No content fields exist in the type. */
+/**
+ * Fire-and-forget product evidence. No content fields exist in the type.
+ *
+ * The consent is read here, on every event, rather than held in a module
+ * variable. A cached yes outlives the tap that withdrew it, and the learner who
+ * turned the switch off goes on being counted until they quit the app: that is
+ * exactly the shape of failure a consent exists to prevent, and one storage read
+ * beside a network call costs nothing worth having.
+ *
+ * The gate sits inside the `try` that already swallows failures and before the
+ * `fetch`, so an opted-out learner emits nothing rather than emitting something
+ * the server discards. `loadConsent` throws rather than resolving with nobody
+ * signed in, and that throw lands in the same `catch`: no account, no event.
+ */
 export async function trackProductEvent(event: ProductEvent): Promise<void> {
   try {
-    const [user, headers] = await Promise.all([auth.getSession(), authHeaders()]);
+    const [user, headers, consent] = await Promise.all([auth.getSession(), authHeaders(), loadConsent()]);
     if (!user) return;
+    if (!analyticsAllowed(consent)) return;
     await fetch(`${TOKEN_SERVER}/events`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...headers },

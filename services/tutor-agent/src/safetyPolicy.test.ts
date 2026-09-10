@@ -452,7 +452,7 @@ describe('the privacy and safety policy is held against the code', () => {
     }
 
     // The antifraud identifier: purpose, why it survives deletion, how long, and
-    // the fact that learners are not told about it yet.
+    // where the learner is told about it.
     const antifraud = section('## Antifraud identifiers: purpose, retention and disclosure');
     assert.match(antifraud, /public\.trial_installations/);
     assert.match(antifraud, /HMAC/i, 'the policy must say the antifraud value is a salted HMAC, not a raw identifier');
@@ -460,14 +460,38 @@ describe('the privacy and safety policy is held against the code', () => {
     assert.match(antifraud, /\bnot\b[\s\S]{0,120}advertising identifier/i);
     assert.match(antifraud, /survives account deletion|no foreign key/i);
     assert.match(antifraud, /\b\d+\s+months\b/, 'the antifraud retention must be a number of months, not "as needed"');
-    assert.match(antifraud, /not disclosed to learners today/i);
+
+    // This used to read "not disclosed to learners today", which was true and is
+    // not any more: F479 wrote the text. The check follows it rather than being
+    // dropped, because an undisclosed pseudonymous identifier is the failure the
+    // line existed to watch for. The section has to name the module a learner
+    // actually reads it in, and the two clauses that make the disclosure worth
+    // anything: how long the markers are kept, and that deleting an account does
+    // not remove them. apps/mobile/src/legal/policy.test.ts holds the words
+    // themselves.
+    assert.match(
+      antifraud,
+      /legal\/policy\.ts/,
+      'the antifraud section names no learner-facing text, so the identifier is undisclosed again',
+    );
+    assert.match(antifraud, /two years/i, 'the disclosure no longer tells a learner how long the markers are kept');
+    assert.match(
+      antifraud,
+      /stay when an account is deleted|survive/i,
+      'the disclosure hides that the markers outlive account deletion',
+    );
 
     // Consent and opt-out for analytics, plus the five allowlisted events.
     const analytics = section('## Analytics: consent, opt-out and retention');
     for (const event of PRODUCT_EVENTS) {
       assert.ok(analytics.includes(event), `the analytics section does not name "${event}"`);
     }
-    assert.match(analytics, /no consent gate/i, 'the policy must admit there is no consent gate today');
+    // Also once "no consent gate", also no longer true: F471 built one. What the
+    // section has to carry now is where the gate is and what it reads, so a
+    // later change that quietly removes it leaves this document disagreeing with
+    // the code rather than agreeing with a gap.
+    assert.match(analytics, /analyticsAllowed/, 'the policy must name the gate every event passes');
+    assert.match(analytics, /analytics\/consent\.ts/, 'the policy must name the module that holds the rule');
     assert.match(analytics, /opt-?out/i);
     assert.match(analytics, /trackProductEvent/, 'the opt-out must name the function that has to honour it');
     assert.match(analytics, /\b\d+\s+months\b/, 'analytics retention must be a stated number of months');

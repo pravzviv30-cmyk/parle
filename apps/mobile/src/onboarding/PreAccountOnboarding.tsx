@@ -17,6 +17,8 @@ import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { HeroCafe, OnboardWave, SpeakBubbles } from '../illustrations.tsx';
 import { nextSample, TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
+import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
+import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { WELCOME_SUBLINE } from './disclosure.ts';
 import {
   freshPreAccountDraft,
@@ -79,6 +81,22 @@ export function PreAccountOnboarding({
     setPlaying(voice);
     player.replace(voiceSample(voice));
     player.play();
+  };
+
+  /**
+   * The usage-data answer, taken on the last page before an account exists.
+   *
+   * It goes through `onDraftChange` like the voice, so it survives the app
+   * being closed between the tap and account creation, and so the one place
+   * that knows how to write it durably is the one that has a key to write it
+   * under. The draft is a hand-off across the auth boundary and never a second
+   * authority: `analytics/consentStore.ts` holds the answer once there is an
+   * account, and this copy is cleared with the rest of the draft.
+   */
+  const setConsent = (allowed: boolean) => {
+    const next: PreAccountOnboardingDraft = { ...draft, analyticsConsent: allowed };
+    setDraft(next);
+    onDraftChange(next);
   };
 
   const hearVoice = useCallback((voice: TutorVoiceKey) => {
@@ -162,6 +180,22 @@ export function PreAccountOnboarding({
             <>
               <Text style={st.body}>Make an account to save your progress and keep talking with {persona.name}.</Text>
               <Text style={st.privacy}>Your tutor is AI. We ask for microphone permission only when you start a scene, and you can type instead. Learning history does not include raw audio by default.</Text>
+              {/* Asked once, here, under the line that already says what the
+                  app keeps, rather than on a page of its own. A whole screen
+                  for a switch that starts off would be one more thing between
+                  a learner and their first French sentence, and the answer is
+                  no unless they move it either way. */}
+              <Card style={st.consent}>
+                <SwitchRow
+                  first
+                  title={CONSENT_ROW}
+                  sub={CONSENT_SUB}
+                  value={draft.analyticsConsent}
+                  onChange={setConsent}
+                  accessibilityLabel={CONSENT_ROW}
+                />
+              </Card>
+              <Text style={st.consentHint}>{CONSENT_HINT}</Text>
             </>
           )}
         </View>
@@ -201,6 +235,13 @@ const st = StyleSheet.create({
   title: { ...type.display, color: paper.ink, textAlign: 'center' },
   body: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
   privacy: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(4) },
+  // Stretched rather than centred, because the row inside it is a control with
+  // a title on the left and a switch on the right, and a card that shrinks to
+  // its text would put the switch somewhere different on every phone.
+  consent: { alignSelf: 'stretch', marginTop: space(4) },
+  // Left, under the row it belongs to. The sentences above it are centred
+  // because they are addressed to the reader; this one labels a control.
+  consentHint: { ...type.small, color: paper.inkSoft, textAlign: 'left', alignSelf: 'stretch', marginTop: space(2) },
   exchange: { alignSelf: 'stretch', marginTop: space(6), gap: space(1.5) },
   french: { ...type.bodyStrong, color: paper.ink },
   english: { ...type.small, color: paper.inkSoft },

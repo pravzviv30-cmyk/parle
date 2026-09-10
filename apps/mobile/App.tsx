@@ -38,11 +38,15 @@ import { useFonts } from 'expo-font';
 import { completeProfile, createStoredProfile, loadProfile, type StoredProfile } from './src/profile/store.ts';
 
 import { paper } from './src/theme.ts';
+import { saveConsent } from './src/analytics/consentStore.ts';
+import { trackProductEvent } from './src/analytics/track.ts';
 import { auth } from './src/auth/adapter.ts';
 import { installationId } from './src/auth/installation.ts';
 import { AuthProvider, useAuth } from './src/auth/useAuth.tsx';
 import { AuthFlow } from './src/auth/AuthFlow.tsx';
 import { SetNewPasswordScreen } from './src/auth/SetNewPasswordScreen.tsx';
+import { EraseNoticeScreen } from './src/auth/EraseNoticeScreen.tsx';
+import { deleteAccountAndErase } from './src/auth/deleteAccountFlow.ts';
 import type { AuthUser } from './src/auth/types.ts';
 import type { AuthResult } from './src/auth/types.ts';
 import { recoverJournal } from './src/live/journal.ts';
@@ -146,8 +150,26 @@ function PreAccountProfileBootstrap({
     if (delivered.current) return;
     delivered.current = true;
     const built = createStoredProfile({ name: null, ageConfirmed: draft.ageConfirmed, motivation: null });
-    done(withChosenVoice(built, draft.tutorVoice));
-    onConsumed();
+    // The usage-data answer reaches the disk BEFORE the profile is handed over,
+    // and the order is the point rather than a detail. `done` is what releases
+    // the app, and `trackProductEvent` reads the stored consent at the moment
+    // each event is sent, so anything the learner does in the seconds after
+    // this would be dropped while the write was still in flight, and the ones
+    // it drops are exactly the learners who had just said yes.
+    //
+    // There is an account by the time this renders, so there is a key to write
+    // the answer under.
+    void (async () => {
+      try {
+        await saveConsent({ allowed: draft.analyticsConsent });
+      } catch {
+        // No scope to write under, which should not be reachable from here. The
+        // learner still gets their app, and an answer this build cannot prove
+        // was given reads as off, which is the only safe direction.
+      }
+      done(withChosenVoice(built, draft.tutorVoice));
+      onConsumed();
+    })();
   }, [draft, done, onConsumed]);
   return <Loading />;
 }
@@ -156,10 +178,19 @@ function SignedInRoot({
   user,
   preAccountDraft,
   onPreAccountDraftConsumed,
+  onDeleteAccount,
 }: {
   user: AuthUser;
   preAccountDraft: PreAccountOnboardingDraft | null;
   onPreAccountDraftConsumed: () => void;
+  /**
+   * Delete the account, erase this device, sign out.
+   *
+   * Owned by `Gate` rather than by this tree, and that is the point: the last
+   * step of it unmounts everything here, so anything the sequence still has to
+   * say has to be held by something on the other side of the door. See F496.
+   */
+  onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
   const [ready, setReady] = useState(false);
   /**
@@ -240,26 +271,6 @@ function SignedInRoot({
     };
   }, [user.id]);
 
-  const deleteAccount = useCallback(async (reauthentication?: string): Promise<AuthResult> => {
-    const reauthenticated = await auth.reauthenticateForDeletion(reauthentication);
-    if (!reauthenticated.ok) return reauthenticated;
-    const result = await auth.deleteAccount();
-    if (!result.ok) return result;
-    // The adapter deliberately leaves the local session available until this
-    // point so the active user namespace can still be resolved and erased.
-    try {
-      await clearActiveUserData();
-    } catch {
-      await auth.signOut();
-      return {
-        ok: false,
-        message: 'Your online account was deleted, but this device could not finish erasing its local copy. Clear the app data before sharing this device.',
-      };
-    }
-    await auth.signOut();
-    return result;
-  }, []);
-
   /**
    * Linking owns the initial state on web, so `/` resolves to Tabs after the
    * stack's `initialRouteName` has chosen Missions. Wait until that resolution
@@ -304,11 +315,35 @@ function SignedInRoot({
               // leaves the profile untouched, so the field still reads "never
               // chosen" and both ends of the wire resolve it to the default.
               const next: StoredProfile = withChosenVoice(built, answers.tutorVoice);
-              // Brand new, rather than someone answering a question that was
-              // added since they joined. Only the first kind is sent to the
-              // chooser; the second already has a Home worth returning to.
-              setJustOnboarded(existing === null);
-              done(next);
+              // The order below is the whole reason `onboarding_completed` is
+              // sent from this file rather than from inside the flow, where it
+              // lived until now. `trackProductEvent` reads the stored consent
+              // on every event, so an event sent while the answer was still on
+              // its way to the disk is dropped, and the learners it drops are
+              // exactly the ones who had just agreed to be counted. So the
+              // write is awaited, and the event follows it.
+              //
+              // Null is a page that did not ask, and nothing at all is written
+              // for it. A learner who answered this once already owns that
+              // answer in Settings, and a flow they were sent back through for
+              // an unrelated reason must not be able to replace it.
+              void (async () => {
+                try {
+                  if (answers.analyticsConsent !== null) await saveConsent({ allowed: answers.analyticsConsent });
+                } catch {
+                  // No scope to write under. The app still opens, and the answer
+                  // reads as off until Settings says otherwise.
+                }
+                // Brand new, rather than someone answering a question that was
+                // added since they joined. Only the first kind is sent to the
+                // chooser; the second already has a Home worth returning to.
+                setJustOnboarded(existing === null);
+                done(next);
+                await trackProductEvent({
+                  name: 'onboarding_completed',
+                  properties: { personalisedGreeting: answers.name !== null },
+                });
+              })();
             }}
           />
         )
@@ -325,7 +360,7 @@ function SignedInRoot({
         >
           <RootNavigator
             onSignOut={() => void auth.signOut()}
-            onDeleteAccount={deleteAccount}
+            onDeleteAccount={onDeleteAccount}
             startOnMissions={justOnboarded}
           />
         </NavigationContainer>
@@ -351,6 +386,25 @@ function Gate() {
   const { status, user, recovering, clearRecovery } = useAuth();
   const [preAccountDraft, setPreAccountDraft] = useState<PreAccountOnboardingDraft | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  /**
+   * Did an account deletion leave a copy of the learner's data on this device?
+   *
+   * In memory, and deliberately never written to disk, for the same reason
+   * `justOnboarded` is not: it describes something that happened in this
+   * launch, and a warning about a device state that may since have been fixed
+   * would arrive on the next launch as if it had just happened.
+   *
+   * It is held here rather than in `AuthProvider` on purpose. `recovering` is
+   * the closest-looking seam and it is the wrong one twice over: it means a
+   * reset link landed and the learner must set a new password, and the
+   * provider clears it the moment a sign-out arrives, which is exactly when
+   * this has to start being true. What is right about it is its shape, and that
+   * is what is copied here: a fact above the auth boundary, a screen `Gate`
+   * interposes on it, and one way to clear it. `Gate` already owns the other
+   * piece of state that has to cross this door, `preAccountDraft`, and whether
+   * a disk erase finished is not an auth fact for the provider to carry.
+   */
+  const [localCopyKept, setLocalCopyKept] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -375,6 +429,30 @@ function Gate() {
     void clearPreAccountDraft();
   }, []);
 
+  /**
+   * The whole of deleting an account, wired to the real adapter and the real
+   * erase. The sequence itself is `auth/deleteAccountFlow.ts`, where it can be
+   * tested; this is where it is plugged in, because the last step of it signs
+   * the learner out and the step before it may still have something to say.
+   *
+   * The erase resolves the namespace to wipe from the active user, which
+   * `SignedInRoot` sets and clears. Defining the sequence here rather than in
+   * that tree changes nothing about when it runs: the only door into it is a
+   * button on a screen inside the tree.
+   */
+  const deleteAccount = useCallback((reauthentication?: string): Promise<AuthResult> => {
+    return deleteAccountAndErase(
+      {
+        reauthenticate: (secret) => auth.reauthenticateForDeletion(secret),
+        deleteAccount: () => auth.deleteAccount(),
+        eraseThisDevice: () => clearActiveUserData(),
+        signOut: () => auth.signOut(),
+        warnLocalCopyKept: () => setLocalCopyKept(true),
+      },
+      reauthentication,
+    );
+  }, []);
+
   if (status === 'loading' || !draftLoaded) return <Loading />;
   if (status === 'signedIn' && user !== null) {
     if (recovering) return <SetNewPasswordScreen onDone={clearRecovery} />;
@@ -384,9 +462,16 @@ function Gate() {
         user={user}
         preAccountDraft={preAccountDraft}
         onPreAccountDraftConsumed={discardPreAccountDraft}
+        onDeleteAccount={deleteAccount}
       />
     );
   }
+  // Signed out with a copy still on the disk. Drawn here, below the signed-in
+  // branch, so it is read after the sign-out rather than written to a sheet the
+  // sign-out has already taken away. Dismissing it leads to the welcome, and
+  // nothing else can be reached until it is, so this cannot be waiting behind
+  // the next learner's sign-in either. F496.
+  if (localCopyKept) return <EraseNoticeScreen onDismiss={() => setLocalCopyKept(false)} />;
   return (
     <AuthFlow
       initialDraft={preAccountDraft}
