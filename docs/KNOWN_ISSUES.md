@@ -7751,3 +7751,41 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `every migration ships a rollback that names each object it created`
 - verified-by: `the supabase runbook applies every migration in order and pairs each with its rollback`
 - verified-by: `the outstanding schema instruction names every migration in the runbook`
+
+### F516 — The free tier had no shape, so the only way to draw it was a falling number
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/wall/welcomePath.ts:1
+- note: thirty free minutes existed as a server-side integer and nothing else. Drawn honestly that
+  is a fuel gauge, and drawn on the phone it is a number the phone cannot verify, which F239 and
+  F377 both already refused. The founder asked for a path instead: a few short situations each
+  ending in a real win, with the ask arriving when the learner reaches for the next one.
+  No content was written for this. `MISSIONS` was already exactly that: six authored situations,
+  four to five beats each, every one carrying a `winEn` that describes rather than praises, and the
+  catalogue's own comment states the thesis. The path is four of those six, drawn rather than
+  authored. Four because thirty minutes across six scenes leaves no slack once
+  `MIN_VIABLE_SESSION_SEC` makes the last two minutes unstartable, and because two held back give
+  the wall something specific to offer instead of an abstract pitch.
+  `wallMap` is the first page. Four rows always, lit off `timesFinished > 0`, a walked room reading
+  its own win and an unwalked one its own goal, plus one line of the learner's own French per lit
+  room from the join between `mission.phraseKeys` and `retainedOrder`. Nothing a row carries is
+  about payment, so the same picture would be drawn by a free app, which is what lets the wall be
+  shown twice without curdling.
+  This is packaging rather than pedagogy, and the server neither knows nor cares which room a
+  second was spent in, which is why the list lives beside the wall it justifies rather than in
+  `PLANS`. It is not enforcement either: a learner who reaches a held back room is stopped by the
+  402 at the door.
+- verified-by: `a learner who walked nothing still gets four rows naming four things they could do`
+- verified-by: `a learner who walked all four gets four rows of their own wins, and the page is complete`
+- verified-by: `a half walked path is four rows too, two of each kind`
+- verified-by: `one finish at the lowest rung lights the room`
+- verified-by: `the row reads timesFinished and never the review state or the independence`
+- verified-by: `their own line wins, and the most used one wins among those`
+- verified-by: `a phrase with no conversational use behind it does not count as theirs`
+- verified-by: `another room's phrase is never borrowed to fill a row`
+- verified-by: `an unwalked room quotes nothing at all, because they have not been there`
+- verified-by: `a sound is never quoted as something the learner said, however often it was used`
+- verified-by: `rung 1 is the one line that needs the name, and without a profile the row withholds it`
+- verified-by: `every situation is either on the path or beyond it, and none is both`
+- verified-by: `the path climbs, rather than putting both A1 rooms first`
+- verified-by: `nothing a row carries mentions a plan, a price or a lock`

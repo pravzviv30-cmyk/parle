@@ -291,6 +291,28 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Wall first page gate: **2,814 tests, 0 failing**; core 608, brain 383, tutor agent 445,
+  token server 183, playground 26, mobile 1169. Floors blessed to those counts. F516 closed.
+  The free tier has a shape now, and it needed no new content. `MISSIONS` was already six authored
+  situations each ending in a checkable fact rather than praise, so the welcome path is four of
+  those six drawn rather than anything written. Four and not six because thirty minutes across six
+  scenes leaves no slack once `MIN_VIABLE_SESSION_SEC` makes the last two unusable, and because
+  holding two back gives the wall two authored capabilities to name instead of selling in the
+  abstract.
+  The property this page exists for is that it cannot be near-empty: four rows whether the learner
+  walked none or all four, a walked room reading its own `winEn` and an unwalked one its own
+  `goalEn`. Mutation tested from the failure mode the two rejected designs both had. Filtering the
+  unwalked rows out fails the four-rows test by name.
+  A row lights off `timesFinished > 0`, never `state` and never `isStamped`. `state` moves when the
+  review scheduler moves, so a row would go dark on a calendar; `isStamped` is true only at
+  `on-your-own`, so a learner who finished all four at a low rung would have read a completion line
+  over four empty marks. Nothing a row carries is about payment, held by a scan, so the picture
+  would be identical if the app were free.
+  The join under each lit row is new work rather than a new mechanism. `mission.phraseKeys` and the
+  review deck already share one identity scheme, so core has brought them together since F-whenever
+  in `stateFor` -- but only to ask whether a mission is due. Nobody had asked which line the learner
+  actually said in that room. Borrowing a phrase from another room fails a test by name.
+
 - Wall analytics gate: **2,796 tests, 0 failing**; core 608, brain 383, tutor agent 445,
   token server 183, playground 26, mobile 1151. Floors blessed to those counts. F515 closed.
   The subscription wall's five events land across the three layers that have to agree: the
