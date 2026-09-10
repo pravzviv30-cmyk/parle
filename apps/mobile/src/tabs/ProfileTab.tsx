@@ -1,15 +1,17 @@
 /**
- * Profile — who you are, what the app knows, and the ways out.
+ * Profile — who you are and how you learn.
  *
- * Structure follows the reference screenshots: an ACCOUNT group, a SUPPORT
- * group, sign out, then a legal footer. The visual translation is the whole
- * job — the reference is a dark sheet of full-bleed rows, and this world is
- * pale paper with white cards and hairline rules, so the groups become Cards
- * and the section heads become the one place caps live in this system.
+ * It used to be one long scroll mixing three unrelated things: the learner's own
+ * settings, the account, and what the law and the store require the app to say.
+ * The last two are general-issue settings every App Store app carries, and they
+ * are behind one `Settings` row now (F473), last on the screen, in a bare Card
+ * with no caps label over it — a caps SETTINGS above a row reading Settings is
+ * redundancy this system already retired.
  *
- * A real Delete account is wired through the authenticated token server. The
- * database rows cascade from auth.users and the app clears the device scope
- * before signing out, so the row now means exactly what it says.
+ * What is left is what the product is actually about: the learner's name, where
+ * they stand, the five standing choices about how a conversation goes, and the
+ * daily reminder. The visual translation is unchanged — white cards, hairline
+ * rules, and the caps section heads that are the one place caps live here.
  *
  * ## The daily reminder decides nothing here
  *
@@ -33,9 +35,8 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Switch } from 'react-native';
+import { View, Text, StyleSheet, Switch } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import Constants from 'expo-constants';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { levelFor, totalXp, type LevelStanding } from '@luvani/core';
 import { accent, paper, signal, space, type, HIT } from '../theme.ts';
@@ -45,16 +46,13 @@ import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
 import { ChoiceRow } from '../settings/ChoiceRow.tsx';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
-import { Acknowledgements } from '../legal/Acknowledgements.tsx';
-import { useAuth } from '../auth/useAuth.tsx';
-import { downloadAccountData } from '../privacy/export.ts';
+import { SETTINGS_ROW, SETTINGS_ROW_SUB } from '../settings/sections.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
 import { TUTOR_INTRO_LINK } from '../tutor/gate.ts';
-import { withDailyGoal, withPreferTyping, withTutorVoice } from '../profile/store.ts';
+import { withDailyGoal, withName, withPreferTyping, withTutorVoice } from '../profile/store.ts';
 import { DAILY_GOAL_ROW, GOALS, goalFor, goalKeyOf, goalLine, type GoalKey } from '../profile/dailyGoal.ts';
 import { PREFER_TYPING_ROW, PREFER_TYPING_SUB, prefersTyping } from '../profile/typing.ts';
-import { appVersionLine } from '../profile/appVersion.ts';
 import { loadActivity } from '../progress/activity.ts';
 import { levelName } from '../progress/evidence.ts';
 import { PACE_ROW, PACE_SUB, paceOf, withPace } from '../tutor/pace.ts';
@@ -95,7 +93,6 @@ import {
   reminderPermission,
   scheduleReminder,
 } from '../reminders/schedule.ts';
-import type { AuthResult } from '../auth/types.ts';
 
 /**
  * The sheets that are left.
@@ -106,16 +103,13 @@ import type { AuthResult } from '../auth/types.ts';
  * the card now. What kept a sheet is what needs the room: a name needs a
  * keyboard, eight voices need eight cards and an ear each, and the reminder
  * presets need their glosses.
+ *
+ * Three more went with F473, to `settings/SettingsScreen.tsx`: the delete
+ * confirmation, the acknowledgements, and the sheet that says an export could
+ * not be made. All three belong to the account rather than to the learning, and
+ * every one of them is now behind the row at the bottom of this screen.
  */
-type Sheet =
-  | 'none'
-  | 'name'
-  | 'tutorVoice'
-  | 'reminderTime'
-  | 'intro'
-  | 'acknowledgements'
-  | 'delete'
-  | 'unavailable';
+type Sheet = 'none' | 'name' | 'tutorVoice' | 'reminderTime' | 'intro';
 
 /**
  * Said when the disk refuses a two-field write, and only then.
@@ -151,23 +145,11 @@ const REMINDER_SAVE_TROUBLE = 'Your phone did not save that. The reminder is unc
  */
 const REMINDER_SCHEDULE_TROUBLE = 'Your phone would not change the reminder just now. You can try again.';
 
-export function ProfileTab({
-  onSignOut,
-  onDeleteAccount,
-}: {
-  onSignOut: () => void;
-  onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
-}) {
+export function ProfileTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
-  const { user, adapter } = useAuth();
   const { profile, update } = useProfile();
   const [sheet, setSheet] = useState<Sheet>('none');
   const [draftName, setDraftName] = useState(profile.name ?? '');
-  const [unavailable, setUnavailable] = useState('');
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [exporting, setExporting] = useState(false);
 
   /**
    * Which voice sample is sounding right now, and the one player that sounds it.
@@ -219,7 +201,7 @@ export function ProfileTab({
    * goes through `closeVoiceSheet` rather than a bare `setSheet('none')`: only
    * that path pauses the sample, so leaving the sheet by the hardware back stops
    * the audition rather than letting a voice follow the learner out (F304). The
-   * name and delete sheets clear their drafts, exactly as their own controls do.
+   * name sheet restores the stored name, exactly as its own chevron does.
    */
   const closeCurrentSheet = () => {
     // A switch rather than a chain of `if (sheet === '…')`, because the sheet
@@ -233,10 +215,6 @@ export function ProfileTab({
         setDraftName(profile.name ?? '');
         setSheet('none');
         return;
-      case 'delete':
-        setDeletePassword('');
-        setSheet('none');
-        return;
       default:
         setSheet('none');
     }
@@ -244,10 +222,12 @@ export function ProfileTab({
 
   // Android's hardware back closes the open sheet in place rather than popping
   // the whole Profile tab. Inactive on the main list, so ordinary back stands,
-  // and inactive for the intro and acknowledgements sheets, which render their
-  // own screens and answer hardware back through their own hook — two handlers
-  // on one screen would race and close the whole sheet from page two.
-  useHardwareBack(sheet !== 'none' && sheet !== 'intro' && sheet !== 'acknowledgements', closeCurrentSheet);
+  // and inactive for the intro, which renders its own screen and answers
+  // hardware back through its own hook — two handlers on one screen would race
+  // and close the whole sheet from page two. The acknowledgements sheet left
+  // this list with F473: it is Settings' now, and Settings stands its own hook
+  // down for it in exactly the same way.
+  useHardwareBack(sheet !== 'none' && sheet !== 'intro', closeCurrentSheet);
 
   // A clip that ends on its own leaves `samplePlaying` pointing at it, so the
   // next tap on that same voice is read as "stop" and stops nothing — a dead ear
@@ -321,13 +301,6 @@ export function ProfileTab({
   // is one: null at zero, which is the same rule Home's level card keeps. A
   // learner who has not started is not told they are at the bottom of a ladder.
   const levelLine = standing === null ? null : levelName(standing);
-  // Which build this is. The property read is here rather than in appVersion.ts
-  // because expo-constants cannot be loaded by the test runner; the rule that
-  // turns it into a line, or into nothing, is over there where a test can ask.
-  const versionLine = appVersionLine(Constants.expoConfig?.version);
-  // Only an email sign-up has a password to change; Google and the device-local
-  // demo account have nothing this screen could edit.
-  const hasPassword = user?.provider === 'password';
 
   // What the learner asked for, crossed with what the OS will allow. Every
   // judgement in it belongs to reminder.ts; nothing below re-decides any of it.
@@ -422,76 +395,9 @@ export function ProfileTab({
     })().catch(() => setReminderTrouble(REMINDER_SAVE_TROUBLE));
   };
 
-  if (sheet === 'acknowledgements') return <Acknowledgements onBack={() => setSheet('none')} />;
-
   // Demoted, not deleted: the intro is still the only place that teaches what
   // the three colours of the circle mean, and it is one tap from here.
   if (sheet === 'intro') return <TutorIntro onDone={() => setSheet('none')} />;
-
-  if (sheet === 'delete') {
-    // No chevron: this is the one sheet where leaving is the safe answer and it
-    // is spelled out as "Keep my account" rather than a quiet back arrow.
-    return (
-      <ScrollScreen bottom="tab">
-        <Text style={[type.display, { color: paper.ink }]}>Delete your account?</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
-          This permanently removes your sign-in, conversations turned into practice, progress, and remaining minutes. It cannot be undone.
-        </Text>
-        {hasPassword && (
-          <View style={{ marginTop: space(5) }}>
-            <Field
-              label="Confirm with your password"
-              value={deletePassword}
-              onChangeText={setDeletePassword}
-              placeholder="Your password"
-              secure
-              autoComplete="current-password"
-            />
-          </View>
-        )}
-        {user?.provider === 'google' && (
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(4) }]}>
-            Google will ask you to sign in again before anything is deleted.
-          </Text>
-        )}
-        {/* The Apple twin of the line above. An Apple account has no password
-            this app could check, so the sheet says what will happen rather than
-            showing a field nobody can fill. Owed to auth/apple.test.ts, which
-            names the sentence rather than waiting for one to appear. */}
-        {user?.provider === 'apple' && (
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(4) }]}>
-            Apple will ask you to sign in again before anything is deleted.
-          </Text>
-        )}
-        {deleteError && <Text style={[type.bodyStrong, { color: signal.correspondance, marginTop: space(4) }]}>{deleteError}</Text>}
-        <View style={{ marginTop: space(7), gap: space(3) }}>
-          <OutlineButton
-            label={deleting ? 'Verifying…' : 'Verify and delete permanently'}
-            disabled={deleting || (hasPassword && deletePassword.length === 0)}
-            onPress={() => {
-              if (deleting) return;
-              setDeleting(true);
-              setDeleteError(null);
-              void onDeleteAccount(hasPassword ? deletePassword : undefined).then((result) => {
-                if (!result.ok) {
-                  setDeleteError(result.message);
-                  setDeleting(false);
-                }
-              });
-            }}
-          />
-          <OutlineButton
-            label="Keep my account"
-            disabled={deleting}
-            onPress={() => {
-              setDeletePassword('');
-              setSheet('none');
-            }}
-          />
-        </View>
-      </ScrollScreen>
-    );
-  }
 
   /**
    * Who the tutor is, which until now the product decided for everybody.
@@ -581,7 +487,11 @@ export function ProfileTab({
             label="Save"
             onPress={() => {
               const next = draftName.trim();
-              if (next.length > 0) update({ ...profile, name: next });
+              // Through the named door, like every other field on the card
+              // (F477). A field two places can set is a field that can come to
+              // disagree with itself, which is what `profile/store.ts` says its
+              // `with*` helpers exist to prevent.
+              if (next.length > 0) update(withName(profile, next));
               setSheet('none');
             }}
           />
@@ -593,7 +503,7 @@ export function ProfileTab({
   return (
     <ScrollScreen bottom="tab">
       <View style={st.scroll}>
-        <TabHeader title="Profile" purpose="Your name, your tutor, and your account." />
+        <TabHeader title="Profile" purpose="Your name and your tutor." />
         <View style={st.identity}>
           {/* The one drawn initial: the same filled violet disc Home shows. The
               name is said in the text beneath, so the disc is decorative. */}
@@ -648,34 +558,6 @@ export function ProfileTab({
           <SettingsRow label={TUTOR_INTRO_LINK} onPress={() => setSheet('intro')} />
         </Card>
 
-        <View style={{ marginTop: space(6) }}>
-          <Label>Account</Label>
-          <Card style={{ marginTop: space(2.5) }}>
-            <SettingsRow first label="Email" value={user?.email ?? 'Signed in'} />
-            {user?.provider === 'mock' && <SettingsRow label="Account" value="Demo, stored on this device only" />}
-            <SettingsRow
-              label="Saved conversations"
-              value="Manage in My French"
-              onPress={() => nav.navigate('MyFrench')}
-            />
-            <SettingsRow
-              label="Download my data"
-              value={exporting ? 'Preparing…' : 'A copy of your learning history'}
-              onPress={() => {
-                if (!user || exporting) return;
-                setExporting(true);
-                void downloadAccountData(user, adapter).then((result) => {
-                  if (!result.ok) {
-                    setUnavailable(result.message);
-                    setSheet('unavailable');
-                  }
-                }).finally(() => setExporting(false));
-              }}
-            />
-            <SettingsRow label="Delete account" destructive onPress={() => setSheet('delete')} />
-          </Card>
-        </View>
-
         {/* The reminder. Its own group, because the sentence above the switch
             needs a heading to be about something, and because the whole block
             is absent on a build with no scheduler rather than sitting there
@@ -713,46 +595,20 @@ export function ProfileTab({
           </View>
         )}
 
-        <View style={{ marginTop: space(6) }}>
-          <OutlineButton label="Sign out" onPress={onSignOut} />
-        </View>
-
-        {/* The legal review is still an external release gate. This footer says
-            what is already implemented—export and deletion—without presenting
-            an unreviewed document as a legal promise. */}
-        <View style={st.legal}>
-          <Pressable
-            onPress={() => setSheet('acknowledgements')}
-            accessibilityRole="button"
-            style={({ pressed }) => [st.legalItem, pressed && { opacity: 0.6 }]}
-          >
-            <Text style={[type.label, { color: paper.inkSoft }]}>Acknowledgements</Text>
-          </Pressable>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
-            You can download your account data or delete your account above. A reviewed privacy policy and terms are
-            still required before release. Luvani records your email, name and age confirmation, then sends live speech
-            to speech and language services so the tutor can answer. Nothing is shared with anyone else or sold for
-            advertising.
-          </Text>
-          {/* Which build this is, so a learner writing in about something that
-              went wrong can say which one it went wrong on. Soft ink, never
-              faint: it is words somebody is asked to read back (F330). Absent
-              rather than half written when the config carries no version. */}
-          {versionLine === null ? null : (
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
-              {versionLine}
-            </Text>
-          )}
-        </View>
-
-        {sheet === 'unavailable' && (
-          <Card style={{ marginTop: space(5) }}>
-            <Text style={[type.bodyStrong, { color: paper.ink }]}>{unavailable}</Text>
-            <View style={{ marginTop: space(3) }}>
-              <OutlineButton label="Close" onPress={() => setSheet('none')} />
-            </View>
-          </Card>
-        )}
+        {/* The one row that leads to everything general: the account, the
+            subscription, the documents and the phone's own permissions. Last on
+            the screen and in a bare Card with no Label above it, because a caps
+            SETTINGS over a row reading Settings is redundancy that says nothing
+            twice. Everything behind it is `settings/SettingsScreen.tsx`, a stack
+            sibling above the tabs, so the bar goes with the push. */}
+        <Card style={{ marginTop: space(6) }}>
+          <SettingsRow
+            first
+            label={SETTINGS_ROW}
+            value={SETTINGS_ROW_SUB}
+            onPress={() => nav.navigate('Settings')}
+          />
+        </Card>
       </View>
     </ScrollScreen>
   );
@@ -764,6 +620,4 @@ const st = StyleSheet.create({
   // The switch keeps the 44pt floor the settings rows keep, so the control is
   // the same size to a thumb as everything above it.
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT },
-  legal: { marginTop: space(8), alignItems: 'center' },
-  legalItem: { minHeight: HIT, justifyContent: 'center' },
 });

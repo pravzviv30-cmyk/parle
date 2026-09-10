@@ -16,9 +16,17 @@ A brand-new learner crosses **7 screens** before the first scene: those five
 pages, account creation, and the mission chooser. The age confirmation is part
 of Ready, not a separate marketing screen.
 
-The selected voice and the age confirmation are the only pre-account draft. It
-contains no name, transcript, raw audio or other free-form learner data, and is
-cleared as soon as it becomes the signed-in learner's normal profile.
+The selected voice, the age confirmation and the usage-data answer are the whole
+pre-account draft. It contains no name, transcript, raw audio or other free-form
+learner data, and is cleared as soon as it becomes the signed-in learner's normal
+profile.
+
+The usage-data answer is the switch on Ready, off unless the learner turns it on,
+and it rides the draft because it is given before there is an account to key it
+to. `App.tsx` writes it to `analytics/consentStore.ts` before it hands the
+profile over, so nothing is counted against an answer that has not reached the
+disk. The recovery flow below asks the same question on its Meet page, and only
+of a learner with no record at all, so nobody is asked twice.
 
 | # | Screen | The one thing it does |
 |---|---|---|
@@ -26,7 +34,7 @@ cleared as soon as it becomes the signed-in learner's normal profile.
 | 2 | Speak in real situations | Shows that a spoken conversation becomes future practice |
 | 3 | Life happens | Says progress remains without streak pressure |
 | 4 | Meet the selected Tutor | Lets the learner choose and manually preview one of eight voices |
-| 5 | Ready | Gives compact AI, microphone and history information, then records the 13+ confirmation |
+| 5 | Ready | Gives compact AI, microphone and history information, offers the usage-data switch, then records the 13+ confirmation |
 | 6 | Sign up (`auth/SignUpScreen.tsx`) | Creates an account by email/password, Google, or Apple on iOS |
 | 7 | Mission chooser (`missions/`) | Chooses the first situation to speak in |
 

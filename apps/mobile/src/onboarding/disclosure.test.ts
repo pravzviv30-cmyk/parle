@@ -41,6 +41,9 @@ import {
   pronouns,
 } from './disclosure.ts';
 import { DEFAULT_TUTOR_PERSONA, TUTOR_NAME } from '../tutor/tutorName.ts';
+import { guiltIn } from '../copy/guilt.ts';
+import { LEGAL_REVIEW_PENDING, privacyNote } from '../legal/company.ts';
+import { POLICY_SECTIONS } from '../legal/policy.ts';
 import { TUTOR_VOICES, tutorVoice, type TutorVoiceKey } from '@luvani/core';
 
 /** The eight personas a learner can be reading these pages as. */
@@ -193,15 +196,40 @@ describe('the first run says what a learner is talking to', () => {
   test('the first run borrows the Profile footer for where speech goes', () => {
     // Two stories about one pipeline is how a document and a screen start
     // disagreeing, and the learner is the one who finds out.
-    const footer = squash(stripComments(read('tabs/ProfileTab.tsx')));
-    assert.ok(footer.includes(VENDOR_PHRASE), 'the Profile footer no longer uses the words this module copied');
+    //
+    // The footer's words are `privacyNote` in legal/company.ts now. Reading the
+    // module rather than the tab is the same check made stronger: the sentence
+    // is a value here, so this holds what a learner reads rather than what a
+    // JSX block happens to look like, and it keeps holding when the note moves
+    // from Profile to Settings.
+    const note = privacyNote();
+    assert.ok(note.includes(VENDOR_PHRASE), 'the privacy note no longer uses the words this module copied');
     assert.ok(
       MEET_PRIVACY(DEFAULT_TUTOR_PERSONA).includes(VENDOR_PHRASE),
       'the first run invented its own words for the vendors',
     );
+    // F497. What stood here asked the footer to keep saying "Nothing is shared
+    // with anyone else". That was defensible while the sentence before it named
+    // the only recipients there were, because every one of them was a speech or
+    // language service. It stopped being defensible when F481 added the language
+    // model and F488 added the company that takes the payment, the rented
+    // database and the counter store, none of which is either. So the footer
+    // bounds what leaves by the purposes it leaves for, in the notice's own
+    // words, and this pins the clause character for character rather than
+    // asking for less than the line it replaces.
     assert.ok(
-      footer.includes('Nothing is shared with anyone else'),
-      'the footer stopped saying nothing is shared, so the first run should not say it either',
+      note.includes(
+        'Nothing is sold, and nothing about you goes to a company for any purpose other than carrying a ' +
+          'conversation, answering you, keeping what you have learned, and taking a payment.',
+      ),
+      'the footer stopped bounding what leaves by the purposes it leaves for',
+    );
+    assert.doesNotMatch(note, /Nothing is shared with anyone else/, 'the footer denies a sharing that happens every turn');
+    assert.doesNotMatch(note, /anyone else/i, 'the footer bounds its recipients by who is not one of them again');
+    assert.doesNotMatch(
+      note,
+      /beyond the \w+ (services|companies|vendors)/i,
+      'the footer closes its recipients on a count, which the next vendor falsifies',
     );
 
     // The doc points at the module, so neither can drift alone.
@@ -209,6 +237,87 @@ describe('the first run says what a learner is talking to', () => {
     assert.ok(
       policy.includes('onboarding/disclosure.ts'),
       'PRIVACY_AND_SAFETY.md does not name the module that says this to learners',
+    );
+  });
+
+
+  test('the first run bounds sharing the same way the footer and the notice do', () => {
+    // F500, and the last surface carrying the construction F481, F484, F488 and
+    // F497 each corrected somewhere else. This line still ended "and nothing is
+    // shared with anyone else" on the one page every learner reads, after both
+    // the footer and the notice had stopped saying it.
+    //
+    // It was narrower here than in either of those, because the subject is what
+    // a learner says during a session, and neither the company that takes the
+    // payment nor the counter store is ever sent that. It was still not true:
+    // the short summary a session leaves behind is derived from what was said,
+    // and it is kept in a database another company runs for us.
+    const line = MEET_PRIVACY(DEFAULT_TUTOR_PERSONA);
+
+    // What the page still says, because a bound is not licence to say less than
+    // the screen said before it.
+    assert.match(line, /^No person hears you\./, 'the first run stopped saying that nobody is listening');
+    assert.ok(line.includes(VENDOR_PHRASE), 'the first run invented its own words for the vendors');
+    assert.ok(
+      line.includes(`${DEFAULT_TUTOR_PERSONA.name} can answer`),
+      'the first run stopped saying why what a learner says goes anywhere at all',
+    );
+
+    // The shape that was wrong, in every spelling the other four fixes banned.
+    assert.doesNotMatch(line, /nothing is shared with anyone else/i, 'the first run denies a sharing that happens every turn');
+    assert.doesNotMatch(line, /anyone else|no one else|nobody else/i, 'the first run bounds its recipients by who is not one of them again');
+    assert.doesNotMatch(
+      line,
+      /\b(one|two|three|four|five|six|seven|eight|nine|ten)\b/i,
+      'the first run counts the companies, which is the construction F488 removed from the notice',
+    );
+    assert.doesNotMatch(line, /beyond the \w+ (services|companies|vendors)/i, 'the first run closes its recipients on a count');
+
+    // And the shape that is right, read off the notice rather than retyped, so a
+    // purpose added to the bound above cannot leave this line behind.
+    const seen = POLICY_SECTIONS.find((section) => section.heading === 'Who else sees it');
+    assert.ok(seen, 'the notice stopped saying who else sees what a learner says');
+    const bound = seen.body.find((paragraph) => paragraph.startsWith('Nothing is sold.'));
+    assert.ok(bound, 'the notice stopped bounding what leaves at all');
+    assert.match(line, /for any purpose other than/, 'the first run stopped bounding what leaves by the purposes it leaves for');
+    for (const purpose of ['carrying a conversation', 'answering you', 'keeping what you have learned']) {
+      assert.ok(line.includes(purpose), `the first run stopped naming a purpose what a learner says leaves for: ${purpose}`);
+      assert.ok(bound.includes(purpose), `the first run names a purpose the notice does not bound by: ${purpose}`);
+      assert.ok(privacyNote().includes(purpose), `the footer stopped naming a purpose the first run names: ${purpose}`);
+    }
+
+    // The one purpose deliberately absent. No word of French reaches the company
+    // that takes the payment, so naming it here would be longer and less true at
+    // once. Pinned as a decision rather than left to read as an oversight.
+    assert.ok(
+      bound.includes('taking a payment'),
+      'the notice stopped bounding by the purchase purpose, so leaving it out of the first run now means something else',
+    );
+    assert.ok(!line.includes('taking a payment'), 'the first run says a learner’s words reach the company that takes the payment');
+
+    // Still a first-run line. A learner is ninety seconds into the app here and
+    // the notice is a tap away in Settings, so this may not grow into it.
+    assert.ok(line.length < 250, `the first run is turning into the notice: ${line.length} characters`);
+    assert.equal(line.split(/(?<=[.!?])\s+/).length, 2, 'the first-run disclosure grew a third sentence');
+
+    // All eight, not only the default: the bound is the part of the sentence
+    // that does not move when the persona does.
+    for (const persona of EVERY_PERSONA) {
+      const said = MEET_PRIVACY(persona);
+      assert.ok(
+        said.endsWith('for any purpose other than carrying a conversation, answering you and keeping what you have learned.'),
+        `${persona.name}'s first run bounds what leaves differently`,
+      );
+      assert.equal(guiltIn(said), undefined, `guilt in the first-run disclosure: ${said}`);
+      assert.ok(!/[—–]/.test(said), `${persona.name}'s first-run disclosure carries an em dash`);
+    }
+
+    // Sourced, like the notice it now agrees with.
+    const doc = readFileSync(fileURLToPath(new URL('../../../../docs/PRIVACY_AND_SAFETY.md', import.meta.url)), 'utf8');
+    assert.match(
+      doc,
+      /No learner-facing sentence says how many vendors there are/,
+      'the document stopped holding the rule this line now follows',
     );
   });
 
@@ -238,9 +347,17 @@ describe('the first run says what a learner is talking to', () => {
     // Including the promise this repo cannot make yet: attempt recordings still
     // linger in the app cache, listed under Not true yet.
     assert.ok(!/\brecord/i.test(MEET_MIC), 'the microphone line makes a claim about recordings');
+    // The gate itself, on the surface a learner can actually reach. It is a
+    // value in legal/company.ts now, and it stays on screen until a lawyer has
+    // read the documents: accurate words are not cleared words.
+    assert.equal(
+      LEGAL_REVIEW_PENDING,
+      'A reviewed privacy policy and terms are still required before release.',
+      'the legal-review sentence was reworded, and the policy and the note both quote it',
+    );
     assert.ok(
-      squash(stripComments(read('tabs/ProfileTab.tsx'))).includes('A reviewed privacy policy and terms are still required before release'),
-      'the Profile footer stopped naming the legal-review release gate',
+      privacyNote().includes(LEGAL_REVIEW_PENDING),
+      'the privacy note stopped naming the legal-review release gate',
     );
   });
 
@@ -260,7 +377,7 @@ describe('the first run says what a learner is talking to', () => {
     );
     assert.match(MEET_MIC, /microphone/, 'the microphone line stopped mentioning the microphone');
     assert.match(MEET_TYPING, /Type instead/, 'the typing line no longer names the control it points at');
-    assert.match(MEET_MORE, /Profile/, 'the pointer to the rest of it lost its destination');
+    assert.match(MEET_MORE, /Settings/, 'the pointer to the rest of it lost its destination');
     assert.ok(PERSONA_TITLE(DEFAULT_TUTOR_PERSONA).includes(TUTOR_NAME), 'the persona page stopped naming him');
     assert.match(PERSONA_BODY(DEFAULT_TUTOR_PERSONA), /\bAI tutor\b/, 'the persona page went back to a biography');
   });

@@ -1,5 +1,5 @@
 /**
- * The version line at the bottom of Profile — F369.
+ * The version line at the bottom of Settings — F369, and F473 for where it is.
  *
  * Three things, and the middle one is what makes this worth a module. The rule
  * is pure, so it can be asked what it does with an empty string. The value it
@@ -66,28 +66,44 @@ describe('which build this is — F369', () => {
     // 4. The screen. Soft ink rather than the faint tertiary, because it is
     //    words somebody is asked to read back to us (F330), and absent rather
     //    than half written when there is nothing to say.
-    const tab = stripComments(read('../tabs/ProfileTab.tsx'));
-    assert.match(tab, /appVersionLine\(Constants\.expoConfig\?\.version\)/, 'the footer decides the version for itself');
+    //
+    //    The footer is on Settings now (F473). Profile keeps the learner and
+    //    their tutor; the account, the documents and the build number are one
+    //    pushed screen behind one row. Only the file this reads changed, and
+    //    the two checks at the end make sure the line really moved rather than
+    //    being drawn in both places.
+    const settings = stripComments(read('../settings/SettingsScreen.tsx'));
+    assert.match(settings, /appVersionLine\(Constants\.expoConfig\?\.version\)/, 'the footer decides the version for itself');
     assert.match(
-      tab,
+      settings,
       /\{versionLine === null \? null : \(/,
       'the footer draws the line whatever the config said, so an unknown build reads as a bug',
     );
     assert.match(
-      tab,
+      settings,
       /\{versionLine\}/,
       'the version is worked out and never drawn',
     );
-    const at = tab.indexOf('{versionLine}');
+    const at = settings.indexOf('{versionLine}');
     assert.ok(at !== -1, 'the version line is not in the screen at all');
-    const line = tab.slice(tab.lastIndexOf('<Text', at), at);
+    const line = settings.slice(settings.lastIndexOf('<Text', at), at);
     assert.match(line, /type\.small/, 'the version line is not set at the secondary size the footer uses');
     assert.match(line, /paper\.inkSoft/, 'the version line is set in a colour that only ever cleared as a mark');
     assert.ok(!line.includes('inkFaint'), 'the version line is set in the faint ink F330 took off learner-facing text');
 
-    // It sits under the legal paragraph rather than above it: the paragraph is
-    // what the footer is for, and the build number is a footnote to it.
-    const legal = tab.indexOf('A reviewed privacy policy');
-    assert.ok(legal !== -1 && legal < at, 'the build number is drawn above the legal text it is a footnote to');
+    // It sits under the honest paragraph rather than above it: the paragraph is
+    // what the footer is for, and the build number is a footnote to it. The
+    // paragraph is `privacyNote()` from legal/company.ts now, so this reads the
+    // call rather than a sentence the screen used to spell out itself.
+    const note = settings.indexOf('privacyNote()');
+    assert.ok(note !== -1 && note < at, 'the build number is drawn above the privacy note it is a footnote to');
+
+    // And it is drawn once. A version line left behind on Profile would be a
+    // second place to read a build number off, which is exactly the drift that
+    // makes a bug report name the wrong one.
+    assert.ok(
+      !stripComments(read('../tabs/ProfileTab.tsx')).includes('appVersionLine'),
+      'Profile still draws a version line of its own, so there are two build numbers to keep in step',
+    );
   });
 });

@@ -3,12 +3,32 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, test } from 'node:test';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { DEFAULT_TUTOR_VOICE } from '@luvani/core';
-import { freshPreAccountDraft } from './preAccountDraft.ts';
+import { freshPreAccountDraft, loadPreAccountDraft } from './preAccountDraft.ts';
 
 const read = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 const source = read('./PreAccountOnboarding.tsx').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const app = read('../../App.tsx').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+const KEY = '@luvani/pre-account-onboarding/v1';
+
+/** One in-memory AsyncStorage, so the round trip is the real store's. */
+function installDisk(): Map<string, string> {
+  const map = new Map<string, string>();
+  const shared = AsyncStorage as unknown as Record<string, unknown>;
+  shared.getItem = (key: string): Promise<string | null> => Promise.resolve(map.get(key) ?? null);
+  shared.setItem = (key: string, value: string): Promise<void> => {
+    map.set(key, value);
+    return Promise.resolve();
+  };
+  shared.removeItem = (key: string): Promise<void> => {
+    map.delete(key);
+    return Promise.resolve();
+  };
+  return map;
+}
 
 describe('the pre-account hand-off', () => {
   test('contains only the minimum account-creation answers', () => {
@@ -16,7 +36,36 @@ describe('the pre-account hand-off', () => {
       version: 1,
       ageConfirmed: true,
       tutorVoice: DEFAULT_TUTOR_VOICE,
+      analyticsConsent: false,
     });
+  });
+
+  test('a draft written before the usage-data question reads as opted out', async () => {
+    // The version stays at 1 on purpose, so this blob is not an old shape being
+    // upgraded, it is this shape with a field the writer had never heard of. A
+    // learner nobody asked has not agreed to anything, so the absence repairs
+    // forward to false rather than rejecting a perfectly good voice and age
+    // answer or, far worse, reading silence as a yes.
+    const disk = installDisk();
+    disk.set(KEY, JSON.stringify({ version: 1, ageConfirmed: true, tutorVoice: DEFAULT_TUTOR_VOICE }));
+    assert.deepEqual(await loadPreAccountDraft(), {
+      version: 1,
+      ageConfirmed: true,
+      tutorVoice: DEFAULT_TUTOR_VOICE,
+      analyticsConsent: false,
+    });
+
+    // And only a literal true is agreement. Everything a disk can hand back in
+    // that slot other than the boolean itself is somebody who did not say yes.
+    for (const junk of ['true', 1, null, {}, []]) {
+      disk.set(KEY, JSON.stringify({ version: 1, ageConfirmed: true, tutorVoice: DEFAULT_TUTOR_VOICE, analyticsConsent: junk }));
+      const loaded = await loadPreAccountDraft();
+      assert.equal(loaded?.analyticsConsent, false, `this read as agreement: ${JSON.stringify(junk)}`);
+    }
+
+    // A real yes survives the round trip, or the question was asked for nothing.
+    disk.set(KEY, JSON.stringify({ version: 1, ageConfirmed: true, tutorVoice: DEFAULT_TUTOR_VOICE, analyticsConsent: true }));
+    assert.equal((await loadPreAccountDraft())?.analyticsConsent, true, 'a learner who said yes was carried across as a no');
   });
 
   test('is a five-page flow with a selected Tutor before account creation', () => {

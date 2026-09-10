@@ -356,7 +356,8 @@ describe('onboarding introduces the voice already on the record — F300', () =>
       assert.equal(
         MEET_PRIVACY(persona),
         `No person hears you. What you say goes to speech and language services so ${TUTOR_NAME} can answer, ` +
-          `and nothing is shared with anyone else.`,
+          `and nothing about it goes anywhere for any purpose other than carrying a conversation, answering you ` +
+          `and keeping what you have learned.`,
       );
       assert.equal(
         VOICE_SKIP_HINT(persona),

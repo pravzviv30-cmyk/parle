@@ -341,7 +341,7 @@ function blobFor(namespace: string, seed: number): unknown {
 
 // ──────────────────────────────────────────────────────────────────── tests
 
-describe('the per-domain conflict policy — seventeen namespaces, three classes, five exclusions', () => {
+describe('the per-domain conflict policy — eighteen namespaces, three classes, six exclusions', () => {
   test('every synced namespace has an explicit merge policy and every excluded one an explicit reason', () => {
     const suffixes = userKeySuffixes().filter((suffix) => suffix !== SYNC_STATE_SUFFIX);
     assert.ok(suffixes.length > 0, 'the scan read no suffixes out of scope.ts, so it is checking nothing');
@@ -368,8 +368,13 @@ describe('the per-domain conflict policy — seventeen namespaces, three classes
     // Every exclusion states a reason, and the reason is about the product rather than
     // about effort. journal, friends and reminder each have to be here by name: this list
     // is pinned so that excluding a namespace stays a decision somebody made on purpose
-    // rather than a store that quietly slipped out of the merge table.
-    assert.deepEqual([...excluded].sort(), ['conversationPacks', 'friends', 'journal', 'reminder', 'suggestions']);
+    // rather than a store that quietly slipped out of the merge table. `analytics` is the
+    // one that would be a defect rather than an inconvenience if it ever left this list,
+    // because a merged consent is a withdrawal that can come back on its own.
+    assert.deepEqual(
+      [...excluded].sort(),
+      ['analytics', 'conversationPacks', 'friends', 'journal', 'reminder', 'suggestions'],
+    );
     for (const exclusion of SYNC_EXCLUSIONS) {
       assert.ok(exclusion.reason.trim().length > 40, `${exclusion.namespace} has no real reason for being excluded`);
     }

@@ -43,6 +43,7 @@ import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 import { PracticeTab } from '../tabs/PracticeTab.tsx';
 import { MyFrenchTab } from '../tabs/MyFrenchTab.tsx';
 import { ProfileTab } from '../tabs/ProfileTab.tsx';
+import { SettingsScreen } from '../settings/SettingsScreen.tsx';
 import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
 import { LuvaniTabBar } from './LuvaniTabBar.tsx';
 import type { RootStackParamList, TabParamList } from './types.ts';
@@ -337,13 +338,16 @@ function SoundCheckRoute() {
   return <SoundCheckScreen userId={user.id} missionId={route.params.missionId} onDone={() => nav.goBack()} />;
 }
 
-function Tabs({
-  onSignOut,
-  onDeleteAccount,
-}: {
-  onSignOut: () => void;
-  onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
-}) {
+/**
+ * The five tabs, and none of them takes a prop any more.
+ *
+ * Profile used to be a children function because it held sign out and delete
+ * account. Both moved to Settings with F473, so every tab is a plain
+ * `component=` again and this navigator has nothing to thread through it. That
+ * matters beyond tidiness: a children function re-creates its element on every
+ * render of the parent, and the parent here is the whole root stack.
+ */
+function Tabs() {
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: paper.ground } }}
@@ -353,9 +357,7 @@ function Tabs({
       <Tab.Screen name="Tutor" component={TutorTab} />
       <Tab.Screen name="Practice" component={PracticeTab} />
       <Tab.Screen name="MyFrench" component={MyFrenchTab} />
-      <Tab.Screen name="Profile">
-        {() => <ProfileTab onSignOut={onSignOut} onDeleteAccount={onDeleteAccount} />}
-      </Tab.Screen>
+      <Tab.Screen name="Profile" component={ProfileTab} />
     </Tab.Navigator>
   );
 }
@@ -387,8 +389,15 @@ export function RootNavigator({
         animation: 'fade',
       }}
     >
-      <Stack.Screen name="Tabs">
-        {() => <Tabs onSignOut={onSignOut} onDeleteAccount={onDeleteAccount} />}
+      <Stack.Screen name="Tabs" component={Tabs} />
+      {/* Settings is where sign out and delete account live now (F473), so it
+          takes the two callbacks Profile used to, through the same children
+          function idiom and for the same reason: they are functions, and a
+          route param has to stay serialisable. It sits above the tabs like
+          every other pushed screen, so the bar goes with the push and the
+          delete sheet gets the whole screen while it asks. */}
+      <Stack.Screen name="Settings">
+        {() => <SettingsScreen onSignOut={onSignOut} onDeleteAccount={onDeleteAccount} />}
       </Stack.Screen>
       {/* No native header on any pushed screen: the back is the in-screen
           ScreenHeader now (a chevron on a reversible push, the Leave word on a

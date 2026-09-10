@@ -4,13 +4,13 @@ import { Text, View } from 'react-native';
 import { GhostButton, PillButton } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { purchases, type StoreOffering } from './adapter.ts';
-import { refreshBilling } from './client.ts';
 import {
   PURCHASE_READY,
-  PURCHASE_TROUBLE,
-  REFRESH_TROUBLE,
+  RESTORE_BUSY,
   paywallSurface,
+  restoreTrouble,
 } from './paywallView.ts';
+import { restorePurchases, settleStoreAction } from './restore.ts';
 
 type Action = 'idle' | 'buying' | 'restoring' | 'ready';
 
@@ -35,21 +35,19 @@ export function Paywall({ userId }: { userId: string }) {
   const surface = paywallSurface(offering);
   if (!loaded || surface === null) return null;
 
+  // Restoring goes through restore.ts, which the Settings row calls too, so the
+  // two surfaces cannot drift about what a restore is. Buying differs only in
+  // the question put to the store, and shares everything after the answer.
   const finish = async (kind: 'buying' | 'restoring') => {
     if (action !== 'idle') return;
     setAction(kind);
     setMessage(null);
-    const result = kind === 'buying'
-      ? await purchases.purchase(userId, surface.product.productId)
-      : await purchases.restore(userId);
-    if (!result.ok) {
-      setAction('idle');
-      if (!result.cancelled) setMessage(PURCHASE_TROUBLE);
-      return;
-    }
-    const refreshed = await refreshBilling();
-    setAction(refreshed ? 'ready' : 'idle');
-    setMessage(refreshed ? PURCHASE_READY : REFRESH_TROUBLE);
+    const outcome = kind === 'buying'
+      ? await settleStoreAction(await purchases.purchase(userId, surface.product.productId))
+      : await restorePurchases(userId);
+    const done = outcome.kind === 'done';
+    setAction(done ? 'ready' : 'idle');
+    setMessage(done ? PURCHASE_READY : restoreTrouble(outcome));
   };
 
   return (
@@ -73,7 +71,7 @@ export function Paywall({ userId }: { userId: string }) {
             />
           </View>
           <GhostButton
-            label={action === 'restoring' ? 'Checking the store…' : surface.restoreLabel}
+            label={action === 'restoring' ? RESTORE_BUSY : surface.restoreLabel}
             disabled={action !== 'idle'}
             onPress={() => void finish('restoring')}
           />

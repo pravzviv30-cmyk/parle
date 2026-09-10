@@ -137,6 +137,21 @@ export interface OnboardingDraft {
    * the Profile row unable to tell the two apart.
    */
   tutorVoice: TutorVoiceKey | null;
+  /**
+   * The usage-data switch on the Meet page, or null when it was never drawn.
+   *
+   * Three states, because there are three things that can be true. `false` is
+   * where the switch starts and where it stays unless somebody moves it, which
+   * is a real no. `true` is a real yes. `null` is the learner this page did not
+   * ask, and it is the same kind of answer `tutorVoice` gives a skip: the app
+   * has nothing to say on their behalf.
+   *
+   * The page only asks a learner with no record at all. Anyone else answered
+   * this once already and owns the answer in Settings, so a flow they were sent
+   * back through by some unrelated new question must not be able to take it
+   * back on a screen that never mentioned it.
+   */
+  analyticsConsent: boolean | null;
 }
 
 /**
@@ -161,6 +176,21 @@ export interface OnboardingAnswers {
    * uses.
    */
   tutorVoice: TutorVoiceKey | null;
+  /**
+   * What the learner said about usage data, or null for a page that did not ask.
+   *
+   * The difference between `false` and `null` is spent in `App.tsx`, which is
+   * the only reader: a false is written to the consent store as a no, and a
+   * null is written nowhere at all. Collapsing the two would let this flow
+   * withdraw a consent given in Settings, silently, from a screen that never
+   * showed the learner a switch.
+   *
+   * It rides out as an answer rather than being written from inside a page for
+   * the same reason the voice does: onboarding runs before there is a profile,
+   * and on the pre-account path before there is even an account to key a
+   * consent to.
+   */
+  analyticsConsent: boolean | null;
 }
 
 /** A typed name, trimmed. Nothing typed is null, never the empty string. */
@@ -182,6 +212,11 @@ export function answersFrom(draft: OnboardingDraft): OnboardingAnswers {
     // way a skipped name is: the question was offered and declined, and the app
     // does not answer it on the learner's behalf.
     tutorVoice: draft.tutorVoice,
+    // Straight through as well, and for the sharper version of the same reason.
+    // A question this pass did not ask is null; a switch left where it starts is
+    // false. Turning the first into the second here would be this file deciding
+    // that silence is a no on behalf of somebody who already said yes elsewhere.
+    analyticsConsent: draft.analyticsConsent,
   };
 }
 

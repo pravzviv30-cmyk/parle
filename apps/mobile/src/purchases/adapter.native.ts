@@ -82,4 +82,18 @@ export const purchases: PurchasesAdapter = {
       return actionFrom(error);
     }
   },
+
+  // The sheet belongs to the store, so there is nothing to read back. On a
+  // build with no key `ready` is false and this is unavailable, which is the
+  // same answer the web half gives and the reason the row is drawn only when
+  // an offering arrived.
+  async manage(userId): Promise<StoreAction> {
+    try {
+      if (!(await ready(userId))) return { ok: false, cancelled: false };
+      await Purchases.showManageSubscriptions();
+      return { ok: true };
+    } catch (error) {
+      return actionFrom(error);
+    }
+  },
 };

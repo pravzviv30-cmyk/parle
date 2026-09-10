@@ -54,17 +54,23 @@
  * source walks (answers.test.ts, voiceStep.test.ts) read this file by the first
  * occurrence of `page === 'age' &&` / `page === 'voice' &&` and require the
  * `<Field>` between name and meet, and every `complete(` after the voice branch
- * opens. Body-before-footer in source keeps those walks green.
+ * opens. Body-before-footer in source keeps those walks green. F472's walk
+ * reads the same way: the one `<SwitchRow` has to sit after the
+ * `existing === null` guard and before the voice branch, which is what "asked
+ * once, on the Meet page, and only of somebody with no record" looks like in
+ * source.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { paper, space, type } from '../theme.ts';
-import { PillButton, GhostButton, Field, ProgressDots, OptionCard } from '../components.tsx';
+import { Card, PillButton, GhostButton, Field, ProgressDots, OptionCard } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { OnboardWave, OnboardCake, SpeakBubbles } from '../illustrations.tsx';
+import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
 import type { StoredProfile } from '../profile/store.ts';
+import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { tutorPersonaOf } from '../tutor/tutorName.ts';
 import { nextSample, type TutorVoiceKey } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
@@ -99,7 +105,6 @@ import {
   VOICE_SKIP_HINT,
   VOICE_TITLE,
 } from './disclosure.ts';
-import { trackProductEvent } from '../analytics/track.ts';
 
 export function OnboardingFlow({
   existing,
@@ -124,6 +129,20 @@ export function OnboardingFlow({
   // so the step shows what they already have rather than presenting their own
   // choice back to them as unmade.
   const [voice, setVoice] = useState<TutorVoiceKey | null>(existing?.tutorVoice ?? null);
+  /**
+   * The usage-data answer, and the one learner this flow does not ask.
+   *
+   * Null from the start for anybody with a record. They have answered this
+   * once, and the answer is theirs to change in Settings; a flow they were sent
+   * back through by some unrelated new question would otherwise carry a `false`
+   * out with it and quietly withdraw a consent they gave. That is why the state
+   * starts as null rather than as false, and why the switch below is drawn only
+   * where the answer is null to begin with: the render and the value have to
+   * agree, or the screen asks nothing and the answers still say no.
+   *
+   * False for a brand-new learner, because off is where an opt-in starts.
+   */
+  const [analyticsConsent, setAnalyticsConsent] = useState<boolean | null>(existing === null ? false : null);
 
   /**
    * Who this learner is already talking to, which is who these pages name.
@@ -190,11 +209,12 @@ export function OnboardingFlow({
   const previous = pageBefore(page);
   const refusal = oldEnough === false ? ageGate(false).refusal : null;
 
+  // `onboarding_completed` used to be sent from here, first thing. It is sent
+  // from `App.tsx` now, after the consent below has reached the disk, because
+  // `trackProductEvent` reads that answer on every event and one sent from here
+  // would race the write. The ones it would drop are exactly the learners who
+  // had just said yes, which is the worst possible sample to be missing.
   const complete = (chosen: TutorVoiceKey | null) => {
-    void trackProductEvent({
-      name: 'onboarding_completed',
-      properties: { personalisedGreeting: name.trim().length > 0 },
-    });
     // The sound does not follow them into the chooser. Leaving a clip playing
     // over the next screen is the kind of thing that makes somebody put the
     // phone down in a quiet room.
@@ -212,6 +232,11 @@ export function OnboardingFlow({
         // `completeProfile` carries it through and `withChosenVoice(_, null)`
         // writes nothing. F303.
         tutorVoice: chosen,
+        // Whatever the switch on the Meet page holds, and null when that page
+        // did not draw one. Read from state rather than passed in, unlike the
+        // voice: nothing about finishing changes it, so there is no tick in
+        // which a closure could be looking at the wrong value.
+        analyticsConsent,
       }),
     );
   };
@@ -294,6 +319,27 @@ export function OnboardingFlow({
             <Text style={st.line}>{MEET_TYPING}</Text>
           </View>
           <Text style={st.hint}>{MEET_MORE}</Text>
+          {/* Drawn only for a learner with no record at all, which is the whole
+              of "asked once". Anyone else has answered this already, on their
+              own first run or in Settings, and a screen they were sent back
+              through for an unrelated reason has no business taking the answer
+              again. `analyticsConsent` starts null for them for the same
+              reason, so nothing is written either way. */}
+          {existing === null && (
+            <>
+              <Card style={st.consent}>
+                <SwitchRow
+                  first
+                  title={CONSENT_ROW}
+                  sub={CONSENT_SUB}
+                  value={analyticsConsent === true}
+                  onChange={setAnalyticsConsent}
+                  accessibilityLabel={CONSENT_ROW}
+                />
+              </Card>
+              <Text style={st.consentHint}>{CONSENT_HINT}</Text>
+            </>
+          )}
         </>
       )}
 
@@ -382,5 +428,12 @@ const st = StyleSheet.create({
   // of fine print. Under the centred title and art, left-set they read as
   // reassurance. F359.
   line: { ...type.body, color: paper.inkSoft, textAlign: 'left' },
+  // Stretched, like the voice cards. The row inside carries a title on one edge
+  // and a switch on the other, so a card sized to its own text would move the
+  // control about from phone to phone.
+  consent: { alignSelf: 'stretch', marginTop: space(5) },
+  // Left and under the row it belongs to, because it labels a control rather
+  // than addressing the reader the way the centred hints above it do.
+  consentHint: { ...type.small, color: paper.inkSoft, textAlign: 'left', alignSelf: 'stretch', marginTop: space(2) },
   secondary: { marginTop: space(5) },
 });

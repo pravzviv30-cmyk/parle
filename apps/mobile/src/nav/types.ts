@@ -63,4 +63,16 @@ export type RootStackParamList = {
   Review: undefined;
   /** A known-reference pronunciation check after a completed situation. */
   SoundCheck: { missionId: string };
+  /**
+   * The account, the subscription, the documents and the phone's permissions.
+   *
+   * A stack sibling above the tabs rather than a sixth tab or a sheet inside
+   * Profile. Above the tabs is what takes the bar away while somebody is in
+   * their account, which is what every other pushed screen here already does,
+   * and it is what lets the delete sheet own the whole screen while it asks.
+   * It carries no params: `onSignOut` and `onDeleteAccount` reach it through
+   * the navigator's children function, the way Profile used to take them, so
+   * nothing non-serialisable is put into navigation state.
+   */
+  Settings: undefined;
 };

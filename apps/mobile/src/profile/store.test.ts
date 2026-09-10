@@ -23,6 +23,7 @@ import {
   loadProfile,
   saveProfile,
   withDailyGoal,
+  withName,
   withPreferTyping,
   withTutorVoice,
   type StoredProfile,
@@ -100,6 +101,27 @@ describe('an existing profile — what a second pass through onboarding may chan
     const before = existing({ ageConfirmed: true, dob: null });
     const after = completeProfile(before, { name: 'Cam', motivation: null }, NOW);
     assert.equal(after.ageConfirmed, true, 'they said it once; a later page that does not ask cannot unsay it');
+  });
+});
+
+describe('the name — one field, one write path — F477', () => {
+  test('setting the name changes the name and nothing else', () => {
+    // The door exists so the Name sheet stops spreading the whole profile
+    // inline while every neighbouring row goes through a helper. A field two
+    // places can set is a field that can disagree with itself, which is the
+    // same reason tutorVoice.test.ts refuses the spread on the voice sheet.
+    const before = existing({ name: 'Camille' });
+    const after = withName(before, 'Cam');
+    assert.equal(after.name, 'Cam');
+    assert.deepEqual({ ...after, name: 'Camille' }, before, 'the name row edits the name, not the learner');
+  });
+
+  test('a learner who never gave a name can still be given one', () => {
+    // Null is what "skipped the question at sign-up" means, and the door has to
+    // be able to answer it later without the caller reaching for a spread.
+    const before = existing({ name: null });
+    assert.equal(withName(before, 'Cam').name, 'Cam');
+    assert.equal(withName(withName(before, 'Cam'), 'Camille').name, 'Camille', 'the last name given is the name');
   });
 });
 

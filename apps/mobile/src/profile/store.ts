@@ -405,6 +405,25 @@ export function withPreferTyping(existing: StoredProfile, preferTyping: boolean)
   return { ...existing, preferTyping };
 }
 
+/**
+ * Set what the learner asked to be called.
+ *
+ * A plain spread beside `withUsername`, and named for the reason every other
+ * door on this object is named: the Name sheet wrote the field inline while
+ * every neighbouring row went through a helper, and a field two places can set
+ * is a field that can disagree with itself. Nothing here trims, titles or
+ * validates — what someone calls themselves is theirs, and the sheet that
+ * collects it already refuses a blank before it gets here.
+ *
+ * The parameter is `string`, not `string | null`, even though the field is
+ * nullable. Null on `name` means the question was skipped at sign-up, which is
+ * a thing only profile creation can say; nothing in the product offers a
+ * learner a way to un-name themselves, so this door does not carry one.
+ */
+export function withName(existing: StoredProfile, name: string): StoredProfile {
+  return { ...existing, name };
+}
+
 /** Claim a leaderboard username. A plain spread, named so the field has one write path. */
 export function withUsername(existing: StoredProfile, username: string): StoredProfile {
   return { ...existing, username };

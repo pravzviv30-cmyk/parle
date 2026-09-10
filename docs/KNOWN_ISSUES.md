@@ -6941,3 +6941,493 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `anything that starts a voice also stops one when it goes`
 - verified-by: `every control that plays says what it will play`
 - verified-by: `nothing here listens, records or scores`
+
+### F471 — An opted-out learner emits nothing, and a learner who was never asked is opted out
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/analytics/track.ts:27
+- note: `trackProductEvent` fires from seven call sites with no gate, which PRIVACY_AND_SAFETY.md:163
+  names as the first thing that must be true before real learners arrive. The consent is its own
+  versioned store, `analytics/consentStore.ts`, shaped like `reminders/store.ts` and excluded from
+  sync for the reason the exclusion table carries: `mergeStoredProfiles` picks scalars by evidence
+  weight, so a consent living on the profile could resurrect a withdrawal made on a lighter device.
+  The rule is `analyticsAllowed` in `analytics/consent.ts`, true only for a stored literal `true`;
+  junk, a missing key and nobody signed in all read as no. The gate sits before the network call
+  inside the `try` that already swallows failures, so an opted-out learner emits nothing rather
+  than something the server discards, and nothing in the product degrades when it is off.
+- verified-by: `an opted-out learner emits nothing, and the network is never reached`
+- verified-by: `consent is read fresh on every event rather than cached`
+- verified-by: `an unreadable consent reads as no`
+- verified-by: `nothing the consent row says counts, scolds or promises a retention`
+
+### F472 — The first run asks about usage data once, and off is the answer until they say otherwise
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:151
+- note: one `SwitchRow` on the pre-account Ready page, under the line that already says what the app
+  keeps, with `CONSENT_HINT` beneath saying it is off unless turned on and can be changed in
+  Settings. The recovery flow's Meet page draws the same switch only for a brand-new profile, so a
+  learner is never asked twice; `OnboardingAnswers.analyticsConsent` is null when the page did not
+  ask and App.tsx writes nothing for null. The draft carries the answer across account creation at
+  version 1, a missing field reading false. `onboarding_completed` moves out of the flow into
+  App.tsx's `onDone`, written after `saveConsent`, because an event gated on an answer that has not
+  reached the disk yet would be dropped for exactly the learners who said yes. Opt-in rather than
+  opt-out because UK GDPR treats non-essential analytics as needing consent, and because high
+  privacy by default is what the ICO's age appropriate design code asks of a product teenagers use.
+- verified-by: `the first run asks about usage data once, off by default, on the page that says what the app keeps`
+- verified-by: `the draft carries the answer and a missing one reads as no`
+- verified-by: `the answer is written before the completion event is sent`
+- verified-by: `a learner who already answered is not asked again`
+
+### F473 — Profile keeps who you are and how you learn, and one row leads to the rest
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:593
+- note: the tab mixed the learner's own settings with the account, the export, the deletion, the
+  legal footer and sign out, which is the flat scroll both supplied mockups also drew. Everything
+  general moves behind one `Settings` row, last on Profile, to `settings/SettingsScreen.tsx`, a
+  root-stack sibling with its own `ScreenHeader` back and its own `useHardwareBack` for the
+  acknowledgements, delete and unavailable sheets. Every row label on both screens is a const in
+  `settings/sections.ts` with a copy list the guilt scan reads. `Tabs` takes no props any more;
+  `onSignOut` and `onDeleteAccount` reach Settings through the same children function Profile used.
+  The delete sheet moves whole, sentences verbatim, and `auth/apple.test.ts` follows it. The
+  hardware-back pin at surfaceContract.test.ts:1049 splits into one expression per screen; F319's
+  rule is what is kept. The reminder card, the level line and the monogram do not move, and no
+  minutes row is drawn on either screen because F377 is still the standing answer about that.
+- verified-by: `Profile keeps who you are and how you learn, and one row leads to the rest`
+- verified-by: `the Settings screen is a stack sibling with its own back and answers the hardware back in place`
+- verified-by: `every Settings row label comes from the module, and none of them counts`
+- verified-by: `the delete sheet tells an apple account what will happen — F376`
+- verified-by: `a Profile sheet that answers back itself is not answered twice — F319`
+
+### F474 — Every fact about the company lives in one module, and an unset one draws nothing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/legal/company.ts:1
+- note: the support address and the Companies House number are not yet supplied, and both mockups
+  invented all of it, placing the company in France under a name that is not ours. It is Vision
+  Strategies Ltd, registered in the UK. `legal/company.ts` holds three literals and the rules over
+  them: `companyFrom` turns an address without an at sign, a whitespace string, or a placeholder
+  like `TBC` into null; `contactRow` and `companyLine` answer nothing for null; `privacyNote`
+  carries the honest paragraph the old footer had. The screen imports the module and never spells
+  an address or a company name itself, which is the `appVersionLine` shape at ProfileTab.tsx:741
+  applied to three facts instead of one. The first run and the note keep one vocabulary for one
+  pipeline, and disclosure.test.ts reads the module rather than the tab.
+- verified-by: `an unset fact renders nothing, never a dead row`
+- verified-by: `the company is named as registered in the UK, or not named at all`
+- verified-by: `the first run borrows the Profile footer for where speech goes`
+- verified-by: `every fact the screen shows about the company comes from one module`
+
+### F475 — Manage subscription and Restore purchases are one group, drawn only when the store answers
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/purchases/adapter.ts:17
+- note: restore existed only inside the paywall, which is mounted only when a session is refused, and
+  no manage path existed at all, which Apple asks for on any app selling an auto-renewing
+  subscription. The adapter gains `manage`, native through the store's own `showManageSubscriptions`
+  sheet and unavailable on the web, and the paywall's restoring branch is lifted into
+  `purchases/restore.ts` so Settings and the paywall run one function. The group is present only
+  when `purchases.offering` answers with a product, which is what keeps it honest in Expo Go, on the
+  web and on a build with no keys. The Settings sentence after a restore reports that the store was
+  checked rather than claiming speaking time the phone cannot see, which is the same refusal F377
+  makes about a minutes row. No price, no count, no banned word.
+- verified-by: `the subscription group is drawn only when the store answers with a product`
+- verified-by: `restore on Settings and restore on the paywall are one function`
+- verified-by: `manage opens the store's own sheet on a device and is unavailable on the web`
+- verified-by: `subscription copy carries no price, no count and no banned word`
+
+### F476 — A refused microphone or notification permission is a row that opens the phone's settings
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/settings/phone.ts:1
+- note: reminder.ts:196 already says notifications are off in phone settings and offers no way there;
+  the microphone has no sentence anywhere outside a scene. When the OS has refused, the app cannot
+  fix it, so a `Phone` group on Settings draws one row per refusal, absent otherwise, and tapping
+  opens the app's own page in the phone's settings. The rule is `phoneRows` in `settings/phone.ts`;
+  the OS is reached only through `settings/phoneSettings.ts` and its native half, which reads the
+  microphone through expo-audio's `granted` and `canAskAgain` exactly as schedule.native.ts reads
+  notifications, and notifications through the existing `reminderPermission()` so expo-notifications
+  keeps its sole importer. Both permissions are re-read on focus, so the walk back from Settings is
+  enough, which is the F231 defence applied to a second permission.
+- verified-by: `a refused permission draws a row that opens the phone's settings, and an allowed one draws nothing`
+- verified-by: `the phone settings pair exports the same names on both halves`
+- verified-by: `the screen re-reads both permissions on focus so the walk back from Settings is enough`
+- verified-by: `only the platform pair talks to the operating system`
+
+### F477 — The name is written through a named door like every other setting
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:584
+- note: the Name sheet writes `update({ ...profile, name: next })` inline while every other field on
+  the card goes through a `with*` helper, and tutorVoice.test.ts already refuses the spread on the
+  voice sheet for the reason store.ts gives: a field two places can set is a field that can
+  disagree with itself. `withName` beside `withUsername`; the sheet calls it.
+- verified-by: `the name is written through one named door`
+
+### F478 — The device runbook carries the Pass 7 settings checks
+- severity: P2
+- status: [x]
+- where: docs/DEVICE_VERIFICATION.md:797
+- note: a source walk cannot open iOS Settings, the store's subscription sheet, a mail app or a
+  hosted page. Rows, every one `not run`: the Microphone row appears after a refusal in iOS Settings
+  and opens the app's page; the Notifications row does the same; both vanish on the walk back once
+  allowed; Manage subscription opens the App Store sheet on a signed build; Restore on a fresh
+  install reports the check; the privacy screen reads end to end at the largest text size; Contact
+  us opens Mail with the address; the consent switch survives a relaunch and is gone after Delete
+  account.
+- verified-by: `the device runbook carries the Pass 7 settings checks`
+
+### F479 — The privacy policy is read in the app, and says review is still owed
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/legal/policy.ts:1
+- note: Apple asks for the policy to be reachable inside the app as well as at a URL in the store
+  listing, and the tab carried neither: only a paragraph in a footer. The text is structured
+  sections in `legal/policy.ts`, drawn by a screen shaped like `legal/Acknowledgements.tsx`, so it
+  is versioned with the build, readable offline and readable by a test. It is assembled from
+  PRIVACY_AND_SAFETY.md, which is where this repo already keeps an accurate account of what is
+  collected and where speech goes, so the document cannot say something the code does not do.
+  `LEGAL_REVIEW_PENDING` stays on the screen until a lawyer has read it: accurate words are not
+  cleared words, and the app must not imply otherwise. Terms are Apple's standard EULA, named by a
+  short screen that links to Apple rather than reproducing a document that is theirs.
+- verified-by: `every section of the policy has a heading and a body`
+- verified-by: `the policy says only what the privacy document says is true`
+- verified-by: `the screen says a review is still owed until it is not`
+- verified-by: `the terms screen names apple's licence rather than reproducing it`
+
+### F480 — The hosted page and the screen are one source, and the gate fails when they drift
+- severity: P1
+- status: [x]
+- where: scripts/legal-html.mjs:1
+- note: App Store Connect needs a privacy policy at a URL and a support URL, and the app needs the
+  same words on a screen. Two copies maintained by hand disagree the first time one is edited, and
+  a reviewer comparing them is how a resubmission is refused. `npm run legal:html` renders
+  `legal/policy.ts` into static pages with no scripts and no external assets, and a gate check
+  fails when the committed HTML no longer matches the module, so the drift is caught here rather
+  than at review. `docs/LEGAL_HOSTING.md` carries the upload and the proofs: direct upload so the
+  app repo stays private, Cloudflare Access left off because it puts a login in front of a page a
+  reviewer must reach, and a check for a 200 with no redirect before either URL is submitted.
+- verified-by: `the generated pages carry no script and no external asset`
+- verified-by: `the gate fails when the committed html no longer matches the module`
+- verified-by: `the support page is generated but names no address until one is set`
+
+### F481 — The notice names four services that see what you say, and leaves out the one that reads it
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/legal/policy.ts:100
+- note: "Who else sees it" lists a carrier, a transcriber, a voice and a scorer, then says "Nothing is
+  shared with anyone else." Every learner turn is sent as text to the language model that `brainClient`
+  selects (services/tutor-agent/src/convo.ts:288-301, Anthropic, OpenAI or Groq), at convo.ts:2073, so a
+  fifth external service receives the words of every utterance and the sentence after the list is false.
+  The old footer's "speech and language services" covered it; the new notice is narrower than what it
+  replaced on the one point a recipients section exists for. The gap is inherited from
+  docs/PRIVACY_AND_SAFETY.md:82-86, which lists audio vendors only while :285-289 and :453-455 both say
+  the model receives text, so the doc's vendor paragraph and the notice change together, in plain words:
+  one reads what you said as text and writes the tutor's reply, and its retention is as unverified as the
+  other four. The hosted `legal/dist/privacy.html` regenerates from the same module.
+- verified-by: `the notice names the language model among the services that see what a learner says`
+- verified-by: `the policy says only what the privacy document says is true`
+
+### F482 — The privacy doc's Not true yet table still lists two gaps this branch closed
+- severity: P2
+- status: [x]
+- where: docs/PRIVACY_AND_SAFETY.md:606
+- note: the row at :606 says the analytics switch is not on a screen yet and points at F472; the row at
+  :609 says no screen draws the antifraud disclosure and points at F479. Both were true after stage 2 and
+  false after stages 4 and 5: the switch is on the pre-account Ready page and in Settings, and
+  `PolicyScreen.tsx` draws the section. Both F472 and F479 are ticked, so the doc the notice is
+  assembled from now contradicts the ledger. Three smaller stale words in the same file go with them:
+  "One switch in Profile" at :182, "The Profile legal text" at :177 and "Profile's Download my data" at
+  :273 all mean Settings now.
+- verified-by: `the not true yet table carries no gap the ledger has already closed`
+
+### F483 — The terms screen claims Apple's standard licence covers everything else on the App Store
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/legal/terms.ts:29
+- note: "the same one that covers everything else you get from the App Store" is not true; Apple's
+  standard EULA applies only to apps that supply no licence of their own, and many supply one. It is a
+  small sentence, but it is an unearned claim in the one place the founder asked for none, and the fix
+  is to drop the clause: the first sentence stands on its own without it.
+- verified-by: `the terms screen says whose licence this is and nothing about other apps`
+
+### F484 — The notice lists what the language model is sent, and leaves out what the tutor remembers about you
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/legal/policy.ts:101
+- note: the paragraph says the model is sent "what you said, the turns already taken in the same
+  session, the situation you are practising, your name where you gave one, and a short note of your
+  level", and it was checked against `prepareTurn` and `buildTurnContext` only. `convo.ts` reaches the
+  model at five sites, and `buildFrame` (services/tutor-agent/src/convo.ts:1585-1606) sends
+  `profile.memory.facts.slice(-5)` into the scene prompt as REAL ACCOUNT MEMORY
+  (packages/brain/src/prompt/scenarioPrompt.ts:106). Those are facts about the learner's real life,
+  extracted after each session by `extractMemory` (packages/brain/src/prompt/extractPrompt.ts:24-28:
+  interests, upcoming events, goals), kept in the profile across sessions (docs/STATE_AND_STORAGE.md:458).
+  A learner who says around a scene on Monday "I have a job interview on Tuesday" has that sentence sent
+  to the model vendor on Wednesday to build their next scene, and the notice told them only this
+  session's turns go. docs/PRIVACY_AND_SAFETY.md:99 says "no stored row ... is handed over", which
+  `buildFrame` contradicts, so the notice sentence is sourced from a false doc sentence, the same chain
+  as F481. One clause in each, in the learner's words: a few things you have told the tutor about
+  yourself, which it remembers so it can bring them up next time. Regenerate `legal/dist/privacy.html`
+  or F480's drift test fails. The other three post-session calls (curate :2355, extract :2383, drills
+  :2429) send phrases, topics and error tags, which "your level and the things to watch for" already
+  covers; no second clause is owed for them.
+- verified-by: `the notice says the language model is also sent what the tutor remembers about the learner`
+
+### F485 — The notice says a session, and the model is also sent things after it ends and before it starts
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/legal/policy.ts:103
+- note: found while closing F484 and filed rather than fixed, because F484 was scoped to the memory
+  facts and a revision round is not the place to widen a document. Two edges remain. `extractMemory`
+  (services/tutor-agent/src/convo.ts:2375) and `curateAndDrill` hand the session `history` to the same
+  vendor once the session has ended, so nothing undisclosed crosses, but the notice's "while a session
+  is running" implies the sending stops when the learner does, and it does not. And `buildFrame`
+  (convo.ts:1587-1591) sends `preferences.lastScenarios` beside the memory facts, which is a list of
+  what the learner has practised lately; "your level and the things to watch for" arguably covers the
+  unmastered phrases sent with it, but it does not cover the scene list. Both are named in
+  docs/PRIVACY_AND_SAFETY.md already, so this is one clause in the notice rather than new research.
+  Judge's amendment when clearing F484: `extractMemory` also sends `knownFacts: profile.memory.facts`,
+  every fact on file up to twelve, rendered as "Already on file:"
+  (packages/brain/src/prompt/extractPrompt.ts:42-44). That is the category F484 now discloses, so the
+  severity does not move, but the fix should say the facts go after a session as well as when a scene
+  is set up rather than only widening "while a session is running". `lastScenarios` holds
+  `state.frame.title` (packages/brain/src/profile/profile.ts:576), model-written scene titles going
+  back to the model that wrote them, not learner words.
+- verified-by: `the notice says when the model is sent something, not only that a session is running`
+
+### F486 — Three citations into the privacy document point at the wrong paragraphs
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/analytics/consent.ts:24
+- note: `consent.ts:24` cites PRIVACY_AND_SAFETY.md:176-178, which is now a Supabase event-key migration
+  paragraph, and `consent.ts:31` and `analytics/track.test.ts:250` both cite `:590`, now the safety-net
+  bullets. All three were already stale before F481 and F484 edited that file; those edits moved
+  everything below `:99` further again. A line number in a comment rots by design, so the repair is to
+  cite the section heading rather than the line, which is what the rest of the legal modules already do.
+- verified-by: `a citation into the privacy document names a section rather than a line`
+
+### F487 — The hosted site answers at its root, rather than a 404 for anyone who trims the URL
+- severity: P2
+- status: [x]
+- where: scripts/legal-html.mjs:1
+- note: `npm run legal:html` writes `privacy.html` and `support.html` and nothing else, so
+  `https://luvani-legal.pages.dev/` answered 404 the moment the site went up. Apple only ever visits
+  the two URLs it is given, so this blocks no submission, but a bare address that answers nothing is
+  what somebody sees when they trim the path or when the address is read aloud and typed back. The
+  index is generated from the same module as the pages it links to rather than hand written, so it
+  cannot name a page that was not built or drift from the notice's own title, and it carries the same
+  no script and no external asset rule the other two are held to. Cloudflare serves `index.html` at
+  `/` and rewrites the other two to extensionless paths, which is why the links are `/privacy` and
+  `/support` rather than the file names.
+- verified-by: `the generated site answers at its root and names both pages`
+- verified-by: `the index is built from the same module as the pages it links to`
+
+### F488 — The notice swears no other company receives anything, and the store adapter hands one the account id
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/legal/policy.ts:104
+- note: the recipients section closes "Nothing goes to anyone beyond the five services that make a
+  conversation happen: no advertiser, no data broker, no other company." `adapter.native.ts:24` calls
+  `Purchases.configure({ apiKey, appUserID: userId })` and `:27` calls `Purchases.logIn(userId)`, so the
+  purchase processor receives the learner's account id and their purchase history. It is a sixth
+  company and the sentence denies it. This is the third time in one change that an enumeration in this
+  notice has been narrower than what the code sends: F481 missed the language model, F484 missed the
+  cross-session memory, and this misses the store. The pattern is the construction, not the oversight.
+  A closed count ("the five services") is falsified by every vendor added afterwards and by every vendor
+  the writer did not think of, so the sentence should bound sharing by purpose and by the list above it
+  rather than by a number, and the store should be named for what it does: it takes the payment and
+  tells the app what was bought. `docs/PRIVACY_AND_SAFETY.md` names RevenueCat in its vendor table but
+  its recipients paragraph does not, which is the same source gap F481 traced.
+- verified-by: `the notice names the payment processor among the companies that receive something`
+- verified-by: `the notice bounds sharing by purpose rather than by a count of vendors`
+
+### F489 — A failed Download my data draws its reason below the whole screen, so the tap reads as dead
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/settings/SettingsScreen.tsx:533
+- note: `downloadAccountData` answering `{ ok: false }` sets `sheet` to `unavailable`, whose Card is
+  drawn after the Phone group, the Help group, the About group, the company line and the version line,
+  about a screen and a half below the row that was tapped. The row flips from `Preparing…` back to its
+  ordinary value with no live region, so the learner sees a tap that did nothing, which is the dead
+  switch F239 refused, on the one control a learner exercises a legal right with. It compounds on
+  Android: `sheet === 'unavailable'` makes `useHardwareBack` active, so the next back press is eaten
+  closing a card that was never seen and Settings does not pop. Every other refusal on this screen is
+  already drawn inside the card it belongs to and above the rows it is about (`consentTrouble`,
+  `phoneTrouble`, `contactTrouble`, `storeLine`), and the store line even carries a polite live region.
+- verified-by: `every refusal on Settings is drawn in the group whose control caused it`
+- verified-by: `a refusal never leaves the hardware back holding a card nobody saw`
+
+### F490 — The delete sheet reopens still accusing the learner of the last attempt's failure
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/settings/SettingsScreen.tsx:396
+- note: a wrong password draws `That email and password do not match an account.` Keep my account clears
+  `deletePassword` and closes the sheet but leaves `deleteError` set, and neither the Delete account row
+  nor `closeCurrentSheet` clears it either. The next opening greets the learner with a red failure about
+  something that has not happened yet, on the most consequential question the app asks. `deletePassword`
+  is cleared on all three exits precisely so no draft survives the sheet; `deleteError` is the other half
+  of that draft and survives all three.
+- verified-by: `the delete sheet opens with no failure from a previous attempt`
+
+### F491 — The delete failure is never announced, so the verify button is silent to a screen reader
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/settings/SettingsScreen.tsx:355
+- note: the reason is a bare `Text` with no `accessibilityLiveRegion`, no `role="alert"` and no
+  `announceForAccessibility`, so VoiceOver and TalkBack say nothing when a delete attempt is refused and
+  the learner is left activating a button that keeps not working. The repo already holds this rule and
+  enforces it: `surfaceContract.test.ts:470-485` requires all three on the `Field` error line, on the
+  stated grounds that an error which only changes pixels is invisible to somebody who cannot see the
+  pixels change, and the store line two hundred lines down this same screen does carry a polite live
+  region. Passing the reason to the `Field` as its `error` prop gets all of it for free. The password
+  branch is the only one whose failure the learner can fix, so it is where the silence costs most.
+- verified-by: `the delete failure is announced, not only drawn`
+
+### F492 — The walk back from the phone's settings does not re-read the permission
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/settings/SettingsScreen.tsx:168
+- note: the Phone rows are re-read in a `useFocusEffect`, and its comment claims that is "what makes the
+  walk back from iOS Settings enough". It is not. `useFocusEffect` fires on a navigation focus change,
+  and opening the phone's settings backgrounds the app without Settings ever losing focus, so the effect
+  does not run again on return and the row that was meant to disappear stays. There is no `AppState`
+  listener anywhere in the app for this. iOS usually terminates the app when a microphone permission
+  changes, which hides it for that row; a notification permission does not, which leaves it exposed.
+  F476's box was ticked against a test named `the screen re-reads both permissions on focus so the walk
+  back from Settings is enough`; the test passes because a focus effect exists, so the name claims a
+  behaviour the assertion never checks. Fix the behaviour with an `AppState` listener rather than
+  renaming the test, because the row exists to be repairable.
+- verified-by: `returning from the phone's settings re-reads the permission, not only re-entering the screen`
+- verified-by: `a permission row disappears once the permission it names is granted`
+
+### F493 — Settings is the one root screen with no path, so its address resolves to nothing
+- severity: P3
+- status: [x]
+- where: apps/mobile/src/nav/theme.ts:45
+- note: `linking.config.screens` maps every other root screen (Lesson, Convo, Drill, Review, SoundCheck,
+  Missions) and not Settings, so on web the address bar shows the raw route name and feeding that path
+  back returns undefined: a reload, a bookmark or a shared link drops the learner on Home. The comment
+  above the map says it is explicit rather than a catch-all so nothing resolves by accident, which is
+  exactly why a root screen added without its path leaves an address the app produces and cannot read.
+  It lands on the one screen holding delete account and data export.
+- verified-by: `every root screen the navigator can push has a path it can be read back from`
+
+### F494 — The device runbook still routes deletion through Profile
+- severity: P3
+- status: [x]
+- where: docs/DEVICE_VERIFICATION.md:314
+- note: D10 and its neighbours say "Profile → Delete account". Profile has no Account group any more; the
+  row is on Settings, one push further in. A runbook step that names a control that is not there is a
+  walk somebody cannot complete, and these rows are the evidence a release decision is made on.
+- verified-by: `the device runbook routes every settings check through the screen that holds it`
+
+### F495 — A Google or Apple account can never finish deleting on the web build
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/auth/supabaseAdapter.ts:153
+- note: found while sweeping this change and filed rather than fixed, because the file is outside it.
+  `reauthenticateForDeletion` on web calls `startGoogleSignIn`, which is an unconditional
+  `signInWithOAuth` redirect; the learner returns at the app root with a fresh session, walks back to the
+  sheet, and the next attempt redirects again, because nothing between the tap and the redirect asks
+  whether this session was just re-proved. `deleteAccount()` is never reached and the branch's own
+  sentence, "Finish signing in with Google, then return here and delete the account again.", promises a
+  second attempt that completes. The Apple branch is identical. Native is unaffected.
+- verified-by: `a reauthentication that already happened is not asked for again`
+
+### F496 — The warning that the phone still holds a copy is set on a screen that has already gone
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/deleteAccountFlow.ts:1
+- note: pre-existing, and found by sweeping the delete path this change moved. When the server delete
+  succeeds and `clearActiveUserData` throws, `deleteAccount` calls `auth.signOut()` and then returns the
+  message "Your online account was deleted, but this device could not finish erasing its local copy.
+  Clear the app data before sharing this device." The sign-out unmounts the authenticated tree, including
+  the sheet whose `setDeleteError` is the only thing that draws it, so the sentence is written to a
+  component that no longer exists. The learner is returned to the sign-in screen believing everything is
+  gone while the phone still holds their learning history, which is the case the message was written for
+  and the one that matters on a shared device. `useAuth` already carries `recovering` and `clearRecovery`
+  as a seam for a message that has to outlive a sign-out. **Fixed elsewhere than filed**: `recovering`
+  turned out to be the wrong seam twice over, because `useAuth.tsx` clears it on exactly the event the
+  message must survive and because it already means a reset link landed and a new password is owed, so
+  reusing it would have shown the password screen to somebody with no account. Its shape was copied
+  instead: the ordering moved out of the component into `auth/deleteAccountFlow.ts` as four injected
+  steps, and the fact that a copy remains is held in `Gate` beside the other state that crosses the auth
+  door, in memory rather than on disk so it cannot arrive on a later launch as a stale accusation.
+- verified-by: `a local erase that failed is told to the learner after the sign-out, not before it`
+
+### F497 — The Settings footer still carries the denial the notice had to drop
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/legal/company.ts:152
+- note: `privacyNote()` ends "Nothing is shared with anyone else or sold for advertising." That is the
+  same flat denial F481 struck from the notice and F488 replaced with a purpose bound, still drawn under
+  the Data and privacy group and still shown on the first run through `onboarding/disclosure.ts`. It was
+  defensible while its own vendor phrase read "speech and language services", because a language model is
+  a language service; it is not defensible now that F488 has established the payment processor, the
+  database host and the counter store as recipients, none of which is a speech or language service. The
+  footer and the notice are one vocabulary for one pipeline, which is the decision `disclosure.test.ts`
+  exists to hold, so they cannot disagree about who receives something. The fix is one sentence plus the
+  character-for-character assertion at `disclosure.test.ts:210` that pins it.
+- verified-by: `the footer bounds sharing the same way the notice does`
+
+### F498 — Deleting an account leaves the purchase processor still holding the learner
+- severity: P1
+- status: [x]
+- where: services/token-server/src/accountDeletion.ts:1
+- note: found while closing F488 and filed rather than fixed, because the fix is server work outside that
+  entry. `POST /account/delete` removes the Supabase user and everything that cascades from it, and
+  nothing anywhere in this repo calls the purchase processor's delete API, so the subscriber record and
+  the purchase history keyed to `appUserID` outlive the account they belong to. The processor learns the
+  account id from `Purchases.configure({ appUserID: userId })` in `apps/mobile/src/purchases/
+  adapter.native.ts:24`. Under UK GDPR erasure that is a controller obligation this repo does not
+  discharge, and it is not covered by the notice's "Two things are kept on purpose", which is about our
+  own systems and names only the trial markers and the installation id. Either the deletion path calls
+  the processor, or the notice says plainly that a purchase record stays with the company that took the
+  payment and why. Doing neither is the gap. **Scoped to the disclosure half**: the notice now says the
+  purchase record survives, and the two-things count above it is scoped to our own systems, so one
+  sentence changes when the call lands. Calling the processor's delete API is server work and a founder
+  decision, filed separately as F499.
+- verified-by: `the notice says the purchase record outlives a deleted account`
+
+### F499 — Nothing calls the purchase processor's delete API, so the record is disclosed rather than removed
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/accountDeletion.ts:1
+- note: split out of F498, which closed the disclosure half. The notice now tells a learner plainly that
+  the company which took the payment keeps its own record and that deleting the Luvani account does not
+  reach it, which is honest but is not erasure. `POST /account/delete` reaches Supabase and the device
+  and stops. Under UK GDPR the controller obligation is to pass an erasure request to processors, so
+  disclosure is a floor rather than a discharge. It is filed rather than built because it is server work
+  and because the founder has not chosen between calling the API and standing on the disclosure. F498's
+  test asserts that `accountDeletion.ts` mentions nothing of the processor, so whoever implements this
+  gets a failure naming the sentence in the notice that has to change with it.
+- verified-by: `account deletion asks the purchase processor to erase its record too`
+
+### F500 — The first run still carries the flat denial in the one line everybody reads
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/disclosure.ts:152
+- note: the fourth instance of the construction F481, F484, F488 and F497 each corrected somewhere else.
+  `MEET_PRIVACY` ends "and nothing is shared with anyone else", on the first-run page every learner sees,
+  after the footer and the notice have both stopped saying it. It is narrower than the sentences already
+  fixed, because its subject is what a learner says during a session and neither the payment processor
+  nor the counter store receives that, but it is not clean either: the curated summary derived from what
+  was said is kept in a database a third party runs for us. The clause is pinned character for character
+  at `apps/mobile/src/tutor/tutorName.test.ts:357-359`, so the fix is one sentence plus that mirror
+  string, and the pin is the reason it was left rather than an argument that it is right.
+- verified-by: `the first run bounds sharing the same way the footer and the notice do`
+
+### F501 — One paragraph of the notice still closes on a count
+- severity: P3
+- status: [x]
+- where: apps/mobile/src/legal/policy.ts:103
+- note: "Nothing about that session goes to any of the five after that" is bounded to the five services
+  the paragraph immediately above enumerates, so it is defensible as a back-reference rather than a
+  claim about the world. It is filed because it is the exact construction that went stale three times in
+  one change, and because a sixth conversation vendor, a second transcriber or a fallback voice would
+  falsify it silently while every test stayed green. `LUVANI_TTS_VENDOR` can already point the voice at
+  a second supplier, which is the shape of the thing that will break it. The repair is to say what the
+  sentence means, that nothing more about that session leaves after the work above is done, without
+  counting.
+- verified-by: `no sentence in the notice depends on how many vendors there are`

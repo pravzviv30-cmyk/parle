@@ -20,6 +20,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import {
   AGE_CONFIRM,
   AGE_DENY,
@@ -38,6 +40,8 @@ import {
   pageAfter,
   pageBefore,
 } from './answers.ts';
+import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
+import { freshPreAccountDraft, loadPreAccountDraft } from './preAccountDraft.ts';
 import { createStoredProfile, completeProfile } from '../profile/store.ts';
 import { DAILY_GOAL_ROW } from '../profile/dailyGoal.ts';
 import { upgradeStored } from '../profile/upgrade.ts';
@@ -59,6 +63,8 @@ const RULES = stripComments(read('./answers.ts'));
 const AGE_GATE = stripComments(read('./AgeGateScreen.tsx'));
 const REFUSAL = stripComments(read('./AgeRefusal.tsx'));
 const PROFILE_TAB = stripComments(read('../tabs/ProfileTab.tsx'));
+/** The one file that decides what is written, and in what order. */
+const APP = stripComments(read('../../App.tsx'));
 const DOC = read('../../../../docs/ONBOARDING.md');
 
 describe('onboarding — three questions, and nothing that has to be answered', () => {
@@ -69,7 +75,7 @@ describe('onboarding — three questions, and nothing that has to be answered', 
     assert.equal(nameFrom('   '), null, 'whitespace is not a name');
     assert.equal(nameFrom('  Camille '), 'Camille', 'a real name still arrives trimmed');
 
-    const skipped = answersFrom({ name: '  ', ageConfirmed: true, motivation: null , tutorVoice: null });
+    const skipped = answersFrom({ name: '  ', ageConfirmed: true, motivation: null , tutorVoice: null, analyticsConsent: null });
     assert.equal(skipped.name, null, 'the assembled answers carry the skip, not an empty string');
     assert.equal(skipped.motivation, null, 'a question nobody is asked is null, never a reason invented for them');
 
@@ -160,12 +166,12 @@ describe('onboarding — three questions, and nothing that has to be answered', 
       assert.ok(index > voicePageAt, 'onboarding offers a list of options somewhere other than the voice step');
     }
 
-    const existing = createStoredProfile(answersFrom({ name: 'Ada', ageConfirmed: true, motivation: 'work' , tutorVoice: null }), NOW);
+    const existing = createStoredProfile(answersFrom({ name: 'Ada', ageConfirmed: true, motivation: 'work' , tutorVoice: null, analyticsConsent: null }), NOW);
     assert.equal(existing.motivation, 'work', 'the stored record stopped carrying the field at all');
 
     const reonboarded = completeProfile(
       existing,
-      answersFrom({ name: 'Ada', ageConfirmed: true, motivation: existing.motivation , tutorVoice: null }),
+      answersFrom({ name: 'Ada', ageConfirmed: true, motivation: existing.motivation , tutorVoice: null, analyticsConsent: null }),
       NOW,
     );
     assert.equal(reonboarded.motivation, 'work', 'walking the flow again threw away a stored answer');
@@ -320,7 +326,7 @@ describe('leaving onboarding — the journey, not the field', () => {
   test('a learner who skips their name is not sent back to page one', () => {
     // The trap: the name became optional, the guard still read the name, and the
     // learner was returned to onboarding on that launch and every launch after.
-    const stored = createStoredProfile(answersFrom({ name: '   ', ageConfirmed: true, motivation: null , tutorVoice: null }), NOW);
+    const stored = createStoredProfile(answersFrom({ name: '   ', ageConfirmed: true, motivation: null , tutorVoice: null, analyticsConsent: null }), NOW);
 
     assert.equal(stored.name, null, 'a skipped name is still stored as null, which is the honest value');
     assert.equal(
@@ -331,7 +337,7 @@ describe('leaving onboarding — the journey, not the field', () => {
   });
 
   test('a learner who gave their name is not asked again either', () => {
-    const stored = createStoredProfile(answersFrom({ name: 'Sam', ageConfirmed: true, motivation: 'trip' , tutorVoice: null }), NOW);
+    const stored = createStoredProfile(answersFrom({ name: 'Sam', ageConfirmed: true, motivation: 'trip' , tutorVoice: null, analyticsConsent: null }), NOW);
     assert.equal(needsOnboarding(stored), false);
   });
 
@@ -365,7 +371,7 @@ describe('leaving onboarding — the journey, not the field', () => {
     // re-onboard everybody, so this holds the rule from both ends: the people
     // who must never see it again, and the fact that the rule cannot see the
     // pages at all.
-    const finished = createStoredProfile(answersFrom({ name: 'Camille', ageConfirmed: true, motivation: null , tutorVoice: null }), NOW);
+    const finished = createStoredProfile(answersFrom({ name: 'Camille', ageConfirmed: true, motivation: null , tutorVoice: null, analyticsConsent: null }), NOW);
     assert.equal(needsOnboarding(finished), false, 'somebody who just finished the new flow is asked again');
 
     // The same record after a round trip through the pre-account upgrade path,
@@ -440,5 +446,181 @@ describe('the onboarding doc counts the screens the code shows', () => {
     // time to first French is F114's device pass, not a claim this repo may make.
     assert.match(DOC, /cannot be produced on the machine/, 'the doc stopped saying the stopwatch is not run here');
     assert.match(DOC, /F114/, 'the doc no longer names who owns the measurement it is standing in for');
+  });
+});
+
+/**
+ * The usage-data question: asked once, off to start with, and never asked of
+ * somebody who has already answered it. F472.
+ *
+ * The behaviour half is `answersFrom` and the pre-account draft, both of which
+ * are values a test can hold. The rest is glass and ordering, so it is read out
+ * of the three files that carry it, in this suite's own idiom. The ordering one
+ * matters most and is the least visible: an event that overtakes the write it
+ * depends on fails silently, for the learners who said yes and for nobody else.
+ */
+describe('the first run asks about usage data once, and off is the answer until they say otherwise — F472', () => {
+  test('the first run asks about usage data once, off by default, on the page that says what the app keeps', () => {
+    // Off to start with, on the record that crosses account creation. Opt-in
+    // rather than opt-out, because UK GDPR treats non-essential analytics as
+    // needing consent, and because a product teenagers use is held to high
+    // privacy by default.
+    assert.equal(freshPreAccountDraft().analyticsConsent, false, 'a brand-new device starts opted in');
+
+    // Once, and on the page that already says what Luvani keeps. Not a page of
+    // its own: a whole screen for a switch that starts off is a screen between
+    // a learner and their first French sentence, and the five pages are five.
+    assert.equal(
+      (PRE_ACCOUNT_FLOW.match(/<SwitchRow/g) ?? []).length,
+      1,
+      'the pre-account flow asks about usage data more than once, or not at all',
+    );
+    assert.match(
+      PRE_ACCOUNT_FLOW,
+      /PRE_ACCOUNT_PAGES = \['welcome', 'situations', 'life', 'voice', 'ready'\]/,
+      'the switch was given a page of its own, which is a screen bought with a learner’s time',
+    );
+
+    const ready = PRE_ACCOUNT_FLOW.indexOf("page === 'ready' &&");
+    const privacy = PRE_ACCOUNT_FLOW.indexOf('Learning history does not include raw audio by default.');
+    const row = PRE_ACCOUNT_FLOW.indexOf('<SwitchRow');
+    assert.ok(ready > 0 && privacy > ready, 'the privacy line is no longer on the ready page');
+    assert.ok(row > privacy, 'the switch is asked before the line that says what the app keeps, or on another page');
+
+    // The words are the module’s, not this screen’s. A row that spelled its
+    // own name would be a second place for the answer to be described, and the
+    // two would drift the first time one of them was edited.
+    for (const spelled of ['Share usage data', 'Never what you say', 'Off unless you turn it on']) {
+      assert.ok(!PRE_ACCOUNT_FLOW.includes(spelled), `the ready page retypes consent copy instead of importing it: ${spelled}`);
+    }
+    assert.match(PRE_ACCOUNT_FLOW, /title=\{CONSENT_ROW\}/, 'the row has no name a learner could read');
+    assert.match(PRE_ACCOUNT_FLOW, /sub=\{CONSENT_SUB\}/, 'the row never says what an event can and cannot carry');
+    assert.match(PRE_ACCOUNT_FLOW, /\{CONSENT_HINT\}/, 'nothing under the switch says where it starts or where to change it');
+    assert.equal(CONSENT_ROW.length > 0 && CONSENT_SUB.length > 0 && CONSENT_HINT.length > 0, true);
+
+    // The switch is a control, and the title beside it is drawn as text rather
+    // than bound to it, so the label has to be given.
+    assert.match(
+      PRE_ACCOUNT_FLOW,
+      /accessibilityLabel=\{CONSENT_ROW\}/,
+      'the switch is unnamed to assistive tech, so it announces as a toggle with no subject',
+    );
+
+    // And the flip goes out through the same door the voice does, so an answer
+    // given here survives the app being closed before the account exists.
+    assert.match(PRE_ACCOUNT_FLOW, /value=\{draft\.analyticsConsent\}/, 'the switch draws something other than the draft');
+    assert.match(PRE_ACCOUNT_FLOW, /onChange=\{setConsent\}/, 'the switch is not wired to anything');
+    const setter = PRE_ACCOUNT_FLOW.slice(PRE_ACCOUNT_FLOW.indexOf('const setConsent'));
+    assert.match(setter.slice(0, 400), /onDraftChange\(next\)/, 'a flip is kept in memory and never handed to the draft');
+  });
+
+  test('the draft carries the answer and a missing one reads as no', async () => {
+    // The consent is given before there is an account to key it to, so it rides
+    // the pre-account draft across sign-up. The version stays at 1 on purpose:
+    // a blob written before the question existed is a learner nobody asked, and
+    // an absence repairs forward to false rather than throwing away a perfectly
+    // good voice and age answer.
+    const map = new Map<string, string>();
+    const shared = AsyncStorage as unknown as Record<string, unknown>;
+    shared.getItem = (key: string): Promise<string | null> => Promise.resolve(map.get(key) ?? null);
+    shared.setItem = (key: string, value: string): Promise<void> => {
+      map.set(key, value);
+      return Promise.resolve();
+    };
+    const KEY = '@luvani/pre-account-onboarding/v1';
+    const stored = (extra: object) => JSON.stringify({ version: 1, ageConfirmed: true, tutorVoice: 'luc', ...extra });
+
+    map.set(KEY, stored({}));
+    assert.equal((await loadPreAccountDraft())?.analyticsConsent, false, 'a draft from before the question read as a yes');
+
+    map.set(KEY, stored({ analyticsConsent: true }));
+    assert.equal((await loadPreAccountDraft())?.analyticsConsent, true, 'a learner who said yes was carried across as a no');
+
+    map.set(KEY, stored({ analyticsConsent: false }));
+    assert.equal((await loadPreAccountDraft())?.analyticsConsent, false, 'a learner who said no was carried across as a yes');
+
+    // Only a literal true is agreement. Everything else a disk can hand back in
+    // that slot is somebody who did not say yes.
+    for (const junk of ['true', 1, null, {}, []]) {
+      map.set(KEY, stored({ analyticsConsent: junk }));
+      assert.equal((await loadPreAccountDraft())?.analyticsConsent, false, `read as agreement: ${JSON.stringify(junk)}`);
+    }
+
+    // And on the other path, the recovery flow's answers carry it out whole.
+    // False is a switch left where it starts, not a question nobody asked, and
+    // turning one into the other is what the third state exists to prevent.
+    const base = { name: 'Ada', ageConfirmed: true, motivation: null, tutorVoice: null };
+    assert.equal(answersFrom({ ...base, analyticsConsent: false }).analyticsConsent, false, 'a no became something else');
+    assert.equal(answersFrom({ ...base, analyticsConsent: true }).analyticsConsent, true, 'a yes did not survive the hand-off');
+    assert.equal(answersFrom({ ...base, analyticsConsent: null }).analyticsConsent, null, 'a page that did not ask invented an answer');
+  });
+
+  test('the answer is written before the completion event is sent', async () => {
+    // The whole reason `onboarding_completed` left the flow. Every product
+    // event reads the stored consent at the moment it is sent, so an event that
+    // overtakes the write is dropped, and the only learners it is dropped for
+    // are the ones who had just agreed to be counted. There is no error and no
+    // retry: the funnel simply under-reports the people who said yes.
+    assert.ok(!FLOW.includes('trackProductEvent'), 'the flow sends the completion event itself again, ahead of the write');
+    assert.ok(!FLOW.includes('analytics/track'), 'the flow still reaches for the analytics door');
+    assert.match(APP, /import \{ trackProductEvent \} from '\.\/src\/analytics\/track\.ts'/, 'nothing sends the completion event');
+    assert.match(APP, /import \{ saveConsent \} from '\.\/src\/analytics\/consentStore\.ts'/, 'nothing writes the answer down');
+    assert.equal(
+      (APP.match(/onboarding_completed/g) ?? []).length,
+      1,
+      'the completion event is sent from more than one place, so one of them is unordered',
+    );
+
+    // The pre-account path: the answer is on the disk before `done` releases
+    // the app, so nothing a learner does in the next seconds is counted against
+    // an answer that has not landed.
+    const preWrite = APP.indexOf('await saveConsent({ allowed: draft.analyticsConsent })');
+    const release = APP.indexOf('done(withChosenVoice(built, draft.tutorVoice))');
+    assert.ok(preWrite > 0, 'the pre-account bootstrap never writes the usage-data answer');
+    assert.ok(release > preWrite, 'the app is released before the answer reaches the disk');
+
+    // The recovery path: the write is awaited, and the event follows it.
+    const write = APP.indexOf('await saveConsent({ allowed: answers.analyticsConsent })');
+    const event = APP.indexOf("name: 'onboarding_completed'");
+    assert.ok(write > 0, 'the flow’s answers are never written to the consent store');
+    assert.ok(event > write, 'the completion event is sent before the answer it is gated on reaches the disk');
+    assert.match(
+      APP,
+      /personalisedGreeting: answers\.name !== null/,
+      'the event reports a greeting from something other than the name it was given',
+    );
+  });
+
+  test('a learner who already answered is not asked again', () => {
+    // One switch, drawn only for a learner with no record at all. Anyone else
+    // answered this on their own first run, or in Settings, and owns it there.
+    // A flow they were sent back through by some unrelated new question has no
+    // business taking the answer again, and no business writing one.
+    assert.equal((FLOW.match(/<SwitchRow/g) ?? []).length, 1, 'the recovery flow asks twice, or never');
+    const gate = FLOW.indexOf('{existing === null && (');
+    const row = FLOW.indexOf('<SwitchRow');
+    const voicePage = FLOW.indexOf("{page === 'voice' && (");
+    assert.ok(gate > 0, 'the switch is drawn for everybody, including the learners who already answered');
+    assert.ok(row > gate, 'the switch sits outside the guard that decides who is asked');
+    assert.ok(voicePage > row, 'the switch left the Meet page, so it is no longer under the lines about what is kept');
+
+    // The value has to agree with the render, or the screen asks nothing while
+    // the answers still say no. Null from the start for anyone with a record.
+    assert.match(
+      FLOW,
+      /useState<boolean \| null>\(existing === null \? false : null\)/,
+      'a learner who is never asked still leaves with a false, which withdraws a consent they gave elsewhere',
+    );
+    assert.match(FLOW, /analyticsConsent,/, 'the flow hands its answers back without the usage-data answer');
+
+    // Null travels all the way. `answersFrom` keeps it, and App.tsx writes
+    // nothing for it.
+    const untouched = answersFrom({ name: 'Ada', ageConfirmed: true, motivation: null, tutorVoice: null, analyticsConsent: null });
+    assert.equal(untouched.analyticsConsent, null, 'a question nobody was asked became an answer on their behalf');
+    assert.match(
+      APP,
+      /if \(answers\.analyticsConsent !== null\) await saveConsent/,
+      'App.tsx writes a consent for a page that never asked, which is how a stored yes is silently withdrawn',
+    );
   });
 });

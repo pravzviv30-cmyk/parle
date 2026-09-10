@@ -1,10 +1,15 @@
 /**
- * Acknowledgements — the one legal screen that can be honest today.
+ * Acknowledgements — the licences other people's work is used under.
  *
- * Terms and a privacy policy are content someone has to write and have
- * reviewed; this app has neither, and inventing them here would be worse than
- * their absence. What the repo DOES hold is two real font licences that
- * genuinely have to be reproduced, so those are reproduced.
+ * This used to be the only legal screen the app could honestly draw, because
+ * terms and a privacy policy were content nobody had written. Both exist now
+ * and both are drawn from data: `legal/policy.ts` carries the privacy notice,
+ * assembled from docs/PRIVACY_AND_SAFETY.md, and `legal/terms.ts` names Apple's
+ * standard licence rather than reproducing a document that is theirs. Neither
+ * has been read by a lawyer, and both keep saying so.
+ *
+ * What is left here is the thing those two do not cover: real font and library
+ * licences that genuinely have to be reproduced, so those are reproduced.
  *
  * The licence text is committed alongside the fonts. It is repeated here as a
  * short attribution plus the licence name rather than the full body, which is
