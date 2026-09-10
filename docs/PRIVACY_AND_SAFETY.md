@@ -265,7 +265,7 @@ at Settings for the rest, which is what `MEET_MORE` says.
 
 ## Analytics: consent, opt-out and retention
 
-Luvani records five events. They exist so product decisions are made on evidence
+Luvani records ten events. They exist so product decisions are made on evidence
 rather than on the loudest opinion in the room, and they are content-free by
 construction, not by good intentions.
 

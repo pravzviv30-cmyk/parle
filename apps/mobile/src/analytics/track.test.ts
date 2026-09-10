@@ -320,3 +320,39 @@ describe('pointing at the privacy document — F486', () => {
     }
   });
 });
+
+describe("the subscription wall's events carry no learner content", () => {
+  /** The five variants the wall added, as the union declares them. */
+  const WALL_EVENTS = ['wall_shown', 'wall_page_seen', 'plan_selected', 'purchase_started', 'purchase_settled'] as const;
+
+  test('every wall property is a closed set or a small number, never a free string', () => {
+    for (const event of WALL_EVENTS) {
+      const line = UNION.split('\n').find((l) => l.includes(`name: '${event}'`));
+      assert.ok(line, `ProductEvent has no '${event}' variant`);
+      const block = /properties: \{([^}]*)\}/.exec(line)?.[1];
+      assert.ok(block, `the '${event}' variant declares no properties block`);
+
+      for (const part of block.split(';').map((piece) => piece.trim()).filter(Boolean)) {
+        const [name, declared] = part.split(':').map((piece) => piece.trim());
+        // `string` is the only thing that could carry a phrase, a situation title or
+        // anything a learner typed. A monetisation surface is exactly where somebody
+        // would reach for one to make a funnel richer, so the type refuses it and
+        // this refuses the type. `number` is bounded by the parser and the trigger.
+        assert.notEqual(declared, 'string', `${event}.${name} is a free string`);
+        assert.ok(
+          declared === 'number' || /^'[^']+'( \| '[^']+')*$/.test(declared ?? ''),
+          `${event}.${name} is neither a number nor a closed set of literals: ${declared}`,
+        );
+      }
+    }
+  });
+
+  test('no purchase event can name the free trial, because a trial is not something anybody buys', () => {
+    for (const event of ['plan_selected', 'purchase_started', 'purchase_settled'] as const) {
+      const line = UNION.split('\n').find((l) => l.includes(`name: '${event}'`));
+      assert.ok(line);
+      assert.match(line, /plan: 'starter' \| 'regular'/, `${event} does not name the two paid tiers exactly`);
+      assert.doesNotMatch(line, /'trial'/, `${event} can report the trial as a purchase`);
+    }
+  });
+});

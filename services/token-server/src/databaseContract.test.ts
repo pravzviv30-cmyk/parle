@@ -71,6 +71,11 @@ const PRODUCT_EVENTS = [
   'mission_completed',
   'sound_check_completed',
   'my_french_opened',
+  'wall_shown',
+  'wall_page_seen',
+  'plan_selected',
+  'purchase_started',
+  'purchase_settled',
 ] as const;
 
 /** The token server's own copy of the allowlist, read as source rather than executed. */

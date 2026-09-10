@@ -72,13 +72,14 @@ describe('the privacy notice — F479', () => {
   });
 
   test('the policy says only what the privacy document says is true', () => {
-    // The five events. The count is in the notice, so it is read off the union
-    // rather than trusted: the day a sixth event lands, this fails instead of
-    // the notice quietly becoming untrue.
+    // The ten events. The count is in the notice, so it is read off the union
+    // rather than trusted: the day an eleventh event lands, this fails instead of
+    // the notice quietly becoming untrue. It has already earned its keep once, when
+    // the subscription wall took the count from five to ten.
     const union = readFileSync(`${HERE}../analytics/track.ts`, 'utf8');
-    assert.equal((union.match(/\| \{ name: '/g) ?? []).length, 5, 'ProductEvent no longer declares five events');
-    assert.match(WHOLE, /record five plain events/, 'the notice stopped naming how many events there are');
-    assert.match(DOC, /Luvani records five events/, 'the document no longer says five, so the notice is guessing');
+    assert.equal((union.match(/\| \{ name: '/g) ?? []).length, 10, 'ProductEvent no longer declares ten events');
+    assert.match(WHOLE, /record ten plain events/, 'the notice stopped naming how many events there are');
+    assert.match(DOC, /Luvani records ten events/, 'the document no longer says ten, so the notice is guessing');
 
     // Speech. The strongest sentence in the notice, and the one most worth
     // holding to the document word for word.

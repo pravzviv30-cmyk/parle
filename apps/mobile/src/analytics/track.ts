@@ -5,7 +5,7 @@ import { analyticsAllowed } from './consent.ts';
 import { loadConsent } from './consentStore.ts';
 
 /**
- * The five events, and every property any of them may carry.
+ * The ten events, and every property any of them may carry.
  *
  * This union is the allowlist. There is no free-text property and no `unknown`
  * escape hatch, so learner content cannot reach analytics by accident: it would
@@ -23,7 +23,18 @@ export type ProductEvent =
   | { name: 'mission_started'; properties: { missionId: string; entry: 'chooser' | 'home' | 'my-french' } }
   | { name: 'mission_completed'; properties: { missionId: string; rung: number } }
   | { name: 'sound_check_completed'; properties: { missionId: string; kind: SoundCheckKind } }
-  | { name: 'my_french_opened'; properties: { situationsDone: number; linesKept: number } };
+  | { name: 'my_french_opened'; properties: { situationsDone: number; linesKept: number } }
+  // The subscription wall. `pages` rides with `wall_shown` because the page list is
+  // computed per showing, so a drop-off at index 2 means nothing without knowing how
+  // many there were. Nothing here names a phrase, a situation or a price: `plan` is
+  // our own tier id, and `outcome` is the same closed set restore.ts already answers
+  // with. A monetisation surface nobody can measure is a surface nobody can improve,
+  // and this is the smallest set that answers "which page lost them".
+  | { name: 'wall_shown'; properties: { entry: 'path-complete' | 'refused' | 'settings' | 'recap'; pages: number } }
+  | { name: 'wall_page_seen'; properties: { page: 'map' | 'french' | 'yours' | 'plans'; index: number } }
+  | { name: 'plan_selected'; properties: { plan: 'starter' | 'regular' } }
+  | { name: 'purchase_started'; properties: { plan: 'starter' | 'regular' } }
+  | { name: 'purchase_settled'; properties: { plan: 'starter' | 'regular'; outcome: 'done' | 'nothing-granted' | 'cancelled' | 'store-trouble' | 'refresh-trouble' } };
 
 /**
  * Fire-and-forget product evidence. No content fields exist in the type.

@@ -152,7 +152,7 @@ export function policySections(facts: CompanyFacts = COMPANY): readonly PolicySe
     {
       heading: 'Usage data, and your choice',
       body: [
-        'Luvani can record five plain events, such as a situation being finished. They carry no free text and nothing you said, and two separate checks refuse anything that is not on that short list.',
+        'Luvani can record ten plain events, such as a situation being finished or a subscription page being opened. They carry no free text and nothing you said, and two separate checks refuse anything that is not on that short list.',
         'They are off unless you turn them on. The switch is in Settings, you can change it whenever you like, and nothing in the app works differently either way.',
         'Turning the switch off stops anything new being recorded. It does not reach backwards: deleting your account is what removes what was recorded before.',
       ],

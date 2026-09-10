@@ -7723,3 +7723,31 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   reads, it is the same object the refusal carries so the two cannot disagree, and `plansIn` already
   validates that shape at the door.
 - verified-by: `the grant carries the plan catalogue, so a learner need not be refused to learn the price`
+
+### F515 — A monetisation surface with no events is a surface nobody can improve
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/analytics/track.ts:22
+- note: `ProductEvent` was a closed five-event union with nothing about purchases or the paywall
+  in it, so the subscription wall would have shipped unable to answer the only question it exists
+  to answer: which page lost them. Five events added: `wall_shown` carrying the entry point and
+  the computed page count, `wall_page_seen`, `plan_selected`, `purchase_started` and
+  `purchase_settled` carrying the same closed outcome set `restore.ts` answers with. `pages` rides
+  with `wall_shown` because the page list is computed per showing, so a drop-off at index two says
+  nothing without knowing how many there were.
+  Three layers had to move together, as the union's own comment says: the union, `parseProductEvent`
+  in the token server, and the `validate_product_event` trigger in PostgreSQL, the last as migration
+  14 with an interlocked rollback. Landing fewer than three is invisible rather than loud, because
+  the server turns a rejected write into a 500 and the client swallows it by design.
+  Nothing here can carry learner content, and that is held rather than intended: a test reads the
+  union and refuses `string` on any wall property, because a funnel is exactly where somebody
+  reaches for a free string to make a report richer. The privacy notice's event count moved from
+  five to ten in the same change, and the hosted page was regenerated from the module.
+- verified-by: `every wall property is a closed set or a small number, never a free string`
+- verified-by: `no purchase event can name the free trial, because a trial is not something anybody buys`
+- verified-by: `the parser and the trigger require the same properties for every product event`
+- verified-by: `the policy says only what the privacy document says is true`
+- verified-by: `the gate fails when the committed html no longer matches the module`
+- verified-by: `every migration ships a rollback that names each object it created`
+- verified-by: `the supabase runbook applies every migration in order and pairs each with its rollback`
+- verified-by: `the outstanding schema instruction names every migration in the runbook`

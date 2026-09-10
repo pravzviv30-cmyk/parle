@@ -13,6 +13,11 @@ function missionId(value: unknown): value is string {
   return typeof value === 'string' && /^[a-zA-Z0-9:._-]{1,64}$/.test(value);
 }
 
+/** A tier somebody can actually buy. The trial is not one, and never rides a purchase event. */
+function paidPlan(value: unknown): value is 'starter' | 'regular' {
+  return value === 'starter' || value === 'regular';
+}
+
 function nonNegativeCount(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 100_000;
 }
@@ -51,6 +56,30 @@ export function parseProductEvent(value: unknown): ProductEvent | null {
   } else if (candidate.name === 'my_french_opened') {
     if (!exactKeys(properties, ['situationsDone', 'linesKept'])) return null;
     if (!nonNegativeCount(properties.situationsDone) || !nonNegativeCount(properties.linesKept)) return null;
+  } else if (candidate.name === 'wall_shown') {
+    if (!exactKeys(properties, ['entry', 'pages'])) return null;
+    if (
+      !['path-complete', 'refused', 'settings', 'recap'].includes(String(properties.entry)) ||
+      !nonNegativeCount(properties.pages)
+    ) return null;
+  } else if (candidate.name === 'wall_page_seen') {
+    if (!exactKeys(properties, ['page', 'index'])) return null;
+    if (
+      !['map', 'french', 'yours', 'plans'].includes(String(properties.page)) ||
+      !nonNegativeCount(properties.index)
+    ) return null;
+  } else if (candidate.name === 'plan_selected') {
+    if (!exactKeys(properties, ['plan'])) return null;
+    if (!paidPlan(properties.plan)) return null;
+  } else if (candidate.name === 'purchase_started') {
+    if (!exactKeys(properties, ['plan'])) return null;
+    if (!paidPlan(properties.plan)) return null;
+  } else if (candidate.name === 'purchase_settled') {
+    if (!exactKeys(properties, ['plan', 'outcome'])) return null;
+    if (
+      !paidPlan(properties.plan) ||
+      !['done', 'nothing-granted', 'cancelled', 'store-trouble', 'refresh-trouble'].includes(String(properties.outcome))
+    ) return null;
   } else {
     return null;
   }
