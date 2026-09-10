@@ -33,12 +33,13 @@
 
 ## Relationships
 
-- [Safety Content Policy](Safety_Content_Policy.md) (3 shared connections)
-- [Conversation Session Management](Conversation_Session_Management.md) (2 shared connections)
-- [Tutor Session Control](Tutor_Session_Control.md) (2 shared connections)
-- [Safety Output Guard](Safety_Output_Guard.md) (2 shared connections)
-- [Conversation Pack Reporting](Conversation_Pack_Reporting.md) (1 shared connections)
-- [Content Safety Rules](Content_Safety_Rules.md) (1 shared connections)
+- [Safety Policy Categories](Safety_Policy_Categories.md) (3 shared connections)
+- [Tutor Conversation Orchestration](Tutor_Conversation_Orchestration.md) (2 shared connections)
+- [Minor Safety Signal Rules](Minor_Safety_Signal_Rules.md) (2 shared connections)
+- [Tutor Core Class](Tutor_Core_Class.md) (1 shared connections)
+- [Conversation Packs](Conversation_Packs.md) (1 shared connections)
+- [Tutor Turn Queue](Tutor_Turn_Queue.md) (1 shared connections)
+- [Safety Content Rules](Safety_Content_Rules.md) (1 shared connections)
 
 ## Source Files
 

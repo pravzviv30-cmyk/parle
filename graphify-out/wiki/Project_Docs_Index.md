@@ -21,18 +21,18 @@
 
 ## Relationships
 
-- [Architecture Overview](Architecture_Overview.md) (1 shared connections)
-- [Device Verification & Mockup Passes](Device_Verification_&_Mockup_Passes.md) (1 shared connections)
-- [Forge Workflow Docs](Forge_Workflow_Docs.md) (1 shared connections)
+- [Architecture Documentation](Architecture_Documentation.md) (1 shared connections)
+- [Device Verification Scenarios](Device_Verification_Scenarios.md) (1 shared connections)
+- [Forge Loop Doc](Forge_Loop_Doc.md) (1 shared connections)
 - [Known Issues Ledger](Known_Issues_Ledger.md) (1 shared connections)
-- [Forge Workflow Overview](Forge_Workflow_Overview.md) (1 shared connections)
+- [Bug Loop Documentation](Bug_Loop_Documentation.md) (1 shared connections)
 - [Onboarding Documentation](Onboarding_Documentation.md) (1 shared connections)
-- [Privacy & Safety Docs](Privacy_&_Safety_Docs.md) (1 shared connections)
-- [Live Voice Docs](Live_Voice_Docs.md) (1 shared connections)
-- [Tutor Brain Spec](Tutor_Brain_Spec.md) (1 shared connections)
-- [Pedagogy Docs](Pedagogy_Docs.md) (1 shared connections)
-- [Testing Guide](Testing_Guide.md) (1 shared connections)
-- [Legal Pages Hosting](Legal_Pages_Hosting.md) (1 shared connections)
+- [Privacy & Safety Doc](Privacy_&_Safety_Doc.md) (1 shared connections)
+- [Live Voice Doc](Live_Voice_Doc.md) (1 shared connections)
+- [Tutor Brain Documentation](Tutor_Brain_Documentation.md) (1 shared connections)
+- [Pedagogy Doc](Pedagogy_Doc.md) (1 shared connections)
+- [Testing Documentation](Testing_Documentation.md) (1 shared connections)
+- [Legal Hosting Doc](Legal_Hosting_Doc.md) (1 shared connections)
 
 ## Source Files
 

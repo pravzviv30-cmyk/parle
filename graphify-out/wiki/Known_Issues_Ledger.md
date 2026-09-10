@@ -1,10 +1,10 @@
 # Known Issues Ledger
 
-> 558 nodes · cohesion 0.00
+> 567 nodes · cohesion 0.00
 
 ## Key Concepts
 
-- **Format** (558 connections) — `docs/KNOWN_ISSUES.md`
+- **Format** (567 connections) — `docs/KNOWN_ISSUES.md`
 - **A1 — A spoken answer has to match the script exactly** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **A2 — An empty transcript is graded as a wrong answer** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **A3 — A freeze at the top rung still asks the learner to invent French** (1 connections) — `docs/KNOWN_ISSUES.md`
@@ -29,7 +29,7 @@
 - **E2 — A dead voice key blocks the two modes that need no voice** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **E3 — The French tutor spoke with an American voice, and every check passed** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **E4 — A delivery knob could change what the vendor was asked for while the cache replayed the old answer** (1 connections) — `docs/KNOWN_ISSUES.md`
-- *... and 533 more nodes in this community*
+- *... and 542 more nodes in this community*
 
 ## Relationships
 
@@ -41,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 558 (100%)
+- EXTRACTED: 567 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

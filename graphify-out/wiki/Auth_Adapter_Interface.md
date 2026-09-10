@@ -31,17 +31,17 @@
 
 ## Relationships
 
-- [OAuth Sign-In Adapters](OAuth_Sign-In_Adapters.md) (7 shared connections)
-- [Consent Storage](Consent_Storage.md) (4 shared connections)
-- [Conversation Packs Storage](Conversation_Packs_Storage.md) (3 shared connections)
-- [Auth Mode Selection](Auth_Mode_Selection.md) (2 shared connections)
-- [Guarded Auth Attempts](Guarded_Auth_Attempts.md) (2 shared connections)
-- [Auth Flow Screens](Auth_Flow_Screens.md) (2 shared connections)
-- [Token Server URL Config](Token_Server_URL_Config.md) (2 shared connections)
+- [Auth Adapter & Mode](Auth_Adapter_&_Mode.md) (8 shared connections)
+- [Consent Store](Consent_Store.md) (4 shared connections)
+- [Conversation Pack Sync](Conversation_Pack_Sync.md) (3 shared connections)
+- [Auth Guard Wrapper](Auth_Guard_Wrapper.md) (2 shared connections)
+- [App Root Context](App_Root_Context.md) (2 shared connections)
+- [Token Server URL Selection](Token_Server_URL_Selection.md) (2 shared connections)
 - [Settings Sections](Settings_Sections.md) (2 shared connections)
-- [UI Components Library](UI_Components_Library.md) (2 shared connections)
+- [UI Component Library](UI_Component_Library.md) (2 shared connections)
+- [Mock Auth Adapter](Mock_Auth_Adapter.md) (1 shared connections)
 - [Phone Settings Links](Phone_Settings_Links.md) (1 shared connections)
-- [App Root and Live Context](App_Root_and_Live_Context.md) (1 shared connections)
+- [Conversation Pack Library UI](Conversation_Pack_Library_UI.md) (1 shared connections)
 
 ## Source Files
 

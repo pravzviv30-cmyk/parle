@@ -2,7 +2,7 @@
 
 > God node · 81 connections · `apps/mobile/src/palette.ts`
 
-**Community:** [UI Components Library](UI_Components_Library.md)
+**Community:** [UI Component Library](UI_Component_Library.md)
 
 ## Connections by Relation
 

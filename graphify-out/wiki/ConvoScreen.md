@@ -2,7 +2,7 @@
 
 > God node · 47 connections · `apps/mobile/src/ConvoScreen.tsx`
 
-**Community:** [Conversation Screen Connecting](Conversation_Screen_Connecting.md)
+**Community:** [Conversation Screen UI](Conversation_Screen_UI.md)
 
 ## Connections by Relation
 

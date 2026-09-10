@@ -1,6 +1,6 @@
 # Company Legal Facts
 
-> 36 nodes · cohesion 0.11
+> 33 nodes · cohesion 0.11
 
 ## Key Concepts
 
@@ -8,11 +8,8 @@
 - **company.ts** (18 connections) — `apps/mobile/src/legal/company.ts`
 - **legal/policy.ts** (18 connections) — `apps/mobile/src/legal/policy.ts`
 - **company.test.ts** (13 connections) — `apps/mobile/src/legal/company.test.ts`
-- **companyLine()** (8 connections) — `apps/mobile/src/legal/company.ts`
-- **contactRow** (8 connections) — `apps/mobile/src/legal/company.ts`
 - **terms.ts** (8 connections) — `apps/mobile/src/legal/terms.ts`
 - **companyFrom()** (7 connections) — `apps/mobile/src/legal/company.ts`
-- **policySections()** (7 connections) — `apps/mobile/src/legal/policy.ts`
 - **privacyNote()** (6 connections) — `apps/mobile/src/legal/company.ts`
 - **LEGAL_REVIEW_PENDING** (5 connections) — `apps/mobile/src/legal/company.ts`
 - **POLICY_INTRO** (5 connections) — `apps/mobile/src/legal/policy.ts`
@@ -29,16 +26,19 @@
 - **CONTACT_ROW** (2 connections) — `apps/mobile/src/legal/company.ts`
 - **facts()** (2 connections) — `apps/mobile/src/legal/company.test.ts`
 - **POLICY_COPY** (2 connections) — `apps/mobile/src/legal/policy.ts`
-- *... and 11 more nodes in this community*
+- **TERMS_COPY** (2 connections) — `apps/mobile/src/legal/terms.ts`
+- **TERMS_LINK_LABEL** (2 connections) — `apps/mobile/src/legal/terms.ts`
+- **PLACEHOLDERS** (1 connections) — `apps/mobile/src/legal/company.ts`
+- *... and 8 more nodes in this community*
 
 ## Relationships
 
-- [Legal Pages HTML](Legal_Pages_HTML.md) (17 shared connections)
-- [UI Components Library](UI_Components_Library.md) (9 shared connections)
-- [Settings Sections](Settings_Sections.md) (6 shared connections)
-- [Onboarding First Run](Onboarding_First_Run.md) (5 shared connections)
-- [Guilt-Free Copy Rules](Guilt-Free_Copy_Rules.md) (4 shared connections)
-- [Phone Settings Links](Phone_Settings_Links.md) (3 shared connections)
+- [Legal Pages Generator](Legal_Pages_Generator.md) (20 shared connections)
+- [Conversation Pack Library UI](Conversation_Pack_Library_UI.md) (9 shared connections)
+- [First-Run Disclosure Copy](First-Run_Disclosure_Copy.md) (5 shared connections)
+- [Settings Sections](Settings_Sections.md) (4 shared connections)
+- [Auth Copy Guilt-Free Messaging](Auth_Copy_Guilt-Free_Messaging.md) (4 shared connections)
+- [Phone Settings Links](Phone_Settings_Links.md) (1 shared connections)
 
 ## Source Files
 
@@ -50,7 +50,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 113 (100%)
+- EXTRACTED: 101 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

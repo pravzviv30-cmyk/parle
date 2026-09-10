@@ -9,7 +9,7 @@
 
 ## Relationships
 
-- [Mobile App Dependencies](Mobile_App_Dependencies.md) (1 shared connections)
+- [Mobile Native Dependencies](Mobile_Native_Dependencies.md) (1 shared connections)
 
 ## Source Files
 

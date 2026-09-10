@@ -30,16 +30,16 @@
 
 - [Settings Sections](Settings_Sections.md) (7 shared connections)
 - [Phone Permission Rows](Phone_Permission_Rows.md) (5 shared connections)
-- [UI Components Library](UI_Components_Library.md) (3 shared connections)
-- [Company Legal Facts](Company_Legal_Facts.md) (3 shared connections)
-- [Purchases Adapter](Purchases_Adapter.md) (3 shared connections)
-- [Consent Storage](Consent_Storage.md) (2 shared connections)
-- [Auth Flow Screens](Auth_Flow_Screens.md) (1 shared connections)
-- [Reminder Scheduling](Reminder_Scheduling.md) (1 shared connections)
-- [Consent and Analytics](Consent_and_Analytics.md) (1 shared connections)
-- [App Version Utilities](App_Version_Utilities.md) (1 shared connections)
+- [Conversation Pack Library UI](Conversation_Pack_Library_UI.md) (3 shared connections)
+- [Consent Store](Consent_Store.md) (2 shared connections)
+- [Legal Pages Generator](Legal_Pages_Generator.md) (2 shared connections)
+- [Paywall Purchase View](Paywall_Purchase_View.md) (2 shared connections)
+- [App Root Context](App_Root_Context.md) (1 shared connections)
+- [Daily Goal Tracking](Daily_Goal_Tracking.md) (1 shared connections)
+- [Consent Analytics Tracking](Consent_Analytics_Tracking.md) (1 shared connections)
+- [App Version Parsing](App_Version_Parsing.md) (1 shared connections)
+- [Purchases Adapter](Purchases_Adapter.md) (1 shared connections)
 - [Auth Adapter Interface](Auth_Adapter_Interface.md) (1 shared connections)
-- [Drill Screen Views](Drill_Screen_Views.md) (1 shared connections)
 
 ## Source Files
 

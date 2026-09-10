@@ -2,7 +2,7 @@
 
 > God node · 49 connections · `packages/core/src/review/scheduler.ts`
 
-**Community:** [Review Evidence Tracking](Review_Evidence_Tracking.md)
+**Community:** [Review Mastery Evidence](Review_Mastery_Evidence.md)
 
 ## Connections by Relation
 

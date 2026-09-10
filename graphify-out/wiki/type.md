@@ -2,7 +2,7 @@
 
 > God node · 64 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [UI Components Library](UI_Components_Library.md)
+**Community:** [UI Component Library](UI_Component_Library.md)
 
 ## Connections by Relation
 

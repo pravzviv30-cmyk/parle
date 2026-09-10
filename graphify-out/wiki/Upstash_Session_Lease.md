@@ -1,13 +1,12 @@
 # Upstash Session Lease
 
-> 32 nodes · cohesion 0.13
+> 31 nodes · cohesion 0.13
 
 ## Key Concepts
 
 - **upstashLive.ts** (29 connections) — `services/token-server/src/verify/upstashLive.ts`
 - **upstashLive.test.ts** (14 connections) — `services/token-server/src/verify/upstashLive.test.ts`
 - **runUpstashVerification()** (12 connections) — `services/token-server/src/verify/upstashLive.ts`
-- **privateSignal()** (9 connections) — `services/token-server/src/rateLimit.ts`
 - **UpstashSessionLeaseStore** (8 connections) — `services/token-server/src/rateLimit.ts`
 - **main()** (6 connections) — `services/token-server/src/verify/upstashLive.ts`
 - **startInstance()** (5 connections) — `services/token-server/src/verify/upstashLive.ts`
@@ -29,13 +28,13 @@
 - **expect()** (2 connections) — `services/token-server/src/verify/upstashLive.ts`
 - **freePort()** (2 connections) — `services/token-server/src/verify/upstashLive.ts`
 - **timed()** (2 connections) — `services/token-server/src/verify/upstashLive.ts`
-- *... and 7 more nodes in this community*
+- **.constructor()** (1 connections) — `services/token-server/src/rateLimit.ts`
+- *... and 6 more nodes in this community*
 
 ## Relationships
 
-- [Rate Limiting](Rate_Limiting.md) (10 shared connections)
-- [Account Deletion and Export](Account_Deletion_and_Export.md) (3 shared connections)
-- [Gate Evidence Ledger](Gate_Evidence_Ledger.md) (3 shared connections)
+- [Rate Limiting Session Lease](Rate_Limiting_Session_Lease.md) (10 shared connections)
+- [Gate Ledger Contract](Gate_Ledger_Contract.md) (3 shared connections)
 
 ## Source Files
 
@@ -45,7 +44,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 77 (97%)
+- EXTRACTED: 71 (97%)
 - INFERRED: 2 (3%)
 - AMBIGUOUS: 0 (0%)
 

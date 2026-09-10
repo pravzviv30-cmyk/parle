@@ -34,8 +34,8 @@
 ## Relationships
 
 - [Supabase Live Checks](Supabase_Live_Checks.md) (2 shared connections)
-- [Session Metering and Plans](Session_Metering_and_Plans.md) (1 shared connections)
-- [Onboarding First Run](Onboarding_First_Run.md) (1 shared connections)
+- [Session Metering Plans](Session_Metering_Plans.md) (1 shared connections)
+- [Mission Tint Acoustic Model](Mission_Tint_Acoustic_Model.md) (1 shared connections)
 
 ## Source Files
 

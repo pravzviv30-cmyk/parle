@@ -1,13 +1,12 @@
 # TTS Warm Cache
 
-> 18 nodes · cohesion 0.22
+> 17 nodes · cohesion 0.24
 
 ## Key Concepts
 
 - **warmCache.ts** (21 connections) — `services/tutor-agent/src/warmCache.ts`
 - **warmPlan.ts** (14 connections) — `services/tutor-agent/src/warmPlan.ts`
 - **warmPlan.test.ts** (12 connections) — `services/tutor-agent/src/warmPlan.test.ts`
-- **buildTTS()** (9 connections) — `services/tutor-agent/src/voice.ts`
 - **main()** (7 connections) — `services/tutor-agent/src/warmCache.ts`
 - **voicesToWarm()** (6 connections) — `services/tutor-agent/src/warmPlan.ts`
 - **warmVoice()** (4 connections) — `services/tutor-agent/src/warmCache.ts`
@@ -25,27 +24,26 @@
 
 ## Relationships
 
-- [Agent Preflight Checks](Agent_Preflight_Checks.md) (7 shared connections)
-- [Pre-Account Draft](Pre-Account_Draft.md) (6 shared connections)
-- [Conversation Pack Reporting](Conversation_Pack_Reporting.md) (3 shared connections)
-- [TTS Caching](TTS_Caching.md) (3 shared connections)
-- [Consent and Analytics](Consent_and_Analytics.md) (3 shared connections)
-- [Brain Schema Definitions](Brain_Schema_Definitions.md) (3 shared connections)
-- [Onboarding First Run](Onboarding_First_Run.md) (3 shared connections)
-- [Turn Timing Instrumentation](Turn_Timing_Instrumentation.md) (1 shared connections)
-- [Lesson Definitions](Lesson_Definitions.md) (1 shared connections)
+- [Pre-Account Onboarding Draft](Pre-Account_Onboarding_Draft.md) (9 shared connections)
+- [Conversation Packs](Conversation_Packs.md) (3 shared connections)
+- [Mission Tint Acoustic Model](Mission_Tint_Acoustic_Model.md) (3 shared connections)
+- [Brain Schema Definitions](Brain_Schema_Definitions.md) (2 shared connections)
+- [Voice Sample TTS Build](Voice_Sample_TTS_Build.md) (2 shared connections)
+- [Brain Preflight Checks](Brain_Preflight_Checks.md) (2 shared connections)
+- [TTS Voice Resolution](TTS_Voice_Resolution.md) (2 shared connections)
+- [Lesson Content Index](Lesson_Content_Index.md) (1 shared connections)
+- [French Authenticity Checks](French_Authenticity_Checks.md) (1 shared connections)
 
 ## Source Files
 
 - `services/tutor-agent/src/convo.ts`
-- `services/tutor-agent/src/voice.ts`
 - `services/tutor-agent/src/warmCache.ts`
 - `services/tutor-agent/src/warmPlan.test.ts`
 - `services/tutor-agent/src/warmPlan.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 64 (100%)
+- EXTRACTED: 57 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

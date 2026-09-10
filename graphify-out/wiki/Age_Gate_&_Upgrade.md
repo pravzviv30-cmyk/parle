@@ -28,15 +28,15 @@
 
 ## Relationships
 
-- [Consent and Analytics](Consent_and_Analytics.md) (10 shared connections)
-- [Profile Bootstrap and Store](Profile_Bootstrap_and_Store.md) (8 shared connections)
-- [Pre-Account Draft](Pre-Account_Draft.md) (5 shared connections)
-- [Conversation Screen Connecting](Conversation_Screen_Connecting.md) (3 shared connections)
-- [Onboarding First Run](Onboarding_First_Run.md) (3 shared connections)
-- [Sync Merge Policy](Sync_Merge_Policy.md) (3 shared connections)
+- [Consent Analytics Tracking](Consent_Analytics_Tracking.md) (8 shared connections)
+- [Profile Bootstrap Store](Profile_Bootstrap_Store.md) (8 shared connections)
+- [Pre-Account Onboarding Draft](Pre-Account_Onboarding_Draft.md) (7 shared connections)
+- [Conversation Screen UI](Conversation_Screen_UI.md) (3 shared connections)
+- [Mission Tint Acoustic Model](Mission_Tint_Acoustic_Model.md) (3 shared connections)
+- [Drill Sync Merge Policy](Drill_Sync_Merge_Policy.md) (3 shared connections)
 - [Sync Policy Limits](Sync_Policy_Limits.md) (2 shared connections)
-- [Profile Merge Logic](Profile_Merge_Logic.md) (1 shared connections)
-- [Agent Protocol Messages](Agent_Protocol_Messages.md) (1 shared connections)
+- [Profile Error Tagging](Profile_Error_Tagging.md) (1 shared connections)
+- [Wire Protocol Codec](Wire_Protocol_Codec.md) (1 shared connections)
 
 ## Source Files
 

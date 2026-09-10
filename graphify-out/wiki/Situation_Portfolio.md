@@ -1,9 +1,10 @@
 # Situation Portfolio
 
-> 14 nodes · cohesion 0.24
+> 33 nodes · cohesion 0.09
 
 ## Key Concepts
 
+- **HomeTab.test.ts** (22 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
 - **MissionProgress** (20 connections) — `packages/core/src/missions/missions.ts`
 - **portfolio.ts** (13 connections) — `apps/mobile/src/progress/portfolio.ts`
 - **portfolio.test.ts** (13 connections) — `apps/mobile/src/progress/portfolio.test.ts`
@@ -12,27 +13,33 @@
 - **startLabel()** (5 connections) — `apps/mobile/src/progress/portfolio.ts`
 - **NEXT_SITUATION** (4 connections) — `apps/mobile/src/progress/portfolio.ts`
 - **NEXT_STEP** (4 connections) — `apps/mobile/src/progress/portfolio.ts`
+- **surfaceFiles()** (3 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
 - **ChooserInput** (2 connections) — `apps/mobile/src/missions/chooserView.ts`
 - **SITUATION_ACTION** (2 connections) — `apps/mobile/src/progress/portfolio.ts`
 - **read()** (2 connections) — `apps/mobile/src/progress/portfolio.test.ts`
 - **stripComments()** (2 connections) — `apps/mobile/src/progress/portfolio.test.ts`
+- **between()** (2 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
+- **literals()** (2 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
+- **read()** (2 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
+- **spoken()** (2 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
+- **stripComments()** (2 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
+- **style()** (2 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
 - **finished** (1 connections) — `apps/mobile/src/progress/portfolio.test.ts`
 - **NOW** (1 connections) — `apps/mobile/src/progress/portfolio.test.ts`
+- **at()** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
+- **flat()** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
+- **HOME_SURFACE** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
+- *... and 8 more nodes in this community*
 
 ## Relationships
 
-- [My French Situations](My_French_Situations.md) (7 shared connections)
-- [Mission Chooser View](Mission_Chooser_View.md) (6 shared connections)
-- [Bookmark Saved Situations](Bookmark_Saved_Situations.md) (6 shared connections)
-- [Mission Disc UI](Mission_Disc_UI.md) (4 shared connections)
-- [UI Components Library](UI_Components_Library.md) (3 shared connections)
-- [Onboarding First Run](Onboarding_First_Run.md) (2 shared connections)
-- [Home Tab Tests](Home_Tab_Tests.md) (2 shared connections)
-- [Primary Card Selection](Primary_Card_Selection.md) (2 shared connections)
-- [Situations Card UI](Situations_Card_UI.md) (1 shared connections)
-- [My French Lanes](My_French_Lanes.md) (1 shared connections)
-- [Lesson Definitions](Lesson_Definitions.md) (1 shared connections)
-- [Progress Evidence Levels](Progress_Evidence_Levels.md) (1 shared connections)
+- [UI Component Library](UI_Component_Library.md) (12 shared connections)
+- [Mission Tint Acoustic Model](Mission_Tint_Acoustic_Model.md) (9 shared connections)
+- [Mission Chooser View](Mission_Chooser_View.md) (7 shared connections)
+- [My French Lanes](My_French_Lanes.md) (3 shared connections)
+- [Momentum Cards UI](Momentum_Cards_UI.md) (3 shared connections)
+- [Auth Copy Guilt-Free Messaging](Auth_Copy_Guilt-Free_Messaging.md) (2 shared connections)
+- [Progress XP Levels](Progress_XP_Levels.md) (1 shared connections)
 
 ## Source Files
 
@@ -40,11 +47,12 @@
 - `apps/mobile/src/myfrench/model.ts`
 - `apps/mobile/src/progress/portfolio.test.ts`
 - `apps/mobile/src/progress/portfolio.ts`
+- `apps/mobile/src/tabs/HomeTab.test.ts`
 - `packages/core/src/missions/missions.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 59 (100%)
+- EXTRACTED: 83 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

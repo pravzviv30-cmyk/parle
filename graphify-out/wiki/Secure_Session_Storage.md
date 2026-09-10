@@ -27,7 +27,7 @@
 
 ## Relationships
 
-- [OAuth Sign-In Adapters](OAuth_Sign-In_Adapters.md) (3 shared connections)
+- [Auth Adapter & Mode](Auth_Adapter_&_Mode.md) (3 shared connections)
 
 ## Source Files
 

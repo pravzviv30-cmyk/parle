@@ -33,15 +33,16 @@
 
 ## Relationships
 
-- [Sync Merge Policy](Sync_Merge_Policy.md) (8 shared connections)
-- [Sync Engine](Sync_Engine.md) (4 shared connections)
-- [Profile Merge Logic](Profile_Merge_Logic.md) (2 shared connections)
+- [Drill Sync Merge Policy](Drill_Sync_Merge_Policy.md) (8 shared connections)
+- [Sync Engine](Sync_Engine.md) (3 shared connections)
+- [Profile Error Tagging](Profile_Error_Tagging.md) (2 shared connections)
 - [Age Gate & Upgrade](Age_Gate_&_Upgrade.md) (2 shared connections)
-- [Review Evidence Tracking](Review_Evidence_Tracking.md) (1 shared connections)
-- [Data Merge Utilities](Data_Merge_Utilities.md) (1 shared connections)
-- [Activity Store](Activity_Store.md) (1 shared connections)
-- [Consent and Analytics](Consent_and_Analytics.md) (1 shared connections)
-- [Onboarding First Run](Onboarding_First_Run.md) (1 shared connections)
+- [Review Card Merge](Review_Card_Merge.md) (1 shared connections)
+- [State Merge Utilities](State_Merge_Utilities.md) (1 shared connections)
+- [Activity Log Store](Activity_Log_Store.md) (1 shared connections)
+- [Consent Analytics Tracking](Consent_Analytics_Tracking.md) (1 shared connections)
+- [Mission Tint Acoustic Model](Mission_Tint_Acoustic_Model.md) (1 shared connections)
+- [Persistence Store Registry](Persistence_Store_Registry.md) (1 shared connections)
 
 ## Source Files
 

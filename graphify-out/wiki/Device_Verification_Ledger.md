@@ -23,7 +23,7 @@
 
 ## Relationships
 
-- [Device Verification & Mockup Passes](Device_Verification_&_Mockup_Passes.md) (1 shared connections)
+- [Device Verification Scenarios](Device_Verification_Scenarios.md) (1 shared connections)
 
 ## Source Files
 

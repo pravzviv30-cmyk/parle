@@ -33,7 +33,7 @@
 
 ## Relationships
 
-- [Expo Config Plugins](Expo_Config_Plugins.md) (1 shared connections)
+- [Expo Plugins Config](Expo_Plugins_Config.md) (1 shared connections)
 
 ## Source Files
 

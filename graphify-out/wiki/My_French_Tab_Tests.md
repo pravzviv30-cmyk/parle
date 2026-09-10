@@ -28,7 +28,7 @@
 
 ## Relationships
 
-- [Guilt-Free Copy Rules](Guilt-Free_Copy_Rules.md) (2 shared connections)
+- [Auth Copy Guilt-Free Messaging](Auth_Copy_Guilt-Free_Messaging.md) (2 shared connections)
 
 ## Source Files
 

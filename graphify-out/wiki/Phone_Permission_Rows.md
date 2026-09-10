@@ -32,8 +32,8 @@
 
 - [Phone Settings Links](Phone_Settings_Links.md) (5 shared connections)
 - [Settings Sections](Settings_Sections.md) (3 shared connections)
-- [Guilt-Free Copy Rules](Guilt-Free_Copy_Rules.md) (2 shared connections)
-- [UI Components Library](UI_Components_Library.md) (1 shared connections)
+- [Auth Copy Guilt-Free Messaging](Auth_Copy_Guilt-Free_Messaging.md) (2 shared connections)
+- [Drill Screen Tracking](Drill_Screen_Tracking.md) (1 shared connections)
 
 ## Source Files
 

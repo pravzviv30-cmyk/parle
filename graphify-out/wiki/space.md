@@ -2,7 +2,7 @@
 
 > God node · 125 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [Drill Screen Views](Drill_Screen_Views.md)
+**Community:** [Drill Screen Tracking](Drill_Screen_Tracking.md)
 
 ## Connections by Relation
 

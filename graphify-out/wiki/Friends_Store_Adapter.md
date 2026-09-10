@@ -33,11 +33,11 @@
 
 ## Relationships
 
-- [Profile and Friends UI](Profile_and_Friends_UI.md) (16 shared connections)
-- [Consent Storage](Consent_Storage.md) (3 shared connections)
-- [Tutor Coach Marks Store](Tutor_Coach_Marks_Store.md) (2 shared connections)
-- [Profile Bootstrap and Store](Profile_Bootstrap_and_Store.md) (2 shared connections)
-- [Practice Journal](Practice_Journal.md) (2 shared connections)
+- [Add Friends Screen](Add_Friends_Screen.md) (16 shared connections)
+- [Consent Store](Consent_Store.md) (3 shared connections)
+- [Coach Marks & Tutor Intro](Coach_Marks_&_Tutor_Intro.md) (2 shared connections)
+- [Profile Bootstrap Store](Profile_Bootstrap_Store.md) (2 shared connections)
+- [Drill Journal Store](Drill_Journal_Store.md) (2 shared connections)
 - [Store Binding Tests](Store_Binding_Tests.md) (1 shared connections)
 
 ## Source Files

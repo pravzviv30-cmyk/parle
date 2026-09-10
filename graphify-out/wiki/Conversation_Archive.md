@@ -1,64 +1,72 @@
 # Conversation Archive
 
-> 45 nodes · cohesion 0.08
+> 49 nodes · cohesion 0.09
 
 ## Key Concepts
 
+- **PracticeTab.tsx** (71 connections) — `apps/mobile/src/tabs/PracticeTab.tsx`
 - **archive.ts** (35 connections) — `apps/mobile/src/practice/archive.ts`
+- **PracticeTab()** (25 connections) — `apps/mobile/src/tabs/PracticeTab.tsx`
 - **archive.test.ts** (24 connections) — `apps/mobile/src/practice/archive.test.ts`
-- **sessionCard.ts** (24 connections) — `apps/mobile/src/practice/sessionCard.ts`
-- **sessionCard.test.ts** (20 connections) — `apps/mobile/src/practice/sessionCard.test.ts`
 - **ConversationPack** (20 connections) — `packages/core/src/conversationPacks.ts`
+- **nextStep.test.ts** (15 connections) — `apps/mobile/src/practice/nextStep.test.ts`
+- **suggestion.ts** (13 connections) — `apps/mobile/src/practice/suggestion.ts`
+- **nextStep.ts** (12 connections) — `apps/mobile/src/practice/nextStep.ts`
+- **suggestion.test.ts** (12 connections) — `apps/mobile/src/practice/suggestion.test.ts`
 - **archiveFrom()** (11 connections) — `apps/mobile/src/practice/archive.ts`
-- **sessionCardOf()** (10 connections) — `apps/mobile/src/practice/sessionCard.ts`
+- **nextStep** (6 connections) — `apps/mobile/src/practice/nextStep.ts`
 - **sessionsUnder()** (5 connections) — `apps/mobile/src/practice/archive.ts`
+- **suggestionFor()** (5 connections) — `apps/mobile/src/practice/suggestion.ts`
+- **walkOn()** (5 connections) — `apps/mobile/src/practice/suggestion.ts`
 - **pack()** (4 connections) — `apps/mobile/src/practice/archive.test.ts`
-- **dueKeySet()** (4 connections) — `apps/mobile/src/practice/sessionCard.ts`
-- **relativeDay()** (4 connections) — `apps/mobile/src/practice/sessionCard.ts`
+- **packLine()** (4 connections) — `apps/mobile/src/practice/nextStep.ts`
+- **reviewLine()** (4 connections) — `apps/mobile/src/practice/nextStep.ts`
 - **SessionCard** (4 connections) — `apps/mobile/src/practice/sessionCard.ts`
-- **standingOf()** (4 connections) — `apps/mobile/src/practice/sessionCard.ts`
+- **reshuffle()** (4 connections) — `apps/mobile/src/practice/suggestion.ts`
+- **SUGGESTION** (4 connections) — `apps/mobile/src/practice/suggestion.ts`
+- **Walk** (4 connections) — `apps/mobile/src/practice/suggestion.ts`
 - **Archive** (3 connections) — `apps/mobile/src/practice/archive.ts`
 - **ARCHIVE_LABEL** (3 connections) — `apps/mobile/src/practice/archive.ts`
 - **ArchiveInput** (3 connections) — `apps/mobile/src/practice/archive.ts`
 - **CLOSING** (3 connections) — `apps/mobile/src/practice/archive.ts`
-- **FEED** (3 connections) — `apps/mobile/src/practice/archive.ts`
-- **filtersFor()** (3 connections) — `apps/mobile/src/practice/archive.ts`
-- **needsALook()** (3 connections) — `apps/mobile/src/practice/archive.ts`
-- **Vault** (3 connections) — `apps/mobile/src/practice/archive.ts`
-- **vaultFrom()** (3 connections) — `apps/mobile/src/practice/archive.ts`
-- **phrasesLine()** (3 connections) — `apps/mobile/src/practice/sessionCard.ts`
-- **spokenLine()** (3 connections) — `apps/mobile/src/practice/sessionCard.ts`
-- **startOfLocalDay()** (3 connections) — `apps/mobile/src/practice/sessionCard.ts`
-- *... and 20 more nodes in this community*
+- *... and 24 more nodes in this community*
 
 ## Relationships
 
-- [Scenario Session Filters](Scenario_Session_Filters.md) (14 shared connections)
-- [Phrasebook](Phrasebook.md) (13 shared connections)
-- [Conversation Packs Storage](Conversation_Packs_Storage.md) (7 shared connections)
-- [Conversation Pack Builder](Conversation_Pack_Builder.md) (6 shared connections)
-- [Review Evidence Tracking](Review_Evidence_Tracking.md) (5 shared connections)
-- [UI Components Library](UI_Components_Library.md) (5 shared connections)
-- [Onboarding First Run](Onboarding_First_Run.md) (4 shared connections)
-- [Guilt-Free Copy Rules](Guilt-Free_Copy_Rules.md) (4 shared connections)
-- [Daily Goal Settings](Daily_Goal_Settings.md) (3 shared connections)
-- [Cadence Word Ledger](Cadence_Word_Ledger.md) (2 shared connections)
-- [Conversation Pack Reporting](Conversation_Pack_Reporting.md) (2 shared connections)
-- [Primary Card Selection](Primary_Card_Selection.md) (1 shared connections)
+- [UI Component Library](UI_Component_Library.md) (24 shared connections)
+- [Conversation Pack Sync](Conversation_Pack_Sync.md) (21 shared connections)
+- [Topic Mix Offers](Topic_Mix_Offers.md) (12 shared connections)
+- [Daily Word Connectors](Daily_Word_Connectors.md) (11 shared connections)
+- [Coach Marks & Tutor Intro](Coach_Marks_&_Tutor_Intro.md) (9 shared connections)
+- [Momentum Cards UI](Momentum_Cards_UI.md) (9 shared connections)
+- [Session Card Summary](Session_Card_Summary.md) (8 shared connections)
+- [Mission Tint Acoustic Model](Mission_Tint_Acoustic_Model.md) (8 shared connections)
+- [Review Mastery Evidence](Review_Mastery_Evidence.md) (6 shared connections)
+- [Auth Copy Guilt-Free Messaging](Auth_Copy_Guilt-Free_Messaging.md) (6 shared connections)
+- [App Root Context](App_Root_Context.md) (5 shared connections)
+- [Progress XP Levels](Progress_XP_Levels.md) (4 shared connections)
 
 ## Source Files
 
 - `apps/mobile/src/conversationPacks/store.ts`
+- `apps/mobile/src/practice/ScenarioCard.tsx`
+- `apps/mobile/src/practice/SessionFilters.tsx`
+- `apps/mobile/src/practice/SessionRow.tsx`
+- `apps/mobile/src/practice/VaultCard.tsx`
 - `apps/mobile/src/practice/archive.test.ts`
 - `apps/mobile/src/practice/archive.ts`
-- `apps/mobile/src/practice/sessionCard.test.ts`
+- `apps/mobile/src/practice/nextStep.test.ts`
+- `apps/mobile/src/practice/nextStep.ts`
 - `apps/mobile/src/practice/sessionCard.ts`
+- `apps/mobile/src/practice/suggestion.test.ts`
+- `apps/mobile/src/practice/suggestion.ts`
+- `apps/mobile/src/tabs/PracticeTab.tsx`
 - `packages/core/src/conversationPacks.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 151 (98%)
-- INFERRED: 3 (2%)
+- EXTRACTED: 243 (99%)
+- INFERRED: 3 (1%)
 - AMBIGUOUS: 0 (0%)
 
 ---

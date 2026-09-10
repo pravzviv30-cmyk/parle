@@ -33,18 +33,18 @@
 
 ## Relationships
 
-- [UI Components Library](UI_Components_Library.md) (29 shared connections)
-- [Purchases Adapter](Purchases_Adapter.md) (13 shared connections)
+- [Conversation Pack Library UI](Conversation_Pack_Library_UI.md) (13 shared connections)
+- [UI Component Library](UI_Component_Library.md) (9 shared connections)
+- [Paywall Purchase View](Paywall_Purchase_View.md) (8 shared connections)
 - [Phone Settings Links](Phone_Settings_Links.md) (7 shared connections)
-- [Company Legal Facts](Company_Legal_Facts.md) (6 shared connections)
-- [Consent and Analytics](Consent_and_Analytics.md) (4 shared connections)
-- [Auth Flow Screens](Auth_Flow_Screens.md) (3 shared connections)
-- [Consent Storage](Consent_Storage.md) (3 shared connections)
+- [Daily Goal Tracking](Daily_Goal_Tracking.md) (6 shared connections)
+- [App Root Context](App_Root_Context.md) (6 shared connections)
+- [Purchases Adapter](Purchases_Adapter.md) (5 shared connections)
+- [Company Legal Facts](Company_Legal_Facts.md) (4 shared connections)
+- [Consent Analytics Tracking](Consent_Analytics_Tracking.md) (4 shared connections)
+- [Consent Store](Consent_Store.md) (3 shared connections)
 - [Phone Permission Rows](Phone_Permission_Rows.md) (3 shared connections)
-- [Guilt-Free Copy Rules](Guilt-Free_Copy_Rules.md) (2 shared connections)
-- [Profile Bootstrap and Store](Profile_Bootstrap_and_Store.md) (2 shared connections)
-- [OAuth Sign-In Adapters](OAuth_Sign-In_Adapters.md) (2 shared connections)
-- [Auth Adapter Interface](Auth_Adapter_Interface.md) (2 shared connections)
+- [Auth Copy Guilt-Free Messaging](Auth_Copy_Guilt-Free_Messaging.md) (2 shared connections)
 
 ## Source Files
 

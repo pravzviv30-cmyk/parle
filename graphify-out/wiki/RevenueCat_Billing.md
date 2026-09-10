@@ -26,9 +26,9 @@
 ## Relationships
 
 - [Entitlement Store](Entitlement_Store.md) (10 shared connections)
-- [Account Deletion and Export](Account_Deletion_and_Export.md) (6 shared connections)
-- [Session Metering and Plans](Session_Metering_and_Plans.md) (4 shared connections)
-- [Onboarding First Run](Onboarding_First_Run.md) (2 shared connections)
+- [Account Deletion Agent Auth](Account_Deletion_Agent_Auth.md) (6 shared connections)
+- [Session Metering Plans](Session_Metering_Plans.md) (4 shared connections)
+- [Mission Tint Acoustic Model](Mission_Tint_Acoustic_Model.md) (2 shared connections)
 
 ## Source Files
 

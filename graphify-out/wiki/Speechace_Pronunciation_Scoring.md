@@ -1,6 +1,6 @@
 # Speechace Pronunciation Scoring
 
-> 15 nodes · cohesion 0.20
+> 16 nodes · cohesion 0.18
 
 ## Key Concepts
 
@@ -10,6 +10,7 @@
 - **phoneMap.ts** (6 connections) — `services/shared/phoneMap.ts`
 - **toInventoryIpa()** (4 connections) — `services/shared/phoneMap.ts`
 - **parseSpeechace()** (4 connections) — `services/shared/speechace.ts`
+- **A missing score is never an invented penalty** (3 connections) — `README.md`
 - **src/speechace.ts** (3 connections) — `services/tutor-agent/src/speechace.ts`
 - **ALIASES** (1 connections) — `services/shared/phoneMap.ts`
 - **FRENCH_IPA** (1 connections) — `services/shared/phoneMap.ts`
@@ -22,15 +23,18 @@
 
 ## Relationships
 
-- [Account Deletion and Export](Account_Deletion_and_Export.md) (3 shared connections)
-- [Tutor Session Control](Tutor_Session_Control.md) (3 shared connections)
-- [Onboarding First Run](Onboarding_First_Run.md) (2 shared connections)
-- [Paper & Ink Design System](Paper_&_Ink_Design_System.md) (2 shared connections)
-- [Sound Check Model](Sound_Check_Model.md) (1 shared connections)
-- [Live Session Screen](Live_Session_Screen.md) (1 shared connections)
+- [Account Deletion Agent Auth](Account_Deletion_Agent_Auth.md) (3 shared connections)
+- [Drill Scoring Logic](Drill_Scoring_Logic.md) (2 shared connections)
+- [Mission Tint Acoustic Model](Mission_Tint_Acoustic_Model.md) (2 shared connections)
+- [Tutor Turn Queue](Tutor_Turn_Queue.md) (2 shared connections)
+- [Pedagogy Ladder Logic](Pedagogy_Ladder_Logic.md) (1 shared connections)
+- [Session Screen Mock Speech](Session_Screen_Mock_Speech.md) (1 shared connections)
+- [Tutor Core Class](Tutor_Core_Class.md) (1 shared connections)
+- [Design System Doc](Design_System_Doc.md) (1 shared connections)
 
 ## Source Files
 
+- `README.md`
 - `services/shared/phoneMap.ts`
 - `services/shared/speechace.ts`
 - `services/tutor-agent/src/speechace.test.ts`
@@ -38,8 +42,8 @@
 
 ## Audit Trail
 
-- EXTRACTED: 32 (97%)
-- INFERRED: 1 (3%)
+- EXTRACTED: 32 (91%)
+- INFERRED: 3 (9%)
 - AMBIGUOUS: 0 (0%)
 
 ---

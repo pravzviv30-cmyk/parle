@@ -2,7 +2,7 @@
 
 > God node · 55 connections · `apps/mobile/tsconfig.json`
 
-**Community:** [UI Components Library](UI_Components_Library.md)
+**Community:** [App Root Context](App_Root_Context.md)
 
 ## Connections by Relation
 

@@ -13,7 +13,7 @@
 
 ## Relationships
 
-- [Audio Session Lifecycle](Audio_Session_Lifecycle.md) (1 shared connections)
+- [Start Ownership Guard](Start_Ownership_Guard.md) (1 shared connections)
 
 ## Source Files
 

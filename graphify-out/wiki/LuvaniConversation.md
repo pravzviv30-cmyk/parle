@@ -2,7 +2,7 @@
 
 > God node · 65 connections · `services/tutor-agent/src/convo.ts`
 
-**Community:** [Conversation Session Management](Conversation_Session_Management.md)
+**Community:** [Tutor Conversation Orchestration](Tutor_Conversation_Orchestration.md)
 
 ## Connections by Relation
 
@@ -11,7 +11,7 @@
 
 ### imports
 - convo.test.ts `EXTRACTED`
-- agent.ts `EXTRACTED`
+- [agent.ts](agent.ts.md) `EXTRACTED`
 - brainSpend.ts `EXTRACTED`
 
 ### method

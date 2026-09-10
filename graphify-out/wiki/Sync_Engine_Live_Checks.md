@@ -34,15 +34,14 @@
 ## Relationships
 
 - [Sync Engine](Sync_Engine.md) (13 shared connections)
-- [Spaced Repetition Engine](Spaced_Repetition_Engine.md) (3 shared connections)
-- [Activity Store](Activity_Store.md) (2 shared connections)
-- [Tutor Coach Marks Store](Tutor_Coach_Marks_Store.md) (2 shared connections)
-- [Consent Storage](Consent_Storage.md) (2 shared connections)
-- [App Root and Live Context](App_Root_and_Live_Context.md) (1 shared connections)
+- [Persistence Store Registry](Persistence_Store_Registry.md) (4 shared connections)
+- [Activity Log Store](Activity_Log_Store.md) (3 shared connections)
+- [Scenario Progress Store](Scenario_Progress_Store.md) (2 shared connections)
+- [App Root Context](App_Root_Context.md) (1 shared connections)
 - [Retry Backoff Logic](Retry_Backoff_Logic.md) (1 shared connections)
 - [Fresh Device Startup](Fresh_Device_Startup.md) (1 shared connections)
-- [Scenario Progress Store](Scenario_Progress_Store.md) (1 shared connections)
-- [Sync Merge Policy](Sync_Merge_Policy.md) (1 shared connections)
+- [Mission Completions Store](Mission_Completions_Store.md) (1 shared connections)
+- [Drill Sync Merge Policy](Drill_Sync_Merge_Policy.md) (1 shared connections)
 
 ## Source Files
 

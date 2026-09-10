@@ -1,6 +1,6 @@
 # Format
 
-> God node · 558 connections · `docs/KNOWN_ISSUES.md`
+> God node · 567 connections · `docs/KNOWN_ISSUES.md`
 
 **Community:** [Known Issues Ledger](Known_Issues_Ledger.md)
 

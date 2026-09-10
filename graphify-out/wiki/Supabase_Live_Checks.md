@@ -33,9 +33,9 @@
 
 ## Relationships
 
-- [Gate Evidence Ledger](Gate_Evidence_Ledger.md) (3 shared connections)
+- [Gate Ledger Contract](Gate_Ledger_Contract.md) (3 shared connections)
 - [Database Contract Tests](Database_Contract_Tests.md) (2 shared connections)
-- [Recorder Test Helper](Recorder_Test_Helper.md) (2 shared connections)
+- [Recorder Interface](Recorder_Interface.md) (2 shared connections)
 - [Entitlement Store](Entitlement_Store.md) (2 shared connections)
 
 ## Source Files

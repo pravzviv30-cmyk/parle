@@ -25,8 +25,8 @@
 ## Relationships
 
 - [Sync Engine](Sync_Engine.md) (5 shared connections)
-- [App Root and Live Context](App_Root_and_Live_Context.md) (2 shared connections)
-- [Consent Storage](Consent_Storage.md) (1 shared connections)
+- [App Root Context](App_Root_Context.md) (2 shared connections)
+- [Profile Bootstrap Store](Profile_Bootstrap_Store.md) (1 shared connections)
 - [Sync Engine Live Checks](Sync_Engine_Live_Checks.md) (1 shared connections)
 
 ## Source Files

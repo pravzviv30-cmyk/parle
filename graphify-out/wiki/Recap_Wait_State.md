@@ -16,7 +16,7 @@
 
 ## Relationships
 
-- [Conversation Screen Connecting](Conversation_Screen_Connecting.md) (3 shared connections)
+- [Conversation Screen UI](Conversation_Screen_UI.md) (3 shared connections)
 
 ## Source Files
 

@@ -33,10 +33,10 @@
 
 ## Relationships
 
-- [Situation Card UI](Situation_Card_UI.md) (8 shared connections)
-- [Bookmark Saved Situations](Bookmark_Saved_Situations.md) (6 shared connections)
-- [Guilt-Free Copy Rules](Guilt-Free_Copy_Rules.md) (5 shared connections)
-- [UI Components Library](UI_Components_Library.md) (3 shared connections)
+- [Momentum Cards UI](Momentum_Cards_UI.md) (14 shared connections)
+- [Auth Copy Guilt-Free Messaging](Auth_Copy_Guilt-Free_Messaging.md) (5 shared connections)
+- [Conversation Pack Library UI](Conversation_Pack_Library_UI.md) (2 shared connections)
+- [App Root Context](App_Root_Context.md) (1 shared connections)
 
 ## Source Files
 

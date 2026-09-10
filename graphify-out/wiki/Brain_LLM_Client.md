@@ -1,19 +1,27 @@
 # Brain LLM Client
 
-> 62 nodes · cohesion 0.11
+> 163 nodes · cohesion 0.04
 
 ## Key Concepts
 
+- **openaiResponses.ts** (56 connections) — `packages/brain/src/llm/openaiResponses.ts`
 - **LlmUsage** (54 connections) — `packages/brain/src/llm/client.ts`
+- **anthropic.ts** (43 connections) — `packages/brain/src/llm/anthropic.ts`
 - **llm/client.ts** (41 connections) — `packages/brain/src/llm/client.ts`
 - **openaiCompat.ts** (39 connections) — `packages/brain/src/llm/openaiCompat.ts`
 - **claudeCli.ts** (37 connections) — `packages/brain/src/llm/claudeCli.ts`
+- **client.test.ts** (33 connections) — `packages/brain/src/llm/client.test.ts`
 - **MockLlmClient** (31 connections) — `packages/brain/src/llm/mock.ts`
 - **ScenarioFrame** (28 connections) — `packages/brain/src/contract/types.ts`
 - **LlmClient** (28 connections) — `packages/brain/src/llm/client.ts`
 - **mock.ts** (27 connections) — `packages/brain/src/llm/mock.ts`
 - **TutorTurn** (24 connections) — `packages/brain/src/contract/types.ts`
 - **BrainTurnRequest** (24 connections) — `packages/brain/src/llm/client.ts`
+- **OpenAiResponsesBrainClient** (24 connections) — `packages/brain/src/llm/openaiResponses.ts`
+- **openaiResponses.test.ts** (23 connections) — `packages/brain/src/llm/openaiResponses.test.ts`
+- **OpenAiCompatBrainClient** (22 connections) — `packages/brain/src/llm/openaiCompat.ts`
+- **usageAccounting.test.ts** (21 connections) — `packages/brain/src/llm/usageAccounting.test.ts`
+- **AnthropicBrainClient** (20 connections) — `packages/brain/src/llm/anthropic.ts`
 - **BrainFrameRequest** (20 connections) — `packages/brain/src/llm/client.ts`
 - **split.ts** (20 connections) — `packages/brain/src/llm/split.ts`
 - **Curation** (19 connections) — `packages/brain/src/curate/curate.ts`
@@ -21,49 +29,49 @@
 - **BrainDrillsRequest** (19 connections) — `packages/brain/src/llm/client.ts`
 - **BrainExtractRequest** (19 connections) — `packages/brain/src/llm/client.ts`
 - **MemoryExtraction** (18 connections) — `packages/brain/src/contract/types.ts`
-- **DrillBatch** (17 connections) — `packages/brain/src/drill/generate.ts`
-- **ClaudeCliBrainClient** (13 connections) — `packages/brain/src/llm/claudeCli.ts`
-- **BrainParseError** (11 connections) — `packages/brain/src/llm/client.ts`
-- **SplitBrainClient** (11 connections) — `packages/brain/src/llm/split.ts`
-- **.ask()** (10 connections) — `packages/brain/src/llm/claudeCli.ts`
-- **llm/index.ts** (10 connections) — `packages/brain/src/llm/index.ts`
-- **SystemBlocks** (7 connections) — `packages/brain/src/prompt/system.ts`
-- **Abortable** (6 connections) — `packages/brain/src/llm/client.ts`
-- *... and 37 more nodes in this community*
+- *... and 138 more nodes in this community*
 
 ## Relationships
 
-- [Anthropic Brain Client](Anthropic_Brain_Client.md) (50 shared connections)
-- [HTTP Retry and Brain Client](HTTP_Retry_and_Brain_Client.md) (43 shared connections)
-- [Brain Schema Definitions](Brain_Schema_Definitions.md) (25 shared connections)
-- [OpenAI-Compatible Brain Client](OpenAI-Compatible_Brain_Client.md) (23 shared connections)
-- [LLM Usage Pricing](LLM_Usage_Pricing.md) (23 shared connections)
-- [Conversation Pack Reporting](Conversation_Pack_Reporting.md) (19 shared connections)
-- [Brain Client Test Doubles](Brain_Client_Test_Doubles.md) (16 shared connections)
-- [Profile and Session Recap](Profile_and_Session_Recap.md) (11 shared connections)
-- [Phrase Curation](Phrase_Curation.md) (11 shared connections)
-- [Coaching Support Samples](Coaching_Support_Samples.md) (8 shared connections)
-- [Drill Generation Schemas](Drill_Generation_Schemas.md) (8 shared connections)
-- [Tutor Eval Cases](Tutor_Eval_Cases.md) (7 shared connections)
+- [Brain Schema Definitions](Brain_Schema_Definitions.md) (53 shared connections)
+- [Conversation Packs](Conversation_Packs.md) (30 shared connections)
+- [Conversation State Pricing](Conversation_State_Pricing.md) (29 shared connections)
+- [French Authenticity Checks](French_Authenticity_Checks.md) (25 shared connections)
+- [Content Curation Logic](Content_Curation_Logic.md) (21 shared connections)
+- [Drill Generation Schemas](Drill_Generation_Schemas.md) (18 shared connections)
+- [Tutor Coach Eval Cases](Tutor_Coach_Eval_Cases.md) (17 shared connections)
+- [Brain Test Doubles](Brain_Test_Doubles.md) (16 shared connections)
+- [Tutor Conversation Orchestration](Tutor_Conversation_Orchestration.md) (12 shared connections)
+- [Memory Fact Extraction](Memory_Fact_Extraction.md) (7 shared connections)
+- [Claude CLI Run Recording](Claude_CLI_Run_Recording.md) (5 shared connections)
+- [Profile Error Tagging](Profile_Error_Tagging.md) (3 shared connections)
 
 ## Source Files
 
+- `README.md`
 - `packages/brain/src/contract/types.ts`
 - `packages/brain/src/curate/curate.ts`
 - `packages/brain/src/drill/generate.ts`
+- `packages/brain/src/llm/anthropic.ts`
 - `packages/brain/src/llm/claudeCli.ts`
+- `packages/brain/src/llm/client.test.ts`
 - `packages/brain/src/llm/client.ts`
+- `packages/brain/src/llm/http.ts`
 - `packages/brain/src/llm/index.ts`
 - `packages/brain/src/llm/mock.ts`
 - `packages/brain/src/llm/openaiCompat.ts`
+- `packages/brain/src/llm/openaiResponses.test.ts`
+- `packages/brain/src/llm/openaiResponses.ts`
+- `packages/brain/src/llm/routing.ts`
+- `packages/brain/src/llm/split.test.ts`
 - `packages/brain/src/llm/split.ts`
+- `packages/brain/src/llm/usageAccounting.test.ts`
 - `packages/brain/src/prompt/system.ts`
-- `services/tutor-agent/src/convo.test.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 455 (99%)
-- INFERRED: 3 (1%)
+- EXTRACTED: 776 (99%)
+- INFERRED: 10 (1%)
 - AMBIGUOUS: 0 (0%)
 
 ---

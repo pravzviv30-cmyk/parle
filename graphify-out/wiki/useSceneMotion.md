@@ -2,7 +2,7 @@
 
 > God node · 45 connections · `apps/mobile/src/illustrations/useSceneMotion.ts`
 
-**Community:** [Word Scene Illustrations](Word_Scene_Illustrations.md)
+**Community:** [Scene Illustrations](Scene_Illustrations.md)
 
 ## Connections by Relation
 

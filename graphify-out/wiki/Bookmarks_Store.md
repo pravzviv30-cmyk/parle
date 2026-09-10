@@ -33,16 +33,18 @@
 
 ## Relationships
 
-- [Bookmark Saved Situations](Bookmark_Saved_Situations.md) (11 shared connections)
-- [Sync Engine](Sync_Engine.md) (9 shared connections)
-- [Consent Storage](Consent_Storage.md) (5 shared connections)
-- [Tutor Coach Marks Store](Tutor_Coach_Marks_Store.md) (4 shared connections)
+- [Sync Engine](Sync_Engine.md) (7 shared connections)
+- [Persistence Store Registry](Persistence_Store_Registry.md) (5 shared connections)
+- [Momentum Cards UI](Momentum_Cards_UI.md) (5 shared connections)
+- [Consent Store](Consent_Store.md) (4 shared connections)
+- [Bookmarks View](Bookmarks_View.md) (4 shared connections)
 - [Store Binding Tests](Store_Binding_Tests.md) (4 shared connections)
-- [Spaced Repetition Engine](Spaced_Repetition_Engine.md) (2 shared connections)
-- [Scenario Progress Store](Scenario_Progress_Store.md) (1 shared connections)
+- [Coach Marks & Tutor Intro](Coach_Marks_&_Tutor_Intro.md) (2 shared connections)
+- [Activity Log Store](Activity_Log_Store.md) (2 shared connections)
+- [UI Component Library](UI_Component_Library.md) (2 shared connections)
+- [Mission Completions Store](Mission_Completions_Store.md) (1 shared connections)
 - [My French Lanes](My_French_Lanes.md) (1 shared connections)
-- [Activity Store](Activity_Store.md) (1 shared connections)
-- [Sync Merge Policy](Sync_Merge_Policy.md) (1 shared connections)
+- [Scenario Progress Store](Scenario_Progress_Store.md) (1 shared connections)
 
 ## Source Files
 
