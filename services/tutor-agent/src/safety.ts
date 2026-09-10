@@ -677,7 +677,13 @@ export function safetyDecision(input: string): SafetyDecision | null {
     return {
       category: 'under-13',
       action: 'stop',
-      message: 'Luvani is not available for anyone under 13. Please stop here and ask a parent or guardian for help.',
+      // Spelled out, not `13`. This sentence is SPOKEN, uninterruptibly, and on a stop it is
+      // the last thing a learner hears before the room closes. Every request carries
+      // language_code 'fr' (voice.ts), which the vendor uses for text normalization as well
+      // as for the model, so a bare digit here is read by a FRENCH normalizer inside an
+      // English sentence. A safeguarding threshold spoken as "treize" is a refusal that does
+      // not land. Words cost nothing and cannot be renormalised into another language (F509).
+      message: 'Luvani is not available for anyone under thirteen. Please stop here and ask a parent or guardian for help.',
       rule: null,
     };
   }
@@ -687,7 +693,9 @@ export function safetyDecision(input: string): SafetyDecision | null {
     return {
       category: 'minor-sexual',
       action: 'stop',
-      message: 'I cannot help with sexual content involving anyone under 18.',
+      // Spelled out for the reason at the under-thirteen message above: the number IS the
+      // content of this refusal, and it is spoken through a French text normalizer.
+      message: 'I cannot help with sexual content involving anyone under eighteen.',
       rule: matchedRules.join('+'),
     };
   }

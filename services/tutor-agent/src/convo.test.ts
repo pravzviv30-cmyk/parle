@@ -286,7 +286,11 @@ describe('chooseFrame', () => {
 describe('the choosing moment', () => {
   test('the canned lines obey the learner-copy rules', () => {
     for (const line of Object.values(CONVO_LINES)) {
-      for (const text of [line.fr, line.en]) {
+      // EVERY string on the line, not just fr and en. This loop used to name those
+      // two, which quietly exempted the one field a learner is guaranteed to hear:
+      // `bridge.spoken`, the French/English hybrid said on the way into every scene.
+      // A rule that skips the most-spoken line in the product is not a rule (F509).
+      for (const text of Object.values(line)) {
         assert.ok(!text.includes('—'), `em dash in "${text}"`);
         assert.ok(!/\d/.test(text), `digit in "${text}"`);
         assert.ok(!/wrong|incorrect|failed/i.test(text), `scold in "${text}"`);
