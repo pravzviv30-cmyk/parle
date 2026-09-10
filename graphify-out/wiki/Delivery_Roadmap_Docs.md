@@ -16,7 +16,7 @@
 
 ## Relationships
 
-- [Architecture Docs Index](Architecture_Docs_Index.md) (1 shared connections)
+- [Project Docs Index](Project_Docs_Index.md) (1 shared connections)
 
 ## Source Files
 

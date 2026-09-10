@@ -33,11 +33,10 @@
 
 ## Relationships
 
-- [Tutor Tab & Motion](Tutor_Tab_&_Motion.md) (8 shared connections)
-- [Auth & Guilt Copy](Auth_&_Guilt_Copy.md) (5 shared connections)
-- [Live Context & Bookmarks](Live_Context_&_Bookmarks.md) (4 shared connections)
-- [UI Icon Components](UI_Icon_Components.md) (3 shared connections)
-- [My French Tab & Tracking](My_French_Tab_&_Tracking.md) (2 shared connections)
+- [Situation Card UI](Situation_Card_UI.md) (8 shared connections)
+- [Bookmark Saved Situations](Bookmark_Saved_Situations.md) (6 shared connections)
+- [Guilt-Free Copy Rules](Guilt-Free_Copy_Rules.md) (5 shared connections)
+- [UI Components Library](UI_Components_Library.md) (3 shared connections)
 
 ## Source Files
 

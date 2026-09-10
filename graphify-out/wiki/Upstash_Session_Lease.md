@@ -33,8 +33,8 @@
 
 ## Relationships
 
-- [Rate Limiting & Session Leases](Rate_Limiting_&_Session_Leases.md) (10 shared connections)
-- [Account Deletion & Agent Auth](Account_Deletion_&_Agent_Auth.md) (3 shared connections)
+- [Rate Limiting](Rate_Limiting.md) (10 shared connections)
+- [Account Deletion and Export](Account_Deletion_and_Export.md) (3 shared connections)
 - [Gate Evidence Ledger](Gate_Evidence_Ledger.md) (3 shared connections)
 
 ## Source Files

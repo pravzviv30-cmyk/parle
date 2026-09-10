@@ -33,18 +33,16 @@
 
 ## Relationships
 
-- [Sync Engine Core](Sync_Engine_Core.md) (7 shared connections)
-- [Bookmarks Store & Envelope](Bookmarks_Store_&_Envelope.md) (5 shared connections)
-- [Review Engine Tests](Review_Engine_Tests.md) (3 shared connections)
-- [Sync Queue & Reconcile](Sync_Queue_&_Reconcile.md) (2 shared connections)
-- [Session History Store](Session_History_Store.md) (2 shared connections)
-- [Scenario Progress Store](Scenario_Progress_Store.md) (2 shared connections)
-- [App Bootstrap & Gate](App_Bootstrap_&_Gate.md) (1 shared connections)
+- [Sync Engine](Sync_Engine.md) (13 shared connections)
+- [Spaced Repetition Engine](Spaced_Repetition_Engine.md) (3 shared connections)
+- [Activity Store](Activity_Store.md) (2 shared connections)
+- [Tutor Coach Marks Store](Tutor_Coach_Marks_Store.md) (2 shared connections)
+- [Consent Storage](Consent_Storage.md) (2 shared connections)
+- [App Root and Live Context](App_Root_and_Live_Context.md) (1 shared connections)
 - [Retry Backoff Logic](Retry_Backoff_Logic.md) (1 shared connections)
 - [Fresh Device Startup](Fresh_Device_Startup.md) (1 shared connections)
-- [Activity Store](Activity_Store.md) (1 shared connections)
-- [Bookmarks Store](Bookmarks_Store.md) (1 shared connections)
-- [Exercise Bank Merging](Exercise_Bank_Merging.md) (1 shared connections)
+- [Scenario Progress Store](Scenario_Progress_Store.md) (1 shared connections)
+- [Sync Merge Policy](Sync_Merge_Policy.md) (1 shared connections)
 
 ## Source Files
 

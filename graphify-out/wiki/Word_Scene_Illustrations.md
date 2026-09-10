@@ -1,6 +1,6 @@
 # Word Scene Illustrations
 
-> 87 nodes · cohesion 0.10
+> 86 nodes · cohesion 0.10
 
 ## Key Concepts
 
@@ -29,21 +29,22 @@
 - **MissionArt.tsx** (13 connections) — `apps/mobile/src/missions/MissionArt.tsx`
 - **missions.tsx** (12 connections) — `apps/mobile/src/illustrations/scenes/missions.tsx`
 - **rooms.tsx** (12 connections) — `apps/mobile/src/illustrations/scenes/rooms.tsx`
-- *... and 62 more nodes in this community*
+- *... and 61 more nodes in this community*
 
 ## Relationships
 
-- [UI Icon Components](UI_Icon_Components.md) (43 shared connections)
-- [Live Context & Bookmarks](Live_Context_&_Bookmarks.md) (5 shared connections)
-- [Tutor Tab & Motion](Tutor_Tab_&_Motion.md) (4 shared connections)
-- [Age Gate Copy](Age_Gate_Copy.md) (3 shared connections)
-- [Pre-Account Onboarding Draft](Pre-Account_Onboarding_Draft.md) (3 shared connections)
-- [First-Run AI Disclosure](First-Run_AI_Disclosure.md) (3 shared connections)
-- [My French Tab & Tracking](My_French_Tab_&_Tracking.md) (3 shared connections)
-- [Drill Screen UI](Drill_Screen_UI.md) (2 shared connections)
-- [Path Node Row UI](Path_Node_Row_UI.md) (2 shared connections)
-- [Phrasebook Feature](Phrasebook_Feature.md) (1 shared connections)
-- [Mission Disc Tint & Palette](Mission_Disc_Tint_&_Palette.md) (1 shared connections)
+- [UI Components Library](UI_Components_Library.md) (39 shared connections)
+- [Bookmark Saved Situations](Bookmark_Saved_Situations.md) (5 shared connections)
+- [Onboarding First Run](Onboarding_First_Run.md) (5 shared connections)
+- [Tab Bar Icons](Tab_Bar_Icons.md) (4 shared connections)
+- [Situation Card UI](Situation_Card_UI.md) (4 shared connections)
+- [Consent and Analytics](Consent_and_Analytics.md) (2 shared connections)
+- [Profile and Friends UI](Profile_and_Friends_UI.md) (2 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (2 shared connections)
+- [Situations Card UI](Situations_Card_UI.md) (2 shared connections)
+- [Auth Flow Screens](Auth_Flow_Screens.md) (1 shared connections)
+- [My French Situations](My_French_Situations.md) (1 shared connections)
+- [Mission Disc UI](Mission_Disc_UI.md) (1 shared connections)
 
 ## Source Files
 
@@ -70,8 +71,8 @@
 
 ## Audit Trail
 
-- EXTRACTED: 431 (99%)
-- INFERRED: 3 (1%)
+- EXTRACTED: 428 (100%)
+- INFERRED: 2 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

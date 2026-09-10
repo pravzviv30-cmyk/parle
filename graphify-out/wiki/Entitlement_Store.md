@@ -34,14 +34,14 @@
 ## Relationships
 
 - [RevenueCat Billing](RevenueCat_Billing.md) (10 shared connections)
-- [Session Metering & Cost](Session_Metering_&_Cost.md) (9 shared connections)
-- [Account Deletion & Agent Auth](Account_Deletion_&_Agent_Auth.md) (8 shared connections)
+- [Session Metering and Plans](Session_Metering_and_Plans.md) (9 shared connections)
+- [Account Deletion and Export](Account_Deletion_and_Export.md) (8 shared connections)
 - [Session Token Grants](Session_Token_Grants.md) (6 shared connections)
-- [Out of Minutes Test](Out_of_Minutes_Test.md) (2 shared connections)
+- [Out Of Minutes Flow](Out_Of_Minutes_Flow.md) (2 shared connections)
 - [Supabase Live Checks](Supabase_Live_Checks.md) (2 shared connections)
 - [Voice Lifecycle Checks](Voice_Lifecycle_Checks.md) (1 shared connections)
-- [Live Session Audio Lifecycle](Live_Session_Audio_Lifecycle.md) (1 shared connections)
-- [Path Node Row UI](Path_Node_Row_UI.md) (1 shared connections)
+- [Audio Session Lifecycle](Audio_Session_Lifecycle.md) (1 shared connections)
+- [Onboarding First Run](Onboarding_First_Run.md) (1 shared connections)
 
 ## Source Files
 

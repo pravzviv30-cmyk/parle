@@ -1,16 +1,20 @@
 # Tab Bar Icons
 
-> 29 nodes · cohesion 0.10
+> 28 nodes · cohesion 0.10
 
 ## Key Concepts
 
-- **RootNavigator.tsx** (81 connections) — `apps/mobile/src/nav/RootNavigator.tsx`
 - **LuvaniTabBar.tsx** (23 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
+- **VoiceOrb.tsx** (21 connections) — `apps/mobile/src/tutor/VoiceOrb.tsx`
 - **icons.tsx** (12 connections) — `apps/mobile/src/nav/icons.tsx`
-- **LessonRoute()** (9 connections) — `apps/mobile/src/nav/RootNavigator.tsx`
-- **lastSummaryFor()** (6 connections) — `apps/mobile/src/progress/store.ts`
+- **decorative** (8 connections) — `apps/mobile/src/theme.ts`
+- **STROKE** (8 connections) — `apps/mobile/src/theme.ts`
+- **VoiceOrb()** (6 connections) — `apps/mobile/src/tutor/VoiceOrb.tsx`
 - **dueCount()** (5 connections) — `apps/mobile/src/review/store.ts`
 - **LuvaniTabBar()** (4 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
+- **orbRest.ts** (4 connections) — `apps/mobile/src/tutor/orbRest.ts`
+- **orbRests()** (4 connections) — `apps/mobile/src/tutor/orbRest.ts`
+- **OrbState** (3 connections) — `apps/mobile/src/tutor/VoiceOrb.tsx`
 - **HomeIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **MyFrenchIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **PracticeIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
@@ -18,46 +22,44 @@
 - **TabIconProps** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **TutorIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
 - **announceTab()** (2 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
-- **asRung()** (2 connections) — `apps/mobile/src/nav/RootNavigator.tsx`
-- **DrillRoute()** (2 connections) — `apps/mobile/src/nav/RootNavigator.tsx`
-- **LazyConvoScreen** (2 connections) — `apps/mobile/src/nav/RootNavigator.tsx`
-- **LazyLiveSessionScreen** (2 connections) — `apps/mobile/src/nav/RootNavigator.tsx`
-- **SoundCheckRoute()** (2 connections) — `apps/mobile/src/nav/RootNavigator.tsx`
 - **Glyph()** (1 connections) — `apps/mobile/src/nav/icons.tsx`
 - **ICONS** (1 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
 - **LABELS** (1 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
 - **st** (1 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
-- **Loading()** (1 connections) — `apps/mobile/src/nav/RootNavigator.tsx`
-- **ReviewRoute()** (1 connections) — `apps/mobile/src/nav/RootNavigator.tsx`
-- *... and 4 more nodes in this community*
+- **OrbMotion** (1 connections) — `apps/mobile/src/tutor/orbRest.ts`
+- **Look** (1 connections) — `apps/mobile/src/tutor/VoiceOrb.tsx`
+- **LOOKS** (1 connections) — `apps/mobile/src/tutor/VoiceOrb.tsx`
+- *... and 3 more nodes in this community*
 
 ## Relationships
 
-- [UI Icon Components](UI_Icon_Components.md) (22 shared connections)
-- [Drill Screen UI](Drill_Screen_UI.md) (9 shared connections)
-- [My French Tab & Tracking](My_French_Tab_&_Tracking.md) (9 shared connections)
-- [Auth Screens & Labels](Auth_Screens_&_Labels.md) (5 shared connections)
-- [Live Context & Bookmarks](Live_Context_&_Bookmarks.md) (5 shared connections)
-- [Session History Store](Session_History_Store.md) (5 shared connections)
-- [App Bootstrap & Gate](App_Bootstrap_&_Gate.md) (5 shared connections)
-- [Conversation Screen UI](Conversation_Screen_UI.md) (4 shared connections)
-- [Tutor Tab & Motion](Tutor_Tab_&_Motion.md) (4 shared connections)
-- [Situation Chooser UI](Situation_Chooser_UI.md) (3 shared connections)
-- [Practice Journal Store](Practice_Journal_Store.md) (3 shared connections)
-- [Pre-Account Onboarding Draft](Pre-Account_Onboarding_Draft.md) (3 shared connections)
+- [UI Components Library](UI_Components_Library.md) (21 shared connections)
+- [Situation Card UI](Situation_Card_UI.md) (5 shared connections)
+- [Word Scene Illustrations](Word_Scene_Illustrations.md) (4 shared connections)
+- [Conversation Screen Connecting](Conversation_Screen_Connecting.md) (3 shared connections)
+- [Drill Screen Views](Drill_Screen_Views.md) (2 shared connections)
+- [Drill Screen Tests](Drill_Screen_Tests.md) (2 shared connections)
+- [App Root and Live Context](App_Root_and_Live_Context.md) (2 shared connections)
+- [Profile and Friends UI](Profile_and_Friends_UI.md) (2 shared connections)
+- [Voice Orb Animation](Voice_Orb_Animation.md) (2 shared connections)
+- [Bookmark Saved Situations](Bookmark_Saved_Situations.md) (1 shared connections)
+- [Phrasebook](Phrasebook.md) (1 shared connections)
+- [Mission Disc UI](Mission_Disc_UI.md) (1 shared connections)
 
 ## Source Files
 
+- `DESIGN.md`
 - `apps/mobile/src/nav/LuvaniTabBar.tsx`
-- `apps/mobile/src/nav/RootNavigator.tsx`
 - `apps/mobile/src/nav/icons.tsx`
-- `apps/mobile/src/progress/store.ts`
 - `apps/mobile/src/review/store.ts`
+- `apps/mobile/src/theme.ts`
+- `apps/mobile/src/tutor/VoiceOrb.tsx`
+- `apps/mobile/src/tutor/orbRest.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 130 (96%)
-- INFERRED: 5 (4%)
+- EXTRACTED: 78 (93%)
+- INFERRED: 6 (7%)
 - AMBIGUOUS: 0 (0%)
 
 ---

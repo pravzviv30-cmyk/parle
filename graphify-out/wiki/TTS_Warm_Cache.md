@@ -25,18 +25,15 @@
 
 ## Relationships
 
-- [Onboarding Voice Step](Onboarding_Voice_Step.md) (9 shared connections)
-- [TTS Cache & Voice Config](TTS_Cache_&_Voice_Config.md) (4 shared connections)
-- [Brain Preflight Checks](Brain_Preflight_Checks.md) (3 shared connections)
-- [Path Node Row UI](Path_Node_Row_UI.md) (3 shared connections)
-- [Conversation Engine Core](Conversation_Engine_Core.md) (2 shared connections)
-- [Voice Sample Encoding](Voice_Sample_Encoding.md) (2 shared connections)
-- [Coach Copy Samples](Coach_Copy_Samples.md) (2 shared connections)
-- [Conversation Test Fixtures](Conversation_Test_Fixtures.md) (1 shared connections)
-- [Fish Audio TTS](Fish_Audio_TTS.md) (1 shared connections)
-- [Turn Timing Metrics](Turn_Timing_Metrics.md) (1 shared connections)
-- [Lesson Content Definitions](Lesson_Content_Definitions.md) (1 shared connections)
-- [French Authenticity Pack](French_Authenticity_Pack.md) (1 shared connections)
+- [Agent Preflight Checks](Agent_Preflight_Checks.md) (7 shared connections)
+- [Pre-Account Draft](Pre-Account_Draft.md) (6 shared connections)
+- [Conversation Pack Reporting](Conversation_Pack_Reporting.md) (3 shared connections)
+- [TTS Caching](TTS_Caching.md) (3 shared connections)
+- [Consent and Analytics](Consent_and_Analytics.md) (3 shared connections)
+- [Brain Schema Definitions](Brain_Schema_Definitions.md) (3 shared connections)
+- [Onboarding First Run](Onboarding_First_Run.md) (3 shared connections)
+- [Turn Timing Instrumentation](Turn_Timing_Instrumentation.md) (1 shared connections)
+- [Lesson Definitions](Lesson_Definitions.md) (1 shared connections)
 
 ## Source Files
 

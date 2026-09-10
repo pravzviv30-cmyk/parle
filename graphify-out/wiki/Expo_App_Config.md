@@ -1,11 +1,11 @@
 # Expo App Config
 
-> 30 nodes · cohesion 0.07
+> 32 nodes · cohesion 0.06
 
 ## Key Concepts
 
 - **expo** (12 connections) — `apps/mobile/app.json`
-- **ios** (6 connections) — `apps/mobile/app.json`
+- **ios** (8 connections) — `apps/mobile/app.json`
 - **adaptiveIcon** (5 connections) — `apps/mobile/app.json`
 - **android** (5 connections) — `apps/mobile/app.json`
 - **permissions** (3 connections) — `apps/mobile/app.json`
@@ -27,9 +27,9 @@
 - **NSMicrophoneUsageDescription** (1 connections) — `apps/mobile/app.json`
 - **buildNumber** (1 connections) — `apps/mobile/app.json`
 - **bundleIdentifier** (1 connections) — `apps/mobile/app.json`
-- **supportsTablet** (1 connections) — `apps/mobile/app.json`
-- **usesAppleSignIn** (1 connections) — `apps/mobile/app.json`
-- *... and 5 more nodes in this community*
+- **deploymentTarget** (1 connections) — `apps/mobile/app.json`
+- **requireFullScreen** (1 connections) — `apps/mobile/app.json`
+- *... and 7 more nodes in this community*
 
 ## Relationships
 
@@ -41,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 30 (100%)
+- EXTRACTED: 32 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

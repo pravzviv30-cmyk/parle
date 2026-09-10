@@ -1,10 +1,10 @@
 # Dependency Audit Config
 
-> 39 nodes · cohesion 0.05
+> 40 nodes · cohesion 0.05
 
 ## Key Concepts
 
-- **scripts** (22 connections) — `package.json`
+- **scripts** (23 connections) — `package.json`
 - **package.json** (8 connections) — `package.json`
 - **dependencyAudit** (5 connections) — `package.json`
 - **workspaces** (4 connections) — `package.json`
@@ -25,11 +25,11 @@
 - **gate:bless** (1 connections) — `package.json`
 - **gate:fast** (1 connections) — `package.json`
 - **hooks** (1 connections) — `package.json`
+- **legal:html** (1 connections) — `package.json`
 - **loop** (1 connections) — `package.json`
 - **postinstall** (1 connections) — `package.json`
 - **scan:secrets** (1 connections) — `package.json`
-- **scan:secrets:all** (1 connections) — `package.json`
-- *... and 14 more nodes in this community*
+- *... and 15 more nodes in this community*
 
 ## Relationships
 
@@ -41,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 38 (100%)
+- EXTRACTED: 39 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

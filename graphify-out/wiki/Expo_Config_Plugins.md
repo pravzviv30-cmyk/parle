@@ -17,12 +17,13 @@
 
 ## Relationships
 
-- [OAuth & Supabase Auth](OAuth_&_Supabase_Auth.md) (2 shared connections)
-- [Pre-Account Onboarding Draft](Pre-Account_Onboarding_Draft.md) (1 shared connections)
+- [UI Components Library](UI_Components_Library.md) (1 shared connections)
+- [Phone Settings Links](Phone_Settings_Links.md) (1 shared connections)
 - [Expo App Config](Expo_App_Config.md) (1 shared connections)
 - [Apple Sign-In](Apple_Sign-In.md) (1 shared connections)
-- [App Bootstrap & Gate](App_Bootstrap_&_Gate.md) (1 shared connections)
-- [Reminder Scheduling Native](Reminder_Scheduling_Native.md) (1 shared connections)
+- [App Root and Live Context](App_Root_and_Live_Context.md) (1 shared connections)
+- [Reminder Scheduling](Reminder_Scheduling.md) (1 shared connections)
+- [OAuth Sign-In Adapters](OAuth_Sign-In_Adapters.md) (1 shared connections)
 
 ## Source Files
 

@@ -24,10 +24,9 @@
 
 ## Relationships
 
-- [Sync Engine Core](Sync_Engine_Core.md) (4 shared connections)
-- [App Bootstrap & Gate](App_Bootstrap_&_Gate.md) (2 shared connections)
-- [Account Sync & Audio Sweep](Account_Sync_&_Audio_Sweep.md) (1 shared connections)
-- [Sync Queue & Reconcile](Sync_Queue_&_Reconcile.md) (1 shared connections)
+- [Sync Engine](Sync_Engine.md) (5 shared connections)
+- [App Root and Live Context](App_Root_and_Live_Context.md) (2 shared connections)
+- [Consent Storage](Consent_Storage.md) (1 shared connections)
 - [Sync Engine Live Checks](Sync_Engine_Live_Checks.md) (1 shared connections)
 
 ## Source Files

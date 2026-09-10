@@ -26,8 +26,8 @@
 
 ## Relationships
 
-- [Auth & Guilt Copy](Auth_&_Guilt_Copy.md) (2 shared connections)
-- [Situation Chooser UI](Situation_Chooser_UI.md) (2 shared connections)
+- [Guilt-Free Copy Rules](Guilt-Free_Copy_Rules.md) (2 shared connections)
+- [Situation Portfolio](Situation_Portfolio.md) (2 shared connections)
 
 ## Source Files
 

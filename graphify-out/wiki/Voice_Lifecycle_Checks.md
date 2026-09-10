@@ -33,11 +33,11 @@
 
 ## Relationships
 
-- [Session Metering & Cost](Session_Metering_&_Cost.md) (6 shared connections)
-- [Client-Agent Protocol](Client-Agent_Protocol.md) (2 shared connections)
-- [Path Node Row UI](Path_Node_Row_UI.md) (2 shared connections)
+- [Session Metering and Plans](Session_Metering_and_Plans.md) (6 shared connections)
+- [Agent Protocol Messages](Agent_Protocol_Messages.md) (2 shared connections)
+- [Onboarding First Run](Onboarding_First_Run.md) (2 shared connections)
 - [Entitlement Store](Entitlement_Store.md) (1 shared connections)
-- [Tutor Agent Smoke Test](Tutor_Agent_Smoke_Test.md) (1 shared connections)
+- [Audio Session Lifecycle](Audio_Session_Lifecycle.md) (1 shared connections)
 
 ## Source Files
 

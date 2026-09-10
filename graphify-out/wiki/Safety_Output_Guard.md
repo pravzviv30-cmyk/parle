@@ -15,12 +15,12 @@
 
 ## Relationships
 
-- [Safety Policy Categories](Safety_Policy_Categories.md) (8 shared connections)
-- [Conversation Engine Core](Conversation_Engine_Core.md) (4 shared connections)
-- [Safety Category Rules](Safety_Category_Rules.md) (3 shared connections)
-- [Safety Policy Records](Safety_Policy_Records.md) (2 shared connections)
-- [LuvaniTutor Core Logic](LuvaniTutor_Core_Logic.md) (1 shared connections)
-- [Brain Prompt & Turn Queue](Brain_Prompt_&_Turn_Queue.md) (1 shared connections)
+- [Safety Content Policy](Safety_Content_Policy.md) (8 shared connections)
+- [Content Safety Rules](Content_Safety_Rules.md) (3 shared connections)
+- [Conversation Session Management](Conversation_Session_Management.md) (2 shared connections)
+- [Conversation Pack Reporting](Conversation_Pack_Reporting.md) (2 shared connections)
+- [Safety Policy Tests](Safety_Policy_Tests.md) (2 shared connections)
+- [Tutor Session Control](Tutor_Session_Control.md) (2 shared connections)
 
 ## Source Files
 
