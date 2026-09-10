@@ -959,3 +959,44 @@ describe('what the tutor says is checked before the learner hears it', () => {
     }
   });
 });
+
+/**
+ * These eight sentences are SPOKEN, and on a stop one of them is the last thing a
+ * learner hears before the room closes.
+ *
+ * Every synthesis request the tutor makes carries `language_code: 'fr'` (voice.ts),
+ * which the vendor uses for text normalisation as well as for the model. So a bare
+ * digit in an English safety line is handed to a FRENCH normalizer: "under 13" can
+ * be spoken "under treize". For most copy that is a wrong accent. Here the number
+ * IS the content of the refusal, and a threshold nobody can parse is a refusal that
+ * does not land.
+ *
+ * None of these is in the warm cache either (warmCache.ts warms scripted lesson and
+ * conversation lines only), so each one is a live vendor call every time it fires.
+ * Writing the number as a word costs nothing and no normalizer can rewrite it.
+ */
+describe('what the tutor says when it stops — F509', () => {
+  test('no spoken safety line hands a bare number to a French text normalizer', () => {
+    const source = readFileSync(new URL('./safety.ts', import.meta.url), 'utf8');
+    const messages = [...source.matchAll(/^\s*(?:\/\/.*\n\s*)*message: '([^']+)',$/gm)].map((m) => m[1]!);
+
+    // The walk has to actually find them, or this passes by reading nothing —
+    // which is the vacuous shape this repo has been bitten by before.
+    assert.ok(messages.length >= 8, `only ${messages.length} safety messages found; the source walk has stopped matching`);
+
+    for (const message of messages) {
+      assert.doesNotMatch(
+        message,
+        /\d/,
+        `"${message}" speaks a bare number through a French normalizer. Write it as a word.`,
+      );
+      // The same reasoning one step out: a symbol or an abbreviation is normalised
+      // per language too, and these lines never need either.
+      assert.doesNotMatch(message, /[%$£€]|\b(?:e\.g|i\.e|etc|approx|min|max)\b/i, `"${message}" carries a symbol or abbreviation a normalizer expands per language`);
+    }
+
+    // And the two that carried digits until F509 say the threshold in words now.
+    const thresholds = messages.filter((m) => /thirteen|eighteen/.test(m));
+    assert.equal(thresholds.length, 2, 'the two age thresholds are no longer spelled out as words');
+  });
+});

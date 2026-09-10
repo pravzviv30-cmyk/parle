@@ -7586,6 +7586,19 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   comma and abandons it. Note also the honesty debt F507 creates: once the sample's English is
   better than the session's, F295's promise that the clip is exactly what the tutor sounds like is
   false in the opposite direction from the staleness it replaced.
+- note 2026-09-10, later: THE PREMISE ABOVE IS WRONG and this entry is re-scoped rather than
+  worked as written. "Synthesised with no French around it" framed the isolation as the defect. It
+  is not: the accent follows the RECORDING, not the request. The onboarding sample's English
+  sentence is also an isolated request tagged `fr`, and once F502 replaced the roster with voices
+  whose English the vendor verifies as `en-french` the founder listened and confirmed it sounds
+  French. The live session uses the same `buildTTS`, the same six voices and the same request
+  shape, so the accent half of this entry closed with F502 and the "sample better than the session"
+  honesty debt closed with it. What was actually unverified, and what nobody had ever checked, is
+  that `language_code: 'fr'` puts a FRENCH TEXT NORMALIZER on every English line. The sample never
+  exposed it because "Hi, my name is Alexandre." has no digit in it. F511 fixes the fixed-copy half.
+  What stays open here is the generated half and the vendor's actual normalizer behaviour, which
+  needs an ear: no schema in this repo can forbid a digit in a generated English field, because
+  `contract/schemas.ts:13-17` records that no regex or refinement survives the trip to the API.
 - verified-by: `the tutor's English lines are spoken by a voice verified for English`
 
 
@@ -7605,3 +7618,24 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   never confirmed — is still refused rather than repaired into a confirmation nobody gave.
 - verified-by: `a retired voice becomes the default, and the rest of the draft survives`
 - verified-by: `the draft carries the answer and a missing one reads as no`
+
+
+### F511 — A spoken safety threshold was a bare digit read by a French normalizer
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/safety.ts:680
+- note: found by enumerating every English line the live tutor actually speaks, which F509 should
+  have done before it guessed. Two of the eight safety messages carried a bare digit — "anyone under
+  13" and "anyone under 18" — and every synthesis request carries `language_code: 'fr'`, which the
+  vendor uses for text normalisation as well as for the model. For most copy a French normalizer on
+  English is a wrong accent. Here the number IS the content of the refusal, the line is spoken
+  uninterruptibly, none of the eight is in the warm cache so each is a live vendor call, and on a
+  stop it is the last thing a learner hears before the room closes. A safeguarding threshold spoken
+  as "treize" is a refusal that does not land. Both are words now; a word cannot be renormalised
+  into another language, and it costs nothing. `docs/PRIVACY_AND_SAFETY.md` quotes both messages and
+  moved with them. The same sweep found the digit rule for the conversation lines was reading two of
+  the three fields on each line, so `bridge.spoken` — the French/English hybrid said on the way into
+  every single scene, and the most-spoken string in the product — was never checked at all. Both
+  guards were mutation-tested rather than assumed: putting a digit back fails each one.
+- verified-by: `no spoken safety line hands a bare number to a French text normalizer`
+- verified-by: `the canned lines obey the learner-copy rules`

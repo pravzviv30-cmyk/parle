@@ -439,8 +439,8 @@ session open, so a learner is never stranded mid-scene for asking one wrong thin
 
 | Category | Action | What the learner hears |
 |---|---|---|
-| `under-13` | `stop` | Luvani is not available for anyone under 13. Please stop here and ask a parent or guardian for help. |
-| `minor-sexual` | `stop` | I cannot help with sexual content involving anyone under 18. |
+| `under-13` | `stop` | Luvani is not available for anyone under thirteen. Please stop here and ask a parent or guardian for help. |
+| `minor-sexual` | `stop` | I cannot help with sexual content involving anyone under eighteen. |
 | `self-harm` | `stop` | I cannot provide crisis support. If you might act now, call your local emergency number. If you can, contact someone you trust and stay with them. |
 | `dangerous-instructions` | `redirect` | I cannot help with instructions that could hurt someone. We can practise a different French situation. |
 | `hate-or-harassment` | `redirect` | I cannot help create hateful, threatening, or harassing content. We can choose another situation. |

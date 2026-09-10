@@ -291,6 +291,22 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Spoken-English normalizer gate: **2,788 tests, 0 failing**; core 607, brain 383, tutor agent 445,
+  token server 178, playground 26, mobile 1149. Floors blessed to those counts. F511 closed and
+  F509 re-scoped. F509 was filed believing the live session's English sounded American because it
+  reaches the vendor with no French around it; that premise was wrong, because the accent follows
+  the recording and F502 already fixed it for both paths. Enumerating every English line the tutor
+  actually speaks found the real exposure instead: `language_code: 'fr'` puts a French text
+  normalizer on English, and two of the eight safety messages spoke a bare digit through it. Those
+  lines are uninterruptible, never warm-cached, and on a stop one of them is the last thing a
+  learner hears, so a threshold read as "treize" is a refusal that does not land. Both are words
+  now and the privacy doc moved with them. The same sweep found the conversation-line digit rule
+  was reading two of three fields, exempting `bridge.spoken` — the hybrid said into every scene and
+  the most-spoken string in the product. Both guards were mutation-tested: reintroducing a digit
+  fails each one. What stays open on F509 is the generated half, which no schema can gate because
+  `contract/schemas.ts:13-17` records that no regex survives to the API, and the vendor's actual
+  normalizer behaviour, which needs an ear.
+
 - Voice roster and sample gate, merged with the Profile and Settings split: **2,787 tests, 0
   failing**; core 607, brain 383, tutor agent 444, token server 178, playground 26, mobile 1149.
   Typecheck clean in all six workspaces and floors blessed to those counts. F502 to F508 closed,
