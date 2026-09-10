@@ -20,6 +20,8 @@
  * happened, and on Settings we know only that the store was asked.
  */
 
+import type { Plan } from '@luvani/core';
+
 import { purchases, type StoreAction } from './adapter.ts';
 import { refreshBilling } from './client.ts';
 
@@ -30,9 +32,18 @@ import { refreshBilling } from './client.ts';
  * store sheet has not hit a problem and must not be told they have.
  * `refresh-trouble` is separate from `done` because the store finishing is not
  * the same event as the server agreeing, and only the second one moves minutes.
+ * `nothing-granted` is separate from both because the server answering clearly
+ * that this account owns nothing is not a failure of anything. It used to be
+ * indistinguishable from success: `done` meant the refresh returned `response.ok`,
+ * which it does for a learner with nothing to restore, and the paywall then said
+ * their speaking time was ready and hid the buy and restore buttons behind that
+ * sentence (F265). The two surfaces word this one differently and should: after a
+ * purchase it means the grant is still catching up, and on Settings it means the
+ * store was checked and there was nothing there.
  */
 export type RestoreOutcome =
-  | { kind: 'done' }
+  | { kind: 'done'; plan: Plan }
+  | { kind: 'nothing-granted' }
   | { kind: 'cancelled' }
   | { kind: 'store-trouble' }
   | { kind: 'refresh-trouble' };
@@ -46,7 +57,9 @@ export type RestoreOutcome =
  */
 export async function settleStoreAction(action: StoreAction): Promise<RestoreOutcome> {
   if (!action.ok) return { kind: action.cancelled ? 'cancelled' : 'store-trouble' };
-  return (await refreshBilling()) ? { kind: 'done' } : { kind: 'refresh-trouble' };
+  const refresh = await refreshBilling();
+  if (refresh === null) return { kind: 'refresh-trouble' };
+  return refresh.granted ? { kind: 'done', plan: refresh.plan } : { kind: 'nothing-granted' };
 }
 
 /** Ask the store what this account owns, then ask the server what it is worth. */

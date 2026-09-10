@@ -4102,10 +4102,22 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a refresh cannot revert a debit that landed while it was in flight`
 
 ### F265 — A refresh that granted nothing still tells the learner their minutes are ready
-- severity: P2
-- status: [ ]
+- severity: P1
+- status: [x]
 - where: services/token-server/src/server.ts:245
-- note: latent while RevenueCat is unconfigured; **raise to P1 before it is configured**.
+- note: raised from P2 to P1 and closed, as its own note instructed, because the subscription wall
+  stands on this answer: every candidate design for the wall cleared its gate on `settleStoreAction`
+  returning `done`, which was `response.ok`, so the wall would have opened for a learner who got
+  nothing and sent them straight to the 402 at the room door.
+  Fixed in three places. `SubscriberProjection` is now total: the `unchanged` variant carries the
+  entitlement that stands, so a caller can report the plan without a second read. The endpoint
+  answers `refreshed: projection.kind === 'active'` instead of `true`. And `refreshBilling` returns
+  a validated `{ granted, plan }` or null, where null is the request failing and is a different
+  event from the server saying plainly that nothing was granted. That third state is the new
+  `nothing-granted` outcome, which the paywall words as a grant still catching up and Settings words
+  as a store that has been checked, because after a purchase and on a settings row those are
+  genuinely different sentences.
+  The original note is preserved below.
   `refreshSubscriber` returns `{kind: 'unchanged', reason: 'not-paid' | 'unknown-product'}` when it
   granted nothing, and the handler discards it and answers `{refreshed: true}` regardless. The
   client returns `response.ok`, and the paywall renders "Your speaking time is ready." Combined with
@@ -7673,3 +7685,41 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `every migration ships a rollback that names each object it created`
 - verified-by: `the supabase runbook applies every migration in order and pairs each with its rollback`
 - verified-by: `the outstanding schema instruction names every migration in the runbook`
+
+### F513 — A change of plan inside a paid period handed out a fresh allowance
+- severity: P1
+- status: [x]
+- where: services/token-server/src/billing/revenuecat.ts:95
+- note: found while widening the store adapter to two buyable tiers, which is what makes it
+  reachable. `projectSubscriber` decided whether to keep a learner's spent seconds with
+  `current.plan === plan && current.periodEnd?.getTime() === periodEnd.getTime()`, and cleared the
+  counter to zero whenever that was false. The plan being in the comparison is the defect: any
+  crossgrade cleared the meter. On a store whose proration keeps the expiry date through a plan
+  change, moving between the two paid tiers was a full new allowance, as often as a learner cared
+  to switch, for whatever the crossgrade cost. Apple usually opens a new period on an upgrade so
+  the reset was right by accident there; Google's proration modes do not have to, and Android was
+  going to meet this first.
+  A period is what was paid for, so the period is what is compared. Seconds already spent now carry
+  over and are clamped to the cap of the plan now held, and only a genuinely new `expires_date`
+  grants a new allowance. A first purchase out of the trial still grants in full, because a trial
+  has no period to be inside.
+  Latent today: no store product exists and no receipt has ever been verified, so nobody holds a
+  paid plan to crossgrade away from. It is filed as P1 rather than P2 because it is closed, and
+  because it stops being latent on the same day the first key is set.
+- verified-by: `crossgrading with the period untouched carries the seconds over rather than clearing them`
+- verified-by: `the same move at a new expiry does grant the new allowance, because that period was paid for`
+- verified-by: `a first purchase from the trial grants a full allowance`
+
+### F514 — The plan catalogue reached the app only by being refused
+- severity: P2
+- status: [x]
+- where: services/token-server/src/server.ts:357
+- note: `PLANS` was attached to the 402 and to nothing else, so the app could not know what a plan
+  buys in minutes until a learner had been turned away at least once. Any screen wanting it sooner
+  had exactly two options: be refused first, or compile its own copy of the numbers into the
+  binary. The second is F266 with extra steps, and it is also the thing that would stop a price
+  changing without an app update.
+  The catalogue now rides the 200 grant as well. It costs one field on a response the app already
+  reads, it is the same object the refusal carries so the two cannot disagree, and `plansIn` already
+  validates that shape at the door.
+- verified-by: `the grant carries the plan catalogue, so a learner need not be refused to learn the price`

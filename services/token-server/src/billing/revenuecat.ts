@@ -69,10 +69,18 @@ function paidPlan(productId: string, products: RevenueCatConfiguration['products
   return null;
 }
 
+/**
+ * Every variant carries the entitlement that stands after the projection.
+ *
+ * `unchanged` used to carry only a reason, and the refresh endpoint answered
+ * `{ refreshed: true }` whatever came back, so a learner who owned nothing was
+ * told their speaking time was ready (F265). A caller cannot report what it did
+ * from a value that does not say, so the value says.
+ */
 export type SubscriberProjection =
   | { kind: 'active'; entitlement: Entitlement }
   | { kind: 'lapsed'; entitlement: Entitlement }
-  | { kind: 'unchanged'; reason: 'not-paid' | 'unknown-product' };
+  | { kind: 'unchanged'; reason: 'not-paid' | 'unknown-product'; entitlement: Entitlement };
 
 /**
  * Project the vendor's current subscriber state, never the webhook event itself.
@@ -89,15 +97,22 @@ export function projectSubscriber(
   if (vendor) {
     const productId = typeof vendor.product_identifier === 'string' ? vendor.product_identifier : '';
     const plan = paidPlan(productId, config.products);
-    if (plan === null) return { kind: 'unchanged', reason: 'unknown-product' };
+    if (plan === null) return { kind: 'unchanged', reason: 'unknown-product', entitlement: current };
     const periodEnd = typeof vendor.expires_date === 'string' ? new Date(vendor.expires_date) : null;
     if (periodEnd && Number.isFinite(periodEnd.getTime()) && periodEnd.getTime() > now.getTime()) {
-      const samePeriod = current.plan === plan && current.periodEnd?.getTime() === periodEnd.getTime();
+      // A new PERIOD grants a new allowance. A change of plan inside a period does
+      // not, and the difference is money. This read `current.plan === plan && ...`,
+      // so any crossgrade reset the counter to zero: on a store that keeps the
+      // expiry date through a plan change, moving between the two paid tiers was a
+      // fresh allowance every time, as often as the learner cared to switch. The
+      // period is the thing that was paid for, so the period is what is compared,
+      // and seconds already spent are carried over and clamped to the new cap.
+      const newPeriod = current.periodEnd?.getTime() !== periodEnd.getTime();
       return {
         kind: 'active',
         entitlement: {
           plan,
-          secondsUsed: samePeriod ? Math.min(current.secondsUsed, PLANS[plan].secondsPerPeriod) : 0,
+          secondsUsed: newPeriod ? 0 : Math.min(current.secondsUsed, PLANS[plan].secondsPerPeriod),
           periodEnd,
           lapsed: false,
         },
@@ -108,7 +123,7 @@ export function projectSubscriber(
   if (current.plan === 'starter' || current.plan === 'regular') {
     return { kind: 'lapsed', entitlement: lapsedEntitlement() };
   }
-  return { kind: 'unchanged', reason: 'not-paid' };
+  return { kind: 'unchanged', reason: 'not-paid', entitlement: current };
 }
 
 export async function fetchSubscriber(

@@ -291,6 +291,21 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Billing honesty gate: **2,794 tests, 0 failing**; core 608, brain 383, tutor agent 445,
+  token server 183, playground 26, mobile 1149. Floors blessed to those counts. F265 raised to P1
+  and closed, F513 and F514 closed.
+  F265 was the load-bearing one. `/billing/refresh` answered `{ refreshed: true }` whatever the
+  projection said, and the client returned `response.ok`, so a learner who owned nothing produced
+  the same value as a learner whose subscription had just been verified. The paywall read that as
+  success, said their speaking time was ready, and hid the buy and restore buttons behind the
+  sentence. Every candidate design for the subscription wall cleared its gate on that same value,
+  which is why it was fixed before any of them was built rather than after.
+  F513 was found while widening the adapter for a second buyable tier and is money rather than
+  copy: the allowance reset compared the plan as well as the period, so any crossgrade cleared the
+  meter, and on a store whose proration keeps the expiry date that was a fresh allowance per
+  switch. Both fixes were mutation tested. Reverting either one fails the test that names it, which
+  is recorded here because the counterfactual is the only evidence a guard is a guard.
+
 - Max allowance gate: **2,789 tests, 0 failing**; core 608, brain 383, tutor agent 445,
   token server 178, playground 26, mobile 1149. Floors blessed to those counts. F512 closed.
   The second paid tier moved from 450 minutes at $39 to 300 at $29, and the price is what forced

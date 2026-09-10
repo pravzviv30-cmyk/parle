@@ -314,7 +314,15 @@ export function SettingsScreen({
     const asked: Promise<string | null> =
       action === 'manage'
         ? purchases.manage(user.id).then((result) => (result.ok || result.cancelled ? null : PURCHASE_TROUBLE))
-        : restorePurchases(user.id).then((outcome) => (outcome.kind === 'done' ? RESTORE_DONE : restoreTrouble(outcome)));
+        : restorePurchases(user.id).then((outcome) =>
+            // Granted and granted-nothing are one sentence here on purpose. This row
+            // reports that the store was checked, which is true either way, and it is
+            // the paywall rather than Settings that has just seen a purchase and can
+            // reasonably say a grant is still catching up.
+            outcome.kind === 'done' || outcome.kind === 'nothing-granted'
+              ? RESTORE_DONE
+              : restoreTrouble(outcome),
+          );
     void asked
       .then(setStoreMessage)
       .catch(() => setStoreMessage(PURCHASE_TROUBLE))

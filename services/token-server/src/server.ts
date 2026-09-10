@@ -249,8 +249,13 @@ const server = createServer(async (req, res) => {
       const resolved = await users.resolve(req.headers.authorization, null);
       if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
       if (!(await withinLimits(req, res, [[RATE_LIMITS.billingRefreshUser, 'user', resolved.userId]]))) return;
-      await refreshSubscriber(resolved.userId, store, billing);
-      return json(res, 200, { refreshed: true });
+      // What it did, not merely that it ran (F265). `refreshed: true` unconditionally
+      // told a learner who owned nothing that their speaking time was ready, and the
+      // paywall then hid the buy and restore buttons behind that sentence. Only an
+      // `active` projection moved anything; the plan is what the learner now holds
+      // either way, so the client can stop guessing from an HTTP status.
+      const projection = await refreshSubscriber(resolved.userId, store, billing);
+      return json(res, 200, { refreshed: projection.kind === 'active', plan: projection.entitlement.plan });
     }
 
     // What the app calls to begin. Returns credentials, or 402 with the reason.
@@ -354,7 +359,11 @@ const server = createServer(async (req, res) => {
           { 'server-timing': serverTiming },
         );
       }
-      return json(res, 200, { ...result.grant, livekitUrl }, { 'server-timing': serverTiming });
+      // The catalogue rides the grant as well as the 402. It was attached only to the
+      // refusal, so a learner had to be turned away once before the app knew what a
+      // plan costs in minutes, and any screen wanting it sooner would have had to
+      // compile its own copy — which is F266 with extra steps.
+      return json(res, 200, { ...result.grant, livekitUrl, plans: PLANS }, { 'server-timing': serverTiming });
     }
 
     // Drill mode's pronunciation check: raw utterance audio in the body, the

@@ -29,6 +29,7 @@ const NATIVE = read('./adapter.native.ts');
 const PAYWALL = read('./Paywall.tsx');
 const RESTORE = read('./restore.ts');
 const SUBSCRIPTION = read('./subscription.ts');
+const SETTINGS_SCREEN = read('../settings/SettingsScreen.tsx');
 const SRC = fileURLToPath(new URL('..', import.meta.url));
 
 /** Every non-test source file in the app, so "one function" can be checked app wide. */
@@ -135,7 +136,18 @@ describe('manage subscription and restore, on Settings as well as the paywall â€
     // Store first, server second, and the server only once the store said yes.
     assert.match(RESTORE, /return settleStoreAction\(await purchases\.restore\(userId\)\)/);
     assert.match(RESTORE, /if \(!action\.ok\) return \{ kind: action\.cancelled \? 'cancelled' : 'store-trouble' \}/);
-    assert.match(RESTORE, /await refreshBilling\(\)\) \? \{ kind: 'done' \} : \{ kind: 'refresh-trouble' \}/);
+    // A truthy refresh is no longer a grant. `(await refreshBilling()) ? done :
+    // refresh-trouble` read `response.ok`, which is true for a learner with nothing
+    // to restore, so owning nothing and having just subscribed produced the same
+    // ending (F265). The server now says which, and these three lines are that.
+    assert.match(RESTORE, /const refresh = await refreshBilling\(\);/);
+    assert.match(RESTORE, /if \(refresh === null\) return \{ kind: 'refresh-trouble' \};/);
+    assert.match(RESTORE, /return refresh\.granted \? \{ kind: 'done', plan: refresh\.plan \} : \{ kind: 'nothing-granted' \};/);
+    assert.doesNotMatch(
+      RESTORE.replace(/\/\/[^\n]*/g, ''),
+      /\(await refreshBilling\(\)\) \?/,
+      'the store finishing is being read as the server granting',
+    );
 
     // The paywall runs that function rather than a second copy of it.
     assert.match(PAYWALL, /import \{ restorePurchases, settleStoreAction \} from '\.\/restore\.ts'/);
@@ -148,7 +160,17 @@ describe('manage subscription and restore, on Settings as well as the paywall â€
     assert.equal(restoreTrouble({ kind: 'store-trouble' }), PURCHASE_TROUBLE);
     assert.equal(restoreTrouble({ kind: 'refresh-trouble' }), REFRESH_TROUBLE);
     assert.equal(restoreTrouble({ kind: 'cancelled' }), null);
-    assert.equal(restoreTrouble({ kind: 'done' }), null, 'the shared function invented a success line');
+    assert.equal(restoreTrouble({ kind: 'done', plan: 'starter' }), null, 'the shared function invented a success line');
+    // The ending that used to be indistinguishable from success. On this surface a
+    // purchase has just happened, so a grant that has not landed yet is the honest
+    // reading; Settings words the same outcome as "checked".
+    assert.equal(restoreTrouble({ kind: 'nothing-granted' }), REFRESH_TROUBLE);
+    assert.doesNotMatch(
+      SETTINGS_SCREEN,
+      /outcome\.kind === 'done' \? RESTORE_DONE/,
+      'Settings reads a granted-nothing restore as trouble instead of as a checked store',
+    );
+    assert.match(SETTINGS_SCREEN, /outcome\.kind === 'done' \|\| outcome\.kind === 'nothing-granted'/);
   });
 
   test("manage opens the store's own sheet on a device and is unavailable on the web", async () => {

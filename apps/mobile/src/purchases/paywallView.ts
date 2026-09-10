@@ -47,5 +47,10 @@ export const RESTORE_BUSY = 'Checking the store…';
 export function restoreTrouble(outcome: RestoreOutcome): string | null {
   if (outcome.kind === 'store-trouble') return PURCHASE_TROUBLE;
   if (outcome.kind === 'refresh-trouble') return REFRESH_TROUBLE;
+  // The store finished and the server granted nothing. On this surface that has
+  // just followed a purchase, so the honest reading is that the grant has not
+  // arrived yet rather than that the learner owns nothing. Settings reads the
+  // same outcome the other way, which is why neither wording lives in here.
+  if (outcome.kind === 'nothing-granted') return REFRESH_TROUBLE;
   return null;
 }

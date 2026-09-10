@@ -9,7 +9,7 @@ const agent = readFileSync(path.resolve(import.meta.dirname, '..', '..', 'tutor-
 describe('session lifecycle wiring — infrastructure must have callsites', () => {
   test('a successful start atomically acquires the learner lease before returning the token', () => {
     const acquire = server.indexOf('sessionLeases.acquire(');
-    const response = server.indexOf('return json(res, 200, { ...result.grant, livekitUrl }');
+    const response = server.indexOf('return json(res, 200, { ...result.grant, livekitUrl, plans: PLANS }');
     assert.ok(acquire > 0 && response > acquire);
     assert.match(server, /409,[\s\S]*session already active/);
   });
