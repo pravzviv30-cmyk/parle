@@ -291,6 +291,27 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Wall value pages gate: **2,836 tests, 0 failing**; core 608, brain 383, tutor agent 445,
+  token server 183, playground 26, mobile 1191. Floors blessed to those counts. F518 closed.
+  The wall has a face. Three pages, a route above the tabs the way Settings is, and a web address
+  of its own, all of it drawn and driven in a browser rather than asserted: the empty state showing
+  four white cards naming four capabilities, then the same page with the cafe on its sand tint and
+  the hotel on its sky one, each reading its authored win and each carrying a line of French the
+  learner said, then the growth page with a real count and the learner's own chips, then the page
+  that promises what stays.
+  Page four is absent rather than stubbed, and the page count follows: three dots, and the last
+  action says keep practising instead of offering a plan that cannot be bought. That is the same
+  path a web learner takes and the same path every build takes until the RevenueCat keys exist, so
+  what was reviewed is what a keyless build actually does.
+  Getting there found one real thing. The wall reached for `missionStates` with the store's own
+  `MissionCompletion`, whose `id` is a plain string because a disk read cannot promise the id names
+  a mission this build has. Every other screen goes through `missionCompletionsFrom` first, and the
+  typechecker refused the shortcut before a screen could quietly draw a row for a mission that no
+  longer exists.
+  The preview switch is gated on three conditions at once, the way the token server's development
+  entitlement store is, and the one that matters has its own test: a production build refuses it
+  however loudly the flags are set.
+
 - Wall decisions gate: **2,832 tests, 0 failing**; core 608, brain 383, tutor agent 445,
   token server 183, playground 26, mobile 1187. Floors blessed to those counts. F517 closed.
   Everything the wall decides now lives in plain modules that can be called, because apps/mobile

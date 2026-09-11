@@ -75,4 +75,14 @@ export type RootStackParamList = {
    * nothing non-serialisable is put into navigation state.
    */
   Settings: undefined;
+  /**
+   * The subscription wall, as a stack sibling above the tabs.
+   *
+   * Above the tabs for the same reason Settings is: the bar goes with the push,
+   * so the wall owns the whole screen while it makes its case. `entry` says
+   * which door was used, which decides how long the wall is and is also the
+   * property the `wall_shown` event carries, so the funnel is split by the same
+   * doors the code has. It is a string union and stays serialisable.
+   */
+  Wall: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' };
 };

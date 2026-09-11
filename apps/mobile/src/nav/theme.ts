@@ -68,6 +68,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       SoundCheck: 'sound-check',
       Missions: 'missions',
       Settings: 'settings',
+      Wall: 'plans',
     },
   },
 };

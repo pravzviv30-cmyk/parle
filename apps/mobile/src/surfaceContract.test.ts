@@ -784,6 +784,10 @@ const ADOPTERS = [
   'onboarding/OnboardingFlow.tsx',
   'auth/SignUpScreen.tsx',
   'auth/SignInScreen.tsx',
+  // The subscription wall takes the frame from the day it is written, the way
+  // the settings screens did, rather than being walked back from a safe area it
+  // measured itself.
+  'wall/WallScreen.tsx',
 ];
 
 /**

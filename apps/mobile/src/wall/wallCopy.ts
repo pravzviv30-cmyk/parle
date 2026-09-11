@@ -140,6 +140,16 @@ export const PLANS_RENEWAL = 'Plans renew every month until you cancel. You can 
 
 /** The wall's own way out. Not a refusal of anything, so it apologises for nothing. */
 export const WALL_LEAVE = 'Maybe later';
+/** Forward, on any page that is not the last. */
+export const WALL_NEXT = 'Next';
+/**
+ * The last page's action when there is no store to go on to.
+ *
+ * On web and on any keyless build the wall ends on page three, and the honest
+ * last word points at the free product it just promised rather than at a plan
+ * that cannot be bought from here.
+ */
+export const WALL_DONE = 'Keep practising';
 export const WALL_READY = 'Your speaking time is ready.';
 export const WALL_BUSY = 'Opening the store…';
 
@@ -180,6 +190,8 @@ export const WALL_COPY: readonly string[] = [
   PLANS_TERMS,
   PLANS_RENEWAL,
   WALL_LEAVE,
+  WALL_NEXT,
+  WALL_DONE,
   WALL_READY,
   WALL_BUSY,
 ];

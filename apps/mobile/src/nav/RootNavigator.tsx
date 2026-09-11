@@ -26,6 +26,8 @@ import { paper, space, type } from '../theme.ts';
 import { GhostButton, Label, PillButton } from '../components.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
+import { WallScreen } from '../wall/WallScreen.tsx';
+import { wallPreviewEnabled } from '../wall/preview.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { lastSummaryFor, recordSession } from '../progress/store.ts';
 import { recordActivity } from '../progress/activity.ts';
@@ -330,6 +332,32 @@ function ReviewRoute() {
   return <ReviewScreen onDone={() => nav.goBack()} />;
 }
 
+function WallRoute() {
+  const nav = useNavigation<{
+    goBack: () => void;
+    canGoBack: () => boolean;
+    navigate: (screen: string, params?: object) => void;
+  }>();
+  const { entry } = useRoute<RouteProp<RootStackParamList, 'Wall'>>().params;
+
+  // A preview opens ON this screen, so there can be nothing behind it to go back
+  // to. Falling through to the tabs is the difference between a way out and a
+  // dead end, which is the same bargain MissionsScreen strikes on a first run.
+  const leave = () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'));
+
+  return (
+    <WallScreen
+      entry={entry}
+      onLeave={leave}
+      onOpenBank={() => nav.navigate('Review')}
+      // Page four is not built yet. Until it is, the wall never offers a door it
+      // does not have: `wallPages` only puts the plans page in the list when the
+      // store answered with a product, so this cannot be reached today.
+      onSeePlans={leave}
+    />
+  );
+}
+
 function SoundCheckRoute() {
   const nav = useNavigation<{ goBack: () => void }>();
   const route = useRoute<RouteProp<RootStackParamList, 'SoundCheck'>>();
@@ -380,7 +408,7 @@ export function RootNavigator({
 }) {
   return (
     <Stack.Navigator
-      initialRouteName={startOnMissions ? 'Missions' : 'Tabs'}
+      initialRouteName={wallPreviewEnabled() ? 'Wall' : startOnMissions ? 'Missions' : 'Tabs'}
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: paper.ground },
@@ -409,6 +437,12 @@ export function RootNavigator({
       <Stack.Screen name="Review" component={ReviewRoute} />
       <Stack.Screen name="SoundCheck" component={SoundCheckRoute} />
       <Stack.Screen name="Missions" component={MissionsScreen} />
+      {/* `initialParams` is what makes the preview safe to open directly: with
+          the wall as the initial route there is no navigate to carry a param, so
+          without this `entry` would be undefined on the one path that exists to
+          be looked at. The founder's primary door is the end of the welcome
+          path, so that is what a preview shows. */}
+      <Stack.Screen name="Wall" component={WallRoute} initialParams={{ entry: 'path-complete' }} />
     </Stack.Navigator>
   );
 }

@@ -7826,3 +7826,33 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `page two counts nothing for itself`
 - verified-by: `WallPage and wall_page_seen name exactly the same pages`
 - verified-by: `WallEntry and wall_shown name exactly the same doors`
+
+### F518 — The subscription wall had no face, and no way to be looked at before one existed
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/wall/WallScreen.tsx:1
+- note: the wall's decisions all had tests and none of them had a screen. Three pages now exist,
+  on a route above the tabs the way Settings is, so the tab bar goes with the push and the wall
+  owns the screen while it makes its case. Each page is null gates and a stylesheet; everything
+  either of them draws was decided in a module a test can call.
+  The purchase page is absent rather than stubbed, and the page count follows it: three dots, and
+  the last action says keep practising rather than offering a plan that cannot be bought. That is
+  what a web learner sees and what every build sees until the RevenueCat keys exist, so the thing
+  reviewed is the thing a keyless build does rather than a mock of it.
+  A preview switch opens the wall directly, because a wall nobody can look at until payments are
+  configured is a wall nobody can correct, and `docs/RELEASE_GATE.md` is explicit that configuring
+  payments first is not acceptable. It is gated on three conditions at once, the way
+  `developmentEntitlementsEnabled` is: the preview flag, the explicit local-development switch the
+  mock auth adapter also needs, and the absence of a production build. The third has its own test.
+  Building it found one real defect in the making. The screen reached for `missionStates` with the
+  store's own `MissionCompletion`, whose `id` is a plain string because a disk read cannot promise
+  the id names a mission this build ships. Every other screen goes through `missionCompletionsFrom`,
+  which drops those and validates the rung, and the typechecker refused the shortcut before a row
+  could be drawn for a mission that no longer exists.
+- verified-by: `all three conditions together, and nothing less`
+- verified-by: `a production build refuses it however loudly the flags are set`
+- verified-by: `it rides the same switch the mock auth adapter needs, so it cannot reach real infrastructure`
+- verified-by: `an empty environment is off, which is what every build that never heard of it has`
+- verified-by: `every root screen the navigator can push has a path it can be read back from`
+- verified-by: `every tab and pushed screen is built on Screen or ScrollScreen — F307`
+- verified-by: `no adopted screen reads the safe area or opens a ScrollView for itself — F307`
