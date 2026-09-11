@@ -38,6 +38,7 @@ import {
 import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from './globals.ts';
 import { authHeaders } from '../auth/adapter.ts';
 import { journalRecap } from './journal.ts';
+import { noteCatalogue } from '../wall/catalogue.ts';
 import {
   classifyFailure,
   classifyPipelineError,
@@ -822,6 +823,8 @@ export function useLiveSession(
         const code = refusalCode(body);
         const copy = OUT_OF_MINUTES[code];
         const plans = plansIn(body);
+        // Kept for the wall, which needs it on a page this refusal can lead to.
+        noteCatalogue(plans);
         trace('out-of-minutes', { code, plans: plans !== null });
         setStatus({ phase: 'out-of-minutes', code, label: copy.label, message: copy.message, plans });
         return;
@@ -832,6 +835,10 @@ export function useLiveSession(
       // /session/abandon compares against before releasing anything, which is
       // what stops one caller freeing another's session.
       const grant = (await res.json()) as { token: string; livekitUrl: string; sessionId: string };
+      // The catalogue rides the grant as well as the refusal (F514), so a learner
+      // who has started a session has seen what a plan buys without having to be
+      // turned away first. Parsed by the same validator either way.
+      noteCatalogue(plansIn(grant));
       // From here this attempt holds the account's session lease, keyed on this
       // sessionId. If it never reaches a room with a tutor in it, the teardown
       // paths below hand it back; see releaseHeldLease. F165.

@@ -85,4 +85,15 @@ export type RootStackParamList = {
    * doors the code has. It is a string union and stays serialisable.
    */
   Wall: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' };
+  /**
+   * The two documents, as routes rather than sheets inside Settings.
+   *
+   * They were early returns inside SettingsScreen, reachable only from there,
+   * which was fine until something else had to link to them. Apple asks a
+   * purchase surface for working links to both (Guideline 3.1.2), and a sheet
+   * that only one screen can open is not a link. They keep their `onBack`
+   * callback shape; the route wrappers hand them a goBack.
+   */
+  Policy: undefined;
+  Terms: undefined;
 };

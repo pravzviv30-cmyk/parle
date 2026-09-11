@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Text } from 'react-native';
 
+import { paper, space, type } from '../theme.ts';
+
+import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { trackProductEvent } from '../analytics/track.ts';
 import { PillButton, ProgressDots } from '../components.tsx';
@@ -10,17 +14,22 @@ import { loadMissionCompletions } from '../missions/store.ts';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { loadActivity } from '../progress/activity.ts';
 import { momentumFrom } from '../progress/momentum.ts';
-import { purchases, type StoreOffering } from '../purchases/adapter.ts';
-import { paywallSurface } from '../purchases/paywallView.ts';
+import { purchases, type PaidPlan, type StoreOffering } from '../purchases/adapter.ts';
+import { paywallSurface, restoreTrouble } from '../purchases/paywallView.ts';
+import { restorePurchases, settleStoreAction } from '../purchases/restore.ts';
 import { loadDeck } from '../review/store.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
+import { latestCatalogue, noteCatalogue } from './catalogue.ts';
 import { WallFrenchPage } from './WallFrenchPage.tsx';
 import { WallMapPage } from './WallMapPage.tsx';
+import { WallPlansPage } from './WallPlansPage.tsx';
 import { WallYoursPage } from './WallYoursPage.tsx';
-import { WALL_DONE, WALL_NEXT, YOURS_NEXT } from './wallCopy.ts';
+import { PLANS_CHOOSE, WALL_BUSY, WALL_DONE, WALL_NEXT, WALL_READY, YOURS_NEXT } from './wallCopy.ts';
+import { wallPlanRows } from './wallPlans.ts';
+import { previewCatalogue, previewOffering } from './preview.ts';
 import { wallFrench, type WallFrench } from './wallFrench.ts';
-import { wallMap, type WallMapRow } from './wallMap.ts';
-import { endsOnPlans, wallPages, type WallEntry } from './wallPages.ts';
+import { wallMap, type WallMap } from './wallMap.ts';
+import { wallAction, wallPages, type WallEntry } from './wallPages.ts';
 
 /**
  * The subscription wall: a short paged report that ends in a price, or does not.
@@ -40,16 +49,22 @@ export function WallScreen({
   entry,
   onLeave,
   onOpenBank,
-  onSeePlans,
+  onOpenPolicy,
+  onOpenTerms,
 }: {
   entry: WallEntry;
   onLeave: () => void;
   onOpenBank: () => void;
-  onSeePlans: () => void;
+  onOpenPolicy: () => void;
+  onOpenTerms: () => void;
 }) {
   const { profile } = useProfile();
+  const { user } = useAuth();
+  const [selected, setSelected] = useState<PaidPlan | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
-  const [rows, setRows] = useState<readonly WallMapRow[] | null>(null);
+  const [map, setMap] = useState<WallMap | null>(null);
   const [french, setFrench] = useState<WallFrench | null>(null);
   const [offering, setOffering] = useState<StoreOffering>({ available: false });
   const [loaded, setLoaded] = useState(false);
@@ -65,7 +80,7 @@ export function WallScreen({
         // promise the id names a mission this build has, and this drops the ones
         // that do not along with any rung outside the ladder.
         const progress: readonly MissionProgress[] = missionStates(missionCompletionsFrom(completions), deck, now);
-        setRows(wallMap({ progress, deck, tutorName: profile === null ? null : tutorNameOf(profile) }));
+        setMap(wallMap({ progress, deck, tutorName: profile === null ? null : tutorNameOf(profile) }));
         setFrench(wallFrench(momentumFrom({ activity, deck, profile, now })));
         setLoaded(true);
       },
@@ -77,10 +92,17 @@ export function WallScreen({
 
   useEffect(() => {
     let cancelled = false;
+    // In a preview there is no session behind this, so nothing has sent a
+    // catalogue and the plans page would show no minutes. `noteCatalogue`
+    // ignores null, so on every real build this line does nothing at all.
+    noteCatalogue(previewCatalogue());
     // A store that answers nothing is the expected answer today, and the page
     // list is built from it rather than around it.
     void purchases.offering('wall').then((next) => {
-      if (!cancelled) setOffering(next);
+      if (cancelled) return;
+      // The real store first, always. The fixture stands in only when there is no
+      // store and this is a preview build, which is never a build a learner has.
+      setOffering(next.available ? next : (previewOffering() ?? next));
     });
     return () => {
       cancelled = true;
@@ -110,33 +132,102 @@ export function WallScreen({
   const back = () => (index > 0 ? setIndex((at) => at - 1) : onLeave());
   useHardwareBack(true, back);
 
-  const forward = () => {
-    if (!last) {
-      setIndex((at) => at + 1);
-      return;
-    }
-    if (endsOnPlans(pages)) {
-      onSeePlans();
-      return;
-    }
-    onLeave();
+  const action = wallAction(pages, index);
+  const planRows = wallPlanRows(offering, latestCatalogue());
+  const chosen = planRows?.find((row) => row.plan === selected) ?? null;
+
+  /**
+   * The half that happens once the store has answered, shared with restore.
+   *
+   * `done` is the only ending that may say the speaking time is ready, because
+   * since F265 it is the only one that means the server granted something.
+   */
+  const settle = async (outcome: Awaited<ReturnType<typeof settleStoreAction>>, plan: PaidPlan) => {
+    void trackProductEvent({ name: 'purchase_settled', properties: { plan, outcome: outcome.kind } });
+    setMessage(outcome.kind === 'done' ? WALL_READY : restoreTrouble(outcome));
+    setBusy(false);
   };
 
-  const label = !last ? WALL_NEXT : endsOnPlans(pages) ? YOURS_NEXT : WALL_DONE;
+  const buy = async () => {
+    if (user === null || chosen === null || busy) return;
+    setBusy(true);
+    setMessage(null);
+    void trackProductEvent({ name: 'purchase_started', properties: { plan: chosen.plan } });
+    await settle(await settleStoreAction(await purchases.purchase(user.id, chosen.productId)), chosen.plan);
+  };
+
+  const restore = async () => {
+    if (user === null || busy) return;
+    setBusy(true);
+    setMessage(null);
+    const outcome = await restorePurchases(user.id);
+    // A restore is not a purchase of any particular tier, so it reports the one
+    // the learner was looking at rather than inventing one.
+    await settle(outcome, chosen?.plan ?? 'starter');
+  };
+
+  const forward = () => {
+    if (action === 'buy') {
+      void buy();
+      return;
+    }
+    if (action === 'done') {
+      onLeave();
+      return;
+    }
+    setIndex((at) => at + 1);
+  };
+
+  const label = busy
+    ? WALL_BUSY
+    : action === 'buy'
+      ? PLANS_CHOOSE
+      : action === 'to-plans'
+        ? YOURS_NEXT
+        : action === 'done'
+          ? WALL_DONE
+          : WALL_NEXT;
 
   // Nothing is drawn from a half loaded disk: a map with no rows would be the
   // empty opening this whole design exists to refuse.
-  if (!loaded || rows === null || french === null || page === undefined) return null;
+  if (!loaded || map === null || french === null || page === undefined) return null;
 
   return (
     <ScrollScreen
       bottom="inset"
       header={<ScreenHeader back={{ onPress: back }} title={<ProgressDots total={pages.length} index={index} />} />}
-      footer={<PillButton label={label} onPress={forward} />}
+      footer={
+        <PillButton
+          label={label}
+          // Nothing to buy until a tier is chosen: a purchase needs a product id,
+          // and a pill that opens the store with none is a pill that fails.
+          disabled={busy || (action === 'buy' && chosen === null)}
+          onPress={forward}
+        />
+      }
     >
-      {page === 'map' && <WallMapPage rows={rows} />}
+      {page === 'map' && <WallMapPage map={map} />}
       {page === 'french' && <WallFrenchPage french={french} onOpenBank={onOpenBank} />}
       {page === 'yours' && <WallYoursPage canBuy={storeHasPlans} />}
+      {page === 'plans' && planRows !== null && (
+        <WallPlansPage
+          rows={planRows}
+          selected={selected}
+          onSelect={(plan) => {
+            setSelected(plan);
+            void trackProductEvent({ name: 'plan_selected', properties: { plan } });
+          }}
+          onRestore={() => void restore()}
+          onOpenPolicy={onOpenPolicy}
+          onOpenTerms={onOpenTerms}
+          onLeave={onLeave}
+        />
+      )}
+      {message !== null && (
+        <Text accessibilityLiveRegion="polite" style={{ ...type.small, color: paper.ink, marginTop: space(4), textAlign: 'center' }}>
+          {message}
+        </Text>
+      )}
     </ScrollScreen>
   );
 }

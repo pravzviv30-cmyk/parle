@@ -291,6 +291,30 @@ Broader than Phase 1, and older. Rows that Phase 1 measured now say what was mea
 
 ## Current focused verification
 
+- Two tiers and the plans page gate: **2,855 tests, 0 failing**; core 608, brain 383,
+  tutor agent 445, token server 183, playground 26, mobile 1210. Floors blessed to those counts.
+  F519, F520 and F521 closed; F522 filed open; F516's evidence moved with a renamed test.
+  The second tier is buyable. It was mapped on the server, configured for, and priced, and had no
+  purchase path at all because `StoreProduct.plan` was a string literal. Page four compares the two
+  with every number off the wire, selects rather than buys so the one primary pill stays in the
+  frame, and carries the subscription length, the renewal and both legal documents, which meant
+  promoting two screens that were sheets inside Settings into routes.
+  Two founder videos landed mid-build and both were folded in. The problem-first argument applies
+  only once the welcome path is walked, because before then there is no gap to name and opening on
+  four things a learner cannot do is the failure mode two rejected designs already had. The
+  soft-wall argument turned out to describe something the wall already was and never said: the line
+  that says it was written and rendered nowhere. A decoy tier was refused, and the refusal is held
+  by a test asserting the dearer tier is genuinely the better rate, so a future price change that
+  inverted that fails rather than quietly misleading.
+  Three things were found by driving it rather than by reading it. The `outOfMinutes` and
+  `startOwnership` suites lift the hook's own branches and `eval` them, so a new dependency has to
+  be handed to their injected worlds; the 402 test now asserts the wall is given the same catalogue
+  the screen is. The plans page had no minutes in preview, because the catalogue is deliberately
+  server-only, so the preview build seeds it from core behind the same three-condition gate and a
+  test names that as the one compiled allowance in the repo. And the plan cards announced no
+  selected state at all on the web, which is F522: React Native Web reads `aria-selected` and not
+  `accessibilityState.selected`, so `OptionCard` and `TabBar` have the same gap and native is fine.
+
 - Wall value pages gate: **2,836 tests, 0 failing**; core 608, brain 383, tutor agent 445,
   token server 183, playground 26, mobile 1191. Floors blessed to those counts. F518 closed.
   The wall has a face. Three pages, a route above the tabs the way Settings is, and a web address

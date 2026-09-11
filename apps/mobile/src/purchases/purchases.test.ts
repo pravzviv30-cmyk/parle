@@ -5,7 +5,7 @@ import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { guiltIn } from '../copy/guilt.ts';
-import { purchases } from './adapter.ts';
+import { purchases, type PaidPlan, type StoreProduct } from './adapter.ts';
 import {
   PURCHASE_TROUBLE,
   REFRESH_TROUBLE,
@@ -30,6 +30,14 @@ const PAYWALL = read('./Paywall.tsx');
 const RESTORE = read('./restore.ts');
 const SUBSCRIPTION = read('./subscription.ts');
 const SETTINGS_SCREEN = read('../settings/SettingsScreen.tsx');
+
+/** One store product, as the store would hand it over. */
+const product = (plan: PaidPlan, localizedPrice: string, title = 'Starter'): StoreProduct => ({
+  plan,
+  productId: `luvani_${plan}_monthly`,
+  title,
+  localizedPrice,
+});
 const SRC = fileURLToPath(new URL('..', import.meta.url));
 
 /** Every non-test source file in the app, so "one function" can be checked app wide. */
@@ -59,8 +67,12 @@ describe('the purchases platform pair — F249', () => {
   });
 
   test('without a configured key the adapter reports purchases unavailable', () => {
-    assert.match(NATIVE, /if \(!key \|\| !STARTER_PRODUCT\) return false/);
-    assert.match(NATIVE, /if \(!found \|\| !price\) return \{ available: false \}/);
+    // A key and at least one product id. Either alone buys nothing: a key with
+    // no product has nothing to sell, and a product id with no key cannot reach
+    // the store to ask about it. This read `!STARTER_PRODUCT` when starter was
+    // the only tier the app could buy.
+    assert.match(NATIVE, /if \(!key \|\| configuredPlans\(\)\.length === 0\) return false/);
+    assert.match(NATIVE, /if \(products\.length === 0\) return \{ available: false \}/);
     assert.match(NATIVE, /ExecutionEnvironment\.StoreClient/);
     assert.match(WEB, /return \{ available: false \}/);
   });
@@ -69,23 +81,35 @@ describe('the purchases platform pair — F249', () => {
 describe('the shared paywall — F250', () => {
   test('the paywall stays dark until the store returns a purchasable product', () => {
     assert.equal(paywallSurface({ available: false }), null);
-    assert.equal(paywallSurface({
-      available: true,
-      product: { plan: 'starter', productId: 'starter', title: 'Starter', localizedPrice: '   ' },
-    }), null);
-    const shown = paywallSurface({
-      available: true,
-      product: { plan: 'starter', productId: 'starter', title: 'Starter', localizedPrice: '£14.99' },
-    });
+    assert.equal(paywallSurface({ available: true, products: [] }), null, 'an empty offering is not a product');
+    assert.equal(
+      paywallSurface({ available: true, products: [product('starter', '   ')] }),
+      null,
+      'a blank store price is not a product',
+    );
+    const shown = paywallSurface({ available: true, products: [product('starter', '£14.99')] });
     assert.equal(shown?.purchaseLabel, 'Continue with Starter · £14.99');
+
+    // Two tiers, one button. The terminal refusal offers the cheapest and never a
+    // choice: somebody who has just been stopped at a room door is not in a
+    // position to weigh two plans, and the wall is where that comparison belongs.
+    const both = paywallSurface({
+      available: true,
+      products: [product('regular', '£24.99', 'Max'), product('starter', '£14.99')],
+    });
+    assert.equal(both?.product.plan, 'starter', 'the refusal block offers the dearer tier');
+    assert.equal(both?.purchaseLabel, 'Continue with Starter · £14.99');
+
+    // And it names what the store named. A build configured with only the second
+    // product would otherwise have offered Max under the word Starter, with a
+    // price beside it making that look deliberate.
+    const maxOnly = paywallSurface({ available: true, products: [product('regular', '£24.99', 'Max')] });
+    assert.equal(maxOnly?.purchaseLabel, 'Continue with Max · £24.99');
   });
 
   test('paywall copy carries no banned words and no invented price', () => {
     const marker = '__STORE_LOCAL_PRICE__';
-    const shown = paywallSurface({
-      available: true,
-      product: { plan: 'starter', productId: 'starter', title: 'Starter', localizedPrice: marker },
-    });
+    const shown = paywallSurface({ available: true, products: [product('starter', marker)] });
     assert.ok(shown);
     for (const line of [shown.title, shown.body, shown.purchaseLabel, shown.restoreLabel]) {
       assert.equal(guiltIn(line), undefined, `guilt in paywall copy: ${line}`);
@@ -107,7 +131,7 @@ describe('the shared paywall — F250', () => {
 describe('manage subscription and restore, on Settings as well as the paywall — F475', () => {
   const starter = (localizedPrice: string) => ({
     available: true as const,
-    product: { plan: 'starter' as const, productId: 'starter', title: 'Starter', localizedPrice },
+    products: [product('starter', localizedPrice)],
   });
 
   test('the subscription group is drawn only when the store answers with a product', () => {

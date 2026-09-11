@@ -48,6 +48,22 @@ export function wallPages(input: { entry: WallEntry; storeHasPlans: boolean }): 
   return input.storeHasPlans ? [...VALUE_PAGES, 'plans'] : VALUE_PAGES;
 }
 
+/**
+ * What the one primary button does on this page.
+ *
+ * A decision rather than a ternary in the screen, because it is the difference
+ * between offering a plan and offering nothing, and that difference depends on a
+ * page that may not exist. `to-plans` is the last value page when there is
+ * somewhere to go; `done` is the last page when there is not, and it points at
+ * the free product the page just promised rather than at a plan nobody can buy.
+ */
+export type WallAction = 'next' | 'to-plans' | 'buy' | 'done';
+
+export function wallAction(pages: readonly WallPage[], index: number): WallAction {
+  if (pages[index] === 'plans') return 'buy';
+  return pages[index + 1] === 'plans' ? 'to-plans' : index === pages.length - 1 ? 'done' : 'next';
+}
+
 /** Whether this showing can end in a purchase at all. */
 export function canBuy(pages: readonly WallPage[]): boolean {
   return pages.includes('plans');

@@ -2,8 +2,16 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Card, Label, TintPanel } from '../components.tsx';
 import { HAIRLINE, paper, space, type } from '../theme.ts';
-import { MAP_NEXT, MAP_SUB, MAP_TAUGHT, MAP_TITLE, MAP_YOURS } from './wallCopy.ts';
-import type { WallMapRow } from './wallMap.ts';
+import {
+  MAP_CLOSED_SUB,
+  MAP_CLOSED_TITLE,
+  MAP_NEXT,
+  MAP_SUB,
+  MAP_TAUGHT,
+  MAP_TITLE,
+  MAP_YOURS,
+} from './wallCopy.ts';
+import type { WallMap, WallMapRow } from './wallMap.ts';
 
 /**
  * Page one. Four rows, and this file decides nothing about any of them.
@@ -19,13 +27,17 @@ import type { WallMapRow } from './wallMap.ts';
  * in any order, so a lock would contradict the product as well as the mood. An
  * unvisited place is an invitation.
  */
-export function WallMapPage({ rows }: { rows: readonly WallMapRow[] }) {
+export function WallMapPage({ map }: { map: WallMap }) {
+  // One more null gate, not a decision. `wallMap` already settled which way round
+  // this page opens; all this does is read the flag and pick the pair.
+  const title = map.problemFirst ? MAP_CLOSED_TITLE : MAP_TITLE;
+  const sub = map.problemFirst ? MAP_CLOSED_SUB : MAP_SUB;
   return (
     <View>
-      <Text accessibilityRole="header" style={st.title}>{MAP_TITLE}</Text>
-      <Text style={st.sub}>{MAP_SUB}</Text>
+      <Text accessibilityRole="header" style={st.title}>{title}</Text>
+      <Text style={st.sub}>{sub}</Text>
       <View style={st.rows}>
-        {rows.map((row) => (
+        {map.rows.map((row) => (
           <MapRow key={row.id} row={row} />
         ))}
       </View>

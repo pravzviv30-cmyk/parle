@@ -11,7 +11,8 @@
     "web": "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 expo start --web",
     "export:web": "expo export --platform web --output-dir dist",
     "typecheck": "tsc --noEmit",
-    "test": "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 node --test --experimental-strip-types \"src/**/*.test.ts\""
+    "test": "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 node --test --experimental-strip-types \"src/**/*.test.ts\"",
+    "web:wall": "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 EXPO_PUBLIC_LUVANI_WALL_PREVIEW=1 expo start --web"
   },
   "dependencies": {
     "@config-plugins/react-native-webrtc": "^15.0.2",

@@ -314,6 +314,10 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     // Added to `start` by the Phase 5 reconnect and quiet-door work. The lifted
     // fragment names them, so the world has to hand them over or the run dies
     // with a ReferenceError rather than a failed assertion.
+    // The grant site keeps the plan catalogue for the subscription wall (F514),
+    // so the fragment names both of these. Same bargain as the setters above.
+    noteCatalogue: () => {},
+    plansIn: (): null => null,
     setReconnecting: () => {},
     setVoiceless: () => {},
     voicelessRef: { current: false },

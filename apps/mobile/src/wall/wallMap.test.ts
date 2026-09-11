@@ -33,7 +33,7 @@ import {
 } from '@luvani/core';
 
 import { TUTOR_NAME } from '../tutor/tutorName.ts';
-import { litCount, pathComplete, wallMap } from './wallMap.ts';
+import { litCount, wallMap } from './wallMap.ts';
 import { WELCOME_PATH, beyondWelcomePath, onWelcomePath, welcomeMissions } from './welcomePath.ts';
 
 const wallMapSource = (): string =>
@@ -69,15 +69,28 @@ function saidCard(id: string, front: string, uses: number, kind: ReviewCardKind 
   return raiseEvidenceTo({ ...base, reps: 3 }, { convoUses: uses });
 }
 
-const mapFor = (completions: readonly MissionCompletion[], deck: readonly ReviewCard[] = [], tutorName: string | null = TUTOR_NAME) =>
-  wallMap({ progress: missionStates(completions, deck, NOW), deck, tutorName });
+const viewFor = (
+  completions: readonly MissionCompletion[],
+  deck: readonly ReviewCard[] = [],
+  tutorName: string | null = TUTOR_NAME,
+) => wallMap({ progress: missionStates(completions, deck, NOW), deck, tutorName });
+
+/** Just the rows, which is what most of these tests are about. */
+const mapFor = (
+  completions: readonly MissionCompletion[],
+  deck: readonly ReviewCard[] = [],
+  tutorName: string | null = TUTOR_NAME,
+) => viewFor(completions, deck, tutorName).rows;
+
+const WALKED_ALL = WELCOME_PATH.map((id) => finished(id));
 
 describe('the wall opens on four rows, whatever the learner has done', () => {
   test('a learner who walked nothing still gets four rows naming four things they could do', () => {
-    const rows = mapFor([]);
+    const view = viewFor([]);
+    const rows = view.rows;
     assert.equal(rows.length, 4, 'the opening page has a variable number of rows');
     assert.equal(litCount(rows), 0);
-    assert.equal(pathComplete(rows), false);
+    assert.equal(view.problemFirst, false, 'a learner with nothing walked was opened on a gap page');
     for (const row of rows) {
       assert.equal(row.lit, false);
       assert.ok(row.line.length > 0, `${row.id} has nothing to say`);
@@ -88,22 +101,54 @@ describe('the wall opens on four rows, whatever the learner has done', () => {
     assert.equal(new Set(rows.map((row) => row.line)).size, 4, 'two rows say the same thing');
   });
 
-  test('a learner who walked all four gets four rows of their own wins, and the page is complete', () => {
-    const rows = mapFor(WELCOME_PATH.map((id) => finished(id)));
-    assert.equal(rows.length, 4);
-    assert.equal(litCount(rows), 4);
-    assert.equal(pathComplete(rows), true);
-    for (const row of rows) {
+  test('a learner who walked all four is opened on what is still closed, with the wins below as the proof', () => {
+    // The second video's argument, as far as it honestly goes: lead with the
+    // problem, but only once there is one. Here there is, and it is the two
+    // situations held back, which are the only rooms left and are authored.
+    const view = viewFor(WALKED_ALL);
+    assert.equal(view.problemFirst, true, 'a finished path was still opened on what was already done');
+
+    const closed = beyondWelcomePath().map((mission) => mission.id);
+    assert.equal(view.rows.length, MISSIONS.length, 'the finished page is not the whole catalogue');
+    assert.deepEqual(
+      view.rows.slice(0, closed.length).map((row) => row.id),
+      closed,
+      'the rooms still closed are not the ones the page opens on',
+    );
+    assert.deepEqual(
+      view.rows.slice(closed.length).map((row) => row.id),
+      [...WELCOME_PATH],
+      'the walked rooms are not below, in path order',
+    );
+
+    for (const row of view.rows.slice(0, closed.length)) {
+      assert.equal(row.lit, false);
+      assert.equal(row.line, missionOf(row.id).goalEn, 'a closed room stopped naming the situation');
+      // Never a sentence about the learner. The founder's setting is to name the
+      // situation and never the feeling, and `goalEn` is the catalogue's own
+      // description of what happens in the room.
+      assert.doesNotMatch(row.line, /\byou (still |cannot|can't|have not|haven't)/i, 'the line is about the learner');
+    }
+    for (const row of view.rows.slice(closed.length)) {
       assert.equal(row.lit, true);
       assert.equal(row.line, missionOf(row.id).winEn, 'a walked room stopped reading its own win');
     }
   });
 
+  test('the closed rooms carry no borrowed French, because they have never been walked', () => {
+    const view = viewFor(WALKED_ALL, [saidCard("phrase:je peux payer par carte ?", 'Je peux payer par carte ?', 6)]);
+    for (const row of view.rows.filter((entry) => !entry.lit)) {
+      assert.equal(row.yours, null, 'a room the learner has never been in is quoting French at them');
+      assert.equal(row.next, null, 'a room with no rung yet was given a rung above');
+    }
+  });
+
   test('a half walked path is four rows too, two of each kind', () => {
-    const rows = mapFor([finished('mission:cafe'), finished('mission:hotel')]);
+    const view = viewFor([finished('mission:cafe'), finished('mission:hotel')]);
+    const rows = view.rows;
     assert.equal(rows.length, 4);
     assert.equal(litCount(rows), 2);
-    assert.equal(pathComplete(rows), false);
+    assert.equal(view.problemFirst, false, 'a half walked path was opened on a gap page');
     assert.deepEqual(
       rows.map((row) => row.lit),
       [true, true, false, false],

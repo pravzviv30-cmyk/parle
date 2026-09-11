@@ -39,6 +39,19 @@
 export const MAP_TITLE = 'What you can do in French';
 export const MAP_SUB = 'Here is where you have been, and what is still waiting for you.';
 
+/**
+ * The same page, once the whole path is walked.
+ *
+ * Problem first, which is the second video's argument, and it applies here only
+ * because by now there genuinely is one: the situations held back are the only
+ * rooms left. Both lines name situations and never the learner. "Still ahead of
+ * you" is where the rooms are, not a verdict on somebody for not being there,
+ * and nothing below counts them, because a count of the situations goes stale
+ * the day the path changes size.
+ */
+export const MAP_CLOSED_TITLE = 'The situations still ahead of you';
+export const MAP_CLOSED_SUB = 'You have handled everything below. These are the ones waiting.';
+
 /** Above a line the learner produced in a real conversation. */
 export const MAP_YOURS = 'You said';
 /**
@@ -136,6 +149,19 @@ export const PLANS_TERMS = 'Terms of use';
  */
 export const PLANS_RENEWAL = 'Plans renew every month until you cancel. You can cancel any time in the store.';
 
+/**
+ * The one trust line, and both halves of it are already true.
+ *
+ * The third video's second technique is trust signals, and its example used
+ * "Join 2M+ busy people". Luvani has nobody to count, and the founder ruled out
+ * a claim that is not real yet, so this says the two things that are: there is
+ * no advertising identifier and no third-party analytics kit anywhere in the app
+ * (`docs/PRIVACY_AND_SAFETY.md`, held by `policy.test.ts`), and stopping costs a
+ * learner none of what they made. This is the first time the purchase surface
+ * says either out loud.
+ */
+export const PLANS_TRUST = 'No adverts, and nothing you made goes away if you stop.';
+
 // ── every ending, in the words each surface needs ──────────────────────────────
 
 /** The wall's own way out. Not a refusal of anything, so it apologises for nothing. */
@@ -164,6 +190,8 @@ export const WALL_BUSY = 'Opening the store…';
 export const WALL_COPY: readonly string[] = [
   MAP_TITLE,
   MAP_SUB,
+  MAP_CLOSED_TITLE,
+  MAP_CLOSED_SUB,
   MAP_YOURS,
   MAP_TAUGHT,
   MAP_NEXT,
@@ -189,6 +217,7 @@ export const WALL_COPY: readonly string[] = [
   PLANS_PRIVACY,
   PLANS_TERMS,
   PLANS_RENEWAL,
+  PLANS_TRUST,
   WALL_LEAVE,
   WALL_NEXT,
   WALL_DONE,

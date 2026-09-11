@@ -7771,12 +7771,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   room from the join between `mission.phraseKeys` and `retainedOrder`. Nothing a row carries is
   about payment, so the same picture would be drawn by a free app, which is what lets the wall be
   shown twice without curdling.
+  F520 later changed which way round this page opens once the path is walked, and the test named
+  below moved with it. The four-rows property it was really defending is untouched: a learner who
+  has walked nothing still gets four rows naming four capabilities.
   This is packaging rather than pedagogy, and the server neither knows nor cares which room a
   second was spent in, which is why the list lives beside the wall it justifies rather than in
   `PLANS`. It is not enforcement either: a learner who reaches a held back room is stopped by the
   402 at the door.
 - verified-by: `a learner who walked nothing still gets four rows naming four things they could do`
-- verified-by: `a learner who walked all four gets four rows of their own wins, and the page is complete`
+- verified-by: `a learner who walked all four is opened on what is still closed, with the wins below as the proof`
 - verified-by: `a half walked path is four rows too, two of each kind`
 - verified-by: `one finish at the lowest rung lights the room`
 - verified-by: `the row reads timesFinished and never the review state or the independence`
@@ -7856,3 +7859,104 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `every root screen the navigator can push has a path it can be read back from`
 - verified-by: `every tab and pushed screen is built on Screen or ScrollScreen — F307`
 - verified-by: `no adopted screen reads the safe area or opens a ScrollView for itself — F307`
+
+### F519 — The second tier existed on the server and could not be bought from the app
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/purchases/adapter.ts:1
+- note: `StoreProduct.plan` was the literal `'starter'` and `StoreOffering` carried one product, so
+  the tier the server has always mapped, configured for, and priced had no purchase path at all.
+  `PaidPlan` and `PAID_PLANS` replace the literal, the offering carries a list, `adapter.native.ts`
+  reads both product ids and asks `getOfferings` once for both, and `purchase` accepts either. A
+  build naming one product sells the one it has rather than nothing, because a half-finished store
+  setup should be visible as one tier rather than as a dead purchase path.
+  `purchasable(offering)` is now the single answer to "is there anything to sell", so the Settings
+  group, the terminal refusal block and the wall's plans page cannot disagree about it.
+  `paywallSurface` derives the cheapest tier from it and stays one button with no choice to make:
+  a learner stopped at a room door is not in a position to weigh two plans, and the wall is where
+  that comparison belongs. Its label now names `product.title`, because a build configured with
+  only the second product would otherwise have offered Max under the word Starter with a price
+  beside it making that look deliberate.
+  Page four is the comparison. Two cards that select rather than buy, with the one primary pill in
+  the frame's footer, which keeps this app's one-primary-per-door rule and also makes
+  `plan_selected` and `purchase_started` two different events instead of one. Every number on it
+  comes off the wire: the price from the store's localised string, the allowance from the catalogue
+  the server sends. `wallPlans.ts` is the only thing dividing by sixty and carries no currency
+  symbol at all.
+  Apple's Guideline 3.1.2 wants the subscription length, the renewal and both documents on the
+  purchase screen. `PolicyScreen` and `TermsScreen` were early returns inside Settings, reachable
+  from nowhere else, so they are root routes now with web addresses of their own.
+- verified-by: `without a configured key the adapter reports purchases unavailable`
+- verified-by: `the paywall stays dark until the store returns a purchasable product`
+- verified-by: `paywall copy carries no banned words and no invented price`
+- verified-by: `the subscription group is drawn only when the store answers with a product`
+- verified-by: `an unavailable store, an empty list and a blank price all answer null`
+- verified-by: `the allowance is the catalogue's, in whole minutes`
+- verified-by: `no catalogue means no allowance shown, rather than an allowance guessed`
+- verified-by: `the order is the offer, whatever order the store answered in`
+- verified-by: `a store selling one tier draws one card, not a gap and not a decoy`
+- verified-by: `the subscription terms are on the surface that sells it`
+- verified-by: `a chosen plan says so to a screen reader`
+- verified-by: `every root screen the navigator can push has a path it can be read back from`
+
+### F520 — The wall led with what a learner could already do, even when the gap was what they came back for
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/wall/wallMap.ts:1
+- note: from a founder video arguing that people buy relief from a problem, so the problem should
+  come first. It applies here, but only where there is one. A learner who has walked nothing has no
+  gap worth naming, only an empty start, and opening on four things they cannot do is the bleakest
+  first screen available to the cohort that most needs convincing, which is the failure mode two
+  rejected designs already had.
+  So the order inverts exactly when the gap becomes real: once the welcome path is walked, the only
+  rooms left are the two held back, and `wallMap` opens on those with the four walked ones below as
+  the proof. Same page and same page count, because more than four screens before a price bleeds
+  and the row order buys everything a fifth page would.
+  The problem is named as a situation and never as a feeling, which was the founder's explicit
+  setting. `goalEn` is the catalogue's own sentence about what happens in that room, so nothing on
+  the page describes the learner, and a test refuses a line that starts to.
+- verified-by: `a learner who walked all four is opened on what is still closed, with the wins below as the proof`
+- verified-by: `the closed rooms carry no borrowed French, because they have never been walked`
+- verified-by: `a learner who walked nothing still gets four rows naming four things they could do`
+- verified-by: `a half walked path is four rows too, two of each kind`
+
+### F521 — The wall was soft and never said so
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/wall/WallPlansPage.tsx:1
+- note: the wall has never blocked anything. The chevron goes back, nothing is gated behind it, and
+  page three promises that everything a learner made stays theirs. But the only visible way to
+  decline was a chevron in a corner, which reads as navigation rather than as an answer, and
+  `WALL_LEAVE` was written in the copy deck and rendered nowhere at all.
+  It is rendered now, on the page that asks for money. One honest trust line joins it: not social
+  proof, because Luvani has nobody to count and a number it does not have is the claim the founder
+  ruled out, but the two things that are already true and already tested elsewhere. There are no
+  adverts and no third-party analytics kit anywhere in the app, and stopping costs a learner none of
+  what they made. This is the first time the purchase surface says either out loud.
+  A decoy tier was refused in the same pass. A decoy is a plan that exists in order not to be
+  bought, and the two real tiers already anchor each other truthfully, because Max is genuinely the
+  better rate per minute. A test holds that, so a future price change that inverted it would fail
+  rather than quietly turn the cheaper plan into the better deal while the page still implied
+  otherwise.
+- verified-by: `declining is a visible choice on the page that asks for money`
+- verified-by: `the one trust line says two things that are already true`
+- verified-by: `nothing is marked recommended, best value or most popular`
+- verified-by: `a store selling one tier draws one card, not a gap and not a decoy`
+
+### F522 — A selected card announces nothing on the web, in three places
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/components.tsx:403
+- note: found while checking the wall's plan cards in a browser. React Native Web reads `aria-selected`
+  and treats `accessibilitySelected` as deprecated; it does not read `accessibilityState.selected`
+  at all, which is what this app uses everywhere. Verified in
+  `node_modules/react-native-web/dist/modules/createDOMProps/index.js:669-675`.
+  So on the web `OptionCard` (components.tsx:403), `TabBar` (components.tsx:610) and the wall's plan
+  cards all render their chosen state visually and announce nothing, and a screen reader cannot tell
+  which option is picked. Native is unaffected: `accessibilityState.selected` is correct there, which
+  is why this has survived.
+  Not fixed here on purpose. The fix belongs in the shared components rather than in one screen, or
+  the wall would be a fourth spelling of the same idea, and it is `design-system-engineer` territory.
+  The wall matches the app's existing convention rather than inventing a local `role="radio"`, which
+  was the first attempt and announced even less.
+- verified-by: `a selected option announces its state on the web as well as on a device`

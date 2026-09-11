@@ -1,4 +1,4 @@
-import type { StoreOffering, StoreProduct } from './adapter.ts';
+import { PAID_PLANS, type StoreOffering, type StoreProduct } from './adapter.ts';
 import type { RestoreOutcome } from './restore.ts';
 
 export interface PaywallSurface {
@@ -8,16 +8,49 @@ export interface PaywallSurface {
   restoreLabel: string;
 }
 
-/** No package, wrong tier or blank store price means no purchase surface. */
-export function paywallSurface(offering: StoreOffering): (PaywallSurface & { product: StoreProduct }) | null {
+/**
+ * Every tier that can be bought right now, cheapest first.
+ *
+ * The single source of "is there anything to sell", so the Settings group, the
+ * terminal refusal block and the wall's plans page cannot disagree about it. A
+ * product with a blank price is dropped rather than drawn: a price is what makes
+ * something purchasable, and a button with nothing after the interpunct is a
+ * button that has already failed.
+ *
+ * Returns null rather than an empty list when there is nothing, because null is
+ * what every caller here already means by "draw no surface at all".
+ */
+export function purchasable(offering: StoreOffering): readonly StoreProduct[] | null {
   if (!offering.available) return null;
-  const product = offering.product;
-  if (product.plan !== 'starter' || product.localizedPrice.trim().length === 0) return null;
+  const priced = offering.products.filter((product) => product.localizedPrice.trim().length > 0);
+  // Ordered here rather than trusted from the adapter, so a caller that builds
+  // an offering by hand gets the same order a real store answer produces.
+  const ordered = PAID_PLANS.flatMap((plan) => priced.filter((product) => product.plan === plan));
+  return ordered.length === 0 ? null : ordered;
+}
+
+/**
+ * The terminal refusal block: one tier, one button, no choice to make.
+ *
+ * This is what a learner meets at the door of a room they cannot enter, and it
+ * offers the cheapest tier deliberately. Somebody who has just been stopped is
+ * not in a position to weigh two plans, and the wall is where that comparison
+ * belongs. Widening this into a picker would put a pricing decision on the one
+ * screen with no room for the evidence that justifies it.
+ */
+export function paywallSurface(offering: StoreOffering): (PaywallSurface & { product: StoreProduct }) | null {
+  const products = purchasable(offering);
+  if (products === null) return null;
+  const product = products[0]!;
   return {
     product,
     title: 'More speaking time',
     body: 'Practice and review still work offline. When you want more conversations, the store can add speaking time here.',
-    purchaseLabel: `Continue with Starter · ${product.localizedPrice}`,
+    // The store's own name for it, not the word "Starter". With two tiers the
+    // cheapest is normally starter, but a build configured with only the second
+    // product would have offered Max under the wrong name, and the price beside
+    // it would have made that look deliberate.
+    purchaseLabel: `Continue with ${product.title} · ${product.localizedPrice}`,
     restoreLabel: 'Restore a previous purchase',
   };
 }

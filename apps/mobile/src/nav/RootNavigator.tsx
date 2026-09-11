@@ -26,6 +26,8 @@ import { paper, space, type } from '../theme.ts';
 import { GhostButton, Label, PillButton } from '../components.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
+import { PolicyScreen } from '../legal/PolicyScreen.tsx';
+import { TermsScreen } from '../legal/TermsScreen.tsx';
 import { WallScreen } from '../wall/WallScreen.tsx';
 import { wallPreviewEnabled } from '../wall/preview.ts';
 import { useLive } from '../app/LiveContext.tsx';
@@ -332,6 +334,16 @@ function ReviewRoute() {
   return <ReviewScreen onDone={() => nav.goBack()} />;
 }
 
+function PolicyRoute() {
+  const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string) => void }>();
+  return <PolicyScreen onBack={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'))} />;
+}
+
+function TermsRoute() {
+  const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string) => void }>();
+  return <TermsScreen onBack={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'))} />;
+}
+
 function WallRoute() {
   const nav = useNavigation<{
     goBack: () => void;
@@ -350,10 +362,8 @@ function WallRoute() {
       entry={entry}
       onLeave={leave}
       onOpenBank={() => nav.navigate('Review')}
-      // Page four is not built yet. Until it is, the wall never offers a door it
-      // does not have: `wallPages` only puts the plans page in the list when the
-      // store answered with a product, so this cannot be reached today.
-      onSeePlans={leave}
+      onOpenPolicy={() => nav.navigate('Policy')}
+      onOpenTerms={() => nav.navigate('Terms')}
     />
   );
 }
@@ -443,6 +453,11 @@ export function RootNavigator({
           be looked at. The founder's primary door is the end of the welcome
           path, so that is what a preview shows. */}
       <Stack.Screen name="Wall" component={WallRoute} initialParams={{ entry: 'path-complete' }} />
+      {/* Routes now, not sheets: the purchase surface has to link to both, and a
+          sheet only Settings can open is not a link. Settings still renders its
+          own copies as early returns, which is the same screen either way. */}
+      <Stack.Screen name="Policy" component={PolicyRoute} />
+      <Stack.Screen name="Terms" component={TermsRoute} />
     </Stack.Navigator>
   );
 }

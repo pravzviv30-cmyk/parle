@@ -127,8 +127,8 @@ interface Shown {
 async function answer(
   body: unknown,
   opts: { gone?: boolean; unparseable?: boolean } = {},
-): Promise<{ statuses: Shown[]; traced: string[] }> {
-  const seen: { statuses: Shown[]; traced: string[] } = { statuses: [], traced: [] };
+): Promise<{ statuses: Shown[]; traced: string[]; noted: unknown[] }> {
+  const seen: { statuses: Shown[]; traced: string[]; noted: unknown[] } = { statuses: [], traced: [], noted: [] };
   await runAsync(PROGRAM, {
     res: {
       status: 402,
@@ -140,6 +140,10 @@ async function answer(
     abandoned: async (): Promise<boolean> => opts.gone === true,
     setStatus: (s: unknown) => seen.statuses.push(s as Shown),
     trace: (event: string) => seen.traced.push(event),
+    // The refusal keeps the catalogue for the subscription wall, which is reached
+    // from this very branch. Collected rather than discarded, so the test below
+    // can assert the wall gets the same object the screen does.
+    noteCatalogue: (plans: unknown) => seen.noted.push(plans),
     PLANS,
   });
   return seen;
@@ -214,6 +218,11 @@ describe('the 402 the hook is handed — F251', () => {
       assert.equal(status.phase, 'out-of-minutes', `${code}: a refusal about minutes reached some other screen`);
       assert.equal(status.code, code, `${code}: the refusal code was parsed away, so nothing downstream can tell the refusals apart`);
       assert.deepEqual(status.plans, PLANS, `${code}: the plans payload was parsed away at the door`);
+      // The same object reaches the subscription wall, which is a screen this
+      // refusal leads to. It has to be the one the server sent rather than a
+      // second copy: a compiled allowance that disagrees with the meter is F266,
+      // and the wall's plans page shows it next to a price.
+      assert.deepEqual(seen.noted, [PLANS], `${code}: the wall was not given the catalogue the screen was given`);
       assert.notEqual(status.message, body.message, `${code}: the server's own sentence is being rendered`);
       assert.ok(typeof status.label === 'string' && status.label.length > 0, `${code}: no heading for the screen`);
     }
@@ -226,6 +235,12 @@ describe('the 402 the hook is handed — F251', () => {
 
     // A 402 this build has not been taught about is still a 402: the status
     // code alone says the session was refused over minutes.
+    // A body with no catalogue in it notes nothing, rather than noting null and
+    // wiping the last good one. `noteCatalogue` ignores null for that reason, and
+    // this is the case that would otherwise have proved it by accident.
+    const bare = await answer({ error: 'exhausted', message: 'anything' });
+    assert.deepEqual(bare.noted, [null], 'a refusal with no catalogue did not reach noteCatalogue at all');
+
     const odd = await answer({ error: 'some refusal invented after this build', message: 'anything', plans: PLANS });
     assert.equal(odd.statuses[0]?.code, 'unknown', 'an unrecognised refusal was passed through as though it were known');
     assert.ok((odd.statuses[0]?.message ?? '').length > 0, 'an unrecognised refusal left the learner with a blank screen');

@@ -69,6 +69,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Missions: 'missions',
       Settings: 'settings',
       Wall: 'plans',
+      Policy: 'privacy',
+      Terms: 'terms',
     },
   },
 };
