@@ -96,3 +96,42 @@ describe('the count above the situations — F467', () => {
     assert.match(SITUATIONS.blurb, /conversation/i, 'the blurb does not say where the judgement comes from');
   });
 });
+
+describe('the map lane, in two groups — F559', () => {
+  test('the map lane leads with stamped situations and labels the rest as suggested', async () => {
+    const { NEXT_PLACES, SITUATIONS: SECTION, YOU_CAN_NOW, splitByStamp } = await import('./situations.ts');
+    const { guiltIn } = await import('../copy/guilt.ts');
+    const { readFileSync } = await import('node:fs');
+    const { fileURLToPath } = await import('node:url');
+
+    const rows = [
+      { id: 'cafe', earned: false },
+      { id: 'hotel', earned: true },
+      { id: 'market', earned: false },
+      { id: 'street', earned: true },
+    ];
+    const split = splitByStamp(rows);
+    assert.deepEqual(split.own.map((row) => row.id), ['hotel', 'street'], 'the stamped rows do not lead, in the order they arrived');
+    assert.deepEqual(split.next.map((row) => row.id), ['cafe', 'market']);
+    assert.deepEqual(split.nextHeading, NEXT_PLACES, 'with something theirs, the rest is not labelled as suggested');
+
+    // Nothing stamped: one group under the section's own heading, and no
+    // empty "you can now" drawn above it.
+    const none = splitByStamp(rows.map((row) => ({ ...row, earned: false })));
+    assert.equal(none.own.length, 0);
+    assert.deepEqual(none.nextHeading, { label: SECTION.label, blurb: SECTION.blurb });
+
+    // The card draws the split it did not make, and names no state of its own.
+    const card = readFileSync(fileURLToPath(new URL('./SituationsCard.tsx', import.meta.url)), 'utf8');
+    assert.match(card, /const \{ own, next, nextHeading \} = splitByStamp\(model\.situations\)/, 'the card splits the rows itself');
+    assert.match(card, /\{own\.length > 0 && \(/, 'the you-can-now group draws with nothing in it');
+    assert.match(card, /<Label>\{YOU_CAN_NOW\.label\}<\/Label>/, 'the card spells its own heading');
+    assert.match(card, /<Label>\{nextHeading\.label\}<\/Label>/, 'the rest is not headed by the module\'s word');
+    assert.ok(!card.includes("'on-your-own'") && !card.includes('isStamped('), 'the card decides who is stamped');
+
+    for (const line of [...Object.values(YOU_CAN_NOW), ...Object.values(NEXT_PLACES)]) {
+      assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
+      assert.doesNotMatch(line, /\d|—|lock(ed)? (behind|until)/i, `"${line}" counts, dashes or locks`);
+    }
+  });
+});

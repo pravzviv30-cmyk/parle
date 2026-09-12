@@ -18,7 +18,7 @@
  * disagree about.
  */
 
-import type { ConversationPack, DailyScenario, MissionProgress, ReviewCard } from '@luvani/core';
+import { phraseKeyOf, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
 
 import { hasEvidence, type Evidence } from '../progress/evidence.ts';
 import { hasStamps, isStamped, stampLabel, stampsFrom, type Stamp } from '../progress/passport.ts';
@@ -34,6 +34,7 @@ import { latestCheck, soundLine } from './sounds.ts';
 import { acousticFor, type Acoustic } from './acoustic.ts';
 import { cadenceFrom, type Cadence } from './cadence.ts';
 import { hasLedger, ledgerFrom, type Ledger } from './ledger.ts';
+import { latestReadyPack } from '../conversationPacks/model.ts';
 import { oneLineFrom, type OneLine } from './oneLine.ts';
 
 /** The words a learner meets before anything is theirs. */
@@ -96,6 +97,17 @@ export interface MyFrench {
   packs: readonly ConversationPack[];
 }
 
+/**
+ * The newest ready conversation's own phrase keys, so the shelf can seat a line
+ * said last night above one said in June. Keys, not fronts: the deck's card id
+ * is `phraseKeyOf(fr)` (review/store.ts), and the same rule here means a pack
+ * phrase and its card meet without a second normaliser.
+ */
+function recentPhraseKeys(packs: readonly ConversationPack[]): ReadonlySet<string> {
+  const pack = latestReadyPack(packs);
+  return new Set(pack === null ? [] : pack.keyPhrases.map((phrase) => phraseKeyOf(phrase.fr)));
+}
+
 export function myFrenchFrom(input: {
   deck: readonly ReviewCard[];
   missions: readonly MissionProgress[];
@@ -137,7 +149,7 @@ export function myFrenchFrom(input: {
     acoustic: acousticFor(newest?.phoneme ?? null),
     cadence: cadenceFrom({ deck: input.deck }),
     readyLine: ownLine(earned),
-    ledger: ledgerFrom({ deck: input.deck, now: input.now }),
+    ledger: ledgerFrom({ deck: input.deck, now: input.now, recent: recentPhraseKeys(input.packs) }),
     evidence: input.evidence,
     situations,
     showStamps: hasStamps(stamps),

@@ -8155,7 +8155,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F559 — My French lists situations, not what the learner can now do
 - severity: P2
-- status: [ ]
+- status: [x]
+- verified-by: the map lane leads with stamped situations and labels the rest as suggested
 - where: apps/mobile/src/myfrench/situations.ts:1
 - note: the map lane draws six rows in catalogue order. It leads with the stamped ones as what the
   learner can now do, and labels the rest as suggested rather than as missing, so no row reads as a

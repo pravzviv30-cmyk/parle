@@ -2,59 +2,82 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { BadgeGlyph, Card, Label } from '../components.tsx';
 import { paper, signal, space, type } from '../theme.ts';
-import { SITUATIONS } from './situations.ts';
+import { SITUATIONS, YOU_CAN_NOW, splitByStamp } from './situations.ts';
 import { SituationRow } from './SituationRow.tsx';
 import type { MyFrench } from './model.ts';
 
 /**
- * Where the learner's French works, as one page of places.
+ * The situations, in two groups (F559): what the learner can now do, first,
+ * with the count the passport licenses beside its heading; then the next
+ * places, suggested and never locked. The split is `situations.ts`'s and the
+ * card draws it: which rows are the learner's is the passport's fold, read
+ * off the model, and this file names no state of its own.
  *
- * The founder's mockup drew this as a titled white card with the situations
- * inside it, each on the colour of the place it happens in and each carrying a
- * short pill saying how much help was still in play. That shape is here more or
- * less exactly. What is not here is the four things the mockup's pills said,
- * because none of them can be told the truth: the percentages have no
- * denominator, and "Locked" is a state this product does not have. `situations.ts`
- * says what they became and why.
- *
- * The heading's tick is the one green in this file, and it is the same claim the
- * stamps make: these are the situations handled with nothing handed over. It is
- * a count and never a share.
+ * A learner with nothing stamped meets one group under the section's own
+ * heading, exactly as before, so nothing here draws an empty "you can now".
  */
 export function SituationsCard({ model, onOpen }: { model: MyFrench; onOpen: (id: string, refine: boolean) => void }) {
+  const { own, next, nextHeading } = splitByStamp(model.situations);
   return (
     <View style={st.block}>
-      <View style={st.headRow}>
-        <View style={st.headWords}>
-          <Label>{SITUATIONS.label}</Label>
-        </View>
-        {model.readyLine !== null && (
-          <View style={st.count}>
-            <BadgeGlyph size={16} color={signal.good} />
-            <Text style={[type.small, { color: signal.good }]}>{model.readyLine}</Text>
+      {own.length > 0 && (
+        <View style={st.group}>
+          <View style={st.headRow}>
+            <View style={st.headWords}>
+              <Label>{YOU_CAN_NOW.label}</Label>
+            </View>
+            {model.readyLine !== null && (
+              <View style={st.count}>
+                <BadgeGlyph size={16} color={signal.good} />
+                <Text style={[type.small, { color: signal.good }]}>{model.readyLine}</Text>
+              </View>
+            )}
           </View>
-        )}
-      </View>
-
-      <Card>
-        <Text style={[type.title, { color: paper.ink }]}>{SITUATIONS.title}</Text>
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{SITUATIONS.blurb}</Text>
-        <View style={st.rows}>
-          {model.situations.map((row) => (
-            <SituationRow
-              key={row.progress.mission.id}
-              row={row}
-              onPress={() => onOpen(row.progress.mission.id, row.action.kind === 'refine')}
-            />
-          ))}
+          <Card>
+            <Text style={[type.title, { color: paper.ink }]}>{SITUATIONS.title}</Text>
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{YOU_CAN_NOW.blurb}</Text>
+            <View style={st.rows}>
+              {own.map((row) => (
+                <SituationRow
+                  key={row.progress.mission.id}
+                  row={row}
+                  onPress={() => onOpen(row.progress.mission.id, row.action.kind === 'refine')}
+                />
+              ))}
+            </View>
+          </Card>
         </View>
-      </Card>
+      )}
+
+      {next.length > 0 && (
+        <View style={st.group}>
+          <View style={st.headRow}>
+            <View style={st.headWords}>
+              <Label>{nextHeading.label}</Label>
+            </View>
+          </View>
+          <Card>
+            {own.length === 0 && <Text style={[type.title, { color: paper.ink }]}>{SITUATIONS.title}</Text>}
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{nextHeading.blurb}</Text>
+            <View style={st.rows}>
+              {next.map((row) => (
+                <SituationRow
+                  key={row.progress.mission.id}
+                  row={row}
+                  onPress={() => onOpen(row.progress.mission.id, row.action.kind === 'refine')}
+                />
+              ))}
+            </View>
+          </Card>
+        </View>
+      )}
     </View>
   );
 }
 
 const st = StyleSheet.create({
-  block: { marginTop: space(7), gap: space(2) },
+  block: { marginTop: space(7), gap: space(6) },
+  group: { gap: space(2) },
   headRow: { flexDirection: 'row', alignItems: 'baseline', gap: space(2) },
   headWords: { flex: 1, minWidth: 0 },
   // The tick and its count, kept together so they wrap as one thing.

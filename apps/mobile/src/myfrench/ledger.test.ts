@@ -168,3 +168,32 @@ describe('the ledger — its words', () => {
     assert.doesNotMatch(LEDGER.noteLabel, /you said|your words/i);
   });
 });
+
+describe('the ledger — the newest conversation sits near the top', () => {
+  test('a phrase from the newest conversation is ordered before an older one of the same shape', async () => {
+    const { ledgerFrom } = await import('./ledger.ts');
+    const { newCard, phraseKeyOf } = await import('@luvani/core');
+    const NOW = Date.parse('2026-09-12T20:00:00.000Z');
+    const used = (fr: string, addedAt: number, convoUses = 1) => {
+      const card = newCard({ id: phraseKeyOf(fr), kind: 'turn', front: fr, back: 'x', context: '', ipa: '' }, addedAt);
+      return { ...card, reps: 2, evidence: { retrievals: 1, convoUses, transfers: 0 } };
+    };
+    // One clear featured phrase by use, then three whole lines of the same
+    // shape, newest first by the order Home reads. The line the newest pack
+    // carries is the oldest of the three, so lifting it is visible.
+    const deck = [
+      used('Je voudrais un café', NOW - 4_000_000, 3),
+      used('Bonne soirée à vous', NOW - 3_000_000),
+      used('Je peux avoir la clé', NOW - 2_000_000),
+      used('Le code wifi, s’il vous plaît', NOW - 1_000_000),
+    ];
+    const plain = ledgerFrom({ deck, now: NOW });
+    const lifted = ledgerFrom({ deck, now: NOW, recent: new Set([phraseKeyOf('Bonne soirée à vous')]) });
+    assert.equal(plain.featured!.id, lifted.featured!.id, 'the recent set moved the featured phrase, which is Home’s to pick');
+    const plainIds = plain.rows.map((row) => row.id);
+    const liftedIds = lifted.rows.map((row) => row.id);
+    assert.deepEqual([...plainIds].sort(), [...liftedIds].sort(), 'the recent set changed which rows are drawn rather than their order');
+    assert.equal(liftedIds[0], phraseKeyOf('Bonne soirée à vous'), 'the newest conversation’s phrase does not sit first among the rows');
+    assert.ok(plainIds.indexOf(phraseKeyOf('Bonne soirée à vous')) > 0, 'the fixture already had the phrase first, so this test proves nothing');
+  });
+});

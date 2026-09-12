@@ -58,6 +58,41 @@ export const CHIP = {
   ready: 'Ready',
 } as const;
 
+/**
+ * The two groups the map lane draws (F559): what the learner can now do, which
+ * is every situation handled with nothing handed over, and the next places,
+ * which are the rest, suggested in any order and never locked. Decided here
+ * rather than on the card, so the card draws a split it did not make.
+ */
+export const YOU_CAN_NOW = {
+  label: 'You can now',
+  blurb: 'Handled with nothing handed over, in a real conversation.',
+} as const;
+
+export const NEXT_PLACES = {
+  label: 'Next places',
+  blurb: 'Suggested, in any order. Nothing here is locked.',
+} as const;
+
+export interface SituationSplit<T> {
+  /** Stamped rows, the learner's own, in the order they arrived. */
+  own: readonly T[];
+  /** Everything else. */
+  next: readonly T[];
+  /** The heading over the rest: next places when something is theirs, the section's own otherwise. */
+  nextHeading: { label: string; blurb: string };
+}
+
+export function splitByStamp<T extends { earned: boolean }>(rows: readonly T[]): SituationSplit<T> {
+  const own = rows.filter((row) => row.earned);
+  const next = rows.filter((row) => !row.earned);
+  return {
+    own,
+    next,
+    nextHeading: own.length > 0 ? NEXT_PLACES : { label: SITUATIONS.label, blurb: SITUATIONS.blurb },
+  };
+}
+
 export interface SituationChip {
   text: string;
   /** Earned: filled in the green the learner speaks in. Everything else is quiet. */

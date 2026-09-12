@@ -132,7 +132,8 @@ function rowOf(card: ReviewCard): PhraseRow {
  * silently delete the learner's strongest phrases from the one section built to
  * celebrate them.
  */
-export function ledgerFrom(input: { deck: readonly ReviewCard[]; now: number }): Ledger {
+export function ledgerFrom(input: { deck: readonly ReviewCard[]; now: number; recent?: ReadonlySet<string> }): Ledger {
+  const recent = input.recent ?? new Set<string>();
   const ranked = retainedOrder(input.deck.filter(isRetained));
   const head = ranked[0];
   if (head === undefined) return { featured: null, rows: [], cadenceLine: null, moreLine: null };
@@ -144,10 +145,14 @@ export function ledgerFrom(input: { deck: readonly ReviewCard[]; now: number }):
     ipa: head.ipa,
   };
 
-  // Whole lines first, then the order Home already read. `sort` is stable in
-  // every runtime this ships on, so the second key is the rank it arrived with.
+  // Whole lines first, then the newest conversation's own phrases, then the
+  // order Home already read. `sort` is stable in every runtime this ships on,
+  // so the last key is the rank it arrived with. The recent set is the shelf's
+  // one nod to context: a line said last night sits above one said in June.
   const rest = ranked.slice(1).map(rowOf);
-  const ordered = [...rest].sort((a, b) => Number(b.wholeLine) - Number(a.wholeLine));
+  const ordered = [...rest].sort(
+    (a, b) => Number(b.wholeLine) - Number(a.wholeLine) || Number(recent.has(b.id)) - Number(recent.has(a.id)),
+  );
   const rows = ordered.slice(0, RETAINED_ROWS);
   const more = ordered.length - rows.length;
 
