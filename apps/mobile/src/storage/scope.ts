@@ -80,6 +80,9 @@ export const USER_KEY_SUFFIXES = [
   // The moments a learner brought to rehearse (F549): free text about their
   // own life, kept on this phone, in the export, and gone on a reset.
   'moments',
+  // What this phone did with a pack (F550): practised, continued. Device-local
+  // beside the pack cache it annotates, for the cache's own reason.
+  'packMarks',
   // The analytics consent. It belongs here more sharply than most: an answer
   // that survived a deletion would be a permission outliving the account that
   // gave it, and an answer missing from the export would be a fact about the

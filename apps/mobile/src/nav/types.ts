@@ -58,7 +58,7 @@ export type RootStackParamList = {
    * topics rather than played in due order, which is one topic at a time.
    */
   Drill:
-    | { node?: { id: string; title: string; phraseKeys: readonly string[] }; mix?: boolean }
+    | { node?: { id: string; title: string; phraseKeys: readonly string[]; moment?: { quote: string; better: string; why: string } }; mix?: boolean }
     | undefined;
   Review: undefined;
   /** A known-reference pronunciation check after a completed situation. */

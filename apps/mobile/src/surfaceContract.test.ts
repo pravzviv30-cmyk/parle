@@ -637,6 +637,7 @@ describe('a tap that starts with a network probe — F154', () => {
     ['the tutor tab\'s doors', 'tabs/TutorTab.tsx', 'const open = ('],
     ['the mission hero\'s start', 'home/MissionHero.tsx', 'const open = ('],
     ['the real moment\'s start', 'tutor/RealMomentScreen.tsx', 'const open = ('],
+    ['the first conversation', 'tabs/PracticeTab.tsx', 'const startFirst = ('],
   ] as const;
 
   const bodyOf = (file: string, opens: string): string => {
@@ -1391,9 +1392,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // way into an open chat, and the one pill left is the resume card's.
       'tabs/TutorTab.tsx': 1,
       'tabs/MyFrenchTab.tsx': 1,
-      // F365: the next step is Practice's one pill. Two branches draw it, and
-      // exactly one renders.
-      'tabs/PracticeTab.tsx': 2,
+      // F365: the next step is Practice's one pill. Three branches draw it
+      // (F555 added the first conversation), and exactly one renders.
+      'tabs/PracticeTab.tsx': 3,
       'tabs/ProfileTab.tsx': 0,
     };
     for (const [name, expected] of Object.entries(counts)) {
@@ -1658,8 +1659,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.match(tab, /archiveFrom/, 'DESIGN.md says Practice draws an archive and the tab does not fold one');
     assert.equal(
       (tab.match(/<PillButton\b/g) ?? []).length,
-      2,
-      'the design doc says Practice keeps one pill in two branches and the tab draws a different number',
+      3,
+      'the design doc says Practice keeps one pill in three branches and the tab draws a different number',
     );
   });
 

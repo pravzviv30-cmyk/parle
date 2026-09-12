@@ -40,6 +40,8 @@ import { DrillScreen } from '../DrillScreen.tsx';
 import { ReviewScreen } from '../ReviewScreen.tsx';
 import { MissionsScreen } from '../missions/MissionsScreen.tsx';
 import { RealMomentScreen } from '../tutor/RealMomentScreen.tsx';
+import { loadConversationPacks } from '../conversationPacks/store.ts';
+import { markPackPractised, packIdOfNode } from '../conversationPacks/marks.ts';
 import { missionReplay, type MissionReplay } from '../missions/chooserView.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { HomeTab } from '../tabs/HomeTab.tsx';
@@ -315,6 +317,16 @@ function ConvoRoute() {
   );
 }
 
+/**
+ * A finished drill on a pack marks the pack practised on this phone (F550).
+ * Only a pack's own node or its replay marks anything; a lesson or a topic
+ * node names no pack and is left alone.
+ */
+async function markPractisedNode(nodeId: string): Promise<void> {
+  const packId = packIdOfNode(nodeId, await loadConversationPacks());
+  if (packId !== null) await markPackPractised(packId, Date.now());
+}
+
 function DrillRoute() {
   const nav = useNavigation<{ goBack: () => void }>();
   const route = useRoute<RouteProp<RootStackParamList, 'Drill'>>();
@@ -326,6 +338,7 @@ function DrillRoute() {
       node={route.params?.node}
       mix={route.params?.mix ?? false}
       onDone={() => nav.goBack()}
+      onFinished={(nodeId) => void markPractisedNode(nodeId)}
     />
   );
 }

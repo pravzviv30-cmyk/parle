@@ -1,14 +1,15 @@
 /**
- * Practice — the archive of everything the learner has said.
+ * Practice — made from the learner's own conversations.
  *
- * This tab used to draw an authored path: seven units of rows over the phrases
- * the bank could drill. The founder replaced it with their own mockup, and the
- * shape that arrived is better because it is the learner's, not ours. Every
- * conversation they finish becomes a card here with what it was called in both
- * languages, the topics it opened, how long they spoke and how many phrases it
- * left behind. The scripted café lesson and the drill bank did not disappear
- * with the path; the lesson is a door on the Tutor tab now, and the bank is
- * behind this tab's scenario card.
+ * This tab used to draw an authored path, then the archive of everything the
+ * learner said. It keeps the archive and opens on what the newest conversation
+ * left to practise (F554): the moment worth replaying, said as what they said
+ * and a better way, never audio; the phrase worth making theirs; and the sound
+ * to tune, from the newest sound check. Every one of those decisions is in
+ * `practice/madeFrom.ts` and none of them is here. A learner with no
+ * conversation behind them meets the same three shapes from the café lesson
+ * (`practice/starter.ts`), one sentence saying the page becomes personal after
+ * the first conversation, and the tab's one pill opening it.
  *
  * The mockup is drawn full, and a learner on their first morning has none of
  * it. So the tab grows: no vault and no feed until there is a conversation, no
@@ -18,7 +19,7 @@
  * on, because a screen that can count is a screen that can draw a nought.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import {
@@ -52,12 +53,21 @@ import { ScenarioCard } from '../practice/ScenarioCard.tsx';
 import { NEXT_STEP, nextStep, packLine, reviewLine, type NextStep } from '../practice/nextStep.ts';
 import { reshuffle, suggestionFor, walkOn, SUGGESTION, type Walk } from '../practice/suggestion.ts';
 import { firstWalk, loadWalk, saveWalk } from '../practice/suggestionStore.ts';
-import { loadDeck } from '../review/store.ts';
+import { MADE_FROM, madeFromConversations, type MadeFrom } from '../practice/madeFrom.ts';
+import { STARTER, starterFrom } from '../practice/starter.ts';
+import { ReplayMomentCard } from '../practice/ReplayMomentCard.tsx';
+import { MakePhraseCard } from '../practice/MakePhraseCard.tsx';
+import { TuneSoundCard } from '../practice/TuneSoundCard.tsx';
+import { addPhrases, loadDeck } from '../review/store.ts';
 import { loadActivity } from '../progress/activity.ts';
+import { loadSoundChecks } from '../soundcheck/store.ts';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { loadConversationPacks, refreshConversationPacks } from '../conversationPacks/store.ts';
-import { TUTOR_OFFLINE } from '../tutor/gate.ts';
+import { loadPackMarks, withMarks, type PackMark } from '../conversationPacks/marks.ts';
+import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
+import * as tutorVoice from '../speech/tutorVoice.ts';
+import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 
 export function PracticeTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
@@ -69,8 +79,13 @@ export function PracticeTab() {
   // first-conversation words at somebody who has had thirty.
   const [archive, setArchive] = useState<Archive | null>(null);
   // What to do now, answered whole by practice/nextStep.ts: a due deck, the
-  // newest conversation nobody has come back to, or nothing at all.
+  // newest conversation nobody has come back to, the first conversation for a
+  // learner with none, or nothing at all.
   const [step, setStep] = useState<NextStep | null>(null);
+  // The three cards made from the newest conversation, or the starter set when
+  // there is none. Null while storage has not answered; `{ value: null }` is a
+  // learner with no conversation yet, which is a fact rather than a wait.
+  const [made, setMade] = useState<{ value: MadeFrom | null } | null>(null);
   // Which filter the learner chose. Resets to nothing on purpose when the row
   // stops earning its place, since sessionsUnder falls back to the whole feed.
   const [filter, setFilter] = useState<FilterKey>('all');
@@ -80,10 +95,14 @@ export function PracticeTab() {
   // of the day already reads, so the two cannot disagree about how far somebody
   // has come. Null until the activity log answers.
   const [levelIndex, setLevelIndex] = useState<number | null>(null);
-  // A probe is in flight. The one door here that touches the network runs one
-  // before it navigates, and without the flag the tap does nothing visible for
-  // up to a second and a half and a second tap queues a second navigation.
+  // A probe is in flight. The doors here that touch the network run one before
+  // they navigate, and without the flag the tap does nothing visible for up to
+  // a second and a half and a second tap queues a second navigation.
   const [checking, setChecking] = useState(false);
+  // The start that did not happen, so the retry is the same start.
+  const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
+  // A phrase is being kept: a write and a read back, and the button says so.
+  const [saving, setSaving] = useState(false);
   // The read did not finish, and the learner is told so.
   //
   // Without this there is no third state: `archive` was null both while storage
@@ -100,6 +119,9 @@ export function PracticeTab() {
   // A ref rather than state: nothing renders from it, and it has to be readable
   // by the storage callback that resolves after the tap.
   const movedRef = useRef(false);
+
+  // A voice started here stops when the tab goes.
+  useEffect(() => () => tutorVoice.stop(), []);
 
   /**
    * Read everything the tab draws, and say so if it cannot.
@@ -127,23 +149,27 @@ export function PracticeTab() {
         if (!cancelled() && !movedRef.current) setWalk(stored);
       });
 
-      const draw = (packs: readonly ConversationPack[], deck: readonly ReviewCard[]) => {
+      const draw = (fetched: readonly ConversationPack[], deck: readonly ReviewCard[], marks: readonly PackMark[], checks: readonly SoundCheckEvidence[]) => {
+        // This phone's marks folded in first, so the archive, the step and the
+        // cards read one set of packs and cannot disagree about a practised one.
+        const packs = withMarks(fetched, marks);
         setArchive(archiveFrom({ packs, deck, now }));
         setStep(nextStep(deck, packs, now));
+        setMade({ value: madeFromConversations({ packs, marks, deck, checks, now }) });
       };
 
       // Draw the cache at once, then quietly replace it with the server-owned
       // truth. A closed app can miss the original live delivery, so this pull
       // is the recovery path rather than a decorative refresh.
-      void Promise.all([loadConversationPacks(), loadDeck(), loadActivity()])
-        .then(([packs, deck, activity]) => {
+      void Promise.all([loadConversationPacks(), loadDeck(), loadActivity(), loadPackMarks(), loadSoundChecks()])
+        .then(([packs, deck, activity, marks, checks]) => {
           if (cancelled()) return undefined;
-          draw(packs, deck);
+          draw(packs, deck, marks, checks);
           setLevelIndex(levelFor(totalXp(activity)).index);
 
           if (user === null) return undefined;
           return refreshConversationPacks(user, adapter).then((result) => {
-            if (!cancelled() && result.ok) draw(result.packs, deck);
+            if (!cancelled() && result.ok) draw(result.packs, deck, marks, checks);
           });
         })
         .catch(() => {
@@ -192,9 +218,47 @@ export function PracticeTab() {
     void recheck().then(go, go);
   };
 
+  /**
+   * The first conversation, probed the way the hero's start is (F555).
+   *
+   * Refused rather than opened blind, because the whole point of this branch
+   * is a learner with nothing behind them, and the first thing they meet must
+   * not be a dead press. A refusal is answered on the tab with the same start.
+   */
+  const startFirst = () => {
+    if (checking) return;
+    setChecking(true);
+    void recheck().then((answered) => {
+      setChecking(false);
+      const decision = tutorGate(answered, false);
+      if (!decision.go) {
+        setHeldBack(decision.heldBack);
+        return;
+      }
+      setHeldBack(null);
+      nav.navigate(decision.screen, decision.params);
+    }).catch(() => {
+      setChecking(false);
+      setHeldBack({ textMode: false });
+    });
+  };
+
   /** A drill is local. Nothing to probe, so nothing to wait for. */
   const revisit = (node: { id: string; title: string; phraseKeys: readonly string[] }) => {
     nav.navigate('Drill', { node: { id: node.id, title: node.title, phraseKeys: node.phraseKeys } });
+  };
+
+  /**
+   * Keep a phrase from a conversation, then read the deck back so the card
+   * says what the store holds rather than what this screen assumed it would.
+   */
+  const keepPhrase = (phrase: { fr: string; en: string }) => {
+    if (saving) return;
+    setSaving(true);
+    void addPhrases([{ fr: phrase.fr, frWritten: null, en: phrase.en, enLiteral: null, register: 'courant', note: null }])
+      .then(() => load(() => false))
+      .catch(() => {})
+      .finally(() => setSaving(false));
   };
 
   /**
@@ -215,6 +279,7 @@ export function PracticeTab() {
   };
 
   const shown = archive === null ? [] : sessionsUnder(archive, filter);
+  const starter = starterFrom();
 
   return (
     <ScrollScreen
@@ -235,13 +300,9 @@ export function PracticeTab() {
       <View style={st.scroll}>
         <TabHeader
           title="Practice"
-          purpose="Everything you have said to your tutor, and what to do with it next."
+          purpose="Made from your conversations."
         />
 
-        {/* The one thing to do now, decided in practice/nextStep.ts and drawn
-            here as the tab's only pill. When the deck is quiet and every
-            conversation has been revisited there is no step, and this draws
-            nothing rather than a cheerful message for a learner who is done. */}
         {/* The read did not finish. Said plainly, with the same work offered
             again rather than an instruction to leave and come back. */}
         {failed && (
@@ -256,16 +317,22 @@ export function PracticeTab() {
           </View>
         )}
 
+        {/* The one thing to do now, decided in practice/nextStep.ts and drawn
+            here as the tab's only pill, in three branches. When the deck is
+            quiet and every conversation has been revisited there is no step,
+            and this draws nothing rather than a cheerful message for a learner
+            who is done. */}
         {step !== null && (
           <View style={st.block}>
             <Label>{NEXT_STEP.label}</Label>
             <View style={st.blockBody}>
-              {step.kind === 'review' ? (
+              {step.kind === 'review' && (
                 <View>
                   <PillButton label={NEXT_STEP.review} onPress={() => nav.navigate('Review')} />
                   <Text style={st.stepSub}>{reviewLine(step.due)}</Text>
                 </View>
-              ) : (
+              )}
+              {step.kind === 'pack' && (
                 <View>
                   <PillButton
                     label={step.pack.title.en}
@@ -274,7 +341,84 @@ export function PracticeTab() {
                   <Text style={st.stepSub}>{packLine(step.pack)}</Text>
                 </View>
               )}
+              {step.kind === 'first' && (
+                <View>
+                  <PillButton label={NEXT_STEP.first} disabled={checking} onPress={startFirst} />
+                  <Text style={st.stepSub}>{STARTER.line}</Text>
+                  {heldBack !== null && (
+                    <View style={st.offline}>
+                      <Text style={st.openingBody}>{TUTOR_OFFLINE.body}</Text>
+                      <OutlineButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={startFirst} />
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
+          </View>
+        )}
+
+        {/* Made from the newest conversation, or the starter set for a learner
+            with none. Gated on the model: null is a read that has not answered. */}
+        {made !== null && (
+          <View style={st.block}>
+            {made.value === null ? (
+              <View>
+                <Label>{STARTER.label}</Label>
+                <Card style={st.starterCard}>
+                  <Label>{STARTER.moment.label}</Label>
+                  <Text style={st.openingBody}>{STARTER.moment.lead}</Text>
+                  <Text style={st.starterFr}>{starter.moment.tutorFr}</Text>
+                  <Text style={st.openingBody}>{starter.moment.tutorEn}</Text>
+                  <Text style={st.starterFr}>{starter.moment.fr}</Text>
+                  <Text style={st.openingBody}>{starter.moment.en}</Text>
+                  <View style={st.blockBody}>
+                    <OutlineButton label={STARTER.moment.action} onPress={() => nav.navigate('Lesson')} />
+                  </View>
+                </Card>
+                <Card style={st.starterCard}>
+                  <Label>{STARTER.phrase.label}</Label>
+                  <Text style={st.openingBody}>{STARTER.phrase.lead}</Text>
+                  <Text style={st.starterFr}>{starter.phrase.fr}</Text>
+                  <Text style={st.openingBody}>{starter.phrase.en}</Text>
+                  <View style={st.blockBody}>
+                    <OutlineButton label={MADE_FROM.phrase.hear} onPress={() => tutorVoice.speak(starter.phrase.fr)} />
+                  </View>
+                </Card>
+                <TuneSoundCard sound={null} onCheck={() => {}} onChoose={() => nav.navigate('Missions')} />
+              </View>
+            ) : (
+              <View>
+                {made.value.replay !== null && (
+                  <ReplayMomentCard
+                    replay={made.value.replay}
+                    onTry={() =>
+                      nav.navigate('Drill', {
+                        node: {
+                          id: `replay:${made.value!.replay!.packId}`,
+                          title: MADE_FROM.replay.label,
+                          phraseKeys: [made.value!.replay!.key],
+                          moment: { quote: made.value!.replay!.quote, better: made.value!.replay!.better, why: made.value!.replay!.why },
+                        },
+                      })
+                    }
+                  />
+                )}
+                {made.value.phrase !== null && (
+                  <MakePhraseCard
+                    phrase={made.value.phrase}
+                    saving={saving}
+                    onSay={() => revisit({ id: made.value!.phrase!.packId, title: made.value!.phrase!.from, phraseKeys: [made.value!.phrase!.key] })}
+                    onHear={() => tutorVoice.speak(made.value!.phrase!.fr)}
+                    onSave={() => keepPhrase(made.value!.phrase!)}
+                  />
+                )}
+                <TuneSoundCard
+                  sound={made.value.sound}
+                  onCheck={(missionId) => nav.navigate('SoundCheck', { missionId })}
+                  onChoose={() => nav.navigate('Missions')}
+                />
+              </View>
+            )}
           </View>
         )}
 
@@ -357,8 +501,11 @@ const st = StyleSheet.create({
   order: { ...type.small, color: paper.inkSoft },
   feed: { marginTop: space(3), gap: space(3) },
   stepSub: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
+  offline: { marginTop: space(3), gap: space(3) },
   openingTitle: { ...type.bodyStrong, color: paper.ink },
   openingBody: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
+  starterCard: { marginTop: space(3) },
+  starterFr: { ...type.french, color: paper.ink, marginTop: space(2) },
   closing: { marginTop: space(7) },
   closingTitle: { ...type.bodyStrong, color: paper.ink },
   closingBody: { ...type.small, color: paper.inkSoft, marginTop: space(1) },

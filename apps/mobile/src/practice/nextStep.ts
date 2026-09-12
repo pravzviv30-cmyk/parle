@@ -23,12 +23,14 @@ import { dueCards, type ConversationPack, type ReviewCard } from '@luvani/core';
 import { orderedConversationPacks } from '../conversationPacks/model.ts';
 
 /** The headline over the step, and the word on a review step's button. */
-export const NEXT_STEP = { label: 'Your next step', review: 'Review' } as const;
+export const NEXT_STEP = { label: 'Your next step', review: 'Review', first: 'Start your first conversation' } as const;
 
 /** What to do now: review a due deck, revisit a conversation, or nothing. */
 export type NextStep =
   | { kind: 'review'; due: number }
-  | { kind: 'pack'; pack: ConversationPack };
+  | { kind: 'pack'; pack: ConversationPack }
+  /** No conversation yet: the first one is the step (F555). */
+  | { kind: 'first' };
 
 /**
  * The review step's one line.
@@ -75,6 +77,12 @@ export function nextStep(
     (pack) => pack.state === 'ready' && pack.keyPhrases.length > 0 && pack.lastPractisedAt === null,
   );
   if (fresh !== undefined) return { kind: 'pack', pack: fresh };
+
+  // Nothing due and no pack at all: the first conversation is the step, and
+  // it is the third branch of the tab's one control rather than a second pill
+  // beside the review one (F555). A learner with packs that are all
+  // practised, and a quiet deck, is up to date and gets no step.
+  if (packs.length === 0) return { kind: 'first' };
 
   return null;
 }

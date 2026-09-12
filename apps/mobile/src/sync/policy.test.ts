@@ -341,7 +341,7 @@ function blobFor(namespace: string, seed: number): unknown {
 
 // ──────────────────────────────────────────────────────────────────── tests
 
-describe('the per-domain conflict policy — nineteen namespaces, three classes, seven exclusions', () => {
+describe('the per-domain conflict policy — twenty namespaces, three classes, eight exclusions', () => {
   test('every synced namespace has an explicit merge policy and every excluded one an explicit reason', () => {
     const suffixes = userKeySuffixes().filter((suffix) => suffix !== SYNC_STATE_SUFFIX);
     assert.ok(suffixes.length > 0, 'the scan read no suffixes out of scope.ts, so it is checking nothing');
@@ -373,7 +373,7 @@ describe('the per-domain conflict policy — nineteen namespaces, three classes,
     // because a merged consent is a withdrawal that can come back on its own.
     assert.deepEqual(
       [...excluded].sort(),
-      ['analytics', 'conversationPacks', 'friends', 'journal', 'moments', 'reminder', 'suggestions'],
+      ['analytics', 'conversationPacks', 'friends', 'journal', 'moments', 'packMarks', 'reminder', 'suggestions'],
     );
     for (const exclusion of SYNC_EXCLUSIONS) {
       assert.ok(exclusion.reason.trim().length > 40, `${exclusion.namespace} has no real reason for being excluded`);

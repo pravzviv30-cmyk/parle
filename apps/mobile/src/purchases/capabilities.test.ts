@@ -54,7 +54,7 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
       .filter((file) => readFileSync(file, 'utf8').includes('capabilitiesFor('))
       .map((file) => file.slice(SRC.length))
       .sort();
-    assert.deepEqual(askers, ['purchases/capabilities.ts', 'tutor/RealMomentScreen.tsx', 'tutor/threads.ts'].filter((f) => askers.includes(f)), `something else gates on the plan: ${askers.join(', ')}`);
+    assert.deepEqual(askers, ['purchases/capabilities.ts', 'tabs/TutorTab.tsx', 'tutor/RealMomentScreen.tsx'], `something else gates on the plan: ${askers.join(', ')}`);
     assert.ok(askers.includes('tutor/RealMomentScreen.tsx'), 'the real moment no longer asks the plan');
     for (const line of CAPABILITY_COPY) assert.equal(guiltIn(line), undefined);
   });

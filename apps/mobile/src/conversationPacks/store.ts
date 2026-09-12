@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isConversationPack, normaliseConversationPacks, type ConversationPack } from '@luvani/core';
 import type { AuthAdapter, AuthUser } from '../auth/types.ts';
 import { mergeExercises } from '../drill/store.ts';
+import { packExercisesFor } from './packExercises.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
 import { orderedConversationPacks } from './model.ts';
@@ -95,6 +96,9 @@ export async function refreshConversationPacks(
     const ordered = normaliseConversationPacks(orderedConversationPacks(packs));
     await replaceConversationPacks(ordered);
     await mergeExercises(ordered.flatMap((pack) => pack.exercises));
+    // The repair and the repeats the server does not write (F553), keyed so
+    // the bank folds them beside the server's own pairs rather than over them.
+    await mergeExercises(ordered.flatMap(packExercisesFor));
     return { ok: true, packs: ordered };
   } catch {
     return { ok: false };

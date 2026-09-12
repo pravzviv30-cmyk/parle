@@ -84,9 +84,12 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
     // for two branches of one control. And HomeTab.test.ts reads this file for
     // `nav.navigate('Review')`: Home's phrase-bank link and this pill open the
     // same deck, so losing it here silently uncouples the two screens.
-    const headline = between(RENDER, 'NEXT_STEP.label', 'ARCHIVE_LABEL', 'the next step is drawn above the archive');
-    assert.equal((headline.match(/<PillButton/g) ?? []).length, 2, 'the next step is not exactly two branches of one pill');
-    assert.equal((SCREEN.match(/<PillButton/g) ?? []).length, 2, 'a second primary pill was added somewhere on the tab');
+    // Three branches since F555: the deck, the newest conversation, and the
+    // first conversation for a learner with none. Still one control.
+    const headline = between(RENDER, 'NEXT_STEP.label', 'made !== null', 'the next step is drawn above the made-from cards');
+    assert.equal((headline.match(/<PillButton/g) ?? []).length, 3, 'the next step is not exactly three branches of one pill');
+    assert.equal((SCREEN.match(/<PillButton/g) ?? []).length, 3, 'a second primary pill was added somewhere on the tab');
+    assert.match(headline, /label=\{NEXT_STEP\.first\}/, 'the first conversation is not a branch of the one control');
     assert.match(headline, /nav\.navigate\('Review'\)/, 'the review branch no longer opens the deck');
     assert.match(headline, /reviewLine\(step\.due\)/, 'the review line is spelled on the screen instead of read from nextStep.ts');
     assert.match(headline, /packLine\(step\.pack\)/, 'the conversation line is spelled on the screen instead of read from nextStep.ts');
@@ -94,7 +97,8 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
 
   test('the blocks arrive in the order the mockup draws them', () => {
     assert.ok(at('<TabHeader') < at('NEXT_STEP.label'), 'the tab header is not first');
-    assert.ok(at('NEXT_STEP.label') < at('ARCHIVE_LABEL'), 'the one thing to do now sits below the archive');
+    assert.ok(at('NEXT_STEP.label') < at('made !== null'), 'the one thing to do now sits below the made-from cards');
+    assert.ok(at('made !== null') < at('ARCHIVE_LABEL'), 'the made-from cards sit below the archive');
     assert.ok(at('ARCHIVE_LABEL') < at('<SessionRow'), 'the feed is drawn above the block that summarises it');
     assert.ok(at('<SessionRow') < at('<ScenarioCard'), 'the suggestion card is drawn above the conversations it follows');
     assert.ok(at('<ScenarioCard') < at('CLOSING.title'), 'the closing note is not last');
@@ -105,6 +109,7 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
     // a block gated on a count still occupies its own top margin at zero, which
     // is a strip of dead air on exactly the first-run screen.
     assert.match(FLAT, /\{step !== null && \(/, 'the next step draws with nothing to say');
+    assert.match(FLAT, /\{made !== null && \(/, 'the made-from cards draw before storage has answered');
     assert.match(FLAT, /\{archive !== null && archive\.vault !== null && \(/, 'the vault is not gated on the vault');
     assert.match(FLAT, /\{archive\.filters\.length > 0 && \(/, 'the filter row draws when there are no filters');
     assert.match(FLAT, /\{archive\?\.opening != null && \(/, 'the first-conversation words are not gated on the model');

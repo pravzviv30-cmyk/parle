@@ -72,10 +72,17 @@ describe("The Practice tab's next step — what to do now, decided in one rule",
     assert.equal(nextStep([], [pack({ id: 'empty', daysAgo: 1, phrases: 0 })], NOW), null);
   });
 
-  test('a learner with nothing at all gets no step, and no cheerful message', () => {
-    // Drawing nothing is the deliberate branch. A screen that congratulates
-    // somebody for having no work is a screen that has to keep finding words.
-    assert.equal(nextStep([], [], NOW), null);
+  test('the next step is review, a pack, or the first conversation, in that order, and never two at once', () => {
+    // Nothing at all: the first conversation is the step (F555), the third
+    // branch of the tab's one control rather than a second pill beside it.
+    assert.deepEqual(nextStep([], [], NOW), { kind: 'first' });
+    // A due deck still wins, so a learner who finished the lesson and never
+    // spoke meets the review pill alone.
+    assert.equal(nextStep([due('x')], [], NOW)!.kind, 'review');
+    // A pack, practised, and a quiet deck: up to date, and no step at all.
+    assert.equal(nextStep([], [pack({ id: 's1', daysAgo: 1, practised: true })], NOW), null);
+    // A pack still being written is a conversation that happened, not a first one to start.
+    assert.equal(nextStep([], [pack({ id: 's1', daysAgo: 1, state: 'generating' })], NOW), null);
   });
 
   test('the step counts a card and a phrase, singular at one, and never scolds', () => {

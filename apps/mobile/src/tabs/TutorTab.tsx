@@ -29,6 +29,10 @@ import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { MissionDisc } from '../missions/MissionDisc.tsx';
 import { missionTint } from '../missions/missionTint.ts';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
+import { loadPackMarks, markPackContinued } from '../conversationPacks/marks.ts';
+import { loadTopics } from '../topics/store.ts';
+import { capabilitiesFor, type PlanTier } from '../purchases/capabilities.ts';
+import { threadFrom, type Thread } from '../tutor/threads.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { MICROPHONE_NOTICE, missionCompletionsFrom, resumableMission } from '../missions/chooserView.ts';
 import { loadScenarioProgress, type ScenarioRecord } from '../missions/progressStore.ts';
@@ -77,6 +81,10 @@ export function TutorTab() {
   const [checking, setChecking] = useState(false);
   /** What the tutor remembers, from a real record only, or null. */
   const [continuity, setContinuity] = useState<Continuity | null>(null);
+  /** The one thread to pick up, or null. */
+  const [thread, setThread] = useState<Thread | null>(null);
+  /** The plan the server answered, for the one door that is the plan's. */
+  const [plan, setPlan] = useState<{ tier: PlanTier; lapsed: boolean }>({ tier: 'unknown', lapsed: false });
   /** The guided list, folded away until asked for. */
   const [showAll, setShowAll] = useState(false);
   // Core's answer to "may a session start", read from the server on focus, or
@@ -100,8 +108,8 @@ export function TutorTab() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void Promise.all([loadMissionCompletions(), loadDeck(), loadScenarioProgress(), loadConversationPacks()])
-        .then(([completions, deck, scenes, packs]) => {
+      void Promise.all([loadMissionCompletions(), loadDeck(), loadScenarioProgress(), loadConversationPacks(), loadPackMarks(), loadTopics()])
+        .then(([completions, deck, scenes, packs, marks, topics]) => {
           if (cancelled) return;
           setRecords(scenes);
           // One projection of where every scene stands, handed to the resume
@@ -112,6 +120,7 @@ export function TutorTab() {
           // the market, whatever the deck says is due.
           setResume(resumableMission(progress, scenes));
           setContinuity(continuityFrom({ brain: profile.brain, packs, records: scenes, progress }));
+          setThread(threadFrom({ records: scenes, progress, packs, marks, topics }));
         })
         // A disk that will not answer takes the resume door with it and nothing
         // else. The speak card, the situations, the lesson and the open
@@ -199,7 +208,9 @@ export function TutorTab() {
       if (!live || user === null) return;
       void fetchBillingStatus(user.id)
         .then((status) => {
-          if (!cancelled) setCanStart(status === null ? null : status.canStart);
+          if (cancelled) return;
+          setCanStart(status === null ? null : status.canStart);
+          setPlan(status === null ? { tier: 'unknown', lapsed: false } : { tier: status.plan, lapsed: status.lapsed });
         })
         .catch(() => {});
       return () => {
@@ -326,10 +337,18 @@ export function TutorTab() {
         {continuity !== null && (
           <ContinuityCard
             headline={continuityHeadline(tutorName)}
-            continuity={continuity}
+            line={continuity.line}
+            thread={thread}
+            continueAllowed={capabilitiesFor(plan.tier, plan.lapsed).continueArc}
             disabled={checking}
             onResume={(missionId) => nav.navigate('Convo', { missionId })}
-            onContinue={(seedTopic) => nav.navigate('Convo', { seedTopic })}
+            onContinue={(packId, seedTopic) => {
+              // Marked before the room opens, so the thread is not offered
+              // again on the way back; the mark is this phone's only.
+              void markPackContinued(packId, Date.now());
+              nav.navigate('Convo', { seedTopic });
+            }}
+            onSeePlans={() => nav.navigate('Wall', { entry: 'settings' })}
           />
         )}
 

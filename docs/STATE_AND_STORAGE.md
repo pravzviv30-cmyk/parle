@@ -34,7 +34,9 @@ attempt evidence and a single learner-safe focus, never raw audio or a numeric s
 store, and "Attempt audio" below is what happens to it), `coachMarks` (which of the
 in-conversation controls have been pointed out, one key for all of them), and
 `journal`, and `conversationPacks` (a local cache of durable, server-owned Tutor Conversation Packs; it contains curated learning data and exercises only, never raw audio or a readable transcript),
-`moments` (the situations a learner brought to rehearse, since F549: a kind and
+`packMarks` (what this phone did with a pack, since F550: practised it, kept its
+conversation going, keyed by the pack's id and folded into the pack at read because the
+server's copy replaces the cache on every refresh), `moments` (the situations a learner brought to rehearse, since F549: a kind and
 one line in their own words, newest first and capped, device-local because it is
 the most personal text the app holds), and `analytics` (one boolean: whether the learner agreed to usage data being
 sent. It is a store of its own rather than a field on `profile` because
@@ -365,7 +367,9 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Seven are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `moments`
+Eight are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `packMarks`
+annotates the pack cache and is excluded for the cache's own reason, at the cost of a
+second phone re-offering a practised pack once. `moments`
 is a kind and one line in the learner's own words about their own life, an
 interview next week, a call to a doctor: the most personal text the app holds,
 kept on the phone that typed it and nowhere else, at the cost of typing a line

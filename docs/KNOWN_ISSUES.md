@@ -8067,7 +8067,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F550 — `lastPractisedAt` has no writer, so the next step re-offers the same pack forever
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/nextStep.ts:75
 - note: `buildConversationPack` writes the field null and nothing anywhere assigns it afterwards, so
   `nextStep`'s pack branch and the session card's practised chip both read a value that can never
@@ -8078,7 +8078,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F551 — A conversation cannot be continued as a thread
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/threads.ts:1
 - note: the continuation seed on a pack is built and only half read, and a scene left part way is
   offered back only through the chooser. `threads.ts` names the one continuable thread from what is
@@ -8088,7 +8088,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F552 — The end card lists everything and closes nothing
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/conversationPacks/closure.ts:1
 - note: the recap shows all twelve phrases and up to four fixes. The founder's brief asks for a
   closure: three phrases worth keeping, one repair, one focus, one next mission and what went well.
@@ -8098,7 +8098,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F553 — A repair from a conversation cannot be practised
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/conversationPacks/packExercises.ts:1
 - note: the server synthesises translation pairs for the key phrases and nothing for the corrections,
   so the one line the learner most needed has no drill. A pack now synthesises a translate and a
@@ -8108,7 +8108,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F554 — Practice is an archive, not something made from the learner's conversations
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/madeFrom.ts:1
 - note: three cards above the archive, from the newest ready pack: replay this moment, make this
   phrase yours, tune the sound. A learner with no pack meets the same three shapes from authored
@@ -8117,7 +8117,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F555 — The next step has two branches, so a starter pill would be a second primary
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/nextStep.ts:64
 - note: due cards win the next step, so a learner who finished the lesson and never had a
   conversation would meet the review pill and a starter pill at once. The first conversation becomes
@@ -8127,7 +8127,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F556 — A replay drill shows the verdict with no memory of what was said
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/DrillScreen.tsx:615
 - note: a drill node carries an id, a title and phrase keys, so a replay opens on the exercise alone
   and the learner's own line is gone. The node may carry the moment it replays, plain strings, and the
@@ -8136,7 +8136,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F557 — Say it on a saved phrase that is not due opens an empty sitting
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/madeFrom.ts:1
 - note: `buildDrillSession`'s scope plays due cards and offers new material only for keys the deck
   does not know, so a phrase already in the bank and not yet due queues nothing and the sitting ends
@@ -8146,7 +8146,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F558 — The sound to tune is read from a field nothing writes
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/madeFrom.ts:1
 - note: `pronunciationFocus` is typed on the pack and the agent never sets it. The honest source is
   the sound checks store, which the post-situation check writes, read newest first as My French already

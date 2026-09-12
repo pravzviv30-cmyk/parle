@@ -1,43 +1,56 @@
 /**
- * The free-conversation end card, sibling of SummaryScreen.
+ * The free-conversation end card, sibling of SummaryScreen (F552).
  *
- * Same discipline as the lesson's card: lead with what the learner did, show at
- * most a handful of gentle fixes, and name exactly one next step. Numbers are
- * allowed here and only here — mid-session copy never carries them.
+ * It used to list everything: twelve phrases, four fixes, every win. It is a
+ * closure now, decided in `conversationPacks/closure.ts` and drawn by
+ * `ConversationPackCard`: what went well, three phrases worth keeping, one
+ * repair, one thing to tune, and the next situation, waiting on Home.
+ * Numbers are allowed here and only here; mid-session copy never carries them.
  *
- * This card SHOWS everything; it banks nothing. What becomes practice is the
- * curated few — ConvoScreen banks them from the agent's practice message (or
- * its own leave fallback), so the deck gets the keepers, not the transcript.
+ * The closure is built from the live recap the moment it arrives, so the
+ * card never waits on a disk, and the focus and the next situation fill in
+ * once the three reads answer. This card SHOWS everything; it banks nothing.
+ * What becomes practice is the curated few, and ConvoScreen banks them.
  */
 
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { RecapPayload } from '@luvani/core';
-import { HAIRLINE, paper, signal, space, type } from './theme.ts';
-import { Card, Label, PillButton } from './components.tsx';
+import { missionStates, type RecapPayload } from '@luvani/core';
+
+import { paper, space, type } from './theme.ts';
+import { PillButton } from './components.tsx';
 import { RecapPostcard } from './illustrations.tsx';
-
-/** Fixes shown on the card. The agent already ranked them; we keep the top few. */
-const MAX_FIXES = 4;
-
-/**
- * A register label the learner can actually read: the French term is the
- * vocabulary being taught, the English gloss is the meaning. Taught vocabulary
- * keeps both halves even though the chrome around it is English.
- */
-function registerTag(register: string): string {
-  const en: Record<string, string> = {
-    argot: 'slang',
-    familier: 'casual',
-    courant: 'everyday',
-    soutenu: 'formal',
-  };
-  const gloss = en[register];
-  return gloss ? `${register} · ${gloss}` : register;
-}
+import { ConversationPackCard } from './conversationPacks/ConversationPackCard.tsx';
+import { closureFromRecap, type ClosureContext } from './conversationPacks/closure.ts';
+import { missionCompletionsFrom } from './missions/chooserView.ts';
+import { loadMissionCompletions } from './missions/store.ts';
+import { loadDeck } from './review/store.ts';
+import { loadSoundChecks } from './soundcheck/store.ts';
 
 export function RecapScreen({ recap, onDone }: { recap: RecapPayload; onDone: () => void }) {
   const insets = useSafeAreaInsets();
+  // Null until the reads answer: the closure draws at once from the recap,
+  // and the focus and the next situation arrive a beat later.
+  const [context, setContext] = useState<ClosureContext | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([loadMissionCompletions(), loadDeck(), loadSoundChecks()])
+      .then(([completions, deck, checks]) => {
+        if (cancelled) return;
+        setContext({ progress: missionStates(missionCompletionsFrom(completions), deck, Date.now()), deck, checks });
+      })
+      .catch(() => {
+        // A disk that will not answer leaves the recap as it arrived. Nothing
+        // on it is a claim about the learner that a failed read could falsify.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const closure = closureFromRecap(recap, context);
 
   return (
     <View style={[st.root, { paddingTop: insets.top + space(2) }]}>
@@ -53,69 +66,7 @@ export function RecapScreen({ recap, onDone }: { recap: RecapPayload; onDone: ()
           </View>
         </View>
 
-        {/* ── what they said that landed ─────────────────────────────── */}
-        {recap.wins.length > 0 && (
-          <View>
-            <Label color={signal.good}>Your wins</Label>
-            <Card style={st.sectionCard}>
-              <View style={{ gap: space(2.5) }}>
-                {recap.wins.map((w) => (
-                  <Text key={w} style={[type.french, { color: paper.ink }]}>
-                    « {w} »
-                  </Text>
-                ))}
-              </View>
-            </Card>
-          </View>
-        )}
-
-        {/* ── gentle fixes, their own words quoted back ──────────────── */}
-        {recap.fixes.length > 0 && (
-          <View>
-            <Label color={signal.correspondance}>Small fixes</Label>
-            <Card style={st.sectionCard}>
-              <View style={{ gap: space(3) }}>
-                {recap.fixes.slice(0, MAX_FIXES).map((f, i) => (
-                  <View key={f.quote + f.better} style={i > 0 ? st.divider : undefined}>
-                    <Text style={[type.small, { color: paper.inkSoft }]}>« {f.quote} »</Text>
-                    <Text style={[type.french, { color: paper.ink, marginTop: space(1) }]}>{f.better}</Text>
-                    <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{f.betterEn}</Text>
-                    <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{f.why}</Text>
-                  </View>
-                ))}
-              </View>
-            </Card>
-          </View>
-        )}
-
-        {/* ── new phrases, with the register they belong to ──────────── */}
-        {recap.phrases.length > 0 && (
-          <View>
-            <Label>New phrases</Label>
-            <Card style={st.sectionCard}>
-              <View style={{ gap: space(3) }}>
-                {recap.phrases.map((p, i) => (
-                  <View key={p.fr} style={i > 0 ? st.divider : undefined}>
-                    <View style={st.phraseHead}>
-                      <Text style={[type.french, { color: paper.ink, flex: 1 }]}>{p.fr}</Text>
-                      <Text style={[type.small, { color: paper.inkSoft }]}>{registerTag(p.register)}</Text>
-                    </View>
-                    <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{p.en}</Text>
-                  </View>
-                ))}
-              </View>
-            </Card>
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2.5) }]}>The best of these become practice on your path.</Text>
-          </View>
-        )}
-
-        {/* ── exactly one next step, never a list ────────────────────── */}
-        <View>
-          <Label color={signal.correspondance}>Next step</Label>
-          <Card style={st.sectionCard}>
-            <Text style={[type.bodyStrong, { color: paper.ink }]}>{recap.nextFocus}</Text>
-          </Card>
-        </View>
+        <ConversationPackCard closure={{ ...closure, summary: '' }} />
 
         <PillButton label="Done" onPress={onDone} />
       </ScrollView>
@@ -128,7 +79,4 @@ const st = StyleSheet.create({
   scroll: { paddingHorizontal: space(5), paddingTop: space(3), gap: space(7) },
   header: { alignItems: 'center' },
   headerText: { alignItems: 'center', gap: space(2), marginTop: space(4) },
-  sectionCard: { marginTop: space(2) },
-  divider: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard, paddingTop: space(3) },
-  phraseHead: { flexDirection: 'row', alignItems: 'baseline', gap: space(2) },
 });

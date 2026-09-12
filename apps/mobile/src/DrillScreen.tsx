@@ -57,6 +57,7 @@ import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
 import { gradeCards, loadDeck } from './review/store.ts';
 import { NothingDue, RewardMark } from './illustrations.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
+import { MomentCard, type DrillMoment } from './drill/MomentCard.tsx';
 import { loadTopics } from './topics/store.ts';
 import { DRILL_UNREAD, sittingTitle, topicGroups } from './practice/mix.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
@@ -605,14 +606,20 @@ export function DrillScreen({
   onDone,
   node,
   mix = false,
+  onFinished,
 }: {
   userId: string;
   onDone: () => void;
   /**
+   * The sitting finished, as distinct from Done: Done also fires on Leave, and
+   * a pack must not be marked practised by a sitting that was abandoned (F550).
+   */
+  onFinished?: (nodeId: string) => void;
+  /**
    * One node of the practice path. Omitted, the whole deck plays, which is
    * what "Start practice" has always done and still does.
    */
-  node?: { id: string; title: string; phraseKeys: readonly string[] };
+  node?: { id: string; title: string; phraseKeys: readonly string[]; moment?: DrillMoment };
   /**
    * Today's mix: the same unscoped sitting, reordered so it moves between
    * topics instead of playing one conversation's worth and then the next.
@@ -633,6 +640,8 @@ export function DrillScreen({
   const beatRef = useRef(0);
   // Grades leave this screen exactly once, whether by finishing or by Leave.
   const persistedRef = useRef(false);
+  // The finished signal leaves exactly once too, and only on a finished sitting.
+  const finishedRef = useRef(false);
   const gradeWritesRef = useRef<Promise<void>>(Promise.resolve());
   // When the sitting started. Wall clock on the device, which is what Home's
   // speaking goal measures; it is not the metered minutes and must never be
@@ -784,6 +793,12 @@ export function DrillScreen({
    * chain. Navigating first meant the practice map could show a node that had
    * plainly just been finished as untouched.
    */
+  useEffect(() => {
+    if (!session?.finished || !node || finishedRef.current) return;
+    finishedRef.current = true;
+    onFinished?.(node.id);
+  }, [session, node, onFinished]);
+
   const finishAndLeave = useCallback(() => {
     tutorVoice.stop();
     // Mid-beat, the answered exercise lives in pendingRef; count it.
@@ -924,6 +939,7 @@ export function DrillScreen({
         </View>
       }
     >
+      {node?.moment !== undefined && <MomentCard moment={node.moment} />}
       {exercise.kind === 'fill-blank' && (
         <FillBlankView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
       )}

@@ -778,6 +778,11 @@ export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
       'the moments a learner brought to rehearse: a kind and one line in their own words about their own life, an interview next week, a call to a doctor. That is the most personal text the app holds, and it is held on the phone that typed it and nowhere else: syncing it would put a sentence about somebody\'s job hunt into an account envelope so that a second device could offer it back, which is a smaller convenience than the promise it spends. What excluding it costs is typing a line again on another phone.',
   },
   {
+    namespace: 'packMarks',
+    reason:
+      'what this phone did with a server-owned pack: practised it, kept its conversation going. It annotates the pack cache and is excluded for the cache\'s own reason: the pack is server-owned and its cache is replaced by the server\'s copy on every refresh, so a mark that rode the account envelope would be a second authority over a record that has one. What excluding it costs is a second phone re-offering a pack this one already practised, once.',
+  },
+  {
     namespace: 'conversationPacks',
     reason:
       'a cache of an explicitly server-owned learning record. The Tutor agent writes the canonical pack after session completion and Practice refreshes from that authenticated API, so folding this cache through learner_state would create two authorities, allow an older device to push a stale deletion back over the server record, and duplicate the exercises the Pack already carries into the existing drill bank.',
