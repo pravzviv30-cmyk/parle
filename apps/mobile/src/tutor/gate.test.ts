@@ -5,12 +5,13 @@ import { fileURLToPath } from 'node:url';
 
 import { guiltIn } from '../copy/guilt.ts';
 import {
-  TUTOR_INTRO_LINK,
-  TUTOR_LESSON_QUIET_LINK,
-  TUTOR_OFFLINE,
+  isEntryMode,
   lessonStart,
   minutesRemainingLine,
   scenarioCountLine,
+  TUTOR_INTRO_LINK,
+  TUTOR_LESSON_QUIET_LINK,
+  TUTOR_OFFLINE,
   tutorDoors,
   tutorGate,
 } from './gate.ts';
@@ -101,13 +102,17 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
   const LESSON = 'Commander un café';
 
   test("the tutor's doors say their counts as numbers, their words without a digit, and pill the resume and the open conversation — F404", () => {
-    const [resume, missions, lesson, free] = tutorDoors(RECENT, SITUATIONS, LESSON);
+    const all = tutorDoors(RECENT, SITUATIONS, LESSON);
+    const resume = all.find((d) => d.key === 'resume');
+    const missions = all.find((d) => d.key === 'missions');
+    const lesson = all.find((d) => d.key === 'lesson');
+    const free = all.find((d) => d.key === 'free');
 
     // The two counts travel as numbers, because a numeral inside prose is a
     // numeral nothing can round, pluralise or withhold. The count is handed in
     // rather than read off the catalogue here, so gate.ts stays on its own.
     assert.equal(missions!.count, SITUATIONS, 'the missions door does not carry how many situations are behind it');
-    assert.equal(tutorDoors(null, 3, LESSON)[0]!.count, 3, 'the door counts the catalogue itself instead of being told');
+    assert.equal(tutorDoors(null, 3, LESSON).find((d) => d.key === 'missions')!.count, 3, 'the door counts the catalogue itself instead of being told');
     assert.equal(resume!.count, null, 'the resume door counts something; there is one scene behind it, not a list');
     assert.equal(free!.count, null, 'the open conversation counts something; there is nothing there to count');
 
@@ -142,13 +147,13 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
     // of rows, so the missions door carries none.
     assert.deepEqual(
       tutorDoors(RECENT, SITUATIONS, LESSON).filter((d) => d.primary).map((d) => d.key),
-      ['resume', 'free'],
-      'the pill sits somewhere other than the scene to pick up and the open conversation',
+      ['resume'],
+      'the pill sits somewhere other than the scene to pick up; the circle is the way into an open chat (F547)',
     );
     assert.equal(missions!.primary, false, 'the list of rows grew a button of its own');
     assert.equal(resume!.action, 'Resume');
-    assert.equal(missions!.action, 'Choose a situation', 'the missions door keeps its word even with no button on it');
-    assert.equal(free!.action, 'Open conversation');
+    assert.equal(missions!.action, 'See all situations', 'the missions door keeps its fold word even with no button on it');
+    assert.equal(free!.action, 'Open chat');
     assert.equal(free!.title, 'Talk about your day', 'the open conversation stopped saying what there is to talk about');
 
     // Every word on every door: no count, no dash, nothing that scolds, and
@@ -180,7 +185,11 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
    * beside the formatter that words it.
    */
   test('each door is a card that says what is behind it — F364', () => {
-    const [resume, missions, lesson, free] = tutorDoors(RECENT, SITUATIONS, LESSON);
+    const all = tutorDoors(RECENT, SITUATIONS, LESSON);
+    const resume = all.find((d) => d.key === 'resume');
+    const missions = all.find((d) => d.key === 'missions');
+    const lesson = all.find((d) => d.key === 'lesson');
+    const free = all.find((d) => d.key === 'free');
     assert.deepEqual(resume!.art, { kind: 'place', place: 'cafe' }, 'the resume door does not show its place');
     assert.equal(resume!.title, 'Au café du coin', 'the resume door does not name the scene in French');
     assert.equal(resume!.gloss, RECENT.goalEn, 'the resume door does not say what the learner came to do');
@@ -190,7 +199,7 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
     // The practical-mission door is the list, so it carries no button of its
     // own: every row is its own way in.
     assert.deepEqual(missions!.art, { kind: 'every-place' });
-    assert.equal(missions!.action, 'Choose a situation');
+    assert.equal(missions!.action, 'See all situations');
     assert.equal(missions!.primary, false, 'the missions door grew a button, and its rows are the way in');
     assert.equal(missions!.count, SITUATIONS, 'the missions door does not say how many situations there are');
     assert.equal(
@@ -202,18 +211,24 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
     // The scripted lesson stands between the two, and it is the one door with a
     // fixed script behind it. Its own block below owns the rest of what it says.
     assert.equal(lesson!.key, 'lesson', 'the scripted lesson is not the third door any more');
-    assert.equal(lesson!.primary, false, 'the scripted lesson took a pill, and the tab draws exactly two');
+    assert.equal(lesson!.primary, false, 'the scripted lesson took a pill, and the tab draws exactly one');
 
-    // Talk freely shows no place, because it has none, and it is a pill now:
-    // the founder's screenshot draws it as one, centred under its drawing.
+    // Open chat shows no place, because it has none, and it is a row now
+    // (F547): the circle at the top of the tab is the way into an open chat,
+    // and a second pill for the same door was a second answer to one question.
     assert.deepEqual(free!.art, { kind: 'none' });
-    assert.equal(free!.action, 'Open conversation');
-    assert.equal(free!.primary, true);
+    assert.equal(free!.action, 'Open chat');
+    assert.equal(free!.primary, false);
     assert.equal(
       tutorDoors(null, SITUATIONS, LESSON).at(-1)!.key,
-      'free',
-      'talk freely is no longer the last door, so a beginner meets it before the guided ones',
+      'lesson',
+      'the lesson is no longer the last door, so a beginner meets a fixed script before the situations',
     );
+    // The three entry modes sit together, under one heading, and none is a pill.
+    assert.deepEqual(all.filter((d) => isEntryMode(d.key)).map((d) => d.key), ['everyday', 'free', 'rehearse']);
+    assert.ok(all.filter((d) => isEntryMode(d.key)).every((d) => !d.primary), 'an entry mode grew a pill');
+    assert.equal(all.find((d) => d.key === 'everyday')!.action, 'Choose a situation');
+    assert.equal(all.find((d) => d.key === 'rehearse')!.action, 'Bring a real moment');
 
     // Every word on every door: no count, no dash, nothing that scolds.
     for (const door of [...tutorDoors(RECENT, SITUATIONS, LESSON), ...tutorDoors(null, SITUATIONS, LESSON)]) {
@@ -236,23 +251,23 @@ describe('the doors on the tutor tab — what a learner meets instead of a manua
     // French sentence, which is the one place in this product nothing is
     // allowed to sit. The doors do not know the intro exists.
     const doors = tutorDoors(null, SITUATIONS, LESSON);
-    assert.deepEqual(doors.map((d) => d.key), ['missions', 'lesson', 'free'], 'the doors changed shape');
+    assert.deepEqual(doors.map((d) => d.key), ['everyday', 'free', 'rehearse', 'missions', 'lesson'], 'the doors changed shape');
     assert.deepEqual(
       doors.filter((d) => d.primary).map((d) => d.key),
-      ['free'],
-      'with nothing to pick back up, the open conversation is the only door with a button on it',
+      [],
+      'with nothing to pick back up, no door carries a pill: the circle is the way into an open chat',
     );
 
     const withRecent = tutorDoors(RECENT, SITUATIONS, LESSON);
-    assert.deepEqual(withRecent.map((d) => d.key), ['resume', 'missions', 'lesson', 'free']);
+    assert.deepEqual(withRecent.map((d) => d.key), ['resume', 'everyday', 'free', 'rehearse', 'missions', 'lesson']);
     assert.equal(withRecent[0]?.title, 'Au café du coin', 'continuing does not say which mission');
     // The rule is one pill per door rather than one per screen (F404): the
     // missions door became a list of rows, and a list with a button at the
     // bottom of it is a second answer to the question the rows already ask.
     assert.deepEqual(
       withRecent.filter((d) => d.primary).map((d) => d.key),
-      ['resume', 'free'],
-      'a door that is a list of rows carries a button, or a door with one place behind it does not',
+      ['resume'],
+      'a door that is a list of rows carries a button, or the scene to pick back up does not',
     );
 
     // And the tab itself no longer holds anybody at the door.
@@ -304,12 +319,12 @@ describe('the scripted lesson is a door of its own on the tutor tab', () => {
   test('the lesson stands between the guided situations and the open conversation, and takes no pill', () => {
     assert.deepEqual(
       tutorDoors(RECENT, SITUATIONS, LESSON).map((d) => d.key),
-      ['resume', 'missions', 'lesson', 'free'],
-      'the scripted lesson has no door, or it is not the one between the situations and the open conversation',
+      ['resume', 'everyday', 'free', 'rehearse', 'missions', 'lesson'],
+      'the scripted lesson has no door, or it is not the last one, after the situations',
     );
     assert.deepEqual(
       tutorDoors(null, SITUATIONS, LESSON).map((d) => d.key),
-      ['missions', 'lesson', 'free'],
+      ['everyday', 'free', 'rehearse', 'missions', 'lesson'],
       'the lesson door comes and goes with the resume card, and it has nothing to do with one',
     );
 
@@ -317,7 +332,7 @@ describe('the scripted lesson is a door of its own on the tutor tab', () => {
     // Not first. The guided situations are what a beginner should meet, which
     // `chooserView.test.ts` pins from the other side, and the open conversation
     // stays last for the reason it has always been last.
-    assert.equal(lesson.primary, false, 'the lesson took a pill; the tab draws exactly two and both were spoken for');
+    assert.equal(lesson.primary, false, 'the lesson took a pill; the tab draws exactly one and it is the resume card\'s');
     assert.equal(lesson.count, null, 'the lesson door counts something; there is one script behind it, not a list');
     assert.equal(lesson.minutesRemaining, null, 'the lesson door carries an estimate nothing measured');
     assert.deepEqual(lesson.art, { kind: 'place', place: 'cafe' }, 'the lesson door lost the drawing of where it is set');

@@ -86,7 +86,25 @@ export function tutorGate(serversAnswered: boolean, textMode = false): TutorGate
  * because the learner who knows exactly what they want to talk about must not
  * have to walk through a mission to get there.
  */
-export type TutorDoorKey = 'resume' | 'missions' | 'lesson' | 'free';
+export type TutorDoorKey = 'resume' | 'everyday' | 'free' | 'rehearse' | 'missions' | 'lesson';
+
+/**
+ * The three ways in the founder's brief names (F547): an everyday mission, an
+ * open chat, and rehearsing something of the learner's own. They are rows
+ * under one heading rather than cards with a button each, because a beginner
+ * choosing between three doors should read three lines, not three screens.
+ */
+export const ENTRY_MODE_KEYS = ['everyday', 'free', 'rehearse'] as const;
+export type EntryModeKey = (typeof ENTRY_MODE_KEYS)[number];
+export const ENTRY_MODES_LABEL = 'Practice together';
+
+export function isEntryMode(key: TutorDoorKey): key is EntryModeKey {
+  return (ENTRY_MODE_KEYS as readonly string[]).includes(key);
+}
+
+/** The guided list folds away behind one quiet word, and unfolds behind another. */
+export const SHOW_SITUATIONS = 'See all situations';
+export const HIDE_SITUATIONS = 'Fewer situations';
 
 /**
  * What a door shows of the place behind it: one situation's drawing, every
@@ -255,35 +273,63 @@ export function tutorDoors(resume: ResumableDoor | null, missionCount: number, l
       art: { kind: 'place', place: resume.place },
     });
   }
+  // The three entry modes (F547), as rows. None carries a pill: the circle at
+  // the top of the tab is the way into an open chat, the chooser confirms a
+  // mission before a session spends anything, and the real moment has a screen
+  // of its own. A row that opens a screen says so with a chevron, not a button.
+  doors.push({
+    key: 'everyday',
+    label: 'Everyday mission',
+    title: null,
+    gloss: 'A real situation, with your tutor playing the other person.',
+    action: 'Choose a situation',
+    primary: false,
+    count: null,
+    minutesRemaining: null,
+    art: { kind: 'every-place' },
+  });
+  doors.push({
+    key: 'free',
+    label: 'Open chat',
+    title: 'Talk about your day',
+    gloss: 'Share whatever made you smile today or a curious thought. No grammar score, just finding your rhythm.',
+    action: 'Open chat',
+    primary: false,
+    count: null,
+    minutesRemaining: null,
+    art: { kind: 'none' },
+  });
+  doors.push({
+    key: 'rehearse',
+    label: 'Rehearse something',
+    title: null,
+    gloss: 'An interview, a call, a dinner: bring a real moment and run it in French first.',
+    action: 'Bring a real moment',
+    primary: false,
+    count: null,
+    minutesRemaining: null,
+    art: { kind: 'none' },
+  });
+  // The guided list is still every situation as its own row, folded away
+  // behind one quiet word so the three ways in above it read first. It keeps
+  // an `action` so the six doors stay one shape, and the word is the fold.
   doors.push({
     key: 'missions',
-    label: 'Guided practice missions',
+    label: 'All situations',
     title: null,
     gloss: 'Order a coffee, ask the way, check into a hotel.',
-    action: 'Choose a situation',
+    action: SHOW_SITUATIONS,
     primary: false,
     count: missionCount,
     minutesRemaining: null,
     art: { kind: 'every-place' },
   });
-  // Third, and the position is the argument.
-  //
-  // Not first: the guided situations are what a beginner should meet, which is
-  // the rule `chooserView.test.ts` holds from the other side, and a fixed
-  // script is not where somebody who has never spoken French should be sent.
-  // Not last: the open conversation keeps that place for the reason it has
-  // always had it.
-  //
-  // So it sits between them, with the two deliberate doors together at the
-  // foot of the page: a learner reaches for either one knowing what they want.
-  // The lesson is the narrow one, where every line is given and the tutor can
-  // score how it sounded; the open conversation is the wide one. Putting it
-  // directly above the situations instead would have set "Commander un café"
-  // immediately over a row reading "Order at a café", which is the same scene
-  // told twice and reads as a duplicate rather than as a different offer.
-  //
-  // No pill. `surfaceContract.test.ts` pins this tab at exactly two and both
-  // were spoken for; a secondary door is the outline everywhere else in the app.
+  // Last, and the position is the argument. The lesson is the narrow door,
+  // where every line is given and the tutor can score how it sounded; a
+  // beginner should meet the guided situations before a fixed script, which is
+  // the rule `chooserView.test.ts` holds from the other side. No pill:
+  // `surfaceContract.test.ts` pins this tab at exactly one, and it is the
+  // resume card's.
   doors.push({
     key: 'lesson',
     label: 'Pronunciation lesson',
@@ -294,17 +340,6 @@ export function tutorDoors(resume: ResumableDoor | null, missionCount: number, l
     count: null,
     minutesRemaining: null,
     art: { kind: 'place', place: 'cafe' },
-  });
-  doors.push({
-    key: 'free',
-    label: 'Open conversation',
-    title: 'Talk about your day',
-    gloss: 'Share whatever made you smile today or a curious thought. No grammar score, just finding your rhythm.',
-    action: 'Open conversation',
-    primary: true,
-    count: null,
-    minutesRemaining: null,
-    art: { kind: 'none' },
   });
   return doors;
 }

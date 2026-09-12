@@ -34,7 +34,9 @@ attempt evidence and a single learner-safe focus, never raw audio or a numeric s
 store, and "Attempt audio" below is what happens to it), `coachMarks` (which of the
 in-conversation controls have been pointed out, one key for all of them), and
 `journal`, and `conversationPacks` (a local cache of durable, server-owned Tutor Conversation Packs; it contains curated learning data and exercises only, never raw audio or a readable transcript),
-and `analytics` (one boolean: whether the learner agreed to usage data being
+`moments` (the situations a learner brought to rehearse, since F549: a kind and
+one line in their own words, newest first and capped, device-local because it is
+the most personal text the app holds), and `analytics` (one boolean: whether the learner agreed to usage data being
 sent. It is a store of its own rather than a field on `profile` because
 `mergeStoredProfiles` picks scalar answers by evidence weight, so a consent on
 the profile could let an older yes from a heavier device win against a
@@ -363,7 +365,11 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Six are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `journal`
+Seven are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `moments`
+is a kind and one line in the learner's own words about their own life, an
+interview next week, a call to a doctor: the most personal text the app holds,
+kept on the phone that typed it and nowhere else, at the cost of typing a line
+again on another phone. `journal`
 is a device-local crash buffer whose whole meaning is bank-then-delete, so
 syncing it would re-bank a session another device already banked. `friends` is a
 dormant surface running on labelled sample profiles, and syncing it would write

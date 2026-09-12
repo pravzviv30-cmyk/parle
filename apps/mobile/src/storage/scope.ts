@@ -77,6 +77,9 @@ export const USER_KEY_SUFFIXES = [
   'bookmarks',
   'scenarioProgress',
   'suggestions',
+  // The moments a learner brought to rehearse (F549): free text about their
+  // own life, kept on this phone, in the export, and gone on a reset.
+  'moments',
   // The analytics consent. It belongs here more sharply than most: an answer
   // that survived a deletion would be a permission outliving the account that
   // gave it, and an answer missing from the export would be a fact about the

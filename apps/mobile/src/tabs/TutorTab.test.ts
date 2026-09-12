@@ -56,8 +56,8 @@ function at(marker: string): number {
   return i;
 }
 
-describe('the tutor tab is the screenshot, drawn from the door model — F405', () => {
-  test('the tutor tab draws the resume, the missions and the open conversation exactly as the doors say, with rows, one pill per door and no ear — F405', () => {
+describe('the tutor tab is the screenshot, drawn from the door model — F405, F547', () => {
+  test('the tutor tab draws everyday, open chat and rehearse as entry modes, folds the situations away, and keeps one pill', () => {
     // Every word on the page comes from a module that a test can reach. The tab
     // spells no heading, no purpose line and no notice of its own.
     const dashboard = FLAT.match(/import \{([^}]*)\} from '\.\.\/tutor\/dashboard\.ts'/);
@@ -65,13 +65,9 @@ describe('the tutor tab is the screenshot, drawn from the door model — F405', 
     for (const name of ['tutorHeading', 'TUTOR_PURPOSE']) {
       assert.ok(dashboard[1]!.includes(name), `the tab imports the header module without ${name}`);
     }
-    // The orb's second line moved into the rule that decides the orb's state
-    // (F542), so the tab draws it from there and imports it from nowhere else.
-    assert.ok(!dashboard[1]!.includes('TUTOR_ORB_SUBLINE'), 'the tab imports the subline it no longer spells');
-    assert.match(read('../tutor/orbState.ts'), /TUTOR_ORB_SUBLINE/, 'the orb rule lost the second line');
     const gate = FLAT.match(/import \{([^}]*)\} from '\.\.\/tutor\/gate\.ts'/);
     assert.ok(gate, 'the tab never imports tutor/gate.ts, so it has no doors to draw');
-    for (const name of ['minutesRemainingLine', 'scenarioCountLine', 'tutorDoors']) {
+    for (const name of ['minutesRemainingLine', 'scenarioCountLine', 'tutorDoors', 'isEntryMode', 'ENTRY_MODES_LABEL', 'HIDE_SITUATIONS']) {
       assert.ok(gate[1]!.includes(name), `the tab imports the door module without ${name}`);
     }
     assert.match(FLAT, /\{tutorHeading\(tutorName\)\}/, 'the tab writes its own header instead of asking dashboard.ts');
@@ -85,7 +81,7 @@ describe('the tutor tab is the screenshot, drawn from the door model — F405', 
     assert.match(FLAT, /tutorDoors\([\s\S]{0,400}MISSIONS\.length/, 'the doors are asked for without the number of situations');
 
     // ── the resume door ────────────────────────────────────────────────────
-    const resume = between(RENDER, "door.key === 'resume'", "door.key === 'missions'", 'the resume door is drawn first');
+    const resume = between(RENDER, "door.key === 'resume'", "door.key === 'missions'", 'the resume door is drawn');
     assert.match(resume, /<MissionDisc\b/, 'the resume door lost the drawing of the place it resumes');
     assert.match(resume, /type\.title[\s\S]{0,60}\{door\.title\}/, 'the resume door does not set its French title in the serif');
     assert.match(resume, /\{door\.gloss\}/, 'the resume door lost the line saying what the scene is');
@@ -101,48 +97,64 @@ describe('the tutor tab is the screenshot, drawn from the door model — F405', 
     assert.ok(!SCREEN.includes('<EarGlyph'), 'the purple ear is back on the resume card');
     assert.ok(!SCREEN.includes('In progress'), 'the orange In progress pill is back on the resume card');
 
-    // ── the guided practice missions door ──────────────────────────────────
-    // The slice ends where the missions door ends, which is the scripted lesson
-    // now rather than the open conversation. Reading to `'free'` would swallow
-    // the lesson's outline button and report it as a button on this door.
-    const missions = between(RENDER, "door.key === 'missions'", "door.key === 'lesson'", 'the missions door is drawn second');
+    // ── the three entry modes (F547) ───────────────────────────────────────
+    // One row each, under one heading, the whole row pressable at the touch
+    // floor, and none of them a button: a row that opens a screen says so
+    // with a chevron.
+    assert.match(RENDER, /\{door\.key === 'everyday' && <Label>\{ENTRY_MODES_LABEL\}<\/Label>\}/, 'the entry modes have no heading');
+    const modes = between(RENDER, 'isEntryMode(door.key) && (', "door.key === 'resume'", 'the entry modes are drawn as rows');
+    assert.match(modes, /<Pressable\b/, 'an entry mode is not a row a learner can press');
+    assert.match(modes, /onPress=\{\(\) => enter\(door\.key\)\}/, 'an entry mode opens somewhere other than where the door model says');
+    assert.match(modes, /\{door\.label\}/, 'an entry mode does not say what it is');
+    assert.match(modes, /\{door\.gloss\}/, 'an entry mode does not say what is behind it');
+    assert.match(modes, /<ArrowRight\b/, 'a row that opens a screen does not say so');
+    assert.doesNotMatch(modes, /<PillButton\b|<OutlineButton\b/, 'an entry mode grew a button; the rows are the way in');
+    assert.match(modes, /style=\{\(\{ pressed \}\) => \[st\.mode\b/, 'a row never says it was pressed, so a tap on it looks like nothing');
+    const modeStyle = between(SCREEN, 'mode: {', '}', 'the entry modes are drawn with a style that is not defined');
+    assert.match(modeStyle, /minHeight: HIT/, 'an entry mode is built under the 44pt touch floor');
+    // The three lead where they say: the open chat is the circle's own
+    // probe, the real moment is its screen, the everyday mission is the chooser.
+    const enter = between(SCREEN, 'const enter = (', 'const entryStyle', 'the tab has one way of entering a door');
+    assert.match(enter, /if \(key === 'free'\) \{\s*open\(false\);/, 'the open chat does not run the same probe the circle runs');
+    assert.match(enter, /if \(key === 'rehearse'\) \{\s*nav\.navigate\('RealMoment'\);/, 'rehearsing something does not open the real moment screen');
+    assert.match(enter, /nav\.navigate\('Missions'/, 'the everyday mission does not open the chooser');
+
+    // ── the guided situations, folded away ─────────────────────────────────
+    // Every situation is still its own row with its drawing, its two lines
+    // and a chevron, behind one quiet word rather than a button of its own.
+    const missions = between(RENDER, "door.key === 'missions'", "door.key === 'lesson'", 'the missions door is drawn');
     assert.match(missions, /\{door\.label\}/, 'the missions door lost its heading');
     assert.match(missions, /scenarioCountLine\(door\.count\)/, 'the count is spelled on the screen instead of formatted by gate.ts');
     assert.match(missions, /\{door\.gloss\}/, 'the missions door lost the description line the founder asked for');
+    assert.match(missions, /<GhostButton label=\{showAll \? HIDE_SITUATIONS : door\.action\}/, 'the fold is not the quiet word the door model gives');
+    assert.match(missions, /\{showAll && \(/, 'the situations are not folded away behind the word');
     assert.match(missions, /MISSIONS\.map\(/, 'the missions door lost its list of rows');
     assert.match(missions, /<MissionDisc place=\{mission\.place\} size=\{48\}/, 'a row lost its drawing');
     assert.match(missions, /\{mission\.titleEn\}/, 'a row never says which situation it is');
     assert.match(missions, /\{mission\.goalEn\}/, 'a row never says what the learner will be able to do');
     assert.match(missions, /<ArrowRight\b/, 'a row that opens a screen does not say so');
     assert.match(missions, /style=\{\(\{ pressed \}\) => \[st\.row\b/, 'a row never says it was pressed, so a tap on it looks like nothing');
-    // The floor is in the style, so the claim has to be read there rather than
-    // beside the Pressable that wears it.
     const rowStyle = between(SCREEN, 'row: {', '}', 'the rows are drawn with a style that is not defined');
     assert.match(rowStyle, /minHeight: HIT/, 'a row is built under the 44pt touch floor');
     assert.match(missions, /\{ focus: mission\.id \}/, 'a row opens the chooser without naming the situation it promised');
     assert.doesNotMatch(missions, /<PillButton\b|<OutlineButton\b/, 'the missions door grew a button; it is a list of rows now');
 
-    // ── the open conversation ──────────────────────────────────────────────
-    const free = between(RENDER, "door.key === 'free'", 'st.quiet', 'the open conversation is drawn last');
-    assert.match(free, /<EveningIn[^/]*paused=/, 'the open conversation loops its drawing while the tab is not looked at');
-    assert.match(free, /<PillButton\s+label=\{door\.action\}/, 'the open conversation lost the button under its drawing');
-    assert.ok(
-      free.indexOf('<EveningIn') < free.indexOf('<PillButton'),
-      'the button sits above the drawing; the founder asked for it centred directly underneath',
-    );
-    assert.ok(!SCREEN.includes('Free improvisation'), 'the Free improvisation line is back under the open conversation');
+    // ── what the tutor remembers (F546) ────────────────────────────────────
+    assert.match(RENDER, /\{continuity !== null && \(\s*<ContinuityCard/, 'the memory card is drawn for a learner with nothing behind them');
+    assert.match(FLAT, /continuityFrom\(\{ brain: profile\.brain, packs, records: scenes, progress \}\)/, 'the memory line reads its own idea of where the scenes stand');
+    assert.match(FLAT, /headline=\{continuityHeadline\(tutorName\)\}/, 'the memory card names somebody other than the chosen tutor');
+    assert.ok(at('<ContinuityCard') < at('doors.map('), 'the memory sits below the doors');
 
-    // One pill per door, and no third anywhere: the resume and the open
-    // conversation each carry one, the list of rows carries none.
+    // One pill, and it is the resume card's. The circle is the way into an
+    // open chat, so the open conversation's pill went with F547.
     const pills = (SCREEN.match(/<PillButton\b/g) ?? []).length;
-    assert.equal(pills, 2, `the tab draws ${pills} pills; one for the resume and one for the open conversation is all there is`);
+    assert.equal(pills, 1, `the tab draws ${pills} pills; one for the resume is all there is`);
 
     // The order the founder drew, read off the render rather than the model.
     assert.ok(at('<TabHeader') < at('<VoiceOrb'), 'the voice circle sits above the header');
     assert.ok(at('<VoiceOrb') < at('doors.map('), 'the doors sit above the voice circle');
     assert.ok(at("door.key === 'resume'") < at("door.key === 'missions'"), 'the missions come before the scene to pick back up');
     assert.ok(at("door.key === 'missions'") < at("door.key === 'lesson'"), 'the scripted lesson comes before the guided situations');
-    assert.ok(at("door.key === 'lesson'") < at("door.key === 'free'"), 'the open conversation is not last');
 
     // The screen spells no numeral. Both counts travel as numbers and are
     // worded by the two formatters, so a digit in a string here would be a
@@ -223,7 +235,7 @@ describe('the scripted lesson has a door on the tutor tab', () => {
     assert.match(FLAT, /tutorDoors\([\s\S]{0,600}CAFE_LESSON\.title/, 'the doors are asked for without the title the catalogue holds');
     assert.ok(!SCREEN.includes('Commander un café'), 'the tab spells the lesson title itself');
 
-    const lesson = between(RENDER, "door.key === 'lesson'", "door.key === 'free'", 'the lesson door is drawn third');
+    const lesson = between(RENDER, "door.key === 'lesson'", '</Card>', 'the lesson door is drawn last');
     assert.match(lesson, /\{door\.label\}/, 'the lesson door lost its heading');
     assert.match(lesson, /type\.title[\s\S]{0,80}\{door\.title\}/, 'the lesson door does not set its French title in the serif');
     assert.match(lesson, /\{door\.gloss\}/, 'the lesson door lost the line saying what it is for');
@@ -251,7 +263,7 @@ describe('the scripted lesson has a door on the tutor tab', () => {
     assert.match(opener, /lessonStart\(textMode\)/, 'the opener throws away the route the learner chose');
 
     // Both controls on the card go through it, the spoken one and the quiet one.
-    const lesson = between(RENDER, "door.key === 'lesson'", "door.key === 'free'", 'the lesson door is drawn third');
+    const lesson = between(RENDER, "door.key === 'lesson'", '</Card>', 'the lesson door is drawn last');
     assert.match(lesson, /openLesson\(true\)/, 'the quiet control on the lesson door skips the probe');
     assert.match(FLAT, /openLesson\(false\)/, 'the lesson button skips the probe');
   });
@@ -269,7 +281,7 @@ describe('the scripted lesson has a door on the tutor tab', () => {
     // typed door only after a failure. ConvoScreen offers it mid-session and
     // LiveSessionScreen does not, so without this the typed lesson is reachable
     // only by first breaking.
-    const lesson = between(RENDER, "door.key === 'lesson'", "door.key === 'free'", 'the lesson door is drawn third');
+    const lesson = between(RENDER, "door.key === 'lesson'", '</Card>', 'the lesson door is drawn last');
     assert.match(lesson, /\{TUTOR_LESSON_QUIET_LINK\}/, 'the lesson has no quiet way in from the tab');
   });
 });
@@ -305,7 +317,9 @@ describe('the tutor tab keeps working after a tab switch, a probe that threw and
     // The drawing beside the open conversation has done this since it was
     // added. The circle is the same claim, and it was the one thing on the page
     // exempt from it.
-    assert.match(FLAT, /<EveningIn width=\{176\} paused=\{!focused\} \/>/, 'the drawing stopped taking the pause the circle now takes');
+    // The open conversation's drawing went with its card (F547): the circle is
+    // the tab's one moving thing now, and it is the one pinned above.
+    assert.ok(!SCREEN.includes('<EveningIn'), 'the tab draws a second moving scene beside the circle')
   });
 
   test('a probe that threw lets go of the checking flag instead of retiring the tab', () => {

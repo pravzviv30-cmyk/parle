@@ -96,4 +96,11 @@ export type RootStackParamList = {
    */
   Policy: undefined;
   Terms: undefined;
+  /**
+   * Bring a real moment (F548): a pushed screen above the tabs, like the
+   * chooser, because it is reached from the Tutor tab and leads into the
+   * conversation with a seed of its own. No params: everything it needs is
+   * chosen or typed on the screen, and the seed rides to `Convo` from there.
+   */
+  RealMoment: undefined;
 };

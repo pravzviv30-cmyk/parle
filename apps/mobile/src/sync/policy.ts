@@ -773,6 +773,11 @@ export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
       'a consent, which is given to the device that asked for it and to nothing else. Every merge in this table resolves a disagreement by picking a winner, and the only winner a permission may have is the most recent thing the learner actually said: a fold that can carry an older yes over a newer no would turn a withdrawal into a setting that comes back by itself, which is why it is not a field on the profile either, where mergeStoredProfiles picks scalars by evidence weight. What excluding it costs is a second device that reports nothing until it is asked in Settings, and reporting nothing is the answer we are content to be wrong with.',
   },
   {
+    namespace: 'moments',
+    reason:
+      'the moments a learner brought to rehearse: a kind and one line in their own words about their own life, an interview next week, a call to a doctor. That is the most personal text the app holds, and it is held on the phone that typed it and nowhere else: syncing it would put a sentence about somebody\'s job hunt into an account envelope so that a second device could offer it back, which is a smaller convenience than the promise it spends. What excluding it costs is typing a line again on another phone.',
+  },
+  {
     namespace: 'conversationPacks',
     reason:
       'a cache of an explicitly server-owned learning record. The Tutor agent writes the canonical pack after session completion and Practice refreshes from that authenticated API, so folding this cache through learner_state would create two authorities, allow an older device to push a stale deletion back over the server record, and duplicate the exercises the Pack already carries into the existing drill bank.',

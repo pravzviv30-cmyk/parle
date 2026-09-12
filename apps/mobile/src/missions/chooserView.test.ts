@@ -154,24 +154,26 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     assert.equal(view.talkFreely, TALK_FREELY, 'the free path is gone from the chooser');
     assert.notEqual(view.cards[0]?.id, undefined, 'a beginner opens on a mission, not on a blank page');
 
-    // On the tutor tab it is the last of three, and still a door rather than a
-    // footnote: it is offered in the same list, with a heading of its own. The
-    // two surfaces word it differently on purpose (F404). Here it is one line
-    // among six situations, so it has to say what "else" means; there it is a
-    // card with a drawing and a button, and "Open conversation" is what the
-    // founder's screenshot calls it.
+    // On the tutor tab it is a row among three ways in, and still a door
+    // rather than a footnote: it is offered in the same list, with a heading of
+    // its own. The two surfaces word it differently on purpose (F404). Here it
+    // is one line among six situations, so it has to say what "else" means;
+    // there it is "Open chat", the second of the three entry modes (F547), and
+    // never the first: a beginner meets the everyday mission first, and the
+    // fixed script last of all.
     const doors = tutorDoors(null, MISSIONS.length, CAFE_LESSON.title).map((d) => d.label);
-    assert.ok(doors.includes('Open conversation'), 'the tutor tab dropped the free conversation entirely');
-    assert.equal(doors[0], 'Guided practice missions', 'a beginner meets a situation first');
-    assert.equal(doors[doors.length - 1], 'Open conversation', '"say anything" is what a beginner says nothing to');
+    assert.ok(doors.includes('Open chat'), 'the tutor tab dropped the free conversation entirely');
+    assert.equal(doors[0], 'Everyday mission', 'a beginner meets a situation first');
+    assert.notEqual(doors[0], 'Open chat', '"say anything" is what a beginner says nothing to');
+    assert.equal(doors[doors.length - 1], 'Pronunciation lesson', 'a beginner meets the fixed script before the situations');
     assert.equal(
       tutorDoors(
         { title: 'Au café du coin', goalEn: 'Order at a café', place: 'cafe', minutesRemaining: null },
         MISSIONS.length,
         CAFE_LESSON.title,
       ).at(-1)?.key,
-      'free',
-      'and it stays last',
+      'lesson',
+      'and the lesson stays last',
     );
 
     const tab = stripComments(read('../tabs/TutorTab.tsx'));

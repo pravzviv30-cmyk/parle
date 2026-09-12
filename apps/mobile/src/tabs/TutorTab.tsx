@@ -15,19 +15,20 @@
  * removals is named in `TutorTab.test.ts`, so putting one back fails by name.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { CAFE_LESSON, MISSIONS, missionStates, type MissionProgress } from '@luvani/core';
 
-import { ArrowRight, Card, GhostButton, HelpGlyph, Label, OutlineButton, PillButton } from '../components.tsx';
+import { ArrowRight, Card, GhostButton, HelpGlyph, Label, MicGlyph, OutlineButton, PillButton, TargetGlyph, TintDisc } from '../components.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { EveningIn } from '../illustrations.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { MissionDisc } from '../missions/MissionDisc.tsx';
+import { missionTint } from '../missions/missionTint.ts';
+import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { MICROPHONE_NOTICE, missionCompletionsFrom, resumableMission } from '../missions/chooserView.ts';
 import { loadScenarioProgress, type ScenarioRecord } from '../missions/progressStore.ts';
@@ -38,15 +39,21 @@ import { HIT, paper, space, type } from '../theme.ts';
 import { TUTOR_PURPOSE, tutorHeading } from '../tutor/dashboard.ts';
 import { tutorOrbState } from '../tutor/orbState.ts';
 import {
+  ENTRY_MODES_LABEL,
+  HIDE_SITUATIONS,
   TUTOR_INTRO_LINK,
   TUTOR_LESSON_QUIET_LINK,
   TUTOR_OFFLINE,
+  isEntryMode,
   lessonStart,
   minutesRemainingLine,
   scenarioCountLine,
   tutorDoors,
   tutorGate,
+  type TutorDoorKey,
 } from '../tutor/gate.ts';
+import { ContinuityCard } from '../tutor/ContinuityCard.tsx';
+import { continuityFrom, continuityHeadline, type Continuity } from '../tutor/continuity.ts';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { VoiceOrb } from '../tutor/VoiceOrb.tsx';
@@ -68,6 +75,10 @@ export function TutorTab() {
   const [records, setRecords] = useState<readonly ScenarioRecord[]>([]);
   const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
   const [checking, setChecking] = useState(false);
+  /** What the tutor remembers, from a real record only, or null. */
+  const [continuity, setContinuity] = useState<Continuity | null>(null);
+  /** The guided list, folded away until asked for. */
+  const [showAll, setShowAll] = useState(false);
   // Core's answer to "may a session start", read from the server on focus, or
   // null when nobody could ask. The circle reads it through `tutor/orbState.ts`
   // and a null reads as ready there on purpose: the server refuses a start it
@@ -89,14 +100,18 @@ export function TutorTab() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void Promise.all([loadMissionCompletions(), loadDeck(), loadScenarioProgress()])
-        .then(([completions, deck, scenes]) => {
+      void Promise.all([loadMissionCompletions(), loadDeck(), loadScenarioProgress(), loadConversationPacks()])
+        .then(([completions, deck, scenes, packs]) => {
           if (cancelled) return;
           setRecords(scenes);
+          // One projection of where every scene stands, handed to the resume
+          // door and to the memory line, so the two cannot disagree.
+          const progress = missionStates(missionCompletionsFrom(completions), deck, Date.now());
           // The records decide which scene comes back, not only how long is left
           // of it: a learner who walked out of the market half way through meant
           // the market, whatever the deck says is due.
-          setResume(resumableMission(missionStates(missionCompletionsFrom(completions), deck, Date.now()), scenes));
+          setResume(resumableMission(progress, scenes));
+          setContinuity(continuityFrom({ brain: profile.brain, packs, records: scenes, progress }));
         })
         // A disk that will not answer takes the resume door with it and nothing
         // else. The speak card, the situations, the lesson and the open
@@ -112,7 +127,7 @@ export function TutorTab() {
       return () => {
         cancelled = true;
       };
-    }, []),
+    }, [profile]),
   );
 
   /**
@@ -242,7 +257,7 @@ export function TutorTab() {
     [records, resume],
   );
 
-  const enter = (key: string) => {
+  const enter = (key: TutorDoorKey) => {
     if (key === 'free') {
       open(false);
       return;
@@ -251,9 +266,13 @@ export function TutorTab() {
       openLesson(false);
       return;
     }
+    if (key === 'rehearse') {
+      nav.navigate('RealMoment');
+      return;
+    }
     // The chooser makes a mission choice visible before a session spends any
     // time. A resume door therefore focuses its situation instead of skipping
-    // this useful confirmation.
+    // this useful confirmation, and the everyday door opens the chooser plain.
     nav.navigate('Missions', key === 'resume' && resume ? { focus: resume.mission.id } : undefined);
   };
 
@@ -302,13 +321,55 @@ export function TutorTab() {
           </Card>
         )}
 
+        {/* What the tutor remembers, from a real record only. Absent for a
+            learner with nothing behind them, because the fold answers null. */}
+        {continuity !== null && (
+          <ContinuityCard
+            headline={continuityHeadline(tutorName)}
+            continuity={continuity}
+            disabled={checking}
+            onResume={(missionId) => nav.navigate('Convo', { missionId })}
+            onContinue={(seedTopic) => nav.navigate('Convo', { seedTopic })}
+          />
+        )}
+
         {/* Each card is still a gate-owned door, drawn in the order the model
             gives. Keeping the map and the model fields together makes the
             friendly visual treatment unable to drift into a different order or
-            a different promise. */}
+            a different promise. The three entry modes (F547) are rows under one
+            heading; the guided list folds away behind a quiet word. */}
         <View style={st.doors}>
           {doors.map((door) => (
-            <Card key={door.key} style={st.doorCard}>
+            <Fragment key={door.key}>
+            {door.key === 'everyday' && <Label>{ENTRY_MODES_LABEL}</Label>}
+            <Card style={isEntryMode(door.key) ? st.modeCard : st.doorCard}>
+              {isEntryMode(door.key) && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${door.label}. ${door.gloss}`}
+                  disabled={checking}
+                  onPress={() => enter(door.key)}
+                  style={({ pressed }) => [st.mode, pressed && !checking && st.pressed]}
+                >
+                  {door.key === 'everyday' && <MissionDisc place="cafe" size={48} />}
+                  {door.key === 'free' && (
+                    <TintDisc tint={missionTint('home')} size={48}>
+                      <MicGlyph />
+                    </TintDisc>
+                  )}
+                  {door.key === 'rehearse' && (
+                    <TintDisc tint={missionTint('friends')} size={48}>
+                      <TargetGlyph />
+                    </TintDisc>
+                  )}
+                  <View style={st.rowWords}>
+                    <Text style={[type.bodyStrong, { color: paper.ink }]}>{door.label}</Text>
+                    <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{door.gloss}</Text>
+                  </View>
+                  <ArrowRight />
+                </Pressable>
+              )}
+
               {door.key === 'resume' && (
                 <>
                   <Label>{door.label}</Label>
@@ -339,6 +400,10 @@ export function TutorTab() {
                     )}
                   </View>
                   <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{door.gloss}</Text>
+                  <View style={st.lessonQuiet}>
+                    <GhostButton label={showAll ? HIDE_SITUATIONS : door.action} disabled={checking} onPress={() => setShowAll((shown) => !shown)} />
+                  </View>
+                  {showAll && (
                   <View style={st.rows}>
                     {MISSIONS.map((mission) => (
                       <Pressable
@@ -358,6 +423,7 @@ export function TutorTab() {
                       </Pressable>
                     ))}
                   </View>
+                  )}
                 </>
               )}
 
@@ -383,20 +449,8 @@ export function TutorTab() {
                 </>
               )}
 
-              {door.key === 'free' && (
-                <>
-                  <Label>{door.label}</Label>
-                  {door.title !== null && <Text style={[type.title, { color: paper.ink, marginTop: space(1) }]}>{door.title}</Text>}
-                  <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{door.gloss}</Text>
-                  <View style={st.scene}>
-                    <EveningIn width={176} paused={!focused} />
-                  </View>
-                  <View style={st.doorAction}>
-                    <PillButton label={door.action} onPress={() => enter(door.key)} disabled={checking} />
-                  </View>
-                </>
-              )}
             </Card>
+            </Fragment>
           ))}
         </View>
 
@@ -424,6 +478,9 @@ const st = StyleSheet.create({
   offline: { marginTop: space(4) },
   doors: { marginTop: space(6), gap: space(3) },
   doorCard: { padding: space(4) },
+  // An entry mode is one row, the whole card pressable at the touch floor.
+  modeCard: { paddingVertical: space(2), paddingHorizontal: space(4) },
+  mode: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT },
   // The disc and the words sit on one row, and the words take what is left, so
   // a long title wraps instead of pushing the card sideways at large text.
   resumeHead: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(2) },
@@ -433,7 +490,6 @@ const st = StyleSheet.create({
   rows: { marginTop: space(2) },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
   rowWords: { flex: 1, minWidth: 0 },
-  scene: { alignItems: 'center', marginTop: space(3) },
   doorAction: { marginTop: space(4) },
   lessonQuiet: { marginTop: space(1), alignItems: 'center' },
   quiet: { marginTop: 'auto', paddingTop: space(6), gap: space(1) },

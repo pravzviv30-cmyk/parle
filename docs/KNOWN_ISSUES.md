@@ -8036,17 +8036,18 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F547 — Tutor offers four doors, not three ways in
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/gate.ts:262
 - note: the brief asks for three obvious entry modes: an everyday mission, an open chat, and
   rehearsing something specific. The door model gains the first and the third as rows, keeps the
-  open conversation as the second pill, and folds the six mission rows and the lesson under them.
-  Two pills, as the budget pins.
-- verified-by: `the tutor tab draws everyday, open chat and rehearse as entry modes, and keeps two pills`
+  open conversation as a row too, and folds the six mission rows away behind a quiet word with the
+  lesson last. One pill, the resume card's: the circle at the top of the tab is the way into an open
+  chat, so a second pill for the same door was a second answer to one question.
+- verified-by: `the tutor tab draws everyday, open chat and rehearse as entry modes, folds the situations away, and keeps one pill`
 
 ### F548 — A learner cannot bring a real situation to the tutor
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/realMoments.ts:1
 - note: the seed topic already rides end to end, and its French half is spoken aloud by the tutor,
   so typed English must never land in that slot. Eight authored kinds carry the French title; the
@@ -8057,7 +8058,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F549 — Learner-authored moments have nowhere to live
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/momentsStore.ts:1
 - note: a moment typed once should be there to rehearse again. It is free text about the learner's
   own life, so the store is device-local and excluded from sync with that reason written down, capped
@@ -8213,7 +8214,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F565 — Custom rehearsal and arc continuation are open to every plan
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/RealMomentScreen.tsx:1
 - note: the two new doors are the paid tier's, and the server gates minutes rather than doors, so the
   app gates them from the plan it read. A known plan without them meets an honest line and a door to

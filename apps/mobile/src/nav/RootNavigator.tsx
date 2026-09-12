@@ -39,6 +39,7 @@ import { SummaryScreen } from '../SummaryScreen.tsx';
 import { DrillScreen } from '../DrillScreen.tsx';
 import { ReviewScreen } from '../ReviewScreen.tsx';
 import { MissionsScreen } from '../missions/MissionsScreen.tsx';
+import { RealMomentScreen } from '../tutor/RealMomentScreen.tsx';
 import { missionReplay, type MissionReplay } from '../missions/chooserView.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { HomeTab } from '../tabs/HomeTab.tsx';
@@ -368,6 +369,24 @@ function WallRoute() {
   );
 }
 
+function RealMomentRoute() {
+  const nav = useNavigation<{
+    goBack: () => void;
+    canGoBack: () => boolean;
+    navigate: (screen: string, params?: object) => void;
+  }>();
+  // Reached from the Tutor tab, so there is normally a screen behind it; on
+  // the web an address can land here cold, and then the tabs are the way out.
+  const leave = () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'));
+  return (
+    <RealMomentScreen
+      onBack={leave}
+      onStart={(seedTopic) => nav.navigate('Convo', { seedTopic })}
+      onSeePlans={() => nav.navigate('Wall', { entry: 'settings' })}
+    />
+  );
+}
+
 function SoundCheckRoute() {
   const nav = useNavigation<{ goBack: () => void }>();
   const route = useRoute<RouteProp<RootStackParamList, 'SoundCheck'>>();
@@ -447,6 +466,7 @@ export function RootNavigator({
       <Stack.Screen name="Review" component={ReviewRoute} />
       <Stack.Screen name="SoundCheck" component={SoundCheckRoute} />
       <Stack.Screen name="Missions" component={MissionsScreen} />
+      <Stack.Screen name="RealMoment" component={RealMomentRoute} />
       {/* `initialParams` is what makes the preview safe to open directly: with
           the wall as the initial route there is no navigate to carry a param, so
           without this `entry` would be undefined on the one path that exists to

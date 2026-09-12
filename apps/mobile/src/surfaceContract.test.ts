@@ -636,6 +636,7 @@ describe('a tap that starts with a network probe — F154', () => {
     ['the suggestion card\'s tutor door', 'tabs/PracticeTab.tsx', 'const talkAbout = ('],
     ['the tutor tab\'s doors', 'tabs/TutorTab.tsx', 'const open = ('],
     ['the mission hero\'s start', 'home/MissionHero.tsx', 'const open = ('],
+    ['the real moment\'s start', 'tutor/RealMomentScreen.tsx', 'const open = ('],
   ] as const;
 
   const bodyOf = (file: string, opens: string): string => {
@@ -789,6 +790,8 @@ const ADOPTERS = [
   // the settings screens did, rather than being walked back from a safe area it
   // measured itself.
   'wall/WallScreen.tsx',
+  // F548: the real moment takes the frame from the day it is written.
+  'tutor/RealMomentScreen.tsx',
 ];
 
 /**
@@ -874,6 +877,7 @@ describe('one way back, and it is the shared header — F309', () => {
     // exactly one way back and it is the shared header (F357).
     'auth/SignUpScreen.tsx',
     'auth/SignInScreen.tsx',
+    'tutor/RealMomentScreen.tsx',
   ];
 
   test('a pushed screen has exactly one way back, and it is the shared header — F309', () => {
@@ -1383,7 +1387,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
 
     const counts: Record<string, number> = {
       'tabs/HomeTab.tsx': 0,
-      'tabs/TutorTab.tsx': 2,
+      // F547: the open conversation's pill went with its card; the circle is the
+      // way into an open chat, and the one pill left is the resume card's.
+      'tabs/TutorTab.tsx': 1,
       'tabs/MyFrenchTab.tsx': 1,
       // F365: the next step is Practice's one pill. Two branches draw it, and
       // exactly one renders.
@@ -1682,8 +1688,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.match(design, /One primary pill per door/, 'DESIGN.md still states the rule as one pill per tab');
     assert.equal(
       (tutor.match(/<PillButton\b/g) ?? []).length,
-      2,
-      'the design doc says Tutor carries two pills and the tab draws a different number',
+      1,
+      'the design doc says Tutor carries one pill and the tab draws a different number',
     );
 
     // 4. The revision. The doc described a fade through three words for exactly
