@@ -3629,10 +3629,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F233 — My French carries the story, read on demand
 - severity: P1
 - status: [x]
-- where: apps/mobile/src/tabs/MyFrenchTab.tsx:1
+- where: apps/mobile/src/profile/FrenchLifeCard.tsx:1
 - note: the story renders where the learner goes looking, wired to story.ts and to no second
-  opinion; combined with F226 it can never arrive as a push.
-- verified-by: `my french shows the week's story only where the learner goes looking`
+  opinion; combined with F226 it can never arrive as a push. The one importer moved from My
+  French to Profile's week card with F561, and the importer count moved with it.
+- verified-by: `the Profile card is the one importer of the story, and the rhythm rail names no number`
 
 ### F234 — The ladder's comment stops promising a surface that did not exist
 - severity: P1
@@ -5218,7 +5219,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `my french closes on the next situation, and the chooser is the quiet door`
 - verified-by: `a finished situation's row says refine pronunciation in the module's words, and goes where the module says`
 - verified-by: `the My French screen draws a stamp only for a scene finished unaided`
-- verified-by: `my french shows the week's story only where the learner goes looking`
+- verified-by: `the Profile card is the one importer of the story, and the rhythm rail names no number`
 
 ### F349 — The progress reset that no screen can reach is gone from the app and its documents
 - severity: P1
@@ -8165,7 +8166,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F560 — The week's story never sees a conversation
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/progress/story.ts:244
 - note: `storyFrom` reads the history namespace, which only the scripted lesson writes, so a learner
   who only ever talks to the tutor has a quiet week by construction. The story now takes the
@@ -8176,7 +8177,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F561 — The week lives on the wrong tab
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/profile/FrenchLifeCard.tsx:1
 - note: both mockups put the week on Profile, and F233 allows the story exactly one importer. The
   importer becomes the Profile card; My French keeps the passport and the shelf. The rhythm beside it

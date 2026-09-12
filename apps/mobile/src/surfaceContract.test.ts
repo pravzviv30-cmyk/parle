@@ -1777,7 +1777,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     // quota, which is the one part of this block that has ever been mistaken
     // for one.
     assert.match(row!, /week rail/, "DESIGN.md does not describe the days card's week rail");
-    assert.match(block, /days\.week\.map\(/, 'the days card no longer draws the week rail the design doc describes');
+    assert.match(block, /<WeekRail week=\{days\.week\} \/>/, 'the days card no longer draws the week rail the design doc describes');
+    assert.match(named('components.tsx'), /week\.map\(\(filled, index\)/, 'the shared week rail no longer draws one mark per day');
   });
 
   /**

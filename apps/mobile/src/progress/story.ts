@@ -31,7 +31,7 @@
  *
  * ## Nothing on an empty week
  *
- * A quiet week gets no sentences, and `hasStory` is false, and My French draws
+ * A quiet week gets no sentences, and `hasStory` is false, and Profile draws
  * none of it. This is `hasToday`'s rule and `hasStamps`' rule: a surface that can
  * render empty is a quota, and a quota you have not met is guilt with better
  * manners. An empty week is an invitation, and the screen already carries one.
@@ -48,7 +48,7 @@
  * in that position is read as a target whether or not one was meant, and a
  * target you have not hit at eleven at night is the whole mechanic we refuse.
  *
- * This surface is the other case. It is read on demand, in My French, and it
+ * This surface is the other case. It is read on demand, on Profile, and it
  * looks backwards at a week that has already finished. A number here cannot be a
  * target because there is nothing left to hit. So a count is evidence: fourteen
  * different French words is a thing the learner made, and rounding it away to
@@ -70,6 +70,20 @@
  * failure. The sentence says the true thing the rate is for, and the rate itself
  * never reaches the screen.
  *
+ * ## What a week is made of (F560)
+ *
+ * The scripted lesson is the only thing that writes the `history` namespace,
+ * so a story read from sessions alone was quiet by construction for a learner
+ * who only ever talked to the tutor. The week is now four things the phone
+ * already holds, each narrowed to the same seven local days before a sentence
+ * is decided: the lesson sessions, the activity log, the conversation packs
+ * and the mission completions. A completion names a place, by an authored
+ * noun rather than the mission's English title, which contains "day". A pack
+ * names a topic, and only when the topic's own words pass every rule the
+ * sentences below are held to; a topic this file cannot say is skipped, never
+ * trimmed into shape. The activity log adds no sentence of its own: it is what
+ * makes a week of drills and review count as a week that happened.
+ *
  * ## Where this lives
  *
  * Beside `today.ts` and `passport.ts`, and deliberately not in `packages/core`.
@@ -88,7 +102,7 @@
  *
  * ## Read, never pushed
  *
- * This module is reached from My French, by a learner who went looking. It is
+ * This module is reached from Profile, by a learner who went looking. It is
  * not on the path of anything that arrives uninvited, and it imports nothing
  * that could put it there. The mirror of that rule is enforced from the other
  * side too, by a source scan that refuses any module in `reminders/` the ability
@@ -97,8 +111,10 @@
  * the delivery layer.
  */
 
-import { localDayKey } from '@luvani/core';
-import type { StoredSession } from '@luvani/core';
+import { MISSIONS, localDayKey } from '@luvani/core';
+import type { ConversationPack, MissionPlace, StoredSession } from '@luvani/core';
+
+import { guiltIn } from '../copy/guilt.ts';
 
 /** Seven local days: this one and the six behind it. Never a rolling 168 hours. */
 export const DAYS_IN_THE_STORY = 7;
@@ -119,6 +135,31 @@ export interface WeekStory {
 
 /** Absent. Not "a quiet week": absent. */
 const NOTHING: WeekStory = { sentences: [] };
+
+/**
+ * Everything the story may read, whole and unnarrowed. Which seven days count
+ * is decided here, once, for all four; a caller that narrowed first would be
+ * walking past the no-delta guarantee.
+ */
+export interface StoryInput {
+  /** The scripted lesson's sessions, from the history store. */
+  sessions: readonly StoredSession[];
+  /** Every sitting the activity log holds, of any kind. */
+  activity: readonly { at: number }[];
+  /** The learner's conversation packs, as the store holds them. */
+  packs: readonly ConversationPack[];
+  /** Finished missions, as the completions store holds them. */
+  completions: readonly { id: string; at: number }[];
+  now: number;
+}
+
+/** The narrowed week: the same four inputs, inside the seven days. */
+interface Week {
+  sessions: readonly StoredSession[];
+  activity: readonly { at: number }[];
+  packs: readonly ConversationPack[];
+  completions: readonly { id: string; at: number }[];
+}
 
 /** True when My French should draw the story at all. */
 export function hasStory(story: WeekStory): boolean {
@@ -190,6 +231,90 @@ function soundThatLanded(week: readonly StoredSession[]): string | null {
 }
 
 /**
+ * Where a mission happens, as a noun a sentence can hold.
+ *
+ * Authored here rather than read from the mission, because `titleEn` is an
+ * instruction ("Talk about your day") and one of them carries the word this
+ * file may never print. A `Record` over the union, so a seventh place fails the
+ * typecheck instead of landing in a sentence unnamed.
+ */
+const PLACE_NOUNS: Record<MissionPlace, string> = {
+  cafe: 'the café',
+  hotel: 'the hotel',
+  market: 'the market',
+  street: 'the street',
+  home: 'a chat at home',
+  friends: 'an evening with friends',
+};
+
+/** How many places one sentence names before it stops being a sentence. */
+const MAX_PLACES = 3;
+
+/**
+ * The places entered this week, each once, in the order they were first
+ * entered. A completion whose mission the catalogue no longer carries names
+ * nothing.
+ */
+function placesEntered(week: readonly { id: string; at: number }[]): string[] {
+  const seen = new Set<MissionPlace>();
+  const nouns: string[] = [];
+  for (const done of [...week].sort((a, b) => a.at - b.at || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) {
+    const place = MISSIONS.find((mission) => mission.id === done.id)?.place;
+    if (place === undefined || seen.has(place)) continue;
+    seen.add(place);
+    nouns.push(PLACE_NOUNS[place]);
+  }
+  return nouns.slice(0, MAX_PLACES);
+}
+
+/** "the café", "the café and the hotel", "the café, the hotel and the market". */
+function listed(nouns: readonly string[]): string {
+  if (nouns.length <= 1) return nouns[0] ?? '';
+  return `${nouns.slice(0, -1).join(', ')} and ${nouns[nouns.length - 1]}`;
+}
+
+/** Longer than this is a paragraph the model wrote, not a topic. */
+const MAX_TOPIC_CHARS = 48;
+
+/**
+ * A topic this file can say, or null.
+ *
+ * The topic is the model's own text riding into a sentence the learner reads,
+ * so it is held to every rule the authored sentences are held to and one more:
+ * letters, spaces and the marks a phrase can carry, nothing that would end the
+ * sentence early or put a number in it. It is never trimmed, capitalised or
+ * repaired into shape; a topic that fails is skipped whole and the next one is
+ * tried, because a sentence built from a repaired phrase is a sentence nobody
+ * wrote.
+ */
+function sayableTopic(en: string): string | null {
+  const text = en.trim();
+  if (text.length === 0 || text.length > MAX_TOPIC_CHARS) return null;
+  if (!/^[a-zà-ÿ][a-zà-ÿ'’ ,-]*$/i.test(text)) return null;
+  const lower = text.toLowerCase();
+  if (lower.includes('day') || lower.includes('week')) return null;
+  if (guiltIn(text) !== undefined) return null;
+  // A sentence-case phrase sits mid-sentence with its opening letter lowered.
+  // A name keeps its capital, and a name is the best this file can tell: one
+  // capitalised word alone, a second capital after the first, or an acronym.
+  // "Weather" mid-sentence is a small oddity; "paris" is wrong.
+  const properNoun = !text.includes(' ') ? /^[A-ZÀ-Ý]/.test(text) : /^[A-ZÀ-Ý]\S*\s+[A-ZÀ-Ý]/.test(text) || /^[A-ZÀ-Ý]{2}/.test(text);
+  return properNoun ? text : text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+/** The first topic the newest pack of the week can say, or null. */
+function topicTalkedAbout(week: readonly ConversationPack[]): string | null {
+  const newest = [...week].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id));
+  for (const pack of newest) {
+    for (const topic of pack.topics) {
+      const said = sayableTopic(topic.en);
+      if (said !== null) return said;
+    }
+  }
+  return null;
+}
+
+/**
  * The lead, when the week earned it. Said in words, and that is not a stylistic
  * preference: see the header on why `unassistedRate` stays underneath.
  */
@@ -208,20 +333,28 @@ const IT_HAPPENED = 'You spent time with French this week.';
  * Private, and taking only the narrowed week, which is the structural half of
  * the no-delta rule. There is no argument here that could carry a prior week in.
  */
-function storyOf(week: readonly StoredSession[]): WeekStory {
-  if (week.length === 0) return NOTHING;
+function storyOf(week: Week): WeekStory {
+  const happened =
+    week.sessions.length > 0 || week.activity.length > 0 || week.packs.length > 0 || week.completions.length > 0;
+  if (!happened) return NOTHING;
 
   const sentences: string[] = [];
 
-  if (mostlyUnaided(week)) sentences.push(INDEPENDENCE);
+  if (week.sessions.length > 0 && mostlyUnaided(week.sessions)) sentences.push(INDEPENDENCE);
 
-  const words = wordsProduced(week);
+  const places = placesEntered(week.completions);
+  if (places.length > 0) sentences.push(`This week you handled ${listed(places)}.`);
+
+  const topic = topicTalkedAbout(week.packs);
+  if (topic !== null) sentences.push(`You talked about ${topic} this week.`);
+
+  const words = wordsProduced(week.sessions);
   // "1 different French words" is the kind of sentence that tells a learner
   // nobody read this screen before shipping it.
   if (words === 1) sentences.push('You used 1 French word this week.');
   else if (words > 1) sentences.push(`You used ${words} different French words this week.`);
 
-  const sound = soundThatLanded(week);
+  const sound = soundThatLanded(week.sessions);
   if (sound !== null) sentences.push(`Your /${sound}/ came out clearly this week.`);
 
   if (sentences.length === 0) sentences.push(IT_HAPPENED);
@@ -237,11 +370,18 @@ function storyOf(week: readonly StoredSession[]): WeekStory {
  * `now` is passed in rather than read, for `todayFrom`'s reason: a rule about
  * dates that cannot be tested across a boundary is a rule nobody can trust.
  *
- * The whole history is accepted because that is what the caller has, and it is
- * narrowed before a single sentence is decided. Everything older than the week
- * is dropped here and is never seen again.
+ * Every input is accepted whole because that is what the caller has, and each
+ * is narrowed before a single sentence is decided. Everything older than the
+ * week is dropped here and is never seen again. A pack's `createdAt` is an ISO
+ * string off the wire; one that does not parse is outside every week.
  */
-export function storyFrom(sessions: readonly StoredSession[], now: number): WeekStory {
-  const days = localDaysInTheStory(now);
-  return storyOf(sessions.filter((stored) => days.has(localDayKey(stored.endedAt))));
+export function storyFrom(input: StoryInput): WeekStory {
+  const days = localDaysInTheStory(input.now);
+  const inWeek = (at: number): boolean => Number.isFinite(at) && days.has(localDayKey(at));
+  return storyOf({
+    sessions: input.sessions.filter((stored) => inWeek(stored.endedAt)),
+    activity: input.activity.filter((entry) => inWeek(entry.at)),
+    packs: input.packs.filter((pack) => inWeek(Date.parse(pack.createdAt))),
+    completions: input.completions.filter((done) => inWeek(done.at)),
+  });
 }

@@ -896,7 +896,34 @@ export function AbilityRow({
   );
 }
 
+/** TodayRow's mark, at TodayRow's size, because it is TodayRow's mark. */
+const MARK = 10;
+
+/**
+ * Seven marks for the last seven local days, oldest first (F561).
+ *
+ * A picture, never a target: a day that happened is a filled green mark and a
+ * day that did not is a hairline, on TodayRow's rule that a thing which has not
+ * happened is not a state worth signalling. It carries no number and no words,
+ * and it is hidden from assistive tech because whatever it stands beside
+ * already says it. Home's momentum card and Profile's week draw the same rail,
+ * so the week looks the same wherever the learner meets it.
+ */
+export function WeekRail({ week }: { week: readonly boolean[] }) {
+  return (
+    <View style={s.marks} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {week.map((filled, index) => (
+        <View key={index} style={[s.mark, filled ? s.markDone : s.markWaiting]} />
+      ))}
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
+  marks: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(1.5), marginTop: space(3) },
+  mark: { width: MARK, height: MARK, borderRadius: MARK / 2 },
+  markDone: { backgroundColor: signal.good },
+  markWaiting: { borderWidth: HAIRLINE + 0.4, borderColor: paper.line },
   abilityRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
   abilityDivided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
   abilityWords: { flex: 1, minWidth: 0 },

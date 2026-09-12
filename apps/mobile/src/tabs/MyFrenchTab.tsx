@@ -31,8 +31,6 @@ import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { loadSoundChecks } from '../soundcheck/store.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { trackProductEvent } from '../analytics/track.ts';
-import { hasStory, storyFrom, type WeekStory } from '../progress/story.ts';
-import { loadHistory } from '../progress/store.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import {
   deleteAllConversationPacksForLearner,
@@ -84,10 +82,10 @@ import { CadenceCard } from '../myfrench/CadenceCard.tsx';
  * ternary here is a rule no test can reach; that is why the sound line, which
  * used to be decided in this file, is now `myfrench/sounds.ts`.
  *
- * The week's story is the one thing still read here rather than through the
- * model, and deliberately: F233 holds `progress/story.ts` to exactly one
- * importer in the whole app, so that nothing scheduled or notified can carry a
- * learner's week anywhere. This screen is that importer.
+ * The week's story used to be read here. It lives on Profile now (F561), and
+ * F233 still holds `progress/story.ts` to exactly one importer in the whole
+ * app; that importer is `profile/FrenchLifeCard.tsx`, and this screen reads
+ * no history at all.
  */
 export function MyFrenchTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
@@ -102,9 +100,6 @@ export function MyFrenchTab() {
   // Which lane is showing. Component state on purpose: it dies with the mount,
   // and nothing on the page claims it is remembered.
   const [lane, setLane] = useState<Lane | null>(null);
-  // null is "not read yet", which draws the same as a quiet week and is not the
-  // same claim. The empty story is story.ts's to make, not this screen's.
-  const [story, setStory] = useState<WeekStory | null>(null);
   // The next situation to walk into, from core, exactly as Home reads it. This
   // screen draws it and never decides which one; null draws nothing.
   const [next, setNext] = useState<MissionProgress | null>(null);
@@ -123,11 +118,10 @@ export function MyFrenchTab() {
         loadDeck(),
         loadTopics(),
         loadSoundChecks(),
-        loadHistory(),
         loadActivity(),
         loadBookmarks(),
       ]).then(
-        ([completions, cards, topics, soundChecks, history, activity, bookmarks]) => {
+        ([completions, cards, topics, soundChecks, activity, bookmarks]) => {
           if (cancelled) return;
           const now = Date.now();
           const nextMissions = missionStates(missionCompletionsFrom(completions), cards, now);
@@ -140,9 +134,6 @@ export function MyFrenchTab() {
           setNext(suggestedMission(nextMissions));
           setEvidence(nextEvidence);
           setSaved(savedSituations(bookmarks, DAILY_SCENARIOS));
-          // The whole history, unnarrowed. Which seven days count is story.ts's
-          // decision and filtering here would walk straight past it.
-          setStory(storyFrom(history, now));
           void trackProductEvent({
             name: 'my_french_opened',
             properties: { situationsDone: nextEvidence.situations, linesKept: nextEvidence.lines },
@@ -280,17 +271,6 @@ export function MyFrenchTab() {
               </Card>
             )}
 
-            {story !== null && hasStory(story) && (
-              <View style={st.week} accessibilityRole="summary">
-                <Label>Your week</Label>
-                {story.sentences.map((sentence) => (
-                  <Text key={sentence} style={[type.body, { color: paper.ink }]}>
-                    {sentence}
-                  </Text>
-                ))}
-              </View>
-            )}
-
             <SituationsCard
               model={model}
               onOpen={(missionId, refine) =>
@@ -386,7 +366,6 @@ const st = StyleSheet.create({
   // A week's account, at the head of the page of stamps rather than under it.
   // Sentences, so they are set in ink at body size: 4.5 is the floor for
   // something a learner reads, and the softer inks are below it.
-  week: { marginTop: space(7), gap: space(2) },
   // Three facts to a row, under the header. Absent entirely at zero.
   evidence: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(2), columnGap: space(3), rowGap: space(4) },
   // One saved situation to a row, the whole row at the touch floor so the verb

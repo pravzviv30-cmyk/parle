@@ -382,6 +382,19 @@ function recentDayKeys(now: number, span: number): string[] {
  * ever appended, and adding an entry can only leave the set the same size or
  * make it larger. Time passing adds nothing and removes nothing.
  */
+/**
+ * The last seven local days, oldest first, true where something happened.
+ *
+ * Exported for Profile's week (F561), which draws the same rail Home's days
+ * card does from the same log, so the two pictures can never disagree about
+ * which of the last seven days had French in them.
+ */
+export function weekRailFrom(activity: readonly { at: number }[], now: number): readonly boolean[] {
+  const active = new Set<string>();
+  for (const entry of activity) active.add(localDayKey(entry.at));
+  return recentDayKeys(now, MOMENTUM_WEEK_DAYS).map((key) => active.has(key));
+}
+
 function daysFrom(activity: readonly ActivityEntry[], now: number): MomentumDays {
   const active = new Set<string>();
   for (const entry of activity) active.add(localDayKey(entry.at));
@@ -389,7 +402,7 @@ function daysFrom(activity: readonly ActivityEntry[], now: number): MomentumDays
 
   return {
     count,
-    week: recentDayKeys(now, MOMENTUM_WEEK_DAYS).map((key) => active.has(key)),
+    week: weekRailFrom(activity, now),
     label: DAYS_LABEL,
     words: count === null ? DAYS_START : count === 1 ? 'day' : 'days',
   };

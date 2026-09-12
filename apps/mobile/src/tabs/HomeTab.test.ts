@@ -70,6 +70,8 @@ const SITUATION = stripComments(read('../home/SituationCard.tsx'));
 const MOMENTUM = stripComments(read('../home/MomentumCards.tsx'));
 const HERO = stripComments(read('../home/MissionHero.tsx'));
 const ABILITIES = stripComments(read('../home/AbilitiesCard.tsx'));
+/** The shared components, where the week rail and its marks live now (F561). */
+const COMPONENTS = stripComments(read('../components.tsx'));
 
 /**
  * Home's own file, every card it draws, and the two files behind the word
@@ -461,7 +463,8 @@ describe('Home draws the four momentum cards and the next step — F436, F399, F
 
     // Green means ground already covered, here as everywhere.
     assert.match(style(MOMENTUM, 'fill'), /backgroundColor: signal\.good/, 'the goal bar is not filled in the green that means the learner produced French');
-    assert.match(style(MOMENTUM, 'markDone'), /backgroundColor: signal\.good/, 'a day that happened is not a filled green mark');
+    assert.match(style(COMPONENTS, 'markDone'), /backgroundColor: signal\.good/, 'a day that happened is not a filled green mark');
+    assert.match(MOMENTUM, /<WeekRail week=\{days\.week\} \/>/, 'the days card no longer draws the shared week rail');
     assert.match(style(MOMENTUM, 'gain'), /color: signal\.good/, "the week's gain is not set in green");
     assert.ok(!MOMENTUM.includes('signal.live'), "the tutor's red reached a block about the learner");
     assert.ok(!MOMENTUM.includes('rungColor'), 'a rung colour reached the signal set, so a state could read as a rung');
@@ -483,7 +486,7 @@ describe('Home draws the four momentum cards and the next step — F436, F399, F
 
     // A day that has not happened is not a state worth signalling, so it is a
     // hairline and not a colour. TodayRow's rule, kept.
-    const waiting = style(MOMENTUM, 'markWaiting');
+    const waiting = style(COMPONENTS, 'markWaiting');
     assert.ok(!waiting.includes('backgroundColor'), 'a day that has not happened is filled in, which reports an absence back to the learner');
     assert.match(waiting, /borderColor: paper\.line/, 'the waiting mark is not the hairline');
 

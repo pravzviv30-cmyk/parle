@@ -52,12 +52,9 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 
-import { BadgeGlyph, Card, FlameGlyph, GhostButton, Label, MicGlyph, TargetGlyph } from '../components.tsx';
+import { BadgeGlyph, Card, FlameGlyph, GhostButton, Label, MicGlyph, TargetGlyph, WeekRail } from '../components.tsx';
 import type { Momentum } from '../progress/momentum.ts';
 import { accent, HAIRLINE, paper, radius, signal, space, type } from '../theme.ts';
-
-/** TodayRow's mark, at TodayRow's size, because it is TodayRow's mark. */
-const MARK = 10;
 
 /** The rounded well the hero's glyph sits in. Square, so it stays a square. */
 const WELL = 36;
@@ -144,16 +141,9 @@ export function MomentumCards({
             <Text style={st.words}>{days.words}</Text>
           </View>
           {/* A picture of the last seven days, never a target. The count above
-              already says it, so the row itself is decorative. */}
-          <View
-            style={st.marks}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-          >
-            {days.week.map((filled, index) => (
-              <View key={index} style={[st.mark, filled ? st.markDone : st.markWaiting]} />
-            ))}
-          </View>
+              already says it, so the rail itself is decorative, and it is the
+              shared rail so Profile's week is the same picture. */}
+          <WeekRail week={days.week} />
         </Card>
 
         <Card style={st.tile}>
@@ -256,10 +246,6 @@ const st = StyleSheet.create({
   words: { ...type.small, color: paper.inkSoft },
   gain: { ...type.small, color: signal.good },
   band: { ...type.small, color: signal.good, marginTop: space(2) },
-  marks: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(1.5), marginTop: space(3) },
-  mark: { width: MARK, height: MARK, borderRadius: MARK / 2 },
-  markDone: { backgroundColor: signal.good },
-  markWaiting: { borderWidth: HAIRLINE + 0.4, borderColor: paper.line },
   goal: { padding: space(4) },
   goalHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   goalWords: { flex: 1, minWidth: 0 },
