@@ -69,6 +69,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Missions: 'missions',
       Settings: 'settings',
       RealMoment: 'real-moment',
+      TutorMemory: 'tutor-memory',
       Wall: 'plans',
       Policy: 'privacy',
       Terms: 'terms',

@@ -66,7 +66,14 @@ the session's phrases outright.
 
 ### The age stop, and exactly how strong it is
 
-`profile` is at **version 7**. Version 6 added `tutorVoice`, the catalogue key of
+`profile` is at **version 8**. Version 8 added `forgottenFacts`, the normalised
+keys of memory facts the learner asked the tutor to forget, kept as tombstones
+because the extraction would otherwise write the fact back the next session that
+mentions it, and `learnerGoals`, up to three lines the learner wrote about what
+they want from French, appended after the remembered facts in the session
+snapshot so the agent's last-five slice always carries them
+(`apps/mobile/src/profile/memory.ts` is the one writer of both). Version 6 added
+`tutorVoice`, the catalogue key of
 the voice the learner asked for, null until they choose. Version 7 added
 `preferTyping`, a plain boolean saying a conversation opens with the reply box
 showing and the microphone closed until the circle is tapped; false for everyone
@@ -416,7 +423,7 @@ What this does **not** do: it does not merge `cefr`, `memory` or `stats`
 field-wise. Those ride whole with the evidence-heavier side, so two simultaneous
 offline sessions lose the smaller one's deltas to those three fields. Phrases and
 error patterns always survive, because they are unioned. That is the biggest
-accepted loss in the design and field-wise merging is Phase 4.
+accepted loss in the design and field-wise merging is Phase 4. The one outer field that does not ride whole is `forgottenFacts`: the tombstones of memory facts the learner asked to forget are unioned as a sorted set (`PROFILE_UNION_FIELDS` in the brain's merge), because a forget made on the quieter phone must survive the busier one; `learnerGoals` rides whole like everything else, there being no clock to order two lists by.
 
 `npm run verify:sync` runs the whole engine twice as two devices on two real
 accounts against a live project. It proves isolation, forged filters, offline
@@ -427,19 +434,20 @@ when the credentials are absent.
 `apps/mobile/src/profile/store.ts` holds `StoredProfile`:
 
 ```ts
-{ version: 7, name, dob, ageConfirmed, ageStopAt, tutorVoice, preferTyping, motivation, dailyGoalMin, onboardedAt, username, brain: LearnerProfile }
+{ version: 8, name, dob, ageConfirmed, ageStopAt, tutorVoice, preferTyping, forgottenFacts, learnerGoals, motivation, dailyGoalMin, onboardedAt, username, brain: LearnerProfile }
 ```
 
 `brain` is `@luvani/brain`'s learner model, stored verbatim — the app is its
 storage, not its author.
 
 `apps/mobile/src/profile/upgrade.ts` is the app-side forward migration.
-`upgradeStored` takes whatever was on disk and returns a version-7 profile or
+`upgradeStored` takes whatever was on disk and returns a version-8 profile or
 `null` if it cannot be read at all. Version 1 and version 2 records both gain
 `username: null`; a version-3 record keeps the username it already has. Every
-branch below 5 writes no `ageStopAt`, every branch below 6 no `tutorVoice`, and
-every branch below 7 `preferTyping: false`: a field's slot on an older disk is
-never read as an answer the learner gave.
+branch below 5 writes no `ageStopAt`, every branch below 6 no `tutorVoice`,
+every branch below 7 `preferTyping: false`, and every branch below 8 empty
+`forgottenFacts` and `learnerGoals`: a field's slot on an older disk is never
+read as an answer the learner gave.
 
 Version 4 stopped asking for a date of birth and asks whether the learner is
 thirteen or over instead. `dob` stays on the type forever and nobody's is

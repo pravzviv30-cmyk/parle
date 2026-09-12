@@ -10,6 +10,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { LearnerProfile } from '@luvani/brain/profile';
 import { loadProfile, saveProfile, withAgeGatePassed, type StoredProfile } from '../profile/store.ts';
+import { withoutForgotten } from '../profile/memory.ts';
 import { entryFor } from '../onboarding/answers.ts';
 import { AgeGateScreen } from '../onboarding/AgeGateScreen.tsx';
 
@@ -77,7 +78,12 @@ export function ProfileGate({
   const updateBrain = useCallback((blob: LearnerProfile) => {
     setProfile((current) => {
       if (current === null || current === 'loading') return current;
-      const next: StoredProfile = { ...current, brain: blob };
+      // The recap's brain has been through the extraction, which dedupes on a
+      // fact's own text and so writes back anything the learner forgot the
+      // moment a session mentions it again. The tombstones are applied here,
+      // at the one write, rather than in the navigator's handler, whose deps
+      // must stay exactly `[updateBrain]` (F386).
+      const next: StoredProfile = { ...current, brain: withoutForgotten(blob, current.forgottenFacts) };
       void saveProfile(next);
       return next;
     });

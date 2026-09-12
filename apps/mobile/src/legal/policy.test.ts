@@ -236,6 +236,15 @@ describe('the privacy notice — F479', () => {
       'the notice hides the memory the tutor carries between sessions from the model vendor',
     );
     assert.match(said, /which it remembers so it can bring them up next time/, 'the notice stopped saying why the memory is sent');
+    // F562. The learner can now write goals in Profile, and they ride into the
+    // same call appended after the remembered facts; and the facts themselves
+    // can be seen and removed there. Both are said, or the section names a
+    // recipient and hides what it receives.
+    assert.match(said, /and any goals you write in Profile/, 'the notice hides the goals the learner writes from the list of what the model is sent');
+    assert.match(said, /each of those things can be removed in Profile/, 'the notice does not say the remembered facts can be removed');
+    const memory = readFileSync(fileURLToPath(new URL('../profile/memory.ts', import.meta.url)), 'utf8');
+    assert.match(memory, /\.\.\.profile\.learnerGoals\.map\(goalFact\)/, 'the snapshot no longer appends the goals, so the sentence about them is untrue');
+    assert.match(DOC, /goals the learner writes in Profile ride/, 'the document stopped describing the goals that ride with the facts');
 
     // The code the sentence is about. The facts ride the scene call rather than
     // the turn, so this fails when that call changes shape rather than only

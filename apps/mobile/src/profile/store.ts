@@ -56,6 +56,17 @@
  * mode, which is a per-session door rather than a standing choice. False is
  * what every new profile and every upgraded one gets, because nobody has said
  * otherwise; `withPreferTyping` is its one door.
+ *
+ * Version 8 is the one that lets the learner edit what the tutor remembers
+ * (F562, F563). The brain keeps up to twelve facts about the learner's life,
+ * written by the post-session extraction, and until now no screen showed them
+ * and nothing could remove one. `forgottenFacts` is the list of facts the
+ * learner asked to forget, as the normalised keys the extraction itself dedupes
+ * on, because a fact merely deleted from the brain returns the next session
+ * that mentions it. `learnerGoals` is up to three lines the learner wrote
+ * about what they want from French; they ride into a conversation appended
+ * after the remembered facts, because the agent sends the last five. Both live
+ * in `profile/memory.ts`, which is the only thing that writes either.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -70,7 +81,7 @@ import { upgradeStored } from './upgrade.ts';
 const KEY = () => userKey('profile');
 
 export interface StoredProfile {
-  version: 7;
+  version: 8;
   /** What they asked to be called. Null when they skipped the question. */
   name: string | null;
   /**
@@ -111,6 +122,20 @@ export interface StoredProfile {
    * one named door; false for everyone until they say otherwise.
    */
   preferTyping: boolean;
+  /**
+   * Facts the learner asked the tutor to forget, as the normalised keys the
+   * extraction dedupes on. A tombstone rather than a deletion, because the
+   * next session that mentions the same thing would write it back. Capped,
+   * written only by `profile/memory.ts`, and unioned across devices by the
+   * brain's merge so a forget anywhere is a forget everywhere.
+   */
+  forgottenFacts: string[];
+  /**
+   * What the learner wrote they want from French, up to three short lines.
+   * Appended after the remembered facts in the session snapshot, because the
+   * agent sends the last five and a goal placed first would never ride.
+   */
+  learnerGoals: string[];
   /** Why they came, as the tag chosen during onboarding. Null when skipped. */
   motivation: string | null;
   /** The daily practice promise, set in Profile. Null until they pick one. */
@@ -292,7 +317,7 @@ function confirmedFrom(answers: OnboardingAnswers, now: Date): boolean | null {
 
 export function createStoredProfile(answers: OnboardingAnswers, now = Date.now()): StoredProfile {
   return {
-    version: 7,
+    version: 8,
     name: answers.name,
     // Data minimisation, discharged without touching one stored record: from
     // v4 on nobody is asked for a date, so nobody has one written down. While
@@ -311,6 +336,10 @@ export function createStoredProfile(answers: OnboardingAnswers, now = Date.now()
     // And nobody arrives preferring to type. The row in Profile is where that
     // is said, and until it is said the circle is the way in.
     preferTyping: false,
+    // And nobody arrives having forgotten anything or written a goal. Both
+    // are said in Profile, through `profile/memory.ts`.
+    forgottenFacts: [],
+    learnerGoals: [],
     motivation: answers.motivation,
     dailyGoalMin: answers.dailyGoalMin ?? null,
     onboardedAt: now,

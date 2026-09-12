@@ -44,7 +44,9 @@ describe('a new profile — what the app writes down about someone who just join
     const profile = createStoredProfile({ name: 'Camille', ageConfirmed: true, motivation: 'travel' }, NOW);
     assert.equal(profile.dob, null, 'the product stopped asking for a date, so there is none to keep');
     assert.equal(profile.ageConfirmed, true, 'what they actually told us is that they are old enough');
-    assert.equal(profile.version, 7);
+    assert.equal(profile.version, 8);
+    assert.deepEqual(profile.forgottenFacts, [], 'nobody arrives having forgotten anything');
+    assert.deepEqual(profile.learnerGoals, [], 'nobody arrives with a goal written');
     assert.equal(profile.preferTyping, false, 'nobody arrives preferring to type; the row in Profile is where that is said');
     assert.equal(profile.ageStopAt, null, 'nobody arrives already stopped');
     assert.equal(
@@ -198,7 +200,7 @@ describe('preferring typing — one field, one write path', () => {
     const reloaded = await loadProfile();
     assert.ok(reloaded, 'the profile did not survive its own round trip');
     assert.equal(reloaded.preferTyping, true, 'the preference reset itself on the next launch');
-    assert.equal(reloaded.version, 7);
+    assert.equal(reloaded.version, 8);
     assert.equal(reloaded.name, 'Camille', 'and the learner kept everything else');
 
     await saveProfile(withPreferTyping(reloaded, false));

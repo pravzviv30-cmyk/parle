@@ -94,7 +94,7 @@ describe('the profile version chain', () => {
   test('a v1 profile still reaches the latest version in one pass, brain intact', () => {
     const upgraded = upgradeStored({ version: 1, motivation: 'travel', onboardedAt: 123, brain: { seen: 1 } }, NOW);
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 7, 'the chain runs direct to the latest version, never a step at a time');
+    assert.equal(upgraded.version, 8, 'the chain runs direct to the latest version, never a step at a time');
     assert.equal(upgraded.name, null, 'v1 never asked for a name');
     assert.equal(upgraded.dob, null);
     assert.equal(upgraded.ageConfirmed, null, 'v1 never asked about age either, so nothing is claimed on the learner behalf');
@@ -124,7 +124,7 @@ describe('the profile version chain', () => {
     };
     const upgraded = upgradeStored(v2, NOW);
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 7);
+    assert.equal(upgraded.version, 8);
     assert.equal(upgraded.name, 'Camille');
     assert.equal(upgraded.dob, ADULT_DOB, 'the date they typed is theirs and stays');
     assert.equal(upgraded.motivation, 'work');
@@ -147,7 +147,7 @@ describe('the profile version chain', () => {
     };
     const upgraded = upgradeStored(v3, NOW);
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 7);
+    assert.equal(upgraded.version, 8);
     assert.equal(upgraded.username, 'camille.4821');
     assert.equal(upgraded.name, 'Camille');
   });
@@ -158,7 +158,7 @@ describe('the profile version chain', () => {
       NOW,
     );
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 7);
+    assert.equal(upgraded.version, 8);
     assert.equal(
       upgraded.ageConfirmed,
       true,
@@ -191,7 +191,7 @@ describe('the profile version chain', () => {
     };
     const upgraded = upgradeStored(v4, NOW);
     assert.ok(upgraded);
-    assert.equal(upgraded.version, 7);
+    assert.equal(upgraded.version, 8);
     assert.equal(upgraded.ageConfirmed, true, 'a tap on the confirmation is an answer, and it survives every later read');
     assert.equal(upgraded.dob, null, 'a v4 learner was never asked for a date, and none is invented for them');
     assert.equal(upgraded.motivation, null, 'a skipped question stays skipped');
@@ -240,7 +240,7 @@ describe('the profile version chain', () => {
     for (const key of VOICES) {
       const upgraded = upgradeStored(v6(key), NOW);
       assert.ok(upgraded, `a v6 profile carrying ${key} still upgrades`);
-      assert.equal(upgraded.version, 7);
+      assert.equal(upgraded.version, 8);
       assert.equal(upgraded.tutorVoice, key, `${key} is a choice the learner made, and the read hands it straight back`);
     }
 
@@ -266,7 +266,7 @@ describe('the profile version chain', () => {
       const label = `v${String(blob.version)}`;
       const upgraded = upgradeStored(blob, NOW);
       assert.ok(upgraded, `${label} must still upgrade`);
-      assert.equal(upgraded.version, 7);
+      assert.equal(upgraded.version, 8);
       assert.equal(upgraded.tutorVoice, null, `${label} predates the voice question, so it has no answer to it`);
       assert.notEqual(
         upgraded.tutorVoice,
@@ -324,7 +324,7 @@ describe('the profile version chain', () => {
     const v7 = (preferTyping: unknown): Record<string, unknown> => ({ ...v6(OTHER_VOICE), version: 7, preferTyping });
     const chosen = upgradeStored(v7(true), NOW);
     assert.ok(chosen);
-    assert.equal(chosen.version, 7);
+    assert.equal(chosen.version, 8);
     assert.equal(chosen.preferTyping, true, 'a learner who asked to type was not heard');
     assert.equal(chosen.tutorVoice, OTHER_VOICE, 'a v7 blob still keeps the voice a v6 one would');
     assert.equal(chosen.name, 'Camille', 'and nothing else on the way past');
@@ -343,8 +343,47 @@ describe('the profile version chain', () => {
       const planted = { ...blob, preferTyping: true };
       const upgraded = upgradeStored(planted, NOW);
       assert.ok(upgraded, `v${String(blob.version)} must still upgrade`);
-      assert.equal(upgraded.version, 7);
+      assert.equal(upgraded.version, 8);
       assert.equal(upgraded.preferTyping, false, `v${String(blob.version)} predates the question, so it has no answer to it`);
+    }
+  });
+
+  test('a v8 profile keeps what the learner forgot and the goals they wrote, every older version arrives with neither, and junk reads as nothing — F563', () => {
+    // Two lists, both read only from a v8 blob's own slot, through the reader
+    // profile/memory.ts keeps: a string is a key or a goal, anything else in
+    // the list is dropped, and a blank is not a goal.
+    const v8 = (forgottenFacts: unknown, learnerGoals: unknown): Record<string, unknown> => ({
+      ...v6(OTHER_VOICE), version: 8, preferTyping: true, forgottenFacts, learnerGoals,
+    });
+    const kept = upgradeStored(v8(['has a dog', 'Has a DOG', 'job interview friday'], ['Order at a bakery', '  ', 'Call the plumber']), NOW);
+    assert.ok(kept);
+    assert.equal(kept.version, 8);
+    assert.deepEqual(kept.forgottenFacts, ['has a dog', 'job interview friday'], 'a forget was lost, doubled or reordered on the way through');
+    assert.deepEqual(kept.learnerGoals, ['Order at a bakery', 'Call the plumber'], 'a goal was lost, or a blank was kept as one');
+    assert.equal(kept.preferTyping, true, 'a v8 blob still keeps the typing choice a v7 one would');
+    assert.equal(kept.tutorVoice, OTHER_VOICE, 'and the voice a v6 one would');
+
+    for (const junk of [1, 'true', {}, null, undefined, [7, null, {}], [['nested']]]) {
+      const upgraded = upgradeStored(v8(junk, junk), NOW);
+      assert.ok(upgraded, `a profile carrying ${JSON.stringify(junk)} in the slots still upgrades`);
+      assert.deepEqual(upgraded.forgottenFacts, [], `${JSON.stringify(junk)} is not a list of keys this app wrote`);
+      assert.deepEqual(upgraded.learnerGoals, [], `${JSON.stringify(junk)} is not a list of goals this app wrote`);
+    }
+
+    // Capped: the newest forty forgets and the last three goals.
+    const many = upgradeStored(v8(Array.from({ length: 50 }, (_, i) => `fact ${i}`), ['a', 'b', 'c', 'd']), NOW);
+    assert.ok(many);
+    assert.equal(many.forgottenFacts.length, 40);
+    assert.equal(many.forgottenFacts[0], 'fact 10', 'the oldest forgets are not the ones that go');
+    assert.deepEqual(many.learnerGoals, ['b', 'c', 'd']);
+
+    for (const blob of [...everyOlderVersion(undefined), v6(OTHER_VOICE), { ...v6(OTHER_VOICE), version: 7, preferTyping: true }]) {
+      const planted = { ...blob, forgottenFacts: ['has a dog'], learnerGoals: ['Order at a bakery'] };
+      const upgraded = upgradeStored(planted, NOW);
+      assert.ok(upgraded, `v${String(blob.version)} must still upgrade`);
+      assert.equal(upgraded.version, 8);
+      assert.deepEqual(upgraded.forgottenFacts, [], `v${String(blob.version)} predates the field, so nothing in its slot is a forget`);
+      assert.deepEqual(upgraded.learnerGoals, [], `v${String(blob.version)} predates the field, so nothing in its slot is a goal`);
     }
   });
 

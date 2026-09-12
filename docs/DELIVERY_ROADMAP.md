@@ -236,7 +236,8 @@ whole suite stop loading without anybody noticing.
   rises, so a learner already at the top is told nothing false.
 
 - **Honest reminders / story.** Built in 6b. One sentence at a fixed time the learner picked,
-  and a weekly story they have to come and read. In code: `reminderContent`, `reminderTime`,
+  and a weekly story they have to come and read, on Profile since F561 (`profile/FrenchLifeCard.tsx`
+  is `progress/story.ts`'s one importer). In code: `reminderContent`, `reminderTime`,
   `reminderRow`, `REMINDER_TIMES` and `REMINDER_COPY` in
   `apps/mobile/src/reminders/reminder.ts`; `reminderPermission`, `askReminderPermission`,
   `scheduleReminder`, `cancelReminder` and `REMINDERS_AVAILABLE` in

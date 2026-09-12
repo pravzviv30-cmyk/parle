@@ -48,6 +48,7 @@ import { ChoiceRow } from '../settings/ChoiceRow.tsx';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { SETTINGS_ROW, SETTINGS_ROW_SUB } from '../settings/sections.ts';
 import { FrenchLifeCard } from '../profile/FrenchLifeCard.tsx';
+import { TutorMemoryCard } from '../profile/TutorMemoryCard.tsx';
 import { PlanCard } from '../profile/PlanCard.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
@@ -519,12 +520,13 @@ export function ProfileTab() {
         </View>
 
         {/* The learner's French life, before the settings about it: the week
-            (F561), then the plan (F540), each card owning its own read because
-            this screen's one focus effect belongs to the reminder and the
-            level. */}
+            (F561), what the tutor remembers (F562), then the plan (F540), each
+            card owning its own read because this screen's one focus effect
+            belongs to the reminder and the level. */}
         <View style={st.life}>
           <Label>Your French life</Label>
           <FrenchLifeCard />
+          <TutorMemoryCard />
           <PlanCard />
         </View>
 

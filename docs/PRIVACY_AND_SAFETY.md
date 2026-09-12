@@ -111,7 +111,11 @@ around the scene, interests, events coming up and goals
 (`packages/brain/src/prompt/extractPrompt.ts`), and the profile carries up to twelve of
 them from one session into the next (`docs/STATE_AND_STORAGE.md`). So a learner who
 mentions a job interview on Monday has that sentence sent to the model vendor on
-Wednesday to build the next scene. The email and the sign-in identity are never handed
+Wednesday to build the next scene. Since F562 the goals the learner writes in Profile ride
+in the same slice, appended after the remembered facts by `snapshotFor` in
+`apps/mobile/src/profile/memory.ts`, and the facts themselves can be seen and removed
+there: a removed fact is kept as a tombstone the snapshot filters, because the extraction
+would otherwise write it back. The email and the sign-in identity are never handed
 over, and no audio ever is.
 
 **The recent scene list beside those facts is not learner words.**

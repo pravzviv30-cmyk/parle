@@ -15,7 +15,6 @@
  * paths do not diverge, and so no route ever has to carry a summary object.
  */
 
-import { withLearnerName } from '@luvani/brain/profile';
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -40,7 +39,9 @@ import { DrillScreen } from '../DrillScreen.tsx';
 import { ReviewScreen } from '../ReviewScreen.tsx';
 import { MissionsScreen } from '../missions/MissionsScreen.tsx';
 import { RealMomentScreen } from '../tutor/RealMomentScreen.tsx';
+import { TutorMemoryScreen } from '../profile/TutorMemoryScreen.tsx';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
+import { snapshotFor } from '../profile/memory.ts';
 import { markPackPractised, packIdOfNode } from '../conversationPacks/marks.ts';
 import { missionReplay, type MissionReplay } from '../missions/chooserView.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
@@ -294,10 +295,11 @@ function ConvoRoute() {
     <Suspense fallback={<Loading />}>
       <LazyConvoScreen
         userId={user.id}
-        // The name is stored beside the brain profile, not inside it, so this is
-        // where the two are joined. Without it the tutor has no name to use: the
-        // snapshot is the only thing that reaches the agent.
-        snapshot={withLearnerName(profile.brain, profile.name)}
+        // The name is stored beside the brain profile, not inside it, and so are
+        // the facts the learner forgot and the goals they wrote (F562), so this
+        // is where they are joined. The snapshot is the only thing that reaches
+        // the agent, and `snapshotFor` is the one place it is composed.
+        snapshot={snapshotFor(profile)}
         onRecap={onRecap}
         onExit={() => nav.goBack()}
         startInTextMode={route.params?.textMode ?? false}
@@ -380,6 +382,14 @@ function WallRoute() {
       onOpenTerms={() => nav.navigate('Terms')}
     />
   );
+}
+
+function TutorMemoryRoute() {
+  const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string, params?: object) => void }>();
+  // Reached from Profile, so there is normally a screen behind it; on the web
+  // an address can land here cold, and then the tabs are the way out.
+  const leave = () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'));
+  return <TutorMemoryScreen onBack={leave} />;
 }
 
 function RealMomentRoute() {
@@ -480,6 +490,7 @@ export function RootNavigator({
       <Stack.Screen name="SoundCheck" component={SoundCheckRoute} />
       <Stack.Screen name="Missions" component={MissionsScreen} />
       <Stack.Screen name="RealMoment" component={RealMomentRoute} />
+      <Stack.Screen name="TutorMemory" component={TutorMemoryRoute} />
       {/* `initialParams` is what makes the preview safe to open directly: with
           the wall as the initial route there is no navigate to carry a param, so
           without this `entry` would be undefined on the one path that exists to

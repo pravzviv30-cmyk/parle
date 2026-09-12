@@ -19,6 +19,7 @@ import {
   mergeLearnerProfiles,
   mergeStoredProfiles,
   PROFILE_ANSWER_FIELDS,
+  PROFILE_UNION_FIELDS,
   type MergedStoredProfile,
   type ProfileMergeDeps,
 } from './merge.ts';
@@ -34,7 +35,7 @@ const NOW = 1_700_000_000_000;
 const GOALS: ReadonlySet<unknown> = new Set([5, 10, 15]);
 
 /**
- * The v6 branch of the app's version chain, in the shape the merge is handed.
+ * The v8 branch of the app's version chain, in the shape the merge is handed.
  *
  * This stand-in moves when the app's chain moves, and it has to: the merge runs
  * the chain on its own result, so one stuck a version behind would strip the
@@ -52,16 +53,21 @@ function chain(stored: unknown, now: number): Record<string, unknown> | null {
   if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) return null;
   const r = stored as Record<string, unknown>;
   const version = r.version;
-  if (version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5 && version !== 6 && version !== 7) return null;
+  if (version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5 && version !== 6 && version !== 7 && version !== 8) return null;
+  const strings = (value: unknown, cap: number): string[] =>
+    Array.isArray(value) ? [...new Set(value.filter((v): v is string => typeof v === 'string' && v.length > 0))].slice(-cap) : [];
   return {
-    version: 7,
+    version: 8,
     name: typeof r.name === 'string' ? r.name : null,
     dob: typeof r.dob === 'string' ? r.dob : null,
     ageConfirmed: r.ageConfirmed === true ? true : null,
     motivation: typeof r.motivation === 'string' ? r.motivation : null,
     dailyGoalMin: GOALS.has(r.dailyGoalMin) ? r.dailyGoalMin : null,
-    tutorVoice: (version === 6 || version === 7) && isTutorVoiceKey(r.tutorVoice) ? r.tutorVoice : null,
-    preferTyping: version === 7 && r.preferTyping === true,
+    tutorVoice: (version === 6 || version === 7 || version === 8) && isTutorVoiceKey(r.tutorVoice) ? r.tutorVoice : null,
+    preferTyping: (version === 7 || version === 8) && r.preferTyping === true,
+    // v8's two lists, read only from a v8 blob's own slot, as upgrade.ts does.
+    forgottenFacts: version === 8 ? strings(r.forgottenFacts, 40) : [],
+    learnerGoals: version === 8 ? strings(r.learnerGoals, 3) : [],
     onboardedAt: typeof r.onboardedAt === 'number' ? r.onboardedAt : now,
     username: typeof r.username === 'string' ? r.username : null,
     brain: r.brain,
@@ -95,7 +101,7 @@ function brain(over: Partial<LearnerProfile> = {}): LearnerProfile {
 
 function stored(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    version: 7,
+    version: 8,
     name: null,
     dob: null,
     ageConfirmed: null,
@@ -105,6 +111,8 @@ function stored(over: Record<string, unknown> = {}): Record<string, unknown> {
     // a voice. It is not the default: the default is the agent's to apply.
     tutorVoice: null,
     preferTyping: false,
+    forgottenFacts: [],
+    learnerGoals: [],
     onboardedAt: NOW,
     username: null,
     brain: createProfile(),
@@ -143,7 +151,11 @@ function randomStored(next: () => number): Record<string, unknown> {
     errorPatterns[tag] = pattern(Math.floor(next() * 6), ISO[Math.floor(next() * ISO.length)] ?? ISO[0], `ex${Math.floor(next() * 3)}`);
   }
   const sessions = Math.floor(next() * 6);
+  const forgottenFacts = ['has a dog', 'job interview friday', 'likes jazz', 'moving to lyon'].filter(() => next() < 0.4);
+  const learnerGoals = ['Order at a bakery', 'Call the plumber', 'Talk to the neighbours'].filter(() => next() < 0.4);
   return stored({
+    forgottenFacts,
+    learnerGoals,
     motivation: MOTIVES[Math.floor(next() * MOTIVES.length)] ?? null,
     username: next() < 0.5 ? null : `camille.${Math.floor(next() * 3)}`,
     onboardedAt: NOW,
@@ -360,6 +372,59 @@ describe('merging two copies of one learner', () => {
     assert.ok(same(merged, merge(merged, merged, 2, 2)), 'merging the result with itself changed it');
   });
 
+  test('a forget on either device survives the merge as a set union, whichever side is busier', () => {
+    // F563. A tombstone is a statement the learner made on one device, and
+    // the merge exists so the other one hears it. Taken whole from the
+    // evidence-heavier side, a forget made on the quiet phone would be undone
+    // by the busy one on the next sync.
+    const busy = stored({
+      forgottenFacts: ['likes jazz'],
+      brain: brain({ stats: { sessions: 20, totalTurns: 90, rescues: 0, lastRung: null } }),
+    });
+    const quiet = stored({
+      forgottenFacts: ['has a dog', 'job interview friday'],
+      brain: brain({ stats: { sessions: 1, totalTurns: 2, rescues: 0, lastRung: null } }),
+    });
+    for (const m of [merge(busy, quiet), merge(quiet, busy)]) {
+      assert.ok(m !== null);
+      assert.deepEqual(m.forgottenFacts, ['has a dog', 'job interview friday', 'likes jazz'], 'a forget was lost to the busier device');
+    }
+    assert.deepEqual(PROFILE_UNION_FIELDS, ['forgottenFacts'], 'the union set grew or shrank; say why here');
+
+    // Sorted, so two devices that forgot in a different order agree byte for
+    // byte, and the union absorbs its inputs like everything else here.
+    const merged = merge(busy, quiet);
+    assert.ok(merged !== null);
+    assert.ok(same(merged, merge(merged, busy, 2, 1)), 'the result stopped absorbing the side with one tombstone');
+    assert.ok(same(merged, merge(merged, quiet, 2, 2)), 'the result stopped absorbing the side with two');
+    assert.ok(same(merged, merge(merged, merged, 2, 2)), 'merging the result with itself changed it');
+
+    // Junk in the slot is not a forget: only strings ride, and no side can
+    // carry a number into the account copy.
+    const junk = merge(stored({ forgottenFacts: ['has a dog', 7, null] }), stored());
+    assert.deepEqual(junk?.forgottenFacts, ['has a dog']);
+  });
+
+  test("the learner's goals ride whole with the evidence-heavier side, like every other outer field", () => {
+    // There is no clock to order two goal lists by, and a per-field
+    // newest-wins would break the absorption property the tests below hold.
+    // So the busier device's list is the list, and the loss is named here.
+    const busy = stored({
+      learnerGoals: ['Order at a bakery'],
+      brain: brain({ stats: { sessions: 20, totalTurns: 90, rescues: 0, lastRung: null } }),
+    });
+    const quiet = stored({
+      learnerGoals: ['Call the plumber', 'Talk to the neighbours'],
+      brain: brain({ stats: { sessions: 1, totalTurns: 2, rescues: 0, lastRung: null } }),
+    });
+    for (const m of [merge(busy, quiet), merge(quiet, busy)]) {
+      assert.ok(m !== null);
+      assert.deepEqual(m.learnerGoals, ['Order at a bakery'], 'the goals were not taken whole from the busier device');
+    }
+    const blank = merge(stored(), stored());
+    assert.deepEqual(blank?.learnerGoals, [], 'goals nobody wrote were invented');
+  });
+
   test('both doors run: the version chain on every side and on the result, and repairProfile on the brain', () => {
     chainCalls = 0;
     // A version-1 outer whose brain predates `memory` entirely.
@@ -385,7 +450,7 @@ describe('merging two copies of one learner', () => {
     // Re-pointed from 4 when the app's chain reached v6, and again at v7, which is the fact this
     // line was always reading: the result comes back out through the chain and
     // therefore wears the version the chain writes, whatever that has become.
-    assert.equal(m.version, 7);
+    assert.equal(m.version, 8);
     assert.equal(m.ageConfirmed, null);
     assert.equal(m.motivation, 'want');
     // repairProfile brought the brain to version 2 and filled the memory it

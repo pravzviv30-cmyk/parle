@@ -8186,7 +8186,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F562 — The tutor's memory can be neither seen nor edited
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/profile/memory.ts:1
 - note: the brain remembers up to twelve facts and an opener and no screen reads them. A learner can
   now see each fact, forget one, forget all, and write a goal. Extraction dedupes on the fact's own
@@ -8196,7 +8196,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F563 — Profile version seven has no room for what the learner chose to forget
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/profile/store.ts:72
 - note: tombstones and goals need a home that syncs, so the stored profile moves to version eight and
   the policy writes eight with it. The brain's merge rides unknown outer fields with the heavier side,

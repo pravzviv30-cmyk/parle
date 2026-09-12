@@ -48,6 +48,15 @@
  * merge drops it from both sides instead of choosing. `PROFILE_DEVICE_FIELDS`
  * carries the argument.
  *
+ * The third is a **set the learner grows**. `forgottenFacts` is the list of
+ * memory facts the learner asked the tutor to forget, and riding it whole with
+ * the heavier side would let a busier phone undo a forget made on a lighter
+ * one. It is unioned as a sorted set instead, so a forget anywhere is a forget
+ * everywhere; `PROFILE_UNION_FIELDS` names it. `learnerGoals`, the lines the
+ * learner wrote about what they want, deliberately stays with the heavier
+ * side: there is no clock to order two lists by, and a per-field newest-wins
+ * would break the absorption the property tests hold.
+ *
  * ## The accepted loss
  *
  * Two simultaneous offline sessions lose the smaller one's `memory` and `cefr`
@@ -177,9 +186,25 @@ export const PROFILE_ANSWER_FIELDS = [
  */
 export const PROFILE_DEVICE_FIELDS = ['ageStopAt'] as const;
 
+/**
+ * The outer fields that are sets the learner grows, unioned across devices
+ * rather than taken from one side.
+ *
+ * `forgottenFacts` holds the normalised keys of memory facts the learner asked
+ * to forget (`apps/mobile/src/profile/memory.ts`). A forget is a statement
+ * the learner made on one device, and the merge exists so the other device
+ * hears it: taken whole from the evidence-heavier side, a forget made on the
+ * lighter phone would be undone by the next sync. The union is sorted, so two
+ * devices that forgot the same things in a different order agree byte for
+ * byte, and the cap comes back on afterwards through the app's version chain.
+ */
+export const PROFILE_UNION_FIELDS = ['forgottenFacts'] as const;
+
 const DEVICE_FIELD_SET: ReadonlySet<string> = new Set(PROFILE_DEVICE_FIELDS);
 
 const ANSWER_FIELD_SET: ReadonlySet<string> = new Set(PROFILE_ANSWER_FIELDS);
+
+const UNION_FIELD_SET: ReadonlySet<string> = new Set(PROFILE_UNION_FIELDS);
 
 /**
  * A byte-stable rendering, used only where two sides are otherwise dead even.
@@ -199,6 +224,16 @@ function canonical(value: unknown): string {
 /** Ordinary string order, not `localeCompare`: this decides data, not display. */
 function compareStrings(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/** The strings on either side, each once, in one order both devices compute identically. */
+function unionStrings(a: unknown, b: unknown): string[] {
+  const out = new Set<string>();
+  for (const side of [a, b]) {
+    if (!Array.isArray(side)) continue;
+    for (const value of side) if (typeof value === 'string') out.add(value);
+  }
+  return [...out].sort(compareStrings);
 }
 
 function finiteOr(value: unknown, fallback: number): number {
@@ -235,7 +270,10 @@ function normaliseSide(side: ProfileSide, deps: ProfileMergeDeps): Side | null {
 function coreSlice(side: Side): string {
   const outer: Record<string, unknown> = {};
   for (const key of Object.keys(side.outer)) {
-    if (key === 'brain' || ANSWER_FIELD_SET.has(key)) continue;
+    // The union fields are left out for the answer fields' reason: a key that
+    // moved when the merge unioned a tombstone in would stop the result from
+    // absorbing its own inputs.
+    if (key === 'brain' || ANSWER_FIELD_SET.has(key) || UNION_FIELD_SET.has(key)) continue;
     outer[key] = side.outer[key];
   }
   return canonical({
@@ -503,6 +541,9 @@ export function mergeStoredProfiles(
   }
   for (const field of PROFILE_ANSWER_FIELDS) {
     outer[field] = pickAnswer(field, sa, sb, cmp);
+  }
+  for (const field of PROFILE_UNION_FIELDS) {
+    outer[field] = unionStrings(sa.outer[field], sb.outer[field]);
   }
 
   const brain: LearnerProfile = {

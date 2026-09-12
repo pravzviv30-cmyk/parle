@@ -103,4 +103,10 @@ export type RootStackParamList = {
    * chosen or typed on the screen, and the seed rides to `Convo` from there.
    */
   RealMoment: undefined;
+  /**
+   * What the tutor remembers (F562): a pushed screen above the tabs, reached
+   * from Profile's memory card, where each remembered fact can be forgotten
+   * and a goal written. No params: it reads and writes the live profile.
+   */
+  TutorMemory: undefined;
 };
