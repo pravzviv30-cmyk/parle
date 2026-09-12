@@ -42,7 +42,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { seedTopicOf, type DailyScenario } from '@luvani/core';
 
-import { BookmarkGlyph, Card, Label, MicGlyph, OutlineButton, PillButton } from '../components.tsx';
+import { BookmarkGlyph, Card, Label, MicGlyph, OutlineButton } from '../components.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { type BookmarkControl } from '../bookmarks/view.ts';
 import { MissionDisc } from '../missions/MissionDisc.tsx';
@@ -135,9 +135,11 @@ export function SituationCard({
           disabled={bookmark.busy}
           onPress={onToggleBookmark}
         />
-        <PillButton
-          label="Start oral session"
-          icon={<MicGlyph size={20} color={paper.onInk} />}
+        {/* An outline, since F544: the tab's one pill is the mission hero's,
+            and this card is the second way into a conversation, not the first. */}
+        <OutlineButton
+          label="Talk about this instead"
+          icon={<MicGlyph size={20} />}
           disabled={checking}
           onPress={open}
         />

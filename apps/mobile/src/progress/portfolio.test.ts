@@ -10,7 +10,7 @@
  *
  * F399 moved one of those claims. Home no longer draws the next-situation card
  * at all: its mockup gives that place to today's situation, and what is left of
- * the next step is a row reading `NEXT_STEP`. So the assertions about Home say
+ * the next step became the mission hero (F543). So the assertions about Home say
  * that now, and the ones about My French are untouched, because the card and
  * its pill did not move.
  *
@@ -26,7 +26,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { missionStates, type MissionProgress } from '@luvani/core';
 
-import { NEXT_SITUATION, NEXT_STEP, SITUATION_ACTION, situationAction, startLabel } from './portfolio.ts';
+import { NEXT_SITUATION, SITUATION_ACTION, situationAction, startLabel } from './portfolio.ts';
 
 /** A fixed clock, because the rule under test never reads one. */
 const NOW = Date.parse('2026-08-22T10:00:00Z');
@@ -69,8 +69,6 @@ describe('the portfolio — a situation row and the next-situation words, decide
     const constants = [
       NEXT_SITUATION.label,
       NEXT_SITUATION.action,
-      NEXT_STEP.label,
-      NEXT_STEP.link,
       SITUATION_ACTION.start,
       SITUATION_ACTION.refine,
     ];
@@ -112,16 +110,14 @@ describe('the portfolio — a situation row and the next-situation words, decide
     assert.match(card, /NEXT_SITUATION\.label/, 'the card does not read its label from portfolio.ts');
     assert.match(card, /from '\.\.\/progress\/portfolio\.ts'/, 'the card does not import portfolio.ts');
 
-    // Home draws the row instead, and reads both of its words from here too, so
-    // the block that replaced the card is held to the same rule the card was.
+    // Home draws the mission hero instead (F543), and the hero reads its words
+    // from `home/homeMission.ts` rather than from here: the next-step row and
+    // its two words in this module retired with it, so nothing here spells a
+    // heading Home no longer draws.
     assert.ok(!home.includes('<NextSituationCard'), 'Home draws the next-situation card again; that card is My French\'s now');
-    assert.ok(!home.includes(`'${NEXT_STEP.label}'`) && !home.includes(`>${NEXT_STEP.label}<`), `Home spells "${NEXT_STEP.label}" itself`);
-    assert.ok(!home.includes(`'${NEXT_STEP.link}'`) && !home.includes(`>${NEXT_STEP.link}<`), `Home spells "${NEXT_STEP.link}" itself`);
-    assert.match(home, /<NextStepRow/, 'Home draws neither the card nor the row, so there is no next step at all');
-    const row = stripComments(read('../home/NextStepRow.tsx'));
-    assert.match(row, /NEXT_STEP\.label/, 'the row does not read its heading from portfolio.ts');
-    assert.match(row, /NEXT_STEP\.link/, 'the row does not read its link from portfolio.ts');
-    assert.match(row, /from '\.\.\/progress\/portfolio\.ts'/, 'the row does not import portfolio.ts');
+    assert.match(home, /<MissionHero/, 'Home draws neither the card nor the hero, so there is no next step at all');
+    assert.ok(!home.includes('<NextStepRow'), 'Home draws the retired next-step row');
+    assert.doesNotMatch(read('./portfolio.ts'), /NEXT_STEP\b/, 'portfolio.ts still spells the words of a row nothing draws');
 
     // F233 keeps a single reader of the weekly story. This module is not it.
     const portfolio = read('./portfolio.ts');

@@ -126,7 +126,7 @@ export function MomentumCards({
                 <Text style={st.words}>{retained.foot}</Text>
               </View>
               {/* The same door the Practice pill opens, drawn as the quiet link
-                  NextStepRow uses, because Home already has its one pill. */}
+                  the ability rows use, because Home already has its one pill. */}
               {retained.link !== null && <GhostButton label={retained.link} onPress={onReviewPhrases} />}
             </View>
           </View>

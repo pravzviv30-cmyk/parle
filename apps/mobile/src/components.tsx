@@ -852,7 +852,55 @@ export function fitDisplay(text: string): TextStyle {
   return { fontFamily: type.frenchLg.fontFamily, fontSize: 20, lineHeight: 27 };
 }
 
+
+/**
+ * One thing the learner can now do, as a row (F545).
+ *
+ * Home's abilities card and My French's stamped situations draw the same row,
+ * so a situation handled on your own looks the same on both tabs: the place's
+ * disc, the situation in the learner's language, and a chevron because the row
+ * opens somewhere. The disc arrives as a child rather than being drawn here,
+ * because `MissionDisc` imports this file and a component that imported it
+ * back would be a cycle.
+ *
+ * Every row is a button at the touch floor and says, for assistive tech, what
+ * the mark beside it is claiming: the passport's own `stampLabel`.
+ */
+export function AbilityRow({
+  leading,
+  title,
+  accessibilityLabel,
+  onPress,
+  first = false,
+}: {
+  leading: React.ReactNode;
+  title: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+  /** Rows after the first carry a divider above them. */
+  first?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      style={({ pressed }) => [s.abilityRow, !first && s.abilityDivided, pressed && s.abilityPressed]}
+    >
+      {leading}
+      <View style={s.abilityWords}>
+        <Text style={[type.bodyStrong, { color: paper.ink }]}>{title}</Text>
+      </View>
+      <ArrowRight />
+    </Pressable>
+  );
+}
+
 const s = StyleSheet.create({
+  abilityRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
+  abilityDivided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
+  abilityWords: { flex: 1, minWidth: 0 },
+  abilityPressed: { opacity: 0.72 },
   card: {
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,

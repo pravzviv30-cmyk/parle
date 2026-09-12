@@ -635,6 +635,7 @@ describe('a tap that starts with a network probe — F154', () => {
   const PROBING = [
     ['the suggestion card\'s tutor door', 'tabs/PracticeTab.tsx', 'const talkAbout = ('],
     ['the tutor tab\'s doors', 'tabs/TutorTab.tsx', 'const open = ('],
+    ['the mission hero\'s start', 'home/MissionHero.tsx', 'const open = ('],
   ] as const;
 
   const bodyOf = (file: string, opens: string): string => {
@@ -1368,15 +1369,16 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       'home/WordOfDayCard.tsx',
       'home/SituationCard.tsx',
       'home/MomentumCards.tsx',
-      'home/NextStepRow.tsx',
+      'home/MissionHero.tsx',
+      'home/AbilitiesCard.tsx',
     ];
     const homePills = HOME_SURFACES.flatMap((name) =>
       (named(name).match(/<PillButton\b/g) ?? []).map(() => name),
     );
     assert.deepEqual(
       homePills,
-      ['home/SituationCard.tsx'],
-      `Home draws its pills in ${homePills.join(', ') || 'nowhere'}; the one pill is Start oral session, on the situation card`,
+      ['home/MissionHero.tsx'],
+      `Home draws its pills in ${homePills.join(', ') || 'nowhere'}; the one pill is Start conversation, on the mission hero (F544)`,
     );
 
     const counts: Record<string, number> = {
@@ -1791,22 +1793,23 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
       /no next step/,
       'the Pass 5 runbook tells a tester a fresh account shows no next step, and Home draws one',
     );
-    assert.match(p54!, /next step row/, 'the Pass 5 runbook does not say the next step row is there on day one');
-    // And the screen still agrees: the row is outside every momentum gate. It
+    assert.match(p54!, /mission hero/, 'the Pass 5 runbook does not say the mission hero is there on day one');
+    // And the screen still agrees: the hero is outside every momentum gate. It
     // is drawn on its own situation and on nothing else, which is what makes a
-    // first run a page with something on it rather than a blank one.
+    // first run a page with something on it rather than a blank one. The
+    // next-step row became the hero with F543.
     const home = named('tabs/HomeTab.tsx');
-    assert.match(home, /<NextStepRow\b/, 'Home no longer draws the row the runbook says a beginner meets');
+    assert.match(home, /<MissionHero\b/, 'Home no longer draws the hero the runbook says a beginner meets');
     assert.match(
       home,
-      /\{nextMission !== null && \(\s*<NextStepRow/,
-      'the next step row is drawn behind some other condition than having a situation to offer',
+      /\{hero !== null && \(\s*<MissionHero/,
+      'the hero is drawn behind some other condition than having a situation to offer',
     );
     const gated = home.split('\n').find((l) => l.includes('momentum !== null &&'));
     assert.ok(gated, 'Home no longer gates the momentum block at all, so this check reads nothing');
     assert.ok(
-      !gated!.includes('NextStepRow'),
-      'the next step row hides behind the momentum gate, so a beginner would meet a blank page',
+      !gated!.includes('MissionHero'),
+      'the hero hides behind the momentum gate, so a beginner would meet a blank page',
     );
   });
 

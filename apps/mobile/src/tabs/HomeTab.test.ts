@@ -36,7 +36,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { guiltIn } from '../copy/guilt.ts';
-import { NEXT_STEP } from '../progress/portfolio.ts';
+import { START_CONVERSATION } from '../home/homeMission.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -68,7 +68,8 @@ const RENDER = SCREEN.slice(SCREEN.indexOf('<ScrollScreen'));
 const WORD_CARD = stripComments(read('../home/WordOfDayCard.tsx'));
 const SITUATION = stripComments(read('../home/SituationCard.tsx'));
 const MOMENTUM = stripComments(read('../home/MomentumCards.tsx'));
-const NEXT_ROW = stripComments(read('../home/NextStepRow.tsx'));
+const HERO = stripComments(read('../home/MissionHero.tsx'));
+const ABILITIES = stripComments(read('../home/AbilitiesCard.tsx'));
 
 /**
  * Home's own file, every card it draws, and the two files behind the word
@@ -87,7 +88,8 @@ const HOME_SURFACE = [
   ['wordScenes.ts', stripComments(read('../home/wordScenes.ts'))],
   ['SituationCard.tsx', SITUATION],
   ['MomentumCards.tsx', MOMENTUM],
-  ['NextStepRow.tsx', NEXT_ROW],
+  ['MissionHero.tsx', HERO],
+  ['AbilitiesCard.tsx', ABILITIES],
 ] as const;
 
 /**
@@ -286,14 +288,25 @@ describe('Home opens on the day rather than on a summary — F420, F391, F392', 
     assert.ok(!WORD_CARD.includes('inkFaint'), 'the word card sets learner-facing text in the faint ink');
   });
 
-  test("home's situation card carries the tab's one pill, opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392", () => {
+  test("home's one pill is the mission hero's, and the situation card keeps none", () => {
     // One primary action on the page, and it is the spoken one. Counted across
     // Home and every card Home draws, because a pill moved into a card is still
-    // a pill on the screen.
+    // a pill on the screen. It moved with F544: the hero is the one way into a
+    // spoken conversation, and the daily situation keeps an outline.
     const pills = HOME_SURFACE.flatMap(([path, body]) => (body.match(/<PillButton\b/g) ?? []).map(() => path));
-    assert.deepEqual(pills, ['SituationCard.tsx'], `Home draws ${pills.length} primary pills; the surface carries exactly one, in the situation card`);
-    assert.match(SITUATION, /label="Start oral session"/, "the tab's one pill is not the spoken session");
-    assert.match(SITUATION, /icon=\{<MicGlyph/, 'the pill lost the microphone that says what it opens');
+    assert.deepEqual(pills, ['MissionHero.tsx'], `Home draws ${pills.length} primary pills; the surface carries exactly one, in the mission hero`);
+    assert.equal(START_CONVERSATION, 'Start conversation');
+    assert.match(HERO, /label=\{START_CONVERSATION\}/, "the tab's one pill is not the spoken conversation");
+    assert.match(HERO, /icon=\{<MicGlyph/, 'the pill lost the microphone that says what it opens');
+    assert.match(SITUATION, /<OutlineButton\s+label="Talk about this instead"/, 'the situation card lost its quiet way into a conversation');
+    assert.doesNotMatch(SITUATION, /<PillButton/, 'the situation card grew its pill back');
+    // The hero starts the scene the same way My French's own pill does, and
+    // records the start as the chooser records its own.
+    assert.match(flat(HERO), /nav\.navigate\(decision\.screen, \{ \.\.\.decision\.params, missionId: hero\.mission\.id \}\)/, 'the hero does not open the conversation on the scene it names');
+    assert.match(flat(HERO), /name: 'mission_started', properties: \{ missionId: hero\.mission\.id, entry: 'home' \}/, 'a start from the hero is not recorded as one');
+  });
+
+  test("home's situation card opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392", () => {
 
     // The same gate the Tutor tab runs, in the same order, with the same words
     // on the way back. Two surfaces disagreeing about one dead server is how a
@@ -508,16 +521,16 @@ describe('Home draws the four momentum cards and the next step — F436, F399, F
     // The next step is not part of the block and never was. It is drawn for a
     // learner with nothing behind them, and a gate around it would be a blank
     // page on a first run.
-    assert.ok(at('<NextStepRow') > at('<MomentumCards'), 'the next step is drawn above the momentum cards');
+    assert.ok(at('<MissionHero') < at('<MomentumCards'), 'the hero is drawn below the momentum cards');
     assert.match(
       SCREEN,
-      /\{nextMission !== null && \(\s*<NextStepRow/,
-      'the next step row is drawn behind some other condition than having a situation to offer',
+      /\{hero !== null && \(\s*<MissionHero/,
+      'the hero is drawn behind some other condition than having a situation to offer',
     );
     for (const line of SCREEN.split('\n').filter((l) => l.includes('momentum'))) {
       assert.ok(
-        !line.includes('NextStepRow'),
-        'the next step row sits inside a momentum gate, so a beginner could meet a page with nothing on it',
+        !line.includes('MissionHero'),
+        'the hero sits inside a momentum gate, so a beginner could meet a page with nothing on it',
       );
     }
 
@@ -530,32 +543,45 @@ describe('Home draws the four momentum cards and the next step — F436, F399, F
     assert.match(header, /[Rr]ecall/, 'Home\'s header names no percentage, and the page shows one');
   });
 
-  test("home draws the next step as a row from portfolio's words and leaves the next-situation card to my french — F399", () => {
-    // Two words, said once, in the module that already says the other card's.
-    assert.equal(NEXT_STEP.label, 'Next step');
-    assert.equal(NEXT_STEP.link, 'View learning path');
-    assert.match(NEXT_ROW, /import \{ NEXT_STEP \} from '\.\.\/progress\/portfolio\.ts'/, 'the row does not read its words from portfolio.ts');
-    assert.match(NEXT_ROW, /<Label>\{NEXT_STEP\.label\}<\/Label>/, 'the row spells its own heading');
-    assert.match(NEXT_ROW, /label=\{NEXT_STEP\.link\}/, 'the link spells its own word');
+  test("home draws the hero from homeMission's words and leaves the next-situation card to my french — F399, F543", () => {
+    // Every word on the hero is the module's. The card spells no label, no
+    // reason and no time line of its own.
+    assert.match(flat(HERO), /import \{ START_CONVERSATION, type HomeMission \} from '\.\/homeMission\.ts'/, 'the hero does not read its words from homeMission.ts');
+    assert.match(HERO, /<Label>\{hero\.label\}<\/Label>/, 'the hero spells its own heading');
+    assert.match(HERO, /\{hero\.reason\}/, 'the hero lost the line saying why this scene');
+    assert.match(HERO, /\{hero\.timeLine\}/, 'the hero lost the line saying how long');
     for (const [path, body] of HOME_SURFACE) {
-      assert.ok(!body.includes(`'${NEXT_STEP.label}'`), `${path} spells "${NEXT_STEP.label}" itself`);
-      assert.ok(!body.includes(`'${NEXT_STEP.link}'`), `${path} spells "${NEXT_STEP.link}" itself`);
+      assert.ok(!body.includes("'Start conversation'"), `${path} spells the pill's word itself`);
     }
 
-    // Core picks the situation. Home draws the row and re-derives nothing.
-    assert.match(FLAT, /suggestedMission\(missionStates\(missionCompletionsFrom\(completions\), deck, now\)\)/, 'the next step is not the situation core suggests');
-    assert.match(FLAT, /\{nextMission !== null && \(/, 'the next-step row is drawn with no situation behind it');
-    assert.match(FLAT, /onViewPath=\{\(\) => nav\.navigate\('Practice'\)\}/, 'the learning-path link does not open the Practice tab');
-    assert.match(FLAT, /nav\.navigate\('Missions', \{ focus: nextMission\.mission\.id \}\)/, 'the row does not open the chooser on the situation it names');
-    assert.match(NEXT_ROW, /<MissionDisc place=\{next\.mission\.place\}/, 'the row lost the place it happens in');
-    assert.match(NEXT_ROW, /\{next\.mission\.titleEn\}/, 'the row does not name the situation');
-    assert.match(NEXT_ROW, /\{next\.mission\.goalEn\}/, 'the row does not say what the learner will be able to do');
+    // Core picks the situation inside the rule, and Home hands it the facts:
+    // where every scene stands, where one was left, and whether anything has
+    // ever been spoken. Home draws the answer and re-derives nothing.
+    assert.match(FLAT, /const progress = missionStates\(missionCompletionsFrom\(completions\), deck, now\)/, 'Home reads where the scenes stand somewhere other than core');
+    assert.match(FLAT, /setHero\(homeMissionFrom\(\{ progress, records, spokenBefore: hasSpokenBefore\(activity\), now \}\)\)/, 'the hero is not the situation homeMission.ts decides');
+    const rule = stripComments(read('../home/homeMission.ts'));
+    assert.match(rule, /suggestedMission\(input\.progress\)/, 'the rule picks the next situation somewhere other than core');
+    assert.match(FLAT, /\{hero !== null && \(/, 'the hero is drawn with no situation behind it');
+    assert.match(HERO, /<MissionDisc place=\{hero\.mission\.place\}/, 'the hero lost the place it happens in');
+    assert.match(HERO, /\{hero\.mission\.titleEn\}/, 'the hero does not name the situation');
+    assert.match(HERO, /\{hero\.mission\.goalEn\}/, 'the hero does not say what the learner will be able to do');
+    assert.match(HERO, /<TintPanel tint=\{missionTint\(hero\.mission\.place\)\}/, 'the hero does not sit on the tint of its place');
 
-    // What left Home. The card, the outline to the tutor and the empty-state
-    // scene all went, and My French still draws the card with its own pill.
-    for (const gone of ['<NextSituationCard', 'NEXT_SITUATION', 'Talk to ', 'SpeakBubbles', 'Nothing here yet']) {
+    // The memory line and the abilities read the same projection, so the three
+    // cannot disagree about one finish.
+    assert.match(FLAT, /continuityFrom\(\{ brain: profile\.brain, packs, records, progress \}\)/, 'the memory line reads its own idea of where the scenes stand');
+    assert.ok(!SCREEN.includes('tutorNameOf'), 'Home names the tutor, which F363 keeps for the Tutor tab');
+    assert.match(FLAT, /setAbilities\(abilitiesFrom\(stampsFrom\(progress\)\)\)/, 'the abilities are not the passport over the same projection');
+    assert.match(FLAT, /\{abilities !== null && <AbilitiesCard/, 'the abilities are drawn with nothing behind them');
+    assert.match(ABILITIES, /accessibilityLabel=\{stampLabel\(stamp\)\}/, 'an ability row says nothing to a screen reader about what it claims');
+
+    // What left Home. The card, the outline to the tutor, the empty-state
+    // scene and the next-step row all went, and My French still draws the card
+    // with its own pill.
+    for (const gone of ['<NextSituationCard', 'NEXT_SITUATION', 'Talk to ', 'SpeakBubbles', 'Nothing here yet', '<NextStepRow', 'NEXT_STEP']) {
       assert.ok(!SCREEN.includes(gone), `Home still draws ${gone}, which belongs to My French now`);
     }
+    assert.ok(!existsSync(fileURLToPath(new URL('../home/NextStepRow.tsx', import.meta.url))), 'the next-step row still ships and nothing renders it');
     const myFrench = stripComments(read('./MyFrenchTab.tsx'));
     assert.ok(myFrench.includes('<NextSituationCard'), 'the next-situation card left the app instead of leaving Home');
   });
@@ -564,7 +590,7 @@ describe('Home draws the four momentum cards and the next step — F436, F399, F
 describe('Home closes on a kind line and carries nothing else — F400', () => {
   test('home closes on the sprout note and imports nothing it does not draw — F400', () => {
     // Last on the page, under everything the learner could act on.
-    assert.ok(at('<SproutGlyph') > at('<NextStepRow'), 'the closing note sits above the next step instead of under it');
+    assert.ok(at('<SproutGlyph') > at('<WordOfDayCard'), 'the closing note sits above the word of the day instead of under it');
     const note = 'No pressure of perfection. Speak at your own pace.';
     assert.ok(SCREEN.includes(`<Text style={st.note}>${note}</Text>`), 'Home lost its closing line');
 
@@ -575,9 +601,12 @@ describe('Home closes on a kind line and carries nothing else — F400', () => {
     assert.doesNotMatch(note, /\d/, 'the closing line carries a digit');
 
     // Every word a learner could read on this surface, swept the same way.
+    // The abilities card spells nothing of its own: every word on it is
+    // abilities.ts's or the passport's, and both are swept in their own suites.
+    const wordless = ['AbilitiesCard.tsx'];
     for (const [path, body] of HOME_SURFACE) {
       const said = spoken(body);
-      assert.ok(said.length > 3, `only ${said.length} strings found in ${path}, so this sweep proves little`);
+      if (!wordless.includes(path)) assert.ok(said.length > 3, `only ${said.length} strings found in ${path}, so this sweep proves little`);
       for (const line of said) {
         const banned = guiltIn(line);
         assert.equal(banned, undefined, `${path} says ${line}, which carries the banned word "${banned}"`);
@@ -698,7 +727,7 @@ describe('the two tabs fit a phone at every reading size — F409', () => {
         assert.ok(floors.length > 0, `${path} draws a tappable row that does not declare minHeight: HIT`);
       }
     }
-    assert.match(style(NEXT_ROW, 'row'), /minHeight: HIT/, 'the next-step row falls under the touch floor');
+    assert.match(style(stripComments(read('../components.tsx')), 'abilityRow'), /minHeight: HIT/, 'the ability row falls under the touch floor');
     assert.match(
       style(stripComments(read('./TutorTab.tsx')), 'row'),
       /minHeight: HIT/,
@@ -758,9 +787,13 @@ describe('Home keeps its day when the disk will not answer', () => {
     // And what does not. A nought where a real number belongs is the app
     // forgetting somebody who has been practising for months, so the counts and
     // the suggestion are withheld rather than invented.
-    for (const invented of ['setMomentum(', 'setNextMission(', 'momentumFrom(', 'suggestedMission(']) {
+    for (const invented of ['setMomentum(', 'setAbilities(', 'setContinuity(', 'momentumFrom(', 'homeMissionFrom(', 'continuityFrom(', 'abilitiesFrom(']) {
       assert.ok(!rescue.includes(invented), `a failed read draws ${invented} out of nothing, which is a count about a learner nobody could read`);
     }
+    // The hero survives on the café, with the chooser's line for a scene nobody
+    // has started: true of the café for everyone, so it claims nothing about
+    // the learner who could not be read, and the page keeps its one pill.
+    assert.match(rescue, /setHero\(fallbackHero\(now\)\)/, 'a failed read leaves Home with no way into a conversation');
     // Nothing is shown about the disk either. A learner cannot act on a storage
     // fault, and the page still carries the greeting, the word, the situation
     // and the one pill.

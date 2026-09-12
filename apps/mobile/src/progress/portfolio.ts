@@ -45,21 +45,6 @@ import type { MissionProgress } from '@luvani/core';
 /** The next-situation card, word for word. Mirrored, never paraphrased. */
 export const NEXT_SITUATION = { label: 'Next situation', action: 'Start this one' } as const;
 
-/**
- * Home's next-step block: the caps heading, and the link out to the whole path.
- *
- * Two words rather than one card, because the block is a heading, a link and a
- * row and none of the three is a sentence anybody would recognise as copy. They
- * live here for the reason `NEXT_SITUATION` does: a screen that spells its own
- * heading is a screen that will spell it differently from the next one, and
- * there is no renderer in this workspace to catch the day it does.
- *
- * `link` says where it goes rather than what it is. "View learning path" names
- * the Practice tab's own subject, so a learner who taps it is not surprised by
- * where they land, and nothing here promises a plan the app does not have.
- */
-export const NEXT_STEP = { label: 'Next step', link: 'View learning path' } as const;
-
 /** The two verbs a situation's row can offer. */
 export const SITUATION_ACTION = { start: 'Start', refine: 'Refine pronunciation' } as const;
 

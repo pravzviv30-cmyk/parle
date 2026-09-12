@@ -7998,7 +7998,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F543 — Home opens on a word of the day rather than on tonight's French
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/home/homeMission.ts:1
 - note: the founder's brief and both mockups open Home on one real situation with a reason and a
   time, and the word of the day lower down. `homeMission.ts` picks it: a scene left part way, else
@@ -8009,7 +8009,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F544 — Home's pill lived in the situation card
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/home/MissionHero.tsx:1
 - note: the pill budget names `home/SituationCard.tsx` as the one file on Home that may draw a pill.
   The hero is the one way into a spoken conversation now, so the pill moves there and the daily
@@ -8018,7 +8018,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F545 — Nothing on Home says what the learner can already do
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/home/AbilitiesCard.tsx:1
 - note: the passport already knows which situations were handled unaided, and Home never says so.
   The card draws up to three stamps earned on your own, in the passport's own words, and nothing for
@@ -8027,7 +8027,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F546 — The tutor remembers, and no screen says so
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/continuity.ts:1
 - note: the brain stores an opener for next time, the packs store what the last conversation was
   about, and the progress store knows a scene left part way. `continuity.ts` reads them in that
