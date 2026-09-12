@@ -256,6 +256,8 @@ export const RATE_LIMITS = {
   exportUser: { name: 'export-user', limit: 5, windowSec: 86_400 },
   billingRefreshIp: { name: 'billing-refresh-ip', limit: 60, windowSec: 60 },
   billingRefreshUser: { name: 'billing-refresh-user', limit: 10, windowSec: 60 },
+  billingStatusIp: { name: 'billing-status-ip', limit: 60, windowSec: 60 },
+  billingStatusUser: { name: 'billing-status-user', limit: 20, windowSec: 60 },
   debitIp: { name: 'debit-ip', limit: 120, windowSec: 60 },
   debitUser: { name: 'debit-user', limit: 30, windowSec: 60 },
   conversationPackIp: { name: 'conversation-pack-ip', limit: 120, windowSec: 60 },

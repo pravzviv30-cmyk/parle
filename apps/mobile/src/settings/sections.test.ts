@@ -136,13 +136,15 @@ describe('Profile keeps who you are and how you learn — F473', () => {
       'the sheet union still names a sheet that moved to Settings',
     );
 
-    // One row, last, and under no caps label. Two labels remain on this tab:
-    // Your learning and the reminder, both above cards that need naming. A
-    // third over a row that reads Settings would say the same word twice.
+    // One row, last, and under no caps label. Three labels remain on this tab:
+    // Your French life (F540, the block the plan card opened), Your learning
+    // and the reminder, each above cards that need naming. A fourth over a row
+    // that reads Settings would say the same word twice.
     assert.match(PROFILE, /label=\{SETTINGS_ROW\}/, 'Profile draws no Settings row, so everything that moved is unreachable');
     assert.match(PROFILE, /value=\{SETTINGS_ROW_SUB\}/, 'the Settings row does not say what is behind it');
     assert.match(PROFILE, /onPress=\{\(\) => nav\.navigate\('Settings'\)\}/, 'the Settings row leads nowhere');
-    assert.equal((PROFILE.match(/<Label>/g) ?? []).length, 2, 'Profile draws a caps label it did not before, or lost one');
+    assert.equal((PROFILE.match(/<Label>/g) ?? []).length, 3, 'Profile draws a caps label it did not before, or lost one');
+    assert.match(PROFILE, /<Label>Your French life<\/Label>[\s\S]{0,200}<PlanCard \/>/, 'the French life block lost its heading or its plan card');
     assert.ok(
       PROFILE.lastIndexOf('<Label>') < PROFILE.lastIndexOf('<Card'),
       'the Settings row has a caps label over it, which says the same word twice',

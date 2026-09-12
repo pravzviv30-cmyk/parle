@@ -62,9 +62,13 @@ describe('the tutor tab is the screenshot, drawn from the door model — F405', 
     // spells no heading, no purpose line and no notice of its own.
     const dashboard = FLAT.match(/import \{([^}]*)\} from '\.\.\/tutor\/dashboard\.ts'/);
     assert.ok(dashboard, 'the tab never imports tutor/dashboard.ts, so it has no header words to draw');
-    for (const name of ['tutorHeading', 'TUTOR_PURPOSE', 'TUTOR_ORB_SUBLINE']) {
+    for (const name of ['tutorHeading', 'TUTOR_PURPOSE']) {
       assert.ok(dashboard[1]!.includes(name), `the tab imports the header module without ${name}`);
     }
+    // The orb's second line moved into the rule that decides the orb's state
+    // (F542), so the tab draws it from there and imports it from nowhere else.
+    assert.ok(!dashboard[1]!.includes('TUTOR_ORB_SUBLINE'), 'the tab imports the subline it no longer spells');
+    assert.match(read('../tutor/orbState.ts'), /TUTOR_ORB_SUBLINE/, 'the orb rule lost the second line');
     const gate = FLAT.match(/import \{([^}]*)\} from '\.\.\/tutor\/gate\.ts'/);
     assert.ok(gate, 'the tab never imports tutor/gate.ts, so it has no doors to draw');
     for (const name of ['minutesRemainingLine', 'scenarioCountLine', 'tutorDoors']) {
@@ -176,9 +180,16 @@ describe('the tutor card owns its words — F415', () => {
       /withCaption=\{false\}/,
       'the circle captions itself on a card that already says two lines, and the two land on top of each other',
     );
-    // And the card still says them, so silencing the orb did not silence the card.
-    assert.match(FLAT, /Tap to speak/, 'the card lost the words the circle was told not to say');
-    assert.match(FLAT, /TUTOR_ORB_SUBLINE/, 'the card lost its second line');
+    // And the card still says them, so silencing the orb did not silence the
+    // card. The words moved into `tutor/orbState.ts` with F542, where the state
+    // is decided from the facts, so the card draws the rule's title and subline
+    // and the rule holds the line the circle was told not to say.
+    assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart \}\)/, 'the circle no longer reads its state from the facts');
+    assert.match(FLAT, /\{orb\.title\}/, 'the card lost the words the circle was told not to say');
+    assert.match(FLAT, /\{orb\.subline\}/, 'the card lost its second line');
+    const rule = read('../tutor/orbState.ts');
+    assert.match(rule, /'Tap to speak'/, 'the rule lost the ready line');
+    assert.match(rule, /TUTOR_ORB_SUBLINE/, 'the rule lost the second line');
   });
 });
 

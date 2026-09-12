@@ -47,6 +47,7 @@ import { SettingsRow } from '../settings/SettingsRow.tsx';
 import { ChoiceRow } from '../settings/ChoiceRow.tsx';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { SETTINGS_ROW, SETTINGS_ROW_SUB } from '../settings/sections.ts';
+import { PlanCard } from '../profile/PlanCard.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
 import { TUTOR_INTRO_LINK } from '../tutor/gate.ts';
@@ -516,6 +517,15 @@ export function ProfileTab() {
           )}
         </View>
 
+        {/* The learner's French life, before the settings about it. The plan
+            card is the first resident (F540); the week and the tutor's memory
+            join it in the same block. Each card owns its own read, because this
+            screen's one focus effect belongs to the reminder and the level. */}
+        <View style={st.life}>
+          <Label>Your French life</Label>
+          <PlanCard />
+        </View>
+
         <Label>Your learning</Label>
         <Card style={{ marginTop: space(2.5) }}>
           <SettingsRow first label="Name" value={profile.name ?? 'Not set'} onPress={() => setSheet('name')} />
@@ -617,6 +627,9 @@ export function ProfileTab() {
 const st = StyleSheet.create({
   scroll: { flexGrow: 1 },
   identity: { alignItems: 'center', marginBottom: space(6) },
+  // The life block sits between the identity and the learning card, and the
+  // learning label keeps its own gap above it.
+  life: { marginBottom: space(6) },
   // The switch keeps the 44pt floor the settings rows keep, so the control is
   // the same size to a thumb as everything above it.
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT },

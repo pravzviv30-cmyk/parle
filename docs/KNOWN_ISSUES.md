@@ -5559,12 +5559,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F377 — A speaking-time balance row on Profile (note only, not built)
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:641
 - note: the mockups carry a minutes-remaining row. The meter is server-side (core/src/metering/) and the
   client cannot read it, and a number the phone cannot verify is the dead switch F239 refused. Not built.
-  Closes when a read endpoint exists.
+  Closes when a read endpoint exists. Closed by F540 on 2026-09-12: `/billing/status` is that endpoint, and
+  Profile draws the plan as words through `purchases/planStatus.ts` rather than as the minutes row the
+  mockups carried, on the same scarcity rule that keeps a countdown off the wall.
 - verified-by: `the device runbook carries the Pass 4 checks — F381`
+- verified-by: `billing status answers the plan and the period for the signed-in learner, and refuses everyone else`
 
 ### F378 — The tab bar's comments describe a dot it no longer draws
 - severity: P2
@@ -7960,3 +7963,286 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   The wall matches the app's existing convention rather than inventing a local `role="radio"`, which
   was the first attempt and announced even less.
 - verified-by: `a selected option announces its state on the web as well as on a device`
+
+### F540 — The learner's plan cannot be read by the app
+- severity: P2
+- status: [x]
+- where: services/token-server/src/server.ts:246
+- note: the meter is server-side and the only way the app ever learns a plan is as the transient
+  answer to `/billing/refresh`, which exists to project subscriber state and cannot be asked
+  without RevenueCat configured. F377 kept a balance row off Profile for exactly this reason and
+  said it closes when a read endpoint exists. This is that endpoint: `GET /billing/status`, the
+  same authentication and rate bound as the refresh, reading the entitlement store and nothing
+  else, so it answers with billing dark and never touches the vendor. It closes F377 with it.
+- verified-by: `billing status answers the plan and the period for the signed-in learner, and refuses everyone else`
+
+### F541 — The plan is drawn in words, never a countdown
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/purchases/planStatus.ts:1
+- note: the endpoint above answers seconds, and PRODUCT.md refuses a countdown because a falling
+  number is a scarcity mechanic. So the seconds never reach a screen: `planStatus.ts` folds them
+  into one of three bands said in words, and the card draws the plan's label, its period and that
+  band. A numeral on the card is the defect.
+- verified-by: `plan status is one of three bands in words, and no numeral reaches the card`
+
+### F542 — The tutor's circle says ready when the account cannot start
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tutor/orbState.ts:1
+- note: the Tutor tab draws the orb violet whatever the account holds, so a learner with no
+  speaking time is invited to tap and refused after a probe. The state is decided in a module:
+  servers down reads as away, a probe in flight as thinking, no speaking time as idle with a
+  caption saying so, and only then ready. The tab draws the answer and decides nothing.
+- verified-by: `the orb reads away, checking, no speaking time, and ready from the facts and nothing else`
+
+### F543 — Home opens on a word of the day rather than on tonight's French
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/home/homeMission.ts:1
+- note: the founder's brief and both mockups open Home on one real situation with a reason and a
+  time, and the word of the day lower down. `homeMission.ts` picks it: a scene left part way, else
+  core's next situation, else the café for a learner who has never spoken, with a reason from the
+  chooser's own status line and a time line that is a measurement when there is one and an authored
+  expectation in words when there is not.
+- verified-by: `home leads with one mission, its reason and its time line, and a new learner meets the café`
+
+### F544 — Home's pill lived in the situation card
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/home/MissionHero.tsx:1
+- note: the pill budget names `home/SituationCard.tsx` as the one file on Home that may draw a pill.
+  The hero is the one way into a spoken conversation now, so the pill moves there and the daily
+  situation keeps its bookmark and an outline. The budget, the Home test and DESIGN.md move with it.
+- verified-by: `home's one pill is the mission hero's, and the situation card keeps none`
+
+### F545 — Nothing on Home says what the learner can already do
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/home/AbilitiesCard.tsx:1
+- note: the passport already knows which situations were handled unaided, and Home never says so.
+  The card draws up to three stamps earned on your own, in the passport's own words, and nothing for
+  a learner with none, on `passport.ts`'s rule that an empty rail is a quota.
+- verified-by: `home draws an ability only for a stamp earned on your own, and none for a learner with none`
+
+### F546 — The tutor remembers, and no screen says so
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tutor/continuity.ts:1
+- note: the brain stores an opener for next time, the packs store what the last conversation was
+  about, and the progress store knows a scene left part way. `continuity.ts` reads them in that
+  priority and hands one line to Home and Tutor, and it invents nothing: a new learner gets null.
+- verified-by: `continuity comes from a real record in priority order, and a new learner gets nothing`
+
+### F547 — Tutor offers four doors, not three ways in
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tutor/gate.ts:262
+- note: the brief asks for three obvious entry modes: an everyday mission, an open chat, and
+  rehearsing something specific. The door model gains the first and the third as rows, keeps the
+  open conversation as the second pill, and folds the six mission rows and the lesson under them.
+  Two pills, as the budget pins.
+- verified-by: `the tutor tab draws everyday, open chat and rehearse as entry modes, and keeps two pills`
+
+### F548 — A learner cannot bring a real situation to the tutor
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tutor/realMoments.ts:1
+- note: the seed topic already rides end to end, and its French half is spoken aloud by the tutor,
+  so typed English must never land in that slot. Eight authored kinds carry the French title; the
+  learner's own words ride the English half, which is what the agent screens for safety. Both
+  halves are capped at the server's limit, because an oversized seed is dropped silently and the
+  one Max-only feature would open a generic conversation with no error.
+- verified-by: `a real moment seeds an authored French title and the learner's English detail within the server's cap, never typed English in the French slot`
+
+### F549 — Learner-authored moments have nowhere to live
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tutor/momentsStore.ts:1
+- note: a moment typed once should be there to rehearse again. It is free text about the learner's
+  own life, so the store is device-local and excluded from sync with that reason written down, capped
+  at twenty, and swept by the same reset every other user-scoped key is.
+- verified-by: `moments are kept on this device, capped, and excluded from sync for a written reason`
+
+### F550 — `lastPractisedAt` has no writer, so the next step re-offers the same pack forever
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/practice/nextStep.ts:75
+- note: `buildConversationPack` writes the field null and nothing anywhere assigns it afterwards, so
+  `nextStep`'s pack branch and the session card's practised chip both read a value that can never
+  change. The pack is server-owned and refreshed over the cache, so the mark lives beside it in a
+  device-local store and is folded in at read. It is written only when a drill actually finishes,
+  never when a sitting is abandoned.
+- verified-by: `a finished pack drill marks the pack practised, an abandoned one does not, and the next step moves on`
+
+### F551 — A conversation cannot be continued as a thread
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tutor/threads.ts:1
+- note: the continuation seed on a pack is built and only half read, and a scene left part way is
+  offered back only through the chooser. `threads.ts` names the one continuable thread from what is
+  stored: the unfinished scene, else the newest pack not yet continued, else nothing, with a
+  words-only sense of how many times the topic has come up.
+- verified-by: `the one thread is the unfinished scene, else the newest uncontinued pack, else nothing`
+
+### F552 — The end card lists everything and closes nothing
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/conversationPacks/closure.ts:1
+- note: the recap shows all twelve phrases and up to four fixes. The founder's brief asks for a
+  closure: three phrases worth keeping, one repair, one focus, one next mission and what went well.
+  `closure.ts` chooses them from the pack or the recap and nothing else, and the focus is the newest
+  sound check, else a cadence connector not yet produced, else the repair's own reason, else null.
+- verified-by: `a closure carries three phrases, one repair, one focus, one next mission and up to three wins, from the pack and nothing invented`
+
+### F553 — A repair from a conversation cannot be practised
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/conversationPacks/packExercises.ts:1
+- note: the server synthesises translation pairs for the key phrases and nothing for the corrections,
+  so the one line the learner most needed has no drill. A pack now synthesises a translate and a
+  repeat for its first correction and a repeat for its first three phrases, keyed by phrase so the
+  bank's merge identity holds.
+- verified-by: `a pack synthesises a repair drill and a repeat for its key phrases, keyed by phrase`
+
+### F554 — Practice is an archive, not something made from the learner's conversations
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/practice/madeFrom.ts:1
+- note: three cards above the archive, from the newest ready pack: replay this moment, make this
+  phrase yours, tune the sound. A learner with no pack meets the same three shapes from authored
+  material and one sentence saying practice becomes personal after the first conversation.
+- verified-by: `practice draws replay, make yours and tune the sound from the newest ready pack, and the starter set for a learner with none`
+
+### F555 — The next step has two branches, so a starter pill would be a second primary
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/practice/nextStep.ts:64
+- note: due cards win the next step, so a learner who finished the lesson and never had a
+  conversation would meet the review pill and a starter pill at once. The first conversation becomes
+  the step's third kind, returned only when nothing is due and no pack is ready, so the tab's one
+  control has three branches and never two pills.
+- verified-by: `the next step is review, a pack, or the first conversation, in that order, and never two at once`
+
+### F556 — A replay drill shows the verdict with no memory of what was said
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/DrillScreen.tsx:615
+- note: a drill node carries an id, a title and phrase keys, so a replay opens on the exercise alone
+  and the learner's own line is gone. The node may carry the moment it replays, plain strings, and the
+  screen draws it above the exercise so the verdict reads as a comparison rather than a mark.
+- verified-by: `a drill node may carry the moment it replays, and the screen draws it above the exercise`
+
+### F557 — Say it on a saved phrase that is not due opens an empty sitting
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/practice/madeFrom.ts:1
+- note: `buildDrillSession`'s scope plays due cards and offers new material only for keys the deck
+  does not know, so a phrase already in the bank and not yet due queues nothing and the sitting ends
+  at once. The card offers Say it only for a phrase the deck does not know or wants back, and hear
+  otherwise.
+- verified-by: `say it is offered only for a phrase the deck does not know or wants back`
+
+### F558 — The sound to tune is read from a field nothing writes
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/practice/madeFrom.ts:1
+- note: `pronunciationFocus` is typed on the pack and the agent never sets it. The honest source is
+  the sound checks store, which the post-situation check writes, read newest first as My French already
+  does. With no check the card says what the next situation will name, and offers the way there.
+- verified-by: `tune the sound reads the newest sound check and says what to do when there is none`
+
+### F559 — My French lists situations, not what the learner can now do
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/myfrench/situations.ts:1
+- note: the map lane draws six rows in catalogue order. It leads with the stamped ones as what the
+  learner can now do, and labels the rest as suggested rather than as missing, so no row reads as a
+  debt.
+- verified-by: `the map lane leads with stamped situations and labels the rest as suggested`
+
+### F560 — The week's story never sees a conversation
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/progress/story.ts:244
+- note: `storyFrom` reads the history namespace, which only the scripted lesson writes, so a learner
+  who only ever talks to the tutor has a quiet week by construction. The story now takes the
+  completions and the packs as well, names a place entered this week by an authored noun and a topic
+  talked about, skips a topic string it cannot say, and keeps the no-delta rule: any prior history,
+  of any input, leaves the week's sentences byte for byte the same.
+- verified-by: `the story names a place and a topic from this week, skips a topic it cannot say, and any prior history leaves it byte for byte the same`
+
+### F561 — The week lives on the wrong tab
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/profile/FrenchLifeCard.tsx:1
+- note: both mockups put the week on Profile, and F233 allows the story exactly one importer. The
+  importer becomes the Profile card; My French keeps the passport and the shelf. The rhythm beside it
+  is the week rail Home already draws, lifted into the shared components, and it names no number.
+- verified-by: `the Profile card is the one importer of the story, and the rhythm rail names no number`
+
+### F562 — The tutor's memory can be neither seen nor edited
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/profile/memory.ts:1
+- note: the brain remembers up to twelve facts and an opener and no screen reads them. A learner can
+  now see each fact, forget one, forget all, and write a goal. Extraction dedupes on the fact's own
+  text, so a forgotten fact is a tombstone the snapshot filters, or it returns the next session that
+  mentions it. The agent sends the last five facts, so a goal is appended last or it never rides.
+- verified-by: `a forgotten fact stays forgotten across an extraction that mentions it, and a learner's goal is among the five facts that ride`
+
+### F563 — Profile version seven has no room for what the learner chose to forget
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/profile/store.ts:72
+- note: tombstones and goals need a home that syncs, so the stored profile moves to version eight and
+  the policy writes eight with it. The brain's merge rides unknown outer fields with the heavier side,
+  which would let a busier phone undo a forget made on a lighter one, so tombstones get an explicit
+  set union and goals ride whole.
+- verified-by: `version seven upgrades to eight with empty tombstones and goals, the sync policy writes eight, and a forget on either device survives the merge`
+
+### F564 — The plans page sells minutes and nothing else
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/purchases/capabilities.ts:1
+- note: the brief asks that a plan state its inclusions, not only its minutes, and that nothing be
+  marketed the app does not actually gate. `capabilities.ts` is the one place that says what a plan
+  opens; the plans page reads it and a test refuses any gate on packs, phrases, missions, drills or
+  review.
+- verified-by: `each plan lists only what capabilities.ts opens, and nothing gates packs, phrases or missions`
+
+### F565 — Custom rehearsal and arc continuation are open to every plan
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tutor/RealMomentScreen.tsx:1
+- note: the two new doors are the paid tier's, and the server gates minutes rather than doors, so the
+  app gates them from the plan it read. A known plan without them meets an honest line and a door to
+  the plans page; an unknown plan reads as the trial rather than as a yes.
+- verified-by: `a learner on the trial meets an honest line and a door to plans, and an unknown plan reads as the trial`
+
+### F566 — A purchase from a refused conversation returns the learner to the Tutor tab rather than the conversation
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/live/afterPurchase.ts:1
+- note: after the other session's Phase 1 lands. The wall's Done goes to the Tutor tab, and the brief
+  asks that a purchase return the learner to the conversation that was refused. The route carries
+  what to resume, a pure rule decides where Done goes from the purchase outcome, and the refused
+  screen reconnects when its retry param changes.
+- verified-by: `a purchase that granted minutes returns to the conversation that was refused, and nothing else does`
+
+### F567 — Restore has no funnel event, and a return from the wall is invisible
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/analytics/track.ts:21
+- note: after the other session's Phase 1 lands. Restore started and settled, and the return from the
+  wall, join the union, the parser and the trigger in one change.
+- verified-by: `restore and the return from the wall each carry one event the parser and the trigger accept`
+
+### F568 — The server sees the trial start and the minutes run out, and tells nobody
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/server.ts:314
+- note: after the other session's Phase 1 lands. The first trial claim and every refusal over minutes
+  happen on the server, which is the only honest place to record them; the app can only guess. They
+  are written as product events by the server itself, which has no precedent and so gets its own helper.
+- verified-by: `the first trial claim and every refusal over minutes are recorded as product events`

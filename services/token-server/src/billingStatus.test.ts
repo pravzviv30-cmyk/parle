@@ -1,0 +1,85 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { describe, test } from 'node:test';
+import { PLANS, lapsedEntitlement } from '@luvani/core';
+
+import { billingStatusFor } from './billingStatus.ts';
+import { RATE_LIMITS } from './rateLimit.ts';
+
+const server = readFileSync(path.join(import.meta.dirname, 'server.ts'), 'utf8');
+
+/** The whole `if (req.method ...)` block that owns a path, and nothing of its neighbours. */
+function routeFor(pathname: string): string {
+  const at = server.indexOf(`url.pathname === '${pathname}'`);
+  assert.ok(at > 0, `the ${pathname} route does not exist`);
+  const start = server.lastIndexOf('if (req.method', at);
+  const end = server.indexOf('if (req.method', at);
+  return server.slice(start, end);
+}
+
+describe('billing status — what the learner holds, read and never changed (F540)', () => {
+  test('billing status answers the plan and the period for the signed-in learner, and refuses everyone else', () => {
+    const route = routeFor('/billing/status');
+    // Identity is resolved exactly as the start resolves it: the bearer when
+    // auth is live, an asserted id only under the local-development opt-in.
+    assert.match(route, /req\.method === 'POST'/);
+    assert.match(route, /RATE_LIMITS\.billingStatusIp/);
+    assert.match(route, /users\.resolve\(req\.headers\.authorization, asserted\)/);
+    assert.match(route, /if \(!resolved\.ok\) return json\(res, resolved\.status/, 'a learner the server cannot name is refused');
+    assert.match(route, /RATE_LIMITS\.billingStatusUser/);
+    assert.match(route, /billingStatusFor\(await store\.get\(resolved\.userId\)\)/, 'the answer is the store row through the one rule');
+    // Read and never changed: nothing on this route moves minutes, claims a
+    // trial, or asks the vendor.
+    assert.doesNotMatch(route, /store\.consume\(|store\.save\(|claimTrial\(|refreshSubscriber\(/);
+    assert.doesNotMatch(route, /searchParams\.get\(['"]userId/);
+    // Placed after the start, so the refresh route's own contract test, which
+    // slices from the refresh to the start's comment, never reads this block.
+    assert.ok(
+      server.indexOf("url.pathname === '/billing/status'") > server.indexOf('// What the app calls to begin'),
+      'the status route sits inside the slice the refresh contract test reads',
+    );
+    // Its own rules, distinct from the refresh so one cannot starve the other.
+    assert.equal(RATE_LIMITS.billingStatusIp.name, 'billing-status-ip');
+    assert.equal(RATE_LIMITS.billingStatusUser.name, 'billing-status-user');
+    assert.ok(RATE_LIMITS.billingStatusUser.limit >= 10, 'two tabs read this on focus; the bound must let a learner look twice');
+  });
+
+  test('a fresh trial can start and a spent one cannot, and the reason is core’s', () => {
+    const fresh = billingStatusFor({ plan: 'trial', secondsUsed: 0 });
+    assert.equal(fresh.plan, 'trial');
+    assert.equal(fresh.secondsRemaining, PLANS.trial.secondsPerPeriod);
+    assert.equal(fresh.canStart, true);
+    assert.equal(fresh.reason, null);
+    assert.equal(fresh.periodEnd, null, 'the trial does not renew, so it has no period end');
+    assert.equal(fresh.lapsed, false);
+
+    const spent = billingStatusFor({ plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod });
+    assert.equal(spent.canStart, false);
+    assert.equal(spent.reason, 'exhausted');
+    assert.equal(spent.secondsRemaining, 0);
+
+    const thin = billingStatusFor({ plan: 'starter', secondsUsed: PLANS.starter.secondsPerPeriod - 30 });
+    assert.equal(thin.canStart, false);
+    assert.equal(thin.reason, 'insufficient-for-session', 'thirty seconds is not a conversation, and core says so');
+  });
+
+  test('a lapsed plan reads as lapsed and never as a fresh trial', () => {
+    const lapsed = billingStatusFor(lapsedEntitlement());
+    assert.equal(lapsed.plan, 'trial');
+    assert.equal(lapsed.lapsed, true);
+    assert.equal(lapsed.canStart, false);
+    assert.equal(lapsed.reason, 'subscription-lapsed');
+    assert.equal(lapsed.secondsRemaining, 0, 'the lapse door never hands the welcome minutes back');
+  });
+
+  test('the period end travels as an instant, from a date or a string, and junk reads as none', () => {
+    const end = new Date('2026-10-12T09:00:00.000Z');
+    assert.equal(billingStatusFor({ plan: 'starter', secondsUsed: 0, periodEnd: end }).periodEnd, end.toISOString());
+    assert.equal(
+      billingStatusFor({ plan: 'regular', secondsUsed: 0, periodEnd: '2026-10-12T09:00:00.000Z' as unknown as Date }).periodEnd,
+      end.toISOString(),
+    );
+    assert.equal(billingStatusFor({ plan: 'regular', secondsUsed: 0, periodEnd: 'soon' as unknown as Date }).periodEnd, null);
+  });
+});

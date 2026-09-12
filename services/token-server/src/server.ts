@@ -24,6 +24,7 @@ import { agentDebitAllowed } from './agentAuth.ts';
 import { productionConfigurationProblems } from './config.ts';
 import { deleteSupabaseUser, signedInRecently } from './accountDeletion.ts';
 import { exportSupabaseAccountData } from './accountExport.ts';
+import { billingStatusFor } from './billingStatus.ts';
 import { insertProductEvent, parseProductEvent } from './productEvents.ts';
 import {
   deleteAllConversationPacks,
@@ -364,6 +365,26 @@ const server = createServer(async (req, res) => {
       // plan costs in minutes, and any screen wanting it sooner would have had to
       // compile its own copy — which is F266 with extra steps.
       return json(res, 200, { ...result.grant, livekitUrl, plans: PLANS }, { 'server-timing': serverTiming });
+    }
+
+    // What the learner holds, read and never changed (F540). The meter is
+    // server-side, and the app could learn its own plan only as the answer to
+    // a refresh, which needs RevenueCat configured. This reads the entitlement
+    // store and nothing else: it works with billing dark, asks no vendor, moves
+    // no minutes and claims no trial boundary (the Supabase read is a zero
+    // second debit that creates a missing default row and rolls an expired
+    // period, which is what every read there does). Identity is resolved
+    // exactly as the start resolves it, so a local mock account can still see
+    // its plan; the asserted id is honoured only under the local-development
+    // opt-in, by construction of `users`, and a bearer decides everywhere else.
+    if (req.method === 'POST' && url.pathname === '/billing/status') {
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.billingStatusIp)]))) return;
+      const body = await readJson(req);
+      const asserted = typeof body.userId === 'string' && body.userId ? body.userId : null;
+      const resolved = await users.resolve(req.headers.authorization, asserted);
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      if (!(await withinLimits(req, res, [[RATE_LIMITS.billingStatusUser, 'user', resolved.userId]]))) return;
+      return json(res, 200, billingStatusFor(await store.get(resolved.userId)));
     }
 
     // Drill mode's pronunciation check: raw utterance audio in the body, the

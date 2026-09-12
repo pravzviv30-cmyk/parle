@@ -22,6 +22,8 @@ import { CAFE_LESSON, MISSIONS, missionStates, type MissionProgress } from '@luv
 
 import { ArrowRight, Card, GhostButton, HelpGlyph, Label, OutlineButton, PillButton } from '../components.tsx';
 import { useLive } from '../app/LiveContext.tsx';
+import { useAuth } from '../auth/useAuth.tsx';
+import { fetchBillingStatus } from '../purchases/client.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { EveningIn } from '../illustrations.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
@@ -33,7 +35,8 @@ import { minutesRemaining } from '../missions/resume.ts';
 import { settleIn, useReduceMotion } from '../motion.ts';
 import { loadDeck } from '../review/store.ts';
 import { HIT, paper, space, type } from '../theme.ts';
-import { TUTOR_ORB_SUBLINE, TUTOR_PURPOSE, tutorHeading } from '../tutor/dashboard.ts';
+import { TUTOR_PURPOSE, tutorHeading } from '../tutor/dashboard.ts';
+import { tutorOrbState } from '../tutor/orbState.ts';
 import {
   TUTOR_INTRO_LINK,
   TUTOR_LESSON_QUIET_LINK,
@@ -65,6 +68,13 @@ export function TutorTab() {
   const [records, setRecords] = useState<readonly ScenarioRecord[]>([]);
   const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
   const [checking, setChecking] = useState(false);
+  // Core's answer to "may a session start", read from the server on focus, or
+  // null when nobody could ask. The circle reads it through `tutor/orbState.ts`
+  // and a null reads as ready there on purpose: the server refuses a start it
+  // cannot afford, and a circle that went quiet because a status read failed
+  // would refuse a learner the server would have let in.
+  const [canStart, setCanStart] = useState<boolean | null>(null);
+  const { user } = useAuth();
 
   // The dashboard settles in when the tab is opened. The voice orb carries its
   // own slower breathing loop; this is only the page arriving, and it lands on
@@ -165,6 +175,26 @@ export function TutorTab() {
     void recheck().then(go, go);
   };
 
+  // The plan, on its own read. Not folded into the storage effect above,
+  // because that effect's rejection path is pinned to the disk: a status the
+  // server would not give must not look like a scene the learner lost.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      if (!live || user === null) return;
+      void fetchBillingStatus(user.id)
+        .then((status) => {
+          if (!cancelled) setCanStart(status === null ? null : status.canStart);
+        })
+        .catch(() => {});
+      return () => {
+        cancelled = true;
+      };
+    }, [live, user]),
+  );
+
+  const orb = tutorOrbState({ live, checking, canStart });
+
   if (showingIntro) {
     return (
       <TutorIntro
@@ -249,9 +279,9 @@ export function TutorTab() {
             {/* The card says the words here, so the orb says none: its own
                 caption would land on top of the two lines below it, which is
                 exactly what it did until F415. */}
-            <VoiceOrb state={checking ? 'thinking' : 'ready'} size={116} announce={false} withCaption={false} paused={!focused} />
-            <Text style={st.speakTitle}>{checking ? TUTOR_OFFLINE.checking : 'Tap to speak'}</Text>
-            <Text style={st.speakSubline}>{TUTOR_ORB_SUBLINE}</Text>
+            <VoiceOrb state={orb.state} size={116} announce={false} withCaption={false} paused={!focused} />
+            <Text style={st.speakTitle}>{orb.title}</Text>
+            <Text style={st.speakSubline}>{orb.subline}</Text>
           </Pressable>
         </Card>
 

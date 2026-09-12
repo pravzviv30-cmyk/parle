@@ -2,6 +2,7 @@ import type { Plan } from '@luvani/core';
 
 import { authHeaders } from '../auth/adapter.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
+import { billingStatusIn, type BillingStatus } from './billingStatus.ts';
 
 /** The plan ids the server is allowed to answer with. Anything else is a wire fault. */
 const PLAN_IDS: readonly string[] = ['trial', 'starter', 'regular'];
@@ -41,6 +42,30 @@ export async function refreshBilling(): Promise<BillingRefresh | null> {
     if (typeof refreshed !== 'boolean') return null;
     if (typeof plan !== 'string' || !PLAN_IDS.includes(plan)) return null;
     return { granted: refreshed, plan: plan as Plan };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What this learner holds right now, or null when the server could not say.
+ *
+ * The read F377 waited for. It mirrors the start's own request shape, an
+ * asserted `userId` in the body beside the bearer, so a local mock account can
+ * still see its plan; the server honours the asserted id only under its
+ * local-development opt-in and takes the bearer everywhere else. `null` covers
+ * a failed request and an unreadable body alike, and the card that draws this
+ * says the plan could not be checked rather than guessing one.
+ */
+export async function fetchBillingStatus(userId: string): Promise<BillingStatus | null> {
+  try {
+    const response = await fetch(`${TOKEN_SERVER}/billing/status`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(await authHeaders()) },
+      body: JSON.stringify({ userId }),
+    });
+    if (!response.ok) return null;
+    return billingStatusIn(await response.json());
   } catch {
     return null;
   }
