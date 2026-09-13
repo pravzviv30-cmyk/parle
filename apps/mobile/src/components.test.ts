@@ -57,7 +57,7 @@ describe('the drawn vocabulary keeps its promises — F332, F333', () => {
     assert.match(mono, /color: paper\.onInk/, 'the initial is not the warm-white on a filled control');
   });
 
-  test('a pill and a ghost can be given a name for assistive tech, and forward it', () => {
+  test('a pill, an outline and a ghost can be given a name for assistive tech, and forward it', () => {
     // Both take an optional accessibilityLabel and forward it to the Pressable,
     // falling back to the printed label when it is absent — which is the name a
     // Pressable already derived from its child Text, so the fallback is a no-op.
@@ -67,6 +67,16 @@ describe('the drawn vocabulary keeps its promises — F332, F333', () => {
       pill,
       /accessibilityLabel=\{accessibilityLabel \?\? label\}/,
       'PillButton does not forward its accessibilityLabel, or does not fall back to the label',
+    );
+
+    // The outline button too: on the web the derived name was not reaching the
+    // accessibility tree, so a "Talk about this instead" read as a bare button.
+    const outline = region(componentsSource(), 'export function OutlineButton(', 'export function GhostButton(');
+    assert.match(outline, /accessibilityLabel\?: string/, 'OutlineButton takes no accessibilityLabel');
+    assert.match(
+      outline,
+      /accessibilityLabel=\{accessibilityLabel \?\? label\}/,
+      'OutlineButton does not forward its accessibilityLabel, or does not fall back to the label',
     );
 
     const ghost = region(componentsSource(), 'export function GhostButton(', 'export function OptionCard(');

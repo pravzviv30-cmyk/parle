@@ -8,15 +8,21 @@
  * is new, for the focus. A section with nothing behind it is not drawn.
  */
 
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Card, Label } from '../components.tsx';
 import { HAIRLINE, paper, signal, space, type } from '../theme.ts';
+import { arrived } from '../motion/haptics.ts';
 import type { Closure } from './closure.ts';
 
 export const NEXT_WAITING = 'It is waiting for you on Home.';
 
 export function ConversationPackCard({ closure }: { closure: Closure }) {
+  // Arriving somewhere earned: once, when the closure first draws.
+  useEffect(() => {
+    arrived();
+  }, []);
   return (
     <View style={st.stack}>
       {closure.summary.length > 0 && <Text style={st.summary}>{closure.summary}</Text>}

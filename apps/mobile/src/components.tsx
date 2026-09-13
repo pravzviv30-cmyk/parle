@@ -306,7 +306,7 @@ export function OutlineButton({
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
-      {...(accessibilityLabel === undefined ? {} : { accessibilityLabel })}
+      accessibilityLabel={accessibilityLabel ?? label}
       style={({ pressed }) => [s.outline, pressed && !disabled && { backgroundColor: paper.groundDeep }, disabled && { opacity: 0.45 }]}
     >
       <View style={s.outlineRow}>

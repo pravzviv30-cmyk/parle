@@ -5037,7 +5037,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: `DrillScreen`'s Check pills and My French's Check/Start word announce themselves. Collapsing them
   onto `PillButton` and `GhostButton` (F339) needs an optional `accessibilityLabel` on both, forwarded to
   the Pressable. Lands before F339.
-- verified-by: `a pill and a ghost can be given a name for assistive tech, and forward it`
+- verified-by: `a pill, an outline and a ghost can be given a name for assistive tech, and forward it`
 
 ### F334 — The shared header centres its title between two equal slots
 - severity: P1
@@ -5170,8 +5170,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   "what now" and the tab decides none of it, is what survived.
 - verified-by: `a due deck outranks a conversation waiting to be practised`
 - verified-by: `with a quiet deck the step is the newest conversation nobody has come back to`
-- verified-by: `a learner with nothing at all gets no step, and no cheerful message`
+- verified-by: `the next step is review, a pack, or the first conversation, in that order, and never two at once`
 - verified-by: `the step counts a card and a phrase, singular at one, and never scolds`
+- note (2026-09-12): a learner with nothing at all now gets the first-conversation step (F555), so the
+  test that held the empty case was replaced by the three-branch one; the rule is still one pure decision.
 
 ### F346 — Practice opens on its next step, and nothing competes with it
 - severity: P1
@@ -5757,7 +5759,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `recheck()` then `tutorGate(answered, false)`, navigates `Convo` with `seedTopic: seedTopicOf(scenario)` on
   go, and draws `TUTOR_OFFLINE.body` with "Check again" on heldBack. No "Listen to accent", no "Immersive
   audio", no level pill, and the Demo label lives in this card's eyebrow row only when `!live`.
-- verified-by: `home's situation card carries the tab's one pill, opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
+- verified-by: `home's situation card opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
+- verified-by: `home's one pill is the mission hero's, and the situation card keeps none`
+- note (2026-09-12): the tab's one pill moved to the mission hero with F544; the card keeps the probe and
+  the seed topic, and its action is an outline button.
 
 ### F393 — Bookmarks are a per-item store that can un-save
 - severity: P1
@@ -5840,7 +5845,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `<NextStepRow` for `suggestedMission`, the link goes to the Practice tab, the row goes to `Missions
   { focus }`, and Home no longer draws `<NextSituationCard`, the "Talk to" outline, or `SpeakBubbles`. My
   French still draws the card with its pill. `portfolio.test.ts`'s Home assertions change to say exactly this.
-- verified-by: `home draws the next step as a row from portfolio's words and leaves the next-situation card to my french — F399`
+- verified-by: `home draws the hero from homeMission's words and leaves the next-situation card to my french — F399, F543`
+- note (2026-09-12): the next-step row retired with F543; the mission hero is the next step now, and the
+  next-situation card still belongs to My French.
 
 ### F400 — The footer note, and the two home cards nothing draws any more
 - severity: P1
@@ -5905,7 +5912,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   centred `PillButton` "Open conversation" under it, no "Free improvisation". Footer keeps `open(true)`, the
   intro link with `HelpGlyph`, and `MICROPHONE_NOTICE`. `doors.map(` and `open(true)` stay so chooserView's
   guard holds.
-- verified-by: `the tutor tab draws the resume, the missions and the open conversation exactly as the doors say, with rows, one pill per door and no ear — F405`
+- verified-by: `the tutor tab draws everyday, open chat and rehearse as entry modes, folds the situations away, and keeps one pill`
+- note (2026-09-12): the doors grew to six with F547 and the test was rewritten under that title; the tab
+  still draws exactly what the door model says.
 
 ### F406 — The surface guards are changed on purpose, each with its reason
 - severity: P1
@@ -6102,7 +6111,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   because the tap's answer is the honest offline signal. `TUTOR_OFFLINE.label` itself stays in
   `tutor/gate.ts` for the Tutor tab and the Convo guard.
 - verified-by: `the situation card carries no demo label; a start that cannot happen is answered on the tap — F421`
-- verified-by: `home's situation card carries the tab's one pill, opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
+- verified-by: `home's situation card opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
 
 ### F422 — The word pool clears the phrasebook bar and is tiered
 - severity: P1
@@ -6711,7 +6720,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   a pure function of the day. Pitching it means it needs the learner's standing, so it
   waits alongside the word now. A card that arrives a beat later beside its neighbour is
   better than one that appears first and is replaced under somebody.
-- verified-by: `home's situation card carries the tab's one pill, opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
+- verified-by: `home's situation card opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
 - verified-by: `the pool is pitched, so a beginner never meets a scene meant for somebody else`
 
 ### F458 — The lesson counted the learner's position out loud to a screen reader

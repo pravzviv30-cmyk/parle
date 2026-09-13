@@ -22,6 +22,27 @@ of the list.
 
 ## Current landing snapshot
 
+- The app upgrade branch gate (`claude/luvani-app-upgrade-63829f`, on top of the wall
+  commit `ded101e`) passes **2,888 tests, 0 failing**; core 608, brain 385, tutor agent 445,
+  token server 187, playground 26, mobile 1237. Typecheck is clean in all six workspaces and
+  the floors were blessed to those counts as one act with writing this record. It is a branch
+  gate, not a release gate, and it was run from the worktree, which has its own
+  `node_modules` (brain reports its full 385 there). What it covers: `POST /billing/status`
+  and the plan card (F540 to F542, closing F377); Home opening on one mission with a time
+  line and "You can now" (F543 to F546); the Tutor tab's six doors, the continuity card, a
+  real moment to rehearse and the moments store (F547 to F549, F565); the closure card,
+  pack exercises, practised marks, the one continuable thread, Practice made from the
+  learner's conversations with a starter set, and the replay moment (F550 to F558); My
+  French leading with stamped situations (F559); the week story on Profile reading packs
+  and completions, and the shared week rail (F560, F561); the tutor's memory as something
+  the learner can see, forget and add a goal to, with the stored profile at version 8 and
+  the tombstones unioned by the brain's merge (F562, F563). Not covered: F564 (the plans
+  page's inclusions) and F566 to F568 wait for the other session's uncommitted wall work,
+  which lives in the main checkout and was never staged here. Nothing in this branch has
+  been seen on a device; the driven check was the web build in the in-app browser at 375 by
+  667 and 460 wide, against the token server in local development mode with mock auth, and
+  RevenueCat stayed dark throughout.
+
 - Phase 6 is on `main`, both slices: 6a as the passport, the delayed test and the
   less-help replay, 6b as the honest reminder and the weekly story. The first device-build
   pass landed beside it, carrying the microphone defect F242 — the WebRTC shim ran after the

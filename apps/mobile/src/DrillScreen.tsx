@@ -51,6 +51,7 @@ import {
   drillXp,
 } from '@luvani/core';
 import { HAIRLINE, HIT, font, paper, radius, signal, space, type } from './theme.ts';
+import { tapSettled } from './motion/haptics.ts';
 import { recordActivity } from './progress/activity.ts';
 import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
@@ -796,6 +797,7 @@ export function DrillScreen({
   useEffect(() => {
     if (!session?.finished || !node || finishedRef.current) return;
     finishedRef.current = true;
+    tapSettled();
     onFinished?.(node.id);
   }, [session, node, onFinished]);
 
