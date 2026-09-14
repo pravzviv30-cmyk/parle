@@ -1,4 +1,4 @@
-import { replayRung, type MissionId, type MissionProgress, type ReviewCard } from '@luvani/core';
+import { replayRung, type MissionId, type MissionPlace, type MissionProgress, type ReviewCard } from '@luvani/core';
 
 import { missionTint } from '../missions/missionTint.ts';
 import { retainedOrder } from '../progress/momentum.ts';
@@ -18,6 +18,7 @@ import { WELCOME_PATH, beyondWelcomePath } from './welcomePath.ts';
  */
 export interface WallMapRow {
   id: MissionId;
+  place: MissionPlace;
   titleEn: string;
   tint: TintName;
   /** True when the beats have been finished at least once. */
@@ -113,6 +114,7 @@ export function wallMap(input: {
 
     return {
       id,
+      place: mission.place,
       titleEn: mission.titleEn,
       tint: missionTint(mission.place),
       lit,

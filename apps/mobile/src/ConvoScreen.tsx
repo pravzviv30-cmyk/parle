@@ -43,7 +43,7 @@ import { mergeExercises } from './drill/store.ts';
 import { bankPractice, journalDrills, journalPractice } from './live/journal.ts';
 import { MAX_RECOVERED_PHRASES, convoUsesFrom, type PracticeBatch } from './live/journalRules.ts';
 import { recordActivity } from './progress/activity.ts';
-import { useLiveSession } from './live/useLiveSession.ts';
+import { useLiveSession, type OutOfMinutesCode } from './live/useLiveSession.ts';
 import { CONNECTING_TICK_MS, connectingTick, connectingView } from './live/connectingView.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
 import { connectionLine } from './live/connectionLine.ts';
@@ -118,7 +118,7 @@ import { replayNote, type MissionReplay } from './missions/chooserView.ts';
 import { trackProductEvent } from './analytics/track.ts';
 import { MOMENT_ANSWER_MS, momentAnswer } from './practice/statusLine.ts';
 import { settleIn, useReduceMotion } from './motion.ts';
-import { Paywall } from './purchases/Paywall.tsx';
+import { LIMIT_NEXT, WALL_DONE } from './wall/wallCopy.ts';
 
 /**
  * The browser wants a gesture before it will play the tutor.
@@ -214,6 +214,7 @@ export function ConvoScreen({
   snapshot,
   onRecap,
   onExit,
+  onOpenWall,
   startInTextMode = false,
   seedTopic,
   missionId,
@@ -225,6 +226,7 @@ export function ConvoScreen({
   /** The conversation ended: here is the end card and the updated model. */
   onRecap: (recap: RecapPayload, profileBlob: unknown) => void;
   onExit: () => void;
+  onOpenWall: (reason: OutOfMinutesCode) => void;
   /** "Can't speak right now": the same tutor, typed. */
   startInTextMode?: boolean;
   /**
@@ -269,6 +271,7 @@ export function ConvoScreen({
   // The leave gate. `confirming` shows the sheet; `leaving` is raised on commit,
   // which drops the guard so the exit can run from an effect rather than inline.
   const [confirming, setConfirming] = useState(false);
+  const wallOpened = useRef(false);
   const [leaving, setLeaving] = useState(false);
   const leaveCopy = leaveConfirmCopy('conversation');
   // Which text input holds the caret, for the ink focus border. Visual only.
@@ -288,6 +291,12 @@ export function ConvoScreen({
     ...(missionId !== undefined ? { missionId } : {}),
     tutorVoice: tutorVoiceOf(profile),
   });
+
+  useEffect(() => {
+    if (live.status.phase !== 'out-of-minutes' || wallOpened.current) return;
+    wallOpened.current = true;
+    onOpenWall(live.status.code);
+  }, [live.status, onOpenWall]);
 
   // Connect on mount, and again only in the one case a session has to be built
   // from cold to be typed. The hook tears the room down on unmount.
@@ -712,16 +721,17 @@ export function ConvoScreen({
   }
 
   if (live.status.phase === 'out-of-minutes') {
+    const reason = live.status.code;
     return (
       <View style={st.center}>
         <Label color={paper.inkSoft}>You are out of minutes</Label>
         <Text style={[type.title, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>
           {live.status.message}
         </Text>
-        <Paywall userId={userId} />
         <View style={st.terminalAction}>
-          <PillButton label="Back" onPress={onExit} />
+          <PillButton label={LIMIT_NEXT} onPress={() => onOpenWall(reason)} />
         </View>
+        <GhostButton label={WALL_DONE} onPress={onExit} />
       </View>
     );
   }

@@ -17,14 +17,16 @@ import { momentumFrom } from '../progress/momentum.ts';
 import { purchases, type PaidPlan, type StoreOffering } from '../purchases/adapter.ts';
 import { paywallSurface, restoreTrouble } from '../purchases/paywallView.ts';
 import { restorePurchases, settleStoreAction } from '../purchases/restore.ts';
+import type { OutOfMinutesCode } from '../live/useLiveSession.ts';
 import { loadDeck } from '../review/store.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { latestCatalogue, noteCatalogue } from './catalogue.ts';
 import { WallFrenchPage } from './WallFrenchPage.tsx';
+import { WallLimitPage } from './WallLimitPage.tsx';
 import { WallMapPage } from './WallMapPage.tsx';
 import { WallPlansPage } from './WallPlansPage.tsx';
 import { WallYoursPage } from './WallYoursPage.tsx';
-import { PLANS_CHOOSE, WALL_BUSY, WALL_DONE, WALL_NEXT, WALL_READY, YOURS_NEXT } from './wallCopy.ts';
+import { LIMIT_NEXT, PLANS_CHOOSE, WALL_BUSY, WALL_DONE, WALL_NEXT, WALL_READY, WALL_START, YOURS_NEXT } from './wallCopy.ts';
 import { wallPlanRows } from './wallPlans.ts';
 import { previewCatalogue, previewOffering } from './preview.ts';
 import { wallFrench, type WallFrench } from './wallFrench.ts';
@@ -51,12 +53,16 @@ export function WallScreen({
   onOpenBank,
   onOpenPolicy,
   onOpenTerms,
+  onDone,
+  reason = 'exhausted',
 }: {
   entry: WallEntry;
   onLeave: () => void;
   onOpenBank: () => void;
   onOpenPolicy: () => void;
   onOpenTerms: () => void;
+  onDone: () => void;
+  reason?: OutOfMinutesCode;
 }) {
   const { profile } = useProfile();
   const { user } = useAuth();
@@ -68,6 +74,7 @@ export function WallScreen({
   const [french, setFrench] = useState<WallFrench | null>(null);
   const [offering, setOffering] = useState<StoreOffering>({ available: false });
   const [loaded, setLoaded] = useState(false);
+  const [purchaseReady, setPurchaseReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,7 +119,6 @@ export function WallScreen({
   const storeHasPlans = paywallSurface(offering) !== null;
   const pages = wallPages({ entry, storeHasPlans });
   const page = pages[index];
-  const last = index === pages.length - 1;
 
   // Fired once per showing, with the door and the length, because a drop-off at
   // page two says nothing without knowing how many pages there were.
@@ -136,6 +142,13 @@ export function WallScreen({
   const planRows = wallPlanRows(offering, latestCatalogue());
   const chosen = planRows?.find((row) => row.plan === selected) ?? null;
 
+  // Start with the lightest plan selected. The learner can compare and change
+  // it, but nobody reaches a disabled purchase button just because they have
+  // not discovered that the whole card is a control.
+  useEffect(() => {
+    if (selected === null && planRows !== null && planRows.length > 0) setSelected(planRows[0]!.plan);
+  }, [planRows, selected]);
+
   /**
    * The half that happens once the store has answered, shared with restore.
    *
@@ -144,7 +157,9 @@ export function WallScreen({
    */
   const settle = async (outcome: Awaited<ReturnType<typeof settleStoreAction>>, plan: PaidPlan) => {
     void trackProductEvent({ name: 'purchase_settled', properties: { plan, outcome: outcome.kind } });
-    setMessage(outcome.kind === 'done' ? WALL_READY : restoreTrouble(outcome));
+    const done = outcome.kind === 'done';
+    setPurchaseReady(done);
+    setMessage(done ? WALL_READY : restoreTrouble(outcome));
     setBusy(false);
   };
 
@@ -167,6 +182,10 @@ export function WallScreen({
   };
 
   const forward = () => {
+    if (purchaseReady) {
+      onDone();
+      return;
+    }
     if (action === 'buy') {
       void buy();
       return;
@@ -178,15 +197,13 @@ export function WallScreen({
     setIndex((at) => at + 1);
   };
 
-  const label = busy
-    ? WALL_BUSY
-    : action === 'buy'
-      ? PLANS_CHOOSE
-      : action === 'to-plans'
-        ? YOURS_NEXT
-        : action === 'done'
-          ? WALL_DONE
-          : WALL_NEXT;
+  let label = WALL_NEXT;
+  if (busy) label = WALL_BUSY;
+  else if (purchaseReady) label = WALL_START;
+  else if (action === 'buy') label = chosen === null ? PLANS_CHOOSE : `Continue with ${chosen.name}`;
+  else if (page === 'limit') label = LIMIT_NEXT;
+  else if (action === 'to-plans') label = YOURS_NEXT;
+  else if (action === 'done') label = WALL_DONE;
 
   // Nothing is drawn from a half loaded disk: a map with no rows would be the
   // empty opening this whole design exists to refuse.
@@ -201,11 +218,12 @@ export function WallScreen({
           label={label}
           // Nothing to buy until a tier is chosen: a purchase needs a product id,
           // and a pill that opens the store with none is a pill that fails.
-          disabled={busy || (action === 'buy' && chosen === null)}
+          disabled={busy || (!purchaseReady && action === 'buy' && chosen === null)}
           onPress={forward}
         />
       }
     >
+      {page === 'limit' && <WallLimitPage code={reason} canBuy={storeHasPlans} />}
       {page === 'map' && <WallMapPage map={map} />}
       {page === 'french' && <WallFrenchPage french={french} onOpenBank={onOpenBank} />}
       {page === 'yours' && <WallYoursPage canBuy={storeHasPlans} />}

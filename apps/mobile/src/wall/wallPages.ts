@@ -23,7 +23,7 @@
  */
 
 /** The pages, in the order they are ever drawn. */
-export type WallPage = 'map' | 'french' | 'yours' | 'plans';
+export type WallPage = 'limit' | 'map' | 'french' | 'yours' | 'plans';
 
 /**
  * How the wall was reached.
@@ -45,7 +45,8 @@ export function wallPages(input: { entry: WallEntry; storeHasPlans: boolean }): 
     // cannot be reached from there.
     return input.storeHasPlans ? ['plans'] : [];
   }
-  return input.storeHasPlans ? [...VALUE_PAGES, 'plans'] : VALUE_PAGES;
+  const opening: readonly WallPage[] = input.entry === 'refused' ? ['limit', ...VALUE_PAGES] : VALUE_PAGES;
+  return input.storeHasPlans ? [...opening, 'plans'] : opening;
 }
 
 /**

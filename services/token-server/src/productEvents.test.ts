@@ -72,4 +72,14 @@ describe('product event privacy boundary', () => {
   test('rejects arbitrary event names', () => {
     assert.equal(parseProductEvent({ name: 'anything_we_felt_like', properties: {} }), null);
   });
+
+  test('accepts every measured page in the limit-to-plan journey', () => {
+    for (const [index, page] of ['limit', 'map', 'french', 'yours', 'plans'].entries()) {
+      assert.deepEqual(
+        parseProductEvent({ name: 'wall_page_seen', properties: { page, index } }),
+        { name: 'wall_page_seen', properties: { page, index } },
+      );
+    }
+    assert.equal(parseProductEvent({ name: 'wall_page_seen', properties: { page: 'countdown', index: 0 } }), null);
+  });
 });

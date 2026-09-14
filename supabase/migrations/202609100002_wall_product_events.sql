@@ -100,6 +100,7 @@ begin
     if property_count <> 2
       or not (new.properties ?& array['page', 'index'])
       or new.properties->'page' not in (
+        to_jsonb('limit'::text),
         to_jsonb('map'::text),
         to_jsonb('french'::text),
         to_jsonb('yours'::text),

@@ -34,10 +34,26 @@
  * does not typecheck. The rows say how many there are by being there.
  */
 
+// ── the limit moment ───────────────────────────────────────────────────────────
+
+export const LIMIT_LABEL = 'Your French is still yours';
+export const LIMIT_TITLE = 'Your speaking time is complete';
+export const LIMIT_LAPSED = 'Your speaking plan has ended';
+export const LIMIT_LOW = 'A full conversation needs a little more time';
+export const LIMIT_TRIAL = 'Your free speaking time has been used';
+export const LIMIT_BODY = 'This is a pause in live conversations, not in your learning. See what you have built, then choose what feels right.';
+export const LIMIT_READY = 'Your phrases, practice and progress are ready whenever you are.';
+export const LIMIT_PLAN = 'A plan opens more live conversations and every situation.';
+export const LIMIT_FREE = 'You can carry on practising everything you have learned for free.';
+export const LIMIT_NEXT = 'Show me what I have built';
+
 // ── page one: the map ──────────────────────────────────────────────────────────
 
 export const MAP_TITLE = 'What you can do in French';
 export const MAP_SUB = 'Here is where you have been, and what is still waiting for you.';
+export const MAP_LABEL = 'Your conversation map';
+export const MAP_DONE = 'Spoken';
+export const MAP_READY = 'Ready to explore';
 
 /**
  * The same page, once the whole path is walked.
@@ -82,6 +98,7 @@ export const FRENCH_WEEK = 'This week';
 export const FRENCH_DAYS = 'Days you spoke French';
 /** The way out of the wall and into the free product, on the page that promises it. */
 export const FRENCH_OPEN_BANK = 'Open my phrase bank';
+export const FRENCH_LABEL = 'Built by speaking';
 
 // ── page three: what stays yours ───────────────────────────────────────────────
 
@@ -123,12 +140,18 @@ export const YOURS_NEXT = 'See the plans';
  * closes on the free promise rather than on a door that is not there.
  */
 export const YOURS_ONLY = 'That is all yours already. Nothing to do.';
+export const YOURS_LABEL = 'Already yours';
+export const ADDS_LABEL = 'With a speaking plan';
 
 // ── page four: the plans ───────────────────────────────────────────────────────
 
 /** The founder's paid promise, in their words. */
 export const PLANS_TITLE = 'Keep having new real conversations';
 export const PLANS_SUB = 'The speaking time each month is the only difference between them.';
+export const PLANS_LABEL = 'Choose your rhythm';
+export const PLAN_STARTER_NOTE = 'A lighter allowance for a few conversations at a time.';
+export const PLAN_MAX_NOTE = 'More room for frequent conversations through the month.';
+export const PLAN_SELECTED = 'Selected';
 
 /** Above the minutes a plan buys. The number itself comes off the wire. */
 export const PLANS_TIME = 'Speaking time a month';
@@ -178,6 +201,7 @@ export const WALL_NEXT = 'Next';
 export const WALL_DONE = 'Keep practising';
 export const WALL_READY = 'Your speaking time is ready.';
 export const WALL_BUSY = 'Opening the store…';
+export const WALL_START = 'Start a conversation';
 
 /**
  * Every line above, flattened for the scan.
@@ -188,8 +212,21 @@ export const WALL_BUSY = 'Opening the store…';
  * missing from it.
  */
 export const WALL_COPY: readonly string[] = [
+  LIMIT_LABEL,
+  LIMIT_TITLE,
+  LIMIT_LAPSED,
+  LIMIT_LOW,
+  LIMIT_TRIAL,
+  LIMIT_BODY,
+  LIMIT_READY,
+  LIMIT_PLAN,
+  LIMIT_FREE,
+  LIMIT_NEXT,
   MAP_TITLE,
   MAP_SUB,
+  MAP_LABEL,
+  MAP_DONE,
+  MAP_READY,
   MAP_CLOSED_TITLE,
   MAP_CLOSED_SUB,
   MAP_YOURS,
@@ -201,6 +238,7 @@ export const WALL_COPY: readonly string[] = [
   FRENCH_WEEK,
   FRENCH_DAYS,
   FRENCH_OPEN_BANK,
+  FRENCH_LABEL,
   YOURS_TITLE,
   YOURS_SUB,
   ...YOURS_ROWS,
@@ -208,8 +246,14 @@ export const WALL_COPY: readonly string[] = [
   ...ADDS_ROWS,
   YOURS_NEXT,
   YOURS_ONLY,
+  YOURS_LABEL,
+  ADDS_LABEL,
   PLANS_TITLE,
   PLANS_SUB,
+  PLANS_LABEL,
+  PLAN_STARTER_NOTE,
+  PLAN_MAX_NOTE,
+  PLAN_SELECTED,
   PLANS_TIME,
   PLANS_BOTH,
   PLANS_CHOOSE,
@@ -223,4 +267,5 @@ export const WALL_COPY: readonly string[] = [
   WALL_DONE,
   WALL_READY,
   WALL_BUSY,
+  WALL_START,
 ];

@@ -23,7 +23,7 @@ import { paper, space, type, HIT } from './theme.ts';
 import { Card, PillButton, GhostButton } from './components.tsx';
 import { ConfirmSheet, Screen } from './layout.tsx';
 import { SessionView } from './SessionView.tsx';
-import { useLiveSession } from './live/useLiveSession.ts';
+import { useLiveSession, type OutOfMinutesCode } from './live/useLiveSession.ts';
 import { CONNECTING_TICK_MS, connectingTick, connectingView } from './live/connectingView.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
 import { connectionLine } from './live/connectionLine.ts';
@@ -37,7 +37,7 @@ import { withAgeStop } from './profile/store.ts';
 import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
 import { waitingView } from './tutor/waitingView.ts';
 import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
-import { Paywall } from './purchases/Paywall.tsx';
+import { LIMIT_NEXT, WALL_DONE } from './wall/wallCopy.ts';
 
 export function LiveSessionScreen({
   lesson,
@@ -47,6 +47,7 @@ export function LiveSessionScreen({
   onExit,
   textMode = false,
   onRetryAsText,
+  onOpenWall,
 }: {
   lesson: Lesson;
   userId: string;
@@ -65,6 +66,7 @@ export function LiveSessionScreen({
    * with its second token and its second grant, never happens.
    */
   onRetryAsText: () => void;
+  onOpenWall: (reason: OutOfMinutesCode) => void;
 }) {
   const { profile, update } = useProfile();
   // Who this learner chose. The waiting line is the one place this screen names
@@ -84,6 +86,7 @@ export function LiveSessionScreen({
   // rather than inline, where the guard would prevent its own pop.
   const [confirming, setConfirming] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const wallOpened = useRef(false);
   const leaveCopy = leaveConfirmCopy('lesson');
 
   // Connect on mount. The hook tears the room down on unmount.
@@ -91,6 +94,12 @@ export function LiveSessionScreen({
     void live.start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (live.status.phase !== 'out-of-minutes' || wallOpened.current) return;
+    wallOpened.current = true;
+    onOpenWall(live.status.code);
+  }, [live.status, onOpenWall]);
 
   /**
    * The learner is typing: the lesson opened that way, or the room went quiet
@@ -217,6 +226,7 @@ export function LiveSessionScreen({
   }
 
   if (live.status.phase === 'out-of-minutes') {
+    const reason = live.status.code;
     return (
       <Screen padded={false}>
         <View style={st.center}>
@@ -224,10 +234,10 @@ export function LiveSessionScreen({
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
             {live.status.message}
           </Text>
-          <Paywall userId={userId} />
-          <View style={{ marginTop: space(6) }}>
-            <PillButton label="Back" onPress={onExit} />
+          <View style={{ marginTop: space(6), width: '100%' }}>
+            <PillButton label={LIMIT_NEXT} onPress={() => onOpenWall(reason)} />
           </View>
+          <GhostButton label={WALL_DONE} onPress={onExit} />
         </View>
       </Screen>
     );

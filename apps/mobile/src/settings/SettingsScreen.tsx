@@ -85,6 +85,7 @@ import { purchases, type StoreOffering } from '../purchases/adapter.ts';
 import { restorePurchases } from '../purchases/restore.ts';
 import { PURCHASE_TROUBLE, RESTORE_BUSY, restoreTrouble } from '../purchases/paywallView.ts';
 import { RESTORE_DONE, subscriptionGroup, type SubscriptionAction } from '../purchases/subscription.ts';
+import { previewOffering } from '../wall/preview.ts';
 import { reminderPermission } from '../reminders/schedule.ts';
 import { openMail } from './links.ts';
 import { phoneRows, type PhonePermission } from './phone.ts';
@@ -132,7 +133,7 @@ import type { AuthResult } from '../auth/types.ts';
 type Sheet = 'none' | 'acknowledgements' | 'policy' | 'terms' | 'delete';
 
 /** Which store call is in flight, so neither row can be tapped twice. */
-type StoreBusy = 'none' | SubscriptionAction;
+type StoreBusy = 'none' | Exclude<SubscriptionAction, 'plans'>;
 
 export function SettingsScreen({
   onSignOut,
@@ -214,7 +215,7 @@ export function SettingsScreen({
         void purchases
           .offering(user.id)
           .then((next) => {
-            if (!cancelled) setOffering(next);
+            if (!cancelled) setOffering(next.available ? next : (previewOffering() ?? next));
           })
           .catch(() => {
             // No store, no group. Exactly what an unanswered store means.
@@ -307,7 +308,7 @@ export function SettingsScreen({
    * Restore reports that the store was checked rather than a result, because
    * RevenueCat cannot tell us which and entitlement is settled on the server.
    */
-  const askStore = (action: SubscriptionAction) => {
+  const askStore = (action: Exclude<SubscriptionAction, 'plans'>) => {
     if (!user || storeBusy !== 'none') return;
     setStoreBusy(action);
     setStoreMessage(null);
@@ -514,7 +515,10 @@ export function SettingsScreen({
                 first={index === 0}
                 label={row.label}
                 value={row.sub}
-                onPress={() => askStore(row.action)}
+                onPress={() => {
+                  if (row.action === 'plans') nav.navigate('Wall', { entry: 'settings' });
+                  else askStore(row.action);
+                }}
               />
             ))}
           </Card>

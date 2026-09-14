@@ -1,11 +1,14 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { ArrowRight, BadgeGlyph, Card } from '../components.tsx';
+import { ArrowRight, BadgeGlyph, Card, Label } from '../components.tsx';
+import { Phrasebook } from '../illustrations.tsx';
 import { HAIRLINE, paper, signal, space, type } from '../theme.ts';
 import {
   ADDS_ROWS,
+  ADDS_LABEL,
   ADDS_TITLE,
   YOURS_ONLY,
+  YOURS_LABEL,
   YOURS_ROWS,
   YOURS_SUB,
   YOURS_TITLE,
@@ -30,6 +33,10 @@ import {
 export function WallYoursPage({ canBuy }: { canBuy: boolean }) {
   return (
     <View>
+      <View style={st.art}>
+        <Phrasebook width={146} />
+      </View>
+      <Label>{YOURS_LABEL}</Label>
       <Text accessibilityRole="header" style={st.title}>{YOURS_TITLE}</Text>
       <Text style={st.sub}>{YOURS_SUB}</Text>
 
@@ -42,8 +49,11 @@ export function WallYoursPage({ canBuy }: { canBuy: boolean }) {
         ))}
       </Card>
 
-      <Text accessibilityRole="header" style={st.adds}>{ADDS_TITLE}</Text>
-      <Card style={st.card}>
+      <View style={st.adds}>
+        <Label>{ADDS_LABEL}</Label>
+        <Text accessibilityRole="header" style={st.addsTitle}>{ADDS_TITLE}</Text>
+      </View>
+      <Card style={[st.card, st.planCard]}>
         {ADDS_ROWS.map((line, index) => (
           <View key={line} style={[st.row, index > 0 && st.divided]}>
             <ArrowRight size={18} color={paper.inkSoft} />
@@ -62,10 +72,13 @@ export function WallYoursPage({ canBuy }: { canBuy: boolean }) {
 }
 
 const st = StyleSheet.create({
-  title: { ...type.display, color: paper.ink },
+  art: { height: 116, alignItems: 'center', justifyContent: 'center', marginBottom: space(2) },
+  title: { ...type.display, color: paper.ink, marginTop: space(2) },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
-  card: { marginTop: space(4), paddingVertical: space(1) },
-  adds: { ...type.heading, color: paper.ink, marginTop: space(7) },
+  card: { marginTop: space(4), paddingVertical: space(1), backgroundColor: paper.groundDeep },
+  planCard: { backgroundColor: paper.card },
+  adds: { marginTop: space(7) },
+  addsTitle: { ...type.heading, color: paper.ink, marginTop: space(2) },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(3) },
   divided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
   line: { ...type.body, color: paper.ink, flex: 1, minWidth: 0 },

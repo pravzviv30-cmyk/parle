@@ -35,16 +35,27 @@ describe('the wall is as long as it has something to show', () => {
     assert.equal(endsOnPlans(pages), true);
   });
 
-  test('with no store there are three, and the wall ends on the free promise', () => {
+  test('with no store the wall ends on the free promise', () => {
     // Web, Expo Go, and every build without a RevenueCat key. Three pages of
     // appetite ending in a button to nowhere would be worse than not opening the
     // wall at all, so the last word is the promise page three just made.
-    for (const entry of ['path-complete', 'refused', 'recap'] as const) {
+    for (const entry of ['path-complete', 'recap'] as const) {
       const pages = wallPages({ entry, storeHasPlans: false });
       assert.deepEqual([...pages], ['map', 'french', 'yours'], `${entry} drew a page that cannot exist`);
       assert.equal(canBuy(pages), false);
       assert.equal(endsOnPlans(pages), false);
     }
+    const refused = wallPages({ entry: 'refused', storeHasPlans: false });
+    assert.deepEqual([...refused], ['limit', 'map', 'french', 'yours']);
+    assert.equal(canBuy(refused), false);
+    assert.equal(endsOnPlans(refused), false);
+  });
+
+  test('a minutes refusal starts with a clear explanation before the value story', () => {
+    assert.deepEqual(
+      [...wallPages({ entry: 'refused', storeHasPlans: true })],
+      ['limit', 'map', 'french', 'yours', 'plans'],
+    );
   });
 
   test('somebody who came to buy is not sold to', () => {

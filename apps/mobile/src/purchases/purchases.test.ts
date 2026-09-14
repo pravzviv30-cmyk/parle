@@ -16,6 +16,8 @@ import {
 import {
   MANAGE_ROW,
   MANAGE_SUB,
+  PLANS_ROW,
+  PLANS_SUB,
   RESTORE_DONE,
   RESTORE_ROW,
   RESTORE_SUB,
@@ -118,12 +120,13 @@ describe('the shared paywall — F250', () => {
     assert.doesNotMatch(PAYWALL.replace(/surface\.purchaseLabel/g, ''), /[$€£]\s*\d|\d+[.,]\d{2}/, 'the component invents a price');
   });
 
-  test('both out-of-minutes screens render the shared paywall surface', () => {
+  test('both out-of-minutes screens open the full wall journey', () => {
     for (const screen of ['../LiveSessionScreen.tsx', '../ConvoScreen.tsx']) {
       const source = read(screen);
       const at = source.indexOf("live.status.phase === 'out-of-minutes'");
       assert.notEqual(at, -1, `${screen} has no out-of-minutes branch`);
-      assert.match(source.slice(at, at + 1200), /<Paywall userId=\{userId\}/, `${screen} omits the shared paywall`);
+      assert.match(source.slice(at, at + 1600), /onOpenWall\((?:live\.status\.code|refusal\.code|reason)\)/, `${screen} omits the full wall hand-off`);
+      assert.doesNotMatch(source, /<Paywall\b/, `${screen} still embeds the old, reduced paywall`);
     }
   });
 });
@@ -142,9 +145,9 @@ describe('manage subscription and restore, on Settings as well as the paywall �
 
     const rows = subscriptionGroup(starter('£14.99'));
     assert.ok(rows, 'a real product drew no group');
-    assert.deepEqual(rows.map((row) => row.action), ['manage', 'restore']);
-    assert.deepEqual(rows.map((row) => row.label), [MANAGE_ROW, RESTORE_ROW]);
-    assert.deepEqual(rows.map((row) => row.sub), [MANAGE_SUB, RESTORE_SUB]);
+    assert.deepEqual(rows.map((row) => row.action), ['plans', 'manage', 'restore']);
+    assert.deepEqual(rows.map((row) => row.label), [PLANS_ROW, MANAGE_ROW, RESTORE_ROW]);
+    assert.deepEqual(rows.map((row) => row.sub), [PLANS_SUB, MANAGE_SUB, RESTORE_SUB]);
 
     // The store's own price reached the paywall in the same call and must not
     // have followed the rows onto a settings screen.

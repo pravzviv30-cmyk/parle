@@ -65,7 +65,7 @@ export function parseProductEvent(value: unknown): ProductEvent | null {
   } else if (candidate.name === 'wall_page_seen') {
     if (!exactKeys(properties, ['page', 'index'])) return null;
     if (
-      !['map', 'french', 'yours', 'plans'].includes(String(properties.page)) ||
+      !['limit', 'map', 'french', 'yours', 'plans'].includes(String(properties.page)) ||
       !nonNegativeCount(properties.index)
     ) return null;
   } else if (candidate.name === 'plan_selected') {

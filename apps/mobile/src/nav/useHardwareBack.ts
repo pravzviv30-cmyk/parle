@@ -16,7 +16,7 @@
  */
 
 import { useCallback } from 'react';
-import { BackHandler } from 'react-native';
+import { BackHandler, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 /**
@@ -29,7 +29,12 @@ import { useFocusEffect } from '@react-navigation/native';
 export function useHardwareBack(active: boolean, onBack: () => void): void {
   useFocusEffect(
     useCallback(() => {
+      // React Native Web exposes the BackHandler shape but deliberately does
+      // not implement subscriptions. The wall is previewable on web, so the
+      // hook must be a genuine no-op there rather than logging an exception on
+      // every render.
       if (!active) return;
+      if (Platform.OS === 'web') return;
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
         onBack();
         return true;

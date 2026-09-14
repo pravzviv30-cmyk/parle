@@ -1,9 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, FlameGlyph, GhostButton, MicGlyph } from '../components.tsx';
+import { Card, FlameGlyph, GhostButton, Label, MicGlyph } from '../components.tsx';
+import { Phrasebook } from '../illustrations.tsx';
 import { HAIRLINE, paper, radius, signal, space, type } from '../theme.ts';
 import {
   FRENCH_DAYS,
+  FRENCH_LABEL,
   FRENCH_OPEN_BANK,
   FRENCH_START,
   FRENCH_SUB,
@@ -34,11 +36,16 @@ const MARK = 10;
 export function WallFrenchPage({ french, onOpenBank }: { french: WallFrench; onOpenBank: () => void }) {
   return (
     <View>
+      <Label>{FRENCH_LABEL}</Label>
       <Text accessibilityRole="header" style={st.title}>{FRENCH_TITLE}</Text>
-      <Text style={st.sub}>{french.hasEvidence ? FRENCH_SUB : FRENCH_START}</Text>
+      <Text style={st.sub}>{FRENCH_SUB}</Text>
 
-      {french.hasEvidence && (
-        <Card style={st.hero}>
+      <Card style={st.hero}>
+        <View style={st.art}>
+          <Phrasebook width={132} />
+        </View>
+        {french.hasEvidence ? (
+          <>
           <View style={st.head}>
             <View style={st.well}>
               <MicGlyph size={18} color={signal.good} />
@@ -65,8 +72,11 @@ export function WallFrenchPage({ french, onOpenBank }: { french: WallFrench; onO
             </View>
           )}
           {french.moreLine !== null && <Text style={st.more}>{french.moreLine}</Text>}
-        </Card>
-      )}
+          </>
+        ) : (
+          <Text style={st.start}>{FRENCH_START}</Text>
+        )}
+      </Card>
 
       <Card style={st.tile}>
         <View style={st.head}>
@@ -93,9 +103,11 @@ export function WallFrenchPage({ french, onOpenBank }: { french: WallFrench; onO
 }
 
 const st = StyleSheet.create({
-  title: { ...type.display, color: paper.ink },
+  title: { ...type.display, color: paper.ink, marginTop: space(2) },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
-  hero: { marginTop: space(6), padding: space(4) },
+  hero: { marginTop: space(6), padding: space(4), backgroundColor: paper.groundDeep },
+  art: { height: 96, alignItems: 'center', justifyContent: 'center', marginBottom: space(2) },
+  start: { ...type.bodyStrong, color: paper.ink, textAlign: 'center' },
   tile: { marginTop: space(3), padding: space(4) },
   head: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   well: {
@@ -133,8 +145,8 @@ const st = StyleSheet.create({
   chipWord: { ...type.frenchSm, color: paper.ink },
   more: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
   week: { ...type.small, color: paper.inkSoft, marginTop: space(3) },
-  marks: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(1.5), marginTop: space(2) },
-  mark: { width: MARK, height: MARK, borderRadius: MARK / 2 },
+  marks: { flexDirection: 'row', alignItems: 'center', gap: space(1.5), marginTop: space(2) },
+  mark: { flex: 1, height: MARK, borderRadius: MARK / 2 },
   markDone: { backgroundColor: signal.good },
   markWaiting: { borderWidth: HAIRLINE + 0.4, borderColor: paper.line },
   out: { marginTop: space(5) },

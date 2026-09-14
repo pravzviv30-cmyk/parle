@@ -86,7 +86,7 @@ function Loading() {
 function LessonRoute() {
   const nav = useNavigation<{
     goBack: () => void;
-    navigate: (screen: keyof RootStackParamList) => void;
+    navigate: (screen: keyof RootStackParamList, params?: object) => void;
     setParams: (p: { textMode?: boolean }) => void;
   }>();
   const route = useRoute<RouteProp<RootStackParamList, 'Lesson'>>();
@@ -176,6 +176,7 @@ function LessonRoute() {
         onRetryAsText={() => nav.setParams({ textMode: true })}
         onFinish={finish}
         onExit={() => nav.goBack()}
+        onOpenWall={(reason) => nav.navigate('Wall', { entry: 'refused', reason })}
       />
     </Suspense>
   ) : (
@@ -194,7 +195,7 @@ function LessonRoute() {
  * Practice can reach this route too.
  */
 function ConvoRoute() {
-  const nav = useNavigation<{ goBack: () => void }>();
+  const nav = useNavigation<{ goBack: () => void; navigate: (screen: keyof RootStackParamList, params?: object) => void }>();
   const route = useRoute<RouteProp<RootStackParamList, 'Convo'>>();
   const { user } = useAuth();
   const { profile, updateBrain } = useProfile();
@@ -297,6 +298,7 @@ function ConvoRoute() {
         snapshot={withLearnerName(profile.brain, profile.name)}
         onRecap={onRecap}
         onExit={() => nav.goBack()}
+        onOpenWall={(reason) => nav.navigate('Wall', { entry: 'refused', reason })}
         startInTextMode={route.params?.textMode ?? false}
         seedTopic={route.params?.seedTopic}
         // The mission the learner chose, carried through to the join token so
@@ -350,7 +352,7 @@ function WallRoute() {
     canGoBack: () => boolean;
     navigate: (screen: string, params?: object) => void;
   }>();
-  const { entry } = useRoute<RouteProp<RootStackParamList, 'Wall'>>().params;
+  const { entry, reason } = useRoute<RouteProp<RootStackParamList, 'Wall'>>().params;
 
   // A preview opens ON this screen, so there can be nothing behind it to go back
   // to. Falling through to the tabs is the difference between a way out and a
@@ -360,7 +362,9 @@ function WallRoute() {
   return (
     <WallScreen
       entry={entry}
+      reason={reason}
       onLeave={leave}
+      onDone={() => nav.navigate('Tabs', { screen: 'Tutor' })}
       onOpenBank={() => nav.navigate('Review')}
       onOpenPolicy={() => nav.navigate('Policy')}
       onOpenTerms={() => nav.navigate('Terms')}

@@ -1114,6 +1114,20 @@ describe('database security contract — SQL cannot drift quietly', () => {
     }
   });
 
+  test('the client, parser and trigger agree on every wall page value', () => {
+    const client = readFileSync(path.join(ROOT, 'apps', 'mobile', 'src', 'wall', 'wallPages.ts'), 'utf8');
+    const pageType = client.match(/export type WallPage = ([^;]+);/);
+    assert.ok(pageType?.[1], 'the client has no closed WallPage union');
+    const pages = [...pageType[1].matchAll(/'([^']+)'/g)].map((match) => match[1]!);
+    const parserAt = parserSource.indexOf("candidate.name === 'wall_page_seen'");
+    const parserBranch = parserSource.slice(parserAt, parserSource.indexOf("candidate.name === 'plan_selected'", parserAt));
+    const trigger = triggerBranch(effectiveBody(FUNCTION_HEADERS.validate_product_event), 'wall_page_seen');
+    for (const page of pages) {
+      assert.match(parserBranch, new RegExp(`'${page}'`), `parseProductEvent refuses the client's ${page} page`);
+      assert.match(trigger, new RegExp(`'${page}'`), `validate_product_event refuses the client's ${page} page`);
+    }
+  });
+
   test('every migration ships a rollback that names each object it created', () => {
     const rollbackFiles = readdirSync(ROLLBACKS).filter((name) => name.endsWith('.sql'));
     assert.ok(migrationFiles.length > 0, 'there are no migrations to roll back');

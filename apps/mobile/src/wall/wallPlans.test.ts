@@ -120,7 +120,10 @@ describe('cheapest first, and exactly what the store is selling', () => {
 
   test('nothing is marked recommended, best value or most popular', () => {
     const page = code('./WallPlansPage.tsx');
-    for (const word of ['recommended', 'best value', 'most popular', 'save \\d', 'badge']) {
+    // A selected-state tick and the factual trust row are interface feedback,
+    // not an invented endorsement. What stays forbidden is recommendation
+    // language, crowd claims and a saving the store never calculated.
+    for (const word of ['recommended', 'best value', 'most popular', 'save \\d', 'learners chose', 'people chose']) {
       assert.doesNotMatch(page, new RegExp(word, 'i'), `the page is nudging with "${word}"`);
     }
   });

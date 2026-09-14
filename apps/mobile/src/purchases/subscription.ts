@@ -1,5 +1,5 @@
 /**
- * The Subscription group on Settings: two rows, and the rule for drawing them.
+ * The Subscription group on Settings: three rows, and the rule for drawing them.
  *
  * Restore existed only inside the paywall, and the paywall is mounted only
  * where a session has been refused for want of minutes, so the one moment a
@@ -26,8 +26,8 @@ import {
   paywallSurface,
 } from './paywallView.ts';
 
-/** Which of the two was tapped. The screen holds no other state about them. */
-export type SubscriptionAction = 'manage' | 'restore';
+/** Which subscription row was tapped. */
+export type SubscriptionAction = 'plans' | 'manage' | 'restore';
 
 export interface SubscriptionRow {
   action: SubscriptionAction;
@@ -38,6 +38,9 @@ export interface SubscriptionRow {
 }
 
 export const MANAGE_ROW = 'Manage subscription';
+
+export const PLANS_ROW = 'Plans and speaking time';
+export const PLANS_SUB = 'Compare the monthly options and what each one opens.';
 
 /**
  * Honest about whose screen opens next.
@@ -68,6 +71,7 @@ export const RESTORE_SUB = 'Brings back speaking time you already paid for.';
 export const RESTORE_DONE = 'The store has been checked, and anything you paid for is on this account.';
 
 const ROWS: readonly SubscriptionRow[] = [
+  { action: 'plans', label: PLANS_ROW, sub: PLANS_SUB },
   { action: 'manage', label: MANAGE_ROW, sub: MANAGE_SUB },
   { action: 'restore', label: RESTORE_ROW, sub: RESTORE_SUB },
 ];
@@ -78,11 +82,11 @@ const ROWS: readonly SubscriptionRow[] = [
  * Drawn only when the store answered with a real product, which is the same
  * test the paywall applies before it offers to sell anything. That is what
  * keeps the group honest in Expo Go, on the web, and on a build with no
- * RevenueCat keys: in all three the store answers nothing, both rows would
+ * RevenueCat keys: in all three the store answers nothing, all three rows would
  * open onto nothing, and a row that cannot do what it says is worse than an
  * absent one.
  *
- * Both rows stand or fall together. A learner who can be sold a subscription is
+ * All rows stand or fall together. A learner who can be sold a subscription is
  * a learner who must be able to leave it, and splitting them would let the
  * first ship without the second.
  */
@@ -99,6 +103,8 @@ export function subscriptionGroup(offering: StoreOffering): readonly Subscriptio
  * learner meets them here too and nothing else was scanning them.
  */
 export const SUBSCRIPTION_COPY: readonly string[] = [
+  PLANS_ROW,
+  PLANS_SUB,
   MANAGE_ROW,
   MANAGE_SUB,
   RESTORE_ROW,
