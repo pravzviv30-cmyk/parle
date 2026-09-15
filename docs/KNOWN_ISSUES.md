@@ -8258,3 +8258,199 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   happen on the server, which is the only honest place to record them; the app can only guess. They
   are written as product events by the server itself, which has no precedent and so gets its own helper.
 - verified-by: `the first trial claim and every refusal over minutes are recorded as product events`
+
+### F569 — Cards, tinted rows and the hero are primitives, not per-screen styles
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/components.tsx:912
+- note: revamp A. A white card lifts on one named whisper of shadow at radius twenty; a tinted row is one
+  pressable with a white disc, a title, a gloss and a chevron; the hero card and the phrase card are
+  their own files under `surface/`. Screens compose these and style nothing of their own.
+- verified-by: `a tinted row is a pressable at the touch floor with a white disc, a title, a gloss and a chevron, and it names itself once`
+- verified-by: `a card lifts off the ground with the one soft shadow and the wider radius`
+
+### F570 — Raster art ships decorative, sized once, and every key is drawn
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/art/registry.ts:1
+- note: revamp A. The watercolour scenes are PNGs under `assets/art`, named once in a registry with their
+  point size, drawn through one component that hides them from assistive technology, and held to a
+  byte budget. Nothing ships that nothing draws, and nothing is drawn that is not registered.
+- verified-by: `every raster scene is decorative and every asset the registry names exists on disk under budget`
+- verified-by: `every art key the registry names is drawn somewhere and nothing in the folder is unregistered`
+
+### F571 — Home opens on the hour's line and tonight's scene with a time in minutes
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/home/homeMission.ts:1
+- note: revamp A. The greeting carries the hour's question beneath it, the hero is tonight's daily scene
+  (a part-way mission first, the café before anything), drawn on a white card with its place's art and
+  the one sanctioned numeral line, "Ready for N min", estimated from the scene's length.
+- verified-by: `every hour has exactly one subline`
+- verified-by: `a three-line scene is ready for seven minutes`
+- verified-by: `home leads with tonight's scene, a resume before it, the café before anything`
+
+### F572 — Real progress is one sentence, and the rest lives one level down
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/home/abilities.ts:1
+- note: revamp A. The abilities become one joined can-do sentence on a white row; tapping it pushes a
+  Progress screen that keeps the week story, the momentum cards and the word of the day.
+- verified-by: `two stamps join with and, no comma`
+- verified-by: `before any stamp the card says where progress starts and never a count`
+- verified-by: `the progress screen keeps the momentum, the week story and the word of the day`
+
+### F573 — Tutor is the orb, the remembers row and three tinted ways in
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/TutorTab.tsx:1
+- note: revamp A. The speak card, the resume card, the folded situations and the lesson door leave the
+  tab; the lesson becomes a door on the chooser and the intro link moves to Settings.
+- verified-by: `the tutor tab draws three tinted rows, one remembers row and no pill`
+- verified-by: `the pronunciation lesson is a door on the chooser`
+
+### F574 — Practice is one next practice and three rows, with the archive in Conversations
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/PracticeTab.tsx:1
+- note: revamp A. The next-step pill becomes a phrase card with a speaker and one control per branch;
+  the vault, the feed and the filters move to a pushed Conversations screen; the suggestion and the
+  closing lines go.
+- verified-by: `the next practice card says one French line and one control per branch`
+- verified-by: `the conversations screen carries the feed, the filters and the delete flow`
+
+### F575 — My French is the tinted situation rows and the phrase shelf
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/MyFrenchTab.tsx:1
+- note: revamp A. Stamped missions first under "You can now...", the rest under "Next places", then the
+  phrase shelf, the saved shelf and the conversations row; the lanes, the stat row and the one-line
+  card go, the one-line card and the cadence set living on in a pushed Phrasebook.
+- verified-by: `my french draws one tinted row per mission, stamped ones first, and no count`
+- verified-by: `the phrase shelf opens the phrasebook and the one-line card lives there`
+
+### F576 — Profile is the centred name, the tutor card, the rhythm and the learning card
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:1
+- note: revamp A. The tutor is drawn as the orb, never a face; the plan card, the reminder rows and
+  the intro link move to Settings; the pace switch moves to the voice sheet.
+- verified-by: `profile opens centred on the learner and draws its tutor as the orb, never a face`
+- verified-by: `the plan, the reminder and the intro link live in settings`
+
+### F577 — The week is a Monday-to-Sunday calendar with labelled violet dots
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/progress/momentum.ts:392
+- note: revamp A. The founder chose the identity violet for the calendar record; the rule that a state
+  mark is never violet now exempts a calendar, and the orb's traffic lights stay the only state marks.
+- verified-by: `the rhythm week starts on Monday and ends on Sunday whatever today is`
+- verified-by: `the rhythm sentence counts in words and passes the guilt list`
+- verified-by: `the week rail labels every dot and stays hidden from assistive technology`
+
+### F578 — Own words is a drill kind whose verdict arrives from outside
+- severity: P2
+- status: [ ]
+- where: packages/core/src/drill/types.ts:1
+- note: revamp A. A new kind, own-words, asks the phrase in the learner's own French. Core builds it on
+  demand for a scoped sitting, returns pending from grading, and decides good, retry or reveal from a
+  verdict something else produced. The model observes, code decides.
+- verified-by: `a verdict that keeps the meaning is good even when it is awkward`
+- verified-by: `a verdict that loses the meaning retries once then reveals`
+- verified-by: `a scoped sitting can be asked for own-words alone and synthesises one`
+
+### F579 — The brain judges an own-words attempt through a strict schema
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/drill/judge.ts:1
+- note: revamp A. One judge activity on the cheap tier; a strict verdict schema; a note swept for banned
+  words and French leaks and dropped when it fails.
+- verified-by: `a verdict outside the schema is a parse error, never a pass`
+- verified-by: `judge runs on the talker tier at low effort`
+
+### F580 — The judge endpoint asks the brain and stores nothing
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/server.ts:395
+- note: revamp A. `POST /drill/judge` sits beside `/drill/score` behind the same limits; a brain that
+  will not answer is a 503, never an invented verdict; the attempt is never written anywhere.
+- verified-by: `a brain that will not answer is a 503, never an invented verdict`
+- verified-by: `the attempt is never written to the store or the usage log`
+
+### F581 — The own-words view types the attempt, and a missing verdict writes no grade
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/DrillScreen.tsx:1
+- note: revamp A. Typed only for now, with the hint to say it aloud first; spoken attempts through a
+  transcription endpoint are a filed follow-up. Offline, the line is revealed and nothing is graded.
+- verified-by: `own-words asks for the learner's own French and never a recording`
+- verified-by: `a null verdict reveals the line and writes no grade`
+- verified-by: `the judge is asked once per Check`
+
+### F582 — Replay a moment speaks the better line and keeps nothing
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/practice/madeFrom.ts:1
+- note: revamp A. "Listen and try again" is the tutor's voice reading the better line, then the drill;
+  no recording and no transcript are ever kept, by the existing privacy contract.
+- verified-by: `replay speaks the better line and stops it when the tab goes`
+- verified-by: `nothing on practice listens, records or scores`
+
+### F583 — The tab bar keeps every whole word at the largest reading size
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx:123
+- note: revamp A; closes F461. Cells get room at a large font scale and stack the glyph over a wrapped
+  word instead of clipping.
+- verified-by: `the tab bar labels wrap without colliding at the largest reading size`
+
+### F584 — Every pushed screen wears revamp A without losing its way out
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/ConvoScreen.tsx:1
+- note: revamp A. The conversation, the lesson, the recap, review, drills, the chooser, rehearse, the
+  sound check, the memory editor, settings and the legal pages take the porcelain ground, white cards
+  and tinted rows; the leave confirm, the help row, the station line and the orb states are unchanged.
+- verified-by: `every pushed screen keeps its way out and its one primary after the restyle`
+
+### F585 — The first run wears revamp A
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:1
+- note: revamp A. Welcome, the age gate, the name and voice steps and sign in take the new art and
+  surfaces; every page still leads with a heading role and its art is decorative.
+- verified-by: `every first-run screen leads with a heading role and its art is decorative`
+
+### F586 — The plans wall and the paywall wear revamp A and announce a chosen plan on the web
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/wall/WallPlansPage.tsx:1
+- note: revamp A; closes F522. The four pages and the inline paywall keep their copy; a chosen plan card
+  carries `aria-selected` as well as the native selected state.
+- verified-by: `a selected option announces its state on the web as well as on a device`
+
+### F587 — The device runbook carries the Pass 8 revamp checks and DESIGN.md is regenerated
+- severity: P2
+- status: [ ]
+- where: docs/DEVICE_VERIFICATION.md:1
+- note: revamp A; closes F146. Pass 8 lists what only a device can prove; DESIGN.md records the
+  system as shipped, one hex row per token, every colour it names a colour the theme ships.
+- verified-by: `the device runbook carries the Pass 8 revamp checks`
+- verified-by: `every colour DESIGN.md names is a colour the theme ships`
+
+### F588 — The orb is a gradient disc with rings and soundwave lines, and rests under reduce motion
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tutor/VoiceOrb.tsx:1
+- note: revamp A. The founder reversed the rings-over-sphere choice. The gradient is the one state
+  colour thinned by opacity, so no new palette token and the mark floor holds; movement stays
+  transform and opacity on the native driver.
+- verified-by: `the orb rests as one still gradient with its rings and lines drawn once when motion is reduced`
+
+### F589 — The glyph set is one pen: every icon at one stroke, decorative
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/glyphs.tsx:1
+- note: revamp A. The row and disc glyphs (clock, cup, bubble, document, replay, quotes, waveform, the
+  six places, the right chevron) join the tab icons under the one stroke-weight rule.
+- verified-by: `every glyph draws in the one stroke weight and hides from assistive technology`
