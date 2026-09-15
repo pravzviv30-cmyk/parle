@@ -45,6 +45,24 @@ function region(source: string, startMarker: string, endMarker: string): string 
   return source.slice(start, end);
 }
 
+/**
+ * The tab header with its centred branch cut out.
+ *
+ * Alignment is the one thing in `TabHeader` that is allowed in exactly one
+ * place and banned everywhere else, so the ban needs a slice that is honest
+ * about where "everywhere else" is. Cutting the branch out and asserting on
+ * what is left is stricter than asserting a count of `textAlign`: a count of
+ * one passes just as happily when the one is in the left branch and the
+ * centred branch has none.
+ */
+function outsideTheCentredBranch(header: string): string {
+  const opens = header.indexOf("if (align === 'center') {");
+  assert.notEqual(opens, -1, 'the tab header has no centred branch, so this split is reading the wrong file');
+  const closes = header.indexOf('\n  return (', opens);
+  assert.notEqual(closes, -1, 'the centred branch never gives way to the left one, so the split would swallow the whole header');
+  return header.slice(0, opens) + header.slice(closes);
+}
+
 describe('the layout primitives keep their promises — F306', () => {
   test('the scroll screen keeps taps while the keyboard is up, by construction — F306', () => {
     const scroll = region(
@@ -153,12 +171,18 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
       /type\.body,\s*\{ color: paper\.inkSoft, marginTop: space\(2\) \}/,
       'the purpose is not a soft-ink body line beneath the title',
     );
-    // Nothing capped: no line cap, no growth cap, no scaling switch, no centring
-    // that would re-read the left title as centred.
+    // Nothing capped: no line cap, no growth cap, no scaling switch.
     assert.doesNotMatch(header, /numberOfLines/, 'the tab title is capped to a line count');
     assert.doesNotMatch(header, /maxFontSizeMultiplier/, 'the tab title caps how far it may grow');
     assert.doesNotMatch(header, /allowFontScaling/, 'the tab title opts out of the OS reading size');
-    assert.doesNotMatch(header, /textAlign/, 'the tab title is aligned away from the left');
+    // And no centring outside the one branch that exists to centre. Four tabs
+    // name a subject and read left; a `textAlign` reached for anywhere else in
+    // this header is how the fifth quietly stops matching them.
+    assert.doesNotMatch(
+      outsideTheCentredBranch(header),
+      /textAlign/,
+      'the tab title is aligned away from the left outside the centred branch',
+    );
   });
 
   test('the shared header keeps a slot at the touch floor on both sides, whether or not it holds a control', () => {
@@ -636,6 +660,77 @@ describe('the greeting travels by word, not by slot — F428', () => {
       header,
       /setWidths\(\(seen\) => \(seen\[text\] === drawn \? seen : \{ \.\.\.seen, \[text\]: drawn \}\)\);/,
       'the measurement writes state on every layout pass instead of only when a width changed, which is a render loop',
+    );
+  });
+});
+
+/**
+ * One tab is a person, and it is the only one that centres — F576.
+ *
+ * Four tabs name a subject and read left, because a left edge is where the eye
+ * starts a line and four headers that agree are most of what makes an app feel
+ * like one app. Profile is the exception the mockup draws: it opens on the
+ * learner's own mark with their name under it, and a centred column is the only
+ * honest way to draw a header that is a person rather than a subject.
+ *
+ * So centring is a branch of the one header rather than a `textAlign` a tab may
+ * reach for, and this is the test that keeps it that way. It is written as two
+ * halves on purpose. The half above proves the centred branch really does
+ * everything centring needs — the column, the alignment, the mark above the
+ * title — and the half in `the chrome primitives hold their shape` proves that
+ * alignment appears nowhere else in the file. Either one alone is satisfied by
+ * a header that centres nothing and by a header that centres everything.
+ */
+describe('a header that is a person, not a subject — F576', () => {
+  test('a tab header can centre itself for the one tab that is a person, and only then', () => {
+    const source = layoutSource();
+
+    // The two props that arrived, and the default that keeps the other four
+    // tabs where they were without touching a line of them.
+    const props = region(source, 'type TabHeaderProps = {', 'export function TabHeader(');
+    assert.match(props, /align\?: 'left' \| 'center';/, 'the header cannot be asked to centre, so Profile would have to align its own title');
+    assert.match(props, /leading\?: ReactNode;/, 'the header takes no mark above its title, so the learner has nowhere to be drawn');
+
+    const header = region(source, 'export function TabHeader(', 'type ConfirmSheetProps');
+    assert.match(
+      header,
+      /align = 'left'/,
+      'the header does not default to the left, so a tab that says nothing about alignment could drift',
+    );
+
+    const opens = header.indexOf("if (align === 'center') {");
+    assert.notEqual(opens, -1, 'the header has no centred branch at all');
+    const centred = header.slice(opens, header.indexOf('\n  return (', opens));
+
+    // A column, centred, with the alignment the left branch is forbidden.
+    assert.match(centred, /alignItems: 'center'/, 'the centred header does not centre its column, so a short purpose line hangs left');
+    assert.match(centred, /textAlign: 'center'/, 'the centred header centres the box but not the words inside it, which is the same header wearing a different bug');
+    assert.match(centred, /accessibilityRole="header"/, 'the centred title is not rolled as a heading, so a screen reader cannot jump to it');
+
+    // The mark is drawn ABOVE the title. Below it, it is a signature rather
+    // than the learner, which is the whole point of the centred tab.
+    const leadingAt = centred.indexOf('leading != null');
+    const titleAt = centred.indexOf('{title}');
+    assert.ok(leadingAt !== -1, 'the centred header never draws the mark it was given');
+    assert.ok(titleAt !== -1, 'the centred header never draws its title');
+    assert.ok(leadingAt < titleAt, 'the mark is drawn under the title rather than above it');
+
+    // And only then. The centred branch is not a second header: no moving word,
+    // no trailing control, nothing capped.
+    assert.doesNotMatch(
+      centred,
+      /titleSwap|TitleSwapRow/,
+      'the centred header draws the greeting swap, which belongs to Home and to the left',
+    );
+    assert.doesNotMatch(
+      centred,
+      /trailing/,
+      'the centred header draws a trailing control, which pulls a centred title off centre',
+    );
+    assert.doesNotMatch(
+      centred,
+      /numberOfLines|ellipsizeMode|maxFontSizeMultiplier|allowFontScaling/,
+      'the centred header caps or truncates its title, which at the largest reading size is how a name disappears',
     );
   });
 });

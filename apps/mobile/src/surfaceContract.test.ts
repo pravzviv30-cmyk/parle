@@ -113,7 +113,7 @@ describe('the touch floor is a floor — J5', () => {
 });
 
 describe('drawings are drawings — J6', () => {
-  test('every drawing in the app is hidden from assistive technology', () => {
+  test('every drawing and every raster scene in the app is hidden from assistive technology', () => {
     // theme.ts exports `decorative` for this and motion.test.ts already enforces
     // it on illustrations. The icon layer never spread it, so the microphone,
     // the ear and every chevron reached a screen reader as unlabelled images.
@@ -125,6 +125,71 @@ describe('drawings are drawings — J6', () => {
         );
       }
     }
+
+    // Revamp A brought raster scenes into a world that had only ever drawn
+    // vectors, and an unlabelled <Image> is announced as "image" by every
+    // screen reader there is — the same defect J6 closed for the SVG layer.
+    // So the rule is held twice: one file may reach for `Image` at all, and
+    // every tag it draws is hidden the three ways `decorative` spells it.
+    const importers: string[] = [];
+    for (const { path, body } of SOURCES) {
+      for (const tag of body.match(/<Image(?=[\s>])[^>]*>/g) ?? []) {
+        assert.ok(
+          tag.includes('decorative') || tag.includes('accessibilityElementsHidden') || tag.includes('aria-hidden'),
+          `${rel(path)} draws a picture that assistive tech will read: ${tag.replace(/\s+/g, ' ')}`,
+        );
+      }
+      for (const line of body.split('\n')) {
+        if (!/from '(?:react-native|expo-image)'/.test(line)) continue;
+        if (/\bImage\b/.test(line.slice(0, line.indexOf('from')))) importers.push(rel(path));
+      }
+    }
+    assert.deepEqual(
+      [...new Set(importers)],
+      ['art/Art.tsx'],
+      'something other than the one art renderer imports Image, so a picture can reach the screen without the registry or the decorative spread',
+    );
+  });
+});
+
+describe('two shadows, both named — F569', () => {
+  test('the whisper and the live glow are the only two shadows, and both are named', () => {
+    // Revamp A lifts the white card off the porcelain with one soft shadow, and
+    // a soft shadow is the easiest thing in a design system to copy onto a row,
+    // a pill, the tab bar and a header until the whole app floats. So there are
+    // exactly two in the codebase: `shadow.whisper` in theme.ts, spread by name
+    // and never written out, and the live microphone's green glow in
+    // `SpeakCircle`, which predates the revamp and is the one shadow that
+    // reports something. Anywhere else, a raw shadow number is the drift.
+    // Read by exact path, not by suffix: `named('theme.ts')` finds `nav/theme.ts`.
+    const exact = (name: string) => SOURCES.find((f) => rel(f.path) === name)!.body;
+    const glow = (() => {
+      const body = exact('components.tsx');
+      const at = body.indexOf('speakLive: {');
+      assert.notEqual(at, -1, 'components.tsx no longer holds the live microphone glow, so this allowance is stale');
+      // To the style's own closing brace, not the first `},` in it: the glow's
+      // offset is an object literal and stopping at that one would cut the
+      // allowance in half and let the two numbers under it fail this test.
+      const end = body.indexOf('\n  },', at);
+      assert.notEqual(end, -1, 'the live glow is no longer a top-level entry in the stylesheet, so this allowance is stale');
+      return body.slice(at, end);
+    })();
+
+    const offenders: string[] = [];
+    for (const { path, body } of SOURCES) {
+      for (const line of body.split('\n')) {
+        if (!/\bshadowOpacity\b|\belevation:/.test(line)) continue;
+        if (rel(path) === 'theme.ts') continue;
+        if (rel(path) === 'components.tsx' && glow.includes(line.trim())) continue;
+        offenders.push(`${rel(path)}  ${line.trim()}`);
+      }
+    }
+    assert.deepEqual(offenders, [], `A third shadow, written in numbers rather than named:\n${offenders.join('\n')}`);
+
+    // And the whisper really is the token, not a copy of it: every card-like
+    // surface reaches it by name.
+    assert.match(exact('theme.ts'), /whisper: \{/, 'theme.ts no longer names the whisper');
+    assert.match(exact('components.tsx'), /\.\.\.shadow\.whisper/, 'the card no longer spreads the named whisper');
   });
 });
 
@@ -1148,8 +1213,10 @@ describe('the session names its rung once — F329', () => {
 
 describe('faint ink is a mark, not a word — F330, F338', () => {
   // A drawn glyph the faint ink is allowed to colour: an icon, a spinner, an
-  // inactive tab mark. Words a learner reads never travel in it.
-  const GLYPH = /<(ArrowRight|EarGlyph|MicGlyph|ChevronLeft|HelpGlyph|GoogleMark|ActivityIndicator|Icon)\b/;
+  // inactive tab mark. Words a learner reads never travel in it. `ChevronRight`
+  // joined with revamp A: the tinted row and the white icon row both end in one,
+  // and a chevron is a mark that says "this opens", never a line to read.
+  const GLYPH = /<(ArrowRight|EarGlyph|MicGlyph|ChevronLeft|ChevronRight|HelpGlyph|GoogleMark|ActivityIndicator|Icon)\b/;
   // The exact off-control expressions faint ink may still letter: a disabled
   // ghost, a muted mic, an inactive bullet numeral, an empty draft's Send, a
   // used token, a locked row's title. Nothing else. Normalised to single spaces.

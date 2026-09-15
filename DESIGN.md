@@ -7,12 +7,22 @@
 
 ## The world
 
-**Colourful calm.** A picture book for adults: a single pale porcelain ground, violet-cast
-ink, hand-drawn line-art illustrations, a serif that speaks and a sans that
-stays out of the way. Flat white cards on a hairline rule. Colour does jobs
-now: **violet is identity** (the primary pill, the micro-labels, the monogram),
-**green means go** (your turn to speak, ground already covered), **amber means
-thinking**, **red means the tutor is talking**.
+**Colourful calm.** A picture book for adults: a single pale porcelain ground,
+violet-cast ink, a serif that speaks and a sans that stays out of the way.
+
+Four surfaces, and everything in the app is one of them. **White cards** on a
+hairline rule, lifted off the porcelain by one whisper of a shadow. **Pastel
+tinted rows**, each a soft paper under one place or one kind of practice, with a
+white disc and a line-art glyph at the head of it. **Watercolour-and-line raster
+scenes** — one thin violet ink line with a loose wash inside it — bleeding off a
+header corner or centred in a card. And **serif headlines**: every screen title
+and every card title is set in Fraunces, so the thing with a voice always looks
+like the thing with a voice.
+
+Colour does jobs: **violet is identity** (the primary pill, the active tab, the
+micro-labels, the monogram, the week already spent), **green means go** (your
+turn to speak, ground already covered), **amber means thinking**, **red means the
+tutor is talking**.
 
 Chosen because the product asks a nervous adult to speak out loud twice a day,
 and the surface that earns that is calm, friendly and professional — easy on the
@@ -128,11 +138,19 @@ the lesson SpeakCircle, the Review button, the path's learned marks.
 ### Tints: paper for a place
 
 The founder's mockups put each situation's line art on a soft coloured disc, and
-that much of the retired five-paper scheme came back as six **tints**, one per
-place. A tint is a **surface**, not a mark and not an accent: it is drawn as the
-disc behind a mission's drawing (`TintDisc`, via `MissionDisc`) and as the ground
-under a row about that same place (`TintPanel`), never as lettering, never as a
-stroke or a border, never as a ring or a dot that reports state.
+that much of the retired five-paper scheme came back as six **tints**. A tint
+names a **place** (the café, the hotel, the market, the street, home, friends) or
+a **kind of practice** (replaying a moment, making a phrase yours, tuning one
+sound) — never a state, a level or a mood. Which tint goes with which is decided
+once, in a role table beside the thing it describes: `missions/missionTint.ts`,
+`tutor/doorTint.ts`, `practice/madeFromTint.ts`, `profile/rhythmTint.ts`. A
+screen names the role and never the colour.
+
+A tint is a **surface**, not a mark and not an accent: it is drawn as the disc
+behind a mission's drawing (`TintDisc`, via `MissionDisc`), as the ground under a
+row about that place or that practice (`TintPanel`, and `TintRow` above it), and
+as the panel behind the speaking rhythm. Never as lettering, never as a stroke or
+a border, never as a ring or a dot that reports state.
 
 The second of those is F467 and it is the founder's decision, taken the way
 Theme C was. A later mockup carried the colour through to the rows themselves,
@@ -161,6 +179,23 @@ signal in a tint.
 | `tint.sage` | `#E8EED5` | The market: sage under the crate of tomatoes |
 | `tint.sky` | `#D5EFFE` | The hotel: sky under the front desk |
 
+### Shadow
+
+Two, and both are named in `theme.ts` so no screen ever writes a shadow number.
+**The whisper** (`shadow.whisper`) is what lifts a white card off the porcelain:
+four points down, six per cent of the ink, a fourteen-point blur. It is on
+`Card`, on the phrase card's round speaker, and nowhere else — never on a tinted
+row, the tab bar, the orb, a pill or a header, because an app where everything
+floats is an app where nothing does. The card keeps its hairline underneath it
+on purpose: elevation renders nothing on Android below API 28 and clips oddly in
+the web column, and a card without the rule would dissolve into the ground there.
+
+**The live glow** is the second and the last: the green halo under `SpeakCircle`
+while the microphone is open. It is the one shadow that reports something, which
+is why it is allowed to be louder than the whisper. `surfaceContract.test.ts`
+fails on a third: a `shadowOpacity` or an `elevation` written anywhere outside
+`theme.ts` and that one glow.
+
 ## Type
 
 **Fraunces** (SemiBold/Bold, the 72pt optical statics) carries anything with a
@@ -172,6 +207,7 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
 |---|---|---|
 | `display` | Fraunces Bold 32 | Screen headline |
 | `title` | Fraunces 24 | Section / card head, big stat (not the tab title, which is `display` in `TabHeader`) |
+| `cardTitle` | Fraunces Bold 22 | The title of a card that leads a tab: the hero's scene, one size under the screen headline |
 | `frenchLg` | Fraunces 28 | The line to say (`fitDisplay()` steps 28 → 24 → 20 by length) |
 | `french` | Fraunces 21 | Inline French — options and cards |
 | `frenchSm` | Fraunces 17 | French in a chip — the momentum hero's sample lines, where a real sentence at 21 wraps and stops reading as a chip |
@@ -184,8 +220,9 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
 
 ## Surfaces and controls
 
-- **Card** — white, radius 14, one hairline `paper.line` rule, flat. No shadows
-  anywhere except the live microphone's glow.
+- **Card** — white, radius 20, one hairline `paper.line` rule, and the whisper
+  under it. Revamp A widened the corner from 14 and gave the card the one soft
+  shadow; the hairline stayed, for the Android and web reasons under Shadow above.
 - **PillButton** — the one primary action: solid violet pill (`accent.primary`),
   warm-white label, 52pt tall.
 - **OutlineButton / GhostButton** — the seconds: white pill with an ink rule, or
@@ -196,33 +233,133 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
 - **Field, TabBar, ProgressDots** — inputs are
   white with a 1.5 rule that turns ink on focus, and a secure field carries a
   44pt **Show / Hide** at its trailing edge so a password is not typed blind;
-  the segmented control is a soft track with a white active pill that can stand
-  with nothing chosen and names its group for a screen reader; onboarding dots
-  stretch the current page.
+  the segmented control is a soft track with a violet active pill, warm-white
+  lettering on it, that can stand with nothing chosen, names its group for a
+  screen reader and says which segment is selected on the web as well as on a
+  device; onboarding dots stretch the current page.
 - **TintDisc / MissionDisc** — a circle of one tint with a place's line art
   inside, decorative to assistive tech.
-- **TintPanel** — the ground under a row about one place, in that place's tint.
-  Not decorative: a row has words in it. With the disc, one of the two places a
-  tint is ever drawn, and both of them live in `components.tsx` so no screen
-  ever names a colour.
+- **TintPanel** — the ground under a block about one place, in that place's tint.
+  Not decorative: it has words in it. With the disc, one of the places a tint is
+  ever drawn, and all of them live in `components.tsx` so no screen ever names a
+  colour.
+- **TintRow** — the mockup's one way into a place, a practice or a memory, and
+  the shape the founder circled on every frame: a tinted ground at radius 16, a
+  white 44pt disc with one line-art glyph on it, the row's name, a quiet gloss
+  under it, an optional earned state, then the faint chevron that says it opens.
+  One `Pressable`, never a card with a button inside it, because the whole row is
+  the target and a button nested in a button is invalid on the web. It grows
+  rather than clips at the largest reading size, and it names itself once so a
+  screen reader meets a row and not two loose lines. Turned off, it steps down to
+  soft ink rather than fading, because a faded row still looks like a row.
+- **IconRowCard** — the same idea in white, for the things that belong to no
+  place: Home's "Real progress", My French's phrase shelf and conversations,
+  Profile's two tutor rows. The disc is the ground here and the card is white,
+  the opposite way round from a tinted row, because a white disc on a white card
+  cannot be seen.
+- **HeroCard** — the card that leads a tab: a caps label, the scene's name in
+  `cardTitle`, one plain line under it, the picture of the place, a clock glyph
+  with how long it is likely to take, and the primary action. The action and the
+  top-right 44pt corner slot (the bookmark) arrive as nodes the caller built, so
+  the one-primary-action rule stays countable from the screen's own file.
+- **PhraseCard** — one French line, large, sized by `fitDisplay` rather than
+  clipped, with a round white 44pt speaker beside it carrying the whisper and the
+  violet speaker mark. It says "Hear" before it sounds and "Stop" while it does.
+- **TutorMark** — the tutor, drawn as the orb at 40 inside a white disc, and
+  hidden from assistive tech. There is no face anywhere in this app and no
+  initial either: the monogram is the learner's mark, never the tutor's.
 - **SpeakCircle** — THE microphone: one 108pt circle used by every speaking
-  surface. Green-ringed when waiting, green-filled (with the app's only shadow)
-  when live — green means "you speak", matching the voice circle —
-  hairline-muted when the tutor holds the floor.
-- **Icons** — authored SVG at the illustration stroke (2.2), ink by default.
-  The Google mark is a monochrome line-art G: no brand-colour asset in v1. Two
-  icons wear the accent and no more: the replay ear while it is sounding, and
-  **BadgeGlyph**, the tick inside a ring beside Home's recall figure, where the
-  violet labels the card and reports no state.
+  surface. Green-ringed when waiting, green-filled (with the live glow, the
+  second and last shadow in the app) when live — green means "you speak",
+  matching the voice circle — hairline-muted when the tutor holds the floor.
+- **Icons** — authored SVG at the illustration stroke (2.2), ink by default, in
+  `components.tsx` for the controls and `glyphs.tsx` for the row marks, both held
+  to the one stroke weight by `motion.test.ts`. The Google mark is a monochrome
+  line-art G: no brand-colour asset in v1. Three icons wear the accent and no
+  more: the replay ear while it is sounding, the phrase card's speaker, and
+  **BadgeGlyph**, the tick inside a ring beside Home's recall figure. In all
+  three the violet labels a thing you press and reports no state.
+- **Art / HeaderArt** — the two ways a raster scene reaches a screen. `Art` is
+  the only file in the app allowed to import `Image`, it draws every picture at
+  the size `art/registry.ts` gives it, and it is decorative. `HeaderArt` hangs
+  one off the top-right corner of a tab header, four and five grid steps out, and
+  disappears entirely once the reading size passes 1.5, where the title would
+  otherwise grow underneath it.
 - **TabHeader**: the tab's title block. A `display` title on the left, one plain
   purpose line beneath it in soft ink, and an optional trailing `Monogram` on the
   title row. It mounts as the first child of a tab's scroll body, never in the
   frame's `header` slot, so the fixed title and purpose can scroll at large text.
+  It has a second, centred variant, and Profile is the one tab that uses it: that
+  screen is about a person rather than a subject, so the monogram leads above a
+  centred name. Centring is the exception and stays that way — it is the only
+  place in the app where `textAlign` is written at all, and a test cuts the
+  centred branch out before banning it everywhere else.
 - **Monogram**: the learner's initial drawn one way. One filled violet disc
   (`accent.primary`), the initial set in the serif in warm-white (`paper.onInk`),
   hidden from assistive tech. `HIT`-sized in Home's header, larger on Profile.
 
 ## Illustrations
+
+Two kinds, drawn with the same pen. **Raster scenes** carry the places and the
+moments; **inline SVG** carries the marks, the postcards and everything that
+moves.
+
+### Raster scenes
+
+Eighteen watercolour-and-line PNGs in `apps/mobile/assets/art/`, at `@2x` and
+`@3x` (Metro picks the density; the web takes the `@2x`). Every one is named
+once in `src/art/registry.ts` with the point size it is drawn at, and reaches a
+screen only through `src/art/Art.tsx` — the one file in the app allowed to import
+`Image`, which spreads `decorative` so a scene is silent to a screen reader.
+`HeaderArt` is the second door, for the four tabs whose picture bleeds off the
+top-right corner.
+
+| File | Where it is drawn | Size (pt) |
+|---|---|---|
+| `header-home` | Home's header corner | 168x132 |
+| `header-practice` | Practice's header corner | 176x140 |
+| `header-myfrench` | My French's header corner | 176x132 |
+| `header-profile` | Profile's header corner | 88x110 |
+| `hero-cafe` `hero-hotel` `hero-market` `hero-street` `hero-home` `hero-friends` | Home's hero card and the missions chooser, one per place (`heroArt`) | 300x180 |
+| `welcome-bubbles` | The first page of pre-account onboarding | 220x140 |
+| `onboard-cake` | The age gate | 220x140 |
+| `onboard-wave` | The page that asks the learner's name | 220x140 |
+| `signin-skyline` | The corner of sign-in and sign-up | 200x90 |
+| `empty-table` | Review and Drill with nothing due | 220x140 |
+| `recap-postcard` | The end of a conversation and the end of a lesson | 220x140 |
+| `phrasebook` | The phrasebook route | 220x140 |
+| `wall-map` | The wall's map of places | 300x180 |
+
+Tutor has no header picture on purpose: the orb is the one thing on that screen
+that means something, and a second drawing beside it is two focal points where
+the design has one. There is no art in a live session, in settings, in the memory
+editor or in the legal pages.
+
+**Generator and licensing.** Generated on 2026-09-15 with Gemini
+(`gemini-2.5-flash-image`) from one shared prompt plus one subject line per
+scene. All of it is owned by Luvani; nothing here is third-party and nothing
+needs attribution. The originals and the generation scripts live with the
+founder, outside the repo, so any scene can be redrawn in a minute and dropped in
+under the same name.
+
+The shared prompt: *hand-drawn line art in one thin dark violet ink line, loose
+and slightly imperfect, round line ends, with a soft translucent watercolour wash
+in pale peach, pale sky blue, sage green, mint teal and lilac that stays inside
+the lines only loosely and fades out at the edges; no text, no gradients, no drop
+shadows, no border, generous white space, plain white background; picture book
+for adults, calm, Parisian.* Colours are named in **words, never as a hex code**:
+a hex in the prompt came back painted onto the picture as a swatch.
+
+**The matte rule.** The model returns a white rectangle, and a white rectangle on
+porcelain is a visible box. So every file is keyed to real transparency, trimmed
+to the ink, and quantised to 256 colours before it lands: the bleed at a header
+corner is painted into the alpha rather than produced with a negative margin,
+because negative margins clip on Android and scroll on the web. Budget: 350 KB
+per `@3x` file, 4 MB for the folder, heroes no larger than 900x540, all enforced
+by `src/art/registry.test.ts`, which also fails on a picture nobody draws and a
+drawn name nobody registered.
+
+### Inline SVG
 
 Authored inline SVG in `src/illustrations/`, one style contract stated in
 `pen.tsx`: ink stroke 2.2 round-capped, `fill="none"` except tiny solid
@@ -507,20 +644,33 @@ at 2.2px. The steam was 23% thinner than the cup it rose from.
 
 Two things moved before. The **welcome** — steam drifting off a café cup, two speech
 bubbles arriving one after the other, then a settling second page. And the
-**voice circle**: two concentric outline rings breathing around one solid
-centre, offset so they drift rather than pump in unison. Six states — ready,
-idle, speaking, listening, thinking, error — said in traffic-light colour (red
-listen, green speak, amber one-moment), violet for the untapped control, and
-one caption always set in ink. The founder chose this
-ring shape explicitly over a lit gradient sphere. It carries no shadow; the
-app's only shadow belongs to the live microphone and nothing else may borrow
+**voice circle**, which revamp A redrew.
+
+It is a lit **gradient disc** now: one radial gradient built from the state's own
+single colour at full, 0.85 and 0.45 opacity, so the sphere reads as lit without
+a second token entering the palette. Three faint concentric **rings** sit behind
+it, and in the two states where somebody is talking, three soundwave **lines**
+either side lean in. The founder reversed the earlier decision here: rings around
+a flat centre was the first choice and the lit sphere the rejected one, and after
+seeing both on the mockup the founder took the sphere with the rings kept around
 it.
+
+Six states — ready, idle, speaking, listening, thinking, error — said in
+traffic-light colour (red listen, green speak, amber one-moment), violet for the
+untapped control, and one caption always set in ink. The disc breathes on one
+`scale` and the wave lines stretch on a second `scaleY`, both transform-only on
+the native driver; the gradient, the rings and the waves are static SVG and
+nothing interpolates an SVG attribute. Under **reduce motion** the whole thing
+rests: the gradient, its rings and its lines are drawn once, at the final frame,
+because the orb is the content and the breathing is the flourish. It carries no
+shadow: the two shadows in this app are the whisper under a card and the live
+microphone's glow, and neither belongs to the orb.
 
 Deliberately not driven by audio amplitude. An analyser feeding setState sixty
 times a second is the churn that would force a reanimated dependency, and that
 is the one place worth spending one later.
 
-## Two deliberate divergences
+## Three deliberate divergences
 
 Written down so nobody "fixes" them back:
 
@@ -543,6 +693,15 @@ Written down so nobody "fixes" them back:
   *mid-session* message contains a number. Home is not mid-session, so the
   board counts and the tutor still does not — no numerals in watchdog copy, no
   counts in the transcript, dots rather than numbers on progress.
+- **The calendar's dots take the identity violet.** The standing rule is that a
+  state mark is never violet, so nothing on a screen reads as the primary action
+  when it is only reporting. The week rail bends it: a filled day in Profile's
+  speaking rhythm and in Home's momentum card is `accent.primary`, and the
+  founder chose that colour deliberately. The reasoning is that a calendar is not
+  a state — it is a diary of days already spent, and it asks nothing. The orb's
+  traffic lights remain the only marks in this app that report a state, and none
+  of them is violet. The rail still says no number: it draws seven marks and the
+  day names, and whatever card it stands in says the week in a sentence.
 
 ## What has no design yet
 

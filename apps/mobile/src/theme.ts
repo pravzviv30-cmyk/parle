@@ -23,6 +23,7 @@
  */
 
 import { Platform } from 'react-native';
+import { paper } from './palette.ts';
 
 export { paper, accent, signal, orb, rungColor, tint } from './palette.ts';
 export type { TintName } from './palette.ts';
@@ -58,6 +59,8 @@ export const type = {
   display: { fontFamily: font.serifBold, fontSize: 32, lineHeight: 38, letterSpacing: -0.3 },
   /** Section head, big stat. */
   title: { fontFamily: font.serif, fontSize: 24, lineHeight: 30 },
+  /** The title of a card that leads a tab: the hero. Bold serif, smaller than the display. */
+  cardTitle: { fontFamily: font.serifBold, fontSize: 22, lineHeight: 28 },
   /** The French line to say. Sentence case, never caps. */
   frenchLg: { fontFamily: font.serif, fontSize: 28, lineHeight: 36 },
   /** Inline French content — options and cards. */
@@ -95,11 +98,33 @@ export const type = {
 export const space = (n: number) => n * 4;
 
 export const radius = {
-  card: 14,
+  /** A white card. Twenty since revamp A: the mockup's cards are generous, and a row is not a card. */
+  card: 20,
+  /** A tinted row. Tighter than a card on purpose, so the two never read as one shape. */
+  row: 16,
   chip: 10,
   input: 12,
   pill: 999,
 } as const;
+
+/**
+ * The whisper. One soft shadow under a white card, and nothing else: the only other
+ * shadow in the app is the live microphone's glow in `SpeakCircle`. Never on a tinted
+ * row, the tab bar, the orb, a pill or a header. Its colour is the ink token, so the
+ * palette test's rule that no raw hex lives outside `palette.ts` still holds.
+ */
+export const shadow = {
+  whisper: {
+    shadowColor: paper.ink,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 2,
+  },
+} as const;
+
+/** The white disc that holds a glyph inside a tinted row. */
+export const DISC = 44;
 
 /** The one stroke weight: icons and illustrations alike. */
 export const STROKE = 2.2;

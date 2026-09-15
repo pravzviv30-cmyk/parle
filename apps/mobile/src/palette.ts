@@ -106,18 +106,26 @@ export const rungColor: Record<1 | 2 | 3 | 4, string> = {
 };
 
 /**
- * Tints: soft paper for a place, one per situation.
+ * Tints: soft paper under a row.
  *
- * A tint is a surface, not a mark and not an accent. It is drawn as the disc
- * behind a mission's drawing and as the ground under a row about that same
- * place (F467) — never as lettering, never as a stroke or a border, and never
- * as a ring or a dot that reports state — so its floors are a paper's floors: ink clears the
- * text floor on it, it sits far enough off the ground, the chip fill and the
- * card to read as a disc, it stays thirty from every signal and the accent,
- * twenty from every rung fill, lighter than every mark, and no two tints come
- * within ten of each other. The sky is twenty-six from rung three's blue, which
- * is why the rung floor is twenty and not thirty: nothing reads a disc under a
- * café cup as a support colour, but nothing should have to squint either.
+ * A tint is a SURFACE under a place's row or under a kind of practice. It is the
+ * disc behind a situation's drawing, and since revamp A it is mostly the ground
+ * under the row itself: the way into a place, into a way of talking, into a
+ * drill made from a conversation. Which tint goes with which role is not decided
+ * here and never inside a screen — `missions/missionTint.ts`,
+ * `tutor/doorTint.ts`, `practice/madeFromTint.ts` and `profile/rhythmTint.ts`
+ * name a tint by the job it does, so a screen names a place and a primitive
+ * names the colour.
+ *
+ * It is not a mark and not an accent: never lettering, never a stroke or a
+ * border, never a ring or a dot that reports state. So its floors are a paper's
+ * floors: ink and soft ink both clear the text floor on it, it sits far enough
+ * off the ground, the chip fill and the card to read as a surface, it stays
+ * thirty from every signal and the accent, twenty from every rung fill, lighter
+ * than every mark, and no two tints come within ten of each other. The sky is
+ * twenty-six from rung three's blue, which is why the rung floor is twenty and
+ * not thirty: nothing reads a disc under a café cup as a support colour, but
+ * nothing should have to squint either.
  */
 export const tint = {
   /** Café: a warm paper under the cup. */

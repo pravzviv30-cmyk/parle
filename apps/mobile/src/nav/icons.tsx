@@ -41,12 +41,19 @@ export function HomeIcon(props: TabIconProps) {
   );
 }
 
-/** Tutor — two bubbles mid-exchange, the near one talking over the far one. */
+/**
+ * Tutor — one bubble with a voice inside it, the middle bar the tallest.
+ *
+ * Revamp A: the two overlapping bubbles read as a messaging app at 26pt, and
+ * this tab is a person to speak to rather than a thread to read. One bubble
+ * with three bars says a voice, and it is the same mark the orb's soundwave
+ * lines make beside the tutor's circle.
+ */
 export function TutorIcon(props: TabIconProps) {
   return (
     <Glyph {...props}>
-      <Path d="M12.6 4.6h5.6a2.1 2.1 0 0 1 2.1 2.1v3.1a2.1 2.1 0 0 1-2.1 2.1h-.7" />
-      <Path d="M5.9 8.7h7.5a2.1 2.1 0 0 1 2.1 2.1v3.3a2.1 2.1 0 0 1-2.1 2.1H9.3l-3.2 2.5v-2.5a2.1 2.1 0 0 1-2.1-2.1v-3.3a2.1 2.1 0 0 1 2.1-2.1Z" />
+      <Path d="M5.6 4.8h12.8a2.2 2.2 0 0 1 2.2 2.2v7a2.2 2.2 0 0 1-2.2 2.2h-7.4l-4.6 3.4v-3.4a2.2 2.2 0 0 1-2.2-2.2V7a2.2 2.2 0 0 1 2.2-2.2Z" />
+      <Path d="M9.4 8.6v3.8M12 7.4v6.2M14.6 9v3" />
     </Glyph>
   );
 }

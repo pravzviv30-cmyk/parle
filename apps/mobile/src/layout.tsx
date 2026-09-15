@@ -251,6 +251,13 @@ type TabHeaderProps = {
   titleSwap?: TitleSwap | null;
   /** An optional control on the title row — the learner's monogram on Home. */
   trailing?: ReactNode;
+  /**
+   * Left is every tab but one. Centre is Profile, where the header is the
+   * learner rather than a subject, and it takes `leading` above the title.
+   */
+  align?: 'left' | 'center';
+  /** A mark above a centred title — the learner's monogram on Profile. */
+  leading?: ReactNode;
   /** Anything the tab wants under the purpose, still inside the header block. */
   children?: ReactNode;
 };
@@ -278,8 +285,44 @@ type TabHeaderProps = {
  * five tabs end up with five slightly different titles. Given a swap, the row
  * is `TitleSwapRow` below; given nothing, it is the plain `Text` it has always
  * been, which is what the other four tabs still render.
+ *
+ * `align` is the third, and it is deliberately not a free choice. Four tabs
+ * name a subject and read left, because a left edge is where the eye starts a
+ * line and four headers that agree are what makes the app feel like one app.
+ * Profile is the one tab that is a person: the mockup opens it on the learner's
+ * own mark with their name under it, and a centred column is the only honest
+ * way to draw that. So centring is one branch here rather than a `textAlign` a
+ * screen may reach for, and it is the ONLY place in this file a tab title is
+ * aligned at all.
+ *
+ * The centred branch draws no moving word and no trailing control on purpose.
+ * The greeting swap belongs to Home, which is left; a control beside a centred
+ * title pulls it off centre; and a header that could do everything is a header
+ * with no shape.
  */
-export function TabHeader({ title, purpose, titleSwap, trailing, children }: TabHeaderProps) {
+export function TabHeader({ title, purpose, titleSwap, trailing, leading, align = 'left', children }: TabHeaderProps) {
+  if (align === 'center') {
+    return (
+      <View style={{ marginBottom: space(5), alignItems: 'center' }}>
+        {leading != null ? leading : null}
+        <Text
+          accessibilityRole="header"
+          style={[
+            type.display,
+            { color: paper.ink, textAlign: 'center', marginTop: leading != null ? space(3) : 0 },
+          ]}
+        >
+          {title}
+        </Text>
+        {purpose != null ? (
+          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
+            {purpose}
+          </Text>
+        ) : null}
+        {children != null ? children : null}
+      </View>
+    );
+  }
   return (
     <View style={{ marginBottom: space(5) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>

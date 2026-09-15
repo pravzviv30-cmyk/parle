@@ -463,7 +463,10 @@ describe('Home draws the four momentum cards and the next step — F436, F399, F
 
     // Green means ground already covered, here as everywhere.
     assert.match(style(MOMENTUM, 'fill'), /backgroundColor: signal\.good/, 'the goal bar is not filled in the green that means the learner produced French');
-    assert.match(style(COMPONENTS, 'markDone'), /backgroundColor: signal\.good/, 'a day that happened is not a filled green mark');
+    // The one mark that is not green, and the founder chose it (F577): the week
+    // rail's filled day is the identity violet, because a calendar record is a
+    // diary of days already spent rather than a state being reported.
+    assert.match(style(COMPONENTS, 'markDone'), /backgroundColor: accent\.primary/, 'a day that happened is not the filled violet mark the founder chose for the calendar');
     assert.match(MOMENTUM, /<WeekRail week=\{days\.week\} \/>/, 'the days card no longer draws the shared week rail');
     assert.match(style(MOMENTUM, 'gain'), /color: signal\.good/, "the week's gain is not set in green");
     assert.ok(!MOMENTUM.includes('signal.live'), "the tutor's red reached a block about the learner");

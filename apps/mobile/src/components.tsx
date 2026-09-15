@@ -7,7 +7,7 @@
  * illustrations use — one pen drew the whole app.
  */
 
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   View,
@@ -28,10 +28,12 @@ import {
   font,
   paper,
   radius,
+  shadow,
   signal,
   space,
   tint,
   type,
+  DISC,
   HAIRLINE,
   HIT,
   STROKE,
@@ -59,6 +61,30 @@ export function ChevronLeft({ size = 22, color = paper.ink }: { size?: number; c
     <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       <Path
         d="M14.8 5.2 8 12l6.8 6.8"
+        fill="none"
+        stroke={color}
+        strokeWidth={STROKE}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * The mirror of ChevronLeft, and the one mark at the end of a row that opens.
+ *
+ * Every tinted row is a button that goes somewhere, so it needs the sign a row
+ * carries for that, and the back chevron already drew the shape. It is the same
+ * path reflected rather than a second drawing, so the two never drift apart in
+ * weight or in radius, and it is faint ink wherever it is drawn: it is a mark
+ * beside words that already say where the row goes, never a word itself.
+ */
+export function ChevronRight({ size = 22, color = paper.ink }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
+      <Path
+        d="M9.2 5.2 16 12l-6.8 6.8"
         fill="none"
         stroke={color}
         strokeWidth={STROKE}
@@ -228,7 +254,15 @@ export function AppleMark({ size = 20, color = paper.ink }: { size?: number; col
 
 // ─────────────────────────────────────────────────────────────────── surfaces
 
-/** A flat white card: hairline rule, soft corners, no shadow. */
+/**
+ * A white card: one soft whisper of shadow, a hairline rule, generous corners.
+ *
+ * The whisper is the only shadow in the app besides the live microphone's glow,
+ * and it lives in `theme.ts` as a named token so no screen ever writes a shadow
+ * number. The hairline stays under it on purpose: elevation renders nothing on
+ * Android below API 28 and clips oddly on the web column, and without the rule
+ * a card there would dissolve into the ground.
+ */
 export function Card({
   children,
   style,
@@ -401,6 +435,7 @@ export function OptionCard({
         accessibilityRole="button"
         accessibilityLabel={gloss ? `${text}, ${gloss}` : text}
         accessibilityState={{ selected }}
+        aria-selected={selected}
         style={s.optionMain}
       >
         <View style={{ flex: 1 }}>
@@ -580,9 +615,20 @@ export function Field({
 }
 
 /**
- * A segmented choice: a soft track with a white active pill. `active` may be
+ * A segmented choice: a soft track with a violet active pill. `active` may be
  * null, for a setting nobody has chosen yet, and the group can name itself so a
  * screen reader says what the three words are a choice of (F368).
+ *
+ * The chosen segment wears the identity violet with warm-white lettering, the
+ * way the primary pill and the active tab already do, so a learner reads their
+ * daily goal off the same colour everywhere. The unchosen words stay soft ink
+ * on the track, which is a step down rather than a second state colour.
+ *
+ * Selection is said twice, once per platform, and the two are not
+ * interchangeable. `accessibilityState` is what VoiceOver and TalkBack read;
+ * `aria-selected` is what the browser puts in the accessibility tree, and
+ * react-native-web does not derive one from the other for a `tab` role. Without
+ * the second line a learner on the web hears three identical buttons (F522).
  */
 export function TabBar<K extends string>({
   tabs,
@@ -608,9 +654,10 @@ export function TabBar<K extends string>({
             onPress={() => onChange(tab.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
+            aria-selected={isActive}
             style={[s.tab, isActive && s.tabActive]}
           >
-            <Text style={[type.button, { color: isActive ? paper.ink : paper.inkSoft }]}>{tab.label}</Text>
+            <Text style={[type.button, { color: isActive ? paper.onInk : paper.inkSoft }]}>{tab.label}</Text>
           </Pressable>
         );
       })}
@@ -900,30 +947,144 @@ export function AbilityRow({
 const MARK = 10;
 
 /**
- * Seven marks for the last seven local days, oldest first (F561).
+ * Seven marks for seven days, oldest first, each under the day it stands for
+ * (F561, F577).
  *
- * A picture, never a target: a day that happened is a filled green mark and a
- * day that did not is a hairline, on TodayRow's rule that a thing which has not
- * happened is not a state worth signalling. It carries no number and no words,
- * and it is hidden from assistive tech because whatever it stands beside
- * already says it. Home's momentum card and Profile's week draw the same rail,
- * so the week looks the same wherever the learner meets it.
+ * A picture, never a target: a day that happened is a filled mark and a day
+ * that did not is a hairline, on TodayRow's rule that a thing which has not
+ * happened is not a state worth signalling. Home's momentum card and Profile's
+ * rhythm draw the same rail, so the week looks the same wherever a learner
+ * meets it.
+ *
+ * The fill is the identity violet since revamp A, and that is a deliberate
+ * exception rather than a drift. The rule it bends is "a state mark is never
+ * violet", which exists so nothing reads as the primary action; a calendar
+ * record is not a state, it is a diary of days already spent, and the founder
+ * chose the identity colour for it. The orb's traffic lights remain the only
+ * marks in the app that report a state, and none of them is violet.
+ *
+ * `labels` are the seven day names. Given them, each mark sits in its own
+ * column under its day; given nothing, the rail is the bare row of dots it has
+ * always been. Either way the whole thing is hidden from assistive technology:
+ * seven letters read aloud are not a week, and whatever the rail stands beside
+ * says the week in a sentence.
  */
-export function WeekRail({ week }: { week: readonly boolean[] }) {
+export function WeekRail({ week, labels }: { week: readonly boolean[]; labels?: readonly string[] }) {
   return (
     <View style={s.marks} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {week.map((filled, index) => (
-        <View key={index} style={[s.mark, filled ? s.markDone : s.markWaiting]} />
+        <View key={index} style={s.day}>
+          {labels != null && <Text style={[type.small, { color: paper.inkSoft }]}>{labels[index]}</Text>}
+          <View style={[s.mark, filled ? s.markDone : s.markWaiting]} />
+        </View>
       ))}
     </View>
   );
 }
 
+/**
+ * A tinted row: the mockup's one way into a place, a practice or a memory.
+ *
+ * This is the shape the founder circled on every frame — a soft paper ground,
+ * a white disc with one line-art glyph on it, the row's name, a quiet gloss
+ * under it, and the chevron that says it opens. It is a single Pressable, not
+ * a card with a button inside it, because the whole row is the target: a button
+ * nested in a button is invalid on the web, and a row whose tap area is only
+ * its chevron is the F545 defect wearing a tint.
+ *
+ * It sits well over the touch floor at `HIT + space(8)`, and it grows rather
+ * than clips: nothing here caps a line count or the reading size, so at the
+ * largest text the title wraps and the row gets taller.
+ *
+ * It names itself ONCE. The title and the gloss are two Texts, and a screen
+ * reader left to itself would read them as two nodes with no relationship, so
+ * the Pressable carries the joined name and a caller with something better to
+ * say (a place's own stamp label, say) passes it instead.
+ *
+ * Disabled is said in ink rather than in opacity, which is GhostButton's
+ * lesson: a faded row still looks like a row, and there is no shape left to
+ * fall back on. It steps down to soft ink rather than to the faint ink a ghost
+ * uses, because faint ink's floor is measured against the ground and the card
+ * and nothing has ever measured it on a tint, while soft ink clears the floor
+ * for words on all six (palette.test.ts). Pressed is the deeper ground laid
+ * over the tint as a second style, never a second tint: a tint is a surface,
+ * and there is exactly one of them per place.
+ */
+export function TintRow({
+  tint: name,
+  glyph,
+  title,
+  gloss,
+  onPress,
+  accessibilityLabel,
+  trailing,
+  disabled = false,
+}: {
+  tint: TintName;
+  /** One line-art glyph, drawn on the white disc. */
+  glyph: ReactNode;
+  title: string;
+  gloss?: string;
+  onPress?: () => void;
+  /** Say something other than the title and gloss. Falls back to both, joined. */
+  accessibilityLabel?: string;
+  /** A state the row has earned, drawn before the chevron. */
+  trailing?: ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? (gloss ? `${title}, ${gloss}` : title)}
+      accessibilityState={{ disabled }}
+      style={({ pressed }) => [
+        s.tintRow,
+        { backgroundColor: tint[name] },
+        pressed && !disabled && s.tintRowPressed,
+      ]}
+    >
+      <View style={s.tintDisc} {...decorative}>
+        {glyph}
+      </View>
+      <View style={s.tintWords}>
+        <Text style={[type.heading, { color: disabled ? paper.inkSoft : paper.ink }]}>{title}</Text>
+        {gloss != null && (
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{gloss}</Text>
+        )}
+      </View>
+      {trailing != null ? trailing : null}
+      <ChevronRight color={paper.inkFaint} />
+    </Pressable>
+  );
+}
+
 const s = StyleSheet.create({
   marks: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(1.5), marginTop: space(3) },
+  day: { alignItems: 'center', gap: space(1) },
   mark: { width: MARK, height: MARK, borderRadius: MARK / 2 },
-  markDone: { backgroundColor: signal.good },
+  markDone: { backgroundColor: accent.primary },
   markWaiting: { borderWidth: HAIRLINE + 0.4, borderColor: paper.line },
+  tintRow: {
+    minHeight: HIT + space(8),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(3),
+    borderRadius: radius.row,
+    paddingVertical: space(3),
+    paddingHorizontal: space(4),
+  },
+  tintRowPressed: { backgroundColor: paper.groundDeep },
+  tintDisc: {
+    width: DISC,
+    height: DISC,
+    borderRadius: DISC / 2,
+    backgroundColor: paper.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tintWords: { flex: 1, minWidth: 0 },
   abilityRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
   abilityDivided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
   abilityWords: { flex: 1, minWidth: 0 },
@@ -933,6 +1094,7 @@ const s = StyleSheet.create({
     borderWidth: HAIRLINE,
     borderColor: paper.line,
     borderRadius: radius.card,
+    ...shadow.whisper,
   },
   cardPadded: { paddingVertical: space(4), paddingHorizontal: space(4) },
   pill: {
@@ -1014,7 +1176,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.pill,
   },
-  tabActive: { backgroundColor: paper.card },
+  tabActive: { backgroundColor: accent.primary },
   dotsRow: { flexDirection: 'row', gap: space(1.5), alignItems: 'center' },
   dot: { width: 7, height: 7, borderRadius: radius.pill, backgroundColor: paper.line },
   dotHere: { width: 22, backgroundColor: paper.ink },

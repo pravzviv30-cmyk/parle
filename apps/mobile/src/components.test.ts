@@ -169,3 +169,108 @@ describe('the mockup-review primitives keep their promises — F362, F366, F368,
     assert.doesNotMatch(disc, /<Text/, 'the disc letters something');
   });
 });
+
+/**
+ * The revamp A primitives, held to the source — F569, F577, F586.
+ *
+ * The mockup replaced most of the app's white-card-with-a-button shapes with two
+ * pieces: a card that lifts off the ground on one soft shadow, and a tinted row
+ * that is a whole button. Both are in this file rather than in five screens, and
+ * what follows is the promises they make.
+ */
+describe('the revamp primitives keep their promises — F569, F577, F586', () => {
+  test('a tinted row is a pressable at the touch floor with a white disc, a title, a gloss and a chevron, and it names itself once', () => {
+    // One Pressable, not a card with a button in it: the whole row is the
+    // target, a nested button is invalid on the web, and a row whose only tap
+    // area is its chevron is F545 wearing a tint.
+    const row = region(componentsSource(), 'export function TintRow(', 'const s = StyleSheet.create(');
+    assert.match(row, /accessibilityRole="button"/, 'the tinted row is not a button, so nothing says it opens anything');
+    assert.match(
+      row,
+      /accessibilityLabel=\{accessibilityLabel \?\? \(gloss \? `\$\{title\}, \$\{gloss\}` : title\)\}/,
+      'the row does not name itself from its own title and gloss, so a screen reader reads two loose lines',
+    );
+    assert.match(row, /accessibilityState=\{\{ disabled \}\}/, 'the row never says it is unavailable');
+    // The shape: a white disc at the disc token, the words taking the rest, the
+    // chevron last, and the whole row over the touch floor.
+    assert.match(row, /<ChevronRight color=\{paper\.inkFaint\} \/>/, 'the row draws no chevron, so nothing marks it as a way in');
+    assert.match(row, /\{trailing != null \? trailing : null\}/, 'the row cannot carry a state before its chevron');
+    const disc = region(componentsSource(), '  tintDisc: {', '  tintWords:');
+    assert.match(disc, /width: DISC,\s*height: DISC,/, 'the glyph disc is not the disc token square');
+    assert.match(disc, /borderRadius: DISC \/ 2/, 'the glyph disc is not a circle at its own size');
+    assert.match(disc, /backgroundColor: paper\.card/, 'the glyph disc is not white, so the glyph sits straight on the tint');
+    const style = region(componentsSource(), '  tintRow: {', '  tintRowPressed:');
+    assert.match(style, /minHeight: HIT \+ space\(8\)/, 'the tinted row sits under the touch floor the mockup draws it at');
+    assert.match(style, /borderRadius: radius\.row/, 'the tinted row turns the card corner, so a row reads as a small card');
+    // The tint is a surface and nothing else, and it is the only colour the row
+    // is told: everything else is a token.
+    assert.match(row, /backgroundColor: tint\[name\]/, 'the row is not grounded in its own tint');
+    assert.match(row, /pressed && !disabled && s\.tintRowPressed/, 'the row has no pressed state, or fades a disabled one instead of saying so');
+    assert.doesNotMatch(row, /opacity/, 'the row says unavailable in opacity, which leaves a control with no shape to fall back on');
+    // Nothing clipped and nothing capped, so the row grows with the reading size.
+    for (const cap of ['numberOfLines', 'maxFontSizeMultiplier', 'allowFontScaling', 'adjustsFontSizeToFit']) {
+      assert.ok(!row.includes(cap), `the tinted row caps its words with ${cap}; a long title must wrap and the row grow to hold it`);
+    }
+  });
+
+  test('a card lifts off the ground with the one soft shadow and the wider radius', () => {
+    // The whisper is a named token in theme.ts, spread here. A card that wrote
+    // its own shadow numbers would be the second shadow in the app, and the
+    // hairline stays under it because elevation draws nothing on Android below
+    // API 28 and a card there would dissolve into the ground.
+    const card = region(componentsSource(), '  card: {', '  cardPadded:');
+    assert.match(card, /\.\.\.shadow\.whisper/, 'the card no longer lifts on the one named shadow');
+    assert.match(card, /borderRadius: radius\.card/, 'the card no longer turns the card corner from the token');
+    assert.match(card, /borderWidth: HAIRLINE/, 'the card lost its hairline, so on Android below API 28 it has no edge at all');
+    // The numbers stay in the theme. A shadow spelled out here is how an app
+    // ends up with four shadows, each a little deeper than the last.
+    const source = componentsSource();
+    for (const number of ['shadowOpacity', 'shadowRadius', 'shadowOffset']) {
+      const spelled = source.split('\n').filter((line) => line.includes(number));
+      assert.deepEqual(
+        spelled.filter((line) => !line.includes('signal.good') && !/^\s*shadow(Offset|Opacity|Radius): /.test(line)).length,
+        0,
+        `${number} is written somewhere new in components.tsx; the whisper is a token and the mic glow is the only other shadow`,
+      );
+    }
+  });
+
+  test('a selected option announces its state on the web as well as on a device', () => {
+    // Two spellings, one meaning, and neither is derived from the other.
+    // `accessibilityState` is what VoiceOver and TalkBack read; `aria-selected`
+    // is what the browser puts in its accessibility tree, and without it a
+    // learner picking a plan, a goal or a voice on the web hears three
+    // identical buttons (F522, F586).
+    const source = componentsSource();
+    const bar = region(source, 'export function TabBar<', 'export function Stat(');
+    assert.match(bar, /accessibilityState=\{\{ selected: isActive \}\}/, 'a segment no longer says it is selected on a device');
+    assert.match(bar, /aria-selected=\{isActive\}/, 'a segment says nothing to the browser, so on the web the choice is silent');
+    const option = region(source, 'export function OptionCard(', 'export function Field(');
+    assert.match(option, /accessibilityState=\{\{ selected \}\}/, 'the option card no longer says it is selected on a device');
+    assert.match(option, /aria-selected=\{selected\}/, 'the option card says nothing to the browser, so on the web the choice is silent');
+    // And the chosen segment is the identity violet with warm-white lettering,
+    // the way the primary pill and the active tab already are.
+    assert.match(bar, /color: isActive \? paper\.onInk : paper\.inkSoft/, 'the chosen segment is not warm-white lettering on a filled pill');
+    const track = region(source, '  tabActive: {', '  dotsRow:');
+    assert.match(track, /backgroundColor: accent\.primary/, 'the chosen segment is not the identity violet');
+  });
+
+  test('the week rail labels every dot and stays hidden from assistive technology', () => {
+    // Seven days, each mark under the day it stands for. A day that happened is
+    // the identity violet: the founder chose it for the calendar record, and a
+    // calendar is a diary of days already spent rather than a state, so the
+    // "a state mark is never violet" rule is not what this bends (F577).
+    const rail = region(componentsSource(), 'export function WeekRail(', 'export function TintRow(');
+    assert.match(rail, /labels\?: readonly string\[\]/, 'the rail cannot be given the seven day names');
+    assert.match(rail, /\{labels != null && <Text style=\{\[type\.small, \{ color: paper\.inkSoft \}\]\}>\{labels\[index\]\}<\/Text>\}/, 'the day names are not one small soft-ink line over each mark');
+    assert.match(rail, /week\.map\(\(filled, index\)/, 'the rail no longer draws one mark per day');
+    assert.match(
+      rail,
+      /accessibilityElementsHidden importantForAccessibility="no-hide-descendants"/,
+      'the rail is no longer hidden from assistive technology, so seven letters are read aloud as if they were a week',
+    );
+    assert.doesNotMatch(rail, /accessibilityLabel/, 'the rail carries a label of its own; the sentence beside it is what says the week');
+    const done = region(componentsSource(), '  markDone: {', '  markWaiting:');
+    assert.match(done, /backgroundColor: accent\.primary/, 'a day that happened is no longer the identity violet the founder chose');
+  });
+});

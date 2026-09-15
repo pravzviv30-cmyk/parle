@@ -14,10 +14,16 @@
  * A long label wraps and the bar grows to hold it rather than truncating, and
  * nothing here caps the reading size. The label is also the screen reader's
  * name for the cell, alongside its selected state.
+ *
+ * At the largest reading sizes (F583) the five cells stop sharing the leftover
+ * room and each take a fifth of the bar outright, so "My French" wraps under its
+ * own glyph instead of growing sideways into Profile's word. Nothing is
+ * shortened, scaled down or clipped to make that fit: the cell grows downwards
+ * and the bar grows with it.
  */
 
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, AccessibilityInfo } from 'react-native';
+import { View, Text, Pressable, StyleSheet, AccessibilityInfo, PixelRatio, useWindowDimensions } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { accent, paper, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { dueCount } from '../review/store.ts';
@@ -40,10 +46,30 @@ const LABELS: Record<string, string> = {
   Profile: 'Profile',
 };
 
+/**
+ * The reading size at which a word stops fitting beside its neighbours.
+ *
+ * Below it the cells share the bar by flex, which lets a long word borrow room
+ * from a short one and keeps the five glyphs evenly spread. At and above it the
+ * words are wide enough that borrowing pushes them into each other, so every
+ * cell takes exactly a fifth and the long ones wrap.
+ */
+const WRAPS_UNDER_GLYPH = 1.6;
+
+/** Whether the words have to wrap under their glyphs at this reading size. */
+function labelsWrapUnderGlyph(fontScale: number): boolean {
+  return fontScale >= WRAPS_UNDER_GLYPH;
+}
+
 export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
   // The badge is a fact about the review deck, so it is re-read whenever the
   // learner moves between tabs — finishing a sitting must be able to clear it.
   const [due, setDue] = useState(0);
+  // The window is watched so the bar re-renders when the learner changes the OS
+  // text size while the app is open; PixelRatio is what the text is actually
+  // drawn at, and on the web the window reports 1 whatever the browser does.
+  useWindowDimensions();
+  const wrapped = labelsWrapUnderGlyph(PixelRatio.getFontScale());
   useEffect(() => {
     let cancelled = false;
     void dueCount().then((n) => {
@@ -83,7 +109,7 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
             // Counting out loud would be a number in the chrome; "ready" is the
             // fact the learner needs and matches the forward framing elsewhere.
             accessibilityLabel={badged ? `${label}, practice ready` : label}
-            style={({ pressed }) => [st.cell, pressed && { opacity: 0.55 }]}
+            style={({ pressed }) => [st.cell, wrapped && st.cellWrapped, pressed && { opacity: 0.55 }]}
           >
             <View>
               <Icon size={26} color={focused ? accent.primary : paper.inkFaint} />
@@ -129,6 +155,15 @@ const st = StyleSheet.create({
     paddingTop: space(2.5),
     paddingBottom: space(1.5),
     gap: space(0.5),
+  },
+  cellWrapped: {
+    // One fifth of the bar each, taken rather than shared: flexBasis fixes the
+    // width, and neither growing nor shrinking can then borrow it back. A word
+    // that no longer fits wraps inside its own fifth and the cell gets taller.
+    flexBasis: '20%',
+    flexGrow: 0,
+    flexShrink: 0,
+    paddingHorizontal: space(0.5),
   },
   label: { ...type.tabLabel, textAlign: 'center' },
   badge: {

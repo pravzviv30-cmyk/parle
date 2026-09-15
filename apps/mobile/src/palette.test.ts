@@ -282,6 +282,19 @@ describe('a tint is paper under ink art, never a mark — F362', () => {
     }
   });
 
+  test('inkSoft clears 4.5 on every tint', () => {
+    // Revamp A puts running words on a tint for the first time: a tinted row is
+    // a title in ink over a gloss in soft ink, and a disabled row says so by
+    // stepping its title down to soft ink too. Ink on a tint was already held
+    // above; soft ink never was, because until now nothing set a word in it on
+    // one. It passes today on all six, and this pins it, so a re-tint cannot
+    // clear the floor for ink alone and leave every gloss in the app under it.
+    for (const [name, hex] of Object.entries(tint)) {
+      const r = contrast(paper.inkSoft, hex);
+      assert.ok(r >= TEXT, `inkSoft is ${r.toFixed(2)} on ${name}, under the ${TEXT} floor for words`);
+    }
+  });
+
   test('no tint comes within thirty of a signal or the accent, within twenty of a rung, or as dark as any mark — F362', () => {
     const everyMark = [...Object.values(marks), rungColor[1], rungColor[2], rungColor[3]];
     const maxMarkL = Math.max(...everyMark.map((h) => lab(h).l));
@@ -456,6 +469,42 @@ describe('the recorded palette matches the code — F327, F328', () => {
     );
     for (const [path, hex] of Object.entries(tokens)) {
       assert.equal(recorded.get(path), hex.toUpperCase(), `DESIGN.md records ${path} as ${recorded.get(path)}, the app ships ${hex}`);
+    }
+  });
+
+  test('every colour DESIGN.md names is a colour the theme ships', () => {
+    // The table above is held row for row. This holds the REST of the document:
+    // every six-digit hex anywhere in the prose, the captions, the illustration
+    // notes. A doc that names a colour the app does not ship is a doc somebody
+    // will build to, and F146 filed exactly that.
+    //
+    // Two hexes are deliberately not shipped, and they are pinned here by value
+    // with the reason rather than quietly excluded by a pattern. Both are
+    // colours the app STOPPED shipping, named in the prose so the doc records
+    // why they left; a third one cannot join them without an edit to this list.
+    const RETIRED: Record<string, string> = {
+      '#94849F': 'the old inkFaint, 2.91 against the ground and under the mark floor',
+      '#8A5BBF': 'the second, lighter label violet, 4.08 at 11.5pt bold',
+    };
+    const doc = readFileSync(join(SRC, '..', '..', '..', 'DESIGN.md'), 'utf8');
+    const shipped = new Set(Object.values(tokens).map((hex) => hex.toUpperCase()));
+    const palette = readFileSync(join(SRC, 'palette.ts'), 'utf8').toUpperCase();
+
+    for (const [hex, why] of Object.entries(RETIRED)) {
+      assert.ok(
+        !shipped.has(hex.toUpperCase()) && !palette.includes(hex.toUpperCase()),
+        `${hex} is listed as retired (${why}) but the app ships it; the doc is right and this list is stale`,
+      );
+    }
+
+    const named = new Set([...doc.matchAll(/#[0-9A-Fa-f]{6}\b/g)].map((m) => m[0]!.toUpperCase()));
+    assert.ok(named.size > 0, 'DESIGN.md names no colour at all, so this test is reading the wrong file');
+    for (const hex of named) {
+      if (RETIRED[hex] != null) continue;
+      assert.ok(
+        shipped.has(hex),
+        `DESIGN.md names ${hex}, which no token in palette.ts ships; either the app lost a colour or the doc invented one`,
+      );
     }
   });
 

@@ -100,12 +100,20 @@ describe("the week on Profile — F561, and F233's importer count", () => {
     // names no number: seven marks, a picture, no count and no words on it.
     assert.match(FLAT, /<WeekRail week=\{rail\} \/>/, 'the card does not draw the shared week rail');
     assert.match(FLAT, /setRail\(weekRailFrom\(activity, now\)\)/, "the rail is not the momentum module's own week");
-    const rail = RAIL.slice(RAIL.indexOf('export function WeekRail('), RAIL.indexOf('\nconst s = StyleSheet.create'));
+    const rail = RAIL.slice(RAIL.indexOf('export function WeekRail('), RAIL.indexOf('export function TintRow('));
     assert.ok(rail.length > 0, 'components.tsx no longer exports WeekRail');
-    assert.doesNotMatch(rail, /<Text/, 'the rail draws words, so it can say a number');
+    // The rail draws day names now (F577) and nothing else. Every Text in it is
+    // the caller's own label, so the rail still holds no sentence of its own and
+    // still cannot say a count: a word it writes itself is a word nobody passed it.
+    for (const text of rail.match(/<Text[\s\S]*?<\/Text>/g) ?? []) {
+      assert.match(text, /\{labels\[index\]\}/, `the rail writes words of its own: ${text.replace(/\s+/g, ' ')}`);
+    }
     assert.doesNotMatch(rail, /\d/, 'the rail types a digit of its own');
     assert.match(rail, /accessibilityElementsHidden/, 'the rail reaches a screen reader as seven unnamed views');
-    assert.match(RAIL, /markDone: \{ backgroundColor: signal\.good \}/, 'a day that happened is not a filled green mark');
+    // Violet, and deliberately so: the founder chose the identity colour for the
+    // calendar record (F577). A day already spent is a diary entry, not a state
+    // being reported, so the rule that no state mark is violet is not bent here.
+    assert.match(RAIL, /markDone: \{ backgroundColor: accent\.primary \}/, 'a day that happened is not the filled violet mark the founder chose for the calendar');
     assert.match(RAIL, /markWaiting: \{ borderWidth: HAIRLINE \+ 0\.4, borderColor: paper\.line \}/, 'a day that has not happened is filled in');
 
     // And "only". One file in the whole app can see the week.

@@ -201,3 +201,51 @@ describe('the illustration module keeps its own rules', () => {
     );
   });
 });
+
+/**
+ * The glyph layer keeps the illustrations' pen — F589.
+ *
+ * Revamp A doubled the number of line-art marks in the app: a disc with a glyph
+ * in it now heads most rows, and the set lives in `glyphs.tsx` beside the five
+ * tab icons in `nav/icons.tsx`. The scenes have been held to one stroke weight
+ * since the splash shipped; the icons never were, and a second weight in a row
+ * of discs is the first thing an eye catches. So the same walk covers both.
+ */
+describe('the glyph layer draws with the same pen as the scenes', () => {
+  const PENS = ['glyphs.tsx', join('nav', 'icons.tsx')];
+  const pens = FILES.filter((f) => PENS.includes(f.short));
+
+  test('both glyph files are here to check', () => {
+    assert.deepEqual(
+      pens.map((f) => f.short).sort(),
+      [...PENS].sort(),
+      'a glyph file has moved, so the stroke-weight walk below is reading nothing',
+    );
+  });
+
+  test('every glyph draws at the one stroke weight', () => {
+    const offenders: string[] = [];
+    for (const file of pens) {
+      const re = /strokeWidth=\{([^}]*)\}/g;
+      let m = re.exec(file.body);
+      while (m) {
+        const value = (m[1] ?? '').trim();
+        if (!value.includes('STROKE')) offenders.push(`${file.short}:${lineOf(file.body, m.index)}  strokeWidth={${value}}`);
+        m = re.exec(file.body);
+      }
+      assert.ok(
+        /strokeWidth=\{/.test(file.body),
+        `${file.short} sets no stroke weight at all, so every mark in it is drawn at the SVG default of 1`,
+      );
+    }
+    assert.deepEqual(offenders, [], `One pen drew the whole app:\n${offenders.join('\n')}`);
+  });
+
+  test('a glyph moves nothing at all', () => {
+    // A mark that animates is a mark that has to be paused, and none of these
+    // is ever handed a `paused` prop. The orb is the one drawing that moves and
+    // it moves from `VoiceOrb.tsx`, one level above its own Svg.
+    const offenders = pens.filter((f) => /Animated|useEffect|interpolate/.test(f.body)).map((f) => f.short);
+    assert.deepEqual(offenders, [], `A glyph that animates itself:\n${offenders.join('\n')}`);
+  });
+});
