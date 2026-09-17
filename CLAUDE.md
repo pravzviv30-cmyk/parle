@@ -79,10 +79,14 @@ each, and a second opinion about them is how a repo grows two ladders.
 
 ## graphify
 
-This project has a knowledge graph at `graphify-out/` — 6203 nodes, 14723 links
-across the source files, grouped into 297 named communities. Re-measured 2026-09-05;
-every figure below was read out of `graph.json` rather than carried forward, because
-the previous set had drifted by half and the hub order in it was wrong.
+This project has a knowledge graph at `graphify-out/` — 7653 nodes, 18782 links
+across the source files, grouped into 332 communities. Re-measured 2026-09-17 after revamp A
+landed (the previous figures, 6203 / 14723 / 297, were read on 2026-09-05). The community
+names are **placeholders** (`Community N`) as of that rebuild: `graphify label . --backend
+claude-cli` needs a signed-in `claude` CLI, and the session on this Mac had expired, so the
+first session with a working `claude login` should run `graphify label . --backend
+claude-cli` and then `graphify export wiki` to restore real names. The hub order and the
+docs-island figures below were not re-measured on 2026-09-17 and may have moved.
 
 **Route by the shape of the question, and name real symbols.** Reaching for a bare
 `graphify query` is the wrong default here: it truncates. A prose live-voice question

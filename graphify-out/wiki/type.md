@@ -1,8 +1,8 @@
 # type
 
-> God node · 64 connections · `apps/mobile/src/theme.ts`
+> God node · 75 connections · `apps/mobile/src/theme.ts`
 
-**Community:** [UI Component Library](UI_Component_Library.md)
+**Community:** [space](space.md)
 
 ## Connections by Relation
 
@@ -10,26 +10,26 @@
 - src/theme.ts `EXTRACTED`
 
 ### imports
-- ConvoScreen.tsx `EXTRACTED`
-- MyFrenchTab.tsx `EXTRACTED`
-- ProfileTab.tsx `EXTRACTED`
+- [ConvoScreen.tsx](ConvoScreen.tsx.md) `EXTRACTED`
 - components.tsx `EXTRACTED`
-- SettingsScreen.tsx `EXTRACTED`
-- RootNavigator.tsx `EXTRACTED`
-- DrillScreen.tsx `EXTRACTED`
-- PracticeTab.tsx `EXTRACTED`
-- OnboardingFlow.tsx `EXTRACTED`
-- TutorTab.tsx `EXTRACTED`
-- HomeTab.tsx `EXTRACTED`
-- LiveSessionScreen.tsx `EXTRACTED`
+- [SettingsScreen.tsx](SettingsScreen.tsx.md) `EXTRACTED`
+- [RootNavigator.tsx](RootNavigator.tsx.md) `EXTRACTED`
+- [DrillScreen.tsx](DrillScreen.tsx.md) `EXTRACTED`
+- [TutorTab.tsx](TutorTab.tsx.md) `EXTRACTED`
+- [ProfileTab.tsx](ProfileTab.tsx.md) `EXTRACTED`
+- [PracticeTab.tsx](PracticeTab.tsx.md) `EXTRACTED`
+- [WallScreen.tsx](WallScreen.tsx.md) `EXTRACTED`
+- [OnboardingFlow.tsx](OnboardingFlow.tsx.md) `EXTRACTED`
+- ProgressScreen.tsx `EXTRACTED`
 - layout.tsx `EXTRACTED`
-- PreAccountOnboarding.tsx `EXTRACTED`
-- ReviewScreen.tsx `EXTRACTED`
+- LiveSessionScreen.tsx `EXTRACTED`
+- ConversationsScreen.tsx `EXTRACTED`
 - MissionsScreen.tsx `EXTRACTED`
-- SoundCheckScreen.tsx `EXTRACTED`
-- SummaryScreen.tsx `EXTRACTED`
-- SessionView.tsx `EXTRACTED`
-- TutorIntro.tsx `EXTRACTED`
+- [TutorMemoryScreen.tsx](TutorMemoryScreen.tsx.md) `EXTRACTED`
+- [RealMomentScreen.tsx](RealMomentScreen.tsx.md) `EXTRACTED`
+- PhrasebookScreen.tsx `EXTRACTED`
+- ReviewScreen.tsx `EXTRACTED`
+- PreAccountOnboarding.tsx `EXTRACTED`
 
 ### rationale_for
 - Fraunces speaks, DM Sans is furniture `EXTRACTED`

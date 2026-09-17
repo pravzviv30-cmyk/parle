@@ -2,15 +2,15 @@
 
 > God node · 65 connections · `services/tutor-agent/src/convo.ts`
 
-**Community:** [Tutor Conversation Orchestration](Tutor_Conversation_Orchestration.md)
+**Community:** [convo.ts](convo.ts.md)
 
 ## Connections by Relation
 
 ### contains
-- convo.ts `EXTRACTED`
+- [convo.ts](convo.ts.md) `EXTRACTED`
 
 ### imports
-- convo.test.ts `EXTRACTED`
+- [convo.test.ts](convo.test.ts.md) `EXTRACTED`
 - [agent.ts](agent.ts.md) `EXTRACTED`
 - brainSpend.ts `EXTRACTED`
 
@@ -20,11 +20,11 @@
 - .startScene() `EXTRACTED`
 - .publish() `EXTRACTED`
 - .routeClientMessage() `EXTRACTED`
-- .constructor() `EXTRACTED`
 - .handleSafety() `EXTRACTED`
 - .armRescue() `EXTRACTED`
 - .curatePractice() `EXTRACTED`
 - .generateDrills() `EXTRACTED`
+- .constructor() `EXTRACTED`
 - .open() `EXTRACTED`
 - .openMission() `EXTRACTED`
 - .clearRescue() `EXTRACTED`
@@ -42,9 +42,9 @@
 - LlmClient `EXTRACTED`
 - LearnerProfile `EXTRACTED`
 - ConversationState `EXTRACTED`
+- MissionId `EXTRACTED`
 - TutorPersona `EXTRACTED`
 - ServerMessage `EXTRACTED`
-- MissionId `EXTRACTED`
 
 ---
 

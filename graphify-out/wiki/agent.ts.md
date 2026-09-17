@@ -1,6 +1,6 @@
 # agent.ts
 
-> 24 nodes · cohesion 0.12
+> 23 nodes · cohesion 0.13
 
 ## Key Concepts
 
@@ -8,7 +8,6 @@
 - **src/timing.ts** (12 connections) — `services/tutor-agent/src/timing.ts`
 - **turnHandling.ts** (8 connections) — `services/tutor-agent/src/turnHandling.ts`
 - **src/timing.test.ts** (5 connections) — `services/tutor-agent/src/timing.test.ts`
-- **tutorLLM()** (3 connections) — `services/tutor-agent/src/agent.ts`
 - **validSeedTopic()** (3 connections) — `services/tutor-agent/src/convo.ts`
 - **createTurnTiming()** (3 connections) — `services/tutor-agent/src/timing.ts`
 - **formatTiming()** (3 connections) — `services/tutor-agent/src/timing.ts`
@@ -31,18 +30,18 @@
 
 ## Relationships
 
-- [Brain Preflight Checks](Brain_Preflight_Checks.md) (6 shared connections)
-- [Tutor Agent Smoke Test](Tutor_Agent_Smoke_Test.md) (3 shared connections)
-- [Tutor Conversation Orchestration](Tutor_Conversation_Orchestration.md) (3 shared connections)
-- [Conversation Packs](Conversation_Packs.md) (3 shared connections)
-- [Tutor Coach Eval Cases](Tutor_Coach_Eval_Cases.md) (2 shared connections)
-- [Brain LLM Client](Brain_LLM_Client.md) (2 shared connections)
-- [TTS Voice Resolution](TTS_Voice_Resolution.md) (2 shared connections)
-- [Tutor Core Class](Tutor_Core_Class.md) (2 shared connections)
-- [Voice Sample TTS Build](Voice_Sample_TTS_Build.md) (1 shared connections)
-- [Mission Chooser View](Mission_Chooser_View.md) (1 shared connections)
-- [Tutor Prompt Building](Tutor_Prompt_Building.md) (1 shared connections)
-- [Safety State View](Safety_State_View.md) (1 shared connections)
+- [preflight.ts](preflight.ts.md) (6 shared connections)
+- [convo.ts](convo.ts.md) (5 shared connections)
+- [protocol.ts](protocol.ts.md) (3 shared connections)
+- [runEval.ts](runEval.ts.md) (2 shared connections)
+- [voice.ts](voice.ts.md) (2 shared connections)
+- [normalise](normalise.md) (2 shared connections)
+- [LlmUsage](LlmUsage.md) (1 shared connections)
+- [src/voiceSamples.ts](src-voiceSamples.ts.md) (1 shared connections)
+- [chooserView.ts](chooserView.ts.md) (1 shared connections)
+- [startOwnership.test.ts](startOwnership.test.ts.md) (1 shared connections)
+- [TutorVoiceKey](TutorVoiceKey.md) (1 shared connections)
+- [convo.test.ts](convo.test.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -55,7 +54,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 65 (100%)
+- EXTRACTED: 63 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
