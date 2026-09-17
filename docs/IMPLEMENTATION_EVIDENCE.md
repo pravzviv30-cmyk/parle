@@ -22,6 +22,24 @@ of the list.
 
 ## Current landing snapshot
 
+- The revamp A branch gate (`claude/luvani-ui-revamp-d75581`, on top of the app upgrade
+  commit `17f4fb3`) passes **3,018 tests, 0 failing**; core 623, brain 392, tutor agent 445,
+  token server 194, playground 26, mobile 1338. Typecheck is clean in all six workspaces and
+  the floors were blessed to those counts as one act with writing this record. It is a branch
+  gate, not a release gate, and it was run from the worktree, which has its own
+  `node_modules` (brain reports its full 392 there). What it covers: the design system of
+  revamp A (tokens, the tinted row and the white cards, eighteen raster scenes through one
+  decorative registry, the glyph set, the gradient orb; F569, F570, F583, F588, F589); the
+  five tabs, the Progress, Phrasebook and Conversations screens, every pushed screen, the
+  first run and the plans wall composed from it (F571 to F576, F584 to F587); the calendar
+  week in the identity violet (F577); own words as a drill kind judged by the brain behind
+  `POST /drill/judge` and typed in the app (F578 to F581); replay through the tutor's voice
+  (F582); and the closing of F146, F383, F461, F462 and F522 by the same work. What it
+  does not cover is on the `blocked-on` list and in Pass 8 of the device runbook: every one
+  of its fourteen rows is `not run`, because the five tabs, the conversation, the wall and
+  the first run were walked on the web build at 430 points only, never on a device, and
+  nothing here proves the largest reading size, reduce motion, a screen reader, or Android
+  graphics memory.
 - The app upgrade branch gate (`claude/luvani-app-upgrade-63829f`, on top of the wall
   commit `ded101e`) passes **2,888 tests, 0 failing**; core 608, brain 385, tutor agent 445,
   token server 187, playground 26, mobile 1237. Typecheck is clean in all six workspaces and
