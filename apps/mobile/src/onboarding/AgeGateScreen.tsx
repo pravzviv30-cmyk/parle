@@ -31,7 +31,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { paper, space, type } from '../theme.ts';
 import { PillButton, GhostButton } from '../components.tsx';
 import { ScrollScreen } from '../layout.tsx';
-import { OnboardCake } from '../illustrations.tsx';
+import { Art } from '../art/Art.tsx';
+import { SCREEN_ART } from '../art/maps.ts';
 import { AGE_CONFIRM, AGE_DENY, AGE_RETURN_SUB, AGE_RETURN_TITLE, ageGate } from './answers.ts';
 import { AgeRefusal } from './AgeRefusal.tsx';
 
@@ -61,7 +62,7 @@ export function AgeGateScreen({ onPass, onSignOut }: { onPass: () => void; onSig
       }
     >
       <View style={st.art}>
-        <OnboardCake width={170} />
+        <Art name={SCREEN_ART.agePage} />
       </View>
       <Text accessibilityRole="header" style={st.question}>
         {AGE_RETURN_TITLE}

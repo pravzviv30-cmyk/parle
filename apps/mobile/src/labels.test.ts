@@ -78,6 +78,9 @@ const RETIRED = [
  * A sample of the labels that earn their place: each one names something no
  * sentence on its screen says. If a future sweep takes one of these, it has
  * taken information rather than decoration.
+ *
+ * These are the ones still written as words in the JSX that draws them, which
+ * is all `labelsInSource` can see: it reads literals.
  */
 const KEPT = [
   'Say this',
@@ -97,6 +100,40 @@ const KEPT = [
   'The sound to work on',
   'You',
 ];
+
+/**
+ * The labels revamp A added, which are words in a `.ts` rather than in the JSX.
+ *
+ * Eight new caps labels arrived with the revamp and not one of them is a
+ * literal a source walk can see: the screen writes `<Label>{RHYTHM_LABEL}</Label>`
+ * or hands `label={SHELF_LABEL}` to a primitive that draws one. That is the
+ * right shape — the words belong in a module a test can import — but it means
+ * `labelsInSource` reads `{RHYTHM_LABEL}` and would have said the sweep was
+ * clean while eight labels it had never read sat on five tabs.
+ *
+ * So each one names its words, the module that owns them, and the constant. The
+ * check is the same check: the words still exist, and something still draws
+ * them as a caps label.
+ */
+const KEPT_IN_A_MODULE: readonly { words: string; from: string; name: string }[] = [
+  { words: 'Real progress', from: 'home/abilities.ts', name: 'REAL_PROGRESS_LABEL' },
+  { words: 'Practice together', from: 'tutor/gate.ts', name: 'ENTRY_MODES_LABEL' },
+  { words: 'Your next practice', from: 'practice/copy.ts', name: 'NEXT_PRACTICE_LABEL' },
+  { words: 'You can now...', from: 'myfrench/situations.ts', name: 'YOU_CAN_NOW' },
+  { words: 'Your phrase shelf', from: 'myfrench/copy.ts', name: 'SHELF_LABEL' },
+  { words: 'Your tutor', from: 'profile/frenchLife.ts', name: 'TUTOR_LABEL' },
+  { words: 'Your speaking rhythm', from: 'profile/frenchLife.ts', name: 'RHYTHM_LABEL' },
+  { words: 'Your learning', from: 'profile/frenchLife.ts', name: 'LEARNING_LABEL' },
+];
+
+/**
+ * The three primitives that draw a caps label out of a `label` prop.
+ *
+ * Named here and proved below, because `label=` is also what every button in
+ * the app takes, and a button word is not a caps label. These three are the
+ * only components that turn the prop into `<Label>`.
+ */
+const LABEL_PRIMITIVES = ['surface/HeroCard.tsx', 'surface/IconRowCard.tsx', 'surface/PhraseCard.tsx'];
 
 describe('the caps micro-label — what it is allowed to be used for', () => {
   test('the retired kickers stay retired', () => {
@@ -173,6 +210,44 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
     const texts = new Set(labelsInSource().map((l) => l.text));
     for (const kept of KEPT) {
       assert.ok(texts.has(kept), `"${kept}" is a label that carries information, and the sweep was not for those`);
+    }
+  });
+
+  test('a label whose words live in a module is still drawn as a label', () => {
+    // First the three primitives really do turn `label` into a caps label, so
+    // `label={SHELF_LABEL}` below is a caps label and not a button word.
+    for (const where of LABEL_PRIMITIVES) {
+      const source = readFileSync(join(SRC, where), 'utf8');
+      assert.match(
+        source,
+        /<Label>\{label\}<\/Label>/,
+        `${where} no longer draws its label prop as a caps Label, so the call sites below prove nothing`,
+      );
+    }
+
+    const all = sourceFiles(SRC).map((file) => ({ file, body: readFileSync(file, 'utf8') }));
+    for (const { words, from, name } of KEPT_IN_A_MODULE) {
+      const owner = all.find((f) => f.file.endsWith(from));
+      assert.ok(owner, `${from} is gone, and it is where "${words}" was written`);
+
+      // The words, exactly, in the module that claims them. A constant renamed
+      // is fine; a sentence quietly reworded is what this catches.
+      const direct = new RegExp(`export const ${name}(?::[^=]*)? = '${words.replace(/[.*+?^$()|[\]\\]/g, '\\$&')}';`);
+      const inObject = new RegExp(`export const ${name} = \\{[\\s\\S]*?label: '${words.replace(/[.*+?^$()|[\]\\]/g, '\\$&')}',`);
+      assert.ok(
+        direct.test(owner!.body) || inObject.test(owner!.body),
+        `${from} no longer says "${words}" as ${name}, so the label a learner reads has been reworded without a decision`,
+      );
+
+      // And something still draws it as a caps label: inside `<Label>`, or
+      // handed to one of the three primitives as `label`, or set as the `label`
+      // of a view model one of them is given.
+      const drawn = all.some(({ body }) =>
+        new RegExp(`<Label[^>]*>\\{${name}[^}]*\\}</Label>`).test(body) ||
+        new RegExp(`label=\\{${name}\\b[^}]*\\}`).test(body) ||
+        new RegExp(`label: ${name}\\b`).test(body),
+      );
+      assert.ok(drawn, `"${words}" is still written down and nothing draws it, so the label left the screen quietly`);
     }
   });
 

@@ -31,20 +31,25 @@ import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 
 export const MADE_FROM = {
   replay: {
-    label: 'Replay this moment',
+    label: 'Replay a moment',
+    gloss: 'Listen and try again',
+    /** What the row's tap does before it opens anything: the better line, spoken. */
+    listen: 'Hear the better line',
     said: 'What you said',
     better: 'A better way',
     action: 'Try it again',
   },
   phrase: {
     label: 'Make this phrase yours',
+    gloss: 'Say it in your own words',
     saved: 'In your phrase bank',
     save: 'Keep this phrase',
     say: 'Say it',
     hear: 'Hear it',
   },
   sound: {
-    label: 'Tune the sound',
+    label: 'Tune one sound',
+    gloss: 'Focus on a tricky sound',
     check: 'Check this sound',
     none: 'After your next situation, a short sound check names one sound to tune.',
     go: 'Choose a situation',

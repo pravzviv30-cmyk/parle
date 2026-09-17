@@ -1,10 +1,14 @@
 /**
- * The four onboarding scenes, carried over exactly as they were drawn.
+ * The three onboarding scenes, carried over exactly as they were drawn.
  *
- * These four stay still on purpose. Onboarding is four questions in a row and
- * the learner is reading, not watching; a drawing that moved beside every one
- * of them would be four flourishes competing with the thing being asked.
+ * These stay still on purpose. Onboarding is four questions in a row and the
+ * learner is reading, not watching; a drawing that moved beside every one of
+ * them would be four flourishes competing with the thing being asked.
  * `OnboardClock`'s wings are the obvious candidate if that ever changes.
+ *
+ * The cake left with revamp A. The age gate draws the registered `onboard-cake`
+ * picture now, and the name page is the one of these still reached from a
+ * screen, so it is the one still offered by the barrel.
  */
 
 import { Path, Circle } from 'react-native-svg';
@@ -31,33 +35,6 @@ export function OnboardWave({ width }: SceneProps) {
       {/* wave arcs */}
       <Path d="M138 70c3-3 5-7 5-11M146 74c4-3 7-7 8-12" />
       <Stipple points={[[44, 118], [50, 121], [120, 116]]} />
-    </Frame>
-  );
-}
-
-/** A lopsided cake with one enormous candle. Age is just a number. */
-export function OnboardCake({ width }: SceneProps) {
-  return (
-    <Frame width={width}>
-      {/* cake stand */}
-      <Path d="M46 128h108" />
-      <Path d="M96 128c0 6 8 6 8 0" transform="translate(0 1)" />
-      {/* bottom layer, listing slightly */}
-      <Path d="M56 104c0-8 2-12 6-12h76c4 0 6 4 6 12l1 22H55z" transform="rotate(-1.5 100 110)" />
-      {/* frosting drips */}
-      <Path d="M62 92c2 6 5 7 7 1 2 6 6 7 8 1 2 5 6 6 8 1 2 6 6 6 8 0 2 6 6 6 8 1 2 5 6 6 8 0 2 6 6 6 8 1 2 5 5 6 7 0" transform="rotate(-1.5 100 96)" />
-      {/* top layer, listing the other way */}
-      <Path d="M74 92l2-22c0-3 2-5 5-5h38c3 0 5 2 5 5l2 22" transform="rotate(2 100 80)" />
-      <Path d="M76 76c3 4 6 4 8 0 2 4 6 4 8 0 2 4 6 4 8 0 2 4 6 4 8 0 2 4 6 4 8 0 2 4 5 4 7 0" transform="rotate(2 100 76)" />
-      {/* THE candle */}
-      <Path d="M97 63V26M105 63V26" />
-      <Path d="M97 30c3-2 5-2 8 0M97 40c3 2 5 2 8 0M97 50c3-2 5-2 8 0" />
-      <Path d="M101 22v-4" />
-      {/* flame — solid accent */}
-      <Path d="M101 4c4 5 6 8 6 11 0 4-3 6-6 6s-6-2-6-6c0-3 2-6 6-11z" fill={paper.ink} stroke="none" />
-      {/* a little heat */}
-      <Path d="M86 16c-2-3-2-6 0-9M116 16c2-3 2-6 0-9" />
-      <Stipple points={[[63, 112], [70, 116], [78, 112], [126, 114], [133, 111], [119, 117]]} />
     </Frame>
   );
 }

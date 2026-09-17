@@ -1,63 +1,81 @@
 /**
- * The chooser: six situations, one of them already picked.
+ * The chooser: six situations, one of them already picked, and the lesson.
  *
  * A stack screen, reached from three doors, because the same surface is needed
- * by a first run, by Home's mission card and by the Tutor tab. A first run
- * opens straight onto it, which is why the way out has to work even when there
- * is nothing behind this screen to go back to.
+ * by a first run, by Home's hero and by the Tutor tab's everyday row. A first
+ * run opens straight onto it, which is why the way out has to work even when
+ * there is nothing behind this screen to go back to.
+ *
+ * Revamp A gives it one hero card and five rows instead of six cards, and hands
+ * it the scripted lesson (F573). The lesson was a door on the Tutor tab, which
+ * had grown into a contents page; it belongs here, last, because it is the
+ * narrow door where every line is written out and a beginner should meet the
+ * open situations before a fixed script. It is an outline rather than a row for
+ * the reason it was never a seventh mission: the script is known in advance,
+ * which is the only reason pronunciation can be scored at all.
  *
  * Every rule on this page lives in `chooserView.ts`: which mission is first,
- * which one carries the solid pill, what each card says underneath, and whether
- * the promise line is on screen at all. What is left here is layout, which is
- * the only thing a file with no renderer behind it should be holding.
- *
- * Six cards need six pictures, or they are six identical rectangles with
- * different words on them. Four of the drawings are new and two already
- * existed, and none of them moves: the motion vocabulary is one loop per
- * screen, and six loops at the moment somebody is trying to choose is six
- * things pulling at the eye.
+ * which one carries the solid pill, what each card says underneath, whether the
+ * promise line is on screen at all, and what the lesson door says. What is left
+ * here is layout, which is the only thing a file with no renderer behind it
+ * should be holding.
  */
 
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../nav/types.ts';
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { missionStates, type MissionProgress } from '@luvani/core';
-import { paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
-import { Card, GhostButton, PillButton } from '../components.tsx';
+import { accent, paper, space, type } from '../theme.ts';
+import { Card, GhostButton, Label, MicGlyph, OutlineButton, PillButton, TintRow } from '../components.tsx';
+import { PlaceGlyph, WaveformGlyph } from '../glyphs.tsx';
+import { Art } from '../art/Art.tsx';
+import { heroArt } from '../art/maps.ts';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { useLive } from '../app/LiveContext.tsx';
+import { lessonStart, TUTOR_OFFLINE } from '../tutor/gate.ts';
+import { missionTint } from './missionTint.ts';
 import { loadMissionCompletions } from './store.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadActivity } from '../progress/activity.ts';
-import { chooserView, hasSpokenBefore, missionCompletionsFrom, type ChooserCard } from './chooserView.ts';
-import { MissionArt } from './MissionArt.tsx';
+import {
+  CHOOSER_OTHER,
+  CHOOSER_START_HERE,
+  LESSON_DOOR,
+  chooserView,
+  hasSpokenBefore,
+  missionCompletionsFrom,
+  type ChooserCard,
+} from './chooserView.ts';
 import { trackProductEvent } from '../analytics/track.ts';
 
 export function MissionsScreen() {
-  const focused = useIsFocused();
   const nav = useNavigation<{
     goBack: () => void;
     canGoBack: () => boolean;
     navigate: (screen: string, params?: object) => void;
   }>();
+  const { recheck } = useLive();
 
   const [progress, setProgress] = useState<readonly MissionProgress[] | null>(null);
   const route = useRoute<RouteProp<RootStackParamList, 'Missions'>>();
   const [spokenBefore, setSpokenBefore] = useState(true);
+  /** A probe is in flight, so a tap on the lesson is never a dead press. */
+  const [checking, setChecking] = useState(false);
 
   // Re-read on every return: a mission finished in the last ten minutes should
   // be reading as finished by the time the learner comes back to choose again.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void Promise.all([loadMissionCompletions(), loadDeck(), loadActivity()]).then(
-        ([completions, deck, activity]) => {
+      void Promise.all([loadMissionCompletions(), loadDeck(), loadActivity()])
+        .then(([completions, deck, activity]) => {
           if (cancelled) return;
           setProgress(missionStates(missionCompletionsFrom(completions), deck, Date.now()));
           setSpokenBefore(hasSpokenBefore(activity));
-        },
-      );
+        })
+        .catch(() => {});
       return () => {
         cancelled = true;
       };
@@ -77,6 +95,28 @@ export function MissionsScreen() {
     nav.navigate(card.route.screen, card.route.params);
   };
 
+  /**
+   * The scripted lesson, probed and refused by nothing.
+   *
+   * One probe in flight, one lesson, the same guard every other probing handler
+   * in the app carries. What differs is the answer it is allowed to give:
+   * `tutorGate` can hold a learner back from a conversation because there is no
+   * conversation without a server, while the lesson falls back to the mock
+   * session, so `lessonStart` opens either way and the learner lands on the
+   * live lesson or the honest demo of it. `go` is passed twice so a probe that
+   * ever threw still lets go of the flag instead of retiring the screen.
+   */
+  const openLesson = (textMode: boolean) => {
+    if (checking) return;
+    setChecking(true);
+    const go = () => {
+      setChecking(false);
+      const start = lessonStart(textMode);
+      nav.navigate(start.screen, start.params);
+    };
+    void recheck().then(go, go);
+  };
+
   // Nothing has come back from the disk yet. The catalogue is fixed, so this is
   // one frame at most and drawing a spinner for it would flash.
   // `focus` is the mission a door on the previous screen already named. It
@@ -94,43 +134,50 @@ export function MissionsScreen() {
         {view.microphoneNotice !== null && <Text style={st.microphoneNotice}>{view.microphoneNotice}</Text>}
 
         {first && (
-          <Card style={{ marginTop: space(6) }}>
-            <View style={st.heroArt}>
-              <MissionArt place={first.mission.place} width={200} paused={!focused} />
-            </View>
-            <Text style={st.heroTitle}>{first.mission.title}</Text>
-            <Text style={st.heroSub}>{first.mission.titleEn}</Text>
-            <Text style={st.goal}>{first.mission.goalEn}</Text>
-            <Text style={st.status}>{first.status}</Text>
-            <View style={{ marginTop: space(4) }}>
-              <PillButton label="Start this one" onPress={() => open(first)} />
-            </View>
+          <Card style={st.hero}>
+            <Label>{CHOOSER_START_HERE}</Label>
+            <Art name={heroArt(first.mission.place)} style={st.heroArt} />
+            <Text style={[type.cardTitle, { color: paper.ink }]}>{first.mission.title}</Text>
+            <Text style={[type.small, { color: paper.inkSoft }]}>{first.mission.goalEn}</Text>
+            <PillButton
+              label="Start this one"
+              icon={<MicGlyph size={20} color={paper.onInk} />}
+              accessibilityLabel={`Start this one. ${first.mission.titleEn}. ${first.status}`}
+              onPress={() => open(first)}
+            />
           </Card>
         )}
 
         <View style={st.rows}>
+          <Label>{CHOOSER_OTHER}</Label>
           {rest.map((card) => (
-            <Pressable
+            <TintRow
               key={card.id}
+              tint={missionTint(card.mission.place)}
+              glyph={<PlaceGlyph place={card.mission.place} color={accent.primary} />}
+              title={card.mission.title}
+              gloss={card.mission.titleEn}
+              accessibilityLabel={`${card.mission.title}. ${card.mission.titleEn}. ${card.status}`}
               onPress={() => open(card)}
-              accessibilityRole="button"
-              accessibilityLabel={`${card.mission.titleEn}. ${card.status}`}
-              style={({ pressed }) => [st.row, pressed && { backgroundColor: paper.groundDeep }]}
-            >
-              <View style={st.rowArt}>
-                <MissionArt place={card.mission.place} width={72} paused />
-              </View>
-              <View style={st.rowText}>
-                <Text style={[type.bodyStrong, { color: paper.ink }]}>{card.mission.title}</Text>
-                <Text style={[type.body, { color: paper.inkSoft }]}>{card.mission.titleEn}</Text>
-                <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{card.status}</Text>
-              </View>
-            </Pressable>
+            />
           ))}
         </View>
 
+        {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
+
+        {/* The scripted lesson, and its own typed way in. The lesson is the one
+            live screen that offers no quiet door until something breaks, so
+            without this link a learner who cannot speak reaches the typed
+            lesson only by first having the session fail. */}
         <View style={st.footer}>
-          <GhostButton label={view.talkFreely} onPress={() => nav.navigate('Convo')} />
+          <OutlineButton
+            label={LESSON_DOOR.title}
+            icon={<WaveformGlyph size={20} color={paper.ink} />}
+            disabled={checking}
+            onPress={() => openLesson(false)}
+          />
+          <GhostButton label={LESSON_DOOR.quiet} disabled={checking} onPress={() => openLesson(true)} />
+          <GhostButton label={view.talkFreely} disabled={checking} onPress={() => nav.navigate('Convo')} />
         </View>
       </View>
     </ScrollScreen>
@@ -143,24 +190,9 @@ const st = StyleSheet.create({
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
   promise: { ...type.bodyStrong, color: paper.ink, marginTop: space(4) },
   microphoneNotice: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
-  heroArt: { alignItems: 'center', marginBottom: space(3) },
-  heroTitle: { ...type.title, color: paper.ink },
-  heroSub: { ...type.body, color: paper.inkSoft, marginTop: space(0.5) },
-  goal: { ...type.body, color: paper.ink, marginTop: space(3) },
-  status: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
-  rows: { marginTop: space(5), gap: space(3) },
-  row: {
-    minHeight: HIT,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space(4),
-    backgroundColor: paper.card,
-    borderRadius: radius.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.lineOnCard,
-    padding: space(3),
-  },
-  rowArt: { alignItems: 'center', justifyContent: 'center' },
-  rowText: { flex: 1 },
-  footer: { marginTop: space(6) },
+  hero: { marginTop: space(5), gap: space(3) },
+  heroArt: { alignSelf: 'center' },
+  rows: { marginTop: space(5), gap: space(2) },
+  checking: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
+  footer: { marginTop: space(5), gap: space(1) },
 });

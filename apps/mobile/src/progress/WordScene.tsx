@@ -14,9 +14,10 @@
  * illustration barrel exports is reached from somewhere, as `<Name` or
  * `Name(`, which is how the app notices a drawing that ships and renders
  * nowhere. A map of bare identifiers matches neither pattern, so all twenty
- * would read as dead code the day they landed. `missions/MissionArt.tsx` is
- * the same shape for the same reason, and this file follows it deliberately
- * rather than inventing a second answer.
+ * would read as dead code the day they landed. `missions/MissionArt.tsx` was
+ * the same shape for the same reason; it has since been retired with the place
+ * drawings it switched on, which leaves this file as the one place the pattern
+ * lives, so the reason for it is written out here rather than cross-referenced.
  *
  * ## Twenty cases and a default
  *

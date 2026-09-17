@@ -680,7 +680,7 @@ recorded. Owner: `frontend-engineer` for the build, `qa-release-engineer` for ru
 |---|---|---|---|
 | P1b-1 | Each tab's display title scrolls with the body at iOS AX5 / Android font scale 2.0, and the tab's closing action stays reachable below it | not run | not run |
 | P1b-2 | The five tab tops read as one family on a swipe between them: same display title, same left edge, same purpose line beneath | not run | not run |
-| P1b-3 | The monogram initial stays inside its disc on Home and Profile across AX3 to AX5, and the disc is skipped by the screen reader while the name is read from the text | not run | not run |
+| P1b-3 | The monogram initial stays inside its disc on Profile across AX3 to AX5, and the disc is skipped by the screen reader while the name is read from the text | not run | not run |
 | P1b-4 | A pushed screen's centred title (the Review card count, the session connection line) sits centred, not half a touch target off | not run | not run |
 | P1b-5 | Soft-ink status lines, costs and captions stay legible on the ground and on a white card in daylight; no word reads as greyed out | not run | not run |
 | P1b-6 | On an SE-class phone the Tutor tab shows its header, then the scene, then the doors, then the one pill, in that order, and every one is reachable | not run | not run |
@@ -922,7 +922,7 @@ Owner: `frontend-engineer` for the screens, `qa-release-engineer` for running th
 | Id | Check | iOS | Android |
 |---|---|---|---|
 | P7-1 | With the microphone refused in the phone's own settings, the Microphone row appears under Phone on Settings, and tapping it opens Luvani's own page in Settings rather than the top of the settings app | not run | not run |
-| P7-2 | With notifications refused the same way, the Notifications row appears and does the same, and the reminder card on Profile still says notifications are off rather than showing a live switch | not run | not run |
+| P7-2 | With notifications refused the same way, the Notifications row appears and does the same, and the reminder row under Phone on Settings still says notifications are off rather than showing a live switch | not run | not run |
 | P7-3 | Allowing either permission and taking the ordinary walk back into the app makes that row go away without a relaunch, and allowing both leaves no Phone group at all | not run | not run |
 | P7-4 | On a signed build with store keys, Manage subscription opens the store's own subscription sheet, and dismissing it says nothing at all; on a build without keys the whole Subscription group is absent rather than showing two rows that open onto nothing | not run | not run |
 | P7-5 | Restore purchases on a fresh install reports that the store was checked, with no number, no price and no claim about speaking time, and the same tap on the paywall behaves the way it always did | not run | not run |
@@ -942,6 +942,51 @@ P7-4 and P7-5 need a signed build with real store keys. In Expo Go, on the web, 
 build without keys the store answers with no product, `subscriptionGroup` returns null, and
 there is nothing on screen to walk. That is the designed behaviour rather than a blocker,
 and it is what P7-4's second clause checks.
+
+
+## Pass 8 revamp
+
+Revamp A replaced the surface of the whole app: white cards on porcelain with one whisper
+of a shadow, pastel rows with a white disc and a line-art glyph, watercolour pictures
+bleeding off four header corners, a gradient orb, and three sections moved one level down
+onto routes of their own.
+
+Almost none of that is a rule a source walk can see. It can prove a picture is registered,
+sized once and spread decorative; it cannot see whether the wash meets the corner cleanly
+on a 320pt phone. It can prove the tab bar caps nothing; it cannot see whether five words
+fit at accessibility XXXL. It can prove the orb has a rest branch; it cannot see the orb
+rest. And two of these rows are the only evidence there will ever be for a promise made in
+words rather than in code: that replaying a moment records nothing, and that an own-words
+attempt with no verdict leaves no grade behind.
+
+Three rows are the same axis as the still-open F383 and F461, and P8-9 is the one filed
+with F592: the raster art decodes at file size on Android until somebody measures it.
+
+`pass` / `fail` / `not run`. Every row is `not run` until a real device pass is walked.
+Owner: `frontend-engineer` for the screens, `qa-release-engineer` for running them.
+
+| Id | Check | iOS | Android |
+|---|---|---|---|
+| P8-1 | The header picture bleeds off the corner on Home, Practice, My French and Profile, at 390pt and again at 320pt, with no seam and no white box behind the wash, and the headline never runs underneath it | not run | not run |
+| P8-2 | At accessibility XXXL the tab bar keeps every whole word, stacking the glyph over the label rather than truncating it (F461, F583), and all five tabs scroll from the header to the last row without a block clipping (F383) | not run | not run |
+| P8-3 | With reduce motion on, the orb is one still gradient with its rings and lines drawn once, Home's greeting stops swapping and shows one greeting, and nothing on any tab loops | not run | not run |
+| P8-4 | VoiceOver and TalkBack walk past every illustration in silence, and read each tinted row once as its title, its gloss and a button, rather than as three separate nodes | not run | not run |
+| P8-5 | The speaker on Your next practice says the French line aloud, names itself Stop while it is playing, and stops when the tab is left rather than talking over the next screen | not run | not run |
+| P8-6 | Replay a moment speaks the better line and keeps nothing: no recording is made, no microphone permission is asked for, and coming back to the tab shows the same row rather than a result | not run | not run |
+| P8-7 | The own-words drill takes a typed attempt and returns a verdict; with the phone offline the same Check reveals one way to say it, says the tutor could not read it, and leaves the card ungraded, because a verdict that never arrived is never a grade | not run | not run |
+| P8-8 | A scripted lesson at the largest reading size keeps every support control reachable with one thumb, collapsing the ghost row to one More chip rather than clipping it off the right edge (F462) | not run | not run |
+| P8-9 | On an Android device, graphics memory measured with `adb shell dumpsys meminfo` after walking all five tabs, the chooser and Progress stays inside the budget agreed for the build, and no picture decodes larger than twice its box (F592) | not run | not run |
+| P8-10 | The rhythm card on Profile fills exactly the days the learner spoke, Monday first and Sunday last whatever today is, days after today unfilled, and the goal and correction controls announce which one is chosen on the web as well as on a device (F522) | not run | not run |
+| P8-11 | Onboarding and sign-in at 320pt with the keyboard raised keep the primary pill and at least one field visible, and the corner picture never covers a field | not run | not run |
+| P8-12 | The wall's four pages and the inline paywall can be read and answered with one thumb while standing, the chosen plan is ringed and announced, and no price or period is a number the screen invented | not run | not run |
+| P8-13 | On the web the app clamps to the column at 460pt in a 1440pt browser window: the header art, every tinted row, the hero card and the tab bar all stay inside it, and nothing spans the window | not run | not run |
+| P8-14 | A live conversation at 320pt keeps the orb, the thread and all five ghost controls reachable one-handed, and the out-of-minutes card reads end to end with no horizontal scroll | not run | not run |
+
+P8-6 and P8-7 are promises about what does NOT happen, so they are walked with the phone's
+own indicators rather than with the app: the microphone indicator must never appear during
+a replay, and the review deck must hold the same number of due cards before and after an
+offline Check. A row that cannot be shown to have not happened is worth more here than a
+row that shows something did.
 
 
 ## What this runbook cannot prove

@@ -21,9 +21,9 @@
 
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
+import { paper, space, type, HIT } from '../theme.ts';
 import { Screen } from '../layout.tsx';
-import { Label, PillButton, OutlineButton, GhostButton } from '../components.tsx';
+import { Card, Label, PillButton, OutlineButton, GhostButton } from '../components.tsx';
 import { failureCopy, type LiveFailure } from './failure.ts';
 import type { LiveDiagnostics } from './useLiveSession.ts';
 
@@ -80,7 +80,11 @@ export function LiveErrorView({
     <Screen padded={false}>
       <View style={st.center}>
         <Label color={paper.inkSoft}>{copy.label}</Label>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>{message}</Text>
+        {/* The sentence is the point of this screen, so it reads at body size in
+            full ink rather than in the soft grey a caption gets. Words clear
+            4.5 against the ground, and a line somebody is meant to act on is
+            not a caption (F330). */}
+        <Text style={[type.body, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>{message}</Text>
 
         {canType ? (
           <>
@@ -109,7 +113,7 @@ export function LiveErrorView({
               <Text style={[type.small, { color: paper.inkSoft }]}>{open ? 'Hide details' : 'What happened?'}</Text>
             </Pressable>
             {open ? (
-              <View style={st.panel}>
+              <Card style={st.panel}>
                 <Row name="Cause" value={failure} />
                 <Row name="Token server" value={diagnostics.tokenServer} />
                 <Row name="Token reply" value={show(diagnostics.tokenStatus)} />
@@ -123,7 +127,7 @@ export function LiveErrorView({
                 <Row name="Tutor audio arrived" value={show(diagnostics.audioTrackSubscribed)} />
                 <Row name="Tutor sent anything" value={show(diagnostics.firstServerMessage)} />
                 <Row name="Session actually opened" value={show(diagnostics.sessionOpened)} />
-              </View>
+              </Card>
             ) : null}
           </View>
         ) : null}
@@ -138,13 +142,9 @@ const st = StyleSheet.create({
   secondary: { marginTop: space(2), alignSelf: 'stretch' },
   diagnostics: { marginTop: space(7), alignSelf: 'stretch' },
   disclosure: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
-  panel: {
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-    borderRadius: radius.card,
-    paddingHorizontal: space(4),
-    paddingVertical: space(3),
-    gap: space(2),
-  },
+  // The shared card: same white, same corners, same one whisper. It was a hand
+  // rolled copy of Card's own rule, which is how two cards in one app end up a
+  // point apart.
+  panel: { paddingHorizontal: space(4), paddingVertical: space(3), gap: space(2) },
   row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space(4) },
 });

@@ -32,10 +32,12 @@ import {
   TextInput,
 } from 'react-native';
 import { dueCards, reviewXp, type ReviewCard, type ReviewGrade } from '@luvani/core';
-import { HAIRLINE, HIT, font, paper, radius, space, type } from './theme.ts';
-import { Card, Label, PillButton, EarGlyph, fitDisplay } from './components.tsx';
+import { HAIRLINE, HIT, accent, font, paper, radius, shadow, space, type } from './theme.ts';
+import { Card, Label, OutlineButton, PillButton, fitDisplay } from './components.tsx';
+import { SpeakerGlyph } from './glyphs.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
-import { NothingDue } from './illustrations.tsx';
+import { Art } from './art/Art.tsx';
+import { SCREEN_ART } from './art/maps.ts';
 import { loadDeck, gradeCard } from './review/store.ts';
 import {
   CARD_START,
@@ -48,6 +50,9 @@ import {
 } from './review/cardView.ts';
 import { recordActivity } from './progress/activity.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
+
+/** The speaker disc on the card. Wider than a hit target because it is the one control on it. */
+const SPEAKER = 64;
 
 export function ReviewScreen({ onDone }: { onDone: () => void }) {
   // The sitting: dealt once on mount. Null while the deck is still loading.
@@ -156,9 +161,10 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
     return (
       <ScrollScreen center footer={<PillButton label="Done" onPress={onDone} />}>
         {/* An empty deck is the good outcome, not a dead end, so it gets the
-            cleared table rather than a sentence sitting on its own. */}
+            cleared table rather than a sentence sitting on its own. The size is
+            the art registry's, never a width written here. */}
         <View style={{ alignItems: 'center', marginBottom: space(5) }}>
-          <NothingDue width={190} />
+          <Art name={SCREEN_ART.emptyDeck} />
         </View>
         <Card>
           <Text style={[type.title, { color: paper.ink }]}>Nothing waiting.</Text>
@@ -214,6 +220,9 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
         </View>
       )}
 
+      {/* One speaker, not a word and an icon. A card with two lines of French
+          on it does not need a third line telling the learner what a speaker
+          is, and the disc is a 64pt target where the text row was a 44pt one. */}
       {hear !== null && (
         <Pressable
           onPress={(e) => {
@@ -224,8 +233,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
           accessibilityLabel="Hear it in French"
           style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
         >
-          <EarGlyph size={15} color={paper.inkSoft} />
-          <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
+          <SpeakerGlyph size={28} color={accent.primary} />
         </Pressable>
       )}
     </Card>
@@ -243,6 +251,9 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   const foot = (
     <View style={view.mode === 'retrieval' ? st.retrievalFoot : undefined}>
       {view.grades ? (
+        // Three outlines, evenly. They were hand-rolled plates with a button
+        // face on them, which is the shared OutlineButton with a different
+        // pressed state; the app has one outline and these are it now.
         <View style={st.grades}>
           {(
             [
@@ -251,15 +262,9 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
               { grade: 'easy', label: 'Easy' },
             ] as const
           ).map(({ grade, label }) => (
-            <Pressable
-              key={grade}
-              onPress={() => handleGrade(grade)}
-              accessibilityRole="button"
-              accessibilityLabel={label}
-              style={({ pressed }) => [st.grade, pressed && st.gradePressed]}
-            >
-              <Text style={[type.button, { color: paper.ink }]}>{label}</Text>
-            </Pressable>
+            <View key={grade} style={st.gradeCell}>
+              <OutlineButton label={label} onPress={() => handleGrade(grade)} />
+            </View>
           ))}
         </View>
       ) : view.asksForAttempt ? (
@@ -356,15 +361,19 @@ const st = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // The card itself: the SessionView main-card anatomy, content centred.
   card: { alignItems: 'center' },
+  // The speaker disc: white, on the card, with the one soft shadow.
   hear: {
-    marginTop: space(3),
-    minHeight: HIT,
-    flexDirection: 'row',
+    marginTop: space(4),
+    width: SPEAKER,
+    height: SPEAKER,
+    borderRadius: SPEAKER / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: space(2),
+    backgroundColor: paper.card,
+    ...shadow.whisper,
   },
   grades: { flexDirection: 'row', gap: space(2.5) },
+  gradeCell: { flex: 1 },
   grade: {
     flex: 1,
     minHeight: HIT + 8,

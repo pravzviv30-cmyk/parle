@@ -8,6 +8,7 @@ export {
   type TapTranslateExercise,
   type ListenTypeExercise,
   type TranslationExercise,
+  type OwnWordsExercise,
 } from './types.ts';
 
 export {
@@ -42,7 +43,18 @@ export {
   type DrillFeedback,
   type DrillSummary,
   type AnsweredExercise,
+  type SettledVerdict,
 } from './session.ts';
+
+export {
+  ownWordsFrom,
+  decideOwnWords,
+  scopedOwnWordsSession,
+  meaningWords,
+  MUST_KEEP_MAX,
+  type OwnWordsVerdict,
+  type OwnWordsDecision,
+} from './ownWords.ts';
 
 export { validateExercise, validateBatch, learnerVisibleStrings, type ValidationResult } from './validate.ts';
 

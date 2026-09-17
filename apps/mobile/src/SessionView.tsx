@@ -7,11 +7,12 @@
  */
 
 import { useState, type ReactNode } from 'react';
-import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
+import { View, Text, Pressable, PixelRatio, StyleSheet, TextInput } from 'react-native';
 import type { SessionPrompt } from '@luvani/core';
-import { paper, radius, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
+import { accent, paper, radius, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
 import { Card, Label, LineBullet, StationLine, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
 import { ScrollScreen, ScreenHeader } from './layout.tsx';
+import { MORE_HINT, MORE_LABEL, showsActionRow } from './lessonFooter.ts';
 import { tutorNameOf } from './tutor/tutorName.ts';
 import { useProfile } from './app/ProfileContext.tsx';
 
@@ -48,21 +49,25 @@ export function SupportBlock({
 }) {
   if (support.kind === 'full-line') {
     return (
-      <Card style={st.mainCard}>
+      <Card>
         <Label>Say this</Label>
-        <Text style={[fitDisplay(support.line), { color: paper.ink, textAlign: 'center', marginTop: space(2) }]}>
+        {/* Left, not centred, since revamp A: the mockup sets the line to say
+            as a block you read from its left edge, and a long sentence centred
+            on a phone leaves both ends ragged. Nothing is clipped; fitDisplay
+            steps the serif down by length rather than cutting it. */}
+        <Text style={[fitDisplay(support.line), { color: paper.ink, marginTop: space(2) }]}>
           {support.line}
         </Text>
-        <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2) }]}>
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
           {support.gloss}
         </Text>
         {support.ipa ? (
-          <Text style={[type.notation, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
+          <Text style={[type.notation, { color: paper.inkSoft, marginTop: space(1.5) }]}>
             /{support.ipa}/
           </Text>
         ) : null}
         {support.written && support.written !== support.line ? (
-          <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1.5) }]}>
             {support.written}
           </Text>
         ) : null}
@@ -99,9 +104,9 @@ export function SupportBlock({
 
   if (support.kind === 'hint') {
     return (
-      <Card style={st.mainCard}>
+      <Card>
         <Label>Tell them this, in French</Label>
-        <Text style={[type.title, { color: paper.ink, marginTop: space(2) }]}>{support.hint}</Text>
+        <Text style={[type.body, { color: paper.ink, marginTop: space(2) }]}>{support.hint}</Text>
       </Card>
     );
   }
@@ -188,6 +193,12 @@ export function SessionView(props: SessionViewProps) {
   const { prompt, listening, flash } = props;
   const rung = prompt.directive.rung;
   const [draft, setDraft] = useState('');
+  // F462. At the accessibility reading sizes the frame's footer grows until the
+  // card carrying the line to say has no room left above it, so the row of
+  // quiet actions folds into one chip and opens on a tap. The rule is in
+  // `lessonFooter.ts`; this only reads the size and remembers the tap.
+  const [moreOpen, setMoreOpen] = useState(false);
+  const actionRow = showsActionRow(PixelRatio.getFontScale(), moreOpen);
 
   const sendDraft = () => {
     const text = draft.trim();
@@ -248,9 +259,9 @@ export function SessionView(props: SessionViewProps) {
               disabled={draft.trim().length === 0}
               accessibilityRole="button"
               accessibilityLabel="Send your answer"
-              style={({ pressed }) => [st.send, pressed && { opacity: 0.6 }]}
+              style={({ pressed }) => [st.send, draft.trim().length === 0 && st.sendEmpty, pressed && { opacity: 0.6 }]}
             >
-              <Text style={[type.bodyStrong, { color: draft.trim().length === 0 ? paper.inkFaint : paper.ink }]}>Send</Text>
+              <Text style={[type.button, { color: paper.onInk }]}>Send</Text>
             </Pressable>
           </View>
         ) : (
@@ -271,16 +282,30 @@ export function SessionView(props: SessionViewProps) {
           </>
         )}
 
-        <Pressable
-          onPress={props.onHelp}
-          disabled={!listening}
-          accessibilityRole="button"
-          accessibilityLabel="Ask for help with this line"
-          style={({ pressed }) => [st.help, pressed && { opacity: 0.6 }]}
-        >
-          <HelpGlyph size={15} />
-          <Text style={[type.small, { color: paper.inkSoft }]}>Help me out</Text>
-        </Pressable>
+        {actionRow ? (
+          <View style={st.actions}>
+            <Pressable
+              onPress={props.onHelp}
+              disabled={!listening}
+              accessibilityRole="button"
+              accessibilityLabel="Ask for help with this line"
+              style={({ pressed }) => [st.help, pressed && { opacity: 0.6 }]}
+            >
+              <HelpGlyph size={15} />
+              <Text style={[type.small, { color: paper.inkSoft }]}>Help me out</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            onPress={() => setMoreOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={MORE_HINT}
+            accessibilityState={{ expanded: false }}
+            style={({ pressed }) => [st.more, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={[type.small, { color: paper.ink }]}>{MORE_LABEL}</Text>
+          </Pressable>
+        )}
       </View>
     </>
   );
@@ -323,7 +348,7 @@ export function SessionView(props: SessionViewProps) {
         {/* Wrapping, never clipped. `theme.ts` states it outright: nothing in
             this app is cut to fit, and a lesson title truncated at the largest
             reading size is the learner losing the name of what they are in. */}
-        <Text style={[type.heading, { color: paper.ink, marginTop: space(1) }]}>
+        <Text accessibilityRole="header" style={[type.title, { color: paper.ink, marginTop: space(1) }]}>
           {props.lessonTitle}
         </Text>
         <View style={{ marginTop: space(2.5) }}>
@@ -332,14 +357,19 @@ export function SessionView(props: SessionViewProps) {
       </View>
 
       <View style={st.body}>
-        <View style={st.tutorBlock}>
+        {/* The other person in the scene, as a white card: the caps name on
+            top, the French in the serif, the English small underneath. The ear
+            beside the name is a mark rather than a control, and it lights when
+            the tutor holds the floor, which is the same grammar the thread in a
+            conversation uses. */}
+        <Card>
           <View style={st.tutorHead}>
-            <EarGlyph size={19} color={listening ? paper.inkFaint : paper.ink} />
             <Label color={listening ? paper.inkSoft : paper.ink}>The waiter</Label>
+            <EarGlyph size={19} color={listening ? paper.inkFaint : paper.ink} />
           </View>
           <Text style={[type.french, { color: paper.ink, marginTop: space(1.5) }]}>{prompt.turn.tutor}</Text>
           <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{prompt.turn.tutorEn}</Text>
-        </View>
+        </Card>
 
         <SupportBlock
           support={prompt.support}
@@ -377,7 +407,32 @@ const st = StyleSheet.create({
     paddingVertical: space(2.5),
     backgroundColor: paper.card,
   },
-  send: { paddingHorizontal: space(3), paddingVertical: space(2.5), minHeight: HIT },
+  // The violet pill the conversation's box already wears, so a typed lesson and
+  // a typed conversation offer the same control. An empty draft is said the way
+  // the shared PillButton says it, by filling the pill with the faint ink
+  // instead of lettering the word in it: warm-white still clears the word floor
+  // on that fill, and faint lettering on violet never did (F330).
+  send: {
+    minHeight: HIT,
+    paddingHorizontal: space(4),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: accent.primary,
+    borderRadius: radius.pill,
+  },
+  sendEmpty: { backgroundColor: paper.inkFaint },
+  // The chip the action row folds into at the accessibility reading sizes.
+  more: {
+    minHeight: HIT,
+    alignSelf: 'center',
+    marginTop: space(2),
+    paddingHorizontal: space(4),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: paper.groundDeep,
+    borderRadius: radius.pill,
+  },
+  actions: { alignSelf: 'stretch', alignItems: 'center' },
   header: { paddingBottom: space(3) },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   // `flexGrow`, never `flex: 1`, and no vertical centring.
@@ -393,9 +448,7 @@ const st = StyleSheet.create({
   // `flexGrow: 1` still fills a short screen, which is all the centring was for,
   // and lets a tall one scroll.
   body: { flexGrow: 1, paddingTop: space(3), paddingBottom: space(5), gap: space(5) },
-  tutorBlock: { borderLeftWidth: HAIRLINE + 1, borderLeftColor: paper.line, paddingLeft: space(3.5) },
-  tutorHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
-  mainCard: { alignItems: 'center' },
+  tutorHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space(2) },
   options: { gap: space(2.5) },
   hear: {
     marginTop: space(3),

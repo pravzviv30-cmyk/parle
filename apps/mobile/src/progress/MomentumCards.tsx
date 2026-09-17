@@ -1,6 +1,11 @@
 /**
  * Daily momentum, drawn.
  *
+ * It lives on the Progress screen now rather than on Home: the four cards are
+ * the evidence a learner goes looking for, and Home opens on the one thing to
+ * do tonight. The section's own heading is the screen's, not this file's, so
+ * the block can sit under whatever the screen decides to call it.
+ *
  * One full-width card, two half tiles and the goal, and not one of the words on
  * them is written here. `progress/momentum.ts` decides every count, every
  * label, every unit and every line, and every field that has nothing true to
@@ -52,8 +57,8 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 
-import { BadgeGlyph, Card, FlameGlyph, GhostButton, Label, MicGlyph, TargetGlyph, WeekRail } from '../components.tsx';
-import type { Momentum } from '../progress/momentum.ts';
+import { BadgeGlyph, Card, FlameGlyph, GhostButton, MicGlyph, TargetGlyph, WeekRail } from '../components.tsx';
+import type { Momentum } from './momentum.ts';
 import { accent, HAIRLINE, paper, radius, signal, space, type } from '../theme.ts';
 
 /** The rounded well the hero's glyph sits in. Square, so it stays a square. */
@@ -70,8 +75,6 @@ export function MomentumCards({
 
   return (
     <View style={st.block}>
-      <Label>Daily momentum</Label>
-
       <Card style={st.hero}>
         <View style={st.heroHead}>
           <View style={st.well}>
@@ -142,7 +145,13 @@ export function MomentumCards({
           </View>
           {/* A picture of the last seven days, never a target. The count above
               already says it, so the rail itself is decorative, and it is the
-              shared rail so Profile's week is the same picture. */}
+              shared rail so Profile's week is the same picture.
+              No day names here. This tile is half the width of the screen and
+              seven labelled dots wrap onto two lines on a 430pt phone, worse on
+              a 390pt one. The labelled rail belongs to Profile's rhythm panel,
+              which is full width and is the surface that is *about* the week;
+              here the week is one tile of four and the count beside it is what
+              a learner reads. */}
           <WeekRail week={days.week} />
         </Card>
 

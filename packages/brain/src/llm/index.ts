@@ -7,3 +7,5 @@ export * from './openaiCompat.ts';
 export * from './openaiResponses.ts';
 export * from './claudeCli.ts';
 export * from './split.ts';
+export * from './judge.ts';
+export * from './factory.ts';

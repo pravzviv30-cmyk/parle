@@ -1,61 +1,67 @@
 /**
- * Make this phrase yours (F554, F557).
+ * Make this phrase yours (F554, F557, F581).
  *
- * One phrase the learner actually needed: its French in the serif, its
- * meaning, where it came from, whether it is in their phrase bank, and one
- * way to work it. Say it opens a drill scoped to the phrase only when a
- * sitting would have something in it; otherwise the card offers to hear it,
- * because an empty sitting that ends the moment it opens is the defect this
- * tab's tests were written against.
+ * One tinted row. The phrase, its meaning and where it came from used to be
+ * printed here beside two buttons; they belong in the sitting the row opens,
+ * where the learner is actually going to work on them.
+ *
+ * The row opens the own-words drill rather than the recall drill. That is the
+ * change worth reading twice: "say it" used to deal a scoped sitting that asked
+ * the learner to reproduce the phrase they had just been shown, which is
+ * copying. The node it hands over carries `ownWords`, so `DrillScreen` builds a
+ * sitting that gives them the situation and the meaning and asks for whatever
+ * French they have. The situation is the conversation the phrase came out of,
+ * which is the only situation anybody here can honestly name.
+ *
+ * Keeping the phrase moved with it: the drill offers "Keep this phrase" once
+ * the learner has said it their own way, which is a better moment to be asked
+ * than before they have tried.
  */
 
-import { StyleSheet, Text, View } from 'react-native';
-
-import { Card, GhostButton, Label, OutlineButton } from '../components.tsx';
-import { paper, space, type } from '../theme.ts';
+import { QuoteGlyph } from '../glyphs.tsx';
+import { TintRow } from '../components.tsx';
+import { accent } from '../theme.ts';
 import { MADE_FROM, type PhraseToOwn } from './madeFrom.ts';
+import { MADE_FROM_TINT } from './madeFromTint.ts';
+
+/** What the row asks the tab to open. The tab navigates; the row decides nothing else. */
+export interface OwnWordsNode {
+  id: string;
+  title: string;
+  phraseKeys: readonly string[];
+  ownWords: { fr: string; en: string; situation: string };
+}
 
 export function MakePhraseCard({
   phrase,
-  saving,
   onSay,
-  onHear,
-  onSave,
 }: {
   phrase: PhraseToOwn;
-  /** A save is a write and a read back; the button says so while it runs. */
-  saving: boolean;
-  onSay: () => void;
-  onHear: () => void;
-  onSave: () => void;
+  /** Open the own-words sitting for this phrase. The node is built here. */
+  onSay: (node: OwnWordsNode) => void;
+  /**
+   * The tab still passes these three while it is another engineer's file.
+   * Saving moved into the drill's own-words outcome (F581) and hearing the
+   * phrase moved into the sitting, so neither is a control on this row.
+   */
+  saving?: boolean;
+  onHear?: () => void;
+  onSave?: () => void;
 }) {
   return (
-    <Card style={st.card}>
-      <Label>{MADE_FROM.phrase.label}</Label>
-      <Text style={st.fr}>{phrase.fr}</Text>
-      <Text style={st.en}>{phrase.en}</Text>
-      <Text style={st.from}>{phrase.from}</Text>
-      <View style={st.actions}>
-        {phrase.sayable ? (
-          <OutlineButton label={MADE_FROM.phrase.say} onPress={onSay} />
-        ) : (
-          <OutlineButton label={MADE_FROM.phrase.hear} onPress={onHear} />
-        )}
-        {phrase.saved ? (
-          <Text style={st.saved}>{MADE_FROM.phrase.saved}</Text>
-        ) : (
-          <GhostButton label={MADE_FROM.phrase.save} disabled={saving} onPress={onSave} />
-        )}
-      </View>
-    </Card>
+    <TintRow
+      tint={MADE_FROM_TINT.phrase}
+      glyph={<QuoteGlyph color={accent.primary} />}
+      title={MADE_FROM.phrase.label}
+      gloss={MADE_FROM.phrase.gloss}
+      onPress={() =>
+        onSay({
+          id: `ownwords:${phrase.packId}:${phrase.key}`,
+          title: MADE_FROM.phrase.label,
+          phraseKeys: [phrase.key],
+          ownWords: { fr: phrase.fr, en: phrase.en, situation: phrase.from },
+        })
+      }
+    />
   );
 }
-
-const st = StyleSheet.create({
-  card: { marginTop: space(3) },
-  fr: { ...type.french, color: paper.ink, marginTop: space(2) },
-  en: { ...type.small, color: paper.inkSoft, marginTop: space(1) },
-  from: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
-  actions: { marginTop: space(4), gap: space(2) },
-  saved: { ...type.small, color: paper.inkSoft, textAlign: 'center' },
-});

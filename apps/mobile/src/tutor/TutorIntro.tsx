@@ -29,11 +29,13 @@
 
 import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { paper, space, type } from '../theme.ts';
-import { ProgressDots, PillButton, Card } from '../components.tsx';
+import { paper, space, type, HAIRLINE } from '../theme.ts';
+import { ProgressDots, PillButton, Card, ROW_WORDS } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
-import { SpeakBubbles, OnboardWave, RecapPostcard } from '../illustrations.tsx';
+import { Art } from '../art/Art.tsx';
+import { SCREEN_ART } from '../art/maps.ts';
+import { SpeakBubbles, OnboardWave } from '../illustrations.tsx';
 import { VoiceOrb, type OrbState } from './VoiceOrb.tsx';
 import { tutorPersonaOf, type TutorPersona } from './tutorName.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
@@ -47,24 +49,28 @@ import { PERSONA_BODY, PERSONA_TITLE, pronouns } from '../onboarding/disclosure.
  */
 function OrbWalkthrough({ persona }: { persona: TutorPersona }) {
   const rows: { state: OrbState; title: string; sub: string }[] = [
+    { state: 'ready', title: 'Tap to talk', sub: 'The circle waits for you.' },
     { state: 'speaking', title: `Red, ${persona.name} is talking`, sub: 'Just listen.' },
     { state: 'listening', title: 'Green, your turn', sub: 'Say it out loud.' },
     { state: 'thinking', title: 'Amber, it is thinking', sub: 'One moment.' },
   ];
+  // One card of four rows since revamp A, rather than four cards in a stack.
+  // The four states are one lesson about one control, and four separate cards
+  // read as four separate things to learn. The violet rest state leads, because
+  // an untapped circle is the first one a learner meets and it is the one state
+  // that is a control rather than a report.
   return (
-    <View style={{ gap: space(3), alignSelf: 'stretch', marginTop: space(5) }}>
-      {rows.map((row) => (
-        <Card key={row.state} style={{ paddingVertical: space(3) }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(4) }}>
-            <VoiceOrb state={row.state} size={56} withCaption={false} />
-            <View style={{ flex: 1 }}>
-              <Text style={[type.bodyStrong, { color: paper.ink }]}>{row.title}</Text>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{row.sub}</Text>
-            </View>
+    <Card style={st.states}>
+      {rows.map((row, index) => (
+        <View key={row.state} style={[st.stateRow, index > 0 && st.stateDivided]}>
+          <VoiceOrb state={row.state} size={56} withCaption={false} announce={false} />
+          <View style={st.stateWords}>
+            <Text style={[type.heading, { color: paper.ink }]}>{row.title}</Text>
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{row.sub}</Text>
           </View>
-        </Card>
+        </View>
       ))}
-    </View>
+    </Card>
   );
 }
 
@@ -101,7 +107,7 @@ function pagesFor(persona: TutorPersona) {
   },
   {
     key: 'after',
-    art: RecapPostcard,
+    art: null,
     title: 'Afterwards it remembers',
     body: 'At the end you get the phrases you used and one sound to work on. Tomorrow your practice is written from what you said today.',
     note: null,
@@ -123,7 +129,7 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
   const persona = tutorPersonaOf(useProfile().profile);
   const pages = pagesFor(persona);
   const page = pages[index]!;
-  const Art = page.art;
+  const Scene = page.art;
   const last = index === pages.length - 1;
 
   // The chevron and the hardware back agree: step back a page, or leave on page
@@ -138,9 +144,13 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
       footer={<PillButton label={last ? 'Start talking' : 'Next'} onPress={() => (last ? onDone() : setIndex((i) => i + 1))} />}
     >
       <View style={st.page}>
-        {Art ? (
+        {Scene ? (
           <View style={st.art}>
-            <Art width={170} />
+            <Scene width={170} />
+          </View>
+        ) : page.key === 'after' ? (
+          <View style={st.art}>
+            <Art name={SCREEN_ART.recap} />
           </View>
         ) : null}
         <Text style={st.title} accessibilityRole="header">{page.title}</Text>
@@ -158,6 +168,10 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
 
 const st = StyleSheet.create({
   page: { paddingVertical: space(4) },
+  states: { alignSelf: 'stretch', marginTop: space(5) },
+  stateRow: { flexDirection: 'row', alignItems: 'center', gap: space(4), paddingVertical: space(2) },
+  stateDivided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard, marginTop: space(2) },
+  stateWords: ROW_WORDS,
   art: { alignItems: 'center', marginBottom: space(5) },
   title: { ...type.display, color: paper.ink, textAlign: 'center' },
   body: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },

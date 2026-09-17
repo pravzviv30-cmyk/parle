@@ -388,15 +388,23 @@ describe('the review sitting on screen', () => {
     // Phase 3's contract, applied here rather than reinvented: a Pressable
     // with no role is reachable and unannounced, and a field with no name is
     // announced as "text field" and nothing else.
-    // Five now, not six: the Leave control moved into the shared ScreenHeader
-    // (layout.tsx) when the deck adopted the frame, so it is no longer a
-    // Pressable this file hand-rolls. The five that remain are the hear button,
-    // the flip, the three grades, and the two attempt buttons.
+    // The Leave control moved into the shared ScreenHeader (layout.tsx) when the
+    // deck adopted the frame, and revamp A moved the three grades onto the
+    // shared OutlineButton, which carries the role and names itself from its
+    // own label. So the count is split rather than lowered: four hand-rolled
+    // Pressables that must name themselves — the speaker, the flip and the two
+    // attempt buttons — and three grades that are the app's one outline.
     const controls = tags(screen, 'Pressable');
-    assert.ok(controls.length >= 5, `only ${controls.length} controls found; this test is reading the wrong thing`);
+    assert.ok(controls.length >= 4, `only ${controls.length} controls found; this test is reading the wrong thing`);
     for (const tag of controls) {
       assert.match(tag, /accessibilityRole=/, `a control on the review screen has no role: ${tag.replace(/\s+/g, ' ').slice(0, 80)}`);
       assert.match(tag, /accessibilityLabel=/, `a control on the review screen has no name: ${tag.replace(/\s+/g, ' ').slice(0, 80)}`);
+    }
+    const outlines = tags(screen, 'OutlineButton');
+    assert.equal(outlines.length, 1, `the deck draws ${outlines.length} outline shapes; the grades are one outline, mapped`);
+    assert.match(outlines[0]!, /label=\{label\}/, 'the grade control carries no word, so it announces nothing');
+    for (const word of ['Again', 'Got it', 'Easy']) {
+      assert.ok(screen.includes(`label: '${word}'`), `the deck no longer offers "${word}"`);
     }
     const fields = tags(screen, 'TextInput');
     assert.equal(fields.length, 1, 'the review screen takes typing somewhere this test is not looking');

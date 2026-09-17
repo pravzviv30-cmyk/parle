@@ -21,16 +21,17 @@
  */
 
 import { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
-import { Field, Label, OptionCard, OutlineButton, PillButton } from '../components.tsx';
+import { Field, Label, OutlineButton, PillButton, TintPanel } from '../components.tsx';
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { capabilitiesFor } from '../purchases/capabilities.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
-import { paper, space, type } from '../theme.ts';
+import { paper, radius, space, type, HIT } from '../theme.ts';
+import { momentTint } from './momentTint.ts';
 import { TUTOR_OFFLINE, tutorGate } from './gate.ts';
 import { loadMoments, saveMoment, type RealMoment } from './momentsStore.ts';
 import {
@@ -48,6 +49,53 @@ import {
   seedFor,
   type RealMomentKey,
 } from './realMoments.ts';
+
+/**
+ * One moment the learner could bring, as a card on its own paper.
+ *
+ * Two columns, because eight of these read as a grid to choose from rather than
+ * a list to read down, and that is what the mockup draws. Each one sits on the
+ * tint `momentTint.ts` gives it, which tells them apart and claims nothing: a
+ * job interview is not a warmer or a harder thing than a family dinner.
+ *
+ * Chosen is an ink ring, not a fill and never a second tint. `OptionCard` and
+ * `TabBar` already say "this one" that way, and a filled card here would read
+ * as a state rather than a choice. The state is said twice, once per platform:
+ * `accessibilityState` is what VoiceOver and TalkBack read, and `aria-selected`
+ * is the only one react-native-web puts in the accessibility tree (F522).
+ *
+ * It grows rather than clips: `flexBasis` with `flexGrow`, so at the largest
+ * reading size the two columns fall to one and every title wraps whole.
+ */
+function MomentCard({
+  momentKey,
+  title,
+  gloss,
+  selected,
+  onPress,
+}: {
+  momentKey: RealMomentKey;
+  title: string;
+  gloss: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${gloss}`}
+      accessibilityState={{ selected }}
+      aria-selected={selected}
+      style={st.cell}
+    >
+      <TintPanel tint={momentTint(momentKey)} style={[st.moment, selected && st.chosen]}>
+        <Text style={[type.heading, { color: paper.ink }]}>{title}</Text>
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{gloss}</Text>
+      </TintPanel>
+    </Pressable>
+  );
+}
 
 export function RealMomentScreen({
   onBack,
@@ -124,9 +172,10 @@ export function RealMomentScreen({
 
       <View style={st.kinds}>
         {REAL_MOMENTS.map((option) => (
-          <OptionCard
+          <MomentCard
             key={option.key}
-            text={option.en}
+            momentKey={option.key}
+            title={option.en}
             gloss={option.gloss}
             selected={key === option.key}
             onPress={() => setKey(option.key)}
@@ -187,9 +236,10 @@ export function RealMomentScreen({
               const brought = kindOf(moment.kind);
               if (brought === null) return null;
               return (
-                <OptionCard
+                <MomentCard
                   key={moment.id}
-                  text={brought.en}
+                  momentKey={moment.kind}
+                  title={brought.en}
                   gloss={moment.detail.length > 0 ? moment.detail : brought.gloss}
                   selected={key === moment.kind && detail === moment.detail}
                   onPress={() => {
@@ -207,7 +257,18 @@ export function RealMomentScreen({
 }
 
 const st = StyleSheet.create({
-  kinds: { marginTop: space(4), gap: space(3) },
+  kinds: { marginTop: space(4), flexDirection: 'row', flexWrap: 'wrap', gap: space(3) },
+  cell: { flexGrow: 1, flexBasis: 150, minHeight: HIT },
+  moment: {
+    borderRadius: radius.row,
+    padding: space(4),
+    minHeight: HIT,
+    // The ring is drawn whatever the state, so a chosen card does not grow by
+    // two points and shove its neighbour down the grid.
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  chosen: { borderColor: paper.ink },
   detail: { marginTop: space(5) },
   action: { marginTop: space(6), gap: space(3) },
   gateLine: { ...type.body, color: paper.ink },

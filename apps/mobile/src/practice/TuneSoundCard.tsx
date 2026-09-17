@@ -1,20 +1,21 @@
 /**
- * Tune the sound (F554, F558).
+ * Tune one sound (F554, F558).
  *
- * The newest sound check, which measured the learner's own voice against a
- * known line, said as clarity rather than as a defect: the sound, its
- * authored cue and physical trick, the minimal pair that tells it from the
- * English sound it is not, and one outline to check it again. With no check
- * behind them the card says what the next situation will name, and offers the
- * way there. Nothing here scores anything, and nothing here calls an accent
- * wrong.
+ * One tinted row. The acoustic panel — the sound, its cue, the physical trick
+ * and the minimal pair — lives on the sound-check screen the row opens, and
+ * printing it on Practice as well was the same words in two places.
+ *
+ * Behaviour is unchanged from the card it replaces: with a check behind it the
+ * row opens that check again, and with none it offers the way to the next
+ * situation, which is what will name a sound. Nothing here scores anything and
+ * nothing here calls an accent wrong.
  */
 
-import { StyleSheet, Text, View } from 'react-native';
-
-import { Card, GhostButton, Label, OutlineButton } from '../components.tsx';
-import { paper, space, type } from '../theme.ts';
+import { WaveformGlyph } from '../glyphs.tsx';
+import { TintRow } from '../components.tsx';
+import { accent } from '../theme.ts';
 import { MADE_FROM, type SoundToTune } from './madeFrom.ts';
+import { MADE_FROM_TINT } from './madeFromTint.ts';
 
 export function TuneSoundCard({
   sound,
@@ -26,39 +27,16 @@ export function TuneSoundCard({
   onChoose: () => void;
 }) {
   return (
-    <Card style={st.card}>
-      <Label>{MADE_FROM.sound.label}</Label>
-      {sound === null ? (
-        <>
-          <Text style={st.body}>{MADE_FROM.sound.none}</Text>
-          <View style={st.action}>
-            <GhostButton label={MADE_FROM.sound.go} color={paper.ink} onPress={onChoose} />
-          </View>
-        </>
-      ) : (
-        <>
-          <Text style={st.heading}>{sound.acoustic.heading}</Text>
-          <Text style={st.body}>{sound.acoustic.cue}</Text>
-          {sound.acoustic.trick !== null && <Text style={st.trick}>{sound.acoustic.trick}</Text>}
-          {sound.acoustic.pair !== null && (
-            <Text style={st.pair}>
-              {sound.acoustic.pair.a.word} · {sound.acoustic.pair.b.word}
-            </Text>
-          )}
-          <View style={st.action}>
-            <OutlineButton label={MADE_FROM.sound.check} onPress={() => onCheck(sound.missionId)} />
-          </View>
-        </>
-      )}
-    </Card>
+    <TintRow
+      tint={MADE_FROM_TINT.sound}
+      glyph={<WaveformGlyph color={accent.primary} />}
+      title={MADE_FROM.sound.label}
+      gloss={sound === null ? MADE_FROM.sound.none : MADE_FROM.sound.gloss}
+      accessibilityLabel={sound === null ? `${MADE_FROM.sound.label}, ${MADE_FROM.sound.go}` : `${MADE_FROM.sound.label}, ${sound.acoustic.heading}`}
+      onPress={() => {
+        if (sound === null) onChoose();
+        else onCheck(sound.missionId);
+      }}
+    />
   );
 }
-
-const st = StyleSheet.create({
-  card: { marginTop: space(3) },
-  heading: { ...type.title, color: paper.ink, marginTop: space(2) },
-  body: { ...type.body, color: paper.ink, marginTop: space(2) },
-  trick: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
-  pair: { ...type.french, color: paper.ink, marginTop: space(2) },
-  action: { marginTop: space(4) },
-});

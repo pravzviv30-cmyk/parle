@@ -56,6 +56,18 @@ round and stops a screen quietly re-deciding what counts as a right answer.
 Where a contract spans several territories, `/forge` dispatches each engineer in turn on
 its own files rather than letting one reach across.
 
+Revamp A (2026-09) split `apps/mobile/src/` between two of them, because the table above
+gives the whole folder to `frontend-engineer` and also names `design-system-engineer` for
+components. The split that held: `design-system-engineer` owns `palette.ts`, `theme.ts`,
+`components.tsx` (append-only, since `components.test.ts` slices it between adjacent
+exports), `glyphs.tsx`, `surface/`, `art/`, `assets/art/`, `layout.tsx`, `nav/icons.tsx`,
+`nav/LuvaniTabBar.tsx`, the orb files under `tutor/`, and DESIGN.md's Colour, Type,
+Surfaces, Illustrations and Motion sections. `frontend-engineer` owns the tabs, the
+screens, `nav/` wiring, `surfaceContract.test.ts`, `labels.test.ts` and DESIGN.md's
+Structure. `practice-ux-engineer` owns the drill and review screens, the made-from rows,
+the one-line card and the judge client. When a round runs several engineers at once, the
+cross-cutting test files belong to one integrator and nobody else edits them.
+
 ## The independent reviewers
 
 `release-engineer`, `scaling-engineer`, `repository-archaeologist`,

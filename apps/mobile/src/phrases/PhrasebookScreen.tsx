@@ -1,132 +1,212 @@
 /**
- * Everything the learner can say, grouped by the conversation it came from.
+ * Your phrases — every line that has become the learner's, as a route (F575).
  *
- * Rendered in place from Home rather than pushed as a route, because the six
- * files that own the navigator are being edited elsewhere right now and a
- * screen that needs no route is not worth a merge. It behaves as a screen:
- * its own paper, its own header, one way back.
+ * It was an early return inside My French: rendered in place, reachable from
+ * one screen, with a back arrow that was really a piece of component state.
+ * That was fine while nothing else had to link to it, which stopped being true
+ * the moment My French folded down to a shelf row and Settings grew a door of
+ * its own. It is a stack route now, above the tabs like every other pushed
+ * screen, so the bar goes with the push and an address can carry it.
  *
- * The marks are `PathNodeRow`'s vocabulary, deliberately: a learner who has
- * seen the practice path already knows that a filled green dot means learned
- * and a ring means come back to it. A second grammar for the same three states
- * would be two things to learn instead of one.
+ * ## Three things, in the order a learner wants them
+ *
+ * One line to say right now, which is the only place in this part of the app
+ * where a learner produces French and is deliberately the smallest possible
+ * version of that (`myfrench/OneLineCard.tsx` explains why it is one card and
+ * never a queue). Then the lines that came out in real conversations, grouped
+ * by the conversation they came out of, each with a way to hear it said. Then
+ * the words that buy a moment, which are authored, so the page has a section on
+ * a first morning rather than an apology.
+ *
+ * Every section is absent until it is real. There is no empty state and no
+ * count: the learner is looking at the list, so a total over it would be a
+ * number asking to be compared with last month's, and this screen refuses
+ * numbers for the reason `phrases/phrasebook.ts` already gives.
+ *
+ * ## What is drawn here and what is not
+ *
+ * `phrases/phrasebook.ts` decides which lines exist and how they are grouped,
+ * `myfrench/oneLine.ts` deals the card, `myfrench/cadence.ts` owns the
+ * connectors, and `phrases/phrasebookView.ts` holds the two words this screen
+ * says for itself. This file reads, gates on null, and lays out.
+ *
+ * The voice stops when the screen goes. One that follows a learner onto
+ * another tab is F304.
  */
 
-import { useMemo } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { accent, paper, signal, space, type, radius, HAIRLINE } from '../theme.ts';
-import { Label, Stat } from '../components.tsx';
-import { Screen, ScreenHeader } from '../layout.tsx';
-import { useHardwareBack } from '../nav/useHardwareBack.ts';
-import { Phrasebook as PhrasebookScene } from '../illustrations.tsx';
-import { LESSONS_GROUP, type Hold, type Phrase, type Phrasebook } from './phrasebook.ts';
+import { useCallback, useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
-const HOLD_LABEL: Record<Hold, string> = {
-  steady: 'Steady',
-  'coming-back': 'Coming back',
-  new: 'New',
-};
+import { Art } from '../art/Art.tsx';
+import { SCREEN_ART } from '../art/maps.ts';
+import { Card, Label } from '../components.tsx';
+import { SpeakerGlyph } from '../glyphs.tsx';
+import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import * as tutorVoice from '../speech/tutorVoice.ts';
+import { accent, paper, shadow, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { loadDeck } from '../review/store.ts';
+import { loadTopics } from '../topics/store.ts';
+import { CadenceCard } from '../myfrench/CadenceCard.tsx';
+import { OneLineCard } from '../myfrench/OneLineCard.tsx';
+import { cadenceFrom, type Cadence } from '../myfrench/cadence.ts';
+import { LEDGER } from '../myfrench/ledger.ts';
+import { oneLineFrom, type OneLine } from '../myfrench/oneLine.ts';
+import { buildPhrasebook, hasPhrases, type Phrase, type Phrasebook } from './phrasebook.ts';
+import { PHRASEBOOK_TITLE, speakerLabel } from './phrasebookView.ts';
 
-function Mark({ hold }: { hold: Hold }) {
-  if (hold === 'steady') return <View style={[st.mark, st.steady]} />;
-  if (hold === 'coming-back') return <View style={[st.mark, st.comingBack]} />;
-  return <View style={[st.mark, st.new]} />;
-}
+export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
+  const [book, setBook] = useState<Phrasebook | null>(null);
+  const [oneLine, setOneLine] = useState<OneLine | null>(null);
+  const [cadence, setCadence] = useState<Cadence | null>(null);
+  // Which line is sounding, so its own button offers to stop it and no other
+  // button claims to. Null is silence.
+  const [playing, setPlaying] = useState<string | null>(null);
+  // Bumped after a grade, so the page re-reads the deck it has just written to.
+  const [graded, setGraded] = useState(0);
 
-export function PhrasebookScreen({ book, onDone }: { book: Phrasebook; onDone: () => void }) {
-  // Opened in place from Home and My French, so Android's hardware back closes
-  // it rather than popping the tab underneath.
-  useHardwareBack(true, onDone);
-  const rows = useMemo(
-    () =>
-      book.groups.flatMap((group) => [
-        { kind: 'group' as const, id: `group:${group.id}`, groupId: group.id, title: group.title },
-        ...group.phrases.map((phrase) => ({ kind: 'phrase' as const, id: phrase.id, phrase })),
-      ]),
-    [book.groups],
+  useEffect(() => () => tutorVoice.stop(), []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      void Promise.all([loadDeck(), loadTopics()])
+        .then(([deck, topics]) => {
+          if (cancelled) return;
+          const now = Date.now();
+          setBook(buildPhrasebook(deck, topics, now));
+          setOneLine(oneLineFrom({ deck, now }));
+          setCadence(cadenceFrom({ deck }));
+        })
+        .catch(() => {
+          // Nothing to draw and nothing to say about a disk. The learner's
+          // lines are on their account and the screen simply waits.
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [graded]),
   );
 
-  const subtitle = useMemo(() => {
-    if (book.topics === 0) return 'Lines you have said and kept.';
-    if (book.topics === 1) return 'Lines you have said, from the conversation you had.';
-    return 'Lines you have said, grouped by the conversation they came out of.';
-  }, [book.topics]);
+  const say = (french: string) => {
+    if (playing === french) {
+      tutorVoice.stop();
+      setPlaying(null);
+      return;
+    }
+    setPlaying(french);
+    tutorVoice.speak(french, { onDone: () => setPlaying(null) });
+  };
 
   return (
-    <Screen bottom="inset" header={<ScreenHeader back={{ onPress: onDone }} />}>
-      <FlatList
-        data={rows}
-        style={{ flex: 1 }}
-        keyExtractor={(row) => row.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={st.scroll}
-        initialNumToRender={14}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        removeClippedSubviews
-        ListHeaderComponent={
-          <>
-            <View style={st.hero}>
-              <PhrasebookScene width={190} />
-            </View>
-            <Text style={st.headline} accessibilityRole="header">
-              What you can say now
-            </Text>
-            <Text style={st.subline}>{subtitle}</Text>
-            <View style={st.stats}>
-              <Stat value={String(book.count)} label="Phrases" />
-              {book.topics > 0 && <Stat value={String(book.topics)} label="Conversations" />}
-            </View>
-          </>
-        }
-        renderItem={({ item }) =>
-          item.kind === 'group' ? (
-            <View style={st.group}>
-              <Label color={item.groupId === LESSONS_GROUP ? paper.inkSoft : accent.label}>{item.title}</Label>
-            </View>
-          ) : (
-            <PhraseRow phrase={item.phrase} />
-          )
-        }
-      />
-    </Screen>
+    <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: onBack }} />}>
+      <View style={st.head}>
+        <Text accessibilityRole="header" style={st.title}>
+          {PHRASEBOOK_TITLE}
+        </Text>
+        <Art name={SCREEN_ART.phrasebook} style={st.art} />
+      </View>
+
+      {/* The one card this visit deals, at the top, so the thing worth doing is
+          never below a list of things already done. */}
+      {oneLine !== null && <OneLineCard line={oneLine} onGraded={() => setGraded((n) => n + 1)} />}
+
+      {book !== null && hasPhrases(book) && (
+        <View style={st.block}>
+          <Label>{LEDGER.rowsLabel}</Label>
+          <View style={st.groups}>
+            {book.groups.map((group) => (
+              <Card key={group.id}>
+                <Label color={paper.inkSoft}>{group.title}</Label>
+                <View style={st.rows}>
+                  {group.phrases.map((phrase, index) => (
+                    <PhraseRow
+                      key={phrase.id}
+                      phrase={phrase}
+                      first={index === 0}
+                      playing={playing === phrase.front}
+                      onHear={() => say(phrase.front)}
+                    />
+                  ))}
+                </View>
+              </Card>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* Authored, so it is here on a first morning too, and it closes the page
+          on something a learner can use tonight rather than on a summary. */}
+      {cadence !== null && <CadenceCard cadence={cadence} />}
+    </ScrollScreen>
   );
 }
 
-function PhraseRow({ phrase }: { phrase: Phrase }) {
+/**
+ * One kept line, and a way to hear it.
+ *
+ * No mark, and that is deliberate. The old screen drew a dot per phrase in the
+ * practice path's three-state vocabulary, which turned a page of the learner's
+ * own French into a rail of how well they are holding it. The scheduler already
+ * knows; a learner reading their own sentences does not need to be told which
+ * ones are slipping while they read them.
+ */
+function PhraseRow({
+  phrase,
+  first,
+  playing,
+  onHear,
+}: {
+  phrase: Phrase;
+  /** The first row in a card carries no rule above it. */
+  first: boolean;
+  playing: boolean;
+  onHear: () => void;
+}) {
   return (
-    <View style={st.card}>
-      <Mark hold={phrase.hold} />
+    <View style={[st.row, !first && st.ruled]}>
       <View style={st.words}>
         <Text style={[type.french, { color: paper.ink }]}>{phrase.front}</Text>
-        <Text style={[type.small, { color: paper.inkSoft }]}>{phrase.back}</Text>
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{phrase.back}</Text>
       </View>
-      <Text style={[type.small, { color: paper.inkSoft }]}>{HOLD_LABEL[phrase.hold]}</Text>
+      <Pressable
+        onPress={onHear}
+        accessibilityRole="button"
+        accessibilityLabel={speakerLabel(phrase.front, playing)}
+        style={({ pressed }) => [st.speaker, pressed && st.speakerPressed]}
+      >
+        <SpeakerGlyph color={accent.primary} />
+      </Pressable>
     </View>
   );
 }
 
 const st = StyleSheet.create({
-  scroll: { paddingBottom: space(8) },
-  hero: { alignItems: 'center', marginBottom: space(3) },
-  headline: { ...type.display, color: paper.ink, textAlign: 'center' },
-  subline: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
-  stats: { flexDirection: 'row', gap: space(8), marginTop: space(5), justifyContent: 'center' },
-  group: { marginTop: space(7), marginBottom: space(2) },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space(3),
+  // The title and the scene share a row, both sitting on the same baseline, so
+  // the drawing reads as part of the heading rather than as a banner over it.
+  head: { flexDirection: 'row', alignItems: 'flex-end', gap: space(3), marginTop: space(2) },
+  title: { ...type.display, color: paper.ink, flex: 1, minWidth: 0 },
+  // Placement only. The size is the registry's, never a number written here.
+  art: { flexShrink: 0 },
+  block: { marginTop: space(7) },
+  groups: { marginTop: space(3), gap: space(3) },
+  rows: { marginTop: space(2) },
+  // The words take the room and the button keeps its floor, so a long line
+  // wraps rather than squeezing the control under the touch minimum.
+  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
+  ruled: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
+  words: { flex: 1, minWidth: 0 },
+  // The identity violet on a white disc with the one shadow a card is allowed,
+  // which is what makes it read as a button on a white card. It is the thing
+  // you press, not a state being reported.
+  speaker: {
+    width: HIT,
+    height: HIT,
+    borderRadius: HIT / 2,
     backgroundColor: paper.card,
-    borderRadius: radius.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-    padding: space(3.5),
-    marginBottom: space(2),
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow.whisper,
   },
-  words: { flex: 1, gap: space(0.5) },
-  mark: { width: 12, height: 12, borderRadius: 6 },
-  steady: { backgroundColor: signal.good },
-  comingBack: { borderWidth: 2, borderColor: signal.correspondance },
-  new: { borderWidth: HAIRLINE, borderColor: paper.line },
+  speakerPressed: { backgroundColor: paper.groundDeep },
 });

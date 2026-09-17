@@ -1,29 +1,26 @@
 /**
- * What the tutor remembers, on the Tutor tab (F546, F551).
+ * What the tutor remembers, on the Tutor tab (F546, F551, F573).
  *
- * The card draws what `tutor/continuity.ts` and `tutor/threads.ts` decided
- * and decides nothing: the tutor's name over the line, the line, and one
- * outline when there is a thread to pick up. A scene left part way is picked
- * up; a finished conversation is kept going, which is the Max plan's door
- * (`purchases/capabilities.ts`), so a plan without it meets one honest line and
- * the way to the plans rather than a button that would be refused. A learner
- * with no record behind them never sees this card, because the fold answers
- * null and the tab draws nothing.
+ * It was a card with a heading, a line and an outline button. Revamp A makes it
+ * the peach row at the top of the tab: the tutor's own mark on the white disc,
+ * "<Name> remembers", the one line, a chevron. The same thread, one row high,
+ * so the three ways in below it read as a list rather than as a second card
+ * competing with the circle above.
  *
- * An outline, not a pill: the tab's one pill is the resume card's, and this
- * card is the memory, not the way in.
+ * It draws what `tutor/dashboard.ts` decided and decides nothing. Which line
+ * the row says, what pressing it promises, and where it goes are four arms of
+ * one branch, and a branch inside a `.tsx` is a branch this workspace cannot
+ * ask a question of: there is no renderer here (docs/TESTING.md).
+ *
+ * A learner with no record behind them never sees this row, because
+ * `continuity.ts` answers null and the tab draws nothing.
  */
 
-import { StyleSheet, Text, View } from 'react-native';
-
-import { Card, GhostButton, Label, OutlineButton } from '../components.tsx';
-import { paper, space, type } from '../theme.ts';
-import { SEE_PLANS } from './realMoments.ts';
+import { TintRow } from '../components.tsx';
+import { CONTINUITY_TINT } from './doorTint.ts';
+import { continuityRow, type ContinuityRoute } from './dashboard.ts';
 import type { Thread } from './threads.ts';
-
-export const PICK_IT_UP = 'Pick it up';
-export const KEEP_GOING = 'Keep going';
-export const MAX_ONLY_ARC = 'Keeping a conversation going across sessions comes with the Max plan.';
+import { TutorMark } from './TutorMark.tsx';
 
 export function ContinuityCard({
   headline,
@@ -31,10 +28,9 @@ export function ContinuityCard({
   thread,
   continueAllowed,
   disabled,
-  onResume,
-  onContinue,
-  onSeePlans,
+  onPress,
 }: {
+  /** "<Name> remembers", from `continuity.ts`. */
   headline: string;
   /** What the tutor remembers, from `continuity.ts`. */
   line: string;
@@ -43,39 +39,19 @@ export function ContinuityCard({
   /** Whether keeping a conversation going is open on this plan. */
   continueAllowed: boolean;
   disabled: boolean;
-  onResume: (missionId: string) => void;
-  onContinue: (packId: string, seedTopic: { fr: string; en: string }) => void;
-  onSeePlans: () => void;
+  /** The tab navigates and writes the mark; the route itself is decided above. */
+  onPress: (route: ContinuityRoute) => void;
 }) {
-  // The thread's own line is the more specific one when there is a thread.
-  const said = thread?.line ?? line;
+  const row = continuityRow({ headline, line, thread, continueAllowed });
   return (
-    <Card style={st.card}>
-      <Label>{headline}</Label>
-      <Text style={st.line}>{said}</Text>
-      {thread !== null && thread.kind === 'scene' && (
-        <View style={st.action}>
-          <OutlineButton label={PICK_IT_UP} disabled={disabled} onPress={() => onResume(thread.missionId)} />
-        </View>
-      )}
-      {thread !== null && thread.kind === 'pack' && continueAllowed && (
-        <View style={st.action}>
-          <OutlineButton label={KEEP_GOING} disabled={disabled} onPress={() => onContinue(thread.packId, thread.seedTopic)} />
-        </View>
-      )}
-      {thread !== null && thread.kind === 'pack' && !continueAllowed && (
-        <View style={st.action}>
-          <Text style={st.gate}>{MAX_ONLY_ARC}</Text>
-          <GhostButton label={SEE_PLANS} color={paper.ink} onPress={onSeePlans} />
-        </View>
-      )}
-    </Card>
+    <TintRow
+      tint={CONTINUITY_TINT}
+      glyph={<TutorMark />}
+      title={headline}
+      gloss={row.gloss}
+      accessibilityLabel={row.label}
+      disabled={disabled}
+      onPress={() => onPress(row.route)}
+    />
   );
 }
-
-const st = StyleSheet.create({
-  card: { marginTop: space(4) },
-  line: { ...type.body, color: paper.ink, marginTop: space(2) },
-  action: { marginTop: space(3), gap: space(2) },
-  gate: { ...type.small, color: paper.inkSoft },
-});

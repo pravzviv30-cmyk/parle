@@ -47,6 +47,40 @@ export const CHOOSER_SUB = 'Pick a situation. Your tutor plays the other person.
 /** The free path, kept as a peer rather than demoted to a footnote. */
 export const TALK_FREELY = 'Talk freely about something else';
 
+/** The caps line over the one situation already picked out. */
+export const CHOOSER_START_HERE = 'Start here';
+
+/** The caps line over the rest of them. */
+export const CHOOSER_OTHER = 'Other situations';
+
+/**
+ * The scripted lesson, as a door at the foot of the chooser — F573.
+ *
+ * It lived on the Tutor tab, which was six doors deep and read as a contents
+ * page. Here is where it belongs: the lesson is the narrow door, where every
+ * line is given and the tutor can listen to how it was said, and a beginner
+ * should meet the situations before a fixed script. Last on this screen is
+ * exactly that position.
+ *
+ * It is not a seventh situation and it is drawn as an outline rather than a
+ * row, because the script is known in advance, which is the only reason
+ * pronunciation can be scored at all (docs/ARCHITECTURE.md, "Two paths, one
+ * ladder"). A row among the six would lose the one thing that makes it
+ * different.
+ *
+ * `title` names the kind of session and where it is set rather than repeating
+ * the lesson's own French title: the scene's title is already on the hero card
+ * above, and two French titles on one screen naming two different things is
+ * how a learner taps the wrong one. `quiet` is the lesson's own typed way in,
+ * deliberately not the conversation's "Unable to speak right now?": one screen
+ * asking the same question twice and meaning two places is a screen that lies
+ * to whoever answers it second.
+ */
+export const LESSON_DOOR = {
+  title: 'Pronunciation lesson: Au café',
+  quiet: 'Read and type this one instead',
+} as const;
+
 export interface MissionRoute {
   screen: 'Convo';
   params: { missionId: string };

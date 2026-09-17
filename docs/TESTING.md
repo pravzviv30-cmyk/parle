@@ -73,10 +73,10 @@ Both looked like green coverage of a fixed bug and were neither.
 
 ## What is not covered
 
-`apps/mobile` now has 52 test files and hundreds of assertions across pure rules,
+`apps/mobile` now has 196 test files and hundreds of assertions across pure rules,
 storage boundaries, sync convergence and source contracts. That is substantial
 coverage of decisions and wiring, but it is still not component coverage: the app
-contains 54 TSX components and no `.test.tsx` renderer test.
+contains 104 TSX components and no `.test.tsx` renderer test.
 
 Source-reading tests can prove that a prop, accessibility role or navigation call
 is present. They cannot prove React Navigation precedence, a control's focus order,

@@ -1,11 +1,18 @@
 /**
- * The free-conversation end card, sibling of SummaryScreen (F552).
+ * The free-conversation end card, sibling of SummaryScreen (F552, F584).
  *
  * It used to list everything: twelve phrases, four fixes, every win. It is a
  * closure now, decided in `conversationPacks/closure.ts` and drawn by
  * `ConversationPackCard`: what went well, three phrases worth keeping, one
  * repair, one thing to tune, and the next situation, waiting on Home.
- * Numbers are allowed here and only here; mid-session copy never carries them.
+ *
+ * Revamp A changed two things about the head of it. The postcard is the
+ * registry's raster scene rather than the vector drawing, so the end of a
+ * conversation and the end of a lesson show the same picture at the same size,
+ * and the line under the headline is `tutor/recapLine.ts` in words. The digits
+ * it replaces were the app's only percentage: "6 turns · 70% on your own", on
+ * the screen a learner reaches at the moment they decide whether they are any
+ * good at this.
  *
  * The closure is built from the live recap the moment it arrives, so the
  * card never waits on a disk, and the focus and the next situation fill in
@@ -20,13 +27,15 @@ import { missionStates, type RecapPayload } from '@luvani/core';
 
 import { paper, space, type } from './theme.ts';
 import { PillButton } from './components.tsx';
-import { RecapPostcard } from './illustrations.tsx';
+import { Art } from './art/Art.tsx';
+import { SCREEN_ART } from './art/maps.ts';
 import { ConversationPackCard } from './conversationPacks/ConversationPackCard.tsx';
 import { closureFromRecap, type ClosureContext } from './conversationPacks/closure.ts';
 import { missionCompletionsFrom } from './missions/chooserView.ts';
 import { loadMissionCompletions } from './missions/store.ts';
 import { loadDeck } from './review/store.ts';
 import { loadSoundChecks } from './soundcheck/store.ts';
+import { recapLine } from './tutor/recapLine.ts';
 
 export function RecapScreen({ recap, onDone }: { recap: RecapPayload; onDone: () => void }) {
   const insets = useSafeAreaInsets();
@@ -57,12 +66,14 @@ export function RecapScreen({ recap, onDone }: { recap: RecapPayload; onDone: ()
       <ScrollView contentContainerStyle={[st.scroll, { paddingBottom: insets.bottom + space(8) }]} showsVerticalScrollIndicator={false}>
         {/* ── something arrived in the mail ──────────────────────────── */}
         <View style={st.header}>
-          <RecapPostcard width={180} />
+          <Art name={SCREEN_ART.recap} />
           <View style={st.headerText}>
-            <Text style={[type.title, { color: paper.ink, textAlign: 'center' }]}>{recap.headline}</Text>
-            <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>
-              {recap.stats.turns} turns · {Math.round(recap.stats.unassistedRate * 100)}% on your own
+            <Text accessibilityRole="header" style={[type.display, { color: paper.ink, textAlign: 'center' }]}>
+              {recap.headline}
             </Text>
+            {/* How it went, in a sentence. See tutor/recapLine.ts for why the
+                count and the percentage that used to sit here are gone. */}
+            <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center' }]}>{recapLine(recap.stats)}</Text>
           </View>
         </View>
 

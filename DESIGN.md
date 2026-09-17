@@ -146,10 +146,11 @@ once, in a role table beside the thing it describes: `missions/missionTint.ts`,
 `tutor/doorTint.ts`, `practice/madeFromTint.ts`, `profile/rhythmTint.ts`. A
 screen names the role and never the colour.
 
-A tint is a **surface**, not a mark and not an accent: it is drawn as the disc
-behind a mission's drawing (`TintDisc`, via `MissionDisc`), as the ground under a
-row about that place or that practice (`TintPanel`, and `TintRow` above it), and
-as the panel behind the speaking rhythm. Never as lettering, never as a stroke or
+A tint is a **surface**, not a mark and not an accent: it is drawn as the ground
+under a row about a place or a kind of practice (`TintRow`, and `TintPanel` under
+it) and as the panel behind the speaking rhythm. It was also the disc behind a
+mission's authored drawing until revamp A retired those; the row's white disc
+carries a `PlaceGlyph` now, so a tint is a paper and never a disc. Never as lettering, never as a stroke or
 a border, never as a ring or a dot that reports state.
 
 The second of those is F467 and it is the founder's decision, taken the way
@@ -237,11 +238,13 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
   lettering on it, that can stand with nothing chosen, names its group for a
   screen reader and says which segment is selected on the web as well as on a
   device; onboarding dots stretch the current page.
-- **TintDisc / MissionDisc** — a circle of one tint with a place's line art
-  inside, decorative to assistive tech.
+- **TintDisc** — a circle of one tint, decorative to assistive tech. It held a
+  place's authored line art through `MissionDisc`; both that component and the
+  five place drawings retired with revamp A, so nothing draws this today and it
+  is recorded here as a primitive rather than as a surface a learner meets.
 - **TintPanel** — the ground under a block about one place, in that place's tint.
-  Not decorative: it has words in it. With the disc, one of the places a tint is
-  ever drawn, and all of them live in `components.tsx` so no screen ever names a
+  Not decorative: it has words in it. With `TintRow`, one of the two places a
+  tint is ever drawn, and both live in `components.tsx` so no screen ever names a
   colour.
 - **TintRow** — the mockup's one way into a place, a practice or a memory, and
   the shape the founder circled on every frame: a tinted ground at radius 16, a
@@ -368,48 +371,53 @@ shading, deliberately quirky proportions, viewBox 200×150, no second colour —
 the paper shows through. `src/illustrations.tsx` remains as a one-line barrel,
 so the thirteen screens that import from it did not change.
 
-Eighteen scenes. The original eight: café hero, name tag, birthday cake,
-suitcase, winged clock, clinking speech bubbles, sprouting word cards,
-postcard. Four of those now move. The winged clock left the barrel with the
-daily-goal sheet that was its only caller, once the goal became a three-way
-control chosen in place; it is drawn, like the suitcase, and not exported. Six
-fill a place that previously said
-"nothing here" in plain text on an empty screen, and four are the mission
-chooser's postcards:
+Four scenes, plus the tick and plus the daily pack. Of the original eight, three
+are left: name tag, clinking speech bubbles, sprouting word cards. The winged
+clock left the barrel with the daily-goal sheet that was its only caller, once
+the goal became a three-way control chosen in place; it is drawn, like the
+suitcase, and not exported.
+
+Revamp A retired nine, and for the opposite reason: not a caller that left but a
+drawing that was replaced. The postcard, the birthday cake, the cleared table and
+the phrasebook room are `recap-postcard`, `onboard-cake`, `empty-table` and
+`phrasebook` in the raster table above. The café table and the four place
+postcards went with the components that stood between them and a screen: a
+situation's picture is `heroArt` now on the chooser's hero card and on Home, and
+a situation's mark in a row is a `PlaceGlyph`, so `MissionDisc` and `MissionArt`
+had nothing left to draw and left with their scenes. In every case the scene file
+went too, because a vector kept beside the raster that replaced it is the next
+person's coin toss. What is left is the two empty states the app still draws by
+hand:
 
 | Scene | Where |
 |---|---|
-| `NothingDue` | An empty review deck or drill bank, drawn as a cleared table rather than a dead end |
 | `NobodyYet` | The dormant social prototype's empty states; not reachable from the app navigation |
 | `StillWriting` | A topic the tutor has not finished, which is the only thing the app locks |
-| `Phrasebook` | The learner's own lines, kept |
-| `StreetCorner` | Asking the way: a leaning signpost with two boards |
-| `MarketStall` | Buying at a market: a crate of tomatoes under a scalloped awning |
-| `FrontDesk` | Checking in: a desk, an oversized bell, a key on the counter |
-| `EveningIn` | Talking about your day: a window, a moon, a mug on the sill |
 
-The four mission scenes are **still**, and that is the rule rather than an
-omission. Six drawings on one scrolling screen is six loops competing for the
-eye at the moment somebody is trying to choose one of them, and the motion
-vocabulary below is one loop per screen. The other two missions reuse
-`HeroCafe` and `SpeakBubbles`, which do move, because they were already drawn
-and a rushed drawing is worse than a borrowed one.
+The rule those five place drawings were kept under is still the rule, and the
+raster that replaced them keeps it for free: **a picture of a place does not
+move**. Six drawings on one scrolling screen is six loops competing for the eye
+at the moment somebody is trying to choose one of them, and the motion
+vocabulary below is one loop per screen.
+
+`SpeakBubbles` is the one authored scene left outside the daily pack that a
+screen still draws, on the tutor intro, and it moves.
 
 Plus `RewardMark`, which is not a scene: one tick arriving beside a drill
 verdict, in the reserved-height slot the screen already keeps. There is no
 `miss` variant on purpose, because a drawing scolds louder than a word.
 
-And the **daily pack**: twenty drawings for Home's word of the day, one a day, chosen by the date
-the same way the word and the situation are. `WordSprout` is one of them and the rest are a
+And the **daily pack**: twenty drawings for the word of the day, one a day, chosen by the date
+the same way the word and the situation are. The card moved to the foot of the `Progress`
+screen with revamp A, and the pack moved with it. `WordSprout` is one of them and the rest are a
 kettle, a croissant, a candle, a casserole, a teapot, an umbrella, a cloud, a kite, falling
 leaves, a snowflake, a postbox, a bicycle, a fountain, a pigeon, a lantern, shutters, a snail, a
 cat and a sailboat. Every one moves, because the card is the same card every day and the drawing
-is the thing that tells a learner it is a new one. They are drawn through the same switch shape
-`MissionArt` uses, which is not taste: the guard that proves nothing ships unrendered finds a
-scene by looking for it written as a tag, and a table of bare names would hide all twenty from it.
+is the thing that tells a learner it is a new one. They are drawn through a switch with one case each, which is not taste: the guard that
+proves nothing ships unrendered finds a scene by looking for it written as a tag, and a table
+of bare names would hide all twenty from it.
 
-`WordSprout` itself is a seedling being watered,
-with the service bell `FrontDesk` already draws rather than a second one. Only
+`WordSprout` itself is a seedling being watered. Only
 the water moves, on one loop; the figure and the can stay still, because the
 figure is the subject and tilting the can would pull the eye off the word beside
 it. Two components left with the same pass: `TodayRow` and `PhrasebookCard` were
@@ -438,41 +446,59 @@ still there. Passing it is one tap and nothing else is asked twice.
 
 | Tab | What it is |
 |---|---|
-| Home | Tonight's French, not a summary. A greeting alone at the top, where only the word changes: it rises up out of its slot and the next comes in behind it, and the name travels with it so the two stay tight; then one situation as the hero, on the tint of the place it happens in, with its French title, why this scene, how long it usually takes in words or the learner's own pace when one was measured, the tutor's one line of memory when there is a real record behind it, and the tab's one pill; what the learner can now do, one row per situation handled on their own and nothing at all before one is; today's situation with its starting line, a bookmark and an outline to talk about it instead; daily momentum as four cards, there from the first day and worded as a start where a number would be nought: retained phrases with two of the learner's own lines, days active with the week rail, recall over reviews once ten of them are behind it, and today's speaking goal; the word of the day under them; a sprout note at the foot. The level, the evidence and the phrasebook moved to My French rather than being drawn twice |
-| Tutor | The tutor by name, the voice circle, which reads its state from the facts: away when the servers are, checking while a probe runs, quiet with a caption when the account has no speaking time, and violet only when a tap would start something; then what the tutor remembers, one line from a real record with a way to pick the scene up or keep the conversation going, absent for a learner with nothing behind them; then three ways in as rows under one heading: an everyday mission, which opens the chooser, an open chat, which runs the circle's own probe, and rehearsing something, which opens a screen where a learner picks the kind of moment, writes one line about it, and runs it in French first. A scene left part way keeps its resume card above them with the scene's drawing, its French title, how long is left when their own pace has said, and the tab's one pill. The six situations are still every one its own tappable row, folded away behind a quiet word, and the pronunciation lesson is last: the café scene's drawing, its French title, one line saying the words are written out and the tutor listens to how you say them, an outline button rather than a pill, and its own quiet "Read and type this one instead" link. The four-page intro that used to stand in front of them is a quiet "How the voice circle works" link here and in Profile |
-| Practice | Made from the learner's own conversations, over the archive of them. The next step is still the tab's one pill, in three branches: the deck when cards are due, the newest conversation nobody has come back to, or the first conversation for a learner with none. Under it three cards from the newest conversation: the moment worth replaying, said as what they said and a better way and never as audio, which opens a real drill on the better line with the moment drawn above it; the phrase worth making theirs, with Say it only where a sitting would have something in it and Hear it otherwise; and the sound to tune, from the newest sound check, or one line saying the next situation names one. A learner with no conversation meets the same three shapes from the café lesson and one sentence saying the page becomes personal after the first. Then the archive: a vault card counts what has been recorded, the topics opened and the phrases retained, then one card per finished conversation carrying when it was, how long they spoke, the topics it opened and the phrases it left behind, then a card that suggests the next conversation out of the authored pool. **It grows.** There is no vault and no feed until the first conversation, no ordering line until the second and no filter row until the fourth, and a count with nothing behind it is left out of the rail rather than drawn as a nought. The authored path, its rows and its mix offer are gone; the scripted café lesson is a door on Tutor and the drill bank is behind the suggestion card |
-| My French | The ledger of what has become the learner's, and the one tab whose unit is the phrase rather than the session. It opens on **one line, right now**: a single card from the deck, the English showing and the French withheld until an attempt lands, chosen by where that phrase sits on the evidence ladder and carrying the reason it was chosen. One card, two grades, one closing line, and no way to ask for another, because a queue here is the sitting Practice already owns. Under it a segmented switch, absent whenever one half would be empty: **Spoken Map** is keyed by place and carries the evidence row, the saved shelf, the situations with their stamps, and one sound (the week's story left for Profile): every situation row now sits on the tint of the place it happens in, with its drawing on a white field inside. The situations come in two groups: **You can now** first, the ones handled with nothing handed over, with the count handled alone beside its heading; then **Next places**, the rest, worded as suggested and never as locked or missing. A learner with nothing stamped meets one group under the section's own heading, so no empty ability card is ever drawn. Under the list, when a sound check has ever named one, the acoustic panel: the sound, its authored articulation cue and physical trick, and the minimal pair that tells it from the English sound it is not, either half of which can be heard. No badge on either word, because nothing here keeps a per-word history to earn one; **Memory Deck** is keyed by phrase and carries the retained expression set large with the one claim its counters license, the lines that came out unasked with whole lines ordered first and the newest conversation's own lines next, then the cadence set (ten authored connectors, each with the note it was written with and a way to hear it, the ones the learner has produced unprompted marked with the passport's own green and lifted to the top), then the notebook and the conversation packs. The chooser closes the page outside both. There is no percentage anywhere on it and none is available to be drawn: the climb is the layout |
-| Profile | The level under the name; then **Your French life**, a block that opens on **Your week**: at most three sentences the story module built from the lesson sessions, the activity log, the conversation packs and the finished missions of the last seven local days, an invitation in their place on a quiet week, the same seven-mark week rail Home draws beneath them with no number on it, and one caption; then **what the tutor remembers**, headed by the tutor's own name, one sentence in words about how much is held and never a count, and a row into a pushed screen where every remembered fact is listed with what kind of thing it is and can be forgotten one at a time or all at once, up to three goals can be written in the learner's own words, the correction dial sits beside them, and one plain sentence says what leaves the phone; then the plan: its name, its period as a distance in words, and how much speaking time is left as one of three bands said in words rather than as a number or a countdown, read from the server's own status rather than from anything the phone counted, with a way to change the plan and a way to the subscription and billing rows in Settings; then the daily goal and the correction dial chosen in place as three-way controls with the chosen gloss beneath; the tutor's voice; prefer typing; tutor speaks slower; account (download, permanent deletion), the reminder, sign out, the legal footer and the build's version line |
+| Home | Tonight's French, and nothing else. The greeting alone at the top, where only the word changes: it rises up out of its slot and the next comes in behind it, with the name travelling with it so the two stay tight, and the hour's own question under it. Then one card: the situation to walk into tonight, with the kind of offer in caps above it, its French title in the serif, one line of English saying what happens there, the watercolour of the place it happens in, how long it usually takes as `Ready for 7 min` or the learner's own measured remainder, a bookmark in the top corner, and the tab's one pill. Under it one white row, **Real progress**, carrying a single sentence about what this learner can now do on their own, and a chevron into the `Progress` screen. That is the whole tab. The word of the day, the four momentum cards and the week's story are one level down behind that row rather than deleted, and the level, the evidence and the phrasebook are My French's |
+| Tutor | The tutor by name, then the orb, which reads its state from the facts: away when the servers are, checking while a probe runs, quiet with a caption when the account has no speaking time, and violet only when a tap would start something. No card behind it, because the circle is the one focal point on the page. Then what the tutor remembers, as a peach row with the tutor's own orb on its disc, one line from a real record and a way to pick the scene up, absent for a learner with nothing behind them. Then **Practice together**: three tinted rows, one per way in, and each one a row rather than a button because the circle above is the tab's only primary. An everyday mission on peach, which opens the chooser and every situation with it; an open chat on sky, which runs the circle's own probe; rehearsing something on sage, which opens the screen where a learner names a real moment, writes one line about it and runs it in French first. The quiet "Unable to speak right now?" door and the microphone notice close the page, and the pronunciation lesson moved to the chooser's own footer |
+| Practice | Made from the learner's own conversations, and it is what the tab is called. The header, then one **Your next practice** card: a French line set large, a round white speaker that says it aloud, the English under it, and exactly one control for the branch it is in, which is Review when cards are due, Practise this conversation for the newest pack nobody has come back to, and the tab's one pill for a learner with no conversation yet. Under it three rows, always the same three, on peach, sky and sage: replay a moment, which speaks the better line and opens a drill on it; make this phrase yours, which is the own-words drill; and tune one sound. A learner with no conversation meets the same three shapes from the café lesson and one sentence saying the page becomes personal after the first. The archive went one level down to `Conversations` rather than off the map: the vault, the feed, the filters and the pack library all live there behind My French's own row |
+| My French | The ledger of what has become the learner's, and the one tab whose unit is the place and the phrase rather than the session. The situations first, as one tinted row each on the paper of the place they happen in, with the place's line-art mark on a white disc and the state reached in a chip at the end: **You can now...** for the ones handled with nothing handed over, then **Next places** for the rest, worded as suggested and never as locked or missing. A learner with nothing stamped meets one group, so no empty ability card is ever drawn. Then **Your phrase shelf**, one white row carrying the phrase most worth keeping and a chevron into the `Phrasebook` route, present on a first morning too because the module has a sentence for an empty shelf. Then **Saved for later**, the situations bookmarked from Home, present only when there are any. Then **Your conversations**, one row into `Conversations`, present only once a conversation exists. There is no percentage anywhere on it and none is available to be drawn: the climb is the layout |
+| Profile | The one tab that is a person, so it is the one tab whose header is centred: the learner's monogram at 72 above their own name, and "Your French journey, your way." under it. Then **Your tutor**, a white card of two rows: who they are talking to, drawn as the orb and never as a face, opening the voice sheet; and what the tutor remembers, in words and never as a count, opening the screen where every remembered fact can be forgotten one at a time. Then **Your speaking rhythm**, a lilac panel with the Monday-to-Sunday week as seven violet dots under their day names, one caption, and the week said as a sentence to anyone who cannot see the marks. Then **Your learning**, a white card of standing choices: the name, the daily goal and the correction dial as three-way controls with the chosen gloss beneath, and prefer typing. Then the Settings row, last and alone, and everything general is behind it: the account, the plan, the subscription, the documents, the phone's own permissions, the reminder and the version line |
+
+Three routes carry what used to be a section of a tab. Each is pushed, each opens
+with the shared header's one chevron, and each was moved rather than cut, because
+a section with a learner's own data behind it is worth a page.
+
+| Route | What it is |
+|---|---|
+| Progress | What Home's **Real progress** row opens. A serif title, then the week told back in at most three sentences, absent entirely on a quiet week because a surface that can render empty is a quota. Then what the learner can now do, one tinted row per situation handled alone. Then the momentum block, moved here whole: **four cards**, there from the first day and worded as a start where a number would be nought, which are retained phrases with two of the learner's own lines, days active with the **week rail** under it, recall over reviews once ten of them are behind it, and today's speaking goal. Then the word of the day at the foot, which is a fact about the day rather than a claim about the learner, drawn with one of the daily pack's twenty and stopped the moment something is pushed over the top of it |
+| Phrasebook | What My French's phrase shelf opens. The one-line card first, a single phrase from the deck with the English showing and the French withheld until an attempt lands, because the thing worth doing should never sit under a list of things already done. Then the kept phrases as white cards grouped by where they came from, each with a speaker. Then the cadence set at the foot: ten authored connectors with the note each was written with, the ones the learner has produced unprompted lifted to the top |
+| Conversations | What My French's **Your conversations** row opens, and where Practice's archive went. The filters, the vault said in words, then the feed: one row per finished conversation carrying when it was, how long they spoke and what it left behind, each one opening a drill on its own phrases. The pack library opens over it in place rather than as a second push, which is why this screen answers Android's back itself. Deleting a saved conversation, and deleting all of them, is reachable here and nowhere else |
 
 Every tab opens the same way. A **TabHeader** is the first thing in its scroll
 body: a display title on the left, one plain purpose line beneath it in soft ink,
 and an optional trailing **Monogram** for the learner's initial. It is not passed
 to the frame's `header` slot, because a fixed display title over a purpose line is
 taller than the screen at the largest reading size and has to scroll with the
-content. Home is the one tab that carries no purpose line and no monogram: it
-opens on the greeting and goes straight to the day, and `surfaceContract.test.ts`
-names it as the single exception so a second tab cannot drop its line quietly.
+content. **Home's purpose line is the hour's question**, "Ready to speak French
+this evening?", which is the one purpose line in the app that changes during the
+day; `surfaceContract.test.ts` holds Home to reading it from the greeting rather
+than spelling it, because a sentence typed into the tab is a sentence that stops
+changing and nothing would say so. Home draws no monogram: the initial is
+Profile's, once, and the greeting already says the learner's name.
 The header can also fade its title, through a `titleOpacity` the caller drives;
 that exists so Home's greeting can cycle without the display style leaving this
 file.
 
 Two rules ride with the block. **One primary pill per door**, so the eye has one
-place to go on each thing it can act on. That used to read "one per tab". Tutor
-carried two for a while, the scene to resume and the open conversation, and
-carries one now: the circle at the top of the tab is the way into an open chat,
-so the open conversation's pill went when the three ways in became rows; the
-count is pinned per tab at exactly what each one draws, rather than loosened, so
-a second cannot appear. My French draws two
-primaries across two files and renders exactly one, and it did not need the
-count moved: the one-line card is its own component, so each file still holds a
-single pill and `myfrench/primary.ts` is the only thing that knows which of them
-is on screen. And a caps `Label` is
-violet, or it reports a state in ink, never faint: faint ink was only ever
-cleared as a mark, not as a line a learner reads.
+place to go on each thing it can act on. That used to read "one per tab", and it
+has only ever been tightened: the count is pinned per tab at exactly what each
+one draws, over the tab AND every card it draws, so a pill that moves into a
+component cannot go uncounted. Two tabs draw one each and three draw none. Home's
+is Start conversation on tonight's card. Practice's is the first conversation,
+which only a learner who has never had one ever meets. Tutor has none, because
+the circle is the way into a conversation and a pill beside it would be a second
+answer to the same question; My French has none, because a list of places is a
+list and the next place is the first row of it; Profile has none, because nothing
+on it is a thing to start.
+
+Where a tab would once have grown a second pill it grows a **tinted row**
+instead, and each list is drawn one way: the three ways in on Tutor, the three
+made-from rows on Practice, the situations and the shelf on My French. And a caps
+`Label` is violet, or it reports a state in ink, never faint: faint ink was only
+ever cleared as a mark, not as a line a learner reads.
 
 Navigation is React Navigation: a root stack whose first screen is the tab
-navigator, with the lesson, the conversation, drills, review and the mission
-chooser as siblings *above* it. The chooser is a stack screen rather than a tab
+navigator, with the lesson, the conversation, drills, review, the mission chooser
+and the three routes above (`Progress`, `Phrasebook`, `Conversations`) as
+siblings *above* it. The chooser is a stack screen rather than a tab
 because the same surface is needed from three doors: a first run opens on it, a
 Home card pushes it, and the Tutor tab's first two doors lead to it. That is what hides the tab bar on a metered screen, and what makes
 leaving a live session an explicit act rather than a tab switch — a room that
@@ -649,8 +675,14 @@ bubbles arriving one after the other, then a settling second page. And the
 It is a lit **gradient disc** now: one radial gradient built from the state's own
 single colour at full, 0.85 and 0.45 opacity, so the sphere reads as lit without
 a second token entering the palette. Three faint concentric **rings** sit behind
-it, and in the two states where somebody is talking, three soundwave **lines**
-either side lean in. The founder reversed the earlier decision here: rings around
+it, and three soundwave **lines** either side lean in. The lines are part of the
+shape rather than a state: they are drawn on the untapped circle and on the
+resting one too, because the founder's Tutor tab has them beside the orb before
+anybody has tapped it, and hiding them until a conversation started made the one
+control on that screen a bare disc. They **move** only in the two states where
+somebody is talking, which is the only place the second driver runs: drawn and
+still everywhere else, and absent only while the orb is thinking or stopped,
+where a line either side would be a voice that is not in the room. The founder reversed the earlier decision here: rings around
 a flat centre was the first choice and the lit sphere the rejected one, and after
 seeing both on the mockup the founder took the sphere with the rings kept around
 it.

@@ -113,6 +113,21 @@
  * `settledAt` is no longer read here at all. The field and `isSettled` stay in
  * core and the phrasebook; what Home claims is now use, not settlement.
  *
+ * ## Two pictures of a week, and one set of days underneath them
+ *
+ * Home's days tile draws the last seven days ending today. Profile's speaking
+ * rhythm draws this Monday-to-Sunday calendar week, because a row sitting under
+ * day names has to mean the week those names describe. They answer different
+ * questions and they must never answer them differently, so both fold
+ * `activeDayKeys` and neither owns a copy of the rule about what a day with
+ * French in it is.
+ *
+ * The calendar week has a third state the rolling rail cannot have. A day later
+ * this week has not happened yet, and drawing it the same as a quiet Tuesday
+ * would be the app showing a learner four empty marks on a Wednesday and
+ * letting them read that as a shortfall. So `ahead` exists, it is decided
+ * before `done`, and `rhythmSentence` does not count it.
+ *
  * ## Why this is a second module and not an extension of today.ts
  *
  * `progress/today.ts` answers one question — how many sittings happened today —
@@ -390,14 +405,133 @@ function recentDayKeys(now: number, span: number): string[] {
  * which of the last seven days had French in them.
  */
 export function weekRailFrom(activity: readonly { at: number }[], now: number): readonly boolean[] {
-  const active = new Set<string>();
-  for (const entry of activity) active.add(localDayKey(entry.at));
+  const active = activeDayKeys(activity);
   return recentDayKeys(now, MOMENTUM_WEEK_DAYS).map((key) => active.has(key));
 }
 
-function daysFrom(activity: readonly ActivityEntry[], now: number): MomentumDays {
+/**
+ * The local days this learner produced French on, as a set of day keys.
+ *
+ * One line, and it is a function rather than three copies because three
+ * readers of the log now ask the same question: the days tile's count, the
+ * rolling rail, and the calendar week. Two pictures of the same week that
+ * disagreed about which days had French in them would be the app telling one
+ * learner two things, so there is one answer to derive them all from.
+ */
+function activeDayKeys(activity: readonly { at: number }[]): Set<string> {
   const active = new Set<string>();
   for (const entry of activity) active.add(localDayKey(entry.at));
+  return active;
+}
+
+/**
+ * The seven day names the calendar week is drawn under, Monday first.
+ *
+ * Monday first because that is where a week starts here, and because the rail
+ * is read left to right against a calendar the learner already has in their
+ * head. Three letters each: the rail gives each mark one narrow column, and a
+ * full day name would either wrap or shrink the marks at the largest text.
+ *
+ * They are a picture and not a sentence. `WeekRail` hides the whole row from
+ * assistive technology, because seven letters read aloud are not a week, and
+ * `rhythmSentence` is what a screen reader is given instead.
+ */
+export const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+
+/**
+ * One column of the calendar week: the day's name and what happened on it.
+ *
+ * Three states and no fourth. `done` is French produced, `open` is a day of
+ * this week that has come and gone quietly, and `ahead` is a day that has not
+ * happened yet. There is deliberately no `missed`: an `open` day is simply a
+ * day without French in it, and the difference between that and a debt is the
+ * whole of the refusal `momentum.ts` is built around.
+ */
+export type WeekDay = { label: (typeof WEEKDAY_LABELS)[number]; state: 'done' | 'open' | 'ahead' };
+
+/**
+ * Today at midday, which is where the calendar week is walked from.
+ *
+ * Midday for the same reason `recentDayKeys` uses it: a local day is 23 or 25
+ * hours long twice a year, and a step of a fixed number of milliseconds across
+ * one of those either skips a date or repeats it, which here would silently
+ * blank a day the learner practised on. `setDate` from midday cannot.
+ */
+function mondayAnchor(now: number): Date {
+  const anchor = new Date(now);
+  anchor.setHours(12, 0, 0, 0);
+  return anchor;
+}
+
+/**
+ * The learner's speaking rhythm: this calendar week, Monday to Sunday.
+ *
+ * The rolling rail above answers "the last seven days"; this answers "this
+ * week", which is the question somebody asks when they look at a row of day
+ * names. Both fold `activeDayKeys`, so the two can never disagree about which
+ * days had French in them.
+ *
+ * `ahead` is decided before `done`, so a day later in the week is drawn as
+ * still to come whatever a stray future timestamp says. A clock that ran fast
+ * on another device should not tick off a day the learner has not lived yet.
+ */
+export function calendarWeekFrom(activity: readonly { at: number }[], now: number): readonly WeekDay[] {
+  const active = activeDayKeys(activity);
+  const anchor = mondayAnchor(now);
+  // `getDay()` counts from Sunday, so `(day + 6) % 7` is how many days into a
+  // Monday-first week today is. It is also today's index in the row, which is
+  // what makes "after today" a comparison rather than a search.
+  const today = (anchor.getDay() + 6) % 7;
+
+  return WEEKDAY_LABELS.map((label, index) => {
+    const day = new Date(anchor);
+    day.setDate(anchor.getDate() - today + index);
+    const key = localDayKey(day.getTime());
+    return { label, state: index > today ? 'ahead' : active.has(key) ? 'done' : 'open' };
+  });
+}
+
+/** Said when the week has nothing in it yet, pointing at the first day rather than at six empty ones. */
+export const RHYTHM_NONE = 'No French yet this week. Your first day lands here.';
+
+/** Said on one day, because "on one days" and "on 1 day" are both the app looking careless. */
+export const RHYTHM_ONE = 'One day of French this week.';
+
+/** Said on all seven, where counting them back would read as a quota met rather than a week lived. */
+export const RHYTHM_EVERY_DAY = 'French every day this week.';
+
+/**
+ * Two through six, written out.
+ *
+ * The rail is a diary of days rather than a score, and a numeral in that
+ * position is read as a target however it was meant, which is `today.ts`'s rule
+ * and the reason this sentence spends a word where `story.ts` may spend a
+ * digit: `story.ts` counts things the learner *made*, and this counts days.
+ *
+ * Two through six is the whole range a count can land in: nought, one and a
+ * full week each have their own sentence, and `calendarWeekFrom` is the only
+ * thing that builds a week, so it is always seven days long.
+ */
+const DAY_COUNT_WORDS = ['', '', 'two', 'three', 'four', 'five', 'six'] as const;
+
+/**
+ * The week said in one plain sentence, for the screen reader and for the caption.
+ *
+ * Four shapes, and every one of them describes what happened rather than what
+ * did not: no day is ever named as skipped, nothing is compared with last week,
+ * and there is no fraction of seven anywhere in it. Days still ahead are not
+ * counted, so a Tuesday evening is never told it is five days short.
+ */
+export function rhythmSentence(week: readonly WeekDay[]): string {
+  const done = week.filter((day) => day.state === 'done').length;
+  if (done === 0) return RHYTHM_NONE;
+  if (done === 1) return RHYTHM_ONE;
+  if (done === week.length) return RHYTHM_EVERY_DAY;
+  return `You spoke French on ${DAY_COUNT_WORDS[done]} days this week.`;
+}
+
+function daysFrom(activity: readonly ActivityEntry[], now: number): MomentumDays {
+  const active = activeDayKeys(activity);
   const count = active.size === 0 ? null : active.size;
 
   return {

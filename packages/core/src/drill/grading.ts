@@ -23,7 +23,17 @@ import { normalise } from '../lessons/types.ts';
 import { damerauLevenshtein, TYPO_MAX_DISTANCE, TYPO_MIN_LENGTH } from '../text/distance.ts';
 import type { DrillExercise } from './types.ts';
 
-export type DrillVerdict = 'good' | 'typo' | 'miss';
+/**
+ * Three verdicts code can reach on its own, and one it cannot.
+ *
+ * 'pending' is what an own-words exercise grades to, always. There is no right
+ * string to compare against, so a comparison must not pretend to an answer: the
+ * judgement comes from outside as an `OwnWordsVerdict` and reaches the session
+ * through `answerCurrent`'s decided argument. A pending verdict never becomes
+ * feedback and never moves the queue, which is what keeps "nobody has judged
+ * this yet" from silently reading as "they got it wrong".
+ */
+export type DrillVerdict = 'good' | 'typo' | 'miss' | 'pending';
 
 export interface GradeResult {
   verdict: DrillVerdict;
@@ -49,6 +59,10 @@ function acceptedFor(exercise: DrillExercise): string[] {
       return exercise.accepted;
     case 'repeat-this':
       return [exercise.reference];
+    case 'own-words':
+      // Empty by construction, and read through the same accessor so a future
+      // caller cannot be surprised by a missing field.
+      return exercise.accepted;
     case 'best-sentence':
     case 'appropriate-reply':
       return [];
@@ -134,5 +148,11 @@ export function gradeAnswer(exercise: DrillExercise, answer: string | number | n
     case 'translate':
     case 'repeat-this':
       return gradeFreeText(exercise, typeof answer === 'string' ? answer : '');
+
+    case 'own-words':
+      // No key, so no grade. Falling through to gradeFreeText would compare the
+      // attempt against an empty accepted set and call every answer a miss,
+      // which is the one outcome this exercise must never invent.
+      return { verdict: 'pending', closest: null };
   }
 }

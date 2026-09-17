@@ -31,7 +31,9 @@ import {
   greetingLine,
   greetingPool,
   greetingRest,
+  greetingSubline,
   localHour,
+  GREETING_SUBLINES,
 } from './greeting.ts';
 import { BANNED_IN_COPY, guiltIn } from '../copy/guilt.ts';
 
@@ -123,7 +125,11 @@ describe('the greeting on Home', () => {
       const word = resting[0]!.word;
       assert.ok(['Bonjour', 'Bonsoir'].includes(word), `${hour}:00 rests on "${word}", which is not the hour's French word`);
       assert.equal(greetingRest('Camille', at(hour)), `${word}, Camille`, `the still greeting at ${hour}:00 is not the hour's resting word`);
-      assert.equal(greetingRest(null, at(hour)), word, `the still greeting at ${hour}:00 invents a name for a learner who gave none`);
+      assert.equal(
+        greetingRest(null, at(hour)),
+        `${word},`,
+        `the still greeting at ${hour}:00 invents a name for a learner who gave none, or drops the comma that leans into the hour's question`,
+      );
     }
 
     // The two phases the founder measured off the video, and the switch to
@@ -165,6 +171,7 @@ describe('the greeting on Home', () => {
     assert.equal(localHour(Number.NaN), 12, 'an unreadable clock is not treated as the middle of the day');
     assert.equal(localHour(1e20), 12, 'a timestamp past the end of time is not treated as the middle of the day');
     assert.equal(greetingRest('Camille', Number.NaN), 'Bonjour, Camille', 'an unreadable clock rests on something other than Bonjour');
+    assert.equal(greetingRest(null, Number.NaN), 'Bonjour,', 'an unreadable clock greets a nameless learner with something other than Bonjour');
     assert.deepEqual(
       greetingPool(1e20).map((greeting) => greeting.word),
       afternoon,
@@ -173,16 +180,19 @@ describe('the greeting on Home', () => {
   });
 
   test('a learner who skipped their name is greeted by the word alone — F387', () => {
+    // The founder's mockup reads `Bonsoir,` and then the hour's question, so
+    // the comma is there whether or not we know a name: it leans into the line
+    // below rather than into a name we may not have. What a learner who skipped
+    // the question never gets is a placeholder standing in for one.
     assert.equal(
       greetingLine('Salut', null),
-      'Salut',
-      'a learner who skipped the name question is greeted with something other than the bare word',
+      'Salut,',
+      'a learner who skipped the name question is greeted with something other than the word and its comma',
     );
     // The comma belongs to the word, not to the header, so it travels with the
     // word through the slot. A learner with no name gets no dangling comma.
-    assert.equal(greetingLead('Salut', 'Camille'), 'Salut,', 'the moving word does not carry the comma that joins it to a name');
-    assert.equal(greetingLead('Salut', null), 'Salut', 'a learner who gave no name is greeted with a comma and nothing after it');
-    assert.equal(greetingLead('Coucou', '   '), 'Coucou', 'a name of nothing but spaces still pulls a comma onto the word');
+    assert.equal(greetingLead('Salut'), 'Salut,', 'the moving word does not carry the comma that joins it to a name');
+    assert.equal(greetingLead('Coucou'), 'Coucou,', 'the comma is decided by something other than the word it belongs to');
 
     // The line this replaced was "Bonjour, you". Skipping the name question is
     // a choice, and the greeting has to look written that way rather than like
@@ -192,8 +202,7 @@ describe('the greeting on Home', () => {
     const lines = [
       ...words.map((word) => greetingLine(word, null)),
       ...words.map((word) => greetingLine(word, 'Camille')),
-      ...words.map((word) => greetingLead(word, null)),
-      ...words.map((word) => greetingLead(word, 'Camille')),
+      ...words.map((word) => greetingLead(word)),
       greetingRest(null, at(9)),
       greetingRest('Camille', at(9)),
       greetingRest(null, at(21)),
@@ -210,7 +219,7 @@ describe('the greeting on Home', () => {
       'Bonjour, Camille',
       'a full name with whitespace around it is not reduced to the first name the way the tutor dashboard reduces it',
     );
-    assert.equal(greetingLine('Hello', '   '), 'Hello', 'a name of nothing but spaces is greeted as if it were a name');
+    assert.equal(greetingLine('Hello', '   '), 'Hello,', 'a name of nothing but spaces is greeted as if it were a name');
 
     // The house copy rules, run rather than eyeballed. The ban list is
     // substring matched and catches ordinary words (break, lose, owe), so the
@@ -276,5 +285,69 @@ describe('the greeting does not depend on a frame arriving — F416, F419', () =
       /progress\.setValue\(0\)/,
       'the teardown stops the swipe without returning the slot to rest, so leaving mid-swipe can leave a word half gone',
     );
+  });
+});
+
+/**
+ * The line under the greeting — F571.
+ *
+ * Revamp A gives Home the one purpose line it never had, and it is a question
+ * about the hour rather than a description of the screen. That makes it the
+ * same class of thing as the greeting above it: "Ready to speak French
+ * tonight?" at breakfast is `Bonsoir` at breakfast, one line further down. So
+ * it is held to the same bar, at all twenty-four hours.
+ */
+describe('the line under the greeting — F571', () => {
+  test('every hour has exactly one subline', () => {
+    // The windows tile the clock: no hour with nothing to say, and no hour
+    // where two lines are both true and the answer depends on the order of a
+    // list. Midnight to five is the interesting one, because the evening's
+    // window wraps and a comparison written the obvious way would empty it.
+    for (let hour = 0; hour < 24; hour += 1) {
+      const matching = GREETING_SUBLINES.filter(({ hours }) =>
+        hours.from <= hours.to ? hour >= hours.from && hour < hours.to : hour >= hours.from || hour < hours.to,
+      );
+      assert.equal(
+        matching.length,
+        1,
+        `${hour}:00 is true of ${matching.length} sublines, so the line under the greeting is a gap or a coin toss`,
+      );
+      assert.equal(greetingSubline(at(hour)), matching[0]!.line, `${hour}:00 does not draw the one subline that is true of it`);
+    }
+
+    // The three lines themselves, and the hours the founder's mockup names.
+    assert.equal(greetingSubline(at(8)), 'Ready to speak French this morning?');
+    assert.equal(greetingSubline(at(14)), 'Ready to speak French today?');
+    assert.equal(greetingSubline(at(21)), 'Ready to speak French tonight?', 'the mockup reads tonight, and the evening is not saying it');
+    assert.equal(greetingSubline(at(2)), 'Ready to speak French tonight?', 'the small hours have moved on to the morning');
+
+    // The edges are the greeting's own, so the word and the question below it
+    // can never describe two different parts of one day: Morning ends at noon,
+    // and Bonsoir starts at six and wraps past midnight.
+    assert.equal(greetingSubline(at(11, 59)), greetingSubline(at(8)), 'the morning ends before noon');
+    assert.equal(greetingSubline(at(12)), greetingSubline(at(14)), 'midday is still the morning');
+    assert.equal(greetingSubline(at(17, 59)), greetingSubline(at(14)), 'the day is over before six');
+    assert.equal(greetingSubline(at(18)), greetingSubline(at(21)), 'the evening has not started at six');
+    assert.equal(greetingSubline(at(4, 59)), greetingSubline(at(21)), 'the night ends before five');
+    assert.equal(greetingSubline(at(5)), greetingSubline(at(8)), 'five in the morning is still the night before');
+
+    // A clock nobody can read still asks a question, and it is the neutral one.
+    assert.equal(greetingSubline(Number.NaN), 'Ready to speak French today?', 'an unreadable clock asks about a part of the day it cannot know');
+  });
+
+  test('no subline carries a digit or an em dash', () => {
+    assert.equal(GREETING_SUBLINES.length, 3, 'there are no longer three parts of the day, so the sweep below is reading the wrong list');
+    for (const { line } of GREETING_SUBLINES) {
+      // The one line on Home that says what the screen is for counts nothing,
+      // scores nothing and scolds nobody. It is also read aloud under a
+      // greeting, so it is a plain question in plain words.
+      assert.equal(guiltIn(line), undefined, `"${line}" says a word Luvani has banned from learner-facing copy`);
+      assert.doesNotMatch(line, /—/, `"${line}" carries an em dash, which no learner-facing line may`);
+      assert.doesNotMatch(line, /\d|%/, `"${line}" carries a number, and nothing on Home counts the learner`);
+      assert.match(line, /\?$/, `"${line}" is not the question the founder's mockup asks`);
+      assert.ok(line.startsWith('Ready to speak French'), `"${line}" does not open on the thing this app is for`);
+    }
+    // Three different endings, so the hour is actually doing something.
+    assert.equal(new Set(GREETING_SUBLINES.map((subline) => subline.line)).size, 3, 'two parts of the day say the same line');
   });
 });

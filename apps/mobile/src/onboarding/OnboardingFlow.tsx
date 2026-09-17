@@ -67,7 +67,8 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { paper, space, type } from '../theme.ts';
 import { Card, PillButton, GhostButton, Field, ProgressDots, OptionCard } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { OnboardWave, OnboardCake, SpeakBubbles } from '../illustrations.tsx';
+import { Art } from '../art/Art.tsx';
+import { SCREEN_ART } from '../art/maps.ts';
 import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
 import type { StoredProfile } from '../profile/store.ts';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
@@ -259,7 +260,7 @@ export function OnboardingFlow({
       {page === 'age' && (
         <>
           <View style={st.art}>
-            <OnboardCake width={170} />
+            <Art name={SCREEN_ART.agePage} />
           </View>
           <Text accessibilityRole="header" style={st.question}>
             {AGE_QUESTION}
@@ -279,7 +280,7 @@ export function OnboardingFlow({
       {page === 'name' && (
         <>
           <View style={st.art}>
-            <OnboardWave width={170} />
+            <Art name={SCREEN_ART.namePage} />
           </View>
           <Text accessibilityRole="header" style={st.question}>
             {NAME_QUESTION}
@@ -307,7 +308,7 @@ export function OnboardingFlow({
       {page === 'meet' && (
         <>
           <View style={st.art}>
-            <SpeakBubbles width={150} />
+            <Art name={SCREEN_ART.welcome} />
           </View>
           <Text accessibilityRole="header" style={st.question}>
             {MEET_TITLE(persona)}

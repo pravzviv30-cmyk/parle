@@ -30,17 +30,13 @@ import {
 
 import {
   APERO_FRAME,
-  AnthropicBrainClient,
   BrainParseError,
   BrainRefusalError,
   CAFE_FRAME,
-  ClaudeCliBrainClient,
-  OpenAiCompatBrainClient,
-  OpenAiResponsesBrainClient,
   recoveryLine,
-  SplitBrainClient,
   ZERO_USAGE,
   addLlmUsage,
+  brainClientFromEnv,
   applyCuration,
   applyExtractionToProfile,
   applyNonSpokenInput,
@@ -266,48 +262,18 @@ export function paceOf(profile: LearnerProfile): Pace {
  * The brain, selected exactly like the scripted tutor's TUTOR_LLM switch, so
  * one .env flag moves both session shapes between quality tiers together.
  *
- * `anthropic` is the default and the shape this is built for: coaching quality
- *          is the product, and routing.ts already keeps realtime turns on the
- *          fast tier. Needs ANTHROPIC_API_KEY.
- * `groq` — the documented $0 fallback for key-less setups.
- * `claude-cli` — a Claude subscription through the command line, so the
- *          coaching can be judged before an API key is bought. Split, because
- *          a CLI call costs about eight seconds: the post-session calls get
- *          Claude, the learner's turn stays on Groq.
- * `claude-cli-all` — the same subscription behind everything, the learner's
- *          turn included, for development only. It buys coaching quality with
- *          eight to twelve seconds of dead air per turn, which is why it is not
- *          the default and why preflight says so out loud. It exists because
- *          Groq's free tier rate-limits a real session, and a fourth value on
- *          the one enum beats a second flag that could disagree with it.
+ * The four values and why each exists now live with the clients they build, in
+ * `@luvani/brain/llm` factory.ts. They moved because the token server needs the
+ * same brain for the own-words judge and cannot import this file, and a second
+ * copy of "which brain does TUTOR_LLM mean" is how two processes come to
+ * disagree about what a learner is talking to.
  *
- * Exported for one reason worth stating: the promise that moving to the API is
- * a change of TUTOR_LLM and nothing else is only worth making if a test holds
- * it, and a private function cannot be held to anything.
+ * This wrapper stays, and stays exported, for the reason it always was: the
+ * promise that moving to the API is a change of TUTOR_LLM and nothing else is
+ * only worth making if a test holds it, and the tests that hold it call this.
  */
 export function brainClient(env: Record<string, string | undefined> = process.env): LlmClient {
-  const brain = selectedBrain(env);
-  if (brain === 'groq') return new OpenAiCompatBrainClient({ apiKey: env.GROQ_API_KEY ?? '' });
-  if (brain === 'openai') {
-    return new OpenAiResponsesBrainClient({
-      apiKey: env.OPENAI_API_KEY,
-      turnModel: env.OPENAI_TURN_MODEL,
-      analystModel: env.OPENAI_ANALYST_MODEL,
-    });
-  }
-  // No split, and no key: the subscription answers everything through the
-  // `claude` binary, and Groq drops out of the session entirely.
-  if (brain === 'claude-cli-all') return new ClaudeCliBrainClient();
-  if (brain === 'claude-cli') {
-    // The subscription answers well and slowly. Give it the three calls that
-    // run once the room has closed, and leave the learner's turn on the fast
-    // one. See SplitBrainClient for why this is wiring and not routing.
-    return new SplitBrainClient({
-      realtime: new OpenAiCompatBrainClient({ apiKey: env.GROQ_API_KEY ?? '' }),
-      considered: new ClaudeCliBrainClient(),
-    });
-  }
-  return new AnthropicBrainClient(); // reads ANTHROPIC_API_KEY
+  return brainClientFromEnv(env);
 }
 
 /**

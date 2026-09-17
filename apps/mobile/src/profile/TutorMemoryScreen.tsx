@@ -43,6 +43,7 @@ import {
   REMOVE_GOAL,
   WHAT_LEAVES,
   memoryLabel,
+  memorySummary,
 } from './tutorMemory.ts';
 
 export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
@@ -60,7 +61,10 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
   return (
     <ScrollScreen avoidKeyboard header={<ScreenHeader back={{ onPress: onBack }} />}>
       <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{memoryLabel(name)}</Text>
-      <Text style={[type.body, { color: paper.ink, marginTop: space(2) }]}>{WHAT_LEAVES}</Text>
+      {/* How much is held, in words and never a count, from the same module the
+          Profile card used to show it on. It sits under the title because that
+          is the question somebody arriving here is asking. */}
+      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{memorySummary(profile, name)}</Text>
 
       <Card style={st.card}>
         {facts.length === 0 ? (
@@ -81,12 +85,12 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
             </View>
           ))
         )}
-        {facts.length > 0 && (
-          <View style={st.all}>
-            <OutlineButton label={FORGET_ALL} onPress={() => update(withMemoryCleared(profile))} />
-          </View>
-        )}
       </Card>
+      {facts.length > 0 && (
+        <View style={st.all}>
+          <OutlineButton label={FORGET_ALL} onPress={() => update(withMemoryCleared(profile))} />
+        </View>
+      )}
 
       <View style={st.section}>
         <Label>{GOALS_LABEL}</Label>
@@ -122,6 +126,8 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
         </Card>
       </View>
 
+      {/* How the tutor treats you, beside what it knows about you. The same dial
+          as the one on Profile's learning card, through the same door. */}
       <Card style={st.section}>
         <ChoiceRow<Strictness>
           first
@@ -133,6 +139,10 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
           accessibilityLabel={STRICTNESS_ROW}
         />
       </Card>
+
+      {/* One plain sentence on what leaves the phone, at the foot, where a
+          footnote belongs. It names the slice the agent actually sends. */}
+      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(6) }]}>{WHAT_LEAVES}</Text>
     </ScrollScreen>
   );
 }
@@ -143,6 +153,6 @@ const st = StyleSheet.create({
   fact: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
   divided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: paper.lineOnCard },
   factWords: { flex: 1, minWidth: 0 },
-  all: { marginTop: space(3) },
+  all: { marginTop: space(4) },
   add: { marginTop: space(3), gap: space(3) },
 });

@@ -20,6 +20,8 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { paper, space, type, signal, HIT } from '../theme.ts';
 import { PillButton, OutlineButton, Field, GoogleMark, AppleMark } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { HeaderArt } from '../art/HeaderArt.tsx';
+import { SCREEN_ART } from '../art/maps.ts';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail, PASSWORD_MIN, passwordTooShort } from './validate.ts';
 import { authButtonLabel, type AuthAction } from './busyLabel.ts';
@@ -133,7 +135,14 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
         </View>
       }
     >
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Create your account</Text>
+      {/* The corner scene sits behind the title rather than above it, so the
+          serif line still lands where a learner's eye starts. `HeaderArt` is
+          absolute, decorative and not drawn at all above a font scale of 1.5,
+          which is why the wrapper is the thing that has to be relative. */}
+      <View style={st.head}>
+        <HeaderArt name={SCREEN_ART.signIn} />
+        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Create your account</Text>
+      </View>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
         Your progress, your phrases, and your tutor's memory live here.
       </Text>
@@ -202,5 +211,8 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
 }
 
 const st = StyleSheet.create({
+  // Relative only: the picture inside it is positioned by `HeaderArt`, and the
+  // title is drawn after it so the words sit in front of the wash.
+  head: { position: 'relative' },
   switchRow: { minHeight: HIT, alignItems: 'center', justifyContent: 'center', marginTop: space(6) },
 });

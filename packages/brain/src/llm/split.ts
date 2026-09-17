@@ -32,6 +32,7 @@ import type {
   BrainDrillsRequest,
   BrainExtractRequest,
   BrainFrameRequest,
+  BrainJudgeRequest,
   BrainTurnRequest,
   LlmClient,
   LlmUsage,
@@ -66,6 +67,16 @@ export class SplitBrainClient implements LlmClient {
    */
   frame(request: BrainFrameRequest): Promise<{ frame: ScenarioFrame; usage: LlmUsage }> {
     return this.realtime.frame(request);
+  }
+
+  /**
+   * The judge is realtime too, and for the plainest reason in this file: the
+   * learner has typed their own French, pressed Check, and is looking at the
+   * screen. Nine seconds of a command line there is the same broken silence a
+   * turn would have.
+   */
+  judge(request: BrainJudgeRequest): Promise<{ verdict: unknown; usage: LlmUsage }> {
+    return this.realtime.judge(request);
   }
 
   // ── the room has closed

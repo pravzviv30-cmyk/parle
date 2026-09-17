@@ -40,6 +40,9 @@ import { ReviewScreen } from '../ReviewScreen.tsx';
 import { MissionsScreen } from '../missions/MissionsScreen.tsx';
 import { RealMomentScreen } from '../tutor/RealMomentScreen.tsx';
 import { TutorMemoryScreen } from '../profile/TutorMemoryScreen.tsx';
+import { ProgressScreen } from '../progress/ProgressScreen.tsx';
+import { PhrasebookScreen } from '../phrases/PhrasebookScreen.tsx';
+import { ConversationsScreen } from '../conversationPacks/ConversationsScreen.tsx';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { snapshotFor } from '../profile/memory.ts';
 import { markPackPractised, packIdOfNode } from '../conversationPacks/marks.ts';
@@ -410,6 +413,29 @@ function RealMomentRoute() {
   );
 }
 
+/**
+ * The three screens the revamp lifted out of the tabs.
+ *
+ * Each is a plain wrapper for the same reason ReviewRoute is: the screen takes
+ * one callback and the navigator is the only thing that knows what going back
+ * means. `canGoBack` first, because on the web an address can land on any of
+ * them cold, and then the tabs are the way out rather than a dead end.
+ */
+function ProgressRoute() {
+  const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string) => void }>();
+  return <ProgressScreen onBack={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'))} />;
+}
+
+function PhrasebookRoute() {
+  const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string) => void }>();
+  return <PhrasebookScreen onBack={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'))} />;
+}
+
+function ConversationsRoute() {
+  const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string) => void }>();
+  return <ConversationsScreen onBack={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'))} />;
+}
+
 function SoundCheckRoute() {
   const nav = useNavigation<{ goBack: () => void }>();
   const route = useRoute<RouteProp<RootStackParamList, 'SoundCheck'>>();
@@ -491,6 +517,12 @@ export function RootNavigator({
       <Stack.Screen name="Missions" component={MissionsScreen} />
       <Stack.Screen name="RealMoment" component={RealMomentRoute} />
       <Stack.Screen name="TutorMemory" component={TutorMemoryRoute} />
+      {/* The evidence, the phrases and the archive: three blocks that used to
+          be thirds of three tabs, each now a screen a learner asks for. They
+          sit above the tabs like every other push, so the bar goes with them. */}
+      <Stack.Screen name="Progress" component={ProgressRoute} />
+      <Stack.Screen name="Phrasebook" component={PhrasebookRoute} />
+      <Stack.Screen name="Conversations" component={ConversationsRoute} />
       {/* `initialParams` is what makes the preview safe to open directly: with
           the wall as the initial route there is no navigate to carry a param, so
           without this `entry` would be undefined on the one path that exists to

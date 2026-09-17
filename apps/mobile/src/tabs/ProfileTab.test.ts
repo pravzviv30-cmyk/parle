@@ -1,43 +1,30 @@
 /**
- * The daily reminder row on Profile, read out of the file that draws it.
+ * The Profile tab, read out of the file that draws it — F576.
  *
  * ## Why this is a source walk and not a render
  *
  * apps/mobile has no renderer (docs/TESTING.md): fifty-odd components and not
  * one `.test.tsx`. So the way a rule gets defended here is that it is lifted
  * out of the screen into a plain module with its own suite, and the screen is
- * then held to *using* it. `reminders/reminder.ts` is the module, and every
- * decision this row makes already lives there behind `reminderRow`. What is
- * left in `ProfileTab.tsx` is layout and wiring, and wiring is the thing a
- * grep can actually see.
+ * then held to *using* it. Profile has no rule left in it at all now: the
+ * headings are `profile/frenchLife.ts`, the tutor card is
+ * `profile/tutorMemory.ts` and `tutor/tutorVoice.ts`, the week is
+ * `progress/momentum.ts`, and the row at the foot is `settings/sections.ts`.
+ * What is left is layout and wiring, and wiring is the thing a grep can see.
  *
- * Be exact about what that buys. These tests prove that the screen asks
- * `reminderRow` and writes what it answered, that the explaining sentence is
- * written above the control that raises the dialog, and that nothing is put on
- * disk or handed to the OS that the module did not approve. They prove nothing
- * about pixels, about VoiceOver, or about a notification arriving on a phone.
+ * Be exact about what that buys. These two tests prove that the tab opens on
+ * the learner, that the tutor beside them is the orb rather than a face, that
+ * the three headings are the module's and there are exactly three, and that the
+ * plan, the reminder and the intro link are drawn on Settings and nowhere else.
+ * They prove nothing about pixels, about VoiceOver, or about what a tap does on
+ * a phone. Those are `docs/DEVICE_VERIFICATION.md`'s Pass 8 rows.
  *
- * ## The two halves of the pinned name
+ * The daily reminder's own suite moved with the reminder. It is
+ * `settings/SettingsScreen.test.ts` now, matcher for matcher, because the rule
+ * it defends is about the screen that draws the switch.
  *
- * **Explains the ask first.** A permission dialog that arrives with no warning
- * is a dialog most people decline, and iOS never offers it twice. So the
- * sentence has to be on screen before the switch can be touched, and it has to
- * be the module's sentence rather than a second copy written here, which is how
- * the screen and the notification would come to promise different things.
- *
- * **A refusal leaves no dead switch.** A dead switch is one that reads on over
- * a channel the OS closed in Settings last month: the learner believes a
- * reminder is coming, none comes, and nothing ever says so. The defence is that
- * permission is read fresh on the way in and re-read on every flip, and that
- * the value written to disk is `reminderRow`'s answer rather than the position
- * the learner's thumb left the switch in.
- *
- * Both halves are proved to bite in the test below this one, by running the
- * same matchers over sources that break them.
- *
- * `stripComments` is load-bearing. This header names `row.note`, `<Switch` and
- * `saveReminder` in prose, and every one of those is a needle the structural
- * scan looks for.
+ * `stripComments` is load-bearing. This header names `<Monogram`, `PlanCard`
+ * and `TUTOR_INTRO_LINK` in prose, and every one of those is a needle below.
  */
 
 import { describe, test } from 'node:test';
@@ -47,16 +34,12 @@ import { fileURLToPath } from 'node:url';
 
 import { guiltIn } from '../copy/guilt.ts';
 import {
-  REMINDER_EXPLAIN,
-  REMINDER_OFF,
-  REMINDER_REFUSED,
-  REMINDER_ROW,
-  reminderRow,
-} from '../reminders/reminder.ts';
-// The web half of the platform pair, which node can execute. Imported to prove
-// the one thing the F239 outcome decision rests on: the build that answers
-// `unavailable` is a build whose row can never be on.
-import { REMINDERS_AVAILABLE } from '../reminders/schedule.ts';
+  FRENCH_LIFE_COPY,
+  LEARNING_LABEL,
+  PROFILE_PURPOSE,
+  RHYTHM_LABEL,
+  TUTOR_LABEL,
+} from '../profile/frenchLife.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -67,33 +50,28 @@ function stripComments(source: string): string {
 }
 
 const TAB = stripComments(read('./ProfileTab.tsx'));
-
 /**
- * Just the reminder card, from its heading to the end of the Card.
+ * Just the tab itself, from its own `return (` to the end.
  *
- * Every claim in this file is about that one group, and until F368 the screen
- * had exactly one `<Switch` so the whole file could stand in for it. Two more
- * switches live above it now, for typing and for pace, and a whole-file scan
- * would happily answer "the explaining sentence is above a switch" about one of
- * those instead. The region is bounded once, here, and used by both the tests
- * that need it.
+ * Every ordering claim below is about the order things are DRAWN in, and the
+ * import list at the top of the file is sorted by name rather than by layout.
+ * Asked of the whole file, "the tutor is above the week" would be answered by
+ * two import lines and would pass on a tab that drew them the other way round.
  */
-const REMINDER_CARD = (() => {
-  const start = TAB.indexOf('<Label>{REMINDER_ROW}</Label>');
-  const end = TAB.indexOf('</Card>', start);
-  assert.ok(start !== -1 && end > start, 'the reminder group is not a card on this screen');
-  return TAB.slice(start, end);
-})();
+const BODY = TAB.slice(TAB.lastIndexOf('  return ('));
+const CARD = stripComments(read('../profile/TutorMemoryCard.tsx'));
+const SETTINGS = stripComments(read('../settings/SettingsScreen.tsx'));
 
 /**
  * `first` is present, `second` is present, and `first` comes first.
  *
- * A boolean rather than an assertion so the mutation test can watch it answer
+ * A boolean rather than an assertion so the bite checks can watch it answer
  * false. The two presence checks are the whole point: `indexOf` answers -1 for
  * something that was deleted, and -1 sorts before every real position, so the
  * obvious spelling of an ordering check passes most confidently in the one case
- * it exists to catch. surfaceContract.test.ts writes this down as `writtenBefore`
- * after that trap hid a missing network flag under a green suite.
+ * it exists to catch. surfaceContract.test.ts writes this down as
+ * `writtenBefore` after that trap hid a missing network flag under a green
+ * suite.
  */
 function writtenBefore(source: string, first: string, second: string): boolean {
   const at = source.indexOf(first);
@@ -101,485 +79,175 @@ function writtenBefore(source: string, first: string, second: string): boolean {
   return at !== -1 && then !== -1 && at < then;
 }
 
-/**
- * The argument text of every `callee(...)` in a source, parens counted.
- *
- * Counted rather than matched with a lazy regex, for the reason cardView's tag
- * walk gives: `saveReminder({ enabled: honest.on, time: chosen.value })` has a
- * `)` inside it the moment anything nests, and a regex that stops at the first
- * one reports an argument list nobody wrote.
- */
-function callArguments(source: string, callee: string): string[] {
-  const found: string[] = [];
-  for (const match of source.matchAll(new RegExp(`\\b${callee}\\(`, 'g'))) {
-    const start = match.index;
-    if (start === undefined) continue;
-    const open = start + match[0].length - 1;
-    let depth = 0;
-    for (let i = open; i < source.length; i += 1) {
-      const char = source[i];
-      if (char === '(') depth += 1;
-      else if (char === ')') {
-        depth -= 1;
-        if (depth === 0) {
-          found.push(source.slice(open + 1, i).trim());
-          break;
-        }
-      }
-    }
-  }
-  return found;
-}
-
-/**
- * The body of `const name = ... { ... }`, braces counted.
- *
- * Per-handler rather than whole-file, because "the write is checked before the
- * row moves" has to hold in each handler separately. Asked of the file as a
- * whole it would pass on the first handler's ordering while the second wrote
- * blind.
- */
-function braceBlockAfter(source: string, needle: string): string | null {
-  const at = source.indexOf(needle);
-  if (at === -1) return null;
-  const open = source.indexOf('{', at);
-  if (open === -1) return null;
+/** The body of one `if (sheet === '<name>') {` branch, braces matched. */
+function sheetBranch(source: string, name: string): string {
+  const start = source.indexOf(`if (sheet === '${name}')`);
+  assert.ok(start >= 0, `Profile has no ${name} sheet at all`);
+  const open = source.indexOf('{', start);
   let depth = 0;
   for (let i = open; i < source.length; i += 1) {
-    const char = source[i];
-    if (char === '{') depth += 1;
-    else if (char === '}') {
+    if (source[i] === '{') depth += 1;
+    else if (source[i] === '}') {
       depth -= 1;
-      if (depth === 0) return source.slice(open, i + 1);
+      if (depth === 0) return source.slice(start, i + 1);
     }
   }
-  return null;
+  throw new Error(`the ${name} sheet is never closed`);
 }
 
-function bodyOf(source: string, name: string): string {
-  const body = braceBlockAfter(source, `const ${name} =`);
-  assert.notEqual(body, null, `${name} is not in the screen at all, or its body is never closed`);
-  return body ?? '';
-}
-
-/** The two sentences this screen writes for itself, and the facts they separate. */
-const SAVE_TROUBLE = 'Your phone did not save that. The reminder is unchanged, and you can try again.';
-const SCHEDULE_TROUBLE = 'Your phone would not change the reminder just now. You can try again.';
-
-/** The two handlers that are allowed to change what the row says. */
-const HANDLERS = ['toggleReminder', 'chooseReminderTime'] as const;
-
-describe('the daily reminder on Profile', () => {
-  test('the profile reminder row explains the ask first and a refusal leaves no dead switch', () => {
-    // ─────────────────────────────────────────── explains the ask first
+describe('the tab that is a person — F576', () => {
+  test('profile opens centred on the learner and draws its tutor as the orb, never a face', () => {
+    // ───────────────────────────────────── centred, on the learner
     //
-    // The module's half of it, restated here because the screen's contract is
-    // with these exact values: an undecided permission is the one state that
-    // carries the explaining sentence and the one state that raises a dialog.
-    const undecided = reminderRow(null, 'undetermined');
-    assert.equal(undecided.note, REMINDER_EXPLAIN, 'the undecided row stopped carrying the sentence that explains the ask');
-    assert.equal(undecided.asks, true, 'the undecided row no longer says a dialog is coming');
-    assert.equal(undecided.on, false, 'the row draws an on switch over a permission nobody has granted');
-
-    // The screen's half. The note is written above the control, so the sentence
-    // is read before the dialog can be raised. Bounded to the reminder card,
-    // because the two switches F368 put above it are not this switch and must
-    // not be able to satisfy this claim on its behalf.
-    assert.ok(REMINDER_CARD.includes('<Switch'), 'the bounded block does not contain the switch, so it is scanning the wrong card');
-    assert.ok(
-      writtenBefore(REMINDER_CARD, 'row.note', '<Switch'),
-      'the explaining sentence is not written above the switch, so the system dialog can arrive unexplained',
+    // The one centred header in the app, and the only screen allowed to ask for
+    // it: four tabs name a subject and read left, and this one is a person.
+    assert.match(TAB, /<TabHeader\s+align="center"/, 'Profile opens with a left-aligned header like the four tabs that name a subject');
+    assert.match(
+      TAB,
+      /leading=\{<Monogram initial=\{firstName\.charAt\(0\)\.toUpperCase\(\)\} size=\{72\} \/>\}/,
+      "the learner's own mark is not above their name",
     );
+    assert.match(TAB, /title=\{profile\.name \?\? 'You'\}/, 'the header says something other than the learner, or spells the fallback twice');
+    assert.match(TAB, /purpose=\{PROFILE_PURPOSE\}/, 'the line under the name is written in JSX, where no test can read it back');
 
-    // And it is the module's sentence, not a second copy. Two copies is how the
-    // screen and the notification start promising different things.
-    for (const fragment of ['Your phone will ask', 'phone settings', 'one a day']) {
-      assert.ok(
-        !TAB.includes(fragment),
-        `the screen writes its own version of the reminder copy ("${fragment}") instead of showing reminder.ts's`,
-      );
-    }
-    assert.ok(TAB.includes('REMINDER_EXPLAIN') === false, 'the screen reaches past reminderRow for the sentence');
+    // The initial is drawn once here and nowhere else on the tab, which is
+    // F337's rule: that disc is the learner's, and a second one would be a
+    // second person on a screen that is about one.
+    assert.equal((TAB.match(/<Monogram\b/g) ?? []).length, 1, 'the learner initial is drawn more than once on Profile');
+    assert.ok(!TAB.includes('levelName'), 'the level line is back under the name, ranking somebody who came to change a setting');
 
-    // The dialog is raised in exactly one place, and only where the module said
-    // one belongs. Anywhere else is the re-ask loop iOS will not honour anyway.
-    assert.equal(
-      callArguments(TAB, 'askReminderPermission').length,
-      1,
-      'the system dialog is raised from more than one place, or from none',
-    );
-    assert.ok(
-      TAB.includes('row.asks ? askReminderPermission() : reminderPermission()'),
-      'the screen decides for itself when to raise the dialog instead of obeying reminderRow',
-    );
+    // The corner art, behind the words, decorative and drawn before them so it
+    // cannot sit over the heading.
+    assert.match(TAB, /<HeaderArt name=\{HEADER_ART\.profile\} \/>/, 'the header draws no art, or reaches past the registry for it');
+    assert.ok(writtenBefore(BODY, '<HeaderArt', '<TabHeader'), 'the art is drawn over the header rather than behind it');
 
-    // ────────────────────────────────── a refusal leaves no dead switch
+    // ─────────────────────────────── the tutor is the orb, never a face
     //
-    // The module refuses whether the stored flag was on or off, because the
-    // switch is just as dead before it is flipped as after.
-    for (const stored of [{ enabled: true, time: 'morning' }, { enabled: false, time: 'morning' }] as const) {
-      const refused = reminderRow(stored, 'denied');
-      assert.equal(refused.on, false, `a refused permission still draws an on switch over stored ${String(stored.enabled)}`);
-      assert.equal(refused.value, REMINDER_OFF, 'a refused row shows a time nothing will arrive at');
-      assert.equal(refused.note, REMINDER_REFUSED, 'a refused row says nothing about where it can be changed');
-      assert.equal(refused.asks, false, 'a refused row offers to ask again');
+    // On the card, not on the tab: Profile hands it the one thing it owns,
+    // which is the sheet that opens.
+    assert.match(TAB, /<TutorMemoryCard onVoice=\{\(\) => setSheet\('tutorVoice'\)\} \/>/, 'the tutor card cannot open the voice sheet');
+    assert.match(CARD, /<TutorMark \/>/, 'the tutor is drawn as something other than the orb');
+    assert.ok(!CARD.includes('<Monogram'), 'the tutor is drawn as an initial, which is the learner mark saying the tutor is the learner');
+    for (const face of ['avatar', 'photo', 'Image', 'face']) {
+      assert.ok(!CARD.includes(face), `the tutor card draws a ${face}; the founder settled that there are no faces here`);
     }
+    // Two rows, each a target the whole way across and each named once. A row
+    // whose only target is its chevron is the F545 defect.
+    assert.equal((CARD.match(/<TutorRow\b/g) ?? []).length, 2, 'the tutor card is not the two rows the founder drew');
+    assert.match(CARD, /accessibilityLabel=\{`\$\{title\}, \$\{gloss\}`\}/, 'a row reaches a screen reader as two unrelated lines');
+    assert.match(CARD, /accessibilityRole="button"/, 'a row that opens something does not say it is a button');
+    assert.match(CARD, /minHeight: HIT/, 'a row on the tutor card sits under the touch floor');
+    assert.match(CARD, /title=\{memoryLabel\(name\)\}/, 'the memory row spells the tutor name itself');
+    assert.match(CARD, /nav\.navigate\('TutorMemory'\)/, 'the memory row leads nowhere');
 
-    // A revocation that happened in Settings last month is only visible if the
-    // OS is asked on the way in. Read on focus, not once at mount, so coming
-    // back from Settings is enough.
-    const focus = callArguments(TAB, 'useFocusEffect');
-    assert.equal(focus.length, 1, 'the screen reads permission on focus in more than one place, or in none');
-    assert.ok(focus[0]?.includes('reminderPermission()'), 'the row is drawn from a permission the screen never re-read');
-    assert.ok(focus[0]?.includes('loadReminder()'), 'the row is drawn from a stored value the screen never re-read');
-
-    // Nothing reaches the disk that the module did not approve. This is the
-    // structural form of "no dead switch": the value written is reminderRow's
-    // answer against a freshly read permission, never the switch's position.
-    // Widened for F239's rollback write, which is new code rather than a
-    // loosened rule: `reverted` is still a value reminderRow answered for, and
-    // both names are now pinned to their own assembled shape below.
-    const saved = callArguments(TAB, 'saveReminder');
-    assert.ok(saved.length > 0, 'the screen never writes the choice down');
-    for (const argument of saved) {
-      assert.ok(
-        argument === 'wanted' || argument === 'reverted',
-        `saveReminder is handed ${argument} rather than a value reminderRow approved`,
-      );
+    // ─────────────────────────────────────── three headings, and the module's
+    //
+    // Your tutor, your speaking rhythm, your learning. A fourth over the row
+    // that reads Settings would say the same word twice.
+    assert.equal((TAB.match(/<Label>/g) ?? []).length, 3, 'Profile draws a caps label it did not before, or lost one');
+    for (const heading of ['TUTOR_LABEL', 'RHYTHM_LABEL', 'LEARNING_LABEL']) {
+      assert.ok(TAB.includes(`<Label>{${heading}}</Label>`), `the ${heading} heading is spelled in JSX rather than imported`);
     }
-
-    const wanted = TAB.match(/const wanted: StoredReminder = \{[^}]*\}/g) ?? [];
-    assert.equal(wanted.length, saved.filter((a) => a === 'wanted').length, 'a write is assembled somewhere this scan cannot read');
-    for (const line of wanted) {
-      assert.match(line, /enabled: honest\.on/, `the screen writes the thumb's position rather than the honest one: ${line}`);
-    }
-
-    const honest = TAB.match(/const honest = [^;]+;/g) ?? [];
-    assert.equal(honest.length, wanted.length, 'a written value is decided somewhere other than reminderRow');
-    for (const line of honest) {
-      assert.match(line, /reminderRow\(\{ enabled: [^}]*\}, fresh\)/, `the decision is made against a stale permission: ${line}`);
-    }
-
-    // A write that failed is a switch that reverts at next launch. Each handler
-    // reads the ack before it moves the row, and before it touches the OS.
-    for (const name of HANDLERS) {
-      const body = bodyOf(TAB, name);
-      assert.ok(body.includes("if (ack === 'failed')"), `${name} believes a write it never checked`);
-      assert.ok(
-        body.includes('setReminderTrouble(REMINDER_SAVE_TROUBLE)'),
-        `${name} lets a write fail without telling anyone`,
-      );
-      assert.ok(
-        writtenBefore(body, "ack === 'failed'", 'setStored(wanted)'),
-        `${name} moves the row before it knows the write landed`,
-      );
-      assert.ok(
-        writtenBefore(body, "ack === 'failed'", 'scheduleReminder('),
-        `${name} schedules a notification the app may not remember asking for`,
-      );
-      assert.ok(body.includes('cancelReminder()'), `${name} can turn the row off without stopping the notification`);
-    }
-
-    // The OS is reached only through the platform pair F230 owns.
-    assert.ok(!TAB.includes('expo-notifications'), 'the screen talks to the notification SDK behind the platform pair');
-  });
-
-  test('both halves of that check bite when the screen stops keeping them', () => {
-    // A structural scan that matches nothing passes forever. Every claim above
-    // is run here against a source that breaks it.
-
-    // Half one. The -1 trap first: a deleted sentence must not read as written
-    // before anything, which is the failure mode surfaceContract names.
-    assert.equal(
-      writtenBefore('<Switch value={row.on} />', 'row.note', '<Switch'),
-      false,
-      'a screen with no explaining sentence at all passes the ordering check',
-    );
-    assert.equal(
-      writtenBefore('{row.note ? <Text>{row.note}</Text> : null}', 'row.note', '<Switch'),
-      false,
-      'a screen with the sentence and no switch passes the ordering check',
-    );
-    assert.equal(
-      writtenBefore('<Switch value={row.on} />\n{row.note}', 'row.note', '<Switch'),
-      false,
-      'the sentence written under the switch passes as if it were above it',
-    );
-    assert.equal(
-      writtenBefore('{row.note ? <Text /> : null}\n<Switch value={row.on} />', 'row.note', '<Switch'),
-      true,
-      'the shape the screen actually ships does not pass its own check',
-    );
-
-    // Half two. The switch written straight from the thumb, which is the whole
-    // defect: a learner flips it, the permission is denied, and the row says on.
-    const naive = 'const wanted: StoredReminder = { enabled: next, time: chosen.value };';
-    assert.doesNotMatch(naive, /enabled: honest\.on/, 'a value taken from the switch passes as one the module approved');
-    const guarded = 'const wanted: StoredReminder = { enabled: honest.on, time: chosen.value };';
-    assert.match(guarded, /enabled: honest\.on/, 'the shape the screen ships does not pass its own check');
-
-    // A decision made against the permission the screen was holding rather than
-    // the one it just read.
-    assert.doesNotMatch(
-      'const honest = reminderRow({ enabled: next, time: chosen.value }, permission);',
-      /reminderRow\(\{ enabled: [^}]*\}, fresh\)/,
-      'a stale permission passes as a fresh one',
-    );
-
-    // A handler that moves the row before it reads the ack.
-    const eager = "{ const ack = await saveReminder(wanted); setStored(wanted); if (ack === 'failed') return; }";
-    assert.equal(
-      writtenBefore(eager, "ack === 'failed'", 'setStored(wanted)'),
-      false,
-      'a handler that writes the row before it checks the ack passes the ordering check',
-    );
-
-    // And the paren counter, which every one of those greps rests on.
-    assert.deepEqual(callArguments('saveReminder(f(a, b));', 'saveReminder'), ['f(a, b)'], 'a nested call ends the argument early');
-    assert.deepEqual(callArguments('x(1); saveReminder(wanted); saveReminder(other);', 'saveReminder'), ['wanted', 'other']);
-    assert.deepEqual(callArguments('noSuchCall(1);', 'saveReminder'), [], 'the counter invents a call that is not there');
-  });
-
-  test('the reminder row borrows its words and invents only the one it has to', () => {
-    // Every learner-facing string on this row comes from reminder.ts, where the
-    // guilt scan already reads them as a list. The exception is the line for a
-    // write that did not land, which is about this device rather than about the
-    // reminder, so it is written here and held to the same bar.
-    assert.ok(TAB.includes(SAVE_TROUBLE), 'the screen no longer says anything when the choice fails to save');
-    assert.equal(guiltIn(SAVE_TROUBLE), undefined, `"${SAVE_TROUBLE}" carries a word Luvani does not say to learners`);
-    assert.ok(!/[—–]/.test(SAVE_TROUBLE), 'the save line carries an em dash');
-    assert.ok(!/\d/.test(SAVE_TROUBLE), 'the save line carries a number, and nothing on this row counts anything');
-    assert.ok(!/\b(sorry|apolog|oops)/i.test(SAVE_TROUBLE), 'the save line apologises');
-
-    // The module's own two sentences are what the row shows, and they are clean.
-    // reminder.test.ts scans the whole list; this pins the two the row renders.
-    assert.equal(guiltIn(REMINDER_EXPLAIN), undefined);
-    assert.equal(guiltIn(REMINDER_REFUSED), undefined);
-
-    // The row is named once, from the module, and the switch answers to that
-    // name for anyone who cannot see it.
-    assert.ok(TAB.includes('<Label>{REMINDER_ROW}</Label>'), 'the reminder group lost the heading that says what it is');
-    assert.ok(TAB.includes('accessibilityLabel={REMINDER_ROW}'), 'the switch reaches a screen reader unnamed');
-    assert.ok(!TAB.includes("'Daily reminder'"), 'the screen spells the row name itself instead of importing it');
-    assert.equal(REMINDER_ROW, 'Daily reminder');
-
-    // Nothing on this row reports on the learner. No count, no percentage, and
-    // no second opinion about when the reminder arrives. Bounded at the card it
-    // draws, so the rest of the screen cannot lend it a pass or a failure.
-    const block = REMINDER_CARD;
-    assert.ok(block.includes('<Switch'), 'the bounded block does not contain the switch, so it is scanning the wrong card');
-    assert.ok(!/%/.test(block), 'the reminder row prints a percentage');
-    assert.ok(!/\b(streak|practised|today)\b/i.test(block), 'the reminder row knows something about what the learner did');
-  });
-});
-
-/**
- * F239. The second, narrower route to the same dead switch.
- *
- * F231 made the row honest about permission and honest about the disk. It left
- * one gap: `saveReminder` can answer `durable` and `scheduleReminder` can then
- * answer `failed`, and the row would sit on over a notification the OS never
- * accepted. Nobody could see it, because unlike permission there is no way to
- * ask the phone later whether a reminder exists — `reminderRow` takes a stored
- * value and a permission, and neither of them knows.
- *
- * That absence is what decides the two design questions this entry raises.
- *
- * **What the store holds.** It holds what the phone will actually do, so a
- * refusal puts the previous value back. Permission is allowed to be reconciled
- * on the next focus because it can be re-read; a schedule cannot, so a wrong
- * value written here is wrong forever.
- *
- * **Which outcomes are a refusal.** Only `failed`. `unavailable` is a build
- * with no scheduler, which is not a refusal and must not raise an alarming
- * line, and the test below proves it cannot reach a learner anyway.
- */
-describe('a schedule the phone would not take', () => {
-  test('a reminder the phone refused to schedule does not leave the row reading on', () => {
-    for (const name of HANDLERS) {
-      const body = bodyOf(TAB, name);
-
-      // The OS is asked, and its answer is read. Both verbs go through the same
-      // guard, because a cancel the phone refused is the same dead switch with
-      // the sign flipped: the row would say Off while the notification kept
-      // arriving daily, from the one control the learner would use to stop it.
-      assert.ok(
-        body.includes('honest.on ? await scheduleReminder(wanted.time) : await cancelReminder()'),
-        `${name} does not read what the OS answered`,
-      );
-      assert.ok(
-        writtenBefore(body, 'scheduleReminder(', "outcome === 'failed'"),
-        `${name} checks an outcome it has not asked for yet`,
-      );
-      assert.ok(
-        writtenBefore(body, "outcome === 'failed'", 'setStored(wanted)'),
-        `${name} moves the row before it knows the phone took the reminder`,
-      );
-
-      const refusal = braceBlockAfter(body, "if (outcome === 'failed')");
-      assert.notEqual(refusal, null, `${name} does not branch on a refusal from the OS at all`);
-      const refused = refusal ?? '';
-
-      // The row does not move. This is the sentence in the pinned name.
-      assert.ok(
-        !refused.includes('setStored('),
-        `${name} draws the row on over a reminder the phone refused: ${refused}`,
-      );
-
-      // And the disk is put back, so the next launch does not read the lie.
-      assert.ok(refused.includes('saveReminder(reverted)'), `${name} leaves the store claiming a reminder that was never set`);
-      assert.ok(
-        body.includes('const reverted: StoredReminder = { enabled: row.on,'),
-        `${name} works out the rollback for itself instead of using the state reminderRow answered for`,
-      );
-      assert.ok(
-        refused.includes('setReminderTrouble(REMINDER_SCHEDULE_TROUBLE)'),
-        `${name} lets the phone refuse in silence`,
-      );
-    }
-
-    // The words. A different fact from a write that did not land, so a
-    // different sentence: saying "did not save that" when the save was durable
-    // is a lie told in the one place this screen has to be trusted.
-    assert.ok(TAB.includes(SCHEDULE_TROUBLE), 'the screen says nothing when the phone refuses to schedule');
-    assert.notEqual(SCHEDULE_TROUBLE, SAVE_TROUBLE, 'two different facts are being told with one sentence');
-    assert.equal(guiltIn(SCHEDULE_TROUBLE), undefined, `"${SCHEDULE_TROUBLE}" carries a word Luvani does not say to learners`);
-    assert.ok(!/[—–]/.test(SCHEDULE_TROUBLE), 'the schedule line carries an em dash');
-    assert.ok(!/\d/.test(SCHEDULE_TROUBLE), 'the schedule line carries a number');
-
-    // It puts the refusal on the phone, where it happened.
-    assert.match(SCHEDULE_TROUBLE, /^Your phone/, 'the line does not name the phone as the thing that refused');
     assert.ok(
-      !/\byou (did|forgot|need|must|should|have to)\b/i.test(SCHEDULE_TROUBLE),
-      'the line reads as something the learner did',
+      writtenBefore(BODY, '<Label>{TUTOR_LABEL}</Label>', '<Label>{RHYTHM_LABEL}</Label>'),
+      'the week is drawn above the tutor',
     );
-    assert.ok(!/\b(sorry|apolog|oops|unfortunate)/i.test(SCHEDULE_TROUBLE), 'the line apologises');
-
-    // It leaves somewhere to go, and it is silent about the disk, because the
-    // rollback can be refused by the same full phone and a claim that nothing
-    // changed would be the second lie.
-    assert.match(SCHEDULE_TROUBLE, /try again/, 'the line leaves the learner nowhere to go');
-    assert.ok(!/unchanged|nothing has changed/i.test(SCHEDULE_TROUBLE), 'the line promises a disk state it cannot check');
-
-    // And it works in both directions, because one line is shown for a refused
-    // schedule and a refused cancel and nothing here branches on which.
-    assert.ok(!/\bset\b|\bturn(ed|s)? (on|off)\b/i.test(SCHEDULE_TROUBLE), 'the line only reads right in one direction');
-  });
-
-  test('the phone refusing is told apart from a build that has no scheduler', () => {
-    // `unavailable` and `failed` are different facts and the screen treats them
-    // differently. Only `failed` is a refusal.
-    for (const name of HANDLERS) {
-      const body = bodyOf(TAB, name);
-      assert.ok(body.includes("outcome === 'failed'"), `${name} does not name the one outcome that is a refusal`);
-      assert.ok(
-        !body.includes("outcome !== 'done'"),
-        `${name} sweeps every outcome that is not success into a refusal, which makes a build with no scheduler look broken`,
-      );
-      assert.ok(
-        !body.includes("'unavailable'"),
-        `${name} treats a build with no scheduler as something that went wrong`,
-      );
+    assert.ok(
+      writtenBefore(BODY, '<Label>{RHYTHM_LABEL}</Label>', '<Label>{LEARNING_LABEL}</Label>'),
+      'the learning card is drawn above the week',
+    );
+    for (const spelled of ['Your tutor', 'Your speaking rhythm', 'Your learning', 'Your French life']) {
+      assert.ok(!TAB.includes(`>${spelled}<`), `Profile writes "${spelled}" in JSX, so the copy sweeps cannot read it`);
     }
 
-    // And it is not a judgement call: on the only half that answers
-    // `unavailable`, the row can never be on in the first place, so
-    // `scheduleReminder` is unreachable from it. Executed rather than read.
-    assert.equal(REMINDERS_AVAILABLE, false, 'the half under test is not the one with no scheduler');
-    assert.equal(reminderRow({ enabled: true, time: 'morning' }, 'denied').on, false);
-    assert.ok(TAB.includes('REMINDERS_AVAILABLE && row !== null'), 'the group is drawn on a build that cannot schedule anything');
+    // The words themselves, held to the bar the whole surface keeps.
+    assert.equal(TUTOR_LABEL, 'Your tutor');
+    assert.equal(RHYTHM_LABEL, 'Your speaking rhythm');
+    assert.equal(LEARNING_LABEL, 'Your learning');
+    for (const line of FRENCH_LIFE_COPY) {
+      assert.ok(line.trim().length > 0, 'a blank line reached the tab');
+      assert.equal(guiltIn(line), undefined, `"${line}" carries a word Luvani does not say to learners`);
+      assert.doesNotMatch(line, /[—–]/, `"${line}" carries an em dash`);
+      assert.doesNotMatch(line, /\d|%/, `"${line}" counts at somebody`);
+    }
+    assert.ok(FRENCH_LIFE_COPY.includes(PROFILE_PURPOSE), 'the purpose line is not in the list the sweeps read');
+
+    // And the way out is last, under no label of its own.
+    assert.ok(
+      TAB.indexOf('label={SETTINGS_ROW}') > TAB.lastIndexOf('<Label>'),
+      'something is drawn under the Settings row, or it has a caps label over it saying the same word twice',
+    );
+
+    // ─────────────────────────────────────────────── the checks bite
+    assert.equal(writtenBefore('<TabHeader />', '<HeaderArt', '<TabHeader'), false, 'a header with no art at all passes the ordering check');
+    assert.equal(writtenBefore('<TabHeader /><HeaderArt />', '<HeaderArt', '<TabHeader'), false, 'art drawn after the header passes as art behind it');
+    assert.equal(writtenBefore('<HeaderArt /><TabHeader />', '<HeaderArt', '<TabHeader'), true, 'the shape the tab ships does not pass its own check');
+    assert.equal((('<Label>a</Label>').match(/<Label>/g) ?? []).length, 1, 'the label counter does not count');
   });
 
-  test('that check bites when the row moves over a schedule that was refused', () => {
-    // The defect itself: the OS is asked, its answer is dropped, the row moves.
-    const dropped = "{ const outcome = await scheduleReminder(wanted.time); setStored(wanted); }";
-    assert.equal(
-      writtenBefore(dropped, "outcome === 'failed'", 'setStored(wanted)'),
-      false,
-      'a handler that never reads the outcome passes the ordering check',
+  test('the plan, the reminder and the intro link live in settings', () => {
+    // What left Profile, by the names it drew them with. A copy left behind is
+    // a second one to keep in step, and on the reminder it is worse than that:
+    // two screens would each believe they owned the switch.
+    for (const gone of [
+      'PlanCard',
+      'REMINDER_ROW',
+      'REMINDERS_AVAILABLE',
+      'reminderRow',
+      'saveReminder',
+      'scheduleReminder',
+      'TUTOR_INTRO_LINK',
+      'TutorIntro',
+      'useFocusEffect',
+    ]) {
+      assert.ok(!TAB.includes(gone), `Profile still carries ${gone}, so it moved to Settings and stayed here too`);
+    }
+    assert.match(
+      TAB,
+      /type Sheet = 'none' \| 'name' \| 'tutorVoice';/,
+      'the sheet union still names a sheet that moved to Settings, or lost one that did not',
     );
-    assert.equal(braceBlockAfter(dropped, "if (outcome === 'failed')"), null, 'a missing refusal branch is found anyway');
+    // Nothing left on Profile renders a screen with a hook of its own, so the
+    // hardware back is answered for every sheet there is. The exclusion Profile
+    // used to carry was the intro's, and the intro is Settings'.
+    assert.match(TAB, /useHardwareBack\(sheet !== 'none', closeCurrentSheet\)/, 'Profile answers the hardware back for a sheet it does not draw, or for none');
 
-    // A branch that exists and moves the row inside it, which is the same bug
-    // wearing a guard.
-    const stillStores = "if (outcome === 'failed') { setStored(wanted); setReminderTrouble(REMINDER_SCHEDULE_TROUBLE); }";
-    const block = braceBlockAfter(stillStores, "if (outcome === 'failed')") ?? '';
-    assert.ok(block.includes('setStored('), 'a refusal branch that still moves the row reads as clean');
-    assert.ok(!block.includes('saveReminder(reverted)'), 'a refusal branch that never rolls back reads as clean');
-
-    // The easy version of the outcome check, which makes a build with no
-    // scheduler look like a phone that refused.
-    const sweeping = "if (outcome !== 'done') { setReminderTrouble(REMINDER_SCHEDULE_TROUBLE); }";
-    assert.ok(!sweeping.includes("outcome === 'failed'"), 'a sweeping guard passes as one that names the refusal');
-
-    // A rollback worked out from the thumb rather than from reminderRow.
-    const negated = 'const reverted: StoredReminder = { enabled: !next, time: chosen.value };';
+    // And what arrived on Settings. Each of the three is drawn there, in the
+    // group the founder put it in.
+    assert.match(SETTINGS, /<Label>\{PLAN_GROUP\}<\/Label>\s*<PlanCard \/>/, 'the plan card is not a group of its own on Settings');
     assert.ok(
-      !negated.includes('const reverted: StoredReminder = { enabled: row.on,'),
-      'a rollback computed by negating the switch passes as a value the module answered for',
+      writtenBefore(SETTINGS, '<Label>{PLAN_GROUP}</Label>', '<Label>{SUBSCRIPTION_GROUP}</Label>'),
+      'the plan is drawn below the store rows it is about',
     );
-
-    // And the shape the screen actually ships passes each of them.
-    const shipped =
-      "{ const outcome = honest.on ? await scheduleReminder(wanted.time) : await cancelReminder();" +
-      " if (outcome === 'failed') { await saveReminder(reverted); setReminderTrouble(REMINDER_SCHEDULE_TROUBLE); return; }" +
-      ' setStored(wanted); }';
-    assert.equal(writtenBefore(shipped, "outcome === 'failed'", 'setStored(wanted)'), true);
-    const shippedBlock = braceBlockAfter(shipped, "if (outcome === 'failed')") ?? '';
-    assert.ok(shippedBlock.includes('saveReminder(reverted)') && !shippedBlock.includes('setStored('));
-  });
-});
-
-/**
- * F367. The level, under the name, and decided somewhere else.
- *
- * Profile draws a monogram and a name and stops, so the one screen that is
- * entirely about who the learner is says nothing about how far they have come.
- * The rule for when there is anything to say is not new and must not be
- * reinvented here: `progress/evidence.ts` answers null at zero XP, which is the
- * same rule Home's level card keeps, and a second opinion is how one screen
- * comes to congratulate somebody the other has not started counting.
- *
- * `levelName`'s own behaviour is `evidence.test.ts`'s to prove. What is left for
- * this file is that the screen asks it, reads the log it needs, and draws
- * nothing when the answer is null.
- */
-describe('the level under the name — F367', () => {
-  test('profile draws the level line from evidence.ts — F367', () => {
-    // The rule is borrowed, not restated. A ternary here on `standing.xp` would
-    // be the second opinion this exists to prevent.
+    assert.match(SETTINGS, /title=\{REMINDER_ROW\}/, 'the daily reminder switch is on neither screen now');
+    assert.match(SETTINGS, /REMINDERS_AVAILABLE && row !== null/, 'the reminder is drawn on a build that cannot schedule anything');
+    assert.match(SETTINGS, /label=\{TUTOR_INTRO_LINK\}/, 'nothing on Settings opens the one page that teaches the circle');
+    assert.match(SETTINGS, /<TutorIntro onDone=\{\(\) => setSheet\('none'\)\} \/>/, 'Settings links to an intro it never renders');
     assert.ok(
-      TAB.includes("from '../progress/evidence.ts'"),
-      'profile works out its own level line instead of asking the module Home asks',
+      writtenBefore(SETTINGS, '<Label>{HELP_GROUP}</Label>', 'label={TUTOR_INTRO_LINK}'),
+      'the intro link is drawn outside the Help group',
     );
-    assert.ok(TAB.includes('levelName('), 'the level line is not drawn from evidence.ts at all');
-    assert.ok(!/standing\.xp/.test(TAB), 'the screen decides for itself when a level is worth saying');
-    assert.ok(!/standing\.name/.test(TAB), 'the screen reaches past levelName for the name');
 
-    // The log it is read from, on focus, so finishing a sitting anywhere in the
-    // app is visible here the moment the learner comes back to look.
-    assert.ok(TAB.includes('loadActivity('), 'the level is drawn from an activity log the screen never read');
-    const focus = callArguments(TAB, 'useFocusEffect');
-    assert.equal(focus.length, 1, 'the screen reads on focus in more than one place, or in none');
-    assert.ok(focus[0]?.includes('loadActivity()'), 'the level is read once at mount rather than on every return');
-    assert.ok(focus[0]?.includes('levelFor(totalXp('), 'the standing is assembled from something other than the log');
-
-    // And nothing is drawn when there is nothing to say. A learner who has not
-    // started is not told they are at the bottom of a ladder.
+    // The pace switch went to the foot of the voice sheet: how fast the tutor
+    // writes is a question about the tutor, so it belongs with the eight cards
+    // that choose who the tutor is rather than on the learner's own card.
+    const voice = sheetBranch(TAB, 'tutorVoice');
+    assert.match(voice, /title=\{PACE_ROW\}/, 'the pace switch is not on the voice sheet');
     assert.ok(
-      TAB.includes('{levelLine === null ? null : ('),
-      'the level line is drawn whatever evidence.ts answered, so a learner at zero is given a rank',
+      writtenBefore(voice, 'TUTOR_VOICE_OPTIONS.map(', 'PACE_ROW'),
+      'the pace switch is drawn above the eight voices, so the sheet opens on a setting rather than on a choice',
     );
-    const at = TAB.indexOf('{levelLine}');
-    assert.notEqual(at, -1, 'the level line is worked out and never drawn');
+    const learning = TAB.slice(TAB.indexOf('<Label>{LEARNING_LABEL}</Label>'));
+    assert.ok(!learning.includes('PACE_ROW'), 'the pace switch is on the learning card as well as on the sheet');
 
-    // It is words a learner reads, so it clears the 4.5 words are held to
-    // rather than the 3 a mark gets (F330), and it sits under the name.
-    const line = TAB.slice(TAB.lastIndexOf('<Text', at), at);
-    assert.match(line, /type\.small/, 'the level line is not set at the secondary size');
-    assert.match(line, /paper\.inkSoft/, 'the level line is set in a colour that only ever cleared as a mark');
-    assert.ok(!line.includes('inkFaint'), 'the level line is set in the faint ink F330 took off learner-facing text');
-    const name = TAB.indexOf("{profile.name ?? 'You'}");
-    assert.ok(name !== -1 && name < at, 'the level is drawn above the name it belongs to');
+    // One row on Profile leads anywhere at all, and everything above went
+    // behind it.
+    assert.match(TAB, /onPress=\{\(\) => nav\.navigate\('Settings'\)\}/, 'the Settings row leads nowhere');
+    assert.equal((TAB.match(/nav\.navigate\(/g) ?? []).length, 1, 'Profile leads somewhere other than Settings');
+
+    // The bite: a screen that kept the plan card would pass a check that only
+    // looked at Settings.
+    assert.ok('<PlanCard />'.includes('PlanCard'), 'the absence check cannot see the name it is looking for');
+    assert.equal(writtenBefore('SUBSCRIPTION_GROUP PLAN_GROUP', 'PLAN_GROUP', 'SUBSCRIPTION_GROUP'), false, 'the plan below the store rows passes as the plan above them');
   });
 });

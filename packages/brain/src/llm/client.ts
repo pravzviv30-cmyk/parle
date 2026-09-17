@@ -70,6 +70,27 @@ export interface BrainCurateRequest extends Abortable {
 }
 
 /**
+ * One learner paraphrase, to be judged.
+ *
+ * The only request here whose `system` is a plain string rather than the three
+ * cached blocks, and that is the honest shape rather than an omission: the
+ * judge is not the tutor. Nobody is being spoken to, so the persona and the
+ * authenticity pack would be 4.3k tokens bought on every Check to change
+ * nothing about a five-field verdict. The grader's brief IS the system block.
+ *
+ * What comes back is `unknown` on purpose. An adapter may not hand a caller
+ * something it calls a verdict without `parseOwnWordsVerdict` having seen it,
+ * because the one answer this drill must never invent is "that was fine".
+ */
+export interface BrainJudgeRequest extends Abortable {
+  kind: 'judge';
+  /** The grader's whole brief. See llm/judge.ts. */
+  system: string;
+  /** The line, its meaning, the situation, and the learner's attempt as data. */
+  request: string;
+}
+
+/**
  * One call's bill, in a shape no consumer has to translate.
  *
  * The invariant, because the two vendors state it differently on the wire and
@@ -158,6 +179,7 @@ export interface LlmClient {
   extract(request: BrainExtractRequest): Promise<{ extraction: MemoryExtraction; usage: LlmUsage }>;
   drills(request: BrainDrillsRequest): Promise<{ batch: DrillBatch; usage: LlmUsage }>;
   curate(request: BrainCurateRequest): Promise<{ curation: Curation; usage: LlmUsage }>;
+  judge(request: BrainJudgeRequest): Promise<{ verdict: unknown; usage: LlmUsage }>;
 }
 
 /**

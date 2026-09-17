@@ -14,7 +14,8 @@ import type { ReviewCard } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
 import { isRetained, retainedOrder } from '../progress/momentum.ts';
-import { CLAIMS, LEDGER, RETAINED_ROWS, hasLedger, ledgerFrom } from './ledger.ts';
+import { CLAIMS, LEDGER, RETAINED_ROWS, hasLedger, ledgerFrom, shelfLine } from './ledger.ts';
+import { SHELF_EMPTY } from './copy.ts';
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.parse('2026-09-07T09:00:00Z');
@@ -195,5 +196,61 @@ describe('the ledger — the newest conversation sits near the top', () => {
     assert.deepEqual([...plainIds].sort(), [...liftedIds].sort(), 'the recent set changed which rows are drawn rather than their order');
     assert.equal(liftedIds[0], phraseKeyOf('Bonne soirée à vous'), 'the newest conversation’s phrase does not sit first among the rows');
     assert.ok(plainIds.indexOf(phraseKeyOf('Bonne soirée à vous')) > 0, 'the fixture already had the phrase first, so this test proves nothing');
+  });
+});
+
+describe('the phrase shelf — F575', () => {
+  test('the shelf shows the line the learner said out loud, not the newest one they met', () => {
+    // The strongest claim first. `convoUses` only rises when the phrase came
+    // out of their mouth in a real conversation, unprompted, and no deck of
+    // flashcards can produce it however many cards were reviewed.
+    const deck = [
+      card({ id: 'phrase:said', front: 'en fait', addedAt: NOW - 30 * DAY, evidence: { retrievals: 0, convoUses: 4, transfers: 0 } }),
+      card({ id: 'phrase:met', front: 'du coup', addedAt: NOW, evidence: { retrievals: 2, convoUses: 0, transfers: 0 } }),
+    ];
+    const ledger = ledgerFrom({ deck, now: NOW });
+
+    assert.equal(shelfLine({ ledger, deck }), 'en fait');
+    assert.equal(ledger.featured?.front, 'en fait', 'the shelf and the featured phrase parted company');
+  });
+
+  test('a phrase the learner has only met stands in until one has been said', () => {
+    // Weaker, and deliberately not dressed up as the first: the shelf is called
+    // a shelf and never claims the learner produced what is on it.
+    const deck = [
+      card({ id: 'phrase:old', front: 'bonjour', addedAt: NOW - 9 * DAY, evidence: { retrievals: 1, convoUses: 0, transfers: 0 } }),
+      card({ id: 'phrase:new', front: 'merci beaucoup', addedAt: NOW - DAY, evidence: { retrievals: 1, convoUses: 0, transfers: 0 } }),
+    ];
+    const ledger = ledgerFrom({ deck, now: NOW });
+
+    assert.equal(hasLedger(ledger), false, 'the fixture started claiming a retained phrase');
+    assert.equal(shelfLine({ ledger, deck }), 'merci beaucoup', 'the shelf reaches for an older card than the newest');
+  });
+
+  test('a learner with an empty deck reads what the shelf is for, and is not told what they lack', () => {
+    const ledger = ledgerFrom({ deck: [], now: NOW });
+    assert.equal(shelfLine({ ledger, deck: [] }), SHELF_EMPTY);
+  });
+
+  test('a sound is not a phrase, so a week of pronunciation work never lands on the shelf', () => {
+    // The rule phrases/phrasebook.ts and progress/momentum.ts already keep. A
+    // phoneme card's front is a sound, and a sound on a phrase shelf reads as a
+    // line the learner could say.
+    const sounds = [card({ id: 'phoneme:u', kind: 'phoneme', front: 'u', addedAt: NOW })];
+    const ledger = ledgerFrom({ deck: sounds, now: NOW });
+    assert.equal(shelfLine({ ledger, deck: sounds }), SHELF_EMPTY);
+  });
+
+  test('two readings of one deck put the same phrase on the shelf', () => {
+    // Two cards added in the same millisecond used to leave the order to
+    // whichever way the deck happened to be written, so the shelf could change
+    // between two renders of one page.
+    const deck = [
+      card({ id: 'phrase:b', front: 'ça marche', addedAt: NOW, evidence: { retrievals: 1, convoUses: 0, transfers: 0 } }),
+      card({ id: 'phrase:a', front: 'voilà', addedAt: NOW, evidence: { retrievals: 1, convoUses: 0, transfers: 0 } }),
+    ];
+    const ledger = ledgerFrom({ deck, now: NOW });
+    assert.equal(shelfLine({ ledger, deck }), 'voilà', 'the tie was broken by the order the deck happened to be written in');
+    assert.equal(shelfLine({ ledger, deck: [...deck].reverse() }), 'voilà', 'the shelf changed with the order of the deck');
   });
 });

@@ -37,6 +37,7 @@ import {
   EMAIL_ROW,
   HELP_GROUP,
   PHONE_GROUP,
+  PLAN_GROUP,
   PRIVACY_GROUP,
   PRIVACY_POLICY_ROW,
   SAVED_ROW,
@@ -85,28 +86,31 @@ function settingsRows(source: string): string[] {
 
 describe('Profile keeps who you are and how you learn — F473', () => {
   test('Profile keeps who you are and how you learn, and one row leads to the rest', () => {
-    // What stays. The identity block, the five learning settings on one card,
-    // and the whole reminder group: none of them moved, and a check that only
-    // looked at what left would pass on a tab that had lost half of this too.
+    // What stays. The learner's own mark, the standing choices about how a
+    // conversation goes, and the sheet the tutor's voice is chosen on: none of
+    // them moved, and a check that only looked at what left would pass on a tab
+    // that had lost half of this too.
     for (const kept of [
       'Monogram',
-      'levelName',
       'DAILY_GOAL_ROW',
       'STRICTNESS_ROW',
-      'TUTOR_VOICE_ROW',
       'PREFER_TYPING_ROW',
       'PACE_ROW',
-      'TUTOR_INTRO_LINK',
-      'REMINDER_ROW',
-      'REMINDERS_AVAILABLE',
+      'TUTOR_VOICE_OPTIONS',
+      'withTutorVoice',
     ]) {
       assert.ok(PROFILE.includes(kept), `Profile no longer draws ${kept}, so the cut took a learning setting with it`);
     }
-    assert.match(
-      PROFILE,
-      /<TabHeader title="Profile" purpose="Your name and your tutor\." \/>/,
-      'the tab still says it is about the account, which is now a screen away',
-    );
+
+    // The header is the learner now (F576): centred on their own mark, with
+    // their name as the title, rather than a subject line about an account that
+    // is a screen away. `PROFILE_PURPOSE` rather than a literal, because a line
+    // written in JSX is a line no sweep in this workspace can read back.
+    assert.match(PROFILE, /<TabHeader\s+align="center"/, 'Profile opens with a left-aligned header like the four tabs that name a subject');
+    assert.match(PROFILE, /title=\{profile\.name \?\? 'You'\}/, 'the header says something other than the learner');
+    assert.match(PROFILE, /purpose=\{PROFILE_PURPOSE\}/, 'the line under the name is written in JSX, where no test can read it back');
+    assert.ok(!PROFILE.includes('Your name and your tutor.'), 'the tab still says it is about the account, which is now a screen away');
+    assert.ok(!PROFILE.includes('levelName'), 'the level line is back under the name, ranking somebody who came to change a setting');
 
     // What left, by the words it used to say. Each of these is drawn on
     // Settings now, and a copy left behind is a second one to keep in step.
@@ -123,6 +127,14 @@ describe('Profile keeps who you are and how you learn — F473', () => {
       'downloadAccountData',
       'appVersionLine',
       'useAuth',
+      // Three more went with revamp A (F576). On the reminder a copy left
+      // behind is worse than a duplicate: two screens would each believe they
+      // owned the switch, and the learner would be told two different things
+      // about what the operating system had allowed.
+      'PlanCard',
+      'REMINDER_ROW',
+      'REMINDERS_AVAILABLE',
+      'TUTOR_INTRO_LINK',
     ]) {
       assert.ok(!PROFILE.includes(gone), `Profile still carries ${gone}, so it moved to Settings and stayed here too`);
     }
@@ -132,31 +144,37 @@ describe('Profile keeps who you are and how you learn — F473', () => {
     assert.match(PROFILE, /export function ProfileTab\(\) \{/, 'ProfileTab still takes props, so Tabs still has to thread them');
     assert.match(
       PROFILE,
-      /type Sheet = 'none' \| 'name' \| 'tutorVoice' \| 'reminderTime' \| 'intro';/,
-      'the sheet union still names a sheet that moved to Settings',
+      /type Sheet = 'none' \| 'name' \| 'tutorVoice';/,
+      'the sheet union still names a sheet that moved to Settings, or lost one that did not',
     );
 
     // One row, last, and under no caps label. Three labels remain on this tab:
-    // Your French life (F540, the block the plan card opened), Your learning
-    // and the reminder, each above cards that need naming. A fourth over a row
-    // that reads Settings would say the same word twice.
+    // Your tutor, Your speaking rhythm and Your learning, each above a card
+    // that needs naming. A fourth over a row that reads Settings would say the
+    // same word twice.
     assert.match(PROFILE, /label=\{SETTINGS_ROW\}/, 'Profile draws no Settings row, so everything that moved is unreachable');
     assert.match(PROFILE, /value=\{SETTINGS_ROW_SUB\}/, 'the Settings row does not say what is behind it');
     assert.match(PROFILE, /onPress=\{\(\) => nav\.navigate\('Settings'\)\}/, 'the Settings row leads nowhere');
     assert.equal((PROFILE.match(/<Label>/g) ?? []).length, 3, 'Profile draws a caps label it did not before, or lost one');
-    assert.match(PROFILE, /<Label>Your French life<\/Label>[\s\S]{0,200}<PlanCard \/>/, 'the French life block lost its heading or its plan card');
+    assert.match(PROFILE, /<Label>\{TUTOR_LABEL\}<\/Label>\s*<TutorMemoryCard onVoice=/, 'the tutor block lost its heading or its card');
+    assert.match(PROFILE, /<Label>\{RHYTHM_LABEL\}<\/Label>\s*<FrenchLifeCard \/>/, 'the rhythm block lost its heading or its week');
     assert.ok(
       PROFILE.lastIndexOf('<Label>') < PROFILE.lastIndexOf('<Card'),
       'the Settings row has a caps label over it, which says the same word twice',
     );
 
-    // Last on the screen, after the reminder group. It is the way out of this
+    // Last on the screen, after the learning card. It is the way out of this
     // tab, and a way out drawn halfway up a list is a list somebody stops
     // reading at the interesting row.
-    writtenBefore(PROFILE, 'REMINDER_TIME_TITLE}', 'label={SETTINGS_ROW}', 'the Settings row is drawn above the reminder group');
+    writtenBefore(PROFILE, 'title={PREFER_TYPING_ROW}', 'label={SETTINGS_ROW}', 'the Settings row is drawn above the learning card');
     assert.ok(
       PROFILE.indexOf('label={SETTINGS_ROW}') > PROFILE.lastIndexOf('<Label>'),
       'something is drawn under the Settings row, so it is no longer the last thing on the tab',
+    );
+    assert.equal(
+      (PROFILE.match(/nav\.navigate\(/g) ?? []).length,
+      1,
+      'Profile leads somewhere other than Settings, so it is a list with two ways out again',
     );
   });
 
@@ -238,11 +256,16 @@ describe('the Settings screen is one push away — F473', () => {
     }
     assert.deepEqual(
       [...SETTINGS_GROUPS],
-      [ACCOUNT_GROUP, SUBSCRIPTION_GROUP, PRIVACY_GROUP, PHONE_GROUP, HELP_GROUP, ABOUT_GROUP],
-      'the six groups are no longer in the order the screen draws them',
+      // Seven since revamp A: the plan card moved off Profile into a group of
+      // its own, above the store rows that are about it (F576).
+      [ACCOUNT_GROUP, PLAN_GROUP, SUBSCRIPTION_GROUP, PRIVACY_GROUP, PHONE_GROUP, HELP_GROUP, ABOUT_GROUP],
+      'the seven groups are no longer in the order the screen draws them',
     );
     assert.equal(SETTINGS_ROW, SETTINGS_TITLE, 'the row and the screen it opens are called two different things');
-    assert.equal(SETTINGS_ROW_SUB, 'Account, data and privacy, and about Luvani');
+    // The row's second line is a promise about where a tap lands, so it names
+    // the two groups that arrived with revamp A. A learner who set a reminder
+    // on Profile has to be able to guess where it went.
+    assert.equal(SETTINGS_ROW_SUB, 'Account, your plan, reminders and about Luvani');
 
     for (const line of SETTINGS_COPY) {
       assert.ok(line.trim().length > 0, 'a blank line reached the screen');
@@ -258,7 +281,12 @@ describe('the Settings screen is one push away — F473', () => {
     // And the screen draws them from the module rather than writing them in
     // JSX, where nothing in this suite could ever read them back.
     const rows = settingsRows(SETTINGS);
-    assert.ok(rows.length >= 8, `Settings draws ${rows.length} rows, which is not the six groups`);
+    // Exact, not a floor. Fourteen: four on Account, one per subscription
+    // action, three under Data and privacy, the reminder's own time row and one
+    // per refused permission under Phone, Contact and the intro under Help, and
+    // three documents under About. A row added or lost is a change to what this
+    // screen is, and it should be read here rather than slipping under a `>=`.
+    assert.equal(rows.length, 14, `Settings draws ${rows.length} rows, which is not the shape the seven groups have`);
     for (const row of rows) {
       assert.doesNotMatch(row, /label="/, `a Settings row spells its label in JSX: ${row.split('\n')[0]}`);
       assert.match(row, /label=\{/, `a Settings row has no label at all: ${row.split('\n')[0]}`);
@@ -297,7 +325,14 @@ describe('nothing on Settings fails in silence — F473', () => {
       // the whole screen, which is the same silence by a longer route: the row
       // flipped back from Preparing and the reason was a screen and a half
       // down. One line per door, in the card the door is in.
-      ['consentTrouble', 'contactTrouble', 'deleteError', 'exportTrouble', 'phoneTrouble', 'storeMessage'],
+      //
+      // `reminderTrouble` joined them with revamp A, when the daily reminder
+      // moved off Profile into the Phone group (F576). It is one door with two
+      // ways to fail, which is why it is one piece of state holding whichever
+      // sentence is true rather than two flags: the disk refusing the write and
+      // the operating system refusing the alarm are different facts, and a
+      // learner told the wrong one has been lied to about their own phone.
+      ['consentTrouble', 'contactTrouble', 'deleteError', 'exportTrouble', 'phoneTrouble', 'reminderTrouble', 'storeMessage'],
       'two doors out of Settings share one line, so one of them can set a sentence in a card that is not on the page',
     );
 
@@ -305,11 +340,17 @@ describe('nothing on Settings fails in silence — F473', () => {
     // named value the render reads. A sentence written into state nothing draws
     // is the same silence by a shorter route.
     // Everything from the first early return onwards, which is every branch
-    // this screen can draw: the three document sheets, the delete
-    // confirmation, and the list itself. Slicing at the last `return (` would
-    // read the list alone and miss the sheet the delete error is drawn in.
-    const from = SETTINGS.indexOf("  if (sheet === 'acknowledgements')");
+    // this screen can draw: the intro, the three document sheets, the reminder
+    // presets, the delete confirmation, and the list itself. Slicing at the
+    // last `return (` would read the list alone and miss the sheet the delete
+    // error is drawn in. The intro is first since revamp A moved it here from
+    // Profile's Help row (F576).
+    const from = SETTINGS.indexOf("  if (sheet === 'intro')");
     assert.notEqual(from, -1, 'the render branches start somewhere else now, so this is reading the wrong half of the file');
+    assert.ok(
+      from < SETTINGS.indexOf("  if (sheet === 'acknowledgements')"),
+      'a branch is drawn above the one this slice starts at, so whatever it says would go unread here',
+    );
     const render = SETTINGS.slice(from);
     for (const name of states) {
       const direct = render.includes(name);
@@ -325,6 +366,26 @@ describe('nothing on Settings fails in silence — F473', () => {
     assert.match(SETTINGS, /setContactTrouble\(LINK_TROUBLE\)/, 'a phone that will not open a mail app says nothing');
     // The address stays on screen either way, so somebody can still write it down.
     assert.match(SETTINGS, /value=\{contact\.address\}/, 'the Contact row hides the address it exists to give out');
+
+    // And the reminder, which arrived with revamp A and has two ways to fail.
+    // They are different facts: the disk refused the write, or the disk took it
+    // and the operating system would not take the alarm. Telling somebody their
+    // phone "did not save that" when it saved it perfectly well is a small lie
+    // in the one place this screen has to be trusted, so there are two
+    // sentences and they are held to being two.
+    assert.match(SETTINGS, /setReminderTrouble\(REMINDER_SAVE_TROUBLE\)/, 'a disk that refused the reminder says nothing');
+    assert.match(SETTINGS, /setReminderTrouble\(REMINDER_SCHEDULE_TROUBLE\)/, 'a phone that would not take the alarm says nothing');
+    const saveLine = SETTINGS.match(/const REMINDER_SAVE_TROUBLE = '([^']+)';/)?.[1];
+    const scheduleLine = SETTINGS.match(/const REMINDER_SCHEDULE_TROUBLE = '([^']+)';/)?.[1];
+    assert.ok(saveLine != null && scheduleLine != null, 'one of the reminder sentences is not a plain literal this walk can read back');
+    assert.notEqual(saveLine, scheduleLine, 'the two reminder failures say the same sentence, so one of them is a lie about what happened');
+    for (const line of [saveLine!, scheduleLine!]) {
+      assert.equal(guiltIn(line), undefined, `guilt in a reminder refusal: ${line}`);
+      assert.doesNotMatch(line, /—/, `em dash in a reminder refusal: ${line}`);
+      assert.doesNotMatch(line, /\d/, `a digit in a reminder refusal: ${line}`);
+      // A refusal that leaves nowhere to go is the dead switch F239 refused.
+      assert.match(line, /try again/, `a reminder refusal that leaves no way forward: ${line}`);
+    }
   });
 });
 
@@ -367,6 +428,11 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     ['exportTrouble', 'DOWNLOAD_ROW'],
     ['phoneTrouble', 'phone.map('],
     ['contactTrouble', 'contact.address'],
+    // The reminder moved into the Phone group with revamp A (F576), and it
+    // brought a refusal with it. The group is drawn on two conditions now, so
+    // the sentence has to be in the same card as the switch that caused it or
+    // it can land in a group that is not on the page at all.
+    ['reminderTrouble', 'REMINDER_ROW'],
   ];
 
   test('every refusal on Settings is drawn in the group whose control caused it', () => {
@@ -416,8 +482,12 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     const members = [...union.matchAll(/'(\w+)'/g)].map((m) => m[1]!);
     assert.deepEqual(
       members,
-      ['none', 'acknowledgements', 'policy', 'terms', 'delete'],
-      'the sheet union names something other than the four views that take the whole screen',
+      // Six views that take the whole screen. Two arrived with revamp A: the
+      // voice-circle intro, which was a row on Profile, and the reminder's four
+      // presets, which were a sheet on Profile (F576). Both take the screen for
+      // the same reason the other four do.
+      ['none', 'acknowledgements', 'policy', 'terms', 'intro', 'reminderTime', 'delete'],
+      'the sheet union names something other than the six views that take the whole screen',
     );
     assert.ok(!SETTINGS.includes('unavailable'), 'the export refusal is a sheet again, which is where F489 started');
 
@@ -437,17 +507,35 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
       'the settings list draws something on a sheet condition, so a sheet can be open below the fold',
     );
 
-    // And the hardware back answers exactly one of them: the one this screen
-    // draws itself. The three that render their own screens answer their own
-    // press (F319), and nothing else may be in the set.
+    // And the hardware back answers exactly the ones this screen draws itself.
+    // The four that render their own screens answer their own press (F319), and
+    // nothing else may be in the set: two handlers on one screen race, and the
+    // loser closes the whole sheet from page two.
     const at = SETTINGS.indexOf('useHardwareBack(');
     const condition = SETTINGS.slice(at, SETTINGS.indexOf('closeCurrentSheet', at));
     const excluded = [...condition.matchAll(/sheet !== '(\w+)'/g)].map((m) => m[1]!);
     assert.deepEqual(
       members.filter((m) => !excluded.includes(m)),
-      ['delete'],
+      // The reminder presets joined the delete confirmation with revamp A. It
+      // is an ordinary `ScrollScreen` drawn by this file with no hook of its
+      // own, so this screen's hook is the only thing that can close it.
+      ['reminderTime', 'delete'],
       'the hardware back is answered for a sheet this screen does not draw in place, so a press is eaten',
     );
+    // The four that stand it down are exactly the four that bring their own
+    // hook, which is the other half of F319 and the half a rename would break.
+    assert.deepEqual(
+      [...excluded].sort(),
+      ['acknowledgements', 'intro', 'none', 'policy', 'terms'],
+      'the hook stands down for a sheet that has no hook of its own, so Android back closes nothing at all in it',
+    );
+    for (const own of ['acknowledgements', 'policy', 'terms', 'intro']) {
+      assert.match(
+        SETTINGS,
+        new RegExp(`if \\(sheet === '${own}'\\) return <`),
+        `the ${own} sheet is drawn by this screen rather than rendering its own, so nothing answers the press`,
+      );
+    }
   });
 
   test('the delete sheet opens with no failure from a previous attempt', () => {
@@ -690,10 +778,21 @@ describe('the device runbook carries the Pass 7 settings checks — F478', () =>
       'the runbook no longer walks anybody to the delete row where it actually lives',
     );
 
-    // And the sweep did not overshoot. The reminder card, the monogram and the
+    // And the sweep did not overshoot in either direction. The monogram and the
     // five learning settings stayed on Profile, so a step naming them there is
-    // right and must not be rewritten to say Settings.
-    assert.match(RUNBOOK, /reminder card on Profile/, 'the reminder card was moved to Settings in the runbook and not in the app');
-    assert.match(RUNBOOK, /on Home and Profile/, 'the monogram was moved off Profile in the runbook and not in the app');
+    // right and must not be rewritten to say Settings; the reminder went the
+    // other way with F576 and is under Phone on Settings, so a step naming it on
+    // Profile is a walk that now ends nowhere. Both are pinned, because the
+    // runbook drifting either way sends a tester to the wrong screen.
+    assert.match(
+      RUNBOOK,
+      /reminder row under Phone on Settings/,
+      'the runbook still looks for the reminder on Profile, and it lives under Phone on Settings now',
+    );
+    assert.match(
+      RUNBOOK,
+      /its disc on Profile/,
+      'the monogram was moved off Profile in the runbook and not in the app',
+    );
   });
 });

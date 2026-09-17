@@ -17,6 +17,7 @@ import {
   MAX_MISSES,
   NEW_PHRASES_PER_SESSION,
   type DrillSessionState,
+  type DrillStage,
 } from './session.ts';
 import { DRILL_FIXTURES } from './fixtures.ts';
 import { newCard, AGAIN_RETRY_MS, DUE_CAP, type ReviewCard } from '../review/scheduler.ts';
@@ -386,7 +387,11 @@ describe('new material — the first-open problem', () => {
     for (const exercise of state.queue) {
       // The easiest form the bank HAS for that phrase: a never-met phrase gets
       // all the scaffolding that exists for it, and never a harder form.
-      const stages = DRILL_FIXTURES.filter((e) => e.phraseKey === exercise.phraseKey).map((e) => stageOf(e));
+      // stageOf is null for a format off the ramp; the fixtures hold none, and
+      // the filter keeps the comparison typed rather than weakening it.
+      const stages = DRILL_FIXTURES.filter((e) => e.phraseKey === exercise.phraseKey)
+        .map((e) => stageOf(e))
+        .filter((s): s is DrillStage => s !== null);
       const easiest = [...stages].sort((a, b) => DRILL_STAGES.indexOf(a) - DRILL_STAGES.indexOf(b))[0]!;
       assert.equal(stageOf(exercise), easiest, `a new phrase starts at the easiest available stage (${exercise.phraseKey})`);
     }

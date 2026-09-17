@@ -28,6 +28,7 @@ import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from '../cont
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
 import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
+import { OwnWordsVerdictSchema } from './judge.ts';
 import {
   addLlmUsage,
   BrainParseError,
@@ -36,6 +37,7 @@ import {
   type BrainDrillsRequest,
   type BrainExtractRequest,
   type BrainFrameRequest,
+  type BrainJudgeRequest,
   type BrainTurnRequest,
   type ChatMessage,
   type LlmClient,
@@ -194,6 +196,29 @@ export class AnthropicBrainClient implements LlmClient {
   }
 
   /**
+   * One paraphrase, judged. No persona, no pack, no contract: the grader's
+   * brief is the whole system block, which is also why there is no cache
+   * breakpoint on it. A few hundred tokens is under this vendor's caching
+   * minimum anyway, so a breakpoint here would be a cost with no saving.
+   *
+   * The verdict leaves as `unknown`. The schema has already been enforced
+   * server-side, and it is enforced again by `parseOwnWordsVerdict` at the
+   * caller, because "the API promised" is not the same as "we checked".
+   */
+  async judge(request: BrainJudgeRequest): Promise<{ verdict: unknown; usage: LlmUsage }> {
+    const route = this.routeFor('judge');
+    const params = {
+      model: route.model,
+      max_tokens: route.maxTokens,
+      system: [{ type: 'text', text: request.system }],
+      messages: [{ role: 'user', content: [{ type: 'text', text: request.request }] }],
+      output_config: outputConfig(OwnWordsVerdictSchema, route.effort),
+    };
+    const { parsed, usage } = await this.parseWithRetry(params, request.signal);
+    return { verdict: parsed, usage };
+  }
+
+  /**
    * One retry over the whole prompt, and a bill that counts both of them.
    *
    * The retry is not a cheap correction: it re-sends every system block and the
@@ -245,7 +270,8 @@ function outputConfig(
     | typeof ScenarioFrameSchema
     | typeof MemoryExtractionSchema
     | typeof DrillBatchSchema
-    | typeof CurationSchema,
+    | typeof CurationSchema
+    | typeof OwnWordsVerdictSchema,
   effort: BrainEffort | undefined,
 ): Record<string, unknown> {
   const config: Record<string, unknown> = { format: zodOutputFormat(schema) };

@@ -1,7 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { Art } from '../art/Art.tsx';
+import { SCREEN_ART } from '../art/maps.ts';
 import { Card, Label, TintPanel } from '../components.tsx';
-import { HAIRLINE, paper, space, type } from '../theme.ts';
+import { HAIRLINE, paper, radius, space, type } from '../theme.ts';
 import {
   MAP_CLOSED_SUB,
   MAP_CLOSED_TITLE,
@@ -36,6 +38,12 @@ export function WallMapPage({ map }: { map: WallMap }) {
     <View>
       <Text accessibilityRole="header" style={st.title}>{title}</Text>
       <Text style={st.sub}>{sub}</Text>
+      {/* The map of places, drawn once at the head of the page the rows are
+          about. Decorative and silent: everything it shows, the rows say in
+          words underneath it. */}
+      <View style={st.art}>
+        <Art name={SCREEN_ART.wallMap} />
+      </View>
       <View style={st.rows}>
         {map.rows.map((row) => (
           <MapRow key={row.id} row={row} />
@@ -77,8 +85,11 @@ function MapRow({ row }: { row: WallMapRow }) {
 const st = StyleSheet.create({
   title: { ...type.display, color: paper.ink },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
-  rows: { marginTop: space(6), gap: space(3) },
-  row: { padding: space(4) },
+  art: { alignItems: 'center', marginTop: space(4) },
+  rows: { marginTop: space(4), gap: space(3) },
+  // A row is a row, not a card: tighter corners than the white cards around it
+  // so the two shapes never read as one (theme.ts, radius.row).
+  row: { padding: space(4), borderRadius: radius.row },
   place: { ...type.heading, color: paper.ink },
   line: { ...type.body, color: paper.inkSoft, marginTop: space(1) },
   aside: { marginTop: space(3), gap: space(1) },

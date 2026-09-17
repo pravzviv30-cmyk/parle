@@ -210,6 +210,55 @@ describe('the orb is one gradient ball, drawn still and moved by transform alone
     assert.ok(!rest.includes('.start()'), 'the rest branch starts an animation before it returns');
   });
 
+  test('the voice lines are drawn wherever the orb has a voice, and move only where one is speaking', () => {
+    // The founder's Tutor tab draws the lines beside the untapped circle, and
+    // the app drew a bare disc: `waves` was one boolean, so "there is a voice in
+    // the room" and "the lines exist at all" were the same question, and hiding
+    // the lines until a conversation started took the shape out of the one
+    // control on the screen.
+    //
+    // They are two questions now, and the table is read back state by state
+    // rather than sampled, because the interesting half of this is the states
+    // that draw them WITHOUT moving them.
+    const look = (state: string): string => {
+      const from = ORB.indexOf(`  ${state}: {`);
+      assert.notEqual(from, -1, `the LOOKS table no longer has a ${state} state`);
+      const setting = /waves: '(\w+)'/.exec(ORB.slice(from, ORB.indexOf('\n  },', from)));
+      assert.ok(setting, `${state} no longer says whether its voice lines are drawn`);
+      return setting![1]!;
+    };
+    assert.equal(look('ready'), 'still', 'the untapped circle has no lines beside it, so it is a bare disc and not the thing the founder drew');
+    assert.equal(look('idle'), 'still', 'the resting circle has no lines beside it');
+    assert.equal(look('speaking'), 'moving', 'the tutor speaks and the lines stand still');
+    assert.equal(look('listening'), 'moving', 'the learner speaks and the lines stand still');
+    // Thinking dims the whole orb rather than moving anything, and error is the
+    // orb saying nothing at all. A line either side of either would be a voice
+    // in a room where there is not one.
+    assert.equal(look('thinking'), 'none', 'the thinking circle grew lines, which claims a voice while nobody is talking');
+    assert.equal(look('error'), 'none', 'the stopped circle grew lines');
+
+    // Drawn on the three-way, not on a boolean: `look.waves ? …` would draw them
+    // for 'none' as well, because every non-empty string is truthy, which is
+    // exactly the bug this split could introduce.
+    assert.match(ORB_FLAT, /\{look\.waves !== 'none' \? \(/, 'the lines are drawn on a truthiness test, so the thinking orb would grow a pair');
+
+    // And the cost stays where it was. The second driver is what makes the
+    // lines move, and it runs for 'moving' alone; a still pair is a picture.
+    assert.match(
+      ORB_FLAT,
+      /const moving = look\.waves === 'moving' \? drivers : drivers\.slice\(0, 1\);/,
+      'the second driver runs for a state whose lines do not move, which is a native loop drawing nothing',
+    );
+    // A driver starts at 0 and the stretch reads 1 - WAVE_TRAVEL there, so an
+    // unstarted pair would sit permanently squashed. Parked at the middle, the
+    // stretch is exactly 1 and the lines stand at their full height.
+    assert.match(
+      ORB_FLAT,
+      /if \(look\.waves !== 'moving'\) drivers\[1\]!\.setValue\(0\.5\);/,
+      'lines that are drawn but not moving are left wherever their driver started, which is part way through a squash',
+    );
+  });
+
   test('the tutor is drawn as the orb and never as a face or the learner\'s initial', () => {
     const mark = stripComments(read('./TutorMark.tsx'));
     assert.match(mark, /<OrbGlyph color=\{orb\.ready\} size=\{DISC - 8\} \/>/, 'the tutor mark is no longer the orb at the size of a row disc');

@@ -201,7 +201,16 @@ describe('the privacy notice — F479', () => {
     const convo = readFileSync(fileURLToPath(new URL('../../../../services/tutor-agent/src/convo.ts', import.meta.url)), 'utf8');
     assert.match(convo, /export function brainClient/, 'brainClient moved, so this test no longer watches the recipient it names');
     assert.match(convo, /this\.client\.turn\(/, 'the learner turn no longer reaches a model client from convo.ts');
-    assert.match(convo, /GROQ_API_KEY|OPENAI_API_KEY/, 'the model client stopped being an outside service, which would change this section');
+
+    // Which vendor key is read moved out of convo.ts and into brain's factory,
+    // so that the token server and the agent cannot come to disagree about
+    // which brain a learner is talking to. The watch follows it rather than
+    // being dropped: convo.ts still has to build its client from the
+    // environment, and the file that reads the environment still has to be
+    // reading somebody else's key.
+    assert.match(convo, /brainClientFromEnv/, 'convo.ts no longer builds its client from the environment, so the factory below is not the one it uses');
+    const factory = readFileSync(fileURLToPath(new URL('../../../../packages/brain/src/llm/factory.ts', import.meta.url)), 'utf8');
+    assert.match(factory, /GROQ_API_KEY|OPENAI_API_KEY/, 'the model client stopped being an outside service, which would change this section');
 
     // And the document says it, so the sentence is sourced rather than argued.
     assert.match(DOC, /A fifth vendor receives the words themselves, as text/);

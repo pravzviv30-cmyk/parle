@@ -1,41 +1,113 @@
 /**
- * What the tutor remembers, on Profile (F562).
+ * Who your tutor is, and what your tutor remembers (F562, F576).
  *
- * One card in the French life block: the tutor's name over one sentence in
- * words about how much is held, and a row into the screen where each fact can
- * be seen and forgotten and a goal written. Every word is `tutorMemory.ts`'s
- * and the facts are read through `memory.ts`, so this file draws and decides
- * nothing. It reads the live profile from context rather than the disk: a
- * forget made on the screen is visible here the moment the learner comes back.
+ * One white card with two rows: the tutor, drawn as the orb and named by the
+ * voice the learner chose, and the memory behind it. The first opens the voice
+ * sheet on Profile, the second pushes the editing screen.
+ *
+ * ## The tutor is a mark, never a face
+ *
+ * `TutorMark` is the orb at `DISC`, and the founder settled early that there
+ * are no faces here. It is decorative, because the row says the name in words
+ * beside it, and it is never a `Monogram`: that disc is the learner's initial
+ * (F337), and the two of them on one card would say the tutor is the learner.
+ *
+ * ## It decides nothing
+ *
+ * Every word is `tutorMemory.ts`'s or `tutorVoice.ts`'s, and the facts are read
+ * through `memory.ts`. It reads the live profile from context rather than the
+ * disk, so a forget made on the screen is visible here the moment the learner
+ * comes back. The two rows are a `Pressable` each, at the touch floor, and each
+ * names itself once: a title and a gloss are two Texts, and a screen reader
+ * left to itself would read them as two nodes with nothing between them.
  */
 
-import { StyleSheet, Text, View } from 'react-native';
+import type { ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-import { Card, Label } from '../components.tsx';
-import { paper, space, type } from '../theme.ts';
+import { Card, ChevronRight } from '../components.tsx';
+import { ChatGlyph } from '../glyphs.tsx';
+import { accent, paper, space, type, DISC, HAIRLINE, HIT } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { SettingsRow } from '../settings/SettingsRow.tsx';
+import { TutorMark } from '../tutor/TutorMark.tsx';
 import { tutorNameOf } from '../tutor/tutorName.ts';
-import { MEMORY_ROW, MEMORY_ROW_SUB, memoryLabel, memorySummary } from './tutorMemory.ts';
+import { MEMORY_ROW_SUB, PARTNER_LINE, memoryLabel } from './tutorMemory.ts';
 
-export function TutorMemoryCard() {
+/**
+ * One row of the card: a mark, a title, a gloss, and a way in.
+ *
+ * Private to this file. `IconRowCard` is the white card that IS one row and
+ * draws a caps label over a line; this card holds two rows under one heading,
+ * with the title set as a heading and the gloss beneath it, which is the shape
+ * the founder drew for the tutor.
+ */
+function TutorRow({
+  mark,
+  title,
+  gloss,
+  onPress,
+  first = false,
+}: {
+  mark: ReactNode;
+  title: string;
+  gloss: string;
+  onPress: () => void;
+  first?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${gloss}`}
+      style={({ pressed }) => [st.row, !first && st.divided, pressed && st.pressed]}
+    >
+      {mark}
+      <View style={st.words}>
+        <Text style={[type.heading, { color: paper.ink }]}>{title}</Text>
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{gloss}</Text>
+      </View>
+      <ChevronRight color={paper.inkFaint} />
+    </Pressable>
+  );
+}
+
+export function TutorMemoryCard({ onVoice }: { onVoice: () => void }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { profile } = useProfile();
   const name = tutorNameOf(profile);
   return (
     <Card style={st.card}>
-      <Label>{memoryLabel(name)}</Label>
-      <Text style={st.summary}>{memorySummary(profile, name)}</Text>
-      <View style={st.rows}>
-        <SettingsRow first label={MEMORY_ROW} value={MEMORY_ROW_SUB} onPress={() => nav.navigate('TutorMemory')} />
-      </View>
+      <TutorRow first mark={<TutorMark />} title={name} gloss={PARTNER_LINE} onPress={onVoice} />
+      <TutorRow
+        mark={
+          <View style={st.disc}>
+            <ChatGlyph color={accent.primary} />
+          </View>
+        }
+        title={memoryLabel(name)}
+        gloss={MEMORY_ROW_SUB}
+        onPress={() => nav.navigate('TutorMemory')}
+      />
     </Card>
   );
 }
 
 const st = StyleSheet.create({
   card: { marginTop: space(2.5) },
-  summary: { ...type.body, color: paper.ink, marginTop: space(2) },
-  rows: { marginTop: space(3) },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2.5) },
+  divided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
+  pressed: { opacity: 0.72 },
+  words: { flex: 1, minWidth: 0 },
+  // The ground under the glyph, because a white disc on a white card is no
+  // disc at all. `TutorMark` brings its own, since the orb is drawn on white
+  // wherever it appears.
+  disc: {
+    width: DISC,
+    height: DISC,
+    borderRadius: DISC / 2,
+    backgroundColor: paper.ground,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

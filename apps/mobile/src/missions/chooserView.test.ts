@@ -27,6 +27,9 @@ import { guiltIn } from '../copy/guilt.ts';
 import { tutorDoors } from '../tutor/gate.ts';
 import {
   LESS_HELP,
+  CHOOSER_OTHER,
+  CHOOSER_START_HERE,
+  LESSON_DOOR,
   MICROPHONE_NOTICE,
   PROMISE,
   TALK_FREELY,
@@ -157,28 +160,122 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     // On the tutor tab it is a row among three ways in, and still a door
     // rather than a footnote: it is offered in the same list, with a heading of
     // its own. The two surfaces word it differently on purpose (F404). Here it
-    // is one line among six situations, so it has to say what "else" means;
-    // there it is "Open chat", the second of the three entry modes (F547), and
-    // never the first: a beginner meets the everyday mission first, and the
-    // fixed script last of all.
-    const doors = tutorDoors(null, MISSIONS.length, CAFE_LESSON.title).map((d) => d.label);
+    // is one line under six situations, so it has to say what "else" means;
+    // there it is "Open chat", the second of the three ways in (F547), and
+    // never the first: a beginner meets the everyday mission first.
+    const doors = tutorDoors().map((d) => d.label);
     assert.ok(doors.includes('Open chat'), 'the tutor tab dropped the free conversation entirely');
     assert.equal(doors[0], 'Everyday mission', 'a beginner meets a situation first');
     assert.notEqual(doors[0], 'Open chat', '"say anything" is what a beginner says nothing to');
-    assert.equal(doors[doors.length - 1], 'Pronunciation lesson', 'a beginner meets the fixed script before the situations');
-    assert.equal(
-      tutorDoors(
-        { title: 'Au café du coin', goalEn: 'Order at a café', place: 'cafe', minutesRemaining: null },
-        MISSIONS.length,
-        CAFE_LESSON.title,
-      ).at(-1)?.key,
-      'lesson',
-      'and the lesson stays last',
-    );
+    // And the fixed script is not one of them. It is the last thing on THIS
+    // screen, after the six situations a beginner should meet first, which is
+    // the rule the block below holds from the screen's side.
+    assert.ok(!doors.includes('Pronunciation lesson'), 'the scripted lesson is a way into the tutor tab again');
 
     const tab = stripComments(read('../tabs/TutorTab.tsx'));
-    assert.match(tab, /doors\.map\(/, 'the tab draws its own order instead of the one that was decided');
+    assert.match(tab, /DOORS\.map\(/, 'the tab draws its own order instead of the one that was decided');
     assert.ok(tab.includes('open(true)'), 'the quiet typed door left the tab with the intro');
+  });
+});
+
+/**
+ * The scripted lesson had one way in, and it kept moving.
+ *
+ * It was a row on Practice, then a door on the Tutor tab, and the Tutor tab
+ * grew into a contents page so it moved again. This is the assertion that
+ * follows it: wherever it is, it is reachable, because a screen nobody can
+ * reach is a feature deleted without a line of it being deleted, and
+ * `tabs/PracticeTab.tsx` once held the only `navigate('Lesson')` in the app.
+ *
+ * It belongs at the foot of the chooser rather than among the six. The script
+ * is known in advance, which is the only reason pronunciation can be scored at
+ * all (docs/ARCHITECTURE.md, "Two paths, one ladder"), so a row among the
+ * situations would read as a seventh one and lose the thing that makes it
+ * different. Last, because a beginner should meet the open situations before a
+ * fixed script.
+ */
+describe('the scripted lesson is the last door on the chooser — F573', () => {
+  const SCREEN = stripComments(read('./MissionsScreen.tsx'));
+
+  test('the pronunciation lesson is a door on the chooser', () => {
+    // Reachable at all. Everything else on this door is decoration next to it.
+    assert.match(SCREEN, /nav\.navigate\(start\.screen, start\.params\)/, 'the chooser has no way to the Lesson route');
+    assert.match(SCREEN, /lessonStart\(textMode\)/, 'the chooser decides where the lesson opens instead of reading it from gate.ts');
+
+    // Its words are the model's, and the model is this file's now.
+    assert.equal(LESSON_DOOR.title, 'Pronunciation lesson: Au cafe'.replace('Au cafe', 'Au caf\u00e9'));
+    assert.match(SCREEN, /label=\{LESSON_DOOR\.title\}/, 'the chooser names the lesson itself instead of reading the words');
+    assert.match(SCREEN, /label=\{LESSON_DOOR\.quiet\}/, 'the lesson has no quiet way in from the chooser');
+    assert.ok(!SCREEN.includes('Commander un caf\u00e9'), 'the chooser spells the lesson title itself');
+
+    // An outline, not a pill. The screen's one solid action is the hero card's
+    // "Start this one", and a second filled button beside it would be two
+    // primary actions on a screen whose whole job is one choice.
+    const footer = SCREEN.slice(SCREEN.indexOf('<OutlineButton'));
+    assert.match(footer, /<OutlineButton/, 'the lesson door is not the app\'s outline button');
+    assert.doesNotMatch(footer, /<PillButton/, 'the lesson door took the screen\'s second pill');
+    assert.equal(
+      (SCREEN.match(/<PillButton\b/g) ?? []).length,
+      1,
+      'the chooser draws a number of primary pills other than the one on the card it already picked out',
+    );
+
+    // Last, after the six. The order is the argument: a beginner meets the
+    // open situations before a script where every line is written out.
+    assert.ok(
+      SCREEN.indexOf('{rest.map(') < SCREEN.indexOf('LESSON_DOOR.title'),
+      'the fixed script comes before the situations a beginner should meet first',
+    );
+
+    // And it left the tab it used to live on, all of it: the door, the quiet
+    // link and the handler. A door drawn in two places is a door that disagrees
+    // with itself the first time one of them is edited.
+    const tab = stripComments(read('../tabs/TutorTab.tsx'));
+    assert.ok(!/lesson/i.test(tab), 'the scripted lesson is still a door on the tutor tab as well as on the chooser');
+  });
+
+  test('a tap on the lesson is acknowledged, never doubled, and refused by nothing', () => {
+    const opener = SCREEN.slice(SCREEN.indexOf('const openLesson'), SCREEN.indexOf('const focus'));
+    assert.match(opener, /if \(checking\) return;/, 'a second tap during the probe opens a second lesson');
+    assert.ok(
+      opener.indexOf('setChecking(true)') < opener.indexOf('recheck()'),
+      'the probe runs before the flag is raised, which is the dead press the flag exists to stop',
+    );
+    assert.match(opener, /recheck\(\)\.then\(go, go\)/, 'a probe that threw leaves the chooser retired behind a raised flag');
+    assert.match(opener, /setChecking\(false\)/, 'the flag is raised and never lowered');
+    // Said out loud while it runs, in the gate's own word rather than a second
+    // vocabulary for the same wait.
+    assert.match(
+      SCREEN,
+      /\{checking && <Text accessibilityLiveRegion="polite"[\s\S]{0,120}TUTOR_OFFLINE\.checking/,
+      'nothing on the chooser says a probe is running, so the tap looks dead for a second and a half',
+    );
+    // Both controls go through it, the spoken one and the quiet one.
+    assert.match(SCREEN, /openLesson\(false\)/, 'the lesson button skips the probe');
+    assert.match(SCREEN, /openLesson\(true\)/, 'the quiet control on the lesson door skips the probe');
+  });
+
+  test('nothing the lesson door says is a count, a scold or a second question', () => {
+    for (const line of [LESSON_DOOR.title, LESSON_DOOR.quiet, CHOOSER_START_HERE, CHOOSER_OTHER]) {
+      assert.ok(!/\d/.test(line), `"${line}" carries a number`);
+      assert.ok(!/[—%]/.test(line), `"${line}" carries an em dash or a percentage`);
+      assert.equal(guiltIn(line), undefined, `"${line}" says a word the app promised never to say`);
+    }
+    // Two quiet controls on one screen cannot ask the same question. "Unable to
+    // speak right now?" belongs to the conversation and is worded as a
+    // question; this one names its own door.
+    assert.notEqual(
+      LESSON_DOOR.quiet,
+      'Unable to speak right now?',
+      'the lesson borrows the conversation\'s words, so one screen asks the same question twice and means two places',
+    );
+    // The lesson the door opens onto is still in the catalogue. The door names
+    // the kind of session and where it is set rather than the scene's own
+    // French title, because the hero card above it is already a French title
+    // and two of them naming different things is how a learner taps the wrong
+    // one.
+    assert.ok(CAFE_LESSON.title.length > 0, 'the door opens onto a lesson the catalogue no longer holds');
+    assert.match(LESSON_DOOR.title, /^Pronunciation lesson: /, 'the door stopped saying what kind of session is behind it');
   });
 });
 

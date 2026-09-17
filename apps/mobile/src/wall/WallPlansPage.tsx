@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { GhostButton, Label } from '../components.tsx';
-import { HAIRLINE, HIT, paper, radius, space, type } from '../theme.ts';
+import { accent, shadow, HAIRLINE, HIT, paper, radius, space, type } from '../theme.ts';
 import type { PaidPlan } from '../purchases/adapter.ts';
 import {
   PLANS_BOTH,
@@ -68,6 +68,13 @@ export function WallPlansPage({
               // tell which plan was picked.
               accessibilityRole="button"
               accessibilityState={{ selected: chosen }}
+              // Said twice, once per platform, and the two are not
+              // interchangeable. `accessibilityState` is what VoiceOver and
+              // TalkBack read; `aria-selected` is the only one react-native-web
+              // puts in the accessibility tree, and without it a learner in a
+              // browser heard two identical buttons and could not tell which
+              // plan was picked (F522, closed by F586).
+              aria-selected={chosen}
               accessibilityLabel={row.name}
               style={({ pressed }) => [st.card, chosen && st.chosen, pressed && st.pressed]}
             >
@@ -119,18 +126,22 @@ const st = StyleSheet.create({
   title: { ...type.display, color: paper.ink },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
   cards: { marginTop: space(6), gap: space(3) },
-  // The unselected card is the plain card rule; the selected one takes the
-  // heavier ink rule OptionCard uses, which is the app's existing way of saying
-  // "this one" without colouring it.
+  // Two white cards with the app's one whisper under them. The unselected one
+  // is the plain card rule; the chosen one is ringed in the identity violet,
+  // which is what the founder circled on the frame and is the one place a ring
+  // rather than a fill says "this one" on a purchase surface. The ring is drawn
+  // at the same width either way, so choosing a plan does not move its
+  // neighbour down the page by two points.
   card: {
     backgroundColor: paper.card,
     borderRadius: radius.card,
-    borderWidth: HAIRLINE,
+    borderWidth: 2,
     borderColor: paper.line,
     padding: space(4),
     minHeight: HIT,
+    ...shadow.whisper,
   },
-  chosen: { borderWidth: 1.5, borderColor: paper.ink },
+  chosen: { borderColor: accent.primary },
   pressed: { backgroundColor: paper.groundDeep },
   cardHead: { flexDirection: 'row', alignItems: 'baseline', gap: space(3) },
   name: { ...type.heading, color: paper.ink, flex: 1, minWidth: 0 },

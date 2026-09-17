@@ -65,12 +65,15 @@ import { AppState, View, Text } from 'react-native';
 import Constants from 'expo-constants';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { paper, space, type } from '../theme.ts';
-import { Card, Field, Label, OutlineButton } from '../components.tsx';
+import { Card, Field, Label, OptionCard, OutlineButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from './SettingsRow.tsx';
 import { SwitchRow } from './SwitchRow.tsx';
 import { TroubleLine } from './TroubleLine.tsx';
+import { PlanCard } from '../profile/PlanCard.tsx';
+import { TutorIntro } from '../tutor/TutorIntro.tsx';
+import { TUTOR_INTRO_LINK } from '../tutor/gate.ts';
 import { Acknowledgements } from '../legal/Acknowledgements.tsx';
 import { PolicyScreen } from '../legal/PolicyScreen.tsx';
 import { TermsScreen } from '../legal/TermsScreen.tsx';
@@ -85,7 +88,24 @@ import { purchases, type StoreOffering } from '../purchases/adapter.ts';
 import { restorePurchases } from '../purchases/restore.ts';
 import { PURCHASE_TROUBLE, RESTORE_BUSY, restoreTrouble } from '../purchases/paywallView.ts';
 import { RESTORE_DONE, subscriptionGroup, type SubscriptionAction } from '../purchases/subscription.ts';
-import { reminderPermission } from '../reminders/schedule.ts';
+import {
+  REMINDER_ROW,
+  REMINDER_TIMES,
+  REMINDER_TIME_SUB,
+  REMINDER_TIME_TITLE,
+  reminderRow,
+  reminderTime,
+  type ReminderTimeId,
+  type StoredReminder,
+} from '../reminders/reminder.ts';
+import { loadReminder, saveReminder } from '../reminders/store.ts';
+import {
+  REMINDERS_AVAILABLE,
+  askReminderPermission,
+  cancelReminder,
+  reminderPermission,
+  scheduleReminder,
+} from '../reminders/schedule.ts';
 import { openMail } from './links.ts';
 import { phoneRows, type PhonePermission } from './phone.ts';
 import { PHONE_SETTINGS_AVAILABLE, microphonePermission, openPhoneSettings } from './phoneSettings.ts';
@@ -105,6 +125,7 @@ import {
   HELP_GROUP,
   LINK_TROUBLE,
   PHONE_GROUP,
+  PLAN_GROUP,
   PRIVACY_GROUP,
   PRIVACY_POLICY_ROW,
   SAVED_ROW,
@@ -129,7 +150,43 @@ import type { AuthResult } from '../auth/types.ts';
  * closing a card nobody had seen. A refusal is not a sheet: it is a line in the
  * group whose control caused it, which is what every other one here already is.
  */
-type Sheet = 'none' | 'acknowledgements' | 'policy' | 'terms' | 'delete';
+type Sheet = 'none' | 'acknowledgements' | 'policy' | 'terms' | 'intro' | 'reminderTime' | 'delete';
+
+/**
+ * Said when the disk refuses the reminder's two-field write, and only then.
+ *
+ * `saveReminder` answers `failed` on a full phone. A row that moved anyway
+ * would be a switch that reverts silently at the next launch, so the row stays
+ * where it was and this says why. It blames the device, which is what actually
+ * happened, and it asks for nothing: no retry loop, no apology, no number.
+ *
+ * It moved here from Profile with the reminder itself (F576), unchanged: it is
+ * about this phone rather than about the reminder, which is why it is a
+ * sentence in the screen rather than one of `reminder.ts`'s.
+ */
+const REMINDER_SAVE_TROUBLE = 'Your phone did not save that. The reminder is unchanged, and you can try again.';
+
+/**
+ * Said when the write landed and the operating system would not take the alarm.
+ *
+ * A different fact from the one above, so a different sentence. The choice did
+ * reach the disk; what refused was `scheduleReminder`, and telling somebody
+ * their phone "did not save that" when it saved it perfectly well is a small
+ * lie in the one place this screen has to be trusted.
+ *
+ * Three things it has to do. It puts the refusal on the phone, because that is
+ * where it happened and the learner did nothing wrong. It leaves a way forward,
+ * which here is simply flipping the switch again, and "just now" says the state
+ * is a moment rather than a verdict. And it is silent about what is on disk,
+ * because the rollback below can itself be refused by the same full phone, and
+ * a sentence that claimed "nothing has changed" would be the second lie.
+ *
+ * Deliberately direction-neutral. It is shown when the OS refuses to schedule
+ * and when it refuses to cancel, and a learner who was turning the reminder off
+ * must not read a line about setting one. "Change" covers both, so nothing here
+ * branches on which way the switch was going.
+ */
+const REMINDER_SCHEDULE_TROUBLE = 'Your phone would not change the reminder just now. You can try again.';
 
 /** Which store call is in flight, so neither row can be tapped twice. */
 type StoreBusy = 'none' | SubscriptionAction;
@@ -156,6 +213,12 @@ export function SettingsScreen({
   const [offering, setOffering] = useState<StoreOffering | null>(null);
   const [microphone, setMicrophone] = useState<PhonePermission | null>(null);
   const [notifications, setNotifications] = useState<PhonePermission | null>(null);
+  // What the learner asked for, read off the disk. The permission half of the
+  // reminder is `notifications` above: it is the same channel, read by the same
+  // call, and a second copy of it here would be a second answer to one question
+  // that could disagree with the row two lines below it.
+  const [stored, setStored] = useState<StoredReminder | null>(null);
+  const [reminderBusy, setReminderBusy] = useState(false);
 
   const [storeBusy, setStoreBusy] = useState<StoreBusy>('none');
   const [storeMessage, setStoreMessage] = useState<string | null>(null);
@@ -170,6 +233,10 @@ export function SettingsScreen({
   // legal right exercised through one row, so a refusal belongs beside that row
   // rather than a screen and a half below it.
   const [exportTrouble, setExportTrouble] = useState<string | null>(null);
+  // The fifth, and the reminder's. The line to show rather than a flag,
+  // because there are two of them and which one is shown is the whole of what
+  // this state says.
+  const [reminderTrouble, setReminderTrouble] = useState<string | null>(null);
 
   /**
    * Everything the operating system and the store own, read again on every entry.
@@ -220,9 +287,24 @@ export function SettingsScreen({
             // No store, no group. Exactly what an unanswered store means.
           });
       }
+      // What the learner asked for. The permission half rides with the
+      // notification channel above, read on focus AND on the walk back, which
+      // is the whole defence against a dead switch: permission is per install
+      // and can be turned off in the phone's own settings months later without
+      // the app hearing a word about it. `loadReminder` throws rather than
+      // resolving when nobody is signed in, so the throw is caught and the row
+      // simply does not draw.
+      void loadReminder()
+        .then((saved) => {
+          if (!cancelled) setStored(saved);
+        })
+        .catch(() => {
+          // Nobody signed in, or storage unavailable. Nothing to draw and
+          // nothing to say: the reminder is the one thing here that can wait.
+        });
       void loadConsent()
-        .then((stored) => {
-          if (!cancelled) setConsent(analyticsAllowed(stored));
+        .then((consented) => {
+          if (!cancelled) setConsent(analyticsAllowed(consented));
         })
         .catch(() => {
           // Nothing readable is not a yes, and an off switch is the honest thing
@@ -274,7 +356,11 @@ export function SettingsScreen({
   // for the three sheets that render their own screens and answer the hardware
   // back through their own hook (F319).
   useHardwareBack(
-    sheet !== 'none' && sheet !== 'acknowledgements' && sheet !== 'policy' && sheet !== 'terms',
+    sheet !== 'none' &&
+      sheet !== 'acknowledgements' &&
+      sheet !== 'policy' &&
+      sheet !== 'terms' &&
+      sheet !== 'intro',
     closeCurrentSheet,
   );
 
@@ -291,6 +377,17 @@ export function SettingsScreen({
   // module decides; nothing here re-reads what an offering means.
   const subscription = offering === null ? null : subscriptionGroup(offering);
   const phone = phoneRows({ microphone, notifications, available: PHONE_SETTINGS_AVAILABLE });
+  // What the learner asked for, crossed with what the OS will allow. Every
+  // judgement in it belongs to reminder.ts; nothing below re-decides any of it.
+  const row = notifications === null ? null : reminderRow(stored, notifications);
+  // The preset behind the row. `reminderTime` repairs a mangled or missing id
+  // to the default, so there is no second opinion here about which hour is
+  // which, and no throw on a byte that came back wrong from disk.
+  const chosen = reminderTime(stored?.time);
+  // Whether there is a reminder to draw at all: a build with a scheduler, and a
+  // permission that has come back. `REMINDERS_AVAILABLE` is the platform pair
+  // saying the OS can be asked; `row` is null until the first read lands.
+  const reminders = REMINDERS_AVAILABLE && row !== null;
   // What the group has to say right now: the wait while it is waiting, and
   // whatever the last attempt settled on otherwise.
   const storeLine = storeBusy === 'restore' ? RESTORE_BUSY : storeMessage;
@@ -353,6 +450,91 @@ export function SettingsScreen({
       });
   };
 
+  /**
+   * The switch, which asks the OS before it believes the learner's thumb.
+   *
+   * One shape for all four states, because the module already told us which one
+   * we are in. `row.asks` is true in exactly the state where a dialog belongs;
+   * everywhere else this is a plain re-read that raises nothing, which is how a
+   * permission changed in the phone's own settings reaches the row without
+   * anybody being asked twice. iOS will not show that dialog a second time
+   * anyway, so a re-ask would be a control that silently does nothing.
+   *
+   * Then `reminderRow` decides again, against the answer that just came back.
+   * A refusal turns what the learner asked for into an off row and an honest
+   * line, and the value that goes to disk is that answer rather than the
+   * position the switch was left in. Turning off keeps the chosen preset, so
+   * turning it back on months later restores the part of the day they picked.
+   */
+  const toggleReminder = (next: boolean) => {
+    if (row === null || reminderBusy) return;
+    setReminderBusy(true);
+    setReminderTrouble(null);
+    void (row.asks ? askReminderPermission() : reminderPermission())
+      .then(async (fresh) => {
+        setNotifications(fresh);
+        const honest = reminderRow({ enabled: next, time: chosen.value }, fresh);
+        const wanted: StoredReminder = { enabled: honest.on, time: chosen.value };
+        // What the phone is doing already, in the shape the store writes. Built
+        // from `row.on`, which is reminderRow's answer for the state the row is
+        // in, so putting the disk back is the module's value and never a
+        // negation worked out here.
+        const reverted: StoredReminder = { enabled: row.on, time: chosen.value };
+        const ack = await saveReminder(wanted);
+        if (ack === 'failed') {
+          setReminderTrouble(REMINDER_SAVE_TROUBLE);
+          return;
+        }
+        const outcome = honest.on ? await scheduleReminder(wanted.time) : await cancelReminder();
+        if (outcome === 'failed') {
+          await saveReminder(reverted);
+          setReminderTrouble(REMINDER_SCHEDULE_TROUBLE);
+          return;
+        }
+        setStored(wanted);
+      })
+      // The platform pair catches its own failures and answers in a word, so
+      // the only way here is a sign-out landing between the tap and the write,
+      // where `saveReminder` throws the way `loadConsent` does. The row stays
+      // where it was and says so: a flip that changed nothing and explained
+      // nothing is the dead switch this whole entry exists to prevent.
+      .catch(() => setReminderTrouble(REMINDER_SAVE_TROUBLE))
+      .finally(() => setReminderBusy(false));
+  };
+
+  /**
+   * A different part of the day, through the same door as the switch.
+   *
+   * Reached only from an on row, so the intent is `enabled: true`, and it still
+   * goes through `reminderRow` against a freshly read permission: a learner can
+   * revoke notifications and come back to this sheet in the same minute. The
+   * read raises no dialog, which keeps the no-re-ask rule intact.
+   */
+  const chooseReminderTime = (value: ReminderTimeId) => {
+    setSheet('none');
+    if (row === null) return;
+    setReminderTrouble(null);
+    void (async () => {
+      const fresh = await reminderPermission();
+      setNotifications(fresh);
+      const honest = reminderRow({ enabled: true, time: value }, fresh);
+      const wanted: StoredReminder = { enabled: honest.on, time: value };
+      const reverted: StoredReminder = { enabled: row.on, time: chosen.value };
+      const ack = await saveReminder(wanted);
+      if (ack === 'failed') {
+        setReminderTrouble(REMINDER_SAVE_TROUBLE);
+        return;
+      }
+      const outcome = honest.on ? await scheduleReminder(wanted.time) : await cancelReminder();
+      if (outcome === 'failed') {
+        await saveReminder(reverted);
+        setReminderTrouble(REMINDER_SCHEDULE_TROUBLE);
+        return;
+      }
+      setStored(wanted);
+    })().catch(() => setReminderTrouble(REMINDER_SAVE_TROUBLE));
+  };
+
   /** Hand the learner to their own phone, and say so when the phone will not go. */
   const walkToPhoneSettings = () => {
     setPhoneTrouble(null);
@@ -389,9 +571,43 @@ export function SettingsScreen({
     });
   };
 
+  // Demoted, not deleted: the intro is still the only place that teaches what
+  // the three colours of the circle mean, and it is one tap from the Help
+  // group. It renders its own screen and answers its own hardware back, which
+  // is why the hook above stands down for it (F319).
+  if (sheet === 'intro') return <TutorIntro onDone={() => setSheet('none')} />;
+
   if (sheet === 'acknowledgements') return <Acknowledgements onBack={() => setSheet('none')} />;
   if (sheet === 'policy') return <PolicyScreen onBack={() => setSheet('none')} />;
   if (sheet === 'terms') return <TermsScreen onBack={() => setSheet('none')} />;
+
+  /**
+   * Which part of the day, not which minute.
+   *
+   * Four presets in the shape the voice sheet already uses. A real picker would
+   * mean a second native dependency to answer a question nobody is asking: the
+   * interesting choice is morning or evening, and a preset at 18:07 is a time
+   * picker that has been hidden rather than removed.
+   */
+  if (sheet === 'reminderTime') {
+    return (
+      <ScrollScreen header={<ScreenHeader back={{ onPress: () => setSheet('none') }} />}>
+        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{REMINDER_TIME_TITLE}</Text>
+        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{REMINDER_TIME_SUB}</Text>
+        <View style={{ marginTop: space(6), gap: space(3) }}>
+          {REMINDER_TIMES.map((option) => (
+            <OptionCard
+              key={option.value}
+              text={option.label}
+              gloss={option.gloss}
+              selected={chosen.value === option.value}
+              onPress={() => chooseReminderTime(option.value)}
+            />
+          ))}
+        </View>
+      </ScrollScreen>
+    );
+  }
 
   if (sheet === 'delete') {
     // No chevron: this is the one sheet where leaving is the safe answer and it
@@ -493,6 +709,15 @@ export function SettingsScreen({
         />
       </Card>
 
+      {/* The plan, which moved here from Profile with revamp A (F576). It sits
+          above Subscription because the plan is what a learner has and the
+          group below it is what the store can do about it. The card reads the
+          server itself and draws its own honest line when it cannot. */}
+      <View style={{ marginTop: space(6) }}>
+        <Label>{PLAN_GROUP}</Label>
+        <PlanCard />
+      </View>
+
       {/* Present only when the store answered with a real product, which is what
           keeps it honest in Expo Go, on the web and on a build with no keys. In
           all three, both rows would open onto nothing. */}
@@ -547,24 +772,54 @@ export function SettingsScreen({
             value={exporting ? DOWNLOAD_BUSY : DOWNLOAD_SUB}
             onPress={askForMyData}
           />
-          <SettingsRow label={SAVED_ROW} value={SAVED_SUB} onPress={() => nav.navigate('Tabs', { screen: 'MyFrench' })} />
+          <SettingsRow label={SAVED_ROW} value={SAVED_SUB} onPress={() => nav.navigate('Conversations')} />
         </Card>
       </View>
 
-      {/* One row per permission the OS has refused, and nothing at all otherwise.
-          `phoneRows` decides; an allowed permission draws no row because a row
-          reading Allowed does nothing when it is tapped. */}
-      {phone.length > 0 && (
+      {/* Everything this app asks of the phone: the daily reminder, and one row
+          per permission the OS has refused. `phoneRows` decides the second
+          half; an allowed permission draws no row because a row reading Allowed
+          does nothing when it is tapped.
+
+          The reminder moved here from Profile with revamp A (F576). It is the
+          one control on this screen that draws a state the operating system
+          owns, and every judgement about it lives in `reminders/reminder.ts`:
+          this screen asks `reminderRow` what to draw, asks it again against a
+          freshly read permission before it writes anything down, and shows the
+          sentence it is handed. The whole block is absent on a build with no
+          scheduler rather than sitting there disabled, because the refusal line
+          names phone settings and would be a lie on a laptop. */}
+      {(reminders || phone.length > 0) && (
         <View style={{ marginTop: space(6) }}>
           <Label>{PHONE_GROUP}</Label>
           <Card style={{ marginTop: space(2.5) }}>
+            {/* The explaining sentence, written ABOVE the switch that raises the
+                system dialog: a permission dialog that arrives unannounced is a
+                dialog most people decline, and iOS never offers it twice. */}
+            {reminders && row !== null && row.note.length > 0 && (
+              <Text style={[type.small, { color: paper.inkSoft, marginBottom: space(3) }]}>{row.note}</Text>
+            )}
+            {reminderTrouble !== null && <TroubleLine message={reminderTrouble} />}
+            {reminders && row !== null && (
+              <SwitchRow
+                first
+                title={REMINDER_ROW}
+                sub={row.value}
+                value={row.on}
+                onChange={toggleReminder}
+                accessibilityLabel={REMINDER_ROW}
+              />
+            )}
+            {reminders && row !== null && row.on && (
+              <SettingsRow label={REMINDER_TIME_TITLE} value={chosen.label} onPress={() => setSheet('reminderTime')} />
+            )}
             {phoneTrouble !== null && <TroubleLine message={phoneTrouble} />}
-            {phone.map((row, index) => (
+            {phone.map((permissionRow, index) => (
               <SettingsRow
-                key={row.key}
-                first={index === 0}
-                label={row.label}
-                value={row.sub}
+                key={permissionRow.key}
+                first={!reminders && index === 0}
+                label={permissionRow.label}
+                value={permissionRow.sub}
                 onPress={walkToPhoneSettings}
               />
             ))}
@@ -572,21 +827,26 @@ export function SettingsScreen({
         </View>
       )}
 
-      {/* Absent until an address is supplied. A Contact us row with nothing
-          behind it is a row that lies, so `contactRow` answers null and this
-          draws nothing rather than a dead row somebody would tap. */}
-      {contact !== null && (
-        <View style={{ marginTop: space(6) }}>
-          <Label>{HELP_GROUP}</Label>
-          <Card style={{ marginTop: space(2.5) }}>
-            {contactTrouble !== null && <TroubleLine message={contactTrouble} />}
-            {/* The address is the row's own value, so a phone with no mail app
-                set up still leaves something a learner can read and write down
-                rather than a tap that answered nothing. */}
+      {/* Help, which always has the intro in it and has a Contact row only once
+          an address is supplied. A Contact us row with nothing behind it is a
+          row that lies, so `contactRow` answers null and nothing is drawn
+          rather than a dead row somebody would tap. */}
+      <View style={{ marginTop: space(6) }}>
+        <Label>{HELP_GROUP}</Label>
+        <Card style={{ marginTop: space(2.5) }}>
+          {contactTrouble !== null && <TroubleLine message={contactTrouble} />}
+          {/* The address is the row's own value, so a phone with no mail app
+              set up still leaves something a learner can read and write down
+              rather than a tap that answered nothing. */}
+          {contact !== null && (
             <SettingsRow first label={contact.label} value={contact.address} onPress={() => writeTo(contact.address)} />
-          </Card>
-        </View>
-      )}
+          )}
+          {/* What the three colours of the circle mean. It was a row on Profile
+              and it is here now (F576): it explains a control rather than
+              setting one, which is what the Help group is for. */}
+          <SettingsRow first={contact === null} label={TUTOR_INTRO_LINK} onPress={() => setSheet('intro')} />
+        </Card>
+      </View>
 
       <View style={{ marginTop: space(6), paddingBottom: space(6) }}>
         <Label>{ABOUT_GROUP}</Label>

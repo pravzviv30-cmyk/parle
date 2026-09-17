@@ -17,8 +17,8 @@
 
 import { useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
-import { accent, paper, signal, space, type, radius, HAIRLINE } from '../theme.ts';
-import { EarGlyph, Label } from '../components.tsx';
+import { accent, paper, shadow, signal, space, type, radius, HAIRLINE } from '../theme.ts';
+import { EarGlyph, Label, TintPanel } from '../components.tsx';
 import type { TurnLine } from '../live/turns.ts';
 import { settleIn, useReduceMotion } from '../motion.ts';
 import { replayEar } from './replayEar.ts';
@@ -116,8 +116,15 @@ function Line({
               </View>
             )}
           </Pressable>
+        ) : learner ? (
+          // The learner's own side is the house lilac, which is the one tint a
+          // surface may take when it is not about a place: these are their
+          // words, and the paper under them says so without a second colour
+          // entering the signal set. TintPanel draws it, because a screen never
+          // names a colour (palette.test.ts).
+          <TintPanel tint="lilac" style={st.learnerBubble}>{body}</TintPanel>
         ) : (
-          <View style={learner ? st.learnerBubble : st.tutorBubble}>{body}</View>
+          <View style={st.tutorBubble}>{body}</View>
         )}
         {turn.recasts?.map((r) => (
           <Recast key={r.better} {...r} />
@@ -230,21 +237,25 @@ const st = StyleSheet.create({
   // nothing here for reduce motion to withhold.
   ear: { padding: space(1) },
   earSounding: { padding: space(1), backgroundColor: paper.groundDeep, borderRadius: radius.pill },
+  // The tutor speaks from a white card, with the app's one whisper under it and
+  // the hairline still there: elevation draws nothing on older Android and
+  // clips on the web column, and without the rule a card there dissolves into
+  // the ground. Same bargain `components.tsx` states for Card itself.
   tutorBubble: {
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.lineOnCard,
+    borderColor: paper.line,
     borderRadius: radius.card,
-    borderBottomLeftRadius: 4,
-    paddingHorizontal: space(3.5),
-    paddingVertical: space(2.5),
+    paddingHorizontal: space(4),
+    paddingVertical: space(3.5),
+    ...shadow.whisper,
   },
+  // Tighter corners than the card and no shadow: a row is not a card, and the
+  // learner's side is a surface rather than an object sitting on the page.
   learnerBubble: {
-    backgroundColor: paper.groundDeep,
-    borderRadius: radius.card,
-    borderBottomRightRadius: 4,
+    borderRadius: radius.row,
     paddingHorizontal: space(3.5),
-    paddingVertical: space(2.5),
+    paddingVertical: space(3),
   },
   narration: { paddingHorizontal: space(4), paddingVertical: space(1) },
   recast: {

@@ -29,6 +29,9 @@
 
 import { applyGrade, dueCards, type ReviewCard, type ReviewGrade } from '../review/scheduler.ts';
 import { gradeAnswer, type DrillVerdict } from './grading.ts';
+// Type-only, and it has to stay that way: ownWords.ts imports buildDrillSession
+// from this file at runtime, so a value import here would close the cycle.
+import type { OwnWordsDecision } from './ownWords.ts';
 import type { DrillExercise } from './types.ts';
 
 /** The ramp, in climbing order. Recognition on the left, production on the right. */
@@ -36,8 +39,16 @@ export const DRILL_STAGES = ['options', 'tap-tokens', 'typed', 'spoken'] as cons
 
 export type DrillStage = (typeof DRILL_STAGES)[number];
 
-/** Which rung of the ramp an exercise format sits on. */
-export function stageOf(exercise: DrillExercise): DrillStage {
+/**
+ * Which rung of the ramp an exercise format sits on, or null for a format that
+ * is not on the ramp at all.
+ *
+ * Only own-words returns null today. It is deliberately off the ladder — see
+ * the note on OwnWordsExercise — and null is how that is said out loud, rather
+ * than parking it on whichever rung looked closest and quietly teaching the
+ * ramp to hand out unscripted production as a step.
+ */
+export function stageOf(exercise: DrillExercise): DrillStage | null {
   switch (exercise.kind) {
     case 'fill-blank':
       return exercise.options ? 'options' : 'typed';
@@ -51,6 +62,8 @@ export function stageOf(exercise: DrillExercise): DrillStage {
       return 'typed';
     case 'repeat-this':
       return 'spoken';
+    case 'own-words':
+      return null;
   }
 }
 
@@ -96,8 +109,18 @@ export interface DrillSessionState {
   finished: boolean;
 }
 
+/**
+ * A verdict the session can act on.
+ *
+ * Exported because a screen that renders feedback never has to think about
+ * 'pending': it cannot reach one. A pending verdict means no judgement has
+ * arrived yet, and `answerCurrent` returns null feedback rather than a state
+ * with a shrug in it.
+ */
+export type SettledVerdict = Exclude<DrillVerdict, 'pending'>;
+
 export interface DrillFeedback {
-  verdict: DrillVerdict;
+  verdict: SettledVerdict;
   /** The accepted form worth pointing at, in its real spelling. */
   closest: string | null;
   /** One short line for the UI. Copy-tested; never scolds, never a digit. */
@@ -123,7 +146,12 @@ export function missFeedback(exact: string | null): string {
   return exact === null ? 'Pas tout à fait.' : `Pas tout à fait. On dit: «${exact}».`;
 }
 
-function feedbackMessage(verdict: DrillVerdict, closest: string | null): string {
+/**
+ * The Exclude is the point: a pending verdict has no message, because nobody
+ * has judged the attempt yet, and the type stops a future edit from inventing
+ * a line for that state.
+ */
+function feedbackMessage(verdict: SettledVerdict, closest: string | null): string {
   switch (verdict) {
     case 'good':
       return GOOD_FEEDBACK;
@@ -271,6 +299,42 @@ function pickForStage(candidates: readonly DrillExercise[], stage: DrillStage): 
 }
 
 /**
+ * What this answer settles, or null when it settles nothing.
+ *
+ * Every kind with a key goes through `gradeAnswer`, which is code deciding.
+ * own-words has no key, so its move arrives already decided from outside — the
+ * app fetches a judgement, runs it through `decideOwnWords`, and hands the
+ * result in. A decided argument is ignored for every other kind: a caller must
+ * never be able to talk the engine out of a comparison it can make itself.
+ *
+ * `resolve` is set on a reveal so the exercise leaves the queue whatever the
+ * miss count says. `decideOwnWords` only reveals on the last attempt, but a
+ * caller that reveals early is asking for the phrase to be shown, and showing
+ * it and then asking again would be a taught answer re-asked immediately.
+ */
+function judge(
+  exercise: DrillExercise,
+  answer: string | number | number[],
+  decided: OwnWordsDecision | undefined,
+): { verdict: SettledVerdict; closest: string | null; resolve?: boolean } | null {
+  if (exercise.kind === 'own-words' && decided !== undefined) {
+    switch (decided) {
+      case 'good':
+        return { verdict: 'good', closest: null };
+      case 'retry':
+        // No closest: handing over the phrase before the retry would turn the
+        // second attempt into copying.
+        return { verdict: 'miss', closest: null };
+      case 'reveal':
+        return { verdict: 'miss', closest: exercise.fr, resolve: true };
+    }
+  }
+
+  const graded = gradeAnswer(exercise, answer);
+  return graded.verdict === 'pending' ? null : { verdict: graded.verdict, closest: graded.closest };
+}
+
+/**
  * Answer the exercise at the head of the queue.
  *
  * A miss sends the exercise to the back of the queue — the session is not over
@@ -281,16 +345,34 @@ function pickForStage(candidates: readonly DrillExercise[], stage: DrillStage): 
  *
  * Answering a finished session changes nothing: there is no exercise to
  * grade, so there is no feedback to give.
+ *
+ * `decided` is how an own-words attempt gets its outcome. That kind has no
+ * right string, so the app hands in what `decideOwnWords` made of a judge's
+ * verdict and this function does the queue arithmetic exactly as it does for
+ * every other kind: good resolves, retry goes to the back, reveal shows the
+ * phrase and resolves unresolved. Omitted on an own-words exercise, nothing
+ * moves and the feedback is null — an unjudged attempt is not a failed one.
+ * Ignored on every other kind.
  */
-export function answerCurrent(state: DrillSessionState, answer: string | number | number[]): { state: DrillSessionState; feedback: DrillFeedback | null } {
+export function answerCurrent(
+  state: DrillSessionState,
+  answer: string | number | number[],
+  decided?: OwnWordsDecision,
+): { state: DrillSessionState; feedback: DrillFeedback | null } {
   const exercise = state.queue[0];
   if (state.finished || !exercise) return { state, feedback: null };
 
-  const { verdict, closest } = gradeAnswer(exercise, answer);
+  const judged = judge(exercise, answer, decided);
+  // A pending verdict moves nothing. Core does not guess what a judge would
+  // have said, so an own-words attempt with no judgement in hand leaves the
+  // session exactly as it found it.
+  if (judged === null) return { state, feedback: null };
+
+  const { verdict, closest } = judged;
   const rest = state.queue.slice(1);
   const missesSoFar = state.missesById[exercise.id] ?? 0;
 
-  if (verdict === 'miss' && missesSoFar + 1 < MAX_MISSES) {
+  if (verdict === 'miss' && !judged.resolve && missesSoFar + 1 < MAX_MISSES) {
     const next: DrillSessionState = {
       ...state,
       queue: [...rest, exercise],
@@ -369,7 +451,12 @@ export interface DrillSummary {
  *
  * A resolved exercise grades its card 'good' even when it took a retry or a
  * typo — the phrase came out in the end, and the in-session re-ask already was
- * the punishment-free correction. Unresolved grades 'again'. When a bank
+ * the punishment-free correction. Unresolved grades 'again'. An own-words
+ * sitting rides the same two lines with nothing special added: a 'good'
+ * decision resolves and grades 'good', a 'reveal' resolves unresolved and
+ * grades 'again'. Getting the meaning across in your own words is worth the
+ * same to the scheduler as producing the taught phrase, which is the claim
+ * this kind exists to make. When a bank
  * drills one phrase through two exercises, the worse outcome speaks for the
  * phrase: a card must never be pushed a week out by one win when the same
  * sitting also produced a defeat.

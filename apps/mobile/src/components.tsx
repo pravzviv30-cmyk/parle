@@ -901,6 +901,18 @@ export function fitDisplay(text: string): TextStyle {
 
 
 /**
+ * A column of words that takes the rest of a row and can still shrink.
+ *
+ * `flex: 1` on its own gives the column its share and forbids it going below
+ * its content's width, so at the largest reading size a French title beside a
+ * disc pushes the disc, and then the card, off the screen. Every row in the app
+ * that sets a glyph beside words wants the same two rules, so they are written
+ * once here and named by their job rather than re-typed as a measurement on
+ * each screen.
+ */
+export const ROW_WORDS = { flex: 1, minWidth: 0 } as const;
+
+/**
  * One thing the learner can now do, as a row (F545).
  *
  * Home's abilities card and My French's stamped situations draw the same row,
@@ -1065,7 +1077,7 @@ const s = StyleSheet.create({
   day: { alignItems: 'center', gap: space(1) },
   mark: { width: MARK, height: MARK, borderRadius: MARK / 2 },
   markDone: { backgroundColor: accent.primary },
-  markWaiting: { borderWidth: HAIRLINE + 0.4, borderColor: paper.line },
+  markWaiting: { backgroundColor: paper.card, borderWidth: HAIRLINE + 0.4, borderColor: paper.line },
   tintRow: {
     minHeight: HIT + space(8),
     flexDirection: 'row',
@@ -1084,10 +1096,10 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tintWords: { flex: 1, minWidth: 0 },
+  tintWords: ROW_WORDS,
   abilityRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
   abilityDivided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
-  abilityWords: { flex: 1, minWidth: 0 },
+  abilityWords: ROW_WORDS,
   abilityPressed: { opacity: 0.72 },
   card: {
     backgroundColor: paper.card,

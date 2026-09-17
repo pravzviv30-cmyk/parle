@@ -97,6 +97,15 @@ export function learnerVisibleStrings(exercise: DrillExercise): LabelledString[]
         { label: 'en', text: exercise.en },
         ...exercise.accepted.map((text, i) => ({ label: `accepted ${i}`, text })),
       ];
+    case 'own-words':
+      // fr is the reveal, so it reaches the screen too; mustKeep is shown as
+      // the meaning to hold on to, which makes it copy like any other prompt.
+      return [
+        { label: 'fr', text: exercise.fr },
+        { label: 'en', text: exercise.en },
+        { label: 'situation', text: exercise.situation },
+        ...exercise.mustKeep.map((text, i) => ({ label: `mustKeep ${i}`, text })),
+      ];
   }
 }
 
@@ -123,6 +132,11 @@ function englishGlosses(exercise: DrillExercise): LabelledString[] {
       return [];
     case 'translate':
       return [{ label: 'en', text: exercise.en }];
+    case 'own-words':
+      return [
+        { label: 'en', text: exercise.en },
+        { label: 'situation', text: exercise.situation },
+      ];
   }
 }
 
@@ -140,6 +154,10 @@ function expectedDifficulty(exercise: DrillExercise): DrillDifficulty {
     case 'listen-type':
     case 'repeat-this':
     case 'translate':
+    // Nothing is offered and nothing is dictated: the learner builds the whole
+    // utterance. Production is the only honest label, even though it is the one
+    // production format with no right answer to produce.
+    case 'own-words':
       return 'production';
   }
 }
@@ -277,6 +295,17 @@ export function validateExercise(exercise: DrillExercise): ValidationResult {
       if (!exercise.accepted.some((a) => normalise(a) === normalise(exercise.fr))) {
         reasons.push('the played line itself is not an accepted answer');
       }
+      break;
+    }
+
+    case 'own-words': {
+      if (normalise(exercise.fr) === '') reasons.push('fr normalises to nothing');
+      if (normalise(exercise.en) === '') reasons.push('en normalises to nothing');
+      if (exercise.situation.trim() === '') reasons.push('situation is empty, so the learner is asked to speak nowhere');
+      if (exercise.mustKeep.length === 0) reasons.push('mustKeep is empty, so no judgement can be checked against what was asked');
+      // NOT checkAccepted: an own-words exercise has no right string, and an
+      // accepted answer here would quietly turn it back into a recall drill.
+      if (exercise.accepted.length > 0) reasons.push('own-words carries accepted answers, which it must not have');
       break;
     }
 

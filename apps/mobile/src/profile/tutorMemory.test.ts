@@ -1,11 +1,23 @@
 /**
- * The memory card and screen, read as text — F562's drawn half.
+ * The tutor card and the memory screen, read as text — F562's drawn half, F576's shape.
  *
- * `memory.test.ts` holds the rules; this holds that the two surfaces draw
- * them and decide nothing of their own: every write goes through a door in
- * `memory.ts`, every word is `tutorMemory.ts`'s, the summary is words and
- * never a count, and the screen is reachable from Profile through a route
- * with an address.
+ * `memory.test.ts` holds the rules; this holds that the two surfaces draw them
+ * and decide nothing of their own: every write goes through a door in
+ * `memory.ts`, every word is `tutorMemory.ts`'s, how much is held is said in
+ * words and never as a count, and the screen is reachable from Profile through
+ * a route with an address.
+ *
+ * ## What moved, and why the summary is not on the card any more
+ *
+ * Revamp A folded the standalone memory card into row two of Profile's "Your
+ * tutor" card, beside the tutor's own name. A row has a title and one gloss,
+ * and the gloss that earns its place there is the one that says what can be
+ * DONE behind it, because that is the half a learner is deciding about. How
+ * much the tutor holds is a sentence, and it is said on the screen itself,
+ * under the title, where there is room for it and where it is not the second
+ * line running to open with the tutor's name. So it is drawn exactly once, and
+ * this file checks it is drawn exactly once: two sites for one sentence are two
+ * sentences waiting to disagree.
  */
 
 import { describe, test } from 'node:test';
@@ -42,8 +54,22 @@ function learner(facts: readonly RememberedFact[]): StoredProfile {
   return { ...createStoredProfile({ name: 'Camille', ageConfirmed: true, motivation: 'travel' }, NOW), brain };
 }
 
+/**
+ * `first` is present, `second` is present, and `first` comes first.
+ *
+ * The two presence checks are the whole point: `indexOf` answers -1 for
+ * something that was deleted, and -1 sorts before every real position, so the
+ * obvious spelling of an ordering check passes most confidently in the one case
+ * it exists to catch.
+ */
+function writtenBefore(source: string, first: string, second: string): boolean {
+  const at = source.indexOf(first);
+  const then = source.indexOf(second);
+  return at !== -1 && then !== -1 && at < then;
+}
+
 describe('what the tutor remembers, drawn', () => {
-  test('the memory card says how much is held in words, and the screen writes only through the memory doors', () => {
+  test('the tutor card is two rows, the screen says how much is held in words, and every write goes through a memory door', () => {
     // Words, never a count, and the tutor's own name rather than a literal.
     const none = learner([]);
     assert.equal(memorySummary(none, 'Camille'), 'Camille is still getting to know you.');
@@ -60,16 +86,52 @@ describe('what the tutor remembers, drawn', () => {
       assert.doesNotMatch(line, /\d|—/, `"${line}" counts or dashes`);
     }
 
-    // The card: the tutor's name from the persona, the summary from the
-    // module, one row into the screen, and no read of its own.
-    assert.match(CARD, /<Label>\{memoryLabel\(name\)\}<\/Label>/, 'the card spells its own heading');
-    assert.match(CARD, /\{memorySummary\(profile, name\)\}/, 'the card works out its own summary');
+    // ───────────────────────────────────────── the card: two rows, one heading
+    //
+    // Row one is who the learner is talking to and opens the voice sheet Profile
+    // owns; row two is what that person holds and pushes the editing screen.
+    // The tutor's name is resolved once, from the persona, and both rows use it.
     assert.match(CARD, /const name = tutorNameOf\(profile\);/, 'the card names the tutor some other way');
-    assert.match(CARD, /nav\.navigate\('TutorMemory'\)/, 'the card leads nowhere');
+    assert.equal((CARD.match(/<TutorRow\b/g) ?? []).length, 2, 'the tutor card is not the two rows the founder drew');
+    assert.match(
+      CARD,
+      /<TutorRow first mark=\{<TutorMark \/>\} title=\{name\} gloss=\{PARTNER_LINE\} onPress=\{onVoice\} \/>/,
+      'the first row is not the tutor, named by the persona, opening the sheet Profile hands it',
+    );
+    assert.match(CARD, /title=\{memoryLabel\(name\)\}/, 'the memory row spells the tutor name itself');
+    assert.match(CARD, /gloss=\{MEMORY_ROW_SUB\}/, 'the memory row says what is behind it in JSX, where no copy sweep can read it back');
+    assert.match(CARD, /nav\.navigate\('TutorMemory'\)/, 'the memory row leads nowhere');
+    assert.ok(
+      writtenBefore(CARD, 'gloss={PARTNER_LINE}', 'title={memoryLabel(name)}'),
+      'the memory row is drawn above the tutor it belongs to',
+    );
     assert.ok(!CARD.includes('useFocusEffect') && !CARD.includes('load'), 'the card reads the disk; the live profile is in context');
     assert.ok(!CARD.includes('.length'), 'the card counts something itself');
+    // One sentence, one site. The summary is the screen's, and a copy of it on
+    // the card would be a second thing to keep in step with `visibleFacts`.
+    assert.ok(!CARD.includes('memorySummary'), 'how much is held is said on the card as well as on the screen, so there are two of it');
 
-    // The screen: every write is a memory.ts door through the context's update.
+    // ─────────────────────────────────── the screen: the sentence, and the doors
+    //
+    // The title is the heading, and how much is held is said directly under it,
+    // because that is the question somebody arriving here is asking.
+    assert.match(
+      SCREEN,
+      /<Text accessibilityRole="header" style=\{\[type\.display, \{ color: paper\.ink \}\]\}>\{memoryLabel\(name\)\}<\/Text>/,
+      'the screen spells its own title, or does not announce it as a heading',
+    );
+    assert.match(FLAT, /\{memorySummary\(profile, name\)\}/, 'the screen never says how much the tutor holds');
+    assert.ok(
+      writtenBefore(FLAT, 'memoryLabel(name)', 'memorySummary(profile, name)'),
+      'the summary is drawn above the title it belongs under',
+    );
+    assert.equal(
+      (SCREEN.match(/memorySummary\(/g) ?? []).length,
+      1,
+      'the summary is worked out more than once on the screen, so two lines can answer one question differently',
+    );
+
+    // Every write is a memory.ts door through the context's update.
     for (const door of ['withFactForgotten(profile, fact.en)', 'withMemoryCleared(profile)', 'withLearnerGoal(profile, draft)', 'withoutLearnerGoal(profile, goal)', 'withStrictness(profile, value)']) {
       assert.ok(FLAT.includes(`update(${door})`), `the screen does not write through ${door}`);
     }
@@ -80,18 +142,34 @@ describe('what the tutor remembers, drawn', () => {
     assert.match(FLAT, /\{facts\.length > 0 && \( <View style=\{st\.all\}> <OutlineButton label=\{FORGET_ALL\}/, 'forget everything is offered with nothing to forget');
     assert.match(SCREEN, /maxLength=\{MAX_GOAL_CHARS\}/, 'a goal can outgrow the wire');
     assert.match(SCREEN, /const room = profile\.learnerGoals\.length < MAX_LEARNER_GOALS;/, 'a fourth goal can be typed');
-    assert.match(SCREEN, /accessibilityRole="header"/, 'the title is not a heading to assistive tech');
     assert.doesNotMatch(SCREEN, /<PillButton/, 'a pushed editing screen carries a primary pill');
     assert.match(SCREEN, /\{WHAT_LEAVES\}/, 'the screen does not say what leaves the phone');
     assert.match(SCREEN, /const name = tutorNameOf\(profile\);/, 'the screen names the tutor some other way than the persona');
 
-    // Reachable: a root route with an address, registered like every other.
+    // ────────────────────────────────────────────────────────────── reachable
+    //
+    // A root route with an address, registered like every other, and reached
+    // from row two of the one card on Profile that is about the tutor.
     const types = stripComments(read('../nav/types.ts'));
     assert.match(types, /TutorMemory: undefined;/, 'the route is not declared');
     assert.match(stripComments(read('../nav/theme.ts')), /TutorMemory: 'tutor-memory'/, 'the route has no web address');
     const navigator = stripComments(read('../nav/RootNavigator.tsx'));
     assert.match(navigator, /<Stack\.Screen name="TutorMemory" component=\{TutorMemoryRoute\} \/>/, 'the route is not registered');
     const profile = stripComments(read('../tabs/ProfileTab.tsx'));
-    assert.match(profile, /<FrenchLifeCard \/>\s*<TutorMemoryCard \/>\s*<PlanCard \/>/, 'the French life block does not run week, memory, plan');
+    assert.match(
+      profile,
+      /<Label>\{TUTOR_LABEL\}<\/Label>\s*<TutorMemoryCard onVoice=\{\(\) => setSheet\('tutorVoice'\)\} \/>/,
+      'the tutor card is not the one thing drawn under the tutor heading, or it cannot open the voice sheet',
+    );
+    assert.equal(
+      (profile.match(/<TutorMemoryCard\b/g) ?? []).length,
+      1,
+      'the tutor card is drawn more than once on Profile, so the tutor is introduced twice',
+    );
+
+    // ─────────────────────────────────────────────────────────── the checks bite
+    assert.equal(writtenBefore('b a', 'a', 'b'), false, 'the ordering check passes on the order it exists to catch');
+    assert.equal(writtenBefore('a b', 'a', 'b'), true, 'the shape the card ships does not pass its own check');
+    assert.equal(writtenBefore('a', 'a', 'gone'), false, 'a deleted second needle passes the ordering check');
   });
 });

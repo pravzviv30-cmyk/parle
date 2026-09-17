@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { buildConversationPack, newCard, phraseKeyOf, type ConversationPack, type ReviewCard } from '@luvani/core';
+import { buildConversationPack, dueCards, newCard, phraseKeyOf, type ConversationPack, type ReviewCard } from '@luvani/core';
 
 import { NEXT_STEP, nextStep, packLine, reviewLine } from './nextStep.ts';
+import { starterFrom } from './starter.ts';
 import { guiltIn } from '../copy/guilt.ts';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -47,7 +48,9 @@ describe("The Practice tab's next step — what to do now, decided in one rule",
     const deck = [due('Un café'), due('Une eau')];
     const packs = [pack({ id: 'a', daysAgo: 1 })];
 
-    assert.deepEqual(nextStep(deck, packs, NOW), { kind: 'review', due: 2 });
+    const step = nextStep(deck, packs, NOW);
+    assert.equal(step?.kind, 'review');
+    assert.equal(step?.kind === 'review' ? step.due : null, 2);
   });
 
   test('with a quiet deck the step is the newest conversation nobody has come back to', () => {
@@ -75,7 +78,7 @@ describe("The Practice tab's next step — what to do now, decided in one rule",
   test('the next step is review, a pack, or the first conversation, in that order, and never two at once', () => {
     // Nothing at all: the first conversation is the step (F555), the third
     // branch of the tab's one control rather than a second pill beside it.
-    assert.deepEqual(nextStep([], [], NOW), { kind: 'first' });
+    assert.equal(nextStep([], [], NOW)?.kind, 'first');
     // A due deck still wins, so a learner who finished the lesson and never
     // spoke meets the review pill alone.
     assert.equal(nextStep([due('x')], [], NOW)!.kind, 'review');
@@ -83,6 +86,32 @@ describe("The Practice tab's next step — what to do now, decided in one rule",
     assert.equal(nextStep([], [pack({ id: 's1', daysAgo: 1, practised: true })], NOW), null);
     // A pack still being written is a conversation that happened, not a first one to start.
     assert.equal(nextStep([], [pack({ id: 's1', daysAgo: 1, state: 'generating' })], NOW), null);
+  });
+
+  test('whatever the learner is offered, the card opens on a French line they have already met', () => {
+    // F574: the card is a phrase, not a count, so every branch has to name one.
+    // Where it comes from is this module's decision, and each of the three
+    // sources is something the learner has seen before: their own deck, their
+    // own conversation, or the café lesson everybody starts on.
+    const fromDeck = nextStep([due('Un café s\'il vous plaît')], [], NOW);
+    assert.deepEqual(fromDeck?.phrase, { fr: 'Un café s\'il vous plaît', en: 'x' });
+
+    const fromPack = nextStep([], [pack({ id: 'wifi', daysAgo: 1 })], NOW);
+    assert.deepEqual(fromPack?.phrase, { fr: 'ligne wifi 0', en: 'line 0' });
+
+    const fromStarter = nextStep([], [], NOW);
+    assert.deepEqual(fromStarter?.phrase, starterFrom().phrase);
+    assert.ok((fromStarter?.phrase.fr ?? '').length > 0, 'a learner with no conversation meets a card with no line on it');
+  });
+
+  test('the line on the card is the first card the review sitting will open, not a different one', () => {
+    // The card says one line and the Review button opens a sitting. If the two
+    // disagree, a learner reads a phrase, presses the only control under it and
+    // meets something else, which reads as the app losing their place.
+    const deck = [due('Une eau'), due('Un thé'), due('Un café')];
+    const step = nextStep(deck, [], NOW);
+
+    assert.equal(step?.phrase.fr, dueCards(deck, NOW)[0]?.front, 'the card opens on a line the sitting will not start with');
   });
 
   test('the step counts a card and a phrase, singular at one, and never scolds', () => {

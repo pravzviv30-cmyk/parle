@@ -119,6 +119,13 @@ export type DrillBatch = z.infer<typeof DrillBatchSchema>;
 
 // The whole point of mirroring: a generated exercise IS a core exercise. If
 // core's shapes drift, this line breaks the build instead of the learner.
+//
+// One core kind is deliberately absent from the union above: 'own-words' has no
+// accepted answers and no key, so there is nothing for a generator to author
+// and nothing for the schema to validate. It is built by core's own
+// `ownWordsFrom` from a phrase the learner already met, and judged by a
+// separate call. Adding it here would invite the authoring model to invent a
+// right answer for the one exercise that must not have one.
 const _shapeCheck: DrillExercise[] = [] as z.infer<typeof DrillBatchSchema>['exercises'];
 void _shapeCheck;
 

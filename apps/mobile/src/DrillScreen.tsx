@@ -34,7 +34,10 @@ import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } fr
 import {
   answerCurrent,
   buildDrillSession,
+  decideOwnWords,
   mixQueue,
+  phraseKeyOf,
+  scopedOwnWordsSession,
   suppressMic,
   summariseDrill,
   type AppropriateReplyExercise,
@@ -42,10 +45,11 @@ import {
   type DrillExercise,
   type DrillFeedback,
   type DrillSessionState,
-  type DrillVerdict,
   type FillBlankExercise,
   type ListenTypeExercise,
+  type OwnWordsExercise,
   type RepeatThisExercise,
+  type SettledVerdict,
   type TapTranslateExercise,
   type TranslationExercise,
   drillXp,
@@ -53,10 +57,12 @@ import {
 import { HAIRLINE, HIT, font, paper, radius, signal, space, type } from './theme.ts';
 import { tapSettled } from './motion/haptics.ts';
 import { recordActivity } from './progress/activity.ts';
-import { Card, Label, OptionCard, PillButton, SpeakCircle, ArrowRight, EarGlyph, fitDisplay } from './components.tsx';
+import { Card, GhostButton, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, TintPanel, fitDisplay } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
-import { gradeCards, loadDeck } from './review/store.ts';
-import { NothingDue, RewardMark } from './illustrations.tsx';
+import { Art } from './art/Art.tsx';
+import { SCREEN_ART } from './art/maps.ts';
+import { addPhrases, gradeCards, loadDeck } from './review/store.ts';
+import { RewardMark } from './illustrations.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
 import { MomentCard, type DrillMoment } from './drill/MomentCard.tsx';
 import { loadTopics } from './topics/store.ts';
@@ -64,6 +70,27 @@ import { DRILL_UNREAD, sittingTitle, topicGroups } from './practice/mix.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 import { scoreRecordedAttempt } from './speech/scoreAttempt.ts';
 import { consumeRecording, discardRecording } from './speech/discardRecording.ts';
+import { judgeOwnWords } from './speech/judgeAttempt.ts';
+import { MADE_FROM } from './practice/madeFrom.ts';
+import {
+  JUDGE_UNAVAILABLE,
+  OWN_WORDS_ANOTHER,
+  OWN_WORDS_FIELD_LABEL,
+  OWN_WORDS_HINT,
+  OWN_WORDS_LABEL,
+  OWN_WORDS_PROMPT,
+} from './drill/ownWordsCopy.ts';
+
+/**
+ * The paper under a word the learner is putting into a sentence.
+ *
+ * Named rather than reached for: the house lilac is the one tint a surface may
+ * take when it is not about a place, which is the reading Transcript already
+ * gives it for the learner's own bubble. A chip here holds the learner's own
+ * words a moment before they say them, so it is the same paper for the same
+ * reason, and the hex stays where `palette.test.ts` keeps it.
+ */
+const WORD_TINT = 'lilac';
 
 /** How long a feedback line holds the floor before the next exercise deals. */
 const FEEDBACK_MS = 1600;
@@ -96,6 +123,8 @@ function kindTag(exercise: DrillExercise): string {
       return 'Listen and type';
     case 'repeat-this':
       return 'Say it aloud';
+    case 'own-words':
+      return OWN_WORDS_LABEL;
   }
 }
 
@@ -105,7 +134,7 @@ function kindTag(exercise: DrillExercise): string {
  * same colour for the same reason), and a typo is plain ink — accepted, with
  * the spelling merely kept in view.
  */
-function verdictColor(verdict: DrillVerdict): string {
+function verdictColor(verdict: SettledVerdict): string {
   switch (verdict) {
     case 'good':
       return signal.good;
@@ -129,7 +158,18 @@ function verdictColor(verdict: DrillVerdict): string {
 // Composed here rather than added to components.tsx: OptionCard wants a gloss,
 // and fill-blank options are bare words by authored design.
 
-/** A single-word option, in the option-card anatomy without the gloss line. */
+/**
+ * A single-word option, as a chip on the house lilac.
+ *
+ * It was a full-width row with a chevron, which read as navigation: four doors
+ * stacked down the screen rather than four words to choose between. Revamp A
+ * draws the bare-word options as chips in the tap-translate pool's anatomy,
+ * because they are the same thing — a word you put into a sentence.
+ *
+ * `TintPanel` lays the paper, because a screen names a tint and never a colour
+ * (palette.test.ts), and the press is an opacity step rather than a second
+ * paper: there is exactly one tint under one surface.
+ */
 function WordChoice({ word, onPress, locked }: { word: string; onPress: () => void; locked: boolean }) {
   return (
     <Pressable
@@ -137,10 +177,11 @@ function WordChoice({ word, onPress, locked }: { word: string; onPress: () => vo
       disabled={locked}
       accessibilityRole="button"
       accessibilityLabel={word}
-      style={({ pressed }) => [ds.choice, pressed && ds.choicePressed]}
+      style={({ pressed }) => pressed && ds.chipPressed}
     >
-      <Text style={[type.french, { color: paper.ink, flex: 1 }]}>{word}</Text>
-      <ArrowRight size={18} color={paper.inkFaint} />
+      <TintPanel tint={WORD_TINT} style={ds.choice}>
+        <Text style={[type.french, { color: paper.ink }]}>{word}</Text>
+      </TintPanel>
     </Pressable>
   );
 }
@@ -225,7 +266,7 @@ function FillBlankView({
         <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2.5) }]}>{exercise.en}</Text>
       </Card>
       {exercise.options ? (
-        <View style={{ gap: space(2.5) }}>
+        <View style={ds.tokenPool}>
           {exercise.options.map((option) => (
             <WordChoice key={option} word={option} onPress={() => onAnswer(option)} locked={locked} />
           ))}
@@ -365,9 +406,11 @@ function TapTranslateView({
               accessibilityRole="button"
               accessibilityLabel={`Add ${token}`}
               accessibilityState={{ disabled: used }}
-              style={({ pressed }) => [ds.token, used && ds.tokenUsed, pressed && !used && ds.choicePressed]}
+              style={({ pressed }) => pressed && !used && ds.chipPressed}
             >
-              <Text style={[type.french, { color: used ? paper.inkFaint : paper.ink }]}>{token}</Text>
+              <TintPanel tint={WORD_TINT} style={[ds.token, used && ds.tokenUsed]}>
+                <Text style={[type.french, { color: used ? paper.inkFaint : paper.ink }]}>{token}</Text>
+              </TintPanel>
             </Pressable>
           );
         })}
@@ -600,6 +643,121 @@ function RepeatThisView({
   );
 }
 
+/**
+ * What one own-words attempt came back with.
+ *
+ * Held as a value rather than as the timed feedback beat every other kind
+ * uses, because there is more to read here than a word: a second way to say
+ * it, or the judge's own sentence, or the line itself when nobody could read
+ * the attempt. A 1.6 second beat would take all three away mid-sentence.
+ */
+interface OwnWordsOutcome {
+  /** The exercise it belongs to, so the card survives the sitting finishing. */
+  exercise: OwnWordsExercise;
+  /** Core's settled verdict, or null when nobody judged it and nothing moved. */
+  verdict: SettledVerdict | null;
+  /** Core's own feedback line, or the line that says the tutor is unreachable. */
+  message: string;
+  /** The judge's sentence, before a second go. */
+  note: string | null;
+  /** A better way, offered after a success and never instead of one. */
+  another: string | null;
+  /** The taught line, when the attempt is let go or nobody could read it. */
+  reveal: string | null;
+  /** They said it their own way: offer to keep the phrase. */
+  keep: boolean;
+}
+
+/**
+ * Say it your own way.
+ *
+ * The one drill kind with no right string. The situation sets the scene, the
+ * English says what has to get across, and the field takes whatever French the
+ * learner has. Nothing here listens: there is no microphone on this card and
+ * no recording leaves this screen, because reading a paraphrase is a text job
+ * and a spoken one would be a claim about pronunciation nobody has earned.
+ *
+ * It borrows `TypedAnswer` rather than growing a field of its own, which is
+ * also what keeps the drill's Check at exactly two shared pills.
+ */
+function OwnWordsView({
+  exercise,
+  typed,
+  onChange,
+  onCheck,
+  busy,
+  outcome,
+  onKeep,
+  keeping,
+  kept,
+}: {
+  exercise: OwnWordsExercise;
+  typed: string;
+  onChange: (t: string) => void;
+  onCheck: () => void;
+  /** A judge is reading it. The field and the pill are off until it answers. */
+  busy: boolean;
+  outcome: OwnWordsOutcome | null;
+  onKeep: () => void;
+  keeping: boolean;
+  kept: boolean;
+}) {
+  return (
+    <View style={{ gap: space(4) }}>
+      <Card>
+        <Label>{kindTag(exercise)}</Label>
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{exercise.situation}</Text>
+        <Text style={[type.body, { color: paper.ink, marginTop: space(2) }]}>{exercise.en}</Text>
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{OWN_WORDS_HINT}</Text>
+      </Card>
+      <TypedAnswer
+        typed={typed}
+        onChange={onChange}
+        onSubmit={onCheck}
+        locked={busy}
+        placeholder={OWN_WORDS_PROMPT}
+        accessibilityLabel={OWN_WORDS_FIELD_LABEL}
+      />
+      {busy && <ActivityIndicator color={paper.inkSoft} />}
+      {outcome !== null && (
+        <Card style={ds.outcome}>
+          <View style={ds.outcomeRow}>
+            {/* Same rule as the feedback beat: no mark on a miss. A drawing
+                scolds louder than a word, and this card is read for longer. */}
+            {outcome.verdict !== null && outcome.verdict !== 'miss' && (
+              <RewardMark size={26} kind={outcome.verdict} />
+            )}
+            <Text
+              style={[
+                type.bodyStrong,
+                { color: outcome.verdict === null ? paper.ink : verdictColor(outcome.verdict), flex: 1 },
+              ]}
+            >
+              {outcome.message}
+            </Text>
+          </View>
+          {outcome.note !== null && <Text style={[type.body, { color: paper.ink }]}>{outcome.note}</Text>}
+          {outcome.another !== null && (
+            <Text style={[type.body, { color: paper.ink }]}>{OWN_WORDS_ANOTHER(outcome.another)}</Text>
+          )}
+          {outcome.reveal !== null && <Text style={[type.french, { color: paper.ink }]}>{outcome.reveal}</Text>}
+          {outcome.keep &&
+            (kept ? (
+              <Text style={[type.small, { color: paper.inkSoft }]}>{MADE_FROM.phrase.saved}</Text>
+            ) : (
+              <GhostButton
+                label={MADE_FROM.phrase.save}
+                color={paper.ink}
+                disabled={keeping}
+                onPress={onKeep}
+              />
+            ))}
+        </Card>
+      )}
+    </View>
+  );
+}
+
 // ───────────────────────────────────────────────────────────────── the screen
 
 export function DrillScreen({
@@ -620,7 +778,18 @@ export function DrillScreen({
    * One node of the practice path. Omitted, the whole deck plays, which is
    * what "Start practice" has always done and still does.
    */
-  node?: { id: string; title: string; phraseKeys: readonly string[]; moment?: DrillMoment };
+  node?: {
+    id: string;
+    title: string;
+    phraseKeys: readonly string[];
+    moment?: DrillMoment;
+    /**
+     * Ask for the phrase in the learner's own words instead of dealing the
+     * bank. Authored here rather than generated: this kind has no right
+     * string, so there is nothing for the generator to have written down.
+     */
+    ownWords?: { fr: string; en: string; situation: string };
+  };
   /**
    * Today's mix: the same unscoped sitting, reordered so it moves between
    * topics instead of playing one conversation's worth and then the next.
@@ -653,12 +822,32 @@ export function DrillScreen({
   const [typed, setTyped] = useState('');
   const [assembled, setAssembled] = useState<number[]>([]);
 
+  // The own-words side of the sitting: what a judge said about the last
+  // attempt, whether one is being read right now, and whether the phrase has
+  // been kept. Separate from `feedback` because this card is read, not flashed.
+  const [ownWords, setOwnWords] = useState<OwnWordsOutcome | null>(null);
+  const [judging, setJudging] = useState(false);
+  const [keeping, setKeeping] = useState(false);
+  const [kept, setKept] = useState(false);
+
   // The sitting could not be read. Told, rather than shown as a spinner that
   // never resolves.
   const [unread, setUnread] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    const asked = node?.ownWords;
+    if (node !== undefined && asked !== undefined) {
+      // One exercise, authored on the spot from the phrase the row carried.
+      // No deck read and no bank read: an own-words sitting asks for something
+      // the learner has never been drilled on, so there is nothing to look up.
+      const key = node.phraseKeys[0] ?? phraseKeyOf(asked.fr);
+      setSession(scopedOwnWordsSession({ fr: asked.fr, en: asked.en, key }, asked.situation, Date.now()));
+      return () => {
+        cancelled = true;
+        tutorVoice.stop();
+      };
+    }
     // Topics are read only for the mix: they are the lanes the round robin runs
     // over, and an ordinary sitting has no use for them.
     const topicsSoon = mix ? loadTopics() : Promise.resolve([]);
@@ -764,6 +953,81 @@ export function DrillScreen({
     [session, feedback, answer, userId],
   );
 
+  /**
+   * Check one own-words attempt.
+   *
+   * The only place in this screen where an outcome comes from outside, and the
+   * three rules that make that safe are all here.
+   *
+   * The judge is asked exactly once per Check: `judging` closes the door for
+   * the round trip, so a double tap, a return key and a tapped pill together
+   * are still one call and one grade.
+   *
+   * A null verdict is the tutor being unreachable, never a miss. Nothing is
+   * handed to `answerCurrent`, so the queue does not move, nothing is recorded
+   * as answered, and the summary this screen persists has nothing in it. The
+   * learner is shown the line and leaves with their card exactly as it was.
+   *
+   * And the attempt itself goes no further than the request. It is not put in
+   * state that outlives the beat, not written to the deck, and not carried
+   * into the summary: core records an id, a phrase key and an outcome.
+   */
+  const checkOwnWords = useCallback(() => {
+    if (!session || session.finished || judging) return;
+    const current = session.queue[0];
+    if (!current || current.kind !== 'own-words') return;
+    const attempt = typed.trim();
+    if (attempt === '') return;
+    setJudging(true);
+    void judgeOwnWords(userId, current, attempt).then((verdict) => {
+      setJudging(false);
+      if (verdict === null) {
+        setOwnWords({
+          exercise: current,
+          verdict: null,
+          message: JUDGE_UNAVAILABLE,
+          note: null,
+          another: null,
+          reveal: current.fr,
+          keep: false,
+        });
+        return;
+      }
+      // The model observed; this decides. `decideOwnWords` is core's, and the
+      // miss count it reads is the same one every other kind is bounded by.
+      const decided = decideOwnWords(verdict, session.missesById[current.id] ?? 0);
+      const { state: next, feedback: fb } = answerCurrent(session, attempt, decided);
+      if (!fb) return;
+      setOwnWords({
+        exercise: current,
+        verdict: fb.verdict,
+        message: fb.message,
+        note: decided === 'retry' ? verdict.note : null,
+        another: decided === 'good' ? verdict.betterLine : null,
+        reveal: decided === 'reveal' ? current.fr : null,
+        keep: decided === 'good',
+      });
+      setTyped('');
+      if (next.finished) persistGrades(next);
+      setSession(next);
+    });
+  }, [session, judging, typed, userId, persistGrades]);
+
+  /** Keep the phrase they just said their own way. The one write this card makes. */
+  const keepPhrase = useCallback(
+    (exercise: OwnWordsExercise) => {
+      if (keeping || kept) return;
+      setKeeping(true);
+      void addPhrases([
+        { fr: exercise.fr, frWritten: null, en: exercise.en, enLiteral: null, register: 'courant', note: null },
+      ])
+        .then(() => setKept(true))
+        .catch(() => undefined)
+        .finally(() => setKeeping(false));
+    },
+    [keeping, kept],
+  );
+
   // The feedback beat: hold the line, then deal the next exercise. A missed
   // exercise is already at the back of the queue and comes around unannounced.
   // A focus line landing mid-beat restarts the clock, so the one sentence the
@@ -823,6 +1087,22 @@ export function DrillScreen({
   // on a screen headed "Drills" would have no way to tell the two apart.
   const heading = sittingTitle({ mix });
 
+  // A sitting is an offer, not an obligation. Leaving persists what was
+  // answered; the rest simply stays due. Never a count up here. Built once
+  // and used by both branches below, because a pushed screen shows exactly
+  // one way back and it is this one.
+  const header = <ScreenHeader leave={{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' }} />;
+
+  /**
+   * An own-words sitting that has been answered, still holding its outcome.
+   *
+   * It is drawn instead of the end card, and that is the point: a card of
+   * counts would take away the better way to say it a second after it arrived,
+   * and counts are not what this kind proves anyway. The way out is the
+   * header's Leave, which persists the grade exactly as finishing does.
+   */
+  const holding = session !== null && session.finished && ownWords !== null ? ownWords : null;
+
   if (unread) {
     return (
       <ScrollScreen center footer={<PillButton label="Done" onPress={finishAndLeave} />}>
@@ -844,18 +1124,35 @@ export function DrillScreen({
     );
   }
 
+  if (holding !== null) {
+    return (
+      <ScrollScreen avoidKeyboard center header={header}>
+        <OwnWordsView
+          exercise={holding.exercise}
+          typed={typed}
+          onChange={setTyped}
+          onCheck={checkOwnWords}
+          busy={judging}
+          outcome={holding}
+          onKeep={() => keepPhrase(holding.exercise)}
+          keeping={keeping}
+          kept={kept}
+        />
+      </ScrollScreen>
+    );
+  }
+
   // Built empty: nothing due right now. One calm card and the way out. A
   // terminal card, so Done is its one door and it carries no back header.
   if (session.finished && session.answered.length === 0) {
     return (
       <ScrollScreen center footer={<PillButton label="Done" onPress={finishAndLeave} />}>
         {/* An empty bank is the good outcome, not a dead end, so it gets the
-            cleared table — the same scene, width and spacing the review deck
-            uses, because these two screens say the same thing. No `paused`:
-            this is a stack route above the tabs with nothing pushed over it,
-            so unlike a tab it is either focused or unmounted. */}
+            cleared table — the same scene and spacing the review deck uses,
+            because these two screens say the same thing. The size is the art
+            registry's, never a width written here. */}
         <View style={{ alignItems: 'center', marginBottom: space(5) }}>
-          <NothingDue width={190} />
+          <Art name={SCREEN_ART.emptyDeck} />
         </View>
         <Card>
           <Text style={[type.title, { color: paper.ink }]}>Nothing to review.</Text>
@@ -912,9 +1209,7 @@ export function DrillScreen({
     <ScrollScreen
       avoidKeyboard
       center
-      // A sitting is an offer, not an obligation. Leaving persists what was
-      // answered; the rest simply stays due. Never a count up here.
-      header={<ScreenHeader leave={{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' }} />}
+      header={header}
       footer={
         // Reserved height, so the card never jumps when a line arrives.
         <View style={ds.feedbackArea}>
@@ -967,6 +1262,19 @@ export function DrillScreen({
       {exercise.kind === 'repeat-this' && (
         <RepeatThisView exercise={exercise} onAnswer={answer} onSpoke={spoke} onNoMic={goSilent} locked={locked} />
       )}
+      {exercise.kind === 'own-words' && (
+        <OwnWordsView
+          exercise={exercise}
+          typed={typed}
+          onChange={setTyped}
+          onCheck={checkOwnWords}
+          busy={judging}
+          outcome={ownWords}
+          onKeep={() => keepPhrase(exercise)}
+          keeping={keeping}
+          kept={kept}
+        />
+      )}
     </ScrollScreen>
   );
 }
@@ -979,20 +1287,23 @@ const ds = StyleSheet.create({
   // The exercise card: the SessionView main-card anatomy, content centred.
   exCard: { alignItems: 'center' },
 
-  // The option-card anatomy, for choices that are bare words.
+  // The chip anatomy, for choices that are bare words. The paper comes from
+  // TintPanel, so nothing here names a colour.
   choice: {
-    minHeight: HIT + 12,
-    flexDirection: 'row',
+    minHeight: HIT,
     alignItems: 'center',
-    gap: space(3),
-    backgroundColor: paper.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-    borderRadius: radius.card,
-    paddingVertical: space(3),
-    paddingHorizontal: space(4),
+    justifyContent: 'center',
+    borderRadius: radius.chip,
+    paddingVertical: space(2),
+    paddingHorizontal: space(3.5),
   },
-  choicePressed: { backgroundColor: paper.groundDeep },
+  chipPressed: { opacity: 0.6 },
+
+  // The own-words outcome: the verdict beside its mark, then whatever the
+  // judge gave the learner to read. It is a card rather than a timed line
+  // because a better way to say something is worth more than 1.6 seconds.
+  outcome: { gap: space(2.5) },
+  outcomeRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
 
   // The paper text field, in the Field anatomy. Type styles from the theme,
   // minus lineHeight, which clips single-line TextInputs on iOS.
@@ -1038,9 +1349,6 @@ const ds = StyleSheet.create({
     minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: paper.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
     borderRadius: radius.chip,
     paddingVertical: space(2),
     paddingHorizontal: space(3),

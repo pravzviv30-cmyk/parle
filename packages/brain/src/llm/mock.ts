@@ -17,6 +17,7 @@ import {
   type BrainDrillsRequest,
   type BrainExtractRequest,
   type BrainFrameRequest,
+  type BrainJudgeRequest,
   type BrainTurnRequest,
   type LlmClient,
   type LlmUsage,
@@ -35,17 +36,37 @@ const NO_MEMORY: MemoryExtraction = { facts: [], openerFr: null, openerEn: null 
 /** The honest empty answer: a mock has no opinion on what was worth keeping. */
 const NO_CURATION: Curation = { topics: [] };
 
+/**
+ * The scripted verdict.
+ *
+ * It says the meaning survived and offers no better line, because the offline
+ * brain must never be the thing that tells a learner their French was poor.
+ * The note is empty for the same reason a mock turn has no coach line: a fixed
+ * sentence about somebody's French, repeated on every rep, is worse than
+ * silence. It satisfies `OwnWordsVerdictSchema` exactly, so a test can send it
+ * through `parseOwnWordsVerdict` untouched.
+ */
+const KIND_VERDICT = {
+  meaningKept: true,
+  comprehensible: true,
+  natural: 'yes',
+  betterLine: null,
+  note: '',
+} as const;
+
 export class MockLlmClient implements LlmClient {
   readonly turnRequests: BrainTurnRequest[] = [];
   readonly frameRequests: BrainFrameRequest[] = [];
   readonly extractRequests: BrainExtractRequest[] = [];
   readonly drillsRequests: BrainDrillsRequest[] = [];
   readonly curateRequests: BrainCurateRequest[] = [];
+  readonly judgeRequests: BrainJudgeRequest[] = [];
   private readonly turns: TutorTurn[];
   private readonly frames: ScenarioFrame[];
   private readonly extractions: MemoryExtraction[];
   private readonly drillBatches: DrillBatch[];
   private readonly curations: Curation[];
+  private readonly verdicts: unknown[];
 
   constructor(
     script: {
@@ -54,6 +75,7 @@ export class MockLlmClient implements LlmClient {
       extractions?: MemoryExtraction[];
       drillBatches?: DrillBatch[];
       curations?: Curation[];
+      verdicts?: unknown[];
     } = {},
   ) {
     this.turns = [...(script.turns ?? [])];
@@ -61,6 +83,7 @@ export class MockLlmClient implements LlmClient {
     this.extractions = [...(script.extractions ?? [])];
     this.drillBatches = [...(script.drillBatches ?? [])];
     this.curations = [...(script.curations ?? [])];
+    this.verdicts = [...(script.verdicts ?? [])];
   }
 
   async turn(request: BrainTurnRequest): Promise<{ turn: TutorTurn; usage: LlmUsage }> {
@@ -86,5 +109,11 @@ export class MockLlmClient implements LlmClient {
   async curate(request: BrainCurateRequest): Promise<{ curation: Curation; usage: LlmUsage }> {
     this.curateRequests.push(request);
     return { curation: this.curations.shift() ?? NO_CURATION, usage: ZERO_USAGE };
+  }
+
+  async judge(request: BrainJudgeRequest): Promise<{ verdict: unknown; usage: LlmUsage }> {
+    this.judgeRequests.push(request);
+    const next = this.verdicts.length > 0 ? this.verdicts.shift() : KIND_VERDICT;
+    return { verdict: next, usage: ZERO_USAGE };
   }
 }

@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 
 import { GhostButton, PillButton } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
+
 import { purchases, type StoreOffering } from './adapter.ts';
 import {
   PURCHASE_READY,
@@ -50,14 +51,16 @@ export function Paywall({ userId }: { userId: string }) {
     setMessage(done ? PURCHASE_READY : restoreTrouble(outcome));
   };
 
+  // Left, not centred, since revamp A: this block sits inside the white card the
+  // out-of-minutes branch draws, and everything else in that card reads from its
+  // left edge. Every word below is the store's own, unchanged; the title is the
+  // card's headline now, in the bold serif the mockup gives a card that leads.
   return (
-    <View style={{ marginTop: space(6), width: '100%' }}>
-      <Text style={[type.bodyStrong, { color: paper.ink, textAlign: 'center' }]}>{surface.title}</Text>
-      <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2) }]}>
-        {surface.body}
-      </Text>
+    <View style={{ marginTop: space(4), width: '100%' }}>
+      <Text style={[type.cardTitle, { color: paper.ink }]}>{surface.title}</Text>
+      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{surface.body}</Text>
       {message ? (
-        <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink, textAlign: 'center', marginTop: space(3) }]}>
+        <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink, marginTop: space(3) }]}>
           {message}
         </Text>
       ) : null}

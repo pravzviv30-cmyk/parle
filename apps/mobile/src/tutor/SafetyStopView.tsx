@@ -19,9 +19,9 @@
 
 import { useEffect } from 'react';
 import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
-import { paper, space, type, radius, HAIRLINE } from '../theme.ts';
+import { paper, space, type } from '../theme.ts';
 import { ScrollScreen } from '../layout.tsx';
-import { GhostButton, PillButton } from '../components.tsx';
+import { Card, GhostButton, PillButton } from '../components.tsx';
 import type { SafetySurface } from './safetyView.ts';
 
 /**
@@ -114,7 +114,7 @@ export function SafetyBanner({
   useAnnounced(surface.announce, surface.politeness);
 
   return (
-    <View style={st.banner}>
+    <Card style={st.banner}>
       {/* The words and the way past them are siblings, not nested. A container
           that carries the label and the button together reads as one object on
           the web, and the button a learner has to find goes with it. */}
@@ -128,22 +128,17 @@ export function SafetyBanner({
       <View style={st.bannerAction}>
         <GhostButton label={surface.buttonLabel} onPress={onDismiss} color={paper.ink} />
       </View>
-    </View>
+    </Card>
   );
 }
 
 const st = StyleSheet.create({
   body: { paddingHorizontal: space(8), paddingVertical: space(4) },
   action: { marginTop: space(8), alignSelf: 'stretch' },
-  banner: {
-    backgroundColor: paper.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-    borderRadius: radius.card,
-    paddingHorizontal: space(4),
-    paddingTop: space(3),
-    paddingBottom: space(1),
-    marginBottom: space(3),
-  },
+  // The shared card since revamp A: the same white, the same corners and the
+  // same one whisper every other card in the app wears, rather than a hand
+  // rolled copy of them that could drift. It pays its own bottom pad down,
+  // because the ghost under it already carries a touch floor of air.
+  banner: { paddingHorizontal: space(4), paddingTop: space(3), paddingBottom: space(1), marginBottom: space(3) },
   bannerAction: { alignSelf: 'flex-end' },
 });

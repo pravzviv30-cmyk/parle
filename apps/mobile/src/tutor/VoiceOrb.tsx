@@ -50,8 +50,21 @@ const WAVE_TRAVEL = 0.18;
 interface Look {
   /** The one colour the whole orb is built from. */
   colour: string;
-  /** Whether a voice is in the room, and the lines are drawn either side. */
-  waves: boolean;
+  /**
+   * The soundwave lines either side of the ball, in three settings.
+   *
+   * Drawn and moving is a voice in the room. Drawn and still is the shape of
+   * the orb: the founder's mockup has the lines beside the circle on the Tutor
+   * tab before anybody has tapped it, and hiding them until a conversation
+   * starts made the untapped control a bare disc that did not look like the
+   * thing in the drawing. Absent is for the two states where the ball is the
+   * whole message and a line either side would be a voice that is not there.
+   *
+   * Two settings rather than one boolean because the second driver is the cost:
+   * it runs only for `moving`, so a still pair of lines is a picture and not a
+   * native loop.
+   */
+  waves: 'none' | 'still' | 'moving';
   /** How far the ball travels from rest, as a scale delta. */
   amplitude: number;
   /** One breath, in milliseconds. */
@@ -79,7 +92,7 @@ const LOOKS: Record<OrbState, Look> = {
     // was paper.line — the hairline token — which made the thing a learner has
     // to press the faintest object in the app.
     colour: orb.ready,
-    waves: false,
+    waves: 'still',
     amplitude: 0.04,
     period: 2600,
     shimmer: false,
@@ -88,7 +101,7 @@ const LOOKS: Record<OrbState, Look> = {
   },
   idle: {
     colour: paper.line,
-    waves: false,
+    waves: 'still',
     amplitude: 0.03,
     period: 3400,
     shimmer: false,
@@ -97,7 +110,7 @@ const LOOKS: Record<OrbState, Look> = {
   },
   speaking: {
     colour: orb.speaking,
-    waves: true,
+    waves: 'moving',
     amplitude: 0.08,
     period: 900,
     shimmer: false,
@@ -106,7 +119,7 @@ const LOOKS: Record<OrbState, Look> = {
   },
   listening: {
     colour: orb.yourTurn,
-    waves: true,
+    waves: 'moving',
     amplitude: 0.05,
     period: 1600,
     shimmer: false,
@@ -115,7 +128,7 @@ const LOOKS: Record<OrbState, Look> = {
   },
   thinking: {
     colour: orb.thinking,
-    waves: false,
+    waves: 'none',
     amplitude: 0,
     period: 1400,
     shimmer: true,
@@ -124,7 +137,7 @@ const LOOKS: Record<OrbState, Look> = {
   },
   error: {
     colour: paper.line,
-    waves: false,
+    waves: 'none',
     amplitude: 0,
     period: 0,
     shimmer: false,
@@ -205,9 +218,14 @@ export function VoiceOrb({
       }
 
       dim.setValue(1);
-      // A state with no lines drawn has nothing for the second driver to move,
-      // and a loop nothing is bound to is native work for no picture.
-      const moving = look.waves ? drivers : drivers.slice(0, 1);
+      // Lines that are drawn and still are parked at their rest frame first.
+      // The drivers start at 0 and the stretch reads 0.82 there, so a pair of
+      // lines left unstarted would sit permanently squashed rather than at
+      // full height.
+      if (look.waves !== 'moving') drivers[1]!.setValue(0.5);
+      // A state whose lines do not move has nothing for the second driver to
+      // do, and a loop nothing is bound to is native work for no picture.
+      const moving = look.waves === 'moving' ? drivers : drivers.slice(0, 1);
       moving.forEach((d, i) => {
         const loop = Animated.loop(
           Animated.sequence([
@@ -264,7 +282,7 @@ export function VoiceOrb({
         ? { accessibilityRole: 'image' as const, accessibilityLabel: `Tutor: ${look.caption || 'stopped'}` }
         : decorative)}
     >
-      {look.waves ? (
+      {look.waves !== 'none' ? (
         // Each strip shows its own side of the wide drawing and clips the rest,
         // which is what lets the lines stretch on their own while the ball
         // breathes at its own rate. Scaling a clipped strip moves only what is

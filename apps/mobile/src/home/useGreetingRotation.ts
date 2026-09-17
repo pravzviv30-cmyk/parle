@@ -41,6 +41,7 @@ import {
   greetingLead,
   greetingPool,
   greetingRest,
+  greetingSubline,
 } from './greeting.ts';
 
 export interface GreetingRotation {
@@ -52,6 +53,12 @@ export interface GreetingRotation {
   rest: string;
   /** Hand to `TabHeader`'s `titleSwap`. Null when nothing may move. */
   swap: TitleSwap | null;
+  /**
+   * The hour's question, for `TabHeader`'s `purpose`. Still: it is the one
+   * line on Home that says what the screen is for, and a line that changed
+   * every few seconds would be unreadable.
+   */
+  subline: string;
 }
 
 export function useGreetingRotation(args: {
@@ -163,11 +170,12 @@ export function useGreetingRotation(args: {
 
   return {
     rest: greetingRest(firstName, clock),
+    subline: greetingSubline(clock),
     swap: reduced
       ? null
       : {
-          word: greetingLead(wordAt(index), firstName),
-          next: greetingLead(wordAt(index + 1), firstName),
+          word: greetingLead(wordAt(index)),
+          next: greetingLead(wordAt(index + 1)),
           rest: firstNameOf(firstName),
           progress,
         },

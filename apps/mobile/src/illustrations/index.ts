@@ -13,7 +13,7 @@ export { useSceneMotion, arriveStyle } from './useSceneMotion.ts';
 export type { SceneMotion, LoopSpec } from './useSceneMotion.ts';
 export { unit, place, frameHeight, restFor } from './timing.ts';
 
-// Six of the eight that were already drawn. Three of the six move.
+// Two of the eight that were already drawn. Both of them move.
 //
 // The missing two left the barrel when Phase 3 collapsed the first run, and
 // both for the same reason: the only screen that drew them is gone.
@@ -24,23 +24,32 @@ export { unit, place, frameHeight, restFor } from './timing.ts';
 // that something renders what it carries, and neither of these had a caller
 // left. J14 in surfaceContract.test.ts is what noticed, and it is what will
 // notice the next one.
-export { HeroCafe } from './scenes/cafe.tsx';
+// Revamp A retired nine more, and for the opposite reason to the two above:
+// not a screen that left, but a drawing that was replaced. `RecapPostcard`,
+// `OnboardCake`, `NothingDue` and the `Phrasebook` room are watercolour PNGs
+// now, registered in `art/registry.ts` as `recap-postcard`, `onboard-cake`,
+// `empty-table` and `phrasebook` and drawn through `art/Art.tsx`. Their scene
+// files went with them, because a vector kept beside the raster that replaced
+// it is the next person's coin toss. J14 is what noticed all four.
+//
+// The five place drawings went the same way and one step later. `HeroCafe`,
+// `StreetCorner`, `MarketStall`, `FrontDesk` and `EveningIn` reached a screen
+// only through `missions/MissionArt.tsx`, which `missions/MissionDisc.tsx` was
+// the only caller of, and which nothing rendered once the chooser and the rows
+// took `heroArt` and `PlaceGlyph`. Two levels of indirection is exactly how a
+// drawing keeps looking alive to a walk over source while no learner has seen
+// it for a pass, so the two components went with the scenes. `SpeakBubbles`
+// stays: the tutor intro draws it.
 export { SpeakBubbles } from './scenes/bubbles.tsx';
-export { RecapPostcard } from './scenes/postcard.tsx';
 // `OnboardClock` left with the goal sheet it headed, the same way as the two
 // above: F368 put the daily goal on the Profile row itself, so nothing draws it.
-export { OnboardWave, OnboardCake } from './scenes/onboarding.tsx';
+export { OnboardWave } from './scenes/onboarding.tsx';
 
-// The six new ones: three empty states, two moments, two rooms.
-export { NothingDue, NobodyYet, StillWriting } from './scenes/empty.tsx';
+// The empty states and the tick.
+export { NobodyYet, StillWriting } from './scenes/empty.tsx';
 export { RewardMark } from './scenes/reward.tsx';
-export { Phrasebook } from './scenes/rooms.tsx';
 
-// Four places, one per mission that did not already have a drawing. The cafe
-// keeps HeroCafe and the evening with friends keeps SpeakBubbles.
-export { StreetCorner, MarketStall, FrontDesk, EveningIn } from './scenes/missions.tsx';
-
-// The word of the day. Drawn by `home/WordOfDayCard.tsx`, and nowhere else:
+// The word of the day. Drawn by `progress/WordOfDayCard.tsx`, and nowhere else:
 // the seedling is that card's picture, not a general-purpose growth mark.
 export { WordSprout } from './scenes/sprout.tsx';
 

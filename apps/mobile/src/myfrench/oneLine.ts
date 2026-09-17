@@ -75,6 +75,17 @@ export const CLOSING_LINE = 'Kept. That is the whole visit.';
 /** The caps micro-label above the card. */
 export const ONE_LINE_LABEL = 'One line, right now';
 
+/**
+ * The typed way in.
+ *
+ * The card offers both ways the sitting offers, because a learner on a train
+ * cannot say it out loud and a learner cooking cannot type. `CHECK` is the same
+ * word the drills use for the same act: land what you have and see the line.
+ */
+export const TYPE_PROMPT = 'Say it in French';
+export const TYPE_LABEL = 'Your answer in French';
+export const CHECK = 'Check';
+
 export type OneLineTier = 'firstReturn' | 'used' | 'due' | 'settled';
 
 export interface OneLine {

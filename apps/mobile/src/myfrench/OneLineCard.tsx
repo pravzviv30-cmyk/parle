@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Card, GhostButton, Label, OutlineButton, PillButton } from '../components.tsx';
-import { paper, space, type } from '../theme.ts';
-import { CARD_START, SAID_IT, cardView, type ReviewTurn } from '../review/cardView.ts';
+import { HAIRLINE, HIT, font, paper, radius, space, type } from '../theme.ts';
+import { CARD_START, SAID_IT, cardView, typedAttemptReady, type ReviewTurn } from '../review/cardView.ts';
 import { gradeCard } from '../review/store.ts';
-import { CLOSING_LINE, GRADE_LABELS, ONE_LINE_LABEL, type OneLine } from './oneLine.ts';
+import { CHECK, CLOSING_LINE, GRADE_LABELS, ONE_LINE_LABEL, TYPE_LABEL, TYPE_PROMPT, type OneLine } from './oneLine.ts';
 import { LEDGER } from './ledger.ts';
 
 /**
@@ -27,13 +27,14 @@ import { LEDGER } from './ledger.ts';
  * freezes it: a card must not change its mind about being due while the learner
  * is looking at it.
  *
- * ## No keyboard, and no microphone
+ * ## Two ways to answer, and no microphone
  *
- * ReviewScreen offers a text field beside "I said it" because a sitting is
- * long enough to type into. This is not, so there is one affordance. The
- * invariant that a learner is never forced to speak aloud is already kept by
- * the ask itself, which says out loud or in your head, and nothing here
- * records, listens or scores.
+ * Revamp A gave the card the field the sitting has. Both ways are on screen at
+ * once and neither is the right one: typing suits a quiet carriage, saying it
+ * suits a kitchen, and "I said it" is taken on trust because the alternative is
+ * a microphone this page is never going to grow. Both land the same attempt
+ * through `cardView`, so the reveal gate is identical either way and nothing
+ * here records, listens or scores.
  */
 export function OneLineCard({ line, onGraded }: { line: OneLine; onGraded: () => void }) {
   const dealtAt = useRef(Date.now());
@@ -75,7 +76,27 @@ export function OneLineCard({ line, onGraded }: { line: OneLine; onGraded: () =>
       )}
 
       {asks && (
-        <View style={{ marginTop: space(4) }}>
+        <View style={st.attempt}>
+          <TextInput
+            value={turn.typed}
+            onChangeText={(typed) => setTurn((t) => ({ ...t, typed }))}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            returnKeyType="done"
+            onSubmitEditing={() => {
+              if (typedAttemptReady(turn.typed)) setTurn((t) => ({ ...t, attempt: 'typed' }));
+            }}
+            placeholder={TYPE_PROMPT}
+            placeholderTextColor={paper.inkFaint}
+            accessibilityLabel={TYPE_LABEL}
+            style={[st.input, { fontFamily: font.sans, fontSize: type.body.fontSize }]}
+          />
+          <OutlineButton
+            label={CHECK}
+            disabled={!typedAttemptReady(turn.typed)}
+            onPress={() => setTurn((t) => ({ ...t, attempt: 'typed' }))}
+          />
           <PillButton label={SAID_IT} onPress={() => setTurn((t) => ({ ...t, attempt: 'said' }))} />
         </View>
       )}
@@ -109,6 +130,21 @@ export function OneLineCard({ line, onGraded }: { line: OneLine; onGraded: () =>
 
 const st = StyleSheet.create({
   answer: { marginTop: space(3), gap: space(1) },
+  // The two ways to answer, stacked: the field and its outline, then the word.
+  attempt: { marginTop: space(4), gap: space(2.5) },
+  // The paper text field, in the Field anatomy the drills and the deck use.
+  // Type styles from the theme, minus lineHeight, which clips a single-line
+  // TextInput on iOS.
+  input: {
+    minHeight: HIT + 8,
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    borderRadius: radius.input,
+    paddingHorizontal: space(4),
+    paddingVertical: space(3),
+    color: paper.ink,
+  },
   // The two grade controls, stacked rather than in a row: "That was it" is a
   // sentence and a row of two sentences wraps into nonsense at the largest
   // reading size, which is the defect F383 already found on this tab.

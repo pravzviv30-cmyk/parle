@@ -58,7 +58,18 @@ export type RootStackParamList = {
    * topics rather than played in due order, which is one topic at a time.
    */
   Drill:
-    | { node?: { id: string; title: string; phraseKeys: readonly string[]; moment?: { quote: string; better: string; why: string } }; mix?: boolean }
+    | {
+        node?: { id: string; title: string; phraseKeys: readonly string[]; moment?: { quote: string; better: string; why: string } };
+        mix?: boolean;
+        /**
+         * One phrase to say again in the learner's own French, and the
+         * situation it belongs to. Three plain strings, so the sitting can be
+         * asked for from Practice without anything non-serialisable going into
+         * navigation state, and a build that does not know the phrase simply
+         * opens the ordinary deck.
+         */
+        ownWords?: { fr: string; en: string; situation: string };
+      }
     | undefined;
   Review: undefined;
   /** A known-reference pronunciation check after a completed situation. */
@@ -109,4 +120,31 @@ export type RootStackParamList = {
    * and a goal written. No params: it reads and writes the live profile.
    */
   TutorMemory: undefined;
+  /**
+   * Real progress: the week told back, what the learner can now do, the four
+   * momentum cards and the day's word.
+   *
+   * A pushed screen rather than a tab, because none of it is something to do.
+   * Home opens on the one conversation worth having tonight and keeps a single
+   * row that says how far this has come; a learner who wants the evidence asks
+   * for it, and gets a whole screen of it rather than a tab they scroll past.
+   * No params: every block is read from the stores on focus.
+   */
+  Progress: undefined;
+  /**
+   * Every line that has become the learner's, and one to say right now.
+   *
+   * It was an early return inside My French, reachable from one screen only,
+   * which is the same shape the two legal documents were in before F473. A
+   * route means Settings, My French and a shared address can all reach it.
+   */
+  Phrasebook: undefined;
+  /**
+   * The conversations the learner has had, to return to.
+   *
+   * The pack library, the filters, the counts in words and the feed, all in one
+   * place. Data and privacy in Settings points here too, because the screen
+   * that lists saved conversations is also the screen that deletes them.
+   */
+  Conversations: undefined;
 };

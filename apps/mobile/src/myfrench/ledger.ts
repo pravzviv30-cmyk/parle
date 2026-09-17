@@ -39,6 +39,7 @@
 import { evidenceOf, type ReviewCard } from '@luvani/core';
 
 import { isRetained, retainedOrder } from '../progress/momentum.ts';
+import { SHELF_EMPTY } from './copy.ts';
 
 /** How many rows sit under the featured phrase before the door takes over. */
 export const RETAINED_ROWS = 6;
@@ -167,4 +168,37 @@ export function ledgerFrom(input: { deck: readonly ReviewCard[]; now: number; re
 /** False draws none of the lane, heading and all. */
 export function hasLedger(ledger: Ledger): boolean {
   return ledger.featured !== null;
+}
+
+/**
+ * The one phrase the shelf shows, and what it shows before there is one.
+ *
+ * The lane this module used to feed was a heading, a featured card, six rows
+ * and a door. Revamp A folds the whole of it into a single row on the tab and
+ * puts the rest behind it in the Phrasebook, so what the tab needs from here is
+ * one line of French.
+ *
+ * Three answers, in order, and the order is the claim getting weaker:
+ *
+ * 1. The featured retained phrase. This is the strongest thing the product can
+ *    say about a learner, because `convoUses` only rises when the phrase came
+ *    out of their mouth in a real conversation, unprompted.
+ * 2. The newest phrase in the deck. Weaker, and deliberately not dressed up as
+ *    the first: the shelf says "your phrase shelf" and never "you said this".
+ * 3. `SHELF_EMPTY`, which is about the shelf rather than about the learner.
+ *
+ * A sound is not a phrase, so phoneme cards are skipped, which is the rule
+ * `phrases/phrasebook.ts` and `progress/momentum.ts` already keep. The English
+ * is deliberately not returned: the row primitive draws one line, and the pair
+ * lives one tap away in the Phrasebook rather than being half-drawn here.
+ */
+export function shelfLine(input: { ledger: Ledger; deck: readonly ReviewCard[] }): string {
+  const featured = input.ledger.featured;
+  if (featured !== null) return featured.front;
+
+  // Newest by `addedAt`, and by id when two arrived in the same millisecond, so
+  // two renders of one deck never disagree about which phrase is on the shelf.
+  const phrases = input.deck.filter((card) => card.kind !== 'phoneme');
+  const newest = [...phrases].sort((a, b) => b.addedAt - a.addedAt || a.id.localeCompare(b.id))[0];
+  return newest === undefined ? SHELF_EMPTY : newest.front;
 }

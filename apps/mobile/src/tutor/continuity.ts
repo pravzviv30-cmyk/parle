@@ -21,6 +21,7 @@ import type { ConversationPack, MissionProgress } from '@luvani/core';
 import type { LearnerProfile } from '@luvani/brain/profile';
 
 import { latestReadyPack } from '../conversationPacks/model.ts';
+import { lowerFirst } from '../copy/text.ts';
 import type { ScenarioRecord } from '../missions/progressStore.ts';
 
 export type ContinuityAction =
@@ -41,9 +42,12 @@ export function continuityHeadline(tutorName: string): string {
   return `${tutorName} remembers`;
 }
 
-function lowerFirst(text: string): string {
-  return text.length === 0 ? text : text.charAt(0).toLowerCase() + text.slice(1);
-}
+/**
+ * Re-exported rather than written here. The rule moved to `copy/text.ts` when
+ * Home's joined can-do sentence became the third caller, and this line keeps
+ * every existing reader of it working through the name they already know.
+ */
+export { lowerFirst };
 
 /** The scene most recently walked out of and not finished since, or null. */
 function unfinishedScene(

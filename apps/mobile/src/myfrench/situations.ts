@@ -1,5 +1,5 @@
 /**
- * The words on a situation's chip, and the words above the list.
+ * The words on a situation's chip, and the two headings above the rows.
  *
  * The founder's mockup put a short status pill on the right of every row, and
  * short is the whole difficulty. `missionStatus` writes a sentence, which is
@@ -28,17 +28,18 @@
  * every situation is open in any order. So the pill keeps its shape and says
  * what is actually known, which is how much help was still in play the best
  * time the learner walked in.
+ *
+ * ## The count above the list went with revamp A
+ *
+ * `ownLine` used to write "4 handled on your own" beside the first heading. The
+ * tab draws no digit at all now: the rows themselves are the record, and a
+ * tally of them beside the heading is the one thing on a page of places that
+ * could be read as a score. The heading says the claim in words instead.
  */
 
 import type { MissionState } from '@luvani/core';
 
 import type { StampState } from '../progress/passport.ts';
-
-export const SITUATIONS = {
-  label: 'Situational autonomy',
-  title: 'Real-world independence',
-  blurb: 'Judged from unscripted conversations with your tutor, never from a quiz.',
-} as const;
 
 /**
  * The pill's words, per state, and they are short on purpose.
@@ -46,9 +47,8 @@ export const SITUATIONS = {
  * The first draft used `missionStatus`'s sentences and it broke the row: at
  * 375pt "Ready when you are" beside a title left the title a column narrower
  * than its own longest word, so "À la réception" hyphenated itself in the
- * middle. A pill sits beside a name and has to be read at a glance; the sentence
- * version of the same state still exists on `SituationRow.status` for anywhere
- * with room for it, and the fuller phrase rides in the row's accessible name.
+ * middle. A pill sits beside a name and has to be read at a glance; the fuller
+ * phrase rides in the row's accessible name.
  */
 export const CHIP = {
   own: 'On your own',
@@ -59,38 +59,54 @@ export const CHIP = {
 } as const;
 
 /**
- * The two groups the map lane draws (F559): what the learner can now do, which
- * is every situation handled with nothing handed over, and the next places,
- * which are the rest, suggested in any order and never locked. Decided here
- * rather than on the card, so the card draws a split it did not make.
+ * The two groups the rows draw (F559, kept through F575): what the learner can
+ * now do, which is every situation handled with nothing handed over, and the
+ * next places, which are the rest, suggested in any order and never locked.
+ * Decided here rather than on the card, so the card draws a split it did not
+ * make.
+ *
+ * The three dots on the first are the founder's and they are load-bearing: the
+ * heading runs straight into the row under it, so "You can now" and "Au café du
+ * coin" read as one sentence about the learner rather than as a claim followed
+ * by a list.
  */
 export const YOU_CAN_NOW = {
-  label: 'You can now',
-  blurb: 'Handled with nothing handed over, in a real conversation.',
+  label: 'You can now...',
 } as const;
 
 export const NEXT_PLACES = {
   label: 'Next places',
-  blurb: 'Suggested, in any order. Nothing here is locked.',
 } as const;
 
 export interface SituationSplit<T> {
   /** Stamped rows, the learner's own, in the order they arrived. */
   own: readonly T[];
-  /** Everything else. */
+  /** Everything else, the one core suggests first. */
   next: readonly T[];
-  /** The heading over the rest: next places when something is theirs, the section's own otherwise. */
-  nextHeading: { label: string; blurb: string };
 }
 
-export function splitByStamp<T extends { earned: boolean }>(rows: readonly T[]): SituationSplit<T> {
+/**
+ * The rows in two groups, and the suggested place at the head of the second.
+ *
+ * `suggestedId` is `suggestedMission`'s pick, which is the same call Home makes
+ * and the same one the retired next-situation card drew. Folding it in here is
+ * what let that card go: the suggestion is not a second surface any more, it is
+ * which row a learner meets first under "Next places". Passing `null` leaves
+ * the catalogue order alone, so nothing is invented when core suggests nothing.
+ *
+ * A learner with nothing stamped meets one group under "Next places" and never
+ * an empty "You can now": a heading over no rows says the learner has done none
+ * of this, which is the one thing a page of places must not say on a first
+ * morning.
+ */
+export function splitByStamp<T extends { id: string; earned: boolean }>(
+  rows: readonly T[],
+  suggestedId: string | null = null,
+): SituationSplit<T> {
   const own = rows.filter((row) => row.earned);
-  const next = rows.filter((row) => !row.earned);
-  return {
-    own,
-    next,
-    nextHeading: own.length > 0 ? NEXT_PLACES : { label: SITUATIONS.label, blurb: SITUATIONS.blurb },
-  };
+  const rest = rows.filter((row) => !row.earned);
+  const suggested = rest.filter((row) => row.id === suggestedId);
+  return { own, next: [...suggested, ...rest.filter((row) => row.id !== suggestedId)] };
 }
 
 export interface SituationChip {
@@ -113,18 +129,4 @@ export function chipFor(stamp: StampState, state: MissionState): SituationChip {
   if (state === 'needs-review') return { text: CHIP.again, earned: false };
   if (state === 'in-progress') return { text: CHIP.started, earned: false };
   return { text: CHIP.ready, earned: false };
-}
-
-/**
- * The fact beside the heading, or null.
- *
- * The mockup said "8 Scenarios Ready", and readiness is the one thing this list
- * cannot count: everything is ready, always, so the number would be the size of
- * the catalogue. This counts the situations handled with nothing handed over,
- * which is the passport's own claim and the only one worth putting a tick next
- * to. A count and never a fraction, and absent until the first is earned.
- */
-export function ownLine(earned: number): string | null {
-  if (earned <= 0) return null;
-  return earned === 1 ? '1 handled on your own' : `${earned} handled on your own`;
 }

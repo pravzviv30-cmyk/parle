@@ -28,13 +28,18 @@ import type { StoredProfile } from './store.ts';
 export const PREFER_TYPING_ROW = 'Prefer typing';
 
 /**
- * What saying yes does, in two plain sentences.
+ * What saying yes does, in two short sentences.
  *
  * The second one is the load-bearing half: it says the circle is still there.
  * Without it this reads as a setting that takes the voice away, which is not
  * what it does and not something this product would ever offer as a switch.
+ *
+ * Shortened with revamp A, and only the first half of it. The row now sits on a
+ * card with three others and a sentence that ran to two lines at an ordinary
+ * reading size ran to five at the largest. What went was the explanation of
+ * where the circle is; what stayed is that it is still there.
  */
-export const PREFER_TYPING_SUB = 'Conversations open with the keyboard. You can still tap the circle to talk.';
+export const PREFER_TYPING_SUB = 'Conversations open with the keyboard. The circle is still there.';
 
 /**
  * Does this learner want the box open when a conversation starts?

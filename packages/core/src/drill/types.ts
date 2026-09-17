@@ -1,11 +1,14 @@
 /**
  * Drill exercise shapes.
  *
- * Six kinds, one ladder. The kinds are ordered by how much French the learner
- * must produce unaided: choosing among options, assembling given tokens, typing
- * from memory, saying it out loud. The ramp in `session.ts` walks a phrase up
- * that order across sittings, so a drill is never a grab-bag of formats — it is
- * the same phrase asked with a little less scaffolding each time it comes back.
+ * Seven kinds on one ladder, and an eighth that stands beside it. The ladder
+ * kinds are ordered by how much French the learner must produce unaided:
+ * choosing among options, assembling given tokens, typing from memory, saying
+ * it out loud. The ramp in `session.ts` walks a phrase up that order across
+ * sittings, so a drill is never a grab-bag of formats — it is the same phrase
+ * asked with a little less scaffolding each time it comes back. `own-words`
+ * is the one that stands beside the ladder rather than on it; its own note
+ * below says why, and `stageOf` returns null for it.
  *
  * `phraseKey` ties every exercise to the review card it drills. Drills and
  * flashcards are one memory system: an exercise answered here reschedules the
@@ -127,6 +130,43 @@ export interface TranslationExercise extends DrillExerciseBase {
   accepted: string[];
 }
 
+/**
+ * Say it your own way.
+ *
+ * Every other kind has a key: an index, a token order, a string the learner
+ * either produced or did not. This one has none, on purpose. The learner is
+ * put in a situation and asked to get the meaning across in whatever French
+ * they have, which is the thing a phrasebook cannot test and the thing a
+ * conversation actually needs. `accepted` therefore stays empty in an
+ * authored exercise — there is no blessed string — and `mustKeep` records
+ * what the meaning cannot lose, so a judgement can be checked against
+ * something written down beforehand rather than improvised afterwards.
+ *
+ * Nothing in core decides whether an attempt worked. The judgement arrives
+ * from outside as an `OwnWordsVerdict` (see ownWords.ts) and code turns it
+ * into a session outcome; that split is why this kind can exist at all
+ * without a model living in the engine.
+ *
+ * Deliberately NOT a rung of DRILL_STAGES yet. The ramp promises one piece of
+ * scaffolding removed per successful sitting, and nobody has yet shown where
+ * unscripted production sits on that promise. Until they have, this is a
+ * surface the app can open on purpose, not a step a phrase is pushed onto.
+ */
+export interface OwnWordsExercise extends DrillExerciseBase {
+  kind: 'own-words';
+  difficulty: 'production';
+  /** The phrase this came from, for the reveal when the attempt does not land. */
+  fr: string;
+  /** Its plain-English meaning — the thing the learner's own words must carry. */
+  en: string;
+  /** Where they are and who they are talking to, in English. */
+  situation: string;
+  /** The content the meaning cannot lose, derived from `en` before anyone judges. */
+  mustKeep: string[];
+  /** Always empty for an authored own-words exercise: there is no one right string. */
+  accepted: string[];
+}
+
 export type DrillExercise =
   | FillBlankExercise
   | BestSentenceExercise
@@ -134,4 +174,5 @@ export type DrillExercise =
   | RepeatThisExercise
   | TapTranslateExercise
   | ListenTypeExercise
-  | TranslationExercise;
+  | TranslationExercise
+  | OwnWordsExercise;

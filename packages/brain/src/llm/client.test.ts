@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { AnthropicBrainClient, type ParseCapableSdk } from './anthropic.ts';
 import { OpenAiCompatBrainClient, defaultModel } from './openaiCompat.ts';
 import { MockLlmClient } from './mock.ts';
-import { DEFAULT_ROUTING, resolveRouting, type BrainRouting } from './routing.ts';
+import { DEFAULT_ROUTING, isAnalystActivity, resolveRouting, type BrainRouting } from './routing.ts';
 import { BrainParseError, BrainRefusalError, addLlmUsage, type BrainTurnRequest } from './client.ts';
 import { createConversation, prepareTurn } from '../engine/conversation.ts';
 import { CAFE_FRAME, APERO_FRAME } from '../fixtures.ts';
@@ -190,6 +190,20 @@ describe('routing', () => {
     // The one fact call sites must never re-derive from a model name.
     assert.equal(DEFAULT_ROUTING.turn.midConversationSystem, false);
     assert.equal(DEFAULT_ROUTING.extract.midConversationSystem, true);
+  });
+
+  test('judge runs on the talker tier at low effort', () => {
+    // A learner has typed their own French and pressed Check, so they are
+    // standing in this silence exactly as they stand in a turn's. The careful
+    // tier would read the same sentence better and slower, and a paraphrase
+    // verdict is not where that trade is worth making.
+    assert.equal(DEFAULT_ROUTING.judge.model, DEFAULT_ROUTING.turn.model, 'the same fast model the turn rides');
+    assert.equal(isAnalystActivity('judge'), false);
+    assert.equal(DEFAULT_ROUTING.judge.effort, 'low');
+    assert.equal(DEFAULT_ROUTING.judge.maxTokens, 600, 'five short fields and one sentence need no more room');
+    // It sends no transcript, so there is no mid-conversation system message to
+    // place: the grader's brief is the whole system block.
+    assert.equal(DEFAULT_ROUTING.judge.midConversationSystem, false);
   });
 
   test('BRAIN_EFFORT moves every activity at once; junk values change nothing', () => {

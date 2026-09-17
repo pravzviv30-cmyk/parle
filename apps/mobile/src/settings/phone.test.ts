@@ -164,11 +164,30 @@ describe('a refused permission is the only one worth a row — F476', () => {
     assert.match(SETTINGS, /import \{ AppState,/, 'AppState is reached some other way than the react-native import');
 
     // Read, never ask. The dialog belongs to the scene and to the reminder
-    // switch; a settings screen that raised it would spend the one chance iOS
-    // gives on a list somebody was browsing.
+    // switch; an entry that raised it would spend the one chance iOS gives on a
+    // list somebody was browsing.
+    //
+    // The reminder moved onto this screen with revamp A (F576), and with it the
+    // one legitimate ask in the file. So the ban is where it always meant to
+    // be rather than over the whole file: nothing on either entry path asks,
+    // the microphone is never asked for here at all, and the notification
+    // dialog is raised in exactly one place, behind the module's own `asks`.
+    for (const ask of ['askReminderPermission(', 'requestRecordingPermissions']) {
+      assert.ok(!effect.includes(ask), `the focus effect calls ${ask}, which raises a dialog nobody on this screen asked for`);
+    }
     assert.ok(
-      !SETTINGS.includes('askReminderPermission') && !SETTINGS.includes('requestRecordingPermissions'),
-      'Settings raises a permission dialog, which spends the one ask on a screen nobody came to for it',
+      !SETTINGS.includes('requestRecordingPermissions'),
+      'Settings raises the microphone dialog, which belongs to the scene where the learner is already trying to speak',
+    );
+    assert.equal(
+      (SETTINGS.match(/askReminderPermission\(/g) ?? []).length,
+      1,
+      'the notification dialog is raised in more than one place on Settings, so the one ask iOS gives can be spent twice',
+    );
+    assert.match(
+      SETTINGS,
+      /void \(row\.asks \? askReminderPermission\(\) : reminderPermission\(\)\)/,
+      'the reminder switch asks without checking whether this is the state an ask belongs in, so a re-ask silently does nothing',
     );
 
     // The rows are the module's answer, and the tap goes through the pair.
@@ -226,10 +245,18 @@ describe('a refused permission is the only one worth a row — F476', () => {
     );
     // Still a read and never an ask, on both paths. A foreground listener that
     // raised the dialog would spend the one iOS gives on somebody who has just
-    // walked back in.
-    assert.ok(
-      !SETTINGS.includes('askReminderPermission') && !SETTINGS.includes('requestRecordingPermissions'),
-      'the re-read raises a permission dialog instead of asking what the answer already is',
+    // walked back in, and the reminder switch that moved onto this screen with
+    // revamp A (F576) is not on either of these paths: the whole of the ask
+    // lives in `toggleReminder`, which a learner reaches by touching a switch.
+    for (const ask of ['askReminderPermission(', 'requestRecordingPermissions']) {
+      assert.ok(!effect.includes(ask), `the re-read calls ${ask} instead of asking what the answer already is`);
+    }
+    const toggle = SETTINGS.slice(SETTINGS.indexOf('const toggleReminder'), SETTINGS.indexOf('const chooseReminderTime'));
+    assert.ok(toggle.length > 0, 'the reminder switch moved or was renamed; this half of the test is reading nothing');
+    assert.match(
+      toggle,
+      /askReminderPermission\(\)/,
+      'the one dialog this screen may raise is no longer the reminder switch, so the ask has moved somewhere nobody tapped',
     );
   });
 
@@ -249,7 +276,28 @@ describe('a refused permission is the only one worth a row — F476', () => {
       /const phone = phoneRows\(\{ microphone, notifications, available: PHONE_SETTINGS_AVAILABLE \}\);/,
       'the screen decides which phone rows to draw itself, so the re-read reaches nothing',
     );
-    assert.match(SETTINGS, /\{phone\.length > 0 && \(/, 'the Phone group is drawn whether or not there is a row in it');
+    // The group has two reasons to exist since the daily reminder moved into it
+    // (F576), and exactly two: a reminder this build can actually schedule, or a
+    // permission the OS has refused. Both absent and the whole group is absent,
+    // which is what an allowed microphone on a phone with no reminder set gets.
+    assert.match(
+      SETTINGS,
+      /\{\(reminders \|\| phone\.length > 0\) && \(/,
+      'the Phone group is drawn whether or not there is a row in it, or it is drawn on some third condition',
+    );
+    // And the permission rows themselves come from the module's answer and
+    // nowhere else, so a granted permission has no other way onto the screen.
+    assert.equal(
+      (SETTINGS.match(/phone\.map\(/g) ?? []).length,
+      1,
+      'the phone rows are drawn from somewhere other than the list the module returned',
+    );
+    for (const spelled of ['MICROPHONE_ROW', 'NOTIFICATIONS_ROW']) {
+      assert.ok(
+        !SETTINGS.includes(spelled),
+        `Settings draws ${spelled} directly, so a row can appear on a permission phoneRows never returned`,
+      );
+    }
   });
 
   test('the phone rows say nothing that counts and nothing that scolds', () => {

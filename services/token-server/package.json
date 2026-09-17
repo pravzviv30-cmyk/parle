@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@luvani/brain": "*",
     "@luvani/core": "*",
     "dotenv": "^16.4.7",
     "jose": "^5.10.0",

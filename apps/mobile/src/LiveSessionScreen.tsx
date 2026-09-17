@@ -20,7 +20,7 @@ import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-nati
 import { usePreventRemove } from '@react-navigation/native';
 import type { Lesson, Rung, SessionSummary } from '@luvani/core';
 import { paper, space, type, HIT } from './theme.ts';
-import { Card, PillButton, GhostButton } from './components.tsx';
+import { Card, Label, OutlineButton, GhostButton } from './components.tsx';
 import { ConfirmSheet, Screen } from './layout.tsx';
 import { SessionView } from './SessionView.tsx';
 import { useLiveSession } from './live/useLiveSession.ts';
@@ -220,13 +220,17 @@ export function LiveSessionScreen({
     return (
       <Screen padded={false}>
         <View style={st.center}>
-          <Text style={[type.title, { color: paper.ink, textAlign: 'center' }]}>Out of minutes</Text>
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}>
-            {live.status.message}
-          </Text>
-          <Paywall userId={userId} />
-          <View style={{ marginTop: space(6) }}>
-            <PillButton label="Back" onPress={onExit} />
+          {/* The same white card the conversation draws, so the two live
+              surfaces say this in one voice: the caps line names the state, the
+              store's own words fill the card, and Back is the quiet outline
+              because the offer inside the card is the thing worth doing. */}
+          <Card style={st.outOfMinutes}>
+            <Label color={paper.inkSoft}>Out of minutes</Label>
+            <Text style={[type.body, { color: paper.ink, marginTop: space(2) }]}>{live.status.message}</Text>
+            <Paywall userId={userId} />
+          </Card>
+          <View style={{ marginTop: space(6), alignSelf: 'stretch' }}>
+            <OutlineButton label="Back" onPress={onExit} />
           </View>
         </View>
       </Screen>
@@ -371,6 +375,9 @@ const st = StyleSheet.create({
   // Both are drawn in the frame's header slot, which pays the horizontal pad,
   // so neither repeats it. See `aboveTheScene`.
   listen: { minHeight: HIT, paddingTop: space(3) },
+  // The centring root shrink-wraps its children, so the card is told to take
+  // the width: a store offer sized to its longest word is not an offer.
+  outOfMinutes: { alignSelf: 'stretch' },
   banner: { paddingTop: space(2) },
   // The waiting screen centres its children, so the banner has to be told to
   // take the width: a safety sentence shrink-wrapped to its longest word is

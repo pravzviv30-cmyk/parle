@@ -53,23 +53,34 @@ export const SETTINGS_ROW = 'Settings';
 /**
  * What is behind the row, in the order the groups appear.
  *
- * It names three of the six groups rather than all of them, because a row's
+ * It names four of the seven groups rather than all of them, because a row's
  * second line is a promise about where a tap lands and not a table of contents.
+ * The reminder is one of the four because it moved here with revamp A, and a
+ * learner who set one on Profile has to be able to find it again.
  */
-export const SETTINGS_ROW_SUB = 'Account, data and privacy, and about Luvani';
+export const SETTINGS_ROW_SUB = 'Account, your plan, reminders and about Luvani';
 
 // ───────────────────────────────────────────────────────────── group headings
 
 export const ACCOUNT_GROUP = 'Account';
+/**
+ * Over the plan card, which moved here from Profile with revamp A (F576).
+ *
+ * "Plan" rather than "Your plan": it is a group heading on a screen of group
+ * headings, and Account and Subscription either side of it name a subject
+ * rather than address the learner. The card under it draws no label of its own.
+ */
+export const PLAN_GROUP = 'Plan';
 export const SUBSCRIPTION_GROUP = 'Subscription';
 export const PRIVACY_GROUP = 'Data and privacy';
 export const PHONE_GROUP = 'Phone';
 export const HELP_GROUP = 'Help';
 export const ABOUT_GROUP = 'About';
 
-/** The six, in the order the screen draws them. A test reads this list. */
+/** The seven, in the order the screen draws them. A test reads this list. */
 export const SETTINGS_GROUPS: readonly string[] = [
   ACCOUNT_GROUP,
+  PLAN_GROUP,
   SUBSCRIPTION_GROUP,
   PRIVACY_GROUP,
   PHONE_GROUP,

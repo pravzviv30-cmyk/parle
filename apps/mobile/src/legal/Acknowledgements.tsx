@@ -66,7 +66,7 @@ export function Acknowledgements({ onBack }: { onBack: () => void }) {
   useHardwareBack(true, onBack);
   return (
     <ScrollScreen header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Text style={[type.display, { color: paper.ink }]}>Acknowledgements</Text>
+      <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Acknowledgements</Text>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
         Luvani is built on other people's work. The full licence text for each of these ships inside the app.
       </Text>

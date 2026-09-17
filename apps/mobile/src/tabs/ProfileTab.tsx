@@ -1,47 +1,47 @@
 /**
- * Profile — who you are and how you learn.
+ * Profile — who you are, who your tutor is, and how you learn.
  *
- * It used to be one long scroll mixing three unrelated things: the learner's own
- * settings, the account, and what the law and the store require the app to say.
- * The last two are general-issue settings every App Store app carries, and they
- * are behind one `Settings` row now (F473), last on the screen, in a bare Card
- * with no caps label over it — a caps SETTINGS above a row reading Settings is
- * redundancy this system already retired.
+ * It used to be one long scroll mixing three unrelated things: the learner's
+ * own settings, the account, and what the law and the store require the app to
+ * say. The last two went behind one `Settings` row with F473, last on the
+ * screen and in a bare Card with no caps label over it, because a caps SETTINGS
+ * above a row reading Settings is redundancy this system already retired.
  *
- * What is left is what the product is actually about: the learner's name, where
- * they stand, the five standing choices about how a conversation goes, and the
- * daily reminder. The visual translation is unchanged — white cards, hairline
- * rules, and the caps section heads that are the one place caps live here.
+ * Revamp A (F576) took the split one step further. The plan card, the daily
+ * reminder and the link to the voice-circle intro are all general-issue
+ * settings rather than things about this learner's French, and all three are in
+ * Settings now. What is left is four things and nothing else: who the learner
+ * is, who the tutor is, the week they have had, and the standing choices about
+ * how a conversation goes.
  *
- * ## The daily reminder decides nothing here
+ * ## The header is a person, not a subject
  *
- * The reminder group is the one place on this screen that draws a state the
- * operating system owns, and every judgement about it lives in
- * `reminders/reminder.ts`. This file asks `reminderRow` what to draw, asks it
- * again against a freshly read permission before it writes anything down, and
- * shows the sentence it is handed. There is no conditional here about what
- * granted, denied or undetermined mean, and there must not be: a permission was
- * revoked in Settings a month ago and the only way this screen finds out is by
- * asking on the way in. A row that trusted the stored flag would be a switch
- * sitting proudly on over a channel that has been shut since April.
+ * Four tabs name a subject and read left. This one opens on the learner's own
+ * mark with their name under it, which is why `TabHeader` has a centred branch
+ * and why this is the only screen that asks for it. The `Monogram` is the
+ * learner's initial and the one drawn in the whole app (F337); the tutor beside
+ * it on the card below is the orb, never a face and never a second monogram.
  *
- * The same idea decides what goes on disk when the OS refuses a change. The
- * store must record what the phone will actually do, so a `failed` from
- * `scheduleReminder` puts the previous value back rather than leaving
- * `enabled: true` over a notification that was never scheduled. Permission gets
- * to be reconciled on the next focus because it can be re-read; whether
- * something is scheduled cannot be, so a wrong value written here is wrong
- * forever and no later render could repair it.
+ * ## It reads nothing and decides nothing
+ *
+ * The focus effect went with the reminder and the level line. The two cards
+ * that need the disk read it themselves, from their own files, so this screen
+ * holds no state but the open sheet and the name being typed. Every word it
+ * shows comes from a module: `profile/frenchLife.ts` for the headings,
+ * `profile/tutorMemory.ts` for the tutor card, `profile/dailyGoal.ts`,
+ * `tutor/strictness.ts`, `profile/typing.ts` and `tutor/pace.ts` for the
+ * choices, and `settings/sections.ts` for the row at the foot.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Switch } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { levelFor, totalXp, type LevelStanding } from '@luvani/core';
-import { accent, paper, signal, space, type, HIT } from '../theme.ts';
+import { useNavigation } from '@react-navigation/native';
+import { paper, space, type } from '../theme.ts';
 import { Card, Label, Monogram, OptionCard, OutlineButton, Field } from '../components.tsx';
 import { ScrollScreen, ScreenHeader, TabHeader } from '../layout.tsx';
+import { HeaderArt } from '../art/HeaderArt.tsx';
+import { HEADER_ART } from '../art/maps.ts';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
 import { ChoiceRow } from '../settings/ChoiceRow.tsx';
@@ -49,15 +49,11 @@ import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { SETTINGS_ROW, SETTINGS_ROW_SUB } from '../settings/sections.ts';
 import { FrenchLifeCard } from '../profile/FrenchLifeCard.tsx';
 import { TutorMemoryCard } from '../profile/TutorMemoryCard.tsx';
-import { PlanCard } from '../profile/PlanCard.tsx';
+import { LEARNING_LABEL, PROFILE_PURPOSE, RHYTHM_LABEL, TUTOR_LABEL } from '../profile/frenchLife.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { TutorIntro } from '../tutor/TutorIntro.tsx';
-import { TUTOR_INTRO_LINK } from '../tutor/gate.ts';
 import { withDailyGoal, withName, withPreferTyping, withTutorVoice } from '../profile/store.ts';
 import { DAILY_GOAL_ROW, GOALS, goalFor, goalKeyOf, goalLine, type GoalKey } from '../profile/dailyGoal.ts';
 import { PREFER_TYPING_ROW, PREFER_TYPING_SUB, prefersTyping } from '../profile/typing.ts';
-import { loadActivity } from '../progress/activity.ts';
-import { levelName } from '../progress/evidence.ts';
 import { PACE_ROW, PACE_SUB, paceOf, withPace } from '../tutor/pace.ts';
 import {
   STRICTNESS_OPTIONS,
@@ -68,34 +64,13 @@ import {
 } from '../tutor/strictness.ts';
 import {
   TUTOR_VOICE_OPTIONS,
-  TUTOR_VOICE_ROW,
   TUTOR_VOICE_SUB,
   TUTOR_VOICE_TITLE,
   nextSample,
-  tutorVoiceLabel,
   tutorVoiceOf,
   type TutorVoiceKey,
 } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
-import {
-  REMINDER_ROW,
-  REMINDER_TIMES,
-  REMINDER_TIME_SUB,
-  REMINDER_TIME_TITLE,
-  reminderRow,
-  reminderTime,
-  type ReminderPermission,
-  type ReminderTimeId,
-  type StoredReminder,
-} from '../reminders/reminder.ts';
-import { loadReminder, saveReminder } from '../reminders/store.ts';
-import {
-  REMINDERS_AVAILABLE,
-  askReminderPermission,
-  cancelReminder,
-  reminderPermission,
-  scheduleReminder,
-} from '../reminders/schedule.ts';
 
 /**
  * The sheets that are left.
@@ -104,49 +79,19 @@ import {
  * answers and a whole screen apiece, which is two taps and two screen changes
  * to move a dial whose entire content is three words. Both are `ChoiceRow`s on
  * the card now. What kept a sheet is what needs the room: a name needs a
- * keyboard, eight voices need eight cards and an ear each, and the reminder
- * presets need their glosses.
+ * keyboard, and eight voices need eight cards and an ear each.
  *
  * Three more went with F473, to `settings/SettingsScreen.tsx`: the delete
  * confirmation, the acknowledgements, and the sheet that says an export could
- * not be made. All three belong to the account rather than to the learning, and
- * every one of them is now behind the row at the bottom of this screen.
+ * not be made. Two more went with F576: the reminder time presets and the
+ * voice-circle intro, which belong beside the phone's own settings and the
+ * help rows rather than beside the learning.
+ *
+ * Neither of the two left renders a screen with a hook of its own, so this
+ * screen answers the hardware back for both of them and there is nothing to
+ * stand down for.
  */
-type Sheet = 'none' | 'name' | 'tutorVoice' | 'reminderTime' | 'intro';
-
-/**
- * Said when the disk refuses a two-field write, and only then.
- *
- * `saveReminder` answers `failed` on a full phone. A row that moved anyway
- * would be a switch that reverts silently at the next launch, so the row stays
- * where it was and this says why. It blames the device, which is what actually
- * happened, and it asks for nothing: no retry loop, no apology, no number. The
- * one sentence on this screen that reminder.ts does not own, because it is
- * about this phone rather than about the reminder.
- */
-const REMINDER_SAVE_TROUBLE = 'Your phone did not save that. The reminder is unchanged, and you can try again.';
-
-/**
- * Said when the write landed and the operating system would not take the alarm.
- *
- * A different fact from the one above, so a different sentence. The choice did
- * reach the disk; what refused was `scheduleReminder`, and telling somebody
- * their phone "did not save that" when it saved it perfectly well is a small
- * lie in the one place this screen has to be trusted.
- *
- * Three things it has to do. It puts the refusal on the phone, because that is
- * where it happened and the learner did nothing wrong. It leaves a way forward,
- * which here is simply flipping the switch again, and "just now" says the state
- * is a moment rather than a verdict. And it is silent about what is on disk,
- * because the rollback below can itself be refused by the same full phone, and
- * a sentence that claimed "nothing has changed" would be the second lie.
- *
- * Deliberately direction-neutral. It is shown when the OS refuses to schedule
- * and when it refuses to cancel, and a learner who was turning the reminder off
- * must not read a line about setting one. "Change" covers both, so nothing here
- * branches on which way the switch was going.
- */
-const REMINDER_SCHEDULE_TROUBLE = 'Your phone would not change the reminder just now. You can try again.';
+type Sheet = 'none' | 'name' | 'tutorVoice';
 
 export function ProfileTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
@@ -224,13 +169,11 @@ export function ProfileTab() {
   };
 
   // Android's hardware back closes the open sheet in place rather than popping
-  // the whole Profile tab. Inactive on the main list, so ordinary back stands,
-  // and inactive for the intro, which renders its own screen and answers
-  // hardware back through its own hook — two handlers on one screen would race
-  // and close the whole sheet from page two. The acknowledgements sheet left
-  // this list with F473: it is Settings' now, and Settings stands its own hook
-  // down for it in exactly the same way.
-  useHardwareBack(sheet !== 'none' && sheet !== 'intro', closeCurrentSheet);
+  // the whole Profile tab. Inactive on the main list, so ordinary back stands.
+  // Both sheets left here are drawn by this screen, so unlike Settings there is
+  // nothing to exclude: the intro, which answers its own press through its own
+  // hook, is Settings' now and Settings stands its hook down for it.
+  useHardwareBack(sheet !== 'none', closeCurrentSheet);
 
   // A clip that ends on its own leaves `samplePlaying` pointing at it, so the
   // next tap on that same voice is read as "stop" and stops nothing — a dead ear
@@ -240,167 +183,7 @@ export function ProfileTab() {
     if (sampleStatus.didJustFinish) setSamplePlaying(null);
   }, [sampleStatus.didJustFinish]);
 
-  // Null until the first read comes back, because a guess would flash the wrong
-  // sentence: defaulting to denied would show "notifications are turned off"
-  // for a frame to somebody who has never been asked.
-  const [stored, setStored] = useState<StoredReminder | null>(null);
-  const [permission, setPermission] = useState<ReminderPermission | null>(null);
-  // Where the learner stands, from the same activity log Home's level card
-  // reads. Null until the first read comes back, and `levelName` answers null
-  // again for anybody who has not earned anything yet, so the line under the
-  // name is absent rather than announcing a floor.
-  const [standing, setStanding] = useState<LevelStanding | null>(null);
-  const [reminderBusy, setReminderBusy] = useState(false);
-  // The line to show, rather than a flag, because there are two of them and
-  // which one is shown is the whole of what this state says.
-  const [reminderTrouble, setReminderTrouble] = useState<string | null>(null);
-
-  /**
-   * Both halves of the row, read again every time this tab comes forward.
-   *
-   * On focus rather than on mount, and that is the whole defence against a dead
-   * switch. Notification permission is per install and can be turned off in
-   * Settings months later without the app hearing a word about it, so a value
-   * captured once at launch is a value that goes stale and takes the row with
-   * it. It also means the walk back from Settings is enough: the learner turns
-   * notifications on there, returns, and the row already knows.
-   *
-   * `loadReminder` throws rather than resolving when nobody is signed in, the
-   * way `loadTopics` does. Behind the auth gate that cannot happen, but a
-   * sign-out can land between focus and read, so the throw is caught and the
-   * row simply does not draw rather than taking the screen down with it.
-   */
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-      void (async () => {
-        const [saved, allowed] = await Promise.all([loadReminder(), reminderPermission()]);
-        if (cancelled) return;
-        setStored(saved);
-        setPermission(allowed);
-      })().catch(() => {
-        // Nobody signed in, or storage unavailable. Nothing to draw and nothing
-        // to say: the reminder is the one thing on this screen that can wait.
-      });
-      // The level, on its own read rather than in the pair above: `loadReminder`
-      // throws when nobody is signed in, and one Promise.all would take the
-      // level down with it for a reason that has nothing to do with the level.
-      void loadActivity()
-        .then((activity) => {
-          if (cancelled) return;
-          setStanding(levelFor(totalXp(activity)));
-        })
-        .catch(() => {
-          // Same reasoning as above. A missing level line says nothing untrue.
-        });
-      return () => {
-        cancelled = true;
-      };
-    }, []),
-  );
-
   const firstName = (profile.name ?? '').split(' ')[0] || 'you';
-  // The one line under the name, and progress/evidence.ts decides whether there
-  // is one: null at zero, which is the same rule Home's level card keeps. A
-  // learner who has not started is not told they are at the bottom of a ladder.
-  const levelLine = standing === null ? null : levelName(standing);
-
-  // What the learner asked for, crossed with what the OS will allow. Every
-  // judgement in it belongs to reminder.ts; nothing below re-decides any of it.
-  const row = permission === null ? null : reminderRow(stored, permission);
-  // The preset behind the row. `reminderTime` repairs a mangled or missing id
-  // to the default, so there is no second opinion here about which hour is
-  // which, and no throw on a byte that came back wrong from disk.
-  const chosen = reminderTime(stored?.time);
-
-  /**
-   * The switch, which asks the OS before it believes the learner's thumb.
-   *
-   * One shape for all four states, because the module already told us which one
-   * we are in. `row.asks` is true in exactly the state where a dialog belongs;
-   * everywhere else this is a plain re-read that raises nothing, which is how a
-   * permission changed in Settings reaches the row without anybody being asked
-   * twice. iOS will not show that dialog a second time anyway, so a re-ask
-   * would be a control that silently does nothing.
-   *
-   * Then `reminderRow` decides again, against the answer that just came back.
-   * A refusal turns what the learner asked for into an off row and an honest
-   * line, and the value that goes to disk is that answer rather than the
-   * position the switch was left in. Turning off keeps the chosen preset, so
-   * turning it back on months later restores the part of the day they picked.
-   */
-  const toggleReminder = (next: boolean) => {
-    if (row === null || reminderBusy) return;
-    setReminderBusy(true);
-    setReminderTrouble(null);
-    void (row.asks ? askReminderPermission() : reminderPermission())
-      .then(async (fresh) => {
-        setPermission(fresh);
-        const honest = reminderRow({ enabled: next, time: chosen.value }, fresh);
-        const wanted: StoredReminder = { enabled: honest.on, time: chosen.value };
-        // What the phone is doing already, in the shape the store writes. Built
-        // from `row.on`, which is reminderRow's answer for the state the row is
-        // in, so putting the disk back is the module's value and never a
-        // negation worked out here.
-        const reverted: StoredReminder = { enabled: row.on, time: chosen.value };
-        const ack = await saveReminder(wanted);
-        if (ack === 'failed') {
-          setReminderTrouble(REMINDER_SAVE_TROUBLE);
-          return;
-        }
-        const outcome = honest.on ? await scheduleReminder(wanted.time) : await cancelReminder();
-        if (outcome === 'failed') {
-          await saveReminder(reverted);
-          setReminderTrouble(REMINDER_SCHEDULE_TROUBLE);
-          return;
-        }
-        setStored(wanted);
-      })
-      // The platform pair catches its own failures and answers in a word, so
-      // the only way here is a sign-out landing between the tap and the write,
-      // where `saveReminder` throws the way `loadTopics` does. The row stays
-      // where it was and says so: a flip that changed nothing and explained
-      // nothing is the dead switch this whole entry exists to prevent.
-      .catch(() => setReminderTrouble(REMINDER_SAVE_TROUBLE))
-      .finally(() => setReminderBusy(false));
-  };
-
-  /**
-   * A different part of the day, through the same door as the switch.
-   *
-   * Reached only from an on row, so the intent is `enabled: true`, and it still
-   * goes through `reminderRow` against a freshly read permission: a learner can
-   * revoke notifications and come back to this sheet in the same minute. The
-   * read raises no dialog, which keeps the no-re-ask rule intact.
-   */
-  const chooseReminderTime = (value: ReminderTimeId) => {
-    setSheet('none');
-    if (row === null) return;
-    setReminderTrouble(null);
-    void (async () => {
-      const fresh = await reminderPermission();
-      setPermission(fresh);
-      const honest = reminderRow({ enabled: true, time: value }, fresh);
-      const wanted: StoredReminder = { enabled: honest.on, time: value };
-      const reverted: StoredReminder = { enabled: row.on, time: chosen.value };
-      const ack = await saveReminder(wanted);
-      if (ack === 'failed') {
-        setReminderTrouble(REMINDER_SAVE_TROUBLE);
-        return;
-      }
-      const outcome = honest.on ? await scheduleReminder(wanted.time) : await cancelReminder();
-      if (outcome === 'failed') {
-        await saveReminder(reverted);
-        setReminderTrouble(REMINDER_SCHEDULE_TROUBLE);
-        return;
-      }
-      setStored(wanted);
-    })().catch(() => setReminderTrouble(REMINDER_SAVE_TROUBLE));
-  };
-
-  // Demoted, not deleted: the intro is still the only place that teaches what
-  // the three colours of the circle mean, and it is one tap from here.
-  if (sheet === 'intro') return <TutorIntro onDone={() => setSheet('none')} />;
 
   /**
    * Who the tutor is, which until now the product decided for everybody.
@@ -408,13 +191,18 @@ export function ProfileTab() {
    * Eight voices, and two of them women, which is why this is more than a
    * dropdown: the persona follows the voice, so choosing here changes the name
    * the app calls him or her by everywhere else. Built exactly like the
-   * strictness sheet above, because it is the same kind of question, with one
+   * strictness sheet was, because it is the same kind of question, with one
    * addition: every row can be heard before it is chosen.
    *
    * Hearing is optional and deliberately secondary. The card's own press is
    * what chooses, the ear is a sibling control beside it, and a learner who
    * never taps one still leaves with a voice. Nobody is made to audition eight
    * people to get to a conversation.
+   *
+   * The pace switch sits at the foot of it (F576). How fast the tutor writes is
+   * a question about this person rather than about the learner, so it belongs
+   * with the eight cards that choose who the tutor is rather than on a card of
+   * the learner's own settings.
    */
   if (sheet === 'tutorVoice') {
     return (
@@ -437,34 +225,16 @@ export function ProfileTab() {
             />
           ))}
         </View>
-      </ScrollScreen>
-    );
-  }
-
-  /**
-   * Which part of the day, not which minute.
-   *
-   * Four presets in the shape the goal and strictness sheets already use. A
-   * real picker would mean a second native dependency to answer a question
-   * nobody is asking: the interesting choice is morning or evening, and a
-   * preset at 18:07 is a time picker that has been hidden rather than removed.
-   */
-  if (sheet === 'reminderTime') {
-    return (
-      <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: () => setSheet('none') }} />}>
-        <Text style={[type.display, { color: paper.ink }]}>{REMINDER_TIME_TITLE}</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{REMINDER_TIME_SUB}</Text>
-        <View style={{ marginTop: space(6), gap: space(3) }}>
-          {REMINDER_TIMES.map((option) => (
-            <OptionCard
-              key={option.value}
-              text={option.label}
-              gloss={option.gloss}
-              selected={chosen.value === option.value}
-              onPress={() => chooseReminderTime(option.value)}
-            />
-          ))}
-        </View>
+        <Card style={{ marginTop: space(6) }}>
+          <SwitchRow
+            first
+            title={PACE_ROW}
+            sub={PACE_SUB}
+            value={paceOf(profile) === 'slow'}
+            onChange={(next) => update(withPace(profile, next ? 'slow' : 'normal'))}
+            accessibilityLabel={PACE_ROW}
+          />
+        </Card>
       </ScrollScreen>
     );
   }
@@ -506,115 +276,77 @@ export function ProfileTab() {
   return (
     <ScrollScreen bottom="tab">
       <View style={st.scroll}>
-        <TabHeader title="Profile" purpose="Your name and your tutor." />
-        <View style={st.identity}>
-          {/* The one drawn initial: the same filled violet disc Home shows. The
-              name is said in the text beneath, so the disc is decorative. */}
-          <Monogram initial={firstName.charAt(0).toUpperCase()} size={72} />
-          <Text style={[type.title, { color: paper.ink, marginTop: space(3) }]}>{profile.name ?? 'You'}</Text>
-          {/* Where they stand, under their name, the way a badge sits under a
-              name on a card. Soft ink because it is words a learner reads. */}
-          {levelLine === null ? null : (
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{levelLine}</Text>
-          )}
+        {/* The art sits behind the centred column and bleeds off the corner, so
+            the header and the picture share one relative box. It is decorative
+            and it is not drawn at all at a large reading size. */}
+        <View style={st.head}>
+          <HeaderArt name={HEADER_ART.profile} />
+          <TabHeader
+            align="center"
+            leading={<Monogram initial={firstName.charAt(0).toUpperCase()} size={72} />}
+            title={profile.name ?? 'You'}
+            purpose={PROFILE_PURPOSE}
+          />
         </View>
 
-        {/* The learner's French life, before the settings about it: the week
-            (F561), what the tutor remembers (F562), then the plan (F540), each
-            card owning its own read because this screen's one focus effect
-            belongs to the reminder and the level. */}
-        <View style={st.life}>
-          <Label>Your French life</Label>
+        {/* Who the learner is talking to, and what that person holds about
+            them. The voice sheet opens from row one; row two pushes the
+            editing screen (F562). */}
+        <Label>{TUTOR_LABEL}</Label>
+        <TutorMemoryCard onVoice={() => setSheet('tutorVoice')} />
+
+        {/* The week, Monday to Sunday, in the one tint that means a rhythm. It
+            names no number and sets no target: the card says the week in a
+            sentence to anyone who cannot see the marks. */}
+        <View style={st.group}>
+          <Label>{RHYTHM_LABEL}</Label>
           <FrenchLifeCard />
-          <TutorMemoryCard />
-          <PlanCard />
         </View>
 
-        <Label>Your learning</Label>
-        <Card style={{ marginTop: space(2.5) }}>
-          <SettingsRow first label="Name" value={profile.name ?? 'Not set'} onPress={() => setSheet('name')} />
-          {/* Three words on a track, and what the chosen one means beneath. The
-              minutes are a number in the store and words on the screen. */}
-          <ChoiceRow<GoalKey>
-            title={DAILY_GOAL_ROW}
-            options={GOALS}
-            active={goalKeyOf(profile)}
-            onChange={(key) => update(withDailyGoal(profile, goalFor(key).minutes))}
-            gloss={goalLine(profile)}
-            accessibilityLabel={DAILY_GOAL_ROW}
-          />
-          <ChoiceRow<Strictness>
-            title={STRICTNESS_ROW}
-            options={STRICTNESS_OPTIONS.map((option) => ({ key: option.value, label: option.label }))}
-            active={strictnessOf(profile)}
-            onChange={(value) => update(withStrictness(profile, value))}
-            gloss={STRICTNESS_OPTIONS.find((option) => option.value === strictnessOf(profile))?.gloss ?? ''}
-            accessibilityLabel={STRICTNESS_ROW}
-          />
-          <SettingsRow label={TUTOR_VOICE_ROW} value={tutorVoiceLabel(profile)} onPress={() => setSheet('tutorVoice')} />
-          {/* Two standing choices about the next conversation, both of which
-              keep every spoken path open: the circle is still there, and the
-              tutor still speaks. */}
-          <SwitchRow
-            title={PREFER_TYPING_ROW}
-            sub={PREFER_TYPING_SUB}
-            value={prefersTyping(profile)}
-            onChange={(next) => update(withPreferTyping(profile, next))}
-            accessibilityLabel={PREFER_TYPING_ROW}
-          />
-          <SwitchRow
-            title={PACE_ROW}
-            sub={PACE_SUB}
-            value={paceOf(profile) === 'slow'}
-            onChange={(next) => update(withPace(profile, next ? 'slow' : 'normal'))}
-            accessibilityLabel={PACE_ROW}
-          />
-          <SettingsRow label={TUTOR_INTRO_LINK} onPress={() => setSheet('intro')} />
-        </Card>
+        <View style={st.group}>
+          <Label>{LEARNING_LABEL}</Label>
+          <Card style={{ marginTop: space(2.5) }}>
+            <SettingsRow first label="Name" value={profile.name ?? 'Not set'} onPress={() => setSheet('name')} />
+            {/* Three words on a track, and what the chosen one means beneath. The
+                minutes are a number in the store and words on the screen. */}
+            <ChoiceRow<GoalKey>
+              title={DAILY_GOAL_ROW}
+              options={GOALS}
+              active={goalKeyOf(profile)}
+              onChange={(key) => update(withDailyGoal(profile, goalFor(key).minutes))}
+              gloss={goalLine(profile)}
+              accessibilityLabel={DAILY_GOAL_ROW}
+            />
+            <ChoiceRow<Strictness>
+              title={STRICTNESS_ROW}
+              options={STRICTNESS_OPTIONS.map((option) => ({ key: option.value, label: option.label }))}
+              active={strictnessOf(profile)}
+              onChange={(value) => update(withStrictness(profile, value))}
+              gloss={STRICTNESS_OPTIONS.find((option) => option.value === strictnessOf(profile))?.gloss ?? ''}
+              accessibilityLabel={STRICTNESS_ROW}
+            />
+            {/* The one standing choice about the next conversation that is the
+                learner's own rather than the tutor's. It keeps every spoken
+                path open: the circle is still there, and the tutor still
+                speaks. The pace switch is on the voice sheet now, beside the
+                eight cards that choose who is speaking. */}
+            <SwitchRow
+              title={PREFER_TYPING_ROW}
+              sub={PREFER_TYPING_SUB}
+              value={prefersTyping(profile)}
+              onChange={(next) => update(withPreferTyping(profile, next))}
+              accessibilityLabel={PREFER_TYPING_ROW}
+            />
+          </Card>
+        </View>
 
-        {/* The reminder. Its own group, because the sentence above the switch
-            needs a heading to be about something, and because the whole block
-            is absent on a build with no scheduler rather than sitting there
-            disabled. `REMINDERS_AVAILABLE` is the platform pair saying so; the
-            refusal line names phone settings and would be a lie on a laptop. */}
-        {REMINDERS_AVAILABLE && row !== null && (
-          <View style={{ marginTop: space(6) }}>
-            <Label>{REMINDER_ROW}</Label>
-            <Card style={{ marginTop: space(2.5) }}>
-              {row.note.length > 0 && (
-                <Text style={[type.small, { color: paper.inkSoft, marginBottom: space(3) }]}>{row.note}</Text>
-              )}
-              {reminderTrouble !== null && (
-                <Text style={[type.small, { color: signal.correspondance, marginBottom: space(3) }]}>
-                  {reminderTrouble}
-                </Text>
-              )}
-              <View style={st.switchRow}>
-                {/* Ink, not the faint tertiary the settings rows use for a
-                    value. This is the only place the row states what will
-                    happen, so it is words and clears the 4.5 words are held to
-                    rather than the 3 a mark gets. */}
-                <Text style={[type.bodyStrong, { color: paper.ink, flex: 1 }]}>{row.value}</Text>
-                <Switch
-                  value={row.on}
-                  onValueChange={toggleReminder}
-                  disabled={reminderBusy}
-                  accessibilityLabel={REMINDER_ROW}
-                  trackColor={{ true: accent.primary, false: paper.groundDeep }}
-                  thumbColor={paper.card}
-                />
-              </View>
-              {row.on && <SettingsRow label={REMINDER_TIME_TITLE} onPress={() => setSheet('reminderTime')} />}
-            </Card>
-          </View>
-        )}
-
-        {/* The one row that leads to everything general: the account, the
-            subscription, the documents and the phone's own permissions. Last on
-            the screen and in a bare Card with no Label above it, because a caps
-            SETTINGS over a row reading Settings is redundancy that says nothing
-            twice. Everything behind it is `settings/SettingsScreen.tsx`, a stack
-            sibling above the tabs, so the bar goes with the push. */}
+        {/* The one row that leads to everything general: the account, the plan,
+            the subscription, the documents, the phone's own permissions and the
+            daily reminder. Last on the screen and in a bare Card with no Label
+            above it, because a caps SETTINGS over a row reading Settings is
+            redundancy that says nothing twice. Everything behind it is
+            `settings/SettingsScreen.tsx`, a stack sibling above the tabs, so
+            the bar goes with the push. */}
         <Card style={{ marginTop: space(6) }}>
           <SettingsRow
             first
@@ -630,11 +362,9 @@ export function ProfileTab() {
 
 const st = StyleSheet.create({
   scroll: { flexGrow: 1 },
-  identity: { alignItems: 'center', marginBottom: space(6) },
-  // The life block sits between the identity and the learning card, and the
-  // learning label keeps its own gap above it.
-  life: { marginBottom: space(6) },
-  // The switch keeps the 44pt floor the settings rows keep, so the control is
-  // the same size to a thumb as everything above it.
-  switchRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT },
+  // One relative box so the corner art can be absolute inside it.
+  head: { position: 'relative' },
+  // Each labelled block keeps its own air above it; the label itself sits
+  // tight to the card it names.
+  group: { marginTop: space(6) },
 });

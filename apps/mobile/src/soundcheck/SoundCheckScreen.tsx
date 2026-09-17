@@ -4,11 +4,14 @@ import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } fr
 import { getMission } from '@luvani/core';
 
 import { Card, EarGlyph, GhostButton, Label, PillButton, SpeakCircle, fitDisplay } from '../components.tsx';
+import { AcousticCard } from '../myfrench/AcousticCard.tsx';
+import { acousticFor, type Acoustic } from '../myfrench/acoustic.ts';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { HIT, paper, space, type } from '../theme.ts';
 import { scoreRecordedAttempt } from '../speech/scoreAttempt.ts';
 import { consumeRecording, discardRecording } from '../speech/discardRecording.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
+import { headSound } from './headSound.ts';
 import { SELF_GUIDED, nextSoundCheckReference, soundCheckDecision, type SoundCheckDecision } from './model.ts';
 import { loadSoundChecks, recordSoundCheck } from './store.ts';
 import { trackProductEvent } from '../analytics/track.ts';
@@ -29,6 +32,11 @@ export function SoundCheckScreen({
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const mission = getMission(missionId);
   const [reference, setReference] = useState<string | null>(null);
+  // How the learner's own last measured sound is made, drawn above the line.
+  // Null on a first check, on a run of self-guided attempts, and whenever the
+  // symbol on the record is not one this build knows: the panel is absent
+  // rather than a frame with a gap in it. See `headSound.ts`.
+  const [acoustic, setAcoustic] = useState<Acoustic | null>(null);
   const [phase, setPhase] = useState<'loading' | 'ready' | 'recording' | 'scoring' | 'result'>(
     'loading',
   );
@@ -39,6 +47,7 @@ export function SoundCheckScreen({
     void loadSoundChecks().then((evidence) => {
       if (cancelled) return;
       setReference(mission ? nextSoundCheckReference(mission, evidence) : null);
+      setAcoustic(acousticFor(headSound(evidence)));
       setPhase('ready');
     });
     return () => {
@@ -138,8 +147,17 @@ export function SoundCheckScreen({
       ) : (
         <>
           <Label>Sound check</Label>
-          <Text style={[type.display, { color: paper.ink, marginTop: space(2) }]}>One useful line, once.</Text>
+          <Text accessibilityRole="header" style={[type.display, { color: paper.ink, marginTop: space(2) }]}>One useful line, once.</Text>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>This is the part Luvani can assess honestly, because the words are known in advance.</Text>
+
+          {/* How the sound is made, above the line that uses it. It came off My
+              French in revamp A: instructions two taps from the doing are a
+              leaflet, and this is the screen where the learner does it. */}
+          {acoustic !== null && phase !== 'result' && (
+            <View style={st.acoustic}>
+              <AcousticCard acoustic={acoustic} />
+            </View>
+          )}
 
           {reference && (
             <Card style={{ marginTop: space(6), alignItems: 'center' }}>
@@ -186,4 +204,5 @@ export function SoundCheckScreen({
 const st = StyleSheet.create({
   hear: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(3) },
   micBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space(3), marginTop: space(7) },
+  acoustic: { marginTop: space(6) },
 });

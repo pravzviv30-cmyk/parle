@@ -14,7 +14,24 @@ export function memoryLabel(tutorName: string): string {
   return `${tutorName} remembers`;
 }
 
-export const MEMORY_ROW = 'See what your tutor remembers';
+/**
+ * Under the tutor's own name on Profile's first row.
+ *
+ * The row opens the voice sheet, so the line says what the voice IS rather
+ * than offering to change it: a learner who has never thought about which
+ * voice they have still learns from it who they are talking to.
+ */
+export const PARTNER_LINE = 'Your conversation partner';
+
+/**
+ * Under "<Name> remembers" on Profile's second row, and the reason to tap it.
+ *
+ * The row's title says what is behind it and this says what can be done there,
+ * which is the half a learner is actually deciding about. How much the tutor
+ * holds is said on the screen itself, in `memorySummary`, where there is room
+ * for a sentence and where it is not the second line running to start with the
+ * tutor's name.
+ */
 export const MEMORY_ROW_SUB = 'Forget any of it, or add a goal.';
 
 /** What each kind of fact is, in the learner's language. */
@@ -38,7 +55,7 @@ export const WHAT_LEAVES = 'The last few of these ride into each new conversatio
 
 /** Every line the card and the screen spell themselves, for the copy sweeps. */
 export const TUTOR_MEMORY_COPY: readonly string[] = [
-  MEMORY_ROW, MEMORY_ROW_SUB, ...Object.values(KIND_GLOSS), FORGET_ONE, FORGET_ALL, NOTHING_YET,
+  PARTNER_LINE, MEMORY_ROW_SUB, ...Object.values(KIND_GLOSS), FORGET_ONE, FORGET_ALL, NOTHING_YET,
   GOALS_LABEL, GOALS_SUB, GOAL_PLACEHOLDER, ADD_GOAL, REMOVE_GOAL, WHAT_LEAVES,
 ];
 

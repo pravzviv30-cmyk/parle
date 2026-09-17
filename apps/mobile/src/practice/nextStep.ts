@@ -17,20 +17,44 @@
  * `dueCards` from `@luvani/core`, so the count here and the sitting the Review
  * screen opens are the same capped set. Pure and clock-injected, so PracticeTab
  * can be a layout and this can be a test.
+ *
+ * Since F574 every branch also carries the French line the card opens on, so
+ * the step and the words over it are one answer rather than two. The tab reads
+ * `step.phrase` and spells nothing: which line belongs to which branch is a
+ * decision, and decisions are not kept in a `.tsx`.
  */
 
 import { dueCards, type ConversationPack, type ReviewCard } from '@luvani/core';
 import { orderedConversationPacks } from '../conversationPacks/model.ts';
+import { NEXT_PRACTICE_LABEL, REVIEW_ACTION } from './copy.ts';
+import { starterFrom } from './starter.ts';
 
 /** The headline over the step, and the word on a review step's button. */
-export const NEXT_STEP = { label: 'Your next step', review: 'Review', first: 'Start your first conversation' } as const;
+export const NEXT_STEP = { label: NEXT_PRACTICE_LABEL, review: REVIEW_ACTION, first: 'Start your first conversation' } as const;
+
+/**
+ * The one French line the step is about, and what it means.
+ *
+ * Every branch carries one (F574), because the card the tab draws opens on the
+ * line itself rather than on a count of what is waiting. Where it comes from is
+ * this module's decision and not the screen's: the deck's own front and back,
+ * the conversation's first key phrase, or the café lesson's first line for a
+ * learner with no conversation behind them. Nothing here is generated, so
+ * nothing here can be a line the learner has never met.
+ */
+export interface NextPhrase {
+  /** The line, in French. */
+  readonly fr: string;
+  /** What it means, in the learner's language. */
+  readonly en: string;
+}
 
 /** What to do now: review a due deck, revisit a conversation, or nothing. */
 export type NextStep =
-  | { kind: 'review'; due: number }
-  | { kind: 'pack'; pack: ConversationPack }
+  | { kind: 'review'; due: number; phrase: NextPhrase }
+  | { kind: 'pack'; pack: ConversationPack; phrase: NextPhrase }
   /** No conversation yet: the first one is the step (F555). */
-  | { kind: 'first' };
+  | { kind: 'first'; phrase: NextPhrase };
 
 /**
  * The review step's one line.
@@ -68,21 +92,31 @@ export function nextStep(
   packs: readonly ConversationPack[],
   now: number,
 ): NextStep | null {
-  // Computed once and read twice: the count that decides the branch is the
-  // same count the branch carries, so they can never disagree.
-  const due = dueCards(deck, now).length;
-  if (due > 0) return { kind: 'review', due };
+  // Computed once and read three times: the count that decides the branch, the
+  // count the branch carries and the card the branch opens on all come from one
+  // call, so the number and the line can never be about different sittings.
+  const due = dueCards(deck, now);
+  const first = due[0];
+  if (first !== undefined) {
+    return { kind: 'review', due: due.length, phrase: { fr: first.front, en: first.back } };
+  }
 
   const fresh = orderedConversationPacks(packs).find(
     (pack) => pack.state === 'ready' && pack.keyPhrases.length > 0 && pack.lastPractisedAt === null,
   );
-  if (fresh !== undefined) return { kind: 'pack', pack: fresh };
+  if (fresh !== undefined) {
+    // The branch is only reached for a pack with phrases in it, so the first one
+    // exists; it is read through a guard anyway rather than asserted, because a
+    // card with an empty line on it is worse than no card.
+    const phrase = fresh.keyPhrases[0];
+    if (phrase !== undefined) return { kind: 'pack', pack: fresh, phrase: { fr: phrase.fr, en: phrase.en } };
+  }
 
   // Nothing due and no pack at all: the first conversation is the step, and
   // it is the third branch of the tab's one control rather than a second pill
   // beside the review one (F555). A learner with packs that are all
   // practised, and a quiet deck, is up to date and gets no step.
-  if (packs.length === 0) return { kind: 'first' };
+  if (packs.length === 0) return { kind: 'first', phrase: starterFrom().phrase };
 
   return null;
 }

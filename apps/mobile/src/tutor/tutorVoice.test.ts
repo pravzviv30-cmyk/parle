@@ -41,6 +41,7 @@ import { fileURLToPath } from 'node:url';
 import {
   tutorSampleLine, DEFAULT_TUTOR_VOICE, TUTOR_VOICES, tutorVoice, type TutorVoiceKey } from '@luvani/core';
 import { guiltIn } from '../copy/guilt.ts';
+import { tutorNameOf } from './tutorName.ts';
 import {
   TUTOR_VOICE_COPY,
   TUTOR_VOICE_OPTIONS,
@@ -62,6 +63,15 @@ function stripComments(source: string): string {
 }
 
 const TAB = stripComments(read('../tabs/ProfileTab.tsx'));
+/**
+ * Profile's tutor card, which is where the way into the sheet lives now.
+ *
+ * Revamp A folded the "Tutor's voice" settings row into row one of the card
+ * under "Your tutor" (F576). The row says the tutor's NAME rather than the
+ * name of the setting, which is the same fact told the way a person would tell
+ * it, and the sheet behind it is unchanged.
+ */
+const CARD = stripComments(read('../profile/TutorMemoryCard.tsx'));
 const SAMPLES = stripComments(read('./voiceSamples.ts'));
 
 /**
@@ -127,16 +137,54 @@ describe('the voice on the Profile tab', () => {
     assert.equal(tutorVoiceLabel({ tutorVoice: 'emilie' } as never), tutorVoice('emilie').persona.name);
     assert.equal(tutorVoiceLabel(null), tutorVoice(DEFAULT_TUTOR_VOICE).persona.name);
 
-    // The row sits after strictness, which is where the settings card's other
-    // two questions about how the tutor behaves already are.
-    assert.ok(
-      writtenBefore(TAB, 'STRICTNESS_ROW', 'TUTOR_VOICE_ROW'),
-      'the voice row is not after the strictness row, so the card no longer reads as one group of questions',
+    // The row is row one of Profile's tutor card now (F576), and what it shows
+    // is the tutor's name rather than the name of the setting. That is the same
+    // fact told the way a person would tell it: the name IS the voice.
+    //
+    // The card resolves that name once, through `tutorNameOf`, and uses it for
+    // both of its rows, because one card resolving one name twice would be two
+    // answers to one question. So the two doors are held to agreeing here, on
+    // every key the catalogue has and on every kind of rubbish a stored blob
+    // can carry: if they ever part, the row shows one person and the sheet
+    // marks another.
+    for (const key of Object.keys(TUTOR_VOICES) as TutorVoiceKey[]) {
+      assert.equal(
+        tutorVoiceLabel({ tutorVoice: key } as never),
+        tutorNameOf({ tutorVoice: key } as never),
+        `the voice row and the sheet disagree about who ${key} is`,
+      );
+    }
+    for (const junk of [null, undefined, { tutorVoice: null }, { tutorVoice: 'constructor' }, { tutorVoice: 'aB3xQ7zK1mP9rT2vW5yH' }]) {
+      assert.equal(
+        tutorVoiceLabel(junk as never),
+        tutorNameOf(junk as never),
+        'the voice row and the sheet fall back to two different people for a profile neither can read',
+      );
+    }
+
+    // The card draws it, whole: the orb as the mark, the resolved name as the
+    // title, and the press that opens the sheet handed down by Profile.
+    assert.match(CARD, /const name = tutorNameOf\(profile\);/, 'the row names the tutor some other way than the persona');
+    assert.match(
+      CARD,
+      /<TutorRow first mark=\{<TutorMark \/>\} title=\{name\} gloss=\{PARTNER_LINE\} onPress=\{onVoice\} \/>/,
+      'the voice row is not the first row of the tutor card, or it no longer opens the sheet it is handed',
     );
     assert.match(
       TAB,
-      /<SettingsRow\s+label=\{TUTOR_VOICE_ROW\}\s+value=\{tutorVoiceLabel\(profile\)\}\s+onPress=\{\(\) => setSheet\('tutorVoice'\)\}/,
-      'the row does not show the chosen voice or does not open the sheet',
+      /<TutorMemoryCard onVoice=\{\(\) => setSheet\('tutorVoice'\)\} \/>/,
+      'the tutor card is handed no way to open the sheet, so the catalogue is unreachable from Profile',
+    );
+    // And only one way in. The old settings row must not have stayed behind:
+    // two rows opening one sheet is two places to keep a label in step.
+    assert.ok(
+      !TAB.includes('TUTOR_VOICE_ROW') && !CARD.includes('TUTOR_VOICE_ROW'),
+      'the voice is still a settings row as well as the tutor row, so there are two ways into one sheet',
+    );
+    assert.equal(
+      (TAB.match(/setSheet\('tutorVoice'\)/g) ?? []).length,
+      1,
+      'more than one control on Profile opens the voice sheet',
     );
 
     // The sheet itself: every option, the chosen one marked, one tap out.
@@ -157,6 +205,29 @@ describe('the voice on the Profile tab', () => {
       /\.\.\.profile\b|brain:\s*\{/,
       'the sheet spreads the profile by hand instead of going through the door that owns this field',
     );
+
+    // The pace switch moved to the foot of this sheet with revamp A (F576).
+    // How fast the tutor speaks is a question about the tutor, so it belongs
+    // beside the six cards that choose who the tutor is rather than on the
+    // learner's own card. Below them, so the sheet still opens on the choice it
+    // exists for rather than on a setting.
+    assert.match(VOICE_SHEET, /title=\{PACE_ROW\}/, 'the pace switch is not on the voice sheet');
+    assert.ok(
+      writtenBefore(VOICE_SHEET, 'TUTOR_VOICE_OPTIONS.map(', 'PACE_ROW'),
+      'the pace switch is drawn above the six voices, so the sheet opens on a setting rather than on a choice',
+    );
+    assert.match(VOICE_SHEET, /update\(withPace\(profile, next \? 'slow' : 'normal'\)\)/, 'the pace is written some other way than the named door');
+    // One site. Twice inside the sheet, which is the row named once for the eye
+    // and once for a screen reader, and nowhere on the learning card: a copy
+    // left there would be a second switch for one value, and the two would
+    // report different things about one tutor.
+    assert.equal(
+      (VOICE_SHEET.match(/PACE_ROW/g) ?? []).length,
+      2,
+      'the pace row at the foot of the sheet is not named once for the eye and once for a screen reader',
+    );
+    const learning = TAB.slice(TAB.indexOf('<Label>{LEARNING_LABEL}</Label>'));
+    assert.ok(!learning.includes('PACE_ROW'), 'the pace switch is on the learning card as well as on the sheet, so one value has two switches');
   });
 
   test('the voice sheet never names a vendor and carries no em dash', () => {

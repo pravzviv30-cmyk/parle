@@ -16,6 +16,7 @@ import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from '../cont
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
 import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
+import { OwnWordsVerdictSchema } from './judge.ts';
 import {
   BrainParseError,
   BrainRefusalError,
@@ -23,6 +24,7 @@ import {
   type BrainDrillsRequest,
   type BrainExtractRequest,
   type BrainFrameRequest,
+  type BrainJudgeRequest,
   type BrainTurnRequest,
   type ChatMessage,
   type LlmClient,
@@ -31,15 +33,21 @@ import {
 import { realSleep, retryAfterMs, type FetchLike, type SleepLike } from './http.ts';
 import { isAnalystActivity, resolveRouting, type BrainActivity, type BrainEffort, type BrainRouting } from './routing.ts';
 
-/** What `complete` needs from any of the five requests: the prefix, and the abort. */
-type PromptRequest = { system: { persona: string; pack: string; contract: string }; signal?: AbortSignal };
+/**
+ * What `complete` needs from any request: the bytes its cache key is cut from,
+ * and the abort. The judge has no three-block prefix — its whole system block
+ * is the grader's brief — so this is a string rather than the blocks, and the
+ * callers that do have blocks join them before handing them over.
+ */
+type PromptRequest = { cacheSeed: string; signal?: AbortSignal };
 
 type ContractSchema =
   | typeof TurnSchema
   | typeof ScenarioFrameSchema
   | typeof MemoryExtractionSchema
   | typeof DrillBatchSchema
-  | typeof CurationSchema;
+  | typeof CurationSchema
+  | typeof OwnWordsVerdictSchema;
 
 export interface OpenAiResponsesConfig {
   apiKey?: string;
@@ -83,6 +91,7 @@ const FORMAT_NAME: Record<BrainActivity, string> = {
   extract: 'luvani_memory',
   drills: 'luvani_drills',
   curate: 'luvani_practice',
+  judge: 'luvani_own_words_verdict',
 };
 
 interface ResponsesPayload {
@@ -110,6 +119,11 @@ interface ResponsesPayload {
 function schemaJson(schema: ContractSchema): unknown {
   const format = zodOutputFormat(schema) as { schema?: unknown };
   return format.schema ?? format;
+}
+
+/** Every block of one system prefix, in order, as the cache key hashes them. */
+function cacheSeedOf(system: { persona: string; pack: string; contract: string }): string {
+  return `${system.persona}${system.pack}${system.contract}`;
 }
 
 function instructionsFor(request: { system: { persona: string; pack: string; contract: string } }, includeContract: boolean): string {
@@ -147,8 +161,8 @@ function inputMessages(messages: readonly ChatMessage[]): { role: 'user' | 'assi
  * keeps the two prompt shapes apart, and over-rotating on a prompt edit costs a
  * single cold call at deploy time.
  */
-function cacheKeyFor(activity: BrainActivity, system: { persona: string; pack: string; contract: string }): string {
-  const digest = createHash('sha256').update(`${system.persona}${system.pack}${system.contract}`).digest('hex').slice(0, 8);
+function cacheKeyFor(activity: BrainActivity, cacheSeed: string): string {
+  const digest = createHash('sha256').update(cacheSeed).digest('hex').slice(0, 8);
   return `luvani-${activity}-${digest}`;
 }
 
@@ -174,6 +188,11 @@ async function unwrap(response: FetchResponse): Promise<ResponsesPayload> {
   return payload;
 }
 
+/** The cache seed and the abort, lifted off a request that carries blocks. */
+function promptRequest(request: { system: { persona: string; pack: string; contract: string }; signal?: AbortSignal }): PromptRequest {
+  return { cacheSeed: cacheSeedOf(request.system), ...(request.signal === undefined ? {} : { signal: request.signal }) };
+}
+
 export class OpenAiResponsesBrainClient implements LlmClient {
   private readonly fetchFn: FetchLike;
   private readonly sleep: SleepLike;
@@ -197,14 +216,14 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   }
 
   async turn(request: BrainTurnRequest): Promise<{ turn: TutorTurn; usage: LlmUsage }> {
-    const result = await this.complete('turn', request, instructionsFor(request, true), request.messages, TurnSchema);
+    const result = await this.complete('turn', promptRequest(request), instructionsFor(request, true), request.messages, TurnSchema);
     return { turn: result.value as TutorTurn, usage: result.usage };
   }
 
   async frame(request: BrainFrameRequest): Promise<{ frame: ScenarioFrame; usage: LlmUsage }> {
     const result = await this.complete(
       'frame',
-      request,
+      promptRequest(request),
       instructionsFor(request, false),
       [{ role: 'user', text: request.request }],
       ScenarioFrameSchema,
@@ -215,7 +234,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   async extract(request: BrainExtractRequest): Promise<{ extraction: MemoryExtraction; usage: LlmUsage }> {
     const result = await this.complete(
       'extract',
-      request,
+      promptRequest(request),
       instructionsFor(request, false),
       [{ role: 'user', text: request.request }],
       MemoryExtractionSchema,
@@ -226,7 +245,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   async drills(request: BrainDrillsRequest): Promise<{ batch: DrillBatch; usage: LlmUsage }> {
     const result = await this.complete(
       'drills',
-      request,
+      promptRequest(request),
       instructionsFor(request, false),
       [{ role: 'user', text: request.request }],
       DrillBatchSchema,
@@ -237,12 +256,28 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   async curate(request: BrainCurateRequest): Promise<{ curation: Curation; usage: LlmUsage }> {
     const result = await this.complete(
       'curate',
-      request,
+      promptRequest(request),
       instructionsFor(request, false),
       [{ role: 'user', text: request.request }],
       CurationSchema,
     );
     return { curation: result.value as Curation, usage: result.usage };
+  }
+
+  /**
+   * One paraphrase, judged. The prefix here is short and entirely its own, so
+   * the cache key is cut from the grader's brief: it still rotates when that
+   * brief is edited, which is the property that matters.
+   */
+  async judge(request: BrainJudgeRequest): Promise<{ verdict: unknown; usage: LlmUsage }> {
+    const result = await this.complete(
+      'judge',
+      { cacheSeed: request.system, ...(request.signal === undefined ? {} : { signal: request.signal }) },
+      request.system,
+      [{ role: 'user', text: request.request }],
+      OwnWordsVerdictSchema,
+    );
+    return { verdict: result.value, usage: result.usage };
   }
 
   /** One activity's model, effort and size. Two tables, one question each. */
@@ -275,7 +310,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
       store: false,
       // Cache addressing only. Nothing here changes what the model is asked to
       // do, which is the whole reason it is safe on the realtime path.
-      prompt_cache_key: cacheKeyFor(activity, request.system),
+      prompt_cache_key: cacheKeyFor(activity, request.cacheSeed),
       text: {
         format: {
           type: 'json_schema',

@@ -17,7 +17,7 @@
 
 export type BrainEffort = 'low' | 'medium' | 'high';
 
-export type BrainActivity = 'turn' | 'frame' | 'extract' | 'drills' | 'curate';
+export type BrainActivity = 'turn' | 'frame' | 'extract' | 'drills' | 'curate' | 'judge';
 
 export interface ModelRoute {
   model: string;
@@ -71,6 +71,20 @@ export const DEFAULT_ROUTING: BrainRouting = {
   // analyst model at high effort would add seconds ahead of that call for
   // marginal gain on a ranking task.
   curate: { model: 'claude-sonnet-5', effort: 'medium', maxTokens: 3_000, midConversationSystem: true },
+  // The paraphrase judge, and the second place in the product where a learner
+  // is standing still waiting for an answer: they have typed their own French
+  // and pressed Check. So it sits on the talker tier at low effort, sized at
+  // 600 tokens because the whole verdict is five short fields and one sentence
+  // of note. A bigger budget would buy nothing here except a longer wait.
+  //
+  // It sends no transcript and no history, so there is no mid-conversation
+  // system message to place: the grader's brief IS the system block, and the
+  // one thing after it is the attempt. `midConversationSystem` is therefore
+  // false in the only sense that can matter to this route.
+  //
+  // The model observes, code decides: the verdict is an observation of what the
+  // learner wrote, and whether that means good, retry or reveal is core's call.
+  judge: { model: 'claude-sonnet-5', effort: 'low', maxTokens: 600, midConversationSystem: false },
 };
 
 /**

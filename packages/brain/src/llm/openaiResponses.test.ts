@@ -74,9 +74,9 @@ function clientOver(responses: ReturnType<typeof reply>[], config: Partial<OpenA
 /**
  * Ask one activity and hand back the request it sent.
  *
- * Only `turn` and `frame` have a fixture that satisfies their schema. The other
- * three are asked with a body that cannot parse, because what is under test is
- * the request, and the request is captured before the answer is read.
+ * Only `turn` and `frame` have a fixture that satisfies their schema. The rest
+ * are asked with a body that cannot parse, because what is under test is the
+ * request, and the request is captured before the answer is read.
  */
 async function bodyFor(activity: BrainActivity, config: Partial<OpenAiResponsesConfig> = {}) {
   const answer = activity === 'turn' ? sampleTurn() : activity === 'frame' ? CAFE_FRAME : {};
@@ -87,6 +87,9 @@ async function bodyFor(activity: BrainActivity, config: Partial<OpenAiResponsesC
     extract: () => client.extract({ kind: 'extract', system: REQUEST.system, request: 'what was learned' }),
     drills: () => client.drills({ kind: 'drills', system: REQUEST.system, request: 'author practice' }),
     curate: () => client.curate({ kind: 'curate', system: REQUEST.system, request: 'group the phrases' }),
+    // The judge carries no three-block prefix: its system message is the
+    // grader's own brief, which is the whole point of the activity.
+    judge: () => client.judge({ kind: 'judge', system: 'judge one paraphrase', request: 'their attempt' }),
   }[activity];
   await ask().catch(() => undefined);
   return bodies[0]!;

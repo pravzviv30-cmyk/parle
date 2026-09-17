@@ -1,45 +1,42 @@
 /**
- * What the learner can now do, on Home (F545).
+ * Real progress, on Home (F545, F572).
  *
- * Drawn from `home/abilities.ts` and deciding nothing: the label the model
- * chose, its softer sentence when there is one, and one row per situation
- * handled on your own, each in the passport's words for assistive tech. Every
- * row opens My French, where the whole passport is.
+ * One white row: a green mark, the caps heading, and one sentence saying what
+ * this learner can now do in French. It draws `home/abilities.ts` and decides
+ * nothing, including what it is called and what it says to somebody listening
+ * to it, because a row that joined its own heading to its own sentence would be
+ * a second opinion about a claim the module is careful with.
+ *
+ * The whole row is the way in, not the chevron: the arrow is a sign, and a row
+ * whose only target is its arrow was the F545 defect. It opens Progress, where
+ * the same passport is one situation per line with the week beneath it.
+ *
+ * Green, because green means ground the learner has already covered. It is a
+ * mark rather than a word, so it is held to 3 against the disc it sits on; the
+ * words beside it are ink.
  */
 
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { AbilityRow, Card, Label } from '../components.tsx';
-import { MissionDisc } from '../missions/MissionDisc.tsx';
-import { stampLabel } from '../progress/passport.ts';
-import { paper, space, type } from '../theme.ts';
-import type { Abilities } from './abilities.ts';
+import { BadgeGlyph } from '../components.tsx';
+import { IconRowCard } from '../surface/IconRowCard.tsx';
+import { signal, space } from '../theme.ts';
+import type { CanDo } from './abilities.ts';
 
-export function AbilitiesCard({ abilities, onOpen }: { abilities: Abilities; onOpen: () => void }) {
+export function AbilitiesCard({ can, onOpen }: { can: CanDo; onOpen: () => void }) {
   return (
-    <Card style={st.card}>
-      <Label>{abilities.label}</Label>
-      {abilities.softLine !== null && <Text style={st.soft}>{abilities.softLine}</Text>}
-      {abilities.rows.length > 0 && (
-        <View style={st.rows}>
-          {abilities.rows.map((stamp, index) => (
-            <AbilityRow
-              key={stamp.missionId}
-              first={index === 0}
-              leading={<MissionDisc place={stamp.place} size={40} />}
-              title={stamp.titleEn}
-              accessibilityLabel={stampLabel(stamp)}
-              onPress={onOpen}
-            />
-          ))}
-        </View>
-      )}
-    </Card>
+    <View style={st.card}>
+      <IconRowCard
+        glyph={<BadgeGlyph size={24} color={signal.good} />}
+        label={can.label}
+        line={can.line}
+        onPress={onOpen}
+        accessibilityLabel={can.spoken}
+      />
+    </View>
   );
 }
 
 const st = StyleSheet.create({
   card: { marginTop: space(4) },
-  soft: { ...type.body, color: paper.ink, marginTop: space(2) },
-  rows: { marginTop: space(1) },
 });

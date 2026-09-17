@@ -37,6 +37,7 @@ services/shared/         Vendor adapters (Speechace). Not a workspace
 | Which situations exist, and when one is finished | `core/missions/missions.ts` | the agent, the app |
 | What is said inside one | `brain/missions/frames.ts` | core |
 | Whether a session may start | `token-server` at token issuance | the app |
+| Whether an own-words attempt carries the meaning | `brain/llm/judge.ts` behind `token-server` `/drill/judge` returns the verdict; `core/drill/ownWords.ts` `decideOwnWords` turns it into good, retry or reveal | the app, the screen |
 | How anything looks | `apps/mobile` + DESIGN.md | core |
 
 Metered minutes are enforced **at token issuance**, not in the app. Enforced in

@@ -29,6 +29,7 @@ import {
   Card,
   Label,
   PillButton,
+  OutlineButton,
   GhostButton,
   StationLine,
   EarGlyph,
@@ -104,6 +105,19 @@ function practiceBatch(
 
 /** How long the finish door waits for the recap before taking the ordinary exit. */
 const RECAP_WAIT_MS = 15_000;
+
+/**
+ * How big the circle is drawn, in each of the two rooms it appears in.
+ *
+ * The choosing moment has one thing on it and the circle IS the thing, so it is
+ * drawn at the size the mockup gives the tutor's own screen. The scene has a
+ * thread, a card and a control row under it, so the circle steps down to leave
+ * the conversation the room. Named here rather than written at four call sites,
+ * because two orbs on one screen drawn at two accidental sizes is how a surface
+ * stops looking authored.
+ */
+const CHOOSING_ORB = 170;
+const SCENE_ORB = 116;
 import {
   COACH_MARK_TEXT,
   coachMarksAfter,
@@ -712,15 +726,20 @@ export function ConvoScreen({
   }
 
   if (live.status.phase === 'out-of-minutes') {
+    // One white card holding the whole of it, and the store's own words inside
+    // it: the paywall carries the title, the body and the price, so nothing
+    // here restates a number that came off the wire. Back is the quiet outline
+    // because the card already holds the thing worth doing, and a second solid
+    // pill on the same screen would ask the learner which one is the point.
     return (
       <View style={st.center}>
-        <Label color={paper.inkSoft}>You are out of minutes</Label>
-        <Text style={[type.title, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>
-          {live.status.message}
-        </Text>
-        <Paywall userId={userId} />
+        <Card style={st.outOfMinutes}>
+          <Label color={paper.inkSoft}>You are out of minutes</Label>
+          <Text style={[type.cardTitle, { color: paper.ink, marginTop: space(2) }]}>{live.status.message}</Text>
+          <Paywall userId={userId} />
+        </Card>
         <View style={st.terminalAction}>
-          <PillButton label="Back" onPress={onExit} />
+          <OutlineButton label="Back" onPress={onExit} />
         </View>
       </View>
     );
@@ -783,11 +802,15 @@ export function ConvoScreen({
           >
             {choosing.showQuestion ? (
               <>
-                <Text style={[fitDisplay(live.opening.prompt.en), { color: paper.ink, textAlign: 'center' }]}>
-                  {live.opening.prompt.en}
-                </Text>
-                <Text style={[type.french, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
+                {/* The French first and large, because that is the sentence the
+                    tutor just said out loud, and the English under it small,
+                    because that is the translation of it. It used to be the
+                    other way round, which set the gloss as the headline. */}
+                <Text style={[fitDisplay(live.opening.prompt.fr), { color: paper.ink, textAlign: 'center' }]}>
                   {live.opening.prompt.fr}
+                </Text>
+                <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
+                  {live.opening.prompt.en}
                 </Text>
               </>
             ) : null}
@@ -803,11 +826,11 @@ export function ConvoScreen({
                   accessibilityLabel={choosing.orbLabel}
                   style={({ pressed }) => [st.orbTap, pressed && { opacity: 0.7 }]}
                 >
-                  <VoiceOrb state={choosing.orb} announce={false} />
+                  <VoiceOrb state={choosing.orb} announce={false} size={CHOOSING_ORB} />
                 </Pressable>
               ) : (
                 <View style={st.orbTap} accessibilityRole="image" accessibilityLabel={choosing.orbLabel}>
-                  <VoiceOrb state={choosing.orb} announce={false} />
+                  <VoiceOrb state={choosing.orb} announce={false} size={CHOOSING_ORB} />
                 </View>
               )}
             </View>
@@ -1014,10 +1037,10 @@ export function ConvoScreen({
               accessibilityLabel={OPEN_MIC_LABEL}
               style={({ pressed }) => [st.orbTap, pressed && { opacity: 0.7 }]}
             >
-              <VoiceOrb state={orbState} />
+              <VoiceOrb state={orbState} size={SCENE_ORB} />
             </Pressable>
           ) : (
-            <VoiceOrb state={orbState} />
+            <VoiceOrb state={orbState} size={SCENE_ORB} />
           )}
         </View>
 
@@ -1239,6 +1262,9 @@ const st = StyleSheet.create({
   center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
   listen: { minHeight: HIT, paddingHorizontal: space(5), paddingTop: space(3) },
   terminalAction: { marginTop: space(6), alignSelf: 'stretch' },
+  // The centring root shrink-wraps its children, so the card is told to take
+  // the width: a store offer sized to its longest word is not an offer.
+  outOfMinutes: { alignSelf: 'stretch' },
   // The waiting screen centres its children, so the banner has to be told to
   // take the width: a safety sentence shrink-wrapped to its longest word is
   // unreadable, and this one is the whole reason the branch draws anything.

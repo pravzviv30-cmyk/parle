@@ -14,12 +14,14 @@ import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from '../cont
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
 import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
+import { OwnWordsVerdictSchema } from './judge.ts';
 import {
   BrainParseError,
   type BrainCurateRequest,
   type BrainDrillsRequest,
   type BrainExtractRequest,
   type BrainFrameRequest,
+  type BrainJudgeRequest,
   type BrainTurnRequest,
   type ChatMessage,
   type LlmClient,
@@ -74,7 +76,8 @@ type ContractSchema =
   | typeof ScenarioFrameSchema
   | typeof MemoryExtractionSchema
   | typeof DrillBatchSchema
-  | typeof CurationSchema;
+  | typeof CurationSchema
+  | typeof OwnWordsVerdictSchema;
 
 function jsonSchemaText(schema: ContractSchema): string {
   const format = zodOutputFormat(schema) as { schema?: unknown };
@@ -152,6 +155,24 @@ export class OpenAiCompatBrainClient implements LlmClient {
       request.signal,
     );
     return { curation: value as Curation, usage };
+  }
+
+  /**
+   * The judge on the free tier. Same single repair round-trip as every other
+   * call here, because JSON mode is not a schema — and the local validation is
+   * the only thing standing between a fumbled answer and a learner being told
+   * they were right. The grader's brief is the system message whole: there is
+   * no persona or pack to fold in front of it.
+   */
+  async judge(request: BrainJudgeRequest): Promise<{ verdict: unknown; usage: LlmUsage }> {
+    const { value, usage } = await this.completeJson(
+      request.system,
+      [{ role: 'user', text: request.request }],
+      OwnWordsVerdictSchema,
+      jsonSchemaText(OwnWordsVerdictSchema),
+      request.signal,
+    );
+    return { verdict: value, usage };
   }
 
   private async completeJson(

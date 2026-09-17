@@ -13,12 +13,13 @@
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@luvani/core';
-import { HAIRLINE, paper, radius, signal, space, type } from './theme.ts';
+import { HAIRLINE, paper, signal, space, type } from './theme.ts';
 import { Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
 import { ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useHardwareBack } from './nav/useHardwareBack.ts';
 import { FocusDrillPlayer } from './drill/FocusDrillPlayer.tsx';
-import { RecapPostcard } from './illustrations.tsx';
+import { Art } from './art/Art.tsx';
+import { SCREEN_ART } from './art/maps.ts';
 import { saveTextFile } from './progress/saveFile.ts';
 
 export function SummaryScreen({
@@ -60,12 +61,18 @@ export function SummaryScreen({
   return (
     <ScrollScreen header={<ScreenHeader back={{ onPress: onDone }} />}>
       <View style={st.scroll}>
-        <View>
+        <View style={st.head}>
           <View style={st.postcard}>
-            <RecapPostcard width={190} />
+            <Art name={SCREEN_ART.recap} />
           </View>
-          <Text style={[type.title, { color: paper.ink }]}>{lesson.title}</Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>
+          {/* The end card leads with the scene's own name, set at display size
+              and centred over the postcard the way the mockup draws it. Digits
+              are welcome from here down: the no-numbers rule holds mid-session,
+              and a card that cannot say how long it took would be coy. */}
+          <Text accessibilityRole="header" style={[type.display, { color: paper.ink, textAlign: 'center' }]}>
+            {lesson.title}
+          </Text>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
             {summary.turnsCompleted} stops · {mins > 0 ? `${mins} min ` : ''}
             {secs}s
           </Text>
@@ -195,13 +202,16 @@ export function SummaryScreen({
         {summary.wordsProduced.length > 0 && (
           <View>
             <Label>Your notebook</Label>
-            <View style={st.words}>
-              {summary.wordsProduced.map((w) => (
-                <View key={w} style={st.word}>
-                  <Text style={[type.french, { color: paper.ink }]}>{w}</Text>
+            {/* One white card of lines rather than a scatter of chips: the
+                mockup sets what the learner said as a list you read down, and
+                a chip that wraps mid-phrase stops being a chip (F584). */}
+            <Card style={st.words}>
+              {summary.wordsProduced.map((w, index) => (
+                <View key={w} style={[st.word, index > 0 && st.worded]}>
+                  <Text style={[type.frenchSm, { color: paper.ink }]}>{w}</Text>
                 </View>
               ))}
-            </View>
+            </Card>
             {onReview && (
               <View style={{ marginTop: space(3.5) }}>
                 <OutlineButton label="Review" onPress={onReview} />
@@ -224,6 +234,7 @@ export function SummaryScreen({
 
 const st = StyleSheet.create({
   scroll: { paddingTop: space(3), paddingBottom: space(8), gap: space(7) },
+  head: { alignItems: 'stretch' },
   postcard: { alignItems: 'center', marginBottom: space(4) },
   divider: {
     height: HAIRLINE,
@@ -246,13 +257,7 @@ const st = StyleSheet.create({
     borderLeftColor: signal.good,
     paddingLeft: space(3.5),
   },
-  words: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), marginTop: space(3) },
-  word: {
-    backgroundColor: paper.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-    borderRadius: radius.chip,
-    paddingVertical: space(1.5),
-    paddingHorizontal: space(3),
-  },
+  words: { marginTop: space(3) },
+  word: { paddingVertical: space(2) },
+  worded: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
 });

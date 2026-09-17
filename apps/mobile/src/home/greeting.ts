@@ -170,11 +170,16 @@ export function greetingIndex(elapsedMs: number, count: number): number {
  * The comma travels with the word rather than sitting in the header, because
  * the header holds the word in a slot that moves and the name still beside it.
  * A comma left behind would be a comma with nothing in front of it for half a
- * swipe. A learner who skipped the name question gets the bare word and no
- * dangling punctuation.
+ * swipe.
+ *
+ * The comma is there whether or not we know a name. That is the founder's
+ * mockup: the header reads `Bonsoir,` and then the hour's question underneath
+ * it, so the comma leans into the subline rather than into a name we may not
+ * have. A learner who skipped the name question reads the same opening as
+ * everybody else, one line shorter.
  */
-export function greetingLead(word: string, firstName: string | null): string {
-  return firstNameOf(firstName) === null ? word : `${word},`;
+export function greetingLead(word: string): string {
+  return `${word},`;
 }
 
 /**
@@ -191,7 +196,41 @@ export function greetingLead(word: string, firstName: string | null): string {
  */
 export function greetingLine(word: string, firstName: string | null): string {
   const first = firstNameOf(firstName);
-  return first === null ? word : `${word}, ${first}`;
+  return first === null ? `${word},` : `${word}, ${first}`;
+}
+
+/**
+ * The question under the greeting, one per part of the day.
+ *
+ * The greeting says hello and the subline says what Home is for, and both have
+ * to be true of the hour a learner is reading them: "Ready to speak French
+ * tonight?" at breakfast is the same mistake as `Bonsoir` at breakfast, one
+ * line further down. The windows tile the whole clock with no gap and no
+ * overlap, which is the property the suite checks at all twenty-four hours,
+ * because a gap would leave the header with a question missing and an overlap
+ * would make the line depend on the order of this list.
+ *
+ * They are the greeting's own windows rather than a second set of numbers:
+ * morning ends at noon where `Morning` ends, and the evening starts at six and
+ * wraps past midnight where `Bonsoir` does.
+ */
+export const GREETING_SUBLINES: readonly { hours: HourWindow; line: string }[] = [
+  { hours: { from: 5, to: 12 }, line: 'Ready to speak French this morning?' },
+  { hours: { from: 12, to: 18 }, line: 'Ready to speak French today?' },
+  { hours: { from: 18, to: 5 }, line: 'Ready to speak French tonight?' },
+];
+
+/**
+ * The hour's question, for the line under the greeting.
+ *
+ * An unreadable clock lands on midday through `localHour`, and midday is the
+ * neutral one: asking about today is ordinary at any waking hour, and asking
+ * about tonight before breakfast is not.
+ */
+export function greetingSubline(now: number): string {
+  const hour = localHour(now);
+  const match = GREETING_SUBLINES.find((subline) => withinWindow(hour, subline.hours));
+  return match?.line ?? GREETING_SUBLINES[1]!.line;
 }
 
 /**

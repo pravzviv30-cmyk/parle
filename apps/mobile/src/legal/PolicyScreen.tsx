@@ -54,25 +54,31 @@ export function PolicyScreen({ onBack }: { onBack: () => void }) {
         {POLICY_TITLE}
       </Text>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>{POLICY_INTRO}</Text>
-      <View style={{ marginTop: space(6), gap: space(3), paddingBottom: space(6) }}>
-        {POLICY_SECTIONS.map((section) => (
-          <Card key={section.heading}>
-            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>
-              {section.heading}
-            </Text>
-            {/* Keyed by position within its section rather than by its own
-                text: two paragraphs in one notice may legitimately say the same
-                sentence, and a duplicate key would drop one of them silently. */}
-            {section.body.map((paragraph, index) => (
-              <Text
-                key={`${section.heading}:${index}`}
-                style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}
-              >
-                {paragraph}
+      {/* One white body card under a serif title, which is the shape revamp A
+          gives a document. A card per section turned a notice into a stack of
+          fourteen objects; it is one thing to read, so it is one surface, and
+          the headings do the dividing inside it. */}
+      <View style={{ marginTop: space(6), paddingBottom: space(6) }}>
+        <Card>
+          {POLICY_SECTIONS.map((section, at) => (
+            <View key={section.heading} style={{ marginTop: at === 0 ? 0 : space(6) }}>
+              <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>
+                {section.heading}
               </Text>
-            ))}
-          </Card>
-        ))}
+              {/* Keyed by position within its section rather than by its own
+                  text: two paragraphs in one notice may legitimately say the same
+                  sentence, and a duplicate key would drop one of them silently. */}
+              {section.body.map((paragraph, index) => (
+                <Text
+                  key={`${section.heading}:${index}`}
+                  style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}
+                >
+                  {paragraph}
+                </Text>
+              ))}
+            </View>
+          ))}
+        </Card>
       </View>
     </ScrollScreen>
   );

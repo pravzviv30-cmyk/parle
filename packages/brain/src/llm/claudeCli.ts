@@ -29,12 +29,14 @@ import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from '../cont
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
 import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
+import { OwnWordsVerdictSchema } from './judge.ts';
 import {
   BrainParseError,
   type BrainCurateRequest,
   type BrainDrillsRequest,
   type BrainExtractRequest,
   type BrainFrameRequest,
+  type BrainJudgeRequest,
   type BrainTurnRequest,
   type LlmClient,
   type LlmUsage,
@@ -59,7 +61,8 @@ type ContractSchema =
   | typeof ScenarioFrameSchema
   | typeof MemoryExtractionSchema
   | typeof DrillBatchSchema
-  | typeof CurationSchema;
+  | typeof CurationSchema
+  | typeof OwnWordsVerdictSchema;
 
 function jsonSchemaText(schema: ContractSchema): string {
   const format = zodOutputFormat(schema) as { schema?: unknown };
@@ -168,6 +171,17 @@ export class ClaudeCliBrainClient implements LlmClient {
     const system = [request.system.persona, request.system.pack].join('\n\n');
     const { value, usage } = await this.ask('curate', system, request.request, CurationSchema);
     return { curation: value as Curation, usage };
+  }
+
+  /**
+   * The judge through the subscription. Slow for a learner standing at a Check
+   * button, which is a wiring question rather than a routing one: SplitBrain
+   * keeps this arm on the fast tier, and this method exists so that the whole
+   * brain can still be one process when TUTOR_LLM asks for it.
+   */
+  async judge(request: BrainJudgeRequest): Promise<{ verdict: unknown; usage: LlmUsage }> {
+    const { value, usage } = await this.ask('judge', request.system, request.request, OwnWordsVerdictSchema);
+    return { verdict: value, usage };
   }
 
   private async ask(

@@ -1006,7 +1006,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   files, including the microphone, the ear and the chevrons, reach assistive tech as
   unlabelled images, and on web react-native-svg forwards unknown props straight to the
   DOM. Same class of bug the token was created to fix, one layer down.
-- verified-by: `every drawing in the app is hidden from assistive technology`
+- note: revamp A (2026-09): the rule widened rather than moved. The same contract test in
+  surfaceContract.test.ts now covers raster scenes as well as every `<Svg>`, and was renamed for
+  it; the icon layer this entry was filed about keeps its own copy in glyphs.test.ts.
+- verified-by: `every drawing and every raster scene in the app is hidden from assistive technology`
+- verified-by: `every glyph draws in the one stroke weight and hides from assistive technology`
 
 ### J7 — Four scene animations keep running on screens nobody is looking at
 - severity: P2
@@ -1452,10 +1456,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/tutor/gate.ts:1
 - note: `tutorGate` stops requiring the intro; TutorIntro survives, demoted to links on the Tutor tab and Profile, so J3 and the orb-teaching contract in DESIGN.md are untouched. `tutor/coachMarks.ts` sequences three contextual marks (help, moment, english) under rules that keep it from becoming a second onboarding: one on screen, one new per session, each once ever, never blocking. Seen-state is one key, one new suffix in `clearActiveUserData`.
-- verified-by: `the tutor tab opens its doors without the intro standing in the way`
+- note: revamp A (2026-09): the tutor tab's doors are three tinted rows now and the intro link is called
+  the explainer, so both tests kept their claims under new sentences in tutor/gate.test.ts.
+- verified-by: `the tab opens its rows with nothing standing in front of them`
 - verified-by: `each coach mark shows once, ever, and never two at a time`
 - verified-by: `at most one new coach mark appears per session`
-- verified-by: `the intro is still reachable, and still teaches the circle`
+- verified-by: `the explainer is still reachable, and still teaches the circle`
 
 ### F53 — A first-ever learner lands on the chooser with the café already chosen
 - severity: P1
@@ -2727,7 +2733,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F146 — DESIGN.md records five colours the app stopped shipping
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: docs/DESIGN.md:1
 - note: the doc records `signal.live #DE3B2D`, `good #1E8A5B`, `orb.thinking #B07510`,
   `accent.label #8A5BBF` and rung 1 `#FFCD00`, while `theme.ts` and `palette.ts` ship
@@ -2837,9 +2843,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   and the branches this entry names. The behaviour it checks is unchanged or stricter; the
   sentences on the front of the tests moved with the screen. Same treatment as F406's rename
   of F365's test, recorded rather than quietly repointed.
+- note: revamp A (2026-09): F574 took the archive off Practice and the one probed door is the first
+  conversation, so the test dropped the word "one" from its title in tabs/PracticeTab.test.ts.
 - verified-by: `a tap during the probe is acknowledged and never doubled`
 - verified-by: `the quiet door for a learner who cannot speak is still on the Tutor tab`
-- verified-by: `the one door that touches the network guards its tap and says so — F154`
+- verified-by: `the door that touches the network guards its tap and says so — F154`
 
 ### F155 — Finish says a recap is coming
 - severity: P1
@@ -3496,7 +3504,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: the situations list consumes stampsFrom; a stamped row gets a filled signal.good mark,
   not-yet stays the hairline treatment because a thing that has not happened is not a state worth
   signalling. Held by a source-walking contract test, since apps/mobile has no renderer tests.
-- verified-by: `the My French screen draws a stamp only for a scene finished unaided`
+- note: revamp A (2026-09): the stamp is the filled green chip on each situation row, and the row is
+  drawn by myfrench/SituationsCard.tsx; the screen-side claim is proved in
+  tabs/MyFrenchTab.test.ts and the unaided rule in myfrench/situations.test.ts.
+- verified-by: `my french draws one tinted row per mission, stamped ones first, and no count`
+- verified-by: `only a scene handled with nothing handed over is filled`
 
 ### F219 — Core names a card's first return
 - severity: P1
@@ -5067,8 +5079,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   holds only the F154 checking receipt). Tutor's hero moves under its header; Home's empty-state headline
   steps down to `type.title`.
 - note: F406 renamed this test when the founder's mockups moved the rule it names. The behaviour it checks is unchanged or stricter; only the sentence on the front of it moved. See F406.
+- note: revamp A (2026-09): Home grew a purpose line of its own, the hour's greeting subline, so the
+  surface contract's purpose test widened to all five tabs and was renamed for it.
 - verified-by: `every tab opens with the one tab header and draws no headline of its own`
-- verified-by: `every tab but Home says what it is for in one line — F406`
+- verified-by: `every tab says what it is for in one line, and Home's is the hour's`
 
 ### F337 — Home and Profile draw the initial with the one monogram
 - severity: P1
@@ -5189,8 +5203,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   has no subject any more and is retired rather than repointed at something it never checked. What is
   still true, and still tested, is that the step is drawn first and that nothing else on the tab
   competes with it for the eye.
-- verified-by: `the whole archive is folded by practice/archive.ts, and the tab counts nothing`
-- verified-by: `the tab keeps exactly one primary pill, in two branches, and one of them is the deck — F442`
+- note: revamp A (2026-09): F574 replaced the archive with the next-practice card, so both tab-level
+  titles moved to tabs/PracticeTab.test.ts; the step is still drawn first and still the only thing
+  on the tab competing for the eye.
+- verified-by: `the tab counts nothing a learner could read as a score`
+- verified-by: `the tab keeps exactly one primary pill, and it is the first conversation — F574`
 - verified-by: `the blocks arrive in the order the mockup draws them`
 
 ### F347 — A situation's row action and the next-situation words are decided in one module
@@ -5217,10 +5234,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   next situation, drawn last in a card under `st.nextSituation` with the tab's one `PillButton` (F342 count
   stays 1), and "Choose another situation" becomes the quiet `GhostButton` after it. F218's slice closes at
   `st.nextSituation` in lockstep, and its order pins hold: notebook, week, situations, next, chooser.
-- verified-by: `my french draws no count at zero: the stat rail is gone and every block waits on its module's gate`
-- verified-by: `my french closes on the next situation, and the chooser is the quiet door`
-- verified-by: `a finished situation's row says refine pronunciation in the module's words, and goes where the module says`
-- verified-by: `the My French screen draws a stamp only for a scene finished unaided`
+- note: revamp A (2026-09): the counts and the next-situation card both went. The places are rows,
+  core's suggestion is simply the first row under "Next places", and the chooser is no longer a
+  door on this tab at all — it is the Tutor tab's everyday mission — so that half of the title is
+  retired rather than repointed; the ban on a count is what survives and is tested.
+- verified-by: `my french draws one tinted row per mission, stamped ones first, and no count`
+- verified-by: `the place core suggests is the first one a learner sees under Next places`
+- verified-by: `a finished place refines its sounds, and a new one opens the scene, in the module’s words`
+- verified-by: `only a scene handled with nothing handed over is filled`
 - verified-by: `the Profile card is the one importer of the story, and the rhythm rail names no number`
 
 ### F349 — The progress reset that no screen can reach is gone from the app and its documents
@@ -5406,9 +5427,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   with it and what is left of a scene travels as a number instead. And "exactly one carries the pill" MOVED
   rather than went: `surfaceContract.test.ts` now pins the count per tab, which catches a third pill in a
   place asserting it from the model could not. The test below is renamed to what it still proves.
-- verified-by: `each door is a card that says what is behind it — F364`
+- note: revamp A (2026-09): the doors are rows rather than cards, so the card test was rewritten as the
+  row test; what is behind each door is still said in words, and still said by the model rather
+  than by the screen.
+- verified-by: `each row says what it is and what is behind it, in a line short enough to read while walking`
 - verified-by: `the tutor's doors are cards drawn with the app's buttons, not a bespoke card-button — F364`
-- verified-by: `the tutor tab opens its doors without the intro standing in the way`
+- verified-by: `the tab opens its rows with nothing standing in front of them`
 
 ### F365 — Practice's next step is the tab's one pill
 - severity: P1
@@ -5420,7 +5444,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: F406 renamed this test when the founder's mockups moved the rule it names. The behaviour it checks is unchanged or stricter; only the sentence on the front of it moved. See F406.
 - note: F442 renamed it again for the same reason: the ruled row it opened left with the path, and the
   second branch is a conversation now. The count it pins, one pill in two branches, is untouched.
-- verified-by: `the tab keeps exactly one primary pill, in two branches, and one of them is the deck — F442`
+- note: revamp A (2026-09): the deck branch became a quiet outline and the one pill is the learner's
+  first conversation, so the count of one is untouched and only the branch that keeps it moved.
+- verified-by: `the tab keeps exactly one primary pill, and it is the first conversation — F574`
 - verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
 
 ### F366 — My French opens on the evidence, and draws nothing at zero
@@ -5431,8 +5457,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   activity log (levelFor(totalXp)) and answers only what has been earned; hasEvidence false means no row, on
   progress/today.ts's rule. Three Stats sit in one row (Stat gains columns={3}) above the notebook card. The
   analytics event reads the same module. F348's ban on `<Stat` becomes "only inside the hasEvidence gate".
+- note: revamp A (2026-09): this claim is no longer true and nothing replaces it. My French draws no
+  evidence row at all now; evidence.ts is read once a visit only to fold the two numbers the
+  product event has always carried, and `<Stat` is banned on the tab outright. The tick points at
+  the test that pins that ban, and the module's own rule is still held by the F366 test above it.
 - verified-by: `nothing is drawn at zero, and each fact appears only once it is real — F366`
-- verified-by: `my french draws its evidence from evidence.ts, inside its gate, and decides none of it on the screen — F366`
+- verified-by: `the tab imports nothing it no longer draws`
 - verified-by: `a stat can sit three to a row — F366`
 
 ### F367 — Profile says the learner's level under their name
@@ -5442,8 +5472,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: the focus effect also loads the activity log; levelName() from evidence.ts (null at zero XP, the
   same rule Home's level card keeps) is drawn as a type.small soft-ink line under the name, and nothing
   when null.
+- note: revamp A (2026-09): this claim is no longer true and was reversed on purpose. F576 took the
+  level line off Profile — the tab test now fails if `levelName` comes back, on the grounds that a
+  rank under the name ranks somebody who came to change a setting — so the tick points at the
+  header test that removed it. levelName itself is unchanged and still tested in
+  progress/evidence.test.ts.
 - verified-by: `the level name is said only once something has been earned — F367`
-- verified-by: `profile draws the level line from evidence.ts — F367`
+- verified-by: `profile opens centred on the learner and draws its tutor as the orb, never a face`
 
 ### F368 — The daily goal and the correction dial are chosen in place
 - severity: P1
@@ -5626,7 +5661,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F383 — My French draws nothing below its subtitle at the largest text size
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/MyFrenchTab.tsx:131
 - note: seen on the Pass 4 simulator walk (iPhone 17 Pro, iOS 26, text size accessibility XXXL): the
   header and subtitle render, the situations list and the closing next-situation card do not, and the
@@ -5781,8 +5816,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: `bookmarkLabel(saved)`, `savedSituations(items, pool)` (saved only, unknown ids dropped, newest first)
   and `hasSaved`. My French draws a "Saved situations" card only inside `hasSaved`, each row `titleEn` with a
   "Start" ghost opening `Convo` with `seedTopicOf`; no copy at zero.
+- note: revamp A (2026-09): the saved block kept its gate and its seed topic and moved into the new page
+  order, third of four, so the screen-side claim is proved in tabs/MyFrenchTab.test.ts.
 - verified-by: `saved situations drop unknown ids, read newest first, and draw nothing when none is saved — F394`
-- verified-by: `my french draws saved situations inside hasSaved and starts one through the seed topic — F394`
+- verified-by: `the saved situations arrive only when the learner saved one, and open the scene they name`
 
 ### F395 — A sitting records how long it took
 - severity: P1
@@ -5898,7 +5935,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   body as its gloss; `scenarioCountLine(n)` and `minutesRemainingLine(n)` format the numerals with singulars;
   `TUTOR_INTRO_LINK` is "How the voice circle works" in both places; `dashboard.ts` gains `tutorHeading(name)`
   and `TUTOR_PURPOSE`, and `tutorGreeting` is gone. Every prose field on every door stays digit-free.
-- verified-by: `the tutor's doors say their counts as numbers, their words without a digit, and pill the resume and the open conversation — F404`
+- note: revamp A (2026-09): two of the three clauses were retired by decision in F573 — no row carries a
+  count any more, and the tab draws no pill at all — so what is left is the digit-free prose rule,
+  proved on the rows, plus the two formatters where they still live and Tutor's pill count of zero
+  in surfaceContract.test.ts.
+- verified-by: `each row says what it is and what is behind it, in a line short enough to read while walking`
+- verified-by: `the two formatters are still the only place a numeral becomes words`
+- verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
 - verified-by: `the tutor heading names the tutor and the subline is the screenshot's — F404`
 
 ### F405 — The tutor tab is the screenshot, drawn from the door model
@@ -5912,9 +5955,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   centred `PillButton` "Open conversation" under it, no "Free improvisation". Footer keeps `open(true)`, the
   intro link with `HelpGlyph`, and `MICROPHONE_NOTICE`. `doors.map(` and `open(true)` stay so chooserView's
   guard holds.
-- verified-by: `the tutor tab draws everyday, open chat and rehearse as entry modes, folds the situations away, and keeps one pill`
+- verified-by: `the tutor tab draws three tinted rows, one remembers row and no pill`
 - note (2026-09-12): the doors grew to six with F547 and the test was rewritten under that title; the tab
   still draws exactly what the door model says.
+- note: revamp A (2026-09): the doors became three tinted rows with the remembers row under them and no
+  pill at all, and the test was rewritten under that title in tabs/TutorTab.test.ts; the tab still
+  draws exactly what the door model says.
 
 ### F406 — The surface guards are changed on purpose, each with its reason
 - severity: P1
@@ -5925,8 +5971,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   draws no `<Monogram` and Profile still does; J7's scene list gains `WordSprout|EveningIn`; F364 drops the
   `<OutlineButton` requirement for the doors slice and requires `MISSIONS.map(` and `<MissionDisc` instead;
   F340, F336, F307, J5, J13 and F341 are unchanged and must still pass on the new files.
+- note: revamp A (2026-09): the one exception this entry recorded is gone. Home carries a purpose line
+  too now, the hour's, so the test asserts the rule on all five tabs and says so in its title.
 - verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
-- verified-by: `every tab but Home says what it is for in one line — F406`
+- verified-by: `every tab says what it is for in one line, and Home's is the hour's`
 - verified-by: `the learner's initial is drawn once, on Profile — F406`
 
 ### F407 — DESIGN.md says what Home and Tutor now are
@@ -6020,7 +6068,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   while the card draws "Tap to speak" underneath it. The two overlap, on top of each other, and the result is
   unreadable. It predates this pass and reached a screenshot the founder drew with one caption on it, which is
   what noticed. The card owns the words here, because it says two lines and the orb only ever says one.
-- verified-by: `the tutor's circle lets the card do the talking — F415`
+- note: revamp A (2026-09): the orb's card became the page, so the same assertion is filed one word
+  along in tabs/TutorTab.test.ts.
+- verified-by: `the tutor's circle lets the page do the talking — F415`
 
 ### F416 — A frame that never lands leaves the greeting invisible for good
 - severity: P1
@@ -6110,7 +6160,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `heldBack`, `TUTOR_OFFLINE.body` and the `Check again` outline stay exactly as F392 pins them,
   because the tap's answer is the honest offline signal. `TUTOR_OFFLINE.label` itself stays in
   `tutor/gate.ts` for the Tutor tab and the Convo guard.
-- verified-by: `the situation card carries no demo label; a start that cannot happen is answered on the tap — F421`
+- note: revamp A (2026-09): SituationCard.tsx is gone and its job folded into home/MissionHero.tsx,
+  which draws no demo label of any kind — TUTOR_OFFLINE.label survives only on the Tutor tab and
+  in the navigator — so the tap's honest answer is proved on the hero and the removal is held by
+  the DESIGN.md contract test.
+- verified-by: `a start that could not happen is answered on the card that asked, however it failed`
+- verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
 - verified-by: `home's situation card opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
 
 ### F422 — The word pool clears the phrasebook bar and is tiered
@@ -6357,7 +6412,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `STROKE` with a tick inside, decorative, exported beside `TargetGlyph`, drawn by
   `MomentumCards.tsx` and nowhere else. No fill but the stroke colour, no second colour, no
   animation.
-- verified-by: `every drawing in the app is hidden from assistive technology`
+- note: revamp A (2026-09): the assistive-tech contract widened to raster scenes and was renamed for it;
+  the badge glyph itself is untouched.
+- verified-by: `every drawing and every raster scene in the app is hidden from assistive technology`
 - verified-by: `home draws the four momentum cards in tokens, green for ground covered, the accent once on the badge and never on a bar — F436`
 
 ### F438 — Home wires the phrase bank link and tells the truth in its header
@@ -6440,14 +6497,17 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   filter row until the fourth, and a count with nothing behind it is left out of the rail
   rather than drawn as a nought. The founder chose that quieter first morning explicitly
   over the Home treatment (F432), where the frame is present from day one.
+- note: revamp A (2026-09): F574 took the archive off the tab in turn and left practice/archive.ts and
+  its module tests standing, so the five module-level ticks above are unchanged and the three
+  tab-level ones moved to the rewritten tabs/PracticeTab.test.ts.
 - verified-by: `day one is quiet: no vault, no feed, no filters, and words instead`
 - verified-by: `the first conversation brings the vault and the feed, and nothing else`
 - verified-by: `a count with nothing behind it is left out of the rail rather than drawn as nought`
 - verified-by: `the filter row waits until there are enough cards for it to do any work`
 - verified-by: `a filter that would select everything, or nothing, is not drawn`
-- verified-by: `the whole archive is folded by practice/archive.ts, and the tab counts nothing`
-- verified-by: `the path, its rows and its mix offer are gone, and nothing here re-grows them`
-- verified-by: `the header carries the tab title and a purpose, and no monogram`
+- verified-by: `the tab counts nothing a learner could read as a score`
+- verified-by: `the path, the archive and the suggestion card are gone, and nothing here re-grows them`
+- verified-by: `the header says where the page came from, and none of those words live here`
 - verified-by: `the design doc describes Practice as the archive the tab actually draws — F442`
 
 ### F443 — a drill opened from Practice could be handed French instead of deck keys
@@ -6521,11 +6581,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   It takes an outline and not a pill, so Tutor's pinned count of two is untouched, and it
   keeps its own quiet typed way in because it is the one live screen whose text mode had
   no door of its own.
-- verified-by: `the Lesson route is reachable from the tutor tab, and the tab words none of it`
-- verified-by: `the lesson door probes before it navigates, the way every other door here does`
-- verified-by: `the lesson carries its own quiet way in, and the footer control keeps its one destination`
-- verified-by: `the lesson stands between the guided situations and the open conversation, and takes no pill`
-- verified-by: `the lesson opens whether or not the probe came back, because there is an offline lesson to open`
+- note: revamp A (2026-09): F573 moved the door from the Tutor tab to the chooser, where it is last
+  under the six situations and still an outline — the chooser's one pill is the hero card's "Start
+  this one" — so missions/chooserView.test.ts and missions/MissionsScreen.test.ts hold the door
+  and tutor/gate.test.ts holds where it opens, including the offline and typed routes.
+- verified-by: `the pronunciation lesson is a door on the chooser`
+- verified-by: `a tap on the lesson is acknowledged, never doubled, and refused by nothing`
+- verified-by: `a learner with no servers still reaches the lesson, and a learner who cannot speak still reaches it typed`
+- verified-by: `the situation already picked out is the card, and the other five are rows a learner can read at a glance`
+- verified-by: `nothing the lesson door says is a count, a scold or a second question`
 
 ### F448 — The suggestion card needed three lines per situation and the pool had one
 - severity: P2
@@ -6542,6 +6606,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   than being the one part of the pool nothing checked. Two authored strings were reworded
   before landing because "closes" and "exploser" each contain "lose", and the banned-word
   scan matches on substrings.
+- note: revamp A (2026-09): the suggestion card was retired with the Practice path, so the walk has no
+  surface left. What this entry is actually about survives whole — the pool is authored,
+  three-lined and reaches no model — and the scene a learner meets is now the day's pick on Home,
+  stable for the day and taken from their own tier.
 - verified-by: `three lines, in both languages, on every situation in the pool`
 - verified-by: `a scenario does not open with the same sentence twice`
 - verified-by: `the lines are short enough to be said by somebody nervous`
@@ -6551,9 +6619,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   that order is grouped by theme; it deals a shuffled one instead. The claim this entry is
   actually about, that the pool is authored and the button reaches no model, is unchanged
   and is what the successors below check.
-- verified-by: `walking meets every situation in the pool before repeating one`
-- verified-by: `two learners get different orders, and one learner gets the same one twice`
-- verified-by: `the card says what it does, and what it does is suggest rather than generate`
+- verified-by: `home leads with tonight's scene, a resume before it, the café before anything`
+- verified-by: `the same local day always picks the same word and situation, and midnight changes both — F390`
+- verified-by: `every theme carries a real share, and every tier can be lived in`
 
 ### F449 — Practice sat there loading and never said why
 - severity: P1
@@ -6590,12 +6658,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   primitive is new and follows `mixQueue`'s stated contract that a reorder never adds,
   drops or re-picks. It reads no clock and no global; the one clock reading, for a first
   learner's seed, is in the store where a test can avoid it.
+- note: revamp A (2026-09): the card that dealt the permutation was retired with the Practice path and
+  the primitive stayed in core, still exported and still tested, so both surface-level titles are
+  re-pointed at the shuffle tests that hold the seeded order and the wrap.
 - verified-by: `the deal is a permutation: nothing added, nothing dropped, nothing repeated`
 - verified-by: `it actually shuffles, rather than handing back the pool in order`
 - verified-by: `walking the whole pool meets every item exactly once, then comes round`
 - verified-by: `it reads no clock and no global, so a test can hand it every input`
-- verified-by: `walking meets every situation in the pool before repeating one`
-- verified-by: `the order is the learner's own, not the order the pool was written in`
+- verified-by: `a position past the end wraps rather than falling off it`
+- verified-by: `the same seed deals the same order, and a different seed does not`
 
 ### F451 — A beginner could be shown a situation pitched at somebody two levels up
 - severity: P2
@@ -6609,7 +6680,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   rule that already decides this, rather than a second opinion about how far somebody has
   come. A tier is a pitch and not an assessment, which `tier.ts` says at length and is
   worth not re-litigating.
-- verified-by: `the pool is pitched, so a beginner never meets a scene meant for somebody else`
+- note: revamp A (2026-09): the pitch outlived the card it was built for. home/homeMission.ts reads
+  scenariosForLevel through the learner's one level standing, and every tier is still deep enough
+  to live in, which is what daily.test.ts holds.
+- verified-by: `home leads with tonight's scene, a resume before it, the café before anything`
+- verified-by: `every theme carries a real share, and every tier can be lived in`
 
 ### F452 — The voice circle kept breathing behind every other tab
 - severity: P2
@@ -6644,9 +6719,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   The `.catch` is at the end of the chain and not a second argument to `.then`, which is
   the distinction F449 turned on: an `onRejected` beside a handler cannot see that handler
   throw, and `dailyPick` throws on an empty pool by design.
+- note: revamp A (2026-09): the Tutor tab's resume door became the remembers row, so the same failure is
+  asserted one noun along in tabs/TutorTab.test.ts.
 - verified-by: `a storage read that fails still leaves today on the page, and claims nothing about the learner`
 - verified-by: `a learner with no readable standing meets the gentlest tier, not an empty card`
-- verified-by: `a disk that will not answer takes the resume door and nothing else off the tab`
+- verified-by: `a disk that will not answer takes the memory row and nothing else off the tab`
 
 ### F454 — A probe that threw would have retired the one pill on Home
 - severity: P2
@@ -6720,8 +6797,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   a pure function of the day. Pitching it means it needs the learner's standing, so it
   waits alongside the word now. A card that arrives a beat later beside its neighbour is
   better than one that appears first and is replaced under somebody.
+- note: revamp A (2026-09): Home's situation card folded into the mission hero and the pitch went with
+  it, so the claim is proved in home/homeMission.test.ts against the learner's own tier.
 - verified-by: `home's situation card opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
-- verified-by: `the pool is pitched, so a beginner never meets a scene meant for somebody else`
+- verified-by: `home leads with tonight's scene, a resume before it, the café before anything`
 
 ### F458 — The lesson counted the learner's position out loud to a screen reader
 - severity: P1
@@ -6785,7 +6864,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F461 — The tab bar labels collide and spill at the largest text size
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx:123
 - note: severity matched to F383, which is the direct precedent: a whole tab lost at the
   largest text size, open as P2 since the Pass 4 walk. Filing these higher than that one
@@ -6807,11 +6886,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   The fix is not `numberOfLines`, which this repo bans by name. It is either a shorter
   label set at the largest sizes, or a bar that stacks its glyph and word differently once
   the word will not fit, and it wants the founder's eye before it is chosen.
-- verified-by: `every tab keeps its whole word at every reading size`
+- note: revamp A (2026-09): closed by F583, which gives each cell its fifth at a large font scale and stacks the glyph over a wrapped word; the test it names is the one below.
+- verified-by: `the tab bar labels wrap without colliding at the largest reading size`
 
 ### F462 — A lesson at the largest text size squeezes its own body to nothing
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/SessionView.tsx:289
 - note: severity matched to F383, which is the direct precedent: a whole tab lost at the
   largest text size, open as P2 since the Pass 4 walk. Filing these higher than that one
@@ -6836,7 +6916,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   What is left needs a decision rather than a patch: at the largest sizes the footer has
   to scroll with the content, or the frame has to give the body a floor. Both change how
   every framed screen behaves, so it is filed rather than guessed at.
-- verified-by: `a lesson keeps the line to say on screen at every reading size`
+- note: revamp A (2026-09): closed by F584, where the lesson footer collapses its ghost row to one More chip at a large font scale so the line to say stays on screen; the test it names is the one below.
+- verified-by: `a lesson at the largest text size keeps the say-this card reachable`
 
 ### F463 — My French was a record of the learner's French, and not a place to use it
 - severity: P2
@@ -6853,10 +6934,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   merely an absence. The mockup's per-situation percentages are not implemented in any form:
   `progress/passport.ts` omits the fields deliberately so the fraction cannot be rendered,
   and `phrases/phrasebook.ts` refuses the same number again for a second reason.
-- verified-by: `the screen works nothing out for itself`
-- verified-by: `the tab deals one line, and never a second`
-- verified-by: `exactly one primary renders, and one module decides which`
-- verified-by: `the two branches are mutually exclusive over every combination`
+- note: revamp A (2026-09): the answer to this entry moved rather than went. My French is a page of
+  doors with no task on it — the one-line card is on the Phrasebook route, myfrench/primary.ts
+  went with the pill it chose, and the ladder is now the two groups of places — so the
+  primary-branch claims are re-pointed: the tab draws no primary at all, and the one line is still
+  dealt by oneLine.ts or not dealt.
+- verified-by: `every judgement this screen used to make now lives in a module`
+- verified-by: `the phrase shelf opens the phrasebook and the one-line card lives there`
+- verified-by: `a learner meets a page of doors and no task, so there is nothing on it to fail`
+- verified-by: `an empty deck deals nothing at all`
 - verified-by: `the featured phrase is the phrase Home calls first, by construction`
 - verified-by: `a first return outranks a due phrase the learner already uses`
 
@@ -6868,7 +6954,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   learner-facing copy. There is no renderer in this workspace, so that was the one judgement
   on the tab nothing defended. Lifting it into a module is the same move `progress/passport.ts`
   and `progress/portfolio.ts` already made, and it is what let the guard below exist at all.
-- verified-by: `the sound line left the screen, where nothing could test it`
+- note: revamp A (2026-09): myfrench/sounds.ts is unchanged and still tested; the screen-side half of
+  the claim moved into the sweep that names `function checkLine` and `function latestCheck` by
+  hand in tabs/MyFrenchTab.test.ts.
+- verified-by: `every judgement this screen used to make now lives in a module`
 - verified-by: `every kind of check has a sentence, and none of them is a number`
 
 ### F465 — A stored pronunciation focus could still say "today" months later
@@ -6920,12 +7009,16 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   row, hyphenating "réception" through the middle at 375pt, and the sentence still exists for
   anywhere with room for it. Three of the mockup's four pills could not be told the truth and
   said something else instead: percentages have no denominator here, and nothing is ever locked.
+- note: revamp A (2026-09): the pill became a chip, and the tally above the situations went entirely, so
+  the counting clause has no subject to defend any more. What replaced it is stricter and is what
+  the tick now names: no digit reaches that page at all, and the two headings over the rows count
+  nothing and lock nothing.
 - verified-by: `no two tints read as one, and nothing letters or signals in a tint — F362`
-- verified-by: `the My French screen draws a stamp only for a scene finished unaided`
+- verified-by: `my french draws one tinted row per mission, stamped ones first, and no count`
 - verified-by: `only a scene handled with nothing handed over is filled`
 - verified-by: `every combination says something, and nothing says it is locked`
-- verified-by: `a pill is short enough to sit beside a title`
-- verified-by: `it counts, and it never divides`
+- verified-by: `a chip is short enough to sit beside a title`
+- verified-by: `the headings name the two groups without counting or locking either`
 
 ### F468 — The assessor knew which sound it meant, and threw it away
 - severity: P2
@@ -7958,7 +8051,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F522 — A selected card announces nothing on the web, in three places
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx:403
 - note: found while checking the wall's plan cards in a browser. React Native Web reads `aria-selected`
   and treats `accessibilitySelected` as deprecated; it does not read `accessibilityState.selected`
@@ -8015,7 +8108,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   core's next situation, else the café for a learner who has never spoken, with a reason from the
   chooser's own status line and a time line that is a measurement when there is one and an authored
   expectation in words when there is not.
-- verified-by: `home leads with one mission, its reason and its time line, and a new learner meets the café`
+- note: revamp A (2026-09): the hero grew a resume ahead of the day's scene, so the same test was
+  rewritten under a title that names all three cases in home/homeMission.test.ts.
+- verified-by: `home leads with tonight's scene, a resume before it, the café before anything`
 
 ### F544 — Home's pill lived in the situation card
 - severity: P2
@@ -8053,7 +8148,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   open conversation as a row too, and folds the six mission rows away behind a quiet word with the
   lesson last. One pill, the resume card's: the circle at the top of the tab is the way into an open
   chat, so a second pill for the same door was a second answer to one question.
-- verified-by: `the tutor tab draws everyday, open chat and rehearse as entry modes, folds the situations away, and keeps one pill`
+- note: revamp A (2026-09): the three entry modes are unchanged and the fourth door went to the chooser;
+  the resume card's pill went too, so the tab now keeps none and the test is named for that.
+- verified-by: `the tutor tab draws three tinted rows, one remembers row and no pill`
 
 ### F548 — A learner cannot bring a real situation to the tutor
 - severity: P2
@@ -8166,12 +8263,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F559 — My French lists situations, not what the learner can now do
 - severity: P2
 - status: [x]
-- verified-by: the map lane leads with stamped situations and labels the rest as suggested
 - where: apps/mobile/src/myfrench/situations.ts:1
 - note: the map lane draws six rows in catalogue order. It leads with the stamped ones as what the
   learner can now do, and labels the rest as suggested rather than as missing, so no row reads as a
   debt.
-- verified-by: `the map lane leads with stamped situations and labels the rest as suggested`
+- note: revamp A (2026-09): the map lane became the two groups on the situations card — stamped places
+  lead under "You can now..." and the rest sit under "Next places", where core's suggestion is
+  simply the first row — so no row reads as a debt and nothing is labelled missing.
+- verified-by: `a learner meets the places that are theirs first, in the order they arrived`
+- verified-by: `the place core suggests is the first one a learner sees under Next places`
 
 ### F560 — The week's story never sees a conversation
 - severity: P2
@@ -8261,7 +8361,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F569 — Cards, tinted rows and the hero are primitives, not per-screen styles
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx:912
 - note: revamp A. A white card lifts on one named whisper of shadow at radius twenty; a tinted row is one
   pressable with a white disc, a title, a gloss and a chevron; the hero card and the phrase card are
@@ -8271,7 +8371,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F570 — Raster art ships decorative, sized once, and every key is drawn
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/art/registry.ts:1
 - note: revamp A. The watercolour scenes are PNGs under `assets/art`, named once in a registry with their
   point size, drawn through one component that hides them from assistive technology, and held to a
@@ -8281,7 +8381,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F571 — Home opens on the hour's line and tonight's scene with a time in minutes
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/home/homeMission.ts:1
 - note: revamp A. The greeting carries the hour's question beneath it, the hero is tonight's daily scene
   (a part-way mission first, the café before anything), drawn on a white card with its place's art and
@@ -8292,7 +8392,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F572 — Real progress is one sentence, and the rest lives one level down
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/home/abilities.ts:1
 - note: revamp A. The abilities become one joined can-do sentence on a white row; tapping it pushes a
   Progress screen that keeps the week story, the momentum cards and the word of the day.
@@ -8302,7 +8402,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F573 — Tutor is the orb, the remembers row and three tinted ways in
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/TutorTab.tsx:1
 - note: revamp A. The speak card, the resume card, the folded situations and the lesson door leave the
   tab; the lesson becomes a door on the chooser and the intro link moves to Settings.
@@ -8311,7 +8411,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F574 — Practice is one next practice and three rows, with the archive in Conversations
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/PracticeTab.tsx:1
 - note: revamp A. The next-step pill becomes a phrase card with a speaker and one control per branch;
   the vault, the feed and the filters move to a pushed Conversations screen; the suggestion and the
@@ -8321,7 +8421,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F575 — My French is the tinted situation rows and the phrase shelf
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/MyFrenchTab.tsx:1
 - note: revamp A. Stamped missions first under "You can now...", the rest under "Next places", then the
   phrase shelf, the saved shelf and the conversations row; the lanes, the stat row and the one-line
@@ -8331,7 +8431,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F576 — Profile is the centred name, the tutor card, the rhythm and the learning card
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:1
 - note: revamp A. The tutor is drawn as the orb, never a face; the plan card, the reminder rows and
   the intro link move to Settings; the pace switch moves to the voice sheet.
@@ -8340,7 +8440,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F577 — The week is a Monday-to-Sunday calendar with labelled violet dots
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/progress/momentum.ts:392
 - note: revamp A. The founder chose the identity violet for the calendar record; the rule that a state
   mark is never violet now exempts a calendar, and the orb's traffic lights stay the only state marks.
@@ -8350,7 +8450,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F578 — Own words is a drill kind whose verdict arrives from outside
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/drill/types.ts:1
 - note: revamp A. A new kind, own-words, asks the phrase in the learner's own French. Core builds it on
   demand for a scoped sitting, returns pending from grading, and decides good, retry or reveal from a
@@ -8361,7 +8461,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F579 — The brain judges an own-words attempt through a strict schema
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/drill/judge.ts:1
 - note: revamp A. One judge activity on the cheap tier; a strict verdict schema; a note swept for banned
   words and French leaks and dropped when it fails.
@@ -8370,7 +8470,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F580 — The judge endpoint asks the brain and stores nothing
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:395
 - note: revamp A. `POST /drill/judge` sits beside `/drill/score` behind the same limits; a brain that
   will not answer is a 503, never an invented verdict; the attempt is never written anywhere.
@@ -8379,7 +8479,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F581 — The own-words view types the attempt, and a missing verdict writes no grade
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/DrillScreen.tsx:1
 - note: revamp A. Typed only for now, with the hint to say it aloud first; spoken attempts through a
   transcription endpoint are a filed follow-up. Offline, the line is revealed and nothing is graded.
@@ -8389,7 +8489,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F582 — Replay a moment speaks the better line and keeps nothing
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/madeFrom.ts:1
 - note: revamp A. "Listen and try again" is the tutor's voice reading the better line, then the drill;
   no recording and no transcript are ever kept, by the existing privacy contract.
@@ -8398,7 +8498,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F583 — The tab bar keeps every whole word at the largest reading size
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx:123
 - note: revamp A; closes F461. Cells get room at a large font scale and stack the glyph over a wrapped
   word instead of clipping.
@@ -8406,7 +8506,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F584 — Every pushed screen wears revamp A without losing its way out
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/ConvoScreen.tsx:1
 - note: revamp A. The conversation, the lesson, the recap, review, drills, the chooser, rehearse, the
   sound check, the memory editor, settings and the legal pages take the porcelain ground, white cards
@@ -8415,7 +8515,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F585 — The first run wears revamp A
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:1
 - note: revamp A. Welcome, the age gate, the name and voice steps and sign in take the new art and
   surfaces; every page still leads with a heading role and its art is decorative.
@@ -8423,7 +8523,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F586 — The plans wall and the paywall wear revamp A and announce a chosen plan on the web
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/wall/WallPlansPage.tsx:1
 - note: revamp A; closes F522. The four pages and the inline paywall keep their copy; a chosen plan card
   carries `aria-selected` as well as the native selected state.
@@ -8431,7 +8531,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F587 — The device runbook carries the Pass 8 revamp checks and DESIGN.md is regenerated
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: docs/DEVICE_VERIFICATION.md:1
 - note: revamp A; closes F146. Pass 8 lists what only a device can prove; DESIGN.md records the
   system as shipped, one hex row per token, every colour it names a colour the theme ships.
@@ -8440,7 +8540,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F588 — The orb is a gradient disc with rings and soundwave lines, and rests under reduce motion
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/VoiceOrb.tsx:1
 - note: revamp A. The founder reversed the rings-over-sphere choice. The gradient is the one state
   colour thinned by opacity, so no new palette token and the mark floor holds; movement stays
@@ -8449,8 +8549,68 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F589 — The glyph set is one pen: every icon at one stroke, decorative
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/glyphs.tsx:1
 - note: revamp A. The row and disc glyphs (clock, cup, bubble, document, replay, quotes, waveform, the
   six places, the right chevron) join the tab icons under the one stroke-weight rule.
 - verified-by: `every glyph draws in the one stroke weight and hides from assistive technology`
+
+### F590 — Own words is typed only; a spoken attempt has no way in
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/DrillScreen.tsx:1
+- note: revamp A follow-up, the founder's call for now. "Say it in your own words" takes a typed
+  attempt with a hint to say it aloud first. A spoken attempt needs a transcription endpoint on
+  the token server (the vendor the live tutor already uses), the existing recording flow from
+  the sound check, and the typed field kept as the fallback for learners who prefer it and for
+  offline. Nothing recorded is kept.
+- verified-by: `a spoken attempt is transcribed once, judged, and never stored`
+
+### F591 — Own words is a door, not yet a rung
+- severity: P2
+- status: [ ]
+- where: packages/core/src/drill/session.ts:1
+- note: revamp A follow-up. The own-words kind is opened directly from the Practice row on a
+  scoped sitting. Making it the fifth rung of the drill ladder (earned after the spoken rung
+  on a phrase's fifth successful sitting) is a pedagogy change for learning-science-engineer,
+  with the stage table, stageForReps and the mix tested together.
+- verified-by: `own-words is the last rung and is earned on the fifth sitting`
+
+### F592 — The raster art decodes at file size on Android until it is measured
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/art/Art.tsx:1
+- note: revamp A follow-up. Art ships through React Native's Image with two densities and a
+  byte budget, so no new native module and no dev-client rebuild. If Pass 8's graphics-memory
+  row (P8-9) measures badly on a real Android device, the fix is `expo-image` with
+  downsampling to the box, which needs one rebuild of the dev client.
+- verified-by: `every raster scene decodes no larger than twice its box`
+
+### F593 — A placed word drops to 3.59:1 on the drill ground
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/DrillScreen.tsx:412
+- note: a token the learner has already placed is redrawn in `paper.inkFaint` (#8A7996) and its
+  panel goes `backgroundColor: 'transparent'`, so the word sits on the page ground (#F4F2F7) at
+  3.59:1. palette.test.ts states the house rule for this — words clear 4.5 against whatever they
+  sit on — and `type.french` is 21pt regular, under the large-text exception, so the floor here is
+  4.5 and not 3. The learner this hits is the one reading the bank to work out which words are
+  left: the used ones are the half of the row they most need to tell apart. `paper.inkSoft`
+  (#5F4E73) clears the floor on both the ground and a card and is already the app's answer for
+  secondary words, so the fix is a token swap rather than a new colour.
+- verified-by: `a word already placed stays readable on the ground it is left on`
+
+### F594 — F383's growing-wrapper repair reached one tab out of five
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/HomeTab.tsx:1
+- note: F383 found that a `flexGrow: 1` view wrapping every block inside `ScrollScreen` fights the
+  scroll frame, which is itself a growing container, and at the largest reading size it renders the
+  header and nothing else with no way to scroll past it. The repair landed on My French only —
+  `my french lays its list out the way the other tabs do, with no wrapper that can swallow it —
+  F383` is asserted against MyFrenchTab.tsx alone. Home (`scroll: { flexGrow: 1 }` at :172), Tutor
+  (:311), Profile (:364) and Practice (:360) all still wrap their blocks in one, and Leaderboard
+  (:197) adds padding to the same wrapper. Either the four are repaired the same way or the rule is
+  moved into layout.tsx so no tab can spell it; what must not stay is one tab defended by name and
+  four carrying the shape it was defended against.
+- verified-by: `no tab hangs a growing wrapper inside the scroll frame — F594`

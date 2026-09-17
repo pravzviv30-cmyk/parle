@@ -9,6 +9,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import 'dotenv/config';
 
 import { PLANS, buildReport, secondsRemaining } from '@luvani/core';
+import { brainClientFromEnv, type LlmClient } from '@luvani/brain/llm';
 import { scoreUtterance } from '../../shared/speechace.ts';
 import {
   DevelopmentEntitlementStore,
@@ -26,6 +27,7 @@ import { deleteSupabaseUser, signedInRecently } from './accountDeletion.ts';
 import { exportSupabaseAccountData } from './accountExport.ts';
 import { billingStatusFor } from './billingStatus.ts';
 import { insertProductEvent, parseProductEvent } from './productEvents.ts';
+import { handleDrillJudge } from './drillJudge.ts';
 import {
   deleteAllConversationPacks,
   deleteConversationPack,
@@ -135,6 +137,21 @@ const users = createUserResolver({
 });
 const billing = revenueCatConfiguration(process.env);
 const userIdPattern = sessionIdPattern;
+
+/**
+ * The brain behind /drill/judge, built on the first judged attempt and not
+ * before.
+ *
+ * Lazily on purpose: constructing a client reads a vendor key, and a token
+ * server with no key must still boot and still start sessions, grant minutes
+ * and delete accounts. A learner whose judge is unconfigured meets a 503 and is
+ * shown the line — never a server that refused to start.
+ */
+let brain: LlmClient | null = null;
+function judgeBrain(): LlmClient {
+  brain ??= brainClientFromEnv(process.env);
+  return brain;
+}
 
 function json(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
   const payload = JSON.stringify(body);
@@ -413,6 +430,26 @@ const server = createServer(async (req, res) => {
       // core's — one focus point at most, and only when the evidence earns it.
       const report = buildReport(observations);
       return json(res, 200, { observations, report });
+    }
+
+    // The own-words drill's verdict: the learner's own French, read by the
+    // brain because nothing deterministic can grade a paraphrase. It shares
+    // the scoring limits with /drill/score above, stores nothing at all, and
+    // answers 503 rather than inventing a verdict — see drillJudge.ts. The
+    // brain is built once, lazily, so a server with no key still boots and
+    // still serves every other endpoint.
+    if (req.method === 'POST' && url.pathname === '/drill/judge') {
+      return handleDrillJudge(req, res, {
+        users,
+        limits: (request, response, userId) =>
+          userId === null
+            ? withinLimits(request, response, [ipCheck(request, RATE_LIMITS.scoringIp)])
+            : withinLimits(request, response, [
+                [RATE_LIMITS.scoringUser, 'user', userId],
+                ...installationChecks(request, RATE_LIMITS.scoringInstallation),
+              ]),
+        client: judgeBrain(),
+      });
     }
 
     // Delete the verified caller, never a user id supplied by the client. The

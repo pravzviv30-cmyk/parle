@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, FlameGlyph, GhostButton, MicGlyph } from '../components.tsx';
+import { Card, FlameGlyph, GhostButton, MicGlyph, WeekRail } from '../components.tsx';
 import { HAIRLINE, paper, radius, signal, space, type } from '../theme.ts';
 import {
   FRENCH_DAYS,
@@ -13,7 +13,6 @@ import {
 import type { WallFrench } from './wallFrench.ts';
 
 const WELL = 36;
-const MARK = 10;
 
 /**
  * Page two. The learner's own French, and that it is adding up.
@@ -76,12 +75,10 @@ export function WallFrenchPage({ french, onOpenBank }: { french: WallFrench; onO
         </View>
         <Text style={st.week}>{FRENCH_WEEK}</Text>
         {/* A picture of the last seven days and never a target: the count above
-            already says it, so the row itself is decorative. */}
-        <View style={st.marks} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {french.week.map((filled, index) => (
-            <View key={index} style={[st.mark, filled ? st.markDone : st.markWaiting]} />
-          ))}
-        </View>
+            already says it, so the row itself is decorative. It is the shared
+            rail since revamp A, so the week looks the same on Home, on Profile
+            and here, in the one violet the calendar record wears. */}
+        <WeekRail week={french.week} />
       </Card>
 
       <View style={st.out}>
@@ -133,10 +130,6 @@ const st = StyleSheet.create({
   chipWord: { ...type.frenchSm, color: paper.ink },
   more: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
   week: { ...type.small, color: paper.inkSoft, marginTop: space(3) },
-  marks: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(1.5), marginTop: space(2) },
-  mark: { width: MARK, height: MARK, borderRadius: MARK / 2 },
-  markDone: { backgroundColor: signal.good },
-  markWaiting: { borderWidth: HAIRLINE + 0.4, borderColor: paper.line },
   out: { marginTop: space(5) },
   rule: { height: HAIRLINE, backgroundColor: paper.line, marginBottom: space(2) },
 });

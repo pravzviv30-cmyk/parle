@@ -43,7 +43,7 @@ import {
   type ReviewCardKind,
 } from '@luvani/core';
 
-import { guiltIn } from '../copy/guilt.ts';
+import { BANNED_IN_COPY, guiltIn } from '../copy/guilt.ts';
 import { DAILY_GOAL_UNSET, goalLine } from '../profile/dailyGoal.ts';
 import { createStoredProfile, withDailyGoal, type StoredProfile } from '../profile/store.ts';
 import type { ActivityEntry, ActivityKind } from './activity.ts';
@@ -68,8 +68,15 @@ import {
   RETAINED_LINK,
   RETAINED_START,
   RETAINED_SUB,
+  RHYTHM_EVERY_DAY,
+  RHYTHM_NONE,
+  RHYTHM_ONE,
+  WEEKDAY_LABELS,
+  calendarWeekFrom,
   momentumFrom,
+  rhythmSentence,
   type Momentum,
+  type WeekDay,
 } from './momentum.ts';
 
 const DAY_MS = 86_400_000;
@@ -781,6 +788,219 @@ describe('momentum copy — the words this block is not allowed to say', () => {
       oneOfEach.goal.note,
       '1 more minute to reach daily cadence',
       'one minute left is one minute, and a stray s here is the whole block looking careless',
+    );
+  });
+});
+
+/**
+ * The speaking rhythm week — a calendar, not a rolling seven days — F577.
+ *
+ * Profile draws this row under seven day names, and a row under day names has
+ * to mean the week those names describe. Home's rail is the last seven days
+ * ending today and stays that way; this is Monday to Sunday, so the same set of
+ * active days is read two ways and must never be read two ways that disagree.
+ *
+ * The third state is the part worth defending. A Thursday seen on a Wednesday
+ * has not happened yet, and drawing it the same as a quiet Monday is how a
+ * picture of a week turns into four marks a learner reads as a shortfall.
+ *
+ * `now` is a constant in every test here too, so every Monday boundary below is
+ * a real local midnight rather than whatever day the suite happens to run on.
+ */
+describe('the speaking rhythm week — the calendar week, said in words — F577', () => {
+  /** Monday the seventh of September 2026 through Sunday the thirteenth, in local time. */
+  const MONDAY = at(2026, 9, 7, 9);
+  const TUESDAY = at(2026, 9, 8, 9);
+  const WEDNESDAY = at(2026, 9, 9, 9);
+  const THURSDAY = at(2026, 9, 10, 9);
+  const FRIDAY = at(2026, 9, 11, 9);
+  const SATURDAY = at(2026, 9, 12, 9);
+  const SUNDAY = at(2026, 9, 13, 9);
+
+  /** The states in the order the learner reads them, so a failure names the day that moved. */
+  const statesOf = (week: readonly WeekDay[]): string[] => week.map((day) => day.state);
+
+  test('the rhythm week starts on Monday and ends on Sunday whatever today is', () => {
+    // Every day of one week, and the answer must be the same week each time.
+    const week = [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY];
+    for (const today of week) {
+      const rhythm = calendarWeekFrom([], today + 5 * 60 * 60 * 1000);
+      assert.equal(rhythm.length, 7, 'a week is seven days, whichever of them the learner opened Profile on');
+      assert.deepEqual(
+        rhythm.map((day) => day.label),
+        [...WEEKDAY_LABELS],
+        'the row is drawn under Monday to Sunday, so it must arrive in that order however today falls',
+      );
+    }
+
+    // Sunday is the end of its own week, never the start of the next one. This
+    // is the off-by-one that would show a learner an empty row on the one
+    // evening they had practised all week.
+    const sunday = calendarWeekFrom([entry(MONDAY)], SUNDAY + 12 * 60 * 60 * 1000);
+    assert.deepEqual(
+      statesOf(sunday),
+      ['done', 'open', 'open', 'open', 'open', 'open', 'open'],
+      'Sunday night belongs to the week that began on the Monday before it, so that Monday is still in the row',
+    );
+
+    // And the following Monday starts a fresh week rather than extending this one.
+    const nextMonday = calendarWeekFrom([entry(MONDAY), entry(at(2026, 9, 14, 9))], at(2026, 9, 14, 20));
+    assert.deepEqual(
+      statesOf(nextMonday),
+      ['done', 'ahead', 'ahead', 'ahead', 'ahead', 'ahead', 'ahead'],
+      'a new week starts empty in front of the learner, and last week stays in last week',
+    );
+
+    // Whichever day it is asked on, the week names the same seven days: an
+    // entry on each day of the week lights every mark from any vantage point.
+    const everyDay = week.map((when) => entry(when));
+    for (const today of week) {
+      const seen = calendarWeekFrom(everyDay, today + 5 * 60 * 60 * 1000);
+      assert.equal(
+        seen.filter((day) => day.state === 'ahead').length + seen.filter((day) => day.state === 'done').length,
+        7,
+        'a week the learner practised every day of has no quiet day in it, whichever day they look on',
+      );
+    }
+
+    // The clocks go back on the Sunday, and a fixed-width step over that
+    // boundary either repeats a date or skips one, which would blank a day the
+    // learner really practised on. Midday anchoring is what stops it.
+    const clocksChange = at(2026, 10, 25, 20);
+    const dstWeek = calendarWeekFrom([entry(at(2026, 10, 19, 9)), entry(at(2026, 10, 25, 9))], clocksChange);
+    assert.deepEqual(
+      statesOf(dstWeek),
+      ['done', 'open', 'open', 'open', 'open', 'open', 'done'],
+      'the week the clocks change in still runs Monday to Sunday, and neither end of it is lost to the extra hour',
+    );
+
+    // The rolling rail and the calendar week read one log, so the two pictures
+    // of a Wednesday can never disagree about whether French happened on it.
+    const activity = [entry(MONDAY), entry(THURSDAY)];
+    const rail = momentumFrom({ activity, deck: [], profile: null, now: SUNDAY }).days.week;
+    const calendar = calendarWeekFrom(activity, SUNDAY);
+    assert.deepEqual(
+      calendar.filter((day) => day.state === 'done').length,
+      rail.filter(Boolean).length,
+      'Home and Profile counted the same days differently, and a learner would be told two versions of one week',
+    );
+  });
+
+  test('days after today are ahead, not open', () => {
+    // Wednesday lunchtime: Monday and Tuesday have been and gone, today is
+    // still being lived, and the rest of the week has not happened.
+    const wednesday = calendarWeekFrom([entry(MONDAY)], WEDNESDAY + 3 * 60 * 60 * 1000);
+    assert.deepEqual(
+      statesOf(wednesday),
+      ['done', 'open', 'open', 'ahead', 'ahead', 'ahead', 'ahead'],
+      'a Thursday seen on a Wednesday has not happened yet, and must not be drawn as a day without French in it',
+    );
+
+    // Today is open until it is done, and never ahead of itself.
+    assert.equal(wednesday[2]?.state, 'open', 'today is a day the learner can still speak French on, so it is open');
+    assert.equal(
+      calendarWeekFrom([entry(WEDNESDAY)], WEDNESDAY + 3 * 60 * 60 * 1000)[2]?.state,
+      'done',
+      'and the moment they do speak, today fills in',
+    );
+
+    // A clock that ran fast on another device must not tick off a day this
+    // learner has not lived yet, so ahead is decided before done.
+    const futureStamp = calendarWeekFrom([entry(FRIDAY)], WEDNESDAY + 3 * 60 * 60 * 1000);
+    assert.equal(
+      futureStamp[4]?.state,
+      'ahead',
+      'an entry stamped on Friday cannot fill Friday in on Wednesday, whatever another device believed the time was',
+    );
+
+    // Monday morning: six days ahead and nothing owing on any of them.
+    const monday = calendarWeekFrom([], MONDAY);
+    assert.deepEqual(
+      statesOf(monday),
+      ['open', 'ahead', 'ahead', 'ahead', 'ahead', 'ahead', 'ahead'],
+      'a week the learner has not started is a week in front of them, not six days they have already failed to fill',
+    );
+
+    // Sunday night: the whole week has happened, so nothing is ahead.
+    const sunday = calendarWeekFrom([], SUNDAY + 12 * 60 * 60 * 1000);
+    assert.equal(
+      sunday.filter((day) => day.state === 'ahead').length,
+      0,
+      'by Sunday night there is no day of this week still to come',
+    );
+
+    // Three states and no fourth. A "missed" or "owed" state added here fails
+    // this line by name, which is the same guard the days tile keeps over its
+    // own fields.
+    const every = [...wednesday, ...monday, ...sunday];
+    assert.deepEqual(
+      [...new Set(every.map((day) => day.state))].sort(),
+      ['ahead', 'done', 'open'],
+      'the week grew a state, and the only three a day may be are done, still to come, or simply quiet',
+    );
+    for (const day of every) {
+      assert.deepEqual(
+        Object.keys(day).sort(),
+        ['label', 'state'],
+        'a day of the week grew a field, and a day is a name and what happened on it',
+      );
+    }
+  });
+
+  test('the rhythm sentence counts in words and passes the guilt list', () => {
+    /** A week with `done` days at the front, read on the Sunday so nothing is ahead. */
+    const weekOf = (days: number): readonly WeekDay[] =>
+      calendarWeekFrom(
+        [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY].slice(0, days).map((when) => entry(when)),
+        SUNDAY + 12 * 60 * 60 * 1000,
+      );
+
+    // The four shapes, word for word.
+    assert.equal(
+      rhythmSentence(weekOf(0)),
+      RHYTHM_NONE,
+      'a quiet week points at the first day rather than at six empty marks',
+    );
+    assert.equal(rhythmSentence(weekOf(0)), 'No French yet this week. Your first day lands here.', 'in these exact words');
+    assert.equal(rhythmSentence(weekOf(1)), RHYTHM_ONE, 'one day is one day');
+    assert.equal(rhythmSentence(weekOf(1)), 'One day of French this week.', 'and it is spelled, never written as a numeral');
+    assert.equal(rhythmSentence(weekOf(3)), 'You spoke French on three days this week.', 'three days is three days, in words');
+    assert.equal(rhythmSentence(weekOf(7)), RHYTHM_EVERY_DAY, 'a full week is said as every day rather than counted back');
+    assert.equal(rhythmSentence(weekOf(7)), 'French every day this week.', 'in these exact words');
+
+    // Every count, in words, with no numeral anywhere: a digit under a row of
+    // day names would be read as a target however it was meant.
+    for (let days = 0; days <= 7; days += 1) {
+      const line = rhythmSentence(weekOf(days));
+      assert.doesNotMatch(line, /\d/, `the rhythm sentence said "${line}", and a numeral here reads as a quota`);
+      assert.doesNotMatch(line, /\bof seven\b/, `the rhythm sentence said "${line}", which names the days that did not happen`);
+      assert.equal(line.includes('—'), false, `the rhythm sentence said "${line}", and an em dash is not plain human writing`);
+      for (const word of BANNED_IN_COPY) {
+        assert.equal(
+          line.toLowerCase().includes(word),
+          false,
+          `the rhythm sentence said "${line}", which carries the banned word "${word}"`,
+        );
+      }
+      assert.equal(guiltIn(line), undefined, `the rhythm sentence said "${line}", which carries a banned word`);
+    }
+
+    // Days still to come are not counted, so a Tuesday evening is never told
+    // what it is short of.
+    const tuesday = calendarWeekFrom([entry(MONDAY), entry(TUESDAY)], TUESDAY + 12 * 60 * 60 * 1000);
+    assert.equal(tuesday.filter((day) => day.state === 'ahead').length, 5, 'five days of that week had not happened yet');
+    assert.equal(
+      rhythmSentence(tuesday),
+      'You spoke French on two days this week.',
+      'the sentence counts the days that happened and says nothing at all about the five that have not',
+    );
+
+    // And a week that is entirely ahead of the learner still reads as an
+    // invitation rather than as seven noughts.
+    assert.equal(
+      rhythmSentence(calendarWeekFrom([], MONDAY)),
+      RHYTHM_NONE,
+      'Monday morning is where a week starts, and the line says where the first day lands',
     );
   });
 });

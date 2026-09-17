@@ -1,14 +1,17 @@
 /**
- * The three empty states, drawn.
+ * The two empty states, drawn.
  *
  * Nine screens in this app tell a learner there is nothing here and none of
- * them showed anything. Two of those are not even bad news: an empty review
- * deck means the deck is done, and "the rest of this path" means the learner
- * has conversations still ahead of them. A bare sentence on lilac reads as a
- * dead end in both cases.
+ * them showed anything. "The rest of this path" is not even bad news: it means
+ * the learner has conversations still ahead of them. A bare sentence on lilac
+ * reads as a dead end anyway.
  *
  * So each of these is drawn as the good version of itself. Nothing here
  * apologises, and nothing sulks.
+ *
+ * The cleared cafe table left with revamp A: the empty review deck and the
+ * empty drill bank draw the registered `empty-table` picture now, and a scene
+ * the barrel carries with nobody drawing it is the thing J14 exists to catch.
  */
 
 import { Path, Circle, Ellipse } from 'react-native-svg';
@@ -16,51 +19,6 @@ import { paper } from '../../theme.ts';
 import { unit } from '../timing.ts';
 import { Frame, Moving, Scene, Stipple, type SceneProps } from '../pen.tsx';
 import { useSceneMotion } from '../useSceneMotion.ts';
-
-/**
- * A cleared cafe table: cup upturned on its saucer, spoon at rest, one napkin
- * folded. For an empty review deck and an empty drill bank, both of which mean
- * the learner is finished rather than that something is missing.
- */
-export function NothingDue({ width = 200, paused = false }: SceneProps) {
-  const { loops, settled } = useSceneMotion({ loops: [{ period: 3400 }], paused });
-  const napkin = loops[0];
-  const u = unit(width);
-
-  return (
-    <Scene width={width} style={settled}>
-      <Frame width={width}>
-        {/* the table, wiped down */}
-        <Ellipse cx={100} cy={96} rx={64} ry={13} transform="rotate(-2 100 96)" />
-        <Path d="M98 108v26" />
-        <Path d="M82 140c6-5 26-5 32 0" />
-        {/* the saucer, and the cup upside down on it */}
-        <Ellipse cx={72} cy={88} rx={20} ry={5} />
-        <Path d="M58 86c2-11 6-16 14-16s12 5 14 16" />
-        <Path d="M86 76c6-1 9 2 7 6-1.4 2.8-5 3-7 1.6" />
-        {/* the spoon, laid down and not quite straight */}
-        <Path d="M118 92h30" transform="rotate(-4 133 92)" />
-        <Ellipse cx={116} cy={92} rx={5} ry={3.4} transform="rotate(-4 116 92)" />
-        <Stipple points={[[54, 104], [61, 108], [140, 102], [147, 106], [133, 108]]} />
-      </Frame>
-
-      {/* the folded napkin, one corner lifting in the draught */}
-      <Moving
-        box={{ x: 150, y: 80, w: 46, h: 34 }}
-        width={width}
-        style={{
-          transform: [
-            { translateY: napkin?.interpolate({ inputRange: [0, 1], outputRange: [1.5 * u, -1.5 * u] }) ?? 0 },
-            { rotate: napkin?.interpolate({ inputRange: [0, 1], outputRange: ['-1.2deg', '1.2deg'] }) ?? '0deg' },
-          ],
-        }}
-      >
-        <Path d="M132 90l18-22 18 22z" />
-        <Path d="M136 90h28" />
-      </Moving>
-    </Scene>
-  );
-}
 
 /**
  * A cafe noticeboard with one pin and one blank card. For both leaderboard

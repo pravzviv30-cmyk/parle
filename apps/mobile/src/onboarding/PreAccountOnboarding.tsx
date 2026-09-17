@@ -14,7 +14,8 @@ import { tutorSampleLine, tutorVoice, type TutorVoiceKey } from '@luvani/core';
 import { paper, space, type } from '../theme.ts';
 import { Card, GhostButton, OptionCard, PillButton, ProgressDots } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { HeroCafe, OnboardWave, SpeakBubbles } from '../illustrations.tsx';
+import { Art } from '../art/Art.tsx';
+import { HERO_ART, SCREEN_ART } from '../art/maps.ts';
 import { nextSample, TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
 import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
@@ -120,7 +121,7 @@ export function PreAccountOnboarding({
     <>
       {page === 'welcome' && (
         <View style={st.centered}>
-          <HeroCafe width={225} />
+          <Art name={SCREEN_ART.welcome} style={st.art} />
           <Text accessibilityRole="header" style={st.title}>Find your voice in French</Text>
           <Text style={st.body}>{WELCOME_SUBLINE(persona)}</Text>
         </View>
@@ -128,7 +129,7 @@ export function PreAccountOnboarding({
 
       {page === 'situations' && (
         <View style={st.centered}>
-          <SpeakBubbles width={165} />
+          <Art name={HERO_ART.cafe} style={st.art} />
           <Text accessibilityRole="header" style={st.title}>Speak in real situations</Text>
           <Text style={st.body}>Order lunch, make plans, or ask for help. Your conversation becomes phrases to return to later.</Text>
           <Card style={st.exchange}>
@@ -141,7 +142,7 @@ export function PreAccountOnboarding({
 
       {page === 'life' && (
         <View style={st.centered}>
-          <OnboardWave width={175} />
+          <Art name={HERO_ART.home} style={st.art} />
           <Text accessibilityRole="header" style={st.title}>Life happens. Your progress stays.</Text>
           <Text style={st.body}>There are no streaks to protect. Come back when you can and pick up from a conversation you already made yours.</Text>
         </View>
@@ -170,9 +171,14 @@ export function PreAccountOnboarding({
         </>
       )}
 
+      {/* The one page of the five that draws no picture. It carries the
+          privacy line and the usage-data card as well as the three ways out,
+          and the scene it used to show was the welcome page's own, which made
+          the last screen look like the first, and the voice step goes without
+          one for the same reason: six people to choose between, and a picture
+          over them puts the sixth under the fold. */}
       {page === 'ready' && (
         <View style={st.centered}>
-          <HeroCafe width={190} />
           <Text accessibilityRole="header" style={st.title}>Ready when you are</Text>
           {underAge ? (
             <Text style={st.body}>Luvani is for learners thirteen and up. Please come back when it is the right time.</Text>
@@ -232,6 +238,8 @@ export function PreAccountOnboarding({
 
 const st = StyleSheet.create({
   centered: { alignItems: 'center' },
+  // The picture's size is the registry's; this is placement only.
+  art: { marginBottom: space(4) },
   title: { ...type.display, color: paper.ink, textAlign: 'center' },
   body: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
   privacy: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(4) },
