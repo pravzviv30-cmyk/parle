@@ -235,46 +235,41 @@ describe('the greeting on Home', () => {
 });
 
 /**
- * The rotation's failure mode, held to the source.
+ * The rotation's handoff, held to the source.
  *
- * There is no renderer here, so the hook is proven by reading it, and what is
- * being read for is one specific shape: whether the cycle can advance without an
- * animation frame. F416 shipped a version that could not. Each step hung off the
- * previous `Animated.timing`'s completion callback, so a browser freezing frames
- * for a hidden tab left the header at opacity 0 with no timer pending, holding a
- * word nobody could see. Timers throttle in the background; frames stop.
- *
- * The swipe kept the rule when it replaced the fade, and the cost of losing it
- * went up: a frame that never lands now leaves the slot halfway through a word
- * rather than empty.
+ * There is no renderer here, so the hook is proven by reading it. The native
+ * animation owns the usual commit so a JS timer cannot replace the
+ * pair before its final frame. A watchdog remains for a suspended surface that
+ * never reports completion, and the commit is idempotent so the two paths cannot
+ * advance twice. The progress reset happens in a layout effect after the new
+ * pair commits, preventing a one-frame flash of the outgoing greeting.
  */
 describe('the greeting does not depend on a frame arriving — F416, F419', () => {
   const hook = readFileSync(fileURLToPath(new URL('./useGreetingRotation.ts', import.meta.url)), 'utf8')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '');
 
-  test('the greeting survives a frame that never lands, and no exit leaves it invisible — F416', () => {
-    // Nothing sequences off a completion callback: `start` is called for its
-    // effect, never for its answer.
-    assert.doesNotMatch(
-      hook,
-      /\.start\(\s*\(/,
-      'a step of the cycle waits on an animation callback, so a frame that never lands stops the greeting',
-    );
-    assert.doesNotMatch(
-      hook,
-      /finished/,
-      'the cycle still reads whether a swipe finished, which is the frame dependency F416 removed',
-    );
+  test('the greeting commits on the final frame, survives suspension and resets after layout — F416', () => {
+    // The normal path commits from the native animation's completion.
+    assert.match(hook, /run\.start\(\(\{ finished \}\) => \{/);
+    assert.match(hook, /if \(finished\) commit\(\)/);
 
-    // The sequence is two timers, and both delays are named constants: the word
-    // holds, then the swipe is committed whether or not it was drawn.
+    // The word holds on a timer and a slightly-late watchdog covers a surface
+    // whose frame callback never returns.
     assert.match(hook, /after\(GREETING_HOLD_MS/, 'the hold is no longer a timer');
-    assert.match(hook, /after\(GREETING_SWIPE_MS/, 'the swipe is no longer committed on a timer of its own');
+    assert.match(hook, /after\(GREETING_SWIPE_MS \+ 120, commit\)/, 'a suspended surface has no guarded way to advance');
+    assert.match(hook, /if \(!live \|\| committed\) return/, 'completion and watchdog can advance the greeting twice');
 
-    // The swipe still happens, and still on the native driver.
+    // The swipe is eased and stays on the native driver.
     assert.match(hook, /Animated\.timing/, 'the greeting stopped moving altogether');
+    assert.match(hook, /easing: Easing\.inOut\(Easing\.cubic\)/, 'the word still moves with the timing default rather than a deliberate eased handoff');
     assert.match(hook, /useNativeDriver: true/, 'a timing left the native driver');
+
+    // React commits the arriving word first; only its layout effect resets the
+    // strip. Resetting in `commit` would flash the old current word.
+    assert.match(hook, /useLayoutEffect\(\(\) => \{\s*progress\.setValue\(0\);\s*\}, \[index, progress\]\)/);
+    const commit = hook.slice(hook.indexOf('const commit ='), hook.indexOf('const run ='));
+    assert.doesNotMatch(commit, /progress\.setValue\(0\)/, 'the callback restores the outgoing word before React commits the arriving one');
 
     // And every way out of the effect lands the slot back at rest, showing a
     // whole word. Stopping an animation leaves the value where it stood, and

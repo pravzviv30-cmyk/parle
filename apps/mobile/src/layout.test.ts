@@ -239,428 +239,93 @@ describe('the shared header may hold a title alone — F353', () => {
 });
 
 /**
- * The greeting moves as a word, not as a line — F418.
+ * The greeting moves as one complete phrase through a clipped line — F418.
  *
- * Home's greeting used to cross-fade the whole line. The founder circled the word
- * alone and asked for a swipe that moves up to reveal the next greeting in that
- * placeholder, which makes the shape a slot the word travels through with the
- * learner's own name beside it.
+ * Both visual lines share the same geometry and travel exactly one rendered
+ * line. The name therefore follows its greeting without a second correction,
+ * while the full-height separation keeps the two phrases from doubling over
+ * each other at the middle of the animation.
  *
- * There is no renderer here, so what is checked is the construction — and the
- * construction is where every one of those promises actually lives. Three of them
- * are load-bearing enough to be worth a tripwire, and they are the three F427 left
- * standing when it took the ghost out of this slot and let the name travel:
- *
- * The strip rises exactly one rendered line, which is the line height times the
- * font scale, because a transform is in device pixels while the line height grows
- * with the reading size. Drop the scale and the swipe lands short of the next word
- * at every size but the default.
- *
- * The name sits outside the clipping slot. Inside it, a long name would be cut off
- * at the slot's width and would ride up with the word, which is the one thing the
- * founder asked not to happen. It moves horizontally with the swipe now (F427), and
- * that is a transform on a Text in the row, not a place inside the slot.
- *
- * And the row is one fixed announcement with no live region, because a header that
- * renames itself every few seconds and says so each time is the most hostile thing
- * this app could do to somebody listening to it.
- *
- * F427 retitled this test. It used to say `sized by the widest word`, and that
- * stopped being true the moment the slot began hugging the words themselves, so
- * the title moved with the behaviour rather than outliving it. What it still
- * proves is the part that did not change: one line of clipping, the name in
- * flow beside it, and a frame that starts nothing.
+ * The visual layers remain one fixed accessibility announcement with no live
+ * region, and the fixed-height animation stands down before Dynamic Type needs
+ * the title to wrap.
  */
 describe('the greeting word rises through a fixed slot — F418', () => {
   test('the tab header clips the moving word to one line, keeps the name in flow, and starts nothing — F418', () => {
     const source = layoutSource();
     const header = region(source, 'export function TabHeader(', 'type ConfirmSheetProps');
-
-    // The prop that arrived, and the two that left with Home's fade.
     const props = region(source, 'type TabHeaderProps = {', 'export function TabHeader(');
-    assert.match(
-      props,
-      /titleSwap\?: TitleSwap \| null;/,
-      'TabHeader takes no optional swap, so the only way to move a title is to spread the display line into a tab',
-    );
-    assert.doesNotMatch(
-      source,
-      /titleOpacity/,
-      'the header still takes the fade opacity it replaced; two ways to move one title is how the five tabs drift apart',
-    );
-    assert.doesNotMatch(
-      source,
-      /titleAccessibilityLabel/,
-      'the header still takes a separate spoken label; with a swap the still line IS the label, and a second one can disagree with it',
-    );
 
-    const swapType = region(source, 'export interface TitleSwap {', 'type TabHeaderProps = {');
-    for (const field of [
-      'word: string;',
-      'next: string;',
-      'rest: string | null;',
-      'progress: Animated.Value;',
-    ]) {
-      assert.ok(
-        swapType.includes(field),
-        `TitleSwap is missing \`${field}\`: the header needs the word showing, the word arriving, the name or its absence, and the value somebody else drives`,
-      );
+    assert.match(props, /titleSwap\?: TitleSwap \| null;/, 'TabHeader takes no optional greeting swap');
+    for (const field of ['word: string;', 'next: string;', 'rest: string | null;', 'progress: Animated.Value;']) {
+      assert.ok(props.includes(field) || source.includes(field), `TitleSwap is missing \`${field}\``);
     }
-    // The widest word sized the slot until F427 and sizes nothing now, so it is
-    // gone from the contract entirely rather than left behind as a field every
-    // new caller would have to invent a value for. It was optional for exactly
-    // as long as `home/` had not yet dropped it, which it has.
-    assert.ok(
-      !swapType.includes('widest'),
-      'TitleSwap still carries the widest word, which sizes nothing since F427 and would have every caller invent one',
-    );
-    // The two words cross, so it reads as a replacement rather than a slide.
-    const leavingAt = header.search(
-      /opacity: swap\.progress\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \[1, 0\] \}\)/,
-    );
-    const arrivingAt = header.search(
-      /opacity: swap\.progress\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \[0, 1\] \}\)/,
-    );
-    assert.ok(
-      leavingAt !== -1 && arrivingAt !== -1,
-      'the two words do not cross-fade across the swipe, so a strip is seen sliding rather than a word being replaced',
-    );
-    const wordAt = header.indexOf('{swap.word}');
-    const nextAt = header.indexOf('{swap.next}');
-    assert.ok(
-      leavingAt < wordAt && wordAt < arrivingAt && arrivingAt < nextAt,
-      'the fades are on the wrong words: the word showing now must be the one going to 0, and the word rising in the one coming from 0',
-    );
-
-    // The name is outside the slot, joined to the word by a space that scales.
-    const stripCloses = header.indexOf('</Animated.View>');
-    const slotCloses = header.indexOf('</View>', stripCloses);
-    const nameAt = header.indexOf('swap.rest');
-    assert.ok(
-      stripCloses !== -1 && slotCloses !== -1 && nameAt > slotCloses,
-      'the name is drawn inside the clipped slot, where a long one is cut off at the ghost and rides up with the word',
-    );
+    assert.match(header, /const fontScale = PixelRatio\.getFontScale\(\)/);
     assert.match(
       header,
-      /color: paper\.ink,\s*flexShrink: 1,/,
-      'the name is not display type that may shrink, so a long one pushes the row instead of giving way',
+      /if \(fontScale >= 1\.6\) \{\s*return <Text accessibilityRole="header"/,
+      'a fixed-height animated line still clips accessibility text instead of standing down',
     );
-    assert.match(
-      header,
-      /\{'\\u00A0' \+ swap\.rest\}/,
-      'the name is not joined to the word by a non-breaking space, so the gap either stops scaling with the type or breaks across a line',
-    );
-    assert.match(
-      header,
-      /flexWrap: 'wrap'/,
-      'the title row does not wrap, so at the largest reading size a long name breaks mid-word instead of dropping to a second line',
-    );
-
-    // One greeting, said once, and never re-announced.
     assert.match(
       header,
       /accessible\s+accessibilityRole="header"\s+accessibilityLabel=\{title\}/,
-      'the moving row is not one accessible heading labelled with the still line, so a screen reader reads the slot word by word',
+      'the two visual layers are not exposed as one stable heading',
     );
-    assert.doesNotMatch(
-      header,
-      /accessibilityLiveRegion|aria-live/,
-      'the greeting is a live region, so assistive tech announces a new greeting every few seconds',
-    );
-
-    // The plain branch the other four tabs still render, and nothing capped.
     assert.match(
       header,
-      /<Text accessibilityRole="header" style=\{\[type\.display, \{ color: paper\.ink, flex: 1 \}\]\}>\s*\{title\}\s*<\/Text>/,
-      'a tab without a swap no longer gets the bare display heading it has always had',
+      /height: line, overflow: 'hidden', position: 'relative'/,
+      'the handoff does not live in one stable line-height slot',
     );
-    assert.doesNotMatch(
-      header,
-      /numberOfLines|ellipsizeMode/,
-      'the header truncates a title, which at the largest reading size is how a name disappears',
-    );
-
-    // The frame holds the value; it does not drive it.
-    assert.doesNotMatch(
-      header,
-      /Animated\.(timing|spring|loop|sequence|stagger|decay|parallel|delay)\b/,
-      'the header drives the swipe itself; whoever owns the value owns the timing, and only they can stop it off-screen or under reduce motion',
-    );
-    assert.doesNotMatch(
-      header,
-      /\.start\s*\(/,
-      'the header starts an animation, so the frame now owns a timer it cannot pause',
-    );
+    assert.equal((header.match(/<Animated\.Text/g) ?? []).length, 2, 'the greeting needs exactly one outgoing and one incoming layer');
+    assert.match(header, /<View style=\{StyleSheet\.absoluteFill\} \{\.\.\.decorative\}>/, 'the visual layers are announced separately');
+    assert.doesNotMatch(header, /numberOfLines|ellipsizeMode|maxFontSizeMultiplier/, 'the header caps or truncates text');
+    assert.doesNotMatch(header, /Animated\.(timing|spring|loop|sequence|stagger|decay|parallel|delay)\b/, 'the shared frame starts the animation');
+    assert.doesNotMatch(header, /\.start\s*\(/, 'the shared frame owns a timer it cannot pause');
   });
 });
 
 /**
- * The word hugs the name, and the name travels — F427.
- *
- * F418 sized the slot to a ghost of the widest word the pool could produce, so the
- * name never had to move. The founder ran it and sent back a screenshot: measured
- * at 375pt, `Hello,` left 47pt of daylight before the name and `Salut,` left 50pt,
- * which in that face is eight spaces. It reads as a hole, not a space.
- *
- * A gap-free line and a name that never moves are the same tradeoff seen from two
- * sides. If the word is always tight against the name then the name's resting place
- * depends on the word's width, and a wider word must push it right. There is no
- * arrangement where both hold. So the name moves, and it moves as part of the swipe.
- *
- * The shape that makes that continuous, and the four places it can be got wrong:
- *
- * The slot holds both real words in normal flow, one under the other, so it is as
- * wide as the wider of the two and no ghost is needed. The words inside it must be
- * `flex-start`, not stretched: a stretched child reports the slot's width to
- * `onLayout` rather than its own, both words measure the same, the difference goes
- * to zero and the hole comes straight back.
- *
- * The name is pulled back onto whichever word is showing, by a `translateX` that
- * runs the difference between the two measured widths across the same `progress`
- * the words ride. At the commit `progress` snaps to 0 and the arriving word becomes
- * the current one: the flow width changes by exactly that difference in the same
- * frame the transform returns from it to zero, and the two cancel. That is the whole
- * reason the name arrives rather than jumping, and it only holds while the travel is
- * measured from the words themselves — which is why F428 keys the widths by the
- * string that drew them. Held by slot they described the previous pair on the one
- * frame the cancellation depends on, and the test below it says so in numbers.
- *
- * Nothing in the slot may be positioned absolutely. An absolute child is measured
- * against its owner's width — Yoga constrains it deliberately so text wraps to its
- * owner, and `react-native-web` gives every Text `word-wrap: break-word` — so a word
- * wider than the one showing would arrive broken mid-word: `Bonjour,` rising into a
- * `Hello,`-sized box shows as `Bonjou`.
- *
- * And the travel stands down once the name has wrapped to its own line, which is
- * what happens at the largest reading sizes. There the name is not beside the word,
- * so there is no gap to close, and pulling it left would walk the learner's own name
- * off the edge of the screen.
+ * The greeting and the learner's name move as one phrase — F427.
  */
 describe('the greeting word hugs the name — F427', () => {
   test('the greeting word hugs the name, and the name travels with the swipe rather than jumping — F427', () => {
-    const source = layoutSource();
-    const header = region(source, 'export function TabHeader(', 'type ConfirmSheetProps');
+    const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
 
-    // The ghost is gone. It is the gap: a slot sized for `Morning,` is 47pt too
-    // wide for `Hello,` at every reading size, not just one.
-    assert.doesNotMatch(
-      header,
-      /swap\.widest/,
-      'the header still draws the widest word to size its slot, which is the hole the founder photographed',
-    );
-    assert.doesNotMatch(
-      header,
-      /opacity: 0 \}/,
-      'something in the header is drawn at zero opacity, which is a ghost by another name',
-    );
-
-    // The slot takes its width from the words in it, is exactly one line tall,
-    // and still clips, so the arriving word does not exist until it arrives.
-    assert.doesNotMatch(
-      header,
-      /\bwidth:/,
-      'the slot is given a width; it has to be automatic, because a width that is not the current word is the gap',
-    );
     assert.match(
       header,
-      /<View style=\{\{ height: line, overflow: 'hidden' \}\} \{\.\.\.decorative\}>/,
-      'the slot is not one computed line tall and clipping, so both words show at once or the next one hangs below the line',
+      /const join = \(word: string\) => \(swap\.rest == null \? word : `\$\{word\}\\u00A0\$\{swap\.rest\}`\);/,
+      'the name is not joined directly to each greeting as one phrase',
     );
-
-    // Both words sit in normal flow. An absolute one is measured against the
-    // slot's width and arrives broken mid-word.
-    assert.doesNotMatch(
-      header,
-      /position: 'absolute'/,
-      'a word is positioned absolutely, so it is measured against the slot and a wider one arrives as `Bonjou`',
-    );
-    assert.match(
-      header,
-      /alignItems: 'flex-start'/,
-      'the two words are stretched to the slot instead of hugging their own text, so both measure the same width and the name never travels',
-    );
-
-    // Both words are measured, and the name knows when it has left the row.
-    assert.match(
-      source,
-      /import \{[^}]*\buseState\b[^}]*\} from 'react';/,
-      'the header holds no state, so it cannot know how far the name has to travel',
-    );
-    // F428 moved the widths from two positional slots to one map keyed by the
-    // string that drew them. What F427 defends is that both words are measured
-    // at all and that the travel is their difference, so these follow the shape;
-    // pinning the positional pair here would have pinned the stale-frame bug.
-    assert.match(
-      header,
-      /const \[widths, setWidths\] = useState<Record<string, number>>\(\{\}\);/,
-      'the drawn widths are not held, so the header cannot know how far the name has to travel',
-    );
-    assert.match(
-      header,
-      /onLayout=\{\(e\) => measure\(swap\.word, e\.nativeEvent\.layout\.width\)\}/,
-      'the word showing is not measured, so its width is a guess',
-    );
-    assert.match(
-      header,
-      /onLayout=\{\(e\) => measure\(swap\.next, e\.nativeEvent\.layout\.width\)\}/,
-      'the word arriving is not measured, so its width is a guess',
-    );
-    assert.match(
-      header,
-      /onLayout=\{\(e\) => setNameTop\(e\.nativeEvent\.layout\.y\)\}/,
-      'the name never reports which line it is on, so the travel cannot stand down when it wraps',
-    );
-
-    // The travel: the difference between the two measured words, pulled back onto
-    // whichever one is showing, and nothing at all once the name has wrapped.
-    assert.match(
-      header,
-      /const grow =[^;]*arrivingWidth - shownWidth[^;]*;/,
-      'the travel is not the difference between the two measured words, so the name cannot land tight against either',
-    );
-    assert.match(
-      header,
-      /const beside = nameTop < line \/ 2;/,
-      'nothing decides whether the name is still beside the word, so a wrapped name is dragged off the left edge',
-    );
-    assert.match(
-      header,
-      /const nameFrom = beside \? -Math\.max\(grow, 0\) : 0;/,
-      'the name does not start pulled back onto the word showing, which is the gap it was sent back for',
-    );
-    assert.match(
-      header,
-      /const nameTo = beside \? Math\.min\(grow, 0\) : 0;/,
-      'the name does not end pulled back onto the word arriving, so the swipe lands with a hole or an overlap',
-    );
-    assert.match(
-      header,
-      /translateX: swap\.progress\.interpolate\(\{\s*inputRange: \[0, 1\],\s*outputRange: \[nameFrom, nameTo\],?\s*\}\)/,
-      'the name does not travel the difference across the same progress the words ride, so it jumps at the commit instead of arriving',
-    );
-
-    // A transform may move; a layout prop may not.
-    assert.doesNotMatch(
-      header,
-      /(width|height|left|top): [\w.]*\.interpolate\(/,
-      'an interpolation is handed to a layout prop, which is a layout pass a frame and cannot cross to the native driver',
-    );
-
-    // Still nobody's timer.
-    assert.doesNotMatch(
-      header,
-      /Animated\.(timing|spring|loop|sequence|stagger|decay|parallel|delay)\b/,
-      'the header drives the swipe itself; whoever owns the value owns the timing',
-    );
-    assert.doesNotMatch(header, /\.start\s*\(/, 'the header starts an animation, so the frame owns a timer it cannot pause');
-    assert.doesNotMatch(header, /createAnimatedComponent/, 'the header wraps a component for animation, which the motion vocabulary forbids');
+    assert.equal((header.match(/\{join\(swap\.(?:word|next)\)\}/g) ?? []).length, 2, 'one greeting layer leaves the name behind');
+    assert.doesNotMatch(header, /swap\.widest|widths|setWidths|setNameTop|onLayout=/, 'the retired measured-name mechanism can still pause or jump');
+    assert.match(header, /outputRange: \[0, -line\]/, 'the outgoing phrase does not clear the line-height slot');
+    assert.match(header, /outputRange: \[line, 0\]/, 'the incoming phrase does not start one full line below');
   });
 });
+
 /**
- * The travel is right on the frame the words change — F428.
- *
- * F427 held the two widths by position: `wordWidth` was whatever the strip's
- * upper line last reported, `nextWidth` whatever the lower one did, and `grow`
- * was their difference. Both are one render stale at exactly the frame they
- * matter. At a commit the rotation re-renders with the new `swap.word` and
- * `swap.next` and `progress` back at 0. The slot's flow width is already right,
- * because it comes from the real text — but `onLayout` for the new pair cannot
- * have fired yet, since it fires after the new render is laid out. So the
- * transform still described the pair that had just left.
- *
- * Walked with the drawn widths at 375pt (Salut 90, Bonjour 133, Hello 93, Coucou
- * 125, Morning 140): on `Salut, -> Bonjour,` with `Hello,` next, the slot is
- * already 133 wide while `grow` is still +43, so `translateX` is -43 and the name
- * is drawn 43pt inside `Bonjour,` until the measurement lands. On `Bonjour, ->
- * Hello,` with `Coucou,` next, `grow` is still -40, so the transform is 0 while
- * the slot is Coucou-wide and the hole F427 closed reopens. `Morning, -> Salut,`
- * reopens the original 43pt hole. Four of the five morning transitions glitched.
- * The resting-state measurement that passed F427 only ever sampled settled
- * frames, which is why it saw none of it.
- *
- * Keying the widths by the string that drew them is the whole fix. The `(word,
- * next)` pair becomes a lookup by text, and by the time a pair reaches a commit
- * both of its words have been through the slot already: the word showing was the
- * strip's lower line for the cycle before, and the word arriving went through on
- * an earlier turn of the pool. Only a word's very first appearance is unmeasured,
- * and there the travel is zero — the same honest answer as the first frame before
- * anything is measured at all, and a frame with no travel is a gap for one frame
- * where the stale pair was an overlap.
- *
- * There is no renderer in this suite, so a commit cannot be driven. What is
- * proved here is the structure that makes the stale frame impossible: one map
- * keyed by text, each word writing under its own string, `grow` looked up by
- * `swap.word` and `swap.next` rather than by slot, zero travel while either word
- * is unmeasured, and a guarded write — `onLayout` fires on every relayout, and a
- * fresh object on each one is a render loop rather than a measurement.
+ * Both full-line layers share geometry without sharing a baseline — F428.
  */
 describe('the greeting travels by word, not by slot — F428', () => {
   test("the name's travel is right on the frame the words change, not one layout later — F428", () => {
-    const header = region(
-      layoutSource(),
-      'export function TabHeader(',
-      'type ConfirmSheetProps',
-    );
+    const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
 
-    // One map, keyed by the string that drew the width, and no width left over
-    // that belongs to a slot instead of to a word.
     assert.match(
       header,
-      /const \[widths, setWidths\] = useState<Record<string, number>>\(\{\}\);/,
-      'the drawn widths are not one map keyed by string, so a width still belongs to a slot rather than to the word in it',
+      /opacity: swap\.progress\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \[1, 0\] \}\)/,
+      'the outgoing full line does not fade through the handoff',
+    );
+    assert.match(
+      header,
+      /opacity: swap\.progress\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \[0, 1\] \}\)/,
+      'the incoming full line does not cross-fade with the outgoing one',
     );
     assert.doesNotMatch(
       header,
-      /setWordWidth|setNextWidth/,
-      'a width is still held by position, and a positional width describes the previous pair on the frame the words change',
+      /translateX|arrivingWidth|shownWidth|grow|measure\(/,
+      'a late layout measurement still controls the commit frame',
     );
-
-    // Each word reports under its own text. The order pins which is which: a
-    // word that wrote under the other word's key would mislabel every
-    // measurement by one slot and read as correct from a distance.
-    const writesWord = header.indexOf('measure(swap.word, e.nativeEvent.layout.width)');
-    const drawsWord = header.indexOf('{swap.word}');
-    const writesNext = header.indexOf('measure(swap.next, e.nativeEvent.layout.width)');
-    const drawsNext = header.indexOf('{swap.next}');
-    assert.ok(
-      writesWord !== -1 && writesNext !== -1,
-      'the words are not measured under their own text, so the map is keyed by something other than what was drawn',
-    );
-    assert.ok(
-      writesWord < drawsWord && drawsWord < writesNext && writesNext < drawsNext,
-      "a word reports its width under the other word's key, which mislabels every measurement by one slot",
-    );
-
-    // The travel is a lookup by text, with zero standing in for a word nobody
-    // has drawn yet — never a difference against a missing width.
-    assert.match(
-      header,
-      /const shownWidth = widths\[swap\.word\];/,
-      'the width of the word showing is not looked up by the word showing',
-    );
-    assert.match(
-      header,
-      /const arrivingWidth = widths\[swap\.next\];/,
-      'the width of the word arriving is not looked up by the word arriving',
-    );
-    assert.match(
-      header,
-      /const grow =\s*shownWidth != null && arrivingWidth != null \? arrivingWidth - shownWidth : 0;/,
-      'grow is not the difference between the two words looked up by text, standing down to no travel while either is unmeasured',
-    );
-    assert.doesNotMatch(
-      header,
-      /nextWidth - wordWidth/,
-      'grow is still the difference between two positional widths, which is the pair that just left rather than the pair on screen',
-    );
-
-    // The write is guarded, because onLayout fires on every relayout and a fresh
-    // object every time re-renders, relays out, and writes again.
-    assert.match(
-      header,
-      /setWidths\(\(seen\) => \(seen\[text\] === drawn \? seen : \{ \.\.\.seen, \[text\]: drawn \}\)\);/,
-      'the measurement writes state on every layout pass instead of only when a width changed, which is a render loop',
-    );
+    assert.match(header, /st\.swapLine/, 'the two complete phrases do not share identical geometry');
   });
 });
 

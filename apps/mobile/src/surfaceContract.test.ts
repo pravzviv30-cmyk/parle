@@ -2091,23 +2091,15 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
       'the design doc says the circle is the way into a conversation and the tab draws a pill beside it',
     );
 
-    // 4. The revision. The doc described a fade through three words for exactly
-    //    one day; these are the claims that replaced it, and a doc that drifts
-    //    back to the old ones is a doc somebody will build from.
-    assert.doesNotMatch(
-      design,
-      /It fades rather than\s+slides/,
-      'DESIGN.md still says the greeting fades rather than slides, and it swipes now',
-    );
-    assert.match(design, /rises up out of its slot/, 'DESIGN.md does not describe the greeting slot');
-    // F427 closed the hole and F428 fixed the frame it closed it on. The doc may
-    // not go back to promising a name that never moves: that promise and a tight
-    // line are the same tradeoff seen from two sides, and this is the side that
-    // shipped.
+    // 4. The native revision. The complete phrase overlaps through the handoff
+    //    and stands down before a fixed slot can clip accessibility text.
+    assert.match(design, /rise together through one clipped line/, 'DESIGN.md does not describe the native greeting transition');
+    assert.match(design, /opacities always add to one/, 'DESIGN.md permits an empty frame between greetings');
+    assert.match(design, /accessibility text sizes[^.]*stands down/, 'DESIGN.md does not record the large-text fallback');
     assert.doesNotMatch(
       design,
       /name is outside the\s+slot and never moves/,
-      'DESIGN.md promises a name that never moves, which is the version that left a hole after Salut',
+      'DESIGN.md still describes the retired split word/name mechanism',
     );
     assert.match(
       design,
@@ -2246,7 +2238,7 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.match(runbook, /## Pass 5 daily home/, 'the runbook has no Pass 5 section');
     const section = runbook.slice(runbook.indexOf('## Pass 5 daily home'));
     const rows = section.split('\n').filter((l) => /\|\s*P5-\d/.test(l));
-    // Eleven since the Home revision: the swipe's gap at every reading size, and
+    // Eleven since the Home revision: the greeting at every reading size, and
     // a scene that changes with the day, are two more things no source walk can
     // see. The count is asserted rather than a floor so a row cannot go quietly.
     assert.equal(rows.length, 11, `the Pass 5 section names ${rows.length} rows; it should carry P5-1 through P5-11`);
@@ -2255,8 +2247,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     }
     for (const row of rows) {
       // Every row still owes a device. One is allowed to carry evidence from the
-      // web build beside that debt, because the greeting's timing was measured
-      // there and hiding a real measurement is its own dishonesty; what it may
+      // web build beside that debt, because greeting timing can be measured
+      // there too; what it may
       // not do is drop the `not run` and read as finished. A bare `pass` in
       // either column without a device walk is the thing this catches.
       assert.match(row, /not run/, `a Pass 5 row claims to be finished before a device walked it: ${row.trim()}`);
@@ -2269,12 +2261,12 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     }
     // The four things this pass added that no test in this repository can see.
     for (const [what, pattern] of [
-      ['the greeting word sliding up out of its slot', /slides up out of its slot/],
-      ['the name staying tight to the word', /never overlapping it and never leaving a hole/],
+      ['the complete greeting moving through one clipped line', /complete greeting rises through one clipped line/],
+      ['the native commit staying seamless', /no blank, flash or pause at the commit/],
       ['reduce motion resting the greeting', /reduce motion on/],
       ['a screen reader hearing one greeting', /VoiceOver and TalkBack read one greeting/],
       ['a fresh account meeting four momentum cards with start lines in them', /fresh account/],
-      ['the gap after a short word', /word-space rather than a hole/],
+      ['the large-text greeting standing down', /At AX3–AX5 the animation stands down/],
       ['a drawing that changes with the day', /different drawing appears on a different day/],
     ] as const) {
       assert.match(section, pattern, `the Pass 5 section never asks anyone to check ${what}`);

@@ -6,13 +6,12 @@
  * happen on a real device, plus the one thing a rule may not do: read the
  * clock. This file cannot be tested (apps/mobile has no renderer), so it is
  * kept thin enough to read in one sitting and holds no decision worth arguing
- * about: one value, two timers, one loop.
+ * about: one value, one hold, one eased handoff.
  *
  * Hold the word, then lift it out of the slot while the next one rises in
- * behind it, then commit the new word at rest. The commit happens in the same
- * tick the value goes back to zero, and that ordering is the whole trick: the
- * word the learner is now reading is the word that just arrived, at the
- * position the strip started from, so nothing jumps.
+ * behind it. The arriving word remains at progress 1 while React commits it as
+ * current; a layout effect then returns the strip to zero before paint. That
+ * order is what prevents the outgoing word flashing between two greetings.
  *
  * The clock is read once when the effect starts, which is once per visit to
  * Home. A learner who opens the tab at ten to six and leaves it open is
@@ -27,8 +26,8 @@
  * nobody is looking at for as long as the app is open.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { Animated } from 'react-native';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Animated, Easing } from 'react-native';
 
 import type { TitleSwap } from '../layout.tsx';
 import { useReduceMotion } from '../motion.ts';
@@ -76,6 +75,13 @@ export function useGreetingRotation(args: {
   // the resting word are drawn from it and a render has to follow it.
   const [clock, setClock] = useState(() => Date.now());
 
+  // Keep the arriving word visible at progress 1 until React has committed it
+  // as the current word. Resetting in the animation callback briefly restored
+  // the outgoing word and produced the visible hitch the native app exposed.
+  useLayoutEffect(() => {
+    progress.setValue(0);
+  }, [index, progress]);
+
   // Watched, not sampled: a learner turns this on while something is bothering
   // them, and this is a header that moves every few seconds.
   const reduced = useReduceMotion();
@@ -120,32 +126,43 @@ export function useGreetingRotation(args: {
      * pending to bring it back. F416, and it was found by looking at the running
      * app rather than at the file.
      *
-     * So the timers own the sequence and the animation rides alongside it.
-     * Timers throttle in the background; they do not die. A frame that never
-     * lands now costs the swipe its movement, and the next step still arrives,
-     * still commits the new word, and still puts the strip back at rest.
+     * The native animation normally owns the handoff, so the commit cannot race
+     * the final frame. A slightly later watchdog still advances a surface that
+     * was suspended and never reports completion.
      */
     const cycle = () => {
       after(GREETING_HOLD_MS, () => {
         running?.stop();
+        let committed = false;
+        const commit = () => {
+          if (!live || committed) return;
+          committed = true;
+          if (timer !== null) {
+            clearTimeout(timer);
+            timer = null;
+          }
+          // Land exactly on the arriving word before changing the pair. The
+          // layout effect resets the value only after React has committed that
+          // arriving word as current, so no old word flashes between them.
+          progress.setValue(1);
+          setIndex((current) => greetingIndex((current + 1) * GREETING_CYCLE_MS, pool.length));
+          cycle();
+        };
         const run = Animated.timing(progress, {
           toValue: 1,
           duration: GREETING_SWIPE_MS,
+          easing: Easing.inOut(Easing.cubic),
           useNativeDriver: true,
         });
         running = run;
-        run.start();
-
-        after(GREETING_SWIPE_MS, () => {
-          // Through the rule rather than past it. `greetingIndex` is the
-          // exported answer to "which word after this much time", and a second
-          // copy of the modulo here is a second answer that would drift the
-          // first time either changed. Counted over the hour's pool, so the
-          // word that arrives is the word that was rising.
-          setIndex((current) => greetingIndex((current + 1) * GREETING_CYCLE_MS, pool.length));
-          progress.setValue(0);
-          cycle();
+        run.start(({ finished }) => {
+          if (finished) commit();
         });
+
+        // Native completion is the normal handoff. This timer is only a guard
+        // for a suspended browser/native surface that never reports a frame;
+        // it cannot double-commit because `commit` is idempotent.
+        after(GREETING_SWIPE_MS + 120, commit);
       });
     };
 

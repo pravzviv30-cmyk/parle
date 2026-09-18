@@ -6082,10 +6082,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   header then held a word nobody could see, with no timer pending to bring it back, until the screen was
   rebuilt. Measured in the running app: `Bonjour, Camille` present in the DOM at computed opacity 0 across
   two captures seconds apart.
-  The chain moves onto timers alone, which throttle but do not die, and the animation becomes decorative
-  alongside it. A frozen frame can then cost a fade, never the greeting. The teardown also lands opacity back
-  at 1, so no exit can leave it invisible either.
-- verified-by: `the greeting survives a frame that never lands, and no exit leaves it invisible — F416`
+  The native completion now owns the normal commit, while an idempotent watchdog advances a suspended
+  surface that never reports completion. The arriving phrase stays visible until React commits it as current;
+  a layout effect then resets progress before paint. The teardown also lands progress back at rest.
+- verified-by: `the greeting commits on the final frame, survives suspension and resets after layout — F416`
 
 ### F417 — The greeting pool is wide and knows the hour
 - severity: P1
@@ -6098,47 +6098,37 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   firstName)` is the word with its comma; `GREETING_WIDEST_WORD = 'Morning'` with no word longer
   and none shorter than 5. The band narrows the slot's width spread rather than closing it: measured
   at 375pt, `Morning,` fills the slot, `Bonjour,` leaves 7pt and `Salut,` leaves about 50pt, which is
-  eight spaces. That cost was accepted when the founder chose a slot the name never moves in. Phases: `GREETING_HOLD_MS 3300 + GREETING_SWIPE_MS 450 ===
-  GREETING_CYCLE_MS 3750`. Every line still passes `guiltIn`, carries no digit, no em dash, and
+  eight spaces. The complete phrase now moves together, so no width slot is needed. Phases: `GREETING_HOLD_MS 3300 + GREETING_SWIPE_MS 600 ===
+  GREETING_CYCLE_MS 3900`. Every line still passes `guiltIn`, carries no digit, no em dash, and
   never says "you". At 08:00 no Bonsoir or Evening; at 20:00 no Bonjour or Morning; at 02:00 the
   evening pool; exactly one rest word at every hour of the day.
 - verified-by: `the greeting pool is wide, time-appropriate, and rests on the hour's French word — F417`
 - verified-by: `a learner who skipped their name is greeted by the word alone — F387`
 
-### F418 — The header holds the greeting word in a fixed slot and the name never moves
+### F418 — The header holds two complete greeting layers in one stable slot
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/layout.tsx:216
 - note: owner design-system-engineer. `TabHeader` gains `titleSwap?: TitleSwap | null`
-  (`{ word, next, widest, rest, progress }`) and drops `titleOpacity` and
-  `titleAccessibilityLabel`. With a swap: a `View` rolled `accessibilityRole="header"`,
-  `accessible`, `accessibilityLabel={title}`, a wrapping row; inside it a slot `View` with
-  `overflow: 'hidden'` and hidden from assistive tech, holding a ghost `Text` in `type.display`
-  at `opacity: 0` with `widest`, and an absolute `Animated.View` strip translated by `progress`
-  from 0 to `-(type.display.lineHeight * PixelRatio.getFontScale())`, holding two
-  `Animated.Text`s in `type.display` whose opacities interpolate 1 to 0 and 0 to 1; then the name
-  in flow. Without a swap the plain branch is unchanged. No `Animated.timing`, no `.start(`, no
-  `createAnimatedComponent`, no `numberOfLines`, no `maxFontSizeMultiplier`, no numeric width or
-  height anywhere in the region.
-- note: F427 stopped the slot being sized by the widest word, because that is what left the hole the
-  founder saw. The slot hugs the words themselves now, so this test was retitled to what it still
-  proves: the word is clipped to one line, the name is in flow, and the frame starts nothing.
+  (`{ word, next, rest, progress }`). With a swap, one accessible heading holds two absolute
+  `Animated.Text` layers containing the complete greeting and name. Their opacity curves overlap;
+  one rises a full line while the other enters from the full line below. At font scale 1.6 and above,
+  the motion slot stands down and the full title renders in normal flow. The frame starts nothing.
 - verified-by: `the tab header clips the moving word to one line, keeps the name in flow, and starts nothing — F418`
 - verified-by: `the screen primitives never drive movement themselves, and never cap font scaling — F388`
 
-### F419 — The swipe is timers, and no exit leaves the slot mid-swipe
+### F419 — The eased native handoff has a suspension watchdog
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/home/useGreetingRotation.ts:38
 - note: owner frontend-engineer. Returns `{ rest, swap }`. One `Animated.Value` `progress` at 0.
   Reads `Date.now()` once when the effect starts on focus to get `greetingPool` and
-  `greetingRest`. Cycle: `after(GREETING_HOLD_MS, ...)` starts `Animated.timing(progress, {
-  toValue: 1, duration: GREETING_SWIPE_MS, useNativeDriver: true })` with no callback;
-  `after(GREETING_SWIPE_MS, ...)` sets the index through `greetingIndex`, calls
-  `progress.setValue(0)`, and schedules the next cycle. Reduce motion: `swap` is null and nothing
+  `greetingRest`. Cycle: `after(GREETING_HOLD_MS, ...)` starts an eased native timing; its completion
+  commits the new index. A 120ms-later idempotent watchdog covers a suspended surface. A layout
+  effect resets progress after the arriving phrase becomes current. Reduce motion: `swap` is null and nothing
   runs. Unfocused: nothing runs, `progress` rests at 0 with the current word. Teardown: clear the
   one timer, stop the timing, `progress.setValue(0)`.
-- verified-by: `the greeting survives a frame that never lands, and no exit leaves it invisible — F416`
+- verified-by: `the greeting commits on the final frame, survives suspension and resets after layout — F416`
 
 ### F420 — Home wires the two-part greeting
 - severity: P1
@@ -6255,13 +6245,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the name never moves, and the cost is a gap after every shorter word: measured at 375pt, `Morning,`
   fills the slot, `Bonjour,` leaves 7pt and `Salut,` and `Hello,` leave about 50pt, which is eight
   spaces. It reads as a hole rather than a space.
-  A gap-free line and a name that never moves are the same tradeoff seen from two sides: if the word
-  is always tight against the name, the name's resting place moves with the word's width. So the slot
-  hugs the current word, and the movement becomes part of the swipe instead of a jump. The header
-  measures the outgoing and incoming words with `onLayout` and interpolates the name's `translateX`
-  from zero to their difference across the same `progress` the strip rides; at the commit the flow
-  width changes by exactly that difference while the transform returns to zero, so the name travels
-  continuously and lands tight. The header still starts nothing.
+  The final design joins the name to both outgoing and incoming greetings before drawing them. Each
+  complete phrase therefore has exactly one word-space, and the phrase moves as one object without
+  measuring either word or correcting the name separately. The header still starts nothing.
 - verified-by: `the greeting word hugs the name, and the name travels with the swipe rather than jumping — F427`
 
 ### F428 — The name jumps at every greeting commit because its travel is measured one render late
@@ -6277,10 +6263,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `grow` at -40 so the transform is 0 while the slot is Coucou-wide, and a hole reopens. Four of the
   five morning transitions glitch. The resting-state measurement that passed this could not see it,
   because it only ever sampled a settled frame.
-  The fix is to key the measured widths by the string rather than by position: a `Record<string,
-  number>` filled by each word's own `onLayout`, so `grow` for a `(word, next)` pair is looked up by
-  text and is right on the commit frame from the second cycle on. Only a word's first ever appearance
-  is unmeasured, and there the travel is zero, which is the honest answer.
+  The final fix removes the measurement dependency entirely. Outgoing and incoming layers each draw
+  the complete greeting and name in identical absolute geometry, so no previous pair's width can
+  affect the commit frame. They remain a full line apart throughout the handoff, their opacity
+  curves overlap, and the hook resets only after layout.
 - verified-by: `the name's travel is right on the frame the words change, not one layout later — F428`
 
 ### F429 — The docs and the runbook still describe the header F427 replaced

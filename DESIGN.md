@@ -453,7 +453,7 @@ still there. Passing it is one tap and nothing else is asked twice.
 
 | Tab | What it is |
 |---|---|
-| Home | Tonight's French, and nothing else. The greeting alone at the top, where only the word changes: it rises up out of its slot and the next comes in behind it, with the name travelling with it so the two stay tight, and the hour's own question under it. Then one card: the situation to walk into tonight, with the kind of offer in caps above it, its French title in the serif, one line of English saying what happens there, the watercolour of the place it happens in, how long it usually takes as `Ready for 7 min` or the learner's own measured remainder, a bookmark in the top corner, and the tab's one pill. Under it one white row, **Real progress**, carrying a single sentence about what this learner can now do on their own, and a chevron into the `Progress` screen. That is the whole tab. The word of the day, the four momentum cards and the week's story are one level down behind that row rather than deleted, and the level, the evidence and the phrasebook are My French's |
+| Home | Tonight's French, and nothing else. The complete greeting and learner name rise together through one clipped line, with the hour's own question under it. Then one card: the situation to walk into tonight, with the kind of offer in caps above it, its French title in the serif, one line of English saying what happens there, the watercolour of the place it happens in, how long it usually takes as `Ready for 7 min` or the learner's own measured remainder, a bookmark in the top corner, and the tab's one pill. Under it one white row, **Real progress**, carrying a single sentence about what this learner can now do on their own, and a chevron into the `Progress` screen. That is the whole tab. The word of the day, the four momentum cards and the week's story are one level down behind that row rather than deleted, and the level, the evidence and the phrasebook are My French's |
 | Tutor | The tutor by name, then the orb, which reads its state from the facts: away when the servers are, connecting while a probe runs, quiet with a caption when the account has no speaking time, and violet only when a tap would start something. In that ready state, **Tap to talk** is embedded directly beneath seven white voice bars inside one large misty watercolour disc; there is no microphone icon and no frosted capsule competing with it. Every live state changes those same bars, colour and plain status rather than adding a second control. No card sits behind it, because the circle is the one focal point on the page. Then what the tutor remembers, as a peach row with the tutor's own orb on its disc, one line from a real record and a way to pick the scene up, absent for a learner with nothing behind them. Then **Practice together**: three tinted rows, one per way in, and each one a row rather than a button because the circle above is the tab's only primary. An everyday mission on peach, which opens the chooser and every situation with it; an open chat on sky, which runs the circle's own probe; rehearsing something on sage, which opens the screen where a learner names a real moment, writes one line about it and runs it in French first. The quiet "Unable to speak right now?" door and the microphone notice close the page, and the pronunciation lesson moved to the chooser's own footer |
 | Practice | Made from the learner's own conversations, and it is what the tab is called. The header, then one **Your next practice** card: a French line set large, a round white speaker that says it aloud, the English under it, and exactly one control for the branch it is in, which is Review when cards are due, Practise this conversation for the newest pack nobody has come back to, and the tab's one pill for a learner with no conversation yet. Under it three rows, always the same three, on peach, sky and sage: replay a moment, which speaks the better line and opens a drill on it; make this phrase yours, which is the own-words drill; and tune one sound. A learner with no conversation meets the same three shapes from the café lesson and one sentence saying the page becomes personal after the first. The archive went one level down to `Conversations` rather than off the map: the vault, the feed, the filters and the pack library all live there behind My French's own row |
 | My French | The ledger of what has become the learner's, and the one tab whose unit is the place and the phrase rather than the session. The situations first, as one tinted row each on the paper of the place they happen in, with the place's line-art mark on a white disc and the state reached in a chip at the end: **You can now...** for the ones handled with nothing handed over, then **Next places** for the rest, worded as suggested and never as locked or missing. A learner with nothing stamped meets one group, so no empty ability card is ever drawn. Then **Your phrase shelf**, one white row carrying the phrase most worth keeping and a chevron into the `Phrasebook` route, present on a first morning too because the module has a sentence for an empty shelf. Then **Saved for later**, the situations bookmarked from Home, present only when there are any. Then **Your conversations**, one row into `Conversations`, present only once a conversation exists. There is no percentage anywhere on it and none is available to be drawn: the climb is the layout |
@@ -480,9 +480,9 @@ day; `surfaceContract.test.ts` holds Home to reading it from the greeting rather
 than spelling it, because a sentence typed into the tab is a sentence that stops
 changing and nothing would say so. Home draws no monogram: the initial is
 Profile's, once, and the greeting already says the learner's name.
-The header can also fade its title, through a `titleOpacity` the caller drives;
-that exists so Home's greeting can cycle without the display style leaving this
-file.
+The header can overlap an outgoing and incoming Home greeting in one stable
+line-height slot. The caller drives one native value; the frame cross-fades the
+two complete phrases and starts no timer of its own.
 
 Two rules ride with the block. **One primary pill per door**, so the eye has one
 place to go on each thing it can act on. That used to read "one per tab", and it
@@ -593,37 +593,15 @@ chrome speaks French.
 any time; "Bonjour" and "Morning" while it is still day; "Bonsoir" and "Evening"
 after six, through midnight. Teaching somebody to say Bonsoir at breakfast is
 teaching them wrong, so the pool is filtered by the hour rather than shuffled.
-**The word and the name stay tight, and the name travels rather than jumping.**
-The slot was sized by the widest word for exactly one build, so the name never
-moved; the founder ran it and saw the cost, which was about fifty points of empty
-space after `Salut,` and `Hello,` and nothing after `Morning,`. A gap-free line
-and a name that never moves are the same tradeoff seen from two sides: if the
-word is always tight against the name, the name's resting place moves with the
-word's width. So the slot hugs the words themselves, and the movement became part
-of the swipe. The header measures both words, and the name's `translateX` rides
-the same value the strip does, so at the moment the words change the flow shifts
-one way by exactly what the transform gives back. The name arrives; it never
-jumps. Both words sit in normal flow rather than one being absolute, because an
-absolutely positioned word is measured against its owner and a wide one would
-arrive with its tail cut off.
-
-**Three shapes were tried here in two days, so they are written down.** A fixed
-slot sized by an invisible copy of the widest word came first, and it is the one
-to not go back to: it keeps the name perfectly still and buys that with the fifty
-points above. Then the slot hugged the words but took their widths by position,
-which is wrong on the one frame that matters, because `onLayout` cannot report a
-word until after the render that drew it: at the change the transform still
-described the previous pair and the name landed inside the word. The widths are
-keyed by the string that drew them now, so a pair is a lookup by text and is
-right on the commit frame. Measuring was rejected in the design and then turned
-out to be the only way to know how far the name has to travel; it is not an
-oversight to be simplified away. If the line ever reads wrong again, the next
-move is the name on its own second line, not a fourth measuring scheme.
-
-**Only the word changes.** It slides up out of a slot that clips it and the next
-rises in behind, one line, on the native driver. The name is outside the slot and
-moves only as far as the words differ, so the line is never loose and never
-overlaps. A learner who asked for less movement gets one still word, the hour's French one, and a screen reader hears that same
+**The greeting and name move as one phrase.** The outgoing phrase rises one
+complete line while the incoming phrase rises from the slot below it, on the
+native driver with a cubic ease. The two opacities always add to one, so the
+heading never disappears between words, while the full-line separation keeps
+the phrases from doubling over the same baseline. React keeps the arriving phrase visible
+until it is committed as current, then resets the animation before paint. At
+accessibility text sizes the fixed-height animation stands down and the full
+title wraps in normal flow. A learner who asked for less movement gets one still
+word, the hour's French one, and a screen reader hears that same
 line once: a header that renamed itself every few seconds to somebody listening
 would be the most hostile thing in the app. The conversation OPENS in English (the spoken question, no menu)
 with the French riding along on screen as exposure. The old FRENCH · ENGLISH

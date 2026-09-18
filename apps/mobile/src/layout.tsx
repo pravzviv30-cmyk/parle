@@ -15,7 +15,7 @@
  * frame may hold a value somebody else is moving, and stays out of the way.
  */
 
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import {
   Animated,
   View,
@@ -347,57 +347,19 @@ export function TabHeader({ title, purpose, titleSwap, trailing, leading, align 
 }
 
 /**
- * The greeting: one word rising through a slot, and a name that arrives with it.
+ * The greeting: two complete lines passing through one stable slot.
  *
- * F418 sized this slot to a ghost of the widest word the pool could produce, so
- * the name never had to move. On screen that bought a hole: `Hello,` sat 47pt
- * from `Camille` at 375pt, about eight spaces. A gap-free line and a still name
- * are the same tradeoff seen from two sides — if the word is always tight against
- * the name, the name's resting place moves with the word's width — so the name
- * moves, and it moves as part of the swipe rather than as a jump.
+ * The old word-only strip moved a full line and separately measured the name.
+ * On a native phone that could briefly clip both words at the handoff and it
+ * made the name's horizontal correction feel like a second animation. The
+ * greeting and name now move as one phrase: the outgoing line rises one full
+ * line while the incoming line rises from the slot below it. Their opacities
+ * cross at the same pace, so the heading never has an empty frame and the two
+ * phrases never sit directly on top of each other.
  *
- * The slot is one line tall and clips, and holds both real words in normal flow,
- * one under the other. Two things follow from that and both matter. It is as wide
- * as the wider of the two words without measuring anything, so no ghost is needed;
- * and neither word is ever cut off, which an absolutely positioned one would be —
- * an absolute child is measured against its owner's width on purpose (Yoga does it
- * so text wraps to its owner, and react-native-web gives every Text
- * `word-wrap: break-word`), so `Bonjour,` rising into a `Hello,`-sized box would
- * arrive as `Bonjou`. The words are `flex-start` inside the strip so each hugs its
- * own text: stretched, they would both report the slot's width to `onLayout`, the
- * difference would go to zero, and the gap would come straight back.
- *
- * The name follows the slot in flow and is pulled back onto whichever word is
- * showing by a `translateX` that runs the difference between the two drawn widths
- * across the same `progress` the words ride. At the commit `progress` snaps to 0
- * with the arriving word already the current one: the slot's flow width changes by
- * exactly that difference while the transform returns from it to zero, and the two
- * cancel, so the name arrives rather than jumping.
- *
- * That cancellation only holds if the difference describes the pair that is on
- * screen now, which is why the widths are keyed by the string that drew them and
- * not by which line of the strip reported them (F428). Held by line they are one
- * render stale at the one frame that matters: the new pair has already rendered,
- * the flow width is already right because it comes from the real text, and
- * `onLayout` for that pair cannot have fired, because it fires after the render is
- * laid out. `Salut,` to `Bonjour,` at 375pt left the transform at -43 against a
- * slot that had already grown, and the name was drawn 43pt inside `Bonjour,` for a
- * frame. Keyed by text, both widths are already known: the word showing spent the
- * whole cycle before as the strip's lower line, and the word arriving went through
- * the slot on an earlier turn of the pool.
- *
- * Measuring is the one new mechanism here, and there is no other way to know how
- * far the name has to travel. It is self-correcting rather than fragile: a reading
- * size change or a web font landing late relays both words and reports both widths
- * again, under the same keys. A word's very first appearance is the one unmeasured
- * case, and there the difference is zero and the name simply does not travel that
- * once — the same honest answer as the first frame before anything is measured,
- * and a frame with no travel is a gap where a stale one was an overlap.
- *
- * The travel stands down once the name has wrapped to its own line, which is what
- * happens at the largest reading sizes. There it is not beside the word, so there
- * is no gap to close, and pulling it left would walk the learner's own name off the
- * edge of the screen.
+ * At accessibility text sizes the animation stands down and the full `title`
+ * renders in normal flow. A fixed-height motion slot must never clip a wrapped
+ * learner name.
  *
  * A screen reader hears one greeting: the row is a single accessible heading
  * labelled with the still line, and the slot is hidden from assistive tech
@@ -406,111 +368,31 @@ export function TabHeader({ title, purpose, titleSwap, trailing, leading, align 
  * thing this app could do to somebody listening to it.
  */
 function TitleSwapRow({ title, swap }: { title: string; swap: TitleSwap }) {
-  // One line, in the units a transform speaks. A translateY is device pixels
-  // while the rendered line height grows with the OS reading size, so the two
-  // only agree once the scale is multiplied back in; this is the only way to
-  // move exactly one line without measuring one. Read at render, so a Dynamic
-  // Type change corrects on the next render. It is 1 on the web, where browser
-  // zoom scales the CSS pixel itself.
-  const line = type.display.lineHeight * PixelRatio.getFontScale();
-  // Every word as drawn, under the text that drew it, and which line the name
-  // landed on. An empty map and a 0 are the honest answers before a layout pass:
-  // no difference, no travel, a still line at the right place.
-  //
-  // Keyed by text rather than by which line of the strip reported it, because a
-  // width held by line belongs to the previous pair on the frame the words change
-  // (F428). This map cannot grow without bound: its keys are the greetings
-  // themselves, seven of them in `home/greeting.ts` and only the ones this hour
-  // allows, so it settles at one entry per word rather than one per swipe.
-  const [widths, setWidths] = useState<Record<string, number>>({});
-  const [nameTop, setNameTop] = useState(0);
-  // `onLayout` fires on every relayout, so a write that always builds a fresh
-  // object is a loop: the new map re-renders, the re-render relays out, the
-  // layout writes again. Only a width that actually changed is worth a render,
-  // and returning the same map is how React is told to stop.
-  const measure = (text: string, drawn: number) =>
-    setWidths((seen) => (seen[text] === drawn ? seen : { ...seen, [text]: drawn }));
-  // The slot is the wider of the two words, so the name is pulled back onto the
-  // one showing: by the difference when the word arriving is wider, and by
-  // nothing when it is narrower. Either way the two ends are the difference
-  // apart, which is exactly what the flow gives back at the commit. Until both
-  // words have been drawn once there is no difference to run, and standing still
-  // is better than travelling a number that is not about these two words.
-  const shownWidth = widths[swap.word];
-  const arrivingWidth = widths[swap.next];
-  const grow = shownWidth != null && arrivingWidth != null ? arrivingWidth - shownWidth : 0;
-  const beside = nameTop < line / 2;
-  const nameFrom = beside ? -Math.max(grow, 0) : 0;
-  const nameTo = beside ? Math.min(grow, 0) : 0;
+  const fontScale = PixelRatio.getFontScale();
+  if (fontScale >= 1.6) {
+    return <Text accessibilityRole="header" style={[type.display, { color: paper.ink, flex: 1 }]}>{title}</Text>;
+  }
+  const line = type.display.lineHeight * fontScale;
+  const join = (word: string) => (swap.rest == null ? word : `${word}\u00A0${swap.rest}`);
   return (
     <View
       accessible
       accessibilityRole="header"
       accessibilityLabel={title}
-      style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}
+      style={{ flex: 1, height: line, overflow: 'hidden', position: 'relative' }}
     >
-      <View style={{ height: line, overflow: 'hidden' }} {...decorative}>
-        <Animated.View
-          style={{
-            alignItems: 'flex-start',
-            transform: [
-              {
-                translateY: swap.progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -line],
-                }),
-              },
-            ],
-          }}
-        >
-          <Animated.Text
-            onLayout={(e) => measure(swap.word, e.nativeEvent.layout.width)}
-            style={[
-              type.display,
-              {
-                color: paper.ink,
-                opacity: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-              },
-            ]}
-          >
-            {swap.word}
-          </Animated.Text>
-          <Animated.Text
-            onLayout={(e) => measure(swap.next, e.nativeEvent.layout.width)}
-            style={[
-              type.display,
-              {
-                color: paper.ink,
-                opacity: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
-              },
-            ]}
-          >
-            {swap.next}
-          </Animated.Text>
-        </Animated.View>
+      <View style={StyleSheet.absoluteFill} {...decorative}>
+        <Animated.Text style={[type.display, st.swapLine, {
+          color: paper.ink,
+          opacity: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+          transform: [{ translateY: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [0, -line] }) }],
+        }]}>{join(swap.word)}</Animated.Text>
+        <Animated.Text style={[type.display, st.swapLine, {
+          color: paper.ink,
+          opacity: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
+          transform: [{ translateY: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [line, 0] }) }],
+        }]}>{join(swap.next)}</Animated.Text>
       </View>
-      {swap.rest != null ? (
-        <Animated.Text
-          onLayout={(e) => setNameTop(e.nativeEvent.layout.y)}
-          style={[
-            type.display,
-            {
-              color: paper.ink,
-              flexShrink: 1,
-              transform: [
-                {
-                  translateX: swap.progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [nameFrom, nameTo],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          {'\u00A0' + swap.rest}
-        </Animated.Text>
-      ) : null}
     </View>
   );
 }
@@ -563,6 +445,7 @@ export function ConfirmSheet({
 }
 
 const st = StyleSheet.create({
+  swapLine: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   overlay: {
     ...StyleSheet.absoluteFill,
     alignItems: 'center',

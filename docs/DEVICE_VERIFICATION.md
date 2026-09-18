@@ -789,7 +789,7 @@ nobody had looked at is for.
 
 | Id | Check | iOS | Android |
 |---|---|---|---|
-| P5-1 | Home's greeting word slides up out of its slot and the next rises in behind it, about every three and a half seconds; the name stays tight against the word throughout, never overlapping it and never leaving a hole, including on the first rotation after a cold start | not run | not run |
+| P5-1 | Home's complete greeting rises through one clipped line about every four seconds; the name moves with the phrase, the two lines never double over one baseline, and there is no blank, flash or pause at the commit, including on the first rotation after a cold start | not run | not run |
 | P5-2 | With reduce motion on, the greeting stops on one still word, Bonjour by day and Bonsoir after six, the day's word scene holds its final frame, and nothing on Home is blank | not run | not run |
 | P5-3 | VoiceOver and TalkBack read one greeting on Home and do not announce it again while it cycles; the word of the day drawing is walked past in silence | not run | not run |
 | P5-4 | On a fresh account, Home shows the greeting and mission hero, while Progress carries all four momentum cards. Every card uses a start line where a number would be nought. The speaking-time card has no fraction, percentage or progress bar in any state: after a timed conversation it shows only the measured minutes and a gentle status sentence. The phrase-bank link appears only when there is a real phrase behind it | not run | not run |
@@ -798,7 +798,7 @@ nobody had looked at is for.
 | P5-7 | Leaving a guided mission part way makes the Tutor resume card offer it back with a minutes line; finishing that mission clears the line | not run | not run |
 | P5-8 | Resume and Open conversation are both reachable one-handed on a large phone, and each is comfortably above the touch floor | not run | not run |
 | P5-9 | Bookmarking today's situation on Home makes it appear under My French; un-bookmarking removes it, and it stays removed after a relaunch | not run | not run |
-| P5-10 | The gap between the greeting word and the name reads as a word-space rather than a hole, at every word in the hour's pool and at the largest reading size; no word is clipped by the slot, and a long name wraps rather than breaking | not run | not run |
+| P5-10 | Every animated greeting keeps a normal word-space before the name. At AX3–AX5 the animation stands down, the complete greeting uses normal flow, and a long name wraps rather than clipping | not run | not run |
 | P5-11 | A different drawing appears on a different day, each one moving, and the situation card carries no Demo mode label even with the tutor servers down | not run | not run |
 
 ## Pass 6 Practice, and the audit that came with it

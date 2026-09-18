@@ -106,14 +106,14 @@ const FALLBACK_REST_WORD = 'Bonjour';
 /** The word sits still for this long before it starts to leave. */
 export const GREETING_HOLD_MS = 3300;
 
-/** The swipe: the word rises out of the slot as the next one rises into it. */
-export const GREETING_SWIPE_MS = 450;
+/** The eased cross-swipe: unhurried enough to read, quick enough to feel direct. */
+export const GREETING_SWIPE_MS = 600;
 
 /**
  * Switch to switch, measured off the video rather than derived from the two
  * phases above. The test proves the two agree.
  */
-export const GREETING_CYCLE_MS = 3750;
+export const GREETING_CYCLE_MS = 3900;
 
 /**
  * The local hour of `now`, 0 to 23.
