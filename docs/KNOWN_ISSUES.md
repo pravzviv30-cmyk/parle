@@ -4826,7 +4826,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   no shadow or absolute position. `DESIGN.md` is updated to match.
 - verified-by: `every tab cell shows its label, and the label scales and wraps rather than truncating — F313`
 - verified-by: `the active tab is told by ink and weight, and a screen reader still hears selected — F313`
-- verified-by: `the bar is the page's edge, not a card — F313`
+- verified-by: `the bar is an inset dock without becoming another floating shadow — F313`
 - verified-by: `the design doc no longer calls the tabs icon-only — F313`
 
 ### F314 — The in-place end cards stand on the primitive too
