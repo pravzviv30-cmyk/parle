@@ -141,7 +141,7 @@ const st = StyleSheet.create({
     minHeight: HIT,
     ...shadow.whisper,
   },
-  chosen: { borderColor: accent.primary },
+  chosen: { borderColor: accent.primary, backgroundColor: accent.feature },
   pressed: { backgroundColor: paper.groundDeep },
   cardHead: { flexDirection: 'row', alignItems: 'baseline', gap: space(3) },
   name: { ...type.heading, color: paper.ink, flex: 1, minWidth: 0 },

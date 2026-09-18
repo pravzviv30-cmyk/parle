@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 
 import { Card, ChevronRight, Label } from '../components.tsx';
-import { paper, space, type, DISC } from '../theme.ts';
+import { accent, paper, radius, space, type, DISC } from '../theme.ts';
 
 /**
  * A white card that is one row: a mark, a label, a sentence, and a way in.
@@ -63,8 +63,8 @@ const s = StyleSheet.create({
   disc: {
     width: DISC,
     height: DISC,
-    borderRadius: DISC / 2,
-    backgroundColor: paper.ground,
+    borderRadius: radius.chip,
+    backgroundColor: accent.feature,
     alignItems: 'center',
     justifyContent: 'center',
   },

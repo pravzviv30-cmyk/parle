@@ -118,8 +118,8 @@ describe('the tab that is a person — F576', () => {
 
     // The corner art, behind the words, decorative and drawn before them so it
     // cannot sit over the heading.
-    assert.match(TAB, /<HeaderArt name=\{HEADER_ART\.profile\} \/>/, 'the header draws no art, or reaches past the registry for it');
-    assert.ok(writtenBefore(BODY, '<HeaderArt', '<TabHeader'), 'the art is drawn over the header rather than behind it');
+    assert.doesNotMatch(TAB, /<HeaderArt/, 'art must not overlap the profile identity panel');
+
 
     // ─────────────────────────────── the tutor is the orb, never a face
     //

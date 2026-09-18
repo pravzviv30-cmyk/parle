@@ -38,10 +38,6 @@
 export type ArtSource = ReturnType<typeof require>;
 
 export const ART = {
-  'header-home': { source: require('../../assets/art/header-home.png'), width: 168, height: 132 },
-  'header-practice': { source: require('../../assets/art/header-practice.png'), width: 176, height: 140 },
-  'header-myfrench': { source: require('../../assets/art/header-myfrench.png'), width: 176, height: 132 },
-  'header-profile': { source: require('../../assets/art/header-profile.png'), width: 88, height: 110 },
   'hero-hotel': { source: require('../../assets/art/hero-hotel.png'), width: 300, height: 180 },
   'hero-cafe': { source: require('../../assets/art/hero-cafe.png'), width: 300, height: 180 },
   'hero-market': { source: require('../../assets/art/hero-market.png'), width: 300, height: 180 },
@@ -51,7 +47,6 @@ export const ART = {
   'welcome-bubbles': { source: require('../../assets/art/welcome-bubbles.png'), width: 220, height: 140 },
   'onboard-wave': { source: require('../../assets/art/onboard-wave.png'), width: 220, height: 140 },
   'onboard-cake': { source: require('../../assets/art/onboard-cake.png'), width: 220, height: 140 },
-  'signin-skyline': { source: require('../../assets/art/signin-skyline.png'), width: 200, height: 90 },
   'empty-table': { source: require('../../assets/art/empty-table.png'), width: 220, height: 140 },
   'recap-postcard': { source: require('../../assets/art/recap-postcard.png'), width: 220, height: 140 },
   phrasebook: { source: require('../../assets/art/phrasebook.png'), width: 220, height: 140 },

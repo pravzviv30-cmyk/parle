@@ -12,7 +12,7 @@ import { Animated, Pressable, Text, View, StyleSheet } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { tutorSampleLine, tutorVoice, type TutorVoiceKey } from '@luvani/core';
 import { accent, HAIRLINE, HIT, paper, radius, space, type } from '../theme.ts';
-import { Card, ChevronRight, GhostButton, OptionCard, PillButton, ProgressDots, TintPanel } from '../components.tsx';
+import { Card, ChevronRight, GhostButton, Label, MicGlyph, OptionCard, PillButton, ProgressDots, TintPanel } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { Art } from '../art/Art.tsx';
 import { HERO_ART, SCREEN_ART } from '../art/maps.ts';
@@ -190,19 +190,37 @@ export function PreAccountOnboarding({
 
   const body = (
     <>
+      <View style={st.chapter}>
+        <Label>Luvani · A little French, every day</Label>
+        <Text style={st.chapterNumber}>{String(index + 1).padStart(2, '0')} / 05</Text>
+      </View>
       {page === 'welcome' && (
-        <View style={st.centered}>
-          <Art name={SCREEN_ART.welcome} style={st.art} />
-          <Text accessibilityRole="header" style={st.title}>Find your voice in French</Text>
-          <Text style={st.body}>{WELCOME_SUBLINE(persona)}</Text>
+        <>
+        <Card tone="feature" style={st.welcomePanel}>
+          <View style={st.centered}>
+            <Text style={st.kicker}>Bonjour, new possibilities.</Text>
+            <Text accessibilityRole="header" style={st.title}>Find your voice in French</Text>
+            <View style={st.artStage}>
+            <Art name={SCREEN_ART.welcome} style={st.art} />
+            </View>
+            <Text style={st.body}>{WELCOME_SUBLINE(persona)}</Text>
+          </View>
+        </Card>
+        <View style={st.journalNote}>
+          <MicGlyph size={26} />
+          <View style={st.replyWords}>
+            <Text style={st.trustTitle}>Real moments. Your own words.</Text>
+            <Text style={st.trustBody}>Speak, keep a useful phrase, then make it yours.</Text>
+          </View>
         </View>
+        </>
       )}
 
       {page === 'situations' && (
         <View style={st.centered}>
-          <Art name={HERO_ART.cafe} style={st.sceneArt} />
           <Text accessibilityRole="header" style={st.title}>Try one real turn</Text>
           <Text style={st.body}>No microphone and no account. Tap the reply you could use at a café.</Text>
+          <View style={st.sceneStage}><Label>01 · Au café</Label><Art name={HERO_ART.cafe} style={st.sceneArt} /></View>
           <View style={st.demo}>
             <View style={st.tutorBubble}>
               <Text style={st.speaker}>{persona.name}</Text>
@@ -250,11 +268,15 @@ export function PreAccountOnboarding({
       )}
 
       {page === 'life' && (
-        <View style={st.centered}>
-          <Art name={HERO_ART.home} style={st.art} />
-          <Text accessibilityRole="header" style={st.title}>Life happens. Your progress stays.</Text>
-          <Text style={st.body}>There are no streaks to protect. Come back when you can and pick up from a conversation you already made yours.</Text>
-        </View>
+        <Card tone="feature" style={st.welcomePanel}>
+          <View style={st.centered}>
+            <Text style={st.kicker}>À votre rythme.</Text>
+            <Text accessibilityRole="header" style={st.title}>Life happens. Your progress stays.</Text>
+            <View style={st.artStage}><Art name={HERO_ART.home} style={st.art} /></View>
+            <Text style={st.body}>There are no streaks to protect. Come back when you can and pick up from a conversation you already made yours.</Text>
+            <View style={st.keepNote}><Label>A journal, not a scoreboard</Label><Text style={st.trustBody}>Your words and conversations stay with you.</Text></View>
+          </View>
+        </Card>
       )}
 
       {page === 'voice' && (
@@ -338,7 +360,6 @@ export function PreAccountOnboarding({
 
   return (
     <ScrollScreen
-      center
       header={<ScreenHeader back={previous === null ? undefined : { onPress: () => setPage(previous) }} title={<ProgressDots total={PRE_ACCOUNT_PAGES.length} index={index} />} />}
       footer={
         <>
@@ -365,12 +386,26 @@ export function PreAccountOnboarding({
 }
 
 const st = StyleSheet.create({
-  centered: { alignItems: 'center' },
+  centered: { alignItems: 'stretch' },
+  chapter: { gap: space(2), marginBottom: space(3) },
+  chapterNumber: { ...type.frenchSm, color: paper.inkSoft },
+  kicker: { ...type.frenchSm, color: paper.ink, marginBottom: space(3) },
+  artStage: { backgroundColor: paper.card, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.row, marginTop: space(4), alignItems: 'center', overflow: 'hidden' },
+  sceneStage: { backgroundColor: paper.card, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.row, paddingTop: space(3), paddingHorizontal: space(3), marginTop: space(4), alignItems: 'center', overflow: 'hidden' },
+  journalNote: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(5), borderBottomWidth: HAIRLINE, borderBottomColor: paper.line, marginBottom: space(4) },
+  keepNote: { borderTopWidth: HAIRLINE, borderTopColor: paper.ink, paddingTop: space(4), marginTop: space(4), gap: space(2) },
+  welcomePanel: {
+    borderRadius: radius.card,
+    paddingVertical: space(5),
+    paddingHorizontal: space(5),
+    marginTop: 0,
+    overflow: 'hidden',
+  },
   // The picture's size is the registry's; this is placement only.
-  art: { marginBottom: space(4) },
-  sceneArt: { marginBottom: -space(2) },
-  title: { ...type.display, color: paper.ink, textAlign: 'center' },
-  body: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
+  art: { alignSelf: 'center' },
+  sceneArt: { alignSelf: 'center' },
+  title: { ...type.display, color: paper.ink },
+  body: { ...type.body, color: paper.inkSoft, marginTop: space(3) },
   trust: { alignSelf: 'stretch', marginTop: space(4), gap: space(3) },
   trustBlock: { gap: space(1) },
   trustTitle: { ...type.bodyStrong, color: paper.ink },
@@ -401,7 +436,7 @@ const st = StyleSheet.create({
     gap: space(1),
   },
   speaker: { ...type.label, color: accent.label },
-  french: { ...type.bodyStrong, color: paper.ink },
+  french: { ...type.french, color: paper.ink },
   english: { ...type.small, color: paper.inkSoft },
   replyChoice: {
     minHeight: HIT,
@@ -419,7 +454,7 @@ const st = StyleSheet.create({
   voiceGroup: { ...type.label, color: accent.label, marginTop: space(5) },
   voices: { gap: space(3), marginTop: space(3) },
   showAll: { marginTop: space(2), alignItems: 'center' },
-  sampleLine: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(4) },
+  sampleLine: { ...type.frenchSm, color: paper.inkSoft, marginTop: space(4), padding: space(4), borderLeftWidth: 3, borderLeftColor: paper.ink, backgroundColor: paper.card, marginBottom: space(4) },
   footerHint: { ...type.small, color: paper.inkSoft, textAlign: 'center', minHeight: HIT, textAlignVertical: 'center' },
   secondary: { marginTop: space(4), gap: space(2) },
 });

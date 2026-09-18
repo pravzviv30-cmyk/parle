@@ -125,7 +125,7 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     // percentage label or data field from which either could be rebuilt.
     const goalCard = between(
       flat(MOMENTUM),
-      '<Card style={st.goal}>',
+      '<Card tone="journal" style={st.goal}>',
       '</Card>',
       'the speaking-time card is still one card',
     );
@@ -221,9 +221,10 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     // what stops a count following it back up.
     const home = stripComments(read('../tabs/HomeTab.tsx'));
     assert.match(home, /\{hero !== null && <MissionHero hero=\{hero\} \/>\}/, 'the hero is drawn behind some other condition than having a situation to offer');
-    for (const count of ['momentum', 'Momentum', 'percent', 'Recall']) {
+    for (const count of ['percent', 'Recall']) {
       assert.ok(!home.includes(count), `Home reaches for ${count} again; the counts live on the Progress screen now`);
     }
+    assert.match(home, /setMomentum\(momentumFrom\(\{ activity, deck, profile, now \}\)\)/, 'Home must use the same evidence model as Progress');
     // And the way from one to the other is a row on Home that opens this
     // screen, so nothing was hidden by being moved.
     assert.match(home, /nav\.navigate\('Progress'\)/, 'nothing on Home opens the screen the counts moved to');

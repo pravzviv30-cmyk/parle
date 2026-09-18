@@ -497,10 +497,8 @@ export default function App() {
       <AuthProvider adapter={auth}>
         <View style={st.app}>
           {loaded ? (
-            // A phone app that also runs in a browser. Constrained to a phone column
-            // rather than stretched — the composition is designed for a thumb.
-            // The navigator mounts INSIDE this, so the tab bar is clamped to the
-            // column too rather than spanning the whole browser window.
+            // The navigator fills the device. Shared screen gutters and the dock
+            // adapt independently, so iPad is not trapped in a phone-sized shell.
             <View style={st.shell}>
               <Gate />
             </View>
@@ -515,6 +513,6 @@ export default function App() {
 
 const st = StyleSheet.create({
   app: { flex: 1, backgroundColor: paper.ground },
-  shell: { flex: 1, width: '100%', maxWidth: 460, alignSelf: 'center' },
+  shell: { flex: 1, width: '100%', alignSelf: 'center' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

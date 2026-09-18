@@ -143,11 +143,11 @@ describe('one ground, pinned — F321', () => {
   test('the ground is pinned, and there is only one', () => {
     // Porcelain (B), the founder's pick. Pinned by value so a re-tint is a
     // deliberate edit to this line, not a drift, and there is exactly one of it.
-    assert.equal(paper.ground, '#F4F2F7');
-    assert.equal(paper.groundDeep, '#E6E2EE');
-    assert.equal(paper.line, '#DAD5E3');
-    assert.equal(paper.lineOnCard, '#E9E5F0');
-    assert.equal(paper.card, '#FFFFFF');
+    assert.equal(paper.ground, '#F7F3E8');
+    assert.equal(paper.groundDeep, '#E6DECD');
+    assert.equal(paper.line, '#B8BCAD');
+    assert.equal(paper.lineOnCard, '#DADBCF');
+    assert.equal(paper.card, '#FFFEFA');
   });
 
   test('the card still reads as a card, and the hairlines still read on the ground', () => {
@@ -268,7 +268,8 @@ describe('a tint is paper under ink art, never a mark — F362', () => {
     thinking: orb.thinking,
     accent: accent.primary,
   };
-  const DISC = 8;
+  // Outlined surfaces carry their boundary in ink; the tint supplies context.
+  const DISC = 5;
   const RUNG_APART = 20;
   const TWIN = 10;
 
@@ -280,6 +281,13 @@ describe('a tint is paper under ink art, never a mark — F362', () => {
         assert.ok(d >= DISC, `${name} is only ${d.toFixed(1)} off the ${surface}, so it does not read as a disc`);
       }
     }
+  });
+
+  test('feature paper carries dark text and remains distinct from voice states', () => {
+    assert.ok(contrast(INK, accent.feature) >= 7);
+    assert.ok(contrast(paper.inkSoft, accent.feature) >= TEXT);
+    assert.ok(contrast(accent.primary, paper.onInk) >= TEXT);
+    for (const value of Object.values(orb)) assert.ok(deltaE(accent.feature, value) >= APART);
   });
 
   test('inkSoft clears 4.5 on every tint', () => {

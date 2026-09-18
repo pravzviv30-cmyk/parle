@@ -135,12 +135,11 @@ export function SoundCheckScreen({
 
   return (
     <ScrollScreen
-      center={noCheck}
       header={!noCheck && phase !== 'result' ? <ScreenHeader back={{ onPress: onDone }} /> : undefined}
       footer={noCheck || phase === 'result' ? <PillButton label="Done" onPress={onDone} /> : null}
     >
       {noCheck ? (
-        <Card>
+        <Card tone="feature">
           <Text style={[type.title, { color: paper.ink }]}>No sound check for this situation yet.</Text>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>The conversation and its practice still count.</Text>
         </Card>
@@ -160,7 +159,7 @@ export function SoundCheckScreen({
           )}
 
           {reference && (
-            <Card style={{ marginTop: space(6), alignItems: 'center' }}>
+            <Card tone="journal" style={{ marginTop: space(6), alignItems: 'center', paddingVertical: space(6) }}>
               <Text style={[fitDisplay(reference), { color: paper.ink, textAlign: 'center' }]}>{reference}</Text>
               <Pressable
                 onPress={() => tutorVoice.speak(reference)}

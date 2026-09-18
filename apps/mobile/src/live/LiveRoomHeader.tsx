@@ -10,9 +10,9 @@
  */
 
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { accent, decorative, HAIRLINE, HIT, paper, STROKE } from '../theme.ts';
+import { accent, decorative, HAIRLINE, HIT, paper, radius, space, STROKE, type } from '../theme.ts';
 
 function EndSessionGlyph({ color }: { color: string }) {
   return (
@@ -41,7 +41,7 @@ export function LiveRoomHeader({
     <View style={st.row}>
       {/* Equal side slots keep a reconnecting line visually centred. */}
       <View style={st.balance} />
-      <View style={st.status}>{status}</View>
+      <View style={st.status}>{status ?? <Text style={[type.label, { color: paper.ink }]}>Luvani · En conversation</Text>}</View>
       <Pressable
         onPress={onEnd}
         accessibilityRole="button"
@@ -61,6 +61,10 @@ const st = StyleSheet.create({
     minHeight: HIT,
     flexDirection: 'row',
     alignItems: 'center',
+    borderBottomWidth: HAIRLINE,
+    borderBottomColor: paper.ink,
+    paddingBottom: space(3),
+    marginBottom: space(3),
   },
   balance: { width: HIT, height: HIT },
   status: {
@@ -72,9 +76,9 @@ const st = StyleSheet.create({
   end: {
     width: HIT,
     height: HIT,
-    borderRadius: HIT / 2,
+    borderRadius: radius.control,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: paper.ink,
     backgroundColor: paper.card,
     alignItems: 'center',
     justifyContent: 'center',

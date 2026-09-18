@@ -453,7 +453,7 @@ describe('nothing ships that nothing renders — J14', () => {
     // reached.
     const registry = named('art/registry.ts');
     const keys = [...registry.matchAll(/^ {2}'?([a-z][a-z-]*)'?: \{ source: require\(/gm)].map((m) => m[1]!);
-    assert.equal(keys.length, 18, `the registry reads as ${keys.length} entries; this walk is stale`);
+    assert.equal(keys.length, 13, `the registry reads as ${keys.length} entries; this walk is stale`);
 
     const maps = named('art/maps.ts');
     const mapped = new Set([...maps.matchAll(/:\s*'([a-z][a-z-]*)'/g)].map((m) => m[1]!));
@@ -470,7 +470,7 @@ describe('nothing ships that nothing renders — J14', () => {
       const readers = SOURCES.filter(
         ({ path, body }) => rel(path) !== 'art/maps.ts' && new RegExp(`\\b${name}\\b`).test(body),
       );
-      assert.ok(readers.length > 0, `art/maps.ts exports ${name} and no screen reads it, so the keys under it are invisible`);
+      assert.ok(readers.length > 0, `art/maps.ts exports ${name} and no screen reads it`);
     }
   });
 });
@@ -727,7 +727,6 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
     for (const promise of ['accessible={false}', '{...decorative}']) {
       assert.ok(renderer.includes(promise), `art/Art.tsx no longer draws with ${promise}, so every first-run picture is announced`);
     }
-    assert.ok(named('art/HeaderArt.tsx').includes('{...decorative}'), 'the header corner is announced as well as drawn');
 
     // And the vector scenes the raster replaced are gone from the first run,
     // with one exception pinned by name rather than waved through: the tutor
@@ -1235,7 +1234,7 @@ describe('the hardware back button is answered in place — F312', () => {
   });
 });
 
-describe('the tab bar shows a word, and it is the page edge — F313', () => {
+describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
   const tabbar = named('nav/LuvaniTabBar.tsx');
 
   test('every tab cell shows its label, and the label scales and wraps rather than truncating — F313', () => {
@@ -1252,14 +1251,16 @@ describe('the tab bar shows a word, and it is the page edge — F313', () => {
     assert.ok(!/\bst\.dot\b/.test(tabbar) && !tabbar.includes('dotActive'), 'the tab bar still marks the active cell with a dot');
   });
 
-  test("the bar is the page's edge, not a card — F313", () => {
+  test('the bar is an inset dock without becoming another floating shadow — F313', () => {
     const from = tabbar.indexOf('bar: {');
     assert.notEqual(from, -1, 'the bar style is gone; this test is reading the wrong thing');
     const barStyle = tabbar.slice(from, tabbar.indexOf('},', from) + 1);
-    assert.match(barStyle, /backgroundColor: paper\.ground/, 'the bar is not on the page paper');
-    assert.match(barStyle, /borderTopWidth/, 'the bar has no top rule, so it does not read as the edge');
-    for (const card of ['shadow', 'elevation', 'borderRadius', "position: 'absolute'"]) {
-      assert.ok(!barStyle.includes(card), `the bar carries ${card}, which makes it a floating card rather than the page edge`);
+    assert.match(barStyle, /backgroundColor: paper\.card/, 'the dock has no opaque surface of its own');
+    assert.match(barStyle, /borderWidth: HAIRLINE/, 'the dock has no rule separating it from the page');
+    assert.match(barStyle, /borderRadius: radius\.card/, 'the dock is not visibly inset from the page edge');
+    assert.match(barStyle, /marginHorizontal: space\(2\)/, 'the dock still runs edge to edge');
+    for (const floating of ['shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'"]) {
+      assert.ok(!barStyle.includes(floating), `the dock carries ${floating}, so it competes with the content cards`);
     }
   });
 
@@ -1278,7 +1279,7 @@ describe('the active tab wears the identity violet — F325', () => {
     // the inactive ones stay inkFaint glyph and inkSoft label.
     assert.match(
       tabbar,
-      /color=\{focused \? accent\.primary : paper\.inkFaint\}/,
+      /color=\{focused \? accent\.primary : paper\.inkSoft\}/,
       'the active tab glyph is not set in the identity violet',
     );
     assert.match(
@@ -1967,7 +1968,7 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
       const header = raw.slice(0, raw.indexOf('*/'));
       assert.doesNotMatch(header, /dot underneath/, `${name} still says the active tab has a dot underneath`);
       assert.doesNotMatch(header, /both go ink/, `${name} still says the active tab goes ink`);
-      assert.match(header, /identity violet/, `${name} does not say the active tab takes the identity violet`);
+      assert.match(header, /chartreuse/, `${name} does not describe the selected Atelier surface`);
       assert.match(header, /no dot|there is no dot/, `${name} does not say there is no dot`);
     }
   });
@@ -2235,8 +2236,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     // behind it is now made by the line above: there is one condition on the
     // hero and it is having a situation to offer.
     assert.ok(
-      !home.includes('momentum !== null &&'),
-      'the momentum block is back on Home, so the hero can hide behind its gate again',
+      home.indexOf('<MissionHero') < home.indexOf('<HomeMomentum'),
+      'the conversation invitation must precede the compact evidence cards',
     );
   });
 

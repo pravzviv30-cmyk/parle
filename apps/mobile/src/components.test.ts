@@ -197,7 +197,7 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
     assert.match(row, /\{trailing != null \? trailing : null\}/, 'the row cannot carry a state before its chevron');
     const disc = region(componentsSource(), '  tintDisc: {', '  tintWords:');
     assert.match(disc, /width: DISC,\s*height: DISC,/, 'the glyph disc is not the disc token square');
-    assert.match(disc, /borderRadius: DISC \/ 2/, 'the glyph disc is not a circle at its own size');
+    assert.match(disc, /borderRadius: radius\.chip/, 'the glyph stamp does not use the shared compact corner');
     assert.match(disc, /backgroundColor: paper\.card/, 'the glyph disc is not white, so the glyph sits straight on the tint');
     const style = region(componentsSource(), '  tintRow: {', '  tintRowPressed:');
     assert.match(style, /minHeight: HIT \+ space\(8\)/, 'the tinted row sits under the touch floor the mockup draws it at');

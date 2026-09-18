@@ -7,36 +7,49 @@
 
 ## The world
 
-**Colourful calm.** A picture book for adults: a single pale porcelain ground,
-violet-cast ink, a serif that speaks and a sans that stays out of the way.
+**Modern Atelier, with a French Journal accent.** The founder selected a blend
+weighted toward direction 5 on 18 September 2026. Warm paper, near-black ink,
+chartreuse feature surfaces, graphic rules and bold sans headings give the app
+its structure. Fraunces French phrases, small editorial notes and contextual
+illustrations bring the journal's warmth.
 
-Four surfaces, and everything in the app is one of them. **White cards** on a
-hairline rule, lifted off the porcelain by one whisper of a shadow. **Pastel
-tinted rows**, each a soft paper under one place or one kind of practice, with a
-white disc and a line-art glyph at the head of it. **Watercolour-and-line raster
-scenes** — one thin violet ink line with a loose wash inside it — bleeding off a
-header corner or centred in a card. And **serif headlines**: every screen title
-and every card title is set in Fraunces, so the thing with a voice always looks
-like the thing with a voice.
+This replaces Colourful calm's violet identity and rounded white-card treatment.
+The primary action is dark ink with warm-white lettering. Chartreuse is a
+surface carrying dark lettering, never a state or a low-contrast text colour.
+Secondary rows are white with a coloured place stamp, so a list stays cohesive.
 
-Colour does jobs: **violet is identity** (the primary pill, the active tab, the
-micro-labels, the monogram, the week already spent), **green means go** (your
-turn to speak, ground already covered), **amber means thinking**, **red means the
-tutor is talking**.
+Screens share the same frame, controls, typography, card geometry and navigation.
+One primary action remains clear. There are no fake learning counts, no streak
+pressure, no text clipping and no cap on the learner's reading size.
 
-Chosen because the product asks a nervous adult to speak out loud twice a day,
-and the surface that earns that is calm, friendly and professional — easy on the
-eye, easy to come back to. The founder picked this direction (option C of three
-mocked) over a symphony.co-style cream/lime skin and over keeping the plain
-ink-on-lilac look.
+### Current composition rules
 
-What did **not** change, because it is behaviour rather than surface: one
-primary action per screen; support colours that visibly cool as help is
-withdrawn; no scores and no scolding mid-session; 44pt touch floors; type that
-respects the OS reading size. What deliberately DID change: the live microphone
-is **green** now, not red — green means "you speak" everywhere, so the voice
-circle's red can mean "the tutor is speaking" without the two ever reading as
-one signal.
+- Feature: chartreuse, an ink rule, 12pt corners. Used for the mission hero,
+  onboarding story, tutor studio, profile identity and chosen plan.
+- Journal: warm paper, a strong left rule and French serif text. Used for
+  phrases and lesson content. Illustrations live within a scene or story.
+- Utility: white paper, an ink outline, 8pt row corners and compact stamp icons.
+- Display headings: DM Sans Bold 34/39. Card headlines: DM Sans Bold 26/31.
+  French remains Fraunces 28/36, 21/28 or 17/23 according to context.
+- Primary buttons: 56pt minimum, 8pt corners, dark ink. They grow for large text.
+- Navigation: five labelled SVG icons at 24pt, 12pt labels, 60pt minimum cells,
+  an inset ink-outlined dock and a chartreuse selected surface. The dock is capped
+  at 640pt on iPad. Safe-area space sits outside it. Labels wrap and grow the dock.
+- Tab pages begin with their screen title, not a website-style brand/tagline bar.
+  Shared content is capped at 760pt with safe-area-aware gutters on both sides.
+- Home: greeting, compact illustrated mission, two honest momentum tiles,
+  then the detailed progress link. Its counts come from the existing Progress
+  model and remain independent of the mission's rendering gate.
+- Onboarding: a chapter marker, a graphic story panel, a meaningful illustration
+  and an immediate next action. The demonstration is still interactive and
+  consent remains optional and initially off.
+- Shared subpage headers and fixed action footers use ink rules. Forms, empty
+  states, live-room controls, recaps, plans and legal pages inherit the same
+  vocabulary. Functional voice-state colours keep their existing meaning.
+
+The interaction history below remains useful for the learning flows. Where its
+older visual descriptions differ, these composition rules and the current code
+are authoritative.
 
 ## Colour
 
@@ -47,10 +60,10 @@ there and carries no raw hex of its own. The tables below are that palette, read
 back out of the code: `palette.test.ts` fails if this document and the export
 disagree on a single value.
 
-### One ground: Porcelain
+### One ground: warm paper
 
 The five place-keyed papers are gone. The founder rejected a muted scheme of five
-grounds a hair apart, so there is one ground — Porcelain — under the whole app,
+grounds a hair apart, so there is one warm paper ground under the whole app,
 and colour earns attention by meaning something rather than by marking where the
 learner happens to be. The card lifts off the ground, each hairline separates
 from what it rules, and the steps are held by Delta-E rather than by matching
@@ -58,30 +71,30 @@ four siblings at one lightness.
 
 | Token | Value | Role |
 |---|---|---|
-| `paper.ground` | `#F4F2F7` | The page — everything sits directly on it |
-| `paper.groundDeep` | `#E6E2EE` | Pressed states, chip fills, the tab track |
-| `paper.card` | `#FFFFFF` | Card surface, flat, one hairline rule |
-| `paper.ink` | `#241633` | Near-black ink with a real violet cast |
-| `paper.inkSoft` | `#5F4E73` | Secondary text |
-| `paper.inkFaint` | `#8A7996` | Tertiary — counts, placeholders, the inactive tab glyph |
-| `paper.line` | `#DAD5E3` | Hairline rule on the ground |
-| `paper.lineOnCard` | `#E9E5F0` | Hairline divider inside a card |
-| `paper.onInk` | `#FBF6FF` | Text on a filled control — violet-white, never pure |
+| `paper.ground` | `#F7F3E8` | The page — everything sits directly on it |
+| `paper.groundDeep` | `#E6DECD` | Pressed states, chip fills, the tab track |
+| `paper.card` | `#FFFEFA` | Card surface, flat, one hairline rule |
+| `paper.ink` | `#182019` | Near-black ink with a subtle green cast |
+| `paper.inkSoft` | `#51584C` | Secondary text |
+| `paper.inkFaint` | `#6A7266` | Tertiary — counts, placeholders, the inactive tab glyph |
+| `paper.line` | `#B8BCAD` | Hairline rule on the ground |
+| `paper.lineOnCard` | `#DADBCF` | Hairline divider inside a card |
+| `paper.onInk` | `#FFFDF5` | Warm-white text on a filled control |
 
 `inkFaint` moved from the old `#94849F` (2.91 against the ground, under the mark
-floor) to `#8A7996` so the inactive tab glyph reads as a mark.
+floor) to `#6A7266` so the inactive tab glyph reads as a mark.
 
-### One identity violet
+### Ink identity, chartreuse feature paper
 
-There is a single accent, and both of its named jobs are the same violet. The old
-"lighter label" `#8A5BBF` read 4.08 against the ground at 11.5pt bold and is gone;
-`accent.label` is now simply `accent.primary`, and `palette.test.ts` pins the two
-equal as a tripwire against a second identity colour creeping back in.
+Primary actions and micro-labels share the same dark ink. `accent.label` equals
+`accent.primary`; `accent.feature` is a contrasting chartreuse surface, never
+body text. This separates actions, feature panels and quieter journal content.
 
 | Token | Value | Role |
 |---|---|---|
-| `accent.primary` | `#6B3FA0` | The identity violet: primary pill, active tab, monogram |
-| `accent.label` | `#6B3FA0` | Micro-labels — the caps line above a card |
+| `accent.primary` | `#182019` | Primary controls, selected glyphs and monograms |
+| `accent.label` | `#182019` | Micro-labels — the caps line above a card |
+| `accent.feature` | `#D8FF54` | Chartreuse feature paper with dark ink lettering |
 
 **An accent is typographic; a signal is a mark.** A label, a chip, or a drawing's
 one solid fill may take the accent. A dot, a ring, or anything reporting state
@@ -111,11 +124,11 @@ Delta-E of 30 from each other and from rung one's yellow.
 | `orb.speaking` | `#DE3B2D` | Listen: the tutor is speaking (aliases `signal.live`) |
 | `orb.yourTurn` | `#12784A` | Speak: your turn (aliases `signal.good`) |
 | `orb.thinking` | `#B07510` | One moment: the tutor is thinking |
-| `orb.ready` | `#6B3FA0` | Tap to talk: the untapped control (aliases `accent.primary`) |
+| `orb.ready` | `#182019` | Tap to talk: the untapped control (aliases `accent.primary`) |
 
-Violet is not a fourth traffic light. A closed microphone waiting to be tapped is
+Ink is not a fourth traffic light. A closed microphone waiting to be tapped is
 the primary control of the whole product, so it takes the primary colour exactly
-as the pill does, and it stops being violet the instant the orb reports anything.
+as the primary action does, and it changes to a signal when the orb reports state.
 
 ### Support colours run hot to cool again
 
@@ -130,7 +143,7 @@ four is plain ink: no line left to follow.
 | `rungColor[1]` | `#FFCD00` | Echo — repeat after the tutor |
 | `rungColor[2]` | `#FF7B00` | Cued — choose a reply and say it |
 | `rungColor[3]` | `#6EC4E8` | Prompted — say it in your own words |
-| `rungColor[4]` | `#241633` | Free — plain ink, no line left to follow |
+| `rungColor[4]` | `#182019` | Free — plain ink, no line left to follow |
 
 Green is the same green everywhere the learner speaks: the orb's your-turn state,
 the lesson SpeakCircle, the Review button, the path's learned marks.
@@ -183,8 +196,8 @@ signal in a tint.
 ### Shadow
 
 Two, and both are named in `theme.ts` so no screen ever writes a shadow number.
-**The whisper** (`shadow.whisper`) is what lifts a white card off the porcelain:
-four points down, six per cent of the ink, a fourteen-point blur. It is on
+**The whisper** (`shadow.whisper`) is a restrained printed offset:
+three points right and down, ten per cent ink, and no blur. It is on
 `Card`, on the phrase card's round speaker, and nowhere else — never on a tinted
 row, the tab bar, the orb, a pill or a header, because an app where everything
 floats is an app where nothing does. The card keeps its hairline underneath it
@@ -221,11 +234,11 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
 
 ## Surfaces and controls
 
-- **Card** — white, radius 20, one hairline `paper.line` rule, and the whisper
+- **Card** — white, radius 12, one hairline `paper.line` rule, and the whisper
   under it. Revamp A widened the corner from 14 and gave the card the one soft
   shadow; the hairline stayed, for the Android and web reasons under Shadow above.
-- **PillButton** — the one primary action: solid violet pill (`accent.primary`),
-  warm-white label, 52pt tall.
+- **PillButton** — the one primary action: dark ink (`accent.primary`),
+  warm-white label, 56pt minimum, 8pt corners.
 - **OutlineButton / GhostButton** — the seconds: white pill with an ink rule, or
   bare text at full touch height.
 - **OptionCard** — a tappable choice: French in the serif, English gloss under,
@@ -238,6 +251,10 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
   lettering on it, that can stand with nothing chosen, names its group for a
   screen reader and says which segment is selected on the web as well as on a
   device; onboarding dots stretch the current page.
+- **Bottom dock** — the five destinations sit on one inset white surface with a
+  complete hairline and the card radius. It has no shadow: the surrounding
+  porcelain is enough to separate navigation from content, while the active
+  destination keeps its lilac wash and violet word.
 - **TintDisc** — a circle of one tint, decorative to assistive tech. It held a
   place's authored line art through `MissionDisc`; both that component and the
   five place drawings retired with revamp A, so nothing draws this today and it
@@ -282,12 +299,9 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
   more: the replay ear while it is sounding, the phrase card's speaker, and
   **BadgeGlyph**, the tick inside a ring beside Home's recall figure. In all
   three the violet labels a thing you press and reports no state.
-- **Art / HeaderArt** — the two ways a raster scene reaches a screen. `Art` is
-  the only file in the app allowed to import `Image`, it draws every picture at
-  the size `art/registry.ts` gives it, and it is decorative. `HeaderArt` hangs
-  one off the top-right corner of a tab header, four and five grid steps out, and
-  disappears entirely once the reading size passes 1.5, where the title would
-  otherwise grow underneath it.
+- **Art** — the single raster renderer, using registry sizes or its compact
+  variant. Illustrations sit within content panels, never behind headings.
+  The unused header renderer and its five legacy scenes have been removed.
 - **TabHeader**: the tab's title block. A `display` title on the left, one plain
   purpose line beneath it in soft ink, and an optional trailing `Monogram` on the
   title row. It mounts as the first child of a tab's scroll body, never in the
@@ -309,25 +323,18 @@ moves.
 
 ### Raster scenes
 
-Eighteen watercolour-and-line PNGs in `apps/mobile/assets/art/`, at `@2x` and
+Thirteen watercolour-and-line PNGs in `apps/mobile/assets/art/`, at `@2x` and
 `@3x` (Metro picks the density; the web takes the `@2x`). Every one is named
 once in `src/art/registry.ts` with the point size it is drawn at, and reaches a
 screen only through `src/art/Art.tsx` — the one file in the app allowed to import
 `Image`, which spreads `decorative` so a scene is silent to a screen reader.
-`HeaderArt` is the second door, for the four tabs whose picture bleeds off the
-top-right corner.
 
 | File | Where it is drawn | Size (pt) |
 |---|---|---|
-| `header-home` | Home's header corner | 168x132 |
-| `header-practice` | Practice's header corner | 176x140 |
-| `header-myfrench` | My French's header corner | 176x132 |
-| `header-profile` | Profile's header corner | 88x110 |
 | `hero-cafe` `hero-hotel` `hero-market` `hero-street` `hero-home` `hero-friends` | Home's hero card and the missions chooser, one per place (`heroArt`) | 300x180 |
 | `welcome-bubbles` | The first page of pre-account onboarding | 220x140 |
 | `onboard-cake` | The age gate | 220x140 |
 | `onboard-wave` | The page that asks the learner's name | 220x140 |
-| `signin-skyline` | The corner of sign-in and sign-up | 200x90 |
 | `empty-table` | Review and Drill with nothing due | 220x140 |
 | `recap-postcard` | The end of a conversation and the end of a lesson | 220x140 |
 | `phrasebook` | The phrasebook route | 220x140 |

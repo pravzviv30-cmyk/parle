@@ -109,7 +109,7 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
   });
 
   test('the blocks arrive in the order the mockup draws them', () => {
-    assert.ok(at('<HeaderArt') < at('<TabHeader'), 'the corner art is drawn after the words it sits behind');
+    assert.doesNotMatch(SCREEN, /<HeaderArt/, 'art must not overlap the shared masthead');
     assert.ok(at('<TabHeader') < at('<PhraseCard'), 'the tab header is not first');
     assert.ok(at('<PhraseCard') < at('made !== null'), 'the one thing to do now sits below the made-from rows');
     assert.ok(at('made !== null') < at('<TuneSoundCard'), 'the made-from rows are drawn above the block that holds them');
@@ -174,7 +174,7 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
 
     // The corner art is decoration and says nothing, so it is named from the
     // registry rather than by filename and hidden at large text by HeaderArt.
-    assert.match(FLAT, /<HeaderArt name=\{HEADER_ART\.practice\} \/>/, 'the header art is spelled by hand instead of named in art/maps.ts');
+    assert.match(FLAT, /<TabHeader/, 'Practice uses the shared editorial header');
   });
 
   test('the door that touches the network guards its tap and says so — F154', () => {

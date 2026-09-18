@@ -13,7 +13,7 @@
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@luvani/core';
-import { HAIRLINE, paper, signal, space, type } from './theme.ts';
+import { accent, HAIRLINE, paper, radius, signal, space, type } from './theme.ts';
 import { Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
 import { ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useHardwareBack } from './nav/useHardwareBack.ts';
@@ -234,7 +234,7 @@ export function SummaryScreen({
 
 const st = StyleSheet.create({
   scroll: { paddingTop: space(3), paddingBottom: space(8), gap: space(7) },
-  head: { alignItems: 'stretch' },
+  head: { alignItems: 'stretch', padding: space(5), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
   postcard: { alignItems: 'center', marginBottom: space(4) },
   divider: {
     height: HAIRLINE,

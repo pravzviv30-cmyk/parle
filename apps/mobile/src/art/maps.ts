@@ -35,20 +35,6 @@ export function heroArt(place: MissionPlace): ArtKey {
 }
 
 /**
- * The corner art on each of the four tabs that have one.
- *
- * Tutor is missing on purpose: its header sits above the orb, and a second
- * drawing beside the one thing on that screen that means something would be
- * two focal points where the design has one.
- */
-export const HEADER_ART = {
-  home: 'header-home',
-  practice: 'header-practice',
-  myfrench: 'header-myfrench',
-  profile: 'header-profile',
-} as const satisfies Record<string, ArtKey>;
-
-/**
  * Every remaining scene, named by the screen that draws it.
  *
  * These are the pictures a learner meets once or rarely: the first run, the
@@ -62,8 +48,6 @@ export const SCREEN_ART = {
   agePage: 'onboard-cake',
   /** The page that asks what to call the learner. */
   namePage: 'onboard-wave',
-  /** The corner of sign-in and sign-up. */
-  signIn: 'signin-skyline',
   /** Review and Drill, when there is nothing due. */
   emptyDeck: 'empty-table',
   /** The end of a conversation and the end of a lesson. */

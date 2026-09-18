@@ -64,7 +64,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { paper, space, type } from '../theme.ts';
+import { accent, HAIRLINE, paper, radius, space, type } from '../theme.ts';
 import { Card, PillButton, GhostButton, Field, ProgressDots, OptionCard } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { Art } from '../art/Art.tsx';
@@ -378,7 +378,6 @@ export function OnboardingFlow({
 
   return (
     <ScrollScreen
-      center
       avoidKeyboard
       header={
         <ScreenHeader
@@ -413,15 +412,16 @@ export function OnboardingFlow({
         </>
       }
     >
-      {body}
+      <View style={st.page}>{body}</View>
     </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  art: { alignItems: 'center', marginBottom: space(5) },
-  question: { ...type.display, color: paper.ink, textAlign: 'center' },
-  sub: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
+  page: { padding: space(5), marginBottom: space(4), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
+  art: { alignItems: 'center', marginBottom: space(5), backgroundColor: paper.card, borderRadius: radius.row, overflow: 'hidden' },
+  question: { ...type.display, color: paper.ink },
+  sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
   hint: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
   lines: { gap: space(3), marginTop: space(4) },
   voices: { gap: space(3), marginTop: space(5), alignSelf: 'stretch' },

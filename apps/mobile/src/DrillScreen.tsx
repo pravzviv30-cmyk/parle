@@ -704,10 +704,10 @@ function OwnWordsView({
 }) {
   return (
     <View style={{ gap: space(4) }}>
-      <Card>
+      <Card tone="feature" style={ds.promptCard}>
         <Label>{kindTag(exercise)}</Label>
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{exercise.situation}</Text>
-        <Text style={[type.body, { color: paper.ink, marginTop: space(2) }]}>{exercise.en}</Text>
+        <Text style={[type.title, { color: paper.ink, marginTop: space(5), marginBottom: space(5) }]}>{exercise.en}</Text>
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{OWN_WORDS_HINT}</Text>
       </Card>
       <TypedAnswer
@@ -1105,7 +1105,7 @@ export function DrillScreen({
 
   if (unread) {
     return (
-      <ScrollScreen center footer={<PillButton label="Done" onPress={finishAndLeave} />}>
+      <ScrollScreen footer={<PillButton label="Done" onPress={finishAndLeave} />}>
         <Text style={[type.title, { color: paper.ink, textAlign: 'center' }]}>{DRILL_UNREAD.title}</Text>
         <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(3) }]}>
           {DRILL_UNREAD.body}
@@ -1126,7 +1126,7 @@ export function DrillScreen({
 
   if (holding !== null) {
     return (
-      <ScrollScreen avoidKeyboard center header={header}>
+      <ScrollScreen avoidKeyboard header={header}>
         <OwnWordsView
           exercise={holding.exercise}
           typed={typed}
@@ -1146,7 +1146,7 @@ export function DrillScreen({
   // terminal card, so Done is its one door and it carries no back header.
   if (session.finished && session.answered.length === 0) {
     return (
-      <ScrollScreen center footer={<PillButton label="Done" onPress={finishAndLeave} />}>
+      <ScrollScreen footer={<PillButton label="Done" onPress={finishAndLeave} />}>
         {/* An empty bank is the good outcome, not a dead end, so it gets the
             cleared table — the same scene and spacing the review deck uses,
             because these two screens say the same thing. The size is the art
@@ -1169,7 +1169,7 @@ export function DrillScreen({
   if (session.finished) {
     const s = summariseDrill(session);
     return (
-      <ScrollScreen center footer={<PillButton label="Done" onPress={leave} />}>
+      <ScrollScreen footer={<PillButton label="Done" onPress={leave} />}>
         <Card>
           <View style={ds.stats}>
             <View style={ds.stat}>
@@ -1208,7 +1208,6 @@ export function DrillScreen({
   return (
     <ScrollScreen
       avoidKeyboard
-      center
       header={header}
       footer={
         // Reserved height, so the card never jumps when a line arrives.
@@ -1285,7 +1284,8 @@ const ds = StyleSheet.create({
   verdictRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2) },
 
   // The exercise card: the SessionView main-card anatomy, content centred.
-  exCard: { alignItems: 'center' },
+  exCard: { alignItems: 'center', minHeight: 220, justifyContent: 'center', borderTopWidth: 5 },
+  promptCard: { minHeight: 260, justifyContent: 'space-between' },
 
   // The chip anatomy, for choices that are bare words. The paper comes from
   // TintPanel, so nothing here names a colour.

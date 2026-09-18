@@ -28,10 +28,8 @@
 /**
  * Where "large text" begins, as a multiple of the default reading size.
  *
- * The same 1.5 the header art stands down at (`art/headerArt.ts`), and for the
- * same reason: it is the point on the iOS Dynamic Type scale where the
- * accessibility sizes start, so it is the boundary the platform itself draws
- * rather than a number picked to make a screenshot work.
+ * Fold the supporting footer actions once the learner selects larger text.
+ * The content remains readable rather than competing with the primary action.
  */
 export const FOLD_SCALE = 1.5;
 

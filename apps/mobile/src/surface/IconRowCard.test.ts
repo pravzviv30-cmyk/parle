@@ -35,7 +35,7 @@ describe('the white row that opens somewhere — F569', () => {
   test('the mark is the touch floor wide and the disc swaps surfaces so it can be seen on white', () => {
     // On a white card a white disc is invisible, so the ground and the card
     // trade places. `DISC` is the token, never 44 written out.
-    assert.match(FLAT, /width: DISC, height: DISC, borderRadius: DISC \/ 2, backgroundColor: paper\.ground/, 'the disc is not a DISC-wide circle of ground');
+    assert.match(FLAT, /width: DISC, height: DISC, borderRadius: radius\.chip, backgroundColor: accent\.feature/, 'the disc is not a DISC-wide circle of ground');
     assert.ok(!ROW.includes('backgroundColor: paper.card'), 'the disc is white on a white card, so it cannot be seen at all');
     assert.match(FLAT, /<Label>\{label\}<\/Label>/, 'the row lost its caps label');
     assert.match(FLAT, /type\.bodyStrong, \{ color: paper\.ink \}/, "the row's sentence is not the ink line the revamp gave it");

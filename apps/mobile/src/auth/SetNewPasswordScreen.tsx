@@ -4,16 +4,15 @@
  */
 
 import { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text } from 'react-native';
 import { paper, space, type, signal } from '../theme.ts';
-import { PillButton, Field } from '../components.tsx';
+import { Card, PillButton, Field } from '../components.tsx';
+import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useAuth } from './useAuth.tsx';
 import { PASSWORD_MIN, passwordTooShort } from './validate.ts';
 import { authButtonLabel } from './busyLabel.ts';
 
 export function SetNewPasswordScreen({ onDone }: { onDone: () => void }) {
-  const insets = useSafeAreaInsets();
   const { adapter } = useAuth();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -48,9 +47,11 @@ export function SetNewPasswordScreen({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <View style={[st.root, { paddingTop: insets.top + space(10), paddingBottom: insets.bottom + space(6) }]}>
+    <ScrollScreen avoidKeyboard header={<ScreenHeader title="Luvani · Your account" />} footer={<PillButton label={authButtonLabel('saveNewPassword', busy)} onPress={() => void submit()} disabled={busy} />}>
       <View>
+        <Card tone="feature">
         <Text style={[type.display, { color: paper.ink }]}>Choose a new password</Text>
+        </Card>
         <View style={{ gap: space(4), marginTop: space(6) }}>
           <Field
             label="New password"
@@ -78,17 +79,6 @@ export function SetNewPasswordScreen({ onDone }: { onDone: () => void }) {
           <Text style={[type.body, { color: signal.correspondance, marginTop: space(4) }]}>{formMessage}</Text>
         )}
       </View>
-      <PillButton label={authButtonLabel('saveNewPassword', busy)} onPress={() => void submit()} disabled={busy} />
-    </View>
+    </ScrollScreen>
   );
 }
-
-const st = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: paper.ground,
-    paddingHorizontal: space(6),
-    justifyContent: 'space-between',
-    gap: space(8),
-  },
-});

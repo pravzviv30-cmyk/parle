@@ -268,12 +268,14 @@ export function Card({
   children,
   style,
   padded = true,
+  tone = 'paper',
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   padded?: boolean;
+  tone?: 'paper' | 'feature' | 'journal';
 }) {
-  return <View style={[s.card, padded && s.cardPadded, style]}>{children}</View>;
+  return <View style={[s.card, tone === 'feature' && { backgroundColor: accent.feature }, tone === 'journal' && { backgroundColor: paper.ground }, padded && s.cardPadded, style]}>{children}</View>;
 }
 
 /** A small caps label above a card or a count. Violet by default: identity work. */
@@ -772,7 +774,7 @@ export function TintPanel({
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
-  return <View style={[{ backgroundColor: tint[name], borderRadius: radius.card }, style]}>{children}</View>;
+  return <View style={[{ backgroundColor: tint[name], borderRadius: radius.card, borderWidth: HAIRLINE, borderColor: paper.line }, style]}>{children}</View>;
 }
 
 /** Onboarding progress: one dot per page, the current one stretched. */
@@ -1070,11 +1072,10 @@ export function TintRow({
       accessibilityState={{ disabled }}
       style={({ pressed }) => [
         s.tintRow,
-        { backgroundColor: tint[name] },
         pressed && !disabled && s.tintRowPressed,
       ]}
     >
-      <View style={s.tintDisc} {...decorative}>
+      <View style={[s.tintDisc, { backgroundColor: tint[name] }]} {...decorative}>
         {glyph}
       </View>
       <View style={s.tintWords}>
@@ -1101,6 +1102,9 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: space(3),
     borderRadius: radius.row,
+    borderWidth: HAIRLINE,
+    borderColor: paper.ink,
+    backgroundColor: paper.card,
     paddingVertical: space(3),
     paddingHorizontal: space(4),
   },
@@ -1108,7 +1112,7 @@ const s = StyleSheet.create({
   tintDisc: {
     width: DISC,
     height: DISC,
-    borderRadius: DISC / 2,
+    borderRadius: radius.chip,
     backgroundColor: paper.card,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1121,20 +1125,21 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    borderColor: paper.ink,
     borderRadius: radius.card,
     ...shadow.whisper,
   },
   cardPadded: { paddingVertical: space(4), paddingHorizontal: space(4) },
   pill: {
-    minHeight: HIT + 8,
+    minHeight: HIT + 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: space(2),
     backgroundColor: accent.primary,
-    borderRadius: radius.pill,
+    borderRadius: radius.control,
     paddingHorizontal: space(6),
+    paddingVertical: space(3),
   },
   pillPressed: { backgroundColor: paper.ink, transform: [{ scale: 0.985 }, { translateY: 1 }] },
   pillDisabled: { backgroundColor: paper.inkFaint },
@@ -1145,7 +1150,7 @@ const s = StyleSheet.create({
     backgroundColor: paper.card,
     borderWidth: 1.5,
     borderColor: paper.ink,
-    borderRadius: radius.pill,
+    borderRadius: radius.control,
     paddingVertical: space(2.5),
     paddingHorizontal: space(5),
   },
@@ -1178,7 +1183,7 @@ const s = StyleSheet.create({
     paddingVertical: space(3),
     paddingHorizontal: space(4),
   },
-  optionSelected: { borderColor: paper.ink, borderWidth: 1.5 },
+  optionSelected: { borderColor: paper.ink, borderWidth: 1.5, backgroundColor: accent.feature },
   optionPressed: { backgroundColor: paper.groundDeep },
   optionMain: { flex: 1, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
   field: {
@@ -1195,7 +1200,9 @@ const s = StyleSheet.create({
   tabTrack: {
     flexDirection: 'row',
     backgroundColor: paper.groundDeep,
-    borderRadius: radius.pill,
+    borderRadius: radius.control,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
     padding: 3,
   },
   tab: {
@@ -1205,12 +1212,12 @@ const s = StyleSheet.create({
     minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.pill,
+    borderRadius: radius.chip,
   },
   tabActive: { backgroundColor: accent.primary },
   dotsRow: { flexDirection: 'row', gap: space(1.5), alignItems: 'center' },
-  dot: { width: 7, height: 7, borderRadius: radius.pill, backgroundColor: paper.line },
-  dotHere: { width: 22, backgroundColor: paper.ink },
+  dot: { width: 20, height: 5, borderRadius: 1, backgroundColor: paper.line },
+  dotHere: { width: 36, backgroundColor: paper.ink },
   speak: {
     alignItems: 'center',
     justifyContent: 'center',

@@ -134,7 +134,7 @@ export function MissionsScreen() {
         {view.microphoneNotice !== null && <Text style={st.microphoneNotice}>{view.microphoneNotice}</Text>}
 
         {first && (
-          <Card style={st.hero}>
+          <Card tone="feature" style={st.hero}>
             <Label>{CHOOSER_START_HERE}</Label>
             <Art name={heroArt(first.mission.place)} style={st.heroArt} />
             <Text style={[type.cardTitle, { color: paper.ink }]}>{first.mission.title}</Text>

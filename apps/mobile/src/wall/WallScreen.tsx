@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text } from 'react-native';
 
 import { paper, space, type } from '../theme.ts';
@@ -6,7 +6,7 @@ import { paper, space, type } from '../theme.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { trackProductEvent } from '../analytics/track.ts';
-import { PillButton, ProgressDots } from '../components.tsx';
+import { Card, Label, PillButton, ProgressDots } from '../components.tsx';
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { missionStates, type MissionProgress } from '@luvani/core';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
@@ -68,9 +68,15 @@ export function WallScreen({
   const [french, setFrench] = useState<WallFrench | null>(null);
   const [offering, setOffering] = useState<StoreOffering>({ available: false });
   const [loaded, setLoaded] = useState(false);
+  const [offeringLoaded, setOfferingLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const shown = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
+    setLoaded(false);
+    setLoadFailed(false);
     const now = Date.now();
     void Promise.all([loadActivity(), loadDeck(), loadMissionCompletions()]).then(
       ([activity, deck, completions]) => {
@@ -84,14 +90,17 @@ export function WallScreen({
         setFrench(wallFrench(momentumFrom({ activity, deck, profile, now })));
         setLoaded(true);
       },
-    );
+    ).catch(() => {
+      if (!cancelled) setLoadFailed(true);
+    });
     return () => {
       cancelled = true;
     };
-  }, [profile]);
+  }, [profile, retry]);
 
   useEffect(() => {
     let cancelled = false;
+    setOfferingLoaded(false);
     // In a preview there is no session behind this, so nothing has sent a
     // catalogue and the plans page would show no minutes. `noteCatalogue`
     // ignores null, so on every real build this line does nothing at all.
@@ -103,11 +112,16 @@ export function WallScreen({
       // The real store first, always. The fixture stands in only when there is no
       // store and this is a preview build, which is never a build a learner has.
       setOffering(next.available ? next : (previewOffering() ?? next));
+      setOfferingLoaded(true);
+    }).catch(() => {
+      if (cancelled) return;
+      setOffering({ available: false });
+      setOfferingLoaded(true);
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retry]);
 
   const storeHasPlans = paywallSurface(offering) !== null;
   const pages = wallPages({ entry, storeHasPlans });
@@ -117,17 +131,18 @@ export function WallScreen({
   // Fired once per showing, with the door and the length, because a drop-off at
   // page two says nothing without knowing how many pages there were.
   useEffect(() => {
-    if (!loaded) return;
+    if (!offeringLoaded || (!loaded && entry !== 'settings') || pages.length === 0 || shown.current) return;
+    shown.current = true;
     void trackProductEvent({ name: 'wall_shown', properties: { entry, pages: pages.length } });
     // The page count is settled by the time this runs, and re-firing on a page
     // turn would make one showing look like several.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded]);
+  }, [loaded, offeringLoaded, entry, pages.length]);
 
   useEffect(() => {
-    if (!loaded || page === undefined) return;
+    if (!offeringLoaded || (!loaded && entry !== 'settings') || page === undefined) return;
     void trackProductEvent({ name: 'wall_page_seen', properties: { page, index } });
-  }, [loaded, page, index]);
+  }, [loaded, offeringLoaded, entry, page, index]);
 
   const back = () => (index > 0 ? setIndex((at) => at - 1) : onLeave());
   useHardwareBack(true, back);
@@ -188,9 +203,30 @@ export function WallScreen({
           ? WALL_DONE
           : WALL_NEXT;
 
-  // Nothing is drawn from a half loaded disk: a map with no rows would be the
-  // empty opening this whole design exists to refuse.
-  if (!loaded || map === null || french === null || page === undefined) return null;
+  // A missing native store or a failed disk read must never become a blank page.
+  // Settings can show real plans without waiting for progress data it never uses.
+  const unavailable = offeringLoaded && page === undefined;
+  const failed = loadFailed && entry !== 'settings';
+  const loading = !offeringLoaded || (entry !== 'settings' && (!loaded || map === null || french === null));
+  if (unavailable || failed || loading) {
+    return (
+      <ScrollScreen
+        bottom="inset"
+        header={<ScreenHeader back={{ onPress: onLeave }} title="Your plan" />}
+        footer={<PillButton label={unavailable || failed ? 'Try again' : 'Back'} onPress={unavailable || failed ? () => setRetry((value) => value + 1) : onLeave} />}
+      >
+        <Card tone="feature">
+          <Label>Luvani · Your next chapter</Label>
+          <Text accessibilityLiveRegion="polite" style={{ ...type.display, color: paper.ink, marginTop: space(4) }}>
+            {unavailable ? 'Plans aren’t available here yet.' : failed ? 'Let’s try that again.' : 'Getting things ready.'}
+          </Text>
+          <Text style={{ ...type.body, color: paper.ink, marginTop: space(4) }}>
+            {unavailable ? 'We couldn’t load a store offering on this device. You can go back and keep using your current plan.' : failed ? 'Your progress couldn’t be loaded. Nothing has been changed. Try again, or go back to your French.' : 'A moment while we load your next steps.'}
+          </Text>
+        </Card>
+      </ScrollScreen>
+    );
+  }
 
   return (
     <ScrollScreen
@@ -206,8 +242,8 @@ export function WallScreen({
         />
       }
     >
-      {page === 'map' && <WallMapPage map={map} />}
-      {page === 'french' && <WallFrenchPage french={french} onOpenBank={onOpenBank} />}
+      {page === 'map' && map !== null && <WallMapPage map={map} />}
+      {page === 'french' && french !== null && <WallFrenchPage french={french} onOpenBank={onOpenBank} />}
       {page === 'yours' && <WallYoursPage canBuy={storeHasPlans} />}
       {page === 'plans' && planRows !== null && (
         <WallPlansPage

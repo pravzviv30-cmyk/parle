@@ -1,40 +1,31 @@
 /**
- * Every colour in the app, and nothing else.
- *
- * This file exists at the bottom of the import graph on purpose: it imports
- * NOTHING. `theme.ts` imports `Platform` from react-native, and the mobile test
- * runner is `node --test --experimental-strip-types` with no renderer, so
- * anything that reaches react-native can never be unit tested. Pulling the raw
- * values down here is what lets `palette.test.ts` hold them to a contract.
- *
- * There is one ground now — Porcelain — not five papers keyed by place. The
- * violet carries identity everywhere, the signals are saturated back up to full
- * colour, and each family is held numerically by the tests below this file:
- * words clear the text floor, marks clear the mark floor, and nothing that means
- * one thing comes close enough to something that means another to be confused
- * with it.
+ * The complete colour vocabulary. This leaf module imports nothing so the
+ * palette can be tested without loading React Native.
+ * Ink is identity; chartreuse is feature paper, always carrying dark text.
+ * The warm journal ground and six contextual tints support the editorial layout.
+ * Voice states and pedagogical support colours retain their existing meanings.
  */
 
 /** The single ground and its inks. Everything sits directly on this. */
 export const paper = {
   /** The page itself. Everything sits directly on this. */
-  ground: '#F4F2F7',
+  ground: '#F7F3E8',
   /** One step deeper — pressed states, chip fills, the tab track. */
-  groundDeep: '#E6E2EE',
+  groundDeep: '#E6DECD',
   /** Card surface. Flat white, hairline rule, no shadow. */
-  card: '#FFFFFF',
+  card: '#FFFEFA',
   /** The ink. Near-black with a real violet cast so the page feels of a piece. */
-  ink: '#241633',
+  ink: '#182019',
   /** Secondary text. */
-  inkSoft: '#5F4E73',
+  inkSoft: '#51584C',
   /** Tertiary — counts, placeholders, timestamps, the inactive tab glyph. */
-  inkFaint: '#8A7996',
+  inkFaint: '#6A7266',
   /** Hairline rule on the ground. */
-  line: '#DAD5E3',
+  line: '#B8BCAD',
   /** Hairline divider inside a white card. */
-  lineOnCard: '#E9E5F0',
+  lineOnCard: '#DADBCF',
   /** Text and icons on a filled control. Warm violet-white, never pure. */
-  onInk: '#FBF6FF',
+  onInk: '#FFFDF5',
 } as const;
 
 /**
@@ -44,9 +35,11 @@ export const paper = {
  */
 export const accent = {
   /** The primary action and the monogram. */
-  primary: '#6B3FA0',
+  primary: '#182019',
   /** Micro-labels — the caps line above a card. The same violet as primary. */
-  label: '#6B3FA0',
+  label: '#182019',
+  /** Atelier's bright paper. Always carries dark ink, never white text. */
+  feature: '#D8FF54',
 } as const;
 
 /**
@@ -102,7 +95,7 @@ export const rungColor: Record<1 | 2 | 3 | 4, string> = {
   1: '#FFCD00',
   2: '#FF7B00',
   3: '#6EC4E8',
-  4: '#241633',
+  4: '#182019',
 };
 
 /**

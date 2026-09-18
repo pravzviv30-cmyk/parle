@@ -1,49 +1,10 @@
 /**
- * Home — tonight's French, not a summary.
- *
- * Revamp A cut this screen to the two things the founder's mockup shows. The
- * greeting with the hour's question under it, then one card with one situation
- * on it and one pill, then one row saying what this learner can now do in
- * French. That is the whole tab:
- *
- *   1. the greeting, one word swiping up out of a fixed slot, the hour's
- *      question beneath it, and the watercolour bleeding off the top corner;
- *   2. the hero: one situation, what is happening, the picture of the place,
- *      how long it takes, a corner to save it, and the tab's one pill;
- *   3. "Real progress": one sentence about what they can now do, and a way
- *      into the whole of it.
- *
- * Nothing on this screen decides anything. The greeting is `home/greeting.ts`
- * and `home/useGreetingRotation.ts`, the hero and its start are
- * `home/homeMission.ts`, the minutes are `home/estimate.ts`, the sentence is
- * `home/abilities.ts` over the passport, and whether a start starts anything is
- * `tutor/gate.ts`. There is no renderer in this workspace, so a rule that hid
- * in this file would be a rule nothing could ask a question about.
- *
- * ## What left, and where it went
- *
- * The four momentum cards and the word of the day moved to the Progress screen,
- * behind the "Real progress" row: they are worth a page and they were never
- * worth the first screen, because a learner opening this app at nine in the
- * evening is deciding whether to speak, not reading about themselves. The daily
- * situation card folded into the hero, along with its bookmark, so there is one
- * way into a conversation on the screen whose whole job is to open one. The six
- * guided missions are reached from the Tutor tab and from My French. The sprout
- * footer went with them.
- *
- * ## What is deliberately absent
- *
- * A streak, a score of the learner, a mark out of ten, a red bar, and now every
- * count: the one numeral left on this page is how many minutes the card in
- * front of them is likely to take, which is a fact about the next few minutes
- * rather than a measurement of a person. The percentage that used to live here
- * ("Recall") went to Progress with the block that carried it.
- *
- * ## One clock, one day
- *
- * `now` is read once per focus and every "today" on the screen comes from that
- * one reading: the hero's label, the scene it picks, and the minutes on it. A
- * screen that read the clock twice could show two different days at midnight.
+ * Home combines an immediate conversation invitation with visible evidence
+ * of the learner's progress. The two compact momentum tiles use the same model
+ * as Progress, never made-up counts. A new learner receives forward-looking
+ * copy rather than a false record. The hero is independent of the momentum gate.
+ * All data is re-read on focus with one clock, so completion and midnight changes
+ * appear as soon as the learner comes back.
  */
 
 import { useCallback, useState } from 'react';
@@ -51,8 +12,6 @@ import { StyleSheet, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { levelFor, missionStates, totalXp } from '@luvani/core';
 
-import { HeaderArt } from '../art/HeaderArt.tsx';
-import { HEADER_ART } from '../art/maps.ts';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { space } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
@@ -68,6 +27,8 @@ import { loadMissionCompletions } from '../missions/store.ts';
 import { loadScenarioProgress } from '../missions/progressStore.ts';
 import { hasSpokenBefore, missionCompletionsFrom } from '../missions/chooserView.ts';
 import { firstNameOf } from '../tutor/dashboard.ts';
+import { momentumFrom, type Momentum } from '../progress/momentum.ts';
+import { HomeMomentum } from '../home/HomeMomentum.tsx';
 
 export function HomeTab() {
   // A bottom tab stays mounted after its first visit, so the greeting's timers
@@ -88,6 +49,7 @@ export function HomeTab() {
   const [hero, setHero] = useState<HomeMission | null>(null);
   // What the learner can now do, or null before the passport has been read.
   const [can, setCan] = useState<CanDo | null>(null);
+  const [momentum, setMomentum] = useState<Momentum | null>(null);
 
   // Re-read on every return: finishing a sitting anywhere in the app should be
   // visible here the moment the learner comes back to look, and a phone that
@@ -120,6 +82,7 @@ export function HomeTab() {
             }),
           );
           setCan(canDoSentence(stampsFrom(progress)));
+          setMomentum(momentumFrom({ activity, deck, profile, now }));
         })
         .catch(() => {
           if (cancelled) return;
@@ -138,7 +101,7 @@ export function HomeTab() {
       return () => {
         cancelled = true;
       };
-    }, []),
+    }, [profile]),
   );
 
   return (
@@ -146,14 +109,11 @@ export function HomeTab() {
     // inset rather than paying it twice on a notched phone.
     <ScrollScreen bottom="tab">
       <View>
-        {/* The greeting, the hour's question, and the watercolour behind both.
+        {/* The greeting and the hour's question in the editorial masthead.
             `title` is the still line, which is what a screen reader hears and
             what a learner who asked for less movement reads; `titleSwap` is the
-            moving half, and it is null when nothing may move. The art is
-            absolute, decorative and silent, and it is not drawn at all at the
-            larger reading sizes. */}
+            moving half, and it is null when nothing may move. */}
         <View style={st.head}>
-          <HeaderArt name={HEADER_ART.home} />
           <TabHeader title={greeting.rest} titleSwap={greeting.swap} purpose={greeting.subline} />
         </View>
 
@@ -162,6 +122,8 @@ export function HomeTab() {
             first run. Null only means the storage read has not answered. */}
         {hero !== null && <MissionHero hero={hero} />}
 
+        {momentum !== null && <HomeMomentum momentum={momentum} onProgress={() => nav.navigate('Progress')} onPhrases={() => nav.navigate('Phrasebook')} />}
+
         {can !== null && <AbilitiesCard can={can} onOpen={() => nav.navigate('Progress')} />}
       </View>
     </ScrollScreen>
@@ -169,7 +131,6 @@ export function HomeTab() {
 }
 
 const st = StyleSheet.create({
-  // The corner art is absolute inside this, so it can bleed off the top right
-  // of the page behind a greeting that changes language every few seconds.
+  // Keep the greeting aligned to the shared masthead rather than floating art.
   head: { position: 'relative', marginTop: space(2) },
 });

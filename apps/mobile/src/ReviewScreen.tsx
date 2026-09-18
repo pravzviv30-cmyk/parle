@@ -159,14 +159,14 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   // terminal card, so Done is its one door and it carries no back header.
   if (!card || !view) {
     return (
-      <ScrollScreen center footer={<PillButton label="Done" onPress={onDone} />}>
+      <ScrollScreen footer={<PillButton label="Done" onPress={onDone} />}>
         {/* An empty deck is the good outcome, not a dead end, so it gets the
             cleared table rather than a sentence sitting on its own. The size is
             the art registry's, never a width written here. */}
         <View style={{ alignItems: 'center', marginBottom: space(5) }}>
           <Art name={SCREEN_ART.emptyDeck} />
         </View>
-        <Card>
+        <Card tone="feature">
           <Text style={[type.title, { color: paper.ink }]}>Nothing waiting.</Text>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Your next session adds more.</Text>
         </Card>
@@ -179,7 +179,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   const hear = view.hear;
 
   const face = (
-    <Card style={st.card}>
+    <Card tone="journal" style={st.card}>
       <Label>{view.tag}</Label>
 
       {view.answer === null ? (
@@ -323,7 +323,6 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   return (
     <ScrollScreen
       avoidKeyboard
-      center
       bottom="inset"
       // A sitting is an offer, not an obligation — the learner can put the deck
       // down mid-card and nothing is lost or counted against them.
@@ -360,7 +359,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 const st = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // The card itself: the SessionView main-card anatomy, content centred.
-  card: { alignItems: 'center' },
+  card: { alignItems: 'center', minHeight: 240, justifyContent: 'center', borderTopWidth: 5 },
   // The speaker disc: white, on the card, with the one soft shadow.
   hear: {
     marginTop: space(4),

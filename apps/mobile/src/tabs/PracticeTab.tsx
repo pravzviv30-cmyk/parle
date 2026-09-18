@@ -30,8 +30,6 @@ import { accent, paper, space, type } from '../theme.ts';
 import { Card, GhostButton, Label, OutlineButton, PillButton, TintRow } from '../components.tsx';
 import { ReplayGlyph } from '../glyphs.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
-import { HeaderArt } from '../art/HeaderArt.tsx';
-import { HEADER_ART } from '../art/maps.ts';
 import { PhraseCard } from '../surface/PhraseCard.tsx';
 import { UNREAD } from '../practice/archive.ts';
 import {
@@ -225,7 +223,6 @@ export function PracticeTab() {
         {/* The art sits behind the words and bleeds off the corner, so the two
             share one relative box. It is decorative and takes no tap. */}
         <View style={st.head}>
-          <HeaderArt name={HEADER_ART.practice} />
           <TabHeader title={PRACTICE_TITLE} purpose={PRACTICE_PURPOSE} />
         </View>
 
@@ -359,7 +356,7 @@ export function PracticeTab() {
 
 const st = StyleSheet.create({
   head: { position: 'relative' },
-  block: { marginTop: space(6) },
+  block: { marginTop: space(3) },
   blockBody: { marginTop: space(3) },
   firstStart: { gap: space(3) },
   offline: { gap: space(3) },

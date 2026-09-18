@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 
 import { MISSIONS } from '@luvani/core';
 
-import { HEADER_ART, HERO_ART, SCREEN_ART, heroArt } from './maps.ts';
+import { HERO_ART, SCREEN_ART, heroArt } from './maps.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 
@@ -49,7 +49,6 @@ describe('the pictures each place, tab and screen draws — F570', () => {
 
   test('every picture a map names is a picture the registry ships', () => {
     for (const [where, map] of [
-      ['the tab headers', HEADER_ART],
       ['the one-off screens', SCREEN_ART],
       ['the places', HERO_ART],
     ] as const) {
@@ -65,7 +64,6 @@ describe('the pictures each place, tab and screen draws — F570', () => {
   test('every picture the registry ships is claimed by exactly one map', () => {
     const claimed = new Map<string, string[]>();
     for (const [where, map] of [
-      ['the tab headers', HEADER_ART],
       ['the one-off screens', SCREEN_ART],
       ['the places', HERO_ART],
     ] as const) {

@@ -5,16 +5,15 @@ import { Art } from '../art/Art.tsx';
 import type { ArtKey } from '../art/registry.ts';
 import { Card, Label, TintPanel } from '../components.tsx';
 import { ClockGlyph } from '../glyphs.tsx';
-import { paper, space, type, HIT, type TintName } from '../theme.ts';
+import { paper, radius, space, type, HIT, type TintName } from '../theme.ts';
 
 /**
  * The card that leads a tab: one thing to do tonight, drawn large.
  *
- * Revamp A gives Home a single hero instead of four competing cards, and this
- * is its shape: a caps label saying which kind of evening it is, the scene's
- * name in the bold serif, a line of plain English under it, the picture of the
- * place on its own quiet contextual wash, why it was chosen, how long it is
- * likely to take, and the one primary action.
+ * A bold Atelier invitation with a compact scene beside its practical brief.
+ * The illustration explains the situation without pushing Home's momentum
+ * below an oversized picture. The reason, duration and primary action remain
+ * distinct from the supporting Journal detail.
  *
  * The action arrives as a node rather than as a label and a handler, and that
  * is deliberate. `surfaceContract.test.ts` counts primary pills per screen by
@@ -57,20 +56,25 @@ export function HeroCard({
   corner?: ReactNode;
 }) {
   return (
-    <Card style={s.card}>
+    <Card tone="feature" style={s.card}>
       <View style={s.head}>
         <Label>{label}</Label>
         {corner != null ? <View style={s.corner}>{corner}</View> : null}
       </View>
       <Text style={[type.cardTitle, { color: paper.ink }]}>{title}</Text>
-      <Text style={[type.body, { color: paper.inkSoft }]}>{body}</Text>
       <TintPanel tint={artTint} style={s.artWell}>
-        <Art name={art} style={s.art} />
+        <View style={s.sceneCopy}>
+          <Text style={[type.label, { color: paper.ink }]}>En situation</Text>
+          <Text style={[type.small, { color: paper.inkSoft }]}>{body}</Text>
+        </View>
+        <View style={s.sceneArt}><Art name={art} compact style={s.art} /></View>
       </TintPanel>
-      <Text style={[type.small, { color: paper.inkSoft }]}>{reason}</Text>
-      <View style={s.time}>
-        <ClockGlyph size={18} color={paper.inkSoft} />
-        <Text style={[type.small, { color: paper.inkSoft }]}>{timeLine}</Text>
+      <View style={s.meta}>
+        <Text style={[type.small, s.reason, { color: paper.inkSoft }]}>{reason}</Text>
+        <View style={s.time}>
+          <ClockGlyph size={18} color={paper.inkSoft} />
+          <Text style={[type.small, { color: paper.inkSoft }]}>{timeLine}</Text>
+        </View>
       </View>
       {action}
     </Card>
@@ -78,12 +82,35 @@ export function HeroCard({
 }
 
 const s = StyleSheet.create({
-  card: { gap: space(3) },
+  card: { gap: space(2.5), overflow: 'hidden' },
   head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space(3) },
   corner: { minWidth: HIT, minHeight: HIT, alignItems: 'flex-end', justifyContent: 'center' },
-  // The contextual tint gives the watercolour a job in the card and reaches
-  // the card edges without changing the registry-owned size of the picture.
-  artWell: { alignItems: 'center', overflow: 'hidden', marginHorizontal: -space(4) },
+  // A shared scene brief keeps the art tied to the action it introduces.
+  artWell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(2),
+    overflow: 'hidden',
+    backgroundColor: paper.card,
+    borderColor: paper.ink,
+    borderRadius: radius.row,
+    padding: space(3),
+  },
+  sceneCopy: { flex: 1, minWidth: 0, gap: space(2) },
+  sceneArt: { width: '35%', maxWidth: 144, alignItems: 'center' },
   art: { alignSelf: 'center' },
-  time: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  meta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space(3),
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    paddingVertical: space(2.5),
+    borderTopWidth: 1,
+    borderTopColor: paper.ink,
+  },
+  reason: { flex: 1, minWidth: 0 },
+  time: { flexDirection: 'row', alignItems: 'center', flexShrink: 1, gap: space(1.5) },
 });

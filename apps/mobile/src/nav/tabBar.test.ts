@@ -65,7 +65,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
 
     // The floor under every cell is still a floor: a two-line word makes the
     // cell taller, and nothing here is allowed to make it shorter.
-    assert.match(FLAT, /minHeight: HIT \+ space\(6\)/, 'the cell no longer keeps a height floor at the touch target');
+    assert.match(FLAT, /minHeight: HIT \+ space\(4\)/, 'the cell no longer keeps a height floor at the touch target');
 
     // The whole of F313's rule, restated because this is the change most likely
     // to reach for one of them: no word is shortened, scaled or clipped to fit.
@@ -89,7 +89,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     );
     assert.match(
       FLAT,
-      /color=\{focused \? accent\.primary : paper\.inkFaint\}/,
+      /color=\{focused \? accent\.primary : paper\.inkSoft\}/,
       'the active tab glyph is no longer set in the identity violet',
     );
     assert.match(

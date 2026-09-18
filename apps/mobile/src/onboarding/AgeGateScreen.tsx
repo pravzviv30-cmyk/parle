@@ -19,8 +19,8 @@
  * words are in `answers.ts` with that argument written beside them; this file
  * is layout.
  *
- * It sits inside the shared frame like every other surface: `ScrollScreen
- * center` pays the notch and pins the short body, and the confirm pill rides in
+ * It sits inside the shared frame like every other surface: `ScrollScreen`
+ * pays the notch and anchors the story to the top, and the confirm action rides in
  * the footer. The refusal, when it comes, is the shared `AgeRefusal` — the same
  * spoken full stop and the same sign-out exit the first-run gate shows, so a
  * refused learner meets one thing on both doors rather than two.
@@ -28,7 +28,7 @@
 
 import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { paper, space, type } from '../theme.ts';
+import { accent, HAIRLINE, paper, radius, space, type } from '../theme.ts';
 import { PillButton, GhostButton } from '../components.tsx';
 import { ScrollScreen } from '../layout.tsx';
 import { Art } from '../art/Art.tsx';
@@ -44,7 +44,6 @@ export function AgeGateScreen({ onPass, onSignOut }: { onPass: () => void; onSig
 
   return (
     <ScrollScreen
-      center
       footer={
         // Gone once they have said they are younger. A refusal with the way
         // through still sitting under it is not a gate, it is a suggestion.
@@ -79,8 +78,8 @@ export function AgeGateScreen({ onPass, onSignOut }: { onPass: () => void; onSig
 }
 
 const st = StyleSheet.create({
-  art: { alignItems: 'center', marginBottom: space(5) },
-  question: { ...type.display, color: paper.ink, textAlign: 'center' },
-  sub: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
+  art: { alignItems: 'center', marginBottom: space(5), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card, padding: space(6) },
+  question: { ...type.display, color: paper.ink },
+  sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
   secondary: { marginTop: space(5) },
 });

@@ -24,12 +24,14 @@ import {
   Pressable,
   Platform,
   PixelRatio,
+  useWindowDimensions,
   KeyboardAvoidingView,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Card, PillButton, OutlineButton } from './components.tsx';
-import { decorative, paper, space, type, HIT } from './theme.ts';
+import { accent, decorative, paper, radius, space, type, HAIRLINE, HIT } from './theme.ts';
+import { screenInsets } from './responsiveLayout.ts';
 
 /** Where the bottom of a screen ends. */
 export type ScreenBottom = 'tab' | 'inset' | 'none';
@@ -70,7 +72,8 @@ export function Screen({
   avoidKeyboard,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
-  const padX = padded ? space(5) : 0;
+  const { width } = useWindowDimensions();
+  const horizontal = screenInsets(width, insets.left, insets.right, padded);
   const bottomPad =
     bottom === 'tab' ? space(3) : bottom === 'inset' ? insets.bottom + space(4) : 0;
 
@@ -84,9 +87,9 @@ export function Screen({
         paddingBottom: bottomPad,
       }}
     >
-      {header != null ? <View style={{ paddingHorizontal: padX }}>{header}</View> : null}
-      <View style={{ flex: 1, minHeight: 0, paddingHorizontal: padX }}>{children}</View>
-      {footer != null ? <View style={{ paddingHorizontal: padX }}>{footer}</View> : null}
+      {header != null ? <View style={horizontal}>{header}</View> : null}
+      <View style={{ flex: 1, minHeight: 0, ...horizontal }}>{children}</View>
+      {footer != null ? <View style={{ ...horizontal, paddingTop: space(3), borderTopWidth: HAIRLINE, borderTopColor: paper.line, backgroundColor: ground }}>{footer}</View> : null}
     </View>
   );
 
@@ -176,13 +179,13 @@ export function ScreenHeader(props: ScreenHeaderProps) {
   // width; the title sits in the flex centre between two equal touch floors, not
   // half a hit target off it because one side happened to be empty.
   return (
-    <View style={{ minHeight: HIT, flexDirection: 'row', alignItems: 'center' }}>
+    <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: HAIRLINE, borderBottomColor: paper.ink, marginBottom: space(4), paddingBottom: space(2) }}>
       {back != null ? (
         <Pressable
           onPress={back.onPress}
           accessibilityRole="button"
           accessibilityLabel={back.label ?? 'Back'}
-          style={{ width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center', borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.control, backgroundColor: paper.card }}
         >
           <ChevronLeft />
         </Pressable>
@@ -196,7 +199,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
           // a live region); this only keeps a plain string title from vanishing.
           <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{title}</Text>
         ) : (
-          title
+          title ?? <Text style={[type.label, { color: paper.ink }]}>Luvani</Text>
         )}
       </View>
       {leave != null ? (
@@ -303,7 +306,7 @@ type TabHeaderProps = {
 export function TabHeader({ title, purpose, titleSwap, trailing, leading, align = 'left', children }: TabHeaderProps) {
   if (align === 'center') {
     return (
-      <View style={{ marginBottom: space(5), alignItems: 'center' }}>
+      <View style={{ marginBottom: space(5), alignItems: 'center', backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card, padding: space(5) }}>
         {leading != null ? leading : null}
         <Text
           accessibilityRole="header"

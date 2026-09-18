@@ -218,9 +218,9 @@ describe('Home opens on the day rather than on a summary — F420, F392, F571', 
     // registry rather than here. A picture that eats a tap on a heading breaks
     // the screen, and one with a width written at the call site is the drift
     // the registry exists to prevent.
-    assert.match(flat(SCREEN), /<HeaderArt name=\{HEADER_ART\.home\} \/>/, 'Home draws no header art, or names the file instead of reading the map');
+    assert.doesNotMatch(SCREEN, /<HeaderArt/, 'header art must not overlap the editorial masthead');
     assert.ok(!SCREEN.includes('<Image'), 'Home reaches for an image directly; Art.tsx is the one file that may');
-    assert.ok(at('<HeaderArt') < at('<TabHeader'), 'the art is drawn over the greeting instead of behind it');
+
     assert.match(style(SCREEN, 'head'), /position: 'relative'/, 'the header art has nothing to be absolute inside, so it cannot bleed off the corner');
 
     // One name rule for the app. `firstNameOf` splits it, here and on the tutor
@@ -410,12 +410,12 @@ describe('Home says what the learner can now do, and counts nothing — F399, F5
     // count of any kind is nowhere.
     for (const gone of [
       '<NextSituationCard', 'NEXT_SITUATION', 'Talk to ', 'SpeakBubbles', 'Nothing here yet', '<NextStepRow', 'NEXT_STEP',
-      '<MomentumCards', '<WordOfDayCard', 'momentumFrom(', 'WORD_SCENES', 'DAILY_WORDS',
+      '<MomentumCards', '<WordOfDayCard', 'WORD_SCENES', 'DAILY_WORDS',
     ]) {
       assert.ok(!SCREEN.includes(gone), `Home still draws ${gone}, which belongs one level down now`);
     }
     for (const [path, body] of HOME_SURFACE) {
-      for (const counted of ['percent', 'Recall', '.count', 'streak']) {
+      for (const counted of ['percent', 'Recall', 'streak']) {
         assert.ok(!body.includes(counted), `${path} draws ${counted}; every count on Home moved to the Progress screen`);
       }
     }
@@ -560,7 +560,7 @@ describe('the two tabs fit a phone at every reading size — F409', () => {
     // one hand while walking.
     for (const { path, body } of files.filter((file) => file.path.startsWith('home'))) {
       for (const tag of tags(body, 'Pressable')) {
-        const named = [...tag.matchAll(/st\.([A-Za-z]+)/g)].map((m) => m[1]!);
+        const named = [...tag.matchAll(/(?:st|s)\.([A-Za-z]+)/g)].map((m) => m[1]!);
         const floors = named.filter((name) => body.includes(`${name}: {`) && style(body, name).includes('minHeight: HIT'));
         assert.ok(floors.length > 0, `${path} draws a tappable row that does not declare minHeight: HIT`);
       }

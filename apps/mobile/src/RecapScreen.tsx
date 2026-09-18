@@ -26,7 +26,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { missionStates, type RecapPayload } from '@luvani/core';
 
-import { HAIRLINE, paper, radius, signal, space, type } from './theme.ts';
+import { accent, HAIRLINE, paper, radius, signal, space, type } from './theme.ts';
 import { BookmarkGlyph, OutlineButton, PillButton, TintPanel } from './components.tsx';
 import { Art } from './art/Art.tsx';
 import { SCREEN_ART } from './art/maps.ts';
@@ -174,8 +174,8 @@ export function RecapScreen({
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground },
-  scroll: { paddingHorizontal: space(5), paddingTop: space(3), gap: space(7) },
-  header: { alignItems: 'center' },
+  scroll: { paddingHorizontal: space(5), paddingTop: space(3), gap: space(5) },
+  header: { alignItems: 'center', padding: space(5), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
   headerText: { alignItems: 'center', gap: space(2), marginTop: space(4) },
   keptStack: { gap: space(3) },
   keptCard: {
@@ -192,7 +192,7 @@ const st = StyleSheet.create({
   keptMark: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.row,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: paper.card,

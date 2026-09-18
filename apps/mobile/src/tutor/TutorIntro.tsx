@@ -29,7 +29,7 @@
 
 import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { paper, space, type, HAIRLINE } from '../theme.ts';
+import { accent, paper, radius, space, type, HAIRLINE } from '../theme.ts';
 import { ProgressDots, PillButton, Card, ROW_WORDS } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
@@ -139,7 +139,6 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
 
   return (
     <ScrollScreen
-      center
       header={<ScreenHeader back={{ onPress: back }} title={<ProgressDots total={pages.length} index={index} />} />}
       footer={<PillButton label={last ? 'Start talking' : 'Next'} onPress={() => (last ? onDone() : setIndex((i) => i + 1))} />}
     >
@@ -167,12 +166,12 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
 }
 
 const st = StyleSheet.create({
-  page: { paddingVertical: space(4) },
+  page: { padding: space(5), marginBottom: space(4), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
   states: { alignSelf: 'stretch', marginTop: space(5) },
   stateRow: { flexDirection: 'row', alignItems: 'center', gap: space(4), paddingVertical: space(2) },
   stateDivided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard, marginTop: space(2) },
   stateWords: ROW_WORDS,
-  art: { alignItems: 'center', marginBottom: space(5) },
-  title: { ...type.display, color: paper.ink, textAlign: 'center' },
-  body: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
+  art: { alignItems: 'center', marginBottom: space(5), backgroundColor: paper.card, borderRadius: radius.row, overflow: 'hidden' },
+  title: { ...type.display, color: paper.ink },
+  body: { ...type.body, color: paper.inkSoft, marginTop: space(3) },
 });

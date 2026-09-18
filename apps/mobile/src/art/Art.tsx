@@ -23,12 +23,13 @@ import { ART, type ArtKey } from './registry.ts';
  * ink. The `style` prop is for placement only (margins, alignment, opacity); a
  * width written at a call site is the drift this registry exists to prevent.
  */
-export function Art({ name, style }: { name: ArtKey; style?: StyleProp<ImageStyle> }) {
+export function Art({ name, style, compact = false }: { name: ArtKey; style?: StyleProp<ImageStyle>; compact?: boolean }) {
   const art = ART[name];
+  const scale = compact ? 0.65 : 1;
   return (
     <Image
       source={art.source}
-      style={[{ width: art.width, height: art.height }, style]}
+      style={[{ width: art.width * scale, height: art.height * scale, maxWidth: '100%' }, style]}
       resizeMode="contain"
       accessible={false}
       {...decorative}

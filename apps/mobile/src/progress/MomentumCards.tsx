@@ -73,7 +73,7 @@ export function MomentumCards({
 
   return (
     <View style={st.block}>
-      <Card style={st.hero}>
+      <Card tone="feature" style={st.hero}>
         <View style={st.heroHead}>
           <View style={st.well}>
             <MicGlyph size={18} color={signal.good} />
@@ -166,7 +166,7 @@ export function MomentumCards({
         </Card>
       </View>
 
-      <Card style={st.goal}>
+      <Card tone="journal" style={st.goal}>
         <View style={st.goalHead}>
           <TargetGlyph />
           <View style={st.goalWords}>
@@ -183,7 +183,7 @@ export function MomentumCards({
 }
 
 const st = StyleSheet.create({
-  block: { marginTop: space(7), gap: space(3) },
+  block: { marginTop: space(3), gap: space(3) },
   hero: { padding: space(4) },
   heroHead: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   // Square, and sized by a constant rather than a number, so the F409 sweep can

@@ -311,8 +311,8 @@ describe('the Meet page reads as a paragraph, not a plaque — F359', () => {
     );
     assert.match(
       FLOW,
-      /question:\s*\{[^}]*textAlign:\s*'center'/,
-      'the Meet title stopped being centred, which was never the ask',
+      /question:\s*\{[^}]*\.\.\.type\.display/,
+      'the Meet title must use the shared editorial display scale',
     );
   });
 });

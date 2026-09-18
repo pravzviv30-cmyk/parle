@@ -40,8 +40,6 @@ import { useNavigation } from '@react-navigation/native';
 import { paper, space, type } from '../theme.ts';
 import { Card, Label, Monogram, OptionCard, OutlineButton, Field } from '../components.tsx';
 import { ScrollScreen, ScreenHeader, TabHeader } from '../layout.tsx';
-import { HeaderArt } from '../art/HeaderArt.tsx';
-import { HEADER_ART } from '../art/maps.ts';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
 import { ChoiceRow } from '../settings/ChoiceRow.tsx';
@@ -280,7 +278,6 @@ export function ProfileTab() {
             the header and the picture share one relative box. It is decorative
             and it is not drawn at all at a large reading size. */}
         <View style={st.head}>
-          <HeaderArt name={HEADER_ART.profile} />
           <TabHeader
             align="center"
             leading={<Monogram initial={firstName.charAt(0).toUpperCase()} size={72} />}

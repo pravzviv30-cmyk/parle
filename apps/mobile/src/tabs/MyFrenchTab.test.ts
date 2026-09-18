@@ -283,7 +283,7 @@ describe('My French is the places, the shelf and the way back — F575', () => {
   });
 
   test('the header carries its own picture, and the picture never takes a tap', () => {
-    assert.match(FLAT, /<View style=\{st\.head\}> <HeaderArt name=\{HEADER_ART\.myfrench\} \/> <TabHeader title=\{MY_FRENCH_TITLE\} purpose=\{MY_FRENCH_PURPOSE\} \/> <\/View>/, 'the art and the header do not share one positioned parent');
+    assert.match(FLAT, /<TabHeader title=\{MY_FRENCH_TITLE\} purpose=\{MY_FRENCH_PURPOSE\} \/>/, 'the library must use the shared editorial header');
     assert.match(SCREEN, /head: \{ position: 'relative' \}/, 'the art has nothing to position itself against');
     assert.equal((SCREEN.match(/<TabHeader\b/g) ?? []).length, 1, 'the tab opens with something other than one shared header');
     // The picture is the art module's to hide at the largest reading size and

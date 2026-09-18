@@ -33,7 +33,7 @@ export function WallYoursPage({ canBuy }: { canBuy: boolean }) {
       <Text accessibilityRole="header" style={st.title}>{YOURS_TITLE}</Text>
       <Text style={st.sub}>{YOURS_SUB}</Text>
 
-      <Card style={st.card}>
+      <Card tone="journal" style={st.card}>
         {YOURS_ROWS.map((line, index) => (
           <View key={line} style={[st.row, index > 0 && st.divided]}>
             <BadgeGlyph size={18} color={signal.good} />

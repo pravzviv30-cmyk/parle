@@ -24,12 +24,13 @@ const HERO = stripComments(read('./HeroCard.tsx'));
 const FLAT = HERO.replace(/\s+/g, ' ');
 
 describe('the card that leads a tab — F569', () => {
-  test('the hero draws its label, its serif title, its scene and its time line from tokens alone', () => {
+  test('the hero draws its label, bold title, compact scene brief and time line from tokens alone', () => {
     // Every size and colour comes from theme.ts. A number written here is a
     // number that drifts from the card next to it one pass later.
     assert.match(FLAT, /<Label>\{label\}<\/Label>/, 'the hero no longer says which kind of evening it is');
-    assert.match(FLAT, /type\.cardTitle/, 'the hero title is not the bold serif the revamp gave it');
-    assert.match(FLAT, /type\.body, \{ color: paper\.inkSoft \}/, "the hero's body line is not the soft ink under the title");
+    assert.match(FLAT, /type\.cardTitle/, 'the hero title must use the shared bold headline');
+    assert.match(FLAT, /type\.small, \{ color: paper\.inkSoft \}\]\}>\{body\}/, 'the scene brief must keep readable shared type and soft ink');
+    assert.match(FLAT, /<View style=\{s\.sceneCopy\}>/, 'the scene brief must sit with the illustration');
     assert.match(FLAT, /<Art name=\{art\} /, 'the hero draws no scene, or draws it outside the one art renderer');
     assert.match(FLAT, /<ClockGlyph size=\{18\} color=\{paper\.inkSoft\} \/> <Text style=\{\[type\.small, \{ color: paper\.inkSoft \}\]\}>\{timeLine\}<\/Text>/, 'the clock and the ready line are no longer one quiet row');
 

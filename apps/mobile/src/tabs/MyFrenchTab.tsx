@@ -14,8 +14,6 @@ import {
 
 import { Label, TintRow } from '../components.tsx';
 import { IconRowCard } from '../surface/IconRowCard.tsx';
-import { HeaderArt } from '../art/HeaderArt.tsx';
-import { HEADER_ART } from '../art/maps.ts';
 import { DocumentGlyph, PlaceGlyph, QuoteGlyph, WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { accent, space } from '../theme.ts';
@@ -153,7 +151,6 @@ export function MyFrenchTab() {
       {/* The art and the words share one positioned parent, so the picture can
           bleed off the top-right corner behind the headline. */}
       <View style={st.head}>
-        <HeaderArt name={HEADER_ART.myfrench} />
         <TabHeader title={MY_FRENCH_TITLE} purpose={MY_FRENCH_PURPOSE} />
       </View>
 

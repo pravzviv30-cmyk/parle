@@ -44,7 +44,7 @@ import { Card, Label } from '../components.tsx';
 import { SpeakerGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import * as tutorVoice from '../speech/tutorVoice.ts';
-import { accent, paper, shadow, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { accent, paper, radius, shadow, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
 import { CadenceCard } from '../myfrench/CadenceCard.tsx';
@@ -104,7 +104,7 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
         <Text accessibilityRole="header" style={st.title}>
           {PHRASEBOOK_TITLE}
         </Text>
-        <Art name={SCREEN_ART.phrasebook} style={st.art} />
+        <Art name={SCREEN_ART.phrasebook} compact style={st.art} />
       </View>
 
       {/* The one card this visit deals, at the top, so the thing worth doing is
@@ -184,8 +184,8 @@ function PhraseRow({
 const st = StyleSheet.create({
   // The title and the scene share a row, both sitting on the same baseline, so
   // the drawing reads as part of the heading rather than as a banner over it.
-  head: { flexDirection: 'row', alignItems: 'flex-end', gap: space(3), marginTop: space(2) },
-  title: { ...type.display, color: paper.ink, flex: 1, minWidth: 0 },
+  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(3), marginTop: space(2), padding: space(4), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
+  title: { ...type.display, color: paper.ink, flexGrow: 1, flexBasis: 160, minWidth: 0 },
   // Placement only. The size is the registry's, never a number written here.
   art: { flexShrink: 0 },
   block: { marginTop: space(7) },

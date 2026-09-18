@@ -66,7 +66,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
           is the question somebody arriving here is asking. */}
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{memorySummary(profile, name)}</Text>
 
-      <Card style={st.card}>
+      <Card tone="journal" style={st.card}>
         {facts.length === 0 ? (
           <Text style={[type.body, { color: paper.ink }]}>{NOTHING_YET}</Text>
         ) : (

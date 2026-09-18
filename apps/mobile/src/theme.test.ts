@@ -38,14 +38,14 @@ function block(source: string, start: string, end: string): string {
 }
 
 describe('the revamp tokens are named once, in the theme — F569', () => {
-  test('a card corner is twenty and a row corner is sixteen', () => {
-    // The mockup's cards are generous and its rows are tighter, and the two
+  test('Atelier corners distinguish cards from compact rows', () => {
+    // The lived-in mockup's cards are broad and its rows are tighter, and the two
     // shapes have to differ or a tinted row reads as a small card. Both are
     // names rather than numbers at the call site: a screen writes
-    // `radius.card`, never a 20.
+    // `radius.card`, never a 24.
     const radius = block(themeSource(), 'export const radius = {', '} as const;');
-    assert.match(radius, /\bcard: 20,/, 'a white card no longer turns the corner the mockup draws');
-    assert.match(radius, /\brow: 16,/, 'there is no radius for a tinted row, so a row will be drawn at the card radius');
+    assert.match(radius, /\bcard: 12,/, 'a white card no longer turns the broader corner the mockup draws');
+    assert.match(radius, /\brow: 8,/, 'there is no radius for a tinted row, so a row will be drawn at the card radius');
   });
 
   test('the whisper is the ink token thinned, never a hex', () => {
@@ -68,17 +68,17 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     );
   });
 
-  test('the hero title is the bold serif one size under the display', () => {
+  test('Atelier headings use bold sans while French keeps the serif', () => {
     // The card that leads a tab is a headline, not a screen title, so it is the
     // bold Fraunces a step down from `display`. Raw sizes may only live in this
     // object, which is why the hero cannot simply write a 22 where it is drawn.
     const scale = block(themeSource(), 'export const type = {', '} as const;');
     assert.match(
       scale,
-      /cardTitle: \{ fontFamily: font\.serifBold, fontSize: 22, lineHeight: 28 \}/,
+      /cardTitle: \{ fontFamily: font\.sansBold, fontSize: 26, lineHeight: 31/,
       'the hero title is not the bold serif at 22 over 28',
     );
-    assert.match(scale, /display: \{ fontFamily: font\.serifBold, fontSize: 32/, 'the display is no longer the bold serif above it');
+    assert.match(scale, /display: \{ fontFamily: font\.sansBold, fontSize: 34/, 'the display is no longer the bold serif above it');
   });
 
   test('the white disc inside a tinted row is the touch floor wide', () => {

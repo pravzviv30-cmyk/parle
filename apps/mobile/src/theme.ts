@@ -1,25 +1,10 @@
 /**
- * Colourful calm — the design system.
- *
- * The world is a picture book for adults: one pale Porcelain ground, violet-cast
- * ink, hand-drawn line-art, a serif that speaks and a sans that stays out of the
- * way. Cards are flat white with a hairline rule. Colour does jobs now: violet
- * is identity (the primary pill, the labels, the monogram), green means go
- * (your turn to speak), amber means the tutor is thinking, red means it is
- * talking. Calm, friendly, professional — easy to look at twice a day.
- *
- * What carried over unchanged, because it is behaviour rather than surface:
- * one primary action per screen, the four support colours that cool as the
- * learner climbs, 44pt touch floors, and type that respects the OS reading
- * size. What deliberately changed with this skin: the live microphone is
- * GREEN now, not red — green means "you speak" everywhere, so the orb's red
- * can mean "the tutor is speaking" without the two ever reading as one.
- *
- * Every raw colour value lives in `palette.ts`, which imports nothing, because
- * this file imports `Platform` and the mobile test runner has no react-native.
- * A colour you cannot test is a colour somebody will change with an eyedropper,
- * so the palette is re-exported from here and the values are held to a contract
- * in `palette.test.ts`.
+ * Modern Atelier with the warmth of a French journal.
+ * Warm paper and near-black ink, chartreuse feature panels, bold DM Sans
+ * headings and Fraunces French. Shared geometry carries this language through
+ * every screen, including forms, live sessions, recaps and settings.
+ * Voice signals, touch floors, reading-size scaling and reduced motion retain
+ * their established behavior. Raw colours live in palette.ts.
  */
 
 import { Platform } from 'react-native';
@@ -56,11 +41,11 @@ export const font = {
  */
 export const type = {
   /** Screen headline. */
-  display: { fontFamily: font.serifBold, fontSize: 32, lineHeight: 38, letterSpacing: -0.3 },
+  display: { fontFamily: font.sansBold, fontSize: 34, lineHeight: 39, letterSpacing: -1.2 },
   /** Section head, big stat. */
-  title: { fontFamily: font.serif, fontSize: 24, lineHeight: 30 },
+  title: { fontFamily: font.sansBold, fontSize: 24, lineHeight: 30, letterSpacing: -0.6 },
   /** The title of a card that leads a tab: the hero. Bold serif, smaller than the display. */
-  cardTitle: { fontFamily: font.serifBold, fontSize: 22, lineHeight: 28 },
+  cardTitle: { fontFamily: font.sansBold, fontSize: 26, lineHeight: 31, letterSpacing: -0.8 },
   /** The French line to say. Sentence case, never caps. */
   frenchLg: { fontFamily: font.serif, fontSize: 28, lineHeight: 36 },
   /** Inline French content — options and cards. */
@@ -79,7 +64,7 @@ export const type = {
   bodyStrong: { fontFamily: font.sansMedium, fontSize: 16, lineHeight: 23 },
   small: { fontFamily: font.sans, fontSize: 13.5, lineHeight: 19 },
   /** The word under a bottom-tab glyph. Small enough to sit two to a cell. */
-  tabLabel: { fontFamily: font.sansMedium, fontSize: 11, lineHeight: 14 },
+  tabLabel: { fontFamily: font.sansBold, fontSize: 12, lineHeight: 16 },
   /** Tiny caps label above a card or count. */
   label: {
     fontFamily: font.sansBold,
@@ -98,12 +83,13 @@ export const type = {
 export const space = (n: number) => n * 4;
 
 export const radius = {
-  /** A white card. Twenty since revamp A: the mockup's cards are generous, and a row is not a card. */
-  card: 20,
+  /** A white card. Broad enough to feel like one generous page rather than a utility panel. */
+  card: 12,
   /** A tinted row. Tighter than a card on purpose, so the two never read as one shape. */
-  row: 16,
-  chip: 10,
-  input: 12,
+  row: 8,
+  chip: 6,
+  input: 8,
+  control: 8,
   pill: 999,
 } as const;
 
@@ -116,9 +102,9 @@ export const radius = {
 export const shadow = {
   whisper: {
     shadowColor: paper.ink,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 0.10,
+    shadowRadius: 0,
     elevation: 2,
   },
 } as const;

@@ -54,7 +54,7 @@ import {
 import { Label, TintPanel, TintRow } from '../components.tsx';
 import { PlaceGlyph, WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { accent, DISC, HAIRLINE, paper, space, type } from '../theme.ts';
+import { accent, DISC, HAIRLINE, paper, radius, space, type } from '../theme.ts';
 import { missionTint } from '../missions/missionTint.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
@@ -208,16 +208,14 @@ function FrenchPostcard({ children }: { children: ReactNode }) {
 
 const st = StyleSheet.create({
   title: { ...type.display, color: paper.ink, marginTop: space(2) },
-  // A quiet lilac field makes the true story feel like a keepsake without
-  // competing with the capability rows below it. No shadow and no signal
-  // colour: this reflects; it does not report a state.
+  // The weekly story is journal paper, distinct from the feature statistics.
   story: { marginTop: space(5) },
-  postcard: { padding: space(4) },
+  postcard: { padding: space(4), backgroundColor: paper.groundDeep, borderLeftWidth: 4, borderColor: paper.ink },
   postcardHead: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   postmark: {
     width: DISC,
     height: DISC,
-    borderRadius: DISC / 2,
+    borderRadius: radius.row,
     borderWidth: HAIRLINE,
     borderColor: paper.line,
     backgroundColor: paper.card,
@@ -233,6 +231,6 @@ const st = StyleSheet.create({
   // Sentences a learner reads, so they are set in ink at body size: soft ink
   // clears the floor for a mark and these are words.
   sentence: { ...type.body, color: paper.ink },
-  block: { marginTop: space(7) },
+  block: { marginTop: space(5) },
   rows: { marginTop: space(3), gap: space(2) },
 });

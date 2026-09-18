@@ -55,6 +55,16 @@ describe('the wall is as long as it has something to show', () => {
     assert.deepEqual([...wallPages({ entry: 'settings', storeHasPlans: false })], []);
   });
 
+  test('a missing store or failed load draws a recoverable state, never a blank page', () => {
+    const screen = read('./WallScreen.tsx');
+    assert.doesNotMatch(screen, /if \([^\n]*page === undefined[^\n]*\) return null/);
+    assert.match(screen, /if \(unavailable \|\| failed \|\| loading\)/);
+    assert.match(screen, /Plans aren’t available here yet\./);
+    assert.match(screen, /header=\{<ScreenHeader back=\{\{ onPress: onLeave \}\}/);
+    assert.match(screen, /setRetry\(\(value\) => value \+ 1\)/);
+    assert.match(screen, /\.catch\(\(\) => \{[\s\S]*setLoadFailed\(true\)/);
+  });
+
   test('no door draws a page that is not there, whatever the door', () => {
     const doors: readonly WallEntry[] = ['path-complete', 'refused', 'settings', 'recap'];
     for (const entry of doors) {

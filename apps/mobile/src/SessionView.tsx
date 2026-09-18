@@ -357,7 +357,7 @@ export function SessionView(props: SessionViewProps) {
             beside the name is a mark rather than a control, and it lights when
             the tutor holds the floor, which is the same grammar the thread in a
             conversation uses. */}
-        <Card>
+        <Card tone="journal">
           <View style={st.tutorHead}>
             <Label color={listening ? paper.inkSoft : paper.ink}>The waiter</Label>
             <EarGlyph size={19} color={listening ? paper.inkFaint : paper.ink} />
@@ -413,7 +413,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: accent.primary,
-    borderRadius: radius.pill,
+    borderRadius: radius.control,
   },
   sendEmpty: { backgroundColor: paper.inkFaint },
   // The chip the action row folds into at the accessibility reading sizes.

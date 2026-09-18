@@ -5,7 +5,7 @@
  * STROKE, round caps and joins. Deliberately NO filled variant — a solid icon
  * would be the first two-weight mark in the app and would break the one-pen
  * contract the illustrations and the existing icons both keep. The active tab
- * is said with the identity violet and a heavier word instead (see
+ * is said with a chartreuse surface and a heavier word instead (see
  * LuvaniTabBar): the label carries the signal, and there is no dot.
  *
  * Drawn to the illustration rules too: nothing perfectly level, one oversized
@@ -58,13 +58,12 @@ export function TutorIcon(props: TabIconProps) {
   );
 }
 
-/** Practice — the phrase cards, front one square on, the rest receding. */
+/** Practice — a repeat arrow around a spoken phrase, readable at dock size. */
 export function PracticeIcon(props: TabIconProps) {
   return (
     <Glyph {...props}>
-      <Path d="M4.1 12.6h13.1a1.8 1.8 0 0 1 1.8 1.8v3.1a1.8 1.8 0 0 1-1.8 1.8H4.1a1.8 1.8 0 0 1-1.8-1.8v-3.1a1.8 1.8 0 0 1 1.8-1.8Z" />
-      <Path d="M5.5 9.9h12.3a1.8 1.8 0 0 1 1.7 1.2" />
-      <Path d="M7.1 7.1h10.8" />
+      <Path d="M19.4 8A8 8 0 1 0 20 14M19.4 3.6V8H15" />
+      <Path d="M8.5 10v4M12 8v8M15.5 10v4" />
     </Glyph>
   );
 }

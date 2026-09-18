@@ -43,7 +43,7 @@ import { MICROPHONE_NOTICE, missionCompletionsFrom } from '../missions/chooserVi
 import { loadScenarioProgress } from '../missions/progressStore.ts';
 import { settleIn, useReduceMotion } from '../motion.ts';
 import { loadDeck } from '../review/store.ts';
-import { accent, HIT, paper, space, type } from '../theme.ts';
+import { accent, HAIRLINE, HIT, paper, radius, space, type } from '../theme.ts';
 import { TUTOR_PURPOSE, tutorHeading } from '../tutor/dashboard.ts';
 import { tutorOrbState } from '../tutor/orbState.ts';
 import { DOOR_TINT } from '../tutor/doorTint.ts';
@@ -229,6 +229,11 @@ export function TutorTab() {
             white rectangle around it would be a second edge competing with the
             one shape that matters. The short state sits directly in the mist;
             only a longer non-ready explanation is allowed underneath. */}
+        <View style={st.studio}>
+        <View style={st.studioHead}>
+          <Label>Conversation studio</Label>
+          <Text style={st.studioNote}>À vous de parler.</Text>
+        </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Start a spoken conversation with ${tutorName}`}
@@ -247,6 +252,8 @@ export function TutorTab() {
           />
           {orb.state !== 'ready' && <Text style={st.orbSubline}>{orb.subline}</Text>}
         </Pressable>
+        <Text style={st.studioFoot}>A little French. A real conversation.</Text>
+        </View>
 
         {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
 
@@ -319,6 +326,10 @@ export function TutorTab() {
 }
 
 const st = StyleSheet.create({
+  studio: { backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card, padding: space(4), gap: space(2) },
+  studioHead: { gap: space(1) },
+  studioNote: { ...type.frenchSm, color: paper.inkSoft },
+  studioFoot: { ...type.small, color: paper.ink, textAlign: 'center', borderTopWidth: HAIRLINE, borderTopColor: paper.ink, paddingTop: space(3) },
   orb: { alignItems: 'center', alignSelf: 'center', minWidth: TUTOR_ORB_SIZE, minHeight: TUTOR_ORB_SIZE, paddingVertical: space(1) },
   pressed: { transform: [{ scale: 0.985 }, { translateY: 1 }] },
   orbSubline: { ...type.small, color: paper.inkSoft, marginTop: space(1), textAlign: 'center' },

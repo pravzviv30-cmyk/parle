@@ -39,7 +39,7 @@ describe('quiet live-room chrome', () => {
 
   test('the outlined circle has a 44pt target and visible, motion-free press feedback', () => {
     assert.match(header, /width: HIT,[\s\S]{0,80}height: HIT/, 'the end control is smaller than the shared 44pt floor');
-    assert.match(header, /borderRadius: HIT \/ 2/, 'the end control is not circular');
+    assert.match(header, /borderRadius: radius\.control/, 'the end control must share the Atelier control shape');
     assert.match(header, /borderWidth: HAIRLINE/, 'the end control lost its quiet outline');
     assert.match(header, /backgroundColor: paper\.card/, 'the resting control is not on the porcelain/card palette');
     assert.match(header, /endPressed:[\s\S]{0,140}borderColor: accent\.primary/, 'pressing the icon gives no violet feedback');

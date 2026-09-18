@@ -16,7 +16,7 @@
  */
 
 import { useCallback } from 'react';
-import { BackHandler } from 'react-native';
+import { BackHandler, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 /**
@@ -30,6 +30,7 @@ export function useHardwareBack(active: boolean, onBack: () => void): void {
   useFocusEffect(
     useCallback(() => {
       if (!active) return;
+      if (Platform.OS !== 'android') return;
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
         onBack();
         return true;

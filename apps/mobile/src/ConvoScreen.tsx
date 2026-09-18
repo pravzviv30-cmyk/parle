@@ -1312,13 +1312,13 @@ const st = StyleSheet.create({
   // Nothing but the question and the circle yet: they sit in the middle of the
   // screen, exactly as they always have.
   chooseHeadGrow: { flex: 1 },
-  chooseScroll: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: space(6) },
+  chooseScroll: { flexGrow: 1, alignItems: 'center', paddingVertical: space(5) },
   // Once the thread opens it takes the room, and the head above it gives way
   // rather than pushing anything off the bottom.
   chooseHeadShrink: { flexGrow: 0, flexShrink: 1 },
-  chooseTop: { alignItems: 'center', paddingTop: space(2), paddingBottom: space(4) },
-  chooseOrb: { alignItems: 'center', marginTop: space(7), marginBottom: space(8) },
-  chooseOrbTight: { alignItems: 'center', marginTop: space(2), marginBottom: space(8) },
+  chooseTop: { alignItems: 'center', padding: space(4), alignSelf: 'stretch', backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
+  chooseOrb: { alignItems: 'center', marginTop: space(5), marginBottom: space(5) },
+  chooseOrbTight: { alignItems: 'center', marginTop: space(2), marginBottom: space(5) },
   // The circle is well past the touch floor already; the floor is here so it
   // stays past it if the circle ever shrinks.
   orbTap: { minWidth: HIT, minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
@@ -1344,7 +1344,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: accent.primary,
-    borderRadius: radius.pill,
+    borderRadius: radius.control,
   },
   helpRow: {
     marginTop: space(3),

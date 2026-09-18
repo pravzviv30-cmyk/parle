@@ -37,7 +37,7 @@ export function WallFrenchPage({ french, onOpenBank }: { french: WallFrench; onO
       <Text style={st.sub}>{french.hasEvidence ? FRENCH_SUB : FRENCH_START}</Text>
 
       {french.hasEvidence && (
-        <Card style={st.hero}>
+        <Card tone="feature" style={st.hero}>
           <View style={st.head}>
             <View style={st.well}>
               <MicGlyph size={18} color={signal.good} />

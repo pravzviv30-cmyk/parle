@@ -46,7 +46,7 @@ export function PhraseCard({
   control?: ReactNode;
 }) {
   return (
-    <Card style={s.card}>
+    <Card tone="journal" style={s.card}>
       <Label>{label}</Label>
       <View style={s.line}>
         <Text style={[fitDisplay(french), s.french]}>{french}</Text>
@@ -66,7 +66,7 @@ export function PhraseCard({
 }
 
 const s = StyleSheet.create({
-  card: { gap: space(3) },
+  card: { gap: space(4), borderLeftWidth: 5, paddingVertical: space(5) },
   line: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   french: { color: paper.ink, flex: 1, minWidth: 0 },
   speaker: {
