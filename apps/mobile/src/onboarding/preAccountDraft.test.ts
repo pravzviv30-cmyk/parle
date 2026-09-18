@@ -77,6 +77,39 @@ describe('the pre-account hand-off', () => {
     assert.match(source, /onCreateAccount\(draft\)/, 'the chosen voice is dropped before sign-up');
   });
 
+  test('each short page settles into place and honours reduced motion', () => {
+    assert.match(source, /const reduced = useReduceMotion\(\)/, 'the onboarding transition cannot honour reduced motion');
+    assert.match(source, /pageEntry\.setValue\(0\)/, 'a new page inherits the previous page’s final animation frame');
+    assert.match(source, /settleIn\(pageEntry, reduced\)/, 'the flow invents a second motion vocabulary instead of using the shared settle');
+    assert.match(source, /\[page, pageEntry, reduced\]/, 'moving to another page does not restart the transition');
+    assert.match(source, /<Animated\.View style=\{entryStyle\}>\{body\}<\/Animated\.View>/, 'the page content is not carried by the transition');
+    assert.match(source, /import \{ settleIn, useReduceMotion \} from '\.\.\/motion\.ts'/, 'the shared motion seam is no longer imported');
+  });
+
+  test('the second page proves the product with one local café turn before it explains more', () => {
+    assert.match(source, /const CAFÉ_DEMO = \{/, 'the demo copy has no single owner');
+    assert.match(source, /const \[demoAnswered, setDemoAnswered\] = useState\(false\)/, 'the café turn has no local state');
+    assert.match(source, /setDemoAnswered\(true\)/, 'tapping the learner reply does not advance the exchange');
+    assert.match(source, /\{page === 'situations' && demoAnswered && <PillButton label="Continue"/, 'the explanation can be skipped before the learner has tried a turn');
+    assert.match(source, /\{page === 'situations' && !demoAnswered && <Text/, 'the first decision is not explained while Continue is withheld');
+    assert.match(source, /settleIn\(demoEntry, reduced, 80\)/, 'the reply does not use the shared reduced-motion-safe reveal');
+    assert.match(source, /<Animated\.View accessibilityLiveRegion="polite" style=\{\[st\.demoReveal, demoEntryStyle\]\}>/, 'the tutor response is not carried by the reveal or announced when it appears');
+
+    // A demonstration is not an excuse to ask for either permission. The real
+    // scene remains the first place a learner can deliberately ask to speak.
+    for (const permission of ['requestRecordingPermissionsAsync', 'requestPermissionsAsync', 'getPermissionsAsync']) {
+      assert.ok(!source.includes(permission), `pre-account onboarding asks for permission through ${permission}`);
+    }
+  });
+
+  test('the voice chooser starts with three calm suggestions and never hides a resumed choice', () => {
+    assert.match(source, /const SUGGESTED_VOICE_COUNT = 3/, 'the first chooser screenful is no longer bounded');
+    assert.match(source, /const visibleVoices = showAllVoices \? TUTOR_VOICE_OPTIONS : SUGGESTED_VOICES/, 'the short list and full catalogue do not share one source');
+    assert.match(source, /\{visibleVoices\.map\(\(option\) => \(/, 'the chooser ignores the suggested/full catalogue decision');
+    assert.match(source, /label="See all voices"/, 'the complete catalogue has no way in');
+    assert.match(source, /if \(!SUGGESTED_VOICES\.some\(\(option\) => option\.value === selected\)\) setShowAllVoices\(true\)/, 'a resumed voice outside the first three is hidden');
+  });
+
   test('a voice selection plays that tutor’s bundled bilingual introduction', () => {
     // The audio assets are generated through the agent's real voice seam and
     // each speaks the bilingual introduction `tutorSampleLine` owns, French
@@ -88,7 +121,18 @@ describe('the pre-account hand-off', () => {
     assert.match(choose, /setPlaying\(voice\)/, 'selecting a tutor does not show their introduction as playing');
     assert.match(choose, /player\.replace\(voiceSample\(voice\)\)/, 'selecting a tutor does not load that tutor’s own clip');
     assert.match(choose, /player\.play\(\)/, 'the selected tutor introduction is loaded but never heard');
+    assert.ok(choose.indexOf('player.pause()') < choose.indexOf('player.replace('), 'a previous voice can keep sounding under the newly selected one');
     assert.match(source, /they introduce themselves in French and then in English/, 'the voice page does not explain the bilingual introduction');
+  });
+
+  test('the final page separates trust facts before it asks for analytics consent', () => {
+    const ready = source.slice(source.indexOf("page === 'ready' &&"));
+    const ai = ready.indexOf('Your tutor is AI');
+    const mic = ready.indexOf('We ask for microphone permission only when you start a scene. You can type instead.');
+    const raw = ready.indexOf('Learning history does not include raw audio by default.');
+    const consent = ready.indexOf('<SwitchRow');
+    assert.ok(ai > 0 && mic > ai && raw > mic, 'the final page no longer presents AI, microphone/typing and raw-audio facts in a readable order');
+    assert.ok(consent > raw, 'analytics consent is asked before the learner is told what the app keeps');
   });
 
   test('turns the draft into one account-scoped profile exactly once', () => {

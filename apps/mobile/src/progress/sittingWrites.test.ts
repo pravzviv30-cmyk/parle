@@ -74,9 +74,15 @@ describe('a sitting says how long it took, and a scene says where it was left â€
       'the conversation screen no longer reaches the store that remembers where a scene was left',
     );
 
-    const at = body.indexOf('const leaveNow');
-    assert.ok(at >= 0, 'the conversation screen has no leaveNow, so this test is stale');
-    const leave = body.slice(at, at + 900);
+    const at = body.indexOf('const leaveTo');
+    assert.ok(at >= 0, 'the conversation screen has no shared leave path, so this test is stale');
+    const end = body.indexOf('const leaveNow', at);
+    assert.ok(end > at, 'leaveNow no longer delegates to the shared leave path, so this test is stale');
+    // Bound the assertion to the whole shared leave function. A fixed character
+    // window broke as soon as a comment or a second completion path grew above
+    // the write; ending at the delegate keeps every refusal below under test
+    // without allowing another function's conditions to satisfy them.
+    const leave = body.slice(at, end);
 
     assert.match(leave, /recordScenarioProgress\(/, 'leaving a scene part way through writes nothing down');
 

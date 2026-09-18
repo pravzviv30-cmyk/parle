@@ -132,7 +132,7 @@ export function companyLine(facts: CompanyFacts = COMPANY): string | null {
  * Verbatim from the Profile footer, and pinned by `disclosure.test.ts`. Accurate
  * words are not cleared words, and the app should not imply otherwise.
  */
-export const LEGAL_REVIEW_PENDING = 'A reviewed privacy policy and terms are still required before release.';
+export const LEGAL_REVIEW_PENDING = 'Our privacy policy and terms still need legal review before Luvani can be released.';
 
 /**
  * The short, honest paragraph about what Luvani keeps.

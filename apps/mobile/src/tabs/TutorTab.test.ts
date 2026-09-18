@@ -126,10 +126,28 @@ describe('the tutor tab is one circle and four rows — F573', () => {
     assert.match(RENDER, /<ContinuityCard/, 'the memory left the tab');
     assert.match(FLAT, /continuityFrom\(\{ brain: profile\.brain, packs, records: scenes, progress \}\)/, 'the memory line reads its own idea of where the scenes stand');
     assert.match(FLAT, /headline=\{continuityHeadline\(tutorName\)\}/, 'the memory row names somebody other than the chosen tutor');
-    // The row navigates where the rule says, and marks a pack only on the one
-    // route that actually carries the conversation on.
-    assert.match(FLAT, /if \(route\.markPack !== null\) void markPackContinued\(route\.markPack, Date\.now\(\)\)/, 'a thread is marked as picked up on a tap that led somewhere else');
+    // The row carries a pack id into the room. The tab cannot retire it: a tap
+    // can still land on an offline gate, so only ConvoScreen's first live view
+    // is evidence that the thread was actually picked up.
+    assert.doesNotMatch(FLAT, /markPackContinued/, 'the tab retires a thread before a room has opened');
+    assert.match(
+      FLAT,
+      /nav\.navigate\(route\.screen, \{ \.\.\.route\.params, continuationPackId: route\.markPack \}\)/,
+      'the pack identity does not reach the room that can prove it opened',
+    );
     assert.match(FLAT, /nav\.navigate\(route\.screen, route\.params\)/, 'the memory row decides its own destination');
+
+    const convo = stripComments(read('../ConvoScreen.tsx')).replace(/\s+/g, ' ');
+    const navigator = stripComments(read('../nav/RootNavigator.tsx')).replace(/\s+/g, ' ');
+    assert.match(navigator, /continuationPackId=\{route\.params\?\.continuationPackId\}/, 'the route drops the pack id before ConvoScreen');
+    assert.match(
+      convo,
+      /continuationPackId === undefined \|\| live\.convo === null\) return;/,
+      'a failed or unopened room can mark a conversation as continued',
+    );
+    const raised = convo.indexOf('continuationMarkedRef.current = true');
+    const written = convo.indexOf('markPackContinued(continuationPackId, Date.now())');
+    assert.ok(raised >= 0 && written > raised, 'the async mark is queued before the once-only guard is raised');
 
     // ── no pill ────────────────────────────────────────────────────────────
     // The circle is the tab's one primary action. The resume card's pill left
@@ -163,12 +181,10 @@ describe('the tutor tab is one circle and four rows — F573', () => {
 /**
  * The orb and the card were both talking.
  *
- * `VoiceOrb` captions itself by default, which is right on the live screen where
- * it is the only thing on the page. On this tab it is not: the page says "Tap
- * to speak" and a second line under it, and the orb's own caption rendered on
- * top of both. It looked like a rendering fault and it had been there since the
- * card was built. Revamp A took the card away and left the two lines, so the
- * rule is the same one and there is one less rectangle around it.
+ * The ready action is embedded in the watercolour orb. Other states still put
+ * their honest explanation under the circle, and the continuity promise stays
+ * under the header. The orb's ordinary caption is off here because this page owns the
+ * accessible button and the state words around it.
  */
 describe('the tutor page owns its words — F415', () => {
   test("the tutor's circle lets the page do the talking — F415", () => {
@@ -179,22 +195,21 @@ describe('the tutor page owns its words — F415', () => {
       /withCaption=\{false\}/,
       'the circle captions itself on a page that already says two lines, and the two land on top of each other',
     );
-    assert.match(orbs[0]!, /size=\{170\}/, 'the circle is not drawn at the size the canvas gives it');
+    assert.match(orbs[0]!, /size=\{TUTOR_ORB_SIZE\}/, 'the circle bypasses the one size the landing page owns');
+    assert.match(SCREEN, /const TUTOR_ORB_SIZE = 218;/, 'the landing circle is smaller than the approved focal control');
     // The card went with Revamp A: a white rectangle around the one shape on
     // this tab that means something was a second edge competing with it.
     assert.ok(!SCREEN.includes('st.speakCard'), 'the circle is back inside a card of its own');
-    // And the page still says them, so silencing the orb did not silence the
-    // page. The words live in `tutor/orbState.ts`, where the state is decided
-    // from the facts, so the page draws the rule's title and subline and the
-    // rule holds the line the circle was told not to say.
+    // The ready words live inside the circle; non-ready states keep the status
+    // under it, and the purpose line remains beneath the whole control.
     assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart \}\)/, 'the circle no longer reads its state from the facts');
-    assert.match(FLAT, /\{orb\.title\}/, 'the page lost the words the circle was told not to say');
-    assert.match(FLAT, /\{orb\.subline\}/, 'the page lost its second line');
+    assert.match(FLAT, /embeddedLabel=\{orb\.title\}/, 'the compact state label is not embedded directly in the orb');
+    assert.match(FLAT, /\{orb\.state !== 'ready' && <Text style=\{st\.orbSubline\}>\{orb\.subline\}<\/Text>\}/, 'a non-ready state no longer explains why the circle cannot start');
     const rule = read('../tutor/orbState.ts');
-    assert.match(rule, /'Tap to speak'/, 'the rule lost the ready line');
+    assert.match(rule, /'Tap to talk'/, 'the rule lost the minimalist ready line');
     assert.match(rule, /TUTOR_ORB_SUBLINE/, 'the rule lost the second line');
     const words = read('../tutor/dashboard.ts');
-    assert.match(words, /'Gentle guidance, no pressure\.'/, 'the line under the circle stopped promising a conversation without pressure');
+    assert.match(words, /'Your tutor remembers where you left off\.'/, 'the header lost the continuity promise in the approved Tutor direction');
   });
 
   test('the whole circle block is one press, and it says what it opens', () => {
@@ -207,7 +222,10 @@ describe('the tutor page owns its words — F415', () => {
     assert.match(press, /accessibilityLabel=\{`Start a spoken conversation with \$\{tutorName\}`\}/, 'the circle does not say whose conversation it opens');
     assert.match(press, /onPress=\{\(\) => open\(false\)\}/, 'the circle opens something other than the conversation');
     assert.match(press, /disabled=\{checking\}/, 'a second tap during the connection check opens a second room');
-    assert.match(between(SCREEN, 'orb: {', '}', 'the circle block has a style'), /minHeight: HIT/, 'the circle block is built under the 44pt touch floor');
+    const orbStyle = between(SCREEN, 'orb: {', '}', 'the circle block has a style');
+    assert.match(orbStyle, /minWidth: TUTOR_ORB_SIZE/, 'only the drawing is large; the full visible orb is not the touch target');
+    assert.match(orbStyle, /minHeight: TUTOR_ORB_SIZE/, 'the circle block is smaller than its 218pt visible control');
+    assert.doesNotMatch(between(SCREEN, 'pressed: {', '}', 'the orb has no immediate press state'), /opacity/, 'pressing the orb fades away the control the learner just chose');
   });
 });
 

@@ -200,31 +200,28 @@ describe('the momentum block at zero — what a first run is shown', () => {
     assert.equal(momentum.mastery.line, null, 'and it bands nothing, because there is nothing to band');
     assert.equal(momentum.mastery.label, MASTERY_LABEL, 'the tile names itself');
 
-    // Goal: a card, an ask, and no measurement of a promise nobody made.
-    assert.equal(momentum.goal.target, null, 'nobody has chosen a daily promise');
-    assert.equal(momentum.goal.amount, null, 'so there is no fraction to write');
-    assert.equal(momentum.goal.percentLabel, null, 'and no percentage of a number that does not exist');
+    // Speaking time: a card, an invitation, and no target nobody chose.
+    assert.equal(momentum.goal.target, null, 'nobody has chosen a speaking target');
+    assert.equal(momentum.goal.amount, null, 'so there is no target amount or measured time to write');
     assert.equal(momentum.goal.remaining, null, 'nothing is remaining of nothing');
     assert.equal(momentum.goal.minutes, 0, 'no minutes were spoken today, and the card says so in words rather than in digits');
-    assert.equal(momentum.goal.percent, 0, 'an empty bar, which is what an unstarted day looks like');
     assert.equal(momentum.goal.title, GOAL_TITLE, 'the card names itself');
+    assert.equal('percent' in momentum.goal, false, 'an optional target has become a percentage again');
+    assert.equal('percentLabel' in momentum.goal, false, 'the data shape can still hand a percentage to the screen');
     assert.equal(
       momentum.goal.note,
       DAILY_GOAL_UNSET,
-      'the card asks for a promise in the words the profile row already uses, rather than a second way to ask',
+      'the card offers the optional target in the words the profile row already uses, rather than a second way to ask',
     );
 
-    // Choosing a daily goal is not progress: it is a promise about the future.
-    // It used to remove the card entirely. Now it fills the promise in and
-    // still refuses to write "0 / 10", because a nought out of ten on the first
-    // morning is the scoreboard this block exists to not be.
+    // Choosing a target is not progress: it is a preference about the future.
+    // The preference is named alone and never drawn as "0 / 10", because a
+    // nought out of ten on the first morning is a scoreboard.
     const promised = momentumFrom({ activity: [], deck: [], profile: tenMinuteGoal(), now: NOW });
-    assert.equal(promised.goal.target, 10, 'the promise the learner made is the promise the card carries');
-    assert.equal(promised.goal.amount, '10 min', 'the promise alone, because "0 / 10 min" reads as a failure at breakfast');
-    assert.equal(promised.goal.note, GOAL_START, 'and the footer says where the first minutes of the day will land');
-    assert.equal(promised.goal.percent, 0, 'the bar is empty, and nothing beside it calls that a shortfall');
-    assert.equal(promised.goal.percentLabel, null, 'no percentage until there is a fraction to state');
-    assert.equal(promised.goal.remaining, 10, 'the whole promise is still ahead of them, which is what a morning is');
+    assert.equal(promised.goal.target, 10, 'the optional target the learner chose is the target the card carries');
+    assert.equal(promised.goal.amount, '10 min target', 'the preference stands alone, never as a zero over a target');
+    assert.equal(promised.goal.note, GOAL_START, 'and the footer leaves the timing with the learner');
+    assert.equal(promised.goal.remaining, 10, 'the whole optional target is still available, without being framed as a shortfall');
   });
 });
 
@@ -571,35 +568,33 @@ describe('recall — right over asked, once the introduction is taken out', () =
   });
 });
 
-describe("today's speaking goal — present from day one, measured in speaking", () => {
-  test("today's speaking goal is present from day one, carries the profile's own unset line, and counts only timed spoken sittings — F435", () => {
+describe("today's speaking time — present from day one, measured without a quota", () => {
+  test("today's speaking time carries the optional Profile target and counts only timed spoken sittings — F435", () => {
     const spokeSix = [entry(at(2026, 9, 4, 9), 'convo', 6 * MINUTE_MS)];
 
-    // No promise: the card is still there, and it asks for one in the exact
+    // No target: the card is still there, and it offers one in the exact
     // words the profile row asks in. One sentence, one owner.
     const unpromised = momentumFrom({ activity: spokeSix, deck: [], profile: noGoal(), now: NOW }).goal;
-    assert.equal(unpromised.target, null, 'nobody has chosen a daily promise, so there is no promise to measure them against');
+    assert.equal(unpromised.target, null, 'nobody has chosen a speaking target, so there is no target to measure them against');
     assert.equal(unpromised.note, DAILY_GOAL_UNSET, 'and the card asks for one rather than inventing a number on their behalf');
     assert.equal(
       goalLine(noGoal()),
       DAILY_GOAL_UNSET,
       'the profile row and this card must ask in the same words, which is why the constant is imported and not rewritten',
     );
-    assert.equal(unpromised.amount, null, 'no promise means no fraction');
+    assert.equal(unpromised.amount, '6 min today', 'measured speaking time remains visible without requiring a target');
     assert.equal(unpromised.remaining, null, 'and nothing remaining of nothing');
-    assert.equal(unpromised.percentLabel, null, 'and no percentage of a target that does not exist');
-    assert.equal(unpromised.percent, 0, 'the bar stays empty, and the words beside it name no target');
     assert.equal(unpromised.minutes, 6, 'the six minutes still happened, and the card still knows it');
+    assert.equal('percent' in unpromised, false, 'speaking time is still reduced to a quota percentage');
+    assert.equal('percentLabel' in unpromised, false, 'a percentage label can still reach Progress');
 
     const goal = momentumFrom({ activity: spokeSix, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
     assert.equal(goal.minutes, 6, 'six minutes of conversation is six minutes');
     assert.equal(goal.target, 10, 'the target is what the learner asked for, never what we would prefer');
     assert.equal(goal.remaining, 4, 'four minutes are left of the ten');
-    assert.equal(goal.percent, 60, 'the bar is six of ten');
     assert.equal(goal.title, GOAL_TITLE, 'the card names itself, and the screen never spells the words');
-    assert.equal(goal.amount, '6 / 10 min', 'the mockup right-aligns the two numerals and the unit');
-    assert.equal(goal.note, '4 more minutes to reach daily cadence', 'the footer says what is left, without asking for it');
-    assert.equal(goal.percentLabel, '60%', 'and the right of the footer carries the same fraction as a percentage');
+    assert.equal(goal.amount, '6 min today', 'the card reports the time already spoken, not a quota fraction');
+    assert.equal(goal.note, "4 more minutes if you want to reach today's target", 'the footer leaves the choice with the learner');
 
     // Every spoken path has a quiet twin, so a lesson and a drill are worth the
     // same minute a conversation is.
@@ -611,16 +606,15 @@ describe("today's speaking goal — present from day one, measured in speaking",
     assert.equal(
       momentumFrom({ activity: mixed, deck: [], profile: tenMinuteGoal(), now: NOW }).goal.minutes,
       6,
-      'a lesson and a drill produce French out loud or on the keys, and both count towards a speaking goal',
+      'a lesson and a drill produce French out loud or on the keys, and both count as speaking time',
     );
 
     // Review is recall, not speaking, and this card is named for speaking.
     const reviewOnly = [entry(at(2026, 9, 4, 9), 'review', 25 * MINUTE_MS)];
     const reviewed = momentumFrom({ activity: reviewOnly, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
-    assert.equal(reviewed.minutes, 0, 'twenty five minutes of card review must never fill a bar labelled speaking');
-    assert.equal(reviewed.note, GOAL_START, 'and the card says where the first spoken minutes will land');
-    assert.equal(reviewed.amount, '10 min', 'the promise on its own, because "0 / 10 min" reads as a failure');
-    assert.equal(reviewed.percentLabel, null, 'and no percentage until there is a fraction to state');
+    assert.equal(reviewed.minutes, 0, 'twenty five minutes of card review must never count as speaking time');
+    assert.equal(reviewed.note, GOAL_START, 'and the card leaves the chosen target waiting without urgency');
+    assert.equal(reviewed.amount, '10 min target', 'the preference stands alone, because "0 / 10 min" reads as a failure');
 
     // Sittings recorded before `durationMs` existed measured nothing, and
     // nothing is not zero minutes of speaking. The footer says so rather than
@@ -628,8 +622,7 @@ describe("today's speaking goal — present from day one, measured in speaking",
     const unmeasured = [entry(at(2026, 9, 4, 9), 'convo'), entry(at(2026, 9, 4, 11), 'lesson')];
     const untimed = momentumFrom({ activity: unmeasured, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
     assert.equal(untimed.minutes, 0, 'a sitting that took ten minutes and did not record it is not a ten minute claim');
-    assert.equal(untimed.note, GOAL_UNTIMED, 'so the card explains the empty bar instead of letting it accuse them');
-    assert.equal(untimed.percent, 0, 'and invents no minutes to fill it with');
+    assert.equal(untimed.note, GOAL_UNTIMED, 'so the card explains why it shows no measured minutes');
 
     // Untimed only applies to speaking. An untimed review leaves the ordinary
     // invitation in place.
@@ -637,7 +630,7 @@ describe("today's speaking goal — present from day one, measured in speaking",
     assert.equal(
       momentumFrom({ activity: untimedReview, deck: [], profile: tenMinuteGoal(), now: NOW }).goal.note,
       GOAL_START,
-      'a review is not a spoken sitting, so nothing about it explains an empty speaking bar',
+      'a review is not a spoken sitting, so nothing about it explains missing speaking time',
     );
 
     // Yesterday's minutes are yesterday's.
@@ -658,15 +651,14 @@ describe("today's speaking goal — present from day one, measured in speaking",
     const both = [entry(at(2026, 9, 4, 9), 'convo'), entry(at(2026, 9, 4, 11), 'convo', 9 * MINUTE_MS)];
     const partly = momentumFrom({ activity: both, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
     assert.equal(partly.minutes, 9, 'the nine we measured are the nine we claim');
-    assert.equal(partly.note, '1 more minute to reach daily cadence', 'one minute left is one minute, and a stray s reads as careless');
+    assert.equal(partly.note, "1 more minute if you want to reach today's target", 'one minute left is one minute, and a stray s reads as careless');
 
-    // Past the goal, the bar cannot overflow and the footer turns warm.
+    // Past the target, the truthful minutes keep rising and the footer turns warm.
     const over = [entry(at(2026, 9, 4, 9), 'convo', 22 * MINUTE_MS)];
     const met = momentumFrom({ activity: over, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
-    assert.equal(met.minutes, 22, 'the minutes are what happened, even past the promise');
+    assert.equal(met.minutes, 22, 'the minutes are what happened, even past the optional target');
     assert.equal(met.remaining, 0, 'nothing is left to ask for');
-    assert.equal(met.percent, 100, 'the bar clamps rather than running off the card');
-    assert.equal(met.percentLabel, '100%', 'and so does the figure beside it');
+    assert.equal(met.amount, '22 min today', 'measured time is not clamped at the optional target');
     assert.equal(met.note, GOAL_MET, 'a met goal is met, and the footer stops counting down');
   });
 });
@@ -679,7 +671,7 @@ describe('momentum copy — the words this block is not allowed to say', () => {
     assert.equal(guiltIn('breakfast at the cafe'), 'break', 'the matcher is substring, so "breakfast" is a banned word here');
     assert.equal(guiltIn('a lower percentage'), 'owe', '"lower" contains "owe", which is why this copy avoids it');
     assert.equal(guiltIn('closer to the goal'), 'lose', 'and "closer" contains "lose"');
-    assert.equal(guiltIn('4 more minutes to reach daily cadence'), undefined, 'the line the block actually ships is clean');
+    assert.equal(guiltIn("4 more minutes if you want to reach today's target"), undefined, 'the line the block actually ships is clean');
 
     const profile = tenMinuteGoal();
     const lines: string[] = [
@@ -786,7 +778,7 @@ describe('momentum copy — the words this block is not allowed to say', () => {
     assert.equal(oneOfEach.retained.weekLine, '+1 this week', 'and the weekly line counts the one that arrived');
     assert.equal(
       oneOfEach.goal.note,
-      '1 more minute to reach daily cadence',
+      "1 more minute if you want to reach today's target",
       'one minute left is one minute, and a stray s here is the whole block looking careless',
     );
   });

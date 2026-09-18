@@ -8,8 +8,9 @@
  */
 
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { paper, signal, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { paper, radius, signal, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { ArrowRight } from '../components.tsx';
+import { tapSettled } from '../motion/haptics.ts';
 
 export function SettingsRow({
   label,
@@ -44,10 +45,13 @@ export function SettingsRow({
   }
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        tapSettled();
+        onPress();
+      }}
       accessibilityRole="button"
       accessibilityLabel={value ? `${label}, ${value}` : label}
-      style={({ pressed }) => pressed && { opacity: 0.6 }}
+      style={({ pressed }) => [st.pressable, pressed && st.pressed]}
     >
       {body}
     </Pressable>
@@ -57,4 +61,9 @@ export function SettingsRow({
 const st = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2.5) },
   divided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
+  // Keep every word fully legible while a tap lands. The deeper porcelain is
+  // the design system's pressed surface; opacity made the whole row disappear
+  // at exactly the moment the learner needed confirmation.
+  pressable: { borderRadius: radius.row },
+  pressed: { backgroundColor: paper.groundDeep },
 });

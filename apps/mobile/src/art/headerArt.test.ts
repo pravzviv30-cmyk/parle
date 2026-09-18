@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { HEADER_ART_OFFSET, showHeaderArt } from './headerArt.ts';
+import { HEADER_ART_OFFSET, LONG_HEADER_ART_TOP, showHeaderArt } from './headerArt.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 
@@ -40,12 +40,14 @@ describe('the header corner as the reading size grows — F570', () => {
 
     assert.equal(HEADER_ART_OFFSET.top, -4 * step, 'the bleed upward is no longer four steps of the grid');
     assert.equal(HEADER_ART_OFFSET.right, -5 * step, 'the bleed sideways no longer matches the screen padding');
+    assert.equal(LONG_HEADER_ART_TOP, -20 * step, 'the two-line headers no longer clear their purpose line');
 
     // The fade is painted into the PNG's alpha rather than masked at the edge:
     // a gradient over a negative margin clips hard on Android, and on the web
     // the overhang becomes real scrollable width.
     const corner = readFileSync(join(HERE, 'HeaderArt.tsx'), 'utf8');
     assert.ok(corner.includes("position: 'absolute'"), 'the corner art is in the flow, so it pushes the greeting down');
+    assert.match(corner, /name === 'header-practice' \|\| name === 'header-myfrench'/, 'long tab titles no longer tuck their art above the purpose line');
     assert.ok(corner.includes('pointerEvents="none"'), 'the corner art can take a tap meant for the header');
     assert.ok(corner.includes('{...decorative}'), 'the corner art reaches a screen reader');
     assert.ok(

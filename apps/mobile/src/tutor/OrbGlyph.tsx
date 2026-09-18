@@ -1,72 +1,61 @@
 /**
- * The orb, drawn once and standing still — revamp A.
+ * The still half of the tutor's voice circle.
  *
- * Everything the tutor's circle looks like lives here, and nothing that moves
- * does: one `<Svg>`, static attributes only, so the wrapper above it
- * (`VoiceOrb`) can animate transform and opacity on the native driver without
- * ever reaching an SVG attribute. `motion.test.ts` enforces that separation.
+ * UI 4 made the important call: the tutor is a soft watercolour presence, not
+ * a microphone button in a glass capsule. This drawing therefore owns only the
+ * misty colour field and its three quiet rings. The direct white voice bars and
+ * every moving part live one level up in `VoiceOrb`, where core Animated can
+ * move transforms on the native driver without animating an SVG attribute.
  *
- * The gradient is the ONE state colour thinned by opacity rather than a second
- * hex, so the palette gains no token and the 3:1 floor a state mark is held to
- * (F323) is the floor the colour already cleared. Three faint rings sit around
- * it, and in the two states where a voice is in the room the soundwave lines
- * are drawn either side.
- *
- * It carries no shadow. The app's only shadows are the white card's whisper and
- * the live microphone's glow, and an orb that borrowed one would quietly make
- * two things look equally urgent.
- *
- * Geometry is in the mockup's own units: a 170 square for the ball and its
- * rings, widened to 270 when the lines are drawn, so `size` always means the
- * diameter of the ball's box whether or not the voice is showing.
+ * The mist uses one supplied state colour at several transparencies. It does
+ * not smuggle a second purple into the palette, and it changes naturally to
+ * green, amber or red when the room changes state. Two off-centre washes keep
+ * the centre from reading as a polished app-store gradient while remaining
+ * deterministic and inexpensive on native and web.
  */
 
 import { useId } from 'react';
-import Svg, { Circle, Defs, G, Path, RadialGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { decorative, STROKE } from '../theme.ts';
 
-/** The ball and its rings, in viewBox units. */
-export const ORB_BOX = 170;
-/** The same drawing with room either side for the voice lines. */
-export const ORB_WIDE = 270;
-/** The strip either side that holds nothing but the lines. */
-export const ORB_SIDE = (ORB_WIDE - ORB_BOX) / 2;
+/** The drawing's square viewBox. `size` is always the whole ring field. */
+export const ORB_BOX = 200;
 
-const CX = ORB_WIDE / 2;
-const CY = 85;
+const CENTRE = ORB_BOX / 2;
 
-export function OrbGlyph({ color, size, waves }: { color: string; size: number; waves?: boolean }) {
-  // Two orbs can share a page — the tutor's mark sits in a row under the big
-  // one on Profile — and two gradients under one id is one gradient.
-  const id = `orb${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+export function OrbGlyph({ color, size }: { color: string; size: number }) {
+  // Mini orbs share TutorIntro and the full orb shares a screen with the tutor
+  // mark, so every gradient id must belong to the instance that draws it.
+  const token = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const baseId = `orbBase${token}`;
+  const mistId = `orbMist${token}`;
+
   return (
-    <Svg
-      width={waves ? (size * ORB_WIDE) / ORB_BOX : size}
-      height={size}
-      viewBox={waves ? `0 0 ${ORB_WIDE} ${ORB_BOX}` : `${ORB_SIDE} 0 ${ORB_BOX} ${ORB_BOX}`}
-      {...decorative}
-    >
+    <Svg width={size} height={size} viewBox={`0 0 ${ORB_BOX} ${ORB_BOX}`} {...decorative}>
       <Defs>
-        <RadialGradient id={id} cx="50%" cy="42%" r="55%">
+        <RadialGradient id={baseId} cx="43%" cy="38%" r="64%">
           <Stop offset="0" stopColor={color} stopOpacity={1} />
-          <Stop offset="0.65" stopColor={color} stopOpacity={0.85} />
-          <Stop offset="1" stopColor={color} stopOpacity={0.45} />
+          <Stop offset="0.58" stopColor={color} stopOpacity={0.86} />
+          <Stop offset="1" stopColor={color} stopOpacity={0.42} />
+        </RadialGradient>
+        <RadialGradient id={mistId} cx="50%" cy="50%" r="50%">
+          <Stop offset="0" stopColor={color} stopOpacity={0.7} />
+          <Stop offset="0.7" stopColor={color} stopOpacity={0.2} />
+          <Stop offset="1" stopColor={color} stopOpacity={0} />
         </RadialGradient>
       </Defs>
-      <Circle cx={CX} cy={CY} r={82} fill="none" stroke={color} strokeOpacity={0.07} strokeWidth={STROKE} />
-      <Circle cx={CX} cy={CY} r={70} fill="none" stroke={color} strokeOpacity={0.12} strokeWidth={STROKE} />
-      <Circle cx={CX} cy={CY} r={58} fill="none" stroke={color} strokeOpacity={0.18} strokeWidth={STROKE} />
-      <Circle cx={CX} cy={CY} r={50} fill={`url(#${id})`} />
-      {waves ? (
-        <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round">
-          <Path d="M14 85c5-9 9-9 14 0s9 9 14 0" strokeOpacity={0.22} />
-          <Path d="M22 72c4-7 7-7 11 0s7 7 11 0" strokeOpacity={0.14} />
-          <Path d="M22 98c4-7 7-7 11 0s7 7 11 0" strokeOpacity={0.14} />
-          <Path d="M228 85c5-9 9-9 14 0s9 9 14 0" strokeOpacity={0.22} />
-          <Path d="M222 72c4-7 7-7 11 0s7 7 11 0" strokeOpacity={0.14} />
-          <Path d="M222 98c4-7 7-7 11 0s7 7 11 0" strokeOpacity={0.14} />
-        </G>
-      ) : null}
+
+      {/* The rings are present enough to hold the control, never strong enough
+          to become a progress rail or a second button. */}
+      <Circle cx={CENTRE} cy={CENTRE} r={96} fill="none" stroke={color} strokeOpacity={0.05} strokeWidth={STROKE} />
+      <Circle cx={CENTRE} cy={CENTRE} r={87} fill="none" stroke={color} strokeOpacity={0.08} strokeWidth={STROKE} />
+      <Circle cx={CENTRE} cy={CENTRE} r={78} fill="none" stroke={color} strokeOpacity={0.13} strokeWidth={STROKE} />
+
+      {/* One soft body plus two offset washes. Their edges overlap imperfectly,
+          which is the restrained watercolour texture in the approved mockup. */}
+      <Circle cx={CENTRE} cy={CENTRE} r={69} fill={`url(#${baseId})`} />
+      <Circle cx={78} cy={76} r={54} fill={`url(#${mistId})`} opacity={0.55} />
+      <Circle cx={126} cy={124} r={50} fill={`url(#${mistId})`} opacity={0.34} />
     </Svg>
   );
 }

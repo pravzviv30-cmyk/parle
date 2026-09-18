@@ -41,6 +41,7 @@ import { useLive } from '../app/LiveContext.tsx';
 import { loadBookmarks, setBookmark, type BookmarkItem } from '../bookmarks/store.ts';
 import { bookmarkControl, bookmarkDecisions, isBookmarkedIn, type BookmarkWrite } from '../bookmarks/view.ts';
 import { BookmarkGlyph, MicGlyph, OutlineButton, PillButton } from '../components.tsx';
+import { missionTint } from '../missions/missionTint.ts';
 import { HeroCard } from '../surface/HeroCard.tsx';
 import { HIT, paper, space, type } from '../theme.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
@@ -140,6 +141,8 @@ export function MissionHero({ hero }: { hero: HomeMission }) {
       title={hero.title}
       body={hero.body}
       art={hero.art}
+      artTint={missionTint(hero.place)}
+      reason={hero.reason}
       timeLine={readyLine(hero.minutes)}
       corner={
         target === null ? undefined : (

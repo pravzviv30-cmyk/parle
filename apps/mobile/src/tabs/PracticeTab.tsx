@@ -27,16 +27,23 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { phraseKeyOf, type ConversationPack, type ReviewCard } from '@luvani/core';
 import { accent, paper, space, type } from '../theme.ts';
-import { Card, OutlineButton, PillButton, TintRow } from '../components.tsx';
+import { Card, GhostButton, Label, OutlineButton, PillButton, TintRow } from '../components.tsx';
 import { ReplayGlyph } from '../glyphs.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { HeaderArt } from '../art/HeaderArt.tsx';
 import { HEADER_ART } from '../art/maps.ts';
 import { PhraseCard } from '../surface/PhraseCard.tsx';
 import { UNREAD } from '../practice/archive.ts';
-import { PACK_ACTION, PRACTICE_PURPOSE, PRACTICE_TITLE, REVIEW_ACTION } from '../practice/copy.ts';
+import {
+  CONVERSATION_ARCHIVE_ACTION,
+  MADE_FROM_LABEL,
+  PACK_ACTION,
+  PRACTICE_PURPOSE,
+  PRACTICE_TITLE,
+  REVIEW_ACTION,
+} from '../practice/copy.ts';
 import { NEXT_STEP, nextStep, type NextStep } from '../practice/nextStep.ts';
-import { MADE_FROM, madeFromConversations, type MadeFrom } from '../practice/madeFrom.ts';
+import { MADE_FROM, madeFromConversations, madeFromSource, type MadeFrom } from '../practice/madeFrom.ts';
 import { STARTER, starterFrom } from '../practice/starter.ts';
 import { STARTER_DESTINATION, starterMomentRow, starterPhraseRow } from '../practice/starterRows.ts';
 import { ReplayMomentCard } from '../practice/ReplayMomentCard.tsx';
@@ -196,6 +203,7 @@ export function PracticeTab() {
   const starter = starterFrom();
   const starterMoment = starterMomentRow();
   const starterPhrase = starterPhraseRow(starter);
+  const personalSource = madeFromSource(made?.value ?? null);
 
   return (
     <ScrollScreen
@@ -213,7 +221,7 @@ export function PracticeTab() {
         </Text>
       )}
     >
-      <View style={st.scroll}>
+      <View>
         {/* The art sits behind the words and bleeds off the corner, so the two
             share one relative box. It is decorative and takes no tap. */}
         <View style={st.head}>
@@ -300,6 +308,12 @@ export function PracticeTab() {
               </View>
             ) : (
               <View style={st.rows}>
+                {personalSource !== null && (
+                  <View style={st.provenance}>
+                    <Label>{MADE_FROM_LABEL}</Label>
+                    <Text style={st.sourceLine}>{personalSource}</Text>
+                  </View>
+                )}
                 {made.value.replay !== null && (
                   <ReplayMomentCard
                     replay={made.value.replay}
@@ -328,6 +342,12 @@ export function PracticeTab() {
                   onCheck={(missionId) => nav.navigate('SoundCheck', { missionId })}
                   onChoose={() => nav.navigate('Missions')}
                 />
+                <View style={st.archiveDoor}>
+                  <GhostButton
+                    label={CONVERSATION_ARCHIVE_ACTION}
+                    onPress={() => nav.navigate('Conversations')}
+                  />
+                </View>
               </View>
             )}
           </View>
@@ -338,9 +358,8 @@ export function PracticeTab() {
 }
 
 const st = StyleSheet.create({
-  scroll: { flexGrow: 1 },
   head: { position: 'relative' },
-  block: { marginTop: space(7) },
+  block: { marginTop: space(6) },
   blockBody: { marginTop: space(3) },
   firstStart: { gap: space(3) },
   offline: { gap: space(3) },
@@ -350,4 +369,7 @@ const st = StyleSheet.create({
   // same list the other tabs draw.
   rows: { gap: space(4) },
   starterLine: { ...type.small, color: paper.inkSoft },
+  provenance: { gap: space(1) },
+  sourceLine: { ...type.heading, color: paper.ink },
+  archiveDoor: { alignItems: 'flex-start', marginTop: -space(1) },
 });

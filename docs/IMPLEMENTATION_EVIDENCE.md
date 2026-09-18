@@ -1,7 +1,7 @@
 # Implementation evidence
 
-Snapshot date: 2026-08-30, refreshed after slice 6b of Phase 6 went green on
-`phase-6-retention`. This document separates
+Snapshot date: 2026-09-18, refreshed after the revamp A interaction-polish pass went green on
+`claude/luvani-ui-revamp-d75581`. This document separates
 what was measured on a machine from what is merely implemented. A passing local test is not
 proof that a migration, a header, a credential, a provider or a store is live. The Phase 1
 matrix and run record below remain historical evidence; later snapshots do not rewrite what
@@ -23,11 +23,13 @@ of the list.
 ## Current landing snapshot
 
 - The revamp A branch gate (`claude/luvani-ui-revamp-d75581`, on top of the app upgrade
-  commit `17f4fb3`) passes **3,018 tests, 0 failing**; core 623, brain 392, tutor agent 445,
-  token server 194, playground 26, mobile 1338. Typecheck is clean in all six workspaces and
-  the floors were blessed to those counts as one act with writing this record. It is a branch
+  commit `17f4fb3`) passes **3,055 tests, 0 failing**; core 623, brain 395, tutor agent 446,
+  token server 200, playground 26, mobile 1365. Typecheck is clean in all six workspaces. The
+  interaction-polish pass embeds the ready action inside the watercolour orb, adds the selected-tab
+  wash, tactile press states and native haptics, settles each onboarding page through the shared
+  reduced-motion seam, and closes F593 and F594. It is a branch
   gate, not a release gate, and it was run from the worktree, which has its own
-  `node_modules` (brain reports its full 392 there). What it covers: the design system of
+  `node_modules` (brain reports its full 395 there). What it covers: the design system of
   revamp A (tokens, the tinted row and the white cards, eighteen raster scenes through one
   decorative registry, the glyph set, the gradient orb; F569, F570, F583, F588, F589); the
   five tabs, the Progress, Phrasebook and Conversations screens, every pushed screen, the

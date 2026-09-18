@@ -39,7 +39,7 @@ export function ContinuityCard({
   /** Whether keeping a conversation going is open on this plan. */
   continueAllowed: boolean;
   disabled: boolean;
-  /** The tab navigates and writes the mark; the route itself is decided above. */
+  /** The tab navigates; the opened room writes the route's mark after it is live. */
   onPress: (route: ContinuityRoute) => void;
 }) {
   const row = continuityRow({ headline, line, thread, continueAllowed });

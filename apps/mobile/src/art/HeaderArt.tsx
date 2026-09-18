@@ -2,7 +2,7 @@ import { PixelRatio, StyleSheet, View } from 'react-native';
 
 import { decorative } from '../theme.ts';
 import { Art } from './Art.tsx';
-import { HEADER_ART_OFFSET, showHeaderArt } from './headerArt.ts';
+import { HEADER_ART_OFFSET, LONG_HEADER_ART_TOP, showHeaderArt } from './headerArt.ts';
 import type { ArtKey } from './registry.ts';
 
 /**
@@ -19,8 +19,9 @@ import type { ArtKey } from './registry.ts';
  */
 export function HeaderArt({ name }: { name: ArtKey }) {
   if (!showHeaderArt(PixelRatio.getFontScale())) return null;
+  const longTitle = name === 'header-practice' || name === 'header-myfrench';
   return (
-    <View style={st.corner} pointerEvents="none" {...decorative}>
+    <View style={[st.corner, longTitle && st.longTitle]} pointerEvents="none" {...decorative}>
       <Art name={name} />
     </View>
   );
@@ -32,5 +33,9 @@ const st = StyleSheet.create({
     top: HEADER_ART_OFFSET.top,
     right: HEADER_ART_OFFSET.right,
     zIndex: 0,
+    // The corner is atmosphere, never competition for a long title. The PNG
+    // keeps its colour, but the whole wash yields when words cross its fade.
+    opacity: 0.82,
   },
+  longTitle: { top: LONG_HEADER_ART_TOP },
 });

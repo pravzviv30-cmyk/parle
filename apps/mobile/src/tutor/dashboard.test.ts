@@ -35,8 +35,8 @@ describe('the tutor tab opens on the tutor, not on the hour — F404', () => {
   test("the tutor heading names the tutor and the subline is the screenshot's — F404", () => {
     // The name is the tutor's. `tutorNameOf` has already resolved whichever
     // voice the learner chose, so this only sets it.
-    assert.equal(tutorHeading('Margot'), 'Your Tutor, Margot', 'the header does not name the tutor the learner chose');
-    assert.equal(tutorHeading('Céline'), 'Your Tutor, Céline', 'a name written with an accent is not set as it is written');
+    assert.equal(tutorHeading('Margot'), 'Talk with Margot', 'the header does not invite the learner back to the tutor they chose');
+    assert.equal(tutorHeading('Céline'), 'Talk with Céline', 'a name written with an accent is not set as it is written');
 
     // Same header at every hour. The clock is gone from this module, and with
     // it the reason a learner could not use the top of the page as a landmark.
@@ -65,8 +65,8 @@ describe('the tutor tab opens on the tutor, not on the hour — F404', () => {
     // The two lines the screenshot puts under the header and under the circle.
     // British spelling on purpose: the rest of the app says "judgement", and a
     // second convention inside one app costs more than either spelling is worth.
-    assert.equal(TUTOR_PURPOSE, 'Speak naturally. Zero judgement.');
-    assert.equal(TUTOR_ORB_SUBLINE, 'Gentle guidance, no pressure.');
+    assert.equal(TUTOR_PURPOSE, 'Your tutor remembers where you left off.');
+    assert.equal(TUTOR_ORB_SUBLINE, TUTOR_PURPOSE, 'the orb and header carry two competing continuity promises');
 
     // Nothing up here is a count, a dash, a scold or a hurry. The circle's line
     // says what the conversation is like, and it names no pressure at all.

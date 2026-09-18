@@ -207,7 +207,7 @@ export function ProfileTab() {
   if (sheet === 'tutorVoice') {
     return (
       <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: closeVoiceSheet }} />}>
-        <Text style={[type.display, { color: paper.ink }]}>{TUTOR_VOICE_TITLE}</Text>
+        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{TUTOR_VOICE_TITLE}</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{TUTOR_VOICE_SUB}</Text>
         <View style={{ marginTop: space(6), gap: space(3) }}>
           {TUTOR_VOICE_OPTIONS.map((option) => (
@@ -248,7 +248,7 @@ export function ProfileTab() {
         avoidKeyboard
         header={<ScreenHeader back={{ onPress: () => { setDraftName(profile.name ?? ''); setSheet('none'); } }} />}
       >
-        <Text style={[type.display, { color: paper.ink }]}>Your name</Text>
+        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Your name</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
           What your tutor calls you at the start of a session.
         </Text>
@@ -275,7 +275,7 @@ export function ProfileTab() {
 
   return (
     <ScrollScreen bottom="tab">
-      <View style={st.scroll}>
+      <View>
         {/* The art sits behind the centred column and bleeds off the corner, so
             the header and the picture share one relative box. It is decorative
             and it is not drawn at all at a large reading size. */}
@@ -361,10 +361,9 @@ export function ProfileTab() {
 }
 
 const st = StyleSheet.create({
-  scroll: { flexGrow: 1 },
   // One relative box so the corner art can be absolute inside it.
   head: { position: 'relative' },
   // Each labelled block keeps its own air above it; the label itself sits
   // tight to the card it names.
-  group: { marginTop: space(6) },
+  group: { marginTop: space(5) },
 });

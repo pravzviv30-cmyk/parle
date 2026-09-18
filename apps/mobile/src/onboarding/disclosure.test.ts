@@ -352,7 +352,7 @@ describe('the first run says what a learner is talking to', () => {
     // read the documents: accurate words are not cleared words.
     assert.equal(
       LEGAL_REVIEW_PENDING,
-      'A reviewed privacy policy and terms are still required before release.',
+      'Our privacy policy and terms still need legal review before Luvani can be released.',
       'the legal-review sentence was reworded, and the policy and the note both quote it',
     );
     assert.ok(

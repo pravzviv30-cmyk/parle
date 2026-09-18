@@ -129,11 +129,15 @@ const store: EntitlementStore = developmentMinutes
       ? new FileEntitlementStore(process.env.ENTITLEMENT_STORE_PATH)
       : new InMemoryEntitlementStore();
 
-// Production requires Supabase JWKS verification. Absent configuration is only
-// reachable through the explicit local-development boot mode.
+// Production requires Supabase JWKS verification. The explicit local mode may
+// trust the mock app's asserted identity even when a developer's .env also
+// names Supabase; auth.ts keeps that exception out of production and refuses
+// to fall back to it when a bearer was supplied but could not be verified.
 const users = createUserResolver({
   jwtSecret: process.env.SUPABASE_JWT_SECRET,
   supabaseUrl: process.env.SUPABASE_URL,
+  nodeEnv: process.env.NODE_ENV,
+  localDevelopment: process.env.LUVANI_LOCAL_DEVELOPMENT,
 });
 const billing = revenueCatConfiguration(process.env);
 const userIdPattern = sessionIdPattern;
@@ -392,8 +396,9 @@ const server = createServer(async (req, res) => {
     // second debit that creates a missing default row and rolls an expired
     // period, which is what every read there does). Identity is resolved
     // exactly as the start resolves it, so a local mock account can still see
-    // its plan; the asserted id is honoured only under the local-development
-    // opt-in, by construction of `users`, and a bearer decides everywhere else.
+    // its plan; the asserted id is honoured only under the non-production,
+    // local-development opt-in, by construction of `users`, and a bearer
+    // decides everywhere else.
     if (req.method === 'POST' && url.pathname === '/billing/status') {
       if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.billingStatusIp)]))) return;
       const body = await readJson(req);
@@ -647,9 +652,10 @@ const server = createServer(async (req, res) => {
       // often than it can begin a session, which is the bound that matters.
       if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.sessionIp)]))) return;
       const body = await readJson(req);
-      // In unconfigured local development the asserted id is trusted exactly as
-      // it is for a start, so nothing about that mode moves. The sessionId match
-      // below is what still stands between one caller and another's lease.
+      // In explicit local development the asserted id is trusted exactly as it
+      // is for a start, so the mock app can release its own failed start even
+      // when this server's .env also names Supabase. The sessionId match below
+      // is what still stands between one caller and another's lease.
       const asserted = typeof body.userId === 'string' && body.userId ? body.userId : null;
       const resolved = await users.resolve(req.headers.authorization, asserted);
       if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });

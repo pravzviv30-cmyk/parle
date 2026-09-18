@@ -201,7 +201,10 @@ function LessonRoute() {
  * Practice can reach this route too.
  */
 function ConvoRoute() {
-  const nav = useNavigation<{ goBack: () => void }>();
+  const nav = useNavigation<{
+    goBack: () => void;
+    replace: (screen: 'Drill', params: NonNullable<RootStackParamList['Drill']>) => void;
+  }>();
   const route = useRoute<RouteProp<RootStackParamList, 'Convo'>>();
   const { user } = useAuth();
   const { profile, updateBrain } = useProfile();
@@ -305,8 +308,10 @@ function ConvoRoute() {
         snapshot={snapshotFor(profile)}
         onRecap={onRecap}
         onExit={() => nav.goBack()}
+        onPractice={(phrase) => nav.replace('Drill', { ownWords: phrase })}
         startInTextMode={route.params?.textMode ?? false}
         seedTopic={route.params?.seedTopic}
+        continuationPackId={route.params?.continuationPackId}
         // The mission the learner chose, carried through to the join token so
         // the agent can open its authored scene without a model call. This line
         // is the whole difference between a mission and an ordinary

@@ -7,12 +7,12 @@
  * carries only that compact draft across the auth boundary.
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, Text, View, StyleSheet } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { tutorSampleLine, tutorVoice, type TutorVoiceKey } from '@luvani/core';
-import { paper, space, type } from '../theme.ts';
-import { Card, GhostButton, OptionCard, PillButton, ProgressDots } from '../components.tsx';
+import { accent, HAIRLINE, HIT, paper, radius, space, type } from '../theme.ts';
+import { Card, ChevronRight, GhostButton, OptionCard, PillButton, ProgressDots, TintPanel } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { Art } from '../art/Art.tsx';
 import { HERO_ART, SCREEN_ART } from '../art/maps.ts';
@@ -21,6 +21,8 @@ import { voiceSample } from '../tutor/voiceSamples.ts';
 import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { WELCOME_SUBLINE } from './disclosure.ts';
+import { settleIn, useReduceMotion } from '../motion.ts';
+import { tapSettled } from '../motion/haptics.ts';
 import {
   freshPreAccountDraft,
   type PreAccountOnboardingDraft,
@@ -33,6 +35,25 @@ const pageBefore = (page: Page): Page | null => {
   const index = PRE_ACCOUNT_PAGES.indexOf(page);
   return index > 0 ? PRE_ACCOUNT_PAGES[index - 1] ?? null : null;
 };
+
+/**
+ * A real first turn, but not a test. It stays local to onboarding, asks for no
+ * microphone or account, and shows the conversation-to-practice loop with one
+ * useful answer rather than a fake right/wrong choice.
+ */
+const CAFÉ_DEMO = {
+  tutorFr: 'Bonjour ! Qu’est-ce que vous désirez ?',
+  tutorEn: 'Hello! What would you like?',
+  learnerFr: 'Je voudrais un café, s’il vous plaît.',
+  learnerEn: 'I’d like a coffee, please.',
+  replyFr: 'Bien sûr. Et avec ceci ?',
+  replyEn: 'Of course. Anything with that?',
+  takeaway: 'This useful phrase can return later as practice made from your conversation.',
+} as const;
+
+/** Three voices keep the first chooser screenful calm; the rest stay one tap away. */
+const SUGGESTED_VOICE_COUNT = 3;
+const SUGGESTED_VOICES = TUTOR_VOICE_OPTIONS.slice(0, SUGGESTED_VOICE_COUNT);
 
 export function PreAccountOnboarding({
   initialDraft,
@@ -49,17 +70,64 @@ export function PreAccountOnboarding({
   const [draft, setDraft] = useState<PreAccountOnboardingDraft>(() => initialDraft ?? freshPreAccountDraft());
   const [underAge, setUnderAge] = useState(false);
   const [playing, setPlaying] = useState<TutorVoiceKey | null>(null);
+  const [demoAnswered, setDemoAnswered] = useState(false);
+  const [showAllVoices, setShowAllVoices] = useState(
+    () => initialDraft !== null && !SUGGESTED_VOICES.some((option) => option.value === initialDraft.tutorVoice),
+  );
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
   const selected = draft.tutorVoice;
   const persona = tutorVoice(selected).persona;
   const previous = pageBefore(page);
+  const reduced = useReduceMotion();
+  const pageEntry = useRef(new Animated.Value(0)).current;
+  const demoEntry = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    pageEntry.setValue(0);
+    const animation = settleIn(pageEntry, reduced);
+    return () => animation?.stop();
+  }, [page, pageEntry, reduced]);
+
+  const entryStyle = {
+    opacity: pageEntry,
+    transform: [
+      {
+        translateY: pageEntry.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }),
+      },
+    ],
+  };
+
+  useEffect(() => {
+    if (!demoAnswered) {
+      demoEntry.setValue(0);
+      return;
+    }
+    demoEntry.setValue(0);
+    const animation = settleIn(demoEntry, reduced, 80);
+    return () => animation?.stop();
+  }, [demoAnswered, demoEntry, reduced]);
+
+  const demoEntryStyle = {
+    opacity: demoEntry,
+    transform: [
+      {
+        translateY: demoEntry.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }),
+      },
+    ],
+  };
 
   // An interrupted pre-account flow can be resumed with the voice already
   // chosen. Do not replace a choice with the catalogue default on remount.
   useEffect(() => {
     if (initialDraft !== null) setDraft(initialDraft);
   }, [initialDraft]);
+
+  // A resumed draft must always show its chosen tutor, even when that voice is
+  // outside the three calm suggestions shown on a fresh first visit.
+  useEffect(() => {
+    if (!SUGGESTED_VOICES.some((option) => option.value === selected)) setShowAllVoices(true);
+  }, [selected]);
 
   useEffect(() => {
     if (status.didJustFinish) setPlaying(null);
@@ -79,6 +147,7 @@ export function PreAccountOnboarding({
     // comment names the function and never the sentence. Playing it on selection
     // makes the choice feel like meeting a person, while the ear remains
     // available to replay or stop it deliberately.
+    player.pause();
     setPlaying(voice);
     player.replace(voiceSample(voice));
     player.play();
@@ -107,6 +176,7 @@ export function PreAccountOnboarding({
       player.pause();
       return;
     }
+    player.pause();
     player.replace(voiceSample(next));
     player.play();
   }, [playing, player]);
@@ -116,6 +186,7 @@ export function PreAccountOnboarding({
     setUnderAge(false);
     setPage(to);
   };
+  const visibleVoices = showAllVoices ? TUTOR_VOICE_OPTIONS : SUGGESTED_VOICES;
 
   const body = (
     <>
@@ -129,14 +200,52 @@ export function PreAccountOnboarding({
 
       {page === 'situations' && (
         <View style={st.centered}>
-          <Art name={HERO_ART.cafe} style={st.art} />
-          <Text accessibilityRole="header" style={st.title}>Speak in real situations</Text>
-          <Text style={st.body}>Order lunch, make plans, or ask for help. Your conversation becomes phrases to return to later.</Text>
-          <Card style={st.exchange}>
-            <Text style={st.french}>Bonjour, je voudrais une baguette, s’il vous plaît.</Text>
-            <Text style={st.english}>Hello, I’d like a baguette, please.</Text>
-            <Text style={st.reply}>Your tutor helps you find the next thing to say.</Text>
-          </Card>
+          <Art name={HERO_ART.cafe} style={st.sceneArt} />
+          <Text accessibilityRole="header" style={st.title}>Try one real turn</Text>
+          <Text style={st.body}>No microphone and no account. Tap the reply you could use at a café.</Text>
+          <View style={st.demo}>
+            <View style={st.tutorBubble}>
+              <Text style={st.speaker}>{persona.name}</Text>
+              <Text style={st.french}>{CAFÉ_DEMO.tutorFr}</Text>
+              <Text style={st.english}>{CAFÉ_DEMO.tutorEn}</Text>
+            </View>
+
+            {!demoAnswered ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Reply: ${CAFÉ_DEMO.learnerFr}. ${CAFÉ_DEMO.learnerEn}`}
+                accessibilityHint="Shows how the tutor carries the conversation forward"
+                onPress={() => {
+                  tapSettled();
+                  setDemoAnswered(true);
+                }}
+              >
+                {({ pressed }) => (
+                  <TintPanel tint="sand" style={[st.replyChoice, pressed && st.replyChoicePressed]}>
+                    <View style={st.replyWords}>
+                      <Text style={st.replyCue}>Tap this reply</Text>
+                      <Text style={st.french}>{CAFÉ_DEMO.learnerFr}</Text>
+                      <Text style={st.english}>{CAFÉ_DEMO.learnerEn}</Text>
+                    </View>
+                    <ChevronRight color={paper.inkSoft} />
+                  </TintPanel>
+                )}
+              </Pressable>
+            ) : (
+              <Animated.View accessibilityLiveRegion="polite" style={[st.demoReveal, demoEntryStyle]}>
+                <TintPanel tint="lilac" style={st.learnerBubble}>
+                  <Text style={st.french}>{CAFÉ_DEMO.learnerFr}</Text>
+                  <Text style={st.english}>{CAFÉ_DEMO.learnerEn}</Text>
+                </TintPanel>
+                <View style={st.tutorBubble}>
+                  <Text style={st.speaker}>{persona.name}</Text>
+                  <Text style={st.french}>{CAFÉ_DEMO.replyFr}</Text>
+                  <Text style={st.english}>{CAFÉ_DEMO.replyEn}</Text>
+                </View>
+                <Text style={st.takeaway}>{CAFÉ_DEMO.takeaway}</Text>
+              </Animated.View>
+            )}
+          </View>
         </View>
       )}
 
@@ -151,9 +260,10 @@ export function PreAccountOnboarding({
       {page === 'voice' && (
         <>
           <Text accessibilityRole="header" style={st.title}>{`Meet ${persona.name}`}</Text>
-          <Text style={st.body}>Choose the AI tutor voice you would like to hear. When you choose one, they introduce themselves in French and then in English.</Text>
+          <Text style={st.body}>Choose how your AI tutor sounds. When you choose one, they introduce themselves in French and then in English.</Text>
+          {!showAllVoices && <Text style={st.voiceGroup}>Suggested voices</Text>}
           <View style={st.voices}>
-            {TUTOR_VOICE_OPTIONS.map((option) => (
+            {visibleVoices.map((option) => (
               <OptionCard
                 key={option.value}
                 text={option.label}
@@ -165,6 +275,11 @@ export function PreAccountOnboarding({
               />
             ))}
           </View>
+          {!showAllVoices && (
+            <View style={st.showAll}>
+              <GhostButton label="See all voices" color={paper.inkSoft} onPress={() => setShowAllVoices(true)} />
+            </View>
+          )}
           {/* Read from the catalogue, never typed here: the clip and this line
               have to be the same words, and a hand-typed copy is what drifted. */}
           <Text style={st.sampleLine}>{`“${tutorSampleLine(selected)}”`}</Text>
@@ -185,13 +300,25 @@ export function PreAccountOnboarding({
           ) : (
             <>
               <Text style={st.body}>Make an account to save your progress and keep talking with {persona.name}.</Text>
-              <Text style={st.privacy}>Your tutor is AI. We ask for microphone permission only when you start a scene, and you can type instead. Learning history does not include raw audio by default.</Text>
-              {/* Asked once, here, under the line that already says what the
-                  app keeps, rather than on a page of its own. A whole screen
-                  for a switch that starts off would be one more thing between
-                  a learner and their first French sentence, and the answer is
-                  no unless they move it either way. */}
-              <Card style={st.consent}>
+              <Card style={st.trust}>
+                <View style={st.trustBlock}>
+                  <Text style={st.trustTitle}>Your tutor is AI</Text>
+                  <Text style={st.trustBody}>You always know who you are talking to.</Text>
+                </View>
+                <View style={st.trustDivider} />
+                <View style={st.trustBlock}>
+                  <Text style={st.trustTitle}>Speak when you choose</Text>
+                  <Text style={st.trustBody}>We ask for microphone permission only when you start a scene. You can type instead.</Text>
+                </View>
+                <View style={st.trustDivider} />
+                <View style={st.trustBlock}>
+                  <Text style={st.trustTitle}>Raw audio stays out of your learning history</Text>
+                  <Text style={st.trustBody}>Learning history does not include raw audio by default.</Text>
+                </View>
+                {/* Asked once, here, under the lines that say what the app
+                    keeps, rather than on a card or page of its own. The
+                    answer is no unless the learner moves it either way. */}
+                <View style={st.trustDivider} />
                 <SwitchRow
                   first
                   title={CONSENT_ROW}
@@ -216,7 +343,8 @@ export function PreAccountOnboarding({
       footer={
         <>
           {page === 'welcome' && <PillButton label="See how it works" onPress={() => next('situations')} />}
-          {page === 'situations' && <PillButton label="Continue" onPress={() => next('life')} />}
+          {page === 'situations' && demoAnswered && <PillButton label="Continue" onPress={() => next('life')} />}
+          {page === 'situations' && !demoAnswered && <Text style={st.footerHint}>Tap the French reply above to continue.</Text>}
           {page === 'life' && <PillButton label="Choose your Tutor" onPress={() => next('voice')} />}
           {page === 'voice' && <PillButton label="Continue" onPress={() => next('ready')} />}
           {page === 'ready' && !underAge && (
@@ -231,7 +359,7 @@ export function PreAccountOnboarding({
         </>
       }
     >
-      {body}
+      <Animated.View style={entryStyle}>{body}</Animated.View>
     </ScrollScreen>
   );
 }
@@ -240,21 +368,58 @@ const st = StyleSheet.create({
   centered: { alignItems: 'center' },
   // The picture's size is the registry's; this is placement only.
   art: { marginBottom: space(4) },
+  sceneArt: { marginBottom: -space(2) },
   title: { ...type.display, color: paper.ink, textAlign: 'center' },
   body: { ...type.body, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
-  privacy: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(4) },
-  // Stretched rather than centred, because the row inside it is a control with
-  // a title on the left and a switch on the right, and a card that shrinks to
-  // its text would put the switch somewhere different on every phone.
-  consent: { alignSelf: 'stretch', marginTop: space(4) },
+  trust: { alignSelf: 'stretch', marginTop: space(4), gap: space(3) },
+  trustBlock: { gap: space(1) },
+  trustTitle: { ...type.bodyStrong, color: paper.ink },
+  trustBody: { ...type.small, color: paper.inkSoft },
+  trustDivider: { height: HAIRLINE, backgroundColor: paper.lineOnCard },
   // Left, under the row it belongs to. The sentences above it are centred
   // because they are addressed to the reader; this one labels a control.
   consentHint: { ...type.small, color: paper.inkSoft, textAlign: 'left', alignSelf: 'stretch', marginTop: space(2) },
-  exchange: { alignSelf: 'stretch', marginTop: space(6), gap: space(1.5) },
+  demo: { alignSelf: 'stretch', marginTop: space(4), gap: space(3) },
+  demoReveal: { gap: space(3) },
+  tutorBubble: {
+    alignSelf: 'flex-start',
+    maxWidth: '90%',
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    borderRadius: radius.card,
+    paddingVertical: space(3),
+    paddingHorizontal: space(4),
+    gap: space(1),
+  },
+  learnerBubble: {
+    alignSelf: 'flex-end',
+    maxWidth: '90%',
+    borderRadius: radius.card,
+    paddingVertical: space(3),
+    paddingHorizontal: space(4),
+    gap: space(1),
+  },
+  speaker: { ...type.label, color: accent.label },
   french: { ...type.bodyStrong, color: paper.ink },
   english: { ...type.small, color: paper.inkSoft },
-  reply: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
-  voices: { gap: space(3), marginTop: space(6) },
+  replyChoice: {
+    minHeight: HIT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(3),
+    borderRadius: radius.row,
+    paddingVertical: space(3),
+    paddingHorizontal: space(4),
+  },
+  replyChoicePressed: { backgroundColor: paper.groundDeep, transform: [{ scale: 0.985 }, { translateY: 1 }] },
+  replyWords: { flex: 1, flexShrink: 1, gap: space(1) },
+  replyCue: { ...type.label, color: accent.label },
+  takeaway: { ...type.small, color: paper.inkSoft, textAlign: 'center' },
+  voiceGroup: { ...type.label, color: accent.label, marginTop: space(5) },
+  voices: { gap: space(3), marginTop: space(3) },
+  showAll: { marginTop: space(2), alignItems: 'center' },
   sampleLine: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(4) },
+  footerHint: { ...type.small, color: paper.inkSoft, textAlign: 'center', minHeight: HIT, textAlignVertical: 'center' },
   secondary: { marginTop: space(4), gap: space(2) },
 });

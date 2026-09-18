@@ -33,6 +33,12 @@ import { isStamped, type Stamp } from './passport.ts';
 /** The screen's own name, set large at the top. */
 export const PROGRESS_TITLE = 'Real progress';
 
+/** The warm reflection built from the existing weekly story. */
+export const POSTCARD_TITLE = 'Your French postcard';
+
+/** A quiet explanation of the evidence inside the postcard. */
+export const POSTCARD_NOTE = 'A small reflection from your recent French.';
+
 /** Over the list of places the learner can handle alone. Home's own words. */
 export const CAN_DO_LABEL = ABILITIES_LABEL;
 

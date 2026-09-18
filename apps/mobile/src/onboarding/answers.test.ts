@@ -125,7 +125,7 @@ describe('onboarding — three questions, and nothing that has to be answered', 
     assert.ok(AGE_DENY.length > 0);
   });
 
-  test('the daily goal is asked in profile and nowhere in onboarding', () => {
+  test('the speaking target is asked in profile and nowhere in onboarding', () => {
     for (const forbidden of ['dailyGoalMin', 'How much time each day', 'Five minutes', 'GOALS']) {
       assert.ok(!FLOW.includes(forbidden), `the goal question is back on the way to a first conversation: ${forbidden}`);
     }
@@ -136,7 +136,7 @@ describe('onboarding — three questions, and nothing that has to be answered', 
     // which is the rule the reminder row already keeps: a name spelled in two
     // places is a name that comes to mean two things. So the claim splits in
     // two, and together they are the same claim as before.
-    assert.equal(DAILY_GOAL_ROW, 'Daily goal', 'the goal row has no name a learner could find it by');
+    assert.equal(DAILY_GOAL_ROW, 'Speaking target', 'the target row has no name a learner could find it by');
     assert.ok(
       PROFILE_TAB.includes('DAILY_GOAL_ROW'),
       'profile spells the row name itself, or has no row for the goal at all',

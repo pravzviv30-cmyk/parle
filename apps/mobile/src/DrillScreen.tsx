@@ -409,7 +409,7 @@ function TapTranslateView({
               style={({ pressed }) => pressed && !used && ds.chipPressed}
             >
               <TintPanel tint={WORD_TINT} style={[ds.token, used && ds.tokenUsed]}>
-                <Text style={[type.french, { color: used ? paper.inkFaint : paper.ink }]}>{token}</Text>
+                <Text style={[type.french, { color: used ? paper.inkSoft : paper.ink }]}>{token}</Text>
               </TintPanel>
             </Pressable>
           );

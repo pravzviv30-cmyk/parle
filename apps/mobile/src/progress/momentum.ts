@@ -3,8 +3,8 @@
  *
  * Home's fourth block draws one full-width card and three smaller ones: the
  * phrases this learner has actually used in conversation, the days they have
- * practised, how much of the deck comes back when asked, and today's speaking
- * goal. Each of the four is a fold over data somebody else owns, each carries
+ * practised, how much of the deck comes back when asked, and today's measured
+ * speaking time beside an optional target. Each of the four is a fold over data somebody else owns, each carries
  * its own copy, and each is always returned. Where a count would be nought the
  * numeral is withheld and a start line stands in its place.
  *
@@ -134,8 +134,8 @@
  * and its whole design is the refusal of a streak: no chain, no loss state, and
  * nothing rendered at zero. Its suite is the standing defence of that refusal,
  * and the value of a defence is that it does not move. Widening `Today` to also
- * carry a day count, a used-phrase count, a recall percentage and a minutes
- * goal would put four unrelated folds behind one gate, and the first surface
+ * carry a day count, a used-phrase count, a recall percentage and an optional
+ * minutes target would put four unrelated folds behind one gate, and the first surface
  * that wanted two of the four would have to reach past `hasToday` to get them.
  *
  * So: same principles, separate module. `today.ts` keeps its one job and its
@@ -184,7 +184,7 @@ export const DAYS_LABEL = 'Days active';
 export const RETAINED_LABEL = 'Retained phrases';
 export const RETAINED_SUB = 'Active vocabulary bank';
 export const MASTERY_LABEL = 'Recall';
-export const GOAL_TITLE = "Today's speaking goal";
+export const GOAL_TITLE = 'Speaking time today';
 
 /**
  * What each card says before there is a number in it.
@@ -196,7 +196,7 @@ export const GOAL_TITLE = "Today's speaking goal";
 export const DAYS_START = 'Your first practice day shows here';
 export const RETAINED_START = 'Your first phrases land here';
 export const MASTERY_EARLY = 'Takes shape after a few reviews';
-export const GOAL_START = 'Your first minutes today land here';
+export const GOAL_START = 'Your target is here whenever it suits you';
 
 /** The hero's footer: what earns a phrase its place on that card. */
 export const RETAINED_FOOT = 'Each one said in a real conversation';
@@ -219,20 +219,20 @@ export const MASTERY_LINES = {
 /**
  * What the goal card's footer says once the day's minutes are in.
  *
- * Warm and finished. It does not ask for more, because the promise was the
- * number and the number has been met, and "keep going" at that moment is the
+ * Warm and finished. It does not ask for more, because the chosen target was
+ * the number and the number has been met, and "keep going" at that moment is the
  * app moving the line the learner just crossed.
  */
-export const GOAL_MET = 'Daily cadence reached. Well done.';
+export const GOAL_MET = 'Your speaking target is complete. Anything else is a bonus.';
 
 /**
  * Said when today's only spoken sitting recorded no duration.
  *
  * Sittings from before `durationMs` existed measured nothing, and nothing is
- * not zero minutes of speaking. The bar stays empty and the line says why,
- * rather than the learner reading their real conversation as a nought.
+ * not zero minutes of speaking. The line says why without drawing an empty
+ * meter that could turn a real conversation into a shortfall.
  */
-export const GOAL_UNTIMED = "Today's sitting was not timed, so it is not on the bar yet";
+export const GOAL_UNTIMED = "Today's sitting was not timed, so no minutes are shown";
 
 /**
  * What counts as speaking.
@@ -344,22 +344,18 @@ export interface MomentumMastery {
 }
 
 export interface MomentumGoal {
-  /** Whole timed spoken minutes today. Zero is allowed, and is worded, not drawn. */
+  /** Whole timed spoken minutes today. Zero is allowed, and is worded, not scored. */
   minutes: number;
   /** What the learner asked for, from `dailyGoalOf`, or null if nobody asked them. */
   target: GoalMinutes | null;
   /** Whole minutes still to go, floored at zero, or null without a target. */
   remaining: number | null;
-  /** How far along, 0 to 100, for the bar. Clamped, so an over-run never overflows it. */
-  percent: number;
-  /** "Today's speaking goal". */
+  /** "Speaking time today". */
   title: string;
-  /** '6 / 10 min', or just the promise at zero minutes, or null without a target. */
+  /** '6 min today', the optional target before any measured time, or null when both are absent. */
   amount: string | null;
-  /** The footer's left half: the invitation, what is left, or the warm line once it is met. */
+  /** A gentle invitation, an optional remaining-time line, or the warm line once it is met. */
   note: string;
-  /** The footer's right half: '60%'. Null until there is a fraction to state. */
-  percentLabel: string | null;
 }
 
 export interface Momentum {
@@ -669,25 +665,26 @@ function masteryFrom(deck: readonly ReviewCard[]): MomentumMastery {
 /**
  * The goal card's footer, in the one order that reads honestly.
  *
- * Nobody has chosen a promise, so the card asks for one in the profile row's
- * own words rather than inventing a number on their behalf. Nobody has spoken
- * yet today, so it says where the first minutes will land. A sitting happened
- * and recorded no duration, so it says that, rather than reading a real
- * conversation back to the learner as a nought. Only then does it count.
+ * Nobody has chosen a target, so the card offers one in the profile row's own
+ * words rather than inventing a number on their behalf. Nobody has spoken yet
+ * today, so the chosen target waits without urgency. A sitting happened and
+ * recorded no duration, so it says that, rather than reading a real
+ * conversation back to the learner as a nought. Only then does it mention
+ * optional time remaining.
  *
  * `remaining` is null exactly when there is no target, which is why it stands
- * in for the promise here: one value decides the first branch and the last two,
+ * in for the preference here: one value decides the first branch and the last two,
  * so the footer and the numeral beside it can never disagree.
  */
 function goalNote(remaining: number | null, minutes: number, untimed: boolean): string {
   if (remaining === null) return DAILY_GOAL_UNSET;
   if (minutes <= 0) return untimed ? GOAL_UNTIMED : GOAL_START;
   if (remaining === 0) return GOAL_MET;
-  return `${remaining} more ${remaining === 1 ? 'minute' : 'minutes'} to reach daily cadence`;
+  return `${remaining} more ${remaining === 1 ? 'minute' : 'minutes'} if you want to reach today's target`;
 }
 
 /**
- * Today's speaking goal, always a card and never an accusation.
+ * Today's speaking time, always a card and never an accusation.
  *
  * Minutes are floored, never rounded up. This is a claim about time the learner
  * actually spent, and the direction to be wrong in is the modest one.
@@ -707,20 +704,15 @@ function goalFrom(activity: readonly ActivityEntry[], profile: StoredProfile | n
 
   const minutes = Math.floor(spokenMs / 60_000);
   const remaining = target === null ? null : Math.max(0, target - minutes);
-  // Computed from the whole minutes rather than the raw milliseconds, so the
-  // bar, the percentage and "6 / 10 min" are three readings of one number
-  // instead of three numbers that disagree at the edges.
-  const percent = target === null || minutes <= 0 ? 0 : Math.min(100, Math.round((minutes / target) * 100));
-
   return {
     minutes,
     target,
     remaining,
-    percent,
     title: GOAL_TITLE,
-    amount: target === null ? null : minutes <= 0 ? `${target} min` : `${minutes} / ${target} min`,
+    // Time already spoken is the first fact, even when no target was chosen.
+    // Before that, a chosen target is named on its own rather than as 0 / N.
+    amount: minutes > 0 ? `${minutes} min today` : target === null ? null : `${target} min target`,
     note: goalNote(remaining, minutes, untimed),
-    percentLabel: target === null || minutes <= 0 ? null : `${percent}%`,
   };
 }
 
@@ -736,7 +728,7 @@ function goalFrom(activity: readonly ActivityEntry[], profile: StoredProfile | n
 export function momentumFrom(input: {
   activity: readonly ActivityEntry[];
   deck: readonly ReviewCard[];
-  /** Null is allowed: Home asks before the profile has loaded, and no profile is no promise. */
+  /** Null is allowed: Progress asks before the profile has loaded, and no profile is no chosen target. */
   profile: StoredProfile | null;
   now: number;
 }): Momentum {

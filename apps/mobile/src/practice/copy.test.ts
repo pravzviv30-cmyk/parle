@@ -2,6 +2,8 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  CONVERSATION_ARCHIVE_ACTION,
+  MADE_FROM_LABEL,
   NEXT_PRACTICE_LABEL,
   PACK_ACTION,
   PRACTICE_COPY,
@@ -18,9 +20,11 @@ describe('what the Practice tab says about itself — F574', () => {
     assert.equal(PRACTICE_TITLE, 'Made from your conversations');
     assert.equal(
       PRACTICE_PURPOSE,
-      'Talk with your tutor and this fills with what you said, the phrases worth keeping, and short drills built from them.',
+      'Short practice, shaped from the French you actually used.',
     );
     assert.equal(NEXT_PRACTICE_LABEL, 'Your next practice');
+    assert.equal(MADE_FROM_LABEL, 'Made from your last conversation');
+    assert.equal(CONVERSATION_ARCHIVE_ACTION, 'See your conversations');
   });
 
   test('the two controls name the thing they open, and practise is spelled as a verb', () => {

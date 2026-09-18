@@ -6,7 +6,7 @@
  * do tonight. The section's own heading is the screen's, not this file's, so
  * the block can sit under whatever the screen decides to call it.
  *
- * One full-width card, two half tiles and the goal, and not one of the words on
+ * One full-width card, two half tiles and the speaking-time card, and not one of the words on
  * them is written here. `progress/momentum.ts` decides every count, every
  * label, every unit and every line, and every field that has nothing true to
  * say arrives `null`. This file is a set of null gates and a stylesheet.
@@ -23,14 +23,13 @@
  *
  * ## Green, and only for ground already covered
  *
- * The filled day marks, the speaking glyph, the weekly gain, the recall band
- * line and the goal bar's fill are `signal.good`, which means the same here as
- * it means everywhere else in the app: the learner produced French. The bar's
- * fill is deliberately NOT `accent.primary` — the violet is identity, the
- * colour of the thing you press, and a bar reporting how far along today is
- * reports a state. A day that has not happened is a hairline in `paper.line`
- * and not a colour at all, on TodayRow's rule that a thing which has not
- * happened is not a state worth signalling.
+ * The speaking glyph, the weekly gain and the recall band line are
+ * `signal.good`, which means the same here as it means everywhere else in the
+ * app: the learner produced French. Speaking time deliberately has no meter:
+ * turning an optional target into a percentage makes it feel like a quota even
+ * when the words are gentle. A day that has not happened is a hairline in
+ * `paper.line` and not a colour at all, on TodayRow's rule that a thing which
+ * has not happened is not a state worth signalling.
  *
  * The violet appears once on this whole block, on the badge beside the recall
  * figure, where it labels a card and reports nothing. That is why the guard
@@ -48,11 +47,10 @@
  * So the four cards are always drawn, and the refusal moved down a level. Where
  * a count would be nought the numeral is simply not drawn and the module's
  * `words` field carries a start line in its place, so the learner reads an
- * invitation rather than a zero. The empty rail and the empty bar name no
- * target, and the one line that asks for anything asks for a promise rather
- * than for work: without a daily goal the goal card carries Profile's own
- * `DAILY_GOAL_UNSET`, "Pick a daily promise". That is an offer of a setting, not
- * a quota, and it is the only ask on the block.
+ * invitation rather than a zero. The empty rail names no target, and the one
+ * line that asks for anything simply offers Profile's flexible setting. When a
+ * target exists, the card reports measured minutes and uses optional language;
+ * it never turns the setting into a percentage, fraction or filling track.
  */
 
 import { StyleSheet, Text, View } from 'react-native';
@@ -176,24 +174,9 @@ export function MomentumCards({
           </View>
           {goal.amount !== null && <Text style={st.goalAmount}>{goal.amount}</Text>}
         </View>
-        {/* No promise, no bar. A track with nothing to measure against is a
-            quota drawn empty, and the note below says what to do instead. */}
-        {goal.target !== null && (
-          <View
-            style={st.track}
-            accessibilityRole="progressbar"
-            accessibilityLabel={goal.title}
-            accessibilityValue={{ min: 0, max: 100, now: goal.percent, text: goal.percentLabel ?? goal.note }}
-          >
-            <View style={[st.fill, { width: `${goal.percent}%` }]} />
-          </View>
-        )}
-        <View style={st.goalFoot}>
-          <View style={st.goalWords}>
-            <Text style={st.goalNote}>{goal.note}</Text>
-          </View>
-          {goal.percentLabel !== null && <Text style={st.goalPercent}>{goal.percentLabel}</Text>}
-        </View>
+        {/* The sentence is the whole status. A meter or percentage would turn
+            the optional Profile preference into a quota on this screen. */}
+        <Text style={st.goalNote}>{goal.note}</Text>
       </Card>
     </View>
   );
@@ -260,17 +243,5 @@ const st = StyleSheet.create({
   goalWords: { flex: 1, minWidth: 0 },
   goalTitle: { ...type.bodyStrong, color: paper.ink },
   goalAmount: { ...type.small, color: paper.inkSoft, textAlign: 'right' },
-  track: {
-    height: space(2),
-    borderRadius: radius.pill,
-    backgroundColor: paper.groundDeep,
-    overflow: 'hidden',
-    marginTop: space(3),
-  },
-  // Green, because it is ground the learner has already covered. The accent is
-  // identity and never reports a state.
-  fill: { height: '100%', borderRadius: radius.pill, backgroundColor: signal.good },
-  goalFoot: { flexDirection: 'row', alignItems: 'flex-start', gap: space(2), marginTop: space(2) },
-  goalNote: { ...type.small, color: paper.inkSoft },
-  goalPercent: { ...type.small, color: paper.ink, textAlign: 'right' },
+  goalNote: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
 });

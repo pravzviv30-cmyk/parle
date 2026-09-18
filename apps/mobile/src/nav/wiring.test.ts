@@ -324,18 +324,18 @@ describe('the lesson deck goes through the outbox too', () => {
 });
 
 describe('leaving a metered room is confirmed, not instant — F310', () => {
-  test('the in-room Leave on both live screens opens the confirm rather than leaving — F310', () => {
-    // The Leave inside a live room used to disconnect on the tap. It asks first
-    // now: the header press opens the sheet, and the exit runs from an effect
+  test('the in-room end control on both live screens opens the confirm rather than leaving — F310', () => {
+    // The end control inside a live room used to disconnect on the tap. It asks
+    // first: the header press opens the sheet, and the exit runs from an effect
     // once the guard is down (F311). Held here because it is a wiring claim two
     // screens must make identically.
     const live = strip(read('../LiveSessionScreen.tsx'));
-    assert.match(live, /onLeave=\{\(\) => setConfirming\(true\)\}/, 'the lesson Leave leaves instead of opening the confirm');
+    assert.match(live, /onLeave=\{\(\) => setConfirming\(true\)\}/, 'the lesson end control leaves instead of opening the confirm');
     assert.match(live, /<ConfirmSheet\b/, 'the lesson renders no confirm sheet');
     assert.match(live, /leaveConfirmCopy\('lesson'\)/, 'the lesson confirm is not drawn from the lesson copy');
 
     const convo = strip(read('../ConvoScreen.tsx'));
-    assert.match(convo, /onPress: \(\) => setConfirming\(true\)/, 'the conversation Leave leaves instead of opening the confirm');
+    assert.match(convo, /onEnd=\{\(\) => setConfirming\(true\)\}/, 'the conversation end control leaves instead of opening the confirm');
     assert.match(convo, /<ConfirmSheet\b/, 'the conversation renders no confirm sheet');
     assert.match(convo, /leaveConfirmCopy\('conversation'\)/, 'the conversation confirm is not drawn from the conversation copy');
   });
@@ -361,7 +361,7 @@ describe('hardware back and the swipe cannot slip a metered room — F311', () =
   test('hardware back and the swipe on a live room are routed to the confirm — F311', () => {
     // usePreventRemove catches both Android's hardware back and iOS's edge
     // swipe, so neither can pop the room without meeting the same sheet the
-    // header Leave opens.
+    // header end control opens.
     for (const [name, file] of [
       ['the lesson', '../LiveSessionScreen.tsx'],
       ['the conversation', '../ConvoScreen.tsx'],

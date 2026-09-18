@@ -215,6 +215,13 @@ describe('the stable prefix', () => {
     assert.match(contract, /answers it|reply .*back to/i, 'fullLine must be named as the answer to the line just said');
   });
 
+  test('the tutor reacts to a learner line instead of parroting or answering it for them', () => {
+    const { persona } = buildSystemBlocks();
+    assert.match(persona, /never return the learner'?s words as the whole reply/i);
+    assert.match(persona, /never answer a question you just asked on their behalf/i);
+    assert.match(persona, /add a real reaction or next move/i);
+  });
+
   test('both shipped prompts carry the one safety conduct block', () => {
     // F138. PRIVACY_AND_SAFETY.md says judgement lives in the prompt and policy
     // lives in code. Before this, grepping both shipped prompt sets for

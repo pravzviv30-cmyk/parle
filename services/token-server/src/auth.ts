@@ -3,14 +3,18 @@
  *
  * Historically the server took `userId` from the request body on faith — fine
  * for keyless dev, an open door the day accounts exist. This resolver closes
- * it without breaking that dev mode:
+ * it without breaking the one deliberately insecure development mode:
  *
- *   SUPABASE_URL set        → verify against the project's asymmetric JWKS
- *   else JWT secret set     → verify HS256 in explicit legacy/local setups
- *   else                    → not configured: trust the asserted id, as before
+ *   bearer + SUPABASE_URL   → verify against the project's asymmetric JWKS
+ *   bearer + JWT secret     → verify HS256 in explicit legacy/local setups
+ *   explicit local mode     → with no bearer, trust the asserted mock identity
+ *   everything else        → refuse the request
  *
- * When configured, the verified token's `sub` IS the user id and whatever the
- * client asserted is ignored. When not, nothing about the old behaviour moves.
+ * A configured verifier still wins when a bearer is supplied in local mode:
+ * its `sub` IS the user id and whatever the client asserted is ignored. An
+ * invalid bearer never falls through to asserted identity. The exception is
+ * exactly `LUVANI_LOCAL_DEVELOPMENT=1` outside production, so merely omitting
+ * Supabase credentials can no longer open the trust-the-client path.
  */
 
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
@@ -20,12 +24,16 @@ export interface VerifierConfig {
   jwtSecret?: string | undefined;
   /** SUPABASE_URL — the project base URL; its JWKS endpoint is derived. */
   supabaseUrl?: string | undefined;
+  /** NODE_ENV — production always refuses asserted identity. */
+  nodeEnv?: string | undefined;
+  /** LUVANI_LOCAL_DEVELOPMENT — only the exact value `1` opts into local trust. */
+  localDevelopment?: string | undefined;
 }
 
 export type ResolvedUser = { ok: true; userId: string } | { ok: false; status: number; message: string };
 
 export interface UserResolver {
-  /** True when tokens are being verified; false in trust-the-client dev mode. */
+  /** True when a token verifier exists; asserted local identity is a separate opt-in. */
   configured: boolean;
   resolve(authorizationHeader: string | undefined, assertedUserId: string | null): Promise<ResolvedUser>;
 }
@@ -64,30 +72,30 @@ export function createUserResolver(
   }
 
   const active = verify;
-  if (active === null) {
-    return {
-      configured: false,
-      async resolve(_header, asserted) {
-        // Dev mode: exactly the pre-auth contract, including its 400.
-        return asserted
-          ? { ok: true, userId: asserted }
-          : { ok: false, status: 400, message: 'userId is required' };
-      },
-    };
-  }
+  const trustsAssertedIdentity = config.localDevelopment === '1' && config.nodeEnv !== 'production';
 
   return {
-    configured: true,
-    async resolve(header, _asserted) {
+    configured: active !== null,
+    async resolve(header, asserted) {
       const token = header !== undefined && /^bearer /i.test(header) ? header.slice(7).trim() : null;
-      if (!token) return SIGN_IN_REQUIRED;
-      try {
-        const sub = await active(token);
-        return sub === null ? SIGN_IN_REQUIRED : { ok: true, userId: sub };
-      } catch {
-        // Expired, malformed, wrong key — the reason is not the client's business.
-        return SIGN_IN_REQUIRED;
+      // A supplied credential is never silently downgraded to a body assertion.
+      // That matters in local mode too: a malformed or expired bearer must not
+      // become a different identity merely because the request also has userId.
+      if (header !== undefined && header.trim() !== '') {
+        if (!token || active === null) return SIGN_IN_REQUIRED;
+        try {
+          const sub = await active(token);
+          return sub === null ? SIGN_IN_REQUIRED : { ok: true, userId: sub };
+        } catch {
+          // Expired, malformed, wrong key — the reason is not the client's business.
+          return SIGN_IN_REQUIRED;
+        }
       }
+
+      if (!trustsAssertedIdentity) return SIGN_IN_REQUIRED;
+      return asserted
+        ? { ok: true, userId: asserted }
+        : { ok: false, status: 400, message: 'userId is required' };
     },
   };
 }

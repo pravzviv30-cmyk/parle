@@ -172,7 +172,7 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
     // to the edge, and the leave word sits `alignItems: 'flex-end'` within it. So
     // the guarantee is unchanged and still checked at its home, by the mechanism
     // that replaced the old `marginLeft: 'auto'`, and the three screens are held
-    // to routing their Leave through it rather than a hand-rolled row.
+    // to routing their way out through a shared header rather than a hand-rolled row.
     const header = readFileSync(join(SRC, 'layout.tsx'), 'utf8');
     assert.match(
       header,
@@ -184,7 +184,7 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
       /minWidth: HIT, minHeight: HIT, alignItems: 'flex-end'/,
       'the shared header no longer flushes the leave word to the right, so it can sit under the wrong thumb',
     );
-    for (const name of ['ConvoScreen.tsx', 'ReviewScreen.tsx', 'DrillScreen.tsx']) {
+    for (const name of ['ReviewScreen.tsx', 'DrillScreen.tsx']) {
       const source = readFileSync(join(SRC, name), 'utf8');
       assert.match(
         source,
@@ -192,6 +192,12 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
         `${name} hand-rolls its way out instead of the shared header that positions it once`,
       );
     }
+    const convo = readFileSync(join(SRC, 'ConvoScreen.tsx'), 'utf8');
+    assert.match(
+      convo,
+      /<LiveRoomHeader\s+/,
+      'ConvoScreen no longer routes its compact end control through the shared live-room header',
+    );
   });
 
   test('the transcript label still says whose hearing it was', () => {

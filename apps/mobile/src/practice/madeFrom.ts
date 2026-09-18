@@ -99,6 +99,18 @@ export interface MadeFrom {
   sound: SoundToTune | null;
 }
 
+/**
+ * The real conversation named above the personalised rows.
+ *
+ * A pack can legitimately contain only a phrase or only a repair, so the
+ * provenance cannot be read from one particular row. Both carry the same pack
+ * title; prefer the moment, then the phrase, and say nothing when the only
+ * surviving evidence is a sound check from another sitting.
+ */
+export function madeFromSource(made: MadeFrom | null): string | null {
+  return made?.replay?.from ?? made?.phrase?.from ?? null;
+}
+
 /** The newest sound check, with the steps to work it, or null. Read by the starter too. */
 export function soundToTune(checks: readonly SoundCheckEvidence[]): SoundToTune | null {
   const focus = soundFocus(checks);

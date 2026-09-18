@@ -40,6 +40,7 @@ import {
   rungColor,
   type TintName,
 } from './theme.ts';
+import { tapSettled } from './motion/haptics.ts';
 import type { Rung } from '@luvani/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
@@ -299,11 +300,14 @@ export function PillButton({
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        tapSettled();
+        onPress();
+      }}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      style={({ pressed }) => [s.pill, disabled && s.pillDisabled, pressed && !disabled && { opacity: 0.88 }]}
+      style={({ pressed }) => [s.pill, disabled && s.pillDisabled, pressed && !disabled && s.pillPressed]}
     >
       {icon}
       <Text style={[type.button, { color: paper.onInk }]}>{label}</Text>
@@ -337,11 +341,14 @@ export function OutlineButton({
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        tapSettled();
+        onPress();
+      }}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      style={({ pressed }) => [s.outline, pressed && !disabled && { backgroundColor: paper.groundDeep }, disabled && { opacity: 0.45 }]}
+      style={({ pressed }) => [s.outline, pressed && !disabled && s.outlinePressed, disabled && { opacity: 0.45 }]}
     >
       <View style={s.outlineRow}>
         {icon}
@@ -429,7 +436,10 @@ export function OptionCard({
   return (
     <View style={[s.option, selected && s.optionSelected, pressed && s.optionPressed]}>
       <Pressable
-        onPress={onPress}
+        onPress={() => {
+          tapSettled();
+          onPress();
+        }}
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
         accessibilityRole="button"
@@ -803,7 +813,14 @@ export function SpeakCircle({
   const iconColor = active ? paper.onInk : muted ? paper.inkFaint : signal.good;
   return (
     <Pressable
-      onPress={onPress}
+      onPress={
+        onPress === undefined
+          ? undefined
+          : () => {
+              tapSettled();
+              onPress();
+            }
+      }
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       disabled={disabled || muted}
@@ -1087,7 +1104,7 @@ const s = StyleSheet.create({
     paddingVertical: space(3),
     paddingHorizontal: space(4),
   },
-  tintRowPressed: { backgroundColor: paper.groundDeep },
+  tintRowPressed: { backgroundColor: paper.groundDeep, transform: [{ scale: 0.985 }, { translateY: 1 }] },
   tintDisc: {
     width: DISC,
     height: DISC,
@@ -1119,6 +1136,7 @@ const s = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: space(6),
   },
+  pillPressed: { backgroundColor: paper.ink, transform: [{ scale: 0.985 }, { translateY: 1 }] },
   pillDisabled: { backgroundColor: paper.inkFaint },
   outline: {
     minHeight: HIT + 4,
@@ -1131,6 +1149,7 @@ const s = StyleSheet.create({
     paddingVertical: space(2.5),
     paddingHorizontal: space(5),
   },
+  outlinePressed: { backgroundColor: paper.groundDeep, transform: [{ scale: 0.985 }, { translateY: 1 }] },
   outlineRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   ghost: {
     minHeight: HIT,

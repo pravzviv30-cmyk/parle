@@ -120,7 +120,7 @@ describe('Profile keeps who you are and how you learn — F473', () => {
       'Delete account',
       'Download my data',
       'Saved conversations',
-      'A reviewed privacy policy',
+      'Our privacy policy',
       'Acknowledgements',
       'onSignOut',
       'onDeleteAccount',
@@ -232,7 +232,11 @@ describe('the Settings screen is one push away — F473', () => {
     // Its own back, drawn in the screen. A native header would be a second,
     // duplicate way out, which is the whole reason every pushed screen here
     // inherits headerShown false.
-    assert.match(SETTINGS, /<ScreenHeader back=\{\{ onPress: \(\) => nav\.goBack\(\) \}\} \/>/, 'Settings draws no back of its own');
+    assert.match(
+      SETTINGS,
+      /nav\.canGoBack\(\) \? nav\.goBack\(\) : nav\.navigate\('Tabs'\)/,
+      'Settings back has no safe route when the screen is opened from a direct web address',
+    );
     assert.ok(!NAVIGATOR.includes('headerShown: true'), 'a pushed screen grew a native header back beside the in-screen one');
 
     // On the shared frame, and not under the tab bar: it is a push, so the bar

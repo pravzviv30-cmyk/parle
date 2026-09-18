@@ -22,6 +22,7 @@ import {
   finishSession,
   integrateTurn,
   learnerSnapshotFrom,
+  missionFrame,
   openingRungFor,
   sampleCoachItem,
   sampleSupport,
@@ -1079,9 +1080,11 @@ describe('a conversation rescue and a learner answering at the same moment', () 
     assert.equal(convo.conversationState.turnCount, 1, 'one answer, one turn of the scene');
   });
 
-  test('the clock starts again once the slow turn has been answered', async (t) => {
+  test('the clock starts again once the slow turn has been answered, without writing a second character turn', async (t) => {
     // Standing down must not stand down for good. A learner who freezes after a
-    // slow reply is still a learner who gets handed the line.
+    // slow reply is still a learner who gets handed the line. In text mode that
+    // hand-over is UI support only: generating another scene reply here makes
+    // the tutor answer itself while the learner is still deciding what to type.
     t.mock.timers.enable({ apis: ['setTimeout'] });
     const client = new SlowBrain();
     const { convo, session } = await inScene(t, { client, voiceless: true });
@@ -1095,6 +1098,8 @@ describe('a conversation rescue and a learner answering at the same moment', () 
     t.mock.timers.tick(12_001);
     await convo.settled();
     assert.equal(convo.conversationState.ladder.rescues, 1, 'the clock the slow turn stood down is running again');
+    assert.equal(client.turnRequests.length, 1, 'only the learner\'s typed line earns a character reply');
+    assert.equal(convo.conversationState.turnCount, 1, 'silence in a text box is not another turn of dialogue');
   });
 
   test('a rescue hands over support without moving the scene on', async (t) => {
@@ -1158,11 +1163,11 @@ describe('a conversation for someone who cannot speak aloud', () => {
     );
   });
 
-  test('a typed conversation rescues a learner who goes quiet, on a reader’s clock', async (t) => {
+  test('a typed conversation reveals support on a reader’s clock, without continuing the scene by itself', async (t) => {
     // Enabled before the scene opens: the clock a typed session runs on is
     // armed by the render itself, so it has to be the mocked one from the start.
     t.mock.timers.enable({ apis: ['setTimeout'] });
-    const { convo, client } = await inScene(t, { voiceless: true });
+    const { convo, client, published } = await inScene(t, { voiceless: true });
 
     // Nothing speaks, so no AgentStateChanged ever fires to start the clock.
     // Rendering the turn is the moment the learner has the floor — and a reader
@@ -1174,7 +1179,13 @@ describe('a conversation for someone who cannot speak aloud', () => {
     t.mock.timers.tick(12_000);
     await convo.settled();
     assert.equal(convo.conversationState.ladder.rescues, 1, 'a quiet learner is still a stuck learner');
-    assert.equal(client.turnRequests.length, 1);
+    assert.equal(client.turnRequests.length, 0, 'silence reveals help from material already in hand, not a fresh tutor turn');
+    assert.equal(convo.conversationState.turnCount, 0, 'the conversation cannot advance until the learner answers');
+
+    const afterSupport = views(published).length;
+    t.mock.timers.tick(TEXT_SILENCE_MS * 2);
+    await convo.settled();
+    assert.equal(views(published).length, afterSupport, 'one pause cannot make the tutor keep talking to itself');
   });
 
   test('a typed conversation says nothing aloud, from the opener to the answer', async (t) => {
@@ -2150,6 +2161,19 @@ describe('the opener the learner actually hears is the one that was warmed', () 
 // ─────────────────────────────────── missions: the scene that was already written
 
 describe('a conversation started from a mission', () => {
+  test('a signed session selects one stable authored opening from the mission deck', async (t) => {
+    const sessionId = '7f3c1a20-1111-4111-8111-111111111111';
+    const expected = missionFrame('mission:cafe', sessionId);
+    assert.ok(expected);
+    const { convo, session } = buildConvo(t, { missionId: 'mission:cafe', sessionId });
+
+    convo.open(session);
+    await sceneSettled();
+
+    assert.deepEqual(convo.conversationState.frame.openingNarration, expected.openingNarration);
+    assert.deepEqual(convo.conversationState.frame.openingLine, expected.openingLine);
+  });
+
   test('a mission session opens its scene with zero model calls', async (t) => {
     // The mechanism under the one-minute promise. A mission's frame is authored,
     // so there is nothing to design: no scenario call, no ten to twenty five
@@ -2520,10 +2544,9 @@ describe('replaying a line', () => {
 
 /**
  * The same money question as `tutor.test.ts`, against the other agent, because
- * the defect was the same shape in both. `recap.stats.turns` is
- * `state.turnCount`, and a silence rescue runs a real brain turn through
- * `integrateTurn`, which advances it — so a conversation nobody could be heard
- * in billed for its whole wall clock (F76).
+ * the defect was the same shape in both. Passive text silence now reveals local
+ * support without manufacturing a brain turn, but billing still keys off real
+ * learner presence rather than trusting `state.turnCount` (F76).
  */
 describe('what a conversation is allowed to bill', () => {
   /** Backdate the room's start, or every assertion below reads zero for free. */
@@ -2549,15 +2572,14 @@ describe('what a conversation is allowed to bill', () => {
       const { convo, session, client } = await missionScene(t, '66666666-6666-4666-8666-666666666666');
       ranFor(convo, 60);
 
-      // Four silent seconds. The rescue steps in, in character, through a real
-      // brain turn — which is exactly what used to advance `turnCount` and make
-      // the bill for a learner who never said anything.
+      // One reader-window of silence. The support card may open, but the tutor
+      // must not create a character turn or make an empty room look attended.
       const generation = convo.armRescue(session);
       await convo.runRescue(generation);
       await convo.settled();
       convo.clearRescue();
-      assert.equal(client.turnRequests.length, 1, 'the rescue really did spend a turn');
-      assert.ok(convo.conversationState.turnCount > 0, 'and really did advance the turn count');
+      assert.equal(client.turnRequests.length, 0, 'passive text silence spends no model call');
+      assert.equal(convo.conversationState.turnCount, 0, 'and cannot advance the conversation');
 
       await convo.finish();
       assert.equal(debits.length, 1, 'the session is still reported, which is what releases the lease');

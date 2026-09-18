@@ -742,7 +742,7 @@ describe('the privacy notice — F479', () => {
     assert.ok(privacyNote().includes(LEGAL_REVIEW_PENDING), 'the Settings note stopped saying it');
     assert.doesNotMatch(
       source('policy.ts'),
-      /A reviewed privacy policy/,
+      /Our privacy policy and terms still need legal review/,
       'the notice restates the sentence instead of importing it, so one could be edited alone',
     );
     // Accurate is not cleared, and the notice must not imply that it is.

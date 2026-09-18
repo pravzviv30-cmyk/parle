@@ -18,6 +18,7 @@
 
 import { View, Text, Switch, StyleSheet } from 'react-native';
 import { accent, paper, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { tapSettled } from '../motion/haptics.ts';
 
 export function SwitchRow({
   title,
@@ -44,8 +45,12 @@ export function SwitchRow({
       </View>
       <Switch
         value={value}
-        onValueChange={onChange}
+        onValueChange={(next) => {
+          tapSettled();
+          onChange(next);
+        }}
         accessibilityLabel={accessibilityLabel}
+        accessibilityHint={sub}
         trackColor={{ true: accent.primary, false: paper.groundDeep }}
         thumbColor={paper.card}
       />

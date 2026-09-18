@@ -41,8 +41,19 @@ export type RootStackParamList = {
    * and names an authored scene the tutor does not have to write first. A
    * plain string for the same reason: an id this build does not know degrades
    * to the ordinary conversation rather than failing.
+   *
+   * `continuationPackId` never leaves the phone. It names the remembered
+   * conversation this route is carrying on, so the pack can be retired only
+   * after the room publishes its first real view. Keeping it in navigation
+   * state rather than stamping it on the Tutor-tab tap means an offline or
+   * refused start cannot erase a thread the learner never reached.
    */
-  Convo: { textMode?: boolean; seedTopic?: { fr: string; en: string }; missionId?: string } | undefined;
+  Convo: {
+    textMode?: boolean;
+    seedTopic?: { fr: string; en: string };
+    missionId?: string;
+    continuationPackId?: string;
+  } | undefined;
   /**
    * The mission chooser. A stack screen rather than a tab or an onboarding
    * page, because the same surface is needed from three doors: the first run

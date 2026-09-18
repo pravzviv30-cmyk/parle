@@ -25,11 +25,10 @@ export const RHYTHM_LABEL = 'Your speaking rhythm';
 /**
  * Under the week. A stance, not a score.
  *
- * "Daily" rather than "often" because the row above it is now a Monday to
- * Sunday calendar with the day names written on it, and the caption should say
- * the same thing the picture does.
+ * The calendar is evidence, never a chain to protect. It keeps what happened
+ * and gives the learner permission to return on their own terms.
  */
-export const WEEK_CAPTION = 'Small and daily beats big and rare.';
+export const WEEK_CAPTION = 'Every conversation stays. Return when it suits you.';
 
 /** Over the card of standing choices about how a conversation goes. */
 export const LEARNING_LABEL = 'Your learning';

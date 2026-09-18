@@ -1,148 +1,105 @@
 /**
- * The voice circle — the tutor, as an object on the page.
+ * The tutor's voice circle.
  *
- * One gradient ball inside three faint rings, and it speaks traffic lights:
- * red, the tutor is talking, listen; green, your turn, speak; amber, it is
- * thinking, one moment. Revamp A reversed the earlier ruling: the founder had
- * chosen outline rings over a lit sphere, saw both drawn, and picked the sphere,
- * so the rings are the quiet edge of it now rather than the whole mark. The
- * gradient is the one state colour thinned by opacity, never a second hex. It
- * still carries NO shadow: the app's only shadows are the white card's whisper
- * and the live microphone's glow, and an orb that borrowed one would quietly
- * make two things look equally urgent.
+ * The approved direction is UI 4, softened rather than reinvented: a misty
+ * state-coloured watercolour field, three quiet rings, and a white waveform
+ * drawn directly on the colour. There is deliberately no microphone icon and
+ * no frosted capsule inside the orb. On the Tutor landing page the short state
+ * label sits directly under the bars; in a live room the existing caption can
+ * remain under the orb.
  *
- * In the two states where a voice is in the room, three soundwave lines are
- * drawn either side of the ball and breathe with it.
- *
- * The colour mapping is taught, not just used: TutorIntro's final page walks
- * a new learner through exactly these three colours. Changing them here means
- * changing them there, and in theme.ts's `orb` block, together.
- *
- * Built on core `Animated` with no new dependency. Reanimated would force the
- * repo's first babel config for a screen whose JS thread is nearly idle, and
- * Skia is a WASM payload on a target that ships to the browser. Everything
- * here animates transform and opacity only, on the native driver, per the
- * motion vocabulary the splash established: the drawing itself
- * (`OrbGlyph.tsx`) holds still and every attribute on it is static, so nothing
- * ever asks the JS thread for a frame of SVG.
- *
- * Deliberately not driven by audio amplitude. An analyser feeding setState at
- * thirty to sixty times a second is exactly the churn that would then require
- * reanimated to stay smooth — the one place worth spending a dependency later,
- * and not before.
+ * The SVG in `OrbGlyph` is still. This wrapper animates only opacity and
+ * transform with core Animated and the native driver. The waveform is a small
+ * set of ordinary views, so no SVG attribute is driven from JavaScript and no
+ * new animation dependency is needed.
  */
 
 import { useEffect, useRef } from 'react';
-import { View, Text, Animated, Easing, StyleSheet } from 'react-native';
-import { orb, paper, space, type, decorative } from '../theme.ts';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { decorative, orb, paper, space, type } from '../theme.ts';
 import { useReduceMotion } from '../motion.ts';
 import { orbRests } from './orbRest.ts';
-import { OrbGlyph, ORB_BOX, ORB_SIDE, ORB_WIDE } from './OrbGlyph.tsx';
+import { OrbGlyph } from './OrbGlyph.tsx';
 
-export type OrbState = 'ready' | 'idle' | 'speaking' | 'listening' | 'thinking' | 'error';
+export type OrbState = 'ready' | 'idle' | 'connecting' | 'speaking' | 'listening' | 'thinking' | 'error';
 
-/** The ball's box, in points, when nobody asks for a size. */
+/** The whole ring field when a caller does not choose a size. */
 const ORB_DEFAULT = 132;
 
-/** How far the voice lines stretch from rest, as a scale delta on Y. */
-const WAVE_TRAVEL = 0.18;
+/** Seven bars, echoing the simple voice mark in UI 4 rather than a mic icon. */
+const BAR_HEIGHTS = [0.1, 0.17, 0.27, 0.38, 0.27, 0.17, 0.1] as const;
 
 interface Look {
-  /** The one colour the whole orb is built from. */
+  /** One state colour drives every wash in the glyph. */
   colour: string;
-  /**
-   * The soundwave lines either side of the ball, in three settings.
-   *
-   * Drawn and moving is a voice in the room. Drawn and still is the shape of
-   * the orb: the founder's mockup has the lines beside the circle on the Tutor
-   * tab before anybody has tapped it, and hiding them until a conversation
-   * starts made the untapped control a bare disc that did not look like the
-   * thing in the drawing. Absent is for the two states where the ball is the
-   * whole message and a line either side would be a voice that is not there.
-   *
-   * Two settings rather than one boolean because the second driver is the cost:
-   * it runs only for `moving`, so a still pair of lines is a picture and not a
-   * native loop.
-   */
-  waves: 'none' | 'still' | 'moving';
-  /** How far the ball travels from rest, as a scale delta. */
+  /** Whether the direct white bars wait or respond. */
+  bars: 'still' | 'moving';
+  /** Scale travel from the resting frame. */
   amplitude: number;
   /** One breath, in milliseconds. */
   period: number;
-  /** Dim the whole orb instead of moving it. */
+  /** Thinking dims instead of travelling. */
   shimmer: boolean;
-  /** What the state is called, under the orb. */
+  /** The compact state word, embedded or placed underneath by the caller. */
   caption: string;
-  captionColor: string;
 }
-
-/**
- * Captions are set in ink, not in the state's own colour.
- *
- * A mark that reports state is held to 3 against its paper; words are held to
- * 4.5. Setting the word in the mark's colour quietly held the word to the
- * mark's floor, and "One moment" came out at 1.79 and "Speak" at 3.64. The orb
- * carries the colour, the caption carries the meaning, and both are legible.
- */
-const CAPTION_INK = paper.ink;
 
 const LOOKS: Record<OrbState, Look> = {
   ready: {
-    // The one control on the screen, in the colour the primary pill uses. It
-    // was paper.line — the hairline token — which made the thing a learner has
-    // to press the faintest object in the app.
     colour: orb.ready,
-    waves: 'still',
-    amplitude: 0.04,
-    period: 2600,
+    bars: 'still',
+    amplitude: 0.025,
+    period: 3000,
     shimmer: false,
     caption: 'Tap to talk',
-    captionColor: CAPTION_INK,
   },
   idle: {
-    colour: paper.line,
-    waves: 'still',
-    amplitude: 0.03,
-    period: 3400,
-    shimmer: false,
-    caption: 'Ready',
-    captionColor: CAPTION_INK,
-  },
-  speaking: {
-    colour: orb.speaking,
-    waves: 'moving',
-    amplitude: 0.08,
-    period: 900,
-    shimmer: false,
-    caption: 'Listen',
-    captionColor: CAPTION_INK,
-  },
-  listening: {
-    colour: orb.yourTurn,
-    waves: 'moving',
-    amplitude: 0.05,
-    period: 1600,
-    shimmer: false,
-    caption: 'Speak',
-    captionColor: CAPTION_INK,
-  },
-  thinking: {
-    colour: orb.thinking,
-    waves: 'none',
-    amplitude: 0,
-    period: 1400,
-    shimmer: true,
-    caption: 'One moment',
-    captionColor: CAPTION_INK,
-  },
-  error: {
-    colour: paper.line,
-    waves: 'none',
+    colour: paper.inkSoft,
+    bars: 'still',
     amplitude: 0,
     period: 0,
     shimmer: false,
-    caption: '',
-    captionColor: CAPTION_INK,
+    caption: 'Ready',
+  },
+  connecting: {
+    colour: orb.ready,
+    bars: 'moving',
+    amplitude: 0.025,
+    period: 1150,
+    shimmer: false,
+    caption: 'Connecting',
+  },
+  speaking: {
+    colour: orb.speaking,
+    bars: 'moving',
+    amplitude: 0.045,
+    period: 780,
+    shimmer: false,
+    caption: 'Listen',
+  },
+  listening: {
+    colour: orb.yourTurn,
+    bars: 'moving',
+    amplitude: 0.035,
+    period: 1120,
+    shimmer: false,
+    caption: 'Speak',
+  },
+  thinking: {
+    colour: orb.thinking,
+    bars: 'still',
+    amplitude: 0,
+    period: 900,
+    shimmer: true,
+    caption: 'Thinking',
+  },
+  error: {
+    colour: paper.inkSoft,
+    bars: 'still',
+    amplitude: 0,
+    period: 0,
+    shimmer: false,
+    caption: 'Unavailable',
   },
 };
 
@@ -152,35 +109,20 @@ export function VoiceOrb({
   withCaption = true,
   announce = true,
   paused = false,
+  embeddedLabel,
 }: {
   state: OrbState;
   size?: number;
-  /** TutorIntro's walkthrough writes its own labels beside mini orbs. */
+  /** TutorIntro writes its own words beside its mini orbs. */
   withCaption?: boolean;
-  /**
-   * Whether the orb speaks for itself.
-   *
-   * False when something around it already does. On the choosing screen the
-   * orb sits inside a control that carries its own role and label, and two
-   * labels on one thing read to a screen reader as two things.
-   */
+  /** False when the surrounding Pressable owns the accessible name. */
   announce?: boolean;
-  /**
-   * True when the screen holding the orb is no longer the one on top.
-   *
-   * The orb cannot ask for itself: `useIsFocused` throws outside a
-   * NavigationContainer and the intro's mini orbs render above the navigator,
-   * so this is a prop the screen passes down, exactly as every drawing in
-   * `illustrations/` takes it. Defaulted to false because the live screen is a
-   * pushed screen and the only orb on it, so it is never behind anything.
-   */
+  /** A tab that is no longer focused parks every driver at its final frame. */
   paused?: boolean;
+  /** A short status drawn directly inside the colour field, below the bars. */
+  embeddedLabel?: string;
 }) {
   const look = LOOKS[state];
-  // Two drivers: the ball's breath, and the voice lines' stretch. They are kept
-  // in one list because they share a loop and a rest frame, and staggered so the
-  // lines answer the ball a beat later rather than pumping in unison, which
-  // reads mechanical.
   const drivers = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
   const dim = useRef(new Animated.Value(1)).current;
   const reduced = useReduceMotion();
@@ -190,26 +132,30 @@ export function VoiceOrb({
     const running: Animated.CompositeAnimation[] = [];
     const timers: ReturnType<typeof setTimeout>[] = [];
 
-    const stopAll = () => {
-      for (const a of running) a.stop();
-      running.length = 0;
-    };
-
     const run = () => {
       if (cancelled) return;
       if (orbRests({ amplitude: look.amplitude, shimmer: look.shimmer, reduced, paused })) {
-        // The final frame. The orb still says which state it is in through
-        // colour, lines and caption; only the movement is withheld.
-        for (const d of drivers) d.setValue(0.5);
+        for (const driver of drivers) driver.setValue(0.5);
         dim.setValue(1);
         return;
       }
 
       if (look.shimmer) {
+        drivers[1]!.setValue(0.5);
         const shimmer = Animated.loop(
           Animated.sequence([
-            Animated.timing(dim, { toValue: 0.45, duration: look.period, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-            Animated.timing(dim, { toValue: 1, duration: look.period, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+            Animated.timing(dim, {
+              toValue: 0.62,
+              duration: look.period,
+              easing: Easing.inOut(Easing.quad),
+              useNativeDriver: true,
+            }),
+            Animated.timing(dim, {
+              toValue: 1,
+              duration: look.period,
+              easing: Easing.inOut(Easing.quad),
+              useNativeDriver: true,
+            }),
           ]),
         );
         running.push(shimmer);
@@ -218,108 +164,112 @@ export function VoiceOrb({
       }
 
       dim.setValue(1);
-      // Lines that are drawn and still are parked at their rest frame first.
-      // The drivers start at 0 and the stretch reads 0.82 there, so a pair of
-      // lines left unstarted would sit permanently squashed rather than at
-      // full height.
-      if (look.waves !== 'moving') drivers[1]!.setValue(0.5);
-      // A state whose lines do not move has nothing for the second driver to
-      // do, and a loop nothing is bound to is native work for no picture.
-      const moving = look.waves === 'moving' ? drivers : drivers.slice(0, 1);
-      moving.forEach((d, i) => {
+      if (look.bars !== 'moving') drivers[1]!.setValue(0.5);
+      const moving = look.bars === 'moving' ? drivers : drivers.slice(0, 1);
+      moving.forEach((driver, index) => {
         const loop = Animated.loop(
           Animated.sequence([
-            Animated.timing(d, { toValue: 1, duration: look.period, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-            Animated.timing(d, { toValue: 0, duration: look.period, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+            Animated.timing(driver, {
+              toValue: 1,
+              duration: look.period,
+              easing: Easing.inOut(Easing.sin),
+              useNativeDriver: true,
+            }),
+            Animated.timing(driver, {
+              toValue: 0,
+              duration: look.period,
+              easing: Easing.inOut(Easing.sin),
+              useNativeDriver: true,
+            }),
           ]),
         );
         running.push(loop);
-        // The lines start a beat after the ball. The guard AND the handle both
-        // matter, the way useSceneMotion keeps both: an orb unmounted inside the
-        // delay window would otherwise start a loop that nothing owns.
         timers.push(
           setTimeout(() => {
             if (cancelled) return;
             loop.start();
-          }, i * 400),
+          }, index * 240),
         );
       });
     };
 
     run();
-
     return () => {
       cancelled = true;
       for (const t of timers) clearTimeout(t);
-      stopAll();
+      for (const animation of running) animation.stop();
     };
-    // `drivers` and `dim` are refs and never change identity. `reduced` is a
-    // dependency because the setting is watched now: a learner who turns
-    // reduce motion on while the orb is breathing is answered at once, and
-    // `paused` for the same reason: a tab left behind stops on the way out and
-    // picks its breathing back up when the learner comes back to it.
+    // Stable refs are deliberately omitted. State, reduced motion and focus are
+    // the three facts that may replace a running loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, reduced, paused]);
 
-  // The root is the wide box: the ball in the middle at `size`, and a strip
-  // either side that holds nothing but the voice lines. Reserved in every state
-  // so the page does not reflow each time the tutor takes the floor, and kept
-  // inside the root's own bounds because Android clips what hangs outside.
-  const column = (size * ORB_SIDE) / ORB_BOX;
   const breath = drivers[0]!.interpolate({
     inputRange: [0, 1],
     outputRange: [1 - look.amplitude, 1 + look.amplitude],
   });
-  const stretch = drivers[1]!.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1 - WAVE_TRAVEL, 1 + WAVE_TRAVEL],
-  });
+
+  const barWidth = Math.max(2, Math.round(size * 0.018));
+  const barGap = Math.max(2, Math.round(size * 0.018));
+  const barScales = BAR_HEIGHTS.map((_, index) =>
+    drivers[1]!.interpolate({
+      inputRange: [0, 1],
+      outputRange: index % 2 === 0 ? [0.76, 1.08] : [1.08, 0.76],
+    }),
+  );
 
   return (
     <View
-      style={[st.root, { width: (size * ORB_WIDE) / ORB_BOX, height: size }]}
+      style={[st.root, { width: size, height: size }]}
       {...(announce
-        ? { accessibilityRole: 'image' as const, accessibilityLabel: `Tutor: ${look.caption || 'stopped'}` }
+        ? { accessibilityRole: 'image' as const, accessibilityLabel: `Tutor: ${look.caption}` }
         : decorative)}
     >
-      {look.waves !== 'none' ? (
-        // Each strip shows its own side of the wide drawing and clips the rest,
-        // which is what lets the lines stretch on their own while the ball
-        // breathes at its own rate. Scaling a clipped strip moves only what is
-        // inside it, and inside these two there is nothing but lines.
-        <>
-          <Animated.View
-            pointerEvents="none"
-            style={[st.column, { left: 0, width: column, height: size, opacity: dim, transform: [{ scaleY: stretch }] }]}
-          >
-            <View style={st.lineLeft}>
-              <OrbGlyph color={look.colour} size={size} waves />
-            </View>
-          </Animated.View>
-          <Animated.View
-            pointerEvents="none"
-            style={[st.column, { right: 0, width: column, height: size, opacity: dim, transform: [{ scaleY: stretch }] }]}
-          >
-            <View style={st.lineRight}>
-              <OrbGlyph color={look.colour} size={size} waves />
-            </View>
-          </Animated.View>
-        </>
-      ) : null}
       <Animated.View pointerEvents="none" style={{ opacity: dim, transform: [{ scale: breath }] }}>
         <OrbGlyph color={look.colour} size={size} />
       </Animated.View>
-      {withCaption && look.caption ? (
-        <Text style={[type.label, st.caption, { color: look.captionColor }]}>{look.caption}</Text>
-      ) : null}
+
+      <Animated.View pointerEvents="none" style={[st.signal, { opacity: dim }]} {...decorative}>
+        <View style={[st.bars, { gap: barGap, height: size * 0.4 }]}>
+          {BAR_HEIGHTS.map((height, index) => (
+            <Animated.View
+              key={`${height}-${index}`}
+              style={[
+                st.bar,
+                {
+                  width: barWidth,
+                  height: Math.max(5, size * height),
+                  borderRadius: barWidth / 2,
+                  transform: [{ scaleY: barScales[index]! }],
+                },
+              ]}
+            />
+          ))}
+        </View>
+        {embeddedLabel !== undefined ? <Text style={st.embeddedLabel}>{embeddedLabel}</Text> : null}
+      </Animated.View>
+
+      {withCaption ? <Text style={st.caption}>{look.caption}</Text> : null}
     </View>
   );
 }
 
 const st = StyleSheet.create({
   root: { alignItems: 'center', justifyContent: 'center' },
-  column: { position: 'absolute', top: 0, overflow: 'hidden' },
-  lineLeft: { position: 'absolute', left: 0, top: 0 },
-  lineRight: { position: 'absolute', right: 0, top: 0 },
-  caption: { position: 'absolute', bottom: -space(6) },
+  signal: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', paddingTop: space(3) },
+  bars: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  bar: { backgroundColor: paper.onInk },
+  embeddedLabel: {
+    ...type.bodyStrong,
+    color: paper.onInk,
+    marginTop: -space(2),
+    textAlign: 'center',
+  },
+  caption: {
+    ...type.label,
+    position: 'absolute',
+    bottom: -space(6),
+    color: paper.ink,
+    textAlign: 'center',
+  },
 });

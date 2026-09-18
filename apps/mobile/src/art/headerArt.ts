@@ -50,3 +50,9 @@ export function showHeaderArt(fontScale: number): boolean {
  * right edge reaches exactly the edge of the page the screen padding created.
  */
 export const HEADER_ART_OFFSET = { top: -16, right: -20 } as const;
+
+/**
+ * Practice and My French both have a two-line title. Their picture tucks
+ * farther into the top bleed so its lower edge cannot cross the purpose line.
+ */
+export const LONG_HEADER_ART_TOP = -80;

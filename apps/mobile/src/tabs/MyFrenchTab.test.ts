@@ -255,6 +255,33 @@ describe('My French is the places, the shelf and the way back — F575', () => {
     assert.ok(!SCREEN.includes('Sound check for'), 'My French still spells the sound-check sentence itself');
   });
 
+  test('the sound fingerprint appears only from measured evidence and reopens its measured scene', () => {
+    // The screen reads the store and hands the whole list to the pure sound
+    // projection. It never branches on evidence kinds itself, which is what
+    // prevents a self-guided attempt from becoming a pronunciation claim.
+    assert.match(FLAT, /loadSoundChecks\(\)/, 'the tab never reads measured sound evidence');
+    assert.match(FLAT, /const fingerprint = soundFingerprint\(checks\)/, 'the tab decides for itself what counts as measured');
+    for (const kind of ["'assessed-focus'", "'assessed-clear'", "'self-guided'", "'unavailable'"]) {
+      assert.ok(!SCREEN.includes(kind), `the tab branches on ${kind}; measured evidence belongs to sounds.ts`);
+    }
+
+    // Null means no row at all. When evidence exists, the compact white row
+    // shows the waveform mark and returns to the exact situation measured.
+    const drawn = SCREEN.indexOf('label={SOUND_FINGERPRINT_LABEL}');
+    assert.notEqual(drawn, -1, 'the measured-sound affordance is missing');
+    const gate = SCREEN.lastIndexOf('fingerprint !== null &&', drawn);
+    assert.notEqual(gate, -1, 'an unmeasured learner is shown a sound fingerprint');
+    assert.ok(drawn - gate < 260, 'the measured-evidence gate is not attached to the row it protects');
+    assert.match(FLAT, /glyph=\{<WaveformGlyph color=\{accent\.primary\} \/>\}/, 'the sound door has no voice mark');
+    assert.match(FLAT, /line=\{fingerprint\.line\}/, 'the sound door writes a claim instead of drawing the projection');
+    assert.match(FLAT, /accessibilityLabel=\{SOUND_FINGERPRINT_OPEN\}/, 'the sound door names nothing to a screen reader');
+    assert.match(
+      FLAT,
+      /nav\.navigate\('SoundCheck', \{ missionId: fingerprint\.missionId \}\)/,
+      'the fingerprint does not reopen the situation whose evidence it shows',
+    );
+  });
+
   test('the header carries its own picture, and the picture never takes a tap', () => {
     assert.match(FLAT, /<View style=\{st\.head\}> <HeaderArt name=\{HEADER_ART\.myfrench\} \/> <TabHeader title=\{MY_FRENCH_TITLE\} purpose=\{MY_FRENCH_PURPOSE\} \/> <\/View>/, 'the art and the header do not share one positioned parent');
     assert.match(SCREEN, /head: \{ position: 'relative' \}/, 'the art has nothing to position itself against');
@@ -297,7 +324,7 @@ describe('My French is the places, the shelf and the way back — F575', () => {
     // back to an older self after they have moved on.
     assert.match(FLAT, /useFocusEffect\( useCallback\(\(\) => \{ let cancelled = false;/, 'the visit does not guard against answering after the learner has gone');
     assert.match(FLAT, /return \(\) => \{ cancelled = true; \};/, 'nothing cancels the reads when the tab goes away');
-    for (const store of ['loadMissionCompletions()', 'loadDeck()', 'loadBookmarks()', 'loadConversationPacks()']) {
+    for (const store of ['loadMissionCompletions()', 'loadDeck()', 'loadBookmarks()', 'loadSoundChecks()', 'loadConversationPacks()']) {
       assert.ok(SCREEN.includes(store), `the tab never reads ${store}, so a block of it can never appear`);
       assert.equal(SCREEN.split(store).length - 1, 1, `${store} is read more than once a visit`);
     }

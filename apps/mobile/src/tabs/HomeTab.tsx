@@ -145,7 +145,7 @@ export function HomeTab() {
     // bottom="tab": the tab bar owns the bottom edge, so the frame leaves it the
     // inset rather than paying it twice on a notched phone.
     <ScrollScreen bottom="tab">
-      <View style={st.scroll}>
+      <View>
         {/* The greeting, the hour's question, and the watercolour behind both.
             `title` is the still line, which is what a screen reader hears and
             what a learner who asked for less movement reads; `titleSwap` is the
@@ -169,7 +169,6 @@ export function HomeTab() {
 }
 
 const st = StyleSheet.create({
-  scroll: { flexGrow: 1 },
   // The corner art is absolute inside this, so it can bleed off the top right
   // of the page behind a greeting that changes language every few seconds.
   head: { position: 'relative', marginTop: space(2) },

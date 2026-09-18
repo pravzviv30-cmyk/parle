@@ -6,6 +6,16 @@ import { describe, test } from 'node:test';
 const server = readFileSync(path.join(import.meta.dirname, 'server.ts'), 'utf8');
 const agent = readFileSync(path.resolve(import.meta.dirname, '..', '..', 'tutor-agent', 'src', 'agent.ts'), 'utf8');
 
+describe('local mock identity wiring', () => {
+  test('the resolver receives both sides of the exact non-production local opt-in', () => {
+    assert.match(
+      server,
+      /createUserResolver\(\{[\s\S]*nodeEnv: process\.env\.NODE_ENV,[\s\S]*localDevelopment: process\.env\.LUVANI_LOCAL_DEVELOPMENT,[\s\S]*\}\)/,
+      'server construction can no longer distinguish explicit local development from production',
+    );
+  });
+});
+
 describe('session lifecycle wiring — infrastructure must have callsites', () => {
   test('a successful start atomically acquires the learner lease before returning the token', () => {
     const acquire = server.indexOf('sessionLeases.acquire(');

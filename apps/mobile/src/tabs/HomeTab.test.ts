@@ -354,9 +354,10 @@ describe('Home says what the learner can now do, and counts nothing — F399, F5
       'the hero does not read its words from homeMission.ts',
     );
     assert.match(flat(HERO), /<HeroCard/, 'the hero is no longer drawn on the shared hero card');
-    for (const field of ['label={hero.label}', 'title={hero.title}', 'body={hero.body}', 'art={hero.art}']) {
+    for (const field of ['label={hero.label}', 'title={hero.title}', 'body={hero.body}', 'art={hero.art}', 'reason={hero.reason}']) {
       assert.match(flat(HERO), new RegExp(field.replace(/[{}.]/g, '\\$&')), `the hero does not draw ${field}, so something else is deciding it`);
     }
+    assert.match(flat(HERO), /artTint=\{missionTint\(hero\.place\)\}/, 'the hero art has no contextual paper wash, or invents one outside the place mapping');
     // The picture is the registry's, by place, so no screen spells a filename
     // and two screens drawing one place cannot drift apart.
     const rule = stripComments(read('../home/homeMission.ts'));
@@ -539,7 +540,7 @@ describe('the two tabs fit a phone at every reading size — F409', () => {
       assert.ok(!body.includes('useSafeAreaInsets'), `${path} re-grows its own safe-area maths`);
       assert.ok(!body.includes('<ScrollView'), `${path} opens a scroll view of its own inside the frame's`);
     }
-    assert.equal(style(SCREEN, 'scroll').trim(), 'scroll: { flexGrow: 1', "Home's scroll body carries something other than flexGrow");
+    assert.ok(!SCREEN.includes('st.scroll'), "Home's inner wrapper still grows against the shared scroll frame");
 
     // Every column of words that takes the rest of a row can shrink. `flex: 1`
     // alone gives a column its share and forbids it going below its content's

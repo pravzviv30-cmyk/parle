@@ -58,7 +58,7 @@ function style(body: string, name: string): string {
 }
 
 describe('the momentum block and the day\'s word, one level down — F436, F438, F391', () => {
-  test('home draws the four momentum cards in tokens, green for ground covered, the accent once on the badge and never on a bar — F436', () => {
+  test('progress draws four momentum cards, keeps the target gentle and uses the accent once — F436', () => {
     // Four cards, always, from the learner's first day (founder, 2026-09-05).
     // The gate on the screen is about the storage read, not about having
     // anything to say: `momentum` is null only until the deck and the log
@@ -82,8 +82,7 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     // and the module's start line stands in its place.
     const gates = [
       'days.count', 'retained.count', 'retained.weekLine', 'retained.moreLine', 'retained.foot',
-      'retained.link', 'mastery.percentLabel', 'mastery.line', 'goal.amount', 'goal.target',
-      'goal.percentLabel',
+      'retained.link', 'mastery.percentLabel', 'mastery.line', 'goal.amount',
     ];
     for (const gate of gates) {
       assert.ok(MOMENTUM.includes(`${gate} !== null &&`), `${gate} is drawn without being checked, so a nought or an empty line can reach the card`);
@@ -97,7 +96,7 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
       'retained.label', 'retained.sub', 'retained.count', 'retained.words',
       'retained.weekLine', 'retained.moreLine', 'retained.foot',
       'mastery.label', 'mastery.percentLabel', 'mastery.words', 'mastery.line',
-      'goal.title', 'goal.amount', 'goal.note', 'goal.percentLabel',
+      'goal.title', 'goal.amount', 'goal.note',
     ];
     for (const field of fields) {
       assert.ok(MOMENTUM.includes(`{${field}}`), `the block does not draw ${field}, so something else is saying it`);
@@ -108,7 +107,7 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     // now and a one-word ban would trip on an identifier rather than on copy.
     // This is a substring sweep: no style name in the file may contain one.
     for (const spelled of [
-      'Days active', 'Retained phrases', "Today's speaking goal", 'this week', 'daily cadence',
+      'Days active', 'Retained phrases', 'Speaking time today', 'this week', "today's target",
       'spoken naturally', 'Active vocabulary', 'Review phrase bank', 'land here', 'Takes shape',
       'Settling in', 'of reviews',
     ]) {
@@ -121,8 +120,21 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
       assert.ok(!MOMENTUM.includes(worked), `the block computes with ${worked}; momentum.ts owns every number on it`);
     }
 
-    // Green means ground already covered, here as everywhere.
-    assert.match(style(MOMENTUM, 'fill'), /backgroundColor: signal\.good/, 'the goal bar is not filled in the green that means the learner produced French');
+    // The optional target is words, not a quota-shaped visual. The card may
+    // report measured minutes and an optional remainder, but it has no meter,
+    // percentage label or data field from which either could be rebuilt.
+    const goalCard = between(
+      flat(MOMENTUM),
+      '<Card style={st.goal}>',
+      '</Card>',
+      'the speaking-time card is still one card',
+    );
+    for (const quota of ['goal.percent', 'goal.percentLabel', 'accessibilityRole="progressbar"', 'st.track', 'st.fill']) {
+      assert.ok(!goalCard.includes(quota), `the optional target still renders ${quota}`);
+    }
+    for (const quotaStyle of ['track:', 'fill:', 'goalPercent:']) {
+      assert.ok(!MOMENTUM.includes(quotaStyle), `the retired target meter left ${quotaStyle} behind`);
+    }
     // The one mark that is not green, and the founder chose it (F577): the week
     // rail's filled day is the identity violet, because a calendar record is a
     // diary of days already spent rather than a state being reported.
@@ -137,8 +149,8 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     assert.ok(!MOMENTUM.includes('rungColor'), 'a rung colour reached the signal set, so a state could read as a rung');
 
     // The violet appears once in this file, on the badge beside the recall
-    // figure, where it labels a card and reports nothing. It is not a fill, a
-    // bar or a mark here, so it is not in the stylesheet at all: identity is
+    // figure, where it labels a card and reports nothing. It is not a fill or
+    // a mark here, so it is not in the stylesheet at all: identity is
     // the colour of the thing you press, never the colour of a state. The one
     // other violet on the block is the rail's filled day, and that one lives in
     // `components.tsx` where the founder's calendar exception is written down.
@@ -150,7 +162,7 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     assert.match(flat(MOMENTUM), /<BadgeGlyph color=\{accent\.primary\} \/>/, 'the one violet is somewhere other than the badge on the recall tile');
     assert.ok(
       !MOMENTUM.slice(MOMENTUM.indexOf('StyleSheet.create')).includes('accent.'),
-      'the accent reached the momentum stylesheet; violet is identity, not a fill, a bar or a mark',
+      'the accent reached the momentum stylesheet; violet is identity, not a fill or a mark',
     );
 
     // A day that has not happened is not a state worth signalling, so it takes
@@ -170,16 +182,10 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
       assert.ok(!waiting.includes(meaning), `a day that has not happened is filled with ${meaning}, which reports an absence back to the learner`);
     }
 
-    // The bar says its value out loud, because a bar is a picture and a picture
-    // is not readable by everyone. At zero minutes the spoken value is the
-    // invitation rather than a nought, because a bar that announces "0%" has
-    // said the one thing the words beside it were written to avoid.
-    assert.match(flat(MOMENTUM), /accessibilityRole="progressbar"/, 'the goal bar reaches a screen reader as an unnamed view');
-    assert.match(
-      flat(MOMENTUM),
-      /accessibilityValue=\{\{ min: 0, max: 100, now: goal\.percent, text: goal\.percentLabel \?\? goal\.note \}\}/,
-      'the bar announces no value, or announces a nought where the invitation should be',
-    );
+    // Screen readers get the same measured amount and gentle sentence as
+    // everyone else; there is no hidden progressbar announcing a percentage.
+    assert.match(goalCard, /\{goal\.amount !== null && <Text style=\{st\.goalAmount\}>\{goal\.amount\}<\/Text>\}/, 'the truthful measured amount is no longer drawn');
+    assert.match(goalCard, /<Text style=\{st\.goalNote\}>\{goal\.note\}<\/Text>/, 'the gentle status sentence is no longer drawn');
 
     // No score anywhere, and the list is unchanged. The figure on the recall
     // tile is a share of the deck's own reviews, not a mark out of ten, and

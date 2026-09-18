@@ -43,8 +43,8 @@ function stripComments(source: string): string {
 const learner = (): StoredProfile =>
   createStoredProfile({ name: 'Camille', ageConfirmed: true, motivation: null }, NOW);
 
-describe('the daily goal, chosen where it is read — F368', () => {
-  test('the daily goal is a three-way choice with the chosen gloss beneath, written through withDailyGoal — F368', () => {
+describe('the flexible speaking target, chosen where it is read — F368', () => {
+  test('the speaking target is a three-way choice with the chosen gloss beneath, written through withDailyGoal — F368', () => {
     // 1. Three options, and the minute counts the store's own union names. A
     //    fourth would not fit the track, and a value outside the union would be
     //    a write the store types reject.
@@ -53,8 +53,8 @@ describe('the daily goal, chosen where it is read — F368', () => {
     assert.deepEqual(GOALS.map((g) => g.label), ['Five', 'Ten', 'Fifteen'], 'the segments are not the three words');
     assert.deepEqual(
       GOALS.map((g) => g.gloss),
-      ['A gentle start', 'The steady middle', 'Serious momentum'],
-      'the sheet\'s own descriptions were rewritten rather than moved',
+      ['A quick speaking moment', 'Room for a full scene', 'A longer conversation'],
+      'the choices judge commitment instead of describing the size of a sitting',
     );
     assert.equal(new Set(GOALS.map((g) => g.key)).size, 3, 'two segments share a key, so one of them cannot be chosen');
 
@@ -85,10 +85,10 @@ describe('the daily goal, chosen where it is read — F368', () => {
 
     // 4. The line under the control. What is set, and what that means, in that
     //    order, because a learner scanning the card reads the first sentence.
-    assert.equal(goalLine(withDailyGoal(learner(), 10)), 'Ten minutes a day. The steady middle.');
-    assert.equal(goalLine(withDailyGoal(learner(), 5)), 'Five minutes a day. A gentle start.');
+    assert.equal(goalLine(withDailyGoal(learner(), 10)), 'Ten minutes today. Room for a full scene.');
+    assert.equal(goalLine(withDailyGoal(learner(), 5)), 'Five minutes today. A quick speaking moment.');
     assert.equal(goalLine(null), DAILY_GOAL_UNSET, 'a learner who has not chosen is told nothing about what to do');
-    assert.match(DAILY_GOAL_UNSET, /Small and daily/, 'the unset line dropped the reason the question is worth answering');
+    assert.match(DAILY_GOAL_UNSET, /flexible speaking target/, 'the unset line makes the target sound compulsory');
 
     // 5. The copy. No digits anywhere a learner reads: the store holds five,
     //    ten and fifteen because minutes are a number, and the row says the
@@ -109,7 +109,7 @@ describe('the daily goal, chosen where it is read — F368', () => {
         `"${line}" turns a promise into a debt`,
       );
     }
-    assert.equal(DAILY_GOAL_ROW, 'Daily goal', 'the row is named something onboarding.test.ts cannot find');
+    assert.equal(DAILY_GOAL_ROW, 'Speaking target', 'the row is named something onboarding.test.ts cannot find');
 
     // 6. The wiring. There is no renderer in this suite, so the row is read out
     //    of the screen: the choice is on the card, it writes through the store's

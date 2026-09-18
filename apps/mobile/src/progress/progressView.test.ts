@@ -12,7 +12,15 @@ import assert from 'node:assert/strict';
 import { guiltIn } from '../copy/guilt.ts';
 import { ABILITIES_LABEL } from '../home/abilities.ts';
 import type { Stamp } from './passport.ts';
-import { CAN_DO_LABEL, MOMENTUM_LABEL, PROGRESS_TITLE, canDoRows, hasCanDo } from './progressView.ts';
+import {
+  CAN_DO_LABEL,
+  MOMENTUM_LABEL,
+  POSTCARD_NOTE,
+  POSTCARD_TITLE,
+  PROGRESS_TITLE,
+  canDoRows,
+  hasCanDo,
+} from './progressView.ts';
 
 const stamp = (missionId: string, state: Stamp['state'], place: Stamp['place'] = 'cafe'): Stamp => ({
   missionId: missionId as Stamp['missionId'],
@@ -58,7 +66,7 @@ describe('what a learner can now do, on the progress screen — F572', () => {
   });
 
   test('every heading the progress screen writes is plain, carries no count and passes the guilt list', () => {
-    for (const line of [PROGRESS_TITLE, CAN_DO_LABEL, MOMENTUM_LABEL]) {
+    for (const line of [PROGRESS_TITLE, POSTCARD_TITLE, POSTCARD_NOTE, CAN_DO_LABEL, MOMENTUM_LABEL]) {
       assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
       assert.doesNotMatch(line, /\d/, `"${line}" counts something in its own heading`);
       assert.doesNotMatch(line, /—/, `"${line}" carries an em dash`);
@@ -67,5 +75,13 @@ describe('what a learner can now do, on the progress screen — F572', () => {
     // Borrowed, not retyped: two surfaces that spell the same claim twice are
     // two surfaces that will one day disagree about what it is called.
     assert.equal(CAN_DO_LABEL, ABILITIES_LABEL, 'the progress screen spells the can-do heading for itself');
+  });
+
+  test('the weekly reflection is named like a keepsake, not a scorecard', () => {
+    assert.equal(POSTCARD_TITLE, 'Your French postcard');
+    assert.match(POSTCARD_NOTE, /reflection/i, 'the postcard note does not explain why these sentences are together');
+    for (const line of [POSTCARD_TITLE, POSTCARD_NOTE]) {
+      assert.doesNotMatch(line, /score|target|goal|compare|better|worse|%/i, `"${line}" turns a reflection into a scorecard`);
+    }
   });
 });

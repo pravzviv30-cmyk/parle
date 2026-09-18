@@ -16,7 +16,7 @@ import { Label, TintRow } from '../components.tsx';
 import { IconRowCard } from '../surface/IconRowCard.tsx';
 import { HeaderArt } from '../art/HeaderArt.tsx';
 import { HEADER_ART } from '../art/maps.ts';
-import { DocumentGlyph, PlaceGlyph, QuoteGlyph } from '../glyphs.tsx';
+import { DocumentGlyph, PlaceGlyph, QuoteGlyph, WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { accent, space } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
@@ -42,6 +42,13 @@ import {
   SHELF_OPEN,
 } from '../myfrench/copy.ts';
 import { SituationsCard } from '../myfrench/SituationsCard.tsx';
+import { loadSoundChecks } from '../soundcheck/store.ts';
+import type { SoundCheckEvidence } from '../soundcheck/model.ts';
+import {
+  SOUND_FINGERPRINT_LABEL,
+  SOUND_FINGERPRINT_OPEN,
+  soundFingerprint,
+} from '../myfrench/sounds.ts';
 
 /**
  * My French — the record of what has become the learner's.
@@ -73,9 +80,9 @@ import { SituationsCard } from '../myfrench/SituationsCard.tsx';
  * ternary here is a rule no test can reach, and a sentence here is a sentence
  * no sweep can read; that is why the words are `myfrench/copy.ts`'s.
  *
- * The week's story used to be read here. It lives on Profile now (F561), and
+ * The week's story used to be read here. It lives on Progress now (F561), and
  * F233 still holds `progress/story.ts` to exactly one importer in the whole
- * app; that importer is Profile's, and this screen reads no history at all.
+ * app; that importer is Progress's, and this screen reads no history at all.
  */
 export function MyFrenchTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
@@ -88,6 +95,10 @@ export function MyFrenchTab() {
   const [suggested, setSuggested] = useState<MissionProgress | null>(null);
   // The situations the learner bookmarked on Home, newest decision first.
   const [saved, setSaved] = useState<readonly DailyScenario[]>([]);
+  // Pronunciation can appear here only after a known-reference attempt was
+  // assessed. The pure projection below rejects self-guided and unavailable
+  // attempts, so an empty list and an unmeasured list both draw no row.
+  const [checks, setChecks] = useState<readonly SoundCheckEvidence[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -98,8 +109,9 @@ export function MyFrenchTab() {
         loadTopics(),
         loadActivity(),
         loadBookmarks(),
+        loadSoundChecks(),
       ]).then(
-        ([completions, cards, topics, activity, bookmarks]) => {
+        ([completions, cards, topics, activity, bookmarks, soundChecks]) => {
           if (cancelled) return;
           const now = Date.now();
           const nextMissions = missionStates(missionCompletionsFrom(completions), cards, now);
@@ -107,6 +119,7 @@ export function MyFrenchTab() {
           setMissions(nextMissions);
           setSuggested(suggestedMission(nextMissions));
           setSaved(savedSituations(bookmarks, DAILY_SCENARIOS));
+          setChecks(soundChecks);
           // The two numbers the product event has always carried, still counted
           // by evidence.ts and still never drawn: F348 took the rail of counts
           // off this page, and nothing here puts a digit back in front of a
@@ -133,6 +146,7 @@ export function MyFrenchTab() {
   );
 
   const model: MyFrench = myFrenchFrom({ deck, missions, saved, packs, suggested, now: Date.now() });
+  const fingerprint = soundFingerprint(checks);
 
   return (
     <ScrollScreen bottom="tab">
@@ -168,6 +182,21 @@ export function MyFrenchTab() {
           onPress={() => nav.navigate('Phrasebook')}
         />
       </View>
+
+      {/* A small door back to pronunciation, and only after the assessor has
+          returned real evidence. The sentence is the stored, timeless view of
+          that check; the detailed acoustic guidance remains on Sound Check. */}
+      {fingerprint !== null && (
+        <View style={st.block}>
+          <IconRowCard
+            glyph={<WaveformGlyph color={accent.primary} />}
+            label={SOUND_FINGERPRINT_LABEL}
+            line={fingerprint.line}
+            accessibilityLabel={SOUND_FINGERPRINT_OPEN}
+            onPress={() => nav.navigate('SoundCheck', { missionId: fingerprint.missionId })}
+          />
+        </View>
+      )}
 
       {/* What the learner saved from Home, to come back to. Absent entirely
           when nothing is saved: a shelf that says it is empty says the

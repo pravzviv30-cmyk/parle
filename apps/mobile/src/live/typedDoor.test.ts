@@ -244,11 +244,24 @@ describe('the quiet door, taken where the learner is standing — F201', () => {
     for (const [name, screen] of [['the conversation', convo], ['the lesson', lesson]] as const) {
       const block = screen.slice(screen.indexOf('<LiveErrorView'), screen.indexOf('/>', screen.indexOf('<LiveErrorView')));
       assert.match(block, /onBack=\{leaveNow\}/, `${name} walks away from the failure screen without leaving the room`);
-      assert.match(
-        screen,
-        /live\.leave\(\)\.finally\(onExit\)/,
-        `${name}'s way out no longer leaves the room before it navigates`,
-      );
+      if (name === 'the conversation') {
+        assert.match(
+          screen,
+          /const leaveNow = \(\) => leaveTo\(onExit\)/,
+          "the conversation's Back action no longer delegates to the shared leave path",
+        );
+        assert.match(
+          screen,
+          /live\.leave\(\)\.finally\(afterLeave\)/,
+          "the conversation's shared way out no longer leaves the room before it navigates",
+        );
+      } else {
+        assert.match(
+          screen,
+          /live\.leave\(\)\.finally\(onExit\)/,
+          `${name}'s way out no longer leaves the room before it navigates`,
+        );
+      }
     }
   });
 });

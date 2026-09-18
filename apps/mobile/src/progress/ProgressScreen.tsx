@@ -38,7 +38,7 @@
  * card goes: the conversation, with the mission's id.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import {
@@ -51,10 +51,10 @@ import {
   type DailyWord,
 } from '@luvani/core';
 
-import { Label, TintRow } from '../components.tsx';
-import { PlaceGlyph } from '../glyphs.tsx';
+import { Label, TintPanel, TintRow } from '../components.tsx';
+import { PlaceGlyph, WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { accent, paper, space, type } from '../theme.ts';
+import { accent, DISC, HAIRLINE, paper, space, type } from '../theme.ts';
 import { missionTint } from '../missions/missionTint.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
@@ -70,7 +70,16 @@ import { MomentumCards } from './MomentumCards.tsx';
 import { WordOfDayCard } from './WordOfDayCard.tsx';
 import { WORD_SCENES, type WordSceneKey } from './wordScenes.ts';
 import { gentlestWord } from './gentlestWord.ts';
-import { CAN_DO_LABEL, MOMENTUM_LABEL, PROGRESS_TITLE, canDoRows, hasCanDo, type CanDoRow } from './progressView.ts';
+import {
+  CAN_DO_LABEL,
+  MOMENTUM_LABEL,
+  POSTCARD_NOTE,
+  POSTCARD_TITLE,
+  PROGRESS_TITLE,
+  canDoRows,
+  hasCanDo,
+  type CanDoRow,
+} from './progressView.ts';
 
 export function ProgressScreen({ onBack }: { onBack: () => void }) {
   // A pushed screen, so the day's scene stops the moment something is pushed
@@ -134,13 +143,13 @@ export function ProgressScreen({ onBack }: { onBack: () => void }) {
       {/* The week, told back. Absent on a quiet week, because a surface that
           can render empty is a quota and a quota nobody met is guilt. */}
       {story !== null && hasStory(story) && (
-        <View style={st.story} accessibilityRole="summary">
+        <FrenchPostcard>
           {story.sentences.map((sentence) => (
             <Text key={sentence} style={st.sentence}>
               {sentence}
             </Text>
           ))}
-        </View>
+        </FrenchPostcard>
       )}
 
       {rows !== null && hasCanDo(rows) && (
@@ -172,11 +181,57 @@ export function ProgressScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
+/**
+ * The existing weekly story, presented as something worth keeping rather than
+ * another dashboard. The child sentences arrive whole from `story.ts`; this
+ * frame adds no count, comparison, share affordance or second interpretation.
+ */
+function FrenchPostcard({ children }: { children: ReactNode }) {
+  return (
+    <View style={st.story} accessibilityRole="summary">
+      <TintPanel tint="lilac" style={st.postcard}>
+        <View style={st.postcardHead}>
+          <View style={st.postmark}>
+            <WaveformGlyph color={accent.primary} />
+          </View>
+          <View style={st.postcardWords}>
+            <Text style={st.postcardTitle}>{POSTCARD_TITLE}</Text>
+            <Text style={st.postcardNote}>{POSTCARD_NOTE}</Text>
+          </View>
+        </View>
+        <View style={st.postcardRule} />
+        <View style={st.storyWords}>{children}</View>
+      </TintPanel>
+    </View>
+  );
+}
+
 const st = StyleSheet.create({
   title: { ...type.display, color: paper.ink, marginTop: space(2) },
+  // A quiet lilac field makes the true story feel like a keepsake without
+  // competing with the capability rows below it. No shadow and no signal
+  // colour: this reflects; it does not report a state.
+  story: { marginTop: space(5) },
+  postcard: { padding: space(4) },
+  postcardHead: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
+  postmark: {
+    width: DISC,
+    height: DISC,
+    borderRadius: DISC / 2,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    backgroundColor: paper.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  postcardWords: { flex: 1, minWidth: 0 },
+  postcardTitle: { ...type.cardTitle, color: paper.ink },
+  postcardNote: { ...type.small, color: paper.inkSoft, marginTop: space(1) },
+  postcardRule: { height: HAIRLINE, backgroundColor: paper.line, marginVertical: space(3) },
+  storyWords: { gap: space(2) },
   // Sentences a learner reads, so they are set in ink at body size: soft ink
   // clears the floor for a mark and these are words.
-  story: { marginTop: space(5), gap: space(2) },
   sentence: { ...type.body, color: paper.ink },
   block: { marginTop: space(7) },
   rows: { marginTop: space(3), gap: space(2) },

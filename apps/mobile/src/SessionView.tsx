@@ -10,11 +10,12 @@ import { useState, type ReactNode } from 'react';
 import { View, Text, Pressable, PixelRatio, StyleSheet, TextInput } from 'react-native';
 import type { SessionPrompt } from '@luvani/core';
 import { accent, paper, radius, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
-import { Card, Label, LineBullet, StationLine, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
-import { ScrollScreen, ScreenHeader } from './layout.tsx';
+import { Card, Label, LineBullet, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
+import { ScrollScreen } from './layout.tsx';
 import { MORE_HINT, MORE_LABEL, showsActionRow } from './lessonFooter.ts';
 import { tutorNameOf } from './tutor/tutorName.ts';
 import { useProfile } from './app/ProfileContext.tsx';
+import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
 
 /**
  * What the support block can render. A structural superset of the lesson path's
@@ -138,9 +139,9 @@ export interface SessionViewProps {
   onMicPress?: () => void;
   onHelp: () => void;
   /**
-   * Leave this session. On the live path it opens the confirm sheet; on the mock
-   * path it hands straight back to the caller. Either way the meter's one door
-   * is the shared header's Leave, not a control this surface hand-rolls.
+   * End this session. On the live path it opens the confirm sheet; on the mock
+   * path it hands straight back to the caller. Either way the room's one door
+   * is the compact outlined control in the safe-area header.
    */
   onLeave: () => void;
   /**
@@ -149,7 +150,7 @@ export interface SessionViewProps {
    */
   headerLine?: string;
   /**
-   * Anything the driver wants drawn above the Leave row, inside this frame.
+   * Anything the driver wants drawn above the end-session row, inside this frame.
    *
    * The live path puts two things here: the card asking a browser for the
    * gesture it wants before it will play the tutor, and the banner a safety
@@ -161,7 +162,7 @@ export interface SessionViewProps {
    *
    * It is a slot rather than a prop per thing on purpose: what goes above the
    * header is the driver's business, and this surface's business is that it is
-   * inside the safe area and above the Leave.
+   * inside the safe area and above the end control.
    */
   above?: ReactNode;
   /** Replay the line on the card. Every cued turn should be hearable on demand. */
@@ -316,13 +317,14 @@ export function SessionView(props: SessionViewProps) {
       header={
         <>
           {props.above}
-          <ScreenHeader
-            leave={{ onPress: props.onLeave, label: 'Leave', accessibilityLabel: 'Leave the lesson' }}
+          <LiveRoomHeader
+            onEnd={props.onLeave}
+            accessibilityLabel="End lesson"
             // The connection line is a status line: a learner mid-scene whose room
             // is being rebuilt must both see it and hear it. It is drawn as its own
             // polite live region here rather than handed to the header as a bare
             // string, which Fabric would drop in silence.
-            title={
+            status={
               props.headerLine ? (
                 <Text
                   accessibilityLiveRegion="polite"
@@ -338,10 +340,6 @@ export function SessionView(props: SessionViewProps) {
       footer={footer}
     >
       <View style={st.header}>
-        {/* The position is the dot rail below, and only the dot rail. It used
-            to be printed here as "2 / 5" as well, which is the numeric progress
-            ConvoScreen deliberately dropped: a count mid-session is a score,
-            and this surface is the one place a learner is already exposed. */}
         <View style={st.headerRow}>
           <Label>Level {props.cefr}</Label>
         </View>
@@ -351,9 +349,6 @@ export function SessionView(props: SessionViewProps) {
         <Text accessibilityRole="header" style={[type.title, { color: paper.ink, marginTop: space(1) }]}>
           {props.lessonTitle}
         </Text>
-        <View style={{ marginTop: space(2.5) }}>
-          <StationLine total={prompt.total} index={prompt.position - 1} />
-        </View>
       </View>
 
       <View style={st.body}>
@@ -440,7 +435,7 @@ const st = StyleSheet.create({
   // `flex: 1` inside a ScrollScreen pins the body to the height of the viewport,
   // so content that grows past it is clipped instead of scrolled, and
   // `justifyContent: 'center'` then cuts it off symmetrically at both ends. At
-  // the largest reading size that took the lesson title, the Leave control and
+  // the largest reading size that took the lesson title, the end control and
   // the whole Say this card off a session in progress: a learner could not see
   // the line they were being asked to say, and could not scroll to it. Same
   // defect as F383 on My French, in a worse place.

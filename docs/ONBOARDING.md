@@ -72,6 +72,11 @@ imported from `illustrations/scenes/cafe.tsx` rather than copied, so the duratio
 still come from `illustrations/timing.ts` and reduce motion still renders the final
 frame rather than nothing.
 
+**Each page now arrives with the same restrained settle used by the rest of the
+app.** The content fades and travels ten points into place when the page changes;
+there is no carousel slide and no bounce. It runs through `motion.ts`, so reduced
+motion renders the final frame immediately and the words are never withheld.
+
 **The age gate moved to the front.** It used to be the second question, which
 meant the app took a learner's name and then decided whether to serve them at all.
 Nothing was ever persisted on a refusal, but the question had still been asked.

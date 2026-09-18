@@ -123,6 +123,64 @@ describe('a mission cannot drift apart from its own scene', () => {
 });
 
 describe('the authored scenes hold to the contract a generated one is held to', () => {
+  test('each mission can open fifteen different ways without making a model call', () => {
+    for (const mission of MISSIONS) {
+      const openings = new Set<string>();
+
+      for (let sequence = 0; sequence < 512; sequence += 1) {
+        const frame = missionFrame(mission.id, `session-${sequence}`);
+        assert.ok(frame, `${mission.id} stopped resolving when it was given a session seed`);
+        openings.add(`${frame.openingNarration.fr}\n${frame.openingLine.fr}`);
+
+        const parsed = ScenarioFrameSchema.safeParse(frame);
+        assert.ok(parsed.success, `${mission.id} seeded opening ${sequence} broke the scenario contract`);
+        assert.doesNotMatch(frame.openingNarration.fr, /^\s*imaginez la sc[eè]ne/i);
+        assert.doesNotMatch(frame.openingNarration.en, /^\s*imagine the scene/i);
+        assert.deepEqual(
+          copyViolations(frame.openingNarration.en),
+          [],
+          `${mission.id} seeded narration ${sequence} breaks the English copy rules`,
+        );
+        assert.deepEqual(
+          copyViolations(frame.openingLine.en, { allowDigits: true }),
+          [],
+          `${mission.id} seeded line ${sequence} breaks the English copy rules`,
+        );
+        assert.ok(
+          frame.characters.some((character) => character.name === frame.openingLine.speaker),
+          `${mission.id} seeded line ${sequence} is spoken by somebody outside the scene`,
+        );
+        assert.notEqual(
+          frame.openingLine.fr.trim().toLowerCase(),
+          frame.openingSupport.fullLine.fr.trim().toLowerCase(),
+          `${mission.id} seeded line ${sequence} asks the learner to echo the character`,
+        );
+      }
+
+      assert.equal(
+        openings.size,
+        15,
+        `${mission.id} should combine five authored settings with three in-character first lines`,
+      );
+    }
+  });
+
+  test('the session seed selects an opening deterministically and leaves the frame otherwise intact', () => {
+    for (const mission of MISSIONS) {
+      const unchanged = missionFrame(mission.id);
+      const first = missionFrame(mission.id, 'room-a1b2');
+      const repeated = missionFrame(mission.id, 'room-a1b2');
+
+      assert.equal(unchanged, MISSION_FRAMES[mission.id], `${mission.id} changed its unseeded lookup contract`);
+      assert.ok(first);
+      assert.ok(repeated);
+      assert.deepEqual(first, repeated, `${mission.id} changes opening within the same session`);
+      assert.deepEqual(first.beats, unchanged.beats, `${mission.id} changed its learning beats with its opening`);
+      assert.deepEqual(first.goalPhrases, unchanged.goalPhrases, `${mission.id} changed its teaching with its opening`);
+      assert.deepEqual(first.openingSupport, unchanged.openingSupport, `${mission.id} opening no longer matches its support`);
+    }
+  });
+
   test('every mission frame parses through the scenario frame schema untouched', () => {
     for (const [id, frame] of Object.entries(MISSION_FRAMES)) {
       const parsed = ScenarioFrameSchema.safeParse(frame);

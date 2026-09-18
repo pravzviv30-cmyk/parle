@@ -198,7 +198,11 @@ export function SettingsScreen({
   onSignOut: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
-  const nav = useNavigation<{ goBack: () => void; navigate: (screen: string, params?: object) => void }>();
+  const nav = useNavigation<{
+    goBack: () => void;
+    canGoBack: () => boolean;
+    navigate: (screen: string, params?: object) => void;
+  }>();
   const { user, adapter } = useAuth();
   const [sheet, setSheet] = useState<Sheet>('none');
   const [deleting, setDeleting] = useState(false);
@@ -614,7 +618,7 @@ export function SettingsScreen({
     // is spelled out as "Keep my account" rather than a quiet back arrow.
     return (
       <ScrollScreen>
-        <Text style={[type.display, { color: paper.ink }]}>Delete your account?</Text>
+        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Delete your account?</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
           This permanently removes your sign-in, conversations turned into practice, progress, and remaining minutes. It cannot be undone.
         </Text>
@@ -687,7 +691,11 @@ export function SettingsScreen({
   }
 
   return (
-    <ScrollScreen header={<ScreenHeader back={{ onPress: () => nav.goBack() }} />}>
+    <ScrollScreen
+      header={
+        <ScreenHeader back={{ onPress: () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs')) }} />
+      }
+    >
       <Text accessibilityRole="header" style={[type.display, { color: paper.ink, marginBottom: space(5) }]}>
         {SETTINGS_TITLE}
       </Text>

@@ -264,15 +264,15 @@ describe('nothing animates where nobody is looking — J7', () => {
   });
 });
 
-describe('progress is dots, not a count — J8', () => {
-  test('the lesson header shows its position once, and not as a count', () => {
+describe('a live room is not a progress dashboard — J8', () => {
+  test('the lesson header shows neither the retired rail nor a numeric count', () => {
     const header = named('SessionView.tsx');
     const top = header.slice(header.indexOf('<View style={st.header}>'), header.indexOf('<ScrollView'));
-    assert.ok(top.includes('StationLine'), 'the dot rail is what says where the learner is');
+    assert.ok(!top.includes('StationLine'), 'the stray progress rail is back above the live lesson');
     assert.doesNotMatch(
       top,
       /\{prompt\.position\}\s*\/\s*\{prompt\.total\}/,
-      'the header prints the position as a number as well as a dot rail',
+      'the header replaced the retired rail with a score-like numeric position',
     );
   });
 });
@@ -1080,7 +1080,6 @@ describe('every screen sits inside the one frame — F307', () => {
 describe('one way back, and it is the shared header — F309', () => {
   /** The single-view pushed screens: exactly one header, one way back. */
   const PUSHED_ONE_BACK = [
-    'SessionView.tsx',
     'SummaryScreen.tsx',
     'ReviewScreen.tsx',
     'DrillScreen.tsx',
@@ -1109,6 +1108,11 @@ describe('one way back, and it is the shared header — F309', () => {
         `${name} draws ${headers} shared headers; a pushed screen shows exactly one way back and it is ScreenHeader`,
       );
     }
+    assert.equal(
+      (named('SessionView.tsx').match(/<LiveRoomHeader\b/g) ?? []).length,
+      1,
+      'the lesson surface lost the one compact end-session header reserved for a live room',
+    );
     // No adopter hand-rolls a back control beside the shared header.
     for (const name of ADOPTERS) {
       const body = named(name);
@@ -1157,6 +1161,11 @@ describe('one way back, and it is the shared header — F309', () => {
         `${name} draws ${pills} primary pills; a pushed screen is one thing to do, so it is allowed ${allowed}`,
       );
     }
+    assert.equal(
+      (named('SessionView.tsx').match(/<LiveRoomHeader\b/g) ?? []).length,
+      1,
+      'the lesson surface lost its one way out in the restyle, or grew a second',
+    );
     // And the three routes revamp A added are in that set rather than beside
     // it, so a screen that was written this round is held to the same rule as
     // one that was walked back onto the frame.
@@ -1167,11 +1176,15 @@ describe('one way back, and it is the shared header — F309', () => {
 
   test('the end card and the mock lesson have a way out — F309', () => {
     // These three were the dead ends: the summary end card had no back, the
-    // session surface's Leave was hand-rolled, and the mock lesson had no exit
-    // at all. Now the card gets a chevron, the surface gets the shared Leave,
+    // session surface's exit was hand-rolled, and the mock lesson had no exit
+    // at all. Now the card gets a chevron, the surface gets the live-room end,
     // and the mock passes its exit straight through.
     assert.match(named('SummaryScreen.tsx'), /<ScreenHeader\s+back=/, 'the end card has no way back');
-    assert.match(named('SessionView.tsx'), /<ScreenHeader\s+leave=/, 'the session surface has no Leave');
+    assert.match(
+      named('SessionView.tsx'),
+      /<LiveRoomHeader[\s\S]{0,120}onEnd=\{props\.onLeave\}/,
+      'the session surface has no end-session control',
+    );
     // Leading slash so this reads the mock driver and not LiveSessionScreen,
     // whose filename also ends with "SessionScreen.tsx".
     assert.match(named('/SessionScreen.tsx'), /onLeave=\{onExit\}/, 'the mock lesson never wires its exit to the surface Leave');
@@ -1304,26 +1317,26 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
     );
   });
 
-  test('the shared Leave tells a screen reader what it leaves — F318', () => {
+  test('every room exit tells a screen reader what it ends or leaves — F318', () => {
     // "Leave, button" with no object is what a screen reader heard on every
-    // metered screen. The header takes an optional accessibilityLabel and each
-    // caller names the room it leaves.
+    // metered screen. Both header variants now take a room-specific accessible
+    // label, so each caller names what it ends or leaves.
     const layout = stripComments(readFileSync(join(SRC, 'layout.tsx'), 'utf8'));
     assert.match(
       layout,
       /accessibilityLabel=\{leave\.accessibilityLabel \?\? leave\.label\}/,
       'the shared header ignores a leave accessibilityLabel',
     );
-    for (const [file, phrase] of [
-      ['SessionView.tsx', 'Leave the lesson'],
-      ['ConvoScreen.tsx', 'Leave the conversation'],
-      ['ReviewScreen.tsx', 'Leave the review'],
-      ['DrillScreen.tsx', 'Leave the drills'],
+    for (const [file, phrase, spelling] of [
+      ['SessionView.tsx', 'End lesson', `accessibilityLabel="End lesson"`],
+      ['ConvoScreen.tsx', 'End conversation', `accessibilityLabel="End conversation"`],
+      ['ReviewScreen.tsx', 'Leave the review', `accessibilityLabel: 'Leave the review'`],
+      ['DrillScreen.tsx', 'Leave the drills', `accessibilityLabel: 'Leave the drills'`],
     ] as const) {
       const src = stripComments(readFileSync(join(SRC, file), 'utf8'));
       assert.ok(
-        src.includes(`accessibilityLabel: '${phrase}'`),
-        `${file} leaves a metered room as a bare "Leave" with no object`,
+        src.includes(spelling),
+        `${file} exposes its room exit without the object named in "${phrase}"`,
       );
     }
   });
@@ -1629,31 +1642,33 @@ describe('the tabs and the drill use the app buttons — F339', () => {
   });
 });
 
-describe('the frame owns the tab gaps — F340', () => {
+describe('the frame owns the tab gaps and growth — F340, F594', () => {
   test('no tab pads its own scroll; the header gap and the bottom air come from the frame', () => {
-    // A tab is allowed to have no scroll style at all, and one of them now has
-    // none: My French dropped the single `flexGrow: 1` view that wrapped its
-    // whole page, because that wrapper is what lost the tab below the header at
-    // the largest reading size (F383). Nothing is loosened by allowing that —
-    // a tab with no scroll style has no scroll style to pad — and the half of
-    // this rule that actually catches drift is the second half, which every tab
-    // answers either way: the air above the tab bar is the frame's to pay, once.
-    let wrappers = 0;
     for (const name of TABS) {
       const body = named(name);
       const m = /scroll:\s*\{([^}]*)\}/.exec(body);
       if (m) {
-        wrappers += 1;
         const scroll = m[1]!;
         assert.doesNotMatch(scroll, /padding/, `${name}'s scroll style pads itself instead of leaving the gaps to the frame`);
-        assert.match(scroll, /flexGrow:\s*1/, `${name}'s scroll style should keep only flexGrow: 1`);
       }
       assert.ok(
         !/paddingBottom/.test(body),
         `${name} writes paddingBottom somewhere; the frame owns the air above the tab bar`,
       );
     }
-    assert.ok(wrappers > 0, 'no tab wraps its page at all any more, so the first half of this test reads nothing');
+  });
+
+  test('no tab hangs a growing wrapper inside the scroll frame — F594', () => {
+    // ScrollScreen already owns the growing content container. A second
+    // flexGrow wrapper swallowed everything below the header at AX5 on My
+    // French and the same shape remained on four tabs after that repair.
+    for (const name of TABS) {
+      const body = named(name);
+      const m = /scroll:\s*\{([^}]*)\}/.exec(body);
+      if (m) {
+        assert.doesNotMatch(m[1]!, /flexGrow/, `${name} grows a wrapper inside the growing frame and can swallow its own body at AX5`);
+      }
+    }
   });
 });
 

@@ -14,7 +14,7 @@ import { heroArt } from '../art/maps.ts';
 import { guiltIn } from '../copy/guilt.ts';
 import type { ScenarioRecord } from '../missions/progressStore.ts';
 import { estimateMinutes, readyLine } from './estimate.ts';
-import { HERO_COPY, HERO_LABELS, fallbackHero, heroLabel, homeMissionFrom } from './homeMission.ts';
+import { HERO_COPY, HERO_LABELS, HERO_REASONS, fallbackHero, heroLabel, homeMissionFrom } from './homeMission.ts';
 
 /** Nine in the evening, local, on a Saturday. */
 const EVENING = new Date(2026, 8, 12, 21, 0, 0).getTime();
@@ -42,6 +42,7 @@ describe('tonight’s French — the one thing Home leads with (F543, F571)', ()
     // spells a title, a place or a picture.
     assert.equal(today.title, today.scenario.titleEn);
     assert.equal(today.body, today.scenario.bodyEn);
+    assert.equal(today.reason, HERO_REASONS.today);
     assert.equal(today.place, today.scenario.place);
     assert.equal(today.art, heroArt(today.scenario.place));
     assert.equal(today.minutes, estimateMinutes({ kind: 'scenario', lines: today.scenario.lines.length }));
@@ -66,6 +67,7 @@ describe('tonight’s French — the one thing Home leads with (F543, F571)', ()
     assert.equal(resume.label, HERO_LABELS.resume);
     assert.equal(resume.title, market.titleEn);
     assert.equal(resume.body, market.goalEn);
+    assert.equal(resume.reason, HERO_REASONS.resume);
     assert.equal(resume.art, heroArt(market.place));
     assert.ok(resume.minutes > 0, 'a resumed scene is offered with no time on it at all');
 
@@ -89,6 +91,7 @@ describe('tonight’s French — the one thing Home leads with (F543, F571)', ()
     assert.equal(first.mission.id, FIRST_MISSION);
     assert.equal(first.label, HERO_LABELS.first);
     assert.equal(first.body, first.mission.goalEn);
+    assert.equal(first.reason, HERO_REASONS.first);
     assert.equal(first.minutes, estimateMinutes({ kind: 'mission', beats: first.mission.beatIds.length }));
 
     // Nothing to offer from means nothing, never an invented scene.
@@ -104,6 +107,7 @@ describe('tonight’s French — the one thing Home leads with (F543, F571)', ()
     assert.ok(fallback.kind === 'first', 'the fallback stopped offering a mission to start');
     assert.equal(fallback.mission.id, FIRST_MISSION);
     assert.equal(fallback.label, HERO_LABELS.evening);
+    assert.equal(fallback.reason, HERO_REASONS.fallback);
     assert.equal(fallback.art, heroArt(fallback.mission.place));
     assert.equal(heroLabel(EVENING), HERO_LABELS.evening);
     assert.equal(heroLabel(MORNING), HERO_LABELS.day);

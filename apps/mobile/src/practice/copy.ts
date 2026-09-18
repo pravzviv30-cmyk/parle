@@ -22,7 +22,7 @@ export const PRACTICE_TITLE = 'Made from your conversations';
 
 /** The line under it: what fills this page, and what fills it. */
 export const PRACTICE_PURPOSE =
-  'Talk with your tutor and this fills with what you said, the phrases worth keeping, and short drills built from them.';
+  'Short practice, shaped from the French you actually used.';
 
 /** The caps label over the one card at the top of the tab. */
 export const NEXT_PRACTICE_LABEL = 'Your next practice';
@@ -37,6 +37,12 @@ export const REVIEW_ACTION = 'Review';
  */
 export const PACK_ACTION = 'Practise this conversation';
 
+/** The provenance line above the three personal practice rows. */
+export const MADE_FROM_LABEL = 'Made from your last conversation';
+
+/** A quiet route to the complete conversation library after the recommended work. */
+export const CONVERSATION_ARCHIVE_ACTION = 'See your conversations';
+
 /** Every line this module can say, for the copy sweeps. */
 export const PRACTICE_COPY: readonly string[] = [
   PRACTICE_TITLE,
@@ -44,4 +50,6 @@ export const PRACTICE_COPY: readonly string[] = [
   NEXT_PRACTICE_LABEL,
   REVIEW_ACTION,
   PACK_ACTION,
+  MADE_FROM_LABEL,
+  CONVERSATION_ARCHIVE_ACTION,
 ];

@@ -343,7 +343,7 @@ describe('a tint is paper under ink art, never a mark — F362', () => {
       assert.doesNotMatch(permitted, LETTERS_IN_A_TINT, `"${permitted}" is a surface, which is what a tint is`);
     }
 
-    const allowed = new Set(['palette.ts', 'theme.ts', 'components.tsx', 'missions/missionTint.ts']);
+    const allowed = new Set(['palette.ts', 'theme.ts', 'components.tsx', 'missions/missionTint.ts', 'nav/tabSurface.ts']);
     for (const file of walk(SRC)) {
       if (/\.test\.tsx?$/.test(file)) continue;
       const rel = file.slice(SRC.length);

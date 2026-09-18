@@ -10,9 +10,10 @@
  * LLM never answers on top of it. Without that throw the tutor speaks twice.
  *
  * The rescue keeps the playground's proven order: silence and aide-moi render
- * support INSTANTLY from material already in hand, and only then does the
- * model get asked for its warm in-character step-in. A stuck learner never
- * waits on a network round-trip to be handed the line.
+ * support INSTANTLY from material already in hand. In a spoken room the model
+ * can then give one warm in-character step-in; in text mode inactivity stops at
+ * the support card. Otherwise a timer can manufacture a new character turn,
+ * re-arm itself and make the tutor carry on a conversation with nobody.
  */
 
 import { voice, type llm } from '@livekit/agents';
@@ -1347,7 +1348,16 @@ export class LuvaniConversation extends voice.Agent {
     // G3's ten to twenty five seconds of unexplained silence, and no F37 fall
     // back to a café nobody asked for. This is the mechanism under the promise
     // that a learner says their first useful French line inside a minute.
-    const mission = this.missionId === undefined ? undefined : missionFrame(this.missionId);
+    const mission =
+      this.missionId === undefined
+        ? undefined
+        : missionFrame(
+            this.missionId,
+            // Production joins are signed before open(), so each room gets a
+            // stable pick from the authored deck. Unit/offline callers keep the
+            // exact legacy frame object rather than all sharing a fake seed.
+            this.sessionId === UNSIGNED_SESSION_ID ? undefined : this.sessionId,
+          );
     if (mission) {
       this.openMission(mission);
       return;
@@ -1703,7 +1713,19 @@ export class LuvaniConversation extends voice.Agent {
   async runRescue(generation: number): Promise<void> {
     if (this.ended || this.learnerSpeaking) return;
     if (this.queue.busy) return;
-    await this.queue.runIfCurrent(generation, () => this.rescue({ type: 'silence', durationMs: this.silenceWindow() }));
+    const input = { type: 'silence', durationMs: this.silenceWindow() } as const;
+    await this.queue.runIfCurrent(generation, async () => {
+      // A text box going quiet is not dialogue. Reveal the support the current
+      // turn already carried, once, and leave the same character line waiting
+      // for the learner. Asking the model here used to append a fresh tutor
+      // bubble every reader-window, which looked exactly like the tutor was
+      // asking and answering its own questions.
+      if (this.voiceless) {
+        this.applyRescue(input, false);
+        return;
+      }
+      await this.rescue(input);
+    });
   }
 
   /**
@@ -1986,7 +2008,10 @@ export class LuvaniConversation extends voice.Agent {
    * material the last turn already carried; the model's warm in-character
    * step-in follows when the network gets around to it.
    */
-  private async rescue(input: Extract<LearnerTurnInput, { type: 'silence' | 'help' }>): Promise<void> {
+  private applyRescue(
+    input: Extract<LearnerTurnInput, { type: 'silence' | 'help' }>,
+    rearm: boolean = true,
+  ): void {
     if (this.ended) return;
 
     const { state, view } = applyNonSpokenInput(this.state, input);
@@ -1995,15 +2020,24 @@ export class LuvaniConversation extends voice.Agent {
       // Merge: the scene has not moved, so the last reply stands; only the
       // support, the rung and the (now silent) coach change. Stale narration
       // clears too — a rescue is not a scene shift.
-      this.publishView({
-        ...this.lastView,
-        coachLine: null,
-        coachNow: [],
-        narration: null,
-        supportView: view.supportView,
-        rung: view.rung,
-      });
+      this.publishView(
+        {
+          ...this.lastView,
+          coachLine: null,
+          coachNow: [],
+          narration: null,
+          supportView: view.supportView,
+          rung: view.rung,
+        },
+        { rearm },
+      );
     }
+  }
+
+  private async rescue(input: Extract<LearnerTurnInput, { type: 'silence' | 'help' }>): Promise<void> {
+    if (this.ended) return;
+
+    this.applyRescue(input);
 
     await this.runBrainTurn(input);
   }
@@ -2118,12 +2152,14 @@ export class LuvaniConversation extends voice.Agent {
     this.say(spokenTurn(view), turnIsUninterruptible(view) ? { allowInterruptions: false } : {});
   }
 
-  private publishView(view: ConvoView): void {
+  private publishView(view: ConvoView, options: { rearm?: boolean } = {}): void {
     this.lastView = view;
     this.publish({ t: 'convo', view });
     // Text mode has no speech, so no AgentStateChanged ever fires to start
     // the silence clock. The render is the moment the learner has the floor.
-    if (this.voiceless) this.armRescue(this.session);
+    // A timer-driven support reveal is the exception: it is already the answer
+    // to this pause, so re-arming there would reveal again without new input.
+    if (this.voiceless && options.rearm !== false) this.armRescue(this.session);
   }
 
   /**

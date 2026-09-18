@@ -12,7 +12,17 @@ import assert from 'node:assert/strict';
 
 import { guiltIn } from '../copy/guilt.ts';
 import type { SoundCheckEvidence, SoundCheckKind } from '../soundcheck/model.ts';
-import { SOUND_LINES, latestCheck, soundLine, timeless } from './sounds.ts';
+import {
+  SOUND_FINGERPRINT_LABEL,
+  SOUND_FINGERPRINT_OPEN,
+  SOUND_LINES,
+  isMeasuredCheck,
+  latestCheck,
+  latestMeasuredCheck,
+  soundFingerprint,
+  soundLine,
+  timeless,
+} from './sounds.ts';
 
 const NOW = Date.parse('2026-09-07T09:00:00Z');
 const HOUR = 60 * 60 * 1000;
@@ -85,5 +95,51 @@ describe('the sound line — a stored sentence read months later', () => {
   test('an assessed focus with nothing stored still says the honest thing', () => {
     assert.equal(soundLine(check({ kind: 'assessed-focus', focus: null })), SOUND_LINES.focus);
     assert.equal(soundLine(check({ kind: 'assessed-focus', focus: '' })), SOUND_LINES.focus);
+  });
+});
+
+describe('the sound fingerprint — measured evidence only', () => {
+  test('self-guided and unavailable attempts never produce a fingerprint', () => {
+    const selfGuided = check({ at: NOW, kind: 'self-guided' });
+    const unavailable = check({ at: NOW - HOUR, kind: 'unavailable' });
+
+    assert.equal(isMeasuredCheck(selfGuided), false);
+    assert.equal(isMeasuredCheck(unavailable), false);
+    assert.equal(latestMeasuredCheck([selfGuided, unavailable]), null);
+    assert.equal(soundFingerprint([selfGuided, unavailable]), null);
+  });
+
+  test('a newer unmeasured attempt cannot hide the latest measured one', () => {
+    const measured = check({
+      missionId: 'mission:hotel',
+      at: NOW - HOUR,
+      kind: 'assessed-focus',
+      focus: 'The u in tu is ready for another try',
+      phoneme: 'y',
+    });
+    const laterSelfGuided = check({ at: NOW, kind: 'self-guided' });
+
+    assert.equal(isMeasuredCheck(measured), true);
+    assert.equal(latestMeasuredCheck([laterSelfGuided, measured]), measured);
+    assert.deepEqual(soundFingerprint([laterSelfGuided, measured]), {
+      missionId: measured.missionId,
+      line: measured.focus,
+    });
+  });
+
+  test('an assessed-clear check is still measured evidence, without inventing a focus sound', () => {
+    const measured = check({ missionId: 'mission:market', at: NOW, kind: 'assessed-clear', focus: null, phoneme: null });
+    assert.deepEqual(soundFingerprint([measured]), {
+      missionId: measured.missionId,
+      line: SOUND_LINES.clear,
+    });
+  });
+
+  test('the compact door names what it opens and every authored line stays clean', () => {
+    for (const line of [SOUND_FINGERPRINT_LABEL, SOUND_FINGERPRINT_OPEN]) {
+      assert.equal(guiltIn(line), undefined, `"${line}" carries a banned word`);
+      assert.doesNotMatch(line, /\d|%|—/, `"${line}" counts, scores or dashes`);
+      assert.ok(line.split(' ').length >= 2, `"${line}" names nothing on its own`);
+    }
   });
 });

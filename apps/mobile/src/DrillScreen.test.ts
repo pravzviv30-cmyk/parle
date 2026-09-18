@@ -51,6 +51,17 @@ function stripComments(source: string): string {
   return noBlocks.replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
 }
 
+describe('a used word stays readable in the sentence bank — F593', () => {
+  test('a word already placed stays readable on the ground it is left on', () => {
+    const screen = stripComments(read('./DrillScreen.tsx')).replace(/\s+/g, ' ');
+    assert.match(
+      screen,
+      /color: used \? paper\.inkSoft : paper\.ink/,
+      'a placed word drops to the mark-only faint ink on the porcelain ground',
+    );
+  });
+});
+
 /** One in-memory AsyncStorage, shared by every store in this process. */
 function installDisk(): Map<string, string> {
   const map = new Map<string, string>();

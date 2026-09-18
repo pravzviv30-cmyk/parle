@@ -151,112 +151,57 @@ describe('the voice circle asks this module rather than deciding again', () => {
 });
 
 /**
- * The redraw — F588.
- *
- * The founder saw the outline rings and the lit sphere side by side and picked
- * the sphere, so the orb is a gradient ball inside three faint rings now, with
- * the voice lines either side while somebody is talking. The two halves are
- * split on purpose: `OrbGlyph.tsx` is the drawing and holds every attribute
- * still, `VoiceOrb.tsx` is the movement and touches nothing but transform and
- * opacity. That split is what keeps the whole thing on the native driver, and
- * it is the thing most easily lost in a redraw, so it is read back here.
+ * The UI 4 evolution: mist rather than gloss, and the voice mark directly in
+ * the colour field rather than inside a capsule.
  */
-describe('the orb is one gradient ball, drawn still and moved by transform alone — F588', () => {
-  test('the orb rests as one still gradient with its rings and lines drawn once when motion is reduced', () => {
-    // The drawing: one Svg, the gradient built from the ONE state colour thinned
-    // by opacity, three faint rings at the shared stroke, six voice lines.
+describe('the orb is a still watercolour field with directly animated voice bars', () => {
+  test('the still glyph uses one state colour for two mist washes and three quiet rings', () => {
     assert.equal((GLYPH.match(/<Svg\b/g) ?? []).length, 1, 'the orb is drawn as more than one Svg, so its layers can drift apart');
     assert.match(GLYPH_FLAT, /<Svg[^>]*\{\.\.\.decorative\}/, 'the orb is announced to a screen reader as an unlabelled image');
-    assert.match(GLYPH_FLAT, /<RadialGradient id=\{id\} cx="50%" cy="42%" r="55%">/, 'the orb lost the radial gradient the founder chose');
-    for (const stop of ['stopOpacity={1}', 'stopOpacity={0.85}', 'stopOpacity={0.45}']) {
-      assert.ok(GLYPH_FLAT.includes(stop), `the gradient no longer thins the one colour at ${stop}`);
+    assert.equal((GLYPH.match(/<RadialGradient\b/g) ?? []).length, 2, 'the watercolour field lost one of its offset washes');
+    assert.equal((GLYPH.match(/stopColor=\{color\}/g) ?? []).length, 6, 'a mist stop uses a colour outside the current state');
+    for (const ring of ['strokeOpacity={0.05}', 'strokeOpacity={0.08}', 'strokeOpacity={0.13}']) {
+      assert.ok(GLYPH_FLAT.includes(ring), `the orb lost the quiet ring at ${ring}`);
     }
-    assert.equal(
-      (GLYPH.match(/stopColor=\{color\}/g) ?? []).length,
-      3,
-      'a stop is set in something other than the state colour, which is a palette hex the theme never shipped',
-    );
-    for (const ring of ['strokeOpacity={0.18}', 'strokeOpacity={0.12}', 'strokeOpacity={0.07}']) {
-      assert.ok(GLYPH_FLAT.includes(ring), `the orb lost the faint ring at ${ring}`);
-    }
-    assert.equal((GLYPH.match(/strokeWidth=\{STROKE\}/g) ?? []).length, 4, 'a ring or a voice line is drawn at a weight the app does not own');
-    assert.equal((GLYPH.match(/<Path\b/g) ?? []).length, 6, 'the orb draws a number of voice lines other than three either side');
-    assert.match(GLYPH_FLAT, /const id = `orb\$\{useId\(\)/, 'two orbs on one page would share a gradient id, and two gradients under one id is one gradient');
+    assert.equal((GLYPH.match(/strokeWidth=\{STROKE\}/g) ?? []).length, 3, 'one ring is drawn with a different pen');
+    assert.match(GLYPH_FLAT, /const token = useId\(\)/, 'two orbs on one page can share gradient ids');
 
-    // The drawing never moves itself: an Animated attribute on an Svg is the
-    // one way back onto the JS thread, and this is the file it would appear in.
     for (const moving of ['Animated', 'interpolate', 'useEffect']) {
-      assert.ok(!GLYPH.includes(moving), `the orb's drawing reaches for ${moving}; the drawing holds still and the wrapper moves it`);
+      assert.ok(!GLYPH.includes(moving), `the orb's SVG reaches for ${moving}; the wrapper owns every moving part`);
     }
 
-    // The wrapper: the ball is the glyph now, not two bordered Views, and the
-    // only things that move are a scale and a scaleY on the native driver.
     assert.match(ORB_FLAT, /<OrbGlyph color=\{look\.colour\} size=\{size\} \/>/, 'the orb no longer draws itself through the one glyph');
-    assert.match(ORB_FLAT, /transform: \[\{ scale: breath \}\]/, 'the ball no longer breathes by transform');
-    assert.match(ORB_FLAT, /transform: \[\{ scaleY: stretch \}\]/, 'the voice lines no longer stretch by transform');
-    assert.ok(!/borderWidth/.test(ORB), 'the orb is drawn as bordered Views again instead of as the glyph');
+    assert.match(ORB_FLAT, /transform: \[\{ scale: breath \}\]/, 'the mist no longer breathes by transform');
+    assert.ok(!/MicGlyph|controlGlass|borderWidth/.test(ORB), 'a microphone or frosted inner capsule returned to the minimalist orb');
     for (const timing of ORB.match(/Animated\.timing\([\s\S]*?\}\)/g) ?? []) {
       assert.match(timing, /useNativeDriver: true/, `an orb animation runs on the JS thread: ${flat(timing)}`);
     }
 
-    // And the rest frame is still one frame: every driver parked in the middle,
-    // the dimming undone, and nothing started. A learner who asked for less
-    // movement sees the whole drawing, rings and lines included, standing still.
     const from = ORB_FLAT.indexOf('if (orbRests(');
     assert.notEqual(from, -1, 'the orb no longer asks whether to rest; this test is reading the wrong thing');
     const rest = ORB_FLAT.slice(from, ORB_FLAT.indexOf('return; }', from) + 'return; }'.length);
-    assert.match(rest, /for \(const d of drivers\) d\.setValue\(0\.5\);/, 'the rest frame leaves a driver wherever it stopped');
+    assert.match(rest, /for \(const driver of drivers\) driver\.setValue\(0\.5\);/, 'the rest frame leaves a driver wherever it stopped');
     assert.match(rest, /dim\.setValue\(1\);/, 'the rest frame leaves the orb part way through a dim');
     assert.ok(!rest.includes('.start()'), 'the rest branch starts an animation before it returns');
   });
 
-  test('the voice lines are drawn wherever the orb has a voice, and move only where one is speaking', () => {
-    // The founder's Tutor tab draws the lines beside the untapped circle, and
-    // the app drew a bare disc: `waves` was one boolean, so "there is a voice in
-    // the room" and "the lines exist at all" were the same question, and hiding
-    // the lines until a conversation started took the shape out of the one
-    // control on the screen.
-    //
-    // They are two questions now, and the table is read back state by state
-    // rather than sampled, because the interesting half of this is the states
-    // that draw them WITHOUT moving them.
+  test('seven white bars sit directly in every orb and move only in active voice states', () => {
+    assert.match(ORB_FLAT, /const BAR_HEIGHTS = \[0\.1, 0\.17, 0\.27, 0\.38, 0\.27, 0\.17, 0\.1\] as const/, 'the central voice mark is no longer the seven-bar form');
+    assert.match(ORB_FLAT, /\{BAR_HEIGHTS\.map\(\(height, index\) => \(/, 'the direct voice mark is not drawn inside the orb');
+    assert.match(ORB_FLAT, /bar: \{ backgroundColor: paper\.onInk \}/, 'the voice bars are not the direct white mark from UI 4');
+    assert.match(ORB_FLAT, /embeddedLabel !== undefined \? <Text style=\{st\.embeddedLabel\}>\{embeddedLabel\}<\/Text> : null/, 'the landing status is not embedded directly under the bars');
+
     const look = (state: string): string => {
       const from = ORB.indexOf(`  ${state}: {`);
       assert.notEqual(from, -1, `the LOOKS table no longer has a ${state} state`);
-      const setting = /waves: '(\w+)'/.exec(ORB.slice(from, ORB.indexOf('\n  },', from)));
-      assert.ok(setting, `${state} no longer says whether its voice lines are drawn`);
+      const setting = /bars: '(\w+)'/.exec(ORB.slice(from, ORB.indexOf('\n  },', from)));
+      assert.ok(setting, `${state} no longer says whether its bars move`);
       return setting![1]!;
     };
-    assert.equal(look('ready'), 'still', 'the untapped circle has no lines beside it, so it is a bare disc and not the thing the founder drew');
-    assert.equal(look('idle'), 'still', 'the resting circle has no lines beside it');
-    assert.equal(look('speaking'), 'moving', 'the tutor speaks and the lines stand still');
-    assert.equal(look('listening'), 'moving', 'the learner speaks and the lines stand still');
-    // Thinking dims the whole orb rather than moving anything, and error is the
-    // orb saying nothing at all. A line either side of either would be a voice
-    // in a room where there is not one.
-    assert.equal(look('thinking'), 'none', 'the thinking circle grew lines, which claims a voice while nobody is talking');
-    assert.equal(look('error'), 'none', 'the stopped circle grew lines');
-
-    // Drawn on the three-way, not on a boolean: `look.waves ? …` would draw them
-    // for 'none' as well, because every non-empty string is truthy, which is
-    // exactly the bug this split could introduce.
-    assert.match(ORB_FLAT, /\{look\.waves !== 'none' \? \(/, 'the lines are drawn on a truthiness test, so the thinking orb would grow a pair');
-
-    // And the cost stays where it was. The second driver is what makes the
-    // lines move, and it runs for 'moving' alone; a still pair is a picture.
-    assert.match(
-      ORB_FLAT,
-      /const moving = look\.waves === 'moving' \? drivers : drivers\.slice\(0, 1\);/,
-      'the second driver runs for a state whose lines do not move, which is a native loop drawing nothing',
-    );
-    // A driver starts at 0 and the stretch reads 1 - WAVE_TRAVEL there, so an
-    // unstarted pair would sit permanently squashed. Parked at the middle, the
-    // stretch is exactly 1 and the lines stand at their full height.
-    assert.match(
-      ORB_FLAT,
-      /if \(look\.waves !== 'moving'\) drivers\[1\]!\.setValue\(0\.5\);/,
-      'lines that are drawn but not moving are left wherever their driver started, which is part way through a squash',
-    );
+    for (const state of ['ready', 'idle', 'thinking', 'error']) assert.equal(look(state), 'still', `${state} animates a voice that is not talking`);
+    for (const state of ['connecting', 'speaking', 'listening']) assert.equal(look(state), 'moving', `${state} gives no responsive movement`);
+    assert.match(ORB_FLAT, /const moving = look\.bars === 'moving' \? drivers : drivers\.slice\(0, 1\);/, 'the waveform driver runs in resting states');
+    assert.match(ORB_FLAT, /if \(look\.bars !== 'moving'\) drivers\[1\]!\.setValue\(0\.5\);/, 'still bars are parked part-way through a pulse');
   });
 
   test('the tutor is drawn as the orb and never as a face or the learner\'s initial', () => {

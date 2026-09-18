@@ -34,7 +34,7 @@ import { fetchBillingStatus } from '../purchases/client.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
-import { loadPackMarks, markPackContinued } from '../conversationPacks/marks.ts';
+import { loadPackMarks } from '../conversationPacks/marks.ts';
 import { loadTopics } from '../topics/store.ts';
 import { capabilitiesFor, type PlanTier } from '../purchases/capabilities.ts';
 import { threadFrom, type Thread } from '../tutor/threads.ts';
@@ -69,6 +69,9 @@ import { VoiceOrb } from '../tutor/VoiceOrb.tsx';
  * every one of those has left this tab.
  */
 const DOORS = tutorDoors();
+
+/** UI 4's focal control, softened and kept comfortably inside a phone width. */
+const TUTOR_ORB_SIZE = 218;
 
 /** One line-art mark per way in, in the violet that means identity. */
 const GLYPH: Record<EntryModeKey, ReactNode> = {
@@ -219,14 +222,13 @@ export function TutorTab() {
 
   return (
     <ScrollScreen bottom="tab">
-      <Animated.View style={[st.scroll, entryStyle]}>
+      <Animated.View style={entryStyle}>
         <TabHeader title={tutorHeading(tutorName)} purpose={TUTOR_PURPOSE} />
 
         {/* No card behind it. The circle is the page's one focal point, and a
-            white rectangle around it was a second edge competing with the one
-            shape on this tab that means something. The words sit under it
-            rather than inside it, which is why the orb is told to caption
-            nothing: its own caption landed on top of these two until F415. */}
+            white rectangle around it would be a second edge competing with the
+            one shape that matters. The short state sits directly in the mist;
+            only a longer non-ready explanation is allowed underneath. */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Start a spoken conversation with ${tutorName}`}
@@ -235,9 +237,15 @@ export function TutorTab() {
           onPress={() => open(false)}
           style={({ pressed }) => [st.orb, pressed && !checking && st.pressed]}
         >
-          <VoiceOrb state={orb.state} size={170} announce={false} withCaption={false} paused={!focused} />
-          <Text style={st.orbTitle}>{orb.title}</Text>
-          <Text style={st.orbSubline}>{orb.subline}</Text>
+          <VoiceOrb
+            state={orb.state}
+            size={TUTOR_ORB_SIZE}
+            announce={false}
+            withCaption={false}
+            paused={!focused}
+            embeddedLabel={orb.title}
+          />
+          {orb.state !== 'ready' && <Text style={st.orbSubline}>{orb.subline}</Text>}
         </Pressable>
 
         {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
@@ -268,11 +276,14 @@ export function TutorTab() {
               continueAllowed={capabilitiesFor(plan.tier, plan.lapsed).continueArc}
               disabled={checking}
               onPress={(route) => {
-                // Marked before the room opens, so a thread already picked up
-                // is not offered again on the way back; the mark is this
-                // phone's only, and it is written on the one route that
-                // actually carries the conversation on.
-                if (route.markPack !== null) void markPackContinued(route.markPack, Date.now());
+                // Carry the pack's identity into the room instead of retiring
+                // it on this tap. ConvoScreen writes the mark only after the
+                // first live view arrives, so an offline gate or failed join
+                // leaves the remembered thread exactly where it was.
+                if (route.screen === 'Convo' && route.markPack !== null) {
+                  nav.navigate(route.screen, { ...route.params, continuationPackId: route.markPack });
+                  return;
+                }
                 nav.navigate(route.screen, route.params);
               }}
             />
@@ -308,10 +319,8 @@ export function TutorTab() {
 }
 
 const st = StyleSheet.create({
-  scroll: { flexGrow: 1 },
-  orb: { alignItems: 'center', minHeight: HIT, paddingVertical: space(2) },
-  pressed: { opacity: 0.72 },
-  orbTitle: { ...type.heading, color: paper.ink, marginTop: space(2), textAlign: 'center' },
+  orb: { alignItems: 'center', alignSelf: 'center', minWidth: TUTOR_ORB_SIZE, minHeight: TUTOR_ORB_SIZE, paddingVertical: space(1) },
+  pressed: { transform: [{ scale: 0.985 }, { translateY: 1 }] },
   orbSubline: { ...type.small, color: paper.inkSoft, marginTop: space(1), textAlign: 'center' },
   checking: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
   offline: { marginTop: space(4) },
@@ -323,6 +332,6 @@ const st = StyleSheet.create({
   // component that draws it. A row this tab hands to `TintRow` can never fall
   // under 44pt, whatever a future restyle does to the shared one.
   row: { minHeight: HIT },
-  quiet: { marginTop: 'auto', paddingTop: space(6), gap: space(1) },
+  quiet: { marginTop: space(6), gap: space(1) },
   notice: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
 });

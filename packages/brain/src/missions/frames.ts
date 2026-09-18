@@ -574,6 +574,223 @@ export const MISSION_FRAMES: Record<MissionId, ScenarioFrame> = {
   'mission:amis': APERO_FRAME,
 };
 
+type OpeningNarration = ScenarioFrame['openingNarration'];
+type OpeningLine = ScenarioFrame['openingLine'];
+
+type MissionOpeningDeck = {
+  narrations: readonly [OpeningNarration, OpeningNarration, OpeningNarration, OpeningNarration, OpeningNarration];
+  lines: readonly [OpeningLine, OpeningLine, OpeningLine];
+};
+
+const narration = (fr: string, en: string): OpeningNarration => ({
+  speaker: 'narration',
+  fr,
+  frWritten: null,
+  en,
+});
+
+const line = (speaker: string, fr: string, en: string): OpeningLine => ({
+  speaker,
+  fr,
+  frWritten: null,
+  en,
+});
+
+/**
+ * Five physical arrivals and three natural first lines per mission make fifteen
+ * coherent openings. They stay authored rather than generated for two reasons:
+ * the first sound must be immediate, and a provider outage must not make every
+ * mission fall back to the same café. The live model still owns every turn after
+ * this one.
+ */
+const MISSION_OPENING_DECKS: Record<MissionId, MissionOpeningDeck> = {
+  'mission:cafe': {
+    narrations: [
+      narration(
+        'La porte du café se referme derrière vous. Karim pose une tasse sur le comptoir et vient prendre votre commande.',
+        'The café door swings shut behind you. Karim sets a cup on the counter and comes over to take your order.',
+      ),
+      narration(
+        'La machine à café souffle derrière le comptoir. La personne devant vous prend son gobelet, et Karim se tourne vers vous.',
+        'The coffee machine hisses behind the counter. The person ahead takes their cup, and Karim turns to you.',
+      ),
+      narration(
+        'Une petite table vient de se libérer près de la fenêtre. Au comptoir, Karim essuie ses mains et vous fait signe d’avancer.',
+        'A small table has just opened up by the window. At the counter, Karim dries his hands and waves you forward.',
+      ),
+      narration(
+        'Des cuillères tintent dans une soucoupe. Karim finit une commande, glisse le ticket de côté et lève les yeux vers vous.',
+        'Spoons clink in a saucer. Karim finishes an order, slides the receipt aside, and looks up at you.',
+      ),
+      narration(
+        'Le café est calme entre deux coups de feu. Karim aligne deux croissants dans la vitrine, puis revient devant la caisse.',
+        'The café is quiet between rushes. Karim straightens two pastries in the display, then comes back to the till.',
+      ),
+    ],
+    lines: [
+      line('Karim', 'Bonjour ! Qu’est-ce que je vous sers ?', 'Hello! What can I get you?'),
+      line('Karim', 'Bonjour ! Vous prenez quoi ?', 'Hello! What are you having?'),
+      line('Karim', 'Bonjour ! Qu’est-ce qui vous ferait plaisir ?', 'Hello! What would you like?'),
+    ],
+  },
+  'mission:hotel': {
+    narrations: [
+      narration(
+        'La clochette de la réception tinte quand vous entrez. Martine ferme son grand cahier et pose son stylo.',
+        'The reception bell rings as you come in. Martine closes her large notebook and puts down her pen.',
+      ),
+      narration(
+        'Votre valise roule sur le carrelage de la petite réception. Martine sort de la pièce du fond et vient derrière le comptoir.',
+        'Your suitcase rolls across the tiled reception. Martine comes through from the back room and steps behind the desk.',
+      ),
+      narration(
+        'Une télévision joue doucement derrière le mur. Martine accroche une clé au tableau, puis se tourne vers vous.',
+        'A television is playing softly behind the wall. Martine hangs a key on the board, then turns to you.',
+      ),
+      narration(
+        'Le soleil tombe sur le lac derrière vous. Dans la réception, Martine termine un appel et vous adresse un sourire.',
+        'The sun is dropping over the lake behind you. At reception, Martine ends a phone call and gives you a smile.',
+      ),
+      narration(
+        'Un ventilateur remue les fiches sur le comptoir. Martine les retient d’une main et avance le registre de l’autre.',
+        'A fan stirs the forms on the desk. Martine holds them down with one hand and pulls the register closer with the other.',
+      ),
+    ],
+    lines: [
+      line('Martine', 'Ah, bonsoir ! Vous avez une réservation ?', 'Good evening! Do you have a booking?'),
+      line('Martine', 'Bonsoir ! C’est pour une arrivée ?', 'Good evening! Are you checking in?'),
+      line('Martine', 'Bonsoir, bienvenue. Vous venez pour une réservation ?', 'Good evening, welcome. Are you here for a booking?'),
+    ],
+  },
+  'mission:marche': {
+    narrations: [
+      narration(
+        'Le client devant vous range sa monnaie et s’éloigne. Corinne ramène une caisse de tomates au bord de l’étal.',
+        'The customer ahead pockets their change and moves away. Corinne pulls a crate of tomatoes to the edge of the stall.',
+      ),
+      narration(
+        'Un sac en papier claque dans le vent de la place. Corinne le rattrape, le cale sous sa balance et revient vers vous.',
+        'A paper bag snaps in the breeze across the square. Corinne catches it, tucks it under her scales, and comes back to you.',
+      ),
+      narration(
+        'Corinne vide les dernières tomates d’une caisse et repousse le carton sous la table. C’est votre tour.',
+        'Corinne tips the last tomatoes out of a crate and pushes the box under the table. It is your turn.',
+      ),
+      narration(
+        'La balance revient à zéro tandis que la file avance. Corinne prend un sac et vous regarde par-dessus les cagettes.',
+        'The scales return to zero as the queue moves forward. Corinne picks up a bag and looks at you over the crates.',
+      ),
+      narration(
+        'Une odeur de pêches mûres traverse l’étal. Corinne finit de servir un habitué, puis pose les deux mains sur le comptoir.',
+        'The smell of ripe peaches drifts across the stall. Corinne finishes serving a regular, then rests both hands on the counter.',
+      ),
+    ],
+    lines: [
+      line('Corinne', 'Bonjour ! Qu’est-ce qu’il vous faut aujourd’hui ?', 'Hello! What do you need today?'),
+      line('Corinne', 'Bonjour ! Je vous sers quoi ?', 'Hello! What can I get you?'),
+      line('Corinne', 'Bonjour ! Vous aviez vu quelque chose ?', 'Hello! Did you have something in mind?'),
+    ],
+  },
+  'mission:chemin': {
+    narrations: [
+      narration(
+        'La pluie vient de s’arrêter et le trottoir brille encore. Sylvie attend que son chien finisse de renifler un arbre près de vous.',
+        'The rain has just stopped and the pavement is still shining. Near you, Sylvie waits for her dog to finish sniffing a tree.',
+      ),
+      narration(
+        'Vous remontez les marches du métro dans une rue inconnue. Sylvie ralentit avec son chien quand elle vous voit chercher un panneau.',
+        'You come up the Metro steps onto an unfamiliar street. Sylvie slows down with her dog when she sees you looking for a sign.',
+      ),
+      narration(
+        'Votre téléphone vient de s’éteindre au mauvais moment. Au coin de la rue, Sylvie remet la laisse de son chien dans son autre main.',
+        'Your phone has just died at the worst moment. At the corner, Sylvie switches her dog lead to her other hand.',
+      ),
+      narration(
+        'Un bus passe et vous cache les panneaux de l’autre côté. Quand il repart, Sylvie vous voit hésiter au bord du trottoir.',
+        'A bus passes and blocks the signs across the road. When it pulls away, Sylvie sees you hesitating at the kerb.',
+      ),
+      narration(
+        'Vous tournez votre plan dans un sens, puis dans l’autre. Sylvie retient son chien et s’arrête à votre hauteur.',
+        'You turn your map one way, then the other. Sylvie holds her dog back and stops beside you.',
+      ),
+    ],
+    lines: [
+      line('Sylvie', 'Vous cherchez quelque chose ?', 'Are you looking for something?'),
+      line('Sylvie', 'Vous êtes perdu ? Je peux vous aider ?', 'Are you lost? Can I help?'),
+      line('Sylvie', 'Bonjour, vous cherchez votre chemin ?', 'Hello, are you looking for directions?'),
+    ],
+  },
+  'mission:journee': {
+    narrations: [
+      narration(
+        'Vous posez vos clés dans l’entrée. Nadia est dans la cuisine avec votre courrier, et la bouilloire vient de s’arrêter.',
+        'You put your keys down in the hall. Nadia is in the kitchen with your post, and the kettle has just clicked off.',
+      ),
+      narration(
+        'Votre sac touche à peine le sol que Nadia vous tend une tasse depuis le plan de travail. Elle a gardé votre courrier sous le bras.',
+        'Your bag has barely touched the floor when Nadia holds out a mug from the counter. She still has your post under one arm.',
+      ),
+      narration(
+        'Nadia est montée déposer votre courrier et elle est restée pour le thé. Elle pousse une chaise vers vous du bout du pied.',
+        'Nadia came up to drop off your post and stayed for tea. She nudges a chair towards you with her foot.',
+      ),
+      narration(
+        'La cuisine sent le thé et la pluie sur votre manteau. Nadia baisse le feu sous la bouilloire et vous regarde enfin.',
+        'The kitchen smells of tea and rain from your coat. Nadia turns the heat down under the kettle and finally looks at you.',
+      ),
+      narration(
+        'Vous rentrez plus tard que prévu. Nadia, encore appuyée contre le plan de travail, lève votre courrier comme preuve qu’elle vous attendait.',
+        'You get home later than planned. Still leaning against the counter, Nadia holds up your post as proof that she was waiting.',
+      ),
+    ],
+    lines: [
+      line('Nadia', 'Tiens, salut ! Bon, raconte. Elle était comment, ta journée ?', 'Hey! Go on then, how was your day?'),
+      line('Nadia', 'Ah, te voilà ! Ça a été, aujourd’hui ?', 'There you are! How did today go?'),
+      line('Nadia', 'Salut toi. Alors, cette journée ?', 'Hey, you. So, how was the day?'),
+    ],
+  },
+  'mission:amis': {
+    narrations: [
+      narration(
+        'La porte du balcon est ouverte sur le bruit de la rue. Chloé vient vous ouvrir avec son verre encore à la main.',
+        'The balcony door is open to the noise from the street. Chloé answers the door with her glass still in her hand.',
+      ),
+      narration(
+        'Vous entendez Sami rire avant même que la porte s’ouvre. Chloé pousse un bol de chips sur la table pour vous faire une place.',
+        'You hear Sami laughing before the door even opens. Chloé moves a bowl of crisps across the table to make room for you.',
+      ),
+      narration(
+        'Une bouteille fraîche attend sur la petite table du balcon. Chloé vous aperçoit dans l’entrée et lève son verre.',
+        'A cold bottle is waiting on the small balcony table. Chloé spots you in the doorway and raises her glass.',
+      ),
+      narration(
+        'Le soleil descend entre les immeubles et la musique joue doucement. Chloé traverse le salon pour vous accueillir.',
+        'The sun is dropping between the buildings and music is playing softly. Chloé crosses the living room to welcome you.',
+      ),
+      narration(
+        'Sami cherche le décapsuleur pendant que vous arrivez. Chloé lui montre qu’il est devant lui, puis se tourne vers vous en riant.',
+        'Sami is looking for the bottle opener as you arrive. Chloé points out that it is right in front of him, then turns to you laughing.',
+      ),
+    ],
+    lines: [
+      line('Chloé', 'Ah bah te voilà ! Alors, ta semaine ?', 'There you are! So, how was your week?'),
+      line('Chloé', 'Salut ! Viens, raconte-nous ta semaine.', 'Hey! Come on, tell us about your week.'),
+      line('Chloé', 'Enfin ! Ça va ? T’as survécu à ta semaine ?', 'Finally! You alright? Did you survive the week?'),
+    ],
+  },
+};
+
+function openingIndex(id: MissionId, seed: string): number {
+  // FNV-1a gives stable distribution without importing randomness, storing
+  // state, or making the caller coordinate an integer variant id.
+  let hash = 0x811c9dc5;
+  for (const char of `${id}:${seed}`) {
+    hash ^= char.codePointAt(0) ?? 0;
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0) % 15;
+}
+
 /**
  * The frame for a mission, or undefined when the id means nothing here.
  *
@@ -582,8 +799,18 @@ export const MISSION_FRAMES: Record<MissionId, ScenarioFrame> = {
  * to degrade into the ordinary "what would you like to talk about" question
  * rather than take the session down or quietly substitute a different scene.
  */
-export function missionFrame(id: string): ScenarioFrame | undefined {
-  return Object.prototype.hasOwnProperty.call(MISSION_FRAMES, id)
-    ? MISSION_FRAMES[id as MissionId]
-    : undefined;
+export function missionFrame(id: string, sessionSeed?: string): ScenarioFrame | undefined {
+  if (!Object.prototype.hasOwnProperty.call(MISSION_FRAMES, id)) return undefined;
+
+  const missionId = id as MissionId;
+  const frame = MISSION_FRAMES[missionId];
+  if (sessionSeed === undefined) return frame;
+
+  const deck = MISSION_OPENING_DECKS[missionId];
+  const selected = openingIndex(missionId, sessionSeed);
+  return {
+    ...frame,
+    openingNarration: deck.narrations[Math.floor(selected / 3)]!,
+    openingLine: deck.lines[selected % 3]!,
+  };
 }

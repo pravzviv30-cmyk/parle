@@ -16,8 +16,8 @@ async function hs256Token(sub: string, expiresIn = '1h'): Promise<string> {
     .sign(new TextEncoder().encode(SECRET));
 }
 
-describe('not configured: the pre-auth contract, unchanged', () => {
-  const resolver = createUserResolver({});
+describe('asserted identity is an explicit local-development exception', () => {
+  const resolver = createUserResolver({ nodeEnv: 'development', localDevelopment: '1' });
 
   test('the asserted id passes straight through', async () => {
     assert.equal(resolver.configured, false);
@@ -30,8 +30,29 @@ describe('not configured: the pre-auth contract, unchanged', () => {
     if (!result.ok) assert.equal(result.status, 400);
   });
 
-  test('a stray bearer header changes nothing', async () => {
-    assert.deepEqual(await resolver.resolve('Bearer whatever', 'learner-1'), { ok: true, userId: 'learner-1' });
+  test('a bearer that cannot be verified never downgrades to the asserted id', async () => {
+    const result = await resolver.resolve('Bearer whatever', 'learner-1');
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.equal(result.status, 401);
+  });
+
+  test('missing or misspelled local opt-in fails closed', async () => {
+    for (const candidate of [
+      createUserResolver({ nodeEnv: 'development' }),
+      createUserResolver({ nodeEnv: 'development', localDevelopment: 'true' }),
+      createUserResolver({ nodeEnv: 'test', localDevelopment: '0' }),
+    ]) {
+      const result = await candidate.resolve(undefined, 'forged-user');
+      assert.equal(result.ok, false);
+      if (!result.ok) assert.equal(result.status, 401);
+    }
+  });
+
+  test('production ignores the local flag and still refuses asserted identity', async () => {
+    const production = createUserResolver({ nodeEnv: 'production', localDevelopment: '1' });
+    const result = await production.resolve(undefined, 'forged-user');
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.equal(result.status, 401);
   });
 });
 
@@ -125,5 +146,65 @@ describe('configured with a JWKS (asymmetric, the new Supabase default)', () => 
     const hsToken = await hs256Token('legacy-user');
     const result = await resolver.resolve(`Bearer ${hsToken}`, null);
     assert.equal(result.ok, false, 'HS256 must not downgrade a configured asymmetric project');
+  });
+
+  test('explicit local development accepts the mock app without removing Supabase from .env', async () => {
+    const project = await generateKeyPair('ES256');
+    const resolver = createUserResolver(
+      {
+        supabaseUrl: 'https://project.supabase.co',
+        nodeEnv: 'development',
+        localDevelopment: '1',
+      },
+      { getKey: async () => project.publicKey },
+    );
+
+    assert.equal(resolver.configured, true, 'Supabase remains configured for requests that carry a bearer');
+    assert.deepEqual(await resolver.resolve(undefined, 'mock-google-dev'), { ok: true, userId: 'mock-google-dev' });
+  });
+
+  test('a bearer still wins in local mode, and an invalid one cannot fall back to mock identity', async () => {
+    const project = await generateKeyPair('ES256');
+    const stranger = await generateKeyPair('ES256');
+    const resolver = createUserResolver(
+      {
+        supabaseUrl: 'https://project.supabase.co',
+        nodeEnv: 'development',
+        localDevelopment: '1',
+      },
+      { getKey: async () => project.publicKey },
+    );
+    const verified = await new SignJWT({})
+      .setProtectedHeader({ alg: 'ES256' })
+      .setSubject('verified-user')
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(project.privateKey);
+    assert.deepEqual(await resolver.resolve(`Bearer ${verified}`, 'mock-google-dev'), { ok: true, userId: 'verified-user' });
+
+    const forged = await new SignJWT({})
+      .setProtectedHeader({ alg: 'ES256' })
+      .setSubject('forged-user')
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(stranger.privateKey);
+    const result = await resolver.resolve(`Bearer ${forged}`, 'mock-google-dev');
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.equal(result.status, 401);
+  });
+
+  test('production with the local flag still requires the verified bearer', async () => {
+    const project = await generateKeyPair('ES256');
+    const resolver = createUserResolver(
+      {
+        supabaseUrl: 'https://project.supabase.co',
+        nodeEnv: 'production',
+        localDevelopment: '1',
+      },
+      { getKey: async () => project.publicKey },
+    );
+    const result = await resolver.resolve(undefined, 'mock-google-dev');
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.equal(result.status, 401);
   });
 });

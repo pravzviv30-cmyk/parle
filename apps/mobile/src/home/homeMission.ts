@@ -67,6 +67,8 @@ export interface HeroFacts {
   place: MissionPlace;
   /** How long, as a number, so the one sanctioned numeral line can say it. */
   minutes: number;
+  /** One honest line explaining why this is the conversation in front of them. */
+  reason: string;
   /** The scene behind the card, from the one registry that owns sizes. */
   art: ArtKey;
 }
@@ -82,10 +84,28 @@ export const HERO_LABELS = {
   day: "Today's French",
 } as const;
 
+/**
+ * Why Home put this particular scene first.
+ *
+ * These stay deliberately plain. They explain the recommendation without
+ * exposing a level, score or ranking, and the fallback says nothing about a
+ * learner whose local history could not be read.
+ */
+export const HERO_REASONS = {
+  resume: 'Your tutor will continue from the point you reached.',
+  first: 'A short, supported café scene to help you start speaking.',
+  today: 'A fresh situation chosen for the French you are practising now.',
+  fallback: 'A short café scene you can start whenever you are ready.',
+} as const;
+
 export const START_CONVERSATION = 'Start conversation';
 
 /** Every line this module can say, for the copy sweeps. */
-export const HERO_COPY: readonly string[] = [...Object.values(HERO_LABELS), START_CONVERSATION];
+export const HERO_COPY: readonly string[] = [
+  ...Object.values(HERO_LABELS),
+  ...Object.values(HERO_REASONS),
+  START_CONVERSATION,
+];
 
 /** The greeting's own evening: from six until the small hours. */
 export function heroLabel(now: number): string {
@@ -109,8 +129,16 @@ function leftPartWay(
 }
 
 /** The common half of a mission hero, so the two mission kinds cannot drift. */
-function fromMission(mission: Mission, label: string, minutes: number): HeroFacts {
-  return { label, title: mission.titleEn, body: mission.goalEn, place: mission.place, minutes, art: heroArt(mission.place) };
+function fromMission(mission: Mission, label: string, minutes: number, reason: string): HeroFacts {
+  return {
+    label,
+    title: mission.titleEn,
+    body: mission.goalEn,
+    place: mission.place,
+    minutes,
+    reason,
+    art: heroArt(mission.place),
+  };
 }
 
 export function homeMissionFrom(input: {
@@ -134,7 +162,11 @@ export function homeMissionFrom(input: {
       remaining === null
         ? estimateMinutes({ kind: 'mission', beats: mission.beatIds.length })
         : estimateMinutes({ kind: 'measured', minutes: remaining });
-    return { kind: 'resume', mission, ...fromMission(mission, HERO_LABELS.resume, minutes) };
+    return {
+      kind: 'resume',
+      mission,
+      ...fromMission(mission, HERO_LABELS.resume, minutes, HERO_REASONS.resume),
+    };
   }
 
   if (!input.spokenBefore) {
@@ -143,7 +175,12 @@ export function homeMissionFrom(input: {
     return {
       kind: 'first',
       mission,
-      ...fromMission(mission, HERO_LABELS.first, estimateMinutes({ kind: 'mission', beats: mission.beatIds.length })),
+      ...fromMission(
+        mission,
+        HERO_LABELS.first,
+        estimateMinutes({ kind: 'mission', beats: mission.beatIds.length }),
+        HERO_REASONS.first,
+      ),
     };
   }
 
@@ -162,6 +199,7 @@ function fromScenario(scenario: DailyScenario, label: string): HeroFacts {
     body: scenario.bodyEn,
     place: scenario.place,
     minutes: estimateMinutes({ kind: 'scenario', lines: scenario.lines.length }),
+    reason: HERO_REASONS.today,
     art: heroArt(scenario.place),
   };
 }
@@ -217,6 +255,11 @@ export function fallbackHero(now: number): HomeMission {
   return {
     kind: 'first',
     mission: cafe,
-    ...fromMission(cafe, heroLabel(now), estimateMinutes({ kind: 'mission', beats: cafe.beatIds.length })),
+    ...fromMission(
+      cafe,
+      heroLabel(now),
+      estimateMinutes({ kind: 'mission', beats: cafe.beatIds.length }),
+      HERO_REASONS.fallback,
+    ),
   };
 }

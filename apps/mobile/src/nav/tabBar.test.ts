@@ -84,7 +84,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.match(FLAT, /accessibilityState=\{\{ selected: focused \}\}/, 'a screen reader is not told which tab is selected');
     assert.match(
       FLAT,
-      /if \(!focused && !event\.defaultPrevented\) \{ navigation\.navigate\(route\.name as never\); announceTab\(route\.name\); \}/,
+      /if \(!focused && !event\.defaultPrevented\) \{ tapSettled\(\); navigation\.navigate\(route\.name as never\); announceTab\(route\.name\); \}/,
       'a tap on the tab you are already on announces a move that did not happen',
     );
     assert.match(
@@ -99,5 +99,19 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     );
     assert.match(FLAT, /\{ color: paper\.inkSoft \}/, 'the inactive tab label is no longer soft ink');
     assert.ok(!/\bst\.dot\b/.test(BAR), 'the bar marks the active cell with a dot again');
+  });
+
+  test('the selected tab arrives on a quiet wash and a settled tap', () => {
+    assert.match(FLAT, /const reduced = useReduceMotion\(\)/, 'the active wash cannot honour reduced motion');
+    assert.match(FLAT, /const selection = useRef\(state\.routes\.map\(\(_\, index\) => new Animated\.Value\(index === state\.index \? 1 : 0\)\)\)\.current/, 'the five tabs do not own stable animation drivers or the initial active tab begins blank');
+    assert.match(FLAT, /useNativeDriver: true/, 'the tab transition runs on the JS thread');
+    assert.match(FLAT, /<Animated\.View[^>]*st\.activeSurface/, 'the selected tab has no quiet coloured surface');
+    assert.match(FLAT, /backgroundColor: ACTIVE_TAB_SURFACE/, 'the wash bypasses the named navigation surface');
+    assert.match(FLAT, /borderColor: ACTIVE_TAB_OUTLINE/, 'the active surface has no outline, so the icon can disappear into its wash');
+    assert.match(FLAT, /outputRange: \[0, -2\]/, 'the selected glyph and label do not make the restrained two-point lift');
+    const pressed = BAR.slice(BAR.indexOf('cellPressed: {'), BAR.indexOf('},', BAR.indexOf('cellPressed: {')) + 1);
+    assert.doesNotMatch(pressed, /opacity/, 'pressing a tab fades the whole icon and word away');
+    assert.match(FLAT, /zIndex: 1/, 'the active wash can paint over the outlined icon');
+    assert.match(FLAT, /tapSettled\(\); navigation\.navigate/, 'a successful tab change gives no tactile answer');
   });
 });

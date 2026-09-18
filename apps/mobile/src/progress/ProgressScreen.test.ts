@@ -72,6 +72,25 @@ describe('real progress is a screen of its own, and it kept everything Home let 
     assert.match(FLAT, /setWord\(gentlestWord\(now\)\)/, 'a disk that will not answer takes the word with it as well as the counts');
   });
 
+  test('the weekly story is a restrained French postcard, not another dashboard', () => {
+    assert.match(
+      FLAT,
+      /story !== null && hasStory\(story\) && \( <FrenchPostcard> \{story\.sentences\.map\(/,
+      'the existing weekly story is not handed whole to the postcard',
+    );
+    assert.match(FLAT, /<TintPanel tint="lilac" style=\{st\.postcard\}>/, 'the postcard lost its quiet lilac paper');
+    assert.match(FLAT, /<WaveformGlyph color=\{accent\.primary\} \/>/, 'the postcard has no small speaking mark');
+    assert.match(FLAT, /\{POSTCARD_TITLE\}/, 'the postcard types its title in the component instead of reading the copy module');
+    assert.match(FLAT, /\{POSTCARD_NOTE\}/, 'the postcard types its note in the component instead of reading the copy module');
+
+    // Sharing would imply a finished artefact and require a real export flow.
+    // This stage is an in-app reflection only, so no decorative share door.
+    for (const fake of ['Share', 'onShare', 'expo-sharing']) {
+      assert.ok(!SCREEN.includes(fake), `the postcard exposes ${fake} without a real export flow`);
+    }
+    assert.ok(!SCREEN.includes('shadow.'), 'the postcard adds a second focal shadow above the capability map');
+  });
+
   test('the screen wears the one frame, shows one way back, and decides nothing it draws', () => {
     assert.equal((SCREEN.match(/<ScrollScreen\b/g) ?? []).length, 1, 'the screen is not built on the shared scrolling frame');
     assert.equal((SCREEN.match(/<ScreenHeader\b/g) ?? []).length, 1, 'a pushed screen shows exactly one way back');

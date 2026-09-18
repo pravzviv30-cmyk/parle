@@ -33,6 +33,54 @@
 
 import type { SoundCheckEvidence, SoundCheckKind } from '../soundcheck/model.ts';
 
+/** The compact measured-sound door on My French. */
+export const SOUND_FINGERPRINT_LABEL = 'Sound fingerprint';
+
+/** What a screen reader hears before the measured line itself. */
+export const SOUND_FINGERPRINT_OPEN = 'Open your latest measured sound check';
+
+/**
+ * The only two evidence kinds produced by an attempt the assessor measured.
+ *
+ * Self-guided practice and an unavailable assessor are both valuable practice,
+ * but neither is a measurement. Keeping this predicate beside the evidence
+ * projection makes it impossible for the surface to turn either one into a
+ * pronunciation claim by accident.
+ */
+export function isMeasuredCheck(check: SoundCheckEvidence): boolean {
+  return check.kind === 'assessed-focus' || check.kind === 'assessed-clear';
+}
+
+/** The newest genuinely measured check across every situation, or null. */
+export function latestMeasuredCheck(checks: readonly SoundCheckEvidence[]): SoundCheckEvidence | null {
+  let newest: SoundCheckEvidence | null = null;
+  for (const check of checks) {
+    if (!isMeasuredCheck(check)) continue;
+    if (newest === null || check.at > newest.at) newest = check;
+  }
+  return newest;
+}
+
+export interface SoundFingerprint {
+  /** The measured scene the compact row reopens. */
+  missionId: string;
+  /** The timeless, learner-safe sentence under the row label. */
+  line: string;
+}
+
+/**
+ * The truthful compact view of measured sound evidence, or no surface at all.
+ *
+ * `soundLine` owns the wording guard for stored focus sentences, so a dated or
+ * counted assessor sentence cannot leak onto a page opened months later.
+ */
+export function soundFingerprint(checks: readonly SoundCheckEvidence[]): SoundFingerprint | null {
+  const measured = latestMeasuredCheck(checks);
+  if (measured === null) return null;
+  const line = soundLine(measured);
+  return line === null ? null : { missionId: measured.missionId, line };
+}
+
 /** What each kind of check is allowed to say, and the fallback when a focus cannot be trusted. */
 export const SOUND_LINES = {
   focus: 'One sound is ready to revisit',

@@ -138,6 +138,24 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
     assert.ok(at('STARTER.line') > at('<TuneSoundCard'), 'the sentence about what this page becomes is not under the shapes it is about');
   });
 
+  test('personal practice says which conversation made it and keeps the archive one quiet tap away', () => {
+    assert.match(
+      FLAT,
+      /const personalSource = madeFromSource\(made\?\.value \?\? null\)/,
+      'the screen invents provenance instead of asking the practice model',
+    );
+    assert.match(
+      FLAT,
+      /\{personalSource !== null && \([\s\S]*<Label>\{MADE_FROM_LABEL\}<\/Label>[\s\S]*\{personalSource\}/,
+      'the personal rows do not say where they came from',
+    );
+    assert.match(
+      FLAT,
+      /label=\{CONVERSATION_ARCHIVE_ACTION\}[\s\S]*nav\.navigate\('Conversations'\)/,
+      'the complete conversation library is not reachable from Practice',
+    );
+  });
+
   test('every block that can be empty is gated, and the gate is the model rather than a length', () => {
     // Gated on the model, not on a count, for MomentumCards' reason: a block
     // gated on a length still occupies its own top margin at zero, which is a

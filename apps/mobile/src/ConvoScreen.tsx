@@ -6,9 +6,9 @@
  * the scene, the coaching, when support appears, when the recap is due — happens
  * in the agent's brain; this screen is deliberately unable to disagree with it.
  *
- * What is deliberately absent compared to the lesson surface: no rung row (a
- * conversation is not a ladder), no numeric position (mid-session copy carries
- * no numbers — the station line alone gives the sense of moving through beats).
+ * What is deliberately absent compared to the lesson surface: no rung row and
+ * no progress rail. A conversation is not a ladder, and a learner mid-sentence
+ * does not need a score-like marker advancing above them.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -31,17 +31,17 @@ import {
   PillButton,
   OutlineButton,
   GhostButton,
-  StationLine,
   EarGlyph,
   HelpGlyph,
   fitDisplay,
 } from './components.tsx';
 import { SupportBlock } from './SessionView.tsx';
-import { ConfirmSheet, ScreenHeader } from './layout.tsx';
+import { ConfirmSheet } from './layout.tsx';
 import { leaveConfirmCopy } from './live/leaveConfirm.ts';
-import { RecapScreen } from './RecapScreen.tsx';
+import { RecapScreen, type RecapPracticePhrase } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
 import { bankPractice, journalDrills, journalPractice } from './live/journal.ts';
+import { saveRecapKeepsake } from './live/recapKeepsake.ts';
 import { MAX_RECOVERED_PHRASES, convoUsesFrom, type PracticeBatch } from './live/journalRules.ts';
 import { recordActivity } from './progress/activity.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
@@ -65,6 +65,7 @@ import { tutorVoiceOf } from './tutor/tutorVoice.ts';
 import { OPEN_MIC_LABEL, sceneControls, typedTurn } from './tutor/sceneControls.ts';
 import { NO_WIN, dismissWin, winAfterTurn, winCard, type WinState } from './tutor/missionWin.ts';
 import { recapWait } from './tutor/recapWait.ts';
+import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
 
 /**
  * Everything one conversation asks the practice stores to keep, in the shape
@@ -128,6 +129,7 @@ import {
 import { loadSeenCoachMarks, markCoachMarkSeen } from './tutor/store.ts';
 import { recordMissionCompletion } from './missions/store.ts';
 import { recordScenarioProgress } from './missions/progressStore.ts';
+import { markPackContinued } from './conversationPacks/marks.ts';
 import { replayNote, type MissionReplay } from './missions/chooserView.ts';
 import { trackProductEvent } from './analytics/track.ts';
 import { MOMENT_ANSWER_MS, momentAnswer } from './practice/statusLine.ts';
@@ -170,7 +172,7 @@ function ListenPlaque({ onPress, tutorName }: { onPress: () => void; tutorName: 
  * running underneath the card and carrying on is the cheaper of the two
  * decisions to get wrong; the line under it says plainly that it uses minutes,
  * so continuing is chosen and never assumed. Leaving is the ghost, and the
- * standing Leave in the header still works, as it must on any metered screen.
+ * standing end control in the header still works, as it must in any metered room.
  *
  * Motion is the app's one settle: transform and opacity, native driver, and the
  * final frame under reduce motion. The arrival is the flourish; the sentence is
@@ -228,8 +230,10 @@ export function ConvoScreen({
   snapshot,
   onRecap,
   onExit,
+  onPractice,
   startInTextMode = false,
   seedTopic,
+  continuationPackId,
   missionId,
   replay,
 }: {
@@ -239,6 +243,8 @@ export function ConvoScreen({
   /** The conversation ended: here is the end card and the updated model. */
   onRecap: (recap: RecapPayload, profileBlob: unknown) => void;
   onExit: () => void;
+  /** Leave the finished room and open a short own-words drill for its kept phrase. */
+  onPractice?: (phrase: RecapPracticePhrase) => void;
   /** "Can't speak right now": the same tutor, typed. */
   startInTextMode?: boolean;
   /**
@@ -247,6 +253,13 @@ export function ConvoScreen({
    * A session with no seed opens exactly as it always has.
    */
   seedTopic?: { fr: string; en: string };
+  /**
+   * The finished conversation this room is genuinely carrying on.
+   *
+   * It is marked only after a live view arrives. A tap on Tutor is intent; a
+   * published room is the evidence that the thread was actually picked up.
+   */
+  continuationPackId?: string;
   /**
    * Which authored mission this is, when a mission card opened it.
    *
@@ -309,6 +322,16 @@ export function ConvoScreen({
     void live.start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openedTyped]);
+
+  // Retire a remembered pack only once this route has become a real room. The
+  // ref is raised before the async write so a second view cannot queue a second
+  // mark while the first disk hop is still in flight.
+  const continuationMarkedRef = useRef(false);
+  useEffect(() => {
+    if (continuationMarkedRef.current || continuationPackId === undefined || live.convo === null) return;
+    continuationMarkedRef.current = true;
+    void markPackContinued(continuationPackId, Date.now());
+  }, [continuationPackId, live.convo]);
 
   /**
    * The learner is typing: they opened this way, or they took the quiet door
@@ -615,7 +638,7 @@ export function ConvoScreen({
     })).then(bankPractice);
   }, [live.practice, live.drills, live.recap, stopped]);
 
-  const leaveNow = () => {
+  const leaveTo = (afterLeave: () => void) => {
     // F402 — where they got to, so the tutor's resume card can offer it back
     // with a minutes line instead of a bare title.
     //
@@ -661,7 +684,17 @@ export function ConvoScreen({
         })).then(bankPractice);
       }
     }
-    void live.leave().finally(onExit);
+    void live.leave().finally(afterLeave);
+  };
+
+  const leaveNow = () => leaveTo(onExit);
+
+  // A recap drill replaces this route only after the metered room is closed.
+  // Navigating first leaves the live conversation underneath the drill, so
+  // Back returns to a stale recap and the room can outlive its screen.
+  const practiseAfterRecap = (phrase: RecapPracticePhrase) => {
+    if (onPractice === undefined) return;
+    leaveTo(() => onPractice(phrase));
   };
 
   // In the metered room only: the choosing moment and the open scene, the two
@@ -698,7 +731,14 @@ export function ConvoScreen({
   }
 
   if (live.recap) {
-    return <RecapScreen recap={live.recap.recap} onDone={leaveNow} />;
+    return (
+      <RecapScreen
+        recap={live.recap.recap}
+        onDone={leaveNow}
+        onPractice={onPractice === undefined ? undefined : practiseAfterRecap}
+        onSave={saveRecapKeepsake}
+      />
+    );
   }
 
   if (live.status.phase === 'connecting' || live.status.phase === 'idle') {
@@ -787,9 +827,22 @@ export function ConvoScreen({
         {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
 
         <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
-          {/* Metered minutes must always have a door, and it is the shared
-              header's Leave now, which asks before it disconnects. */}
-          <ScreenHeader leave={{ onPress: () => setConfirming(true), label: 'Leave', accessibilityLabel: 'Leave the conversation' }} />
+          {/* The outlined end control stays in the safe-area header and opens
+              the same confirmation as the system back gesture. */}
+          <LiveRoomHeader
+            onEnd={() => setConfirming(true)}
+            accessibilityLabel="End conversation"
+            status={
+              line.text ? (
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}
+                >
+                  {line.text}
+                </Text>
+              ) : undefined
+            }
+          />
 
           <ScrollView
             style={choosing.showTranscript ? st.chooseHeadShrink : st.chooseHeadGrow}
@@ -854,20 +907,8 @@ export function ConvoScreen({
           ) : null}
 
           {/* The tutor steered away and said why. It stays until the learner
-              puts it away, unlike the notice below it, which is a hiccup on a
-              timer. */}
+              puts it away, unlike the transient status in the header. */}
           {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
-
-          {/* The quiet slot: a vendor hiccup on its own timer, or a connection
-              being rebuilt, which has no timer and must not be given one. See
-              live/connectionLine.ts for which wins and why. */}
-          {line.text ? (
-            <View style={st.notice}>
-              <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>
-                {line.text}
-              </Text>
-            </View>
-          ) : null}
 
           {choosing.showInput ? (
             <View style={st.typeRow}>
@@ -1007,13 +1048,23 @@ export function ConvoScreen({
 
       <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
         <View style={st.header}>
-          {/* Metered minutes must always have a door, and it is the shared
-              header's Leave now, which asks before it ends the scene. Leaving
-              still delivers the recap the session has earned. */}
-          <ScreenHeader leave={{ onPress: () => setConfirming(true), label: 'Leave', accessibilityLabel: 'Leave the conversation' }} />
-          <View style={{ marginTop: space(2) }}>
-            <StationLine total={view.beat.total} index={view.beat.position - 1} />
-          </View>
+          {/* No progress rail in a conversation: the room stays with the
+              person speaking. The compact end control still opens the shared
+              confirmation and leaving still delivers the recap already earned. */}
+          <LiveRoomHeader
+            onEnd={() => setConfirming(true)}
+            accessibilityLabel="End conversation"
+            status={
+              line.text ? (
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}
+                >
+                  {line.text}
+                </Text>
+              ) : undefined
+            }
+          />
           {/* What is different about walking back into a scene you have
               already finished. Said once, in ink rather than in a rung colour,
               and gone as soon as the learner answers. */}
@@ -1037,7 +1088,7 @@ export function ConvoScreen({
               accessibilityLabel={OPEN_MIC_LABEL}
               style={({ pressed }) => [st.orbTap, pressed && { opacity: 0.7 }]}
             >
-              <VoiceOrb state={orbState} size={SCENE_ORB} />
+              <VoiceOrb state={orbState} size={SCENE_ORB} announce={false} />
             </Pressable>
           ) : (
             <VoiceOrb state={orbState} size={SCENE_ORB} />
@@ -1047,18 +1098,6 @@ export function ConvoScreen({
         {/* Same banner in the scene as in the choosing moment: a redirect does
             not end anything, so the conversation carries on underneath it. */}
         {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
-
-        {/* The same quiet slot as the choosing moment. A rebuilt connection is
-            not a notice and gets no timer: eight seconds of silence explained,
-            and then the explanation gone while the silence carried on, is what
-            this replaces. */}
-        {line.text ? (
-          <View style={st.notice}>
-            <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>
-              {line.text}
-            </Text>
-          </View>
-        ) : null}
 
         {/* The conversation so far. Takes what is left and no more — the
             current turn's support and controls below it are what the learner
@@ -1270,7 +1309,6 @@ const st = StyleSheet.create({
   // unreadable, and this one is the whole reason the branch draws anything.
   waitingBanner: { alignSelf: 'stretch', marginBottom: space(3) },
   header: { paddingBottom: space(3) },
-  notice: { paddingBottom: space(2) },
   // Nothing but the question and the circle yet: they sit in the middle of the
   // screen, exactly as they always have.
   chooseHeadGrow: { flex: 1 },

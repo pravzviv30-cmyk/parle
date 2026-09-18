@@ -3,9 +3,9 @@ import { View, Text, StyleSheet } from 'react-native';
 
 import { Art } from '../art/Art.tsx';
 import type { ArtKey } from '../art/registry.ts';
-import { Card, Label } from '../components.tsx';
+import { Card, Label, TintPanel } from '../components.tsx';
 import { ClockGlyph } from '../glyphs.tsx';
-import { paper, space, type, HIT } from '../theme.ts';
+import { paper, space, type, HIT, type TintName } from '../theme.ts';
 
 /**
  * The card that leads a tab: one thing to do tonight, drawn large.
@@ -13,7 +13,8 @@ import { paper, space, type, HIT } from '../theme.ts';
  * Revamp A gives Home a single hero instead of four competing cards, and this
  * is its shape: a caps label saying which kind of evening it is, the scene's
  * name in the bold serif, a line of plain English under it, the picture of the
- * place, how long it is likely to take, and the one primary action.
+ * place on its own quiet contextual wash, why it was chosen, how long it is
+ * likely to take, and the one primary action.
  *
  * The action arrives as a node rather than as a label and a handler, and that
  * is deliberate. `surfaceContract.test.ts` counts primary pills per screen by
@@ -34,6 +35,8 @@ export function HeroCard({
   title,
   body,
   art,
+  artTint,
+  reason,
   timeLine,
   action,
   corner,
@@ -42,6 +45,10 @@ export function HeroCard({
   title: string;
   body: string;
   art: ArtKey;
+  /** The place's quiet paper wash behind its watercolour. */
+  artTint: TintName;
+  /** Why this particular scene was put in front of the learner. */
+  reason: string;
   /** How long this is likely to take, already in words. */
   timeLine: string;
   /** The one primary action, built by the caller so its pill stays countable. */
@@ -57,7 +64,10 @@ export function HeroCard({
       </View>
       <Text style={[type.cardTitle, { color: paper.ink }]}>{title}</Text>
       <Text style={[type.body, { color: paper.inkSoft }]}>{body}</Text>
-      <Art name={art} style={s.art} />
+      <TintPanel tint={artTint} style={s.artWell}>
+        <Art name={art} style={s.art} />
+      </TintPanel>
+      <Text style={[type.small, { color: paper.inkSoft }]}>{reason}</Text>
       <View style={s.time}>
         <ClockGlyph size={18} color={paper.inkSoft} />
         <Text style={[type.small, { color: paper.inkSoft }]}>{timeLine}</Text>
@@ -71,6 +81,9 @@ const s = StyleSheet.create({
   card: { gap: space(3) },
   head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space(3) },
   corner: { minWidth: HIT, minHeight: HIT, alignItems: 'flex-end', justifyContent: 'center' },
+  // The contextual tint gives the watercolour a job in the card and reaches
+  // the card edges without changing the registry-owned size of the picture.
+  artWell: { alignItems: 'center', overflow: 'hidden', marginHorizontal: -space(4) },
   art: { alignSelf: 'center' },
   time: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
 });

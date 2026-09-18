@@ -1029,7 +1029,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: the header prints "2 / 5" and then renders the dot rail that says the same
   thing. ConvoScreen deliberately removed its numeric position for this reason, and
   DESIGN.md asks for dots rather than numbers, so the two live surfaces disagreed.
-- verified-by: `the lesson header shows its position once, and not as a count`
+- verified-by: `the lesson header shows neither the retired rail nor a numeric count`
 
 ### J9 — Failure screens explain the failure to an engineer
 - severity: P2
@@ -1362,7 +1362,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:175
 - note: the goal question leaves the critical path and becomes an editable Profile row through `withDailyGoal`, the `withUsername` idiom. P2 honestly: nothing in the app reads `dailyGoalMin` today, so a round that ships without this row breaks no promise — it just leaves a preference unaskable until it closes.
-- verified-by: `the daily goal is asked in profile and nowhere in onboarding`
+- verified-by: `the speaking target is asked in profile and nowhere in onboarding`
 
 ### F44 — Six missions exist in core, and their state is a projection
 - severity: P1
@@ -4790,7 +4790,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `live/leaveConfirm.ts`, Stay first; `Alert.alert` is forbidden because it is a no-op on
   react-native-web. Non-room branches (connecting, waiting, error, out of minutes, safety stop,
   recap) keep their direct doors.
-- verified-by: `the in-room Leave on both live screens opens the confirm rather than leaving — F310`
+- verified-by: `the in-room end control on both live screens opens the confirm rather than leaving — F310`
 - verified-by: `the leave confirm is honest, puts Stay first, and never uses a native alert — F310`
 
 ### F311 — Android back and the iOS swipe go through the same confirm as the Leave button
@@ -4861,7 +4861,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   nothing. connectionLine.test.ts still passed only because the connecting branch's own live region
   (LiveSessionScreen.tsx:198) matched its regex. Wrap the line in a polite-live-region Text before it
   reaches title, and make the test read that wrapper rather than any live region in the file.
-- verified-by: `the lesson's quiet line is drawn as text with a polite live region inside the shared header — F316`
+- verified-by: `the lesson's quiet line is drawn as text with a polite live region inside the live-room header — F316`
 
 ### F317 — The sound check's terminal cards show a chevron and a Done
 - severity: P2
@@ -4882,7 +4882,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   screen-reader user on a metered screen heard a verb with no object until the confirm opened. Take an
   optional `accessibilityLabel` on `leave` (default to the label) and pass the sentences from the four
   callers.
-- verified-by: `the shared Leave tells a screen reader what it leaves — F318`
+- verified-by: `every room exit tells a screen reader what it ends or leaves — F318`
 
 ### F319 — Two hardware-back handlers answer the tutor walkthrough opened from Profile
 - severity: P2
@@ -5489,7 +5489,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   profile/dailyGoal.ts carries GOALS, DAILY_GOAL_ROW, dailyGoalOf and goalLine. Strictness reuses
   STRICTNESS_OPTIONS and withStrictness. Name, voice and reminder time keep their sheets. OnboardClock
   leaves the illustration barrel with the sheet that drew it (J14).
-- verified-by: `the daily goal is a three-way choice with the chosen gloss beneath, written through withDailyGoal — F368`
+- verified-by: `the speaking target is a three-way choice with the chosen gloss beneath, written through withDailyGoal — F368`
 - verified-by: `the profile tab turns the strictness dial and the store keeps the choice`
 - verified-by: `the tab bar can name itself and stand with nothing chosen — F368`
 - verified-by: `every scene the barrel exports is drawn somewhere`
@@ -5872,7 +5872,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   founder's overturn of absent-at-zero, so this entry's test is retitled rather than dropped: the colour
   grammar, the token rule and the score refusal it existed for are all still asserted, and more strictly.
   The gate moved down a level, from the part to the field.
-- verified-by: `home draws the four momentum cards in tokens, green for ground covered, the accent once on the badge and never on a bar — F436`
+- verified-by: `progress draws four momentum cards, keeps the target gentle and uses the accent once — F436`
 
 ### F399 — Next step is a row, and the next-situation card leaves Home for My French
 - severity: P1
@@ -6375,17 +6375,18 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   their own; the `scheduler.ts` comment on `lapses` is updated to say so.
 - verified-by: `mastery is right over asked across the deck, withheld under ten reviews, and banded in three warm lines — F434`
 
-### F435 — Today's speaking goal is present without a promise and at zero minutes
+### F435 — Today's speaking time is present without turning the optional target into a quota
 - severity: P1
 - status: [x]
 - where: apps/mobile/src/progress/momentum.ts:517
-- note: owner progress-retention-engineer. `goalFrom` always returns a card. No target: `target`,
-  `amount`, `remaining`, `percentLabel` null, `percent` 0, `note` is `DAILY_GOAL_UNSET` imported from
-  `profile/dailyGoal.ts`. Target and zero minutes: `amount` `'10 min'`, `percentLabel` null, `note`
-  `GOAL_UNTIMED` when a spoken entry today carries no `durationMs`, else `GOAL_START`. Review
-  minutes, yesterday's minutes and under a whole minute all read as zero. From one minute up the card
-  is as F396 left it: `'6 / 10 min'`, the remaining line, `'60%'`, `GOAL_MET` at the promise.
-- verified-by: `today's speaking goal is present from day one, carries the profile's own unset line, and counts only timed spoken sittings — F435`
+- note: owner progress-retention-engineer. `goalFrom` always returns a card. No target and no measured
+  time: `amount` and `remaining` are null and `note` is `DAILY_GOAL_UNSET` imported from
+  `profile/dailyGoal.ts`. Measured time is shown truthfully as `'6 min today'` even without a target.
+  A chosen target at zero is named alone as `'10 min target'`; an untimed speaking entry gets
+  `GOAL_UNTIMED`, otherwise `GOAL_START`. Once time exists, the footer may say how many minutes remain
+  only with “if you want”; at the target it uses `GOAL_MET`. The goal shape exposes no percentage or
+  percentage label, and Progress draws no target fraction or bar.
+- verified-by: `today's speaking time carries the optional Profile target and counts only timed spoken sittings — F435`
 
 ### F436 — MomentumCards draws the four cards in tokens, the accent once on the badge
 - severity: P1
@@ -6397,11 +6398,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `chips.map`, `moreLine`, a hairline, `foot` and `<GhostButton label={retained.link}`. Tiles keep
   `tiles`/`tile` names with `flex: 1, minWidth: 0`; days tile unchanged in drawing; the Recall tile
   draws `<BadgeGlyph color={accent.primary} />`, `percentLabel`, `words`, `line` in `signal.good`.
-  Goal: `amount` gated, track inside `goal.target !== null`, `accessibilityValue` text
-  `goal.percentLabel ?? goal.note`, `fill` in `signal.good`. `accent.` exactly once and never in the
+  Speaking time: `amount` gated and `note` drawn as the whole gentle status; there is no target
+  fraction, percentage, track, fill or progressbar semantics. `accent.` exactly once and never in the
   stylesheet; no `hasMomentum`, no `return null`, no `Math.`, `toFixed`, `.length`, `<PillButton`,
   `numberOfLines`, raw `fontSize`, numeric `width`, `paddingBottom`; imports only `type Momentum`.
-- verified-by: `home draws the four momentum cards in tokens, green for ground covered, the accent once on the badge and never on a bar — F436`
+- verified-by: `progress draws four momentum cards, keeps the target gentle and uses the accent once — F436`
 - verified-by: `home and tutor wrap every line, cap no reading size, and keep every row at the touch floor — F409`
 
 ### F437 — A badge glyph for the Recall tile
@@ -6415,7 +6416,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): the assistive-tech contract widened to raster scenes and was renamed for it;
   the badge glyph itself is untouched.
 - verified-by: `every drawing and every raster scene in the app is hidden from assistive technology`
-- verified-by: `home draws the four momentum cards in tokens, green for ground covered, the accent once on the badge and never on a bar — F436`
+- verified-by: `progress draws four momentum cards, keeps the target gentle and uses the accent once — F436`
 
 ### F438 — Home wires the phrase bank link and tells the truth in its header
 - severity: P1
@@ -6447,7 +6448,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   F398 entries have their `verified-by` lines retitled to follow, and F396's note records the
   overturn and the date.
 - verified-by: `a learner with no progress meets all four cards, worded as a start — F432`
-- verified-by: `home draws the four momentum cards in tokens, green for ground covered, the accent once on the badge and never on a bar — F436`
+- verified-by: `progress draws four momentum cards, keeps the target gentle and uses the accent once — F436`
 - verified-by: `PRODUCT.md records why days active is not the streak it refused — F414`
 - verified-by: `the device runbook carries the Pass 5 checks — F410`
 
@@ -8545,7 +8546,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A. The founder reversed the rings-over-sphere choice. The gradient is the one state
   colour thinned by opacity, so no new palette token and the mark floor holds; movement stays
   transform and opacity on the native driver.
-- verified-by: `the orb rests as one still gradient with its rings and lines drawn once when motion is reduced`
+- verified-by: `the still glyph uses one state colour for two mist washes and three quiet rings`
+- verified-by: `reduce motion and a state with nothing to animate rest for their own reasons`
 
 ### F589 — The glyph set is one pen: every icon at one stroke, decorative
 - severity: P2
@@ -8588,29 +8590,18 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F593 — A placed word drops to 3.59:1 on the drill ground
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/DrillScreen.tsx:412
-- note: a token the learner has already placed is redrawn in `paper.inkFaint` (#8A7996) and its
-  panel goes `backgroundColor: 'transparent'`, so the word sits on the page ground (#F4F2F7) at
-  3.59:1. palette.test.ts states the house rule for this — words clear 4.5 against whatever they
-  sit on — and `type.french` is 21pt regular, under the large-text exception, so the floor here is
-  4.5 and not 3. The learner this hits is the one reading the bank to work out which words are
-  left: the used ones are the half of the row they most need to tell apart. `paper.inkSoft`
-  (#5F4E73) clears the floor on both the ground and a card and is already the app's answer for
-  secondary words, so the fix is a token swap rather than a new colour.
+- note: the used token now takes `paper.inkSoft` (#5F4E73), the existing secondary-word token
+  that clears 4.5 on both the porcelain ground and a card. The transparent panel remains, so the
+  fix changes no layout and introduces no colour; the source contract pins the semantic token.
 - verified-by: `a word already placed stays readable on the ground it is left on`
 
 ### F594 — F383's growing-wrapper repair reached one tab out of five
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/HomeTab.tsx:1
-- note: F383 found that a `flexGrow: 1` view wrapping every block inside `ScrollScreen` fights the
-  scroll frame, which is itself a growing container, and at the largest reading size it renders the
-  header and nothing else with no way to scroll past it. The repair landed on My French only —
-  `my french lays its list out the way the other tabs do, with no wrapper that can swallow it —
-  F383` is asserted against MyFrenchTab.tsx alone. Home (`scroll: { flexGrow: 1 }` at :172), Tutor
-  (:311), Profile (:364) and Practice (:360) all still wrap their blocks in one, and Leaderboard
-  (:197) adds padding to the same wrapper. Either the four are repaired the same way or the rule is
-  moved into layout.tsx so no tab can spell it; what must not stay is one tab defended by name and
-  four carrying the shape it was defended against.
+- note: Home, Tutor, Practice and Profile no longer add a growing wrapper inside `ScrollScreen`;
+  My French already used the safe shape. The contract now walks every tab and refuses `flexGrow`
+  or padding on any surviving `scroll` wrapper, so the AX5 failure cannot return one tab at a time.
 - verified-by: `no tab hangs a growing wrapper inside the scroll frame — F594`

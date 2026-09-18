@@ -5,7 +5,7 @@ import { buildConversationPack, phraseKeyOf, type ReviewCard } from '@luvani/cor
 import { guiltIn } from '../copy/guilt.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { withMark } from '../conversationPacks/marks.ts';
-import { MADE_FROM_COPY, madeFromConversations, soundToTune } from './madeFrom.ts';
+import { MADE_FROM_COPY, madeFromConversations, madeFromSource, soundToTune } from './madeFrom.ts';
 import { STARTER_COPY, starterFrom } from './starter.ts';
 
 const NOW = Date.parse('2026-09-12T20:00:00.000Z');
@@ -27,6 +27,13 @@ function card(fr: string, due: number): ReviewCard {
 const CHECK: SoundCheckEvidence = { missionId: 'mission:hotel', reference: 'x', at: NOW - 1000, kind: 'assessed-focus', focus: 'Round your lips more.', phoneme: 'y' };
 
 describe('practice, made from the learner’s own conversations (F554, F557, F558)', () => {
+  test('names the real conversation that produced the personal rows', () => {
+    const made = madeFromConversations({ packs: [pack()], marks: [], deck: [], checks: [], now: NOW });
+    assert.equal(madeFromSource(made), 'The wifi password');
+    assert.equal(madeFromSource(null), null);
+    assert.equal(madeFromSource({ replay: null, phrase: null, sound: soundToTune([CHECK]) }), null);
+  });
+
   test('practice draws replay, make yours and tune the sound from the newest ready pack, and the starter set for a learner with none', () => {
     const made = madeFromConversations({ packs: [pack()], marks: [], deck: [], checks: [], now: NOW });
     assert.ok(made !== null);

@@ -28,8 +28,9 @@ import { useNavigation } from '@react-navigation/native';
 
 import { Card, ChevronRight } from '../components.tsx';
 import { ChatGlyph } from '../glyphs.tsx';
-import { accent, paper, space, type, DISC, HAIRLINE, HIT } from '../theme.ts';
+import { accent, paper, radius, space, type, DISC, HAIRLINE, HIT } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
+import { tapSettled } from '../motion/haptics.ts';
 import { TutorMark } from '../tutor/TutorMark.tsx';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { MEMORY_ROW_SUB, PARTNER_LINE, memoryLabel } from './tutorMemory.ts';
@@ -57,7 +58,10 @@ function TutorRow({
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        tapSettled();
+        onPress();
+      }}
       accessibilityRole="button"
       accessibilityLabel={`${title}, ${gloss}`}
       style={({ pressed }) => [st.row, !first && st.divided, pressed && st.pressed]}
@@ -97,7 +101,7 @@ const st = StyleSheet.create({
   card: { marginTop: space(2.5) },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2.5) },
   divided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
-  pressed: { opacity: 0.72 },
+  pressed: { backgroundColor: paper.groundDeep, borderRadius: radius.row },
   words: { flex: 1, minWidth: 0 },
   // The ground under the glyph, because a white disc on a white card is no
   // disc at all. `TutorMark` brings its own, since the orb is drawn on white
