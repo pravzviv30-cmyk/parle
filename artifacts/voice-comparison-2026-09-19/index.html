@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luvani · Voice comparison</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,sans-serif;color:#19231b;background:#f8f5e9}*{box-sizing:border-box}body{max-width:1000px;margin:0 auto;padding:30px 20px 70px}h1{font-size:clamp(28px,5vw,44px);letter-spacing:-.05em;margin:0 0 12px}p{line-height:1.6;max-width:760px}header{margin-bottom:26px}.badge{display:inline-block;background:#dcff58;border:1px solid;padding:8px 14px;border-radius:40px;font-size:14px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,390px),1fr));gap:18px}article{background:#fffefa;border:1px solid;border-radius:16px;padding:20px}h2{margin:0 0 14px;font-size:24px}h3{font-size:15px;margin:22px 0 10px}audio{width:100%;height:38px}label{display:block;font-size:13px;margin:10px 0 5px;color:#465044}.fr{font-family:Georgia,serif;font-size:23px}.tip{color:#465044;font-size:14px}button{font:inherit;border:1px solid;border-radius:24px;background:transparent;color:inherit;padding:10px 16px;cursor:pointer}button:focus-visible{outline:3px solid #6b43d8;outline-offset:3px}footer{margin-top:30px}
+</style></head><body>
+<header><p class="badge">Local listening review · 216 credits used of 500 approved</p><h1>Which voice feels like your tutor?</h1>
+<p>Compare the same word and phrase in <strong>Flash</strong> and the <strong>current Multilingual model</strong>. Same six tutor voices, voice settings and audio encoding. These are saved recordings: playing them here uses no API credits.</p>
+<p class="badge">Flash adjusted: 4 dB quieter · No extra API credits</p>
+<p class="tip">Flash now plays a quieter copy of the same recording. The current-model reference is unchanged. Only the audio level was reduced; pitch, timing and voice delivery are unchanged. Original Flash files are preserved.</p>
+<p><span class="fr" lang="fr">un pourboire</span> · a tip<br><span class="fr" lang="fr">On échange nos numéros ?</span> · Shall we exchange numbers?</p>
+<p class="tip">Listen for clear pronunciation, a natural question, and whether both clips sound like the same person. This small sample is for deciding whether to continue, not certification of the full collection. The app’s Hear buttons still use the existing generic recordings until you approve a replacement.</p>
+<button id="rate" aria-pressed="false">Try slow replay · 0.75×</button><p id="now" role="status">Choose a sample below.</p><audio id="player" controls preload="none" aria-label="Selected tutor sample"></audio></header>
+<main class="grid" id="samples"></main>
+<footer><p>No full-pack generation, app voice switch or release has been performed. If these do not meet your standard, we can remove listening from the daily cards without removing the words, phrases, translations, illustrations or saving.</p></footer>
+<script>
+const voices = ['alexandre','emilie','guillaume','marie','anatole','sarah'];
+const names = {alexandre:'Alexandre',emilie:'Émilie',guillaume:'Guillaume',marie:'Marie',anatole:'Anatole',sarah:'Sarah'};
+let slow = false;
+const player = document.querySelector('#player');
+for(const voice of voices){
+ const article=document.createElement('article');const heading=document.createElement('h2');heading.textContent=names[voice];article.append(heading);
+ for(const kind of ['word','phrase']){
+  const h=document.createElement('h3');h.textContent=kind==='word'?'Word':'Phrase';article.append(h);
+  for(const model of ['flash','current']){
+   const id=`${voice}-${model}-${kind}`;const button=document.createElement('button');button.id=id;button.textContent=model==='flash'?'Hear quieter Flash':'Hear current model';button.style.margin='0 8px 8px 0';button.setAttribute('aria-label',`${names[voice]}, ${kind}, ${model}`);
+   button.addEventListener('click',()=>{player.pause();player.src=`${id}${model==='flash'?'-moderate':''}.wav`;player.playbackRate=slow?.75:1;document.querySelector('#now').textContent=`${names[voice]} · ${kind} · ${model==='flash'?'Flash, 4 dB quieter':'Current model'}`;player.play().catch(()=>{document.querySelector('#now').textContent='Playback could not start. Use the saved WAV files in this folder.'})});article.append(button);
+  }
+ }document.querySelector('#samples').append(article);
+}
+document.querySelector('#rate').addEventListener('click',e=>{slow=!slow;e.currentTarget.setAttribute('aria-pressed',String(slow));e.currentTarget.textContent=slow?'Return to normal speed · 1×':'Try slow replay · 0.75×';player.playbackRate=slow?.75:1});
+</script></body></html>

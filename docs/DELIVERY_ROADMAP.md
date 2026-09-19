@@ -19,6 +19,12 @@ deferred.
 No later phase may be called complete against an unstable security or data contract.
 Cross-territory files are changed sequentially, with a single owner at a time.
 
+Before publishing the Home/Friends revision, review [DAILY_AUDIO_ROLLOUT.md](DAILY_AUDIO_ROLLOUT.md):
+the user requested a first 200-word/200-phrase six-tutor audio batch within current
+credits, then another 200 NEW words/phrases after the next credit reset. Preserve
+that follow-up and the publication hold. The user authorised pushing this session
+to main on 19 September; that is not automatic deployment or store-release authority.
+
 ## Phase boundary: Phase 3 landed, Phase 4 branched from it, then Phase 4 landed too
 
 That is what happened, in that order. `phase-3-onboarding` was merged into `main` as

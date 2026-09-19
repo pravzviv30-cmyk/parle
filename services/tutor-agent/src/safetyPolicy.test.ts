@@ -37,7 +37,7 @@ const safetySource = readFileSync(path.join(SRC, 'safety.ts'), 'utf8');
 /** The section headings the policy is not allowed to lose. */
 const REQUIRED_SECTIONS = [
   '## What Luvani holds',
-  '## Raw speech is never stored',
+  '## Raw live speech is never stored',
   '## Analytics: consent, opt-out and retention',
   '## Antifraud identifiers: purpose, retention and disclosure',
   '## Deletion and export',
@@ -498,8 +498,8 @@ describe('the privacy and safety policy is held against the code', () => {
     assert.match(analytics, /never a condition of use/i);
 
     // The raw-speech promise, made explicit rather than left as an accident.
-    const speech = section('## Raw speech is never stored');
-    assert.match(speech, /Raw learner audio is never stored\./);
+    const speech = section('## Raw live speech is never stored');
+    assert.match(speech, /Raw live-session learner audio is never stored\./);
     assert.match(speech, /Egress|recording is configured/i);
     assert.match(speech, /tutor.{0,40}speech only|stores \*\*tutor\*\* speech/i);
     assert.match(speech, /never a numeric score|never audio/i);

@@ -39,7 +39,7 @@ function stripComments(source: string): string {
 const flat = (body: string): string => body.replace(/\s+/g, ' ');
 
 const MOMENTUM = stripComments(read('./MomentumCards.tsx'));
-const SCREEN = stripComments(read('./ProgressScreen.tsx'));
+const SCREEN = stripComments(read('../tabs/HomeTab.tsx'));
 const WORD_CARD = stripComments(read('./WordOfDayCard.tsx'));
 /** The shared components, where the week rail and its marks live (F561). */
 const COMPONENTS = stripComments(read('../components.tsx'));
@@ -67,10 +67,10 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     assert.equal((MOMENTUM.match(/<Card\b/g) ?? []).length, 4, 'the momentum block no longer draws the four cards the design doc names');
     assert.match(
       flat(SCREEN),
-      /\{momentum !== null && \( <View style=\{st\.block\}> <Label>\{MOMENTUM_LABEL\}<\/Label> <MomentumCards momentum=\{momentum\} onReviewPhrases=\{\(\) => nav\.navigate\('Review'\)\} \/> <\/View> \)\}/,
+      /\{momentum !== null && <HomeMomentum momentum=\{momentum\} onPhrases=\{\(\) => nav\.navigate\('Phrasebook'\)\} onReview=\{\(\) => nav\.navigate\('Review'\)\}/,
       'the momentum block is drawn with nothing holding it back, or with no way to the phrase bank',
     );
-    assert.match(flat(SCREEN), /momentumFrom\(\{ activity, deck, profile, now \}\)/, 'the four counts are not folded by the one module that owns them');
+    assert.match(flat(SCREEN), /momentumFrom\(\{ activity, deck, profile, now, activeDays \}\)/, 'the four counts are not folded by the one module that owns them');
     assert.ok(!MOMENTUM.includes('hasMomentum'), 'the block holds itself back again; the four cards are there from day one');
     assert.ok(!MOMENTUM.includes('return null'), 'the block draws nothing at all in some branch; the founder overturned that on 2026-09-05');
     for (const part of ['days', 'retained', 'mastery', 'goal']) {
@@ -210,7 +210,7 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     // control opens. Two surfaces sending a learner to two different decks
     // would be two answers to one question.
     assert.match(flat(MOMENTUM), /<GhostButton label=\{retained\.link\} onPress=\{onReviewPhrases\} \/>/, 'the phrase bank link is not the quiet control reading its word from the module');
-    assert.match(flat(SCREEN), /onReviewPhrases=\{\(\) => nav\.navigate\('Review'\)\}/, 'the phrase bank link does not open the review deck');
+    assert.match(flat(SCREEN), /onReview=\{\(\) => nav\.navigate\('Review'\)\}/, 'the recall tile does not open the review deck');
     const practice = stripComments(read('../tabs/PracticeTab.tsx'));
     assert.match(practice, /nav\.navigate\('Review'\)/, 'Practice no longer opens the review deck, so the two surfaces have drifted apart');
 
@@ -220,23 +220,25 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     // the hero cannot be inside one of their gates by construction, and this is
     // what stops a count following it back up.
     const home = stripComments(read('../tabs/HomeTab.tsx'));
-    assert.match(home, /\{hero !== null && <MissionHero hero=\{hero\} \/>\}/, 'the hero is drawn behind some other condition than having a situation to offer');
-    for (const count of ['percent', 'Recall']) {
-      assert.ok(!home.includes(count), `Home reaches for ${count} again; the counts live on the Progress screen now`);
-    }
-    assert.match(home, /setMomentum\(momentumFrom\(\{ activity, deck, profile, now \}\)\)/, 'Home must use the same evidence model as Progress');
+    assert.match(home, /\{hero !== null && \(homeActionFor\(hero, due.length\) === 'review' \?/, 'one adaptive action must be available independently of momentum');
+    assert.match(home, /: <MissionHero hero=\{hero\} \/>/, 'the conversation hero must remain the alternate, not a second primary action');
+    assert.match(home, /setMomentum\(momentumFrom\(\{ activity, deck, profile, now, activeDays \}\)\)/, 'Home must use the same evidence model as Progress');
     // And the way from one to the other is a row on Home that opens this
     // screen, so nothing was hidden by being moved.
-    assert.match(home, /nav\.navigate\('Progress'\)/, 'nothing on Home opens the screen the counts moved to');
+    assert.match(home, /<HomeMomentum/, 'the counts must live directly on Home');
+    assert.doesNotMatch(home, /nav\.navigate\('Progress'\)/, 'the old destination must be removed');
   });
 
   test("home draws the word of the day from the learner's tier under a paused, decorative daily scene — F391", () => {
     // The pool and the pick are core's. The screen reads them with the one
     // `now` it takes per focus and stores nothing, so the same day gives the
     // same word on a fresh install and on a two-year-old one.
-    assert.match(flat(SCREEN), /import \{[\s\S]*?\bDAILY_WORDS\b[\s\S]*?\} from '@luvani\/core'/, "the screen never imports core's word pool");
-    assert.match(flat(SCREEN), /import \{[\s\S]*?\bdailyPick\b[\s\S]*?\} from '@luvani\/core'/, 'the screen never imports the daily pick');
-    assert.match(flat(SCREEN), /import \{[\s\S]*?\bwordsForLevel\b[\s\S]*?\} from '@luvani\/core'/, 'the screen never imports the tier rule, so every learner meets the same pool');
+    const catalogue = read('../daily/catalogue.ts');
+    assert.match(catalogue, /dailyPick\(wordsForLevel\(homeWords, level\), now\)/);
+    assert.match(catalogue, /homePhrases.filter\(p => p.tier === wordTierFor\(level\)\)/);
+    assert.match(catalogue, /homeWords = DAILY_WORDS.filter\(item => voicedWords.has\(item.id\)\)/);
+    assert.match(catalogue, /homePhrases = DAILY_PHRASES.filter\(item => voicedPhrases.has\(item.id\)\)/);
+    assert.match(SCREEN, /todayItems/);
     assert.ok(!SCREEN.includes('Math.random'), 'the word is picked at random, so it would change under the learner mid-day');
 
     // The word is pitched, so it waits on storage: the tier comes from the
@@ -256,24 +258,19 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     );
     assert.match(
       awaited,
-      /setWord\(dailyPick\(wordsForLevel\(DAILY_WORDS, standing\.index\), now\)\)/,
+      /setDaily\(todayItems\(standing\.index, now\)\)/,
       "the word of the day is not today's word from the learner's tier, on the screen's one clock reading",
     );
     assert.ok(
-      flat(SCREEN).indexOf('setWord(') > flat(SCREEN).indexOf('void Promise.all('),
+      flat(SCREEN).indexOf('setDaily(') > flat(SCREEN).indexOf('void Promise.all('),
       'the word is picked before the XP is read, so a learner would watch it change tier a moment after it appeared',
     );
 
     // The drawing does not wait. It is a pure function of the day and a pool.
-    assert.match(flat(SCREEN), /import \{ WORD_SCENES, type WordSceneKey \} from '\.\/wordScenes\.ts'/, 'the screen never imports the scene pool');
-    assert.match(flat(SCREEN), /setScene\(dailyPick\(WORD_SCENES, now\)\)/, "the day's drawing is not picked by the day, from the screen's one clock reading");
-    assert.ok(
-      flat(SCREEN).indexOf('setScene(') < flat(SCREEN).indexOf('void Promise.all('),
-      'the drawing waits on storage; it is a function of the day alone and belongs on screen before the bridge answers',
-    );
+    assert.match(read('../daily/carousel.ts'), /WORD_SCENES\[hash % WORD_SCENES.length\]/, 'daily art must come from the existing scene library');
     assert.match(
       flat(SCREEN),
-      /\{word !== null && scene !== null && <WordOfDayCard word=\{word\} scene=\{scene\} paused=\{!focused\} \/>\}/,
+      /<DailyCarousel word=\{daily.word\} phrase=\{daily.phrase\} \/>/,
       'the word card is drawn without a word, without the day it is being drawn for, or without being told when the screen is off top',
     );
 

@@ -226,7 +226,7 @@ describe('nothing animates where nobody is looking — J7', () => {
     // rule as the twenty it picks from.
     const SCENE = [...new Set([...exported, 'WordScene'])].join('|');
     const SURFACES = [
-      'progress/ProgressScreen.tsx',
+      'daily/DailyCard.tsx',
       'progress/WordOfDayCard.tsx',
       'progress/WordScene.tsx',
       'missions/MissionsScreen.tsx',
@@ -255,7 +255,7 @@ describe('nothing animates where nobody is looking — J7', () => {
     // navigator, so a card takes `paused` as a prop from the screen above it.
     // Progress is a pushed screen and asks for itself; the two tabs still ask
     // because a bottom tab is never unmounted.
-    for (const name of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx', 'progress/ProgressScreen.tsx']) {
+    for (const name of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx', 'daily/DailyCarousel.tsx']) {
       assert.ok(
         named(name).includes('useIsFocused'),
         `${name} passes paused without knowing whether it is focused`,
@@ -1005,7 +1005,6 @@ const ADOPTERS = [
   // Revamp A: three sections that were half a tab each became routes of their
   // own (F572, F574, F575). All three take the frame from the day they are
   // written, so none of them has a safe area to be walked back from.
-  'progress/ProgressScreen.tsx',
   'conversationPacks/ConversationsScreen.tsx',
 ];
 
@@ -1094,7 +1093,6 @@ describe('one way back, and it is the shared header — F309', () => {
     'tutor/RealMomentScreen.tsx',
     // Revamp A's three routes. Each is a chevron and a title, and each is the
     // only way back out of a place that used to be reachable by scrolling.
-    'progress/ProgressScreen.tsx',
     'conversationPacks/ConversationsScreen.tsx',
   ];
 
@@ -1168,7 +1166,7 @@ describe('one way back, and it is the shared header — F309', () => {
     // And the three routes revamp A added are in that set rather than beside
     // it, so a screen that was written this round is held to the same rule as
     // one that was walked back onto the frame.
-    for (const name of ['progress/ProgressScreen.tsx', 'phrases/PhrasebookScreen.tsx', 'conversationPacks/ConversationsScreen.tsx']) {
+    for (const name of ['phrases/PhrasebookScreen.tsx', 'conversationPacks/ConversationsScreen.tsx']) {
       assert.ok(PUSHED_ONE_BACK.includes(name), `${name} is a pushed route and nothing holds it to having one way back`);
     }
   });
@@ -1724,7 +1722,7 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     );
     assert.deepEqual(
       homePills,
-      ['home/MissionHero.tsx'],
+      ['tabs/HomeTab.tsx', 'home/MissionHero.tsx'],
       `Home draws its pills in ${homePills.join(', ') || 'nowhere'}; the one pill is Start conversation, on the mission hero (F544)`,
     );
 
@@ -1741,7 +1739,8 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
      * outline and the one pill a learner with no conversation yet meets.
      */
     const pills: Record<string, number> = {
-      'tabs/HomeTab.tsx': 1,
+      // Two exclusive templates; nextAction.test.ts proves the priority rule.
+      'tabs/HomeTab.tsx': 2,
       'tabs/TutorTab.tsx': 0,
       'tabs/MyFrenchTab.tsx': 0,
       'tabs/PracticeTab.tsx': 1,
@@ -2220,7 +2219,7 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.match(home, /<MissionHero\b/, 'Home no longer draws the hero the runbook says a beginner meets');
     assert.match(
       home,
-      /\{hero !== null && <MissionHero/,
+      /\{hero !== null && \(homeActionFor/,
       'the hero is drawn behind some other condition than having a situation to offer',
     );
     // The momentum gate that used to sit beside it left Home with the block

@@ -29,7 +29,8 @@ import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from
 /** Resolved per call: the active account can change between calls. */
 const KEY = () => userKey('bookmarks');
 
-const VERSION = 1;
+// v2 protects the larger daily collection from older clients' 200-row cap.
+const VERSION = 2;
 
 /**
  * How many situations a learner may have an opinion about.
@@ -39,7 +40,7 @@ const VERSION = 1;
  * the oldest decision: a row nobody has touched in two hundred taps is the one
  * a learner is least likely to notice going.
  */
-export const MAX_BOOKMARKS = 200;
+export const MAX_BOOKMARKS = 3000;
 
 export interface BookmarkItem {
   /** Which situation, by the daily pool's own id. */
@@ -51,7 +52,7 @@ export interface BookmarkItem {
 }
 
 interface StoredBookmarks {
-  version: typeof VERSION;
+  version: 1 | typeof VERSION;
   items: BookmarkItem[];
 }
 
@@ -121,7 +122,7 @@ async function readItems(key: string): Promise<BookmarkItem[]> {
     const raw = await AsyncStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Partial<StoredBookmarks> | null;
-    if (!parsed || parsed.version !== VERSION || !Array.isArray(parsed.items)) return [];
+    if (!parsed || ![1, VERSION].includes(parsed.version ?? 0) || !Array.isArray(parsed.items)) return [];
     return parsed.items.filter(isItem);
   } catch {
     // A corrupt store reads as nothing saved. Every situation is still one tap

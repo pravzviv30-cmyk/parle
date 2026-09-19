@@ -136,7 +136,7 @@ describe('bookmarks that can be un-saved', () => {
       'the adoption brought the un-saved situation back onto the learner\'s list',
     );
     assert.ok(
-      sameData({ version: 1, items: await loadBookmarks() }, answered),
+      sameData({ version: 2, items: await loadBookmarks() }, answered),
       'the store wrote something other than what the fold answered',
     );
 

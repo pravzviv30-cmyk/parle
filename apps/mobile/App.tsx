@@ -29,7 +29,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
+import { friendUsernameFromUrl } from './src/friends/invite.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -206,6 +207,24 @@ function SignedInRoot({
    */
   const [justOnboarded, setJustOnboarded] = useState(false);
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  const pendingInvite = useRef<string | null>(null);
+  const openPendingInvite = useCallback(() => {
+    if (pendingInvite.current && navigationRef.isReady()) {
+      const username = pendingInvite.current; pendingInvite.current = null;
+      navigationRef.navigate('AddFriends', { username });
+    }
+  }, [navigationRef]);
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let live = true;
+    const receive = ({ url }: { url: string }) => {
+      const username = friendUsernameFromUrl(url);
+      if (live && username) { pendingInvite.current = username; openPendingInvite(); }
+    };
+    const listener = Linking.addEventListener('url', receive);
+    void Linking.getInitialURL().then(url => { if (url) receive({ url }); }).catch(() => {});
+    return () => { live = false; listener.remove(); };
+  }, [openPendingInvite]);
 
   useEffect(() => {
     let cancelled = false;
@@ -352,7 +371,7 @@ function SignedInRoot({
       <LiveProvider>
         <NavigationContainer
           ref={navigationRef}
-          onReady={openFirstMissionChooser}
+          onReady={() => { openFirstMissionChooser(); openPendingInvite(); }}
           theme={navTheme}
           // Web only. A native linking config would claim luvani://auth/callback,
           // which auth/oauth.native.ts needs for the OAuth round trip.

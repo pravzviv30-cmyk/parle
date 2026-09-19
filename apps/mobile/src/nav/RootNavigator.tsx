@@ -40,7 +40,6 @@ import { ReviewScreen } from '../ReviewScreen.tsx';
 import { MissionsScreen } from '../missions/MissionsScreen.tsx';
 import { RealMomentScreen } from '../tutor/RealMomentScreen.tsx';
 import { TutorMemoryScreen } from '../profile/TutorMemoryScreen.tsx';
-import { ProgressScreen } from '../progress/ProgressScreen.tsx';
 import { PhrasebookScreen } from '../phrases/PhrasebookScreen.tsx';
 import { ConversationsScreen } from '../conversationPacks/ConversationsScreen.tsx';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
@@ -54,6 +53,11 @@ import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 import { PracticeTab } from '../tabs/PracticeTab.tsx';
 import { MyFrenchTab } from '../tabs/MyFrenchTab.tsx';
 import { ProfileTab } from '../tabs/ProfileTab.tsx';
+import { FriendsTab } from '../tabs/FriendsTab.tsx';
+import { InviteFriendsScreen } from '../friends/InviteFriendsScreen.tsx';
+import { SocialSettingsScreen } from '../friends/SocialSettingsScreen.tsx';
+import { DailyPracticeScreen } from '../daily/DailyPracticeScreen.tsx';
+import { DailyLibraryScreen } from '../daily/DailyLibraryScreen.tsx';
 import { SettingsScreen } from '../settings/SettingsScreen.tsx';
 import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
 import { LuvaniTabBar } from './LuvaniTabBar.tsx';
@@ -426,11 +430,6 @@ function RealMomentRoute() {
  * means. `canGoBack` first, because on the web an address can land on any of
  * them cold, and then the tabs are the way out rather than a dead end.
  */
-function ProgressRoute() {
-  const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string) => void }>();
-  return <ProgressScreen onBack={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'))} />;
-}
-
 function PhrasebookRoute() {
   const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string) => void }>();
   return <PhrasebookScreen onBack={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'))} />;
@@ -468,7 +467,7 @@ function Tabs() {
       <Tab.Screen name="Tutor" component={TutorTab} />
       <Tab.Screen name="Practice" component={PracticeTab} />
       <Tab.Screen name="MyFrench" component={MyFrenchTab} />
-      <Tab.Screen name="Profile" component={ProfileTab} />
+      <Tab.Screen name="Friends" component={FriendsTab} />
     </Tab.Navigator>
   );
 }
@@ -501,6 +500,11 @@ export function RootNavigator({
       }}
     >
       <Stack.Screen name="Tabs" component={Tabs} />
+      <Stack.Screen name="Profile" component={ProfileTab} />
+      <Stack.Screen name="AddFriends" component={InviteFriendsScreen} />
+      <Stack.Screen name="SocialSettings" component={SocialSettingsScreen} />
+      <Stack.Screen name="DailyPractice" component={DailyPracticeScreen} />
+      <Stack.Screen name="DailyLibrary" component={DailyLibraryScreen} />
       {/* Settings is where sign out and delete account live now (F473), so it
           takes the two callbacks Profile used to, through the same children
           function idiom and for the same reason: they are functions, and a
@@ -525,7 +529,6 @@ export function RootNavigator({
       {/* The evidence, the phrases and the archive: three blocks that used to
           be thirds of three tabs, each now a screen a learner asks for. They
           sit above the tabs like every other push, so the bar goes with them. */}
-      <Stack.Screen name="Progress" component={ProgressRoute} />
       <Stack.Screen name="Phrasebook" component={PhrasebookRoute} />
       <Stack.Screen name="Conversations" component={ConversationsRoute} />
       {/* `initialParams` is what makes the preview safe to open directly: with

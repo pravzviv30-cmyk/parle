@@ -85,7 +85,7 @@ export const TUTOR_VOICE_ROW = "Tutor's voice";
 
 /** The sheet's own two lines. Honest about when a change is felt. */
 export const TUTOR_VOICE_TITLE = "Tutor's voice";
-export const TUTOR_VOICE_SUB = 'Change this whenever you like. Your next conversation picks it up.';
+export const TUTOR_VOICE_SUB = 'Change this whenever you like. Your daily audio and next conversation follow your choice.';
 
 /**
  * Every learner-facing string this setting can put on a screen, flattened.

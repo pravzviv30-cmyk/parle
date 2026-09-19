@@ -19,7 +19,7 @@
  * |               |            | — then that file's own cap. `micSuppressedUntil` is later. |
  * | `topics`      | per-item   | union by topic id; sitting dates and deck ids unioned.     |
  * | `bookmarks`   | per-item   | union by situation; the newer decision wins, so an un-save |
- * |               |            | survives. Oldest first, last 200.                          |
+ * |               |            | survives. Oldest first, last 3000.                         |
  * | `scenarioProgress` | per-item | union by mission; the newer record wins. Oldest first,   |
  * |               |            | last 40. `beatsTotal` is never stored, so never merged.    |
  * | `history`     | set-union  | union by session identity, oldest first, last 50.          |
@@ -91,6 +91,7 @@
  */
 
 import { innerVersion, stableStringify } from './envelope.ts';
+import { mergeActiveDays } from '../progress/activeDays.ts';
 import type { SyncMergeRequest, SyncMergeResult, SyncPolicy } from './engine.ts';
 import { mergeStoredProfiles } from '@luvani/brain/profile/merge';
 import { MAX_DISCUSSED_DATES, MAX_STORED_TOPICS, mergeDecks } from '@luvani/core';
@@ -116,7 +117,7 @@ export const MAX_COMPLETIONS_PER_MISSION = 20;
 /** `KEEP_DAYS` in progress/activity.ts. */
 export const ACTIVITY_KEEP_DAYS = 400;
 /** `MAX_BOOKMARKS` in bookmarks/store.ts. */
-export const MAX_BOOKMARKS = 200;
+export const MAX_BOOKMARKS = 3000;
 /** `MAX_SCENARIO_RECORDS` in missions/progressStore.ts. */
 export const MAX_SCENARIO_RECORDS = 40;
 
@@ -363,7 +364,7 @@ function mergeBookmarks(local: unknown, remote: unknown): unknown {
     (item) => item.scenarioId,
     newerOf,
   ).sort((x, y) => x.at - y.at || compareText(x.scenarioId, y.scenarioId) || compareText(canonical(x), canonical(y)));
-  return { version: 1, items: items.slice(-MAX_BOOKMARKS) };
+  return { version: 2, items: items.slice(-MAX_BOOKMARKS) };
 }
 
 interface ScenarioRecordish {
@@ -499,7 +500,8 @@ function mergeActivity(local: unknown, remote: unknown): unknown {
   const newest = entries.length === 0 ? 0 : (entries[entries.length - 1]?.at ?? 0);
   const cutoff = newest - ACTIVITY_KEEP_DAYS * DAY_MS;
   return {
-    version: 1,
+    version: 2,
+    activeDays: mergeActiveDays(entries, l.activeDays, r.activeDays),
     entries: entries.filter((entry) => entry.at >= cutoff),
     // A one-time guard, so it only ever turns on. Letting it fall back to false would
     // credit this learner's whole pre-log history a second time.
@@ -679,7 +681,7 @@ export const SYNC_POLICIES: readonly NamespacePolicy[] = [
   {
     namespace: 'bookmarks',
     merges: 'per-item',
-    writes: 1,
+    writes: 2,
     rule: 'union by situation id; the newer decision wins, so an un-save survives a fold, oldest first under the store cap',
     merge: (local, remote) => mergeBookmarks(local, remote),
   },
@@ -700,7 +702,7 @@ export const SYNC_POLICIES: readonly NamespacePolicy[] = [
   {
     namespace: 'activity',
     merges: 'set-union',
-    writes: 1,
+    writes: 2,
     rule: 'union by (at, kind, xp) with the copy carrying a durationMs winning, pruned to 400 days from the newest entry, backfilled ORed',
     merge: (local, remote) => mergeActivity(local, remote),
   },

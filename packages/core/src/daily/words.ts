@@ -97,7 +97,10 @@ export interface DailyWord {
   exampleEn: string;
 }
 
-export const DAILY_WORDS: readonly DailyWord[] = [
+import { WORD_SECTIONS } from './lexicon.ts';
+import { DAILY_SCENARIOS } from './scenarios.ts';
+
+const AUTHORED_WORDS: readonly DailyWord[] = [
   // ─────────────────────────────────────────────────────────────── tier one
   // The French of week two. A learner meets these on the second morning and
   // spends them the same afternoon: the counter, the till, the ticket hall,
@@ -2671,3 +2674,33 @@ export const DAILY_WORDS: readonly DailyWord[] = [
     exampleEn: 'Ask, it costs nothing to try.',
   },
 ];
+
+const normalWord = (text: string) => text.normalize('NFC').toLocaleLowerCase('fr').replace(/^(un |une |le |la |les |des |du |de la |de l’|l’|l')/, '').trim();
+const known = new Set(AUTHORED_WORDS.map(w => normalWord(w.fr)));
+const additions: DailyWord[] = [];
+const contexts = DAILY_SCENARIOS.flatMap(s => s.lines);
+for (const section of WORD_SECTIONS) {
+  let abstractRange = false;
+  for (const row of section.items.trim().split('\n')) {
+    const [fr, en] = row.split('|');
+    // These entries require a bespoke context before joining the daily pack.
+    if (fr === 'une solution' || fr === 'une disponibilité') abstractRange = true;
+    if (fr === 'une entrée' || fr === 'une expédition') abstractRange = false;
+    if (abstractRange) continue;
+    if (!fr || !en || known.has(normalWord(fr))) continue;
+    known.add(normalWord(fr));
+    // A whole vocabulary item: "un bar" must not borrow a barbecue example.
+    const escaped = fr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const exactWord = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'iu');
+    const example = contexts.find(line => exactWord.test(line.fr));
+    additions.push({
+      id: `word:pack-${normalWord(fr).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/œ/g, 'oe').replace(/[^a-z]+/g, '-')}`,
+      fr, en, tier: section.tier,
+      note: fr.startsWith('une ') ? 'A feminine noun: keep the article with the word.' : fr.startsWith('un ') ? 'A masculine noun: keep the article with the word.' : 'Try it in the sentence below.',
+      exampleFr: example?.fr ?? section.fr.replace('{fr}', fr),
+      exampleEn: example?.en ?? section.en.replace('{en}', en),
+    });
+  }
+}
+/** Fixed-size authored release pack, stable ids preserve saved items. */
+export const DAILY_WORDS: readonly DailyWord[] = [...AUTHORED_WORDS, ...additions.slice(0, 1000 - AUTHORED_WORDS.length)];

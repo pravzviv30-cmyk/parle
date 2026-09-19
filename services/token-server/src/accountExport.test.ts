@@ -32,11 +32,13 @@ test('account export returns only rows filtered to the authenticated learner', a
   assert.equal(exported.account.email, 'learner@example.com');
   assert.deepEqual(Object.keys(exported.serverData), [
     'learner_state', 'product_events', 'entitlements', 'session_usage', 'billing_events', 'conversation_packs',
+    'social_profiles', 'social_blocks', 'social_reports', 'social_notices', 'social_reactions', 'social_edges', 'social_challenges',
   ]);
   const tableUrls = urls.filter((url) => url.includes('/rest/v1/'));
-  assert.equal(tableUrls.length, 6);
+  assert.equal(tableUrls.length, 13);
   for (const url of tableUrls) {
-    assert.match(url, /\?user_id=eq\.user%2Fid&select=\*$/);
+    if (/social_(edges|challenges)\?/.test(url)) assert.match(url, /\?or=\(sender\.eq\.user%2Fid,recipient\.eq\.user%2Fid\)&select=\*$/);
+    else assert.match(url, /\?user_id=eq\.user%2Fid&select=\*$/);
   }
   assert.ok(urls.every((url) => !url.includes('trial_installations')));
 });

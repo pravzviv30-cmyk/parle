@@ -19,10 +19,15 @@ export type TabParamList = {
   Tutor: undefined;
   Practice: undefined;
   MyFrench: undefined;
-  Profile: undefined;
+  Friends: undefined;
 };
 
 export type RootStackParamList = {
+  Profile: undefined;
+  AddFriends: { username?: string } | undefined;
+  SocialSettings: undefined;
+  DailyPractice: { id: string };
+  DailyLibrary: undefined;
   Tabs: undefined;
   /**
    * The guided café lesson, and the summary it ends on. `textMode` opens it
@@ -141,7 +146,6 @@ export type RootStackParamList = {
    * for it, and gets a whole screen of it rather than a tab they scroll past.
    * No params: every block is read from the stores on focus.
    */
-  Progress: undefined;
   /**
    * Every line that has become the learner's, and one to say right now.
    *

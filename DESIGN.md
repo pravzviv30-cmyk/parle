@@ -37,9 +37,22 @@ pressure, no text clipping and no cap on the learner's reading size.
   at 640pt on iPad. Safe-area space sits outside it. Labels wrap and grow the dock.
 - Tab pages begin with their screen title, not a website-style brand/tagline bar.
   Shared content is capped at 760pt with safe-area-aware gutters on both sides.
-- Home: greeting, compact illustrated mission, two honest momentum tiles,
-  then the detailed progress link. Its counts come from the existing Progress
-  model and remain independent of the mission's rendering gate.
+- Home: greeting and a labelled profile avatar, one useful next action, then
+  “Your French in practice”: Days active, Retained phrases, Recall and Speaking
+  time in four compact tiles. The existing progress model still owns the counts.
+  One swipeable Word/Phrase card sits directly below, with two labelled pills,
+  the existing decorative illustrations and brief, reduced-motion-aware animation.
+  The separate Real progress route is removed; evidence-backed weekly details
+  expand inline. Friends and speaking-pace sections appear only for useful activity.
+- Bottom destinations: Home, Speak, Practice, My French, Friends. Profile is a
+  pushed screen reached from the same labelled avatar on every root tab; Settings
+  is its first row. Friends is opt-in, friends-only and based on real learning
+  activity, with no global leaderboard or punishment for missing a day.
+- Daily collection: 1,000 words and 1,000 phrases. The first voiced subset has
+  200 of each in all six tutors, bundled Flash recordings at a moderate -4 dB.
+  Home picks only from that level-appropriate subset. Hear and Slow replay follow
+  the selected tutor without a speech API or generic fallback. Unvoiced library
+  items retain text, Save and self-recording practice; examples remain text-only.
 - Onboarding: a chapter marker, a graphic story panel, a meaningful illustration
   and an immediate next action. The demonstration is still interactive and
   consent remains optional and initially off.
@@ -50,6 +63,11 @@ pressure, no text clipping and no cap on the learner's reading size.
 The interaction history below remains useful for the learning flows. Where its
 older visual descriptions differ, these composition rules and the current code
 are authoritative.
+
+The navigation/interaction history below also predates the 19 September Home
+and Friends revision. References there to a Profile tab, a separate Progress
+route or Settings at the bottom are historical, not the current navigation.
+The current composition above and `docs/HOME_FRIENDS_REVIEW.md` supersede them.
 
 ## Colour
 

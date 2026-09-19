@@ -5,6 +5,16 @@ gone wrong.
 
 ## On the device
 
+The Home/Friends review branch upgrades `activity` to inner version 2, retaining
+small unique local-day keys when detailed entries age out, so Days active no
+longer falls just because the 400-day event window rolls forward. Version 1
+history migrates on read; days already pruned by an older release cannot be
+reconstructed. `bookmarks` inner version 2 retains up to 3,000 decisions, covering
+the 2,000 daily items plus situations and un-save records. Older clients defer
+these newer payloads rather than truncating them to the old limit. The sync
+envelope ceiling is 512 KiB. Friends data is separate server-owned social tables;
+only accepted relationships are exposed through the authenticated social RPC.
+
 `apps/mobile/src/storage/scope.ts` keys **everything** to the signed-in account:
 `luvani.u.{uid}.{suffix}`. `userKey()` throws if called with no active user, which
 is deliberate — a store read before the auth gate is a bug, and a silent global

@@ -92,7 +92,7 @@ export const HERO_LABELS = {
  * learner whose local history could not be read.
  */
 export const HERO_REASONS = {
-  resume: 'Your tutor will continue from the point you reached.',
+  resume: 'Return to this situation for another short conversation.',
   first: 'A short, supported café scene to help you start speaking.',
   today: 'A fresh situation chosen for the French you are practising now.',
   fallback: 'A short café scene you can start whenever you are ready.',

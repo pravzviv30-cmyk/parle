@@ -283,7 +283,7 @@ describe('My French is the places, the shelf and the way back — F575', () => {
   });
 
   test('the header carries its own picture, and the picture never takes a tap', () => {
-    assert.match(FLAT, /<TabHeader title=\{MY_FRENCH_TITLE\} purpose=\{MY_FRENCH_PURPOSE\} \/>/, 'the library must use the shared editorial header');
+    assert.match(FLAT, /<TabHeader title=\{MY_FRENCH_TITLE\} purpose=\{MY_FRENCH_PURPOSE\} trailing=\{<ProfileButton \/>\} \/>/, 'the library must use the shared editorial header and profile entry');
     assert.match(SCREEN, /head: \{ position: 'relative' \}/, 'the art has nothing to position itself against');
     assert.equal((SCREEN.match(/<TabHeader\b/g) ?? []).length, 1, 'the tab opens with something other than one shared header');
     // The picture is the art module's to hide at the largest reading size and
@@ -376,7 +376,7 @@ describe('My French is the places, the shelf and the way back — F575', () => {
     assert.ok(rows.length >= 2, `only ${rows.length} rows found on the page, so this proves little`);
     for (const row of rows) {
       assert.match(row, /onPress=\{/, `a row on My French goes nowhere: ${row.slice(0, 80)}`);
-      assert.match(row, /accessibilityLabel=\{/, `a row on My French names nothing to a screen reader: ${row.slice(0, 80)}`);
+      assert.match(row, /accessibilityLabel=(?:\{|"[^"]+")/, `a row on My French names nothing to a screen reader: ${row.slice(0, 80)}`);
     }
     assert.match(ROWS_FLAT, /onPress=\{\(\) => onOpen\(row\.id, row\.action\.kind === 'refine'\)\}/, 'a situation row goes nowhere');
     assert.ok(at('<SituationsCard') < at('label={SHELF_LABEL}'), 'the places do not open the page');

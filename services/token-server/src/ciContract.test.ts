@@ -167,6 +167,45 @@ function atLeast(version: string, floor: string): boolean {
 }
 
 describe('the ci contract', () => {
+  test('both XML parser release lines stay above their security patch floors', () => {
+    const parsers = Object.entries(lock.packages).filter(([key]) => key.endsWith('node_modules/@xmldom/xmldom'));
+    assert.ok(parsers.length >= 2, 'both Expo and plist XML parser chains must be checked');
+    for (const [key, entry] of parsers) {
+      const version = entry.version ?? '0.0.0';
+      const floor = version.startsWith('0.8.') ? '0.8.15' : '0.9.12';
+      assert.ok(atLeast(version, floor), `${key} carries vulnerable XML parser ${version}; requires ${floor}`);
+    }
+  });
+
+  test('every Sharp copy is patched and retains its cross-platform native assets', () => {
+    const copies = Object.entries(lock.packages).filter(([key]) => key.endsWith('node_modules/sharp'));
+    assert.ok(copies.length > 0, 'the live tutor image-processing dependency must be checked');
+    for (const [key, entry] of copies) {
+      assert.ok(atLeast(entry.version ?? '0.0.0', '0.35.4'), `${key} must not restore vulnerable Sharp`);
+      const binaries = Object.entries(entry.optionalDependencies ?? {});
+      assert.ok(binaries.some(([name]) => name === '@img/sharp-linux-x64'), 'Linux CI binary is declared');
+      assert.ok(binaries.some(([name]) => name === '@img/sharp-darwin-arm64'), 'Apple Silicon binary is declared');
+      for (const [name, version] of binaries) {
+        const resolved = resolveFrom(key, name);
+        assert.ok(resolved, `${key} is missing its ${name} optional binary from the lockfile`);
+        assert.equal(lock.packages[resolved]?.version, version, `${name} matches its Sharp release`);
+      }
+    }
+  });
+
+  test('the tutor SDK and plugins are aligned on the upstream Sharp security fix', () => {
+    const tutor = lock.packages['services/tutor-agent'];
+    assert.ok(tutor?.dependencies, 'the tutor workspace is present');
+    const sdk = Object.entries(tutor.dependencies).filter(([name]) => name.startsWith('@livekit/agents'));
+    assert.equal(sdk.length, 7, 'the agent and all six provider plugins are checked');
+    for (const [name, version] of sdk) {
+      assert.equal(version, '1.9.0', `${name} remains deliberately pinned to the tested SDK release`);
+      const resolved = resolveFrom('services/tutor-agent', name);
+      assert.ok(resolved, `${name} resolves from the tutor workspace`);
+      assert.equal(lock.packages[resolved]?.version, version);
+    }
+  });
+
   test('ci runs the gate, the dependency audit and the secret scan on every push', () => {
     assert.ok(existsSync(WORKFLOW_PATH), '.github/workflows/ci.yml does not exist');
 

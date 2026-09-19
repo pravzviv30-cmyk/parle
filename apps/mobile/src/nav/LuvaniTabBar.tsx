@@ -15,7 +15,9 @@ import { accent, paper, radius, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { dueCount } from '../review/store.ts';
 import { tapSettled } from '../motion/haptics.ts';
 import { useReduceMotion } from '../motion.ts';
-import { HomeIcon, TutorIcon, PracticeIcon, MyFrenchIcon, ProfileIcon, type TabIconProps } from './icons.tsx';
+import { HomeIcon, TutorIcon, PracticeIcon, MyFrenchIcon, FriendsIcon, type TabIconProps } from './icons.tsx';
+import { readSocial, onSocialChange } from '../friends/social.ts';
+import { socialUpdateCount } from '../friends/socialModel.ts';
 import { ACTIVE_TAB_OUTLINE, ACTIVE_TAB_SURFACE } from './tabSurface.ts';
 import { navigationWidth } from '../responsiveLayout.ts';
 
@@ -24,16 +26,16 @@ const ICONS: Record<string, (p: TabIconProps) => React.ReactElement> = {
   Tutor: TutorIcon,
   Practice: PracticeIcon,
   MyFrench: MyFrenchIcon,
-  Profile: ProfileIcon,
+  Friends: FriendsIcon,
 };
 
 /** The word under each glyph, and what a screen reader announces for the tab. */
 const LABELS: Record<string, string> = {
   Home: 'Home',
-  Tutor: 'Tutor',
+  Tutor: 'Speak',
   Practice: 'Practice',
   MyFrench: 'My French',
-  Profile: 'Profile',
+  Friends: 'Friends',
 };
 
 /**
@@ -55,6 +57,14 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
   // The badge is a fact about the review deck, so it is re-read whenever the
   // learner moves between tabs — finishing a sitting must be able to clear it.
   const [due, setDue] = useState(0);
+  const [friendRequests, setFriendRequests] = useState(0);
+  useEffect(() => {
+    let live = true;
+    const refresh = () => { void readSocial().then(s => { if (live) setFriendRequests(socialUpdateCount(s)); }).catch(() => { if (live) setFriendRequests(0); }); };
+    refresh();
+    const unsubscribe = onSocialChange(refresh);
+    return () => { live = false; unsubscribe(); };
+  }, [state.index]);
   const reduced = useReduceMotion();
   // Initialising the selected route at one matters: the icon is already the
   // active violet on first paint, so its surface cannot arrive a frame late and
@@ -100,7 +110,7 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
         const focused = state.index === index;
         const Icon = ICONS[route.name];
         const label = LABELS[route.name] ?? route.name;
-        const badged = route.name === 'Practice' && due > 0;
+        const badged = (route.name === 'Practice' && due > 0) || (route.name === 'Friends' && friendRequests > 0);
         const progress = selection[index]!;
         const lift = progress.interpolate({ inputRange: [0, 1], outputRange: [0, -2] });
         if (!Icon) return null;
@@ -125,7 +135,7 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
             accessibilityState={{ selected: focused }}
             // Counting out loud would be a number in the chrome; "ready" is the
             // fact the learner needs and matches the forward framing elsewhere.
-            accessibilityLabel={badged ? `${label}, practice ready` : label}
+            accessibilityLabel={badged ? `${label}, ${route.name === 'Friends' ? 'new social updates' : 'practice ready'}` : label}
             style={({ pressed }) => [st.cell, wrapped && st.cellWrapped, pressed && st.cellPressed]}
           >
             <Animated.View

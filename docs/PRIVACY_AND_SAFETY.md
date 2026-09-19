@@ -49,11 +49,18 @@ Two things are deliberately absent from that table. There is no advertising or
 attribution identifier of any kind, and there is no third-party analytics SDK in
 the app. Adding either is an escalation to the founder, not an engineering choice.
 
-## Raw speech is never stored
+## Daily offline practice and Friends (review branch)
 
-**Raw learner audio is never stored.** No file, no bucket, no table, no log line,
+Daily "Record my take" is an explicit exception to the historic blanket "no file" wording below: a temporary local recording enables self-comparison. It is never uploaded; leaving/backgrounding/re-recording deletes it best-effort. A process kill may leave a cache file until OS cleanup. Update public legal pages from `legal/policy.ts` before release.
+
+Friends is explicit opt-in, exact-username discovery, mutually accepted membership. Weekly points are capped aggregates of client-synced practice, not anti-cheat-certified ability scores. Milestone sharing defaults off. Challenge participation is separate consent to combined progress. No address-book upload, public leaderboard, messaging, location, transcripts or recordings are exposed. Blocks remove both directions of the relationship; reports are private to staff. Social tables cascade on account deletion and the account export includes owned records and participating edges/challenges. A staffed reporting workflow must be established before public launch; the review branch stores reports but does not claim anyone has reviewed them. Social badges respect in-app preferences; there is no remote-push delivery service in this change.
+
+## Raw live speech is never stored
+
+**Raw live-session learner audio is never stored.** No file, no bucket, no table, no log line,
 no vendor archive we opt into. The bytes exist while they are in flight and then
-they are gone.
+they are gone. The separate offline daily record-and-compare tool uses a temporary
+on-device recording, as described above; it never uploads that recording.
 
 This is currently true by construction, and the point of writing it down is that it
 stops being an accident:

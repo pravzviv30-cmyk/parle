@@ -33,6 +33,7 @@ import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
+import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { loadPackMarks } from '../conversationPacks/marks.ts';
 import { loadTopics } from '../topics/store.ts';
@@ -223,7 +224,7 @@ export function TutorTab() {
   return (
     <ScrollScreen bottom="tab">
       <Animated.View style={entryStyle}>
-        <TabHeader title={tutorHeading(tutorName)} purpose={TUTOR_PURPOSE} />
+        <TabHeader title={tutorHeading(tutorName)} purpose={TUTOR_PURPOSE} trailing={<ProfileButton />} />
 
         {/* No card behind it. The circle is the page's one focal point, and a
             white rectangle around it would be a second edge competing with the

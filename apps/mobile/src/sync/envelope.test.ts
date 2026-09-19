@@ -97,7 +97,7 @@ describe('the sync envelope — what crosses the wire', () => {
     assert.equal(envelopeBytes(small)! < MAX_ENVELOPE_BYTES, true);
     const big = sealEnvelope({ a: 'x'.repeat(MAX_ENVELOPE_BYTES) }, 'device-a', 1);
     assert.equal(envelopeBytes(big)! > MAX_ENVELOPE_BYTES, true);
-    assert.equal(MAX_ENVELOPE_BYTES, 131_072);
+    assert.equal(MAX_ENVELOPE_BYTES, 524_288, 'room for the complete saved daily collection, with a bounded payload');
   });
 
   test('the inner schema version is read from the blob, and absence is not a version', () => {

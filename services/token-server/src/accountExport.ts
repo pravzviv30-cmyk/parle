@@ -14,6 +14,13 @@ const OWNED_TABLES = [
   'session_usage',
   'billing_events',
   'conversation_packs',
+  'social_profiles',
+  'social_blocks',
+  'social_reports',
+  'social_notices',
+  'social_reactions',
+  'social_edges',
+  'social_challenges',
 ] as const;
 
 export type ExportedTable = (typeof OWNED_TABLES)[number];
@@ -54,8 +61,11 @@ export async function exportSupabaseAccountData(
     signal: AbortSignal.timeout(5_000),
   });
   const tableRequests = OWNED_TABLES.map(async (table) => {
+    const encoded = encodeURIComponent(userId);
+    const filter = table === 'social_edges' || table === 'social_challenges'
+      ? `or=(sender.eq.${encoded},recipient.eq.${encoded})` : `user_id=eq.${encoded}`;
     const response = await request(
-      `${root}/rest/v1/${table}?user_id=eq.${encodeURIComponent(userId)}&select=*`,
+      `${root}/rest/v1/${table}?${filter}&select=*`,
       { headers, signal: AbortSignal.timeout(5_000) },
     );
     const body = await responseJson(response, `${table} export`);
