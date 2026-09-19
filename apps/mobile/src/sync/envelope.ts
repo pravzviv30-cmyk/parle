@@ -35,7 +35,7 @@ export const ENVELOPE_VERSION = 1;
  * one namespace. It never truncates: half a learner's deck pushed as if it were all of
  * it would converge every other device down to the same half.
  */
-export const MAX_ENVELOPE_BYTES = 128 * 1024;
+export const MAX_ENVELOPE_BYTES = 512 * 1024;
 
 export interface SyncEnvelope<T = unknown> {
   readonly v: number;

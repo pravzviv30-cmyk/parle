@@ -166,11 +166,7 @@ describe('Profile keeps who you are and how you learn — F473', () => {
     // Last on the screen, after the learning card. It is the way out of this
     // tab, and a way out drawn halfway up a list is a list somebody stops
     // reading at the interesting row.
-    writtenBefore(PROFILE, 'title={PREFER_TYPING_ROW}', 'label={SETTINGS_ROW}', 'the Settings row is drawn above the learning card');
-    assert.ok(
-      PROFILE.indexOf('label={SETTINGS_ROW}') > PROFILE.lastIndexOf('<Label>'),
-      'something is drawn under the Settings row, so it is no longer the last thing on the tab',
-    );
+    writtenBefore(PROFILE, 'label={SETTINGS_ROW}', 'title={PREFER_TYPING_ROW}', 'Settings should be immediately accessible above the profile details');
     assert.equal(
       (PROFILE.match(/nav\.navigate\(/g) ?? []).length,
       1,
@@ -227,7 +223,8 @@ describe('the Settings screen is one push away — F473', () => {
     // Tabs takes nothing now, and Profile is a plain component again.
     assert.match(NAVIGATOR, /function Tabs\(\) \{/, 'Tabs still takes props it has nothing to do with');
     assert.match(NAVIGATOR, /<Stack\.Screen name="Tabs" component=\{Tabs\} \/>/, 'the tab navigator is still a children function');
-    assert.match(NAVIGATOR, /<Tab\.Screen name="Profile" component=\{ProfileTab\} \/>/, 'Profile is still a children function');
+    assert.match(NAVIGATOR, /<Stack\.Screen name="Profile" component=\{ProfileTab\} \/>/, 'Profile must be pushed from the avatar');
+    assert.match(NAVIGATOR, /<Tab\.Screen name="Friends" component=\{FriendsTab\} \/>/, 'Friends replaces the former Profile tab');
 
     // Its own back, drawn in the screen. A native header would be a second,
     // duplicate way out, which is the whole reason every pushed screen here

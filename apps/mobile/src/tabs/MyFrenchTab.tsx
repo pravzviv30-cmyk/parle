@@ -16,6 +16,7 @@ import { Label, TintRow } from '../components.tsx';
 import { IconRowCard } from '../surface/IconRowCard.tsx';
 import { DocumentGlyph, PlaceGlyph, QuoteGlyph, WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
+import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { accent, space } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
@@ -151,7 +152,7 @@ export function MyFrenchTab() {
       {/* The art and the words share one positioned parent, so the picture can
           bleed off the top-right corner behind the headline. */}
       <View style={st.head}>
-        <TabHeader title={MY_FRENCH_TITLE} purpose={MY_FRENCH_PURPOSE} />
+        <TabHeader title={MY_FRENCH_TITLE} purpose={MY_FRENCH_PURPOSE} trailing={<ProfileButton />} />
       </View>
 
       <SituationsCard
@@ -228,6 +229,7 @@ export function MyFrenchTab() {
           />
         </View>
       )}
+      <View style={st.block}><IconRowCard glyph={<QuoteGlyph color={accent.primary} />} label="Daily collection" line="Saved words, phrases and offline audio." accessibilityLabel="Open daily collection" onPress={() => nav.navigate('DailyLibrary')} /></View>
     </ScrollScreen>
   );
 }

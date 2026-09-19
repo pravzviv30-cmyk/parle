@@ -41,6 +41,8 @@ of each before starting the next. Each file is idempotent: every create is
 | 13 | `migrations/202609100001_max_allowance_three_hundred.sql` | Reprices Max from 450 minutes to 300 to match `PLANS.regular` in core, which moved to $29. Replaces one function body, creates nothing, touches no rows. At $29 the old 450 minutes had a negative worst-case margin; 300 leaves 29.7%. No entitlement row carries `regular` today, so this moves nobody |
 | 14 | `migrations/202609100002_wall_product_events.sql` | Adds the subscription wall's five product events to the `validate_product_event` allowlist: `wall_shown`, `wall_page_seen`, `plan_selected`, `purchase_started`, `purchase_settled`. Replaces one function body, leaves the trigger in place, touches no rows. Without it those five raise `unsupported product event` and the wall's funnel is dark with no visible error |
 
+| 15 | `migrations/20260919120650_home_friends_daily.sql` | Private, opt-in Friends; accepted connections, weekly capped learning activity, challenges, reactions and reports. Test locally before applying. Deploy this migration before the updated account-export service. No production application has been performed for this review branch. |
+
 Order is load-bearing in one direction only: everything after 1 names tables and
 functions that 1 creates, so 1 first. Files 3, 4, 5, 7 and 9 are each a single `create or
 replace function`, so running any of them twice, or running them immediately after 2,
@@ -130,6 +132,7 @@ depends on what the earlier ones built.
 
 | Rolling back | Script | Cost |
 |---|---|---|
+| `20260919120650_home_friends_daily.sql` | `rollback/20260919120650_down.sql` | DESTRUCTIVE. Export social data and roll back the client/account-export service first. Requires `set luvani.remove_friends = 'yes'`; personal learning data is retained. |
 | `202609100002_wall_product_events.sql` | `rollback/202609100002_down.sql` | Narrows the allowlist back below the wall, so all five wall events start failing silently and the funnel goes dark. Evidence loss, not a privacy hole. Refuses to run until you set `luvani.blind_the_wall` in the same session |
 | `202609100001_max_allowance_three_hundred.sql` | `rollback/202609100001_down.sql` | Restores 202608300002's function body. Inert today on purpose: the migration changed only a number that `PLANS.regular` owns, so this file carries the current allowance rather than the old one. Reverting the cap is a core change first, then every allowance table under `supabase/`, then a new forward migration. The file's own header spells out the order |
 | `202609050001_learner_state_daily_namespaces.sql` | `rollback/202609050001_down.sql` | **DESTRUCTIVE.** Narrowing the whitelist cannot succeed while a row uses one of the two names, so the script deletes every server copy of a learner's saved situations and half finished scenes first. The device copies survive; a learner who changes phone loses both. Take the named backup first. |
@@ -189,7 +192,7 @@ the project has real accounts on it.
 "We can roll back" is a claim, and this is how it becomes evidence. Do it on a disposable
 project, and keep the output:
 
-1. Apply all fourteen migrations. Run the harness. Record: twelve proofs, all passed.
+1. Apply all fifteen migrations. Run the harness. Record: twelve proofs, all passed.
 2. Note the row counts of all seven tables (`select count(*) from public.<table>;`).
 3. Take the backup from `## Backup`, and record its timestamp.
 4. Apply `rollback/202608240001_down.sql` with the interlock set. Re-run the harness and
@@ -204,7 +207,7 @@ project, and keep the output:
    interlocks set, then `rollback/202608230001_down.sql`, then
    `rollback/202608220001_down.sql`. Record that the harness now reports the schema as
    not applied, naming each missing object.
-7. Re-apply all fourteen migrations, restore from step 3, and record the row counts from
+7. Re-apply all fifteen migrations, restore from step 3, and record the row counts from
    step 2 matching.
 
 Steps 4 and 5 are the cheap half and can be run on their own: they touch one function

@@ -1,18 +1,15 @@
 /**
- * The week on Profile, and the story one level down — F233, F561, F576, F577.
+ * The week on Profile, and the story inline on Home — F233, F561, F576, F577.
  *
  * ## The name on the front of this test
  *
  * It is byte-identical to the one three ticked ledger entries name (F233, F348,
  * F561), and `scripts/gate.mjs` refuses a tick whose named test did not run, so
- * it cannot be changed from here. It is also half stale, and saying so is
- * cheaper than leaving somebody to discover it: revamp A moved the week's three
- * story sentences off this card and onto the `Progress` screen, where there is
- * room to say what a week contained, so the ONE importer of `progress/story.ts`
- * is `progress/ProgressScreen.tsx` now. The rule the entries were filed for is
- * untouched and is still checked below, on the file that really holds it. Only
- * the sentence on the front of it names the wrong file, and the ledger is the
- * integrator's to repair.
+ * it cannot be changed from here. The title names an older placement. The story
+ * now belongs to Home: Home loads the four inputs and ProgressScreen.tsx exports
+ * its inline disclosure component, not a navigation destination. Those two
+ * files are the only permitted story importers. The privacy and no-delta rules
+ * the ledger entries were filed for are still checked on their actual owners.
  *
  * ## What is checked, and why it is split over two files
  *
@@ -21,7 +18,7 @@
  * Every assertion with weight in it is about what the drawing surface must
  * *not* have grown, and about "only": every non-test file under `src/` is read,
  * comments stripped, and the set of files that import `progress/story.ts` has
- * to be exactly one. That proves no other module in the app can see the week,
+ * to be exactly Home and its inline disclosure. That proves no other module can see the week,
  * so nothing scheduled, backgrounded or notified can carry it anywhere. The
  * other half of "never pushed" is enforced from the far side, by
  * `reminders/reminder.test.ts` refusing any module under `reminders/` the
@@ -52,7 +49,9 @@ function stripComments(source: string): string {
 
 const CARD = stripComments(read('./FrenchLifeCard.tsx'));
 const FLAT = CARD.replace(/\s+/g, ' ');
-const STORY_SCREEN = stripComments(read('../progress/ProgressScreen.tsx'));
+const STORY_HOME = stripComments(read('../tabs/HomeTab.tsx'));
+const STORY_DETAILS = stripComments(read('../progress/ProgressScreen.tsx'));
+const STORY_SCREEN = `${STORY_HOME}\n${STORY_DETAILS}`;
 const STORY_FLAT = STORY_SCREEN.replace(/\s+/g, ' ');
 const RAIL = stripComments(read('../components.tsx'));
 
@@ -76,11 +75,8 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
     //
     // One surface draws it, and the module that owns every word of it is
     // imported whole, with both of its doors.
-    const imported = STORY_FLAT.match(/import \{([^}]*)\} from '\.\/story\.ts'/);
-    assert.ok(imported, 'the Progress screen never imports the week story, so there is nothing anywhere to show');
-    for (const name of ['storyFrom', 'hasStory']) {
-      assert.ok(imported[1]!.includes(name), `the screen imports the story module without ${name}`);
-    }
+    assert.match(STORY_HOME, /import \{[^}]*storyFrom[^}]*\} from '\.\.\/progress\/story\.ts'/);
+    assert.match(STORY_DETAILS, /import \{[^}]*hasStory[^}]*\} from '\.\/story\.ts'/);
 
     // All four inputs, whole, with a passed clock. Narrowing is the module's
     // job, and doing it here is how the no-delta guarantee gets bypassed one
@@ -119,10 +115,11 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
     // and there is no other branch: a surface that can render empty is a quota,
     // and a quota nobody met is guilt. F55's spirit, and the reason the old
     // invitation line left with the sentences rather than following them.
-    const drawn = STORY_SCREEN.indexOf('story.sentences.map(');
-    const gate = STORY_SCREEN.lastIndexOf('story !== null && hasStory(story)', drawn);
-    assert.notEqual(gate, -1, 'the sentences are drawn with nothing holding them back');
-    assert.ok(drawn - gate < 160, 'the hasStory gate is somewhere else on the screen, not on the block it is meant to hold back');
+    assert.match(STORY_DETAILS, /const hasWeek = story !== null && hasStory\(story\)/);
+    assert.match(STORY_DETAILS, /\{hasWeek && <TintPanel[^]*story\.sentences\.map\(/,
+      'the inline story must still be gated by a nonempty week');
+    assert.match(STORY_DETAILS, /\{expanded && <View/,
+      'the full story only appears when the learner asks for it');
     assert.doesNotMatch(
       STORY_FLAT,
       /hasStory\(story\)[\s\S]{0,400}\) : \(/,
@@ -136,7 +133,7 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
       assert.doesNotMatch(source, /expo-notifications/, `${name} reaches for the notification API`);
     }
 
-    // And "only". One file in the whole app can see the week.
+    // And "only". Home and its inline disclosure, never a background reader.
     const storyModule = join('progress', 'story.ts');
     const readers = sourceFiles(SRC)
       .filter((path) => !path.endsWith(storyModule))
@@ -144,8 +141,8 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
       .map((path) => path.slice(SRC.length));
     assert.deepEqual(
       readers,
-      ['progress/ProgressScreen.tsx'],
-      'something other than the Progress screen can read the week, so the story has a second way to reach a learner',
+      ['progress/ProgressScreen.tsx', 'tabs/HomeTab.tsx'],
+      'only Home and its inline detail component may read the story; no background or notification importer',
     );
     // Profile is not that file any more, and half a move is worse than either
     // end of it: two surfaces drawing one week are two weeks to keep in step.

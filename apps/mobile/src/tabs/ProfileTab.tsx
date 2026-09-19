@@ -69,6 +69,7 @@ import {
   type TutorVoiceKey,
 } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
+import { useBackToHome } from '../nav/useBackToHome.ts';
 
 /**
  * The sheets that are left.
@@ -92,7 +93,8 @@ import { voiceSample } from '../tutor/voiceSamples.ts';
 type Sheet = 'none' | 'name' | 'tutorVoice';
 
 export function ProfileTab() {
-  const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
+  const goBack = useBackToHome();
+  const nav = useNavigation<{ navigate: (screen: string, params?: object) => void; goBack: () => void }>();
   const { profile, update } = useProfile();
   const [sheet, setSheet] = useState<Sheet>('none');
   const [draftName, setDraftName] = useState(profile.name ?? '');
@@ -204,7 +206,7 @@ export function ProfileTab() {
    */
   if (sheet === 'tutorVoice') {
     return (
-      <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: closeVoiceSheet }} />}>
+      <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: closeVoiceSheet }} />}>
         <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{TUTOR_VOICE_TITLE}</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{TUTOR_VOICE_SUB}</Text>
         <View style={{ marginTop: space(6), gap: space(3) }}>
@@ -242,7 +244,7 @@ export function ProfileTab() {
     // the removed Cancel button did. Save is the one action left in the body.
     return (
       <ScrollScreen
-        bottom="tab"
+        bottom="inset"
         avoidKeyboard
         header={<ScreenHeader back={{ onPress: () => { setDraftName(profile.name ?? ''); setSheet('none'); } }} />}
       >
@@ -272,7 +274,8 @@ export function ProfileTab() {
   }
 
   return (
-    <ScrollScreen bottom="tab">
+    <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: goBack }} title="Profile" />}>
+      <Card style={{ marginBottom: space(3) }}><SettingsRow first label={SETTINGS_ROW} value={SETTINGS_ROW_SUB} onPress={() => nav.navigate('Settings')} /></Card>
       <View>
         {/* The art sits behind the centred column and bleeds off the corner, so
             the header and the picture share one relative box. It is decorative
@@ -344,14 +347,6 @@ export function ProfileTab() {
             redundancy that says nothing twice. Everything behind it is
             `settings/SettingsScreen.tsx`, a stack sibling above the tabs, so
             the bar goes with the push. */}
-        <Card style={{ marginTop: space(6) }}>
-          <SettingsRow
-            first
-            label={SETTINGS_ROW}
-            value={SETTINGS_ROW_SUB}
-            onPress={() => nav.navigate('Settings')}
-          />
-        </Card>
       </View>
     </ScrollScreen>
   );

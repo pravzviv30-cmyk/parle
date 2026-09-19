@@ -169,7 +169,7 @@ describe('every root screen has an address on the web — F493', () => {
     const written = [...paths.entries()].filter(([name]) => name !== 'Tabs');
     for (const [name, path] of written) {
       assert.notEqual(path, '', `${name} takes the container's own empty path, so its address is indistinguishable from Home`);
-      assert.match(path, /^[a-z][a-z-]*$/, `${name} has a path a browser cannot carry cleanly: ${path}`);
+      assert.match(path, /^[a-z][a-z-]*(?:\/:\w+\??)?$/, `${name} has a path a browser cannot carry cleanly: ${path}`);
     }
     const all = [...paths.values()];
     assert.equal(new Set(all).size, all.length, `two root screens share one address: ${all.join(', ')}`);

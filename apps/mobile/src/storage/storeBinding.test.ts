@@ -538,7 +538,7 @@ const SYNCED_STORES: readonly SyncedStore[] = [
   {
     namespace: 'bookmarks',
     write: () => setBookmark('scene:market', true, 5),
-    merged: { version: 1, items: [{ scenarioId: 'scene:merged', at: 9, saved: true }] },
+    merged: { version: 2, items: [{ scenarioId: 'scene:merged', at: 9, saved: true }] },
     read: async () => (await loadBookmarks()).map((item) => item.scenarioId),
     expected: ['scene:merged'],
     corrupt: { version: 99, items: [] },

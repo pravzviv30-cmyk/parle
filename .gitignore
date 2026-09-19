@@ -60,3 +60,9 @@ graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
 # Local web-research captures can contain copied example credentials and are
 # never product source or release evidence.
 .firecrawl/
+
+# Paid synthesis masters stay on this machine for safe resumption/re-encoding.
+# Commit the manifests and app AAC assets, not redundant raw PCM or process locks.
+artifacts/daily-tutor-batch-*/*.pcm
+artifacts/daily-tutor-batch-*/generation.lock
+artifacts/daily-tutor-batch-*/manifest.json.tmp

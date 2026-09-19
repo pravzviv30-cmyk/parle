@@ -34,6 +34,7 @@ interface Notice {
 }
 
 const NOTICES: readonly Notice[] = [
+  { name: 'toqr', by: 'Phil Pluckthun', licence: 'MIT License', note: 'Creates invitation QR codes on your device.' },
   {
     name: 'Fraunces',
     by: 'Phaedra Charles, Flavia Zimbardi and the Fraunces project authors',
@@ -69,6 +70,9 @@ export function Acknowledgements({ onBack }: { onBack: () => void }) {
       <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Acknowledgements</Text>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
         Luvani is built on other people's work. The full licence text for each of these ships inside the app.
+      </Text>
+      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
+        Daily tutor recordings are synthetic speech generated with ElevenLabs Flash v2.5. The included recordings match your selected tutor and play from the app without a speech API call.
       </Text>
       <View style={{ marginTop: space(6), gap: space(3), paddingBottom: space(6) }}>
         {NOTICES.map((n) => (

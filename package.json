@@ -37,7 +37,7 @@
   },
   "luvani": {
     "dependencyAudit": {
-      "reviewed": "2026-08-30",
+      "reviewed": "2026-09-19",
       "auditFailsAbove": "moderate",
       "note": "Every advisory npm audit reports is listed here exactly once, keyed on the vulnerable package rather than on the dependants that inherit it. `npm run audit:ci` refuses any high or critical advisory whose package is not on this list, and refuses an accepted entry whose advisory has gone away, so the record cannot rot in either direction. `lockedAt` is the version package-lock.json carries today; ciContract.test.ts pins it, so a later install cannot move one of these without a person re-reading the reachability argument.",
       "advisories": [
@@ -59,6 +59,7 @@
           "severity": "high",
           "decision": "accepted",
           "lockedAt": "0.5.18",
+          "reviewNote": "Rechecked 2026-09-19: the historical lockfile experiment below is not the current SDK state. The tutor SDK/plugins are now pinned to 1.9.0 to obtain Sharp 0.35.4, with cross-platform binaries and the Anthropic SDK split preserved. Silero 1.9.0 still uses onnxruntime-node 1.24.3 and the same install-only adm-zip path; this existing acceptance remains unchanged. Repeat paid live voice lifecycle QA before deploying the upgraded tutor service.",
           "advisories": [
             "https://github.com/advisories/GHSA-xcpc-8h2w-3j85"
           ],

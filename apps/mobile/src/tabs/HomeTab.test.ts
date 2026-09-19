@@ -211,7 +211,7 @@ describe('Home opens on the day rather than on a summary — F420, F392, F571', 
 
     // The greeting keeps what the founder left on it. No control beside it and
     // no monogram: the initial is Profile's, once, which is F337.
-    assert.ok(!header.includes('trailing='), 'Home grew a control back beside the greeting');
+    assert.match(SCREEN, /trailing=\{<ProfileButton \/>\}/, 'the avatar must provide a consistent profile entry point');
     assert.ok(!SCREEN.includes('<Monogram'), 'the profile initial is back on Home beside the greeting');
 
     // The watercolour corner is behind the words, decorative, and sized by the
@@ -238,7 +238,9 @@ describe('Home opens on the day rather than on a summary — F420, F392, F571', 
     // revamp A, and it took its outline with it: there is one way into a
     // conversation on the screen whose whole job is to open one.
     const pills = HOME_SURFACE.flatMap(([path, body]) => (body.match(/<PillButton\b/g) ?? []).map(() => path));
-    assert.deepEqual(pills, ['MissionHero.tsx'], `Home draws ${pills.length} primary pills; the surface carries exactly one, in the mission hero`);
+    assert.deepEqual(pills, ['HomeTab.tsx', 'MissionHero.tsx'], 'Home carries two mutually exclusive hero templates');
+    assert.match(SCREEN, /homeActionFor\(hero, due.length\) === 'review' \?/);
+    assert.match(SCREEN, /: <MissionHero hero=\{hero\} \/>/);
     assert.equal(START_CONVERSATION, 'Start conversation');
     assert.match(HERO, /label=\{START_CONVERSATION\}/, "the tab's one pill is not the spoken conversation");
     assert.match(HERO, /icon=\{<MicGlyph/, 'the pill lost the microphone that says what it opens');
@@ -382,14 +384,15 @@ describe('Home says what the learner can now do, and counts nothing — F399, F5
       /setHero\( homeMissionFrom\(\{ progress, records, spokenBefore: hasSpokenBefore\(activity\), levelIndex: standing\.index, now, \}\), \)/,
       'the hero is not the situation homeMission.ts decides',
     );
-    assert.match(SCREEN, /\{hero !== null && <MissionHero hero=\{hero\} \/>\}/, 'the hero is drawn behind some other condition than having something to offer');
+    assert.match(SCREEN, /\{hero !== null && \(homeActionFor/, 'the adaptive hero must remain independent of the momentum gate');
 
     // "Real progress": one sentence over the same projection, so the hero and
     // the row beneath it can never disagree about one finish. The row is drawn
     // for a learner with nothing behind them too, because it is also how they
     // find out what this app keeps track of.
-    assert.match(FLAT, /setCan\(canDoSentence\(stampsFrom\(progress\)\)\)/, 'the sentence is not the passport over the same projection');
-    assert.match(SCREEN, /\{can !== null && <AbilitiesCard can=\{can\} onOpen=\{\(\) => nav\.navigate\('Progress'\)\} \/>\}/, 'the row is drawn with nothing behind it, or goes somewhere other than Progress');
+    assert.match(FLAT, /setRows\(canDoRows\(stampsFrom\(progress\)\)\)/, 'the inline abilities must use the passport projection');
+    assert.match(SCREEN, /<HomeProgressDetails story=\{story\} rows=\{rows\} \/>/, 'Home must retain the weekly story and ability details inline');
+    assert.doesNotMatch(SCREEN, /navigate\('Progress'\)/, 'the retired Progress destination must not return');
     assert.match(flat(ABILITIES), /<IconRowCard/, 'real progress is no longer the white row the mockup draws');
     assert.match(flat(ABILITIES), /label=\{can\.label\}/, 'the row spells its own heading');
     assert.match(flat(ABILITIES), /line=\{can\.line\}/, 'the row spells its own sentence');
@@ -403,7 +406,7 @@ describe('Home says what the learner can now do, and counts nothing — F399, F5
     // Ordering: the greeting, then the one thing to do, then the proof that the
     // last times counted.
     assert.ok(at('<TabHeader') < at('<MissionHero'), 'the hero is drawn above the greeting');
-    assert.ok(at('<MissionHero') < at('<AbilitiesCard'), 'the proof is drawn above the invitation');
+    assert.ok(at('<MissionHero') < at('<HomeMomentum'), 'the proof is drawn above the invitation');
 
     // What left Home. The next-situation card, the momentum block, the word of
     // the day and the outline to the tutor are all somewhere else now, and a
@@ -415,7 +418,7 @@ describe('Home says what the learner can now do, and counts nothing — F399, F5
       assert.ok(!SCREEN.includes(gone), `Home still draws ${gone}, which belongs one level down now`);
     }
     for (const [path, body] of HOME_SURFACE) {
-      for (const counted of ['percent', 'Recall', 'streak']) {
+      for (const counted of ['streak']) {
         assert.ok(!body.includes(counted), `${path} draws ${counted}; every count on Home moved to the Progress screen`);
       }
     }
@@ -462,9 +465,13 @@ describe('Home closes on a kind line and carries nothing else — F400', () => {
       existsSync(fileURLToPath(new URL('../progress/today.ts', import.meta.url))),
       'today.ts went with the row that drew it, and its suite is the defence against a streak',
     );
-    for (const gone of ['todayFrom', 'buildPhrasebook', 'loadHistory', 'PhrasebookScreen', 'loadTopics']) {
+    for (const gone of ['todayFrom', 'buildPhrasebook', 'PhrasebookScreen', 'loadTopics']) {
       assert.ok(!SCREEN.includes(gone), `Home still reads ${gone}, and nothing on the page draws it`);
     }
+    // History is now used by the weekly story, expanded inline on Home.
+    assert.match(FLAT, /loadHistory\(\)/);
+    assert.match(FLAT, /setStory\(storyFrom\(\{ sessions: history, activity, packs, completions, now \}\)\)/);
+    assert.match(FLAT, /<HomeProgressDetails story=\{story\} rows=\{rows\} \/>/);
 
     // And nothing else is carried either. Every name Home imports is a name
     // Home uses, which is J14's rule applied to one file.

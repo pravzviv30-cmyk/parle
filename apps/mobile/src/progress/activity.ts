@@ -14,6 +14,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { mergeActiveDays } from './activeDays.ts';
 import { totalXp, type DatedXp } from '@luvani/core';
 import { onUserScopeReset, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
@@ -65,7 +66,8 @@ function isDuration(value: unknown): boolean {
 }
 
 interface Stored {
-  version: 1;
+  version: 1 | 2;
+  activeDays?: string[];
   entries: ActivityEntry[];
   /** Set once history has been read in, so it is never counted twice. */
   backfilled?: boolean;
@@ -89,7 +91,7 @@ const KEEP_DAYS = 400;
 const DAY_MS = 86_400_000;
 
 function empty(): Stored {
-  return { version: 1, entries: [] };
+  return { version: 2, entries: [], activeDays: [] };
 }
 
 function isEntry(value: unknown): value is ActivityEntry {
@@ -109,7 +111,7 @@ function isStored(value: unknown): value is Stored {
   return (
     typeof value === 'object' &&
     value !== null &&
-    (value as { version?: unknown }).version === 1 &&
+    [1, 2].includes((value as { version?: number }).version ?? 0) &&
     Array.isArray((value as { entries?: unknown }).entries)
   );
 }
@@ -120,7 +122,7 @@ async function read(key: string): Promise<Stored> {
     if (!raw) return empty();
     const parsed: unknown = JSON.parse(raw);
     if (!isStored(parsed)) return empty();
-    return parsed;
+    return { ...parsed, entries: parsed.entries.filter(isEntry) };
   } catch {
     return empty();
   }
@@ -204,15 +206,20 @@ export async function recordActivity(
   now = Date.now(),
   detail: ActivityDetail = {},
 ): Promise<void> {
-  if (xp <= 0) return;
+  if (!Number.isFinite(xp) || !Number.isFinite(now) || xp <= 0) return;
   const entry: ActivityEntry = isDuration(detail.durationMs)
     ? { at: now, kind, xp, ...(detail.durationMs === undefined ? {} : { durationMs: detail.durationMs }) }
     : { at: now, kind, xp };
-  await mutate((stored) => ({ ...stored, entries: prune([...stored.entries, entry], now) }));
+  await mutate((stored) => ({ ...stored, version: 2, activeDays: mergeActiveDays([...stored.entries, entry], stored.activeDays), entries: prune([...stored.entries, entry], now) }));
 }
 
 export async function loadActivity(): Promise<ActivityEntry[]> {
   return (await read(KEY())).entries;
+}
+
+export async function loadActiveDays(): Promise<string[]> {
+  const stored = await read(KEY());
+  return mergeActiveDays(stored.entries, stored.activeDays);
 }
 
 /** All-time XP, with the daily cap applied by core. */
@@ -239,6 +246,8 @@ export async function backfillFrom(sessions: readonly { endedAt: number }[], bas
       : {
           ...stored,
           backfilled: true,
+          version: 2,
+          activeDays: mergeActiveDays([...inherited, ...stored.entries], stored.activeDays),
           entries: prune([...inherited, ...stored.entries].sort((a, b) => a.at - b.at), now),
         },
   );
@@ -276,7 +285,8 @@ function adoptActivity(fold: SyncFold): Promise<SyncAdoption> {
     const folded = fold(current);
     if (!isStored(folded)) return 'declined';
     const next: Stored = {
-      version: 1,
+      version: 2,
+      activeDays: mergeActiveDays(folded.entries.filter(isEntry), folded.activeDays, isStored(current) ? current.activeDays : []),
       entries: folded.entries.filter(isEntry),
       backfilled: wasBackfilled || folded.backfilled === true,
     };

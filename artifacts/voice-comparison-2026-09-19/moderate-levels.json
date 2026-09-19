@@ -1,0 +1,128 @@
+{
+  "purpose": "User-requested quieter Flash samples. Original and current-model clips are unchanged.",
+  "apiCreditsUsed": 0,
+  "gainDb": -4,
+  "sampleRate": 22050,
+  "records": [
+    {
+      "voice": "alexandre",
+      "kind": "word",
+      "source": "alexandre-flash-word.pcm",
+      "output": "alexandre-flash-word-moderate.wav",
+      "sourceSha256": "e2fa5712219198da495b235930a1333749ca5bddad25c3dff6d3b2a95ef4848f",
+      "outputSha256": "0cca0821275b16565cb368a4b13c96cdc90ba4be01cb56cc7714305733bdd9f0",
+      "gainDb": -4,
+      "measuredGainDb": -3.999996786010669
+    },
+    {
+      "voice": "alexandre",
+      "kind": "phrase",
+      "source": "alexandre-flash-phrase.pcm",
+      "output": "alexandre-flash-phrase-moderate.wav",
+      "sourceSha256": "fa789ba99cb795f1de77621b20de1f28039e057da8dadb9c5fa039b254793dde",
+      "outputSha256": "7b33dea16059a723696cf989525541348365e87170bfb3d6863185dddb3ae3aa",
+      "gainDb": -4,
+      "measuredGainDb": -4.00001359555999
+    },
+    {
+      "voice": "emilie",
+      "kind": "word",
+      "source": "emilie-flash-word.pcm",
+      "output": "emilie-flash-word-moderate.wav",
+      "sourceSha256": "513244b646f08292e21bb5a6bf53dc25876c2c878b80d6e180ae51e9e2fc6655",
+      "outputSha256": "3faf05242640213927ef24570bd100bddbc92d058dfd9e77a752ca27dd98dda1",
+      "gainDb": -4,
+      "measuredGainDb": -4.000003255805164
+    },
+    {
+      "voice": "emilie",
+      "kind": "phrase",
+      "source": "emilie-flash-phrase.pcm",
+      "output": "emilie-flash-phrase-moderate.wav",
+      "sourceSha256": "9ce09ae78f84540c6011be12619988266710a57cf803ec611daa68026d3a5962",
+      "outputSha256": "f6ea738e1f8503f4c762d778d2bf6e908dd341e80c0fb3446c36e80dab926a1a",
+      "gainDb": -4,
+      "measuredGainDb": -3.9999994515905275
+    },
+    {
+      "voice": "guillaume",
+      "kind": "word",
+      "source": "guillaume-flash-word.pcm",
+      "output": "guillaume-flash-word-moderate.wav",
+      "sourceSha256": "4f0e9397f4bc9adf725e662c14e28d40095737204df3ab98c1bd2b061a126ac7",
+      "outputSha256": "57665dc723139e918925d7274f0d2fc167ec7d9d288f2e0bbd59bdd4dfe38208",
+      "gainDb": -4,
+      "measuredGainDb": -4.000003274957195
+    },
+    {
+      "voice": "guillaume",
+      "kind": "phrase",
+      "source": "guillaume-flash-phrase.pcm",
+      "output": "guillaume-flash-phrase-moderate.wav",
+      "sourceSha256": "cef22bdf3d10f937777ee4c44135e3c3eee0502fb13084926140d5382d877003",
+      "outputSha256": "65a96e98298280e0684260dbb49a3c6df9b994181f4194b449fc13155784e703",
+      "gainDb": -4,
+      "measuredGainDb": -4.0000054536549685
+    },
+    {
+      "voice": "marie",
+      "kind": "word",
+      "source": "marie-flash-word.pcm",
+      "output": "marie-flash-word-moderate.wav",
+      "sourceSha256": "34ec32c1d6472273b6f2c5d6361601586252cf6d723b6f71ce3f3c7734639837",
+      "outputSha256": "017fd8203fd24d8f023717188a5daf464530ff2f566f51c8d699f2ca1514820e",
+      "gainDb": -4,
+      "measuredGainDb": -4.0000096090004895
+    },
+    {
+      "voice": "marie",
+      "kind": "phrase",
+      "source": "marie-flash-phrase.pcm",
+      "output": "marie-flash-phrase-moderate.wav",
+      "sourceSha256": "d03aba7d0d04f1837d097d74ca4019fb872538bf217f168a245355dd6f4eab4e",
+      "outputSha256": "1089f0848d2c7f111d001017f62ae01e7ce6cba87e7262a3a0879c4a6e6467af",
+      "gainDb": -4,
+      "measuredGainDb": -3.999993731204334
+    },
+    {
+      "voice": "anatole",
+      "kind": "word",
+      "source": "anatole-flash-word.pcm",
+      "output": "anatole-flash-word-moderate.wav",
+      "sourceSha256": "7f2e0257855bd812906756fbe943557416396eed8dac2412925d79e7a133012d",
+      "outputSha256": "03078e232a17d69d592382704dcc5ec616bcf8cbd3573597ed7287150e644020",
+      "gainDb": -4,
+      "measuredGainDb": -3.999983905793524
+    },
+    {
+      "voice": "anatole",
+      "kind": "phrase",
+      "source": "anatole-flash-phrase.pcm",
+      "output": "anatole-flash-phrase-moderate.wav",
+      "sourceSha256": "be72fcfbc008d7accb5e54e4f1aa14ea523d9c2650fc6208e20b25a4ad845f68",
+      "outputSha256": "c85dd174b55124359b236fa8930d1b60848ffd1b5c40758a5fa28a2bcfca4d33",
+      "gainDb": -4,
+      "measuredGainDb": -4.000000639971567
+    },
+    {
+      "voice": "sarah",
+      "kind": "word",
+      "source": "sarah-flash-word.pcm",
+      "output": "sarah-flash-word-moderate.wav",
+      "sourceSha256": "cbad4aa0d9b8ea0cd4b48b726e32f7d4b46cf6dbc5482e5ebc0e4256176bc1d5",
+      "outputSha256": "c0af79ea318a6292033a7c79364b594f21612cd9351fb3e88ab25e258cdaee60",
+      "gainDb": -4,
+      "measuredGainDb": -4.000004643705971
+    },
+    {
+      "voice": "sarah",
+      "kind": "phrase",
+      "source": "sarah-flash-phrase.pcm",
+      "output": "sarah-flash-phrase-moderate.wav",
+      "sourceSha256": "22242af774bbea27378b84f9e8004ee73abc0935625e72986e351b4fbb7b2d8c",
+      "outputSha256": "9cf632f75dd2ea392b3ed360afc2d2e75a91185ccd0897a7577280269c4529a9",
+      "gainDb": -4,
+      "measuredGainDb": -3.9999960548177578
+    }
+  ]
+}

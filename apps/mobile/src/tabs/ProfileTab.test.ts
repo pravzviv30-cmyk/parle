@@ -174,8 +174,8 @@ describe('the tab that is a person — F576', () => {
 
     // And the way out is last, under no label of its own.
     assert.ok(
-      TAB.indexOf('label={SETTINGS_ROW}') > TAB.lastIndexOf('<Label>'),
-      'something is drawn under the Settings row, or it has a caps label over it saying the same word twice',
+      TAB.indexOf('label={SETTINGS_ROW}') < TAB.indexOf('<Label>'),
+      'Settings must be immediately visible above the profile details',
     );
 
     // ─────────────────────────────────────────────── the checks bite

@@ -83,8 +83,9 @@ describe('the privacy notice — F479', () => {
 
     // Speech. The strongest sentence in the notice, and the one most worth
     // holding to the document word for word.
-    assert.match(WHOLE, /Raw audio of you speaking is never stored\./);
-    assert.match(WHOLE, /No file, no bucket, no table, no log line\./);
+    assert.match(WHOLE, /Live conversation audio is not stored by Luvani\./);
+    assert.match(WHOLE, /temporary recording stays on your device/);
+    assert.match(WHOLE, /It is never uploaded/);
     assert.match(DOC, /No file, no bucket, no table, no log line/, 'the document softened what it says about audio');
 
     // The two absences the document calls deliberate.

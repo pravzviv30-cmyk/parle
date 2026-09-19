@@ -88,3 +88,7 @@ export function ProfileIcon(props: TabIconProps) {
     </Glyph>
   );
 }
+
+export function FriendsIcon(props: TabIconProps) {
+  return <Glyph {...props}><Circle cx={8.5} cy={8} r={3} /><Path d="M2.8 19c.8-3.7 2.7-5.3 5.7-5.3s4.9 1.6 5.7 5.3M16 5.5a3 3 0 0 1 0 5.7M16.5 14c2.8.3 4.2 2 4.7 5" /></Glyph>;
+}

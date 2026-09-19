@@ -1,0 +1,39 @@
+import { useNavigation } from '@react-navigation/native';
+import { useState } from 'react';
+import { Text, View } from 'react-native';
+import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { useBackToHome } from '../nav/useBackToHome.ts';
+import { Card, GhostButton, Label } from '../components.tsx';
+import { SwitchRow } from '../settings/SwitchRow.tsx';
+import { useSocial } from './useSocial.ts';
+import { space, paper, type } from '../theme.ts';
+import type { SocialSettings } from './socialModel.ts';
+
+const SETTINGS: { key: keyof SocialSettings; title: string; sub: string }[] = [
+  { key: 'showScore', title: 'Show my weekly score', sub: 'Only accepted friends can see your learning points.' },
+  { key: 'shareMilestones', title: 'Share learning milestones', sub: 'Share weekly practice milestones with accepted friends. Off by default.' },
+  { key: 'requests', title: 'Friend requests', sub: 'Show a badge when someone asks to join your circle.' },
+  { key: 'invitations', title: 'Challenge invitations', sub: 'Include invitations in the Friends update badge.' },
+  { key: 'completions', title: 'Completed challenges', sub: 'Include completed challenges in the Friends update badge.' },
+  { key: 'milestones', title: 'Friends’ milestones', sub: 'Include shared milestones in the Friends update badge.' },
+  { key: 'results', title: 'Weekly results', sub: 'Include your completed week in the Friends update badge.' },
+];
+export function SocialSettingsScreen() {
+  const goBack = useBackToHome();
+  const nav = useNavigation<{ goBack: () => void; navigate: (screen: string) => void }>();
+  const { snapshot: s, error, act, busy, refresh } = useSocial();
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  return <ScrollScreen bottom="inset" header={<ScreenHeader title="Friends privacy" back={{ onPress: goBack }} />}>
+    <Text style={[type.body, { color: paper.inkSoft }]}>Friends are private. People find you by your exact username or an invitation you share. Your recordings and corrections stay private.</Text>
+    {error !== '' && <><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{error}</Text><GhostButton label="Try again" onPress={refresh} /></>}
+    {s?.settings.enabled ? <>
+      <Card style={{ marginTop: space(4) }}>{SETTINGS.map(setting => <SwitchRow key={setting.key} title={setting.title} accessibilityLabel={setting.title} sub={setting.sub} value={s.settings[setting.key]} onChange={value => { if (!busy) void act('settings', { [setting.key]: value }); }} />)}</Card>
+      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>These choices control in-app badges when Friends refreshes. They do not send push notifications. The activity feed remains available with badges off.</Text>
+      <View style={{ marginTop: space(5), gap: space(2) }}><Label>Blocked people</Label>
+        {!s.blocked.length && <Text style={[type.small, { color: paper.inkSoft }]}>No blocked people.</Text>}
+        {s.blocked.map(p => <Card key={p.id}><Text style={[type.body, { color: paper.ink }]}>{p.name}</Text><GhostButton label="Unblock" onPress={() => void act('unblock', { id: p.id })} /></Card>)}
+      </View>
+      <Card style={{ marginTop: space(5) }}><Text style={[type.body, { color: paper.ink }]}>Leave Friends</Text><Text style={[type.small, { color: paper.inkSoft }]}>Remove your connections, end your shared challenges and hide your username. Your French and personal progress stay with you.</Text>{confirmLeave ? <><GhostButton label="Confirm: remove my connections" onPress={() => void act('settings', { enabled: false })} /><GhostButton label="Stay in Friends" onPress={() => setConfirmLeave(false)} /></> : <GhostButton label="Leave Friends" onPress={() => setConfirmLeave(true)} />}</Card>
+    </> : s && <GhostButton label="Set up Friends" onPress={() => nav.navigate('AddFriends')} />}
+  </ScrollScreen>;
+}

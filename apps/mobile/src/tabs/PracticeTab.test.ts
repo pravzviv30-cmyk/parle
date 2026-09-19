@@ -170,7 +170,7 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
     const header = between(RENDER, '<TabHeader', '/>', 'Practice opens on a TabHeader');
     assert.match(header, /title=\{PRACTICE_TITLE\}/, 'the tab lost its title, or spells it on the screen');
     assert.match(header, /purpose=\{PRACTICE_PURPOSE\}/, 'the tab lost its purpose line, which every tab but Home carries');
-    assert.ok(!header.includes('trailing'), 'the monogram is back in the Practice header');
+    assert.match(SCREEN, /trailing=\{<ProfileButton \/>\}/, 'Practice must retain the shared profile entry point');
 
     // The corner art is decoration and says nothing, so it is named from the
     // registry rather than by filename and hidden at large text by HeaderArt.

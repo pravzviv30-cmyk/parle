@@ -30,6 +30,7 @@ import { accent, paper, space, type } from '../theme.ts';
 import { Card, GhostButton, Label, OutlineButton, PillButton, TintRow } from '../components.tsx';
 import { ReplayGlyph } from '../glyphs.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
+import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { PhraseCard } from '../surface/PhraseCard.tsx';
 import { UNREAD } from '../practice/archive.ts';
 import {
@@ -223,7 +224,7 @@ export function PracticeTab() {
         {/* The art sits behind the words and bleeds off the corner, so the two
             share one relative box. It is decorative and takes no tap. */}
         <View style={st.head}>
-          <TabHeader title={PRACTICE_TITLE} purpose={PRACTICE_PURPOSE} />
+          <TabHeader title={PRACTICE_TITLE} purpose={PRACTICE_PURPOSE} trailing={<ProfileButton />} />
         </View>
 
         {/* The read did not finish. Said plainly, with the same work offered

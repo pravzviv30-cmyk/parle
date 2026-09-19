@@ -21,6 +21,7 @@ re-deriving the architecture from source every time.
 | What is implemented, local-only, missing, or externally blocked | [IMPLEMENTATION_EVIDENCE.md](IMPLEMENTATION_EVIDENCE.md) |
 | The current runtime path and replacement dependency graph | [CURRENT_STATE_MAP.md](CURRENT_STATE_MAP.md) |
 | The controlled product/security/release phases | [DELIVERY_ROADMAP.md](DELIVERY_ROADMAP.md) |
+| The agreed tutor-audio batches, credit-reset reminder and pre-publication checklist | [DAILY_AUDIO_ROLLOUT.md](DAILY_AUDIO_ROLLOUT.md) |
 | The risks that block users, payments, or release | [RISK_REGISTER.md](RISK_REGISTER.md) |
 | What old code may be removed, and only after which checks | [DELETION_LEDGER.md](DELETION_LEDGER.md) |
 

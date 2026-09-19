@@ -130,10 +130,18 @@ export function policySections(facts: CompanyFacts = COMPANY): readonly PolicySe
     {
       heading: 'Your speech',
       body: [
-        'Raw audio of you speaking is never stored. No file, no bucket, no table, no log line. It exists while it is in flight, and then it is gone.',
-        'That is a fact about how the app is built rather than a promise about how we behave. Nothing tees a session to storage, the server reads a pronunciation attempt into memory and answers with observations, and the phone keeps nothing once it has the answer.',
+        'Live conversation audio is not stored by Luvani. Daily offline practice is different: when you choose Record my take, a temporary recording stays on your device so you can listen back. It is deleted when you leave that screen, background the app, or record another take. It is never uploaded. An interrupted app may leave a temporary cache file for the operating system to clear.',
+        'Nothing tees a live session to storage. Online pronunciation checks read an attempt into memory and answer with observations; daily offline practice is self-comparison and does not send an attempt to that service.',
         'Words are the same rule. What you say is turned into text so the tutor can answer, the session reads that text and drops it, and what survives is the curated summary described above.',
         "The tutor's own lines are the one exception, and they are not yours. They are synthesised once and kept as audio, so a voice service is paid once for a sentence it has already said.",
+      ],
+    },
+    {
+      heading: 'Friends is optional',
+      body: [
+        'If you join Friends, we store your chosen username, display name, privacy choices, requests, connections, blocks, submitted reports, challenges and encouragement. Someone with your exact username or invitation can find your profile and ask to connect. We never upload your contacts.',
+        'Only accepted friends can see your weekly learning points, unless you hide your score. Milestone sharing starts off. Joining a shared challenge lets that partner see your combined challenge progress. Your recordings, corrections and saved phrases are not shared.',
+        'Leaving Friends removes your connections and hides your profile. Account deletion removes your social records. Reports are available to authorised support staff, not the reported person. Social updates are in-app badges, not remote push notifications.',
       ],
     },
     {

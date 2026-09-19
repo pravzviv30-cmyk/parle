@@ -90,7 +90,7 @@ describe('the first-win chooser — what a learner who has never spoken is shown
   test('a first-ever learner reaches the chooser on web as well as on native', () => {
     const app = stripComments(read('../../App.tsx'));
     assert.match(app, /useNavigationContainerRef<RootStackParamList>/, 'the web URL can still overrule the first-run route');
-    assert.match(app, /onReady=\{openFirstMissionChooser\}/, 'nothing waits for web linking to finish resolving the initial URL');
+    assert.match(app, /onReady=\{\(\) => \{ openFirstMissionChooser\(\); openPendingInvite\(\); \}\}/, 'initial linking must settle before chooser and explicit invitation navigation');
     assert.match(app, /navigationRef\.resetRoot\([\s\S]*name:\s*'Missions'/, 'the ready navigator never replaces the URL-selected Home route');
 
     const links = stripComments(read('../nav/theme.ts'));

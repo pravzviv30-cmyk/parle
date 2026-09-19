@@ -526,8 +526,9 @@ export function rhythmSentence(week: readonly WeekDay[]): string {
   return `You spoke French on ${DAY_COUNT_WORDS[done]} days this week.`;
 }
 
-function daysFrom(activity: readonly ActivityEntry[], now: number): MomentumDays {
+function daysFrom(activity: readonly ActivityEntry[], now: number, history: readonly string[] = []): MomentumDays {
   const active = activeDayKeys(activity);
+  for (const day of history) active.add(day);
   const count = active.size === 0 ? null : active.size;
 
   return {
@@ -726,6 +727,7 @@ function goalFrom(activity: readonly ActivityEntry[], profile: StoredProfile | n
  * number.
  */
 export function momentumFrom(input: {
+  activeDays?: readonly string[];
   activity: readonly ActivityEntry[];
   deck: readonly ReviewCard[];
   /** Null is allowed: Progress asks before the profile has loaded, and no profile is no chosen target. */
@@ -734,7 +736,7 @@ export function momentumFrom(input: {
 }): Momentum {
   return {
     retained: retainedFrom(input.deck, input.now),
-    days: daysFrom(input.activity, input.now),
+    days: daysFrom(input.activity, input.now, input.activeDays),
     mastery: masteryFrom(input.deck),
     goal: goalFrom(input.activity, input.profile, input.now),
   };
