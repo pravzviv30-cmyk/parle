@@ -164,8 +164,8 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     // there it is "Open chat", the second of the three ways in (F547), and
     // never the first: a beginner meets the everyday mission first.
     const doors = tutorDoors().map((d) => d.label);
-    assert.ok(doors.includes('Open chat'), 'the tutor tab dropped the free conversation entirely');
-    assert.equal(doors[0], 'Everyday mission', 'a beginner meets a situation first');
+    assert.ok(doors.includes('Open conversation'), 'the tutor tab dropped the free conversation entirely');
+    assert.equal(doors[0], 'Explore everyday missions', 'a beginner meets a situation first');
     assert.notEqual(doors[0], 'Open chat', '"say anything" is what a beginner says nothing to');
     // And the fixed script is not one of them. It is the last thing on THIS
     // screen, after the six situations a beginner should meet first, which is
@@ -174,7 +174,7 @@ describe('the first-win chooser — what a learner who has never spoken is shown
 
     const tab = stripComments(read('../tabs/TutorTab.tsx'));
     assert.match(tab, /DOORS\.map\(/, 'the tab draws its own order instead of the one that was decided');
-    assert.ok(tab.includes('open(true)'), 'the quiet typed door left the tab with the intro');
+    assert.ok(tab.includes("open(mode === 'type', next.params)"), 'the recommendation supports the visible Type selection');
   });
 });
 
@@ -223,15 +223,15 @@ describe('the scripted lesson is the last door on the chooser — F573', () => {
     // Last, after the six. The order is the argument: a beginner meets the
     // open situations before a script where every line is written out.
     assert.ok(
-      SCREEN.indexOf('{rest.map(') < SCREEN.indexOf('LESSON_DOOR.title'),
-      'the fixed script comes before the situations a beginner should meet first',
+      SCREEN.indexOf('LESSON_DOOR.title') < SCREEN.indexOf('{rest.map('),
+      'the pronunciation warm-up must be discoverable before the long mission list',
     );
 
     // And it left the tab it used to live on, all of it: the door, the quiet
     // link and the handler. A door drawn in two places is a door that disagrees
     // with itself the first time one of them is edited.
     const tab = stripComments(read('../tabs/TutorTab.tsx'));
-    assert.ok(!/lesson/i.test(tab), 'the scripted lesson is still a door on the tutor tab as well as on the chooser');
+    assert.match(tab, /title="Practise pronunciation"/, 'pronunciation is also reachable directly from Tutor');
   });
 
   test('a tap on the lesson is acknowledged, never doubled, and refused by nothing', () => {
@@ -251,7 +251,7 @@ describe('the scripted lesson is the last door on the chooser — F573', () => {
       'nothing on the chooser says a probe is running, so the tap looks dead for a second and a half',
     );
     // Both controls go through it, the spoken one and the quiet one.
-    assert.match(SCREEN, /openLesson\(false\)/, 'the lesson button skips the probe');
+    assert.match(SCREEN, /openLesson\(mode === 'type'\)/, 'the lesson button honours the selected mode');
     assert.match(SCREEN, /openLesson\(true\)/, 'the quiet control on the lesson door skips the probe');
   });
 

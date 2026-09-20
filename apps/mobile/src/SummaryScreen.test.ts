@@ -31,16 +31,17 @@ function stripComments(source: string): string {
 const card = stripComments(read('./SummaryScreen.tsx'));
 
 describe('the end card wears revamp A and still counts — F584', () => {
-  test('the end card keeps its four counted facts, because the no-numbers rule is a mid-session rule', () => {
+  test('the end card keeps concrete practice facts without grading the learner with percentages', () => {
     const stats = card.match(/<Stat\b/g) ?? [];
-    assert.equal(stats.length, 4, `the end card draws ${stats.length} counted facts; the founder drew four`);
-    for (const label of ['Words said', 'Longest turn', 'Unaided', 'You spoke']) {
+    assert.equal(stats.length, 2, 'the revised recap shows words and speaking duration');
+    assert.doesNotMatch(card, /summary\.(unassistedRate|speakingShare)/);
+    for (const label of ['Words used', 'Longest turn']) {
       assert.ok(card.includes(`label="${label}"`), `the end card lost the "${label}" fact`);
     }
     // The three labels that name something no sentence on the card says. They
     // are held by labels.test.ts too; naming them here is what makes a future
     // restyle of this file fail beside the thing it broke.
-    for (const label of ['What moved today', 'Your notebook', 'Since you started']) {
+    for (const label of ['Your practice today', 'Your notebook', 'Since you started']) {
       assert.ok(card.includes(`<Label>${label}</Label>`) || card.includes(`>${label}<`), `the end card lost the "${label}" label`);
     }
   });
@@ -61,6 +62,6 @@ describe('the end card wears revamp A and still counts — F584', () => {
     assert.match(card, /<ScreenHeader\s+back=/, 'the end card has no way back');
     const pills = (card.match(/<PillButton\b/g) ?? []).length;
     assert.equal(pills, 1, `the end card draws ${pills} primary pills; the drill is the one recommended next step`);
-    assert.match(card, /<PillButton\s+label="Start"/, 'the end card lost the drill as its one primary');
+    assert.match(card, /<PillButton\s+label="Practise this sound"/, 'the end card lost the drill as its one primary');
   });
 });

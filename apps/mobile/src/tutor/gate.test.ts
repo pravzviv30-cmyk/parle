@@ -165,15 +165,15 @@ describe('the three ways into a conversation — what a learner meets instead of
 
   test('each row says what it is and what is behind it, in a line short enough to read while walking', () => {
     const say = Object.fromEntries(tutorDoors().map((d) => [d.key, d]));
-    assert.equal(say.everyday!.label, 'Everyday mission');
-    assert.equal(say.everyday!.gloss, 'Try a real-life scenario');
-    assert.equal(say.free!.label, 'Open chat');
-    assert.equal(say.free!.gloss, 'Talk about anything');
-    assert.equal(say.rehearse!.label, 'Rehearse something');
+    assert.equal(say.everyday!.label, 'Explore everyday missions');
+    assert.equal(say.everyday!.gloss, 'Practise French for everyday situations.');
+    assert.equal(say.free!.label, 'Open conversation');
+    assert.equal(say.free!.gloss, 'Bring a topic, or choose one together.');
+    assert.equal(say.rehearse!.label, 'Prepare for a real moment');
     // British spelling, and a verb: the rest of the app says "practise" when it
     // is something a learner does, and a second convention inside one app costs
     // more than either spelling is worth.
-    assert.equal(say.rehearse!.gloss, 'Practise what you need');
+    assert.equal(say.rehearse!.gloss, 'Rehearse something coming up in your life.');
 
     // Every word on every row: no count, no dash, nothing that scolds, and
     // nothing off the one shared list of words this app promised not to say.
@@ -206,8 +206,8 @@ describe('the three ways into a conversation — what a learner meets instead of
     );
     // And the tab reads the answer rather than keeping a second copy of it.
     assert.match(tab, /entryStart\(key\)/, 'the tab decides where a row goes instead of reading it from gate.ts');
-    assert.match(tab, /if \(start\.probe\) \{\s*open\(false\);/, 'the open chat skips the probe the circle runs');
-    assert.match(tab, /nav\.navigate\(start\.screen\)/, 'the tab never navigates to the screen the row names');
+    assert.match(tab, /if \(start\.probe\) \{\s*open\(mode === 'type'\);/, 'open conversation probes in the selected mode');
+    assert.match(tab, /nav\.navigate\(start\.screen, \{ textMode: mode === 'type' \}\)/, 'secondary doors preserve the selected mode');
   });
 
   test('the tab opens its rows with nothing standing in front of them', () => {
@@ -287,7 +287,7 @@ describe('the scripted lesson opens whichever way the learner can take it', () =
       /<SessionScreen key="mock"/,
       'the offline lesson is gone, so opening the lesson on a dead server is a dead end now',
     );
-    assert.match(TUTOR_OFFLINE.headline, /Practice still works/, 'the offline card stopped promising the practice that still works');
+    assert.match(TUTOR_OFFLINE.body, /guided lesson/, 'the offline card points to practice that still works');
     assert.match(navigator, /textMode=\{textMode\}/, 'the Lesson route stopped honouring textMode, so the quiet door leads nowhere');
   });
 });

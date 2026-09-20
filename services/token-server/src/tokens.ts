@@ -9,7 +9,7 @@
 
 import { AccessToken, RoomConfiguration, TrackSource } from 'livekit-server-sdk';
 import { randomUUID } from 'node:crypto';
-import { canStartSession, MIN_VIABLE_SESSION_SEC, secondsRemaining, type Entitlement } from '@luvani/core';
+import { canStartSession, MIN_VIABLE_SESSION_SEC, secondsRemaining, parseTutorRevision, type Entitlement, type TutorRevision } from '@luvani/core';
 
 export interface TokenConfig {
   apiKey: string;
@@ -211,6 +211,8 @@ export async function grantSession(
     mode?: SessionMode;
     /** A compact learner snapshot, passed through opaquely for the agent. */
     snapshot?: object;
+    /** Server-loaded, owner-scoped conversation learning context. */
+    revision?: TutorRevision;
     /**
      * A topic to open on, from a practice card. Validated here rather than at
      * the edge, which is why it arrives as `unknown`: one place decides what a
@@ -242,6 +244,7 @@ export async function grantSession(
   const seedTopic = validSeedTopic(opts.seedTopic);
   const missionId = validMissionId(opts.missionId);
   const tutorVoice = validTutorVoice(opts.tutorVoice);
+  const revision = parseTutorRevision(opts.revision);
   const sessionId = randomUUID();
   const roomName = `${roomNameFor(opts.userId, opts.lessonId, opts.now)}-${sessionId.slice(0, 12)}`;
   const at = new AccessToken(opts.config.apiKey, opts.config.apiSecret, {
@@ -267,6 +270,7 @@ export async function grantSession(
       mode: opts.mode ?? 'lesson',
       ...(startRung !== undefined ? { startRung } : {}),
       ...(seedTopic !== undefined ? { seedTopic } : {}),
+      ...(revision !== undefined ? { revision } : {}),
       ...(missionId !== undefined ? { missionId } : {}),
       ...(tutorVoice !== undefined ? { tutorVoice } : {}),
       ...(opts.snapshot !== undefined ? { snapshot: opts.snapshot } : {}),

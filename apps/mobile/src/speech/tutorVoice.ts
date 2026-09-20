@@ -13,6 +13,7 @@ import * as Speech from 'expo-speech';
 const TUTOR_RATE = 0.85;
 
 let voicePromise: Promise<string | null> | null = null;
+let playbackGeneration = 0;
 
 /** A promise that MUST settle: callers gate the demo's fallback timer on it. */
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
@@ -61,15 +62,17 @@ export async function available(): Promise<boolean> {
   return (await frenchVoice()) !== null;
 }
 
-export function speak(text: string, opts?: { onDone?: () => void }): void {
+export function speak(text: string, opts?: { onDone?: () => void; rate?: number }): void {
+  const generation = ++playbackGeneration;
   void frenchVoice().then((voice) => {
+    if (generation !== playbackGeneration) return;
     // Cut off anything still playing: a tapped replay must not queue behind the
     // tutor's line and arrive seconds late.
     void Speech.stop();
     Speech.speak(text, {
       language: 'fr-FR',
       ...(voice ? { voice } : {}),
-      rate: TUTOR_RATE,
+      rate: opts?.rate ?? TUTOR_RATE,
       onDone: opts?.onDone,
       onError: opts?.onDone,
     });
@@ -87,5 +90,6 @@ export function speakLines(lines: readonly string[], onDone?: () => void): void 
 }
 
 export function stop(): void {
+  playbackGeneration++;
   void Speech.stop();
 }

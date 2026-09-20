@@ -47,8 +47,8 @@ export type RootStackParamList = {
    * plain string for the same reason: an id this build does not know degrades
    * to the ordinary conversation rather than failing.
    *
-   * `continuationPackId` never leaves the phone. It names the remembered
-   * conversation this route is carrying on, so the pack can be retired only
+   * `continuationPackId` asks the server to load owner-scoped learning context.
+   * It also names the conversation being carried on, so it can be retired only
    * after the room publishes its first real view. Keeping it in navigation
    * state rather than stamping it on the Tutor-tab tap means an offline or
    * refused start cannot erase a thread the learner never reached.
@@ -66,7 +66,7 @@ export type RootStackParamList = {
    * Inside onboarding it could not exist at all, since onboarding mounts
    * INSTEAD of the navigator and so has nothing to navigate to.
    */
-  Missions: { focus?: string } | undefined;
+  Missions: { focus?: string; textMode?: boolean } | undefined;
   /**
    * One node of the practice path, or the whole deck when omitted. The node
    * is plain data — id, title and phrase keys — so navigation state stays
@@ -129,7 +129,8 @@ export type RootStackParamList = {
    * conversation with a seed of its own. No params: everything it needs is
    * chosen or typed on the screen, and the seed rides to `Convo` from there.
    */
-  RealMoment: undefined;
+  RealMoment: { textMode?: boolean } | undefined;
+  TutorIntro: undefined;
   /**
    * What the tutor remembers (F562): a pushed screen above the tabs, reached
    * from Profile's memory card, where each remembered fact can be forgotten
@@ -162,4 +163,5 @@ export type RootStackParamList = {
    * that lists saved conversations is also the screen that deletes them.
    */
   Conversations: undefined;
+  ConversationPractice: { packId: string };
 };

@@ -36,13 +36,13 @@ import {
 import type { ScenarioRecord } from './progressStore.ts';
 
 /** Shown before the first conversation, and never again. */
-export const PROMISE = "You'll say your first useful French line in the next two minutes.";
+export const PROMISE = 'Your tutor will help you find your first useful French line.';
 
 /** The just-in-time permission promise, beside the first scene rather than behind it. */
 export const MICROPHONE_NOTICE = 'The microphone opens only when you tap the circle. You can type instead.';
 
-export const CHOOSER_HEADLINE = 'What do you want to be able to do?';
-export const CHOOSER_SUB = 'Pick a situation. Your tutor plays the other person.';
+export const CHOOSER_HEADLINE = 'What do you want to practise?';
+export const CHOOSER_SUB = 'Choose a real situation. Your tutor plays the other person and helps when you need it.';
 
 /** The free path, kept as a peer rather than demoted to a footnote. */
 export const TALK_FREELY = 'Talk freely about something else';

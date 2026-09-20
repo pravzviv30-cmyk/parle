@@ -21,3 +21,4 @@ export * from './path/index.ts';
 export * from './missions/index.ts';
 export * from './daily/index.ts';
 export * from './conversationPacks.ts';
+export * from './tutorBrief.ts';

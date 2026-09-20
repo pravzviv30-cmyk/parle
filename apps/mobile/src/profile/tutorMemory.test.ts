@@ -139,7 +139,8 @@ describe('what the tutor remembers, drawn', () => {
     assert.match(SCREEN, /const facts = visibleFacts\(profile\);/, 'the screen lists facts the learner forgot');
     assert.match(FLAT, /accessibilityLabel=\{`\$\{FORGET_ONE\}: \$\{fact\.en\}`\}/, 'a forget button does not say which fact it forgets');
     assert.match(FLAT, /\{facts\.length === 0 \? \( <Text[^>]*>\{NOTHING_YET\}<\/Text> \)/, 'an empty memory draws an empty list rather than a sentence');
-    assert.match(FLAT, /\{facts\.length > 0 && \( <View style=\{st\.all\}> <OutlineButton label=\{FORGET_ALL\}/, 'forget everything is offered with nothing to forget');
+    assert.match(FLAT, /\{facts\.length > 0 && \( <View style=\{st\.all\}> <GhostButton label=\{FORGET_ALL\}/, 'clear is offered with nothing to clear');
+    assert.match(FLAT, /<ConfirmSheet visible=\{clearing\}/, 'clearing details requires an explicit confirmation');
     assert.match(SCREEN, /maxLength=\{MAX_GOAL_CHARS\}/, 'a goal can outgrow the wire');
     assert.match(SCREEN, /const room = profile\.learnerGoals\.length < MAX_LEARNER_GOALS;/, 'a fourth goal can be typed');
     assert.doesNotMatch(SCREEN, /<PillButton/, 'a pushed editing screen carries a primary pill');

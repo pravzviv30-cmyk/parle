@@ -170,7 +170,8 @@ describe('the queue — a miss waits at the back, it does not disappear', () => 
     assert.equal(state.finished, false);
     assert.equal(feedback?.verdict, 'miss');
     assert.equal(feedback?.advanced, false, 'the exercise will come back');
-    assert.equal(feedback?.message, missFeedback('bonjour'));
+    assert.equal(feedback?.message, missFeedback(null));
+    assert.equal(feedback?.closest, null, 'the first miss must not reveal the answer');
   });
 
   test('the session completes only when every exercise has been answered correctly', () => {
@@ -194,11 +195,25 @@ describe('the queue — a miss waits at the back, it does not disappear', () => 
 });
 
 describe('two misses and the learner proceeds anyway', () => {
+  test('every automatically graded drill hides its answer on the first miss', () => {
+    for (const exercise of DRILL_FIXTURES.filter((e) => e.kind !== 'own-words')) {
+      const first = answerCurrent(sessionOf(exercise), 'definitely not this answer');
+      assert.equal(first.feedback?.verdict, 'miss', exercise.id);
+      assert.equal(first.feedback?.closest, null, exercise.id);
+      assert.equal(first.feedback?.message, missFeedback(null), exercise.id);
+      const second = answerCurrent(first.state, 'definitely not this answer');
+      assert.equal(second.feedback?.advanced, true, exercise.id);
+      assert.ok(second.feedback?.closest, `second miss reveals ${exercise.id}`);
+    }
+  });
+
   test('the second miss resolves nothing but releases the exercise', () => {
     const first = answerCurrent(sessionOf(optionsEx('a-opt', 'phrase:a')), 'nope');
     assert.deepEqual(first.state.queue.map((e) => e.id), ['a-opt'], 'still owed after one miss');
 
     const second = answerCurrent(first.state, 'nope');
+    assert.equal(second.feedback?.closest, 'bonjour');
+    assert.equal(second.feedback?.message, missFeedback('bonjour'));
     assert.equal(second.state.finished, true, 'nobody drills one phrase into the ground');
     assert.equal(second.feedback?.advanced, true);
     assert.deepEqual(second.state.answered, [{ id: 'a-opt', phraseKey: 'phrase:a', outcome: 'unresolved', attempts: MAX_MISSES }]);
@@ -375,7 +390,7 @@ describe('the three feedback lines', () => {
     const ex = typedEx('a-typ', 'phrase:a');
     assert.equal(answerCurrent(sessionOf(ex), 'bonjour').feedback?.message, GOOD_FEEDBACK);
     assert.equal(answerCurrent(sessionOf(ex), 'bonjout').feedback?.message, typoFeedback('bonjour'));
-    assert.equal(answerCurrent(sessionOf(ex), 'nope').feedback?.message, missFeedback('bonjour'));
+    assert.equal(answerCurrent(sessionOf(ex), 'nope').feedback?.message, missFeedback(null));
   });
 });
 

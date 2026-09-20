@@ -74,7 +74,7 @@ describe('the end card is wired to what its labels say', () => {
 
   test("the end card's one solid action is not an empty handler", () => {
     const summary = read('../SummaryScreen.tsx');
-    const start = summary.indexOf('label="Start"');
+    const start = summary.indexOf('label="Practise this sound"');
     assert.ok(start >= 0, 'the drill card still offers to start');
     const nearby = summary.slice(start, start + 400);
     assert.ok(

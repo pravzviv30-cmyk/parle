@@ -73,7 +73,7 @@ export function SummaryScreen({
             {lesson.title}
           </Text>
           <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
-            {summary.turnsCompleted} stops · {mins > 0 ? `${mins} min ` : ''}
+            {summary.turnsCompleted} turns practised · {mins > 0 ? `${mins} min ` : ''}
             {secs}s
           </Text>
         </View>
@@ -82,7 +82,7 @@ export function SummaryScreen({
         {focus ? (
           <View style={{ gap: space(3) }}>
             <Card>
-              <Label color={signal.correspondance}>The sound to work on</Label>
+              <Label>One sound to practise next</Label>
               <Text style={[type.frenchLg, { color: paper.ink, marginTop: space(2.5) }]}>/{focus.phoneme.ipa}/</Text>
               <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{focus.reason}</Text>
               <View style={st.divider} />
@@ -131,7 +131,7 @@ export function SummaryScreen({
                   the learner has gone. */}
               <View style={{ marginTop: space(4) }}>
                 <PillButton
-                  label="Start"
+                  label="Practise this sound"
                   onPress={() => setDrilling(true)}
                   disabled={focusDrillSteps(focus.drill).length === 0}
                   icon={<ArrowRight size={16} color={paper.onInk} />}
@@ -145,29 +145,26 @@ export function SummaryScreen({
              held up" — to a learner whose audio never reached the scorer at all.
              Quiet, unalarming, and true: no red, no apology, no fault. */
           <Card>
-            <Text style={[type.title, { color: paper.ink }]}>We did not listen this time.</Text>
+            <Text style={[type.title, { color: paper.ink }]}>Your pronunciation was not assessed.</Text>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
-              Your pronunciation was not scored in this session, so there is nothing to report on it. Everything else
-              below still counts.
+              There was no pronunciation result for this lesson. You can still review the French you practised below.
             </Text>
           </Card>
         ) : (
           <Card>
-            <Text style={[type.title, { color: paper.ink }]}>Nothing to fix today.</Text>
+            <Text style={[type.title, { color: paper.ink }]}>Keep building on this.</Text>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
-              Every sound you used held up. Next session moves you further along the line.
+              No focus sound was selected this time. Try the conversation again, or revisit your words below.
             </Text>
           </Card>
         )}
 
         {/* ── what actually moved ───────────────────────────────────── */}
         <View>
-          <Label>What moved today</Label>
+          <Label>Your practice today</Label>
           <View style={st.stats}>
-            <Stat value={String(summary.wordsProduced.length)} label="Words said" />
+            <Stat value={String(summary.wordsProduced.length)} label="Words used" />
             <Stat value={`${summary.longestTurnSec.toFixed(1)}s`} label="Longest turn" />
-            <Stat value={`${Math.round(summary.unassistedRate * 100)}%`} label="Unaided" />
-            <Stat value={`${Math.round(summary.speakingShare * 100)}%`} label="You spoke" />
           </View>
         </View>
 
@@ -175,8 +172,7 @@ export function SummaryScreen({
           <View style={st.wins}>
             <Label color={signal.good}>What held up</Label>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1.5) }]}>
-              You held {summary.pronunciation.wins.map((w) => `/${w.ipa}/`).join(', ')} steady. English never taught you these
-              sounds. You learned them yourself.
+              You held {summary.pronunciation.wins.map((w) => `/${w.ipa}/`).join(', ')} steady in this lesson.
             </Text>
           </View>
         )}
@@ -226,7 +222,8 @@ export function SummaryScreen({
           </View>
         )}
 
-        <OutlineButton label="Go again" onPress={onAgain} />
+        <OutlineButton label="Practise the conversation again" onPress={onAgain} />
+        <GhostButton label="Finish lesson" onPress={onDone} />
       </View>
     </ScrollScreen>
   );

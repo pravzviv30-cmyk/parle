@@ -33,7 +33,7 @@
  * the language model is sent, and says the facts can be removed here.
  */
 
-import { normalise } from '@luvani/core';
+import { normalise, reviewFocusFromDeck, type ReviewCard, type TutorReviewFocus } from '@luvani/core';
 import { MAX_MEMORY_FACTS, withLearnerName, type LearnerProfile, type RememberedFact } from '@luvani/brain/profile';
 
 import type { StoredProfile } from './store.ts';
@@ -110,6 +110,28 @@ export function withFactForgotten(profile: StoredProfile, en: string): StoredPro
   return { ...profile, forgottenFacts, brain: withoutForgotten(profile.brain, forgottenFacts) };
 }
 
+/** Replace a remembered detail and retire the old wording from future extraction. */
+export function withFactEdited(profile: StoredProfile, original: string, replacement: string): StoredProfile {
+  const text = goalText(replacement);
+  const fact = visibleFacts(profile).find((item) => item.en === original);
+  if (text === null || fact === undefined || text === original) return profile;
+  const next = withFactForgotten(profile, original);
+  const key = factKey(text);
+  const facts = next.brain.memory.facts.filter((item) => factKey(item.en) !== key);
+  return {
+    ...next,
+    forgottenFacts: next.forgottenFacts.filter((held) => held !== key),
+    brain: { ...next.brain, memory: { ...next.brain.memory, opener: null, facts: [...facts, { ...fact, en: text, fr: null }].slice(-MAX_MEMORY_FACTS) } },
+  };
+}
+
+/** Edit in place, preserving the other goals and the existing goal limit. */
+export function withGoalEdited(profile: StoredProfile, original: string, replacement: string): StoredProfile {
+  const text = goalText(replacement);
+  if (text === null) return profile;
+  return { ...profile, learnerGoals: storedLearnerGoals(profile.learnerGoals.map((goal) => goal === original ? text : goal)) };
+}
+
 /**
  * Forget everything. Every fact currently held becomes a tombstone, and the
  * opener goes with them: it was written from those facts and would greet the
@@ -147,9 +169,11 @@ export function goalFact(goal: string): RememberedFact {
  * tombstones applied, the goals appended last, and the brain's own cap taken
  * from the end so the goals survive it.
  */
-export function snapshotFor(profile: StoredProfile): LearnerProfile {
+export function snapshotFor(profile: StoredProfile, deck: readonly ReviewCard[] = [], now = Date.now()): LearnerProfile & { reviewFocus?: TutorReviewFocus[] } {
   const named = withLearnerName(withoutForgotten(profile.brain, profile.forgottenFacts), profile.name);
-  if (profile.learnerGoals.length === 0) return named;
+  const focus = reviewFocusFromDeck(deck, now);
+  const extras = focus.length ? { reviewFocus: focus } : {};
+  if (profile.learnerGoals.length === 0) return { ...named, ...extras };
   const facts = [...named.memory.facts, ...profile.learnerGoals.map(goalFact)].slice(-MAX_MEMORY_FACTS);
-  return { ...named, memory: { ...named.memory, facts } };
+  return { ...named, ...extras, memory: { ...named.memory, facts } };
 }

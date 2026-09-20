@@ -892,7 +892,7 @@ describe('a tap that starts with a network probe — F154', () => {
     // speak aloud right now and there is no second one.
     assert.match(
       named('tabs/TutorTab.tsx'),
-      /<GhostButton\s+label="Unable to speak right now\?"/,
+      /<TabBar tabs=\{\[\{ key: 'speak', label: 'Speak' \}, \{ key: 'type', label: 'Type' \}\]\}/,
       'the quiet door is gone, and a learner who cannot speak aloud has no way through',
     );
   });
@@ -1429,7 +1429,7 @@ describe('the session names its rung once — F329', () => {
     assert.ok(!view.includes('rungDot'), 'SessionView still draws the bare rung dot or its style');
     assert.ok(!/rungColor/.test(view), 'rungColor still reaches SessionView, so a fill can be drawn on the ground again');
     // The two things that DO name the rung stay.
-    assert.match(view, /<LineBullet\b/, 'SessionView no longer draws the rung bullets; this test is stale');
+    assert.doesNotMatch(view, /<LineBullet\b/, 'support is explained in words instead of numbered levels');
     assert.match(view, /rungLabel\(rung/, 'SessionView no longer names the rung in words');
   });
 });
@@ -1549,7 +1549,7 @@ describe('the five tabs open the same way — F336', () => {
       const body = named(name);
       // A quoted literal, a template, or a constant read from a `.ts` — the
       // Tutor tab reads TUTOR_PURPOSE, which is where its words belong.
-      const m = /purpose=(?:"([^"]*)"|\{`([^`]*)`\}|\{([A-Z_]+)\})/.exec(body);
+      const m = /purpose=(?:"([^"]*)"|\{`([^`]*)`\}|\{([A-Za-z_]+)\})/.exec(body);
       assert.ok(m, `${name} opens a TabHeader with no purpose line`);
       if (m![3] !== undefined) continue;
       const purpose = m![1] ?? m![2] ?? '';
@@ -1611,7 +1611,7 @@ describe('the tabs and the drill use the app buttons — F339', () => {
     // unchanged — the tutor draws the app's components and hand-rolls nothing —
     // and it is read off what is actually there.
     const tutor = named('tabs/TutorTab.tsx');
-    const doors = tutor.slice(tutor.indexOf('DOORS.map('), tutor.indexOf('st.quiet'));
+    const doors = tutor.slice(tutor.indexOf('DOORS.map('), tutor.indexOf('))}', tutor.indexOf('DOORS.map(')));
     assert.ok(doors.length > 0, 'the tutor no longer maps its doors');
     assert.match(doors, /<TintRow\b/, 'a door is not drawn as the shared tinted row');
     assert.doesNotMatch(doors, /<Pressable\b/, 'a door is hand-rolled as a Pressable instead of the shared row');
@@ -1741,7 +1741,7 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     const pills: Record<string, number> = {
       // Two exclusive templates; nextAction.test.ts proves the priority rule.
       'tabs/HomeTab.tsx': 2,
-      'tabs/TutorTab.tsx': 0,
+      'tabs/TutorTab.tsx': 1,
       'tabs/MyFrenchTab.tsx': 0,
       'tabs/PracticeTab.tsx': 1,
       'tabs/ProfileTab.tsx': 0,
@@ -1763,7 +1763,7 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // The hero is a picture and a pill; nothing on Home is a list.
       'tabs/HomeTab.tsx': 0,
       // The three ways in, and the remembers row above them.
-      'tabs/TutorTab.tsx': 2,
+      'tabs/TutorTab.tsx': 4,
       // Replay a moment, make this phrase yours, tune one sound: three rows in
       // three card files. The fourth is on the tab itself and it is the one
       // shape the starter branch cannot borrow. A learner with no conversation
@@ -1910,7 +1910,7 @@ describe('the auth screens pin the primary action in the footer — F357', () =>
       // Keyboard-aware, so the fields lift rather than hide; and the one back is
       // the shared header, not a hand-rolled chevron.
       assert.match(body, /<ScrollScreen\b[\s\S]*?avoidKeyboard/, `${name} is not a keyboard-aware ScrollScreen`);
-      assert.match(body, /<ScreenHeader\s+back=/, `${name} does not draw its one back through the shared header`);
+      assert.match(body, /<ScreenHeader\b[^>]*\bback=/, `${name} does not draw its one back through the shared header`);
 
       // The primary pill and the Google outline live in the footer, where a
       // keyboard cannot scroll them out of reach.
@@ -2086,8 +2086,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.match(design, /One primary pill per door/, 'DESIGN.md still states the rule as one pill per tab');
     assert.equal(
       (tutor.match(/<PillButton\b/g) ?? []).length,
-      0,
-      'the design doc says the circle is the way into a conversation and the tab draws a pill beside it',
+      1,
+      'Tutor has one explicit primary start action in its recommendation panel',
     );
 
     // 4. The native revision. The complete phrase overlaps through the handoff

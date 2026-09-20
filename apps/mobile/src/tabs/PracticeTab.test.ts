@@ -208,7 +208,10 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
     // it, and nothing on screen says why.
     assert.ok(!/phraseKeys: [^}]*\.map\(\(phrase\) => phrase\.fr\)/.test(FLAT),
       'a drill is opened with raw French instead of the deck keys it is indexed by');
-    assert.match(FLAT, /phraseKeyOf\(phrase\.fr\)/, 'the conversation branch never keys its phrases for the deck');
+    assert.match(FLAT, /navigate\('ConversationPractice', \{ packId: step.pack.id \}\)/, 'the saved conversation opens its grounded warm-up');
+    const practice = readFileSync(new URL('../conversationPacks/ConversationPracticeScreen.tsx', import.meta.url), 'utf8');
+    assert.match(practice, /phraseKeyOf\(p\.fr\)/, 'recall must use review-card identities');
+    assert.match(practice, /phraseKeyOf\(c\.better\)/, 'correction phrases must also reach recall');
   });
 
   test('the page still works for a learner reading at the largest size, and invents no colour or size', () => {

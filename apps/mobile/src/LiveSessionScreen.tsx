@@ -348,6 +348,7 @@ export function LiveSessionScreen({
         // as an utterance nobody heard rather than one that went well.
         onOptionPress={live.sendChoice}
         onType={typing ? live.sendSay : undefined}
+        onSwitchToType={!typing ? goQuiet : undefined}
         // Typing is presence, and the typed lesson is the one surface that
         // never sent it: the agent counted the silence and rescued a learner
         // who was mid-sentence. Throttled inside the hook.

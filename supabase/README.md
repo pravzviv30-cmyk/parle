@@ -1,14 +1,23 @@
 # Supabase runbook
 
-Everything Luvani keeps about a learner lives in seven tables and four functions here. This
-file is how they get applied, backed up, rolled back and proved, by hand, from the SQL
-Editor.
+This is the ordered schema, backup, rollback and verification runbook. SQL can be
+applied through the Supabase migration connector, CLI, or SQL Editor. PostgREST
+cannot apply DDL. Track applied migrations; do not blindly replay the whole folder.
 
-By hand is not a preference. There is no Supabase CLI, no Docker and no `psql` on the
-machine this repo is developed on, and DDL does not travel over PostgREST — the service
-role can read and write rows all day and still cannot create a table. So the apply path
-is a paste, and the discipline has to come from the order and the checks below rather
-than from a tool.
+On 20 September 2026 the owner authorised restoring Parle for testing. Its missing
+Conversation Packs prerequisite and the three practice-recovery migrations below
+were applied there. Queue RLS and service-only RPC privileges were checked remotely.
+This does not attest that every older/social migration is applied, or that Parle is
+a separate production-safe staging environment. Recovery SQL was also exercised in
+disposable PostgreSQL/WASM, including deletion by a restricted auth role.
+
+The connector assigned remote versions independently of local filenames:
+`conversation_packs` = `20260920195419`, `conversation_practice_jobs` =
+`20260920195426`, `practice_receipt_finalization` = `20260920200556`, and
+`practice_account_deletion` = `20260920200932`. Older existing tables have no
+corresponding entries in this project's reported migration history. Reconcile
+history against the actual schema before any future CLI `db push`; do not blindly
+reapply local files or mark unverified migrations as applied.
 
 **What must never be in these tables:** raw audio, and full transcripts. Nothing in the
 schema stores either today. `product_events` is content-free by database trigger,
@@ -21,8 +30,9 @@ carries speech is a policy decision, not a schema decision — see
 ## Apply
 
 Paste these into the SQL Editor **in this order**, one file per run, and read the result
-of each before starting the next. Each file is idempotent: every create is
-`if not exists` or `create or replace`, so a partial run is safe to repeat.
+of each before starting the next. Some files create named tables, policies and
+triggers without `if not exists`; apply each migration once through tracked,
+transactional migration tooling. Inspect the schema before recovering a partial run.
 
 | # | File | What it adds |
 |---|---|---|
@@ -42,6 +52,9 @@ of each before starting the next. Each file is idempotent: every create is
 | 14 | `migrations/202609100002_wall_product_events.sql` | Adds the subscription wall's five product events to the `validate_product_event` allowlist: `wall_shown`, `wall_page_seen`, `plan_selected`, `purchase_started`, `purchase_settled`. Replaces one function body, leaves the trigger in place, touches no rows. Without it those five raise `unsupported product event` and the wall's funnel is dark with no visible error |
 
 | 15 | `migrations/20260919120650_home_friends_daily.sql` | Private, opt-in Friends; accepted connections, weekly capped learning activity, challenges, reactions and reports. Test locally before applying. Deploy this migration before the updated account-export service. No production application has been performed for this review branch. |
+| 16 | `migrations/20260920194653_conversation_practice_jobs.sql` | Atomic pack receipt and durable drill recovery, leased claims, five-attempt retries, stale-result fencing and content-free deletion tombstones. Requires 11. |
+| 17 | `migrations/20260920200454_practice_receipt_finalization.sql` | Explicit pack grants; preserves recovered exercises against a late failed analyst and keeps exhausted jobs failed. Requires 16. |
+| 18 | `migrations/20260920200807_practice_account_deletion.sql` | Narrow, search-path-hardened trigger elevation so Supabase Auth account deletion can tombstone a pack without granting Auth access to queue contents. Requires 16. |
 
 Order is load-bearing in one direction only: everything after 1 names tables and
 functions that 1 creates, so 1 first. Files 3, 4, 5, 7 and 9 are each a single `create or
@@ -132,6 +145,9 @@ depends on what the earlier ones built.
 
 | Rolling back | Script | Cost |
 |---|---|---|
+| `20260920200807_practice_account_deletion.sql` | `rollback/20260920200807_down.sql` | Reopens restricted-role account deletion failure. Guarded by `luvani.reopen_practice_delete`; prefer fixing forward. |
+| `20260920200454_practice_receipt_finalization.sql` | `rollback/20260920200454_down.sql` | Reopens late-result overwrite. Guarded by `luvani.reopen_practice_receipt`; retains required reader/service grants. |
+| `20260920194653_conversation_practice_jobs.sql` | `rollback/20260920194653_down.sql` | DESTRUCTIVE. Stop API/worker and back up jobs and tombstones first. Guarded by `luvani.remove_practice_queue`; saved packs survive, but removing tombstones removes protection against late resurrection. |
 | `20260919120650_home_friends_daily.sql` | `rollback/20260919120650_down.sql` | DESTRUCTIVE. Export social data and roll back the client/account-export service first. Requires `set luvani.remove_friends = 'yes'`; personal learning data is retained. |
 | `202609100002_wall_product_events.sql` | `rollback/202609100002_down.sql` | Narrows the allowlist back below the wall, so all five wall events start failing silently and the funnel goes dark. Evidence loss, not a privacy hole. Refuses to run until you set `luvani.blind_the_wall` in the same session |
 | `202609100001_max_allowance_three_hundred.sql` | `rollback/202609100001_down.sql` | Restores 202608300002's function body. Inert today on purpose: the migration changed only a number that `PLANS.regular` owns, so this file carries the current allowance rather than the old one. Reverting the cap is a core change first, then every allowance table under `supabase/`, then a new forward migration. The file's own header spells out the order |
@@ -192,7 +208,7 @@ the project has real accounts on it.
 "We can roll back" is a claim, and this is how it becomes evidence. Do it on a disposable
 project, and keep the output:
 
-1. Apply all fifteen migrations. Run the harness. Record: twelve proofs, all passed.
+1. Apply all eighteen migrations. Run the harness. Record: twelve proofs, all passed. Separately run `scripts/verifyPracticeQueue.mjs` against disposable PostgreSQL/WASM for the new queue functions; the legacy harness does not cover them.
 2. Note the row counts of all seven tables (`select count(*) from public.<table>;`).
 3. Take the backup from `## Backup`, and record its timestamp.
 4. Apply `rollback/202608240001_down.sql` with the interlock set. Re-run the harness and
@@ -207,7 +223,7 @@ project, and keep the output:
    interlocks set, then `rollback/202608230001_down.sql`, then
    `rollback/202608220001_down.sql`. Record that the harness now reports the schema as
    not applied, naming each missing object.
-7. Re-apply all fifteen migrations, restore from step 3, and record the row counts from
+7. Re-apply all eighteen migrations, restore from step 3, and record the row counts from
    step 2 matching.
 
 Steps 4 and 5 are the cheap half and can be run on their own: they touch one function
@@ -220,7 +236,7 @@ Supabase row; a step that was not run stays marked as not run.
 - **`PGRST205 could not find the table`** after a successful paste: the schema cache is
   stale. Reload it.
 - **`42P01 relation does not exist`** during a paste: a migration ran out of order.
-  Start again from file 1; they are idempotent.
+  Inspect migration history and apply the missing prerequisite; do not blindly replay non-idempotent files.
 - **`permission denied for function`** from the token server: the `grant execute ... to
   service_role` at the end of the migration did not run. Re-paste that file.
 - **The harness reports a proof this runbook says should pass**: that is a finding, not a

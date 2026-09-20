@@ -27,7 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { missionStates, type RecapPayload } from '@luvani/core';
 
 import { accent, HAIRLINE, paper, radius, signal, space, type } from './theme.ts';
-import { BookmarkGlyph, OutlineButton, PillButton, TintPanel } from './components.tsx';
+import { BookmarkGlyph, GhostButton, Label, OutlineButton, PillButton, TintPanel } from './components.tsx';
 import { Art } from './art/Art.tsx';
 import { SCREEN_ART } from './art/maps.ts';
 import { ConversationPackCard } from './conversationPacks/ConversationPackCard.tsx';
@@ -91,6 +91,13 @@ export function RecapScreen({
   };
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   const situation = closure.title;
+  const retrySave = () => {
+    if (keptPhrase === null || saveState === 'saving') return;
+    setSaveState('saving');
+    void onSave({ fr: keptPhrase.fr, en: keptPhrase.en, situation })
+      .then((saved) => setSaveState(saved ? 'saved' : 'failed'))
+      .catch(() => setSaveState('failed'));
+  };
 
   useEffect(() => {
     if (keptPhrase === null) {
@@ -129,7 +136,7 @@ export function RecapScreen({
               {recap.headline}
             </Text>
             {keptPhrase !== null ? (
-              <Text style={[type.title, { color: paper.inkSoft, textAlign: 'center' }]}>A phrase became yours.</Text>
+              <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center' }]}>{situation}</Text>
             ) : null}
             {/* How it went, in a sentence. See tutor/recapLine.ts for why the
                 old score-like arithmetic is gone. */}
@@ -139,6 +146,7 @@ export function RecapScreen({
 
         {keptPhrase !== null ? (
           <View style={st.keptStack}>
+            <Label>A phrase to take with you</Label>
             <TintPanel tint="lilac" style={st.keptCard}>
               <View style={st.keptCopy}>
                 <Text style={[type.frenchLg, { color: paper.ink }]}>{keptPhrase.fr}</Text>
@@ -154,9 +162,10 @@ export function RecapScreen({
               <Text accessibilityLiveRegion="polite" style={[type.bodyStrong, { color: paper.ink }]}>{saveLine}</Text>
             </TintPanel>
 
+            {saveState === 'failed' && <OutlineButton label="Try saving again" onPress={retrySave} />}
             {onPractice !== undefined ? (
-              <OutlineButton
-                label="Practise this"
+              <PillButton
+                label="Practise this phrase"
                 onPress={() => onPractice({ fr: keptPhrase.fr, en: keptPhrase.en, situation })}
                 accessibilityLabel={`Practise ${keptPhrase.fr}`}
               />
@@ -166,7 +175,7 @@ export function RecapScreen({
 
         <ConversationPackCard closure={remainingClosure} />
 
-        <PillButton label="Done for today" onPress={onDone} />
+        <GhostButton label="Finish conversation" onPress={onDone} />
       </ScrollView>
     </View>
   );
@@ -174,7 +183,7 @@ export function RecapScreen({
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: paper.ground },
-  scroll: { paddingHorizontal: space(5), paddingTop: space(3), gap: space(5) },
+  scroll: { flexGrow: 1, alignSelf: 'stretch', maxWidth: 760, marginHorizontal: 'auto', paddingHorizontal: space(5), paddingTop: space(3), gap: space(5) },
   header: { alignItems: 'center', padding: space(5), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
   headerText: { alignItems: 'center', gap: space(2), marginTop: space(4) },
   keptStack: { gap: space(3) },

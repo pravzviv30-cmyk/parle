@@ -304,7 +304,6 @@ function BestSentenceView({
           <OptionCard
             key={candidate.fr}
             text={candidate.fr}
-            gloss={candidate.en}
             onPress={() => {
               if (!locked) onAnswer(i);
             }}
@@ -331,7 +330,6 @@ function AppropriateReplyView({
         <View style={{ marginTop: space(3) }}>
           <Label color={paper.ink}>{exercise.line.speaker}</Label>
           <Text style={[type.french, { color: paper.ink, marginTop: space(1.5) }]}>{exercise.line.fr}</Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{exercise.line.en}</Text>
         </View>
         <HearRow text={exercise.line.fr} />
       </Card>
@@ -340,7 +338,6 @@ function AppropriateReplyView({
           <OptionCard
             key={option.fr}
             text={option.fr}
-            gloss={option.en}
             onPress={() => {
               if (!locked) onAnswer(i);
             }}

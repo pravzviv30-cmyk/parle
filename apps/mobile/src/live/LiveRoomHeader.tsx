@@ -32,16 +32,21 @@ export function LiveRoomHeader({
   onEnd,
   accessibilityLabel,
   status,
+  title = 'Conversation',
 }: {
   onEnd: () => void;
   accessibilityLabel: string;
   status?: ReactNode;
+  title?: string;
 }) {
   return (
     <View style={st.row}>
       {/* Equal side slots keep a reconnecting line visually centred. */}
       <View style={st.balance} />
-      <View style={st.status}>{status ?? <Text style={[type.label, { color: paper.ink }]}>Luvani · En conversation</Text>}</View>
+      <View style={st.status}>
+        <Text accessibilityRole="header" style={[type.heading, { color: paper.ink, textAlign: 'center' }]}>{title}</Text>
+        {status}
+      </View>
       <Pressable
         onPress={onEnd}
         accessibilityRole="button"

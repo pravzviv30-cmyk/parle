@@ -194,9 +194,13 @@ describe('one tutor, two pipelines', () => {
     }
   });
 
-  test('both say he is not a teacher, because that is the whole posture', () => {
-    assert.match(baseInstructions(lesson), /not a teacher/i);
-    assert.match(buildSystemBlocks().persona, /not a teacher/i);
+  test('both are explicitly AI teachers, without a fabricated human biography', () => {
+    for (const prompt of [baseInstructions(lesson), buildSystemBlocks().persona]) {
+      assert.match(prompt, /AI French tutor/);
+      assert.match(prompt, /teacher/);
+      assert.doesNotMatch(prompt, /not a teacher|You ran a bar/);
+      assert.match(prompt, /Never claim a real biography/i);
+    }
   });
 
   test('both ask him to talk like a person rather than read off a page', () => {

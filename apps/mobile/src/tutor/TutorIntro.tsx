@@ -108,8 +108,8 @@ function pagesFor(persona: TutorPersona) {
   {
     key: 'after',
     art: null,
-    title: 'Afterwards it remembers',
-    body: 'At the end you get the phrases you used and one sound to work on. Tomorrow your practice is written from what you said today.',
+    title: 'Leave with something useful',
+    body: 'Your recap brings together useful phrases and feedback from the conversation. You can revisit saved phrases in My French and review remembered details from the Tutor page.',
     note: null,
   },
   {
@@ -140,7 +140,7 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
   return (
     <ScrollScreen
       header={<ScreenHeader back={{ onPress: back }} title={<ProgressDots total={pages.length} index={index} />} />}
-      footer={<PillButton label={last ? 'Start talking' : 'Next'} onPress={() => (last ? onDone() : setIndex((i) => i + 1))} />}
+      footer={<PillButton label={last ? 'Ready to practise' : 'Next'} onPress={() => (last ? onDone() : setIndex((i) => i + 1))} />}
     >
       <View style={st.page}>
         {Scene ? (

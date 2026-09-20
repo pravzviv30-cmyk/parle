@@ -519,6 +519,7 @@ export function Field({
   autoFocus = false,
   maxLength,
   center = false,
+  multiline = false,
 }: {
   label?: string;
   value: string;
@@ -534,6 +535,7 @@ export function Field({
   autoFocus?: boolean;
   maxLength?: number;
   center?: boolean;
+  multiline?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
   // A password shown while it is typed. Off by default, and only a secure
@@ -582,10 +584,12 @@ export function Field({
           onSubmitEditing={onSubmitEditing}
           autoFocus={autoFocus}
           maxLength={maxLength}
+          multiline={multiline}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           style={[
             s.field,
+            multiline && { minHeight: 100, textAlignVertical: 'top' },
             secure && { paddingRight: space(16) },
             center && { textAlign: 'center' },
             focused && { borderColor: paper.ink },

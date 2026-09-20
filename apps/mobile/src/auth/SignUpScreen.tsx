@@ -108,7 +108,7 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
   return (
     <ScrollScreen
       avoidKeyboard
-      header={<ScreenHeader back={{ onPress: onBack }} />}
+      header={<ScreenHeader title={false} divider={false} back={{ onPress: onBack }} />}
       footer={
         <View style={{ gap: space(3) }}>
           <PillButton
@@ -135,7 +135,6 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
     >
       {/* A compact feature heading keeps the form close to its introduction. */}
       <View style={st.head}>
-        <Text style={[type.frenchSm, { color: paper.inkSoft, marginBottom: space(2) }]}>Le début de votre histoire.</Text>
         <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Create your account</Text>
       </View>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>

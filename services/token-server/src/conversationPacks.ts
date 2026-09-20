@@ -10,6 +10,22 @@ function root(url: string): string {
   return url.replace(/\/+$/, '');
 }
 
+/** Lookup is scoped twice: in the query and in the decoded payload. */
+export async function getConversationPack(
+  baseUrl: string, serviceRoleKey: string, userId: string, packId: string,
+  request: typeof fetch = fetch,
+): Promise<ConversationPack | null> {
+  const response = await request(
+    `${root(baseUrl)}/rest/v1/conversation_packs?id=eq.${encodeURIComponent(packId)}&user_id=eq.${encodeURIComponent(userId)}&select=payload&limit=1`,
+    { headers: headers(serviceRoleKey), signal: AbortSignal.timeout(5_000) },
+  );
+  if (!response.ok) throw new Error(`conversation pack read failed (${response.status})`);
+  const rows: unknown = await response.json();
+  if (!Array.isArray(rows)) throw new Error('conversation pack read returned an invalid payload');
+  const pack: unknown = rows[0]?.payload;
+  return validConversationPackFor(pack, userId, packId) && pack.state === 'ready' ? pack : null;
+}
+
 export function validConversationPackFor(pack: unknown, userId: string, sessionId?: string): pack is ConversationPack {
   return isConversationPack(pack) &&
     pack.id === pack.sessionId &&

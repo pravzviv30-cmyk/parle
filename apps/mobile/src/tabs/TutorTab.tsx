@@ -1,33 +1,21 @@
 /**
  * The Tutor landing page — a calm moment before a live conversation.
  *
- * One circle and four rows. The circle is the way into an open conversation and
- * is the only thing on the page that moves; the first row is what the tutor
- * remembers, and the three under it are the ways in the founder's brief names:
- * an everyday mission, an open chat, rehearsing something of your own.
- *
- * Revamp A took a contents page off this tab. There were six door cards, a fold
- * that opened onto every situation, a scene to pick back up, the scripted
- * lesson and two quiet links, and a learner arriving to speak French met a
- * menu. None of it was deleted: the scene to pick back up is Home's hero, every
- * situation is on the chooser the everyday row opens, the scripted lesson is a
- * door at the foot of that chooser, and the explainer moved to Settings.
- *
- * Which rows there are and what they say is `tutor/gate.ts`; the header and the
- * line under the circle are `tutor/dashboard.ts`; what the remembers row says
- * and where it goes is `tutor/dashboard.ts` too. This file draws them and
- * decides nothing, which is the only way a screen in this workspace can be
- * checked at all: there is no renderer here.
+ * A history-backed recommendation, an explicit Speak/Type choice and one main
+ * start action. Supporting rows lead to missions, open conversation, rehearsal,
+ * guided pronunciation and memory controls. The guide explains the AI tutor.
+ * Recommendation rules live in nextConversation.ts; connection checks preserve
+ * the exact requested start so retry never silently changes the conversation.
  */
 
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { missionStates } from '@luvani/core';
+import { missionStates, type MissionProgress } from '@luvani/core';
 
-import { Card, GhostButton, Label, OutlineButton, TintRow } from '../components.tsx';
-import { ChatGlyph, CoffeeCupGlyph, DocumentGlyph } from '../glyphs.tsx';
+import { Card, GhostButton, Label, OutlineButton, PillButton, TabBar, TintRow } from '../components.tsx';
+import { ChatGlyph, CoffeeCupGlyph, DocumentGlyph, WaveformGlyph } from '../glyphs.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
@@ -60,6 +48,8 @@ import { ContinuityCard } from '../tutor/ContinuityCard.tsx';
 import { continuityFrom, continuityHeadline, type Continuity } from '../tutor/continuity.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { VoiceOrb } from '../tutor/VoiceOrb.tsx';
+import { nextConversation } from '../tutor/nextConversation.ts';
+import { prefersTyping } from '../profile/typing.ts';
 
 /**
  * The three rows, built once.
@@ -72,9 +62,9 @@ import { VoiceOrb } from '../tutor/VoiceOrb.tsx';
 const DOORS = tutorDoors();
 
 /** UI 4's focal control, softened and kept comfortably inside a phone width. */
-const TUTOR_ORB_SIZE = 218;
+const TUTOR_ORB_SIZE = 96;
 
-/** One line-art mark per way in, in the violet that means identity. */
+/** One line-art mark per way in, using the shared ink colour. */
 const GLYPH: Record<EntryModeKey, ReactNode> = {
   everyday: <CoffeeCupGlyph color={accent.primary} />,
   free: <ChatGlyph color={accent.primary} />,
@@ -92,6 +82,10 @@ export function TutorTab() {
 
   const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
   const [checking, setChecking] = useState(false);
+  const [mode, setMode] = useState<'speak' | 'type'>(() => prefersTyping(profile) ? 'type' : 'speak');
+  const [progress, setProgress] = useState<readonly MissionProgress[]>(() => missionStates([], [], Date.now()));
+  const pendingStart = useRef<object>({});
+  const starting = useRef(false);
   /** What the tutor remembers, from a real record only, or null. */
   const [continuity, setContinuity] = useState<Continuity | null>(null);
   /** The one thread to pick up, or null. */
@@ -125,6 +119,7 @@ export function TutorTab() {
           // One projection of where every scene stands, handed to the memory
           // line and to the thread, so the two cannot disagree.
           const progress = missionStates(missionCompletionsFrom(completions), deck, Date.now());
+          setProgress(progress);
           setContinuity(continuityFrom({ brain: profile.brain, packs, records: scenes, progress }));
           setThread(threadFrom({ records: scenes, progress, packs, marks, topics }));
         })
@@ -158,26 +153,31 @@ export function TutorTab() {
    * returns and an onRejected passed beside it never sees that throw. The
    * handler navigates, so it is a real thrower.
    */
-  const open = (textMode: boolean) => {
+  const open = (textMode: boolean, params: object = {}) => {
     // A second tap while the connection check runs cannot open a second room.
     if (checking) return;
+    if (starting.current) return;
+    starting.current = true;
+    pendingStart.current = params;
     setChecking(true);
     void recheck()
       .then((answered) => {
         setChecking(false);
+        starting.current = false;
         const decision = tutorGate(answered, textMode);
         if (!decision.go) {
           setHeldBack(decision.heldBack);
           return;
         }
         setHeldBack(null);
-        nav.navigate(decision.screen, decision.params);
+        nav.navigate(decision.screen, { ...params, ...decision.params });
       })
       .catch(() => {
         // A probe that threw is a probe that did not answer, so the start is
         // held back rather than lost: the flag goes down, the tab is live
         // again, and the retry is the same start the learner asked for.
         setChecking(false);
+        starting.current = false;
         setHeldBack({ textMode });
       });
   };
@@ -203,6 +203,8 @@ export function TutorTab() {
   );
 
   const orb = tutorOrbState({ live, checking, canStart });
+  const next = nextConversation(progress, thread, capabilitiesFor(plan.tier, plan.lapsed).continueArc);
+  const purpose = continuity ? TUTOR_PURPOSE : 'Your AI tutor helps you find the words, one conversation at a time.';
 
   // Where a row leads is `gate.ts`'s answer, not this screen's. The open chat
   // runs the same probe the circle runs, because it opens the same room; the
@@ -210,10 +212,10 @@ export function TutorTab() {
   const enter = (key: EntryModeKey) => {
     const start = entryStart(key);
     if (start.probe) {
-      open(false);
+      open(mode === 'type');
       return;
     }
-    nav.navigate(start.screen);
+    nav.navigate(start.screen, { textMode: mode === 'type' });
   };
 
   const entryStyle = {
@@ -224,23 +226,21 @@ export function TutorTab() {
   return (
     <ScrollScreen bottom="tab">
       <Animated.View style={entryStyle}>
-        <TabHeader title={tutorHeading(tutorName)} purpose={TUTOR_PURPOSE} trailing={<ProfileButton />} />
+        <TabHeader title={tutorHeading(tutorName)} purpose={purpose} trailing={<ProfileButton />} />
 
-        {/* No card behind it. The circle is the page's one focal point, and a
-            white rectangle around it would be a second edge competing with the
-            one shape that matters. The short state sits directly in the mist;
-            only a longer non-ready explanation is allowed underneath. */}
+        {/* The recommendation uses the established chartreuse feature surface. */}
         <View style={st.studio}>
         <View style={st.studioHead}>
-          <Label>Conversation studio</Label>
-          <Text style={st.studioNote}>À vous de parler.</Text>
+          <Label>{next.label}</Label>
+          <Text style={[type.cardTitle, { color: paper.ink }]}>{next.title}</Text>
+          <Text style={[type.body, { color: paper.inkSoft }]}>{next.body}</Text>
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Start a spoken conversation with ${tutorName}`}
+          accessibilityLabel={`Start ${mode === 'type' ? 'a typed' : 'a spoken'} conversation with ${tutorName}`}
           accessibilityHint="Opens a conversation when the connection is ready"
           disabled={checking}
-          onPress={() => open(false)}
+          onPress={() => open(mode === 'type', next.params)}
           style={({ pressed }) => [st.orb, pressed && !checking && st.pressed]}
         >
           <VoiceOrb
@@ -249,16 +249,18 @@ export function TutorTab() {
             announce={false}
             withCaption={false}
             paused={!focused}
-            embeddedLabel={orb.title}
           />
           {orb.state !== 'ready' && <Text style={st.orbSubline}>{orb.subline}</Text>}
         </Pressable>
-        <Text style={st.studioFoot}>A little French. A real conversation.</Text>
+        <Text style={st.studioFoot}>{next.detail}</Text>
+        <TabBar tabs={[{ key: 'speak', label: 'Speak' }, { key: 'type', label: 'Type' }]} active={mode} onChange={setMode} accessibilityLabel="How you want to practise" />
+        <PillButton label={checking ? 'Connecting…' : mode === 'type' ? 'Start typing' : 'Start speaking'} disabled={checking} onPress={() => open(mode === 'type', next.params)} />
+        <Text style={st.notice}>{mode === 'type' ? 'A quiet conversation. No microphone or tutor audio.' : 'Take your time. Ask for a hint whenever you need one.'}</Text>
         </View>
 
         {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
 
-        {!live && (
+        {(!live || heldBack !== null) && (
           <Card style={st.offline}>
             <Label>{TUTOR_OFFLINE.label}</Label>
             <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{TUTOR_OFFLINE.headline}</Text>
@@ -266,10 +268,11 @@ export function TutorTab() {
               <>
                 <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{TUTOR_OFFLINE.body}</Text>
                 <View style={{ marginTop: space(3) }}>
-                  <OutlineButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => open(heldBack.textMode)} />
+                  <OutlineButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => open(heldBack.textMode, pendingStart.current)} />
                 </View>
               </>
             )}
+            <GhostButton label="Try guided practice" onPress={() => nav.navigate('Lesson', { textMode: mode === 'type' })} />
           </Card>
         )}
 
@@ -289,18 +292,16 @@ export function TutorTab() {
                 // first live view arrives, so an offline gate or failed join
                 // leaves the remembered thread exactly where it was.
                 if (route.screen === 'Convo' && route.markPack !== null) {
-                  nav.navigate(route.screen, { ...route.params, continuationPackId: route.markPack });
+                  nav.navigate(route.screen, { ...route.params, continuationPackId: route.markPack, textMode: mode === 'type' });
                   return;
                 }
-                nav.navigate(route.screen, route.params);
+                nav.navigate(route.screen, route.screen === 'Convo' ? { ...route.params, textMode: mode === 'type' } : route.params);
               }}
             />
           </View>
         )}
 
-        {/* The three ways in, as rows under one heading. A row that opens a
-            screen says so with a chevron; none of them is a button, because
-            the circle above is the tab's one primary action. */}
+        {/* Supporting destinations share the existing compact navigation rows. */}
         <View style={st.doors}>
           <Label>{ENTRY_MODES_LABEL}</Label>
           {DOORS.map((door) => (
@@ -308,17 +309,19 @@ export function TutorTab() {
               <TintRow
                 tint={DOOR_TINT[door.key]}
                 glyph={GLYPH[door.key]}
-                title={door.label}
+                title={door.key === 'rehearse' ? `${door.label} · Max` : door.label}
                 gloss={door.gloss}
                 disabled={checking}
                 onPress={() => enter(door.key)}
               />
             </View>
           ))}
+          <TintRow tint="sky" glyph={<WaveformGlyph color={accent.primary} />} title="Practise pronunciation" gloss="A guided café lesson with lines to listen to and repeat." onPress={() => nav.navigate('Lesson', { textMode: mode === 'type' })} />
+          <TintRow tint="lilac" glyph={<DocumentGlyph color={accent.primary} />} title="What your tutor remembers" gloss="Review remembered details, your goals and correction style." onPress={() => nav.navigate('TutorMemory')} />
         </View>
 
         <View style={st.quiet}>
-          <GhostButton label="Unable to speak right now?" disabled={checking} onPress={() => open(true)} />
+          <GhostButton label="How your AI tutor works" onPress={() => nav.navigate('TutorIntro')} />
           <Text style={st.notice}>{MICROPHONE_NOTICE}</Text>
         </View>
       </Animated.View>

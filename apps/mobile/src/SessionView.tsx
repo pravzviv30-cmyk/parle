@@ -10,7 +10,7 @@ import { useState, type ReactNode } from 'react';
 import { View, Text, Pressable, PixelRatio, StyleSheet, TextInput } from 'react-native';
 import type { SessionPrompt } from '@luvani/core';
 import { accent, paper, radius, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
-import { Card, Label, LineBullet, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
+import { Card, GhostButton, Label, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
 import { ScrollScreen } from './layout.tsx';
 import { MORE_HINT, MORE_LABEL, showsActionRow } from './lessonFooter.ts';
 import { tutorNameOf } from './tutor/tutorName.ts';
@@ -48,10 +48,11 @@ export function SupportBlock({
   /** Replay the line on the card. Every cued turn should be hearable on demand. */
   onHearLine?: () => void;
 }) {
+  const [soundGuide, setSoundGuide] = useState(false);
   if (support.kind === 'full-line') {
     return (
       <Card>
-        <Label>Say this</Label>
+        <Label>Your turn</Label>
         {/* Left, not centred, since revamp A: the mockup sets the line to say
             as a block you read from its left edge, and a long sentence centred
             on a phone leaves both ends ragged. Nothing is clipped; fitDisplay
@@ -63,9 +64,12 @@ export function SupportBlock({
           {support.gloss}
         </Text>
         {support.ipa ? (
-          <Text style={[type.notation, { color: paper.inkSoft, marginTop: space(1.5) }]}>
-            /{support.ipa}/
-          </Text>
+          <View>
+            <Pressable onPress={() => setSoundGuide((value) => !value)} accessibilityRole="button" accessibilityState={{ expanded: soundGuide }} style={st.hear}>
+              <Text style={[type.small, { color: paper.ink }]}>{soundGuide ? 'Hide sound guide' : 'Show sound guide'}</Text>
+            </Pressable>
+            {soundGuide && <Text style={[type.notation, { color: paper.inkSoft }]}>/{support.ipa}/</Text>}
+          </View>
         ) : null}
         {support.written && support.written !== support.line ? (
           <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1.5) }]}>
@@ -183,6 +187,8 @@ export interface SessionViewProps {
    * throttles, and the draft itself never goes on the wire.
    */
   onTyping?: () => void;
+  /** Switches the existing live room to typing without losing this lesson. */
+  onSwitchToType?: () => void;
 }
 
 export function SessionView(props: SessionViewProps) {
@@ -203,7 +209,7 @@ export function SessionView(props: SessionViewProps) {
 
   const sendDraft = () => {
     const text = draft.trim();
-    if (text.length === 0) return;
+    if (text.length === 0 || !listening) return;
     setDraft('');
     props.onType?.(text);
   };
@@ -220,11 +226,6 @@ export function SessionView(props: SessionViewProps) {
   const footer = (
     <>
       <View style={st.rungRow}>
-        <View style={st.bullets}>
-          {([1, 2, 3, 4] as const).map((r) => (
-            <LineBullet key={r} rung={r} active={r === rung} />
-          ))}
-        </View>
         {/* The rung is named once in words here; the bullets to the left mark it
             in colour. A bare colour dot beside both was a third telling that
             read ~1.4 against the ground for rung one (F329). */}
@@ -257,10 +258,10 @@ export function SessionView(props: SessionViewProps) {
             />
             <Pressable
               onPress={sendDraft}
-              disabled={draft.trim().length === 0}
+              disabled={draft.trim().length === 0 || !listening}
               accessibilityRole="button"
               accessibilityLabel="Send your answer"
-              style={({ pressed }) => [st.send, draft.trim().length === 0 && st.sendEmpty, pressed && { opacity: 0.6 }]}
+              style={({ pressed }) => [st.send, (draft.trim().length === 0 || !listening) && st.sendEmpty, pressed && { opacity: 0.6 }]}
             >
               <Text style={[type.button, { color: paper.onInk }]}>Send</Text>
             </Pressable>
@@ -295,6 +296,7 @@ export function SessionView(props: SessionViewProps) {
               <HelpGlyph size={15} />
               <Text style={[type.small, { color: paper.inkSoft }]}>Help me out</Text>
             </Pressable>
+            {!props.onType && props.onSwitchToType && <GhostButton label="Type instead" onPress={props.onSwitchToType} />}
           </View>
         ) : (
           <Pressable
@@ -313,11 +315,13 @@ export function SessionView(props: SessionViewProps) {
 
   return (
     <ScrollScreen
+      avoidKeyboard
       topGap={space(2)}
       header={
         <>
           {props.above}
           <LiveRoomHeader
+            title="Guided pronunciation"
             onEnd={props.onLeave}
             accessibilityLabel="End lesson"
             // The connection line is a status line: a learner mid-scene whose room
@@ -427,7 +431,7 @@ const st = StyleSheet.create({
     backgroundColor: paper.groundDeep,
     borderRadius: radius.pill,
   },
-  actions: { alignSelf: 'stretch', alignItems: 'center' },
+  actions: { alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', flexWrap: 'wrap' },
   header: { paddingBottom: space(3) },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   // `flexGrow`, never `flex: 1`, and no vertical centring.

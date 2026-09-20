@@ -56,8 +56,8 @@ function at(marker: string): number {
   return i;
 }
 
-describe('the tutor tab is one circle and four rows — F573', () => {
-  test('the tutor tab draws three tinted rows, one remembers row and no pill', () => {
+describe('the tutor tab recommends a conversation and exposes its supporting tools', () => {
+  test('the tutor tab draws shared rows and one explicit primary action', () => {
     // Every word on the page comes from a module that a test can reach. The tab
     // spells no heading, no purpose line and no notice of its own.
     const dashboard = FLAT.match(/import \{([^}]*)\} from '\.\.\/tutor\/dashboard\.ts'/);
@@ -82,12 +82,12 @@ describe('the tutor tab is one circle and four rows — F573', () => {
     // component that draws one is the app's, not this tab's. The count is the
     // whole point of the pass: six door cards became three rows.
     const rows = (SCREEN.match(/<TintRow\b/g) ?? []).length;
-    assert.equal(rows, 1, `the tab draws ${rows} tinted rows in place; the three ways in are one mapped row`);
+    assert.equal(rows, 3, 'one mapped conversation row, pronunciation and memory share TintRow');
     assert.match(RENDER, /\{DOORS\.map\(\(door\) => \(/, 'the three ways in are not drawn from the door model');
     const modes = between(RENDER, 'DOORS.map(', '</View>', 'the three ways in are drawn as rows');
     assert.match(modes, /tint=\{DOOR_TINT\[door\.key\]\}/, 'a row picks its own paper instead of reading doorTint.ts');
     assert.match(modes, /glyph=\{GLYPH\[door\.key\]\}/, 'a row lost the mark on its white disc');
-    assert.match(modes, /title=\{door\.label\}/, 'a row does not say what it is');
+    assert.match(modes, /title=\{door\.key === 'rehearse' \? `\$\{door\.label\} · Max` : door\.label\}/, 'the rehearsal row discloses Max before opening');
     assert.match(modes, /gloss=\{door\.gloss\}/, 'a row does not say what is behind it');
     assert.match(modes, /onPress=\{\(\) => enter\(door\.key\)\}/, 'a row opens somewhere other than where the door model says');
     assert.match(modes, /disabled=\{checking\}/, 'a row stays pressable while the connection check runs');
@@ -132,10 +132,10 @@ describe('the tutor tab is one circle and four rows — F573', () => {
     assert.doesNotMatch(FLAT, /markPackContinued/, 'the tab retires a thread before a room has opened');
     assert.match(
       FLAT,
-      /nav\.navigate\(route\.screen, \{ \.\.\.route\.params, continuationPackId: route\.markPack \}\)/,
+      /nav\.navigate\(route\.screen, \{ \.\.\.route\.params, continuationPackId: route\.markPack, textMode: mode === 'type' \}\)/,
       'the pack identity does not reach the room that can prove it opened',
     );
-    assert.match(FLAT, /nav\.navigate\(route\.screen, route\.params\)/, 'the memory row decides its own destination');
+    assert.match(FLAT, /nav\.navigate\(route\.screen, route\.screen === 'Convo' \? \{ \.\.\.route\.params, textMode: mode === 'type' \} : route\.params\)/, 'continuity preserves the mode and its original destination');
 
     const convo = stripComments(read('../ConvoScreen.tsx')).replace(/\s+/g, ' ');
     const navigator = stripComments(read('../nav/RootNavigator.tsx')).replace(/\s+/g, ' ');
@@ -154,7 +154,7 @@ describe('the tutor tab is one circle and four rows — F573', () => {
     // with the resume card, and a row that opens a screen says so with a
     // chevron rather than a button.
     const pills = (SCREEN.match(/<PillButton\b/g) ?? []).length;
-    assert.equal(pills, 0, `the tab draws ${pills} pills; the circle is the way in and there is no second one`);
+    assert.equal(pills, 1, 'the recommended conversation has one named primary action');
 
     // The order the canvas draws, read off the render rather than the model.
     assert.ok(at('<TabHeader') < at('<VoiceOrb'), 'the voice circle sits above the header');
@@ -172,8 +172,8 @@ describe('the tutor tab is one circle and four rows — F573', () => {
     // And the quiet footer, which is the only way through for someone who
     // cannot speak where they are sitting.
     const quiet = SCREEN.slice(SCREEN.indexOf('st.quiet'));
-    assert.match(quiet, /<GhostButton label="Unable to speak right now\?"/, 'the quiet typed door left the foot of the tab');
-    assert.match(quiet, /open\(true\)/, 'the quiet door at the foot of the tab opens the spoken room');
+    assert.match(RENDER, /key: 'type', label: 'Type'/, 'typing is a visible peer of speaking');
+    assert.match(RENDER, /open\(mode === 'type', next\.params\)/, 'the primary action preserves mode and recommendation');
     assert.match(quiet, /\{MICROPHONE_NOTICE\}/, 'the microphone promise is decided and never reaches glass');
   });
 });
@@ -196,14 +196,14 @@ describe('the tutor page owns its words — F415', () => {
       'the circle captions itself on a page that already says two lines, and the two land on top of each other',
     );
     assert.match(orbs[0]!, /size=\{TUTOR_ORB_SIZE\}/, 'the circle bypasses the one size the landing page owns');
-    assert.match(SCREEN, /const TUTOR_ORB_SIZE = 218;/, 'the landing circle is smaller than the approved focal control');
+    assert.match(SCREEN, /const TUTOR_ORB_SIZE = 96;/, 'the compact orb leaves room for the recommendation and action');
     // The card went with Revamp A: a white rectangle around the one shape on
     // this tab that means something was a second edge competing with it.
     assert.ok(!SCREEN.includes('st.speakCard'), 'the circle is back inside a card of its own');
     // The ready words live inside the circle; non-ready states keep the status
     // under it, and the purpose line remains beneath the whole control.
     assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart \}\)/, 'the circle no longer reads its state from the facts');
-    assert.match(FLAT, /embeddedLabel=\{orb\.title\}/, 'the compact state label is not embedded directly in the orb');
+    assert.match(FLAT, /label=\{checking \? 'Connecting…' : mode === 'type' \? 'Start typing' : 'Start speaking'\}/, 'the explicit action explains the selected mode');
     assert.match(FLAT, /\{orb\.state !== 'ready' && <Text style=\{st\.orbSubline\}>\{orb\.subline\}<\/Text>\}/, 'a non-ready state no longer explains why the circle cannot start');
     const rule = read('../tutor/orbState.ts');
     assert.match(rule, /'Tap to talk'/, 'the rule lost the minimalist ready line');
@@ -219,8 +219,8 @@ describe('the tutor page owns its words — F415', () => {
     // no role is a control a screen reader walks past.
     const press = between(RENDER, '<Pressable', '</Pressable>', 'the circle is something a learner can press');
     assert.match(press, /accessibilityRole="button"/, 'the circle is a control a screen reader walks straight past');
-    assert.match(press, /accessibilityLabel=\{`Start a spoken conversation with \$\{tutorName\}`\}/, 'the circle does not say whose conversation it opens');
-    assert.match(press, /onPress=\{\(\) => open\(false\)\}/, 'the circle opens something other than the conversation');
+    assert.match(press, /accessibilityLabel=\{`Start \$\{mode === 'type' \? 'a typed' : 'a spoken'\} conversation with \$\{tutorName\}`\}/, 'the circle names the tutor and mode');
+    assert.match(press, /onPress=\{\(\) => open\(mode === 'type', next\.params\)\}/, 'the circle opens the recommended conversation');
     assert.match(press, /disabled=\{checking\}/, 'a second tap during the connection check opens a second room');
     const orbStyle = between(SCREEN, 'orb: {', '}', 'the circle block has a style');
     assert.match(orbStyle, /minWidth: TUTOR_ORB_SIZE/, 'only the drawing is large; the full visible orb is not the touch target');

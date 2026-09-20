@@ -12,11 +12,12 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Animated, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Animated, Platform, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePreventRemove } from '@react-navigation/native';
 import {
   conversationXp,
+  getMission,
   phraseKeyOf,
   type ConvoPhrase,
   type DrillExercise,
@@ -118,7 +119,7 @@ const RECAP_WAIT_MS = 15_000;
  * stops looking authored.
  */
 const CHOOSING_ORB = 170;
-const SCENE_ORB = 116;
+const SCENE_ORB = 88;
 import {
   COACH_MARK_TEXT,
   coachMarksAfter,
@@ -312,6 +313,7 @@ export function ConvoScreen({
     mode: openedTyped ? 'convo-text' : 'convo',
     snapshot,
     seedTopic,
+    continuationPackId,
     ...(missionId !== undefined ? { missionId } : {}),
     tutorVoice: tutorVoiceOf(profile),
   });
@@ -408,6 +410,7 @@ export function ConvoScreen({
   }, [live.safety]);
 
   const sendDraft = () => {
+    if (live.tutorSpeaking) return;
     const turn = typedTurn(draft);
     if (turn === null) return;
     setDraft('');
@@ -823,7 +826,7 @@ export function ConvoScreen({
     });
     const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
     return (
-      <View style={st.shell}>
+      <KeyboardAvoidingView style={st.shell} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={Platform.OS !== 'web'}>
         {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
 
         <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
@@ -932,7 +935,9 @@ export function ConvoScreen({
                 onPress={sendDraft}
                 accessibilityRole="button"
                 accessibilityLabel="Send your topic"
-                style={({ pressed }) => [st.typeSend, pressed && { opacity: 0.88 }]}
+                disabled={!draft.trim() || live.tutorSpeaking}
+                accessibilityState={{ disabled: !draft.trim() || live.tutorSpeaking }}
+                style={({ pressed }) => [st.typeSend, (!draft.trim() || live.tutorSpeaking) && { opacity: 0.45 }, pressed && { opacity: 0.88 }]}
               >
                 <Text style={[type.button, { color: paper.onInk }]}>Send</Text>
               </Pressable>
@@ -959,7 +964,7 @@ export function ConvoScreen({
           }}
           onCancel={() => setConfirming(false)}
         />
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -1042,7 +1047,7 @@ export function ConvoScreen({
           : 'listening';
 
   return (
-    <View style={st.shell}>
+    <KeyboardAvoidingView style={st.shell} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={Platform.OS !== 'web'}>
       {/* One calm white notice, gone the moment it is tapped. */}
       {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
 
@@ -1052,6 +1057,7 @@ export function ConvoScreen({
               person speaking. The compact end control still opens the shared
               confirmation and leaving still delivers the recap already earned. */}
           <LiveRoomHeader
+            title={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? `Talk with ${tutorName}`}
             onEnd={() => setConfirming(true)}
             accessibilityLabel="End conversation"
             status={
@@ -1080,20 +1086,6 @@ export function ConvoScreen({
 
         {/* The tutor, as an object. Toward the top, and the only thing on the
             screen that moves. */}
-        <View style={st.orbBlock}>
-          {controls.showOpenMic ? (
-            <Pressable
-              onPress={live.openMic}
-              accessibilityRole="button"
-              accessibilityLabel={OPEN_MIC_LABEL}
-              style={({ pressed }) => [st.orbTap, pressed && { opacity: 0.7 }]}
-            >
-              <VoiceOrb state={orbState} size={SCENE_ORB} announce={false} />
-            </Pressable>
-          ) : (
-            <VoiceOrb state={orbState} size={SCENE_ORB} />
-          )}
-        </View>
 
         {/* Same banner in the scene as in the choosing moment: a redirect does
             not end anything, so the conversation carries on underneath it. */}
@@ -1123,7 +1115,7 @@ export function ConvoScreen({
         ) : (
           <>
             {view.supportView.kind !== 'none' ? (
-              <View style={st.support}>
+              <ScrollView style={st.support} keyboardShouldPersistTaps="handled">
                 <SupportBlock
                   support={view.supportView}
                   // Replays come from the agent in the premium voice, and only while
@@ -1133,7 +1125,7 @@ export function ConvoScreen({
                   // options turn this button used to be pressable and silent.
                   onHearLine={controls.showHearIt ? () => live.sendHear() : undefined}
                 />
-              </View>
+              </ScrollView>
             ) : null}
 
           <View style={st.controls}>
@@ -1192,6 +1184,8 @@ export function ConvoScreen({
                 />
                 <Pressable
                   onPress={sendDraft}
+                  disabled={draft.trim().length === 0 || !listening}
+                  accessibilityState={{ disabled: draft.trim().length === 0 || !listening }}
                   accessibilityRole="button"
                   accessibilityLabel="Send your reply"
                   style={({ pressed }) => [st.typeSend, pressed && { opacity: 0.88 }]}
@@ -1200,6 +1194,14 @@ export function ConvoScreen({
                 </Pressable>
               </View>
             ) : null}
+
+            {!controls.showInput && <View style={st.orbBlock}>
+              {controls.showOpenMic ? (
+                <Pressable onPress={live.openMic} accessibilityRole="button" accessibilityLabel={OPEN_MIC_LABEL} style={st.orbTap}>
+                  <VoiceOrb state={orbState} size={SCENE_ORB} announce={false} />
+                </Pressable>
+              ) : <VoiceOrb state={orbState} size={SCENE_ORB} />}
+            </View>}
 
             <View style={st.helpRow}>
               <Pressable
@@ -1263,7 +1265,7 @@ export function ConvoScreen({
                 <Pressable
                   onPress={() => {
                     closeMark();
-                    setTypingOpen(true);
+                    goQuiet();
                   }}
                   accessibilityRole="button"
                   accessibilityLabel="Type your reply instead of saying it"
@@ -1289,15 +1291,15 @@ export function ConvoScreen({
         }}
         onCancel={() => setConfirming(false)}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const st = StyleSheet.create({
-  orbBlock: { alignItems: 'center', paddingTop: space(4), paddingBottom: space(7) },
-  support: { paddingBottom: space(2) },
+  orbBlock: { alignItems: 'center', paddingVertical: space(1) },
+  support: { flexGrow: 0, flexShrink: 1, maxHeight: '35%', paddingBottom: space(2) },
   shell: { flex: 1, backgroundColor: paper.ground },
-  root: { flex: 1, backgroundColor: paper.ground, paddingHorizontal: space(5) },
+  root: { flex: 1, width: '100%', maxWidth: 760, alignSelf: 'center', backgroundColor: paper.ground, paddingHorizontal: space(5) },
   center: { flex: 1, backgroundColor: paper.ground, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
   listen: { minHeight: HIT, paddingHorizontal: space(5), paddingTop: space(3) },
   terminalAction: { marginTop: space(6), alignSelf: 'stretch' },

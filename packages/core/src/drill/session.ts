@@ -378,7 +378,9 @@ export function answerCurrent(
       queue: [...rest, exercise],
       missesById: { ...state.missesById, [exercise.id]: missesSoFar + 1 },
     };
-    return { state: next, feedback: { verdict, closest, message: feedbackMessage(verdict, closest), advanced: false } };
+    // The retry must test memory, not the answer we just handed over. Hide the
+    // closest answer in the data as well as the copy, for every drill surface.
+    return { state: next, feedback: { verdict, closest: null, message: feedbackMessage(verdict, null), advanced: false } };
   }
 
   const outcome: DrillOutcome = verdict === 'miss' ? 'unresolved' : verdict;

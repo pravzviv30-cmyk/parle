@@ -186,6 +186,13 @@ describe('the orb is a still watercolour field with directly animated voice bars
   });
 
   test('seven white bars sit directly in every orb and move only in active voice states', () => {
+    const signal = /signal: \{([^}]+)\}/.exec(ORB_FLAT)?.[1];
+    assert.ok(signal, 'the waveform has its own centred overlay');
+    assert.ok(!/padding|translate[XY]|margin/.test(signal), 'fixed offsets must not displace the waveform at compact sizes');
+    for (const circle of GLYPH.match(/<Circle[^>]+>/g) ?? []) {
+      assert.match(circle, /cx=\{CENTRE\} cy=\{CENTRE\}/, 'every visible orb layer must share the waveform centre');
+    }
+    assert.match(GLYPH_FLAT, /r=\{75\} fill=\{paper\.ground\}/, 'the paper collar separates the voice surface from chartreuse');
     assert.match(ORB_FLAT, /const BAR_HEIGHTS = \[0\.1, 0\.17, 0\.27, 0\.38, 0\.27, 0\.17, 0\.1\] as const/, 'the central voice mark is no longer the seven-bar form');
     assert.match(ORB_FLAT, /\{BAR_HEIGHTS\.map\(\(height, index\) => \(/, 'the direct voice mark is not drawn inside the orb');
     assert.match(ORB_FLAT, /bar: \{ backgroundColor: paper\.onInk \}/, 'the voice bars are not the direct white mark from UI 4');

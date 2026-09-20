@@ -381,6 +381,7 @@ export function OnboardingFlow({
       avoidKeyboard
       header={
         <ScreenHeader
+          divider={false}
           back={previous !== null ? { onPress: () => setPage(previous) } : undefined}
           title={<ProgressDots total={PAGES.length} index={index} />}
         />

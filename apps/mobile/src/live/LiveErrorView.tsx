@@ -20,7 +20,8 @@
  */
 
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
+import { openPhoneSettings } from '../settings/phoneSettings.ts';
 import { paper, space, type, HIT } from '../theme.ts';
 import { Screen } from '../layout.tsx';
 import { Card, Label, PillButton, OutlineButton, GhostButton } from '../components.tsx';
@@ -73,13 +74,15 @@ export function LiveErrorView({
   onType: (() => void) | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [settingsHelp, setSettingsHelp] = useState(false);
   const copy = failureCopy(failure);
   const canType = copy.canType && onType !== null;
 
   return (
     <Screen padded={false}>
-      <View style={st.center}>
+      <ScrollView contentContainerStyle={st.center} keyboardShouldPersistTaps="handled">
         <Label color={paper.inkSoft}>{copy.label}</Label>
+        <Text accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center', marginTop: space(3) }]}>Let’s get you back to French</Text>
         {/* The sentence is the point of this screen, so it reads at body size in
             full ink rather than in the soft grey a caption gets. Words clear
             4.5 against the ground, and a line somebody is meant to act on is
@@ -100,6 +103,14 @@ export function LiveErrorView({
             <OutlineButton label="Back" onPress={onBack} />
           </View>
         )}
+
+        {failure.startsWith('mic-') && <View style={st.secondary}>
+          <GhostButton label="Check microphone settings" onPress={() => {
+            setSettingsHelp(true);
+            void openPhoneSettings();
+          }} />
+          {settingsHelp && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{Platform.OS === 'web' ? 'Open this site’s permissions beside the address bar and allow the microphone. Close other apps using it, then return and start a spoken conversation.' : 'Allow microphone access for Luvani in Settings, then return and start a spoken conversation.'}</Text>}
+        </View>}
 
         {diagnostics ? (
           <View style={st.diagnostics}>
@@ -131,13 +142,13 @@ export function LiveErrorView({
             ) : null}
           </View>
         ) : null}
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
 
 const st = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(8) },
+  center: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', maxWidth: 760, alignSelf: 'center', paddingHorizontal: space(8), paddingVertical: space(6) },
   action: { marginTop: space(6), alignSelf: 'stretch' },
   secondary: { marginTop: space(2), alignSelf: 'stretch' },
   diagnostics: { marginTop: space(7), alignSelf: 'stretch' },

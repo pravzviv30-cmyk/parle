@@ -72,7 +72,7 @@ describe('the tutor’s memory, edited by the learner', () => {
     const context = readFileSync(fileURLToPath(new URL('../app/ProfileContext.tsx', import.meta.url)), 'utf8');
     assert.match(context, /brain: withoutForgotten\(blob, current\.forgottenFacts\)/, 'updateBrain saves the recap’s brain without applying the tombstones');
     const navigator = readFileSync(fileURLToPath(new URL('../nav/RootNavigator.tsx', import.meta.url)), 'utf8');
-    assert.match(navigator, /snapshot=\{snapshotFor\(profile\)\}/, 'the session snapshot is composed somewhere other than memory.ts');
+    assert.match(navigator, /snapshot=\{snapshotFor\(profile, reviewDeck\)\}/, 'the session snapshot and current review focus are composed in memory.ts');
     assert.ok(!navigator.includes('withLearnerName('), 'the navigator still folds the name in itself, beside the one snapshot');
 
     // Forget everything: every fact becomes a tombstone and the opener, which

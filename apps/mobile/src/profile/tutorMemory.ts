@@ -43,7 +43,7 @@ export const KIND_GLOSS: Record<RememberedFact['kind'], string> = {
 };
 
 export const FORGET_ONE = 'Forget this';
-export const FORGET_ALL = 'Forget everything';
+export const FORGET_ALL = 'Clear remembered details';
 export const NOTHING_YET = 'Nothing yet. What you mention about your life in a conversation lands here.';
 export const GOALS_LABEL = 'What you want from French';
 export const GOALS_SUB = 'Up to three lines, in your own words. Your tutor keeps them in mind.';
@@ -51,7 +51,7 @@ export const GOAL_PLACEHOLDER = 'Order at a bakery without switching to English'
 export const ADD_GOAL = 'Add this goal';
 export const REMOVE_GOAL = 'Remove';
 /** One plain sentence on what leaves the phone. Names the slice the agent sends. */
-export const WHAT_LEAVES = 'The last few of these ride into each new conversation, so your tutor can bring them up. Nothing else about you does.';
+export const WHAT_LEAVES = 'Recent remembered details and your goals help personalise new conversations. Your tutor also uses your name, learning progress and preferences. You can edit or remove details here; saved conversations are managed separately in My French.';
 
 /** Every line the card and the screen spell themselves, for the copy sweeps. */
 export const TUTOR_MEMORY_COPY: readonly string[] = [

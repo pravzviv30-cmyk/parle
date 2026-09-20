@@ -40,9 +40,9 @@ describe('the chooser is one card and five rows — F573', () => {
     // solid action.
     assert.match(SCREEN, /<Label>\{CHOOSER_START_HERE\}<\/Label>/, 'the card that was chosen for the learner never says it was');
     assert.match(SCREEN, /<Art name=\{heroArt\(first\.mission\.place\)\}/, 'the hero card lost the drawing of the place it is set in');
-    assert.match(SCREEN, /type\.cardTitle[\s\S]{0,80}\{first\.mission\.title\}/, 'the hero card does not set its French title in the serif');
+    assert.match(SCREEN, /type\.frenchSm[\s\S]{0,80}\{first\.mission\.title\}/, 'the hero keeps its French title in the serif');
     assert.match(SCREEN, /\{first\.mission\.goalEn\}/, 'the hero card lost the line saying what the learner will be able to do');
-    assert.match(SCREEN, /<PillButton\s+label="Start this one"/, 'the one thing to press on this screen is not the app pill');
+    assert.match(SCREEN, /<PillButton\s+label=\{mode === 'type' \? 'Start typed mission' : 'Start mission'\}/, 'the primary action names the selected mode');
 
     // The other five, as rows. A row is a tinted strip with the place's mark, the
     // French title, the English under it and a chevron.
@@ -50,8 +50,8 @@ describe('the chooser is one card and five rows — F573', () => {
     assert.match(SCREEN, /<TintRow/, 'the other situations are still six rectangles rather than rows');
     assert.match(SCREEN, /tint=\{missionTint\(card\.mission\.place\)\}/, 'a row picks its own paper instead of reading missionTint.ts');
     assert.match(SCREEN, /glyph=\{<PlaceGlyph place=\{card\.mission\.place\}/, 'a row lost the mark that says where it is set');
-    assert.match(SCREEN, /title=\{card\.mission\.title\}/, 'a row stopped naming the situation in French');
-    assert.match(SCREEN, /gloss=\{card\.mission\.titleEn\}/, 'a row never says in English what the situation is');
+    assert.match(SCREEN, /title=\{card\.mission\.titleEn\}/, 'a row names the situation in the learner’s language');
+    assert.match(SCREEN, /gloss=\{`\$\{card\.mission\.goalEn\} · \$\{card\.status\}`\}/, 'each row visibly explains its goal and earned status');
     assert.match(SCREEN, /<Label>\{CHOOSER_OTHER\}<\/Label>/, 'the rest of the situations sit under no heading');
 
     // Where the learner stands is still said, and it is said to everybody who

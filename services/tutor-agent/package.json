@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "node --experimental-strip-types src/agent.ts dev",
     "start": "node --experimental-strip-types src/agent.ts start",
+    "native-eval": "LUVANI_NATIVE_EVAL=1 node --experimental-strip-types src/nativeEvalAgent.ts dev",
     "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
     "warm-cache": "node --experimental-strip-types src/warmCache.ts",
     "voice-samples": "node --experimental-strip-types src/voiceSamples.ts",

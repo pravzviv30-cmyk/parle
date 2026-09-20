@@ -136,7 +136,7 @@ of the list.
   desktop horizontal overflow. A local mock-auth account completed all three onboarding steps,
   landed at `/missions`, returned to `/home`, and stayed there across reload. A Supabase-auth
   run, five-viewport pass, native screen-reader pass and human stopwatch have not been run.
-- All fifteen migrations and fifteen rollback scripts pass their static contract. Migration 7,
+- All eighteen migrations and eighteen rollback scripts pass their static contract. Migration 7,
   `202608270001_onboarding_event_property_fix.sql`, has never been applied to any project.
   No schema is production evidence until all twelve are applied in order and the live verifier
   passes there.
@@ -184,7 +184,7 @@ applied to one, and the day one exists it starts with an empty schema and the sa
 | Upstash cross-instance limits and leases | F61 | `measured` | `npm run verify:upstash`, exit 0, 5 of 5 proofs. Two token servers on ports 53320 and 53324 sharing one Redis: requests split across both then both refused the next, a live session on A made B answer 409, only the matching id freed the lease, an abandoned lease lapsed on its TTL, and the key scan read 5 keys, all hashed. | Upstash under production concurrency and region latency. Two local processes are not a fleet. |
 | Secret scanning of files, history and bundles | F62 | `measured` | `npm run scan:secrets` clean across the working tree. `npm run scan:secrets:history` found **5 critical findings in one commit**, `576bc53`, an `.env.bak-before-cli-all` carrying 4 distinct live vendor credentials. That commit is on two local `codex/*` branches and is **not** reachable from any remote ref. No value was printed at any point. | `--bundles` reported BLOCKED because no web build output exists. Run `npm run build:web` first. Rotation is a human action on four vendor consoles: see F80. |
 | Supabase RLS, RPC privilege, debit concurrency, trial race, deletion cascade | F63 | `measured` | `npm run verify:supabase` against a disposable project. First run: **6 of 12 failed**, which is how F74 and F75 were found. After the three fix migrations, exit 0 and **12 of 12 proofs passed**, one row each in the run record below. | The production project, which does not exist yet. Two accounts are not a population, and no proof here was run under production concurrency, data volume or region latency. |
-| Migration rollbacks and the apply runbook | F64 | `measured` | `databaseContract.test.ts` over 15 migrations and 15 down-scripts: each down-script names every object its migration created, `202608230001_down.sql` also restores the 2-argument `consume_entitlement` its migration dropped, the six function-body rollbacks each refuse to run without an interlock set in the same session, and `supabase/README.md` applies all 15 in order and pairs each with its rollback. | No rollback has ever been executed against a database. The scripts are read, not run, and the rollback-evidence procedure in the runbook has not been performed. |
+| Migration rollbacks and the apply runbook | F64 | `measured` | `databaseContract.test.ts` over 18 migrations and 18 down-scripts: each down-script names every object its migration created, `202608230001_down.sql` also restores the 2-argument `consume_entitlement` its migration dropped, hazardous function-body rollbacks refuse to run without their interlocks, and `supabase/README.md` applies all 18 in order and pairs each with its rollback. | No rollback has been executed against the hosted database. The rollback-evidence procedure in the runbook has not been performed. |
 | Voice lifecycle: expiry, caps, leases, hard stop, billing | F65 | `measured` | `npm run verify:voice`, 13 checks, 108.5s wall clock: **11 assertions held, 2 measurements recorded**, exit 0. Grants live 300s and a credential 90s past expiry is refused; `maxParticipants=2` held against a forged third identity; one grant and one 409 from the lease, released by the debit; the agent secret guarded the debit; a replayed `/session/end` changed nothing in the store file; a never-joined room debited 0s; a room with no learner turn debited 0s; the hard stop fired at **60.0s** against a seeded 60s allowance and the room was gone **20.1s** later. | Cloud LiveKit was not used; transport was a self-hosted server on 127.0.0.1. The 15-minute production hard stop was pinned by test, not run for 15 real minutes. |
 | Safety net breadth | F66 | `measured` | `npm test -w @luvani/tutor-agent`, 338 tests, 0 failing. 153 patterns, up from 33. 149 adversarial lines across 8 categories and 4 buckets each are caught, and a 51-line ordinary-French corpus still returns null. Normalisation sees through zero-width, homoglyph, spacing and leet forms. | A wider net is still a net. Nothing here bounds what a determined adult phrases around, which is exactly what F70 exists for. |
 | Privacy and safety policy | F67 | `measured` | `docs/PRIVACY_AND_SAFETY.md` plus 4 tests in `safetyPolicy.test.ts`. Falsified by mutation: flipping one category action, replacing the disclaimer with an emergency-service claim, and blanking one retention cell each turned the suite red, and the doc was restored with a matching checksum. | A document is a promise, not an enforcement. Retention is asserted against copy, not against a database that holds rows. |
@@ -681,7 +681,7 @@ Each line names a blocker used in a table above.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
   found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
   rotation, even though the object is no longer reachable and was never pushed.
-- **`phase-3-schema-apply`** — apply all fifteen migrations, including the onboarding event
+- **`phase-3-schema-apply`** — apply all eighteen migrations, including the onboarding event
   property fix, then reload the schema cache and run `npm run verify:supabase`.
 - **`phase-3-device-and-human-pass`** — complete the first-run matrix on iOS, Android,
   narrow/wide web and screen readers, and time a real beginner at their own pace. The static
@@ -693,7 +693,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **fifteen migrations**, and all fifteen must be pasted, in this order, from
+There are **eighteen migrations** for a fresh full schema, applied once in order from
 `supabase/README.md`:
 
 1. `202608220001_luvani_learning.sql` — the tables, the RLS policies, the first debit.
@@ -738,6 +738,9 @@ There are **fifteen migrations**, and all fifteen must be pasted, in this order,
     `purchase_settled` raise `unsupported product event`, the client swallows the failure
     by design, and the wall's funnel is dark with nobody seeing an error.
 15. `20260919120650_home_friends_daily.sql` — private Friends, capped weekly activity and cooperative challenges. Review branch only; PostgreSQL/WASM integration verified with `scripts/verify-social-db.mjs`. Deploy before the expanded account export service.
+16. `20260920194653_conversation_practice_jobs.sql` — atomic pack receipt and leased, bounded drill recovery. Applied to owner-restored Parle for testing; not evidence of a hosted recovery worker.
+17. `20260920200454_practice_receipt_finalization.sql` — preserve successful recovery against late failed analyst receipts; explicit pack grants. Applied to Parle and verified in disposable PostgreSQL/WASM.
+18. `20260920200807_practice_account_deletion.sql` — tombstone trigger works under a restricted Auth deletion role without giving that role queue access. Applied to Parle; restricted-role deletion verified in disposable PostgreSQL/WASM. No real learner accounts were deleted.
 
 Then reload the API schema cache and run `npm run verify:supabase` against that project.
 Stopping after any of the first four leaves a known defect live, which is why the runbook
