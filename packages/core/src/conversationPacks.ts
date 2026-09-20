@@ -302,6 +302,9 @@ export function isConversationPack(value: unknown): value is ConversationPack {
     !record(seed) || typeof seed.titleFr !== 'string' || typeof seed.titleEn !== 'string'
   ) return false;
   if (!value.keyPhrases.every((phrase) => record(phrase) && typeof phrase.fr === 'string' && typeof phrase.en === 'string')) return false;
+  if (!Array.isArray(value.corrections) || !value.corrections.every((c) => record(c) &&
+    ['quote', 'better', 'betterEn', 'why'].every((key) => typeof c[key] === 'string'))) return false;
+  if (!Array.isArray(value.wins) || !value.wins.every((win) => typeof win === 'string')) return false;
   // The whole compatibility story: packs written before these two fields
   // existed carry neither key, and a stored conversation is not worth
   // discarding over a card decoration. Absent is fine, present must be typed.
@@ -310,5 +313,11 @@ export function isConversationPack(value: unknown): value is ConversationPack {
     !Array.isArray(value.topics) ||
     !value.topics.every((topic) => record(topic) && typeof topic.fr === 'string' && typeof topic.en === 'string')
   )) return false;
-  return value.exercises.every((exercise) => validateExercise(exercise as DrillExercise).ok);
+  // Runtime exercise data need not honour the TypeScript union. A bad nested
+  // field must reject the pack, not throw out of an authenticated endpoint.
+  try {
+    return value.exercises.every((exercise) => validateExercise(exercise as DrillExercise).ok);
+  } catch {
+    return false;
+  }
 }

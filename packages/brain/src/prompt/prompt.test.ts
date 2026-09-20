@@ -101,9 +101,9 @@ describe('the stable prefix', () => {
     // half of this assertion that watched the age watches an opinion instead.
     // An opinion is the safest home for it: no accent and no age can disagree
     // with one, and a rulebook does not have any.
-    assert.match(persona, /ran a bar/i, 'he is a person with a life, not a policy');
+    assert.match(persona, /AI French tutor/i, 'the tutor is transparent about being AI');
     assert.match(persona, /a long lunch is never wasted/i, 'and opinions of his own');
-    assert.match(persona, /not a teacher/i, 'the one thing he is explicitly not');
+    assert.match(persona, /perceptive teacher/i, 'warm conversation must still teach');
 
     const firstRule = persona.indexOf('- ');
     const firstNever = persona.search(/\bNever\b/);
@@ -568,9 +568,9 @@ describe("the tutor's biography claims no age either — F292", () => {
         assert.doesNotMatch(text, /fifty[- ]two/i, `the ${where} prompt still says fifty-two to ${who}`);
 
         // The person the age was attached to has to still be there.
-        assert.match(text, /ran a bar/i, `the ${where} prompt lost the bar along with the age`);
-        assert.match(text, /twenty years/i, `the ${where} prompt lost the twenty years, which is a duration and not an age`);
-        assert.match(text, /not a teacher/i, `the ${where} prompt lost the one thing the tutor is explicitly not`);
+        assert.match(text, /AI French tutor/i, `the ${where} prompt must identify the AI tutor`);
+        assert.doesNotMatch(text, /You ran a bar|not a teacher/i, `the ${where} prompt must not claim a human biography or deny teaching`);
+        assert.match(text, /teacher/i, `the ${where} prompt must preserve its teaching role`);
       }
     }
   });

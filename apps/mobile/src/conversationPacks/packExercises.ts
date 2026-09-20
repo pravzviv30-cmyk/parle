@@ -14,7 +14,19 @@
  * is offered, because a malformed one is a sitting that ends at once.
  */
 
-import { phraseKeyOf, validateExercise, type ConversationPack, type DrillExercise, type RepeatThisExercise, type TranslationExercise } from '@luvani/core';
+import { phraseKeyOf, validateExercise, type ConversationPack, type ConvoPhrase, type DrillExercise, type RepeatThisExercise, type TranslationExercise } from '@luvani/core';
+
+/** Restore the cards as well as their exercises after a missed room delivery. */
+export function reviewPhrasesFor(pack: ConversationPack): ConvoPhrase[] {
+  const source = [...pack.keyPhrases, ...pack.corrections.map((c) => ({ fr: c.better, en: c.betterEn, frWritten: null }))];
+  const seen = new Set<string>();
+  return source.flatMap((p) => {
+    const key = phraseKeyOf(p.fr);
+    if (!p.fr.trim() || !p.en.trim() || seen.has(key)) return [];
+    seen.add(key);
+    return [{ ...p, frWritten: p.frWritten ?? null, register: '', enLiteral: null, note: `From your conversation: ${pack.title.en}` }];
+  });
+}
 
 /** How many key phrases get a repeat. A sitting, not a syllabus. */
 export const REPEATED_PHRASES = 3;

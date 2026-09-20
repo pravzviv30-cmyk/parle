@@ -111,7 +111,7 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
   return (
     <ScrollScreen
       avoidKeyboard
-      header={<ScreenHeader back={{ onPress: onBack }} />}
+      header={<ScreenHeader title={false} divider={false} back={{ onPress: onBack }} />}
       footer={
         <View style={{ gap: space(3) }}>
           <PillButton label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} disabled={busy} />

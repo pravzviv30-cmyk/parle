@@ -17,6 +17,7 @@
  */
 
 import { voice, type llm } from '@livekit/agents';
+import { parseTutorRevision, parseReviewFocus, tutorSessionBrief } from '@luvani/core';
 import { selectedBrain } from './preflight.ts';
 import { TurnQueue } from './queue.ts';
 // One replay ledger for the worker, not one per agent class. Both session
@@ -196,6 +197,12 @@ export function parseStoredProfile(snapshot: unknown): LearnerProfile {
   // device, and some version-2 profiles predate `memory` entirely. repairProfile
   // is the one place that knows how to bring either forward without discarding
   // what the tutor already learned about this person.
+  // Review hints are rebuilt from the current deck on every start. Never write
+  // a stale hint back into long-term profile memory with the recap.
+  if (snapshot && typeof snapshot === 'object') {
+    const { reviewFocus: _reviewFocus, ...profile } = snapshot as Record<string, unknown>;
+    return repairProfile(profile);
+  }
   return repairProfile(snapshot);
 }
 
@@ -958,6 +965,7 @@ export class LuvaniConversation extends voice.Agent {
    * choose, so a seed would have nowhere to land.
    */
   private readonly seedTopic: SeedTopic | undefined;
+  private readonly teachingBrief: string;
   /**
    * The mission this session was started on, or nothing. Its scene was authored
    * ahead of time, which is the whole of why a mission opens in seconds.
@@ -1009,6 +1017,8 @@ export class LuvaniConversation extends voice.Agent {
        * is, so the worker cannot hand this class a half-built one.
        */
       seedTopic?: unknown;
+      revision?: unknown;
+      reviewFocus?: unknown;
       /**
        * The mission this session was started on, if it was started from the
        * chooser. `unknown` for the same reason the seed is: the guard decides
@@ -1043,6 +1053,12 @@ export class LuvaniConversation extends voice.Agent {
     this.client = opts.client ?? brainClient();
     this.seedTopic = validSeedTopic(opts.seedTopic);
     this.missionId = validMissionId(opts.missionId);
+    this.teachingBrief = tutorSessionBrief({
+      revision: parseTutorRevision(opts.revision),
+      missionId: this.missionId,
+      seeded: !!this.seedTopic,
+      reviewFocus: parseReviewFocus(opts.reviewFocus),
+    });
     // Held, not applied. The placeholder state built just above is the scene
     // nobody is in yet, and every real scene is built again when it opens.
     this.startRung = opts.startRung;
@@ -1570,7 +1586,7 @@ export class LuvaniConversation extends voice.Agent {
           this.client.frame({
             kind: 'frame',
             system: buildSystemBlocks(this.persona),
-            request: buildScenarioRequest({
+            request: [buildScenarioRequest({
               request,
               learner: {
                 cefr: snapshot.cefr,
@@ -1580,7 +1596,7 @@ export class LuvaniConversation extends voice.Agent {
                 recentScenarios: this.profile.preferences.lastScenarios,
                 unmasteredPhrases,
               },
-            }),
+            }), this.teachingBrief].join('\n\n'),
             signal,
           }),
         this.frameTimeoutMs,
@@ -2059,7 +2075,12 @@ export class LuvaniConversation extends voice.Agent {
     // with brain's own builder rather than worked around, and the real repair is
     // a persona argument on `prepareTurn`, which lives in brain's territory and
     // is filed rather than edited here. This line comes out the day that lands.
-    const request = { ...prepareTurn(this.state, input), system: buildSystemBlocks(this.persona) };
+    const prepared = prepareTurn(this.state, input);
+    const request = {
+      ...prepared,
+      system: buildSystemBlocks(this.persona),
+      messages: [...prepared.messages, { role: 'system' as const, text: this.teachingBrief }],
+    };
     let turn;
     try {
       this.markTiming('brainSent');
@@ -2219,15 +2240,15 @@ export class LuvaniConversation extends voice.Agent {
       utterancesScored: 0,
     });
 
-    // Claim a durable record before the slower analyst calls start. If the app
-    // disappears at the recap, Practice can still show that its pack is being
-    // prepared; the later upsert replaces it with the curated ready version.
+    // Persist usable, deterministic practice before the slower analyst calls.
+    // Once this write succeeds, a worker crash cannot strand the conversation
+    // in "generating". Later curation enriches the same idempotent record.
     if (!this.safetyStopped) {
-      await reportConversationPack(this.conversationPackFor(recap, null, [], 'generating'));
+      await reportConversationPack(this.conversationPackFor(recap, null, [], 'ready'), { phase: 'baseline' });
     }
 
     // Only now, with the recap shipped, the seconds debited and a durable
-    // `generating` record claimed, the analyst does its background work. The
+    // ready baseline saved, the analyst does its background work. The
     // app is no longer the owner of post-session practice recovery.
     // Curation runs BEFORE drills so the drill author works from the curated
     // keep-list rather than everything the session touched.

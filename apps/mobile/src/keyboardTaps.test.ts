@@ -60,7 +60,8 @@ describe('taps and the keyboard — whether a press has to be made twice', () =>
   test('the choosing screen keeps taps while the keyboard is up', () => {
     const source = readFileSync(join(SRC, 'ConvoScreen.tsx'), 'utf8');
     const scrolls = source.match(SCROLL_VIEW_TAG) ?? [];
-    assert.equal(scrolls.length, 1, 'the choosing screen has exactly one scroll, and this test is about that one');
+    assert.equal(scrolls.length, 2, 'both the choosing content and live support can scroll');
+    assert.equal((source.match(/keyboardShouldPersistTaps="handled"/g) ?? []).length, 2, 'both scroll surfaces retain keyboard taps');
     assert.ok(
       source.includes('keyboardShouldPersistTaps="handled"'),
       'a learner who typed their topic and reached for Send must not have that press eaten by the keyboard closing',

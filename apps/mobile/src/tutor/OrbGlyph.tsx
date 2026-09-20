@@ -1,22 +1,21 @@
 /**
  * The still half of the tutor's voice circle.
  *
- * UI 4 made the important call: the tutor is a soft watercolour presence, not
- * a microphone button in a glass capsule. This drawing therefore owns only the
- * misty colour field and its three quiet rings. The direct white voice bars and
+ * The tutor is a voice presence rather than a microphone icon. A warm-paper
+ * collar connects it to the app's surfaces, with a centred colour field and
+ * three quiet rings. The direct white voice bars and
  * every moving part live one level up in `VoiceOrb`, where core Animated can
  * move transforms on the native driver without animating an SVG attribute.
  *
  * The mist uses one supplied state colour at several transparencies. It does
  * not smuggle a second purple into the palette, and it changes naturally to
- * green, amber or red when the room changes state. Two off-centre washes keep
- * the centre from reading as a polished app-store gradient while remaining
- * deterministic and inexpensive on native and web.
+ * green, amber or red when the room changes state. Every layer shares a centre:
+ * offset washes and transparent cores looked muddy on chartreuse feature cards.
  */
 
 import { useId } from 'react';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { decorative, STROKE } from '../theme.ts';
+import { decorative, paper, STROKE } from '../theme.ts';
 
 /** The drawing's square viewBox. `size` is always the whole ring field. */
 export const ORB_BOX = 200;
@@ -33,10 +32,10 @@ export function OrbGlyph({ color, size }: { color: string; size: number }) {
   return (
     <Svg width={size} height={size} viewBox={`0 0 ${ORB_BOX} ${ORB_BOX}`} {...decorative}>
       <Defs>
-        <RadialGradient id={baseId} cx="43%" cy="38%" r="64%">
+        <RadialGradient id={baseId} cx="50%" cy="50%" r="50%">
           <Stop offset="0" stopColor={color} stopOpacity={1} />
-          <Stop offset="0.58" stopColor={color} stopOpacity={0.86} />
-          <Stop offset="1" stopColor={color} stopOpacity={0.42} />
+          <Stop offset="0.58" stopColor={color} stopOpacity={0.96} />
+          <Stop offset="1" stopColor={color} stopOpacity={0.9} />
         </RadialGradient>
         <RadialGradient id={mistId} cx="50%" cy="50%" r="50%">
           <Stop offset="0" stopColor={color} stopOpacity={0.7} />
@@ -51,11 +50,10 @@ export function OrbGlyph({ color, size }: { color: string; size: number }) {
       <Circle cx={CENTRE} cy={CENTRE} r={87} fill="none" stroke={color} strokeOpacity={0.08} strokeWidth={STROKE} />
       <Circle cx={CENTRE} cy={CENTRE} r={78} fill="none" stroke={color} strokeOpacity={0.13} strokeWidth={STROKE} />
 
-      {/* One soft body plus two offset washes. Their edges overlap imperfectly,
-          which is the restrained watercolour texture in the approved mockup. */}
+      {/* A restrained halo and paper collar keep state colours clean on every surface. */}
+      <Circle cx={CENTRE} cy={CENTRE} r={92} fill={`url(#${mistId})`} opacity={0.12} />
+      <Circle cx={CENTRE} cy={CENTRE} r={75} fill={paper.ground} />
       <Circle cx={CENTRE} cy={CENTRE} r={69} fill={`url(#${baseId})`} />
-      <Circle cx={78} cy={76} r={54} fill={`url(#${mistId})`} opacity={0.55} />
-      <Circle cx={126} cy={124} r={50} fill={`url(#${mistId})`} opacity={0.34} />
     </Svg>
   );
 }

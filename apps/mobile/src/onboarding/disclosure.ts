@@ -139,12 +139,7 @@ export function MEET_TITLE(persona: TutorPersona): string {
  */
 export function MEET_AI(persona: TutorPersona): string {
   const p = pronouns(persona);
-  // The one noun `pronouns` deliberately does not carry. That table answers
-  // about pronouns, and a third kind of word in it makes it a table of whatever
-  // the next sentence happens to need. This is the only line in the module that
-  // wants the noun, so it asks for it here and nowhere else.
-  const person = p.subject === 'she' ? 'woman' : 'man';
-  return `${persona.name} is an AI tutor. The ${person} who ran a bar for twenty years is a character we wrote for ${p.object}, because a person is easier to talk to than a program. ${p.Subject} is made up. The French is real.`;
+  return `${persona.name} is an AI tutor with a character we wrote for ${p.object}. ${p.Subject} helps you practise natural French, explains useful patterns, and builds on the learning you choose to save.`;
 }
 
 /**
@@ -232,13 +227,12 @@ export function PERSONA_TITLE(persona: TutorPersona): string {
  * around it and it stays exactly where it is. `disclosure.test.ts` fails for
  * every one of the eight personas if it goes.
  *
- * What stays claimed: the bar, the twenty years, the not-a-teacher. Every one
- * of those is true of any voice in the catalogue. What is never claimed here is
- * a place or an age, for the reason F281 and F292 both give.
+ * The teaching role is explicit. No age, place or fabricated life story is
+ * claimed; the warmth comes from attentive teaching, not a human biography.
  */
 export function PERSONA_BODY(persona: TutorPersona): string {
   const p = pronouns(persona);
-  return `Not a quiz. ${persona.name} is an AI tutor with a character we wrote for ${p.object}: twenty years behind a bar, and not a teacher. ${p.Subject} asks about your day, waits while you find the French, and answers what you actually said.`;
+  return `Not a quiz. ${persona.name} is an AI tutor who teaches through conversation. ${p.Subject} responds to what you mean, explains one useful point when needed, and helps you try it again. Saved learning context helps the next conversation build on the last.`;
 }
 
 /**

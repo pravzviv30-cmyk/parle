@@ -22,7 +22,7 @@ describe('the conversation closes with something useful', () => {
     assert.match(screen, /phrase\.key !== keptPhrase\?\.key/);
     assert.match(screen, /slice\(0, MAX_CLOSURE_PHRASES - 1\)/);
     assert.match(screen, /<ConversationPackCard closure=\{remainingClosure\} \/>/);
-    assert.match(screen, /A phrase became yours\./);
+    assert.match(screen, /A phrase to take with you/);
   });
 
   test('the exact visible keepsake is durable before the recap calls it saved', () => {
@@ -39,9 +39,9 @@ describe('the conversation closes with something useful', () => {
     );
   });
 
-  test('practice reuses the existing own-words drill and finishing stays the primary action', () => {
-    assert.match(screen, /label="Practise this"/);
-    assert.match(screen, /label="Done for today"/);
+  test('practice is the recommended next action and finishing stays available', () => {
+    assert.match(screen, /<PillButton\s+label="Practise this phrase"/);
+    assert.match(screen, /<GhostButton label="Finish conversation"/);
     assert.match(convo, /leaveTo\(\(\) => onPractice\(phrase\)\)/);
     assert.match(
       convo,

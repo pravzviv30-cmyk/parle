@@ -18,9 +18,10 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation, type RouteProp, useRoute } from '@react-navigation/native';
-import { CAFE_LESSON, lessonXp, type ProgressReport, type Rung, type SessionSummary } from '@luvani/core';
+import { CAFE_LESSON, lessonXp, type ProgressReport, type Rung, type SessionSummary, type ReviewCard } from '@luvani/core';
+import { loadDeck } from '../review/store.ts';
 import { paper, space, type } from '../theme.ts';
 import { GhostButton, Label, PillButton } from '../components.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -39,9 +40,12 @@ import { DrillScreen } from '../DrillScreen.tsx';
 import { ReviewScreen } from '../ReviewScreen.tsx';
 import { MissionsScreen } from '../missions/MissionsScreen.tsx';
 import { RealMomentScreen } from '../tutor/RealMomentScreen.tsx';
+import { TutorIntro } from '../tutor/TutorIntro.tsx';
 import { TutorMemoryScreen } from '../profile/TutorMemoryScreen.tsx';
 import { PhrasebookScreen } from '../phrases/PhrasebookScreen.tsx';
 import { ConversationsScreen } from '../conversationPacks/ConversationsScreen.tsx';
+import { ConversationPracticeScreen } from '../conversationPacks/ConversationPracticeScreen.tsx';
+import { PRACTICE_PREVIEW } from '../conversationPacks/practicePreview.ts';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { snapshotFor } from '../profile/memory.ts';
 import { markPackPractised, packIdOfNode } from '../conversationPacks/marks.ts';
@@ -190,7 +194,7 @@ function LessonRoute() {
       />
     </Suspense>
   ) : (
-    <SessionScreen key="mock" lesson={CAFE_LESSON} startRung={startRung} onFinish={finish} onExit={() => nav.goBack()} />
+    <SessionScreen key="mock" lesson={CAFE_LESSON} startRung={startRung} textMode={textMode} onFinish={finish} onExit={() => nav.goBack()} />
   );
 }
 
@@ -215,6 +219,12 @@ function ConvoRoute() {
   const { live, recheck } = useLive();
   const [checking, setChecking] = useState(false);
   const missionId = route.params?.missionId;
+  const [reviewDeck, setReviewDeck] = useState<ReviewCard[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void loadDeck().then((deck) => { if (!cancelled) setReviewDeck(deck); }, () => { if (!cancelled) setReviewDeck([]); });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   /**
    * Whether this route is a replay, and where the replay opens.
@@ -300,7 +310,7 @@ function ConvoRoute() {
   // After the offline gate on purpose: a learner with no server to talk to gets
   // the honest screen at once rather than a spinner over a disk read that
   // cannot help them.
-  if (!replayRead) return <Loading />;
+  if (!replayRead || reviewDeck === null) return <Loading />;
   return (
     <Suspense fallback={<Loading />}>
       <LazyConvoScreen
@@ -309,7 +319,7 @@ function ConvoRoute() {
         // the facts the learner forgot and the goals they wrote (F562), so this
         // is where they are joined. The snapshot is the only thing that reaches
         // the agent, and `snapshotFor` is the one place it is composed.
-        snapshot={snapshotFor(profile)}
+        snapshot={snapshotFor(profile, reviewDeck)}
         onRecap={onRecap}
         onExit={() => nav.goBack()}
         onPractice={(phrase) => nav.replace('Drill', { ownWords: phrase })}
@@ -405,6 +415,7 @@ function TutorMemoryRoute() {
 }
 
 function RealMomentRoute() {
+  const route = useRoute<RouteProp<RootStackParamList, 'RealMoment'>>();
   const nav = useNavigation<{
     goBack: () => void;
     canGoBack: () => boolean;
@@ -415,11 +426,17 @@ function RealMomentRoute() {
   const leave = () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'));
   return (
     <RealMomentScreen
+      initialTextMode={route.params?.textMode ?? false}
       onBack={leave}
-      onStart={(seedTopic) => nav.navigate('Convo', { seedTopic })}
+      onStart={(seedTopic, textMode) => nav.navigate('Convo', { seedTopic, textMode })}
       onSeePlans={() => nav.navigate('Wall', { entry: 'settings' })}
     />
   );
+}
+
+function TutorIntroRoute() {
+  const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string) => void }>();
+  return <TutorIntro onDone={() => nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs')} />;
 }
 
 /**
@@ -438,6 +455,16 @@ function PhrasebookRoute() {
 function ConversationsRoute() {
   const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string) => void }>();
   return <ConversationsScreen onBack={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'))} />;
+}
+
+function ConversationPracticeRoute() {
+  const route = useRoute<RouteProp<RootStackParamList, 'ConversationPractice'>>();
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const preview = __DEV__ && route.params.packId === 'preview';
+  return <ConversationPracticeScreen key={route.params.packId} packId={route.params.packId}
+    previewPack={preview ? PRACTICE_PREVIEW : undefined}
+    onBack={() => nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs')}
+    onRecall={(node) => preview ? nav.navigate('Tabs') : nav.replace('Drill', { node })} />;
 }
 
 function SoundCheckRoute() {
@@ -526,11 +553,13 @@ export function RootNavigator({
       <Stack.Screen name="Missions" component={MissionsScreen} />
       <Stack.Screen name="RealMoment" component={RealMomentRoute} />
       <Stack.Screen name="TutorMemory" component={TutorMemoryRoute} />
+      <Stack.Screen name="TutorIntro" component={TutorIntroRoute} />
       {/* The evidence, the phrases and the archive: three blocks that used to
           be thirds of three tabs, each now a screen a learner asks for. They
           sit above the tabs like every other push, so the bar goes with them. */}
       <Stack.Screen name="Phrasebook" component={PhrasebookRoute} />
       <Stack.Screen name="Conversations" component={ConversationsRoute} />
+      <Stack.Screen name="ConversationPractice" component={ConversationPracticeRoute} />
       {/* `initialParams` is what makes the preview safe to open directly: with
           the wall as the initial route there is no navigate to carry a param, so
           without this `entry` would be undefined on the one path that exists to

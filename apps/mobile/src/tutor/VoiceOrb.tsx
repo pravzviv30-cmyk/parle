@@ -1,8 +1,7 @@
 /**
  * The tutor's voice circle.
  *
- * The approved direction is UI 4, softened rather than reinvented: a misty
- * state-coloured watercolour field, three quiet rings, and a white waveform
+ * A centred state-coloured voice surface, three quiet rings, and a white waveform
  * drawn directly on the colour. There is deliberately no microphone icon and
  * no frosted capsule inside the orb. On the Tutor landing page the short state
  * label sits directly under the bars; in a live room the existing caption can
@@ -256,13 +255,14 @@ export function VoiceOrb({
 
 const st = StyleSheet.create({
   root: { alignItems: 'center', justifyContent: 'center' },
-  signal: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', paddingTop: space(3) },
+  signal: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' },
   bars: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   bar: { backgroundColor: paper.onInk },
   embeddedLabel: {
     ...type.bodyStrong,
     color: paper.onInk,
-    marginTop: -space(2),
+    position: 'absolute',
+    bottom: '16%',
     textAlign: 'center',
   },
   caption: {

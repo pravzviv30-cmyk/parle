@@ -39,12 +39,14 @@ type Phase = 'tutor-speaking' | 'awaiting';
 export function SessionScreen({
   lesson,
   startRung,
+  textMode = false,
   onFinish,
   onExit,
 }: {
   lesson: Lesson;
   /** Where the ladder opens. Omitted, the lesson's own opening rung applies. */
   startRung?: Rung;
+  textMode?: boolean;
   onFinish: (s: SessionSummary) => void;
   /**
    * Leave the mock lesson. The demo path had no way out at all until the shared
@@ -76,6 +78,11 @@ export function SessionScreen({
   // synthesizer; the silent timer only survives as the no-French-voice fallback.
   useEffect(() => {
     if (phase !== 'tutor-speaking') return;
+    if (textMode) {
+      tutorVoice.stop();
+      setPhase('awaiting');
+      return;
+    }
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const handover = () => {
@@ -99,14 +106,14 @@ export function SessionScreen({
       if (timer) clearTimeout(timer);
       tutorVoice.stop();
     };
-  }, [phase, prompt]);
+  }, [phase, prompt, textMode]);
 
   // The rescue. The product's central promise, four lines long.
   useEffect(() => {
-    if (phase !== 'awaiting' || session.finished) return;
+    if (textMode || phase !== 'awaiting' || session.finished) return;
     const t = setTimeout(() => advance({ type: 'silence', durationMs: STUCK_SILENCE_MS }), STUCK_SILENCE_MS);
     return () => clearTimeout(t);
-  }, [phase, session.turnIndex, session.attemptsOnTurn, session.finished, advance]);
+  }, [phase, session.turnIndex, session.attemptsOnTurn, session.finished, advance, textMode]);
 
   useEffect(() => {
     if (!flash) return;
@@ -118,16 +125,16 @@ export function SessionScreen({
     (text: string) => {
       if (phase !== 'awaiting') return;
       tutorVoice.stop();
-      advance({ type: 'spoke', transcript: text, phonemes: mockObservations(prompt.turn), durationSec: estimateDurationSec(text) });
+      advance({ type: 'spoke', transcript: text, phonemes: textMode ? [] : mockObservations(prompt.turn), durationSec: textMode ? 0 : estimateDurationSec(text) });
     },
-    [advance, phase, prompt.turn],
+    [advance, phase, prompt.turn, textMode],
   );
 
   // A replay must never talk over the tutor, so hearing is a listening-time
   // affordance only.
   const support = prompt.support;
-  const onHearLine = phase === 'awaiting' && support.kind === 'full-line' ? () => tutorVoice.speak(support.line) : undefined;
-  const onOptionHear = phase === 'awaiting' ? (text: string) => tutorVoice.speak(text) : undefined;
+  const onHearLine = !textMode && phase === 'awaiting' && support.kind === 'full-line' ? () => tutorVoice.speak(support.line) : undefined;
+  const onOptionHear = !textMode && phase === 'awaiting' ? (text: string) => tutorVoice.speak(text) : undefined;
 
   // Never leave a voice speaking past the screen that started it.
   useEffect(() => () => tutorVoice.stop(), []);
@@ -139,6 +146,8 @@ export function SessionScreen({
       prompt={prompt}
       listening={phase === 'awaiting'}
       flash={flash}
+      headerLine={textMode ? 'Offline typed practice · No audio or microphone' : 'Offline demo · No microphone recording'}
+      onType={textMode ? speak : undefined}
       onLeave={onExit}
       onOptionPress={speak}
       onMicPress={() => speak(prompt.turn.target)}

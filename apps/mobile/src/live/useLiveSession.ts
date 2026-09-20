@@ -515,6 +515,8 @@ export function useLiveSession(
      * hint must never strand anyone, but that is not a reason to send blanks.
      */
     seedTopic?: { fr: string; en: string };
+    /** Owner-scoped lookup on the server; no stored conversation text is sent. */
+    continuationPackId?: string;
     /**
      * Which authored mission this session is, when a mission card started it.
      * It rides the same pipe `seedTopic` rides, into the join token and on to
@@ -565,6 +567,7 @@ export function useLiveSession(
   const mode = opts?.mode;
   const snapshot = opts?.snapshot;
   const seedTopic = opts?.seedTopic;
+  const continuationPackId = opts?.continuationPackId;
   const missionId = opts?.missionId;
   const tutorVoice = opts?.tutorVoice;
   const roomRef = useRef<Room | null>(null);
@@ -797,6 +800,7 @@ export function useLiveSession(
           ...(mode !== undefined ? { mode } : {}),
           ...(snapshot !== undefined ? { snapshot } : {}),
           ...(seedTopic !== undefined ? { seedTopic } : {}),
+          ...(continuationPackId !== undefined ? { continuationPackId } : {}),
           ...(missionId !== undefined ? { missionId } : {}),
           // Not a conditional spread, and that is the point of F291. Every
           // other field here is absent when it has nothing to say; this one is
@@ -1265,6 +1269,7 @@ export function useLiveSession(
     mode,
     snapshot,
     seedTopic,
+    continuationPackId,
     missionId,
     tutorVoice,
     send,

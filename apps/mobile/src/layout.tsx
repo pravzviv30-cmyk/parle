@@ -161,7 +161,7 @@ export function ScrollScreen({
  * step in a stack, the other abandons something the meter is counting, and a
  * header that offered both would let a learner think a tab switch left the room.
  */
-type ScreenHeaderProps = { title?: ReactNode } & (
+type ScreenHeaderProps = { title?: ReactNode; divider?: boolean } & (
   | { back?: { onPress: () => void; label?: string }; leave?: never }
   | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
 );
@@ -179,7 +179,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
   // width; the title sits in the flex centre between two equal touch floors, not
   // half a hit target off it because one side happened to be empty.
   return (
-    <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: HAIRLINE, borderBottomColor: paper.ink, marginBottom: space(4), paddingBottom: space(2) }}>
+    <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === false ? 0 : HAIRLINE, borderBottomColor: paper.ink, marginBottom: space(4), paddingBottom: space(2) }}>
       {back != null ? (
         <Pressable
           onPress={back.onPress}

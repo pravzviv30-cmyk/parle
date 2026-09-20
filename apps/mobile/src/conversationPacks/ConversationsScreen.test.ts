@@ -45,7 +45,7 @@ describe('your conversations, as a route of its own — F574', () => {
     assert.match(FLAT, /archive\.vault !== null &&/, 'the vault card is drawn from an unanswered read, so a first morning is shown to somebody who has had thirty conversations');
     assert.match(FLAT, /const shown = archive === null \? \[\] : sessionsUnder\(archive, filter\)/, 'the screen filters the feed itself instead of asking archive.ts');
     assert.match(FLAT, /<SessionRow key=\{session\.id\} session=\{session\}/, 'the feed no longer draws the shared session card');
-    assert.match(FLAT, /onRevisit=\{\(\) => nav\.navigate\('Drill'/, 'a feed row no longer opens the drill built from that conversation');
+    assert.match(FLAT, /onRevisit=\{\(\) => nav\.navigate\('ConversationPractice', \{ packId: session.id \}\)/, 'a feed row must open practice from that saved conversation');
 
     // The whole delete flow, handed to the library rather than written twice.
     assert.match(FLAT, /<ConversationPackLibrary packs=\{packs\}/, 'the library is gone, so the detail view and the delete flow are unreachable');

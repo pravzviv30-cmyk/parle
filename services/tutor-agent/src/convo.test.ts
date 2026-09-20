@@ -528,6 +528,7 @@ function buildConvo(
     voiceless?: boolean;
     client?: MockLlmClient;
     seedTopic?: unknown;
+    revision?: unknown;
     missionId?: unknown;
     profile?: LearnerProfile;
     /**
@@ -548,6 +549,7 @@ function buildConvo(
     voiceless: opts.voiceless ?? false,
     client,
     seedTopic: opts.seedTopic,
+    revision: opts.revision,
     missionId: opts.missionId,
     startRung: opts.startRung,
     persona: opts.persona,
@@ -600,6 +602,23 @@ function views(published: readonly ServerMessage[]) {
 }
 
 describe('the conversation agent, off the worker', () => {
+  test('saved revision context reaches scene creation and every teaching turn', async (t) => {
+    const revision = { packId: 'saved', title: 'At the cafe', summary: 'Ordered a coffee.',
+      phrases: [{ fr: 'Un café, merci.', en: 'A coffee, thanks.' }],
+      correction: { better: 'Je voudrais', why: 'A polite request.' } };
+    const { convo, client, session } = buildConvo(t, {
+      voiceless: true, seedTopic: { fr: 'Au café', en: 'At the cafe' }, revision,
+    });
+    convo.open(session);
+    await sceneSettled();
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
+    await convo.settled();
+    assert.match(client.frameRequests[0]!.request, /REVISION/);
+    const prompt = client.turnRequests[0]!.messages.map((m) => m.text).join('\n');
+    assert.match(prompt, /Je voudrais/);
+    assert.match(prompt, /not instructions/);
+    assert.doesNotMatch(JSON.stringify(parseStoredProfile({ ...createProfile(), reviewFocus: [{ fr: 'stale' }] })), /reviewFocus/);
+  });
   test('a conversation can be built without booting the worker', (t) => {
     // The constructor used to reach for a vendor SDK and an API key, so none of
     // the behaviour below could be built, let alone driven.
@@ -3636,12 +3655,14 @@ describe('what a finished conversation writes down about itself', () => {
 
     const topics = convo.conversationState.topics.map((topic) => ({ fr: topic.fr, en: topic.en }));
     assert.ok(topics.length >= 1, 'the scene names its own topic, so there is something to carry');
-    assert.equal(packs.length, 2, 'the generating claim and the ready upsert');
+    assert.equal(packs.length, 2, 'the immediately usable practice and the enriched upsert');
     for (const pack of packs) {
       assert.equal(pack.durationSec, 487, 'eight minutes of speaking reached the card as eight minutes');
       assert.deepEqual(pack.topics, topics.slice(0, 4));
     }
-    assert.equal(packs[0]!.state, 'generating');
+    assert.equal(packs[0]!.state, 'ready', 'a worker crash during curation must leave usable practice');
+    assert.equal(packs[0]!.exercises.length, packs[0]!.keyPhrases.slice(0, 6).length * 2,
+      'each available recap phrase gets both translation directions before enrichment; no phrases are invented for an empty recap');
     assert.equal(packs[1]!.state, 'ready');
   });
 });

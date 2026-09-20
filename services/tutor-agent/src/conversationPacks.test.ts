@@ -29,5 +29,12 @@ test('Conversation Pack delivery retries a transient response and uses the agent
   });
   assert.equal(attempts, 2);
   assert.equal((request?.headers as Record<string, string>)['x-luvani-agent'], 'agent-secret');
-  assert.deepEqual(JSON.parse(String(request?.body)), { userId: pack.learnerId, sessionId: pack.sessionId, pack });
+  assert.deepEqual(JSON.parse(String(request?.body)), { userId: pack.learnerId, sessionId: pack.sessionId, pack, phase: 'final' });
+});
+
+test('baseline delivery explicitly requests durable recovery', async () => {
+  await reportConversationPack(pack, {phase:'baseline',request:async(_url,init)=>{
+    assert.equal(JSON.parse(String(init?.body)).phase,'baseline');
+    return new Response('{}');
+  }});
 });

@@ -121,6 +121,7 @@ export default defineAgent({
       mode?: string;
       snapshot?: unknown;
       seedTopic?: unknown;
+      revision?: unknown;
       missionId?: unknown;
       tutorVoice?: unknown;
     };
@@ -231,11 +232,15 @@ export default defineAgent({
     // mission tests all build LuvaniConversation directly and never come
     // through this door.
     const missionId = meta.missionId;
+    const reviewFocus = typeof meta.snapshot === 'object' && meta.snapshot !== null
+      ? (meta.snapshot as { reviewFocus?: unknown }).reviewFocus : undefined;
 
     const tutor = isConvo
       ? new LuvaniConversation(parseStoredProfile(meta.snapshot), {
           voiceless,
           seedTopic,
+          revision: meta.revision,
+          reviewFocus,
           missionId,
           // The same clamped rung the scripted lesson below already got, now
           // reaching the branch a mission actually runs on. It rode this far
@@ -430,7 +435,9 @@ export default defineAgent({
       }
     });
 
-    await session.start({ agent: tutor, room: ctx.room });
+    // Learning artefacts are saved explicitly; do not upload raw session audio,
+    // transcripts, logs or traces through the SDK's default cloud recorder.
+    await session.start({ agent: tutor, room: ctx.room, record: false });
 
     if (tutor instanceof LuvaniConversation) {
       // The scene opens: the character speaks first and the app renders the

@@ -83,21 +83,21 @@ const RETIRED = [
  * is all `labelsInSource` can see: it reads literals.
  */
 const KEPT = [
-  'Say this',
+  'Your turn',
   'Tell them this, in French',
   'The waiter',
   // 'Your level' and 'What you have' left with F399: the level card and the
   // four-stat rail are My French's alone now, and Home opens on what there is
   // to do today. Both labels still exist where they are drawn; neither is a
   // label Home says any more.
-  'What moved today',
+  'Your practice today',
   'Since you started',
   'Your notebook',
   'Your wins',
   'Small fixes',
   'New phrases',
   'Next step',
-  'The sound to work on',
+  'One sound to practise next',
   'You',
 ];
 

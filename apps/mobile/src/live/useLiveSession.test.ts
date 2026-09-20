@@ -1257,6 +1257,7 @@ describe('the voice the learner chose, on its way to the agent — F291', () => 
     mode: 'convo',
     snapshot: undefined,
     seedTopic: undefined,
+    continuationPackId: undefined,
     missionId: undefined,
     tutorVoice: chosen,
     DEFAULT_TUTOR_VOICE,

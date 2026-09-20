@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Luvani · Voice comparison</title>
+<style nonce="__NONCE__">
+body{margin:0;background:#f7f4e9;color:#283228;font:16px/1.6 system-ui,sans-serif}main{max-width:600px;margin:8vh auto;padding:28px}h1{font:42px/1.1 Georgia,serif;letter-spacing:-1px}small{letter-spacing:2px;text-transform:uppercase}section{border:1px solid #d9dbcc;border-radius:24px;padding:24px;margin:28px 0;background:#fffff780}button{font:inherit;border:1px solid #283228;border-radius:99px;padding:12px 24px;cursor:pointer;background:#d9ff61;margin:4px}button:disabled{opacity:.45;cursor:default}#end{background:transparent}.orb{margin:12px auto 28px;width:88px;height:88px;border-radius:50%;display:grid;place-items:center;background:#d9ff61;box-shadow:0 0 0 8px #f0f1df;font-size:28px}#status{min-height:50px}li{margin:12px 0}a{color:inherit}
+</style></head><body><main>
+<small>Luvani · Private test</small><h1>A more natural conversation.</h1>
+<p>Compare the experimental AI voice with your current Tutor. This is a voice-quality test, not a lesson: it does not save memories, practice cards or progress.</p>
+<section><div class="orb" aria-hidden="true">〰</div>
+<p id="status" role="status" aria-live="polite">Ready when you are. Use headphones and a quiet room.</p>
+<button id="start">Start five-minute test</button><button id="end" disabled>End test</button>
+<p><small>Microphone audio goes to LiveKit and OpenAI. Luvani session recording is disabled. Provider processing policies still apply.</small></p></section>
+<h2>Try these moments</h2><ol><li>Order a coffee in French, then ask what a phrase means.</li><li>Pause for several seconds while thinking.</li><li>Interrupt a long reply and change your order.</li><li>Make the same mistake twice. Does the correction help?</li><li>Switch between English and French. Does it follow you?</li></ol>
+<p>Maximum 20 starts, five minutes each and ten backend teaching requests per session. Failed starts count. These are usage limits, not a guaranteed currency cap.</p>
+<p><a href="http://localhost:8082/tutor" target="_blank" rel="noopener">Open the current Tutor for comparison ↗</a></p>
+</main><script src="/livekit.js"></script><script nonce="__NONCE__">
+const start=document.getElementById('start'), end=document.getElementById('end'), status=document.getElementById('status');
+let room, timer, joining=false;
+async function stop(message='Test ended. Nothing was saved to your learning profile.') {
+  clearTimeout(timer); const active=room; room=undefined;
+  if(active) await active.disconnect();
+  joining=false; start.disabled=false; end.disabled=true; status.textContent=message;
+  document.querySelectorAll('audio').forEach(node=>node.remove());
+}
+start.addEventListener('click',async()=>{
+  if(joining||room)return; joining=true; start.disabled=true; status.textContent='Checking your microphone…';
+  try {
+    // Permission comes first, so denying it does not consume a paid admission.
+    const mic=await navigator.mediaDevices.getUserMedia({audio:true}); mic.getTracks().forEach(track=>track.stop());
+    const response=await fetch('/session',{method:'POST',headers:{'x-lab-nonce':'__NONCE__'}});
+    if(!response.ok)throw new Error(await response.text());
+    const admission=await response.json();
+    const active=new LivekitClient.Room(); room=active;
+    active.on(LivekitClient.RoomEvent.TrackSubscribed,track=>{if(track.kind==='audio')document.body.appendChild(track.attach());});
+    active.on(LivekitClient.RoomEvent.Disconnected,()=>{if(room===active)void stop('The test connection closed.');});
+    status.textContent='Connecting the experimental voice…';
+    await active.connect(admission.url,admission.token);
+    await active.startAudio(); await active.localParticipant.setMicrophoneEnabled(true);
+    end.disabled=false; joining=false;
+    status.textContent='Connected. Your AI tutor should greet you shortly.';
+    timer=setTimeout(()=>void stop('The five-minute test is complete.'),Math.max(0,admission.expiresAt-Date.now()));
+  } catch(error) { await stop(error instanceof Error?error.message:'The test could not connect.'); }
+});
+end.addEventListener('click',()=>void stop());
+window.addEventListener('pagehide',()=>{if(room)void room.disconnect();});
+</script></body></html>

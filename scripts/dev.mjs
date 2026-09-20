@@ -203,6 +203,14 @@ async function main() {
       die(verdict.message);
     }
     if (verdict.kind === 'reuse') {
+      if (step.id === 'token' && process.env.LUVANI_DURABLE_PRACTICE === '1') {
+        let durable = false;
+        try { durable = JSON.parse(result.body).durablePractice === true; } catch { /* older server */ }
+        if (!durable) {
+          shutdown(1);
+          die('The existing token API does not have durable practice enabled. Stop its dev supervisor, then run npm run dev:durable.');
+        }
+      }
       say('dev', verdict.note);
       continue;
     }
@@ -226,6 +234,13 @@ async function main() {
     say('dev', `${step.label} has not registered yet. Carrying on; watch its lines above for why.`);
   }
 
+  if (process.env.LUVANI_DURABLE_PRACTICE === '1') {
+    // Secrets remain in backend processes; never give this merged environment to Expo.
+    launch({ label: 'practice', command: process.execPath,
+      args: ['--experimental-strip-types', 'services/token-server/src/practiceWorker.ts'] },
+      { ...agentEnv, ...tokenEnv, ...childEnv });
+    say('dev', 'practice recovery worker started; applied database migrations are required.');
+  }
   say('dev', '');
   say('dev', `Luvani is up. Open http://localhost:8082`);
   say('dev', 'For the microphone, use a real browser rather than an embedded pane.');

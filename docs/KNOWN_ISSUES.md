@@ -5955,7 +5955,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   centred `PillButton` "Open conversation" under it, no "Free improvisation". Footer keeps `open(true)`, the
   intro link with `HelpGlyph`, and `MICROPHONE_NOTICE`. `doors.map(` and `open(true)` stay so chooserView's
   guard holds.
-- verified-by: `the tutor tab draws three tinted rows, one remembers row and no pill`
+- verified-by: `the tutor tab draws shared rows and one explicit primary action`
 - note (2026-09-12): the doors grew to six with F547 and the test was rewritten under that title; the tab
   still draws exactly what the door model says.
 - note: revamp A (2026-09): the doors became three tinted rows with the remembers row under them and no
@@ -8137,7 +8137,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   chat, so a second pill for the same door was a second answer to one question.
 - note: revamp A (2026-09): the three entry modes are unchanged and the fourth door went to the chooser;
   the resume card's pill went too, so the tab now keeps none and the test is named for that.
-- verified-by: `the tutor tab draws three tinted rows, one remembers row and no pill`
+- verified-by: `the tutor tab draws shared rows and one explicit primary action`
 
 ### F548 — A learner cannot bring a real situation to the tutor
 - severity: P2
@@ -8393,7 +8393,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/tabs/TutorTab.tsx:1
 - note: revamp A. The speak card, the resume card, the folded situations and the lesson door leave the
   tab; the lesson becomes a door on the chooser and the intro link moves to Settings.
-- verified-by: `the tutor tab draws three tinted rows, one remembers row and no pill`
+- verified-by: `the tutor tab draws shared rows and one explicit primary action`
 - verified-by: `the pronunciation lesson is a door on the chooser`
 
 ### F574 — Practice is one next practice and three rows, with the archive in Conversations

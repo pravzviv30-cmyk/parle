@@ -488,8 +488,9 @@ describe('the first-run disclosure follows the chosen persona — F294', () => {
       // Agreement, both ways round: the right pronouns are present and the
       // other set is absent. Only asserting the first would pass a body that
       // said "her" once and "him" twice.
-      assert.ok(body.includes(` ${p.object}:`), `the body does not use "${p.object}" for ${persona.name}`);
-      assert.ok(body.includes(`${p.Subject} asks`), `the body does not use "${p.Subject}" for ${persona.name}`);
+      assert.ok(body.includes(`${p.Subject} responds`), `the body does not use "${p.Subject}" for ${persona.name}`);
+      assert.match(body, /teaches through conversation/, 'the introduction should promise teaching, not deny it');
+      assert.doesNotMatch(body, /not a teacher|twenty years|ran a bar/i, 'the introduction must not invent a human life');
       for (const line of [title, body]) {
         assert.doesNotMatch(
           line,

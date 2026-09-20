@@ -33,7 +33,7 @@
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { phraseKeyOf, type ConversationPack, type ReviewCard } from '@luvani/core';
+import { type ConversationPack, type ReviewCard } from '@luvani/core';
 
 import { Label } from '../components.tsx';
 import { ChatGlyph } from '../glyphs.tsx';
@@ -117,18 +117,11 @@ export function ConversationsScreen({ onBack }: { onBack: () => void }) {
       <ConversationPackLibrary
         packs={packs}
         onBack={() => setShowingLibrary(false)}
-        onReview={(pack) =>
-          nav.navigate('Drill', {
-            node: {
-              id: pack.id,
-              title: pack.title.en,
-              phraseKeys: pack.keyPhrases.map((phrase) => phraseKeyOf(phrase.fr)),
-            },
-          })
-        }
+        onReview={(pack) => nav.navigate('ConversationPractice', { packId: pack.id })}
         onContinue={(pack) =>
           nav.navigate('Convo', {
             seedTopic: { fr: pack.continuationSeed.titleFr, en: pack.continuationSeed.titleEn },
+            continuationPackId: pack.id,
           })
         }
         onDeleteOne={async (pack) => {
@@ -187,11 +180,7 @@ export function ConversationsScreen({ onBack }: { onBack: () => void }) {
               <SessionRow
                 key={session.id}
                 session={session}
-                onRevisit={() =>
-                  nav.navigate('Drill', {
-                    node: { id: session.id, title: session.titleEn, phraseKeys: session.phraseKeys },
-                  })
-                }
+                onRevisit={() => nav.navigate('ConversationPractice', { packId: session.id })}
               />
             ))}
           </View>

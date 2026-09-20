@@ -10,6 +10,7 @@ export interface ConversationPackReportOptions {
   tokenServer?: string;
   agentSecret?: string;
   attempts?: number;
+  phase?: 'baseline' | 'final';
   sleep?: (milliseconds: number) => Promise<void>;
 }
 
@@ -39,7 +40,7 @@ export async function reportConversationPack(
           ...(agentSecret ? { 'x-luvani-agent': agentSecret } : {}),
         },
         signal: AbortSignal.timeout(5_000),
-        body: JSON.stringify({ userId: pack.learnerId, sessionId: pack.sessionId, pack }),
+        body: JSON.stringify({ userId: pack.learnerId, sessionId: pack.sessionId, pack, phase: options.phase ?? 'final' }),
       });
       if (response.ok) {
         console.log(`[luvani] conversation pack recorded session=${pack.sessionId.slice(0, 8)} state=${pack.state}`);

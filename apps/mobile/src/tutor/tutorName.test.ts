@@ -331,10 +331,8 @@ describe('onboarding introduces the voice already on the record — F300', () =>
 
       // The one noun in the copy that has a gender. The life story is the
       // sentence most likely to be left behind by a pronoun-only fix.
-      assert.ok(
-        MEET_AI(persona).includes(`The ${noun} who ran a bar`),
-        `${persona.name}'s life story is told about a ${noun === 'man' ? 'woman' : 'man'}`,
-      );
+      assert.match(MEET_AI(persona), /character we wrote/, 'the persona must be disclosed as authored');
+      assert.doesNotMatch(MEET_AI(persona), /ran a bar|twenty years|not a teacher/, 'the tutor must not inherit a fabricated life story');
       // The rule that outranks all of this and is never allowed to move: the
       // sentence carrying the invented life also says what she is.
       assert.match(MEET_AI(persona), /\bAI tutor\b/, `${persona.name}'s meet page went back to a biography`);
@@ -350,8 +348,7 @@ describe('onboarding introduces the voice already on the record — F300', () =>
       assert.equal(MEET_TITLE(persona), `Meet ${TUTOR_NAME}`);
       assert.equal(
         MEET_AI(persona),
-        `${TUTOR_NAME} is an AI tutor. The man who ran a bar for twenty years is a character we wrote for him, ` +
-          `because a person is easier to talk to than a program. He is made up. The French is real.`,
+        `${TUTOR_NAME} is an AI tutor with a character we wrote for him. He helps you practise natural French, explains useful patterns, and builds on the learning you choose to save.`,
       );
       assert.equal(
         MEET_PRIVACY(persona),

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { buildConversationPack, phraseKeyOf, validateExercise } from '@luvani/core';
 
-import { REPEATED_PHRASES, packExercisesFor, repairKeyOf } from './packExercises.ts';
+import { REPEATED_PHRASES, packExercisesFor, repairKeyOf, reviewPhrasesFor } from './packExercises.ts';
 
 function pack(corrections = true) {
   return buildConversationPack({
@@ -20,6 +20,14 @@ function pack(corrections = true) {
 }
 
 describe('the drills a pack does not yet carry (F553)', () => {
+  test('recovering a pack restores phrase and correction cards without claiming mastery', () => {
+    const phrases = reviewPhrasesFor(pack());
+    assert.equal(phrases.length, 6);
+    assert.ok(phrases.some((p) => p.fr === 'Je voudrais le code wifi'));
+    assert.ok(phrases.every((p) => p.note?.includes('The wifi password')));
+    assert.ok(phrases.every((p) => !('mastered' in p) && !('timesUsedWell' in p)));
+    assert.equal(reviewPhrasesFor({ ...pack(), keyPhrases: [...pack().keyPhrases, ...pack().keyPhrases] }).length, 6);
+  });
   test('a pack synthesises a repair drill and a repeat for its key phrases, keyed by phrase', () => {
     const drills = packExercisesFor(pack());
     for (const drill of drills) assert.ok(validateExercise(drill).ok, `${drill.id} is not a valid exercise`);

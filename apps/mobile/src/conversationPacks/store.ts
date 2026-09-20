@@ -4,9 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isConversationPack, normaliseConversationPacks, type ConversationPack } from '@luvani/core';
 import type { AuthAdapter, AuthUser } from '../auth/types.ts';
 import { mergeExercises } from '../drill/store.ts';
-import { packExercisesFor } from './packExercises.ts';
+import { packExercisesFor, reviewPhrasesFor } from './packExercises.ts';
+import { addPhrases } from '../review/store.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
-import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { activeUserId, onUserScopeReset, userKey } from '../storage/scope.ts';
 import { orderedConversationPacks } from './model.ts';
 
 const VERSION = 1;
@@ -94,10 +95,18 @@ export async function refreshConversationPacks(
       ? (body as { packs: unknown[] }).packs.filter((pack): pack is ConversationPack => isConversationPack(pack) && pack.learnerId === user.id)
       : [];
     const ordered = normaliseConversationPacks(orderedConversationPacks(packs));
+    if (activeUserId() !== user.id) return { ok: false };
     await replaceConversationPacks(ordered);
+    if (activeUserId() !== user.id) return { ok: false };
+    // A disconnected recap can lose the phrase packet too. Restoring only the
+    // exercises leaves Drill with no review cards to schedule. Merge by phrase
+    // identity, with no invented conversation-use or mastery evidence.
+    await addPhrases(ordered.filter((pack) => pack.state === 'ready').flatMap(reviewPhrasesFor), { stagger: true });
+    if (activeUserId() !== user.id) return { ok: false };
     await mergeExercises(ordered.flatMap((pack) => pack.exercises));
     // The repair and the repeats the server does not write (F553), keyed so
     // the bank folds them beside the server's own pairs rather than over them.
+    if (activeUserId() !== user.id) return { ok: false };
     await mergeExercises(ordered.flatMap(packExercisesFor));
     return { ok: true, packs: ordered };
   } catch {

@@ -263,6 +263,7 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     mode: 'lesson',
     snapshot: undefined,
     seedTopic: undefined,
+    continuationPackId: undefined,
     missionId: undefined,
     // F291 puts the chosen voice on every start body, resolved rather than
     // conditional, so both names the expression reaches for have to exist here

@@ -36,9 +36,9 @@ export interface TutorOfflineCopy {
 }
 
 export const TUTOR_OFFLINE: TutorOfflineCopy = {
-  label: 'Demo mode',
-  headline: 'The live tutor needs its servers up. Practice still works.',
-  body: 'Your tutor is not answering yet. Practice is ready whenever you are.',
+  label: 'Connection unavailable',
+  headline: 'Your tutor cannot connect right now.',
+  body: 'Try again in a moment, or keep practising with a guided lesson.',
   retry: 'Check again',
   checking: 'Checking',
   back: 'Back',
@@ -132,9 +132,9 @@ export interface TutorDoor {
  */
 export function tutorDoors(): TutorDoor[] {
   return [
-    { key: 'everyday', label: 'Everyday mission', gloss: 'Try a real-life scenario' },
-    { key: 'free', label: 'Open chat', gloss: 'Talk about anything' },
-    { key: 'rehearse', label: 'Rehearse something', gloss: 'Practise what you need' },
+    { key: 'everyday', label: 'Explore everyday missions', gloss: 'Practise French for everyday situations.' },
+    { key: 'free', label: 'Open conversation', gloss: 'Bring a topic, or choose one together.' },
+    { key: 'rehearse', label: 'Prepare for a real moment', gloss: 'Rehearse something coming up in your life.' },
   ];
 }
 

@@ -63,9 +63,9 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     assert.deepEqual(capabilitiesFor('unknown'), capabilitiesFor('trial'), 'a plan nobody could read opens a door the trial does not');
     assert.equal(capabilitiesFor('trial').customRehearsal, false);
     const screen = readFileSync(join(SRC, 'tutor', 'RealMomentScreen.tsx'), 'utf8');
-    assert.match(screen, /capabilitiesFor\(status === null \? 'unknown' : status\.plan, status\?\.lapsed \?\? false\)\.customRehearsal/, 'the screen reads the door from somewhere other than the plan the server answered');
+    assert.match(screen, /status === null \? null : capabilitiesFor\(status\.plan, status\.lapsed\)\.customRehearsal/, 'an unread plan cannot be treated as an upgrade opportunity');
     assert.match(screen, /\{allowed === false && \([\s\S]*?\{MAX_ONLY_LINE\}[\s\S]*?<OutlineButton label=\{SEE_PLANS\} onPress=\{onSeePlans\}/, 'a gated learner is not told plainly, or has no way to the plans');
-    assert.match(screen, /\{allowed === true && \([\s\S]*?<PillButton label=\{REHEARSE_ACTION\}/, 'an allowed learner has no way to rehearse');
-    assert.doesNotMatch(screen, /allowed === null && \(/, 'the screen draws something for a plan that has not answered yet');
+    assert.match(screen, /\{allowed === true && \([\s\S]*?<PillButton label=\{checking \? 'Connecting…' : REHEARSE_ACTION\}/, 'an allowed learner has no way to rehearse');
+    assert.match(screen, /allowed === null && <Text accessibilityLiveRegion="polite"/, 'plan loading or failure is explained');
   });
 });

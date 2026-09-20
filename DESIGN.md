@@ -24,6 +24,20 @@ pressure, no text clipping and no cap on the learner's reading size.
 
 ### Current composition rules
 
+- Tutor revision (20 September): the chartreuse recommendation panel leads with
+  an actual unfinished mission, an eligible conversation continuation, or the
+  next guided mission. A compact 96pt orb sits beside clear Speak/Type selection
+  and one dark Start action. Pronunciation and tutor-memory controls are directly
+  reachable. Mission rows show their goals and recorded status. Real Moment
+  discloses Max before setup and distinguishes a failed plan read from an upgrade.
+- Live Tutor keeps its purpose in the header and its microphone near the reply
+  controls. Corrections offer a natural alternative without crossing out the
+  learner's words; scrolling back through the transcript does not force a jump
+  to new messages. Guided lessons explain support in words and reveal IPA on
+  request. Recaps prioritise a useful next practice and offer retry after a
+  failed phrase save. Memory editing and clearing are explicit; clearing details
+  requires confirmation and keeps goals and saved conversations.
+
 - Feature: chartreuse, an ink rule, 12pt corners. Used for the mission hero,
   onboarding story, tutor studio, profile identity and chosen plan.
 - Journal: warm paper, a strong left rule and French serif text. Used for
@@ -508,9 +522,8 @@ has only ever been tightened: the count is pinned per tab at exactly what each
 one draws, over the tab AND every card it draws, so a pill that moves into a
 component cannot go uncounted. Two tabs draw one each and three draw none. Home's
 is Start conversation on tonight's card. Practice's is the first conversation,
-which only a learner who has never had one ever meets. Tutor has none, because
-the circle is the way into a conversation and a pill beside it would be a second
-answer to the same question; My French has none, because a list of places is a
+which only a learner who has never had one ever meets. Tutor now has one explicit
+Start action in its recommendation panel, with Speak/Type selection; My French has none, because a list of places is a
 list and the next place is the first row of it; Profile has none, because nothing
 on it is a thing to start.
 

@@ -15,18 +15,18 @@
  * themselves, which is most of the reason recasts fail to land.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
-import { accent, paper, shadow, signal, space, type, radius, HAIRLINE } from '../theme.ts';
+import { accent, paper, shadow, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
 import { EarGlyph, Label, TintPanel } from '../components.tsx';
 import type { TurnLine } from '../live/turns.ts';
 import { settleIn, useReduceMotion } from '../motion.ts';
 import { replayEar } from './replayEar.ts';
 
-function Recast({ quote, better, betterEn, why }: { quote: string; better: string; betterEn: string; why: string }) {
+function Recast({ better, betterEn, why }: { quote: string; better: string; betterEn: string; why: string }) {
   return (
     <View style={st.recast}>
-      <Text style={[type.small, { color: paper.inkSoft, textDecorationLine: 'line-through' }]}>{quote}</Text>
+      <Label>A more natural way</Label>
       <Text style={[type.french, { color: paper.ink, marginTop: space(0.5) }]}>{better}</Text>
       <Text style={[type.small, { color: paper.inkSoft }]}>{betterEn}</Text>
       <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{why}</Text>
@@ -161,6 +161,8 @@ export function Transcript({
   tutorSpeaking: boolean;
 }) {
   const ref = useRef<ScrollView>(null);
+  const nearBottom = useRef(true);
+  const [newLines, setNewLines] = useState(false);
   // One settling entrance, in the vocabulary the splash established and the
   // only one this app has: transform and opacity, native driver, nothing
   // bounces. It lives here rather than at the call site so both places the
@@ -196,7 +198,15 @@ export function Transcript({
         showsVerticalScrollIndicator={false}
         // A plain ScrollView rather than a FlatList: the list is capped at forty
         // and windowing would fight the stick-to-bottom below.
-        onContentSizeChange={() => ref.current?.scrollToEnd({ animated: true })}
+        onScroll={({ nativeEvent: { contentOffset, contentSize, layoutMeasurement } }) => {
+          nearBottom.current = contentSize.height - layoutMeasurement.height - contentOffset.y < 64;
+          if (nearBottom.current) setNewLines(false);
+        }}
+        scrollEventThrottle={100}
+        onContentSizeChange={() => {
+          if (nearBottom.current) ref.current?.scrollToEnd({ animated: !reduced });
+          else setNewLines(true);
+        }}
         // A learner may be typing into the box below this one while it scrolls.
         keyboardShouldPersistTaps="handled"
         accessibilityLabel="Your conversation so far"
@@ -212,11 +222,15 @@ export function Transcript({
           />
         ))}
       </ScrollView>
+      {newLines && <Pressable accessibilityRole="button" accessibilityLabel="Go to the latest message" onPress={() => { nearBottom.current = true; setNewLines(false); ref.current?.scrollToEnd({ animated: !reduced }); }} style={st.latest}>
+        <Text style={[type.small, { color: paper.ink }]}>Latest message ↓</Text>
+      </Pressable>}
     </Animated.View>
   );
 }
 
 const st = StyleSheet.create({
+  latest: { minHeight: HIT, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: space(4), backgroundColor: paper.groundDeep, borderRadius: radius.control },
   // The entrance wrapper carries the same flex the scroll used to, so adding it
   // moves nothing: minHeight 0 is what stops a flex child from refusing to
   // shrink and pushing the controls off the bottom of the screen.
@@ -262,6 +276,6 @@ const st = StyleSheet.create({
     marginTop: space(1.5),
     paddingLeft: space(3),
     borderLeftWidth: 2,
-    borderLeftColor: signal.correspondance,
+    borderLeftColor: paper.ink,
   },
 });

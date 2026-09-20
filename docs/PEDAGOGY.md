@@ -108,6 +108,18 @@ A phoneme with no drill is skipped and the next candidate is taken. Naming a
 problem with no way to fix it is worse than silence — but so is falling silent
 about a problem that *does* have a drill because a different one did not.
 
+## Practice answer disclosure
+
+An incorrect answer gets one retry without an answer or translation. Only the
+second incorrect attempt on that exercise reveals it. The drill engine hides
+the answer in both feedback copy and feedback data; conversation matching and
+listen/read-and-choose use the same two-miss limit with separate counts per item.
+Changing items starts a fresh count. A correct answer completes immediately.
+French choice exercises do not display English glosses that solve the question.
+Translation prompts and pronunciation references remain visible where they are
+the task's input, not its answer. Guided introductions and explicitly revealed
+flashcards remain distinct from graded retrieval.
+
 ## What counts as learned
 
 `packages/core/src/review/evidence.ts`. Every phrase carries one record, and it

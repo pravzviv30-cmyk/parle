@@ -6,6 +6,7 @@ import {
   deleteAllConversationPacks,
   deleteConversationPack,
   listConversationPacks,
+  getConversationPack,
   saveConversationPack,
   validConversationPackFor,
 } from './conversationPacks.ts';
@@ -18,6 +19,20 @@ const pack = buildConversationPack({
   title: { fr: 'Au café', en: 'At the cafe' },
   summary: 'You ordered a coffee.',
   keyPhrases: [{ fr: 'Un café, s’il vous plaît.', frWritten: null, en: 'A coffee, please.' }],
+});
+
+test('continuation lookup never returns another learner or another conversation', async () => {
+  const read = (payload: unknown) => getConversationPack('https://project.supabase.co', 'secret', 'learner-1', pack.id, async (url) => {
+    assert.match(String(url), /user_id=eq\.learner-1/);
+    assert.match(String(url), /&limit=1$/);
+    return new Response(JSON.stringify([{ payload }]));
+  });
+  assert.deepEqual(await read(pack), pack);
+  assert.equal(await read({ ...pack, learnerId: 'learner-2' }), null);
+  assert.equal(await read({ ...pack, id: 'other', sessionId: 'other' }), null);
+  assert.equal(await read({ ...pack, state: 'generating' }), null);
+  await assert.rejects(getConversationPack('https://project.supabase.co', 'secret', 'learner-1', pack.id,
+    async () => new Response(null, { status: 503 })), /read failed/);
 });
 
 test('pack writes upsert on the session identity', async () => {

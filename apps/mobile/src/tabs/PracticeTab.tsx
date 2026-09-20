@@ -25,7 +25,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { phraseKeyOf, type ConversationPack, type ReviewCard } from '@luvani/core';
+import { type ConversationPack, type ReviewCard } from '@luvani/core';
 import { accent, paper, space, type } from '../theme.ts';
 import { Card, GhostButton, Label, OutlineButton, PillButton, TintRow } from '../components.tsx';
 import { ReplayGlyph } from '../glyphs.tsx';
@@ -261,7 +261,7 @@ export function PracticeTab() {
                 ) : step.kind === 'pack' ? (
                   <OutlineButton
                     label={PACK_ACTION}
-                    onPress={() => revisit({ id: step.pack.id, title: step.pack.title.en, phraseKeys: step.pack.keyPhrases.map((phrase) => phraseKeyOf(phrase.fr)) })}
+                    onPress={() => nav.navigate('ConversationPractice', { packId: step.pack.id })}
                   />
                 ) : (
                   <View style={st.firstStart}>

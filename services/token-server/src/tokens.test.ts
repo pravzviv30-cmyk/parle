@@ -162,6 +162,14 @@ describe('session shape in token metadata', () => {
     assert.equal(meta.startRung, 3);
   });
 
+  test('server-owned revision is allowlisted into the signed metadata', async () => {
+    const revision = { packId: 'saved', title: 'At a cafe', summary: 'Ordered coffee.', phrases: [{ fr: 'Un café', en: 'A coffee' }], correction: null };
+    const meta = await metadataFor({ revision });
+    assert.deepEqual(meta.revision, revision);
+    assert.equal((await metadataFor({ revision: { ...revision, phrases: [{}] } as never })).revision, undefined);
+    assert.equal((await metadataFor({})).revision, undefined);
+  });
+
   test('invalid startRung values are dropped rather than signed', async () => {
     for (const bad of [0, 5, 3.5, 'x' as unknown as number]) {
       const meta = await metadataFor({ startRung: bad });

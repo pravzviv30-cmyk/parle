@@ -190,10 +190,6 @@ export function PreAccountOnboarding({
 
   const body = (
     <>
-      <View style={st.chapter}>
-        <Label>Luvani · A little French, every day</Label>
-        <Text style={st.chapterNumber}>{String(index + 1).padStart(2, '0')} / 05</Text>
-      </View>
       {page === 'welcome' && (
         <>
         <Card tone="feature" style={st.welcomePanel}>
@@ -360,7 +356,7 @@ export function PreAccountOnboarding({
 
   return (
     <ScrollScreen
-      header={<ScreenHeader back={previous === null ? undefined : { onPress: () => setPage(previous) }} title={<ProgressDots total={PRE_ACCOUNT_PAGES.length} index={index} />} />}
+      header={<ScreenHeader divider={false} back={previous === null ? undefined : { onPress: () => setPage(previous) }} title={<ProgressDots total={PRE_ACCOUNT_PAGES.length} index={index} />} />}
       footer={
         <>
           {page === 'welcome' && <PillButton label="See how it works" onPress={() => next('situations')} />}
@@ -387,8 +383,6 @@ export function PreAccountOnboarding({
 
 const st = StyleSheet.create({
   centered: { alignItems: 'stretch' },
-  chapter: { gap: space(2), marginBottom: space(3) },
-  chapterNumber: { ...type.frenchSm, color: paper.inkSoft },
   kicker: { ...type.frenchSm, color: paper.ink, marginBottom: space(3) },
   artStage: { backgroundColor: paper.card, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.row, marginTop: space(4), alignItems: 'center', overflow: 'hidden' },
   sceneStage: { backgroundColor: paper.card, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.row, paddingTop: space(3), paddingHorizontal: space(3), marginTop: space(4), alignItems: 'center', overflow: 'hidden' },

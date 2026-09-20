@@ -73,14 +73,14 @@ export function seedFor(kind: RealMomentKind, detail: string): { fr: string; en:
   return { fr: kind.fr, en: fitted.length === 0 ? kind.en : `${kind.en}${JOIN}${fitted}` };
 }
 
-export const REAL_MOMENT_TITLE = 'Bring a real moment';
-export const REAL_MOMENT_SUB = 'Something coming up in your life. Your tutor sets the scene and you run it in French first.';
-export const DETAIL_LABEL = 'One line about it, if you like';
+export const REAL_MOMENT_TITLE = 'Prepare for a real moment';
+export const REAL_MOMENT_SUB = 'Something coming up? Rehearse it in French with your tutor, at your own pace.';
+export const DETAIL_LABEL = 'What do you need to say? (optional)';
 export const DETAIL_PLACEHOLDER = 'Who is there, and what you want to say';
-export const REHEARSE_ACTION = 'Rehearse it';
+export const REHEARSE_ACTION = 'Start my rehearsal';
 export const REHEARSE_AGAIN_LABEL = 'Rehearse again';
-export const MAX_ONLY_LINE = 'Rehearsing a moment of your own comes with the Max plan.';
-export const SEE_PLANS = 'See the plans';
+export const MAX_ONLY_LINE = 'Personal rehearsals are included with Max. Everyday missions and open conversations are available separately.';
+export const SEE_PLANS = 'See what Max includes';
 
 /** Every line this module can say, for the copy sweeps. */
 export const REAL_MOMENT_COPY: readonly string[] = [

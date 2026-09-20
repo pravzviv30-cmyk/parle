@@ -8,7 +8,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import 'dotenv/config';
 
-import { PLANS, buildReport, secondsRemaining } from '@luvani/core';
+import { PLANS, buildReport, secondsRemaining, revisionFromPack, type TutorRevision } from '@luvani/core';
 import { brainClientFromEnv, type LlmClient } from '@luvani/brain/llm';
 import { scoreUtterance } from '../../shared/speechace.ts';
 import {
@@ -22,6 +22,7 @@ import {
 import { grantSession, type TokenConfig } from './tokens.ts';
 import { createUserResolver } from './auth.ts';
 import { agentDebitAllowed } from './agentAuth.ts';
+import { practiceJobs } from './practiceJobs.ts';
 import { productionConfigurationProblems } from './config.ts';
 import { deleteSupabaseUser, signedInRecently } from './accountDeletion.ts';
 import { exportSupabaseAccountData } from './accountExport.ts';
@@ -32,6 +33,7 @@ import {
   deleteAllConversationPacks,
   deleteConversationPack,
   listConversationPacks,
+  getConversationPack,
   saveConversationPack,
   validConversationPackFor,
 } from './conversationPacks.ts';
@@ -236,7 +238,7 @@ const server = createServer(async (req, res) => {
 
   try {
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, livekitUrl });
+      return json(res, 200, { ok: true, livekitUrl, durablePractice: process.env.LUVANI_DURABLE_PRACTICE === '1' });
     }
 
     // RevenueCat's event is a doorbell, not authority. Authenticate and dedupe
@@ -329,9 +331,28 @@ const server = createServer(async (req, res) => {
               ? ('lesson-text' as const)
               : ('lesson' as const);
       const snapshot = typeof body.snapshot === 'object' && body.snapshot !== null ? body.snapshot : undefined;
-      const seedTopic = typeof body.seedTopic === 'object' && body.seedTopic !== null ? body.seedTopic : undefined;
+      let seedTopic = typeof body.seedTopic === 'object' && body.seedTopic !== null ? body.seedTopic : undefined;
       const missionId = typeof body.missionId === 'string' && body.missionId ? body.missionId : undefined;
       const tutorVoice = typeof body.tutorVoice === 'string' && body.tutorVoice ? body.tutorVoice : undefined;
+
+      // Only an identifier comes from the app. Saved learning context is loaded
+      // under the authenticated user's ownership, never trusted from the body.
+      let revision: TutorRevision | undefined;
+      if (body.continuationPackId !== undefined) {
+        if ((mode !== 'convo' && mode !== 'convo-text') || missionId !== undefined) {
+          return json(res, 400, { error: 'Choose either a conversation to continue or a guided mission.' });
+        }
+        if (typeof body.continuationPackId !== 'string' || !sessionIdPattern.test(body.continuationPackId)) {
+          return json(res, 400, { error: 'invalid conversation reference' });
+        }
+        const db = process.env.SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!db || !key) return json(res, 503, { error: 'Conversation memory is unavailable. Please try again.' });
+        const pack = await getConversationPack(db, key, userId, body.continuationPackId);
+        if (!pack) return json(res, 404, { error: 'This conversation is not available to continue.' });
+        revision = revisionFromPack(pack);
+        seedTopic = { fr: pack.continuationSeed.titleFr, en: pack.continuationSeed.titleEn };
+      }
 
       if (
         installation !== null &&
@@ -355,6 +376,7 @@ const server = createServer(async (req, res) => {
         entitlement,
         config,
         mode,
+        ...(revision ? { revision } : {}),
         ...(startRung !== undefined ? { startRung } : {}),
         ...(snapshot !== undefined ? { snapshot } : {}),
         ...(seedTopic !== undefined ? { seedTopic } : {}),
@@ -537,7 +559,9 @@ const server = createServer(async (req, res) => {
       const supabaseUrl = process.env.SUPABASE_URL;
       const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       if (!supabaseUrl || !serviceRoleKey) return json(res, 503, { error: 'Conversation Pack storage is not configured' });
-      await saveConversationPack(supabaseUrl, serviceRoleKey, body.pack);
+      if (process.env.LUVANI_DURABLE_PRACTICE === '1') {
+        await practiceJobs(supabaseUrl, serviceRoleKey).receive(body.pack, body.phase !== 'baseline');
+      } else await saveConversationPack(supabaseUrl, serviceRoleKey, body.pack);
       return json(res, 200, { saved: true, id: body.pack.id, state: body.pack.state });
     }
 

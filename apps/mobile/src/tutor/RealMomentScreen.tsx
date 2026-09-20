@@ -12,21 +12,21 @@
  * answered here with the same start offered again.
  *
  * The door is the Max plan's (`purchases/capabilities.ts`). The plan is read
- * on focus; until it answers the action slot draws nothing, so a paying
- * learner never sees the plan line flash. A plan without the door, or one
- * nobody could read, meets one honest line and the way to the plans.
+ * on focus; loading, read failure and a plan without access are distinct states.
+ * A failed read offers retry without discarding the learner's draft. Only a
+ * confirmed plan without access is offered an upgrade.
  *
  * Moments already brought are kept on this phone and offered again below,
  * because the same interview is worth running twice.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
-import { Field, Label, OutlineButton, PillButton, TintPanel } from '../components.tsx';
+import { Card, Field, GhostButton, Label, OutlineButton, PillButton, TabBar, TintPanel } from '../components.tsx';
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { capabilitiesFor } from '../purchases/capabilities.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
@@ -101,16 +101,22 @@ export function RealMomentScreen({
   onBack,
   onStart,
   onSeePlans,
+  initialTextMode = false,
 }: {
   onBack: () => void;
   /** The seed the conversation opens on. The navigator carries it to the route. */
-  onStart: (seedTopic: { fr: string; en: string }) => void;
+  onStart: (seedTopic: { fr: string; en: string }, textMode: boolean) => void;
   onSeePlans: () => void;
+  initialTextMode?: boolean;
 }) {
   const { recheck } = useLive();
   const { user } = useAuth();
   const [key, setKey] = useState<RealMomentKey | null>(null);
   const [detail, setDetail] = useState('');
+  const [mode, setMode] = useState<'speak' | 'type'>(initialTextMode ? 'type' : 'speak');
+  const starting = useRef(false);
+  const [planError, setPlanError] = useState(false);
+  const [planAttempt, setPlanAttempt] = useState(0);
   const [moments, setMoments] = useState<readonly RealMoment[]>([]);
   // Null until the plan answers: the action slot draws nothing rather than a
   // plan line a paying learner would see for a frame.
@@ -122,19 +128,21 @@ export function RealMomentScreen({
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      setAllowed(null);
+      setPlanError(false);
       void loadMoments().then((stored) => {
         if (!cancelled) setMoments(stored);
-      });
-      if (user === null) return () => { cancelled = true; };
+      }).catch(() => { /* Saved suggestions are optional; rehearsal remains available. */ });
+      if (user === null) { setPlanError(true); return () => { cancelled = true; }; }
       void fetchBillingStatus(user.id).then((status) => {
         if (cancelled) return;
-        // A plan nobody could read is the trial, never a yes.
-        setAllowed(capabilitiesFor(status === null ? 'unknown' : status.plan, status?.lapsed ?? false).customRehearsal);
-      });
+        setPlanError(status === null);
+        setAllowed(status === null ? null : capabilitiesFor(status.plan, status.lapsed).customRehearsal);
+      }).catch(() => { if (!cancelled) setPlanError(true); });
       return () => {
         cancelled = true;
       };
-    }, [user]),
+    }, [user, planAttempt]),
   );
 
   const kind = key === null ? null : kindOf(key);
@@ -142,11 +150,14 @@ export function RealMomentScreen({
   const open = () => {
     // A second tap while the connection check runs cannot open a second room.
     if (checking) return;
-    if (kind === null) return;
+    if (starting.current || allowed !== true) return;
+    if (kind === null || (key === 'other' && detail.trim().length === 0)) return;
+    starting.current = true;
     setChecking(true);
     void recheck().then((answered) => {
       setChecking(false);
-      const decision = tutorGate(answered, false);
+      starting.current = false;
+      const decision = tutorGate(answered, mode === 'type');
       if (!decision.go) {
         setHeldBack(decision.heldBack);
         return;
@@ -155,13 +166,14 @@ export function RealMomentScreen({
       const seed = seedFor(kind, detail);
       // Kept for next time, and not waited on: the conversation is the point.
       void saveMoment(kind.key, detail.trim().slice(0, detailCap(kind)), Date.now()).catch(() => {});
-      onStart(seed);
+      onStart(seed, mode === 'type');
     }).catch(() => {
       // At the end of the chain rather than beside the handler, so a throw from
       // the navigation above is caught too. The start is kept, so the retry is
       // the same start rather than a guess at what they were doing.
       setChecking(false);
-      setHeldBack({ textMode: false });
+      starting.current = false;
+      setHeldBack({ textMode: mode === 'type' });
     });
   };
 
@@ -169,6 +181,18 @@ export function RealMomentScreen({
     <ScrollScreen avoidKeyboard header={<ScreenHeader back={{ onPress: onBack }} />}>
       <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{REAL_MOMENT_TITLE}</Text>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{REAL_MOMENT_SUB}</Text>
+
+      <Card tone="journal" style={st.detail}>
+        <Label>Included with Max</Label>
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Choose your situation and practise with your tutor before it happens.</Text>
+        {allowed === false && <GhostButton label={SEE_PLANS} onPress={onSeePlans} />}
+        {allowed === null && <Text accessibilityLiveRegion="polite" style={st.checking}>{planError ? 'We could not check your plan. Your choices will stay here while you try again.' : 'Checking your plan…'}</Text>}
+        {planError && <GhostButton label="Check my plan again" onPress={() => setPlanAttempt((attempt) => attempt + 1)} />}
+      </Card>
+
+      <View style={st.detail}>
+        <Label>Choose a situation</Label>
+      </View>
 
       <View style={st.kinds}>
         {REAL_MOMENTS.map((option) => (
@@ -178,7 +202,7 @@ export function RealMomentScreen({
             title={option.en}
             gloss={option.gloss}
             selected={key === option.key}
-            onPress={() => setKey(option.key)}
+            onPress={() => { setKey(option.key); setDetail((text) => text.slice(0, detailCap(option))); }}
           />
         ))}
       </View>
@@ -186,26 +210,34 @@ export function RealMomentScreen({
       {kind !== null && (
         <View style={st.detail}>
           <Field
-            label={DETAIL_LABEL}
+            label={key === 'other' ? 'What would you like to rehearse?' : DETAIL_LABEL}
             value={detail}
             onChangeText={setDetail}
             placeholder={DETAIL_PLACEHOLDER}
             maxLength={detailCap(kind)}
             autoCapitalize="sentences"
             returnKeyType="done"
+            multiline
           />
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{detail.length}/{detailCap(kind)} characters · Include who you will speak to and what you need to say.</Text>
         </View>
       )}
 
+      <View style={st.detail}>
+        <TabBar tabs={[{ key: 'speak', label: 'Speak' }, { key: 'type', label: 'Type' }]} active={mode} onChange={setMode} accessibilityLabel="Rehearsal mode" />
+      </View>
+
       {allowed === true && (
         <View style={st.action}>
-          <PillButton label={REHEARSE_ACTION} disabled={checking || kind === null} onPress={open} />
+          <PillButton label={checking ? 'Connecting…' : REHEARSE_ACTION} disabled={checking || kind === null || (key === 'other' && detail.trim().length === 0)} onPress={open} />
+          {kind === null && <Text style={st.checking}>Choose a situation to begin.</Text>}
         </View>
       )}
       {allowed === false && (
         <View style={st.action}>
           <Text style={st.gateLine}>{MAX_ONLY_LINE}</Text>
           <OutlineButton label={SEE_PLANS} onPress={onSeePlans} />
+          <GhostButton label="Not now" onPress={onBack} />
         </View>
       )}
 
