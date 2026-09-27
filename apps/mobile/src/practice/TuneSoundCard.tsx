@@ -1,44 +1,84 @@
 /**
- * Tune one sound (F554, F558).
+ * "Your sound to tune": the block Practice leads with (notebook Phase 3,
+ * 2026-09-27; it replaces the tinted "Tune one sound" row, F554, F558).
  *
- * One tinted row. The acoustic panel — the sound, its cue, the physical trick
- * and the minimal pair — lives on the sound-check screen the row opens, and
- * printing it on Practice as well was the same words in two places.
+ * One sound, named by its symbol and an example word through the shared
+ * `SoundTag`, the inventory's mouth cue under it, and only then whatever else
+ * is true of it:
  *
- * Behaviour is unchanged from the card it replaces: with a check behind it the
- * row opens that check again, and with none it offers the way to the next
- * situation, which is what will name a sound. Nothing here scores anything and
- * nothing here calls an accent wrong.
+ * - a measured line and a way back to the check, only when a check the assessor
+ *   actually measured named this sound;
+ * - a bundled recording that says the example word, labelled as a recording,
+ *   only when one exists in the learner's chosen voice. The card plays nothing
+ *   itself: the tab's recorded player does, and it never falls back to the
+ *   phone's synthesiser;
+ * - the day-one action, handed in by the tab as `control`, so the page's one
+ *   pill is built once and drawn once.
+ *
+ * Nothing here records, listens or scores, and there is no learner recording to
+ * play, because the app keeps none. Every word is `soundLead.ts`'s.
  */
 
-import { WaveformGlyph } from '../glyphs.tsx';
-import { TintRow } from '../components.tsx';
-import { accent } from '../theme.ts';
-import { MADE_FROM, type SoundToTune } from './madeFrom.ts';
-import { MADE_FROM_TINT } from './madeFromTint.ts';
+import type { ReactNode } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { Card, GhostButton, Label, SoundTag } from '../components.tsx';
+import { paper, space, type } from '../theme.ts';
+import { SOUND_LEAD, type SoundLead } from './soundLead.ts';
 
 export function TuneSoundCard({
-  sound,
+  lead,
+  playing,
+  onHear,
   onCheck,
-  onChoose,
+  control,
 }: {
-  sound: SoundToTune | null;
+  lead: SoundLead;
+  /** The recording playing now, so the control can offer Stop. */
+  playing: number | null;
+  /** Play or stop a bundled recording. Never device speech. */
+  onHear: (asset: number) => void;
+  /** Open the sound check for the situation the sound was measured in. */
   onCheck: (missionId: string) => void;
-  onChoose: () => void;
+  /** The page's one primary action, on day one only. */
+  control?: ReactNode;
 }) {
+  const { measured, native } = lead;
   return (
-    <TintRow
-      tint={MADE_FROM_TINT.sound}
-      glyph={<WaveformGlyph color={accent.primary} />}
-      // With no measured sound there is nothing to tune yet, and the row opens
-      // the situations list. Its title says that first step, never a tuning.
-      title={sound === null ? MADE_FROM.sound.go : MADE_FROM.sound.label}
-      gloss={sound === null ? MADE_FROM.sound.none : MADE_FROM.sound.gloss}
-      accessibilityLabel={sound === null ? `${MADE_FROM.sound.go}. ${MADE_FROM.sound.none}` : `${MADE_FROM.sound.label}, ${sound.acoustic.heading}`}
-      onPress={() => {
-        if (sound === null) onChoose();
-        else onCheck(sound.missionId);
-      }}
-    />
+    <Card style={st.card}>
+      <Label>{SOUND_LEAD.label}</Label>
+      <SoundTag ipa={`/${lead.ipa}/`} example={lead.example} />
+      <Text style={st.cue}>{lead.cue}</Text>
+      {lead.source !== null && <Text style={st.quiet}>{lead.source}</Text>}
+      {measured !== null && (
+        <View style={st.group}>
+          <Text style={st.fact}>{measured.line}</Text>
+          <GhostButton label={SOUND_LEAD.check} color={paper.ink} onPress={() => onCheck(measured.missionId)} />
+        </View>
+      )}
+      {native !== null && (
+        <View style={st.group}>
+          <Text style={st.line}>{native.fr}</Text>
+          <Text style={st.quiet}>{native.label}</Text>
+          <GhostButton
+            label={playing === native.asset ? SOUND_LEAD.stop : SOUND_LEAD.hear}
+            color={paper.ink}
+            accessibilityLabel={playing === native.asset ? SOUND_LEAD.stop : `Hear ${native.fr}. ${native.label}`}
+            onPress={() => onHear(native.asset)}
+          />
+        </View>
+      )}
+      {control != null && <View style={st.control}>{control}</View>}
+    </Card>
   );
 }
+
+const st = StyleSheet.create({
+  card: { gap: space(3) },
+  cue: { ...type.body, color: paper.ink },
+  quiet: { ...type.small, color: paper.inkSoft },
+  fact: { ...type.small, color: paper.ink },
+  line: { ...type.frenchSm, color: paper.ink },
+  group: { gap: space(1) },
+  control: { marginTop: space(1) },
+});

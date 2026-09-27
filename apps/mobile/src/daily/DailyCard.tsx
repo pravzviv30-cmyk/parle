@@ -1,5 +1,16 @@
+/**
+ * One daily word or phrase: the French, the English, the tutor's recording, a
+ * save, and a way to say it.
+ *
+ * 2026-09-27 (notebook Phase 3): nothing here moves. Only the orb and the
+ * highlighter do, so the card's entrance and its settle timer left, and the
+ * drawing beside the words is always still. Today asks for the card with
+ * `picture={false}`: no hashed drawing, and the tutor's audio comes first,
+ * before the words it says. The library keeps the picture until the daily
+ * drawings retire through the deletion ledger in Phase 4.
+ */
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Text, View, Animated, Easing } from 'react-native';
+import { AppState, Text, View } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { Card, GhostButton, Label } from '../components.tsx';
@@ -12,10 +23,15 @@ import type { DailyItem } from './catalogue.ts';
 import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from './playback.ts';
 import { WordScene } from '../progress/WordScene.tsx';
 import { sceneForDaily } from './carousel.ts';
-import { useReduceMotion } from '../motion.ts';
 import { audioLine } from './libraryView.ts';
 
-export function DailyCard({ item, reveal = true, onSaved, compact = false, embedded = false, paused = false }: { item: DailyItem; reveal?: boolean; onSaved?: (id: string, saved: boolean) => void; compact?: boolean; embedded?: boolean; paused?: boolean }) {
+export function DailyCard({ item, reveal = true, onSaved, compact = false, embedded = false, picture = true }: {
+  item: DailyItem; reveal?: boolean; onSaved?: (id: string, saved: boolean) => void; compact?: boolean; embedded?: boolean;
+  /** Kept for callers that still pass it; the card no longer moves, so there is nothing to pause. */
+  paused?: boolean;
+  /** False on Today: no drawing, and the audio leads. */
+  picture?: boolean;
+}) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const focused = useIsFocused();
   const { profile } = useProfile();
@@ -27,19 +43,8 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const [shown, setShown] = useState(reveal);
   const [note, setNote] = useState('');
   const [expanded, setExpanded] = useState(!compact);
-  const [settled, setSettled] = useState(false);
-  const reduced = useReduceMotion();
-  const entrance = useRef(new Animated.Value(1)).current;
   const active = useRef(focused);
   const playTicket = useRef(0);
-  useEffect(() => {
-    if (reduced || paused || !focused) { entrance.setValue(1); setSettled(true); return; }
-    entrance.setValue(0); setSettled(false);
-    const animation = Animated.timing(entrance, { toValue: 1, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: true });
-    animation.start();
-    const timer = setTimeout(() => setSettled(true), 3600);
-    return () => { animation.stop(); clearTimeout(timer); };
-  }, [item.id, focused, paused, reduced, entrance]);
   useEffect(() => { let live = true; setShown(reveal); void loadBookmarks().then(rows => { if (live) setSaved(rows.some(r => r.scenarioId === item.id && r.saved)); }).catch(() => {}); return () => { live = false; }; }, [item.id, reveal, focused]);
   useEffect(() => { active.current = focused; setNote(''); return () => { active.current = false; playTicket.current++; releaseDailyPlayback(player); }; }, [focused, player, item.id, tutorVoice]);
   useEffect(() => {
@@ -64,11 +69,15 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
     try { await setBookmark(item.id, !saved); const rows = await loadBookmarks(); const actual = rows.some(r => r.scenarioId === item.id && r.saved); if (actual === saved) setNote('That save did not finish. Please try again.'); else { setSaved(actual); onSaved?.(item.id, actual); setNote(actual ? 'Saved in My French, Daily collection.' : 'Removed from your daily collection.'); } }
     catch { setNote('That save did not finish. Please try again.'); } finally { setBusy(false); }
   };
-  const contents = <Animated.View style={{ opacity: entrance, gap: space(2), transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) }] }}>
+  const contents = <View style={{ gap: space(2) }}>
     <Label>{item.label}</Label>
     {!shown ? <><Text style={[type.body, { color: paper.ink }]}>{item.en}</Text><GhostButton label="Try it from memory, then reveal" onPress={() => setShown(true)} /></> : <>
+      {/* Without the picture the tutor's audio leads, and the line saying
+          whether there is any sits above it, as it does above the buttons. */}
+      {!picture && !embedded && <Text style={[type.small, { color: paper.inkSoft }]}>{audioLine(asset != null)}</Text>}
+      {!picture && asset != null && <GhostButton label="Hear" color={paper.ink} onPress={() => void play()} />}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
-        <WordScene scene={sceneForDaily(item.id)} width={76} paused={paused || !focused || settled || reduced} />
+        {picture && <WordScene scene={sceneForDaily(item.id)} width={76} paused={true} />}
         <View style={{ flex: 1, minWidth: 0 }}><Text selectable={!embedded} style={[compact ? type.french : type.frenchLg, { color: paper.ink }]}>{item.fr}</Text><Text selectable={!embedded} style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{item.en}</Text></View>
       </View>
       {(!compact || !item.exampleFr || expanded) && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.note}</Text>}
@@ -76,9 +85,9 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
       {/* Whether this line has tutor audio, said before anybody taps, from the
           same manifest lookup that decides whether Hear is drawn at all. Home's
           embedded card draws only voiced items, so the line is the library's. */}
-      {!embedded && <Text style={[type.small, { color: paper.inkSoft }]}>{audioLine(asset != null)}</Text>}
+      {picture && !embedded && <Text style={[type.small, { color: paper.inkSoft }]}>{audioLine(asset != null)}</Text>}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(2) }}>
-        {asset != null && <GhostButton label="Hear" onPress={() => void play()} />}
+        {picture && asset != null && <GhostButton label="Hear" onPress={() => void play()} />}
         <GhostButton label={busy ? 'Saving…' : saved ? 'Saved ✓' : 'Save'} onPress={() => void save()} />
         {compact && <GhostButton label={expanded ? 'Less' : 'More'} onPress={() => setExpanded(v => !v)} />}
         {expanded && <>{asset != null && <GhostButton label="Slow replay" onPress={() => void play(true)} />}
@@ -86,6 +95,6 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
       </View>
     </>}
     {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{note}</Text>}
-  </Animated.View>;
+  </View>;
   return embedded ? contents : <Card style={{ marginTop: space(3) }}>{contents}</Card>;
 }

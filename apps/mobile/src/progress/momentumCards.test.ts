@@ -65,12 +65,12 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     // answer, and dropping it would show a returning learner the four start
     // lines for a frame before their own numbers arrived.
     assert.equal((MOMENTUM.match(/<Card\b/g) ?? []).length, 4, 'the momentum block no longer draws the four cards the design doc names');
-    assert.match(
-      flat(SCREEN),
-      /\{momentum !== null && <HomeMomentum momentum=\{momentum\} onPhrases=\{\(\) => nav\.navigate\('Phrasebook'\)\} onReview=\{\(\) => nav\.navigate\('Review'\)\}/,
-      'the momentum block is drawn with nothing holding it back, or with no way to the phrase bank',
-    );
-    assert.match(flat(SCREEN), /momentumFrom\(\{ activity, deck, profile, now, activeDays \}\)/, 'the four counts are not folded by the one module that owns them');
+    // 2026-09-27, notebook Phase 3: Today draws no momentum tiles and no
+    // seven-dot rail, and folds no counts of its own. The block keeps every rule
+    // below for wherever it is drawn; Today simply does not draw it.
+    for (const gone of ['<HomeMomentum', '<MomentumCards', 'momentumFrom(', 'setMomentum(', '<WeekRail', 'days.week']) {
+      assert.ok(!SCREEN.includes(gone), `Today draws ${gone} again; the momentum tiles and the week rail left the page`);
+    }
     assert.ok(!MOMENTUM.includes('hasMomentum'), 'the block holds itself back again; the four cards are there from day one');
     assert.ok(!MOMENTUM.includes('return null'), 'the block draws nothing at all in some branch; the founder overturned that on 2026-09-05');
     for (const part of ['days', 'retained', 'mastery', 'goal']) {
@@ -210,7 +210,9 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     // control opens. Two surfaces sending a learner to two different decks
     // would be two answers to one question.
     assert.match(flat(MOMENTUM), /<GhostButton label=\{retained\.link\} onPress=\{onReviewPhrases\} \/>/, 'the phrase bank link is not the quiet control reading its word from the module');
-    assert.match(flat(SCREEN), /onReview=\{\(\) => nav\.navigate\('Review'\)\}/, 'the recall tile does not open the review deck');
+    // 2026-09-27, notebook Phase 3: Today has no recall tile; its review action
+    // opens the same deck.
+    assert.match(flat(SCREEN), /<PillButton label="Practise recall" onPress=\{\(\) => nav\.navigate\('Review'\)\} \/>/, 'Today\'s review action does not open the review deck');
     const practice = stripComments(read('../tabs/PracticeTab.tsx'));
     assert.match(practice, /nav\.navigate\('Review'\)/, 'Practice no longer opens the review deck, so the two surfaces have drifted apart');
 
@@ -222,10 +224,9 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     const home = stripComments(read('../tabs/HomeTab.tsx'));
     assert.match(home, /\{hero !== null && \(homeActionFor\(hero, due.length\) === 'review' \?/, 'one adaptive action must be available independently of momentum');
     assert.match(home, /: <MissionHero hero=\{hero\} \/>/, 'the conversation hero must remain the alternate, not a second primary action');
-    assert.match(home, /setMomentum\(momentumFrom\(\{ activity, deck, profile, now, activeDays \}\)\)/, 'Home must use the same evidence model as Progress');
-    // And the way from one to the other is a row on Home that opens this
-    // screen, so nothing was hidden by being moved.
-    assert.match(home, /<HomeMomentum/, 'the counts must live directly on Home');
+    // 2026-09-27, notebook Phase 3: the counts left Today entirely. Nothing on
+    // it folds or draws them, so the hero cannot sit inside one of their gates.
+    assert.doesNotMatch(home, /momentumFrom\(|<HomeMomentum|<MomentumCards|<WeekRail/, 'the counts are back on Today');
     assert.doesNotMatch(home, /nav\.navigate\('Progress'\)/, 'the old destination must be removed');
   });
 
@@ -268,11 +269,12 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
 
     // The drawing does not wait. It is a pure function of the day and a pool.
     assert.match(read('../daily/carousel.ts'), /WORD_SCENES\[hash % WORD_SCENES.length\]/, 'daily art must come from the existing scene library');
-    assert.match(
-      flat(SCREEN),
-      /<DailyCarousel word=\{daily.word\} phrase=\{daily.phrase\} \/>/,
-      'the word card is drawn without a word, without the day it is being drawn for, or without being told when the screen is off top',
-    );
+    // 2026-09-27, notebook Phase 3: Today draws today's phrase with no
+    // picture at all, so there is no scene on it to loop off-screen.
+    assert.match(flat(SCREEN), /<DailyCard item=\{daily\.phrase\} picture=\{false\} \/>/, 'the day\'s phrase is drawn without its item, or with the picture back on');
+    for (const art of ['<DailyCarousel', '<WordScene', '<WordOfDayCard', 'sceneForDaily(']) {
+      assert.ok(!SCREEN.includes(art), `Today draws ${art} again; the day's phrase carries no picture`);
+    }
 
     // Nothing loops behind a screen nobody is looking at. The scene cannot ask
     // for itself, so the screen passes the answer down and the card passes it

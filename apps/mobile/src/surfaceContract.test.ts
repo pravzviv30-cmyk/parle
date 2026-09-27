@@ -17,6 +17,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { PAGES } from './onboarding/answers.ts';
 import { FIRST_RUN_SURFACES } from './onboarding/disclosure.ts';
+import { MORE_WAYS, startModes } from './tutor/speakView.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 const APP = join(SRC, '..');
@@ -860,6 +861,8 @@ describe('a tap that starts with a network probe — F154', () => {
     ['the real moment\'s start', 'tutor/RealMomentScreen.tsx', 'const open = ('],
     ['the first conversation', 'tabs/PracticeTab.tsx', 'const startFirst = ('],
     ['the chooser\'s pronunciation lesson', 'missions/MissionsScreen.tsx', 'const openLesson = ('],
+    // 2026-09-27, Phase 3: day one on Practice leads with the "bonjour" sound lesson, a live-capable door.
+    ['Practice\'s day-one sound lesson', 'tabs/PracticeTab.tsx', 'const openLesson = ('],
   ] as const;
 
   const bodyOf = (file: string, opens: string): string => {
@@ -903,10 +906,22 @@ describe('a tap that starts with a network probe — F154', () => {
     // with the lesson it opened; this is the assertion that the remaining one
     // did not leave with it, because it is the way out for a learner who cannot
     // speak aloud right now and there is no second one.
+    // Notebook redesign (2026-09-27, Phase 3): the Speak/Type toggle became one
+    // Start in the learner's standing mode and a quiet link to the other one.
+    // For a speaker that link is "Type instead"; for a typist the Start itself
+    // types. Either way a learner who cannot speak aloud has a way through, and
+    // both halves are pinned: the drawn link and the mode model behind it.
+    const tutor = named('tabs/TutorTab.tsx');
+    assert.match(tutor, /const modes = startModes\(prefersTyping\(/, 'Speak no longer reads the learner\'s standing typing choice');
     assert.match(
-      named('tabs/TutorTab.tsx'),
-      /<TabBar tabs=\{\[\{ key: 'speak', label: 'Speak' \}, \{ key: 'type', label: 'Type' \}\]\}/,
+      tutor,
+      /<GhostButton label=\{modes\.other\.label\}[^>]*onPress=\{\(\) => open\(modes\.other\.textMode, next\.params\)\}/,
       'the quiet door is gone, and a learner who cannot speak aloud has no way through',
+    );
+    assert.deepEqual(
+      [startModes(false).other, startModes(true).textMode],
+      [{ label: 'Type instead', textMode: true }, true],
+      'a speaker is not offered typing, or a typist does not start typing',
     );
   });
 
@@ -1635,33 +1650,31 @@ describe('the tabs and the drill use the app buttons — F339', () => {
     // than a card with a button in it. The rule this test has always held is
     // unchanged — the tutor draws the app's components and hand-rolls nothing —
     // and it is read off what is actually there.
+    // Notebook redesign (2026-09-27, Phase 3): the tinted rows became the
+    // ledger. Speak leads with the tutor card and the level path, and its other
+    // ways in sit under "More ways to practise", drawn one way. The rule is the
+    // same: the tutor draws the app's components and hand-rolls nothing.
     const tutor = named('tabs/TutorTab.tsx');
-    const doors = tutor.slice(tutor.indexOf('DOORS.map('), tutor.indexOf('))}', tutor.indexOf('DOORS.map(')));
-    assert.ok(doors.length > 0, 'the tutor no longer maps its doors');
-    assert.match(doors, /<TintRow\b/, 'a door is not drawn as the shared tinted row');
-    assert.doesNotMatch(doors, /<Pressable\b/, 'a door is hand-rolled as a Pressable instead of the shared row');
+    const ways = tutor.slice(tutor.indexOf('MORE_WAYS.map('), tutor.indexOf('))}', tutor.indexOf('MORE_WAYS.map(')));
+    assert.ok(ways.length > 0, 'the tutor no longer maps its other ways in');
+    assert.match(ways, /<LedgerRow\b/, 'a way in is not drawn as the shared ledger row');
+    assert.doesNotMatch(ways, /<Pressable\b/, 'a way in is hand-rolled as a Pressable instead of the shared row');
+    assert.equal((ways.match(/<LedgerRow\b/g) ?? []).length, 1, 'the ways in are drawn more than one way, so two rows could drift apart');
+    assert.match(ways, /way\.title/, 'a way in names itself instead of reading its words from the model');
+    assert.match(ways, /way\.gloss/, 'the ways in lost their gloss line');
 
-    // Three rows, and three is the door model's number rather than one typed
-    // here: the tab maps `DOORS` through one `<TintRow`, so the count that
-    // reaches a learner is the length of `tutorDoors()`. A fourth way in has to
-    // be a fourth entry mode with a tint and a gloss, not a row bolted on here.
+    // The ways in are the model's, not typed here: gate.ts's doors minus the
+    // everyday door (the level path is that door now), plus what the tutor
+    // remembers. A new way in is a model entry, not a row bolted on here.
     const keys = [...named('tutor/gate.ts').matchAll(/\{ key: '(\w+)', label: '/g)].map((m) => m[1]!);
-    assert.deepEqual(keys, ['everyday', 'free', 'rehearse'], 'the tutor no longer offers exactly the three ways in');
-    const tints = [...named('tutor/doorTint.ts').matchAll(/^ {2}(\w+): '(\w+)',$/gm)].map((m) => m[1]!);
-    assert.deepEqual(tints, keys, 'a way in has no paper of its own, so the tab would have to pick a colour itself');
-    assert.equal(
-      (doors.match(/<TintRow\b/g) ?? []).length,
-      1,
-      'the doors are drawn more than one way, so two of the three rows could drift apart',
-    );
+    assert.deepEqual(keys, ['everyday', 'free', 'rehearse'], 'gate.ts no longer offers exactly the three ways in');
+    assert.deepEqual(MORE_WAYS.map((way) => way.key), ['free', 'rehearse', 'memory'], 'the other ways in on Speak drifted from the model');
 
-    // The six situations are not on this tab at all: they are the chooser's,
-    // and "Everyday mission" is the door to it. A list here would be six things
-    // pulling at the eye beside the one circle that matters.
-    assert.doesNotMatch(tutor, /MISSIONS\.map\(/, 'the six situations are listed on the tutor tab again instead of behind the everyday door');
-    assert.match(doors, /door\.gloss/, 'the doors lost their gloss line');
-    assert.match(doors, /door\.label/, 'a door names itself instead of reading its word from gate.ts');
-    assert.match(doors, /DOOR_TINT\[door\.key\]/, 'a door picks its own colour instead of reading it from doorTint.ts');
+    // The scenes are on this tab on purpose now: the level path is the spine.
+    // They come from the path model, never from a hand-typed catalogue list.
+    assert.match(tutor, /<LevelPath\b/, 'Speak lost the level path');
+    assert.doesNotMatch(tutor, /MISSIONS\.map\(/, 'Speak lists the catalogue by hand instead of reading the level path');
+    assert.doesNotMatch(tutor, /DOOR_TINT|<TintRow\b/, 'Speak paints a way in with a place tint again');
     assert.doesNotMatch(tutor, /st\.door\b/, 'the tutor still draws a bespoke card-button for its quiet doors');
   });
 });
@@ -1725,8 +1738,11 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
    * grew a second. Revamp A moved four more sections out the same way, so the
    * surfaces are listed per tab and both counts are taken over the whole tab.
    */
+  // 2026-09-27, Phase 3: each tab's own surfaces as it imports them today. Home no longer draws
+  // AbilitiesCard; My French draws its phrase bank and sounds map instead of SituationsCard. The row test
+  // below fails if a listed file stops being drawn, so this list cannot go stale silently.
   const SURFACES: Record<string, readonly string[]> = {
-    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'home/MissionHero.tsx', 'home/AbilitiesCard.tsx'],
+    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'home/MissionHero.tsx'],
     'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx', 'tutor/ContinuityCard.tsx'],
     'tabs/PracticeTab.tsx': [
       'tabs/PracticeTab.tsx',
@@ -1734,7 +1750,7 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       'practice/MakePhraseCard.tsx',
       'practice/TuneSoundCard.tsx',
     ],
-    'tabs/MyFrenchTab.tsx': ['tabs/MyFrenchTab.tsx', 'myfrench/SituationsCard.tsx'],
+    'tabs/MyFrenchTab.tsx': ['tabs/MyFrenchTab.tsx', 'myfrench/PhraseBank.tsx', 'myfrench/SoundsMap.tsx'],
     'tabs/ProfileTab.tsx': ['tabs/ProfileTab.tsx'],
   };
 
@@ -1777,36 +1793,48 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     }
   });
 
-  test('a tab lists what it opens as the one tinted row, and never two shapes for one list — F569', () => {
+  test('a tab lists what it opens one way, as ledger rows, and never two shapes for one list — F569', () => {
     // The companion to the rule above. A tab with no pill still has to offer a
-    // way in, and revamp A's answer is the same row everywhere: white disc, one
-    // glyph, a title, a gloss, a chevron. The counts are literal `<TintRow`
-    // tags rather than rendered rows, because every one of these is inside a
-    // `.map` over a model — what is pinned is that each list is drawn ONE way,
-    // so two rows in the same list cannot drift apart.
-    const rows: Record<string, number> = {
-      // The hero is a picture and a pill; nothing on Home is a list.
+    // way in, and every list is drawn ONE way, so two rows in the same list
+    // cannot drift apart. The counts are literal tags rather than rendered rows,
+    // because every list is a `.map` over a model. Notebook redesign
+    // (2026-09-27, Phase 3): the tinted stamp row became the hairline ledger
+    // row, so both are counted. The tinted row is a deprecated wrapper now; its
+    // last call site is Speak's memory row in ContinuityCard, and it goes in the
+    // final sweep, when that count must reach zero too.
+    for (const [tab, files] of Object.entries(SURFACES)) {
+      for (const file of files.slice(1)) {
+        assert.ok(named(tab).includes(`'../${file}'`), `${tab} no longer draws ${file}; the surface list is stale`);
+      }
+    }
+    const tinted: Record<string, number> = {
       'tabs/HomeTab.tsx': 0,
-      // The three ways in, and the remembers row above them.
-      'tabs/TutorTab.tsx': 4,
-      // Replay a moment, make this phrase yours, tune one sound: three rows in
-      // three card files. The fourth is on the tab itself and it is the one
-      // shape the starter branch cannot borrow. A learner with no conversation
-      // meets the same three rows built from the café lesson, and two of them
-      // are literally the same components; the moment is not, because it goes
-      // to the scripted lesson rather than to a drill on a pack, and because
-      // shaping an authored exchange as a `Replay` would put a sentence the
-      // learner never said into a field called `quote`. So the moment row is
-      // drawn here, from `practice/starterRows.ts`, and the count is four.
-      'tabs/PracticeTab.tsx': 4,
-      // The situations in their two groups, and the saved shelf.
-      'tabs/MyFrenchTab.tsx': 2,
+      'tabs/TutorTab.tsx': 1,
+      'tabs/PracticeTab.tsx': 0,
+      'tabs/MyFrenchTab.tsx': 0,
+      'tabs/ProfileTab.tsx': 0,
+    };
+    const ledger: Record<string, number> = {
+      // Today is a scene brief, two sentences and one phrase; nothing is a list.
+      'tabs/HomeTab.tsx': 0,
+      // The level path's scenes, then the other ways in.
+      'tabs/TutorTab.tsx': 2,
+      // The review door on the tab, then replay a moment and make this phrase
+      // yours in their own card files.
+      'tabs/PracticeTab.tsx': 3,
+      // Conversations and their "see all", the phrase shelf, the collection,
+      // goals, the daily collection and the door to every situation.
+      'tabs/MyFrenchTab.tsx': 9,
       // Profile is cards of settings, not a list of places.
       'tabs/ProfileTab.tsx': 0,
     };
-    for (const [tab, expected] of Object.entries(rows)) {
+    for (const [tab, expected] of Object.entries(tinted)) {
       const n = SURFACES[tab]!.reduce((total, name) => total + (named(name).match(/<TintRow\b/g) ?? []).length, 0);
       assert.equal(n, expected, `${tab} draws ${n} tinted rows across its own surfaces; it should draw ${expected}`);
+    }
+    for (const [tab, expected] of Object.entries(ledger)) {
+      const n = SURFACES[tab]!.reduce((total, name) => total + (named(name).match(/<LedgerRow\b/g) ?? []).length, 0);
+      assert.equal(n, expected, `${tab} draws ${n} ledger rows across its own surfaces; it should draw ${expected}`);
     }
   });
 });
@@ -2252,10 +2280,14 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     // itself, so the half of this check that made sure the hero was not hidden
     // behind it is now made by the line above: there is one condition on the
     // hero and it is having a situation to offer.
+    // 2026-09-27, Phase 3: the momentum tiles left Today, so the order now pinned is the next scene before
+    // today's phrase. Both must be present, or the comparison would pass on a missing tag.
+    assert.ok(home.includes('<MissionHero') && home.includes('<DailyCard'), 'Today no longer draws the scene brief and today\'s phrase');
     assert.ok(
-      home.indexOf('<MissionHero') < home.indexOf('<HomeMomentum'),
-      'the conversation invitation must precede the compact evidence cards',
+      home.indexOf('<MissionHero') < home.indexOf('<DailyCard'),
+      'the next scene must lead Today, ahead of today\'s phrase',
     );
+    assert.doesNotMatch(home, /<HomeMomentum\b/, 'the four empty tiles came back to Today');
   });
 
   test('the device runbook carries the Pass 5 checks — F410', () => {

@@ -31,10 +31,18 @@ test('the two daily pills are actionable alternatives and only the selected card
       `the embedded ${field} must not start native browser text dragging during a swipe`);
   }
 });
-test('daily illustrations use the existing scene pack and settle with reduced-motion and focus guards', () => {
+// Rewritten 2026-09-27 (notebook Phase 3, B1): only the orb and the
+// highlighter move, so the card's entrance and its settle timer are gone and
+// the drawing is always still. Today asks for the card with no picture at all,
+// and then the tutor's audio comes before the words.
+test('daily illustrations use the existing scene pack, stand still, and leave Today with the audio first', () => {
   for (const id of ['word:clim','phrase:cafe:1']) { assert.equal(sceneForDaily(id),sceneForDaily(id)); assert.ok(WORD_SCENES.includes(sceneForDaily(id))); }
   const source = readFileSync(new URL('./DailyCard.tsx',import.meta.url),'utf8');
-  assert.match(source, /paused=\{paused \|\| !focused \|\| settled \|\| reduced\}/);
-  assert.match(source, /clearTimeout\(timer\)/);
+  assert.doesNotMatch(source, /\bAnimated\b|Easing|setTimeout|useReduceMotion/, 'the daily card still moves');
+  assert.match(source, /<WordScene scene=\{sceneForDaily\(item\.id\)\} width=\{76\} paused=\{true\} \/>/, 'the drawing is not held still');
+  assert.match(source, /picture = true/, 'the picture is not optional, so Today cannot leave it out');
+  assert.match(source, /\{picture && <WordScene/, 'the picture is drawn whether or not the caller asked for it');
+  assert.match(source, /\{!picture && asset != null && <GhostButton label="Hear"/, 'without the picture the audio does not lead');
+  assert.ok(source.indexOf('{!picture && asset != null && <GhostButton label="Hear"') < source.indexOf('{item.fr}'), 'the audio comes after the words it is meant to lead');
   assert.match(source, /releaseDailyPlayback\(player\)/);
 });

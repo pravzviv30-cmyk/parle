@@ -164,12 +164,14 @@ describe('both lesson doors that can open a live lesson say so', () => {
     assert.ok(FLAT_SCREEN.includes('{LESSON_DOOR.minutes}'));
   });
 
-  test('Speak’s pronunciation row says it, and the offline guided practice does not', () => {
+  // Rewritten 2026-09-27 (notebook Phase 3, B1): Speak no longer draws its own
+  // pronunciation row. The live lesson's doors are the chooser's two above, and
+  // they still say it uses live minutes; the offline guided practice still
+  // does not, because offline the lesson runs on the phone.
+  test('Speak draws no second lesson door, and the offline guided practice claims no minutes', () => {
     const tab = stripComments(read('../tabs/TutorTab.tsx')).replace(/\s+/g, ' ');
-    assert.match(tab, /title="Practise pronunciation" gloss=\{`A guided café lesson with lines to listen to and repeat\. \$\{LESSON_MINUTES\}`\}/);
+    assert.doesNotMatch(tab, /Practise pronunciation|LESSON_MINUTES/, 'Speak draws a lesson door the chooser already draws');
     // Drawn only while the tutor is unavailable, when the lesson runs on the phone.
-    assert.match(tab, /<GhostButton label="Try guided practice" onPress=\{\(\) => nav\.navigate\('Lesson', \{ textMode: mode === 'type' \}\)\} \/>/);
-    const offline = tab.slice(tab.indexOf('{(!live || heldBack !== null) && ('), tab.indexOf('Try guided practice'));
-    assert.ok(!offline.includes('LESSON_MINUTES'), 'the offline lesson, which uses no minutes, is said to use them');
+    assert.match(tab, /<GhostButton label="Try guided practice" onPress=\{\(\) => nav\.navigate\('Lesson', \{ textMode: false \}\)\} \/>/);
   });
 });

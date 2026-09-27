@@ -1,11 +1,11 @@
 /**
- * How long the thing on the hero card is likely to take (F571).
+ * How long a scene is likely to take (F571).
  *
  * Home used to say "Usually five to ten minutes" over everything, which is a
  * sentence about scenes in general rather than about the scene on the card. The
- * founder's mockup asks the card to say "Ready for 7 min", and the moment a
- * screen puts a number in front of somebody, the number has to come from
- * somewhere it can be argued with. So it comes from here.
+ * moment a screen puts a number in front of somebody, the number has to come
+ * from somewhere it can be argued with. So it comes from here, and every scene
+ * brief, path row and chooser card reads it as "About N min".
  *
  * ## Where the arithmetic comes from
  *
@@ -15,11 +15,10 @@
  * with a tutor playing a part in it and a beat can be handed back and tried
  * again, so it is three minutes plus a minute and a half each.
  *
- * Both are then held between five and twelve. Not because the formulae cannot
- * produce a four or a twenty, but because a card that says "Ready for 3 min" is
- * promising something no conversation with a person in it can keep, and one
- * that says twenty is a card nobody taps on a Tuesday. The clamp is the honest
- * bound on an estimate, and it is the one thing here a learner would notice.
+ * Both open kinds are then held between five and twelve: a scene with room to
+ * wander in is not over in less, and one that says twenty is a card nobody taps
+ * on a Tuesday. The clamp bounds an open estimate; a script is bounded by its
+ * own lines (below).
  *
  * ## The measured remainder is not clamped
  *
@@ -28,14 +27,28 @@
  * have already done. That is a fact about them rather than a claim about
  * scenes, so it is passed through untouched. Clamping it would be the app
  * overruling its own measurement to make a nicer-looking number.
+ *
+ * ## A scripted scene is a minute a line (2026-09-27, notebook Phase 3)
+ *
+ * The opener, "Le premier café", has three beats and every one of them is a
+ * fixed reference line: the learner says three known sentences and the tutor
+ * answers. The open-mission formula and its five-minute floor offered it as
+ * eight, which is the length of a scene with room to wander in. So a mission
+ * whose reference lines cover every beat is estimated as a script, about a
+ * minute a line, bounded by one and the ceiling. It is read off the data, not
+ * the id: the day a second scene is written that way, it gets the same rule.
  */
 
-/** The three ways the card can know how long something takes. */
+import type { Mission } from '@luvani/core';
+
+/** The ways the card can know how long something takes. */
 export type Estimate =
   /** A daily scene, by how many beats of the learner's own side it has. */
   | { kind: 'scenario'; lines: number }
   /** A guided mission, by how many beats the frame carries. */
   | { kind: 'mission'; beats: number }
+  /** A scene whose every beat is one fixed line, by how many lines. */
+  | { kind: 'scripted'; lines: number }
   /** A real remainder, already extrapolated from this learner's own pace. */
   | { kind: 'measured'; minutes: number };
 
@@ -66,18 +79,32 @@ function clamp(minutes: number): number {
 export function estimateMinutes(estimate: Estimate): number {
   if (estimate.kind === 'measured') return estimate.minutes;
   if (estimate.kind === 'mission') return clamp(Math.ceil(MISSION_OPENING + MISSION_PER_BEAT * estimate.beats));
+  if (estimate.kind === 'scripted') return Math.min(MAX_MINUTES, Math.max(1, estimate.lines));
   return clamp(SCENARIO_OPENING + estimate.lines);
 }
 
 /**
- * The one line on Home with a numeral in it.
+ * How a mission is estimated, from its own shape.
  *
- * Every other count was taken off this page on purpose, so this sentence is
- * deliberately the exception and deliberately small: it is a duration, which is
- * a fact about the next few minutes rather than a measurement of the learner.
- * It reads "Ready for" rather than "Takes", because the card is an invitation
- * and not a contract.
+ * Scripted when its fixed reference lines cover every beat, otherwise an open
+ * mission by its beats. Every surface that says how long a mission takes asks
+ * this, so the opener cannot read three on Today and eight on Speak.
  */
-export function readyLine(minutes: number): string {
-  return `Ready for ${minutes} min`;
+export function missionEstimate(mission: Pick<Mission, 'beatIds' | 'referencePhrases'>): Estimate {
+  const beats = mission.beatIds.length;
+  return mission.referencePhrases.length >= beats ? { kind: 'scripted', lines: beats } : { kind: 'mission', beats };
+}
+
+/** The minutes a mission is offered as. */
+export function missionMinutes(mission: Pick<Mission, 'beatIds' | 'referencePhrases'>): number {
+  return estimateMinutes(missionEstimate(mission));
+}
+
+/**
+ * The one sanctioned numeral on a scene: a duration, which is a fact about the
+ * next few minutes rather than a measurement of the learner. "About", because
+ * it is an estimate and not a contract.
+ */
+export function minutesLine(minutes: number): string {
+  return `About ${minutes} min`;
 }

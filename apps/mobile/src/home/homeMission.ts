@@ -1,235 +1,158 @@
 /**
- * Tonight's French: the one thing Home leads with (F543, F571).
+ * The scene Today leads with (F543, F571, notebook Phase 3).
  *
- * Home opens on one real situation with a reason and a time, because the
- * question a learner brings to the first screen is "what shall I do tonight",
- * not "what is a word". This module answers it and `MissionHero.tsx` draws the
- * answer. Nothing on the screen chooses.
+ * Today opens on one real scene, because the question a learner brings to the
+ * first screen is "what shall I do now". This module answers it and
+ * `MissionHero.tsx` draws the answer on the scene brief. Nothing on the screen
+ * chooses.
  *
- * ## Three kinds, in priority
+ * ## The next scene on the spine
  *
- * A scene the learner walked out of part way comes back first: they meant that
- * scene whatever the deck says is due, and the minutes on it are measured from
- * their own pace rather than assumed. Then, for somebody who has never spoken
- * to the tutor at all, the café, because a first conversation should be the one
- * the whole product was built around. Otherwise today's scene, drawn from the
- * daily pool at the learner's own tier, which is the card the founder's mockup
- * shows: an English title, two lines of what is happening, and the place.
+ * Rewritten 2026-09-27. The hero is `spineFrom(progress).next`: the first scene
+ * on the CEFR spine the learner has not earned on their own. That is the opener
+ * on a first run, the café once the opener is earned, and so on up to A1. The
+ * brief says what is true of that scene and nothing else: its level, its French
+ * title, what the learner will be able to do, two or three lines they will say,
+ * and how long it takes. If they walked out of that very scene part way, the
+ * minutes are measured from their own pace and the caps line says so.
  *
- * Revamp A folded the daily situation card into this one. Home used to offer
- * the next guided mission as a hero and today's scene as a second card lower
- * down, with a pill on one and an outline on the other, which is two ways into
- * a conversation on a screen whose whole job is to open one. The six guided
- * missions are reached from the Tutor tab and from My French now, and the hero
- * is the day.
+ * Only a learner who has earned every scene on the spine meets the day's scene
+ * instead, drawn from the daily pool at their tier, which is also the one card
+ * that can be bookmarked.
  *
- * ## Why the union rather than one shape with optional halves
+ * ## Why the union
  *
- * A daily scene and a guided mission open differently: a scene opens on its
- * seed topic and a mission opens on its id. Carrying both as optional fields is
- * how a card comes to be started with neither. The common half is everything
- * the card draws, so `HeroCard` never asks which kind it has, and the kind is
- * only read at the one place it decides something, which is the start.
+ * A daily scene and a mission open differently: a scene opens on its seed topic
+ * and a mission opens on its id. The common half is everything the brief draws,
+ * so `MissionHero` never asks which kind it has except at the start.
  */
 
 import {
   DAILY_SCENARIOS,
-  FIRST_MISSION,
-  MISSIONS,
+  SCENE_SPINE,
   dailyPick,
+  getMission,
   scenariosForLevel,
   seedTopicOf,
+  spineFrom,
   type DailyScenario,
   type Mission,
   type MissionId,
-  type MissionPlace,
   type MissionProgress,
 } from '@luvani/core';
 
-import { heroArt } from '../art/maps.ts';
-import type { ArtKey } from '../art/registry.ts';
 import type { ScenarioRecord } from '../missions/progressStore.ts';
 import { minutesRemaining } from '../missions/resume.ts';
-import { estimateMinutes } from './estimate.ts';
-import { localHour } from './greeting.ts';
+import { estimateMinutes, missionMinutes } from './estimate.ts';
 
-export type HomeMissionKind = 'resume' | 'first' | 'today';
-
-/** Everything the card draws, whichever kind it turned out to be. */
+/** Everything the brief draws, whichever kind it turned out to be. */
 export interface HeroFacts {
-  /** The caps line over the card: what kind of offer this is. */
-  label: string;
-  /** The name of the thing, in the learner's language, for the serif line. */
+  /** A0 or A1 for a spine scene; null for a daily scene, which carries no level. */
+  level: 'A0' | 'A1' | null;
+  /** The one caps label, only when there is something true to say with it. */
+  label: string | null;
+  /** The scene's name in French, the brief's serif hero. */
+  french: string | null;
+  /** The scene's name in the learner's language. */
   title: string;
-  /** Two plain sentences: what is happening, and what they will be doing. */
-  body: string;
-  /** Where it happens. Picks the picture, and names a place rather than a colour. */
-  place: MissionPlace;
+  /** One plain line about a daily scene. Null for a spine scene, which has a can-do. */
+  summary: string | null;
+  /** What the learner will be able to do, read after "You'll be able to". */
+  canDo: string | null;
+  /** Two or three lines the learner will say, in French. */
+  lines: readonly string[];
   /** How long, as a number, so the one sanctioned numeral line can say it. */
   minutes: number;
-  /** One honest line explaining why this is the conversation in front of them. */
-  reason: string;
-  /** The scene behind the card, from the one registry that owns sizes. */
-  art: ArtKey;
 }
 
 export type HomeMission =
-  | (HeroFacts & { kind: 'resume' | 'first'; mission: Mission })
+  | (HeroFacts & { kind: 'scene'; mission: Mission })
   | (HeroFacts & { kind: 'today'; scenario: DailyScenario });
 
 export const HERO_LABELS = {
+  /** A scene on the spine the learner walked out of part way. */
   resume: 'Pick up where you left off',
-  first: 'Your first French',
-  /**
-   * The café for a learner who has practised (typed drills, review) but never
-   * had a conversation. "Your first French" would be untrue for them; the
-   * conversation is the first, so the label says that and nothing more.
-   */
-  firstConversation: 'Your first conversation',
-  evening: "Tonight's French",
-  day: "Today's French",
 } as const;
 
-/**
- * Why Home put this particular scene first.
- *
- * These stay deliberately plain. They explain the recommendation without
- * exposing a level, score or ranking, and the fallback says nothing about a
- * learner whose local history could not be read.
- */
-export const HERO_REASONS = {
-  resume: 'Return to this situation for another short conversation.',
-  first: 'A short, supported café scene to help you start speaking.',
-  today: 'A fresh situation chosen for the French you are practising now.',
-  fallback: 'A short café scene you can start whenever you are ready.',
-} as const;
-
-export const START_CONVERSATION = 'Start conversation';
+/** The brief's one primary action. */
+export const START = 'Start';
 
 /** Every line this module can say, for the copy sweeps. */
-export const HERO_COPY: readonly string[] = [
-  ...Object.values(HERO_LABELS),
-  ...Object.values(HERO_REASONS),
-  START_CONVERSATION,
-];
+export const HERO_COPY: readonly string[] = [...Object.values(HERO_LABELS), START];
 
-/** The greeting's own evening: from six until the small hours. */
-export function heroLabel(now: number): string {
-  const hour = localHour(now);
-  return hour >= 18 || hour < 5 ? HERO_LABELS.evening : HERO_LABELS.day;
-}
-
-/** The scene most recently walked out of and not finished since, or null. */
-function leftPartWay(
-  progress: readonly MissionProgress[],
-  records: readonly ScenarioRecord[],
-): { progress: MissionProgress; record: ScenarioRecord } | null {
-  let best: { progress: MissionProgress; record: ScenarioRecord } | null = null;
+/** The most recent record for this mission not finished since, or null. */
+function leftPartWay(progress: MissionProgress, records: readonly ScenarioRecord[]): ScenarioRecord | null {
+  let best: ScenarioRecord | null = null;
   for (const record of records) {
-    const mine = progress.find((p) => p.mission.id === record.missionId);
-    if (mine === undefined) continue;
-    if (mine.lastFinishedAt !== null && record.at <= mine.lastFinishedAt) continue;
-    if (best === null || record.at > best.record.at) best = { progress: mine, record };
+    if (record.missionId !== progress.mission.id) continue;
+    if (progress.lastFinishedAt !== null && record.at <= progress.lastFinishedAt) continue;
+    if (best === null || record.at > best.at) best = record;
   }
   return best;
 }
 
-/** The common half of a mission hero, so the two mission kinds cannot drift. */
-function fromMission(mission: Mission, label: string, minutes: number, reason: string): HeroFacts {
+/** A spine scene as a brief. */
+function sceneHero(mission: Mission, minutes: number, label: string | null): HomeMission {
   return {
+    kind: 'scene',
+    mission,
+    level: mission.cefr,
     label,
+    french: mission.title,
     title: mission.titleEn,
-    body: mission.goalEn,
-    place: mission.place,
+    summary: null,
+    canDo: mission.canDoEn,
+    lines: mission.referencePhrases.slice(0, 3),
     minutes,
-    reason,
-    art: heroArt(mission.place),
   };
 }
 
 export function homeMissionFrom(input: {
   progress: readonly MissionProgress[];
   records: readonly ScenarioRecord[];
-  spokenBefore: boolean;
-  /**
-   * Whether the learner has done any practice or review at all. Only read when
-   * they have not spoken yet, to choose between "Your first French" and "Your
-   * first conversation". Optional so a caller that cannot tell keeps the old
-   * wording rather than a guess.
-   */
-  practisedBefore?: boolean;
   /** The learner's level standing, so the daily pool is pitched at them. */
   levelIndex: number;
   now: number;
 }): HomeMission | null {
   if (input.progress.length === 0) return null;
 
-  // A scene left part way, with the minutes measured from this learner's own
-  // pace through the beats they already did. No pace behind it means the
-  // mission's own shape instead, which is an estimate rather than a guess.
-  const left = leftPartWay(input.progress, input.records);
-  if (left !== null) {
-    const mission = left.progress.mission;
-    const remaining = minutesRemaining(left.record, mission.beatIds.length, left.progress.lastFinishedAt);
-    const minutes =
-      remaining === null
-        ? estimateMinutes({ kind: 'mission', beats: mission.beatIds.length })
-        : estimateMinutes({ kind: 'measured', minutes: remaining });
-    return {
-      kind: 'resume',
-      mission,
-      ...fromMission(mission, HERO_LABELS.resume, minutes, HERO_REASONS.resume),
-    };
+  const next = spineFrom(input.progress).next;
+  if (next !== null) {
+    const mine = input.progress.find((p) => p.mission.id === next.id);
+    const left = mine === undefined ? null : leftPartWay(mine, input.records);
+    if (left !== null) {
+      // Measured from this learner's own pace through the beats they did; no
+      // pace behind it means the mission's own shape instead.
+      const remaining = minutesRemaining(left, next.beatIds.length, mine!.lastFinishedAt);
+      const minutes = remaining === null ? missionMinutes(next) : estimateMinutes({ kind: 'measured', minutes: remaining });
+      return sceneHero(next, minutes, HERO_LABELS.resume);
+    }
+    return sceneHero(next, missionMinutes(next), null);
   }
 
-  if (!input.spokenBefore) {
-    const first = input.progress.find((p) => p.mission.id === FIRST_MISSION) ?? input.progress[0]!;
-    const mission = first.mission;
-    return {
-      kind: 'first',
-      mission,
-      ...fromMission(
-        mission,
-        input.practisedBefore === true ? HERO_LABELS.firstConversation : HERO_LABELS.first,
-        estimateMinutes({ kind: 'mission', beats: mission.beatIds.length }),
-        HERO_REASONS.first,
-      ),
-    };
-  }
-
-  // Today's scene, picked by the day out of the learner's own tier. The pick is
-  // core's and the clock is the screen's one reading, so the hero, the label
-  // and anything else drawn from today can never disagree about the day.
+  // Every scene on the spine earned: today's scene, from the learner's own tier.
   const scenario = dailyPick(scenariosForLevel(DAILY_SCENARIOS, input.levelIndex), input.now);
-  return { kind: 'today', scenario, ...fromScenario(scenario, heroLabel(input.now)) };
-}
-
-/** The common half of a daily scene, from the scene's own fields. */
-function fromScenario(scenario: DailyScenario, label: string): HeroFacts {
   return {
-    label,
+    kind: 'today',
+    scenario,
+    level: null,
+    label: null,
+    french: null,
     title: scenario.titleEn,
-    body: scenario.bodyEn,
-    place: scenario.place,
+    summary: scenario.bodyEn,
+    canDo: null,
+    lines: [],
     minutes: estimateMinutes({ kind: 'scenario', lines: scenario.lines.length }),
-    reason: HERO_REASONS.today,
-    art: heroArt(scenario.place),
   };
 }
 
 /**
  * How the conversation opens, and what a start should be recorded against.
  *
- * The two kinds open differently and this is the only place that difference is
- * read. A daily scene goes through `seedTopicOf`, which turns it into the two
- * plain strings the token server already carries, so the tutor opens on this
- * scene without anything new being taught to the agent. A mission goes by id,
- * the way the chooser and My French open one.
- *
- * `missionId` is null for a daily scene on purpose: the catalogue of missions
- * is what a mission start is counted against, and counting a daily scene as one
- * would put a number about the six guided situations next to something that is
- * not one of them.
+ * A mission opens by id, directly, which is the first run's whole route: Start
+ * on Today goes into the scene without passing through the chooser. A daily
+ * scene goes through `seedTopicOf`. `missionId` is null for a daily scene so
+ * it is never counted as a mission start.
  */
 export interface HeroStart {
   params: { missionId: MissionId } | { seedTopic: { fr: string; en: string } };
@@ -242,37 +165,21 @@ export function heroStart(hero: HomeMission): HeroStart {
 }
 
 /**
- * The situation this card can be saved to come back to, or null.
- *
- * Only a daily scene can be. The bookmark store holds scene ids and My French
- * resolves them back against the daily pool, so a mission id written into it
- * would be a save that quietly resolved to nothing the next time the shelf was
- * drawn. A mission is already permanent: it is in the passport and on My
- * French, and it does not need saving to be found again.
+ * The situation this card can be saved to come back to, or null. Only a daily
+ * scene can be: the shelf holds scene ids, and a mission is already permanent
+ * on the path.
  */
 export function heroBookmark(hero: HomeMission): { id: string; titleEn: string } | null {
   return hero.kind === 'today' ? { id: hero.scenario.id, titleEn: hero.scenario.titleEn } : null;
 }
 
 /**
- * The hero for a page whose storage read failed: the café, offered as the
- * hour's French.
- *
- * True of the café for every learner alive, so nothing about the one who could
- * not be read is invented, and the page keeps its one pill. The label is the
- * hour's rather than "Your first French", because a learner of two years whose
- * disk would not answer is not on their first anything.
+ * The hero for a page whose storage read failed: the first scene on the spine,
+ * with no caps label. What it says is true of the scene for every learner, so
+ * nothing about the one who could not be read is invented, and the page keeps
+ * its one Start.
  */
-export function fallbackHero(now: number): HomeMission {
-  const cafe = MISSIONS.find((mission) => mission.id === FIRST_MISSION) ?? MISSIONS[0]!;
-  return {
-    kind: 'first',
-    mission: cafe,
-    ...fromMission(
-      cafe,
-      heroLabel(now),
-      estimateMinutes({ kind: 'mission', beats: cafe.beatIds.length }),
-      HERO_REASONS.fallback,
-    ),
-  };
+export function fallbackHero(): HomeMission {
+  const first = getMission(SCENE_SPINE[0]!)!;
+  return sceneHero(first, missionMinutes(first), null);
 }

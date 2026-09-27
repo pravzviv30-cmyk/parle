@@ -265,16 +265,17 @@ describe('the glyph layer draws with the same pen as the scenes', () => {
  */
 describe('only the orb and the highlighter move', () => {
   const TARGET = ['components.tsx', 'motion.ts', join('tutor', 'VoiceOrb.tsx')];
+  // 2026-09-27, notebook Phase 3 (B1): the rotating greeting (and its hook
+  // file), the DailyCard entrance and the Speak tab's settle-in entrance were
+  // removed, so daily/DailyCard.tsx, home/useGreetingRotation.ts and
+  // tabs/TutorTab.tsx came off this list. It may only shrink.
   const PENDING = [
     'ConvoScreen.tsx',
-    join('daily', 'DailyCard.tsx'),
-    join('home', 'useGreetingRotation.ts'),
     join('illustrations', 'pen.tsx'),
     join('illustrations', 'scenes', 'reward.tsx'),
     join('illustrations', 'useSceneMotion.ts'),
     'layout.tsx',
     join('onboarding', 'PreAccountOnboarding.tsx'),
-    join('tabs', 'TutorTab.tsx'),
     join('tutor', 'Transcript.tsx'),
   ];
 

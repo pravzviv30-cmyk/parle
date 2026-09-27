@@ -204,10 +204,14 @@ describe('the three ways into a conversation — what a learner meets instead of
       { probe: false, screen: 'RealMoment' },
       'rehearsing something does not open the screen that asks what the real moment is',
     );
-    // And the tab reads the answer rather than keeping a second copy of it.
-    assert.match(tab, /entryStart\(key\)/, 'the tab decides where a row goes instead of reading it from gate.ts');
-    assert.match(tab, /if \(start\.probe\) \{\s*open\(mode === 'type'\);/, 'open conversation probes in the selected mode');
-    assert.match(tab, /nav\.navigate\(start\.screen, \{ textMode: mode === 'type' \}\)/, 'secondary doors preserve the selected mode');
+    // And Speak reads the answer rather than keeping a second copy of it.
+    // 2026-09-27 (notebook Phase 3): the rows are "More ways to practise",
+    // built in speakView.ts from this door model; the open conversation probes
+    // spoken, like the one Start, and the other rows push their screen.
+    const view = readFileSync(fileURLToPath(new URL('./speakView.ts', import.meta.url)), 'utf8');
+    assert.match(view, /entryStart\(key\)/, 'Speak decides where a row goes instead of reading it from gate.ts');
+    assert.match(tab, /if \(way\.screen === null\) \{ open\(modes\.textMode\); return; \}/, 'the open conversation does not probe in the preferred mode');
+    assert.match(tab, /nav\.navigate\(way\.screen\)/, 'a secondary way in does not open its own screen');
   });
 
   test('the tab opens its rows with nothing standing in front of them', () => {
@@ -217,7 +221,8 @@ describe('the three ways into a conversation — what a learner meets instead of
     assert.ok(!tab.includes('hasSeenTutorIntro'), 'the tab still reads the intro flag to decide what to show');
     assert.doesNotMatch(tab, /if\s*\(\s*!seenIntro\s*\)/, 'the intro is still the first thing on the tab');
     assert.ok(!tab.includes('<TutorIntro'), 'the explainer is back in front of the tab');
-    assert.ok(tab.includes('tutorDoors()'), 'the tab decides its own rows again');
+    const view = readFileSync(fileURLToPath(new URL('./speakView.ts', import.meta.url)), 'utf8');
+    assert.ok(view.includes('tutorDoors()') && tab.includes('MORE_WAYS.map('), 'the tab decides its own rows again');
   });
 
   test('the explainer is still reachable, and still teaches the circle', () => {

@@ -536,23 +536,27 @@ describe('one highlighter — notebook Phase 1', () => {
       'auth/SignInScreen.tsx',
       'auth/SignUpScreen.tsx',
       'daily/DailyCarousel.tsx',
-      'home/HomeMomentum.tsx',
       'nav/tabSurface.ts',
       'onboarding/AgeGateScreen.tsx',
       'onboarding/OnboardingFlow.tsx',
       'phrases/PhrasebookScreen.tsx',
       'profile/ProfileButton.tsx',
-      'tabs/FriendsTab.tsx',
-      'tabs/TutorTab.tsx',
       'tutor/TutorIntro.tsx',
       'wall/WallPlansPage.tsx',
     ]);
+    const spelling = new Set<string>();
     for (const file of walk(SRC)) {
       if (/\.test\.tsx?$/.test(file)) continue;
       const rel = file.slice(SRC.length);
       const body = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
       if (!/\baccent\.feature\b/.test(body)) continue;
+      spelling.add(rel);
       assert.ok(PENDING.has(rel), `${rel} spells accent.feature; the chartreuse is the highlighter now and the alias is only for screens not yet rebuilt`);
+    }
+    // 2026-09-27, Phase 3: the list may only shrink, so an entry whose file no longer spells the alias (or
+    // no longer exists) fails here instead of lingering as a standing allowance.
+    for (const rel of PENDING) {
+      assert.ok(spelling.has(rel), `${rel} no longer spells accent.feature; take it off the pending list`);
     }
   });
 });

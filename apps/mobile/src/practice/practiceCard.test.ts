@@ -7,6 +7,8 @@ import { recommendation } from './recommendation.ts';
 import { PRACTICE_ALTERNATIVES, PRACTICE_COPY, RECOMMENDED } from './copy.ts';
 import { NEXT_STEP } from './nextStep.ts';
 import { guiltIn } from '../copy/guilt.ts';
+import { LESSON_MINUTES } from '../copy/access.ts';
+import { SOUND_LEAD } from './soundLead.ts';
 
 const DAY = 86_400_000;
 const NOW = 1_800_000_000_000;
@@ -108,12 +110,19 @@ describe('the Practice card and its quiet doors', () => {
     assert.ok(cafe.phrase.fr.length > 0 && cafe.phrase.en.length > 0);
   });
 
-  test('with nothing playable the card is the first conversation, and makes no module claim', () => {
+  test('with nothing playable on day one the card is the bonjour sound lesson, with its live-minutes line — notebook Phase 3', () => {
+    // 2026-09-27: day one on Practice is the guided pronunciation lesson that
+    // opens on "Bonjour", not a first conversation (Today owns that start).
     const rec = recommendation({ resumable: null, deck: [], bank: [], packs: [], now: NOW });
     const c = practiceCard({ rec, deck: [], packs: [], now: NOW, resuming: [] });
-    assert.equal(c.action.kind, 'first');
-    assert.equal(c.action.label, NEXT_STEP.first);
-    assert.equal(c.noMinutes, null, 'the first conversation is live and was labelled as using no minutes');
+    assert.equal(c.action.kind, 'lesson');
+    assert.equal(c.action.label, SOUND_LEAD.lesson);
+    assert.notEqual(c.action.label, NEXT_STEP.first, 'day one on Practice still offers a first conversation');
+    assert.equal(c.noMinutes, null, 'the lesson runs live while a tutor is connected and was labelled as using no minutes');
+    assert.equal(c.liveMinutes, LESSON_MINUTES, 'the lesson does not say it uses live minutes while the tutor is connected');
+    // Every other card says nothing about live minutes of its own.
+    const talk = practiceCard({ rec: { kind: 'none', fallback: 'talk' }, deck: [], packs: [], now: NOW, resuming: [] });
+    assert.equal(talk.liveMinutes, null);
   });
 
   test('a learner who already has a conversation is never told to start their first — whole-app phase 2 review', () => {

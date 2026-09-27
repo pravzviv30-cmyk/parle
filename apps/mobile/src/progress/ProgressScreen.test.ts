@@ -4,18 +4,32 @@ import { readFileSync } from 'node:fs';
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const home = read('../tabs/HomeTab.tsx');
 const details = read('./ProgressScreen.tsx');
-const compact = read('../home/HomeMomentum.tsx');
+// 2026-09-27, notebook Phase 3: `home/HomeMomentum.tsx` was deleted when Today
+// was rebuilt. The four momentum tiles are now read from where they still live:
+// the words in `momentum.ts` and the one block that draws them, `MomentumCards.tsx`.
+const module = read('./momentum.ts');
+const compact = read('./MomentumCards.tsx');
 
 // Names retain the ledger links; the approved redesign moves these contracts inline.
 test('the progress screen keeps the momentum, the week story and the word of the day', () => {
-  assert.match(home, /setMomentum\(momentumFrom\(\{ activity, deck, profile, now, activeDays \}\)\)/);
-  assert.match(home, /setStory\(storyFrom\(\{ sessions: history, activity, packs, completions, now \}\)\)/);
-  assert.match(home, /setRows\(canDoRows\(stampsFrom\(progress\)\)\)/);
-  for (const content of ['<HomeMomentum', '<DailyCarousel', '<HomeProgressDetails']) assert.ok(home.includes(content));
-  for (const label of ['Days active', 'Retained phrases', 'Recall', 'Practice time']) assert.ok(compact.includes(label));
+  // 2026-09-27, notebook Phase 3: Today draws no momentum tiles, no seven-dot
+  // rail, no word carousel and no expanding details. It still reads the week's
+  // story, now for two plain sentences, and it still draws today's phrase.
+  assert.match(home, /const story = storyFrom\(\{ sessions: history, activity, packs, completions, now \}\);/);
+  assert.match(home, /<DailyCard item=\{daily\.phrase\} picture=\{false\} \/>/, 'Today lost the day\'s phrase');
+  for (const gone of ['<HomeMomentum', 'HomeMomentum.tsx', '<MomentumCards', 'momentumFrom(', '<WeekRail', '<DailyCarousel', '<HomeProgressDetails']) {
+    assert.ok(!home.includes(gone), `Today draws ${gone} again; the momentum tiles and the week rail left the page`);
+  }
+  // The four tiles keep their words, and they are still the module's.
+  assert.match(module, /export const DAYS_LABEL = 'Days active';/);
+  assert.match(module, /export const RETAINED_LABEL = 'Retained phrases';/);
+  assert.match(module, /export const MASTERY_LABEL = 'Recall';/);
+  assert.match(module, /export const GOAL_TITLE = 'Practice time today';/);
+  const drawn = compact.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  for (const label of ['Days active', 'Retained phrases', 'Recall', 'Practice time']) assert.ok(!drawn.includes(label), `the block spells "${label}" itself`);
   // Phase 1B: the tile is active learning time, not speaking, and never the metered balance.
-  assert.doesNotMatch(compact, /Speaking time|timed speaking/);
-  assert.match(compact, /goal\.untimedNote/, 'Home hides the note that explains untimed legacy sittings');
+  for (const body of [module, compact, home]) assert.doesNotMatch(body, /Speaking time|timed speaking/);
+  assert.match(compact, /goal\.untimedNote/, 'the block hides the note that explains untimed legacy sittings');
   assert.doesNotMatch(home, /navigate\('Progress'\)|<AbilitiesCard/);
   assert.doesNotMatch(read('../nav/RootNavigator.tsx'), /name="Progress"|function ProgressRoute/);
   assert.match(details, /hasStory\(story\)/);
@@ -23,13 +37,15 @@ test('the progress screen keeps the momentum, the week story and the word of the
   assert.match(details, /nav.navigate\('Convo', \{ missionId: row.missionId \}\)/);
 });
 test('the Home practice tile says under a minute when time was measured, never nothing timed — Stage 1 browser proof', () => {
+  // 2026-09-27, notebook Phase 3: Today has no practice-time tile at all now,
+  // so it can say nothing wrong about one. The block that still draws the tile
+  // reads the module's measured amount and never decides "nothing timed" from
+  // floored minutes itself.
+  assert.doesNotMatch(home, /goal\.|Practice time|No active practice timed yet/, 'Today draws a practice-time tile again');
   const flat = compact.replace(/\s+/g, ' ');
-  // The tile reads whether anything was measured from momentum.ts, not from the
-  // floored minutes: a timed sitting of a few seconds is zero minutes and was
-  // still timed, so a `minutes > 0` branch is what told the learner otherwise.
   assert.doesNotMatch(flat, /goal\.minutes > 0/, 'the tile decides "nothing timed" from floored minutes, so a sub-minute sitting reads as untimed');
-  assert.match(flat, /accessibilityLabel=\{`Practice time today\. \$\{goal\.measured \?\? 'No active practice timed yet'\}\./, 'the spoken label does not follow the measured amount');
-  assert.match(flat, /<Text style=\{s\.value\}>\{goal\.measured \?\? 'Ready when you are'\}<\/Text>/, 'the visible value does not follow the measured amount');
+  assert.match(flat, /\{goal\.amount !== null && <Text style=\{st\.goalAmount\}>\{goal\.amount\}<\/Text>\}/, 'the visible value does not follow the measured amount');
+  assert.match(module, /GOAL_UNDER_MINUTE/, 'a timed sitting under a minute has no words of its own');
 });
 test('DESIGN.md names the Home tile Practice time in its composition rules — Stage 1', () => {
   const design = read('../../../../DESIGN.md');

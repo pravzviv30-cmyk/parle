@@ -291,18 +291,20 @@ function SignedInRoot({
   }, [user.id]);
 
   /**
-   * Linking owns the initial state on web, so `/` resolves to Tabs after the
-   * stack's `initialRouteName` has chosen Missions. Wait until that resolution
-   * is complete, then replace the root exactly once. Native takes the same
-   * path harmlessly, which keeps one first-run rule for both platforms.
+   * Linking owns the initial state on web, so a stale URL can resolve somewhere
+   * other than where a first run belongs. Wait until that resolution is
+   * complete, then replace the root exactly once. Native takes the same path
+   * harmlessly, which keeps one first-run rule for both platforms.
    *
-   * This is deliberately a reset rather than a push. A first run has no screen
-   * behind the chooser, and MissionsScreen already turns its Back control into
-   * an explicit route to Tabs when there is no history to pop.
+   * A first run lands on Today (notebook redesign, 2026-09-27): Today leads with
+   * the next scene and its Start goes straight into it, so the ten-way chooser
+   * is no longer the first thing a new learner meets. It stays reachable from
+   * Speak's level path. This is deliberately a reset rather than a push, because
+   * a first run has no screen behind it.
    */
-  const openFirstMissionChooser = useCallback(() => {
+  const openFirstRun = useCallback(() => {
     if (!justOnboarded || !navigationRef.isReady()) return;
-    navigationRef.resetRoot({ index: 0, routes: [{ name: 'Missions' }] });
+    navigationRef.resetRoot({ index: 0, routes: [{ name: 'Tabs' }] });
     setJustOnboarded(false);
   }, [justOnboarded, navigationRef]);
 
@@ -371,7 +373,7 @@ function SignedInRoot({
       <LiveProvider>
         <NavigationContainer
           ref={navigationRef}
-          onReady={() => { openFirstMissionChooser(); openPendingInvite(); }}
+          onReady={() => { openFirstRun(); openPendingInvite(); }}
           theme={navTheme}
           // Web only. A native linking config would claim luvani://auth/callback,
           // which auth/oauth.native.ts needs for the OAuth round trip.

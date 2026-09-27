@@ -3,7 +3,8 @@
  *
  * The tab draws one prominent action: Resume practice when a sitting is
  * waiting on this phone, Start a short practice when there is playable
- * material, or the first conversation for a learner with nothing yet. Under
+ * material, or, for a learner with nothing yet, the guided sound lesson that
+ * opens on "Bonjour" (notebook Phase 3, 2026-09-27). Under
  * it, quieter doors: scheduled review when review is due, another saved
  * conversation when there is one, and the tutor revisit when the plan opens it.
  *
@@ -32,8 +33,8 @@
 import { dueCards, isDue, phraseKeyOf, CAFE_LESSON, type ConversationPack, type ReviewCard } from '@luvani/core';
 import { practiceRouteParams, type PracticeRouteParams } from './practiceRoute.ts';
 import { PRACTICE_ALTERNATIVES, RECOMMENDED } from './copy.ts';
-import { NEXT_STEP } from './nextStep.ts';
 import { starterFrom } from './starter.ts';
+import { SOUND_LEAD } from './soundLead.ts';
 import type { Recommendation } from './recommendation.ts';
 
 export interface PracticeCard {
@@ -48,7 +49,12 @@ export interface PracticeCard {
      */
     | { kind: 'practice'; label: string; params: PracticeRouteParams }
     | { kind: 'resume'; label: string }
-    | { kind: 'first'; label: string }
+    /**
+     * Day one on Practice (notebook Phase 3, 2026-09-27): the guided
+     * pronunciation lesson that opens on "Bonjour". It runs live while a tutor
+     * is connected and on this phone when not, so it says `liveMinutes`.
+     */
+    | { kind: 'lesson'; label: string }
     /**
      * A live conversation for a learner who already has one but nothing to
      * practise from it yet. Opens exactly as `first` does; only the words
@@ -62,8 +68,10 @@ export interface PracticeCard {
    * say theirs only when it is a different one. Null when none is named.
    */
   sourcePackId: string | null;
-  /** Always said under a module sitting; never under the first conversation, which is live. */
+  /** Always said under a module sitting; never under the lesson or a conversation, which can be live. */
   noMinutes: string | null;
+  /** Said under the lesson only: it uses live minutes while the tutor is connected. */
+  liveMinutes: string | null;
 }
 
 export interface PracticeDoors {
@@ -122,6 +130,7 @@ export function practiceCard(input: {
       source: rec.source !== null ? `${RECOMMENDED.fromConversation} ${rec.source.title.en}` : RECOMMENDED.resumeLine,
       sourcePackId: rec.source?.id ?? null,
       noMinutes: RECOMMENDED.noMinutes,
+      liveMinutes: null,
     };
   }
 
@@ -137,6 +146,7 @@ export function practiceCard(input: {
       source: rec.source !== null ? `${RECOMMENDED.fromConversation} ${rec.source.title.en}` : RECOMMENDED.fromReview,
       sourcePackId: rec.source?.id ?? null,
       noMinutes: RECOMMENDED.noMinutes,
+      liveMinutes: null,
     };
   }
 
@@ -151,15 +161,18 @@ export function practiceCard(input: {
       source: preparing ? RECOMMENDED.preparing : null,
       sourcePackId: null,
       noMinutes: null,
+      liveMinutes: null,
     };
   }
 
+  // Day one: nothing said yet, so the one action is the sound lesson.
   return {
     phrase: starterFrom().phrase,
-    action: { kind: 'first', label: NEXT_STEP.first },
+    action: { kind: 'lesson', label: SOUND_LEAD.lesson },
     source: null,
     sourcePackId: null,
     noMinutes: null,
+    liveMinutes: SOUND_LEAD.lessonCost,
   };
 }
 

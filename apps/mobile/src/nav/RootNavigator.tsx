@@ -607,22 +607,21 @@ function Tabs() {
 export function RootNavigator({
   onSignOut,
   onDeleteAccount,
-  startOnMissions = false,
 }: {
   onSignOut: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
   /**
-   * A learner who finished onboarding a second ago opens on the chooser rather
-   * than on Home, so the first thing after signing up is picking something to
-   * say. The flag is held in memory by App.tsx and never written down: an app
-   * killed between the two lands on Home, whose mission card leads here anyway,
-   * and a persisted flag would be one more thing that can get stuck.
+   * Retired as a route decision 2026-09-27 (notebook Phase 3): a learner who
+   * finished onboarding a second ago lands on Today, whose one Start goes
+   * straight into the next scene. The chooser stays a stack screen, reached
+   * from Speak's path rows. Still accepted so App.tsx typechecks until its
+   * post-onboarding `resetRoot` to Missions is retired with it.
    */
   startOnMissions?: boolean;
 }) {
   return (
     <Stack.Navigator
-      initialRouteName={wallPreviewEnabled() ? 'Wall' : startOnMissions ? 'Missions' : 'Tabs'}
+      initialRouteName={wallPreviewEnabled() ? 'Wall' : 'Tabs'}
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: paper.ground },

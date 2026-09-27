@@ -31,7 +31,6 @@ import { fileURLToPath } from 'node:url';
 
 import { guiltIn } from '../copy/guilt.ts';
 import { MADE_FROM } from './madeFrom.ts';
-import { MADE_FROM_TINT } from './madeFromTint.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -96,38 +95,29 @@ describe('practice is three rows made from what the learner said — F574, F582'
         assert.ok(!body.includes(reach), `${name} reaches for ${reach}; nothing on practice records, transcribes or scores`);
       }
     }
-    // The sound row opens the sound check rather than measuring anything here:
+    // The sound lead opens the sound check rather than measuring anything here:
     // the one place a known reference is scored has its own screen and its own
-    // consent, and it is reached by navigating, never by this row listening.
-    assert.match(ROWS.sound, /onCheck\(sound\.missionId\)/, 'the sound row no longer opens the check it names');
+    // consent, and it is reached by navigating, never by this card listening.
+    assert.match(ROWS.sound, /onCheck\(measured\.missionId\)/, 'the sound lead no longer opens the check it names');
   });
 
-  test('each row is one colour, one mark and two lines', () => {
-    const GLYPHS = { replay: 'ReplayGlyph', phrase: 'QuoteGlyph', sound: 'WaveformGlyph' } as const;
-    for (const key of ['replay', 'phrase', 'sound'] as const) {
+  test('each row is a ledger row: one ink mark and two lines, with no tint — notebook Phase 3', () => {
+    // 2026-09-27: the tinted rows retire with the notebook system. A row is a
+    // hairline ledger line with an ink glyph and no disc, so the three kinds
+    // of practice are told apart by their words and marks, never by a paper.
+    const GLYPHS = { replay: 'ReplayGlyph', phrase: 'QuoteGlyph' } as const;
+    for (const key of ['replay', 'phrase'] as const) {
       const body = ROWS[key];
-      assert.match(body, /<TintRow\b/, `the ${key} row is not the shared tinted row`);
-      assert.match(
-        body,
-        new RegExp(`tint=\\{MADE_FROM_TINT\\.${key}\\}`),
-        `the ${key} row picks a colour of its own instead of the one the tint module names`,
-      );
-      assert.match(
-        body,
-        new RegExp(`<${GLYPHS[key]} color=\\{accent\\.primary\\}`),
-        `the ${key} row draws the wrong mark, or draws it in the wrong ink`,
-      );
-      // The sound row alone names its first step when nothing is measured yet
-      // (whole-app phase 1). Both words still come from MADE_FROM.
-      const title = key === 'sound' ? `title=\\{sound === null \\? MADE_FROM\\.sound\\.go : MADE_FROM\\.sound\\.label\\}` : `title=\\{MADE_FROM\\.${key}\\.label\\}`;
-      assert.match(body, new RegExp(title), `the ${key} row spells its own title`);
+      assert.match(body, /<LedgerRow\b/, `the ${key} row is not the shared ledger row`);
+      assert.ok(!/<TintRow\b|tint=|MADE_FROM_TINT/.test(body), `the ${key} row still carries a tint`);
+      assert.match(body, new RegExp(`<${GLYPHS[key]} color=\\{paper\\.ink\\}`), `the ${key} row draws the wrong mark, or draws it in something other than ink`);
+      assert.ok(!/accent\.feature|highlight/.test(body), `the ${key} row reaches for the highlighter`);
+      assert.match(body, new RegExp(`title=\\{MADE_FROM\\.${key}\\.label\\}`), `the ${key} row spells its own title`);
       // The card anatomy is gone: no second Card, no button, no French printed
       // on the tab. All of that lives in the sitting the row opens.
       assert.ok(!/<Card\b/.test(body), `the ${key} row is still a card`);
       assert.ok(!/<OutlineButton\b|<PillButton\b|<GhostButton\b/.test(body), `the ${key} row still carries a button of its own`);
     }
-    // Three rows, three different papers, so no two say the same thing.
-    assert.equal(new Set(Object.values(MADE_FROM_TINT)).size, 3, 'two kinds of practice share a paper');
     // And the words the founder wrote, exactly.
     assert.equal(MADE_FROM.replay.label, 'Replay a moment');
     assert.equal(MADE_FROM.replay.gloss, 'Listen and try again');
@@ -152,10 +142,28 @@ describe('practice is three rows made from what the learner said — F574, F582'
   });
 });
 
-describe('the sound row names its real first step — whole-app phase 1', () => {
-  test('with no measured sound it offers to choose a situation, not to tune a sound', () => {
-    const card = readFileSync(fileURLToPath(new URL('./TuneSoundCard.tsx', import.meta.url)), 'utf8');
-    assert.match(card, /title=\{sound === null \? MADE_FROM\.sound\.go : MADE_FROM\.sound\.label\}/);
-    assert.match(MADE_FROM.sound.go, /sound check/);
+describe('"Your sound to tune" says only what is true of the sound — notebook Phase 3', () => {
+  const FLAT = ROWS.sound.replace(/\s+/g, ' ');
+
+  test('it names the sound by symbol and example word, with the inventory\'s mouth cue', () => {
+    assert.match(FLAT, /<SoundTag ipa=\{`\/\$\{lead\.ipa\}\/`\} example=\{lead\.example\} \/>/, 'the sound is not named with the shared SoundTag');
+    assert.match(FLAT, /\{lead\.cue\}/, 'the mouth cue is not drawn');
+    assert.match(FLAT, /<Label>\{SOUND_LEAD\.label\}<\/Label>/, 'the block is not headed "Your sound to tune" from the module');
+  });
+
+  test('a measured fact appears only when a check measured it', () => {
+    assert.match(FLAT, /const \{ measured, native \} = lead;/, 'the card reads its facts from somewhere other than the model');
+    assert.match(FLAT, /\{measured !== null && \(/, 'a measured line is drawn with nothing measured behind it');
+    assert.match(FLAT, /\{measured\.line\}/, 'the measured line is spelled on the card instead of read from the model');
+  });
+
+  test('audio is the bundled recording or nothing, and never the phone\'s voice under the tutor\'s name', () => {
+    // The card plays through the tab's recorded player, never the synthesiser.
+    assert.ok(!/tutorVoice|speech\/tutorVoice|speak\(/.test(ROWS.sound), 'the sound lead speaks through the device synthesiser');
+    assert.match(FLAT, /\{native !== null && \(/, 'a hear control is drawn with no recording behind it');
+    assert.match(FLAT, /\{native\.label\}/, 'the recording is not said to be a recording');
+    assert.match(FLAT, /onPress=\{\(\) => onHear\(native\.asset\)\}/, 'the hear control plays something other than the recording');
+    // The learner's own voice is never kept on this phone, so it is never played.
+    assert.ok(!/\.own\b/.test(FLAT), 'the card offers a recording of the learner that the app does not keep');
   });
 });

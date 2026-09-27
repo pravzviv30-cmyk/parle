@@ -42,7 +42,22 @@ describe('the chooser is one card and five rows — F573', () => {
     assert.match(SCREEN, /<Art name=\{heroArt\(first\.mission\.place\)\}/, 'the hero card lost the drawing of the place it is set in');
     assert.match(SCREEN, /type\.frenchSm[\s\S]{0,80}\{first\.mission\.title\}/, 'the hero keeps its French title in the serif');
     assert.match(SCREEN, /\{first\.mission\.goalEn\}/, 'the hero card lost the line saying what the learner will be able to do');
-    assert.match(SCREEN, /<PillButton\s+label=\{mode === 'type' \? 'Start typed mission' : 'Start mission'\}/, 'the primary action names the selected mode');
+    assert.match(SCREEN, /<PillButton\s+label=\{typed \? 'Start typed mission' : 'Start mission'\}/, 'the primary action names the mode the learner arrived in');
+
+    // 2026-09-27 (notebook Phase 3, B1): the Speak/Type segmented pill left.
+    // Speaking is the default, "Type instead" is a quiet link under the one
+    // Start, and the brief says the level and the minutes the mission derives,
+    // so the opener reads about three rather than the open-mission eight.
+    assert.ok(!/<TabBar\b/.test(SCREEN), 'the Speak/Type segmented pill is back on the chooser');
+    assert.match(SCREEN, /const typed = route\.params\?\.textMode === true;/);
+    assert.match(
+      SCREEN.replace(/\s+/g, ' '),
+      /\{!typed && <GhostButton label=\{TYPE_INSTEAD\} color=\{paper\.ink\} onPress=\{\(\) => open\(first, true\)\} \/>\}/,
+      '"Type instead" is not a quiet link under the Start',
+    );
+    assert.ok(SCREEN.indexOf("'Start mission'") < SCREEN.indexOf('label={TYPE_INSTEAD}'), '"Type instead" sits above the Start');
+    assert.match(SCREEN, /\{first\.mission\.cefr\} · \{first\.status\} · \{minutesLine\(missionMinutes\(first\.mission\)\)\}/, 'the brief does not say its level and derived minutes');
+    assert.ok(!SCREEN.includes('estimateMinutes('), 'the chooser estimates a mission itself instead of asking missionMinutes');
 
     // The other five, as rows. A row is a tinted strip with the place's mark, the
     // French title, the English under it and a chevron.

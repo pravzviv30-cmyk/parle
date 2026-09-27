@@ -151,8 +151,15 @@ export interface ChooserInput {
   focus?: string | null;
 }
 
+/**
+ * A scene nobody has started says only that it is new (2026-09-27, notebook
+ * Phase 3). The line it replaced was an invitation standing in for a fact; the
+ * level and the minutes beside it are the facts.
+ */
+const NEW_LINE = 'New';
+
 const FINISHED_LINE: Record<Independence, string> = {
-  new: 'Ready when you are',
+  new: NEW_LINE,
   'with-help': 'You did this one with help',
   'getting-there': 'You did this one with a little help',
   'mostly-yours': 'You did this one mostly on your own',
@@ -175,7 +182,7 @@ export function missionStatus(state: MissionState, independence: Independence): 
     case 'in-progress':
       return 'Started';
     default:
-      return 'Ready when you are';
+      return NEW_LINE;
   }
 }
 

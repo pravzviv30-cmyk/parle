@@ -8,7 +8,9 @@
  *
  * One recommended mission leads, followed by a visible guided-pronunciation
  * alternative and five situation rows. Outcomes lead in English, with French
- * titles as supporting context. Speak/Type follows the learner into the room.
+ * titles as supporting context. Speaking is the default; a quiet "Type instead"
+ * sits under the one Start (2026-09-27, notebook Phase 3: the Speak/Type
+ * segmented pill left), and a learner who arrived typing stays typing.
  *
  * Every rule on this page lives in `chooserView.ts`: which mission is first,
  * which one carries the solid pill, what each card says underneath, whether the
@@ -24,8 +26,9 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { missionStates, type MissionProgress } from '@luvani/core';
 import { accent, paper, space, type } from '../theme.ts';
-import { Card, GhostButton, Label, MicGlyph, OutlineButton, PillButton, TabBar, TintRow } from '../components.tsx';
-import { estimateMinutes } from '../home/estimate.ts';
+import { Card, GhostButton, Label, MicGlyph, OutlineButton, PillButton, TintRow } from '../components.tsx';
+import { minutesLine, missionMinutes } from '../home/estimate.ts';
+import { TYPE_INSTEAD } from '../tutor/speakView.ts';
 import { PlaceGlyph, WaveformGlyph } from '../glyphs.tsx';
 import { Art } from '../art/Art.tsx';
 import { heroArt } from '../art/maps.ts';
@@ -59,7 +62,8 @@ export function MissionsScreen() {
 
   const [progress, setProgress] = useState<readonly MissionProgress[] | null>(null);
   const route = useRoute<RouteProp<RootStackParamList, 'Missions'>>();
-  const [mode, setMode] = useState<'speak' | 'type'>(route.params?.textMode ? 'type' : 'speak');
+  // The mode the learner arrived in. Speaking unless a door said typing.
+  const typed = route.params?.textMode === true;
   const [spokenBefore, setSpokenBefore] = useState(true);
   /** A probe is in flight, so a tap on the lesson is never a dead press. */
   const [checking, setChecking] = useState(false);
@@ -90,9 +94,9 @@ export function MissionsScreen() {
     else nav.navigate('Tabs');
   };
 
-  const open = (card: ChooserCard) => {
+  const open = (card: ChooserCard, textMode = typed) => {
     void trackProductEvent({ name: 'mission_started', properties: { missionId: card.mission.id, entry: 'chooser' } });
-    nav.navigate(card.route.screen, { ...card.route.params, textMode: mode === 'type' });
+    nav.navigate(card.route.screen, { ...card.route.params, textMode });
   };
 
   /**
@@ -133,9 +137,6 @@ export function MissionsScreen() {
         {view.promise !== null && <Text style={st.promise}>{view.promise}</Text>}
         {view.microphoneNotice !== null && <Text style={st.microphoneNotice}>{view.microphoneNotice}</Text>}
         <Text style={st.access}>{view.access}</Text>
-        <View style={st.mode}>
-          <TabBar tabs={[{ key: 'speak', label: 'Speak' }, { key: 'type', label: 'Type' }]} active={mode} onChange={setMode} accessibilityLabel="Mission conversation mode" />
-        </View>
 
         {first && (
           <Card tone="feature" style={st.hero}>
@@ -144,13 +145,14 @@ export function MissionsScreen() {
             <Text style={[type.cardTitle, { color: paper.ink }]}>{first.mission.titleEn}</Text>
             <Text style={[type.frenchSm, { color: paper.inkSoft }]}>{first.mission.title}</Text>
             <Text style={[type.small, { color: paper.inkSoft }]}>{first.mission.goalEn}</Text>
-            <Text style={[type.small, { color: paper.ink }]}>{first.status} · About {estimateMinutes({ kind: 'mission', beats: first.mission.beatIds.length })} min</Text>
+            <Text style={[type.small, { color: paper.ink }]}>{first.mission.cefr} · {first.status} · {minutesLine(missionMinutes(first.mission))}</Text>
             <PillButton
-              label={mode === 'type' ? 'Start typed mission' : 'Start mission'}
+              label={typed ? 'Start typed mission' : 'Start mission'}
               icon={<MicGlyph size={20} color={paper.onInk} />}
-              accessibilityLabel={`${mode === 'type' ? 'Start typed mission' : 'Start mission'}. ${first.mission.titleEn}. ${first.status}`}
+              accessibilityLabel={`${typed ? 'Start typed mission' : 'Start mission'}. ${first.mission.titleEn}. ${first.status}`}
               onPress={() => open(first)}
             />
+            {!typed && <GhostButton label={TYPE_INSTEAD} color={paper.ink} onPress={() => open(first, true)} />}
             {/* A quiet way to hear the scene's authored lines first. Never a
                 second primary: the pill above is this card's one action. */}
             <ListeningPreview selection={{ kind: 'mission', mission: first.mission }} />
@@ -160,7 +162,7 @@ export function MissionsScreen() {
         <Card tone="journal" style={st.warmup}>
           <Label>Want a little more support?</Label>
           <Text style={[type.body, { color: paper.inkSoft }]}>Listen to a café phrase, then try it yourself. The line stays on screen while you practise.</Text>
-          <OutlineButton label={LESSON_DOOR.title} icon={<WaveformGlyph size={20} color={paper.ink} />} disabled={checking} onPress={() => openLesson(mode === 'type')} />
+          <OutlineButton label={LESSON_DOOR.title} icon={<WaveformGlyph size={20} color={paper.ink} />} disabled={checking} onPress={() => openLesson(typed)} />
           <Text style={[type.small, { color: paper.inkSoft }]}>{LESSON_DOOR.minutes}</Text>
         </Card>
 
@@ -187,7 +189,7 @@ export function MissionsScreen() {
             lesson only by first having the session fail. */}
         <View style={st.footer}>
           <GhostButton label={LESSON_DOOR.quiet} accessibilityLabel={`${LESSON_DOOR.quiet}. ${LESSON_DOOR.minutes}`} disabled={checking} onPress={() => openLesson(true)} />
-          <GhostButton label={view.talkFreely} disabled={checking} onPress={() => nav.navigate('Convo', { textMode: mode === 'type' })} />
+          <GhostButton label={view.talkFreely} disabled={checking} onPress={() => nav.navigate('Convo', { textMode: typed })} />
         </View>
       </View>
     </ScrollScreen>
@@ -195,7 +197,6 @@ export function MissionsScreen() {
 }
 
 const st = StyleSheet.create({
-  mode: { marginTop: space(4) },
   warmup: { marginTop: space(4), gap: space(3) },
   scroll: { paddingTop: space(2), paddingBottom: space(6) },
   headline: { ...type.display, color: paper.ink },

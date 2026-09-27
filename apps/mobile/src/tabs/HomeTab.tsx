@@ -1,13 +1,21 @@
 /**
- * Home combines an immediate conversation invitation with visible evidence
- * of the learner's progress. Four compact momentum tiles and the inline weekly
- * story replace the separate Progress destination and share its existing
- * projections, never made-up counts. A new learner receives forward-looking
- * copy rather than a false record. The hero is independent of the momentum gate.
- * The weekly expansion also carries a three-line reflection (Stage 4): one
- * improvement, one focus, one next place, from this week's recorded evidence.
- * All data is re-read on focus with one clock, so completion and midnight changes
- * appear as soon as the learner comes back.
+ * Today: the learner's next scene, what it lets them say, and where they are.
+ *
+ * Rebuilt 2026-09-27 (notebook Phase 3, B1). The page opens on a still
+ * greeting ("Bonsoir, Name." or "Bonsoir.") and the hour's question, then leads
+ * with a SceneBrief for the next scene on the CEFR spine: level, French title,
+ * "You'll be able to" and the can-do, two or three lines, the minutes, the
+ * tutor, one Start and a quiet "Type instead". Start goes straight into that
+ * scene; the chooser is Speak's.
+ *
+ * Under the brief, day one shows "Where you're starting" (A0 and the first
+ * three can-dos). After that, two plain sentences about the week, and nothing
+ * at all on a quiet week. Then today's phrase, audio first, with no picture.
+ *
+ * The four momentum tiles, the seven-dot rail, the expanding weekly details and
+ * every rank name left this page. The level and what has been earned are
+ * My French's to draw; the XP standing is read here only to pitch the daily
+ * pool, and none of it is shown. All data is re-read on focus with one clock.
  */
 
 import { useCallback, useState } from 'react';
@@ -19,124 +27,83 @@ import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { space, paper, type } from '../theme.ts';
 import { Card, GhostButton, Label, PillButton } from '../components.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
-import { DailyCarousel } from '../daily/DailyCarousel.tsx';
+import { DailyCard } from '../daily/DailyCard.tsx';
 import { todayItems } from '../daily/catalogue.ts';
 import { useSocial } from '../friends/useSocial.ts';
 import { usefulFriends } from '../home/activitySections.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { useGreetingRotation } from '../home/useGreetingRotation.ts';
+import { homeGreeting } from '../home/greeting.ts';
 import { MissionHero } from '../home/MissionHero.tsx';
-import { HomeProgressDetails } from '../progress/ProgressScreen.tsx';
-import { canDoRows, type CanDoRow } from '../progress/progressView.ts';
-import { storyFrom, type WeekStory } from '../progress/story.ts';
+import { storyFrom } from '../progress/story.ts';
 import { loadHistory } from '../progress/store.ts';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { fallbackHero, homeMissionFrom, type HomeMission } from '../home/homeMission.ts';
-import { loadActivity, loadActiveDays } from '../progress/activity.ts';
-import { stampsFrom } from '../progress/passport.ts';
+import { loadActivity } from '../progress/activity.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { loadScenarioProgress } from '../missions/progressStore.ts';
-import { hasPractisedBefore, hasSpokenBefore, missionCompletionsFrom } from '../missions/chooserView.ts';
+import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { firstNameOf } from '../tutor/dashboard.ts';
-import { momentumFrom, type Momentum } from '../progress/momentum.ts';
-import { HomeMomentum } from '../home/HomeMomentum.tsx';
 import { homeActionFor } from '../home/nextAction.ts';
 import { useHomeRefresh } from '../home/useHomeRefresh.ts';
 import { loadSoundChecks } from '../soundcheck/store.ts';
 import { loadPracticeHistory } from '../practice/historyStore.ts';
 import { allConversations } from '../myfrench/recentConversations.ts';
-import { reflectionFrom, type Reflection } from '../progress/reflection.ts';
+import { reflectionFrom } from '../progress/reflection.ts';
 import { scopeGeneration } from '../storage/scope.ts';
+import { STARTING_LABEL, WEEK_LABEL, startingPoint, weekLines, type StartingPoint } from '../home/todayView.ts';
 
 export function HomeTab() {
-  // A bottom tab stays mounted after its first visit, so the greeting's timers
-  // would keep running behind whatever the learner is actually doing. The tab
-  // cannot ask the hook for itself — useIsFocused throws outside a
-  // NavigationContainer — so the tab reads it and passes it down.
+  // A bottom tab stays mounted after its first visit, so the midnight and
+  // foreground refresh listens to whether this tab is the one on top.
   const focused = useIsFocused();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { profile } = useProfile();
 
   // One name rule for the whole app. A learner who skipped the question is
-  // greeted by the word alone, never by "you".
+  // greeted by the word alone, never by "you" and never with a bare comma.
   const firstName = firstNameOf(profile.name);
-  const greeting = useGreetingRotation({ firstName, focused });
+  const revision = useHomeRefresh(focused);
+  const greeting = homeGreeting(firstName, Date.now());
 
-  // Null here means the storage read has not answered yet, not that there is
-  // nothing to offer: the hero is on every page that read anything at all.
+  // Null here means the storage read has not answered yet.
   const [hero, setHero] = useState<HomeMission | null>(null);
-  // What the learner can now do, or null before the passport has been read.
-  const [rows, setRows] = useState<readonly CanDoRow[] | null>(null);
-  const [story, setStory] = useState<WeekStory | null>(null);
-  // One improvement, one focus, one next (Stage 4), or null before the read.
-  const [reflection, setReflection] = useState<Reflection | null>(null);
-  const [momentum, setMomentum] = useState<Momentum | null>(null);
+  const [start, setStart] = useState<StartingPoint | null>(null);
+  const [week, setWeek] = useState<readonly string[]>([]);
   const [daily, setDaily] = useState(() => todayItems(0, Date.now()));
   const [due, setDue] = useState<ReviewCard[]>([]);
-  const revision = useHomeRefresh(focused);
   const { snapshot: social } = useSocial();
   const friendsActivity = usefulFriends(social);
 
-  // Re-read on every return: finishing a sitting anywhere in the app should be
-  // visible here the moment the learner comes back to look, and a phone that
-  // was asleep at midnight gets today's scene the moment it is opened.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       const now = Date.now();
-      // Bound to the account before any read (Stage 4), so a result from the
-      // previous account is dropped rather than drawn for this one.
+      // Bound to the account before any read, so a result from the previous
+      // account is dropped rather than drawn for this one.
       const scope = scopeGeneration();
-      // All independent reads cross the native storage bridge together.
-      void Promise.all([loadActivity(), loadDeck(), loadMissionCompletions(), loadScenarioProgress(), loadActiveDays(), loadHistory(), loadConversationPacks(), loadSoundChecks(), loadPracticeHistory()])
-        .then(([activity, deck, completions, records, activeDays, history, packs, checks, events]) => {
+      void Promise.all([loadActivity(), loadDeck(), loadMissionCompletions(), loadScenarioProgress(), loadHistory(), loadConversationPacks(), loadSoundChecks(), loadPracticeHistory()])
+        .then(([activity, deck, completions, records, history, packs, checks, events]) => {
           if (cancelled || scopeGeneration() !== scope) return;
-          // The scene is pitched, so it waits. `scenariosForLevel` narrows the
-          // pool to the learner's tier inside the rule, and the standing is the
-          // app's one level rule, read rather than re-derived: a second opinion
-          // about how far a learner has come would disagree with My French on
-          // the tab next door.
+          // The standing pitches the daily pool and nothing else; no name, no
+          // rung and no number from it reaches the page.
           const standing = levelFor(totalXp(activity));
           setDaily(todayItems(standing.index, now));
           setDue(deck.filter(card => card.due <= now && card.kind !== 'phoneme'));
-          // One projection of where every scene stands, read once and handed to
-          // both rules that draw from it, so the hero and the sentence beneath
-          // it can never disagree about the same finish.
+          // One projection of where every scene stands, handed to every rule
+          // that draws from it, so the brief and the blocks under it agree.
           const progress = missionStates(missionCompletionsFrom(completions), deck, now);
-          setHero(
-            homeMissionFrom({
-              progress,
-              records,
-              spokenBefore: hasSpokenBefore(activity),
-              practisedBefore: hasPractisedBefore(activity),
-              levelIndex: standing.index,
-              now,
-            }),
-          );
-          setRows(canDoRows(stampsFrom(progress)));
-          setStory(storyFrom({ sessions: history, activity, packs, completions, now }));
-          // The reflection (Stage 4) reads the same week from the same four
-          // inputs and the same clock, so it can never tell a different week.
-          // Built twice rather than shared through a variable, because the
-          // ledger-named F233 test pins the line above byte for byte; the
-          // function is pure over arrays already in hand.
-          setReflection(reflectionFrom({ story: storyFrom({ sessions: history, activity, packs, completions, now }), recent: allConversations({ packs, events }), checks, progress, now }));
-          setMomentum(momentumFrom({ activity, deck, profile, now, activeDays }));
+          setHero(homeMissionFrom({ progress, records, levelIndex: standing.index, now }));
+          setStart(startingPoint(progress));
+          const story = storyFrom({ sessions: history, activity, packs, completions, now });
+          setWeek(weekLines({ story, reflection: reflectionFrom({ story, recent: allConversations({ packs, events }), checks, progress, now }) }));
         })
         .catch(() => {
           if (cancelled) return;
-          // The hero survives, on the café with the hour's own label. That is
-          // true of the café for every learner alive, so it claims nothing
-          // about the one who could not be read, and it keeps the page's one
-          // pill on the page.
-          //
-          // The sentence does not. "Your first conversation is where this
-          // starts" said to somebody who has been practising for months is the
-          // app forgetting them, so it is withheld rather than guessed.
-          // Nothing on screen mentions the disk: a learner cannot act on a
-          // storage fault, and the greeting and the one pill are still there.
-          setHero(fallbackHero(now));
+          // The brief survives, on the first scene of the spine, which is true
+          // for every learner and so claims nothing about the one who could
+          // not be read. Day one and the week are withheld rather than guessed.
+          setHero(fallbackHero());
         });
       return () => {
         cancelled = true;
@@ -145,32 +112,37 @@ export function HomeTab() {
   );
 
   return (
-    // bottom="tab": the tab bar owns the bottom edge, so the frame leaves it the
-    // inset rather than paying it twice on a notched phone.
+    // bottom="tab": the tab bar owns the bottom edge.
     <ScrollScreen bottom="tab">
       <View>
-        {/* The greeting and the hour's question in the editorial masthead.
-            `title` is the still line, which is what a screen reader hears and
-            what a learner who asked for less movement reads; `titleSwap` is the
-            moving half, and it is null when nothing may move. */}
         <View style={st.head}>
-          <TabHeader title={greeting.rest} titleSwap={greeting.swap} purpose={greeting.subline} trailing={<ProfileButton />} />
+          <TabHeader title={greeting.title} purpose={greeting.subline} trailing={<ProfileButton />} />
         </View>
 
-        {/* The hero is outside every other gate. It is drawn for a learner with
-            nothing behind them, and a gate around it would be a blank page on a
-            first run. Null only means the storage read has not answered. */}
+        {/* The brief is outside every other gate: a first run meets it too.
+            Null only means the storage read has not answered. */}
         {hero !== null && (homeActionFor(hero, due.length) === 'review' ?
           <Card style={{ gap: space(3) }}><Label>A little French to bring back</Label><Text style={[type.frenchLg, { color: paper.ink }]}>{due.length === 1 ? 'One phrase is ready.' : `${due.length} phrases are ready.`}</Text><Text style={[type.body, { color: paper.inkSoft }]}>Try recalling a few phrases from your own collection. A short review is enough.</Text><PillButton label="Practise recall" onPress={() => nav.navigate('Review')} /><GhostButton label="I’d rather speak" onPress={() => nav.navigate('Tutor')} /></Card>
           : <MissionHero hero={hero} />)}
 
-        {momentum !== null && <HomeMomentum momentum={momentum} onPhrases={() => nav.navigate('Phrasebook')} onReview={() => nav.navigate('Review')} onTarget={() => nav.navigate('Profile')} />}
-        <DailyCarousel word={daily.word} phrase={daily.phrase} />
-        <HomeProgressDetails story={story} rows={rows} reflection={reflection} />
-        {/* Stage 3A: the "Keep this phrase" card and the separate pace card
-            left. Review is opened by the hero (when review is the day's
-            action) and the Recall tile; the optional target by the Practice
-            time tile. One door per destination. */}
+        {/* Day one names where the path begins; after that, the week in two
+            plain sentences, and nothing on a quiet week. */}
+        {start !== null ? (
+          <View style={st.block}>
+            <Label>{STARTING_LABEL}</Label>
+            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{start.level}</Text>
+            {start.canDos.map((line) => <Text key={line} style={[type.body, { color: paper.ink }]}>{line}</Text>)}
+          </View>
+        ) : week.length > 0 && (
+          <View style={st.block}>
+            <Label>{WEEK_LABEL}</Label>
+            {week.map((line) => <Text key={line} style={[type.body, { color: paper.ink }]}>{line}</Text>)}
+          </View>
+        )}
+
+        {/* Today's phrase, the tutor's audio first, with no picture. */}
+        <DailyCard item={daily.phrase} picture={false} />
+
         {friendsActivity !== null && <Card style={{ marginTop: space(3), gap: space(2) }}><Label>French with friends</Label><Text style={[type.body, { color: paper.ink }]}>{friendsActivity}</Text><GhostButton label="Open my circle" onPress={() => nav.navigate('Friends')} /></Card>}
         <GhostButton label="Explore my daily collection" onPress={() => nav.navigate('DailyLibrary')} />
       </View>
@@ -179,6 +151,7 @@ export function HomeTab() {
 }
 
 const st = StyleSheet.create({
-  // Keep the greeting aligned to the shared masthead rather than floating art.
+  // Keep the greeting aligned to the shared masthead.
   head: { position: 'relative', marginTop: space(2) },
+  block: { marginTop: space(5), gap: space(2) },
 });
