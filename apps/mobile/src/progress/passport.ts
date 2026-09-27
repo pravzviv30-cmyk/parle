@@ -67,7 +67,7 @@
  * invitation, which the screen already carries. It is not a page of blanks.
  */
 
-import type { Independence, MissionId, MissionPlace, MissionProgress } from '@luvani/core';
+import { isEarned, type MissionId, type MissionPlace, type MissionProgress } from '@luvani/core';
 
 /** The three states in order, weakest evidence first. Exported so tests can walk them. */
 export const STAMP_STATES = ['not-yet', 'with-help', 'on-your-own'] as const;
@@ -84,19 +84,14 @@ export interface Stamp {
 }
 
 /**
- * The fold, written out per rung rather than as a comparison.
- *
- * A `Record` over the union means adding a sixth rung to `Independence` fails
- * this file's typecheck instead of silently landing in whichever branch an
- * inequality happened to put it.
+ * The fold. Earned is core's `isEarned`, the one rule the CEFR spine reads too,
+ * so a stamp and a can-do can never disagree about what was handled alone.
+ * Everything else is either never attempted or done with some help in play.
  */
-const STATE_BY_INDEPENDENCE: Record<Independence, StampState> = {
-  new: 'not-yet',
-  'with-help': 'with-help',
-  'getting-there': 'with-help',
-  'mostly-yours': 'with-help',
-  'on-your-own': 'on-your-own',
-};
+function stateOf(item: MissionProgress): StampState {
+  if (isEarned(item)) return 'on-your-own';
+  return item.independence === 'new' ? 'not-yet' : 'with-help';
+}
 
 /**
  * One stamp per situation, in the order the caller gave them.
@@ -112,11 +107,18 @@ export function stampsFrom(progress: readonly MissionProgress[]): readonly Stamp
     place: item.mission.place,
     titleEn: item.mission.titleEn,
     // `independence` is best-ever by construction. `item.lastRung` is not.
-    state: STATE_BY_INDEPENDENCE[item.independence],
+    state: stateOf(item),
   }));
 }
 
-/** Earned: this situation was handled with nothing handed over. */
+/**
+ * Earned: this situation was handled with nothing handed over.
+ *
+ * A stamp carries no independence of its own (its keys are pinned so nothing
+ * countable rides on it), so the delegation to core's `isEarned` happens in
+ * `stateOf` above: 'on-your-own' is only ever set where `isEarned` said so, and
+ * this reads that back.
+ */
 export function isStamped(stamp: Stamp): boolean {
   return stamp.state === 'on-your-own';
 }

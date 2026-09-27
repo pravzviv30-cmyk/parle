@@ -15,10 +15,10 @@
  * instead can. The frame decides where the scene starts and what finishing it
  * means. Nothing else.
  *
- * Two of the six are the frames `fixtures.ts` already carries. They are
+ * Two of the seven are the frames `fixtures.ts` already carries. They are
  * referenced rather than copied, because two café scenes that drifted apart is
  * exactly the failure this file would otherwise introduce, and because that file
- * calls itself the quality bar. The other four are authored here to match it.
+ * calls itself the quality bar. The other five are authored here to match it.
  *
  * The catalogue half lives in `@luvani/core`'s `missions/missions.ts` and repeats
  * these phrases as literal data, because core cannot import brain.
@@ -29,6 +29,127 @@ import type { MissionId } from '@luvani/core';
 
 import type { ScenarioFrame } from '../contract/types.ts';
 import { CAFE_FRAME, APERO_FRAME } from '../fixtures.ts';
+
+/**
+ * mission:premier-cafe. The first scene a brand-new learner opens on, and so the
+ * smallest: three lines at the counter, order, here or to go, and what it costs.
+ * Karim is the same barista as the full café, but slower and briefer here,
+ * because the learner may never have said a French sentence to anyone.
+ *
+ * The three approved first-coffee lines from core's `daily/scenes/cafeAndFood.ts`
+ * lead the goal phrases, less their sentence-final full stop, because they are
+ * what the scene brief promises, what the bundled recordings say and the phrase
+ * keys core drills. Three neighbouring café lines follow as easier fallbacks the
+ * tutor can hand over; they are taught here but not drilled for this scene.
+ */
+const PREMIER_CAFE_FRAME: ScenarioFrame = {
+  title: 'Le premier café',
+  titleEn: 'Your first coffee',
+  setting: 'A small café in Lyon, early morning before work. A short counter, a coffee machine, and one barista.',
+  learnerRole: 'A customer ordering a coffee at the counter.',
+  characters: [
+    {
+      name: 'Karim',
+      role: 'the barista behind the counter, patient in the early hours',
+      register: 'courant',
+    },
+  ],
+  registerGuidance: 'Service French, vous throughout, and slower than a real morning rush. Bonjour before anything else. Karim keeps every turn to one short question: what you would like, here or to go, and then the price. He asks sur place ou à emporter the way every counter does, says ça marche for yes, and says the price out loud as a whole phrase. He never asks two things at once and never adds small talk the learner has to answer. Anything longer than one line from the learner is a bonus, not the goal.',
+  beats: [
+    {
+      id: 'greet-and-order',
+      goal: 'Dire bonjour et commander un café',
+      goalEn: 'Say hello and order a coffee',
+    },
+    {
+      id: 'say-where',
+      goal: 'Dire si on le prend sur place',
+      goalEn: 'Say you will have it here',
+    },
+    {
+      id: 'pay',
+      goal: 'Demander combien et payer',
+      goalEn: 'Ask how much it is and pay',
+    },
+  ],
+  goalPhrases: [
+    {
+      fr: 'Bonjour, je vais prendre un café',
+      frWritten: null,
+      en: 'Hello, I will have a coffee',
+      register: 'courant',
+    },
+    {
+      fr: 'Sur place, au comptoir, s\'il vous plaît',
+      frWritten: null,
+      en: 'Here at the counter, please',
+      register: 'courant',
+    },
+    {
+      fr: 'Je vous dois combien ?',
+      frWritten: null,
+      en: 'How much is that?',
+      register: 'courant',
+    },
+    {
+      fr: 'Un café, s\'il vous plaît',
+      frWritten: null,
+      en: 'A coffee, please',
+      register: 'courant',
+    },
+    {
+      fr: 'Sur place, s\'il vous plaît',
+      frWritten: null,
+      en: 'To have here, please',
+      register: 'courant',
+    },
+    {
+      fr: 'Je peux payer par carte ?',
+      frWritten: null,
+      en: 'Can I pay by card?',
+      register: 'courant',
+    },
+  ],
+  openingNarration: {
+    speaker: 'narration',
+    fr: 'Il est tôt. Le café est presque vide, et la machine chauffe. Derrière le comptoir, Karim pose une tasse et lève les yeux vers vous.',
+    frWritten: null,
+    en: 'It is early, and the room is nearly empty. The coffee machine is warming up. Behind the counter, Karim sets down a cup and looks up at you.',
+  },
+  openingLine: {
+    speaker: 'Karim',
+    fr: 'Bonjour ! Qu\'est-ce que je vous sers ?',
+    frWritten: null,
+    en: 'Hello! What can I get you?',
+  },
+  openingSupport: {
+    fullLine: {
+      fr: 'Bonjour, je vais prendre un café',
+      frWritten: null,
+      en: 'Hello, I will have a coffee',
+    },
+    options: [
+      {
+        fr: 'Un café, s\'il vous plaît',
+        en: 'A coffee, please',
+      },
+      {
+        fr: 'Bonjour, un café, s\'il vous plaît',
+        en: 'Hello, a coffee, please',
+      },
+      {
+        fr: 'Un grand café, s\'il vous plaît',
+        en: 'A large coffee, please',
+      },
+    ],
+    hintEn: 'Say hello back, then ask for a coffee.',
+  },
+  cultureNotes: [
+    'Say bonjour before you order. In France it comes before anything else, even at a busy counter.',
+    'Un café is a small espresso. If you would rather have a longer one, ask for un café allongé.',
+    'Standing at the counter is often cheaper than sitting at a table, and it is where regulars drink their morning coffee.',
+  ],
+};
 
 /**
  * mission:hotel. The most transactional of the six, which is the risk: a form being filled in.
@@ -566,6 +687,7 @@ const JOURNEE_FRAME: ScenarioFrame = {
 };
 
 export const MISSION_FRAMES: Record<MissionId, ScenarioFrame> = {
+  'mission:premier-cafe': PREMIER_CAFE_FRAME,
   'mission:cafe': CAFE_FRAME,
   'mission:hotel': HOTEL_FRAME,
   'mission:marche': MARCHE_FRAME,
@@ -604,6 +726,35 @@ const line = (speaker: string, fr: string, en: string): OpeningLine => ({
  * this one.
  */
 const MISSION_OPENING_DECKS: Record<MissionId, MissionOpeningDeck> = {
+  'mission:premier-cafe': {
+    narrations: [
+      narration(
+        'Il est tôt et le café est presque vide. Karim allume la machine, puis se tourne vers vous.',
+        'It is early and the room is nearly empty. Karim switches on the machine, then turns to you.',
+      ),
+      narration(
+        'Vous entrez avant le travail. Au comptoir, Karim range des tasses et vous fait un petit signe.',
+        'You come in before work. At the counter, Karim is putting cups away and gives you a small wave.',
+      ),
+      narration(
+        'Une seule personne boit son café au comptoir. Karim essuie le bar devant vous et attend.',
+        'One person is drinking their coffee at the counter. Karim wipes the bar in front of you and waits.',
+      ),
+      narration(
+        'La machine siffle doucement. Karim finit de moudre le café et lève les yeux vers vous.',
+        'The machine hisses quietly. Karim finishes grinding the beans and looks up at you.',
+      ),
+      narration(
+        'Il fait encore frais dehors. Dans le café, Karim pose une soucoupe sur le comptoir et vous sourit.',
+        'It is still cool outside. Inside, Karim puts a saucer on the counter and gives you a smile.',
+      ),
+    ],
+    lines: [
+      line('Karim', 'Bonjour ! Qu’est-ce que je vous sers ?', 'Hello! What can I get you?'),
+      line('Karim', 'Bonjour ! Vous désirez ?', 'Hello! What would you like?'),
+      line('Karim', 'Bonjour ! Pour vous, ce sera ?', 'Hello! What will it be for you?'),
+    ],
+  },
   'mission:cafe': {
     narrations: [
       narration(

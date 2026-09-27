@@ -1369,7 +1369,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: packages/core/src/missions/missions.ts:1
 - note: the catalogue record (id, titles, place, cefr, roles, goal, win line, beat ids, phrase keys, reference phrases, path unit) plus `missionStates` projecting display state from completion records, the review deck and the drill bank — the `lessonDone` precedent, never a second phrase store. Independence is decided by code from the rung the win was earned at. Four new path units (`journee`, `chemin`, `marche`, `hotel`) with drill fixtures so no node opens onto nothing.
-- verified-by: `six missions exist and each names the path unit that practises it`
+- note: notebook redesign (2026-09-27): a seventh mission joined, the three-line opener
+  `mission:premier-cafe` (A0, café unit, now `FIRST_MISSION`), so the count test was renamed with it.
+- verified-by: `seven missions exist and each names the path unit that practises it`
 - verified-by: `a completed mission whose phrases fall due reads needs-review, never complete`
 - verified-by: `independence comes from the rung the win was earned at, not from the model`
 - verified-by: `every authored path phrase can be drilled the day it appears`
@@ -4826,7 +4828,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   no shadow or absolute position. `DESIGN.md` is updated to match.
 - verified-by: `every tab cell shows its label, and the label scales and wraps rather than truncating — F313`
 - verified-by: `the active tab is told by ink and weight, and a screen reader still hears selected — F313`
-- verified-by: `the bar is an inset dock without becoming another floating shadow — F313`
+- note: notebook redesign (2026-09-27): the bar is flat on the paper with a top hairline, no inset dock
+  and no selected wash; it still carries no shadow, so the tick follows the renamed test.
+- verified-by: `the bar is flat on the paper with a top hairline, and never a floating shadow — F313`
 - verified-by: `the design doc no longer calls the tabs icon-only — F313`
 
 ### F314 — The in-place end cards stand on the primitive too
@@ -5040,7 +5044,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   one. palette.ts calls the violet "the primary action and the monogram", so the fill is the design.
   `Monogram({ initial, size = HIT })`: `accent.primary` disc, `paper.onInk` initial in `font.serif` at
   `size * 0.44`, spread `decorative`.
-- verified-by: `the monogram is one filled violet disc with a warm-white initial, and it is hidden from assistive tech`
+- note: notebook redesign (2026-09-27): the monogram became an ink initial on the deeper paper, because
+  the accent no longer fills an avatar; it is still hidden from assistive tech.
+- verified-by: `the monogram is an ink initial on the deeper paper, and it is hidden from assistive tech`
 
 ### F333 — A pill and a ghost can carry a name for assistive tech
 - severity: P1
@@ -5483,7 +5489,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   rank under the name ranks somebody who came to change a setting — so the tick points at the
   header test that removed it. levelName itself is unchanged and still tested in
   progress/evidence.test.ts.
-- verified-by: `the level name is said only once something has been earned — F367`
+- note: notebook redesign (2026-09-27): the founder retired the Beginner-to-Veteran rank names from every
+  screen; CEFR can-do lines replace them and XP stays internal. `levelName` is gone, so the tick points
+  at the tests that keep any rank name off the stats and out of the module.
+- verified-by: `no rank name appears in the stats at any amount of XP — F367`
+- verified-by: `the module no longer offers a level name to borrow — F367`
 - verified-by: `profile opens centred on the learner and draws its tutor as the orb, never a face`
 
 ### F368 — The daily goal and the correction dial are chosen in place
@@ -8363,8 +8373,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A. A white card lifts on one named whisper of shadow at radius twenty; a tinted row is one
   pressable with a white disc, a title, a gloss and a chevron; the hero card and the phrase card are
   their own files under `surface/`. Screens compose these and style nothing of their own.
-- verified-by: `a tinted row is a pressable at the touch floor with a white disc, a title, a gloss and a chevron, and it names itself once`
-- verified-by: `a card lifts off the ground with the one soft shadow and the wider radius`
+- note: notebook redesign (2026-09-27): tinted rows became ledger rows (one pressable at 56pt, an ink glyph
+  with no disc, a title, a gloss, meta and a chevron, named once), and the card lost its offset shadow.
+  `TintRow` stays as a deprecated wrapper that draws the ledger row until its call sites move.
+- verified-by: `a ledger row is one pressable at 56pt with an ink glyph and no disc, a title, a gloss, meta and a chevron, and it names itself once`
+- verified-by: `the one card is white at radius 16 with a paper hairline, no shadow and no ink outline`
 
 ### F570 — Raster art ships decorative, sized once, and every key is drawn
 - severity: P2

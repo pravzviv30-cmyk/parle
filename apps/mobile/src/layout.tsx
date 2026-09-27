@@ -30,7 +30,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Card, PillButton, OutlineButton } from './components.tsx';
-import { accent, decorative, paper, radius, space, type, HAIRLINE, HIT } from './theme.ts';
+import { decorative, paper, radius, space, type, HAIRLINE, HIT } from './theme.ts';
 import { screenInsets } from './responsiveLayout.ts';
 
 /** Where the bottom of a screen ends. */
@@ -179,13 +179,13 @@ export function ScreenHeader(props: ScreenHeaderProps) {
   // width; the title sits in the flex centre between two equal touch floors, not
   // half a hit target off it because one side happened to be empty.
   return (
-    <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === false ? 0 : HAIRLINE, borderBottomColor: paper.ink, marginBottom: space(4), paddingBottom: space(2) }}>
+    <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === false ? 0 : HAIRLINE, borderBottomColor: paper.line, marginBottom: space(4), paddingBottom: space(2) }}>
       {back != null ? (
         <Pressable
           onPress={back.onPress}
           accessibilityRole="button"
           accessibilityLabel={back.label ?? 'Back'}
-          style={{ width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center', borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.control, backgroundColor: paper.card }}
+          style={{ width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill }}
         >
           <ChevronLeft />
         </Pressable>
@@ -306,7 +306,7 @@ type TabHeaderProps = {
 export function TabHeader({ title, purpose, titleSwap, trailing, leading, align = 'left', children }: TabHeaderProps) {
   if (align === 'center') {
     return (
-      <View style={{ marginBottom: space(5), alignItems: 'center', backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card, padding: space(5) }}>
+      <View style={{ marginBottom: space(5), alignItems: 'center', paddingVertical: space(2) }}>
         {leading != null ? leading : null}
         <Text
           accessibilityRole="header"

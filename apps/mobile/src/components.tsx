@@ -1,15 +1,20 @@
 /**
- * The paper & ink component vocabulary.
+ * The French notebook with one highlighter.
  *
- * Flat white cards with a hairline rule on lilac paper, solid ink pills for
- * the one primary action, quiet outline and ghost buttons for everything
- * second. Icons are authored line art at the same 2.2 stroke the
- * illustrations use — one pen drew the whole app.
+ * One white card with a paper hairline and no shadow, ledger rows ruled by
+ * hairlines, one fully rounded ink pill for the one primary action, quiet text
+ * links for everything second, and a single highlighter pen behind a French
+ * line. Icons are authored line art at the same 2.2 stroke the illustrations
+ * use: one pen drew the whole app.
+ *
+ * Append-only: `components.test.ts` slices this file between adjacent exports,
+ * so a new component goes at the end, after the stylesheet.
  */
 
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
+  Animated,
   View,
   Text,
   TextInput,
@@ -26,21 +31,24 @@ import {
   accent,
   decorative,
   font,
+  heroFit,
+  highlight,
+  orb,
   paper,
   radius,
-  shadow,
   signal,
   space,
-  tint,
   type,
-  DISC,
   HAIRLINE,
   HIT,
   STROKE,
   rungColor,
+  rungLabel,
   type TintName,
 } from './theme.ts';
 import { tapSettled } from './motion/haptics.ts';
+import { drawIn, useReduceMotion } from './motion.ts';
+import { OrbGlyph } from './tutor/OrbGlyph.tsx';
 import type { Rung } from '@luvani/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
@@ -256,13 +264,12 @@ export function AppleMark({ size = 20, color = paper.ink }: { size?: number; col
 // ─────────────────────────────────────────────────────────────────── surfaces
 
 /**
- * A white card: one soft whisper of shadow, a hairline rule, generous corners.
+ * The one card: white, radius 16, a paper hairline, no shadow, no ink outline,
+ * and never nested inside another card.
  *
- * The whisper is the only shadow in the app besides the live microphone's glow,
- * and it lives in `theme.ts` as a named token so no screen ever writes a shadow
- * number. The hairline stays under it on purpose: elevation renders nothing on
- * Android below API 28 and clips oddly on the web column, and without the rule
- * a card there would dissolve into the ground.
+ * `tone="feature"` is deprecated: the chartreuse is a highlighter now, so a
+ * feature card draws plain paper like every other card. `journal` keeps the
+ * ground colour for the one card that sits a French line on the page itself.
  */
 export function Card({
   children,
@@ -275,17 +282,17 @@ export function Card({
   padded?: boolean;
   tone?: 'paper' | 'feature' | 'journal';
 }) {
-  return <View style={[s.card, tone === 'feature' && { backgroundColor: accent.feature }, tone === 'journal' && { backgroundColor: paper.ground }, padded && s.cardPadded, style]}>{children}</View>;
+  return <View style={[s.card, tone === 'journal' && { backgroundColor: paper.ground }, padded && s.cardPadded, style]}>{children}</View>;
 }
 
-/** A small caps label above a card or a count. Violet by default: identity work. */
-export function Label({ children, color = accent.label }: { children: React.ReactNode; color?: string }) {
+/** The one small caps label a card may carry, in soft ink. */
+export function Label({ children, color = paper.inkSoft }: { children: React.ReactNode; color?: string }) {
   return <Text style={[type.label, { color }]}>{children}</Text>;
 }
 
 // ────────────────────────────────────────────────────────────────── controls
 
-/** The one primary action on a screen: a solid ink pill. */
+/** The one primary action on a screen: a 56pt ink pill, fully rounded like the logo's L. */
 export function PillButton({
   label,
   onPress,
@@ -317,7 +324,10 @@ export function PillButton({
   );
 }
 
-/** A secondary action: white pill, ink rule. */
+/**
+ * A secondary action: a quiet text link at the touch floor, ink words with no
+ * box, so it never competes with the one ink pill.
+ */
 export function OutlineButton({
   label,
   sub,
@@ -354,7 +364,7 @@ export function OutlineButton({
     >
       <View style={s.outlineRow}>
         {icon}
-        <Text style={[type.button, { color: paper.ink }]}>{label}</Text>
+        <Text style={[type.bodyStrong, { color: paper.ink }]}>{label}</Text>
       </View>
       {sub != null && <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{sub}</Text>}
     </Pressable>
@@ -562,7 +572,7 @@ export function Field({
     <View style={{ gap: space(1.5) }}>
       {/* Not <Label>: it takes no id, and Android finds the label by id. */}
       {label != null && (
-        <Text id={labelId} style={[type.label, { color: accent.label }]}>
+        <Text id={labelId} style={[type.label, { color: paper.inkSoft }]}>
           {label}
         </Text>
       )}
@@ -631,14 +641,13 @@ export function Field({
 }
 
 /**
- * A segmented choice: a soft track with a violet active pill. `active` may be
- * null, for a setting nobody has chosen yet, and the group can name itself so a
- * screen reader says what the three words are a choice of (F368).
+ * A segmented choice: a paper track with a white active segment. `active` may
+ * be null, for a setting nobody has chosen yet, and the group can name itself
+ * so a screen reader says what the three words are a choice of (F368).
  *
- * The chosen segment wears the identity violet with warm-white lettering, the
- * way the primary pill and the active tab already do, so a learner reads their
- * daily goal off the same colour everywhere. The unchosen words stay soft ink
- * on the track, which is a step down rather than a second state colour.
+ * The chosen segment is white with ink lettering, so the control never competes
+ * with the one ink pill on the screen. The unchosen words stay soft ink on the
+ * track, which is a step down rather than a second state colour.
  *
  * Selection is said twice, once per platform, and the two are not
  * interchangeable. `accessibilityState` is what VoiceOver and TalkBack read;
@@ -673,7 +682,7 @@ export function TabBar<K extends string>({
             aria-selected={isActive}
             style={[s.tab, isActive && s.tabActive]}
           >
-            <Text style={[type.button, { color: isActive ? paper.onInk : paper.inkSoft }]}>{tab.label}</Text>
+            <Text style={[type.button, { color: isActive ? paper.ink : paper.inkSoft }]}>{tab.label}</Text>
           </Pressable>
         );
       })}
@@ -697,11 +706,12 @@ export function Stat({ value, label, columns = 2 }: { value: string; label: stri
 }
 
 /**
- * The learner's initial, drawn one way: a filled violet disc with a serif
- * initial in warm-white. The violet is the identity colour palette.ts names for
- * "the primary action and the monogram", so the fill is the design rather than a
- * hollow ring. It is decorative to assistive tech — the name is said in the text
- * beside it, so a screen reader walks past the disc rather than reading a letter.
+ * The learner's initial, drawn one way: an ink initial on the deeper paper.
+ *
+ * The notebook keeps ink for the one primary pill, so the learner's mark steps
+ * back to `groundDeep` with the initial in ink. DM Sans Medium, because
+ * Fraunces is for French only. It is decorative to assistive tech: the name is
+ * said in the text beside it, so a screen reader walks past a loose letter.
  */
 export function Monogram({ initial, size = HIT }: { initial: string; size?: number }) {
   return (
@@ -711,25 +721,24 @@ export function Monogram({ initial, size = HIT }: { initial: string; size?: numb
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: accent.primary,
+        backgroundColor: paper.groundDeep,
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
-      <Text style={{ fontFamily: font.serif, fontSize: size * 0.44, color: paper.onInk }}>{initial}</Text>
+      <Text style={{ fontFamily: font.sansMedium, fontSize: size * 0.44, color: paper.ink }}>{initial}</Text>
     </View>
   );
 }
 
 /**
- * A soft paper disc under a place's line art.
+ * Deprecated. A circle that once held a place's tint under its line art.
  *
- * A tint is a surface under ink, never a mark and never lettering (F362).
- * This was the only place one was ever drawn until F467 added the ground under
- * a row about one place; the rule it obeys is unchanged, and both live in this
- * file so a screen never names a colour.
+ * Tints are no longer drawn (notebook Phase 1); the token stays for the role
+ * tables and the call sites go in Phase 4. The disc keeps its size and stays
+ * decorative, and simply draws its children on the page.
  */
-export function TintDisc({ tint: name, size = 64, children }: { tint: TintName; size?: number; children?: React.ReactNode }) {
+export function TintDisc({ size = 64, children }: { tint: TintName; size?: number; children?: React.ReactNode }) {
   return (
     <View
       {...decorative}
@@ -737,7 +746,6 @@ export function TintDisc({ tint: name, size = 64, children }: { tint: TintName; 
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: tint[name],
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
@@ -749,28 +757,14 @@ export function TintDisc({ tint: name, size = 64, children }: { tint: TintName; 
 }
 
 /**
- * The ground under a row about one place, in that place's own tint.
+ * Deprecated. The ground under a block about one place, once in its tint.
  *
- * The founder asked for the mockup's colour to reach the rows themselves rather
- * than stopping at the disc, and the honest way to do that was to widen the
- * rule in the open rather than to route around the test that held it (F467).
- * The rule is now: a tint is a SURFACE. It is the disc under a drawing, or the
- * ground under a row that is about one place, and it is never lettering, never
- * a stroke, never a border, and never a mark that reports state. Everything the
- * old rule was protecting still holds, and `palette.test.ts` catches lettering
- * more tightly than it did before, because the ban used to miss
- * `backgroundColor` by an accident of casing rather than by permission.
- *
- * The colour maths needed nothing: every tint already sits at least eight from
- * the ground, the deeper fill, the card and the card's rule, thirty from every
- * signal and the accent, twenty from every rung, and lighter than every mark,
- * with ink clearing 4.5 on all six.
- *
- * Not decorative, unlike the disc. A row has words in it, and hiding the
- * container would take its contents with it.
+ * Tints are no longer drawn (notebook Phase 1), so the panel is plain paper: the
+ * white card surface with a paper hairline, which reads both on the ground and
+ * inside a card. The `tint` prop is accepted and ignored until Phase 4 renames
+ * the call sites. Not decorative: a panel has words in it.
  */
 export function TintPanel({
-  tint: name,
   children,
   style,
 }: {
@@ -778,7 +772,7 @@ export function TintPanel({
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
-  return <View style={[{ backgroundColor: tint[name], borderRadius: radius.card, borderWidth: HAIRLINE, borderColor: paper.line }, style]}>{children}</View>;
+  return <View style={[{ backgroundColor: paper.card, borderRadius: radius.card, borderWidth: HAIRLINE, borderColor: paper.line }, style]}>{children}</View>;
 }
 
 /** Onboarding progress: one dot per page, the current one stretched. */
@@ -1018,35 +1012,15 @@ export function WeekRail({ week, labels }: { week: readonly boolean[]; labels?: 
 }
 
 /**
- * A tinted row: the mockup's one way into a place, a practice or a memory.
+ * Deprecated. The tinted row, now drawn as a `LedgerRow`.
  *
- * This is the shape the founder circled on every frame — a soft paper ground,
- * a white disc with one line-art glyph on it, the row's name, a quiet gloss
- * under it, and the chevron that says it opens. It is a single Pressable, not
- * a card with a button inside it, because the whole row is the target: a button
- * nested in a button is invalid on the web, and a row whose tap area is only
- * its chevron is the F545 defect wearing a tint.
- *
- * It sits well over the touch floor at `HIT + space(8)`, and it grows rather
- * than clips: nothing here caps a line count or the reading size, so at the
- * largest text the title wraps and the row gets taller.
- *
- * It names itself ONCE. The title and the gloss are two Texts, and a screen
- * reader left to itself would read them as two nodes with no relationship, so
- * the Pressable carries the joined name and a caller with something better to
- * say (a place's own stamp label, say) passes it instead.
- *
- * Disabled is said in ink rather than in opacity, which is GhostButton's
- * lesson: a faded row still looks like a row, and there is no shape left to
- * fall back on. It steps down to soft ink rather than to the faint ink a ghost
- * uses, because faint ink's floor is measured against the ground and the card
- * and nothing has ever measured it on a tint, while soft ink clears the floor
- * for words on all six (palette.test.ts). Pressed is the deeper ground laid
- * over the tint as a second style, never a second tint: a tint is a surface,
- * and there is exactly one of them per place.
+ * Tints are no longer drawn (notebook Phase 1). Every promise this row made
+ * (one target, named once, disabled said in ink, a chevron, words that grow) is
+ * kept by `LedgerRow`, appended at the end of this file, and this wrapper only
+ * forwards to it. The `tint` prop is accepted and ignored until Phase 4 renames
+ * the call sites.
  */
 export function TintRow({
-  tint: name,
   glyph,
   title,
   gloss,
@@ -1056,7 +1030,7 @@ export function TintRow({
   disabled = false,
 }: {
   tint: TintName;
-  /** One line-art glyph, drawn on the white disc. */
+  /** One line-art glyph, drawn in ink with no disc. */
   glyph: ReactNode;
   title: string;
   gloss?: string;
@@ -1068,29 +1042,7 @@ export function TintRow({
   disabled?: boolean;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? (gloss ? `${title}, ${gloss}` : title)}
-      accessibilityState={{ disabled }}
-      style={({ pressed }) => [
-        s.tintRow,
-        pressed && !disabled && s.tintRowPressed,
-      ]}
-    >
-      <View style={[s.tintDisc, { backgroundColor: tint[name] }]} {...decorative}>
-        {glyph}
-      </View>
-      <View style={s.tintWords}>
-        <Text style={[type.heading, { color: disabled ? paper.inkSoft : paper.ink }]}>{title}</Text>
-        {gloss != null && (
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{gloss}</Text>
-        )}
-      </View>
-      {trailing != null ? trailing : null}
-      <ChevronRight color={paper.inkFaint} />
-    </Pressable>
+    <LedgerRow glyph={glyph} title={title} gloss={gloss} onPress={onPress} accessibilityLabel={accessibilityLabel} trailing={trailing} disabled={disabled} />
   );
 }
 
@@ -1100,28 +1052,6 @@ const s = StyleSheet.create({
   mark: { width: MARK, height: MARK, borderRadius: MARK / 2 },
   markDone: { backgroundColor: accent.primary },
   markWaiting: { backgroundColor: paper.card, borderWidth: HAIRLINE + 0.4, borderColor: paper.line },
-  tintRow: {
-    minHeight: HIT + space(8),
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space(3),
-    borderRadius: radius.row,
-    borderWidth: HAIRLINE,
-    borderColor: paper.ink,
-    backgroundColor: paper.card,
-    paddingVertical: space(3),
-    paddingHorizontal: space(4),
-  },
-  tintRowPressed: { backgroundColor: paper.groundDeep, transform: [{ scale: 0.985 }, { translateY: 1 }] },
-  tintDisc: {
-    width: DISC,
-    height: DISC,
-    borderRadius: radius.chip,
-    backgroundColor: paper.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tintWords: ROW_WORDS,
   abilityRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
   abilityDivided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
   abilityWords: ROW_WORDS,
@@ -1129,9 +1059,8 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
-    borderColor: paper.ink,
+    borderColor: paper.line,
     borderRadius: radius.card,
-    ...shadow.whisper,
   },
   cardPadded: { paddingVertical: space(4), paddingHorizontal: space(4) },
   pill: {
@@ -1141,24 +1070,20 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: space(2),
     backgroundColor: accent.primary,
-    borderRadius: radius.control,
+    borderRadius: radius.pill,
     paddingHorizontal: space(6),
     paddingVertical: space(3),
   },
   pillPressed: { backgroundColor: paper.ink, transform: [{ scale: 0.985 }, { translateY: 1 }] },
   pillDisabled: { backgroundColor: paper.inkFaint },
   outline: {
-    minHeight: HIT + 4,
+    minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: paper.card,
-    borderWidth: 1.5,
-    borderColor: paper.ink,
-    borderRadius: radius.control,
-    paddingVertical: space(2.5),
-    paddingHorizontal: space(5),
+    paddingVertical: space(2),
+    paddingHorizontal: space(3),
   },
-  outlinePressed: { backgroundColor: paper.groundDeep, transform: [{ scale: 0.985 }, { translateY: 1 }] },
+  outlinePressed: { opacity: 0.6 },
   outlineRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   ghost: {
     minHeight: HIT,
@@ -1187,7 +1112,7 @@ const s = StyleSheet.create({
     paddingVertical: space(3),
     paddingHorizontal: space(4),
   },
-  optionSelected: { borderColor: paper.ink, borderWidth: 1.5, backgroundColor: accent.feature },
+  optionSelected: { borderColor: paper.ink, borderWidth: 1.5 },
   optionPressed: { backgroundColor: paper.groundDeep },
   optionMain: { flex: 1, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
   field: {
@@ -1218,7 +1143,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.chip,
   },
-  tabActive: { backgroundColor: accent.primary },
+  tabActive: { backgroundColor: paper.card, borderWidth: HAIRLINE, borderColor: paper.line },
   dotsRow: { flexDirection: 'row', gap: space(1.5), alignItems: 'center' },
   dot: { width: 20, height: 5, borderRadius: 1, backgroundColor: paper.line },
   dotHere: { width: 36, backgroundColor: paper.ink },
@@ -1247,4 +1172,450 @@ const s = StyleSheet.create({
     borderWidth: 3,
     borderColor: paper.ground,
   },
+});
+
+// ─────────────────────────────────────────── the notebook marks (Phase 1)
+// Appended, because every region above is sliced between adjacent exports.
+
+/**
+ * A ruled list: one hairline above the first row, and every `LedgerRow` rules
+ * the line under itself. A list to assistive tech, so a screen reader can say
+ * how many rows there are before the learner walks them.
+ */
+export function Ledger({
+  children,
+  accessibilityLabel,
+  style,
+}: {
+  children: ReactNode;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View accessibilityRole="list" accessibilityLabel={accessibilityLabel} style={[{ borderTopWidth: HAIRLINE, borderTopColor: paper.line }, style]}>
+      {children}
+    </View>
+  );
+}
+
+/**
+ * One line in a ledger: an optional 24pt ink glyph with no disc, a title, a
+ * gloss, an optional note, trailing meta, and the chevron that says it opens.
+ *
+ * One Pressable, never a card with a button inside it: the whole row is the
+ * target, and a button nested in a button is invalid on the web (F545). It sits
+ * at 56pt and grows rather than clips, because nothing here caps a line count
+ * or the reading size. It names itself ONCE, from the title and the gloss,
+ * unless the caller has something better to say. Disabled is said in soft ink
+ * rather than opacity, because a faded row has no shape to fall back on.
+ */
+export function LedgerRow({
+  glyph,
+  label,
+  title,
+  gloss,
+  note,
+  meta,
+  trailing,
+  onPress,
+  accessibilityLabel,
+  disabled = false,
+}: {
+  /** One line-art glyph in ink. No disc under it. */
+  glyph?: ReactNode;
+  /** The row's one caps line, above the title, when the title alone names nothing. */
+  label?: string;
+  title: string;
+  gloss?: string;
+  /** A second quiet line, for a separate fact such as a dated outcome. */
+  note?: string | null;
+  /** A short fact at the trailing edge, before the chevron. */
+  meta?: string;
+  /** A state the row has earned, drawn before the chevron. */
+  trailing?: ReactNode;
+  onPress?: () => void;
+  /** Say something other than the title and gloss. Falls back to both, joined. */
+  accessibilityLabel?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? (gloss ? `${title}, ${gloss}` : title)}
+      accessibilityState={{ disabled }}
+      style={({ pressed }) => [ls.row, pressed && !disabled && ls.pressed]}
+    >
+      {glyph != null ? (
+        <View style={ls.glyph} {...decorative}>
+          {glyph}
+        </View>
+      ) : null}
+      <View style={ls.words}>
+        {label != null ? <Label>{label}</Label> : null}
+        <Text style={[type.heading, { color: disabled ? paper.inkSoft : paper.ink }]}>{title}</Text>
+        {gloss != null && gloss !== '' ? <Text style={[type.small, { color: paper.inkSoft }]}>{gloss}</Text> : null}
+        {note != null && note !== '' ? <Text style={[type.small, { color: paper.inkSoft }]}>{note}</Text> : null}
+      </View>
+      {meta != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{meta}</Text> : null}
+      {trailing != null ? trailing : null}
+      <ChevronRight color={paper.inkFaint} />
+    </Pressable>
+  );
+}
+
+/**
+ * The highlighter: an inline band drawn once behind a French line.
+ *
+ * The band draws in from the left through `drawIn`, on a transform, on the
+ * native driver, and never again. Under reduced motion it lands on the drawn
+ * band: the mark is the content and the stroke is the flourish. The band is
+ * decorative; the line on it is what a screen reader hears. At most one per
+ * screen, and it is the only surface the chartreuse may take besides the
+ * level path's "you are here" stop.
+ */
+export function Highlight({
+  text,
+  style,
+  accessibilityLabel,
+}: {
+  /** The French line the band sits behind. */
+  text: string;
+  style?: StyleProp<TextStyle>;
+  accessibilityLabel?: string;
+}) {
+  const reduced = useReduceMotion();
+  const draw = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const animation = drawIn(draw, reduced);
+    return () => animation?.stop();
+  }, [draw, reduced]);
+  return (
+    <View style={ls.bandHost}>
+      <Animated.View
+        {...decorative}
+        pointerEvents="none"
+        style={[ls.band, { backgroundColor: highlight, transformOrigin: 'left', transform: [{ scaleX: draw }] }]}
+      />
+      <Text accessibilityLabel={accessibilityLabel} style={[type.french, { color: paper.ink }, style]}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * A sound, named: its IPA as notation beside one example word in French, for
+ * instance /ʁ/ rouge. One element to a screen reader, so the symbol and the
+ * word are heard as one sound rather than two loose words.
+ */
+export function SoundTag({ ipa, example }: { ipa: string; example: string }) {
+  return (
+    <View accessible accessibilityLabel={`Sound ${ipa}, as in ${example}`} style={ls.soundTag}>
+      <Text style={[type.notation, { color: paper.ink }]}>{ipa}</Text>
+      <Text style={[type.frenchSm, { color: paper.ink }]}>{example}</Text>
+    </View>
+  );
+}
+
+/**
+ * The support ladder at a glance: four rungs in their own support colours, the
+ * current one drawn taller, and the rung's sentence beside them. The rungs are
+ * decorative; the sentence from `rungLabel` is what is read.
+ */
+export function LadderMark({ rung, tutorName }: { rung: Rung; tutorName: string }) {
+  return (
+    <View style={ls.ladder}>
+      <View style={ls.rungs} {...decorative}>
+        {([1, 2, 3, 4] as const).map((r) => (
+          <View key={r} style={[ls.rung, { backgroundColor: rungColor[r] }, r === rung && ls.rungHere]} />
+        ))}
+      </View>
+      <Text style={[type.small, ROW_WORDS, { color: paper.ink }]}>{rungLabel(rung, tutorName)}</Text>
+    </View>
+  );
+}
+
+/** One can-do on the level path, and where the learner stands against it. */
+export type LevelStop = { canDo: string; state: 'earned' | 'here' | 'ahead' };
+/** One level on the path, A0 or A1, with its can-dos in order. */
+export type PathLevel = { level: string; stops: readonly LevelStop[] };
+
+const YOU_ARE_HERE = 'You are here';
+
+function stopLabel(level: string, stop: LevelStop): string {
+  const where = stop.state === 'earned' ? 'done' : stop.state === 'here' ? 'you are here' : 'not yet';
+  return `${level}, ${stop.canDo}, ${where}`;
+}
+
+/**
+ * The level path: each level, its can-dos in order, and one "you are here".
+ *
+ * The here stop is the highlighter, which is one of its two legal hosts. A
+ * done stop is an ink dot and a stop ahead is a hairline ring, so the path
+ * reads without colour. Every stop is one sentence to a screen reader.
+ */
+export function LevelPath({ levels }: { levels: readonly PathLevel[] }) {
+  return (
+    <View style={ls.path}>
+      {levels.map((level) => (
+        <View key={level.level} style={ls.pathLevel}>
+          <Text accessibilityRole="header" style={[type.label, { color: paper.inkSoft }]}>
+            {level.level}
+          </Text>
+          {level.stops.map((stop, index) => (
+            <View key={`${level.level}-${index}`} accessible accessibilityLabel={stopLabel(level.level, stop)} style={ls.stop}>
+              <View
+                {...decorative}
+                style={[
+                  ls.stopMark,
+                  stop.state === 'earned' && ls.stopEarned,
+                  stop.state === 'here' && { backgroundColor: highlight, borderColor: paper.ink },
+                ]}
+              />
+              <View style={ROW_WORDS}>
+                <Text style={[type.body, { color: stop.state === 'ahead' ? paper.inkSoft : paper.ink }]}>{stop.canDo}</Text>
+                {stop.state === 'here' ? <Text style={[type.small, { color: paper.ink }]}>{YOU_ARE_HERE}</Text> : null}
+              </View>
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * A tutor, introduced: the orb, the name, the voice in words, the signature
+ * line in French, a sample to hear, and a quiet link to change tutor. There is
+ * no face and no initial: the orb is the tutor and the monogram is the
+ * learner's. The sample says "Stop" while it sounds, like every replay ear.
+ */
+export function TutorCard({
+  name,
+  voice,
+  signature,
+  onHear,
+  playing,
+  onChange,
+  changeLabel = 'Change tutor',
+}: {
+  name: string;
+  /** The voice in words, for instance "Warm, unhurried Parisian". */
+  voice: string;
+  /** One line the tutor says, in French. */
+  signature: string;
+  onHear: () => void;
+  playing: boolean;
+  onChange: () => void;
+  changeLabel?: string;
+}) {
+  return (
+    <Card style={ls.tutor}>
+      <View style={ls.tutorHead}>
+        <View {...decorative}>
+          <OrbGlyph color={orb.ready} size={HIT + space(3)} />
+        </View>
+        <View style={ROW_WORDS}>
+          <Text style={[type.cardTitle, { color: paper.ink }]}>{name}</Text>
+          <Text style={[type.small, { color: paper.inkSoft }]}>{voice}</Text>
+        </View>
+        <Pressable
+          onPress={onHear}
+          accessibilityRole="button"
+          accessibilityLabel={playing ? `Stop ${name}` : `Hear ${name}`}
+          style={({ pressed }) => [ls.hear, pressed && ls.hearPressed]}
+        >
+          <EarGlyph size={22} color={paper.ink} />
+        </Pressable>
+      </View>
+      <Text style={[type.french, { color: paper.ink }]}>{signature}</Text>
+      <GhostButton label={changeLabel} onPress={onChange} color={paper.ink} />
+    </Card>
+  );
+}
+
+const CAN_DO_LEAD = "You'll be able to";
+
+/**
+ * The brief for one scene: what it is, what the learner will be able to do,
+ * the lines they will say, and how long it takes, with one Start.
+ *
+ * Every field but the title and the Start is optional, so a caller draws the
+ * fields it has. The Start and the quiet "Type instead" arrive as nodes the
+ * caller built, because `surfaceContract.test.ts` counts one primary pill per
+ * screen by reading the screen's own file; a pill folded in here would move
+ * every count into a shared component. The corner is a 44pt slot in flow, for
+ * the bookmark, so at the largest reading size it pushes the title down rather
+ * than sitting on it. One caps line at most: the level and the label, joined.
+ */
+export function SceneBrief({
+  level,
+  label,
+  title,
+  french,
+  summary,
+  canDo,
+  lines = [],
+  minutes,
+  minutesMark,
+  support,
+  tutor,
+  reason,
+  action,
+  secondary,
+  corner,
+}: {
+  /** A0, A1. */
+  level?: string;
+  label?: string;
+  /** The scene's name in the learner's language. */
+  title: string;
+  /** The scene's name in French, set as the French hero. */
+  french?: string;
+  /** One plain line about the scene. */
+  summary?: string;
+  /** What the learner will be able to do, led by "You'll be able to". */
+  canDo?: string;
+  /** Two or three lines the learner will say, in French. */
+  lines?: readonly string[];
+  /** How long, already in words. */
+  minutes?: string;
+  /** A mark before the minutes, such as the clock glyph. */
+  minutesMark?: ReactNode;
+  /** How much help the tutor gives, in words. */
+  support?: string;
+  /** Who is teaching, in words. */
+  tutor?: string;
+  /** Why this scene was put in front of the learner. */
+  reason?: string;
+  /** The one Start, built by the caller so its pill stays countable. */
+  action: ReactNode;
+  /** The quiet second way in, such as "Type instead". */
+  secondary?: ReactNode;
+  /** A 44pt slot at the top right: the bookmark toggle, or nothing. */
+  corner?: ReactNode;
+}) {
+  const caps = [level, label].filter((part): part is string => part != null && part !== '').join(' · ');
+  return (
+    <Card style={ls.brief}>
+      {caps !== '' || corner != null ? (
+        <View style={ls.briefHead}>
+          <View style={ROW_WORDS}>{caps !== '' ? <Label>{caps}</Label> : null}</View>
+          {corner != null ? <View style={ls.corner}>{corner}</View> : null}
+        </View>
+      ) : null}
+      {french != null ? <Text style={[fitHero(french), { color: paper.ink }]}>{french}</Text> : null}
+      <Text accessibilityRole="header" style={[type.cardTitle, { color: paper.ink }]}>
+        {title}
+      </Text>
+      {summary != null ? <Text style={[type.body, { color: paper.inkSoft }]}>{summary}</Text> : null}
+      {canDo != null ? (
+        <View style={ls.canDo}>
+          <Text style={[type.small, { color: paper.inkSoft }]}>{CAN_DO_LEAD}</Text>
+          <Text style={[type.bodyStrong, { color: paper.ink }]}>{canDo}</Text>
+        </View>
+      ) : null}
+      {lines.length > 0 ? (
+        <View style={ls.lines}>
+          {lines.map((line) => (
+            <Text key={line} style={[type.french, { color: paper.ink }]}>
+              {line}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+      {minutes != null || support != null || tutor != null ? (
+        <View style={ls.facts}>
+          {minutes != null ? (
+            <View style={ls.fact}>
+              {minutesMark}
+              <Text style={[type.small, { color: paper.inkSoft }]}>{minutes}</Text>
+            </View>
+          ) : null}
+          {support != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{support}</Text> : null}
+          {tutor != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{tutor}</Text> : null}
+        </View>
+      ) : null}
+      {reason != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{reason}</Text> : null}
+      {action}
+      {secondary != null ? secondary : null}
+    </Card>
+  );
+}
+
+/**
+ * Length-aware sizing for the French hero: 34 for a short line, then 30, then
+ * 26, the way a sign is cut to fit its longest word rather than clipped. Every
+ * step is larger than any UI head a card carries (theme.test.ts).
+ */
+export function fitHero(text: string): TextStyle {
+  if (text.length <= 16) return type.frenchHero;
+  if (text.length <= 32) return heroFit.long;
+  return heroFit.longest;
+}
+
+const ls = StyleSheet.create({
+  row: {
+    minHeight: HIT + space(3),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(3),
+    paddingVertical: space(3),
+    borderBottomWidth: HAIRLINE,
+    borderBottomColor: paper.line,
+  },
+  pressed: { transform: [{ scale: 0.985 }, { translateY: 1 }] },
+  glyph: { minWidth: 24, alignItems: 'center', justifyContent: 'center' },
+  words: { ...ROW_WORDS, gap: space(0.5) },
+  bandHost: { alignSelf: 'flex-start', paddingHorizontal: space(1) },
+  band: { position: 'absolute', left: 0, right: 0, top: '42%', bottom: space(0.5), borderRadius: space(0.5) },
+  soundTag: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    alignSelf: 'flex-start',
+    gap: space(2),
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    borderRadius: radius.pill,
+    paddingHorizontal: space(3),
+    paddingVertical: space(1),
+  },
+  ladder: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
+  rungs: { flexDirection: 'row', alignItems: 'flex-end', gap: space(1) },
+  rung: { width: space(4), height: space(1.5), borderRadius: space(0.5) },
+  rungHere: { height: space(4) },
+  path: { gap: space(5) },
+  pathLevel: { gap: space(3) },
+  stop: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3) },
+  stopMark: {
+    width: space(3.5),
+    height: space(3.5),
+    marginTop: space(1),
+    borderRadius: radius.pill,
+    borderWidth: HAIRLINE + 0.5,
+    borderColor: paper.line,
+  },
+  stopEarned: { backgroundColor: paper.ink, borderColor: paper.ink },
+  tutor: { gap: space(3) },
+  tutorHead: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
+  hear: {
+    width: HIT,
+    height: HIT,
+    borderRadius: HIT / 2,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hearPressed: { backgroundColor: paper.groundDeep },
+  brief: { gap: space(3) },
+  briefHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space(3) },
+  corner: { minWidth: HIT, minHeight: HIT, alignItems: 'flex-end', justifyContent: 'center' },
+  canDo: { gap: space(0.5) },
+  lines: { gap: space(1.5), paddingLeft: space(3), borderLeftWidth: HAIRLINE + 1, borderLeftColor: paper.line },
+  facts: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(3) },
+  fact: { flexDirection: 'row', alignItems: 'center', gap: space(1.5) },
 });

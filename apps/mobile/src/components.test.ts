@@ -43,18 +43,20 @@ function region(source: string, startMarker: string, endMarker: string): string 
 }
 
 describe('the drawn vocabulary keeps its promises — F332, F333', () => {
-  test('the monogram is one filled violet disc with a warm-white initial, and it is hidden from assistive tech', () => {
-    // The identity violet fill is the design palette.ts names for "the primary
-    // action and the monogram", so the disc is filled, not a hollow ring. The
-    // initial is the serif in warm-white on that fill, and the disc is spread
-    // decorative so a screen reader walks past it rather than reading a letter.
-    const mono = region(componentsSource(), 'export function Monogram(', 'export function ProgressDots(');
-    assert.match(mono, /backgroundColor: accent\.primary/, 'the disc is not filled with the identity violet');
+  test('the monogram is an ink initial on the deeper paper, and it is hidden from assistive tech', () => {
+    // 2026-09-27, notebook Phase 1: the monogram becomes an ink initial on
+    // `groundDeep`, per the design contract, so the learner's mark stops
+    // competing with the one ink pill. The initial is DM Sans Medium because
+    // Fraunces is for French only. Still a circle, still sized from the disc,
+    // still decorative so a screen reader walks past a loose letter.
+    const mono = region(componentsSource(), 'export function Monogram(', 'export function TintDisc(');
+    assert.match(mono, /backgroundColor: paper\.groundDeep/, 'the disc is not the deeper paper');
+    assert.doesNotMatch(mono, /accent\./, 'the monogram still wears an accent');
     assert.match(mono, /borderRadius: size \/ 2/, 'the disc is not a circle at its own size');
     assert.match(mono, /\{\.\.\.decorative\}/, 'the disc is not hidden from assistive tech');
-    assert.match(mono, /fontFamily: font\.serif/, 'the initial is not set in the serif');
+    assert.match(mono, /fontFamily: font\.sansMedium/, 'the initial is not DM Sans Medium');
     assert.match(mono, /fontSize: size \* 0\.44/, 'the initial is not sized to the disc');
-    assert.match(mono, /color: paper\.onInk/, 'the initial is not the warm-white on a filled control');
+    assert.match(mono, /color: paper\.ink/, 'the initial is not ink');
   });
 
   test('a pill, an outline and a ghost can be given a name for assistive tech, and forward it', () => {
@@ -154,19 +156,26 @@ describe('the mockup-review primitives keep their promises — F362, F366, F368,
     // screen reader must hear what the three words are a choice of.
     const bar = region(componentsSource(), 'export function TabBar<', 'export function Stat(');
     assert.match(bar, /active: K \| null/, 'the tab bar cannot stand with nothing chosen');
+    assert.match(bar, /track = paper\.groundDeep/, 'the segmented control no longer runs on a paper track');
     assert.match(bar, /accessibilityLabel\?: string/, 'the tab bar cannot name its group');
     assert.match(bar, /accessibilityRole="tablist" accessibilityLabel=\{accessibilityLabel\}/, 'the name is not on the group');
     assert.match(bar, /accessibilityState=\{\{ selected: isActive \}\}/, 'a segment no longer says it is selected');
   });
 
-  test('the tint disc is a circle of one tint, hidden from assistive tech — F362', () => {
-    // The one place a tint is drawn. Decorative, because the drawing inside it
-    // is decorative and the place is named beside it.
-    const disc = region(componentsSource(), 'export function TintDisc(', 'export function ProgressDots(');
+  test('the tint disc and the tint panel are deprecated wrappers that draw no tint — F362', () => {
+    // 2026-09-27, notebook Phase 1: tints stop being drawn. Their tokens stay
+    // for the role tables and their call sites go in Phase 4. The disc keeps
+    // its shape and its silence; the panel is plain paper with a hairline.
+    const disc = region(componentsSource(), 'export function TintDisc(', 'export function TintPanel(');
     assert.match(disc, /\{\.\.\.decorative\}/, 'the disc is not hidden from assistive tech');
     assert.match(disc, /borderRadius: size \/ 2/, 'the disc is not a circle at its own size');
-    assert.match(disc, /backgroundColor: tint\[name\]/, 'the disc is not filled with the named tint');
+    assert.doesNotMatch(disc, /\btint\[|\btint\./, 'the disc still draws a tint');
     assert.doesNotMatch(disc, /<Text/, 'the disc letters something');
+    const panel = region(componentsSource(), 'export function TintPanel(', 'export function ProgressDots(');
+    assert.doesNotMatch(panel, /\btint\[|\btint\./, 'the panel still draws a tint');
+    assert.match(panel, /backgroundColor: paper\.card, borderRadius: radius\.card, borderWidth: HAIRLINE, borderColor: paper\.line/, 'the panel is not plain paper with a hairline');
+    // No tint is drawn anywhere in the component file now.
+    assert.doesNotMatch(componentsSource(), /\btint\[|\btint\.[a-z]/, 'components.tsx still draws a tint');
   });
 });
 
@@ -179,60 +188,88 @@ describe('the mockup-review primitives keep their promises — F362, F366, F368,
  * what follows is the promises they make.
  */
 describe('the revamp primitives keep their promises — F569, F577, F586', () => {
-  test('a tinted row is a pressable at the touch floor with a white disc, a title, a gloss and a chevron, and it names itself once', () => {
+  test('a tinted row is now a deprecated wrapper that draws the ledger row and no tint', () => {
+    // 2026-09-27, notebook Phase 1. Every promise the tinted row made is still
+    // made, by LedgerRow, and held in full below. The wrapper only forwards, so
+    // a screen still calling TintRow draws the notebook row today and its call
+    // site can be renamed in Phase 4 without a visual change.
+    const row = region(componentsSource(), 'export function TintRow(', 'const s = StyleSheet.create(');
+    assert.match(
+      row.replace(/\s+/g, ' '),
+      /<LedgerRow glyph=\{glyph\} title=\{title\} gloss=\{gloss\} onPress=\{onPress\} accessibilityLabel=\{accessibilityLabel\} trailing=\{trailing\} disabled=\{disabled\} \/>/,
+      'the tinted row does not hand every one of its promises to the ledger row',
+    );
+    assert.doesNotMatch(row, /<Pressable/, 'the wrapper grew a target of its own, so the row is two buttons');
+    assert.doesNotMatch(row, /\btint\[|\btint\./, 'the wrapper still draws its tint');
+  });
+
+  test('a ledger row is one pressable at 56pt with an ink glyph and no disc, a title, a gloss, meta and a chevron, and it names itself once', () => {
     // One Pressable, not a card with a button in it: the whole row is the
     // target, a nested button is invalid on the web, and a row whose only tap
-    // area is its chevron is F545 wearing a tint.
-    const row = region(componentsSource(), 'export function TintRow(', 'const s = StyleSheet.create(');
-    assert.match(row, /accessibilityRole="button"/, 'the tinted row is not a button, so nothing says it opens anything');
+    // area is its chevron is F545 again.
+    const row = region(componentsSource(), 'export function LedgerRow(', '\nexport function ');
+    assert.equal((row.match(/<Pressable\b/g) ?? []).length, 1, 'the ledger row is not exactly one target');
+    assert.match(row, /accessibilityRole="button"/, 'the row is not a button, so nothing says it opens anything');
     assert.match(
       row,
       /accessibilityLabel=\{accessibilityLabel \?\? \(gloss \? `\$\{title\}, \$\{gloss\}` : title\)\}/,
       'the row does not name itself from its own title and gloss, so a screen reader reads two loose lines',
     );
     assert.match(row, /accessibilityState=\{\{ disabled \}\}/, 'the row never says it is unavailable');
-    // The shape: a white disc at the disc token, the words taking the rest, the
-    // chevron last, and the whole row over the touch floor.
     assert.match(row, /<ChevronRight color=\{paper\.inkFaint\} \/>/, 'the row draws no chevron, so nothing marks it as a way in');
     assert.match(row, /\{trailing != null \? trailing : null\}/, 'the row cannot carry a state before its chevron');
-    const disc = region(componentsSource(), '  tintDisc: {', '  tintWords:');
-    assert.match(disc, /width: DISC,\s*height: DISC,/, 'the glyph disc is not the disc token square');
-    assert.match(disc, /borderRadius: radius\.chip/, 'the glyph stamp does not use the shared compact corner');
-    assert.match(disc, /backgroundColor: paper\.card/, 'the glyph disc is not white, so the glyph sits straight on the tint');
-    const style = region(componentsSource(), '  tintRow: {', '  tintRowPressed:');
-    assert.match(style, /minHeight: HIT \+ space\(8\)/, 'the tinted row sits under the touch floor the mockup draws it at');
-    assert.match(style, /borderRadius: radius\.row/, 'the tinted row turns the card corner, so a row reads as a small card');
-    // The tint is a surface and nothing else, and it is the only colour the row
-    // is told: everything else is a token.
-    assert.match(row, /backgroundColor: tint\[name\]/, 'the row is not grounded in its own tint');
-    assert.match(row, /pressed && !disabled && s\.tintRowPressed/, 'the row has no pressed state, or fades a disabled one instead of saying so');
+    assert.match(row, /meta\?: string/, 'the row cannot carry trailing meta');
+    assert.match(row, /pressed && !disabled && ls\.pressed/, 'the row has no pressed state, or fades a disabled one instead of saying so');
     assert.doesNotMatch(row, /opacity/, 'the row says unavailable in opacity, which leaves a control with no shape to fall back on');
-    // Nothing clipped and nothing capped, so the row grows with the reading size.
     for (const cap of ['numberOfLines', 'maxFontSizeMultiplier', 'allowFontScaling', 'adjustsFontSizeToFit']) {
-      assert.ok(!row.includes(cap), `the tinted row caps its words with ${cap}; a long title must wrap and the row grow to hold it`);
+      assert.ok(!row.includes(cap), `the ledger row caps its words with ${cap}; a long title must wrap and the row grow to hold it`);
     }
+    const style = region(componentsSource(), '  row: {', '  pressed:');
+    assert.match(style, /minHeight: HIT \+ space\(3\)/, 'the ledger row is under its 56pt floor');
+    assert.match(style, /borderBottomWidth: HAIRLINE/, 'the ledger row draws no hairline divider');
+    assert.match(style, /borderBottomColor: paper\.line/, 'the divider is not the paper hairline');
+    assert.doesNotMatch(style, /borderRadius|backgroundColor|borderColor: paper\.ink/, 'the ledger row is a box, not a line in a ledger');
+    const glyph = region(componentsSource(), '  glyph: {', '  words:');
+    assert.match(glyph, /minWidth: 24/, 'the glyph slot is not the 24pt ink glyph');
+    assert.doesNotMatch(glyph, /backgroundColor|borderRadius/, 'the glyph sits on a disc again');
   });
 
-  test('a card lifts off the ground with the one soft shadow and the wider radius', () => {
-    // The whisper is a named token in theme.ts, spread here. A card that wrote
-    // its own shadow numbers would be the second shadow in the app, and the
-    // hairline stays under it because elevation draws nothing on Android below
-    // API 28 and a card there would dissolve into the ground.
+  test('the one card is white at radius 16 with a paper hairline, no shadow and no ink outline', () => {
+    // 2026-09-27, notebook Phase 1. Stricter than the whisper rule it replaces:
+    // the card spreads no shadow at all, and the component file reaches for no
+    // shadow token. The live microphone glow is the only shadow.
     const card = region(componentsSource(), '  card: {', '  cardPadded:');
-    assert.match(card, /\.\.\.shadow\.whisper/, 'the card no longer lifts on the one named shadow');
+    assert.doesNotMatch(card, /shadow/, 'the card still lifts on a shadow');
+    assert.match(card, /backgroundColor: paper\.card/, 'the card is not white');
     assert.match(card, /borderRadius: radius\.card/, 'the card no longer turns the card corner from the token');
-    assert.match(card, /borderWidth: HAIRLINE/, 'the card lost its hairline, so on Android below API 28 it has no edge at all');
-    // The numbers stay in the theme. A shadow spelled out here is how an app
-    // ends up with four shadows, each a little deeper than the last.
+    assert.match(card, /borderWidth: HAIRLINE/, 'the card lost its hairline');
+    assert.match(card, /borderColor: paper\.line/, 'the card is outlined in something other than the paper hairline');
     const source = componentsSource();
+    assert.doesNotMatch(source, /\bshadow\.whisper\b|\bshadow,/, 'components.tsx still reaches for the retired whisper');
+    assert.doesNotMatch(source, /\baccent\.feature\b/, 'components.tsx still spells the retired feature paper');
     for (const number of ['shadowOpacity', 'shadowRadius', 'shadowOffset']) {
       const spelled = source.split('\n').filter((line) => line.includes(number));
       assert.deepEqual(
         spelled.filter((line) => !line.includes('signal.good') && !/^\s*shadow(Offset|Opacity|Radius): /.test(line)).length,
         0,
-        `${number} is written somewhere new in components.tsx; the whisper is a token and the mic glow is the only other shadow`,
+        `${number} is written somewhere new in components.tsx; the mic glow is the only shadow`,
       );
     }
+  });
+
+  test('one ink pill, fully rounded; the seconds are quiet links; a caps label is soft ink', () => {
+    const source = componentsSource();
+    const pill = region(source, '  pill: {', '  pillPressed:');
+    assert.match(pill, /minHeight: HIT \+ 12/, 'the pill is under 56pt');
+    assert.match(pill, /backgroundColor: accent\.primary/, 'the pill is not ink');
+    assert.match(pill, /borderRadius: radius\.pill/, 'the pill is not fully rounded like the logo');
+    const outline = region(source, '  outline: {', '  outlinePressed:');
+    assert.match(outline, /minHeight: HIT/, 'the quiet link is under the touch floor');
+    assert.doesNotMatch(outline, /borderWidth|backgroundColor/, 'the secondary action is a boxed button, not a quiet link');
+    const label = region(source, 'export function Label(', 'export function PillButton(');
+    assert.match(label, /color = paper\.inkSoft/, 'the caps label is not soft ink');
+    const option = region(source, '  optionSelected: {', '  optionPressed:');
+    assert.doesNotMatch(option, /backgroundColor/, 'a chosen option is still a filled panel');
   });
 
   test('a selected option announces its state on the web as well as on a device', () => {
@@ -248,11 +285,13 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
     const option = region(source, 'export function OptionCard(', 'export function Field(');
     assert.match(option, /accessibilityState=\{\{ selected \}\}/, 'the option card no longer says it is selected on a device');
     assert.match(option, /aria-selected=\{selected\}/, 'the option card says nothing to the browser, so on the web the choice is silent');
-    // And the chosen segment is the identity violet with warm-white lettering,
-    // the way the primary pill and the active tab already are.
-    assert.match(bar, /color: isActive \? paper\.onInk : paper\.inkSoft/, 'the chosen segment is not warm-white lettering on a filled pill');
+    // 2026-09-27, notebook Phase 1: the segmented control has a paper track and
+    // a white active segment with ink lettering, so it never competes with the
+    // one ink pill. The selected state is still said twice, as above.
+    assert.match(bar, /color: isActive \? paper\.ink : paper\.inkSoft/, 'the chosen segment is not ink lettering');
     const track = region(source, '  tabActive: {', '  dotsRow:');
-    assert.match(track, /backgroundColor: accent\.primary/, 'the chosen segment is not the identity violet');
+    assert.match(track, /backgroundColor: paper\.card/, 'the chosen segment is not white');
+    assert.doesNotMatch(track, /accent\./, 'the chosen segment still wears the ink fill of the primary pill');
   });
 
   test('the week rail labels every dot and stays hidden from assistive technology', () => {
@@ -272,5 +311,133 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
     assert.doesNotMatch(rail, /accessibilityLabel/, 'the rail carries a label of its own; the sentence beside it is what says the week');
     const done = region(componentsSource(), '  markDone: {', '  markWaiting:');
     assert.match(done, /backgroundColor: accent\.primary/, 'a day that happened is no longer the identity violet the founder chose');
+  });
+});
+
+/**
+ * The notebook marks — Phase 1 of the redesign, added 2026-09-27.
+ *
+ * Appended to components.tsx, which is append-only because every region above
+ * is sliced between adjacent exports. Each mark is held to the promises the
+ * design contract makes for it: the highlighter is drawn once and rests on its
+ * final frame when movement is withheld; nothing caps its words; a mark that is
+ * a picture is silent and the words beside it are what a screen reader hears;
+ * and nothing here builds a primary pill, so the one-pill count stays readable
+ * from each screen's own file.
+ */
+describe('the notebook marks keep their promises — redesign Phase 1', () => {
+  const NEW_MARKS = ['Ledger', 'LedgerRow', 'Highlight', 'SoundTag', 'LadderMark', 'LevelPath', 'TutorCard', 'SceneBrief'] as const;
+  /** From one export to the next, or to the end of the file. */
+  const mark = (name: string): string => {
+    const source = componentsSource();
+    const at = source.indexOf(`export function ${name}(`);
+    assert.notEqual(at, -1, `${name} is missing from components.tsx`);
+    const next = source.indexOf('\nexport ', at + 1);
+    return source.slice(at, next === -1 ? source.length : next);
+  };
+
+  test('every new mark is appended after the stylesheet, so no sliced region moved', () => {
+    const source = componentsSource();
+    const sheet = source.indexOf('const s = StyleSheet.create(');
+    assert.notEqual(sheet, -1, 'the main stylesheet is gone; this ordering check reads nothing');
+    for (const name of NEW_MARKS) {
+      const at = source.indexOf(`export function ${name}(`);
+      assert.ok(at > sheet, `${name} is not appended after the stylesheet, so an older region may have grown a new neighbour`);
+    }
+  });
+
+  test('no new mark caps its words, builds a pill, spells a hex or draws a tint', () => {
+    for (const name of NEW_MARKS) {
+      const body = mark(name);
+      for (const cap of ['numberOfLines', 'maxFontSizeMultiplier', 'allowFontScaling', 'adjustsFontSizeToFit']) {
+        assert.ok(!body.includes(cap), `${name} caps its words with ${cap}`);
+      }
+      assert.ok(!body.includes('<PillButton'), `${name} builds its own pill, so a screen's one-pill count moves into a shared file`);
+      assert.doesNotMatch(body, /#[0-9A-Fa-f]{6}\b/, `${name} writes a raw colour`);
+      assert.doesNotMatch(body, /\btint\[|\btint\./, `${name} draws a tint`);
+      assert.doesNotMatch(body, /shadow/, `${name} draws a shadow`);
+    }
+  });
+
+  test('the ledger rules its rows with a top hairline and is one list to assistive tech', () => {
+    const ledger = mark('Ledger');
+    assert.match(ledger, /accessibilityRole="list"/, 'the ledger is not a list to a screen reader');
+    assert.match(ledger, /borderTopWidth: HAIRLINE/, 'the ledger has no rule above its first row');
+    assert.match(ledger, /borderTopColor: paper\.line/, 'the ledger rule is not the paper hairline');
+  });
+
+  test('the highlighter draws in once behind a French line, and reduced motion lands on the band', () => {
+    const band = mark('Highlight');
+    assert.match(band, /const reduced = useReduceMotion\(\)/, 'the highlighter does not ask whether movement is withheld');
+    assert.match(band, /drawIn\(draw, reduced\)/, 'the highlighter does not draw in through the one motion vocabulary');
+    assert.match(band, /backgroundColor: highlight/, 'the band is not the highlighter');
+    assert.match(band, /transform: \[\{ scaleX: draw \}\]/, 'the band does not draw across on a transform');
+    assert.match(band, /transformOrigin: 'left'/, 'the band grows from its middle rather than drawing from the left like a pen');
+    assert.match(band, /\{\.\.\.decorative\}/, 'the band is announced to assistive tech; the words on it are what is read');
+    assert.match(band, /type\.french/, 'the line on the band is not set in the French serif');
+    assert.match(band, /color: paper\.ink/, 'the line on the band is not ink');
+    // Once, not a loop: there is no Animated.loop and nothing resets it.
+    assert.doesNotMatch(band, /Animated\.loop|setValue\(0\)/, 'the highlighter moves more than once');
+  });
+
+  test('the motion vocabulary carries the draw-in, and withholding movement lands on the final frame', () => {
+    const motion = stripComments(readFileSync(join(SRC, 'motion.ts'), 'utf8'));
+    const draw = motion.slice(motion.indexOf('export function drawIn('));
+    assert.ok(motion.includes('export function drawIn('), 'motion.ts has no highlighter draw-in');
+    assert.match(draw, /if \(reduced\) \{\s*value\.setValue\(1\);\s*return null;/, 'reduced motion does not land on the final frame');
+    assert.match(draw, /useNativeDriver: true/, 'the draw-in runs on the JS thread');
+    assert.match(draw, /duration: DRAW_MS/, 'the draw-in writes its own number instead of the named duration');
+  });
+
+  test('a sound tag is notation beside one example word, and says both once', () => {
+    const tag = mark('SoundTag');
+    assert.match(tag, /type\.notation/, 'the IPA is not set as notation');
+    assert.match(tag, /type\.frenchSm/, 'the example word is not set in the French serif');
+    assert.match(tag, /accessible accessibilityLabel=\{`Sound \$\{ipa\}, as in \$\{example\}`\}/, 'the tag is read as two loose words rather than one sound');
+  });
+
+  test('the ladder mark draws four rungs in their own colours and names the current one in words', () => {
+    const ladder = mark('LadderMark');
+    assert.match(ladder, /\[1, 2, 3, 4\] as const/, 'the ladder does not draw all four rungs');
+    assert.match(ladder, /rungColor\[r\]/, 'a rung is not drawn in its own support colour');
+    assert.match(ladder, /rungLabel\(rung, tutorName\)/, 'the current rung is not named by the one rung sentence');
+    assert.match(ladder, /\{\.\.\.decorative\}/, 'the four marks are read aloud as well as the sentence');
+  });
+
+  test('the level path marks one stop as here with the highlighter and says so in words', () => {
+    const path = mark('LevelPath');
+    assert.match(path, /backgroundColor: highlight/, 'the you-are-here stop is not the highlighter');
+    assert.match(path, /stop\.state === 'here'/, 'the path does not know which stop is here');
+    assert.match(path, /YOU_ARE_HERE/, 'the path does not say you are here in words');
+    assert.match(path, /accessibilityLabel=\{stopLabel\(level\.level, stop\)\}/, 'a stop is not one sentence to a screen reader');
+  });
+
+  test('a tutor card shows the orb, the name, the voice, the signature line, a sample and a quiet change link', () => {
+    const card = mark('TutorCard');
+    assert.match(card, /<OrbGlyph color=\{orb\.ready\}/, 'the tutor is not drawn as the orb');
+    assert.match(card, /accessibilityLabel=\{playing \? `Stop \$\{name\}` : `Hear \$\{name\}`\}/, 'the sample offers to play what is already playing');
+    assert.match(card, /<GhostButton label=\{changeLabel\}/, 'changing tutor is not a quiet link');
+    assert.match(card, /type\.french/, 'the signature line is not set in the French serif');
+  });
+
+  test('a scene brief takes its one Start from the caller and draws everything else from tokens', () => {
+    const brief = mark('SceneBrief');
+    assert.match(brief, /action: ReactNode;/, 'the Start is no longer a node the caller passes');
+    assert.match(brief, /\{action\}/, 'the brief never draws the Start it was handed');
+    assert.match(brief, /CAN_DO_LEAD/, 'the can-do is not led by "You\'ll be able to"');
+    assert.match(brief, /lines\.map\(/, 'the lines you will say are not drawn');
+    assert.match(brief, /fitHero\(french\)/, 'the French title is not the fitted French hero');
+    assert.match(brief, /\{corner != null \? <View style=\{ls\.corner\}>\{corner\}<\/View> : null\}/, 'the corner slot is gone, or reserved when empty');
+    assert.match(componentsSource(), /corner: \{ minWidth: HIT, minHeight: HIT/, 'the corner slot is under the touch floor');
+    assert.match(brief, /<Card\b/, 'the brief is not drawn on the one card');
+    assert.doesNotMatch(brief, /fontSize|lineHeight|fontFamily/, 'the brief writes type itself; the scale lives in theme.ts');
+  });
+
+  test('the French hero fits long lines by the theme steps, never a raw size', () => {
+    const fit = mark('fitHero');
+    assert.match(fit, /type\.frenchHero/, 'a short line is not the French hero');
+    assert.match(fit, /heroFit\.long/, 'a long line does not step down to 30');
+    assert.match(fit, /heroFit\.longest/, 'the longest line does not step down to 26');
+    assert.doesNotMatch(fit, /fontSize/, 'the fit writes a raw size; the steps live in theme.ts');
   });
 });

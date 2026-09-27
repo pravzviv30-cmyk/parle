@@ -186,10 +186,23 @@ describe('two shadows, both named — F569', () => {
     }
     assert.deepEqual(offenders, [], `A third shadow, written in numbers rather than named:\n${offenders.join('\n')}`);
 
-    // And the whisper really is the token, not a copy of it: every card-like
-    // surface reaches it by name.
-    assert.match(exact('theme.ts'), /whisper: \{/, 'theme.ts no longer names the whisper');
-    assert.match(exact('components.tsx'), /\.\.\.shadow\.whisper/, 'the card no longer spreads the named whisper');
+    // 2026-09-27, notebook Phase 1. Stricter than the rule this replaced: the
+    // whisper is retired to an inert alias (theme.test.ts holds it at zero), the
+    // card spreads no shadow, and only the screens not yet rebuilt may still
+    // spread the alias. That list may only shrink; Phase 4 deletes it.
+    assert.match(exact('theme.ts'), /whisper: \{/, 'theme.ts dropped the alias while screens still spread it');
+    assert.doesNotMatch(exact('components.tsx'), /shadow\.whisper/, 'the card still spreads the whisper');
+    const PENDING_WHISPER = new Set([
+      'ReviewScreen.tsx',
+      'drill/MomentCard.tsx',
+      'phrases/PhrasebookScreen.tsx',
+      'tutor/Transcript.tsx',
+      'wall/WallPlansPage.tsx',
+    ]);
+    for (const { path, body } of SOURCES) {
+      if (!/shadow\.whisper/.test(body)) continue;
+      assert.ok(PENDING_WHISPER.has(rel(path)), `${rel(path)} spreads the retired whisper; the mic glow is the only shadow now`);
+    }
   });
 });
 
@@ -1252,20 +1265,23 @@ describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
 
   test('the active tab is told by ink and weight, and a screen reader still hears selected — F313', () => {
     assert.match(tabbar, /accessibilityState=\{\{\s*selected/, 'a screen reader is not told which tab is selected');
-    assert.match(tabbar, /fontFamily: type\.button\.fontFamily/, 'the active tab is not marked by the heavier weight');
+    // 2026-09-27, notebook Phase 1: the heavier weight is DM Sans Medium.
+    assert.match(tabbar, /fontFamily: font\.sansMedium/, 'the active tab is not marked by the heavier weight');
     assert.ok(!/\bst\.dot\b/.test(tabbar) && !tabbar.includes('dotActive'), 'the tab bar still marks the active cell with a dot');
   });
 
-  test('the bar is an inset dock without becoming another floating shadow — F313', () => {
+  test('the bar is flat on the paper with a top hairline, and never a floating shadow — F313', () => {
+    // 2026-09-27, notebook Phase 1: the inset dock becomes a flat bar, per the
+    // design contract. The floating rules are kept whole and the dock's own
+    // corner, margin and ink outline are refused alongside them.
     const from = tabbar.indexOf('bar: {');
     assert.notEqual(from, -1, 'the bar style is gone; this test is reading the wrong thing');
     const barStyle = tabbar.slice(from, tabbar.indexOf('},', from) + 1);
-    assert.match(barStyle, /backgroundColor: paper\.card/, 'the dock has no opaque surface of its own');
-    assert.match(barStyle, /borderWidth: HAIRLINE/, 'the dock has no rule separating it from the page');
-    assert.match(barStyle, /borderRadius: radius\.card/, 'the dock is not visibly inset from the page edge');
-    assert.match(barStyle, /marginHorizontal: space\(2\)/, 'the dock still runs edge to edge');
-    for (const floating of ['shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'"]) {
-      assert.ok(!barStyle.includes(floating), `the dock carries ${floating}, so it competes with the content cards`);
+    assert.match(barStyle, /backgroundColor: paper\.ground/, 'the bar has no opaque surface of its own');
+    assert.match(barStyle, /borderTopWidth: HAIRLINE/, 'the bar has no rule separating it from the page');
+    assert.match(barStyle, /borderTopColor: paper\.line/, 'the rule is not the paper hairline');
+    for (const floating of ['shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'", 'borderRadius', 'marginHorizontal', 'borderColor: paper.ink']) {
+      assert.ok(!barStyle.includes(floating), `the bar carries ${floating}, so it is a dock or it competes with the content`);
     }
   });
 
@@ -1279,18 +1295,20 @@ describe('the active tab wears the identity violet — F325', () => {
   const tabbar = named('nav/LuvaniTabBar.tsx');
 
   test('the active tab is set in the identity violet', () => {
-    // Phase 1 marked the active tab in ink-on-ink, which read as no interactive
-    // layer at all. The focused glyph and label both take accent.primary now;
-    // the inactive ones stay inkFaint glyph and inkSoft label.
+    // 2026-09-27, notebook Phase 1: the identity colour is the ink (accent.primary
+    // has been #182019 since the Atelier pass), and the bar now names it as ink.
+    // Selected is an ink glyph and a Medium label; the inactive glyph is faint
+    // and the inactive word stays soft ink, because a word is held to the text
+    // floor and faint ink sits on its edge.
     assert.match(
       tabbar,
-      /color=\{focused \? accent\.primary : paper\.inkSoft\}/,
-      'the active tab glyph is not set in the identity violet',
+      /color=\{focused \? paper\.ink : paper\.inkFaint\}/,
+      'the active tab glyph is not ink, or the inactive one is not faint',
     );
     assert.match(
       tabbar,
-      /focused \? \{ color: accent\.primary, fontFamily: type\.button\.fontFamily \}/,
-      'the active tab label is not set in the identity violet at the heavier weight',
+      /focused \? \{ color: paper\.ink, fontFamily: font\.sansMedium \}/,
+      'the active tab label is not ink at the heavier weight',
     );
     assert.match(tabbar, /\{ color: paper\.inkSoft \}/, 'the inactive tab label is no longer soft ink');
   });
@@ -1974,7 +1992,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
       const header = raw.slice(0, raw.indexOf('*/'));
       assert.doesNotMatch(header, /dot underneath/, `${name} still says the active tab has a dot underneath`);
       assert.doesNotMatch(header, /both go ink/, `${name} still says the active tab goes ink`);
-      assert.match(header, /chartreuse/, `${name} does not describe the selected Atelier surface`);
+      // 2026-09-27, notebook Phase 1: the header must now say the chartreuse is gone.
+      assert.match(header, /no chartreuse/, `${name} does not say the selected tab carries no chartreuse`);
       assert.match(header, /no dot|there is no dot/, `${name} does not say there is no dot`);
     }
   });

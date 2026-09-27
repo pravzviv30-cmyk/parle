@@ -69,3 +69,30 @@ export function settleIn(value: Animated.Value, reduced: boolean, delayMs = 0): 
   animation.start();
   return animation;
 }
+
+/**
+ * The highlighter drawing in behind a French line: one stroke, left to right,
+ * slower than a settle because a pen is slower than a card arriving.
+ */
+export const DRAW_MS = 520;
+
+/**
+ * Draw a 0-to-1 highlighter stroke once, or land on the drawn band when
+ * movement is withheld. Like `settleIn`, withholding motion never withholds the
+ * mark: the band is the content and the stroke is the flourish.
+ */
+export function drawIn(value: Animated.Value, reduced: boolean, delayMs = 0): Animated.CompositeAnimation | null {
+  if (reduced) {
+    value.setValue(1);
+    return null;
+  }
+  const animation = Animated.timing(value, {
+    toValue: 1,
+    duration: DRAW_MS,
+    delay: delayMs,
+    easing: Easing.out(Easing.quad),
+    useNativeDriver: true,
+  });
+  animation.start();
+  return animation;
+}

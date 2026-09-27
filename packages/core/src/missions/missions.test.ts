@@ -17,6 +17,7 @@ import { DRILL_FIXTURES } from '../drill/fixtures.ts';
 import { phraseKeyOf } from '../topics/topics.ts';
 import type { ReviewCard } from '../review/scheduler.ts';
 import { openingRung, RUNGS } from '../ladder/ladder.ts';
+import { SCENES_CAFE_AND_FOOD } from '../daily/scenes/cafeAndFood.ts';
 
 const NOW = new Date(2026, 0, 15, 12).getTime();
 const DAY = 86_400_000;
@@ -42,9 +43,11 @@ function finished(id: MissionCompletion['id'], rung: MissionCompletion['rung'], 
   return { id, at, rung };
 }
 
-describe('the catalogue — six front doors, each with somewhere to practise', () => {
-  test('six missions exist and each names the path unit that practises it', () => {
-    assert.equal(MISSIONS.length, 6, 'the product promises six practical situations; anything fewer is a shorter promise');
+describe('the catalogue — seven front doors, each with somewhere to practise', () => {
+  test('seven missions exist and each names the path unit that practises it', () => {
+    // 2026-09-27: six became seven when the three-line first scene,
+    // mission:premier-cafe, joined the catalogue ahead of the full café.
+    assert.equal(MISSIONS.length, 7, 'the product promises seven practical situations; anything fewer is a shorter promise');
 
     const unitIds = new Set(AUTHORED_PATH.map((unit) => unit.id));
     for (const mission of MISSIONS) {
@@ -79,10 +82,78 @@ describe('the catalogue — six front doors, each with somewhere to practise', (
     }
   });
 
-  test('no two missions hand back the same place', () => {
-    // The postcard metaphor only works if a place means one situation.
-    const places = MISSIONS.map((mission) => mission.place);
+  test('no two missions hand back the same place, except the opener sharing the café', () => {
+    // The postcard metaphor only works if a place means one situation. The one
+    // deliberate exception (2026-09-27): the three-line first scene is a short
+    // walk through the same café, so it shares the full café's place and art
+    // rather than inventing a new one.
+    const places = MISSIONS.filter((mission) => mission.id !== FIRST_MISSION).map((mission) => mission.place);
     assert.equal(new Set(places).size, places.length, `two missions share a place: ${places.join(', ')}`);
+
+    assert.equal(FIRST_MISSION, 'mission:premier-cafe', 'a brand-new learner opens on the three-line first scene');
+    assert.equal(
+      getMission(FIRST_MISSION)?.place,
+      getMission('mission:cafe')?.place,
+      'the opener is the same café as the full scene, so it must share its place',
+    );
+  });
+
+  test('the first scene is three lines at the counter, practised by the café unit', () => {
+    const opener = getMission('mission:premier-cafe');
+    assert.ok(opener, 'the first scene is missing from the catalogue');
+    assert.equal(opener.cefr, 'A0');
+    assert.deepEqual([...opener.beatIds], ['greet-and-order', 'say-where', 'pay']);
+    assert.equal(opener.pathUnitId, 'cafe');
+    assert.deepEqual(
+      [...opener.phraseKeys],
+      [
+        'phrase:bonjour, je vais prendre un café',
+        "phrase:sur place, au comptoir, s'il vous plaît",
+        'phrase:je vous dois combien ?',
+      ],
+      'the opener drills the three lines it asks the learner to say, not neighbouring café lines',
+    );
+
+    // The approved first-coffee lines, read from the daily scene itself so the
+    // two cannot drift. A sentence-final full stop is the only thing dropped:
+    // phrase keys never carry one, and a scorer hears no difference.
+    const firstCoffee = SCENES_CAFE_AND_FOOD.find((scene) => scene.id === 'situation:cafe-first-coffee');
+    assert.ok(firstCoffee, 'the approved first-coffee scene is gone');
+    assert.deepEqual(
+      [...opener.referencePhrases],
+      firstCoffee.lines.map((line) => line.fr.replace(/\.$/, '')),
+      'the lines you will say are the approved first-coffee lines',
+    );
+  });
+
+  test('every mission says what the learner will be able to do, and what they can do once earned', () => {
+    for (const mission of MISSIONS) {
+      assert.ok(mission.canDoEn.trim().length > 0, `${mission.id} has no can-do line`);
+      assert.ok(mission.earnedEn.trim().length > 0, `${mission.id} has no earned line`);
+      assert.ok(mission.earnedEn.startsWith('You can '), `${mission.id} earned line must start "You can ": "${mission.earnedEn}"`);
+      for (const line of [mission.canDoEn, mission.earnedEn]) {
+        assert.doesNotMatch(line, /\d/, `${mission.id} puts a number in a can-do line: "${line}"`);
+        assert.doesNotMatch(line, /—/, `${mission.id} puts an em dash in a can-do line: "${line}"`);
+      }
+    }
+  });
+
+  test('the can-do lines are exactly the approved ones', () => {
+    // Pinned verbatim: a promise about what a learner will be able to do is a
+    // product decision, and this is where changing it becomes deliberate.
+    const approved: Record<string, [string, string]> = {
+      'mission:premier-cafe': ['Order a coffee at the counter', 'You can order a coffee'],
+      'mission:cafe': ['Order food and drink, then pay', 'You can order at a café and pay'],
+      'mission:hotel': ['Check in and ask one question', 'You can check into a hotel'],
+      'mission:marche': ['Ask the price and choose', 'You can buy food at a market'],
+      'mission:chemin': ['Ask the way and follow the answer', 'You can ask for directions'],
+      'mission:journee': ['Say how your day went, ask about theirs', 'You can talk about your day'],
+      'mission:amis': ['Make a plan with friends', 'You can make plans with friends'],
+    };
+    assert.deepEqual(MISSIONS.map((m) => m.id).sort(), Object.keys(approved).sort());
+    for (const mission of MISSIONS) {
+      assert.deepEqual([mission.canDoEn, mission.earnedEn], approved[mission.id], `${mission.id} drifted from its approved lines`);
+    }
   });
 
   test('mission ids are unique, and the first mission is one of them', () => {
@@ -233,6 +304,30 @@ describe('what the learner has actually done — projected, never stored twice',
 
     const fresh = suggestedMission(missionStates([], [], NOW));
     assert.equal(fresh?.mission.id, FIRST_MISSION, 'a learner with no history is pointed at the first mission');
+  });
+
+  test('a brand-new learner is offered the three-line opener first', () => {
+    // 2026-09-27: the opener leads the catalogue, so it is what nobody-yet sees.
+    assert.equal(suggestedMission(missionStates([], [], NOW))?.mission.id, 'mission:premier-cafe');
+  });
+
+  test('a learner who earned the full café is never sent back to the opener', () => {
+    // The opener's can-do sits inside the café's, so earning the café earns it.
+    // Without this the shared café phrases make the opener read in-progress (or
+    // needs-review) forever, and it would outrank everything behind it.
+    const cafe = MISSIONS.find((m) => m.id === 'mission:cafe')!;
+    const settled = cafe.phraseKeys.map((key) => card(key, NOW + 10 * DAY));
+    const due = cafe.phraseKeys.map((key) => card(key, NOW - DAY));
+
+    for (const deck of [[], settled, due]) {
+      const offered = suggestedMission(missionStates([finished('mission:cafe', 4)], deck, NOW));
+      assert.notEqual(offered?.mission.id, 'mission:premier-cafe', 'an earned café sent the learner back to three lines');
+    }
+    assert.equal(
+      suggestedMission(missionStates([finished('mission:cafe', 4)], due, NOW))?.mission.id,
+      'mission:cafe',
+      'with café phrases due, the café itself is what comes back',
+    );
   });
 
   test("another learner's completions never leak into this mission", () => {

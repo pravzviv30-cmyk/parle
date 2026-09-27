@@ -1,16 +1,16 @@
 /**
- * Modern Atelier with the warmth of a French journal.
- * Warm paper and near-black ink, chartreuse feature panels, bold DM Sans
- * headings and Fraunces French. Shared geometry carries this language through
- * every screen, including forms, live sessions, recaps and settings.
- * Voice signals, touch floors, reading-size scaling and reduced motion retain
- * their established behavior. Raw colours live in palette.ts.
+ * The French notebook with one highlighter.
+ * Warm paper and near-black ink, one white card with a hairline and no shadow,
+ * DM Sans Medium for the furniture and Fraunces for French only. The
+ * chartreuse is a highlighter pen, never a surface. Voice signals, touch
+ * floors, reading-size scaling and reduced motion keep their behaviour.
+ * Raw colours live in palette.ts.
  */
 
 import { Platform } from 'react-native';
 import { paper } from './palette.ts';
 
-export { paper, accent, signal, orb, rungColor, tint } from './palette.ts';
+export { paper, accent, highlight, signal, orb, rungColor, tint } from './palette.ts';
 export type { TintName } from './palette.ts';
 
 /**
@@ -34,18 +34,23 @@ export const font = {
 } as const;
 
 /**
- * Type scale. The serif carries anything with a voice — headlines, stats, and
- * every French line the learner reads. The sans carries the furniture. Sizes
- * are points and scale with the OS reading size; nothing disables
- * `allowFontScaling`.
+ * Type scale. Fraunces is for French only: every style set in the serif is a
+ * French style by name. DM Sans Medium carries the UI heads and the regular cut
+ * carries prose. Sizes are points and scale with the OS reading size; nothing
+ * disables `allowFontScaling`.
  */
 export const type = {
   /** Screen headline. */
-  display: { fontFamily: font.sansBold, fontSize: 34, lineHeight: 39, letterSpacing: -1.2 },
+  display: { fontFamily: font.sansMedium, fontSize: 28, lineHeight: 34, letterSpacing: -0.6 },
   /** Section head, big stat. */
-  title: { fontFamily: font.sansBold, fontSize: 24, lineHeight: 30, letterSpacing: -0.6 },
-  /** The title of a card that leads a tab: the hero. Bold serif, smaller than the display. */
-  cardTitle: { fontFamily: font.sansBold, fontSize: 26, lineHeight: 31, letterSpacing: -0.8 },
+  title: { fontFamily: font.sansMedium, fontSize: 22, lineHeight: 28, letterSpacing: -0.3 },
+  /** The title of a card. */
+  cardTitle: { fontFamily: font.sansMedium, fontSize: 20, lineHeight: 26, letterSpacing: -0.2 },
+  /**
+   * The French line that leads a screen. Always larger than any heading on the
+   * screen it leads; `fitHero()` steps it 34, 30, 26 by length (`heroFit`).
+   */
+  frenchHero: { fontFamily: font.serif, fontSize: 34, lineHeight: 42 },
   /** The French line to say. Sentence case, never caps. */
   frenchLg: { fontFamily: font.serif, fontSize: 28, lineHeight: 36 },
   /** Inline French content — options and cards. */
@@ -59,7 +64,7 @@ export const type = {
    * smallest Fraunces that still reads as the voice rather than the furniture.
    */
   frenchSm: { fontFamily: font.serif, fontSize: 17, lineHeight: 23 },
-  heading: { fontFamily: font.sansBold, fontSize: 17, lineHeight: 22 },
+  heading: { fontFamily: font.sansMedium, fontSize: 17, lineHeight: 22 },
   body: { fontFamily: font.sans, fontSize: 16, lineHeight: 23 },
   bodyStrong: { fontFamily: font.sansMedium, fontSize: 16, lineHeight: 23 },
   small: { fontFamily: font.sans, fontSize: 13.5, lineHeight: 19 },
@@ -79,33 +84,46 @@ export const type = {
   notation: { fontFamily: font.sansMedium, fontSize: 14, lineHeight: 20, letterSpacing: 0.4 },
 } as const;
 
+/**
+ * The French hero's fit steps for a long line, after `type.frenchHero` at 34.
+ * Each step is still larger than every UI head a card carries.
+ */
+export const heroFit = {
+  /** Over sixteen characters. */
+  long: { fontFamily: font.serif, fontSize: 30, lineHeight: 38 },
+  /** Over thirty-two characters. */
+  longest: { fontFamily: font.serif, fontSize: 26, lineHeight: 34 },
+} as const;
+
 /** 4pt base. Tight within a group, generous between groups. */
 export const space = (n: number) => n * 4;
 
 export const radius = {
-  /** A white card. Broad enough to feel like one generous page rather than a utility panel. */
-  card: 12,
-  /** A tinted row. Tighter than a card on purpose, so the two never read as one shape. */
+  /** The one Card: white, a paper hairline, no shadow, never nested. */
+  card: 16,
+  /** Deprecated with TintRow; nothing new draws at it. */
   row: 8,
   chip: 6,
   input: 8,
   control: 8,
+  /** The one ink pill, fully rounded like the logo's L. */
   pill: 999,
 } as const;
 
 /**
- * The whisper. One soft shadow under a white card, and nothing else: the only other
- * shadow in the app is the live microphone's glow in `SpeakCircle`. Never on a tinted
- * row, the tab bar, the orb, a pill or a header. Its colour is the ink token, so the
- * palette test's rule that no raw hex lives outside `palette.ts` still holds.
+ * Retired. The whisper was one soft shadow under a white card; the notebook has
+ * no shadow except the live microphone's glow in `SpeakCircle`. This inert alias
+ * draws nothing and stays only so the screens still spreading it render flat
+ * until they are rebuilt. Its colour is still the ink token, so no raw hex
+ * enters this file.
  */
 export const shadow = {
   whisper: {
     shadowColor: paper.ink,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 0.10,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
     shadowRadius: 0,
-    elevation: 2,
+    elevation: 0,
   },
 } as const;
 

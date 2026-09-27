@@ -34,6 +34,7 @@ import { isDue } from '../review/evidence.ts';
 import type { ReviewCard } from '../review/scheduler.ts';
 
 export type MissionId =
+  | 'mission:premier-cafe'
   | 'mission:cafe'
   | 'mission:amis'
   | 'mission:journee'
@@ -71,6 +72,17 @@ export interface Mission {
    * scored and never performed at.
    */
   winEn: string;
+  /**
+   * What the learner will be able to do, said before they start: "Order a
+   * coffee at the counter". Shown on the path and the plan as a can-do. Plain
+   * English, no digit, no em dash.
+   */
+  canDoEn: string;
+  /**
+   * The same can-do once it is earned, always opening "You can ". Earned is
+   * {@link isEarned}, never a separate store.
+   */
+  earnedEn: string;
   /** The frame's beat ids, in order. The agreement test pins these to the frame. */
   beatIds: readonly string[];
   /**
@@ -155,6 +167,47 @@ export function independenceFrom(completions: readonly MissionCompletion[]): Ind
     if (best === null || done.rung > best) best = done.rung;
   }
   return best === null ? 'new' : INDEPENDENCE_BY_RUNG[best];
+}
+
+/**
+ * Whether a mission's can-do is earned: handled with nothing handed over.
+ *
+ * The one place this rule lives. It reads best-ever independence, so a tired
+ * replay with more help can never un-earn it, and it asks for the top rung
+ * because a finish with support in play is practice, not a can-do. The passport
+ * stamp and the CEFR spine both read it from here.
+ */
+export function isEarned(progress: Pick<MissionProgress, 'independence'>): boolean {
+  return progress.independence === 'on-your-own';
+}
+
+/**
+ * Scenes whose can-do sits wholly inside a bigger scene's. Earning the bigger
+ * one earns the smaller: someone who ordered, paid and left the full café on
+ * their own can order a coffee at the counter, and sending them back to three
+ * lines would be the product forgetting what they did. One direction only; the
+ * opener says nothing about the rest of the café.
+ */
+const SUBSUMED_BY: Partial<Record<MissionId, MissionId>> = {
+  'mission:premier-cafe': 'mission:cafe',
+};
+
+/**
+ * Every mission earned, directly by {@link isEarned} or through a bigger scene
+ * that contains it. The set the CEFR spine reads, so the rule lives here once.
+ */
+export function earnedMissionIds(progress: readonly MissionProgress[]): Set<MissionId> {
+  const earned = new Set<MissionId>(progress.filter(isEarned).map((item) => item.mission.id));
+  for (const [smaller, bigger] of Object.entries(SUBSUMED_BY) as [MissionId, MissionId][]) {
+    if (earned.has(bigger)) earned.add(smaller);
+  }
+  return earned;
+}
+
+/** True when a scene is only earned because the bigger one containing it was. */
+function coveredByBigger(id: MissionId, earned: ReadonlySet<MissionId>): boolean {
+  const bigger = SUBSUMED_BY[id];
+  return bigger !== undefined && earned.has(bigger);
 }
 
 /**
@@ -249,19 +302,28 @@ export function missionStates(
  * gate: every mission is open in any order, on the same reasoning `path.ts`
  * records, because support is withdrawn as a learner improves rather than
  * withheld until they earn it. This only decides what is offered first.
+ *
+ * A scene covered by a bigger one the learner has earned (`SUBSUMED_BY`) is
+ * never offered: it is still open, just never the suggestion.
  */
 export function suggestedMission(progress: readonly MissionProgress[]): MissionProgress | null {
+  const earned = earnedMissionIds(progress);
+  const offered = progress.filter((p) => !coveredByBigger(p.mission.id, earned));
   return (
-    progress.find((p) => p.state === 'needs-review') ??
-    progress.find((p) => p.state === 'in-progress') ??
-    progress.find((p) => p.state === 'new') ??
+    offered.find((p) => p.state === 'needs-review') ??
+    offered.find((p) => p.state === 'in-progress') ??
+    offered.find((p) => p.state === 'new') ??
+    offered[0] ??
     progress[0] ??
     null
   );
 }
 
-/** The mission a learner who has never said a word of French opens on. */
-export const FIRST_MISSION: MissionId = 'mission:cafe';
+/**
+ * The mission a learner who has never said a word of French opens on: three
+ * lines at a café counter, before the full café scene.
+ */
+export const FIRST_MISSION: MissionId = 'mission:premier-cafe';
 
 export function getMission(id: string): Mission | undefined {
   return MISSIONS.find((mission) => mission.id === id);
@@ -276,9 +338,11 @@ export function missionPhraseKeys(): string[] {
  * The catalogue.
  *
  * Six situations an adult actually walks into, one place each so no two missions
- * hand back the same postcard. Café first because it is the shortest path from
- * "I speak no French" to "I said a French sentence to a French person and it
- * worked", and that is the whole promise.
+ * hand back the same postcard, opened by a three-line first scene in the same
+ * café, which is the one mission allowed to share a place. Café first because it
+ * is the shortest path from "I speak no French" to "I said a French sentence to
+ * a French person and it worked", and that is the whole promise. Catalogue order
+ * is also `SCENE_SPINE` order in `spine.ts`; the spine test holds both.
  *
  * `phraseKeys` use the deck's own identity scheme, `phrase:<fr lowercased>` from
  * `topics/phraseKeyOf`, so drilling a mission phrase reschedules the very card
@@ -289,6 +353,38 @@ export function missionPhraseKeys(): string[] {
  */
 export const MISSIONS: readonly Mission[] = [
   {
+    // The first scene, and deliberately the smallest: three lines at the same
+    // café counter as the full scene below, sharing its place and its path
+    // unit. Its phrases and reference phrases are the approved first-coffee
+    // lines from `daily/scenes/cafeAndFood.ts`, less the sentence-final full
+    // stop that phrase keys never carry, so the brief, the bundled recordings,
+    // the frame and the drills all say the same three lines. Earning the full
+    // café earns this one too (`SUBSUMED_BY`).
+    id: 'mission:premier-cafe',
+    title: 'Le premier café',
+    titleEn: 'Your first coffee',
+    place: 'cafe',
+    cefr: 'A0',
+    learnerRole: 'A customer ordering a coffee at the counter.',
+    tutorRole: 'Karim, the barista working the counter.',
+    goalEn: 'Order a coffee, say you will have it here, and pay.',
+    winEn: 'The coffee is on the counter, and you ordered it yourself.',
+    canDoEn: 'Order a coffee at the counter',
+    earnedEn: 'You can order a coffee',
+    beatIds: ['greet-and-order', 'say-where', 'pay'],
+    phraseKeys: [
+      'phrase:bonjour, je vais prendre un café',
+      "phrase:sur place, au comptoir, s'il vous plaît",
+      'phrase:je vous dois combien ?',
+    ],
+    referencePhrases: [
+      'Bonjour, je vais prendre un café',
+      "Sur place, au comptoir, s'il vous plaît",
+      'Je vous dois combien ?',
+    ],
+    pathUnitId: 'cafe',
+  },
+  {
     id: 'mission:cafe',
     title: 'Au café du coin',
     titleEn: 'Order at a café',
@@ -298,6 +394,8 @@ export const MISSIONS: readonly Mission[] = [
     tutorRole: 'Karim, the barista working the counter.',
     goalEn: 'Order a drink and something to eat, then pay and leave.',
     winEn: 'Et voilà. You just ordered a coffee, start to finish.',
+    canDoEn: 'Order food and drink, then pay',
+    earnedEn: 'You can order at a café and pay',
     beatIds: ['greet', 'order-drink', 'order-food', 'pay', 'leave'],
     phraseKeys: [
       "phrase:bonjour, un café s'il vous plaît",
@@ -319,6 +417,8 @@ export const MISSIONS: readonly Mission[] = [
     tutorRole: 'Martine, the owner who checks you in and hands you the key.',
     goalEn: 'Check in at a small hotel and ask one thing about your stay.',
     winEn: 'You checked in, asked your question, and walked off with the key in your hand.',
+    canDoEn: 'Check in and ask one question',
+    earnedEn: 'You can check into a hotel',
     beatIds: [
       'arrive',
       'show-id',
@@ -349,6 +449,8 @@ export const MISSIONS: readonly Mission[] = [
     tutorRole: 'Corinne, the stallholder who weighs and bags whatever you ask for.',
     goalEn: 'Buy produce at a market stall: how much, which ones, and what it comes to.',
     winEn: 'You asked the price, chose the tomatoes yourself, and knew what it came to before you handed anything over.',
+    canDoEn: 'Ask the price and choose',
+    earnedEn: 'You can buy food at a market',
     beatIds: [
       'greet-and-ask',
       'how-much',
@@ -382,6 +484,8 @@ export const MISSIONS: readonly Mission[] = [
     tutorRole: 'Sylvie, a passerby walking her dog, who slows down when you ask.',
     goalEn: 'Stop a stranger, ask the way, and understand the answer you get back.',
     winEn: 'You stopped a stranger in the street, asked the way, and understood what she told you.',
+    canDoEn: 'Ask the way and follow the answer',
+    earnedEn: 'You can ask for directions',
     beatIds: [
       'say-what-you-need',
       'take-in-the-way',
@@ -413,6 +517,8 @@ export const MISSIONS: readonly Mission[] = [
     tutorRole: 'Nadia, a friend from the flat downstairs.',
     goalEn: 'Tell a friend how your day went, and ask about theirs.',
     winEn: 'You told a friend how your day went, and then you asked about hers. That is a catch-up, not an exercise.',
+    canDoEn: 'Say how your day went, ask about theirs',
+    earnedEn: 'You can talk about your day',
     beatIds: [
       'raconter-sa-journee',
       'donner-un-detail',
@@ -444,6 +550,8 @@ export const MISSIONS: readonly Mission[] = [
     tutorRole: 'Chloé and Sami, old friends of yours.',
     goalEn: 'Say how your week went, make a plan, and raise a glass.',
     winEn: 'That was a whole evening with friends, in French.',
+    canDoEn: 'Make a plan with friends',
+    earnedEn: 'You can make plans with friends',
     beatIds: ['arrive', 'news', 'plans', 'toast'],
     phraseKeys: [
       'phrase:salut ! ça va ?',

@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 
 import { Card, Label, fitDisplay } from '../components.tsx';
 import { SpeakerGlyph } from '../glyphs.tsx';
-import { accent, paper, shadow, space, type, HIT } from '../theme.ts';
+import { accent, paper, space, type, HAIRLINE, HIT } from '../theme.ts';
 
 /**
  * One French line, large, with a way to hear it said.
@@ -13,9 +13,9 @@ import { accent, paper, shadow, space, type, HIT } from '../theme.ts';
  * length the way a sign is cut to fit its longest word rather than clipping it:
  * nothing in this app caps a line count.
  *
- * The speaker is a round white disc at the touch floor with the whisper under
- * it, which is the one shadow a card is allowed and the only reason it reads as
- * a button on a white card. It says "Hear" before it sounds and "Stop" while it
+ * The speaker is a round white disc at the touch floor with a paper hairline,
+ * which is what tells it from the card now the whisper has retired (notebook
+ * Phase 1: no shadow but the live microphone's). It says "Hear" before it sounds and "Stop" while it
  * does, the way `OptionCard`'s replay ear does, so a screen reader never offers
  * to play something that is already playing. The glyph is the identity violet
  * because the disc is the thing you press, which is what the violet has always
@@ -74,9 +74,9 @@ const s = StyleSheet.create({
     height: HIT,
     borderRadius: HIT / 2,
     backgroundColor: paper.card,
+    borderWidth: HAIRLINE, borderColor: paper.line,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow.whisper,
   },
   speakerPressed: { backgroundColor: paper.groundDeep },
 });

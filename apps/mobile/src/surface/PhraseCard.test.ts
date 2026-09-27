@@ -30,8 +30,10 @@ describe('the card that holds one French line — F569', () => {
     assert.match(FLAT, /accessibilityRole="button"/, 'the speaker does not announce itself as a button');
     assert.match(FLAT, /<SpeakerGlyph color=\{accent\.primary\} \/>/, 'the speaker mark is not the identity violet of a thing you press');
     assert.match(FLAT, /speaker: \{ width: HIT, height: HIT, borderRadius: HIT \/ 2, backgroundColor: paper\.card/, 'the speaker disc is under the touch floor, or writes its own size');
-    assert.match(FLAT, /\.\.\.shadow\.whisper/, 'the speaker has no whisper under it, so a white disc on a white card is invisible');
-    assert.doesNotMatch(PHRASE, /shadowOpacity|elevation:/, 'the speaker writes a shadow in numbers; there are two named shadows in this app');
+    // 2026-09-27, notebook Phase 1: the whisper retired, so the white disc is
+    // told from the card by a paper hairline instead, and carries no shadow.
+    assert.match(FLAT, /borderWidth: HAIRLINE, borderColor: paper\.line/, 'the speaker has no hairline, so a white disc on a white card is invisible');
+    assert.doesNotMatch(PHRASE, /shadow/, 'the speaker still carries a shadow; the mic glow is the only one');
   });
 
   test('the French is sized to fit rather than clipped, and the gloss stays quiet under it', () => {

@@ -225,12 +225,31 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
   test('a label whose words live in a module is still drawn as a label', () => {
     // First the three primitives really do turn `label` into a caps label, so
     // `label={SHELF_LABEL}` below is a caps label and not a button word.
+    // 2026-09-27, notebook Phase 1: HeroCard and IconRowCard became wrappers
+    // that hand `label` to SceneBrief and LedgerRow in components.tsx. The
+    // promise is unchanged and is now followed through the hand-off: either the
+    // primitive draws `<Label>{label}</Label>` itself, or it forwards
+    // `label={label}` to a component whose own region draws it as a caps Label.
+    const components = readFileSync(join(SRC, 'components.tsx'), 'utf8');
+    const regionOf = (name: string): string => {
+      const at = components.indexOf(`export function ${name}(`);
+      assert.notEqual(at, -1, `${name} is gone from components.tsx`);
+      const next = components.indexOf('\nexport ', at + 1);
+      return components.slice(at, next === -1 ? components.length : next);
+    };
+    const DRAWS_LABEL: Record<string, RegExp> = {
+      SceneBrief: /\[level, label\][\s\S]*<Label>\{caps\}<\/Label>/,
+      LedgerRow: /<Label>\{label\}<\/Label>/,
+    };
     for (const where of LABEL_PRIMITIVES) {
       const source = readFileSync(join(SRC, where), 'utf8');
+      if (/<Label>\{label\}<\/Label>/.test(source)) continue;
+      const delegate = /<(SceneBrief|LedgerRow)\b[^>]*\blabel=\{label\}/.exec(source.replace(/\s+/g, ' '));
+      assert.ok(delegate, `${where} no longer draws its label prop as a caps Label, so the call sites below prove nothing`);
       assert.match(
-        source,
-        /<Label>\{label\}<\/Label>/,
-        `${where} no longer draws its label prop as a caps Label, so the call sites below prove nothing`,
+        regionOf(delegate[1]!),
+        DRAWS_LABEL[delegate[1]!]!,
+        `${where} hands its label to ${delegate[1]}, which no longer draws it as a caps Label`,
       );
     }
 

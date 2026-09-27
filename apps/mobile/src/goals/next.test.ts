@@ -63,7 +63,10 @@ describe('the next task for a goal — Stage 4', () => {
     ]) {
       const next = nextTaskForGoal(goal, { missions: MISSIONS });
       assert.ok(next);
-      assert.deepEqual(next.task, { kind: 'mission', id: FIRST_MISSION }, `${goal}: the starter is not the first mission`);
+      // 2026-09-27: FIRST_MISSION became the three-line opener, which goals
+      // never offer; the starter stays the full café, as rows.test expects.
+      assert.deepEqual(next.task, { kind: 'mission', id: 'mission:cafe' }, `${goal}: the starter is not the café`);
+      assert.notEqual(next.task.id, FIRST_MISSION, `${goal}: a goal was handed the three-line opener`);
       assert.equal(next.fit, 'starter', `${goal}: nothing matched and it was called a match`);
     }
     // A catalogue without the café still has a starter: its own first mission.

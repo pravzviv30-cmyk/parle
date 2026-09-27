@@ -1,24 +1,23 @@
 /**
- * The Atelier dock: five labelled SVG icons, 24pt marks and 60pt minimum
- * cells, with a chartreuse selected surface and a strong ink outline.
- * The safe-area inset sits outside the dock. Large reading sizes wrap the
- * labels and grow the bar; nothing truncates or caps font scaling.
- * Selection motion respects reduced motion, changes are announced to assistive
- * technology, and the practice badge comes from the real due deck.
- * Selection uses a surface and label weight; there is no dot beneath a tab.
+ * The notebook tab bar: five labelled SVG icons, 24pt marks and 60pt minimum
+ * cells, flat on the paper with one top hairline. No inset dock, no outline,
+ * no chartreuse, no wash and no animation: selected is an ink glyph and a
+ * DM Sans Medium word, unselected is a faint glyph over a soft-ink word, and
+ * there is no dot beneath a tab. The safe-area inset is paid inside the bar.
+ * Large reading sizes wrap the labels and grow the bar; nothing truncates or
+ * caps font scaling. Changes are announced to assistive technology, and the
+ * practice badge comes from the real due deck.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, View, Text, Pressable, StyleSheet, AccessibilityInfo, PixelRatio, useWindowDimensions } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, AccessibilityInfo, PixelRatio, useWindowDimensions } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { accent, paper, radius, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { font, paper, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { dueCount } from '../review/store.ts';
 import { tapSettled } from '../motion/haptics.ts';
-import { useReduceMotion } from '../motion.ts';
 import { HomeIcon, TutorIcon, PracticeIcon, MyFrenchIcon, FriendsIcon, type TabIconProps } from './icons.tsx';
 import { readSocial, onSocialChange } from '../friends/social.ts';
 import { socialUpdateCount } from '../friends/socialModel.ts';
-import { ACTIVE_TAB_OUTLINE, ACTIVE_TAB_SURFACE } from './tabSurface.ts';
 import { navigationWidth } from '../responsiveLayout.ts';
 
 const ICONS: Record<string, (p: TabIconProps) => React.ReactElement> = {
@@ -29,9 +28,12 @@ const ICONS: Record<string, (p: TabIconProps) => React.ReactElement> = {
   Friends: FriendsIcon,
 };
 
-/** The word under each glyph, and what a screen reader announces for the tab. */
+/**
+ * The word under each glyph, and what a screen reader announces for the tab.
+ * The route names are unchanged; only the words the learner reads moved.
+ */
 const LABELS: Record<string, string> = {
-  Home: 'Home',
+  Home: 'Today',
   Tutor: 'Speak',
   Practice: 'Practice',
   MyFrench: 'My French',
@@ -65,34 +67,11 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
     const unsubscribe = onSocialChange(refresh);
     return () => { live = false; unsubscribe(); };
   }, [state.index]);
-  const reduced = useReduceMotion();
-  // Initialising the selected route at one matters: the icon is already the
-  // active violet on first paint, so its surface cannot arrive a frame late and
-  // make the icon look as though it disappeared into a blank cell.
-  const selection = useRef(state.routes.map((_, index) => new Animated.Value(index === state.index ? 1 : 0))).current;
   // The window is watched so the bar re-renders when the learner changes the OS
   // text size while the app is open; PixelRatio is what the text is actually
   // drawn at, and on the web the window reports 1 whatever the browser does.
   const { width } = useWindowDimensions();
   const wrapped = labelsWrapUnderGlyph(PixelRatio.getFontScale());
-  useEffect(() => {
-    if (reduced) {
-      selection.forEach((value, index) => value.setValue(index === state.index ? 1 : 0));
-      return;
-    }
-    const movement = Animated.parallel(
-      selection.map((value, index) =>
-        Animated.timing(value, {
-          toValue: index === state.index ? 1 : 0,
-          duration: 200,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ),
-    );
-    movement.start();
-    return () => movement.stop();
-  }, [reduced, selection, state.index]);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,14 +84,15 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
   }, [state.index]);
 
   return (
-    <View style={[st.bar, { width: navigationWidth(width, insets.left, insets.right), marginBottom: Math.max(insets.bottom, space(2)) }]}>
+    // The rule and the paper run the full width; the five cells keep the
+    // responsive column so they do not drift apart on a wide window.
+    <View style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
+      <View style={[st.cells, { width: navigationWidth(width, insets.left, insets.right) }]}>
       {state.routes.map((route, index) => {
         const focused = state.index === index;
         const Icon = ICONS[route.name];
         const label = LABELS[route.name] ?? route.name;
         const badged = (route.name === 'Practice' && due > 0) || (route.name === 'Friends' && friendRequests > 0);
-        const progress = selection[index]!;
-        const lift = progress.interpolate({ inputRange: [0, 1], outputRange: [0, -2] });
         if (!Icon) return null;
 
         const onPress = () => {
@@ -138,33 +118,22 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
             accessibilityLabel={badged ? `${label}, ${route.name === 'Friends' ? 'new social updates' : 'practice ready'}` : label}
             style={({ pressed }) => [st.cell, wrapped && st.cellWrapped, pressed && st.cellPressed]}
           >
-            <Animated.View
-              pointerEvents="none"
+            <View style={st.iconBox}>
+              <Icon size={24} color={focused ? paper.ink : paper.inkFaint} />
+              {badged ? <View style={st.badge} /> : null}
+            </View>
+            <Text
               style={[
-                st.activeSurface,
-                {
-                  opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
-                  transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }],
-                },
+                st.label,
+                focused ? { color: paper.ink, fontFamily: font.sansMedium } : { color: paper.inkSoft },
               ]}
-            />
-            <Animated.View style={[st.cellContent, { transform: [{ translateY: lift }] }]}>
-              <View style={st.iconBox}>
-                <Icon size={24} color={focused ? accent.primary : paper.inkSoft} />
-                {badged ? <View style={st.badge} /> : null}
-              </View>
-              <Text
-                style={[
-                  st.label,
-                  focused ? { color: accent.primary, fontFamily: type.button.fontFamily } : { color: paper.inkSoft },
-                ]}
-              >
-                {label}
-              </Text>
-            </Animated.View>
+            >
+              {label}
+            </Text>
           </Pressable>
         );
       })}
+      </View>
     </View>
   );
 }
@@ -179,19 +148,15 @@ export function announceTab(name: string): void {
 
 const st = StyleSheet.create({
   bar: {
-    flexDirection: 'row',
-    backgroundColor: paper.card,
-    borderWidth: HAIRLINE + 1,
-    borderColor: paper.ink,
-    borderRadius: radius.card,
-    marginHorizontal: space(2),
-    alignSelf: 'center',
-    marginBottom: space(2),
-    overflow: 'hidden',
+    backgroundColor: paper.ground,
+    borderTopWidth: HAIRLINE,
+    borderTopColor: paper.line,
+    alignSelf: 'stretch',
+    alignItems: 'center',
   },
+  cells: { flexDirection: 'row' },
   cell: {
     flex: 1,
-    position: 'relative',
     // A floor, not a height: a wrapped two-line label at large text grows the
     // cell rather than clipping, and the row grows with the tallest cell.
     minHeight: HIT + space(4),
@@ -200,7 +165,7 @@ const st = StyleSheet.create({
     paddingTop: space(2),
     paddingBottom: space(2),
     minWidth: 0,
-    gap: space(0.5),
+    gap: space(1),
   },
   cellWrapped: {
     // One fifth of the bar each, taken rather than shared: flexBasis fixes the
@@ -212,19 +177,7 @@ const st = StyleSheet.create({
     paddingHorizontal: space(0.5),
   },
   cellPressed: { transform: [{ scale: 0.985 }] },
-  cellContent: { width: '100%', alignItems: 'center', justifyContent: 'center', gap: space(1), zIndex: 1 },
   iconBox: { width: HIT, height: 24, alignItems: 'center', justifyContent: 'center' },
-  activeSurface: {
-    position: 'absolute',
-    top: space(1),
-    right: space(1),
-    bottom: space(1),
-    left: space(1),
-    borderRadius: radius.row,
-    backgroundColor: ACTIVE_TAB_SURFACE,
-    borderWidth: HAIRLINE,
-    borderColor: ACTIVE_TAB_OUTLINE,
-  },
   label: { ...type.tabLabel, textAlign: 'center' },
   badge: {
     position: 'absolute',

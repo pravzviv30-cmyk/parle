@@ -43,42 +43,71 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     // shapes have to differ or a tinted row reads as a small card. Both are
     // names rather than numbers at the call site: a screen writes
     // `radius.card`, never a 24.
+    // 2026-09-27, notebook Phase 1: the one Card turns 16, per the design
+    // contract. The row radius stays as a token while TintRow is a deprecated
+    // wrapper; nothing new draws at it.
     const radius = block(themeSource(), 'export const radius = {', '} as const;');
-    assert.match(radius, /\bcard: 12,/, 'a white card no longer turns the broader corner the mockup draws');
+    assert.match(radius, /\bcard: 16,/, 'the one Card no longer turns the notebook corner of 16');
     assert.match(radius, /\brow: 8,/, 'there is no radius for a tinted row, so a row will be drawn at the card radius');
+    assert.match(radius, /\bpill: 999,/, 'the primary pill is no longer fully rounded like the logo');
   });
 
-  test('the whisper is the ink token thinned, never a hex', () => {
-    // One soft shadow under a white card, and the live microphone's glow. The
-    // colour is the ink TOKEN: a shadow written as a hex here would be the first
-    // raw colour outside palette.ts and would take F320 with it.
+  test('the whisper is retired: an inert alias of the ink token that draws nothing', () => {
+    // 2026-09-27, notebook Phase 1. Stricter than the rule it replaces: there
+    // was one soft shadow under a card, and now there is none. The live
+    // microphone's glow in SpeakCircle is the only shadow in the app. The name
+    // survives as a deprecated alias so the screens still spreading it draw
+    // flat until Phase 4 deletes the spreads, and its colour is still the ink
+    // TOKEN, so no raw hex enters theme.ts.
     const whisper = block(themeSource(), 'export const shadow = {', '} as const;');
-    assert.match(whisper, /\bwhisper: \{/, 'the one named shadow is gone, so a card will grow its own numbers');
+    assert.match(whisper, /\bwhisper: \{/, 'the alias is gone while screens still spread it');
     assert.match(whisper, /shadowColor: paper\.ink/, 'the whisper is not the ink token, so its colour escaped the palette');
     assert.doesNotMatch(whisper, /#[0-9a-fA-F]{6}\b/, 'the whisper writes a raw colour');
-    for (const number of ['shadowOffset', 'shadowOpacity', 'shadowRadius', 'elevation']) {
-      assert.ok(whisper.includes(number), `the whisper carries no ${number}, so it renders on one platform only`);
-    }
-    // Exactly one shadow lives here. A second named shadow is how an app ends
-    // up with four of them, each a little deeper than the last.
+    assert.match(whisper, /shadowOffset: \{ width: 0, height: 0 \}/, 'the whisper still offsets a shadow');
+    assert.match(whisper, /shadowOpacity: 0,/, 'the whisper still draws a shadow on iOS and the web');
+    assert.match(whisper, /shadowRadius: 0,/, 'the whisper still blurs a shadow');
+    assert.match(whisper, /elevation: 0,/, 'the whisper still lifts a card on Android');
     assert.equal(
       (whisper.match(/^\s{2}\w+: \{$/gm) ?? []).length,
       1,
-      'the theme names more than one shadow; there is the whisper and the live mic glow, and nothing else',
+      'the theme names a second shadow; the live mic glow is the only one, and it is not a token',
     );
   });
 
-  test('Atelier headings use bold sans while French keeps the serif', () => {
-    // The card that leads a tab is a headline, not a screen title, so it is the
-    // bold Fraunces a step down from `display`. Raw sizes may only live in this
-    // object, which is why the hero cannot simply write a 22 where it is drawn.
+  test('UI type is DM Sans Medium, and the French hero is larger than any heading', () => {
+    // 2026-09-27, notebook Phase 1: Fraunces is for French only. The four UI
+    // heads move to DM Sans Medium at the contract's sizes, and the French hero
+    // is always larger than any heading on the screen it leads.
     const scale = block(themeSource(), 'export const type = {', '} as const;');
-    assert.match(
-      scale,
-      /cardTitle: \{ fontFamily: font\.sansBold, fontSize: 26, lineHeight: 31/,
-      'the hero title is not the bold serif at 22 over 28',
-    );
-    assert.match(scale, /display: \{ fontFamily: font\.sansBold, fontSize: 34/, 'the display is no longer the bold serif above it');
+    const size = (name: string, family: string): { fontSize: number; lineHeight: number } => {
+      const m = new RegExp(`\\b${name}: \\{ fontFamily: font\\.${family}, fontSize: (\\d+(?:\\.\\d+)?), lineHeight: (\\d+)`).exec(scale);
+      assert.ok(m, `${name} is not set in font.${family}`);
+      return { fontSize: Number(m[1]), lineHeight: Number(m[2]) };
+    };
+    assert.deepEqual(size('display', 'sansMedium'), { fontSize: 28, lineHeight: 34 }, 'display is not DM Sans Medium 28/34');
+    assert.deepEqual(size('title', 'sansMedium'), { fontSize: 22, lineHeight: 28 }, 'title is not DM Sans Medium 22/28');
+    assert.deepEqual(size('cardTitle', 'sansMedium'), { fontSize: 20, lineHeight: 26 }, 'cardTitle is not DM Sans Medium 20/26');
+    assert.deepEqual(size('heading', 'sansMedium'), { fontSize: 17, lineHeight: 22 }, 'heading is not DM Sans Medium 17/22');
+    const hero = size('frenchHero', 'serif');
+    assert.deepEqual(hero, { fontSize: 34, lineHeight: 42 }, 'the French hero is not Fraunces 34/42');
+    assert.ok(hero.fontSize > size('display', 'sansMedium').fontSize, 'the French hero is not larger than the display');
+
+    // The fit steps for a long line: 34, 30, 26. Each still out-sizes every UI
+    // head a card can carry. Raw sizes may only live in this file.
+    const fit = block(themeSource(), 'export const heroFit = {', '} as const;');
+    const steps = [...fit.matchAll(/fontFamily: font\.serif, fontSize: (\d+), lineHeight: (\d+)/g)].map((m) => Number(m[1]));
+    assert.deepEqual(steps, [30, 26], 'the French hero no longer steps 34, 30, 26 by length');
+    for (const step of steps) {
+      for (const head of ['title', 'cardTitle', 'heading'] as const) {
+        assert.ok(step > size(head, 'sansMedium').fontSize, `a fitted French hero at ${step} is not larger than ${head}`);
+      }
+    }
+
+    // And the serif belongs to French. Every style in the scale set in Fraunces
+    // is a French style by name.
+    for (const m of scale.matchAll(/^\s{2}(\w+): \{ fontFamily: font\.(serif|serifBold)\b/gm)) {
+      assert.match(m[1]!, /^french/, `${m[1]} is set in Fraunces and is not French`);
+    }
   });
 
   test('the white disc inside a tinted row is the touch floor wide', () => {

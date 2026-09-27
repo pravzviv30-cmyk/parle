@@ -87,31 +87,55 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
       /if \(!focused && !event\.defaultPrevented\) \{ tapSettled\(\); navigation\.navigate\(route\.name as never\); announceTab\(route\.name\); \}/,
       'a tap on the tab you are already on announces a move that did not happen',
     );
+    // 2026-09-27, notebook Phase 1: selected is an ink glyph and a Medium label;
+    // unselected is a faint glyph over a soft-ink word. The word stays soft ink
+    // because faint ink measures 4.50 on the ground, on the text floor's edge,
+    // and a label is words.
     assert.match(
       FLAT,
-      /color=\{focused \? accent\.primary : paper\.inkSoft\}/,
-      'the active tab glyph is no longer set in the identity violet',
+      /color=\{focused \? paper\.ink : paper\.inkFaint\}/,
+      'the active tab glyph is not ink, or the inactive one is not faint',
     );
     assert.match(
       FLAT,
-      /focused \? \{ color: accent\.primary, fontFamily: type\.button\.fontFamily \}/,
-      'the active tab label is no longer the identity violet at the heavier weight',
+      /focused \? \{ color: paper\.ink, fontFamily: font\.sansMedium \}/,
+      'the active tab label is not ink at DM Sans Medium',
     );
     assert.match(FLAT, /\{ color: paper\.inkSoft \}/, 'the inactive tab label is no longer soft ink');
     assert.ok(!/\bst\.dot\b/.test(BAR), 'the bar marks the active cell with a dot again');
   });
 
-  test('the selected tab arrives on a quiet wash and a settled tap', () => {
-    assert.match(FLAT, /const reduced = useReduceMotion\(\)/, 'the active wash cannot honour reduced motion');
-    assert.match(FLAT, /const selection = useRef\(state\.routes\.map\(\(_\, index\) => new Animated\.Value\(index === state\.index \? 1 : 0\)\)\)\.current/, 'the five tabs do not own stable animation drivers or the initial active tab begins blank');
-    assert.match(FLAT, /useNativeDriver: true/, 'the tab transition runs on the JS thread');
-    assert.match(FLAT, /<Animated\.View[^>]*st\.activeSurface/, 'the selected tab has no quiet coloured surface');
-    assert.match(FLAT, /backgroundColor: ACTIVE_TAB_SURFACE/, 'the wash bypasses the named navigation surface');
-    assert.match(FLAT, /borderColor: ACTIVE_TAB_OUTLINE/, 'the active surface has no outline, so the icon can disappear into its wash');
-    assert.match(FLAT, /outputRange: \[0, -2\]/, 'the selected glyph and label do not make the restrained two-point lift');
+  test('the bar is flat on paper with a top hairline: no wash, no outline, no chartreuse, no motion', () => {
+    // 2026-09-27, notebook Phase 1. Replaces "the selected tab arrives on a quiet
+    // wash", and is stricter: the wash, its outline, its lift and every
+    // animation are refused, and the bar may name no accent at all.
+    for (const gone of ['Animated', 'useReduceMotion', 'interpolate', 'activeSurface', 'ACTIVE_TAB_SURFACE', 'ACTIVE_TAB_OUTLINE', 'accent', 'highlight']) {
+      assert.ok(!BAR.includes(gone), `the tab bar still carries ${gone}`);
+    }
+    const from = BAR.indexOf('bar: {');
+    assert.notEqual(from, -1, 'the bar style is gone; this test is reading the wrong thing');
+    const bar = BAR.slice(from, BAR.indexOf('},', from) + 1);
+    assert.match(bar, /backgroundColor: paper\.ground/, 'the bar is not flat on the paper');
+    assert.match(bar, /borderTopWidth: HAIRLINE/, 'the bar has no top hairline');
+    assert.match(bar, /borderTopColor: paper\.line/, 'the top rule is not the paper hairline');
+    for (const dock of ['borderRadius', 'marginHorizontal', 'borderColor: paper.ink', 'shadowOpacity', 'elevation', "position: 'absolute'"]) {
+      assert.ok(!bar.includes(dock), `the bar still carries ${dock}, so it is a dock rather than a flat bar`);
+    }
     const pressed = BAR.slice(BAR.indexOf('cellPressed: {'), BAR.indexOf('},', BAR.indexOf('cellPressed: {')) + 1);
     assert.doesNotMatch(pressed, /opacity/, 'pressing a tab fades the whole icon and word away');
-    assert.match(FLAT, /zIndex: 1/, 'the active wash can paint over the outlined icon');
     assert.match(FLAT, /tapSettled\(\); navigation\.navigate/, 'a successful tab change gives no tactile answer');
+  });
+
+  test('Home is labelled Today, and no route name changed', () => {
+    assert.match(
+      FLAT,
+      /const LABELS: Record<string, string> = \{ Home: 'Today', Tutor: 'Speak', Practice: 'Practice', MyFrench: 'My French', Friends: 'Friends', \};/,
+      'the five words under the glyphs are not Today, Speak, Practice, My French and Friends',
+    );
+    assert.match(
+      FLAT,
+      /const ICONS: Record<string, \(p: TabIconProps\) => React\.ReactElement> = \{ Home: HomeIcon, Tutor: TutorIcon, Practice: PracticeIcon, MyFrench: MyFrenchIcon, Friends: FriendsIcon, \};/,
+      'a route name changed; only the word under the glyph was meant to',
+    );
   });
 });

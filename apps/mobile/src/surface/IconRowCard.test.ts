@@ -1,9 +1,11 @@
 /**
  * The white row card, read as source — F569.
  *
- * The tinted row's quiet sibling: the same shape for the things that belong to
- * no place. What is worth pinning is that it is ONE target, it says itself once
- * to a screen reader, and its mark is the touch floor wide.
+ * 2026-09-27, notebook Phase 1: IconRowCard is a deprecated wrapper that draws
+ * `LedgerRow`. The row keeps every promise it made (one target, named once,
+ * the chevron that says it opens, words that grow), and those are held on
+ * LedgerRow in components.test.ts. What is held here is that the wrapper only
+ * forwards: no card around the row, no disc, no feature paper, no second target.
  */
 
 import { test, describe } from 'node:test';
@@ -22,23 +24,15 @@ const ROW = stripComments(read('./IconRowCard.tsx'));
 const FLAT = ROW.replace(/\s+/g, ' ');
 
 describe('the white row that opens somewhere — F569', () => {
-  test('the whole row is one button that names itself once, never a chevron with a card around it', () => {
-    // A row whose only target is its arrow is F545 wearing white, and a button
-    // nested inside a button is invalid markup on the web.
-    assert.equal((ROW.match(/<Pressable/g) ?? []).length, 1, 'the white row is not exactly one target');
-    assert.match(FLAT, /accessibilityRole="button"/, 'the row does not announce itself as a button');
-    assert.match(FLAT, /accessibilityLabel=\{accessibilityLabel\}/, 'the row does not say the one thing the caller asked it to say');
+  test('the row is the ledger row, named once by the caller, and never a card with a button in it', () => {
+    assert.match(
+      FLAT,
+      /<LedgerRow glyph=\{glyph\} label=\{label\} title=\{line\} note=\{note\} onPress=\{onPress\} accessibilityLabel=\{accessibilityLabel\} \/>/,
+      'the wrapper does not hand every field to the ledger row',
+    );
     assert.match(FLAT, /accessibilityLabel: string;/, 'the name is optional, so a row can reach a screen reader as two loose lines');
-    assert.match(FLAT, /<ChevronRight color=\{paper\.inkFaint\} \/>/, 'the row no longer ends in the faint chevron that says it opens');
-  });
-
-  test('the mark is the touch floor wide and the disc swaps surfaces so it can be seen on white', () => {
-    // On a white card a white disc is invisible, so the ground and the card
-    // trade places. `DISC` is the token, never 44 written out.
-    assert.match(FLAT, /width: DISC, height: DISC, borderRadius: radius\.chip, backgroundColor: accent\.feature/, 'the disc is not a DISC-wide circle of ground');
-    assert.ok(!ROW.includes('backgroundColor: paper.card'), 'the disc is white on a white card, so it cannot be seen at all');
-    assert.match(FLAT, /<Label>\{label\}<\/Label>/, 'the row lost its caps label');
-    assert.match(FLAT, /type\.bodyStrong, \{ color: paper\.ink \}/, "the row's sentence is not the ink line the revamp gave it");
+    assert.equal((ROW.match(/<Pressable/g) ?? []).length, 0, 'the wrapper grew its own target, so the row is two buttons');
+    assert.doesNotMatch(ROW, /<Card\b|accent\.feature|DISC|backgroundColor/, 'the wrapper still draws a card, a disc or feature paper');
 
     for (const raw of ['fontSize', 'fontFamily', 'lineHeight']) {
       assert.ok(!ROW.includes(raw), `the row writes ${raw} itself; the type scale lives in theme.ts`);

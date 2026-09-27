@@ -639,11 +639,17 @@ describe('the two tabs fit a phone at every reading size — F409', () => {
     // things that belong to no place. The white one is a card wrapped in one
     // Pressable, so its floor is the mark it carries, which is the touch floor
     // by construction.
+    // 2026-09-27, notebook Phase 1: both shared rows are now the one LedgerRow
+    // (TintRow and IconRowCard only forward to it), so the floor and the single
+    // target are held where the row is drawn, at 56pt, one Pressable.
     const components = stripComments(read('../components.tsx'));
-    assert.match(style(components, 'tintRow'), /minHeight: HIT/, 'the shared tinted row falls under the touch floor');
-    const iconRow = stripComments(read('../surface/IconRowCard.tsx'));
-    assert.match(style(iconRow, 'disc'), /height: DISC/, "the white row's mark is no longer sized by the touch floor");
-    assert.match(flat(iconRow), /<Pressable/, 'the white row is not one pressable, so only its arrow would be tappable');
+    assert.match(style(components, '  row'), /minHeight: HIT \+ space\(3\)/, 'the shared ledger row falls under its 56pt floor');
+    const ledger = between(components, 'export function LedgerRow(', '\nexport function ', 'LedgerRow is drawn in components.tsx');
+    assert.equal((ledger.match(/<Pressable\b/g) ?? []).length, 1, 'the ledger row is not one pressable, so only its arrow would be tappable');
+    for (const wrapper of ['../surface/IconRowCard.tsx']) {
+      assert.match(flat(stripComments(read(wrapper))), /<LedgerRow /, `${wrapper} no longer draws the one ledger row`);
+    }
+    assert.match(flat(between(components, 'export function TintRow(', 'const s = StyleSheet.create(', 'TintRow is drawn')), /<LedgerRow /, 'the tinted row no longer draws the one ledger row');
   });
 });
 

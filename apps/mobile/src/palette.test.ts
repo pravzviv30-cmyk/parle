@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { paper, accent, signal, orb, rungColor, tint } from './palette.ts';
+import { paper, accent, highlight, signal, orb, rungColor, tint } from './palette.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 
@@ -284,6 +284,12 @@ describe('a tint is paper under ink art, never a mark — F362', () => {
   });
 
   test('feature paper carries dark text and remains distinct from voice states', () => {
+    // 2026-09-27, notebook Phase 1: the chartreuse left `accent.feature` for the
+    // `highlight` token, and the old name is a deprecated alias for the card, so
+    // every panel, tile, avatar and tab still spelling it turns to paper at once.
+    // The floors below held on the chartreuse and are held on it again, under its
+    // new name, in the highlighter suite; here they are kept for the alias too.
+    assert.equal(accent.feature, paper.card, 'accent.feature is no longer the deprecated alias for the card');
     assert.ok(contrast(INK, accent.feature) >= 7);
     assert.ok(contrast(paper.inkSoft, accent.feature) >= TEXT);
     assert.ok(contrast(accent.primary, paper.onInk) >= TEXT);
@@ -451,11 +457,113 @@ describe('the identity violet does its jobs — F325, F326', () => {
   });
 });
 
+/**
+ * One highlighter — notebook Phase 1, added 2026-09-27.
+ *
+ * The chartreuse used to be feature paper: the ground of heroes, tiles, the
+ * avatar, the active tab and a title panel on half the screens. It is now one
+ * pen, drawn behind a French line, on the "you are here" stop of the level path,
+ * and in the brand mark (an SVG asset, outside this source tree). So the value
+ * is held to a mark's floors, and where it may be spelled is held by a walk.
+ */
+describe('one highlighter — notebook Phase 1', () => {
+  test('the highlighter carries ink and never reads as a state, a rung or the page', () => {
+    assert.equal(highlight, '#D8FF54', 'the highlighter moved off the brand chartreuse');
+    assert.ok(contrast(INK, highlight) >= 7, `ink is ${contrast(INK, highlight).toFixed(2)} on the highlighter`);
+    assert.ok(contrast(paper.inkSoft, highlight) >= TEXT, `soft ink is ${contrast(paper.inkSoft, highlight).toFixed(2)} on the highlighter`);
+    const rivals: Record<string, string> = {
+      ...Object.fromEntries(Object.entries(signal)),
+      ...Object.fromEntries(Object.entries(orb).map(([k, v]) => [`orb.${k}`, v])),
+      rung1: rungColor[1],
+      rung2: rungColor[2],
+      rung3: rungColor[3],
+      ground: paper.ground,
+      card: paper.card,
+      groundDeep: paper.groundDeep,
+    };
+    for (const [name, hex] of Object.entries(rivals)) {
+      const d = deltaE(highlight, hex);
+      assert.ok(d >= APART, `the highlighter is only ${d.toFixed(0)} from ${name}`);
+    }
+  });
+
+  test('the highlighter is spelled in three files, and inside components.tsx only by its two hosts', () => {
+    const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    const allowed = new Set(['palette.ts', 'theme.ts', 'components.tsx']);
+    for (const file of walk(SRC)) {
+      if (/\.test\.tsx?$/.test(file)) continue;
+      const rel = file.slice(SRC.length);
+      const raw = readFileSync(file, 'utf8');
+      if (rel !== 'palette.ts') {
+        assert.doesNotMatch(raw, /#D8FF54/i, `${rel} writes the highlighter as a hex; it lives in palette.ts`);
+      }
+      if (!allowed.has(rel)) {
+        assert.doesNotMatch(strip(raw), /\bhighlight\b/, `${rel} reaches for the highlighter; only Highlight and LevelPath may draw it`);
+      }
+    }
+
+    // Inside the component file: the import, the band behind a French line, and
+    // the "you are here" stop. Every other region of the file is refused.
+    const components = strip(readFileSync(join(SRC, 'components.tsx'), 'utf8'));
+    const region = (marker: string): [number, number] => {
+      const from = components.indexOf(marker);
+      assert.notEqual(from, -1, `${marker} is missing from components.tsx`);
+      const next = components.indexOf('\nexport ', from + marker.length);
+      return [from, next === -1 ? components.length : next];
+    };
+    const hosts = [region('export function Highlight('), region('export function LevelPath(')];
+    const importEnd = components.indexOf("from './theme.ts';");
+    let uses = 0;
+    for (const m of components.matchAll(/\bhighlight\b/g)) {
+      const at = m.index;
+      if (at < importEnd) continue;
+      uses += 1;
+      assert.ok(
+        hosts.some(([from, to]) => at >= from && at < to),
+        `components.tsx draws the highlighter outside Highlight and LevelPath: ${components.slice(Math.max(0, at - 60), at + 20).replace(/\s+/g, ' ')}`,
+      );
+    }
+    assert.ok(uses >= 2, 'neither host draws the highlighter, so this walk is guarding nothing');
+  });
+
+  test('no primitive spells the deprecated accent.feature, and no new screen starts to', () => {
+    // Pending, Phase 4: every file below still names the alias and draws paper
+    // through it. The list may only shrink; a primitive may never be on it.
+    const PENDING = new Set([
+      'ConvoScreen.tsx',
+      'RecapScreen.tsx',
+      'SummaryScreen.tsx',
+      'auth/SignInScreen.tsx',
+      'auth/SignUpScreen.tsx',
+      'daily/DailyCarousel.tsx',
+      'home/HomeMomentum.tsx',
+      'nav/tabSurface.ts',
+      'onboarding/AgeGateScreen.tsx',
+      'onboarding/OnboardingFlow.tsx',
+      'phrases/PhrasebookScreen.tsx',
+      'profile/ProfileButton.tsx',
+      'tabs/FriendsTab.tsx',
+      'tabs/TutorTab.tsx',
+      'tutor/TutorIntro.tsx',
+      'wall/WallPlansPage.tsx',
+    ]);
+    for (const file of walk(SRC)) {
+      if (/\.test\.tsx?$/.test(file)) continue;
+      const rel = file.slice(SRC.length);
+      const body = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      if (!/\baccent\.feature\b/.test(body)) continue;
+      assert.ok(PENDING.has(rel), `${rel} spells accent.feature; the chartreuse is the highlighter now and the alias is only for screens not yet rebuilt`);
+    }
+  });
+});
+
 describe('the recorded palette matches the code — F327, F328', () => {
   /** Every shipped token, flattened to the path the doc and the app.json use. */
   const tokens: Record<string, string> = {};
   for (const [k, v] of Object.entries(paper)) tokens[`paper.${k}`] = v;
   for (const [k, v] of Object.entries(accent)) tokens[`accent.${k}`] = v;
+  // 2026-09-27: the highlighter is a token of its own, recorded like the rest.
+  tokens.highlight = highlight;
   for (const [k, v] of Object.entries(signal)) tokens[`signal.${k}`] = v;
   for (const [k, v] of Object.entries(orb)) tokens[`orb.${k}`] = v;
   for (const k of [1, 2, 3, 4] as const) tokens[`rungColor[${k}]`] = rungColor[k];

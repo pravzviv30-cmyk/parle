@@ -11,7 +11,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { buildConversationPack, missionStates, type ConversationPack, type StoredSession } from '@luvani/core';
+import { buildConversationPack, getMission, missionStates, newCard, type ConversationPack, type StoredSession } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
 import { recentConversations, type HistoryItem } from '../myfrench/recentConversations.ts';
@@ -66,9 +66,27 @@ describe('the weekly reflection — Stage 4', () => {
     const reflection = reflectionFrom({ story: EMPTY_STORY, recent, checks: [], progress: PROGRESS, now: NOW });
     assert.equal(reflection.improvement, 'You practised a phrase from At the café.');
     assert.ok(reflection.next, 'a week with something in it offers no next place');
-    assert.equal(reflection.next.missionId, 'mission:cafe', 'the next place is not the one core suggests');
-    assert.equal(reflection.next.title, 'Order at a café');
+    // 2026-09-27: a learner with no mission history is now offered the
+    // three-line opener, which leads the catalogue. Same place, the café.
+    assert.equal(reflection.next.missionId, 'mission:premier-cafe', 'the next place is not the one core suggests');
+    assert.equal(reflection.next.title, 'Your first coffee');
     assert.equal(reflection.next.place, 'cafe', 'the row cannot draw the place it opens');
+
+    // A learner who handled the full café alone has earned the opener too, so
+    // the next place moves on rather than sending them back to three lines.
+    // The café's phrases are settled, so the café itself reads complete and the
+    // untouched opener would be the first "new" row without the rule.
+    const settled = getMission('mission:cafe')!.phraseKeys.map((key) => ({
+      ...newCard({ id: key, kind: 'turn', front: key, back: key, context: '', ipa: '' }, NOW),
+      reps: 2,
+      intervalDays: 7,
+      due: NOW + 7 * DAY,
+    }));
+    const earnedCafe = missionStates([{ id: 'mission:cafe', at: NOW - DAY, rung: 4 }], settled, NOW);
+    assert.equal(earnedCafe.find((p) => p.mission.id === 'mission:cafe')?.state, 'complete', 'the fixture is not a finished café');
+    const onward = reflectionFrom({ story: EMPTY_STORY, recent, checks: [], progress: earnedCafe, now: NOW });
+    assert.ok(onward.next);
+    assert.notEqual(onward.next.missionId, 'mission:premier-cafe', 'an earned café was sent back to the opener');
   });
 
   test('without practice, improvement is the story\'s independence or sound sentence, never its counts', () => {

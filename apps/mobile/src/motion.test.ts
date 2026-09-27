@@ -249,3 +249,55 @@ describe('the glyph layer draws with the same pen as the scenes', () => {
     assert.deepEqual(offenders, [], `A glyph that animates itself:\n${offenders.join('\n')}`);
   });
 });
+
+/**
+ * Only the orb and the highlighter move — notebook Phase 1, added 2026-09-27.
+ *
+ * The design contract keeps two movements: the orb's breathing and wave lines,
+ * and the highlighter drawing in once behind a French line. Touch feedback is
+ * not motion here, because a pressed style is not an Animated value.
+ *
+ * Today's tree does not yet pass the target, so this is a ratchet: the set of
+ * files that animate is pinned exactly, the target files are named apart from
+ * the pending ones, and the pending list may only shrink. Each pending file is
+ * a screen or a scene that a later phase removes: the rotating greeting, the
+ * daily drawings, SpeakBubbles, the welcome steam, the RewardMark motion.
+ */
+describe('only the orb and the highlighter move', () => {
+  const TARGET = ['components.tsx', 'motion.ts', join('tutor', 'VoiceOrb.tsx')];
+  const PENDING = [
+    'ConvoScreen.tsx',
+    join('daily', 'DailyCard.tsx'),
+    join('home', 'useGreetingRotation.ts'),
+    join('illustrations', 'pen.tsx'),
+    join('illustrations', 'scenes', 'reward.tsx'),
+    join('illustrations', 'useSceneMotion.ts'),
+    'layout.tsx',
+    join('onboarding', 'PreAccountOnboarding.tsx'),
+    join('tabs', 'TutorTab.tsx'),
+    join('tutor', 'Transcript.tsx'),
+  ];
+
+  test('the files that animate are the orb, the highlighter and the pending list, and nothing new', () => {
+    const moving = FILES.filter((f) => /\bAnimated\./.test(f.body)).map((f) => f.short).sort();
+    assert.deepEqual(
+      moving,
+      [...TARGET, ...PENDING].sort(),
+      'a file started or stopped animating; a new one is refused, and one that stopped comes off the pending list',
+    );
+  });
+
+  test('the tab bar is still: no wash, no lift, no animation', () => {
+    const bar = FILES.find((f) => f.short === join('nav', 'LuvaniTabBar.tsx'));
+    assert.ok(bar, 'the tab bar moved, so this check reads nothing');
+    assert.doesNotMatch(bar.body, /\bAnimated\b|useReduceMotion|interpolate/, 'the tab bar animates again');
+  });
+
+  test('the draw-in has one set of numbers, in motion.ts', () => {
+    const offenders = FILES.filter(({ short, body }) => short !== 'motion.ts' && /\bDRAW_MS\s*=/.test(body)).map((f) => f.short);
+    assert.deepEqual(offenders, [], 'the draw-in duration is written outside motion.ts');
+    const motion = FILES.find((f) => f.short === 'motion.ts');
+    assert.ok(motion, 'motion.ts moved');
+    assert.match(motion.body, /export const DRAW_MS = \d+;/, 'the draw-in has no named duration');
+  });
+});

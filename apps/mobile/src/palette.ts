@@ -1,8 +1,9 @@
 /**
  * The complete colour vocabulary. This leaf module imports nothing so the
  * palette can be tested without loading React Native.
- * Ink is identity; chartreuse is feature paper, always carrying dark text.
- * The warm journal ground and six contextual tints support the editorial layout.
+ * The French notebook with one highlighter: ink is identity, the chartreuse is
+ * a highlighter pen and never a surface. The six place tints are retired from
+ * drawing; their tokens stay until the role tables go.
  * Voice states and pedagogical support colours retain their existing meanings.
  */
 
@@ -29,18 +30,30 @@ export const paper = {
 } as const;
 
 /**
- * The identity violet. One accent, two named jobs: the primary action and the
+ * The identity ink. One accent, two named jobs: the primary action and the
  * micro-labels. `label` is simply `primary` — there is one identity colour, and
  * this pins it so a second one cannot creep back in beside it.
  */
 export const accent = {
-  /** The primary action and the monogram. */
+  /** The primary action: the one ink pill. */
   primary: '#182019',
-  /** Micro-labels — the caps line above a card. The same violet as primary. */
+  /** Micro-labels — the caps line above a card. The same ink as primary. */
   label: '#182019',
-  /** Atelier's bright paper. Always carries dark ink, never white text. */
-  feature: '#D8FF54',
+  /**
+   * Deprecated: resolves to the card. The chartreuse left this name for
+   * `highlight`, so every panel, tile, avatar and tab still spelling
+   * `accent.feature` turns to plain paper until its screen is rebuilt.
+   */
+  feature: paper.card,
 } as const;
+
+/**
+ * The one highlighter. A pen, not a surface: the band behind a French line,
+ * the "you are here" stop on the level path, and the brand mark. At most one
+ * per screen, always under ink, never the ground of a panel, tile, avatar, tab,
+ * title, card or button.
+ */
+export const highlight = '#D8FF54';
 
 /**
  * Signal colours, kept out of the rung set so state never reads as a rung.

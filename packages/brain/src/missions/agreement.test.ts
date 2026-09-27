@@ -103,6 +103,25 @@ describe('a mission cannot drift apart from its own scene', () => {
     assert.equal(new Set(closings).size, closings.length, `two wins end on the same words: ${closings.join(' | ')}`);
   });
 
+  test("every mission's can-do and earned lines hold to the English copy rules", () => {
+    // Plan screens and Home promise these lines. They are held to the same
+    // rules as every other English string a learner reads, digits included.
+    for (const mission of MISSIONS) {
+      assert.deepEqual(copyViolations(mission.canDoEn), [], `${mission.id} canDoEn breaks a copy rule: "${mission.canDoEn}"`);
+      assert.deepEqual(copyViolations(mission.earnedEn), [], `${mission.id} earnedEn breaks a copy rule: "${mission.earnedEn}"`);
+    }
+  });
+
+  test('the first scene offers the three approved first-coffee lines', () => {
+    const frame = MISSION_FRAMES['mission:premier-cafe'];
+    const spoken = frame.goalPhrases.map((phrase) => phrase.fr);
+    // The cafeAndFood lines without their sentence-final full stop, matching
+    // the phrase keys (which never carry one).
+    for (const line of ['Bonjour, je vais prendre un café', "Sur place, au comptoir, s'il vous plaît", 'Je vous dois combien ?']) {
+      assert.ok(spoken.includes(line), `the first scene never offers "${line}"`);
+    }
+  });
+
   test('every mission has a frame, and no frame is orphaned', () => {
     const catalogued = new Set<string>(MISSIONS.map((mission) => mission.id));
     const framed = new Set<string>(Object.keys(MISSION_FRAMES));

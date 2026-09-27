@@ -165,17 +165,34 @@ four siblings at one lightness.
 `inkFaint` moved from the old `#94849F` (2.91 against the ground, under the mark
 floor) to `#6A7266` so the inactive tab glyph reads as a mark.
 
-### Ink identity, chartreuse feature paper
+### Ink identity, one highlighter
 
-Primary actions and micro-labels share the same dark ink. `accent.label` equals
-`accent.primary`; `accent.feature` is a contrasting chartreuse surface, never
-body text. This separates actions, feature panels and quieter journal content.
+The French notebook with one highlighter (redesign Phase 1, 27 September).
+Primary actions and micro-labels share the same dark ink, and `accent.label`
+equals `accent.primary`. The chartreuse is no longer a surface. It is one pen,
+`highlight`, legal in exactly three places: the `Highlight` band behind a
+French line, the `LevelPath` "you are here" stop, and the brand mark (an SVG in
+`assets/brand/`). At most one per screen, always under ink, and never the
+ground of a panel, tile, avatar, tab, title, card or button.
+
+`accent.feature` is a deprecated alias that resolves to the card, so every
+panel, tile, avatar and tab that still names it turned to plain paper at once,
+without a screen edit. `palette.test.ts` holds the list of screens still
+spelling it and lets it only shrink; no primitive may be on it.
 
 | Token | Value | Role |
 |---|---|---|
-| `accent.primary` | `#182019` | Primary controls, selected glyphs and monograms |
+| `accent.primary` | `#182019` | The one ink pill |
 | `accent.label` | `#182019` | Micro-labels — the caps line above a card |
-| `accent.feature` | `#D8FF54` | Chartreuse feature paper with dark ink lettering |
+| `accent.feature` | `#FFFEFA` | Deprecated alias for the card; retires with its last screen |
+| `highlight` | `#D8FF54` | The highlighter: a band behind a French line, the "you are here" stop, the brand mark |
+
+Ink clears 14.6 on the highlighter and soft ink 6.4; the highlighter stays a
+Delta-E of 30 from every signal, orb state, rung, the ground and the card, so it
+never reads as a state, a support level or the page. `palette.test.ts` walks
+the source: the hex lives only in `palette.ts`, the token is spelled only in
+`palette.ts`, `theme.ts` and `components.tsx`, and inside `components.tsx` only
+within `Highlight` and `LevelPath`.
 
 **An accent is typographic; a signal is a mark.** A label, a chip, or a drawing's
 one solid fill may take the accent. A dot, a ring, or anything reporting state
@@ -229,7 +246,14 @@ four is plain ink: no line left to follow.
 Green is the same green everywhere the learner speaks: the orb's your-turn state,
 the lesson SpeakCircle, the Review button, the path's learned marks.
 
-### Tints: paper for a place
+### Tints: paper for a place (retiring)
+
+**Notebook Phase 1: tints are no longer drawn.** `TintRow`, `TintPanel` and
+`TintDisc` are deprecated wrappers that draw a ledger row, plain paper and a
+bare circle, and ignore the tint they are handed. The six tokens and their four
+role tables stay exported until Phase 4 retires the call sites, so the table
+below is still the palette the app ships. The rest of this section records the
+rule the tints were held to while they were drawn.
 
 The founder's mockups put each situation's line art on a soft coloured disc, and
 that much of the retired five-paper scheme came back as six **tints**. A tint
@@ -276,37 +300,37 @@ signal in a tint.
 
 ### Shadow
 
-Two, and both are named in `theme.ts` so no screen ever writes a shadow number.
-**The whisper** (`shadow.whisper`) is a restrained printed offset:
-three points right and down, ten per cent ink, and no blur. It is on
-`Card`, on the phrase card's round speaker, and nowhere else — never on a tinted
-row, the tab bar, the orb, a pill or a header, because an app where everything
-floats is an app where nothing does. The card keeps its hairline underneath it
-on purpose: elevation renders nothing on Android below API 28 and clips oddly in
-the web column, and a card without the rule would dissolve into the ground there.
+One. **The live glow** is the green halo under `SpeakCircle` while the
+microphone is open, the one shadow that reports something. Nothing else in the
+notebook floats: a card is told from the page by its paper hairline alone.
 
-**The live glow** is the second and the last: the green halo under `SpeakCircle`
-while the microphone is open. It is the one shadow that reports something, which
-is why it is allowed to be louder than the whisper. `surfaceContract.test.ts`
-fails on a third: a `shadowOpacity` or an `elevation` written anywhere outside
-`theme.ts` and that one glow.
+**The whisper is retired.** `shadow.whisper` stays in `theme.ts` as an inert
+alias (offset, opacity, radius and elevation all zero, colour still the ink
+token) so the five screens that still spread it render flat until Phase 4
+deletes the spreads. `theme.test.ts` holds it at zero, `Card` and the phrase
+card's speaker spread nothing, and `surfaceContract.test.ts` fails on a
+`shadowOpacity` or an `elevation` written anywhere outside `theme.ts` and the
+glow, and on any new file spreading the alias.
 
 ## Type
 
-**Fraunces** (SemiBold/Bold, the 72pt optical statics) carries anything with a
-voice: screen headlines, big stats, and **every French line the learner reads**,
-always sentence case, never caps. **DM Sans** (Regular/Medium/Bold) is the
-furniture. Both OFL, committed in `assets/fonts/` with their licences.
+**Fraunces** (SemiBold/Bold, the 72pt optical statics) is for French only:
+**every French line the learner reads**, always sentence case, never caps, and
+nothing else. **DM Sans** (Regular/Medium/Bold) is the furniture, and the UI
+heads are DM Sans Medium. Both OFL, committed in `assets/fonts/` with their
+licences. `theme.test.ts` fails if a style set in Fraunces is not a French
+style by name, and if the French hero is not larger than the display.
 
 | Style | Face / size | Use |
 |---|---|---|
-| `display` | Fraunces Bold 32 | Screen headline |
-| `title` | Fraunces 24 | Section / card head, big stat (not the tab title, which is `display` in `TabHeader`) |
-| `cardTitle` | Fraunces Bold 22 | The title of a card that leads a tab: the hero's scene, one size under the screen headline |
+| `display` | DM Sans Medium 28/34 | Screen headline |
+| `title` | DM Sans Medium 22/28 | Section head, big stat (not the tab title, which is `display` in `TabHeader`) |
+| `cardTitle` | DM Sans Medium 20/26 | The title of a card, and of a scene brief |
+| `frenchHero` | Fraunces 34/42 | The French line that leads a screen, always larger than any heading on it (`fitHero()` steps 34 → 30 → 26 by length, from `heroFit`) |
 | `frenchLg` | Fraunces 28 | The line to say (`fitDisplay()` steps 28 → 24 → 20 by length) |
 | `french` | Fraunces 21 | Inline French — options and cards |
 | `frenchSm` | Fraunces 17 | French in a chip — the momentum hero's sample lines, where a real sentence at 21 wraps and stops reading as a chip |
-| `heading` | DM Sans Bold 17 | Screen titles in chrome |
+| `heading` | DM Sans Medium 17/22 | Screen titles in chrome, a ledger row's title |
 | `body` / `bodyStrong` | DM Sans 16 | Prose |
 | `small` | DM Sans 13.5 | Secondary lines |
 | `label` | DM Sans Bold 11.5, caps, 1.2 tracking | Micro-labels above cards |
@@ -315,87 +339,108 @@ furniture. Both OFL, committed in `assets/fonts/` with their licences.
 
 ## Surfaces and controls
 
-- **Card** — white, radius 12, one hairline `paper.line` rule, and the whisper
-  under it. Revamp A widened the corner from 14 and gave the card the one soft
-  shadow; the hairline stayed, for the Android and web reasons under Shadow above.
-- **PillButton** — the one primary action: dark ink (`accent.primary`),
-  warm-white label, 56pt minimum, 8pt corners.
-- **OutlineButton / GhostButton** — the seconds: white pill with an ink rule, or
-  bare text at full touch height.
+The notebook system, redesign Phase 1 (27 September). Every screen picks it up
+through these primitives; no screen was edited to get it. The old primitives
+that screens still call are deprecated wrappers drawing the new look, listed at
+the end, and they go with their call sites in Phase 4.
+
+- **Card** — the one card: white, radius 16, one `paper.line` hairline, no
+  shadow, no ink outline, never nested inside another card. `tone="feature"` is
+  deprecated and draws plain paper; `journal` keeps the ground for the phrase
+  card.
+- **Ledger / LedgerRow** — how a list is drawn. The ledger rules a hairline
+  above its first row and is a list to assistive tech; each row rules the
+  hairline under itself. A row is one `Pressable` at 56pt with an optional 24pt
+  ink glyph and no disc, an optional caps label, a title in `heading`, a gloss, an optional note on its
+  own line, trailing meta, an earned state, and the faint chevron that says it
+  opens. It names itself once, says disabled in soft ink rather than opacity,
+  and grows rather than clips at the largest reading size.
+- **PillButton** — the one primary action per screen: the ink pill
+  (`accent.primary`), warm-white label, 56pt, fully rounded like the logo's L.
+- **OutlineButton / GhostButton** — the seconds are quiet text links at the
+  touch floor, ink or soft-ink words with no box, so nothing competes with the
+  one ink pill.
 - **OptionCard** — a tappable choice: French in the serif, English gloss under,
-  quiet arrow, optional replay ear. Selection is a heavier ink rule; a replay ear
-  that is sounding is drawn as `accent.primary` on a `paper.groundDeep` disc.
-- **Field, TabBar, ProgressDots** — inputs are
-  white with a 1.5 rule that turns ink on focus, and a secure field carries a
-  44pt **Show / Hide** at its trailing edge so a password is not typed blind;
-  the segmented control is a soft track with a violet active pill, warm-white
-  lettering on it, that can stand with nothing chosen, names its group for a
-  screen reader and says which segment is selected on the web as well as on a
-  device; onboarding dots stretch the current page.
-- **Bottom dock** — the five destinations sit on one inset white surface with a
-  complete hairline and the card radius. It has no shadow: the surrounding
-  porcelain is enough to separate navigation from content, while the active
-  destination keeps its lilac wash and violet word.
-- **TintDisc** — a circle of one tint, decorative to assistive tech. It held a
-  place's authored line art through `MissionDisc`; both that component and the
-  five place drawings retired with revamp A, so nothing draws this today and it
-  is recorded here as a primitive rather than as a surface a learner meets.
-- **TintPanel** — the ground under a block about one place, in that place's tint.
-  Not decorative: it has words in it. With `TintRow`, one of the two places a
-  tint is ever drawn, and both live in `components.tsx` so no screen ever names a
-  colour.
-- **TintRow** — the mockup's one way into a place, a practice or a memory, and
-  the shape the founder circled on every frame: a tinted ground at radius 16, a
-  white 44pt disc with one line-art glyph on it, the row's name, a quiet gloss
-  under it, an optional earned state, then the faint chevron that says it opens.
-  One `Pressable`, never a card with a button inside it, because the whole row is
-  the target and a button nested in a button is invalid on the web. It grows
-  rather than clips at the largest reading size, and it names itself once so a
-  screen reader meets a row and not two loose lines. Turned off, it steps down to
-  soft ink rather than fading, because a faded row still looks like a row.
-- **IconRowCard** — the same idea in white, for the things that belong to no
-  place: Home's "Real progress", My French's phrase shelf and conversations,
-  Profile's two tutor rows. The disc is the ground here and the card is white,
-  the opposite way round from a tinted row, because a white disc on a white card
-  cannot be seen.
-- **HeroCard** — the card that leads a tab: a caps label, the scene's name in
-  `cardTitle`, one plain line under it, the picture of the place, a clock glyph
-  with how long it is likely to take, and the primary action. The action and the
-  top-right 44pt corner slot (the bookmark) arrive as nodes the caller built, so
-  the one-primary-action rule stays countable from the screen's own file.
+  quiet arrow, optional replay ear. Selection is a heavier ink rule on white; a
+  replay ear that is sounding is drawn in ink on a `paper.groundDeep` disc.
+- **Field, TabBar, ProgressDots** — inputs are white with a 1.5 rule that turns
+  ink on focus, and a secure field carries a 44pt **Show / Hide** at its
+  trailing edge so a password is not typed blind; the segmented control is a
+  paper track with a white active segment and ink lettering, so it never
+  competes with the ink pill, can stand with nothing chosen, names its group
+  for a screen reader and says which segment is selected on the web as well as
+  on a device; onboarding dots stretch the current page. A field's label is the
+  one caps line, in soft ink.
+- **Label** — one small caps label per card at most, in `inkSoft`.
+- **Tab bar** — flat on the paper with a top hairline: no inset dock, no
+  outline, no chartreuse, no wash and no animation. Selected is an ink glyph and
+  a DM Sans Medium word; unselected is a faint glyph over a soft-ink word (the
+  word stays soft ink because faint ink sits on the text floor's edge). 60pt
+  cells, labels wrap at large text. The five tabs read Today, Speak, Practice,
+  My French and Friends; the route names are unchanged.
+- **Highlight** — the highlighter: an inline band behind a French line in
+  `highlight`, drawn in once from the left through `drawIn`, resting on the
+  drawn band under reduced motion. The band is decorative; the line on it is
+  what is read.
+- **SoundTag** — a sound, named: its IPA as notation beside one French example
+  word, such as /ʁ/ rouge, read as one element.
+- **LadderMark** — the four rungs in `rungColor`, the current one drawn taller,
+  beside the rung's sentence from `rungLabel`. The rungs are decorative.
+- **LevelPath** — each level (A0, A1), its can-dos in order, and one "You are
+  here" stop in the highlighter. A done stop is an ink dot, a stop ahead a
+  hairline ring, and each stop is one sentence to a screen reader.
+- **TutorCard** — the orb, the tutor's name, the voice in words, the signature
+  line in French, a 44pt sample that says Stop while it sounds, and a quiet
+  "Change tutor" link. No face and no initial.
+- **SceneBrief** — the brief for one scene: an optional level and label as the
+  one caps line, the French title as the fitted French hero, the title, "You'll
+  be able to" and the can-do, two or three lines to say, minutes, support and
+  tutor, the reason, then the caller's one Start and quiet "Type instead". The
+  Start and the corner (the 44pt bookmark slot, in flow) arrive as nodes the
+  caller built, so the one-primary-action rule stays countable from the
+  screen's own file.
 - **PhraseCard** — one French line, large, sized by `fitDisplay` rather than
-  clipped, with a round white 44pt speaker beside it carrying the whisper and the
-  violet speaker mark. It says "Hear" before it sounds and "Stop" while it does.
-- **TutorMark** — the tutor, drawn as the orb at 40 inside a white disc, and
-  hidden from assistive tech. There is no face anywhere in this app and no
+  clipped, with a round white 44pt speaker beside it on a paper hairline and
+  the ink speaker mark. It says "Hear" before it sounds and "Stop" while it does.
+- **TutorMark** — the tutor, drawn as the orb at 36 in a 44pt box with no disc,
+  and hidden from assistive tech. There is no face anywhere in this app and no
   initial either: the monogram is the learner's mark, never the tutor's.
 - **SpeakCircle** — THE microphone: one 108pt circle used by every speaking
   surface. Green-ringed when waiting, green-filled (with the live glow, the
-  second and last shadow in the app) when live — green means "you speak",
-  matching the voice circle — hairline-muted when the tutor holds the floor.
+  only shadow in the app) when live — green means "you speak", matching the
+  voice circle — hairline-muted when the tutor holds the floor.
 - **Icons** — authored SVG at the illustration stroke (2.2), ink by default, in
   `components.tsx` for the controls and `glyphs.tsx` for the row marks, both held
   to the one stroke weight by `motion.test.ts`. The Google mark is a monochrome
-  line-art G: no brand-colour asset in v1. Three icons wear the accent and no
-  more: the replay ear while it is sounding, the phrase card's speaker, and
-  **BadgeGlyph**, the tick inside a ring beside Home's recall figure. In all
-  three the violet labels a thing you press and reports no state.
+  line-art G: no brand-colour asset in v1.
 - **Art** — the single raster renderer, using registry sizes or its compact
   variant. Illustrations sit within content panels, never behind headings.
-  The unused header renderer and its five legacy scenes have been removed.
 - **TabHeader**: the tab's title block. A `display` title on the left, one plain
   purpose line beneath it in soft ink, and an optional trailing `Monogram` on the
   title row. It mounts as the first child of a tab's scroll body, never in the
   frame's `header` slot, so the fixed title and purpose can scroll at large text.
   It has a second, centred variant, and Profile is the one tab that uses it: that
   screen is about a person rather than a subject, so the monogram leads above a
-  centred name. Centring is the exception and stays that way — it is the only
-  place in the app where `textAlign` is written at all, and a test cuts the
-  centred branch out before banning it everywhere else.
-- **Monogram**: the learner's initial drawn one way. One filled violet disc
-  (`accent.primary`), the initial set in the serif in warm-white (`paper.onInk`),
-  hidden from assistive tech. `HIT`-sized in Home's header, larger on Profile.
+  centred name, straight on the page with no panel behind it. Centring is the
+  exception and stays that way — it is the only place in the app where
+  `textAlign` is written at all, and a test cuts the centred branch out before
+  banning it everywhere else. The shared `ScreenHeader` rules a paper hairline
+  under itself and its back chevron has no box.
+- **Monogram**: the learner's initial drawn one way. An ink initial in DM Sans
+  Medium on `paper.groundDeep`, hidden from assistive tech. `HIT`-sized in the
+  header, larger on Profile.
 
+Deprecated wrappers, kept until Phase 4 so the gate stays green without screen
+edits. Each draws the notebook look and ignores what it no longer uses:
+
+- **TintRow** draws a `LedgerRow` and no tint.
+- **IconRowCard** draws a `LedgerRow`: its label stays the row's one caps line,
+  its sentence becomes the title, its note its own quiet line. No card, no disc.
+- **TintPanel** draws plain paper: white, radius 16, a paper hairline.
+- **TintDisc** draws a bare decorative circle.
+- **HeroCard** draws a `SceneBrief` with the fields it has: label, title, the
+  plain line, the reason, the minutes beside the clock, the caller's Start and
+  bookmark. The watercolour and the tint well are not drawn.
 ## Illustrations
 
 Two kinds, drawn with the same pen. **Raster scenes** carry the places and the
@@ -412,7 +457,7 @@ screen only through `src/art/Art.tsx` — the one file in the app allowed to imp
 
 | File | Where it is drawn | Size (pt) |
 |---|---|---|
-| `hero-cafe` `hero-hotel` `hero-market` `hero-street` `hero-home` `hero-friends` | Home's hero card and the missions chooser, one per place (`heroArt`) | 300x180 |
+| `hero-cafe` `hero-hotel` `hero-market` `hero-street` `hero-home` `hero-friends` | The missions chooser, one per place (`heroArt`); Home's hero stopped drawing it when it became a scene brief in notebook Phase 1 | 300x180 |
 | `welcome-bubbles` | The first page of pre-account onboarding | 220x140 |
 | `onboard-cake` | The age gate | 220x140 |
 | `onboard-wave` | The page that asks the learner's name | 220x140 |
@@ -420,6 +465,12 @@ screen only through `src/art/Art.tsx` — the one file in the app allowed to imp
 | `recap-postcard` | The end of a conversation and the end of a lesson | 220x140 |
 | `phrasebook` | The phrasebook route | 220x140 |
 | `wall-map` | The wall's map of places | 300x180 |
+
+**Notebook direction.** The six place watercolours and `wall-map` stay. The
+`welcome-bubbles`, `onboard-cake`, `onboard-wave`, `empty-table`,
+`recap-postcard` and `phrasebook` rasters, and the hashed daily-word drawings,
+retire through `docs/DELETION_LEDGER.md` once the screens that draw them are
+rebuilt (Phases 3 to 5). Until then they still ship and are still drawn.
 
 Tutor has no header picture on purpose: the orb is the one thing on that screen
 that means something, and a second drawing beside it is two focal points where
@@ -701,10 +752,19 @@ Two hard rules, held from the enamel era:
 
 ## Motion
 
+**The notebook moves two things** (redesign Phase 1): the orb, with its
+existing breathing and wave lines, and the highlighter drawing in once behind a
+French line (`drawIn` and `DRAW_MS` in `motion.ts`). Touch feedback stays. The
+tab bar's selection wash and lift are gone. `motion.test.ts` pins the files that
+animate: the orb, `components.tsx` for the highlighter, `motion.ts` itself, and
+a pending list that may only shrink as later phases remove the rotating
+greeting, the twenty animated daily drawings, `SpeakBubbles`, the welcome steam
+and the `RewardMark` motion (which becomes static).
+
 The app had none. It now has exactly one vocabulary. The rules live in
-`apps/mobile/src/motion.ts` — `useReduceMotion` and `settleIn` — and every
-surface reads them from there: the scene hook, the voice orb, the transcript,
-the pre-account page transition and the selected-tab wash. That sentence used to be here while four files each asked
+`apps/mobile/src/motion.ts` — `useReduceMotion`, `settleIn` and `drawIn` — and
+every surface reads them from there: the scene hook, the voice orb, the
+transcript, the pre-account page transition and the highlighter. That sentence used to be here while four files each asked
 `AccessibilityInfo` themselves and three of them sampled it once and never
 looked again, so a learner who turned reduce motion on mid-session went on
 being animated at until the next launch. It is watched now, everywhere.
@@ -723,8 +783,8 @@ The rules themselves are unchanged:
 - absolutely-positioned moving pieces are placed in *container* pixels, not in
   the viewBox units the still art is drawn in
 
-Touch has one equally restrained vocabulary. Primary pills, outline controls,
-tinted rows, option cards and tab cells compress by one or two percent and move
+Touch has one equally restrained vocabulary. Primary pills, ledger rows, option
+cards and tab cells compress by one or two percent and move
 one point toward the page while held, then return without a bounce. Native taps
 use selection feedback and an earned conversation closure uses one success
 feedback through `motion/haptics.native.ts`; web keeps the same calls as safe
@@ -770,8 +830,8 @@ the native driver; the gradient, the rings and the waves are static SVG and
 nothing interpolates an SVG attribute. Under **reduce motion** the whole thing
 rests: the gradient, its rings and its lines are drawn once, at the final frame,
 because the orb is the content and the breathing is the flourish. It carries no
-shadow: the two shadows in this app are the whisper under a card and the live
-microphone's glow, and neither belongs to the orb.
+shadow: the one shadow in this app is the live microphone's glow, and it does
+not belong to the orb.
 
 Deliberately not driven by audio amplitude. An analyser feeding setState sixty
 times a second is the churn that would force a reanimated dependency, and that
