@@ -20,7 +20,7 @@
  * one calm line; it has no way to slow, block, or punish.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,7 @@ import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } fr
 import {
   answerCurrent,
   buildDrillSession,
+  buildPracticeSession,
   decideOwnWords,
   mixQueue,
   phraseKeyOf,
@@ -48,6 +49,7 @@ import {
   type FillBlankExercise,
   type ListenTypeExercise,
   type OwnWordsExercise,
+  type PracticeTarget,
   type RepeatThisExercise,
   type SettledVerdict,
   type TapTranslateExercise,
@@ -57,6 +59,7 @@ import {
 import { HAIRLINE, HIT, font, paper, radius, signal, space, type } from './theme.ts';
 import { tapSettled } from './motion/haptics.ts';
 import { recordActivity } from './progress/activity.ts';
+import { useActiveClock } from './progress/useActiveClock.ts';
 import { Card, GhostButton, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, TintPanel, fitDisplay } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
 import { Art } from './art/Art.tsx';
@@ -72,6 +75,16 @@ import { scoreRecordedAttempt } from './speech/scoreAttempt.ts';
 import { consumeRecording, discardRecording } from './speech/discardRecording.ts';
 import { judgeOwnWords } from './speech/judgeAttempt.ts';
 import { MADE_FROM } from './practice/madeFrom.ts';
+import { hasAnsweredWork, sittingStatement } from './practice/sittingOutcome.ts';
+import { PRACTICE_END, PRACTICE_HELP } from './practice/copy.ts';
+import { practiceEndCard, saveStateOfResult, type SaveState } from './practice/saveState.ts';
+import { completePracticeSitting, practiceOutcomes, recoverPracticeCompletion } from './practice/completion.ts';
+import { clearPracticeSession, loadPracticeSession, mintSittingId, savePracticeSession } from './practice/sessionStore.ts';
+import { practiceOpening } from './practice/opening.ts';
+import { sittingProgress } from './practice/sittingProgress.ts';
+import { scopeGeneration } from './storage/scope.ts';
+import { loadConversationPacks } from './conversationPacks/store.ts';
+import type { PracticeRoute } from './practice/practiceRoute.ts';
 import {
   JUDGE_UNAVAILABLE,
   OWN_WORDS_ANOTHER,
@@ -186,11 +199,22 @@ function WordChoice({ word, onPress, locked }: { word: string; onPress: () => vo
   );
 }
 
+/**
+ * The sitting's active learning clock, reached by the small input pieces below
+ * without threading a prop through every exercise view. Outside a drill it is
+ * inert, so nothing a piece does there is ever counted.
+ */
+const DrillClock = createContext<{ touch: () => void }>({ touch: () => undefined });
+
 /** The hear-it affordance ReviewScreen uses, for hearing a French line again. */
 function HearRow({ text }: { text: string }) {
+  const clock = useContext(DrillClock);
   return (
     <Pressable
-      onPress={() => tutorVoice.speak(text)}
+      onPress={() => {
+        clock.touch();
+        tutorVoice.speak(text);
+      }}
       accessibilityRole="button"
       accessibilityLabel="Hear it in French"
       style={({ pressed }) => [ds.hear, pressed && { opacity: 0.6 }]}
@@ -218,11 +242,15 @@ function TypedAnswer({
   accessibilityLabel?: string;
 }) {
   const canSubmit = typed.trim() !== '' && !locked;
+  const clock = useContext(DrillClock);
   return (
     <View style={{ gap: space(2.5) }}>
       <TextInput
         value={typed}
-        onChangeText={onChange}
+        onChangeText={(text) => {
+          clock.touch();
+          onChange(text);
+        }}
         editable={!locked}
         autoCapitalize="none"
         autoCorrect={false}
@@ -471,15 +499,25 @@ function TranslationView({
   onChange,
   onAnswer,
   locked,
+  help,
 }: {
   exercise: TranslationExercise;
   typed: string;
   onChange: (t: string) => void;
   onAnswer: (a: string) => void;
   locked: boolean;
+  /**
+   * Help for a practice sitting only: show the known French line on request.
+   * Absent for an ordinary drill, which is unchanged. `shown` is whether the
+   * learner has already asked, so the line stays up after a reload.
+   */
+  help?: { shown: boolean; onShow: () => void };
 }) {
   const isFrenchPrompt = exercise.direction === 'fr-en';
   const prompt = isFrenchPrompt ? exercise.fr : exercise.en;
+  // Only an English-to-French ask hides the French, so only it has anything to
+  // show. The reference is the exercise's own line, never generated.
+  const canHelp = help !== undefined && !isFrenchPrompt;
   return (
     <View style={{ gap: space(4) }}>
       <Card style={ds.exCard}>
@@ -488,6 +526,17 @@ function TranslationView({
           {prompt}
         </Text>
         {isFrenchPrompt && <HearRow text={exercise.fr} />}
+        {canHelp && help.shown && (
+          <>
+            <Text style={[type.french, { color: paper.inkSoft, textAlign: 'center', marginTop: space(3) }]}>{exercise.fr}</Text>
+            <HearRow text={exercise.fr} />
+          </>
+        )}
+        {canHelp && !help.shown && (
+          <View style={{ marginTop: space(3) }}>
+            <GhostButton label={PRACTICE_HELP.show} accessibilityLabel={PRACTICE_HELP.showLabel} disabled={locked} onPress={help.onShow} />
+          </View>
+        )}
       </Card>
       <TypedAnswer
         typed={typed}
@@ -763,9 +812,21 @@ export function DrillScreen({
   node,
   mix = false,
   onFinished,
+  practice,
+  onPracticeFinished,
 }: {
   userId: string;
   onDone: () => void;
+  /**
+   * A practice-now sitting: chosen targets, not the due deck. Absent, this is
+   * the ordinary scheduled sitting and nothing below changes for it.
+   */
+  practice?: PracticeRoute | 'invalid';
+  /**
+   * A practice sitting with answered work, persisted. Named with the pack it
+   * practised when one of its own targets was answered, else null.
+   */
+  onPracticeFinished?: (packId: string | null) => void;
   /**
    * The sitting finished, as distinct from Done: Done also fires on Leave, and
    * a pack must not be marked practised by a sitting that was abandoned (F550).
@@ -814,6 +875,11 @@ export function DrillScreen({
   // speaking goal measures; it is not the metered minutes and must never be
   // shown as those.
   const openedAt = useRef(Date.now());
+  // Active learning time (Practice time): only the gaps between the learner's
+  // own actions that are short enough to be one stretch of work. Opening the
+  // sitting adds nothing, and a resume carries its saved total with no anchor,
+  // so the time away is never credited. Never derived from openedAt.
+  const clock = useActiveClock('drill');
 
   // Per-exercise input state, cleared on every advance.
   const [typed, setTyped] = useState('');
@@ -831,7 +897,165 @@ export function DrillScreen({
   // never resolves.
   const [unread, setUnread] = useState(false);
 
+  // A practice sitting's identity and plan: its stable sitting id, when it
+  // started, where it came from, its resolved targets, every exercise it has
+  // played (twins as played, and those answered before a reload), and whether
+  // the French was just shown. Held in a ref because saving and completion read
+  // it after the render that built it, and none of it changes mid-sitting.
+  const practiceRef = useRef<{
+    sittingId: string;
+    startedAt: number;
+    origin: 'recommended' | 'pack';
+    packId: string | null;
+    targets: PracticeTarget[];
+    exercises: DrillExercise[];
+    exposed: boolean;
+    /** The account this sitting belongs to; a save or completion for another is refused. */
+    scope: number;
+  } | null>(null);
+  // A practice sitting's end card waits for completion to answer, and then says
+  // exactly what its status supports.
+  const [practiceSaved, setPracticeSaved] = useState<'waiting' | SaveState>('waiting');
+  const [practiceRetrying, setPracticeRetrying] = useState(false);
+  const completionRef = useRef<Promise<SaveState> | null>(null);
+  // A resume that has nothing to open. 'none': no unfinished sitting is saved
+  // (it was already finished, or never started). 'gone': one was saved but its
+  // exercises are no longer on this phone, so it is cleared. Either way it is
+  // said plainly, and never replaced by a sitting the learner did not start.
+  const [cannotResume, setCannotResume] = useState<'none' | 'gone' | null>(null);
+  // Whether this sitting went quiet, known rather than inferred: set where the
+  // screen applies `suppressMic`, and carried by the resume record.
+  const micSuppressedRef = useRef(false);
+  // Exercises where the learner asked to see the phrase. Kept in state for the
+  // render and in a ref for the saves, restored from the resume record, and
+  // handed to completion, which never lets one become recall or a spaced
+  // return. Only ever added to: help once asked for stays asked for.
+  const [assisted, setAssisted] = useState<string[]>([]);
+  const assistedRef = useRef<string[]>([]);
+
   useEffect(() => {
+    if (practice === undefined || practice === 'invalid') return;
+    let cancelled = false;
+    const scope = scopeGeneration();
+    // A completion a previous launch left half-done lands first, so the saved
+    // sitting this reads is never one whose grades are still in flight.
+    void recoverPracticeCompletion()
+      .catch(() => null)
+      .then(() => Promise.all([loadDeck(), loadDrillBank(), getMicSuppressedUntil(), loadConversationPacks(), loadPracticeSession()]))
+      .then(([deck, bank, until, packs, record]) => {
+        if (cancelled || scopeGeneration() !== scope) return;
+        const now = Date.now();
+        const opening = practiceOpening({ route: practice, record, deck, bank, packs, now });
+        if (opening.kind === 'cannot-resume') {
+          if (opening.sittingId !== null) void clearPracticeSession(opening.sittingId);
+          setCannotResume(opening.sittingId === null ? 'none' : 'gone');
+          return;
+        }
+        if (opening.kind === 'resume') {
+          // The same sitting, from the record: its id, targets, answers, queue
+          // position and warm-up flag. Nothing is re-graded: completion is keyed
+          // on this id, and answers already settled are carried, not replayed.
+          const { record: held, restored, answeredExercises } = opening;
+          practiceRef.current = {
+            sittingId: held.sittingId,
+            startedAt: held.startedAt,
+            origin: held.origin === 'pack' ? 'pack' : 'recommended',
+            packId: held.packId,
+            targets: restored.targets,
+            exercises: [...answeredExercises, ...restored.state.queue],
+            exposed: held.exposed,
+            scope,
+          };
+          openedAt.current = held.startedAt;
+          clock.restore(held.activeMs ?? 0);
+          micSuppressedRef.current = held.micSuppressed;
+          assistedRef.current = [...held.assisted];
+          setAssisted([...held.assisted]);
+          setSession(restored.state);
+          return;
+        }
+        const built = buildPracticeSession(opening.targets, bank, deck, now);
+        const origin = practice.origin === 'pack' ? 'pack' : 'recommended';
+        practiceRef.current = {
+          sittingId: mintSittingId(now),
+          startedAt: now,
+          origin,
+          packId: origin === 'pack' ? practice.packId : null,
+          targets: built.targets,
+          exercises: [...built.state.queue],
+          exposed: practice.exposed,
+          scope,
+        };
+        let state = built.state;
+        if (until !== null && Date.parse(until) > now) {
+          state = suppressMic(state);
+          micSuppressedRef.current = true;
+        } else if (until !== null) void setMicSuppressed(null);
+        setSession(state);
+      })
+      .catch(() => {
+        if (!cancelled) setUnread(true);
+      });
+    return () => {
+      cancelled = true;
+      tutorVoice.stop();
+    };
+  }, [practice, clock]);
+
+  /**
+   * Save the unfinished sitting: ids and settled facts only, no grade, no XP.
+   * Called after every settled answer (a miss that will come round again
+   * included) and on Leave, so a reload resumes the same queue and answers.
+   * A write for an account that has since changed is refused by the store.
+   */
+  const savePractice = useCallback((state: DrillSessionState) => {
+    const held = practiceRef.current;
+    if (held === null || scopeGeneration() !== held.scope) return;
+    for (const exercise of state.queue) if (!held.exercises.some((e) => e.id === exercise.id)) held.exercises.push(exercise);
+    void savePracticeSession({
+      sittingId: held.sittingId,
+      startedAt: held.startedAt,
+      origin: held.origin,
+      packId: held.packId,
+      exposed: held.exposed,
+      micSuppressed: micSuppressedRef.current,
+      targets: held.targets,
+      state,
+      assisted: assistedRef.current,
+      activeMs: clock.read(),
+    });
+  }, [clock]);
+
+  /**
+   * Finish the sitting through `completePracticeSitting`, and nothing else:
+   * it alone grades, earns XP, records history and clears the resume record,
+   * at most once per sitting id. Safe to call again for a retry. The end card
+   * shows exactly what its status supports.
+   */
+  const finishPractice = useCallback((state: DrillSessionState): Promise<SaveState> => {
+    const held = practiceRef.current;
+    if (held === null) return Promise.resolve('not-saved');
+    const now = Date.now();
+    const run = completePracticeSitting({
+      sittingId: held.sittingId,
+      state,
+      targets: held.targets,
+      exercises: held.exercises,
+      exposed: held.exposed,
+      assisted: assistedRef.current,
+      durationMs: Math.max(0, now - held.startedAt),
+      activeMs: clock.read(),
+      now,
+    })
+      .then((done) => saveStateOfResult(done))
+      .catch((): SaveState => 'not-saved');
+    completionRef.current = run;
+    return run;
+  }, [clock]);
+
+  useEffect(() => {
+    // A practice sitting is built by the effect above and never by this one.
+    if (practice !== undefined) return;
     let cancelled = false;
     const asked = node?.ownWords;
     if (node !== undefined && asked !== undefined) {
@@ -878,7 +1102,7 @@ export function DrillScreen({
       cancelled = true;
       tutorVoice.stop();
     };
-  }, [node, mix]);
+  }, [node, mix, practice]);
 
   /**
    * Feed outcomes to the one memory system, through the review store's own
@@ -889,6 +1113,22 @@ export function DrillScreen({
    */
   const persistGrades = useCallback((state: DrillSessionState) => {
     if (persistedRef.current) return;
+    const held = practiceRef.current;
+    if (held !== null) {
+      // A practice sitting that is not finished is saved, never graded: Leave
+      // keeps the queue and the answers for resume, and awards nothing. Only a
+      // finished sitting with answered work completes, through the one owner of
+      // practice grades, XP and history.
+      if (!state.finished) {
+        savePractice(state);
+        return;
+      }
+      if (!hasAnsweredWork(state)) return;
+      persistedRef.current = true;
+      const completion = finishPractice(state);
+      gradeWritesRef.current = completion.then(() => undefined);
+      return;
+    }
     persistedRef.current = true;
     const summary = summariseDrill(state);
     // Collected rather than fired and forgotten: the caller awaits these before
@@ -913,20 +1153,25 @@ export function DrillScreen({
       'drill',
       drillXp({ clean: summary.resolved - summary.typos, typoCorrected: summary.typos }),
       Date.now(),
-      { durationMs: Date.now() - openedAt.current },
+      { durationMs: Date.now() - openedAt.current, activeMs: clock.read() },
     );
-  }, []);
+  }, [savePractice, finishPractice, clock]);
 
   const answer = useCallback(
     (value: string | number) => {
       if (!session || session.finished || feedback) return;
+      clock.touch();
       const { state: next, feedback: fb } = answerCurrent(session, value);
       if (!fb) return;
       tutorVoice.stop();
       pendingRef.current = next;
+      // Saved the moment it settles, not after the feedback beat: a reload in
+      // the beat must not lose an answer the learner already gave, a miss that
+      // will come round again included. A finished sitting completes instead.
+      if (!next.finished) savePractice(next);
       setFeedback(fb);
     },
-    [session, feedback],
+    [session, feedback, savePractice, clock],
   );
 
   // A spoken attempt. The grade is the self-report's, banked before the scorer
@@ -975,6 +1220,7 @@ export function DrillScreen({
     if (!current || current.kind !== 'own-words') return;
     const attempt = typed.trim();
     if (attempt === '') return;
+    clock.touch();
     setJudging(true);
     void judgeOwnWords(userId, current, attempt).then((verdict) => {
       setJudging(false);
@@ -1006,9 +1252,10 @@ export function DrillScreen({
       });
       setTyped('');
       if (next.finished) persistGrades(next);
+      else savePractice(next);
       setSession(next);
     });
-  }, [session, judging, typed, userId, persistGrades]);
+  }, [session, judging, typed, userId, persistGrades, savePractice, clock]);
 
   /** Keep the phrase they just said their own way. The one write this card makes. */
   const keepPhrase = useCallback(
@@ -1055,12 +1302,59 @@ export function DrillScreen({
    * chain. Navigating first meant the practice map could show a node that had
    * plainly just been finished as untouched.
    */
+  //
+  // Core builds an empty queue already finished. That is nothing answered, and
+  // nothing answered is not a sitting that marks a pack practised, so the
+  // signal also waits for answered work.
   useEffect(() => {
     if (!session?.finished || !node || finishedRef.current) return;
+    if (!hasAnsweredWork(session)) return;
     finishedRef.current = true;
     tapSettled();
     onFinished?.(node.id);
   }, [session, node, onFinished]);
+
+  // A practice sitting says it finished only once its writes have come back,
+  // and only with answered work behind it. The pack it names is the one its
+  // own answered targets came from; review alone names none.
+  useEffect(() => {
+    const held = practiceRef.current;
+    if (!session?.finished || held === null || finishedRef.current) return;
+    if (!hasAnsweredWork(session)) return;
+    finishedRef.current = true;
+    const answeredKeys = new Set(session.answered.map((a) => a.phraseKey));
+    const packTarget = held.targets.find((t) => t.source.kind === 'pack' && answeredKeys.has(t.phraseKey));
+    const packId = packTarget !== undefined && packTarget.source.kind === 'pack' ? packTarget.source.packId : null;
+    const written = completionRef.current;
+    if (written === null) return;
+    void written.then((saved) => {
+      setPracticeSaved(saved);
+      // The phone-only mark follows only a completion that is safe on this
+      // phone: saved, or kept to finish later. Never one that was not saved.
+      if (saved === 'not-saved') return;
+      tapSettled();
+      onPracticeFinished?.(packId);
+    });
+  }, [session, onPracticeFinished]);
+
+  /**
+   * Try the completion again, for the same sitting id. The store replays a
+   * frozen plan rather than recomputing it, so nothing is awarded twice.
+   */
+  const retryPractice = useCallback(() => {
+    if (!session || practiceRetrying) return;
+    setPracticeRetrying(true);
+    void finishPractice(session)
+      .then((saved) => {
+        setPracticeSaved(saved);
+        const held = practiceRef.current;
+        if (saved === 'not-saved' || held === null) return;
+        const answeredKeys = new Set(session.answered.map((a) => a.phraseKey));
+        const packTarget = held.targets.find((t) => t.source.kind === 'pack' && answeredKeys.has(t.phraseKey));
+        onPracticeFinished?.(packTarget !== undefined && packTarget.source.kind === 'pack' ? packTarget.source.packId : null);
+      })
+      .finally(() => setPracticeRetrying(false));
+  }, [session, practiceRetrying, finishPractice, onPracticeFinished]);
 
   const finishAndLeave = useCallback(() => {
     tutorVoice.stop();
@@ -1072,13 +1366,35 @@ export function DrillScreen({
 
   const leave = finishAndLeave;
 
+  /**
+   * Show the phrase for a practice exercise. The learner has now seen the
+   * answer, so the exercise is recorded as assisted and saved at once, before
+   * they answer: a reload keeps the line on screen and keeps the mark, and
+   * completion reads it, so a right answer after help is practised, never
+   * recalled, and never a spaced return.
+   */
+  const showPhrase = useCallback(
+    (exerciseId: string) => {
+      if (!session || feedback || assistedRef.current.includes(exerciseId)) return;
+      clock.touch();
+      assistedRef.current = [...assistedRef.current, exerciseId];
+      setAssisted(assistedRef.current);
+      savePractice(session);
+    },
+    [session, feedback, savePractice, clock],
+  );
+
   const goSilent = useCallback(() => {
     if (!session || feedback) return;
-    setSession(suppressMic(session));
+    const quiet = suppressMic(session);
+    setSession(quiet);
     setTyped('');
     setAssembled([]);
     void setMicSuppressed(new Date(Date.now() + MIC_SUPPRESS_MS).toISOString());
-  }, [session, feedback]);
+    // A practice sitting that went quiet resumes quiet, on its twins' ids.
+    micSuppressedRef.current = true;
+    savePractice(quiet);
+  }, [session, feedback, savePractice]);
 
   // What this sitting calls itself. A learner who opened Today's mix and landed
   // on a screen headed "Drills" would have no way to tell the two apart.
@@ -1088,7 +1404,22 @@ export function DrillScreen({
   // answered; the rest simply stays due. Never a count up here. Built once
   // and used by both branches below, because a pushed screen shows exactly
   // one way back and it is this one.
-  const header = <ScreenHeader leave={{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' }} />;
+  // Where the learner is in a bounded practice sitting, in words, in the
+  // header's quiet centre slot: never a score, a fraction or a bar, and never
+  // drawn for an ordinary review sitting, whose queue is not bounded this way.
+  const progress = practice !== undefined && practiceRef.current !== null ? sittingProgress(session, practiceRef.current.targets) : null;
+  const header = (
+    <ScreenHeader
+      leave={{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' }}
+      title={progress !== null ? (
+        <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{progress.label}</Text>
+      ) : undefined}
+    />
+  );
+  // The one door on every terminal card, built once for the same reason as
+  // the header: each terminal branch shows exactly one way out, and it is this
+  // one. `finishAndLeave` and `leave` are the same callback.
+  const doneFooter = <PillButton label="Done" onPress={finishAndLeave} />;
 
   /**
    * An own-words sitting that has been answered, still holding its outcome.
@@ -1100,9 +1431,38 @@ export function DrillScreen({
    */
   const holding = session !== null && session.finished && ownWords !== null ? ownWords : null;
 
+  // A resume with nothing to open. The two reasons read differently, because
+  // only one of them is about phrases being gone.
+  if (cannotResume !== null) {
+    const copy = cannotResume === 'none'
+      ? { title: PRACTICE_END.nothingToResume, body: PRACTICE_END.nothingToResumeBody }
+      : { title: PRACTICE_END.cannotResume, body: PRACTICE_END.cannotResumeBody };
+    return (
+      <ScrollScreen footer={doneFooter}>
+        <Card>
+          <Text style={[type.title, { color: paper.ink }]}>{copy.title}</Text>
+          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{copy.body}</Text>
+        </Card>
+      </ScrollScreen>
+    );
+  }
+
+  // A practice link that could not be read: a reload of an old address, or one
+  // typed by hand. Said plainly, and never opened as a different sitting.
+  if (practice === 'invalid') {
+    return (
+      <ScrollScreen footer={doneFooter}>
+        <Card>
+          <Text style={[type.title, { color: paper.ink }]}>{PRACTICE_END.unreadable}</Text>
+          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{PRACTICE_END.unreadableBody}</Text>
+        </Card>
+      </ScrollScreen>
+    );
+  }
+
   if (unread) {
     return (
-      <ScrollScreen footer={<PillButton label="Done" onPress={finishAndLeave} />}>
+      <ScrollScreen footer={doneFooter}>
         <Text style={[type.title, { color: paper.ink, textAlign: 'center' }]}>{DRILL_UNREAD.title}</Text>
         <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(3) }]}>
           {DRILL_UNREAD.body}
@@ -1123,6 +1483,7 @@ export function DrillScreen({
 
   if (holding !== null) {
     return (
+      <DrillClock.Provider value={clock}>
       <ScrollScreen avoidKeyboard header={header}>
         <OwnWordsView
           exercise={holding.exercise}
@@ -1136,6 +1497,61 @@ export function DrillScreen({
           kept={kept}
         />
       </ScrollScreen>
+      </DrillClock.Provider>
+    );
+  }
+
+  // A practice sitting with nothing playable. Said as a fact with a real way
+  // forward, never as a finish: nothing was answered, so nothing is recorded.
+  if (practice !== undefined && session.finished && !hasAnsweredWork(session)) {
+    return (
+      <ScrollScreen footer={doneFooter}>
+        <Card>
+          <Text style={[type.title, { color: paper.ink }]}>{PRACTICE_END.empty}</Text>
+          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{PRACTICE_END.emptyBody}</Text>
+        </Card>
+      </ScrollScreen>
+    );
+  }
+
+  // A finished practice sitting. It waits for its grades to come back before it
+  // says anything, and then says only what the outcomes support.
+  if (practice !== undefined && session.finished) {
+    const held = practiceRef.current;
+    if (practiceSaved === 'waiting' || held === null) {
+      return (
+        <Screen>
+          <View style={ds.loading}>
+            <ActivityIndicator color={paper.inkSoft} />
+          </View>
+        </Screen>
+      );
+    }
+    // What the sitting showed, read by the data store's own rule, so the card
+    // and the history can never disagree about a recall.
+    const statement = sittingStatement(
+      practiceOutcomes({ state: session, targets: held.targets, exercises: held.exercises, exposed: held.exposed, assisted }),
+    );
+    const card = practiceEndCard(practiceSaved, statement);
+    return (
+      <ScrollScreen footer={doneFooter}>
+        <Card>
+          <Text style={[type.title, { color: paper.ink }]}>{card.title}</Text>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{card.body}</Text>
+          {/* Nothing is safe yet, so the one thing to offer is the same save
+              again. The store replays the frozen plan, so it awards nothing twice. */}
+          {card.retry && (
+            <View style={{ marginTop: space(3), alignItems: 'flex-start' }}>
+              <GhostButton
+                label={practiceRetrying ? PRACTICE_END.retrying : PRACTICE_END.retry}
+                color={paper.ink}
+                disabled={practiceRetrying}
+                onPress={retryPractice}
+              />
+            </View>
+          )}
+        </Card>
+      </ScrollScreen>
     );
   }
 
@@ -1143,7 +1559,7 @@ export function DrillScreen({
   // terminal card, so Done is its one door and it carries no back header.
   if (session.finished && session.answered.length === 0) {
     return (
-      <ScrollScreen footer={<PillButton label="Done" onPress={finishAndLeave} />}>
+      <ScrollScreen footer={doneFooter}>
         {/* An empty bank is the good outcome, not a dead end, so it gets the
             cleared table — the same scene and spacing the review deck uses,
             because these two screens say the same thing. The size is the art
@@ -1166,7 +1582,7 @@ export function DrillScreen({
   if (session.finished) {
     const s = summariseDrill(session);
     return (
-      <ScrollScreen footer={<PillButton label="Done" onPress={leave} />}>
+      <ScrollScreen footer={doneFooter}>
         <Card>
           <View style={ds.stats}>
             <View style={ds.stat}>
@@ -1203,6 +1619,7 @@ export function DrillScreen({
   const locked = feedback !== null;
 
   return (
+    <DrillClock.Provider value={clock}>
     <ScrollScreen
       avoidKeyboard
       header={header}
@@ -1253,7 +1670,14 @@ export function DrillScreen({
         <ListenTypeView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
       )}
       {exercise.kind === 'translate' && (
-        <TranslationView exercise={exercise} typed={typed} onChange={setTyped} onAnswer={answer} locked={locked} />
+        <TranslationView
+          exercise={exercise}
+          typed={typed}
+          onChange={setTyped}
+          onAnswer={answer}
+          locked={locked}
+          help={practice !== undefined ? { shown: assisted.includes(exercise.id), onShow: () => showPhrase(exercise.id) } : undefined}
+        />
       )}
       {exercise.kind === 'repeat-this' && (
         <RepeatThisView exercise={exercise} onAnswer={answer} onSpoke={spoke} onNoMic={goSilent} locked={locked} />
@@ -1272,6 +1696,7 @@ export function DrillScreen({
         />
       )}
     </ScrollScreen>
+    </DrillClock.Provider>
   );
 }
 

@@ -7,6 +7,7 @@ import { paper, space, type, accent } from '../theme.ts';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { useSocial } from '../friends/useSocial.ts';
 import { rankedFriends, POINTS_EXPLANATION, REACTIONS } from '../friends/socialModel.ts';
+import { FRIENDS_PRIVACY_LINK, FRIENDS_START, FRIENDS_START_BODY, FRIENDS_START_TITLE, friendsEntry } from '../friends/friendsView.ts';
 
 export function FriendsTab() {
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
@@ -16,20 +17,28 @@ export function FriendsTab() {
   const [reason, setReason] = useState('');
   const [shareNote, setShareNote] = useState('');
   const rows = s ? rankedFriends([s.self, ...s.friends]) : [];
+  const entry = friendsEntry(s);
   const sharePostcard = async (partner: string) => {
     try { await Share.share({ message: `Un peu de français, ensemble. ${s?.self.name} and ${partner} made room for four French conversations together this week on Luvani.` }); }
     catch { setShareNote('The postcard could not be shared just now. Try again.'); }
   };
   return <ScrollScreen bottom="tab">
     <TabHeader title="Friends" purpose="A little French, together." trailing={<ProfileButton />} />
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-      <GhostButton label={s?.requests.some(r => r.direction === 'incoming') ? 'Add friends · Requests waiting' : 'Add friends'} onPress={() => nav.navigate('AddFriends')} />
-      <GhostButton label="Privacy & notifications" onPress={() => nav.navigate('SocialSettings')} />
-    </View>
     {error !== '' && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{error}</Text><GhostButton label="Try again" onPress={refresh} /></Card>}
-    {!s && !error && <Text style={[type.body, { color: paper.inkSoft }]}>Opening your circle…</Text>}
-    {s && !s.settings.enabled && <Card tone="feature"><Text style={[type.title, { color: paper.ink }]}>Your circle starts with one friend.</Text><Text style={[type.body, { color: paper.inkSoft, marginVertical: space(3) }]}>Choose a username, invite someone you know, and make room for French together. Joining is optional.</Text><OutlineButton label="Set up Friends" onPress={() => nav.navigate('AddFriends')} /></Card>}
-    {s?.settings.enabled && <>
+    {entry === 'loading' && !error && <Text style={[type.body, { color: paper.inkSoft }]}>Opening your circle…</Text>}
+    {/* Before joining: one opt-in start, with privacy a quiet link beneath it
+        rather than a second door beside it (Stage 3). */}
+    {entry === 'start' && <Card tone="feature">
+      <Text style={[type.title, { color: paper.ink }]}>{FRIENDS_START_TITLE}</Text>
+      <Text style={[type.body, { color: paper.inkSoft, marginVertical: space(3) }]}>{FRIENDS_START_BODY}</Text>
+      <OutlineButton label={FRIENDS_START} onPress={() => nav.navigate('AddFriends')} />
+      <GhostButton label={FRIENDS_PRIVACY_LINK} onPress={() => nav.navigate('SocialSettings')} />
+    </Card>}
+    {entry === 'circle' && s && <>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <GhostButton label={s.requests.some(r => r.direction === 'incoming') ? 'Add friends · Requests waiting' : 'Add friends'} onPress={() => nav.navigate('AddFriends')} />
+        <GhostButton label="Privacy & notifications" onPress={() => nav.navigate('SocialSettings')} />
+      </View>
       <Card style={{ marginTop: space(4), gap: space(2) }}>
         <Label>This week</Label><Text style={[type.title, { color: paper.ink }]}>Your friends in French</Text>
         <Text style={[type.small, { color: paper.inkSoft }]}>Fresh week Monday · 00:00 UTC</Text>

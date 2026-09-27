@@ -170,7 +170,8 @@ on top of them. One moment of being stuck, two rescues.
 
 `apps/mobile/src/live/failure.ts` enumerates nineteen distinct failures, each with
 its own words and its own way out; seven carry `canType: true` and offer the typed
-route instead. `LiveErrorView` hides a **What happened?** panel reporting whether
+route instead. `LiveErrorView` keeps a **Support details** panel, closed by
+default and drawn after every recovery action, reporting whether
 the token server answered, how long the room took, whether the agent joined and
 whether it ever spoke — which is how you tell an environment problem from a bug
 without reading LiveKit's logs.

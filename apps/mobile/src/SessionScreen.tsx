@@ -26,6 +26,7 @@ import {
 import { SessionView } from './SessionView.tsx';
 import { mockObservations, estimateDurationSec } from './mockSpeech.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
+import { useActiveClock } from './progress/useActiveClock.ts';
 
 /**
  * How long the tutor's own line takes before the learner is expected to answer.
@@ -47,7 +48,11 @@ export function SessionScreen({
   /** Where the ladder opens. Omitted, the lesson's own opening rung applies. */
   startRung?: Rung;
   textMode?: boolean;
-  onFinish: (s: SessionSummary) => void;
+  /**
+   * The lesson ended. `timing.activeMs` is the active learning time the
+   * screen's clock measured; the writer records it only when it is supplied.
+   */
+  onFinish: (s: SessionSummary, timing?: { activeMs: number }) => void;
   /**
    * Leave the mock lesson. The demo path had no way out at all until the shared
    * header gave it one; this is what the header's Leave hands back to.
@@ -63,15 +68,21 @@ export function SessionScreen({
   const sessionRef = useRef(session);
   sessionRef.current = session;
 
+  // Active learning time. Only the learner's own input is evidence: an answer,
+  // a help tap, hearing a line again. The silence rescue is the tutor stepping
+  // in because nothing happened, so it never touches the clock.
+  const clock = useActiveClock('lesson');
+
   const advance = useCallback(
     (input: Parameters<typeof submitTurn>[2]) => {
+      if (input.type !== 'silence') clock.touch();
       const { state, feedback } = submitTurn(lesson, sessionRef.current, input);
       setSession(state);
       if (feedback.message) setFlash(feedback.message);
-      if (state.finished) onFinish(summarise(state));
+      if (state.finished) onFinish(summarise(state), { activeMs: clock.read() });
       else setPhase('tutor-speaking');
     },
-    [lesson, onFinish],
+    [lesson, onFinish, clock],
   );
 
   // The tutor speaks, then hands over. Spoken for real through the device
@@ -133,8 +144,18 @@ export function SessionScreen({
   // A replay must never talk over the tutor, so hearing is a listening-time
   // affordance only.
   const support = prompt.support;
-  const onHearLine = !textMode && phase === 'awaiting' && support.kind === 'full-line' ? () => tutorVoice.speak(support.line) : undefined;
-  const onOptionHear = !textMode && phase === 'awaiting' ? (text: string) => tutorVoice.speak(text) : undefined;
+  const onHearLine = !textMode && phase === 'awaiting' && support.kind === 'full-line'
+    ? () => {
+        clock.touch();
+        tutorVoice.speak(support.line);
+      }
+    : undefined;
+  const onOptionHear = !textMode && phase === 'awaiting'
+    ? (text: string) => {
+        clock.touch();
+        tutorVoice.speak(text);
+      }
+    : undefined;
 
   // Never leave a voice speaking past the screen that started it.
   useEffect(() => () => tutorVoice.stop(), []);

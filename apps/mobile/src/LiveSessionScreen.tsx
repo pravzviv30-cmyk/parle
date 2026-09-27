@@ -20,7 +20,7 @@ import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-nati
 import { usePreventRemove } from '@react-navigation/native';
 import type { Lesson, Rung, SessionSummary } from '@luvani/core';
 import { paper, space, type, HIT } from './theme.ts';
-import { Card, Label, OutlineButton, GhostButton } from './components.tsx';
+import { Card, GhostButton } from './components.tsx';
 import { ConfirmSheet, Screen } from './layout.tsx';
 import { SessionView } from './SessionView.tsx';
 import { useLiveSession } from './live/useLiveSession.ts';
@@ -37,7 +37,7 @@ import { withAgeStop } from './profile/store.ts';
 import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
 import { waitingView } from './tutor/waitingView.ts';
 import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
-import { Paywall } from './purchases/Paywall.tsx';
+import { OutOfMinutesView } from './live/OutOfMinutesView.tsx';
 
 export function LiveSessionScreen({
   lesson,
@@ -217,24 +217,10 @@ export function LiveSessionScreen({
   }
 
   if (live.status.phase === 'out-of-minutes') {
-    return (
-      <Screen padded={false}>
-        <View style={st.center}>
-          {/* The same white card the conversation draws, so the two live
-              surfaces say this in one voice: the caps line names the state, the
-              store's own words fill the card, and Back is the quiet outline
-              because the offer inside the card is the thing worth doing. */}
-          <Card style={st.outOfMinutes}>
-            <Label color={paper.inkSoft}>Out of minutes</Label>
-            <Text style={[type.body, { color: paper.ink, marginTop: space(2) }]}>{live.status.message}</Text>
-            <Paywall userId={userId} />
-          </Card>
-          <View style={{ marginTop: space(6), alignSelf: 'stretch' }}>
-            <OutlineButton label="Back" onPress={onExit} />
-          </View>
-        </View>
-      </Screen>
-    );
+    // The session has ended, so this is not the live scene F444 keeps still.
+    // The page can be taller than a small phone at a large text size, so it
+    // scrolls in its own file, as the safety stop does.
+    return <OutOfMinutesView message={live.status.message} userId={userId} onExit={onExit} />;
   }
 
   if (live.status.phase === 'error') {
@@ -378,7 +364,6 @@ const st = StyleSheet.create({
   listen: { minHeight: HIT, paddingTop: space(3) },
   // The centring root shrink-wraps its children, so the card is told to take
   // the width: a store offer sized to its longest word is not an offer.
-  outOfMinutes: { alignSelf: 'stretch' },
   banner: { paddingTop: space(2) },
   // The waiting screen centres its children, so the banner has to be told to
   // take the width: a safety sentence shrink-wrapped to its longest word is

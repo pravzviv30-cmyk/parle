@@ -3665,4 +3665,50 @@ describe('what a finished conversation writes down about itself', () => {
       'each available recap phrase gets both translation directions before enrichment; no phrases are invented for an empty recap');
     assert.equal(packs[1]!.state, 'ready');
   });
+
+  test('a tutor revisit names its source on both pack writes, and an ordinary session names none', async (t) => {
+    const { packs, restore } = capturePacks();
+    t.after(restore);
+    const source = '12121212-3434-4565-8787-909090909090';
+    const revision = { packId: source, title: 'At the cafe', summary: 'Ordered a coffee.',
+      phrases: [{ fr: 'Un café, merci.', en: 'A coffee, thanks.' }], correction: null,
+      // Extra fields never travel: the parser rebuilds the allowlist.
+      transcript: 'private', learnerId: 'someone-else' };
+    const revisit = buildConvo(t, { revision, sessionId: '98989898-7676-4545-8323-101010101010' });
+    revisit.convo.open(revisit.session);
+    await revisit.convo.handleClientMessage(revisit.session, tapped({ t: 'say', text: 'Au café' }));
+    await revisit.convo.settled();
+    revisit.convo.clearRescue();
+    await revisit.convo.finish();
+    assert.equal(packs.length, 2, 'baseline and enriched');
+    for (const pack of packs) {
+      assert.equal(pack.revisedFromPackId, source, `the ${pack === packs[0] ? 'baseline' : 'final'} write keeps the link`);
+      assert.doesNotMatch(JSON.stringify(pack), /private|someone-else/);
+    }
+
+    packs.length = 0;
+    const ordinary = await inScene(t, { sessionId: '56565656-7878-4989-8a0a-121212121212' });
+    await ordinary.convo.settled();
+    ordinary.convo.clearRescue();
+    await ordinary.convo.finish();
+    assert.equal(packs.length, 2);
+    for (const pack of packs) assert.equal('revisedFromPackId' in pack, false, 'no revisit, no link');
+  });
+
+  test('a malformed revision reaches neither the brief nor the pack', async (t) => {
+    const { packs, restore } = capturePacks();
+    t.after(restore);
+    const { convo, session, client } = buildConvo(t, {
+      revision: { packId: 'bad id', title: 'x', summary: '', phrases: [], correction: null },
+      sessionId: '34343434-5656-4787-8989-010101010101',
+    });
+    convo.open(session);
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Au café' }));
+    await convo.settled();
+    convo.clearRescue();
+    await convo.finish();
+    assert.ok(packs.length >= 1);
+    for (const pack of packs) assert.equal('revisedFromPackId' in pack, false);
+    assert.doesNotMatch(client.frameRequests[0]?.request ?? '', /bad id/);
+  });
 });

@@ -65,3 +65,50 @@ describe('the end card wears revamp A and still counts — F584', () => {
     assert.match(card, /<PillButton\s+label="Practise this sound"/, 'the end card lost the drill as its one primary');
   });
 });
+
+/**
+ * Whole-app Stage 3A (2026-09-25): what went well, one focus, practise it,
+ * Done. Review, the Anki export, the notebook, the long-run headlines and
+ * another go at the conversation stay, behind one closed More. A sound is met
+ * as a word first; the symbol and the scorer's reason are an optional detail.
+ */
+describe('the end card reads in the order a learner needs it', () => {
+  const render = card.slice(card.indexOf('return ('));
+  const at = (marker: string): number => {
+    const i = render.indexOf(marker);
+    assert.notEqual(i, -1, `\`${marker}\` is not on the end card at all`);
+    return i;
+  };
+
+  test('win, focus, practise, done, then one closed More holding everything else', () => {
+    assert.ok(at('<Label>Your practice today</Label>') < at('<Label>One sound to practise next</Label>'), 'the win is drawn after the focus');
+    assert.ok(at('<Label>One sound to practise next</Label>') < at('label="Practise this sound"'), 'the practice comes before the focus');
+    assert.ok(at('label="Practise this sound"') < at('label="Finish lesson"'), 'Done comes before the practice');
+    assert.ok(at('label="Finish lesson"') < at('expanded: more'), 'More is drawn before Done, so opening it pushes the way out down the screen');
+
+    assert.match(card, /const \[more, setMore\] = useState\(false\);/, 'More opens by itself');
+    assert.equal((card.match(/accessibilityState=\{\{ expanded: more \}\}/g) ?? []).length, 1, 'there is not exactly one More disclosure');
+    const more = render.slice(render.indexOf('{more && ('));
+    assert.ok(render.includes('{more && ('), 'nothing is behind More');
+    for (const secondary of ['label="Review"', 'label="Export to Anki"', 'label="Practise the conversation again"', '<Label>Your notebook</Label>', '<Label color={signal.good}>Since you started</Label>']) {
+      assert.ok(more.includes(secondary), `${secondary} is not behind More`);
+      assert.equal(render.indexOf(secondary), render.lastIndexOf(secondary), `${secondary} is drawn outside More as well`);
+    }
+  });
+
+  test('the focus sound leads with a word, and its symbol and reason are an optional detail', () => {
+    const focus = render.slice(at('<Label>One sound to practise next</Label>'), at('label="Practise this sound"'));
+    assert.match(focus, /\{soundInWord\(focusWord\)\}/, 'the focus does not lead with an example word');
+    assert.ok(focus.indexOf('{soundInWord(focusWord)}') < focus.indexOf('focus.phoneme.ipa'), 'the notation comes before the word');
+    assert.match(card, /const \[soundDetail, setSoundDetail\] = useState\(false\);/, 'the symbol is shown before anyone asks');
+    // Every notation on the focus and the drill is behind the toggle.
+    for (const notation of ['/{focus.phoneme.ipa}/', '/{i.ipa}/', '{focus.reason}']) {
+      const i = focus.indexOf(notation);
+      assert.notEqual(i, -1, `${notation} is gone rather than made optional`);
+      assert.ok(focus.slice(Math.max(0, i - 140), i).includes('soundDetail &&'), `${notation} is drawn without the learner asking for it`);
+    }
+    // The wins name words, not symbols.
+    assert.match(card, /heldSoundsLine\(/, 'the wins are still listed as symbols');
+    assert.doesNotMatch(card, /w\.ipa\}\/`\)\.join/, 'the wins still spell IPA');
+  });
+});

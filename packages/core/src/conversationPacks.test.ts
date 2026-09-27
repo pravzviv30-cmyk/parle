@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { describe, test } from 'node:test';
 
 import {
   buildConversationPack,
   containsForbiddenConversationData,
+  conversationPackIdOf,
   isConversationPack,
+  normaliseConversationPack,
   translationExercisesFor,
   validateExercise,
+  withoutRevisionSource,
+  withVerifiedRevisionSource,
+  type ConversationPack,
 } from './index.ts';
 
 const phrase = { fr: "Bonjour, je m'appelle Luc.", frWritten: null, en: 'Hello, my name is Luc.' };
@@ -161,4 +166,85 @@ test('a duration and a topic list are not speech, so the audio guard lets them t
 
   // And the guard still bites through the new fields, not just around them.
   assert.equal(containsForbiddenConversationData({ ...pack, topics: [{ fr: 'x', en: 'y', transcript: 'private' }] }), true);
+});
+
+/**
+ * A tutor revisit earns a new pack, and that pack names the conversation it
+ * revisited. The link is an identifier only, never a copy of the source, and a
+ * bad link must cost the learner the link, never the practice.
+ */
+describe('a revisit pack names the conversation it came from', () => {
+  const SOURCE = '11111111-2222-4333-8444-555555555555';
+
+  test('a valid source survives building, storage and normalising', () => {
+    const pack = buildConversationPack({ ...timedPackInput, revisedFromPackId: `  ${SOURCE}  ` });
+    assert.equal(pack.revisedFromPackId, SOURCE);
+    assert.equal(isConversationPack(pack), true);
+    const stored = JSON.parse(JSON.stringify(pack)) as ConversationPack;
+    assert.deepEqual(stored, pack);
+    assert.equal(normaliseConversationPack(stored), stored, 'a valid link needs no repair');
+    assert.equal(conversationPackIdOf('pack-1'), 'pack-1', 'ids are not assumed to be UUIDs');
+  });
+
+  test('no source is an ordinary pack, unchanged in shape', () => {
+    const pack = buildConversationPack(timedPackInput);
+    assert.equal('revisedFromPackId' in pack, false);
+    assert.equal(isConversationPack(pack), true);
+    assert.equal(normaliseConversationPack(pack), pack);
+    assert.equal(isConversationPack({ ...pack, revisedFromPackId: null }), true);
+  });
+
+  test('a malformed or self-referencing source is dropped, and the pack is kept', () => {
+    const bad: unknown[] = ['', '   ', 'a'.repeat(101), 'bad id', 'x\u0000y', '../other', 42, {}, timedPackInput.id];
+    for (const revisedFromPackId of bad) {
+      const pack = buildConversationPack({ ...timedPackInput, revisedFromPackId: revisedFromPackId as string });
+      assert.equal('revisedFromPackId' in pack, false, `${JSON.stringify(revisedFromPackId)} is not a source`);
+      assert.equal(pack.keyPhrases.length, 1);
+    }
+    const base = buildConversationPack(timedPackInput);
+    for (const revisedFromPackId of ['a'.repeat(101), 'bad id', base.id]) {
+      const read = normaliseConversationPack({ ...base, revisedFromPackId });
+      assert.equal(read.revisedFromPackId, null, `${revisedFromPackId.slice(0, 12)} is cleared on read`);
+      assert.deepEqual(read.keyPhrases, base.keyPhrases);
+    }
+    // Present must be typed, like the other late fields.
+    assert.equal(isConversationPack({ ...base, revisedFromPackId: 42 }), false);
+    assert.equal(isConversationPack({ ...base, revisedFromPackId: { transcript: 'x' } }), false);
+  });
+
+  test('an unverified source is detached before the trust boundary and only an owner check re-attaches it', async () => {
+    const pack = buildConversationPack(timedPackInput);
+    const claimed = { ...pack, revisedFromPackId: SOURCE };
+
+    const detached = withoutRevisionSource(claimed);
+    assert.equal(detached.claimedSource, SOURCE);
+    assert.equal('revisedFromPackId' in (detached.pack as object), false);
+    assert.equal(isConversationPack(detached.pack), true);
+    // Garbage in the link never makes the pack itself invalid.
+    const garbage = withoutRevisionSource({ ...pack, revisedFromPackId: { audio: 'x' } });
+    assert.equal(garbage.claimedSource, null);
+    assert.equal(isConversationPack(garbage.pack), true);
+    assert.deepEqual(withoutRevisionSource('not a pack'), { pack: 'not a pack', claimedSource: null });
+
+    const asked: string[] = [];
+    const owns = (answer: boolean) => async (id: string) => { asked.push(id); return answer; };
+    assert.equal((await withVerifiedRevisionSource(pack, SOURCE, owns(true))).revisedFromPackId, SOURCE);
+
+    const spoofed = await withVerifiedRevisionSource(pack, SOURCE, owns(false));
+    assert.equal('revisedFromPackId' in spoofed, false, 'a foreign or missing source cannot link');
+    assert.deepEqual(spoofed, pack, 'and the practice itself is kept whole');
+
+    const failing = await withVerifiedRevisionSource(pack, SOURCE, async () => { throw new Error('db down'); });
+    assert.deepEqual(failing, pack, 'a failed owner check clears the link rather than losing the pack');
+
+    asked.length = 0;
+    await withVerifiedRevisionSource(pack, null, owns(true));
+    await withVerifiedRevisionSource(pack, pack.id, owns(true));
+    await withVerifiedRevisionSource(pack, 'bad id', owns(true));
+    assert.deepEqual(asked, [], 'no source, a self link and a malformed id are never looked up');
+
+    // A claim on the pack itself is ignored: only the verified argument links.
+    const stripped = await withVerifiedRevisionSource(claimed, null, owns(true));
+    assert.equal('revisedFromPackId' in stripped, false);
+  });
 });

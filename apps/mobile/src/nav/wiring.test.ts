@@ -449,3 +449,70 @@ describe('the recap handler keeps its identity between renders — F386', () => 
     }
   });
 });
+
+describe('a drill opened cold still has a way out', () => {
+  // Seen in the browser: a practice sitting reloaded at /drill has no screen
+  // behind it, so Leave called goBack, React Navigation answered GO_BACK not
+  // handled, and the learner was stuck. Every exit from the drill (Leave, Done,
+  // an unreadable link, a sitting that cannot resume) runs through one onDone.
+  test('the drill route goes back when it can, and otherwise to Practice for a practice sitting, else the tabs', () => {
+    const navigator = strip(read('./RootNavigator.tsx')).replace(/\s+/g, ' ');
+    const route = navigator.slice(navigator.indexOf('function DrillRoute()'), navigator.indexOf('function ReviewRoute()'));
+    assert.ok(route.length > 0, 'the drill route moved; this test is stale');
+    assert.match(
+      route,
+      /onDone=\{\(\) => \{ if \(nav\.canGoBack\(\)\) nav\.goBack\(\); else if \(practice !== undefined\) nav\.navigate\('Tabs', \{ screen: 'Practice' \}\); else nav\.navigate\('Tabs'\); \}\}/,
+      'a drill opened by a reload or a shared address has a Leave that does nothing',
+    );
+    assert.doesNotMatch(route, /onDone=\{\(\) => nav\.goBack\(\)\}/, 'the drill goes back unconditionally again');
+    // One exit on the screen, so no branch can skip the fallback.
+    const screen = strip(read('../DrillScreen.tsx'));
+    assert.match(screen, /const leave = finishAndLeave;/);
+    assert.match(screen, /const doneFooter = <PillButton label="Done" onPress=\{finishAndLeave\} \/>;/);
+    assert.match(screen, /void gradeWritesRef\.current\.finally\(onDone\);/, 'the drill leaves before its writes come back, or by some other door');
+    assert.equal((screen.match(/onDone\(/g) ?? []).length, 0, 'the drill calls onDone directly, around the one exit');
+  });
+});
+
+describe('every pushed learning screen has a way out when opened cold — whole-app phase 1', () => {
+  // Seen in the browser: /review Done did nothing (GO_BACK not handled) and a
+  // cold /sound-check crashed reading route.params.missionId. A bare goBack is
+  // dead when nothing is behind the screen, so each exit goes back when it can
+  // and otherwise to the tabs.
+  const navigator = strip(read('./RootNavigator.tsx')).replace(/\s+/g, ' ');
+  const between = (from: string, to: string) => {
+    const at = navigator.indexOf(from);
+    const end = navigator.indexOf(to, at + from.length);
+    assert.ok(at >= 0 && end > at, `${from} moved; this test is stale`);
+    return navigator.slice(at, end);
+  };
+
+  test('the shared fallback goes back when it can and to the tabs otherwise', () => {
+    const helper = between('function backOrTabs(', 'function LessonRoute()');
+    assert.match(helper, /\): void \{ if \(nav\.canGoBack\(\)\) nav\.goBack\(\); else nav\.navigate\('Tabs'/);
+  });
+
+  test('review, lesson, conversation and sound check never call a bare goBack', () => {
+    for (const [from, to] of [
+      ['function LessonRoute()', 'function ConvoRoute()'],
+      ['function ConvoRoute()', 'function DrillRoute()'],
+      ['function ReviewRoute()', 'function PolicyRoute()'],
+      ['function SoundCheckRoute()', 'function '],
+    ] as const) {
+      const route = between(from, to);
+      assert.doesNotMatch(route, /=> nav\.goBack\(\)/, `${from} has an exit that is dead on a cold link`);
+      assert.match(route, /backOrTabs\(nav/, `${from} no longer uses the safe exit`);
+    }
+  });
+
+  test('a cold sound check reads its params optionally and never guesses a situation', () => {
+    const route = between('function SoundCheckRoute()', 'function ');
+    assert.doesNotMatch(route, /route\.params\.missionId/, 'the route reads params that a cold link does not have');
+    assert.match(route, /route\.params\?\.missionId/);
+    assert.match(route, /missionId=\{missionId\}/);
+    assert.doesNotMatch(route, /mission:cafe|getMission\(/, 'the route invents a situation');
+    const screen = strip(read('../soundcheck/SoundCheckScreen.tsx'));
+    assert.match(screen, /missionId: string \| null;/);
+    assert.match(screen, /Choose a situation first\./);
+  });
+});

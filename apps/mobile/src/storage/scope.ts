@@ -27,6 +27,19 @@ import { sweepAttemptAudio, type AttemptAudioSweepResult } from './attemptAudio.
 
 let activeUid: string | null = null;
 
+/**
+ * A counter that moves every time the scope a key was bound under stops being
+ * safe to write: an account switch, a sign-out, and a data reset.
+ *
+ * Binding the key at enqueue (every store does) stops a queued write landing in
+ * the NEXT account. It does not stop it landing back in the SAME account's
+ * namespace after `clearActiveUserData` removed it, which would resurrect a
+ * deleted learner's data under their old uid. A store that captures this at
+ * enqueue and compares it just before `setItem` closes both. The practice
+ * stores do; older stores keep their own behaviour.
+ */
+let generation = 0;
+
 /** Module-level caches (e.g. the drill bank) register to drop on account switch. */
 const resetHooks: (() => void)[] = [];
 
@@ -37,7 +50,13 @@ export function onUserScopeReset(hook: () => void): void {
 export function setActiveUser(uid: string | null): void {
   if (uid === activeUid) return;
   activeUid = uid;
+  generation += 1;
   for (const hook of resetHooks) hook();
+}
+
+/** See `generation`. Read it when work is enqueued; compare it before the write. */
+export function scopeGeneration(): number {
+  return generation;
 }
 
 export function activeUserId(): string | null {
@@ -83,6 +102,15 @@ export const USER_KEY_SUFFIXES = [
   // What this phone did with a pack (F550): practised, continued. Device-local
   // beside the pack cache it annotates, for the cache's own reason.
   'packMarks',
+  // Completed conversation-practice facts, account-synced: ids, outcomes and
+  // source links only, never answer text, transcript or audio.
+  'practiceHistory',
+  // That a conversation was opened from one of the learner's goals, and their
+  // own "used outside" report: ids and the normalised goal key only (Stage 4).
+  'goalSteps',
+  // The one unfinished practice sitting on this phone and its completion plan:
+  // exercise ids, settled outcomes and miss counts. Device-local by design.
+  'practiceSession',
   // The analytics consent. It belongs here more sharply than most: an answer
   // that survived a deletion would be a permission outliving the account that
   // gave it, and an answer missing from the export would be a fact about the
@@ -146,6 +174,8 @@ export interface ClearHooks {
 export async function clearActiveUserData(hooks: ClearHooks = {}): Promise<void> {
   const uid = activeUid;
   if (uid === null) return;
+  // Before any await: a write enqueued before the reset must not land after it.
+  generation += 1;
   try {
     const sweep = hooks.sweepAudio ?? sweepAttemptAudio;
     const alarm = hooks.alarm ?? ((line: string): void => console.error(line));

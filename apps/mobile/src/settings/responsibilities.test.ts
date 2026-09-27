@@ -1,0 +1,127 @@
+/**
+ * Profile, Settings and the memory screen each own what they say they own — Stage 3.
+ *
+ * Profile is who the learner is and how they learn. Settings is the account,
+ * the plan, privacy and help. The tutor memory screen is what the tutor holds.
+ * Three rules keep those apart, and each is one a later edit can quietly break:
+ *
+ * - A preference edited in two places reads the same in both, over one stored
+ *   value. Correction style is on Profile and on the memory screen, on purpose
+ *   (how the tutor treats you belongs beside what it knows about you), so the
+ *   two rows are held to being the same row. The speaking target has exactly
+ *   one editor: Home's tile opens Profile rather than growing a second one.
+ * - Delete account is not a routine row. It sits in a card of its own at the
+ *   foot of Settings, away from Email and Sign out, with the same confirmation.
+ * - Profile's own comments say where the Settings row is, which is first.
+ */
+
+import { describe, test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const SRC = fileURLToPath(new URL('..', import.meta.url));
+const read = (path: string): string => readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8');
+
+function stripComments(source: string): string {
+  const noBlocks = source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+  return noBlocks.replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
+}
+
+function sources(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...sources(full));
+    else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) out.push(full);
+  }
+  return out;
+}
+
+const PROFILE_RAW = read('../tabs/ProfileTab.tsx');
+const PROFILE = stripComments(PROFILE_RAW);
+const MEMORY = stripComments(read('../profile/TutorMemoryScreen.tsx'));
+const SETTINGS = stripComments(read('./SettingsScreen.tsx'));
+
+/** The `<ChoiceRow<Strictness> … />` element, whitespace folded and `first` dropped. */
+function strictnessRow(source: string, where: string): string {
+  const at = source.indexOf('<ChoiceRow<Strictness>');
+  assert.notEqual(at, -1, `${where} has no correction-style row`);
+  const end = source.indexOf('/>', source.indexOf('accessibilityLabel={STRICTNESS_ROW}', at));
+  assert.ok(end > at, `${where}'s correction-style row is never closed`);
+  return source.slice(at, end).replace(/\s+/g, ' ').replace(/ first\b/, '').trim();
+}
+
+describe('one stored value, one way of saying it — Stage 3', () => {
+  test('correction style reads the same on Profile and on the memory screen, over the one stored value', () => {
+    const profile = strictnessRow(PROFILE, 'Profile');
+    const memory = strictnessRow(MEMORY, 'the memory screen');
+    assert.equal(memory, profile, 'the two correction-style rows have drifted apart in wording, options or what they write');
+    assert.match(profile, /onChange=\{\(value\) => update\(withStrictness\(profile, value\)\)\}/, 'the row writes somewhere other than the one door');
+    assert.match(profile, /title=\{STRICTNESS_ROW\}/, 'the row spells its own name');
+
+    // The bite: a row with a different title is caught.
+    const drifted = profile.replace('title={STRICTNESS_ROW}', "title={'Corrections'}");
+    assert.notEqual(drifted, profile, 'the comparison cannot see a changed title');
+  });
+
+  test('the speaking target has exactly one editor, and it is on Profile', () => {
+    const writers = sources(SRC)
+      .filter((file) => /\bwithDailyGoal\(/.test(stripComments(readFileSync(file, 'utf8'))))
+      .map((file) => relative(SRC, file))
+      .filter((file) => file !== join('profile', 'store.ts'))
+      .sort();
+    assert.deepEqual(writers, [join('tabs', 'ProfileTab.tsx')], 'a second screen edits the speaking target');
+    const rows = sources(SRC)
+      .filter((file) => /title=\{DAILY_GOAL_ROW\}/.test(stripComments(readFileSync(file, 'utf8'))))
+      .map((file) => relative(SRC, file));
+    assert.deepEqual(rows, [join('tabs', 'ProfileTab.tsx')], 'the speaking target row is drawn somewhere other than Profile');
+  });
+});
+
+describe('Delete account stands apart from routine rows — Stage 3', () => {
+  test('the delete row is alone in its own card at the foot of Settings, and still opens the confirmation', () => {
+    const list = SETTINGS.slice(SETTINGS.lastIndexOf('  return ('));
+    const cards = list.match(/<Card\b[\s\S]*?<\/Card>/g) ?? [];
+    const holding = cards.filter((card) => card.includes('label={DELETE_ROW}'));
+    assert.equal(holding.length, 1, 'the delete row is in no card, or in two');
+    const own = holding[0]!;
+    assert.equal((own.match(/<SettingsRow\b/g) ?? []).length, 1, 'the delete row shares its card with a routine row');
+    assert.match(own, /destructive/, 'the delete row is not drawn as a destructive row');
+
+    // Not in the Account card beside Email and Sign out.
+    const account = cards.find((card) => card.includes('label={EMAIL_ROW}'));
+    assert.ok(account, 'the Account card is gone');
+    assert.ok(account.includes('label={SIGN_OUT_ROW}'), 'Sign out left the Account card');
+    assert.ok(!account.includes('DELETE_ROW'), 'Delete account still sits beside the routine account rows');
+
+    // Last on the screen: after every group, including About.
+    assert.ok(list.indexOf('<Label>{ABOUT_GROUP}</Label>') < list.indexOf('label={DELETE_ROW}'), 'the delete card is drawn among the routine groups');
+    assert.equal(cards[cards.length - 1], own, 'something is drawn after the delete card');
+
+    // Same door into the same confirmation.
+    const row = SETTINGS.slice(SETTINGS.indexOf('label={DELETE_ROW}'), SETTINGS.indexOf('label={DELETE_ROW}') + 300);
+    assert.ok(row.indexOf('forgetDeleteDraft()') !== -1 && row.indexOf('forgetDeleteDraft()') < row.indexOf("setSheet('delete')"), 'the delete row no longer opens a clean confirmation');
+    assert.match(SETTINGS, /label=\{deleting \? 'Verifying…' : 'Verify and delete permanently'\}/, 'the confirmation changed');
+  });
+});
+
+describe('Profile says where its Settings row is — Stage 3', () => {
+  test('the comments place the Settings row first, where it is drawn', () => {
+    const body = PROFILE.slice(PROFILE.lastIndexOf('  return ('));
+    assert.ok(body.indexOf('label={SETTINGS_ROW}') !== -1 && body.indexOf('label={SETTINGS_ROW}') < body.indexOf('<TabHeader'), 'the Settings row is no longer drawn first');
+    assert.doesNotMatch(PROFILE_RAW, /last on the screen/i, 'a comment still says the Settings row is last');
+    assert.doesNotMatch(PROFILE_RAW, /the row at the foot/i, 'a comment still says the Settings row is at the foot');
+    assert.match(PROFILE_RAW, /first on the screen/i, 'no comment says where the Settings row actually is');
+  });
+});
+
+describe('the memory screen says what clearing does and does not touch — Stage 3', () => {
+  test('clearing remembered details is confirmed and says saved conversations stay', () => {
+    const flat = MEMORY.replace(/\s+/g, ' ');
+    assert.match(flat, /<ConfirmSheet visible=\{clearing\}/, 'clearing is not confirmed');
+    assert.match(flat, /body="[^"]*saved conversations will stay\."/, 'the confirmation does not say saved conversations are kept');
+    assert.match(flat, /Clearing details keeps your goals, correction preferences and saved conversations\./, 'the screen does not say what clearing keeps');
+  });
+});

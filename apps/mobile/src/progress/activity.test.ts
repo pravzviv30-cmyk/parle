@@ -21,7 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setActiveUser } from '../storage/scope.ts';
 import { createSyncPolicy } from '../sync/policy.ts';
 import { sameData } from '../sync/envelope.ts';
-import { loadActivity, recordActivity, type ActivityEntry } from './activity.ts';
+import { claimActivityInstant, loadActivity, recordActivity, recordActivityOnce, type ActivityEntry } from './activity.ts';
 
 function installDisk(initial: Record<string, string> = {}): Map<string, string> {
   const map = new Map<string, string>(Object.entries(initial));
@@ -133,5 +133,57 @@ describe('a sitting that records how long it took', () => {
     // And it settles: folding the answer back in changes nothing, which is what
     // stops the two devices trading revisions forever.
     assert.ok(sameData(merge(forward, older), forward), 'the log keeps moving after both sides agree');
+  });
+});
+
+describe('active learning time on the log (Phase 1B)', () => {
+  test('a measured active total is stored beside the wall-clock duration, never derived from it', async () => {
+    await recordActivity('drill', 5, 1_000, { durationMs: 900_000, activeMs: 240_000 });
+    await recordActivity('lesson', 6, 2_000, { durationMs: 300_000 });
+    const [both, wallOnly] = await loadActivity();
+    assert.deepEqual(both, { at: 1_000, kind: 'drill', xp: 5, durationMs: 900_000, activeMs: 240_000 });
+    assert.equal(Object.prototype.hasOwnProperty.call(wallOnly ?? {}, 'activeMs'), false, 'wall time was copied into activeMs');
+  });
+
+  test('a malformed active total is dropped, and the sitting still lands', async () => {
+    for (const nonsense of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      await recordActivity('review', 2, 3_000 + Math.random(), { activeMs: nonsense });
+    }
+    const entries = await loadActivity();
+    assert.equal(entries.length, 3);
+    for (const entry of entries) assert.equal(entry.activeMs, undefined);
+  });
+
+  test('a stored entry with a malformed active total is refused by the reader, as durationMs is', async () => {
+    disk.set(`luvani.u.${uid}.activity`, JSON.stringify({ version: 2, entries: [{ at: 9, kind: 'drill', xp: 3, activeMs: -4 }, { at: 10, kind: 'drill', xp: 3, activeMs: 4_000 }] }));
+    assert.deepEqual(await loadActivity(), [{ at: 10, kind: 'drill', xp: 3, activeMs: 4_000 }]);
+  });
+
+  test('the at-most-once writer carries the active total and a replay stays one row', async () => {
+    // A recent stamp: the writer prunes to 400 days against the real clock.
+    const when = Date.now() - 60_000;
+    const at = await claimActivityInstant('drill', 7, when);
+    assert.equal(at, when);
+    assert.equal(await recordActivityOnce('drill', 7, when, { durationMs: 70_000, activeMs: 31_000 }), 'durable');
+    assert.equal(await recordActivityOnce('drill', 7, when, { durationMs: 70_000, activeMs: 31_000 }), 'durable');
+    assert.deepEqual(await loadActivity(), [{ at: when, kind: 'drill', xp: 7, durationMs: 70_000, activeMs: 31_000 }]);
+  });
+
+  test('sync keeps the copy carrying an active total, whichever side asks, and settles', () => {
+    const measured = { version: 2, entries: [{ at: 9, kind: 'drill', xp: 4, durationMs: 60_000, activeMs: 20_000 }] };
+    const wallOnly = { version: 2, entries: [{ at: 9, kind: 'drill', xp: 4, durationMs: 60_000 }] };
+    const bare = { version: 1, entries: [{ at: 9, kind: 'drill', xp: 4 }] };
+    for (const other of [wallOnly, bare]) {
+      const forward = merge(measured, other);
+      const backward = merge(other, measured);
+      assert.ok(sameData(forward, backward), 'the answer depends on which device asked');
+      assert.deepEqual(entriesOf(forward), measured.entries, 'an older copy erased the measured active time');
+      assert.ok(sameData(merge(forward, other), forward), 'the fold keeps moving');
+    }
+  });
+
+  test('sync refuses a row with a malformed active total, as the store does', () => {
+    const bad = { version: 2, entries: [{ at: 9, kind: 'drill', xp: 4, activeMs: Number.NaN }, { at: 11, kind: 'drill', xp: 4, activeMs: -1 }] };
+    assert.deepEqual(entriesOf(merge(bad, { version: 2, entries: [] })), []);
   });
 });

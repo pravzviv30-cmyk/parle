@@ -94,6 +94,12 @@ const entry = (when: number, kind: ActivityKind = 'convo', durationMs?: number):
   ...(durationMs === undefined ? {} : { durationMs }),
 });
 
+/** A sitting with measured active learning time (Phase 1B), optionally beside a wall duration. */
+const active = (when: number, kind: ActivityKind, activeMs: number, durationMs?: number): ActivityEntry => ({
+  ...entry(when, kind, durationMs),
+  activeMs,
+});
+
 /** A learner who has answered onboarding and never been asked about minutes. */
 const noGoal = (): StoredProfile => createStoredProfile({ name: 'Amel', motivation: null }, NOW - 90 * DAY_MS);
 
@@ -568,98 +574,147 @@ describe('recall — right over asked, once the introduction is taken out', () =
   });
 });
 
-describe("today's speaking time — present from day one, measured without a quota", () => {
-  test("today's speaking time carries the optional Profile target and counts only timed spoken sittings — F435", () => {
-    const spokeSix = [entry(at(2026, 9, 4, 9), 'convo', 6 * MINUTE_MS)];
+describe("today's practice time — active learning time, present from day one, measured without a quota", () => {
+  test("today's practice time sums measured active time across all four kinds and carries the optional target — Phase 1B", () => {
+    const sixActive = [active(at(2026, 9, 4, 9), 'convo', 6 * MINUTE_MS)];
 
     // No target: the card is still there, and it offers one in the exact
     // words the profile row asks in. One sentence, one owner.
-    const unpromised = momentumFrom({ activity: spokeSix, deck: [], profile: noGoal(), now: NOW }).goal;
-    assert.equal(unpromised.target, null, 'nobody has chosen a speaking target, so there is no target to measure them against');
-    assert.equal(unpromised.note, DAILY_GOAL_UNSET, 'and the card asks for one rather than inventing a number on their behalf');
-    assert.equal(
-      goalLine(noGoal()),
-      DAILY_GOAL_UNSET,
-      'the profile row and this card must ask in the same words, which is why the constant is imported and not rewritten',
-    );
-    assert.equal(unpromised.amount, '6 min today', 'measured speaking time remains visible without requiring a target');
-    assert.equal(unpromised.remaining, null, 'and nothing remaining of nothing');
-    assert.equal(unpromised.minutes, 6, 'the six minutes still happened, and the card still knows it');
-    assert.equal('percent' in unpromised, false, 'speaking time is still reduced to a quota percentage');
-    assert.equal('percentLabel' in unpromised, false, 'a percentage label can still reach Progress');
+    const unpromised = momentumFrom({ activity: sixActive, deck: [], profile: noGoal(), now: NOW }).goal;
+    assert.equal(unpromised.target, null);
+    assert.equal(unpromised.note, DAILY_GOAL_UNSET, 'the card asks for a target rather than inventing one');
+    assert.equal(goalLine(noGoal()), DAILY_GOAL_UNSET);
+    assert.equal(unpromised.amount, '6 min today', 'measured practice time is visible without a target');
+    assert.equal(unpromised.remaining, null);
+    assert.equal(unpromised.minutes, 6);
+    assert.equal('percent' in unpromised, false, 'practice time is never a quota percentage');
+    assert.equal('percentLabel' in unpromised, false);
 
-    const goal = momentumFrom({ activity: spokeSix, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
-    assert.equal(goal.minutes, 6, 'six minutes of conversation is six minutes');
-    assert.equal(goal.target, 10, 'the target is what the learner asked for, never what we would prefer');
-    assert.equal(goal.remaining, 4, 'four minutes are left of the ten');
-    assert.equal(goal.title, GOAL_TITLE, 'the card names itself, and the screen never spells the words');
-    assert.equal(goal.amount, '6 min today', 'the card reports the time already spoken, not a quota fraction');
-    assert.equal(goal.note, "4 more minutes if you want to reach today's target", 'the footer leaves the choice with the learner');
+    const goal = momentumFrom({ activity: sixActive, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
+    assert.equal(goal.minutes, 6);
+    assert.equal(goal.target, 10);
+    assert.equal(goal.remaining, 4);
+    assert.equal(goal.title, GOAL_TITLE);
+    assert.equal(GOAL_TITLE, 'Practice time today', 'the card is named for active practice, not for speaking');
+    assert.equal(goal.amount, '6 min today');
+    assert.equal(goal.note, "4 more minutes if you want to reach today's target");
 
-    // Every spoken path has a quiet twin, so a lesson and a drill are worth the
-    // same minute a conversation is.
+    // All four kinds count, review included: typed and recall work is active learning.
     const mixed = [
-      entry(at(2026, 9, 4, 8), 'lesson', 3 * MINUTE_MS),
-      entry(at(2026, 9, 4, 12), 'drill', 2 * MINUTE_MS),
-      entry(at(2026, 9, 4, 13), 'convo', 1 * MINUTE_MS),
+      active(at(2026, 9, 4, 8), 'lesson', 3 * MINUTE_MS),
+      active(at(2026, 9, 4, 12), 'drill', 2 * MINUTE_MS),
+      active(at(2026, 9, 4, 13), 'convo', 1 * MINUTE_MS),
+      active(at(2026, 9, 4, 13, 30), 'review', 2 * MINUTE_MS),
     ];
-    assert.equal(
-      momentumFrom({ activity: mixed, deck: [], profile: tenMinuteGoal(), now: NOW }).goal.minutes,
-      6,
-      'a lesson and a drill produce French out loud or on the keys, and both count as speaking time',
-    );
+    assert.equal(momentumFrom({ activity: mixed, deck: [], profile: tenMinuteGoal(), now: NOW }).goal.minutes, 8);
 
-    // Review is recall, not speaking, and this card is named for speaking.
-    const reviewOnly = [entry(at(2026, 9, 4, 9), 'review', 25 * MINUTE_MS)];
-    const reviewed = momentumFrom({ activity: reviewOnly, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
-    assert.equal(reviewed.minutes, 0, 'twenty five minutes of card review must never count as speaking time');
-    assert.equal(reviewed.note, GOAL_START, 'and the card leaves the chosen target waiting without urgency');
-    assert.equal(reviewed.amount, '10 min target', 'the preference stands alone, because "0 / 10 min" reads as a failure');
+    // Minutes add up before flooring, so two half minutes are one minute.
+    const halves = [active(at(2026, 9, 4, 8), 'drill', 30_000), active(at(2026, 9, 4, 9), 'review', 30_000)];
+    assert.equal(momentumFrom({ activity: halves, deck: [], profile: tenMinuteGoal(), now: NOW }).goal.minutes, 1);
 
-    // Sittings recorded before `durationMs` existed measured nothing, and
-    // nothing is not zero minutes of speaking. The footer says so rather than
-    // reading a real conversation back to the learner as a nought.
-    const unmeasured = [entry(at(2026, 9, 4, 9), 'convo'), entry(at(2026, 9, 4, 11), 'lesson')];
-    const untimed = momentumFrom({ activity: unmeasured, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
-    assert.equal(untimed.minutes, 0, 'a sitting that took ten minutes and did not record it is not a ten minute claim');
-    assert.equal(untimed.note, GOAL_UNTIMED, 'so the card explains why it shows no measured minutes');
+    // Wall-clock durationMs is legacy and never becomes practice time. A long
+    // open screen with a short active total counts the active total only.
+    const wallOnly = [entry(at(2026, 9, 4, 9), 'convo', 25 * MINUTE_MS)];
+    const walled = momentumFrom({ activity: wallOnly, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
+    assert.equal(walled.minutes, 0, 'wall-clock time was reinterpreted as active practice');
+    assert.equal(walled.note, GOAL_UNTIMED, 'so the card explains the sitting was not timed');
+    const idleHeavy = [active(at(2026, 9, 4, 9), 'drill', 2 * MINUTE_MS, 40 * MINUTE_MS)];
+    assert.equal(momentumFrom({ activity: idleHeavy, deck: [], profile: tenMinuteGoal(), now: NOW }).goal.minutes, 2);
 
-    // Untimed only applies to speaking. An untimed review leaves the ordinary
-    // invitation in place.
-    const untimedReview = [entry(at(2026, 9, 4, 9), 'review')];
-    assert.equal(
-      momentumFrom({ activity: untimedReview, deck: [], profile: tenMinuteGoal(), now: NOW }).goal.note,
-      GOAL_START,
-      'a review is not a spoken sitting, so nothing about it explains missing speaking time',
-    );
+    // Legacy sittings with nothing measured are unknown, not zero, for any kind.
+    for (const kind of ['convo', 'lesson', 'drill', 'review'] as const) {
+      const untimed = momentumFrom({ activity: [entry(at(2026, 9, 4, 9), kind)], deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
+      assert.equal(untimed.minutes, 0);
+      assert.equal(untimed.note, GOAL_UNTIMED, `an untimed ${kind} read as nothing happened`);
+    }
 
     // Yesterday's minutes are yesterday's.
-    const yesterday = [entry(at(2026, 9, 3, 21), 'convo', 20 * MINUTE_MS)];
+    const yesterday = [active(at(2026, 9, 3, 21), 'convo', 20 * MINUTE_MS)];
     const carried = momentumFrom({ activity: yesterday, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
-    assert.equal(carried.minutes, 0, 'a goal card that carried yesterday over would be a card nobody can ever finish');
-    assert.equal(carried.note, GOAL_START, 'today is its own day, and it starts as one');
+    assert.equal(carried.minutes, 0);
+    assert.equal(carried.note, GOAL_START);
 
-    // Under a minute is floored, because the direction to be wrong in is the
-    // modest one. It was timed, so it is a start rather than an untimed sitting.
-    const seconds = [entry(at(2026, 9, 4, 9), 'convo', 59_000)];
+    // Under a minute is floored, and it was timed, so it is a start.
+    const seconds = [active(at(2026, 9, 4, 9), 'convo', 59_000)];
     const partial = momentumFrom({ activity: seconds, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
-    assert.equal(partial.minutes, 0, 'under a whole minute is not a whole minute');
-    assert.equal(partial.note, GOAL_START, 'and it was timed, so the untimed line would be a lie about what happened');
+    assert.equal(partial.minutes, 0);
+    assert.equal(partial.note, GOAL_START);
 
-    // One timed sitting beside an untimed one: the minutes we have are the
-    // minutes shown, and the footer counts down rather than apologising.
-    const both = [entry(at(2026, 9, 4, 9), 'convo'), entry(at(2026, 9, 4, 11), 'convo', 9 * MINUTE_MS)];
+    // One timed sitting beside an untimed one: the minutes measured are the minutes shown.
+    const both = [entry(at(2026, 9, 4, 9), 'convo'), active(at(2026, 9, 4, 11), 'convo', 9 * MINUTE_MS)];
     const partly = momentumFrom({ activity: both, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
-    assert.equal(partly.minutes, 9, 'the nine we measured are the nine we claim');
-    assert.equal(partly.note, "1 more minute if you want to reach today's target", 'one minute left is one minute, and a stray s reads as careless');
+    assert.equal(partly.minutes, 9);
+    assert.equal(partly.note, "1 more minute if you want to reach today's target");
 
     // Past the target, the truthful minutes keep rising and the footer turns warm.
-    const over = [entry(at(2026, 9, 4, 9), 'convo', 22 * MINUTE_MS)];
+    const over = [active(at(2026, 9, 4, 9), 'convo', 22 * MINUTE_MS)];
     const met = momentumFrom({ activity: over, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
-    assert.equal(met.minutes, 22, 'the minutes are what happened, even past the optional target');
-    assert.equal(met.remaining, 0, 'nothing is left to ask for');
-    assert.equal(met.amount, '22 min today', 'measured time is not clamped at the optional target');
-    assert.equal(met.note, GOAL_MET, 'a met goal is met, and the footer stops counting down');
+    assert.equal(met.minutes, 22);
+    assert.equal(met.remaining, 0);
+    assert.equal(met.amount, '22 min today');
+    assert.equal(met.note, GOAL_MET);
+  });
+
+  test('the untimed note is its own field, so every surface can say it once and only when true — Phase 1B', () => {
+    const legacy = [entry(at(2026, 9, 4, 9), 'drill')];
+    // No target: the footer asks for one, and the untimed note still reaches the card.
+    const unset = momentumFrom({ activity: legacy, deck: [], profile: noGoal(), now: NOW }).goal;
+    assert.equal(unset.note, DAILY_GOAL_UNSET);
+    assert.equal(unset.untimedNote, GOAL_UNTIMED);
+    // Measured minutes beside an untimed sitting: the minutes are shown, and the note explains the rest.
+    const mixed = [...legacy, active(at(2026, 9, 4, 11), 'review', 3 * MINUTE_MS)];
+    const partly = momentumFrom({ activity: mixed, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
+    assert.equal(partly.minutes, 3);
+    assert.equal(partly.untimedNote, GOAL_UNTIMED);
+    // Where the footer already says it, the field is null so no card says it twice.
+    const only = momentumFrom({ activity: legacy, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
+    assert.equal(only.note, GOAL_UNTIMED);
+    assert.equal(only.untimedNote, null);
+    // Fully measured days carry no note.
+    const timed = momentumFrom({ activity: [active(at(2026, 9, 4, 9), 'drill', MINUTE_MS)], deck: [], profile: noGoal(), now: NOW }).goal;
+    assert.equal(timed.untimedNote, null);
+  });
+
+  test('a timed sitting under a minute is under a minute, never nothing timed — Stage 1 browser proof', () => {
+    // The finding: a real typed sitting of a few active seconds floored to zero
+    // minutes, and Home read that zero as "No active practice timed yet". It
+    // was timed. The minutes stay floored; what changes is that the card knows
+    // active time was recorded and says so in words, not as a nought.
+    for (const profile of [noGoal(), tenMinuteGoal()]) {
+      const seconds = momentumFrom({ activity: [active(at(2026, 9, 4, 9), 'drill', 7_000)], deck: [], profile, now: NOW }).goal;
+      assert.equal(seconds.minutes, 0, 'under a minute is still floored, never rounded up');
+      assert.equal(seconds.timedToday, true, 'seven active seconds were recorded, so today was timed');
+      assert.equal(seconds.measured, 'Under a minute today', 'the measured amount reads as nothing at all');
+      assert.equal(seconds.amount, 'Under a minute today', 'the Progress card names the target instead of the time the learner just spent');
+      assert.equal(seconds.untimedNote, null, 'a measured sitting is not an untimed one');
+    }
+    // The footer is unchanged: under a minute is a start, not a shortfall.
+    assert.equal(momentumFrom({ activity: [active(at(2026, 9, 4, 9), 'convo', 59_000)], deck: [], profile: tenMinuteGoal(), now: NOW }).goal.note, GOAL_START);
+
+    // A whole minute or more reads as minutes, and is timed.
+    const six = momentumFrom({ activity: [active(at(2026, 9, 4, 9), 'convo', 6 * MINUTE_MS)], deck: [], profile: noGoal(), now: NOW }).goal;
+    assert.equal(six.timedToday, true);
+    assert.equal(six.measured, '6 min today');
+
+    // Nothing active recorded today stays nothing: no activity, a zero total,
+    // a legacy sitting with no active time, or yesterday's minutes.
+    const nothing: readonly (readonly ActivityEntry[])[] = [
+      [],
+      [active(at(2026, 9, 4, 9), 'drill', 0)],
+      [entry(at(2026, 9, 4, 9), 'convo', 25 * MINUTE_MS)],
+      [active(at(2026, 9, 3, 21), 'convo', 20 * MINUTE_MS)],
+    ];
+    for (const activity of nothing) {
+      const goal = momentumFrom({ activity, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
+      assert.equal(goal.timedToday, false, `${JSON.stringify(activity)} reads as timed practice today`);
+      assert.equal(goal.measured, null, `${JSON.stringify(activity)} draws a measured amount`);
+      assert.equal(goal.amount, '10 min target', 'with nothing measured the chosen target still stands alone');
+    }
+    // The legacy note still explains an untimed sitting beside a sub-minute timed one.
+    const mixed = momentumFrom({ activity: [entry(at(2026, 9, 4, 8), 'review'), active(at(2026, 9, 4, 9), 'drill', 20_000)], deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
+    assert.equal(mixed.measured, 'Under a minute today');
+    assert.equal(mixed.note, GOAL_UNTIMED, 'the footer still owns the untimed explanation when no whole minute was measured');
+    assert.equal(mixed.untimedNote, null, 'and it is never said twice');
   });
 });
 
@@ -700,6 +755,11 @@ describe('momentum copy — the words this block is not allowed to say', () => {
     // And the untimed footer, which only appears on a day with a spoken sitting
     // that measured nothing.
     lines.push(...stringsIn(momentumFrom({ activity: [entry(at(2026, 9, 4, 9), 'convo')], deck: [], profile, now: NOW })));
+    // And a timed day under a minute, which has its own measured words.
+    const underMinute = momentumFrom({ activity: [active(at(2026, 9, 4, 9), 'drill', 7_000)], deck: [], profile, now: NOW });
+    assert.equal(underMinute.goal.timedToday, true, 'the sub-minute state must be reachable, or this scan reads nothing new');
+    lines.push(...stringsIn(underMinute));
+    assert.doesNotMatch(underMinute.goal.measured ?? '', /\d/, 'under a minute is said in words, never as a nought');
 
     // A deck sitting in each of the three mastery bands, so no band line can
     // ship unread by this scan.
@@ -738,8 +798,8 @@ describe('momentum copy — the words this block is not allowed to say', () => {
     ];
     for (const count of [0, 1, 2, 3, 4, 7, 9, 10, 11, 22]) {
       const activity: ActivityEntry[] = [];
-      for (let i = 0; i < count; i += 1) activity.push(entry(at(2026, 8, 24, 9) + i * DAY_MS, 'convo', MINUTE_MS));
-      activity.push(...(count === 0 ? [] : [entry(at(2026, 9, 4, 9), 'convo', count * MINUTE_MS)]));
+      for (let i = 0; i < count; i += 1) activity.push(active(at(2026, 8, 24, 9) + i * DAY_MS, 'convo', MINUTE_MS));
+      activity.push(...(count === 0 ? [] : [active(at(2026, 9, 4, 9), 'convo', count * MINUTE_MS)]));
 
       const deck: ReviewCard[] = [];
       for (let i = 0; i < count; i += 1) {
@@ -766,7 +826,7 @@ describe('momentum copy — the words this block is not allowed to say', () => {
 
     // Singulars, at the one count where a lazy plural is visible.
     const oneOfEach = momentumFrom({
-      activity: [entry(at(2026, 9, 4, 9), 'convo', 9 * MINUTE_MS)],
+      activity: [active(at(2026, 9, 4, 9), 'convo', 9 * MINUTE_MS)],
       deck: [cardOf({ id: 'vocab:cafe', front: 'un cafe', uses: 1, addedAt: NOW - DAY_MS })],
       profile,
       now: NOW,

@@ -10,7 +10,7 @@
 
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { missionStates, type MissionProgress } from '@luvani/core';
 
@@ -34,7 +34,7 @@ import { settleIn, useReduceMotion } from '../motion.ts';
 import { loadDeck } from '../review/store.ts';
 import { accent, HAIRLINE, HIT, paper, radius, space, type } from '../theme.ts';
 import { TUTOR_PURPOSE, tutorHeading } from '../tutor/dashboard.ts';
-import { tutorOrbState } from '../tutor/orbState.ts';
+import { launchAccessibilityLabel, launchLabel, launchNotice, orbStatusLabel, tutorOrbState } from '../tutor/orbState.ts';
 import { DOOR_TINT } from '../tutor/doorTint.ts';
 import {
   ENTRY_MODES_LABEL,
@@ -50,6 +50,7 @@ import { tutorNameOf } from '../tutor/tutorName.ts';
 import { VoiceOrb } from '../tutor/VoiceOrb.tsx';
 import { nextConversation } from '../tutor/nextConversation.ts';
 import { prefersTyping } from '../profile/typing.ts';
+import { LESSON_MINUTES } from '../copy/access.ts';
 
 /**
  * The three rows, built once.
@@ -81,6 +82,8 @@ export function TutorTab() {
   const entry = useRef(new Animated.Value(0)).current;
 
   const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
+  // Another screen's recheck can bring the tutor back; a refusal from here is then stale.
+  useEffect(() => { if (live) setHeldBack(null); }, [live]);
   const [checking, setChecking] = useState(false);
   const [mode, setMode] = useState<'speak' | 'type'>(() => prefersTyping(profile) ? 'type' : 'speak');
   const [progress, setProgress] = useState<readonly MissionProgress[]>(() => missionStates([], [], Date.now()));
@@ -235,14 +238,10 @@ export function TutorTab() {
           <Text style={[type.cardTitle, { color: paper.ink }]}>{next.title}</Text>
           <Text style={[type.body, { color: paper.inkSoft }]}>{next.body}</Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Start ${mode === 'type' ? 'a typed' : 'a spoken'} conversation with ${tutorName}`}
-          accessibilityHint="Opens a conversation when the connection is ready"
-          disabled={checking}
-          onPress={() => open(mode === 'type', next.params)}
-          style={({ pressed }) => [st.orb, pressed && !checking && st.pressed]}
-        >
+        {/* The circle reports the tutor's state; it is not a second start.
+            The pill below is the one launch (Stage 3A), so a screen reader
+            hears the state here and the action there. */}
+        <View style={st.orb} accessible accessibilityLabel={orbStatusLabel(orb, tutorName)}>
           <VoiceOrb
             state={orb.state}
             size={TUTOR_ORB_SIZE}
@@ -251,11 +250,11 @@ export function TutorTab() {
             paused={!focused}
           />
           {orb.state !== 'ready' && <Text style={st.orbSubline}>{orb.subline}</Text>}
-        </Pressable>
+        </View>
         <Text style={st.studioFoot}>{next.detail}</Text>
         <TabBar tabs={[{ key: 'speak', label: 'Speak' }, { key: 'type', label: 'Type' }]} active={mode} onChange={setMode} accessibilityLabel="How you want to practise" />
-        <PillButton label={checking ? 'Connecting…' : mode === 'type' ? 'Start typing' : 'Start speaking'} disabled={checking} onPress={() => open(mode === 'type', next.params)} />
-        <Text style={st.notice}>{mode === 'type' ? 'A quiet conversation. No microphone or tutor audio.' : 'Take your time. Ask for a hint whenever you need one.'}</Text>
+        <PillButton label={launchLabel({ checking, live, mode })} accessibilityLabel={launchAccessibilityLabel({ checking, live, mode, tutorName })} disabled={checking} onPress={() => open(mode === 'type', next.params)} />
+        <Text style={st.notice}>{launchNotice(mode)}</Text>
         </View>
 
         {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
@@ -316,7 +315,7 @@ export function TutorTab() {
               />
             </View>
           ))}
-          <TintRow tint="sky" glyph={<WaveformGlyph color={accent.primary} />} title="Practise pronunciation" gloss="A guided café lesson with lines to listen to and repeat." onPress={() => nav.navigate('Lesson', { textMode: mode === 'type' })} />
+          <TintRow tint="sky" glyph={<WaveformGlyph color={accent.primary} />} title="Practise pronunciation" gloss={`A guided café lesson with lines to listen to and repeat. ${LESSON_MINUTES}`} onPress={() => nav.navigate('Lesson', { textMode: mode === 'type' })} />
           <TintRow tint="lilac" glyph={<DocumentGlyph color={accent.primary} />} title="What your tutor remembers" gloss="Review remembered details, your goals and correction style." onPress={() => nav.navigate('TutorMemory')} />
         </View>
 
@@ -335,7 +334,6 @@ const st = StyleSheet.create({
   studioNote: { ...type.frenchSm, color: paper.inkSoft },
   studioFoot: { ...type.small, color: paper.ink, textAlign: 'center', borderTopWidth: HAIRLINE, borderTopColor: paper.ink, paddingTop: space(3) },
   orb: { alignItems: 'center', alignSelf: 'center', minWidth: TUTOR_ORB_SIZE, minHeight: TUTOR_ORB_SIZE, paddingVertical: space(1) },
-  pressed: { transform: [{ scale: 0.985 }, { translateY: 1 }] },
   orbSubline: { ...type.small, color: paper.inkSoft, marginTop: space(1), textAlign: 'center' },
   checking: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
   offline: { marginTop: space(4) },

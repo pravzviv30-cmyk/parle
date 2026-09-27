@@ -86,6 +86,17 @@ describe('the pre-account hand-off', () => {
     assert.match(source, /import \{ settleIn, useReduceMotion \} from '\.\.\/motion\.ts'/, 'the shared motion seam is no longer imported');
   });
 
+  test('the café reply is read aloud as two sentences, with no doubled mark — Stage 4 browser proof', () => {
+    // The label read "…s’il vous plaît.. I’d like a coffee, please." because a
+    // full stop was added after a line that already ends with one.
+    assert.match(
+      source,
+      /accessibilityLabel=\{`Reply: \$\{asSentences\(\[CAFÉ_DEMO\.learnerFr, CAFÉ_DEMO\.learnerEn\]\)\}`\}/,
+      'the reply label joins its sentences by hand again',
+    );
+    assert.match(source, /import \{ asSentences \} from '\.\.\/copy\/spoken\.ts';/, 'the reply label does not use the shared sentence joiner');
+  });
+
   test('the second page proves the product with one local café turn before it explains more', () => {
     assert.match(source, /const CAFÉ_DEMO = \{/, 'the demo copy has no single owner');
     assert.match(source, /const \[demoAnswered, setDemoAnswered\] = useState\(false\)/, 'the café turn has no local state');

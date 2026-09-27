@@ -46,8 +46,9 @@ check before deploying the tutor service. No paid API was called for this fix.
    expand inline on Home, only when there is evidence to show. Personal recall
    still appears when there are due phrases.
 6. French with friends appears only for actionable updates, a current challenge
-   or visible friend activity. Today, at your pace appears only after timed
-   speaking, not just because a target exists. Neither draws an empty filler card.
+   or visible friend activity, and never draws an empty filler card. The separate
+   pace card is gone (whole-app upgrade, Stage 3): the optional target opens only
+   from the Practice time tile, and Review from the hero or the Recall tile.
 7. The searchable daily collection remains reachable under the carousel.
 
 Daily picks are deterministic and level-aware. A new date refreshes the cards

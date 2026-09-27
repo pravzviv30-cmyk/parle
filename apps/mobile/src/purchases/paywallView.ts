@@ -1,3 +1,4 @@
+import { PLANS_PRIVACY, PLANS_RENEWAL, PLANS_RESTORE, PLANS_TERMS, PLANS_TRUST } from '../wall/wallCopy.ts';
 import { PAID_PLANS, type StoreOffering, type StoreProduct } from './adapter.ts';
 import type { RestoreOutcome } from './restore.ts';
 
@@ -55,7 +56,63 @@ export function paywallSurface(offering: StoreOffering): (PaywallSurface & { pro
   };
 }
 
-export const PURCHASE_TROUBLE = 'The store could not finish that just now. Nothing was changed, and you can try later.';
+/**
+ * Said inside the out-of-minutes card when the store has nothing to offer.
+ *
+ * It used to say nothing at all: `Paywall` returned null, so the card held a
+ * headline and a Back button. A store that did not answer is not an upgrade
+ * requirement, so this names what is true, offers the restore a learner who
+ * already paid may need, and points at what still works for free. No price,
+ * no plan name, nothing the phone cannot see.
+ */
+export const STORE_UNAVAILABLE_TITLE = 'Plans are not available here yet';
+export const STORE_UNAVAILABLE_BODY = 'The store did not answer on this device. If you already have a plan, you can restore it here. Practice and review still work without minutes.';
+
+/**
+ * What the inline paywall draws, decided here so a test can ask.
+ *
+ * `offer` is the shared surface plus the plans page's own renewal terms and the
+ * two documents, which Apple asks for beside the buy button and a learner is
+ * owed anyway. `unavailable` is the same small print around a restore, with no
+ * buy button. Every string is borrowed from `wall/wallCopy.ts`, so the inline
+ * card and the full plans page cannot come to say different things.
+ */
+export type InlinePaywallView =
+  | {
+      kind: 'offer';
+      surface: PaywallSurface & { product: StoreProduct };
+      renewal: string;
+      privacy: string;
+      terms: string;
+      trust: string;
+    }
+  | {
+      kind: 'unavailable';
+      title: string;
+      body: string;
+      restoreLabel: string;
+      privacy: string;
+      terms: string;
+      trust: string;
+    };
+
+export function inlinePaywall(offering: StoreOffering): InlinePaywallView {
+  const surface = paywallSurface(offering);
+  if (surface === null) {
+    return {
+      kind: 'unavailable',
+      title: STORE_UNAVAILABLE_TITLE,
+      body: STORE_UNAVAILABLE_BODY,
+      restoreLabel: PLANS_RESTORE,
+      privacy: PLANS_PRIVACY,
+      terms: PLANS_TERMS,
+      trust: PLANS_TRUST,
+    };
+  }
+  return { kind: 'offer', surface, renewal: PLANS_RENEWAL, privacy: PLANS_PRIVACY, terms: PLANS_TERMS, trust: PLANS_TRUST };
+}
+
+export const PURCHASE_TROUBLE ='The store could not finish that just now. Nothing was changed, and you can try later.';
 export const REFRESH_TROUBLE = 'The store finished, but speaking time is still catching up. Try again in a moment.';
 export const PURCHASE_READY = 'Your speaking time is ready.';
 

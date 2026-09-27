@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import {
   DAILY_SCENARIOS,
+  MISSIONS,
   missionStates,
   seedTopicOf,
   suggestedMission,
@@ -14,10 +15,10 @@ import {
 
 import { Label, TintRow } from '../components.tsx';
 import { IconRowCard } from '../surface/IconRowCard.tsx';
-import { DocumentGlyph, PlaceGlyph, QuoteGlyph, WaveformGlyph } from '../glyphs.tsx';
+import { ChatGlyph, DocumentGlyph, PlaceGlyph, QuoteGlyph, WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
-import { accent, space } from '../theme.ts';
+import { accent, paper, space, type } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
 import { loadActivity } from '../progress/activity.ts';
@@ -32,8 +33,19 @@ import { useAuth } from '../auth/useAuth.tsx';
 import { loadConversationPacks, refreshConversationPacks } from '../conversationPacks/store.ts';
 import { myFrenchFrom, type MyFrench } from '../myfrench/model.ts';
 import {
+  BROWSE_LABEL,
+  BROWSE_LINE,
+  BROWSE_OPEN,
+  COLLECTION_LABEL,
   CONVERSATIONS_ROW,
   CONVERSATIONS_SUB,
+  DAILY_LABEL,
+  DAILY_LINE,
+  DAILY_OPEN,
+  GOALS_ROW_LABEL,
+  RECENT_ALL,
+  MY_FRENCH_RETRY,
+  MY_FRENCH_UNREAD,
   MY_FRENCH_PURPOSE,
   MY_FRENCH_TITLE,
   SAVED_LABEL,
@@ -41,13 +53,18 @@ import {
   SHELF_OPEN,
 } from '../myfrench/copy.ts';
 import { SituationsCard } from '../myfrench/SituationsCard.tsx';
+import { allConversations, progressStatement, recentConversations, type HistoryItem } from '../myfrench/recentConversations.ts';
+import { loadPracticeHistory } from '../practice/historyStore.ts';
+import { scopeGeneration } from '../storage/scope.ts';
+import { legacyMarkItems } from '../practice/history.ts';
+import { loadPackMarks } from '../conversationPacks/marks.ts';
 import { loadSoundChecks } from '../soundcheck/store.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
-import {
-  SOUND_FINGERPRINT_LABEL,
-  SOUND_FINGERPRINT_OPEN,
-  soundFingerprint,
-} from '../myfrench/sounds.ts';
+import { SOUND_FINGERPRINT_LABEL, soundFingerprint } from '../myfrench/sounds.ts';
+import { soundDoorLabel, soundJourney } from '../soundcheck/journey.ts';
+import { useProfile } from '../app/ProfileContext.tsx';
+import { goalRouteKey, goalRows } from '../goals/rows.ts';
+import { GOALS_LABEL } from '../profile/tutorMemory.ts';
 
 /**
  * My French — the record of what has become the learner's.
@@ -72,6 +89,13 @@ import {
  * task. Every row is a door, and a learner who opens none of them has still
  * read something true about themselves.
  *
+ * Whole-app phase 2 set the order: the tab's own name and one plain line; one
+ * evidence-backed progress sentence; Your conversations (up to three, then one
+ * See all); Your collection (the phrase shelf and the daily collection, in the
+ * first useful scroll); the saved scenes and a measured sound when there are
+ * any; French you can use and at most two places to try next; and one door
+ * into every situation, which lives in Missions.
+ *
  * ## This file decides nothing
  *
  * Every judgement is `myfrench/model.ts`'s, and everything that module composes
@@ -81,11 +105,16 @@ import {
  *
  * The week's story used to be read here. It lives on Progress now (F561), and
  * F233 still holds `progress/story.ts` to exactly one importer in the whole
- * app; that importer is Progress's, and this screen reads no history at all.
+ * app; that importer is Progress's, and this screen reads none of it. What it
+ * does read is the conversation-practice history (`practice/historyStore.ts`),
+ * a different store of source-linked facts, and only to say what happened with
+ * each recent saved conversation.
  */
 export function MyFrenchTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { user, adapter } = useAuth();
+  // The goals the learner wrote, read from the live profile (Stage 4).
+  const { profile } = useProfile();
   const [deck, setDeck] = useState<readonly ReviewCard[]>([]);
   const [missions, setMissions] = useState<readonly MissionProgress[]>([]);
   const [packs, setPacks] = useState<ConversationPack[]>([]);
@@ -98,10 +127,23 @@ export function MyFrenchTab() {
   // assessed. The pure projection below rejects self-guided and unavailable
   // attempts, so an empty list and an unmeasured list both draw no row.
   const [checks, setChecks] = useState<readonly SoundCheckEvidence[]>([]);
+  // What was recorded about the saved conversations: the synced practice
+  // events, and this phone's old pack marks as reader-only labels. Empty until
+  // read, which draws each recent row with its phrases and no outcome.
+  const [history, setHistory] = useState<readonly HistoryItem[]>([]);
+  // Whether the page's own read has answered. 'loading' and 'unread' are
+  // facts of their own: neither may be drawn as an empty account. A retry
+  // bumps `attempt`, which re-runs the focus read.
+  const [status, setStatus] = useState<'loading' | 'ready' | 'unread'>('loading');
+  const [attempt, setAttempt] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      // Bound to the account before any read, so a result from the previous
+      // account is dropped rather than drawn for this one.
+      const scope = scopeGeneration();
+      const sameAccount = (): boolean => !cancelled && scopeGeneration() === scope;
       void Promise.all([
         loadMissionCompletions(),
         loadDeck(),
@@ -111,7 +153,7 @@ export function MyFrenchTab() {
         loadSoundChecks(),
       ]).then(
         ([completions, cards, topics, activity, bookmarks, soundChecks]) => {
-          if (cancelled) return;
+          if (!sameAccount()) return;
           const now = Date.now();
           const nextMissions = missionStates(missionCompletionsFrom(completions), cards, now);
           setDeck(cards);
@@ -119,6 +161,7 @@ export function MyFrenchTab() {
           setSuggested(suggestedMission(nextMissions));
           setSaved(savedSituations(bookmarks, DAILY_SCENARIOS));
           setChecks(soundChecks);
+          setStatus('ready');
           // The two numbers the product event has always carried, still counted
           // by evidence.ts and still never drawn: F348 took the rail of counts
           // off this page, and nothing here puts a digit back in front of a
@@ -129,23 +172,52 @@ export function MyFrenchTab() {
             properties: { situationsDone: nextEvidence.situations, linesKept: nextEvidence.lines },
           });
         },
+        () => {
+          // A read that failed says so. What was already drawn for this same
+          // account stays; only a first read with nothing to show becomes the
+          // retry card.
+          if (sameAccount()) setStatus((current) => (current === 'ready' ? 'ready' : 'unread'));
+        },
       );
+      // The recent rows are made from these packs, so they are held to the
+      // same account binding.
       void loadConversationPacks().then((stored) => {
-        if (!cancelled) setPacks(stored);
+        if (sameAccount()) setPacks(stored);
       });
+      // A history that cannot be read says nothing rather than something false.
+      void Promise.all([loadPracticeHistory(), loadPackMarks()])
+        .then(([events, marks]) => {
+          if (cancelled) return;
+          setHistory(sameAccount() ? [...events, ...legacyMarkItems(marks)] : []);
+        })
+        .catch(() => {
+          if (!cancelled) setHistory([]);
+        });
       if (user) {
         void refreshConversationPacks(user, adapter).then((result) => {
-          if (!cancelled && result.ok) setPacks(result.packs);
+          if (sameAccount() && result.ok) setPacks(result.packs);
         });
       }
       return () => {
         cancelled = true;
       };
-    }, [user, adapter]),
+    }, [user, adapter, attempt]),
   );
 
   const model: MyFrench = myFrenchFrom({ deck, missions, saved, packs, suggested, now: Date.now() });
   const fingerprint = soundFingerprint(checks);
+  // Once more than one measured check has called a sound out, the same row
+  // opens the focused sound journey (Stage 4). Below that bar it is the door it
+  // always was.
+  const journey = soundJourney(checks, Date.now());
+  // The recent saved conversations and the one progress sentence, from the
+  // recorded history only, filtered against the pack cache this screen holds so
+  // a deleted conversation is never brought back by its history.
+  const recent = recentConversations({ packs, events: history });
+  // The sentence reads every ready conversation, not only the rows drawn.
+  const progress = progressStatement(allConversations({ packs, events: history }));
+  // One row per goal, and the next task for it (Stage 4). Empty with no goals.
+  const goals = goalRows(profile.learnerGoals, MISSIONS);
 
   return (
     <ScrollScreen bottom="tab">
@@ -155,23 +227,67 @@ export function MyFrenchTab() {
         <TabHeader title={MY_FRENCH_TITLE} purpose={MY_FRENCH_PURPOSE} trailing={<ProfileButton />} />
       </View>
 
-      <SituationsCard
-        model={model}
-        onOpen={(missionId, refine) =>
-          refine
-            ? nav.navigate('SoundCheck', { missionId })
-            : (void trackProductEvent({
-                name: 'mission_started',
-                properties: { missionId, entry: 'my-french' },
-              }), nav.navigate('Convo', { missionId }))
-        }
-      />
+      {/* A failed read is a row like every other door on this page, not a
+          button: the page is a record and asks for nothing. */}
+      {status === 'unread' && (
+        <View style={st.block}>
+          <IconRowCard
+            glyph={<DocumentGlyph color={accent.primary} />}
+            label={MY_FRENCH_RETRY}
+            line={MY_FRENCH_UNREAD}
+            accessibilityLabel={`${MY_FRENCH_UNREAD} ${MY_FRENCH_RETRY}`}
+            onPress={() => {
+              setStatus('loading');
+              setAttempt((n) => n + 1);
+            }}
+          />
+        </View>
+      )}
 
-      {/* One line of French, and the whole phrasebook behind it. The row
-          always draws: on an empty deck the module's own sentence says what
-          the shelf is for, which is a different thing from telling a learner
-          they have kept nothing. */}
-      <View style={st.block}>
+      {/* One concrete sentence of progress, only when completed practice
+          recorded something. Nothing is drawn rather than a placeholder. */}
+      {progress !== null && <Text style={st.progress}>{progress}</Text>}
+
+      {/* Your conversations: up to three recent rows, each opening its own
+          saved conversation, then one See all into the whole library. The
+          group is drawn only once a conversation exists, so a learner is never
+          offered an empty library. The title, the French preview and the
+          outcome are three facts on three lines, and the row names all three
+          to a screen reader in the model's words. */}
+      {model.showConversations && (
+        <View style={st.group}>
+          <Label>{CONVERSATIONS_ROW}</Label>
+          {recent.map((row) => (
+            <IconRowCard
+              key={row.pack.id}
+              glyph={<DocumentGlyph color={accent.primary} />}
+              label={row.pack.title.en}
+              line={row.preview.join(' · ')}
+              note={row.line}
+              accessibilityLabel={row.accessibilityLabel}
+              onPress={() => nav.navigate('Conversations', { packId: row.pack.id })}
+            />
+          ))}
+          {/* The library door carries the conversation mark, not the saved-
+              conversation document, so it never reads as one more saved row. */}
+          <IconRowCard
+            glyph={<ChatGlyph color={accent.primary} />}
+            label={RECENT_ALL}
+            line={CONVERSATIONS_SUB}
+            accessibilityLabel={RECENT_ALL}
+            onPress={() => nav.navigate('Conversations')}
+          />
+        </View>
+      )}
+
+      {/* Your collection, in the first useful scroll rather than under every
+          situation: the phrases earned from conversations, then the daily
+          items the learner saved. Two rows because they are two different
+          kinds of saved French. The shelf always draws: on an empty deck the
+          module's own sentence says what the shelf is for, which is a
+          different thing from telling a learner they have kept nothing. */}
+      <View style={st.group}>
+        <Label>{COLLECTION_LABEL}</Label>
         <IconRowCard
           glyph={<QuoteGlyph color={accent.primary} />}
           label={SHELF_LABEL}
@@ -179,22 +295,8 @@ export function MyFrenchTab() {
           accessibilityLabel={SHELF_OPEN}
           onPress={() => nav.navigate('Phrasebook')}
         />
+        <IconRowCard glyph={<QuoteGlyph color={accent.primary} />} label={DAILY_LABEL} line={DAILY_LINE} accessibilityLabel={DAILY_OPEN} onPress={() => nav.navigate('DailyLibrary')} />
       </View>
-
-      {/* A small door back to pronunciation, and only after the assessor has
-          returned real evidence. The sentence is the stored, timeless view of
-          that check; the detailed acoustic guidance remains on Sound Check. */}
-      {fingerprint !== null && (
-        <View style={st.block}>
-          <IconRowCard
-            glyph={<WaveformGlyph color={accent.primary} />}
-            label={SOUND_FINGERPRINT_LABEL}
-            line={fingerprint.line}
-            accessibilityLabel={SOUND_FINGERPRINT_OPEN}
-            onPress={() => nav.navigate('SoundCheck', { missionId: fingerprint.missionId })}
-          />
-        </View>
-      )}
 
       {/* What the learner saved from Home, to come back to. Absent entirely
           when nothing is saved: a shelf that says it is empty says the
@@ -216,20 +318,62 @@ export function MyFrenchTab() {
         </View>
       )}
 
-      {/* The conversations the tutor turned into practice. Drawn only when
-          one exists, so a learner is never offered an empty library. */}
-      {model.showConversations && (
+      {/* A small door back to pronunciation, and only after the assessor has
+          returned real evidence. The sentence is the stored, timeless view of
+          that check; the detailed acoustic guidance remains on Sound Check. */}
+      {fingerprint !== null && (
         <View style={st.block}>
           <IconRowCard
-            glyph={<DocumentGlyph color={accent.primary} />}
-            label={CONVERSATIONS_ROW}
-            line={CONVERSATIONS_SUB}
-            accessibilityLabel={CONVERSATIONS_ROW}
-            onPress={() => nav.navigate('Conversations')}
+            glyph={<WaveformGlyph color={accent.primary} />}
+            label={SOUND_FINGERPRINT_LABEL}
+            line={fingerprint.line}
+            accessibilityLabel={soundDoorLabel(journey)}
+            onPress={() => (journey !== null ? nav.navigate('SoundJourney') : nav.navigate('SoundCheck', { missionId: fingerprint.missionId }))}
           />
         </View>
       )}
-      <View style={st.block}><IconRowCard glyph={<QuoteGlyph color={accent.primary} />} label="Daily collection" line="Saved words, phrases and offline audio." accessibilityLabel="Open daily collection" onPress={() => nav.navigate('DailyLibrary')} /></View>
+
+      {/* The learner's own goals (Stage 4), just before the places to try:
+          one row card each, the goal in their words and the next task under
+          it, opening the goal screen. Nothing at all when there is no goal. */}
+      {/* Under their own heading, in the goal editor's words, so the cards do
+          not read as part of the collection above them. */}
+      {goals.length > 0 && (
+        <View style={st.group}>
+          <Label>{GOALS_LABEL}</Label>
+          {goals.map((row) => (
+            <IconRowCard key={row.goal} glyph={<DocumentGlyph color={accent.primary} />} label={GOALS_ROW_LABEL} line={row.goal} note={row.line} accessibilityLabel={row.spoken} onPress={() => nav.navigate('GoalStep', { key: goalRouteKey(row.goal) })} />
+          ))}
+        </View>
+      )}
+
+      {/* French you can use, then at most two places to try next. The page's
+          one block gap keeps the places off the rows above them;
+          SituationsCard spaces only its inside. */}
+      <View style={st.block}>
+        <SituationsCard
+          model={model}
+          onOpen={(missionId, refine) =>
+            refine
+              ? nav.navigate('SoundCheck', { missionId })
+              : (void trackProductEvent({
+                  name: 'mission_started',
+                  properties: { missionId, entry: 'my-french' },
+                }), nav.navigate('Convo', { missionId }))
+          }
+        />
+      </View>
+
+      {/* Every situation, in any order, lives in Missions. One door. */}
+      <View style={st.block}>
+        <IconRowCard
+          glyph={<DocumentGlyph color={accent.primary} />}
+          label={BROWSE_LABEL}
+          line={BROWSE_LINE}
+          accessibilityLabel={BROWSE_OPEN}
+          onPress={() => nav.navigate('Missions')}
+        />
+      </View>
     </ScrollScreen>
   );
 }
@@ -243,4 +387,5 @@ const st = StyleSheet.create({
   block: { marginTop: space(4) },
   // A heading and its rows, one gap apart, lifted off the block above.
   group: { marginTop: space(4), gap: space(4) },
+  progress: { ...type.body, color: paper.ink, marginTop: space(3) },
 });

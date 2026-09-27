@@ -967,6 +967,13 @@ export class LuvaniConversation extends voice.Agent {
   private readonly seedTopic: SeedTopic | undefined;
   private readonly teachingBrief: string;
   /**
+   * The saved conversation this session revisits, by id only, or null. Kept
+   * from the parsed, allowlisted revision (never the raw token metadata) so the
+   * pack this session earns can name its source. The token server re-checks
+   * ownership before the link is stored; this is a claim, not proof.
+   */
+  private readonly revisedFromPackId: string | null;
+  /**
    * The mission this session was started on, or nothing. Its scene was authored
    * ahead of time, which is the whole of why a mission opens in seconds.
    */
@@ -1053,8 +1060,10 @@ export class LuvaniConversation extends voice.Agent {
     this.client = opts.client ?? brainClient();
     this.seedTopic = validSeedTopic(opts.seedTopic);
     this.missionId = validMissionId(opts.missionId);
+    const revision = parseTutorRevision(opts.revision);
+    this.revisedFromPackId = revision?.packId ?? null;
     this.teachingBrief = tutorSessionBrief({
-      revision: parseTutorRevision(opts.revision),
+      revision,
       missionId: this.missionId,
       seeded: !!this.seedTopic,
       reviewFocus: parseReviewFocus(opts.reviewFocus),
@@ -2324,6 +2333,9 @@ export class LuvaniConversation extends voice.Agent {
         why: fix.why,
       })),
       exercises,
+      // Both the baseline and the enriched write carry it, so neither
+      // persistence phase can drop the link the other one set.
+      revisedFromPackId: this.revisedFromPackId,
     });
   }
 

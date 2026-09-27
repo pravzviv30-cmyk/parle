@@ -29,7 +29,7 @@ What exists instead is `console.*` with greppable prefixes, and they are well ch
 
 On the client, `live/failure.ts` classifies **eleven** live-session failure modes and
 `useLiveSession.ts` keeps a `diagRef` — token status, LiveKit URL, room connect time,
-whether the agent joined, whether it spoke — rendered behind a "What happened?" panel.
+whether the agent joined, whether it spoke — rendered behind a closed "Support details" panel.
 **None of it is ever transmitted.** That is the gap.
 
 ## The seam to cut, when the time comes

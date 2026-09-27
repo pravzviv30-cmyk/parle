@@ -11,7 +11,7 @@
  * does not need a score-like marker advancing above them.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Animated, Platform, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePreventRemove } from '@react-navigation/native';
@@ -37,7 +37,7 @@ import {
   fitDisplay,
 } from './components.tsx';
 import { SupportBlock } from './SessionView.tsx';
-import { ConfirmSheet } from './layout.tsx';
+import { ConfirmSheet, ScrollScreen } from './layout.tsx';
 import { leaveConfirmCopy } from './live/leaveConfirm.ts';
 import { RecapScreen, type RecapPracticePhrase } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
@@ -45,6 +45,8 @@ import { bankPractice, journalDrills, journalPractice } from './live/journal.ts'
 import { saveRecapKeepsake } from './live/recapKeepsake.ts';
 import { MAX_RECOVERED_PHRASES, convoUsesFrom, type PracticeBatch } from './live/journalRules.ts';
 import { recordActivity } from './progress/activity.ts';
+import { useActiveClock } from './progress/useActiveClock.ts';
+import { ACTIVE_CUTOFF_MS, learnerEngaged } from './progress/activeTime.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { CONNECTING_TICK_MS, connectingTick, connectingView } from './live/connectingView.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
@@ -131,6 +133,8 @@ import { loadSeenCoachMarks, markCoachMarkSeen } from './tutor/store.ts';
 import { recordMissionCompletion } from './missions/store.ts';
 import { recordScenarioProgress } from './missions/progressStore.ts';
 import { markPackContinued } from './conversationPacks/marks.ts';
+import { recordRevisitStarted } from './practice/historyStore.ts';
+import { recordGoalStepStarted } from './goals/store.ts';
 import { replayNote, type MissionReplay } from './missions/chooserView.ts';
 import { trackProductEvent } from './analytics/track.ts';
 import { MOMENT_ANSWER_MS, momentAnswer } from './practice/statusLine.ts';
@@ -237,6 +241,7 @@ export function ConvoScreen({
   continuationPackId,
   missionId,
   replay,
+  goalStep,
 }: {
   userId: string;
   /** The stored learner model, passed through to the agent opaquely. */
@@ -280,6 +285,12 @@ export function ConvoScreen({
    * what this screen did before there was a replay at all.
    */
   replay?: MissionReplay | null;
+  /**
+   * This conversation was opened from one of the learner's goals (Stage 4):
+   * the goal's normalised key and the task id. Recorded once the room is real,
+   * under the server's session id, and never sent to the agent.
+   */
+  goalStep?: { goalKey: string; task: string };
 }) {
   const insets = useSafeAreaInsets();
   const { profile, update } = useProfile();
@@ -334,6 +345,32 @@ export function ConvoScreen({
     continuationMarkedRef.current = true;
     void markPackContinued(continuationPackId, Date.now());
   }, [continuationPackId, live.convo]);
+
+  // The same moment, recorded in the account's practice history: a tutor
+  // revisit of this saved conversation started. Only a room that published a
+  // real view counts, keyed on the server's own session id, so a failed join
+  // records nothing and a re-render or a reconnect records nothing twice. It
+  // says the revisit started, never that anything was used while speaking.
+  const revisitRecordedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (continuationPackId === undefined || live.convo === null || live.sessionId === null) return;
+    if (revisitRecordedRef.current === live.sessionId) return;
+    revisitRecordedRef.current = live.sessionId;
+    void recordRevisitStarted({ sessionId: live.sessionId, packId: continuationPackId, at: Date.now() });
+  }, [continuationPackId, live.convo, live.sessionId]);
+
+  // The same moment for a goal (Stage 4): this conversation was opened from a
+  // goal card. Same guard as the revisit, so a failed join records nothing, a
+  // reconnect records nothing twice, and a rebuilt session (whose view `start`
+  // clears) records only once its own room is real. It says the step started,
+  // never how it went; what came of it is read later, by pack id.
+  const goalStepRecordedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (goalStep === undefined || live.convo === null || live.sessionId === null) return;
+    if (goalStepRecordedRef.current === live.sessionId) return;
+    goalStepRecordedRef.current = live.sessionId;
+    void recordGoalStepStarted({ sessionId: live.sessionId, goalKey: goalStep.goalKey, task: goalStep.task, at: Date.now() });
+  }, [goalStep, live.convo, live.sessionId]);
 
   /**
    * The learner is typing: they opened this way, or they took the quiet door
@@ -413,6 +450,7 @@ export function ConvoScreen({
     if (live.tutorSpeaking) return;
     const turn = typedTurn(draft);
     if (turn === null) return;
+    markLearnerAction();
     setDraft('');
     void live.sendSay(turn.text).then((sent) => {
       if (!sent) setDraft((current) => (current.trim().length > 0 ? current : turn.text));
@@ -446,6 +484,36 @@ export function ConvoScreen({
   // torn-down room would lose both. onRecap persists; it no longer navigates.
   const bankedRef = useRef(false);
   /**
+   * Active learning time (Practice time). The evidence is the conversation's
+   * own rhythm once the room is open: each learner turn the agent heard, each
+   * typed send, and each boundary where the tutor starts or stops speaking,
+   * because listening to the tutor is part of the work. The 45 second cutoff
+   * leaves a silent, abandoned room out. The room merely being open, and the
+   * connecting screen before it, count for nothing.
+   *
+   * The tutor's boundaries are not the learner's own, though. In voice mode
+   * the agent re-arms a silence rescue every few seconds, so a learner who
+   * walked away with the app foregrounded would keep earning through them. A
+   * tutor boundary therefore counts only while the learner acted within the
+   * cutoff (`learnerEngaged`); a learner action always counts.
+   */
+  const clock = useActiveClock('convo');
+  const lastLearnerActionAtRef = useRef<number | null>(null);
+  const markLearnerAction = useCallback(() => {
+    lastLearnerActionAtRef.current = Date.now();
+    clock.touch();
+  }, [clock]);
+  const roomOpen = live.convo !== null;
+  const learnerTurns = live.turns.filter((t) => t.who === 'learner').length;
+  useEffect(() => {
+    if (roomOpen && learnerTurns > 0) markLearnerAction();
+  }, [roomOpen, learnerTurns, markLearnerAction]);
+  useEffect(() => {
+    if (!roomOpen) return;
+    const now = Date.now();
+    if (learnerEngaged(lastLearnerActionAtRef.current, now, ACTIVE_CUTOFF_MS.convo)) clock.touch(now);
+  }, [roomOpen, live.tutorSpeaking, clock]);
+  /**
    * When the room actually opened, which is the first view off the wire rather
    * than the mount.
    *
@@ -474,8 +542,11 @@ export function ConvoScreen({
       // spent speaking French.
       const endedAt = Date.now();
       const xp = conversationXp({ phraseCount: phrases.length, unassistedRate: stats.unassistedRate });
-      void recordActivity('convo', xp, endedAt, openedAt === null ? {} : { durationMs: endedAt - openedAt });
+      void recordActivity('convo', xp, endedAt, openedAt === null ? { activeMs: clock.read() } : { durationMs: endedAt - openedAt, activeMs: clock.read() });
     }
+    // `clock` is the same controller for the screen's whole life, so it stays
+    // out of the list the F386 test pins.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live.recap, onRecap, stopped]);
 
   // Tonight's generated practice, written down before it is merged.
@@ -769,13 +840,12 @@ export function ConvoScreen({
   }
 
   if (live.status.phase === 'out-of-minutes') {
-    // One white card holding the whole of it, and the store's own words inside
-    // it: the paywall carries the title, the body and the price, so nothing
-    // here restates a number that came off the wire. Back is the quiet outline
-    // because the card already holds the thing worth doing, and a second solid
-    // pill on the same screen would ask the learner which one is the point.
+    // One white card, the store's own words inside it: the paywall carries the
+    // title, body and price, so nothing here restates a number off the wire.
+    // Back is the quiet outline, because a second solid pill would ask the
+    // learner which one is the point.
     return (
-      <View style={st.center}>
+      <ScrollScreen center bottom="inset">
         <Card style={st.outOfMinutes}>
           <Label color={paper.inkSoft}>You are out of minutes</Label>
           <Text style={[type.cardTitle, { color: paper.ink, marginTop: space(2) }]}>{live.status.message}</Text>
@@ -784,7 +854,11 @@ export function ConvoScreen({
         <View style={st.terminalAction}>
           <OutlineButton label="Back" onPress={onExit} />
         </View>
-      </View>
+        {/* Stage 3: the paywall always says something now (an offer with its
+            terms and documents, or a store-unavailable block with a restore),
+            so the card is taller and scrolls on the shared frame. Back stays
+            outside the paywall, so a free way out is always on the screen. */}
+      </ScrollScreen>
     );
   }
 

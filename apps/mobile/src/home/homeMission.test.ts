@@ -121,4 +121,25 @@ describe('tonight’s French — the one thing Home leads with (F543, F571)', ()
     }
     assert.equal(readyLine(today.minutes), `Ready for ${today.minutes} min`);
   });
+
+  // Whole-app Stage 3A (2026-09-25). `spokenBefore` counts conversations and
+  // lessons only, so a learner who has done typed practice or review but never
+  // talked to the tutor still meets the café. Calling that "Your first French"
+  // after they have practised French is the app forgetting them; the café is
+  // their first conversation, and the label says exactly that.
+  test('a learner who has practised but never had a conversation is offered their first conversation, not their first French', () => {
+    assert.equal(HERO_LABELS.firstConversation, 'Your first conversation');
+    const practised = homeMissionFrom({ progress: fresh(), records: [], spokenBefore: false, practisedBefore: true, levelIndex: 0, now: EVENING });
+    assert.ok(practised !== null && practised.kind === 'first', 'the café stopped leading for a learner with no conversation yet');
+    assert.equal(practised.mission.id, FIRST_MISSION);
+    assert.equal(practised.label, HERO_LABELS.firstConversation, 'practice before a first conversation is still called their first French');
+
+    // Somebody with nothing behind them at all keeps the warmer, still-true label.
+    const brandNew = homeMissionFrom({ progress: fresh(), records: [], spokenBefore: false, practisedBefore: false, levelIndex: 0, now: EVENING });
+    assert.equal(brandNew!.label, HERO_LABELS.first);
+
+    // A learner who has spoken is past both: practice never pulls them back to a first anything.
+    const spoken = homeMissionFrom({ progress: fresh(), records: [], spokenBefore: true, practisedBefore: true, levelIndex: 0, now: EVENING });
+    assert.equal(spoken!.kind, 'today');
+  });
 });

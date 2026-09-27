@@ -25,7 +25,7 @@
  *
  * The speaking glyph, the weekly gain and the recall band line are
  * `signal.good`, which means the same here as it means everywhere else in the
- * app: the learner produced French. Speaking time deliberately has no meter:
+ * app: the learner produced French. Practice time deliberately has no meter:
  * turning an optional target into a percentage makes it feel like a quota even
  * when the words are gentle. A day that has not happened is a hairline in
  * `paper.line` and not a colour at all, on TodayRow's rule that a thing which
@@ -177,6 +177,7 @@ export function MomentumCards({
         {/* The sentence is the whole status. A meter or percentage would turn
             the optional Profile preference into a quota on this screen. */}
         <Text style={st.goalNote}>{goal.note}</Text>
+        {goal.untimedNote !== null && <Text style={st.goalNote}>{goal.untimedNote}</Text>}
       </Card>
     </View>
   );

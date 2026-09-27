@@ -431,3 +431,215 @@ describe('the drill asks for the learner’s own French — F581', () => {
     assert.ok(!checkBlock.includes('AsyncStorage') && !checkBlock.includes('addPhrases('), 'the attempt is written somewhere');
   });
 });
+
+/* ===========================================================================
+ * Only answered work finishes a sitting.
+ *
+ * Core builds an empty queue as `finished: true`, which is right for its state
+ * machine: there is nothing left to ask. It was also the whole of the check in
+ * front of the finished signal, so a conversation whose phrases had nothing
+ * playable opened, drew "Nothing to review", and was marked practised on this
+ * phone without one answer. The signal now asks for answered work as well.
+ * =========================================================================== */
+
+describe('an empty sitting finishes nothing — practice journey', () => {
+  test('the finished signal waits for answered work, not just a finished flag', () => {
+    const effect = SCREEN.slice(SCREEN.indexOf('finishedRef.current = true;') - 240, SCREEN.indexOf('finishedRef.current = true;'));
+    assert.ok(effect.length > 0, 'the finished signal moved; this test is reading the wrong thing');
+    assert.match(effect, /!hasAnsweredWork\(session\)/, 'an empty sitting can still fire the finished signal and mark a pack practised');
+    assert.match(SCREEN, /import \{[^}]*hasAnsweredWork[^}]*\} from '\.\/practice\/sittingOutcome\.ts'/, 'the guard is spelled on the screen instead of read from the practice model');
+  });
+
+  test('the rule the guard reads is the one core needs it for', () => {
+    const empty = sitting([]);
+    const built = { ...empty, finished: true };
+    assert.equal(built.finished, true);
+    assert.equal(built.answered.length, 0);
+  });
+});
+
+/* ===========================================================================
+ * The practice path, read out of the screen.
+ *
+ * The rules themselves run for real elsewhere: grades and outcomes against core
+ * in `practice/sittingOutcome.test.ts`, the save states in
+ * `practice/saveState.test.ts`, opening and resume in `practice/opening.test.ts`,
+ * and completion's at-most-once rule in the data store's own suite. What only
+ * the source can show is that this screen routes a practice sitting through
+ * them, finishes it through the one completion owner, and leaves the ordinary
+ * sitting alone.
+ * =========================================================================== */
+
+describe('a practice sitting is finished by the completion owner and nothing else', () => {
+  const persistBlock = SCREEN.slice(SCREEN.indexOf('const persistGrades = useCallback('), SCREEN.indexOf('const answer = useCallback('));
+  const finishBlock = SCREEN.slice(SCREEN.indexOf('const finishPractice = useCallback('), SCREEN.indexOf('const persistGrades = useCallback('));
+
+  test('the practice branch hands off before the ordinary summary is ever asked for grades', () => {
+    assert.ok(persistBlock.length > 0, 'persistGrades moved; this test is reading the wrong thing');
+    const practiceAt = persistBlock.indexOf('if (held !== null)');
+    const ordinaryAt = persistBlock.indexOf('const summary = summariseDrill(state);');
+    assert.ok(practiceAt > 0 && ordinaryAt > practiceAt, 'the ordinary grades are computed before the practice sitting is routed away from them');
+    const practiceBranch = persistBlock.slice(practiceAt, ordinaryAt);
+    // Unfinished: saved, never graded. Leave keeps the sitting for resume.
+    assert.match(practiceBranch, /if \(!state\.finished\) \{\s*savePractice\(state\);\s*return;\s*\}/, 'leaving an unfinished practice sitting grades it');
+    assert.match(practiceBranch, /if \(!hasAnsweredWork\(state\)\) return;/, 'an empty practice sitting can still complete');
+    assert.match(practiceBranch, /const completion = finishPractice\(state\);/, 'a finished practice sitting is not completed through its owner');
+    assert.match(practiceBranch, /gradeWritesRef\.current = completion\.then\(\(\) => undefined\);\s*return;\s*\}/, 'the practice branch falls through into the ordinary grades');
+    assert.ok(!/gradeCards\(|recordActivity\(/.test(practiceBranch), 'the practice branch writes grades or XP itself beside the completion owner');
+  });
+
+  test('completion is the one owner of practice grades, XP and history, keyed on the stable sitting id', () => {
+    assert.ok(finishBlock.length > 0, 'finishPractice moved; this test is stale');
+    assert.match(finishBlock.replace(/\s+/g, ' '), /completePracticeSitting\(\{ sittingId: held\.sittingId, state, targets: held\.targets, exercises: held\.exercises, exposed: held\.exposed,/);
+    assert.match(finishBlock, /\.then\(\(done\) => saveStateOfResult\(done\)\)/, 'the card reads something other than the store\'s own status');
+    assert.ok(!/packId/.test(finishBlock), 'the screen passes a packId, which completion derives from the targets');
+    assert.ok(!/gradeCards|recordActivity|practiceGrades|drillXp|recordPracticeEvent/.test(finishBlock), 'the screen grades, awards or records beside the completion owner');
+    // No second writer anywhere on the practice path.
+    assert.ok(!SCREEN.includes('persistPracticeSitting'), 'the interim writer came back');
+    assert.equal((SCREEN.match(/completePracticeSitting\(/g) ?? []).length, 1, 'completion is called from more than one place');
+  });
+
+  test('every settled answer is saved for resume, a miss that comes round again included, with no grade', () => {
+    const answer = SCREEN.slice(SCREEN.indexOf('const answer = useCallback('), SCREEN.indexOf('const spoke = useCallback('));
+    assert.ok(answer.indexOf('if (!next.finished) savePractice(next);') > 0, 'a settled answer is not saved until the feedback beat ends');
+    assert.ok(answer.indexOf('savePractice(next)') < answer.indexOf('setFeedback(fb)'), 'an answer given in the beat can be lost to a reload');
+    const check = SCREEN.slice(SCREEN.indexOf('const checkOwnWords = useCallback('), SCREEN.indexOf('const keepPhrase = useCallback('));
+    assert.match(check, /if \(next\.finished\) persistGrades\(next\);\s*else savePractice\(next\);/, 'an own-words answer is not saved for resume');
+    const save = SCREEN.slice(SCREEN.indexOf('const savePractice = useCallback('), SCREEN.indexOf('const finishPractice = useCallback('));
+    assert.match(save, /if \(held === null \|\| scopeGeneration\(\) !== held\.scope\) return;/, 'a save can land in an account the sitting does not belong to');
+    assert.match(save, /void savePracticeSession\(\{/);
+    assert.ok(!/gradeCards|recordActivity|completePracticeSitting/.test(save), 'saving a sitting grades or awards something');
+    const silent = SCREEN.slice(SCREEN.indexOf('const goSilent = useCallback('), SCREEN.indexOf('const heading = '));
+    assert.match(silent, /micSuppressedRef\.current = true;\s*savePractice\(quiet\);/, 'a sitting that went quiet resumes speaking');
+  });
+
+  test('the ordinary sitting is unchanged: same builder, same grades, same XP', () => {
+    const ordinary = persistBlock.slice(persistBlock.indexOf('const summary = summariseDrill(state);'));
+    assert.match(ordinary, /gradeCards\(\s*summary\.grades\.map/, 'the scheduled sitting no longer grades from its own summary');
+    assert.match(SCREEN, /buildDrillSession\(deck, bank, now, node \? \{ only: node\.phraseKeys \} : undefined\)/);
+    assert.match(
+      SCREEN,
+      /if \(practice !== undefined\) return;\s*let cancelled = false;\s*const asked = node\?\.ownWords;/,
+      'both builders can run for one sitting',
+    );
+  });
+
+  test('the end card waits for completion and says only what its status supports, offering a retry when nothing is safe', () => {
+    const end = SCREEN.slice(
+      SCREEN.indexOf('if (practice !== undefined && session.finished) {'),
+      SCREEN.indexOf('if (session.finished && session.answered.length === 0)'),
+    );
+    assert.ok(end.length > 0, 'the practice end card moved; this test is stale');
+    assert.match(end, /practiceSaved === 'waiting'/, 'the end card can speak before completion answers');
+    assert.match(end, /sittingStatement\(\s*practiceOutcomes\(\{ state: session, targets: held\.targets, exercises: held\.exercises, exposed: held\.exposed, assisted \}\)/, 'the card reads outcomes by a rule other than the history\'s');
+    assert.match(end, /const card = practiceEndCard\(practiceSaved, statement\);/);
+    assert.match(end, /\{card\.retry && \(/, 'a sitting that was not saved offers no way to try again');
+    assert.match(end, /onPress=\{retryPractice\}/);
+    assert.ok(!/<Stat|s\.resolved|Got right/.test(end), 'the practice card counts at the learner');
+    const retry = SCREEN.slice(SCREEN.indexOf('const retryPractice = useCallback('), SCREEN.indexOf('const finishAndLeave = useCallback('));
+    assert.match(retry, /if \(!session \|\| practiceRetrying\) return;/, 'a second tap can start a second retry');
+    assert.match(retry, /finishPractice\(session\)/, 'a retry does something other than replay the same completion');
+  });
+
+  test('an empty practice sitting says so, and claims no finish', () => {
+    const empty = SCREEN.slice(SCREEN.indexOf('if (practice !== undefined && session.finished && !hasAnsweredWork(session))'), SCREEN.indexOf('if (practice !== undefined && session.finished) {'));
+    assert.ok(empty.length > 0, 'there is no empty practice branch');
+    assert.match(empty, /PRACTICE_END\.empty/);
+    assert.ok(!/onPracticeFinished|persistGrades|tapSettled/.test(empty), 'an empty practice sitting records or celebrates something');
+    const signal = SCREEN.slice(SCREEN.indexOf('const held = practiceRef.current;\n    if (!session?.finished'), SCREEN.indexOf('const retryPractice = useCallback('));
+    assert.match(signal, /if \(!hasAnsweredWork\(session\)\) return;/, 'the practice finished signal fires on an empty sitting');
+    assert.match(signal, /const written = completionRef\.current;/);
+    assert.ok(signal.indexOf('written.then(') > 0 && signal.indexOf('written.then(') < signal.indexOf('onPracticeFinished?.('), 'the practice finished signal fires before completion answers');
+    assert.match(signal, /if \(saved === 'not-saved'\) return;/, 'a sitting that was not saved still marks the pack practised');
+  });
+
+  test('opening recovers a half-done completion first, then resumes or starts through the opening rule, bound to the account', () => {
+    const from = SCREEN.indexOf("if (practice === undefined || practice === 'invalid') return;");
+    assert.ok(from > 0, 'the practice builder moved; this test is stale');
+    const effect = SCREEN.slice(from, SCREEN.indexOf('const savePractice = useCallback('));
+    assert.ok(effect.indexOf('recoverPracticeCompletion()') < effect.indexOf('loadPracticeSession()'), 'a saved sitting is read before a pending completion lands');
+    assert.match(effect, /const opening = practiceOpening\(\{ route: practice, record, deck, bank, packs, now \}\);/);
+    assert.match(effect, /if \(cancelled \|\| scopeGeneration\(\) !== scope\) return;/, 'a sitting read for one account can open under another');
+    // A resume keeps the record's own identity and warm-up flag, never the link's.
+    const resume = effect.slice(effect.indexOf("if (opening.kind === 'resume') {"), effect.indexOf('const built = buildPracticeSession('));
+    assert.match(resume, /sittingId: held\.sittingId,/);
+    assert.match(resume, /exposed: held\.exposed,/, 'a reload can turn a warm-up sitting into one that claims recall');
+    assert.match(resume, /setSession\(restored\.state\)/);
+    // A fresh sitting mints its id once, here and nowhere else.
+    assert.equal((SCREEN.match(/mintSittingId\(/g) ?? []).length, 1, 'the sitting id is minted in more than one place');
+    assert.match(effect, /buildPracticeSession\(opening\.targets, bank, deck, now\)/);
+    assert.ok(!effect.includes('buildDrillSession'), 'the practice sitting falls back to the due deck');
+    // A saved sitting that cannot resume is cleared and said, never replaced.
+    const cannot = effect.slice(effect.indexOf("if (opening.kind === 'cannot-resume') {"), effect.indexOf("if (opening.kind === 'resume') {"));
+    assert.match(cannot, /clearPracticeSession\(opening\.sittingId\)/);
+    assert.ok(!cannot.includes('buildPracticeSession'), 'a sitting that cannot resume is silently replaced');
+    const said = SCREEN.slice(SCREEN.indexOf('if (cannotResume !== null) {'), SCREEN.indexOf("if (practice === 'invalid') {"));
+    assert.ok(said.length > 0, 'the cannot-resume card moved; this test is stale');
+    // Seen in the browser: after a sitting finished, /drill?practice=resume said
+    // its phrases were gone when they were not. No saved sitting and a saved
+    // sitting whose exercises are gone are different facts, and read so.
+    assert.match(cannot, /setCannotResume\(opening\.sittingId === null \? 'none' : 'gone'\)/, 'nothing saved and phrases gone are reported as the same thing');
+    assert.match(said, /cannotResume === 'none'\s*\? \{ title: PRACTICE_END\.nothingToResume, body: PRACTICE_END\.nothingToResumeBody \}\s*: \{ title: PRACTICE_END\.cannotResume, body: PRACTICE_END\.cannotResumeBody \}/, 'a resume with nothing saved claims the phrases are gone');
+  });
+
+  test('a practice link that cannot be read says so, and the navigator reads params only through the parser', () => {
+    const invalid = SCREEN.slice(SCREEN.indexOf("if (practice === 'invalid') {"), SCREEN.indexOf('if (unread) {'));
+    assert.ok(invalid.length > 0, 'an unreadable practice link has no branch of its own');
+    assert.match(invalid, /PRACTICE_END\.unreadable/);
+    assert.ok(!/persistGrades|onPracticeFinished|buildPracticeSession/.test(invalid), 'an unreadable link opens or records something');
+    const navigator = stripComments(read('./nav/RootNavigator.tsx'));
+    assert.match(navigator, /const practice = parsePracticeRoute\(route\.params\) \?\? undefined;/, 'the drill route reads its params some other way than the parser');
+    assert.match(navigator, /practice=\{practice\}/, 'the drill route hands the screen raw params');
+    assert.ok(!/practice=\{route\.params/.test(navigator), 'the drill route hands the screen raw params');
+    assert.match(navigator, /nav\.replace\('Drill', practiceRouteParams\(\{ origin: 'pack', packId: node\.id, exposed \}\)\)/, 'the warm-up puts something other than flat params in the route');
+    assert.ok(!/practice: \{/.test(navigator), 'an object went into a practice route');
+  });
+});
+
+describe('a practice sitting says where the learner is, and nothing about how it is going — whole-app phase 2', () => {
+  test('the step strip is drawn only in a practice sitting, from the practice model, in words', () => {
+    // The strip reads the held targets through the one module that counts
+    // them, so the screen never computes a position or a total of its own.
+    assert.match(SCREEN, /import \{ sittingProgress \} from '\.\/practice\/sittingProgress\.ts';/, 'the drill counts its own position instead of asking the practice model');
+    const flatScreen = SCREEN.replace(/\s+/g, ' ');
+    assert.match(
+      flatScreen,
+      /const progress = practice !== undefined && practiceRef\.current !== null \? sittingProgress\(session, practiceRef\.current\.targets\) : null;/,
+      'the strip is drawn outside a practice sitting, or from something other than its own targets',
+    );
+    // In the header's centre slot, which scrolls with nothing and never
+    // pushes the exercise down, spoken politely as it changes.
+    assert.match(flatScreen, /<ScreenHeader leave=\{\{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' \}\} title=\{progress !== null \? \( <Text accessibilityLiveRegion="polite" style=\{\[type\.small, \{ color: paper\.inkSoft, textAlign: 'center' \}\]\}>\{progress\.label\}<\/Text> \) : undefined\} \/>/, 'the strip is not the header\'s own quiet line');
+    // Words only: no digit, no fraction, no bar, no percentage anywhere in it.
+    assert.doesNotMatch(flatScreen, /\{progress\.step\}|\{progress\.total\}|progress\.step \/|percent|<ProgressBar|<Bar\b/, 'the strip draws a number, a fraction or a bar');
+    // And it added no control: the pill count is exactly what it was.
+    assert.equal((SCREEN.match(/<PillButton\b/g) ?? []).length, 4, 'the strip added a primary pill to the drill');
+  });
+});
+
+describe('help in a practice sitting: the known phrase, recorded so it is never recall', () => {
+  test('only a practice sitting offers it, only on an English-to-French ask, and it shows the exercise\'s own line', () => {
+    const view = SCREEN.slice(SCREEN.indexOf('function TranslationView('), SCREEN.indexOf('function RepeatThisView('));
+    assert.match(view, /const canHelp = help !== undefined && !isFrenchPrompt;/, 'help is offered where the French is already on screen, or outside practice');
+    assert.match(view, /\{canHelp && help\.shown && \(/);
+    assert.match(view, /\{exercise\.fr\}/, 'the help shows something other than the exercise\'s own French line');
+    assert.match(view, /label=\{PRACTICE_HELP\.show\}/);
+    // The ordinary drill is unchanged: no help prop is passed outside practice.
+    assert.match(SCREEN.replace(/\s+/g, ' '), /help=\{practice !== undefined \? \{ shown: assisted\.includes\(exercise\.id\), onShow: \(\) => showPhrase\(exercise\.id\) \} : undefined\}/);
+    assert.equal((SCREEN.match(/<PillButton\b/g) ?? []).length, 4, 'help added a primary pill to the drill');
+  });
+
+  test('asking for help is recorded at once, saved for reload, and handed to completion and the end card', () => {
+    const show = SCREEN.slice(SCREEN.indexOf('const showPhrase = useCallback('), SCREEN.indexOf('const goSilent = useCallback('));
+    assert.match(show, /assistedRef\.current = \[\.\.\.assistedRef\.current, exerciseId\];/);
+    assert.match(show, /savePractice\(session\);/, 'help is not saved until the next answer, so a reload loses it');
+    const save = SCREEN.slice(SCREEN.indexOf('const savePractice = useCallback('), SCREEN.indexOf('const finishPractice = useCallback('));
+    assert.match(save, /assisted: assistedRef\.current,/, 'the help mark never reaches the resume record');
+    const finish = SCREEN.slice(SCREEN.indexOf('const finishPractice = useCallback('), SCREEN.indexOf('const persistGrades = useCallback('));
+    assert.match(finish, /assisted: assistedRef\.current,/, 'completion never hears about help, so it can grade a helped answer as recall');
+    const opening = SCREEN.slice(SCREEN.indexOf("if (opening.kind === 'resume') {"), SCREEN.indexOf('const built = buildPracticeSession('));
+    assert.match(opening, /assistedRef\.current = \[\.\.\.held\.assisted\];/, 'a reload forgets the phrase was shown');
+    const end = SCREEN.slice(SCREEN.indexOf('if (practice !== undefined && session.finished) {'), SCREEN.indexOf('if (session.finished && session.answered.length === 0)'));
+    assert.match(end, /exposed: held\.exposed, assisted \}/, 'the end card can call a helped answer recall');
+  });
+});

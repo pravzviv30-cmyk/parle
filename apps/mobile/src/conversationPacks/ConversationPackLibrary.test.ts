@@ -22,6 +22,18 @@ describe('Conversation Pack library', () => {
     assert.match(source, /useHardwareBack\(selected !== null/, 'Android back strands a learner inside pack detail');
   });
 
+  test('the tutor revisit is drawn only when the plan opens it, and each route says what it costs', () => {
+    // Both Continue talking doors are gated on the callback being present, so
+    // a plan that does not open the revisit sees no door at all.
+    assert.equal((source.match(/onContinue !== undefined/g) ?? []).length, 2, 'a Continue talking door is drawn without asking whether the plan opens it');
+    assert.match(source, /onContinue\?: \(pack: ConversationPack\) => void;/, 'the revisit callback cannot be withheld');
+    assert.match(source, /\{RECOMMENDED\.noMinutes\}/, 'practising the conversation does not say it uses no live minutes');
+    assert.match(source, /\{PRACTICE_ALTERNATIVES\.revisitUses\}/, 'the tutor revisit does not say it uses live minutes');
+    const screen = readFileSync(fileURLToPath(new URL('./ConversationsScreen.tsx', import.meta.url)), 'utf8');
+    assert.match(screen, /continueArc === true\s*\?/, 'the library opens the revisit on something other than a real continueArc answer');
+    assert.match(screen, /: undefined/, 'a plan that does not open the revisit still gets the door');
+  });
+
   test('explains that deleting history does not remove earned learning', () => {
     assert.match(source, /Your earned phrases and reviews stay\./, 'history deletion claims it deletes more or explains nothing');
     assert.doesNotMatch(source, /transcript/i, 'the Pack library implies readable transcript history exists by default');

@@ -39,15 +39,19 @@ function stripComments(source: string): string {
 const lesson = stripComments(read('../LiveSessionScreen.tsx'));
 const stopView = stripComments(read('../tutor/SafetyStopView.tsx'));
 const errorView = stripComments(read('./LiveErrorView.tsx'));
+const outOfMinutesView = stripComments(read('./OutOfMinutesView.tsx'));
 const sessionView = stripComments(read('../SessionView.tsx'));
 const navigator = stripComments(read('../nav/RootNavigator.tsx'));
 const layout = stripComments(read('../layout.tsx'));
 
-/** The three surfaces that are the whole window, with nothing above or below them. */
+/** The surfaces that are the whole window, with nothing above or below them. */
 const FULL_BLEED = [
   ['the lesson driver', lesson],
   ['the safety stop', stopView],
   ['the live failure screen', errorView],
+  // Stage 3 (2026-09-25): the lesson's out-of-minutes page moved to its own
+  // file, and is held to the same frame rules there.
+  ['the out-of-minutes page', outOfMinutesView],
 ] as const;
 
 /**
@@ -150,7 +154,6 @@ describe('the live surfaces sit inside the one frame, F444', () => {
     // frame already and is covered below.
     for (const opens of [
       "if (live.status.phase === 'connecting'",
-      "if (live.status.phase === 'out-of-minutes')",
       'if (!live.prompt) {',
     ]) {
       const body = branchOf(lesson, opens);
@@ -160,6 +163,21 @@ describe('the live surfaces sit inside the one frame, F444', () => {
         `the lesson branch at "${opens}" returns a full-bleed root of its own instead of the frame`,
       );
     }
+    // Stage 3 Fable review (2026-09-25): out of minutes hands over to its own
+    // page, the way a failure hands over to LiveErrorView, because the paywall
+    // inside it can be taller than a small phone at a large text size. That
+    // page is where the session has ended, not the live scene kept still
+    // below, so it opens on the scrolling frame in its own file.
+    assert.match(
+      branchOf(lesson, "if (live.status.phase === 'out-of-minutes')"),
+      /return <OutOfMinutesView message=\{live\.status\.message\} userId=\{userId\} onExit=\{onExit\} \/>;/,
+      'the lesson draws its own out-of-minutes page again instead of the one on the frame',
+    );
+    assert.match(
+      outOfMinutesView,
+      /export function OutOfMinutesView\([\s\S]*?return \(\s*<ScrollScreen center bottom="inset">/,
+      'the out-of-minutes page is not on the scrolling frame, so Back can fall off a small phone',
+    );
     // And the two shared surfaces open on the frame in their own files.
     assert.match(
       stopView,

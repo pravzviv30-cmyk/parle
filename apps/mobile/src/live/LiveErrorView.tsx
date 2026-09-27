@@ -9,8 +9,9 @@
  *    renders "Continue by typing", because the tutor is the same tutor typed.
  *  - Never a shrug. The sentence comes from the failure taxonomy, not from
  *    whatever string an exception happened to carry.
- *  - The details are there, folded away. "What happened?" is for whoever is
- *    debugging this at eleven at night, and is closed for everyone else.
+ *  - The details are there, folded away. "Support details" is for whoever is
+ *    helping at eleven at night, is closed by default, and comes after every
+ *    way forward, so a learner meets recovery before any network wording.
  *
  * It is the whole window, pushed under `headerShown: false`, so nothing above
  * it pays the safe-area inset. It sits on the still frame for that: the diagnostics
@@ -112,16 +113,19 @@ export function LiveErrorView({
           {settingsHelp && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{Platform.OS === 'web' ? 'Open this site’s permissions beside the address bar and allow the microphone. Close other apps using it, then return and start a spoken conversation.' : 'Allow microphone access for Luvani in Settings, then return and start a spoken conversation.'}</Text>}
         </View>}
 
+        {/* Support details: the technical rows are for whoever is helping, so
+            they are folded away, closed by default, and drawn after every way
+            forward (whole-app Stage 3A). */}
         {diagnostics ? (
           <View style={st.diagnostics}>
             <Pressable
               onPress={() => setOpen((v) => !v)}
               accessibilityRole="button"
-              accessibilityLabel={open ? 'Hide the details' : 'Show what happened'}
+              accessibilityLabel={open ? 'Hide support details' : 'Show support details'}
               accessibilityState={{ expanded: open }}
               style={({ pressed }) => [st.disclosure, pressed && { opacity: 0.6 }]}
             >
-              <Text style={[type.small, { color: paper.inkSoft }]}>{open ? 'Hide details' : 'What happened?'}</Text>
+              <Text style={[type.small, { color: paper.inkSoft }]}>{open ? 'Hide support details' : 'Support details'}</Text>
             </Pressable>
             {open ? (
               <Card style={st.panel}>

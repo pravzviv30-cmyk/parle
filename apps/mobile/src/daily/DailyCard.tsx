@@ -13,6 +13,7 @@ import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from './p
 import { WordScene } from '../progress/WordScene.tsx';
 import { sceneForDaily } from './carousel.ts';
 import { useReduceMotion } from '../motion.ts';
+import { audioLine } from './libraryView.ts';
 
 export function DailyCard({ item, reveal = true, onSaved, compact = false, embedded = false, paused = false }: { item: DailyItem; reveal?: boolean; onSaved?: (id: string, saved: boolean) => void; compact?: boolean; embedded?: boolean; paused?: boolean }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
@@ -72,6 +73,10 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
       </View>
       {(!compact || !item.exampleFr || expanded) && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.note}</Text>}
       {item.exampleFr && <><Text selectable={!embedded} style={[type.frenchSm, { color: paper.ink }]}>{item.exampleFr}</Text>{expanded && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.exampleEn}</Text>}</>}
+      {/* Whether this line has tutor audio, said before anybody taps, from the
+          same manifest lookup that decides whether Hear is drawn at all. Home's
+          embedded card draws only voiced items, so the line is the library's. */}
+      {!embedded && <Text style={[type.small, { color: paper.inkSoft }]}>{audioLine(asset != null)}</Text>}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(2) }}>
         {asset != null && <GhostButton label="Hear" onPress={() => void play()} />}
         <GhostButton label={busy ? 'Saving…' : saved ? 'Saved ✓' : 'Save'} onPress={() => void save()} />
@@ -79,7 +84,6 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
         {expanded && <>{asset != null && <GhostButton label="Slow replay" onPress={() => void play(true)} />}
           <GhostButton label="Say it" onPress={() => { playTicket.current++; releaseDailyPlayback(player); nav.navigate('DailyPractice', { id: item.id }); }} /></>}
       </View>
-      {asset == null && <Text style={[type.small, { color: paper.inkSoft }]}>Text practice. Tutor audio will join this item in a future pack.</Text>}
     </>}
     {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{note}</Text>}
   </Animated.View>;

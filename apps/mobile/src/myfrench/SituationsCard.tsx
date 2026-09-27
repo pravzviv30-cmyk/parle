@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { BadgeGlyph, Label, TintRow } from '../components.tsx';
 import { PlaceGlyph } from '../glyphs.tsx';
 import { accent, paper, radius, signal, space, type } from '../theme.ts';
-import { NEXT_PLACES, YOU_CAN_NOW, splitByStamp, type SituationChip } from './situations.ts';
+import { NEXT_PLACES, YOU_CAN_NOW, splitByStamp, tryNext, type SituationChip } from './situations.ts';
 import type { MyFrench, SituationRow } from './model.ts';
 
 /**
@@ -41,7 +41,9 @@ export function SituationsCard({ model, onOpen }: { model: MyFrench; onOpen: (id
       {next.length > 0 && (
         <View style={st.group}>
           <Label>{NEXT_PLACES.label}</Label>
-          {next.map((row) => (
+          {/* At most two suggestions, core's own first. The whole catalogue
+              is Missions', one door below this card. */}
+          {tryNext(next).map((row) => (
             <Row key={row.id} row={row} onOpen={onOpen} />
           ))}
         </View>

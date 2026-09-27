@@ -48,7 +48,13 @@ in-conversation controls have been pointed out, one key for all of them), and
 conversation going, keyed by the pack's id and folded into the pack at read because the
 server's copy replaces the cache on every refresh), `moments` (the situations a learner brought to rehearse, since F549: a kind and
 one line in their own words, newest first and capped, device-local because it is
-the most personal text the app holds), and `analytics` (one boolean: whether the learner agreed to usage data being
+the most personal text the app holds), `practiceHistory` (completed conversation
+practice, account-synced: see "Conversation-practice history" below), `goalSteps`
+(which conversations were opened from one of the learner's goals, and their own "used
+outside" reports, account-synced, ids and the normalised goal key only: see "Goal steps"
+below), `practiceSession`
+(the one unfinished practice sitting on this phone and the frozen plan that finishes
+it, device-local), and `analytics` (one boolean: whether the learner agreed to usage data being
 sent. It is a store of its own rather than a field on `profile` because
 `mergeStoredProfiles` picks scalar answers by evidence weight, so a consent on
 the profile could let an older yes from a heavier device win against a
@@ -195,6 +201,108 @@ back stays in the journal, unbanked and unbankable, until it does. The proof is 
 boundary, a launch that still cannot write, a duplicate delivery, and an
 account switch mid-recovery.
 
+### Conversation-practice history, resume, and finishing a sitting at most once
+
+**Status: implemented and tested locally. The server half (migration
+`202609230001_learner_state_practice_history.sql`) is prepared and not applied to
+any project, so until an operator applies it the history syncs nowhere: pushes are
+refused at the door exactly as F411 described, and it stays on the phone.**
+
+`practiceHistory` (`practice/history.ts`, `practice/historyStore.ts`) holds small
+immutable facts: `session-completed` (stable sitting id, time, the conversation it
+practised, and up to six targets, each with its phrase key, its own source, an outcome
+of recalled, practised or unresolved, and attempts), `warmup-completed` (exposure,
+never recall) and `revisit-started` (a tutor room opened, never a success). The
+validator is strict: an unknown key rejects the event, so a typed answer, transcript
+or recording has nowhere to ride. A phrase key is not opaque. It is the saved French
+phrase itself, as the synced review deck already keys it. Old device-local `packMarks`
+are shown through `legacyMarkItems` as reader-only labels, never stored here and never
+promoted into recall or live use. Links to a deleted pack stay in the history; readers
+filter by the pack cache they hold, and the history carries no pack content to resurrect.
+
+The merge is a set union on the whole event, bounded to 150 events and 448 KiB of
+serialised events, measured through real JSON escaping. The bound is carried as a
+`floor`: the time at or below which events have aged out. The floor is the max of both
+sides and only rises, so an older device cannot bring an aged-out event back. A
+newest-suffix cut without a floor was tried and is **not** associative under a byte
+budget; `history.test.ts` holds the counterexample loop.
+
+`practiceSession` (`practice/sessionStore.ts`) is excluded from sync with a written
+reason. It holds ids and settled facts only: exercise ids in queue order (silent twin
+ids when the sitting went quiet), the answered records, miss counts and targets. Resume
+works on the same device only. A missing exercise is reported and dropped, never counted
+done, and a sitting with nothing left to play cannot resume.
+
+**Finishing a sitting** (`practice/completion.ts`) cannot rely on the existing seams:
+`gradeCards` swallows a failed write and `recordActivity` appends. So it freezes a plan
+first, in the local `practiceSession` record: grades from core's `practiceGrades` (every
+target unscheduled after the warm-up or where help was used), each card's schedule
+fingerprint read off the **disk** deck, the XP, an activity instant no identical
+`(drill, xp)` entry already holds, and the history event with a fixed time. Then it
+applies them. Grades use `applyPracticeGrades`, a compare-and-set on the fingerprint:
+a card already in its planned state is left alone, and a card moved for another reason
+is **skipped and reported, never forced**. Activity uses `recordActivityOnce` at the
+frozen instant. The event uses `recordPracticeEvent`, idempotent on the sitting id. The
+plan is dropped only when all three said `durable`, and a small receipt of sitting ids
+answers late duplicates. Any failure leaves the plan, which the next call or
+`recoverPracticeCompletion` replays. Only a finished sitting with answered work
+completes. Completions are serialised on the device, and a second call replays the
+plan already frozen rather than its own.
+
+Every practice write binds the account and a scope generation when it is asked for, and
+refuses to write if either moved (`scopeGeneration` in `storage/scope.ts`, bumped on an
+account switch and at the start of `clearActiveUserData`). A sign-out or an account
+deletion mid-await therefore neither writes into the next account nor resurrects a
+deleted namespace. A refused write raises no dirty flag. Ordinary `gradeCards` and
+`recordActivity` are unchanged.
+
+What is not guaranteed, said plainly. The plan is local, so uninstalling or clearing app
+data between freeze and settle loses whatever had not landed yet; there is no
+server-side receipt. `durable` is still AsyncStorage's resolve, not an fsync. A card
+reviewed elsewhere between a failed grade write and its retry keeps the other grade,
+and the practice grade is reported skipped. Cross-device resume is not implemented.
+The proof is `practice/history.test.ts` and `practice/completion.test.ts`: each write
+refused in turn, a crash before cleanup, a racing duplicate, an account switch before
+and after the freeze, a deletion mid-write, old and newer schemas, byte-budget
+associativity, and envelope size.
+
+### Goal steps: a goal, one task, and what came of it
+
+**Status: implemented and tested locally. The server half (migration
+`202609250001_learner_state_goal_steps.sql`) is prepared and not applied to
+any project, so until an operator applies it the goal steps sync nowhere: pushes are
+refused at the door exactly as F411 described, and they stay on the phone.**
+
+`goalSteps` (`goals/model.ts`, `goals/store.ts`) holds two kinds of row. A
+`step-started` row says a conversation opened from a goal card became a real room: the
+live session id (which is also the id of the pack that conversation is saved as), the
+goal's normalised key (`factKey`, the same normalised text the profile envelope already
+carries in `learnerGoals`), and a task id such as `mission:cafe`. It is recorded once
+per session id, and only after the room has published a view, so a failed join records
+nothing and a reconnect records nothing twice. A `used-outside` row is the learner's own
+report that they used that step outside the app: `u.<step id>` and the goal key, and no
+phrase, outcome or count. The validator is exact about keys and the task id has no space
+in its alphabet, so no sentence can ride. Nothing is attributed by timestamp: a
+conversation the learner did not open from the goal card is never linked to a goal.
+
+The merge is a set union on the whole row, sorted by `(at, kind, id, rendering)`, newest
+sixty. A union keyed on `(kind, id)` with a canonical pick is not associative here (the
+rendering puts `at` first as text, so the older of two copies can win and then be cut),
+so storage keeps whole rows and the reader view, `uniqueGoalSteps`, shows one per
+`(kind, id)`.
+
+What a reader shows, said plainly. `goals/evidence.ts` joins a step to its pack by id,
+then to that pack's own practice outcomes through `packTargetsOf`, then to the used-outside
+flag. It shows nothing for a step whose pack is no longer in the cache, nothing for a
+`used-outside` whose step has aged out, and nothing for a goal key that is not the
+`factKey` of one of the profile's current `learnerGoals`. A removed goal's normalised key
+may therefore stay in `goalSteps` until it ages out of the newest sixty, on the
+`forgottenFacts` precedent (`profile/memory.ts`): the rows are never dropped on goal
+removal, because that would break the set union. They stay in the data export, and account
+deletion sweeps the key with every other suffix. The self-report touches nothing else: no
+review card, activity entry, drill, momentum, XP or practice time, and
+`goals/store.test.ts` holds that byte for byte.
+
 ### The pre-recap window
 
 **Owner: tutor-agent. Closed in code; deployment proof is still required.**
@@ -326,8 +434,9 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 
 ### The sync contract
 
-Since Phase 2, the account rather than the device is the durable home for twelve
-of the eighteen stores. `apps/mobile/src/sync/` holds a **state-based reconciler**:
+Since Phase 2, the account rather than the device is the durable home for most
+stores; `sync/policy.ts` is the count of record (fourteen synced, nine excluded once
+`goalSteps` joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
 compare-and-swap on the `revision` column. Losing the swap means another device
@@ -357,13 +466,13 @@ Four pieces, and each has one file:
 | `sync/engine.ts` | when to reconcile, the compare-and-swap, quarantine, the size refusal |
 | `sync/policy.ts` | **what the answer is** when two devices disagree |
 
-`sync/policy.ts` is the one to read. Twelve namespaces under three merge classes:
+`sync/policy.ts` is the one to read. Fourteen namespaces under three merge classes:
 
 - **structured** — `profile`, delegated to `@luvani/brain`'s `mergeStoredProfiles`.
 - **per-item** — `review` (delegated to core's `mergeDecks`), `drills`, `topics`,
   `bookmarks`, `scenarioProgress`.
 - **set-union** — `history`, `activity`, `missions`, `soundChecks`, `coachMarks`,
-  `tutorIntro`.
+  `tutorIntro`, `practiceHistory`, `goalSteps`.
 
 Two of those per-item rules are worth stating, because the obvious smaller shape
 is wrong in both cases. `bookmarks` unions by situation and keeps the **newer
@@ -384,7 +493,10 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Eight are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `packMarks`
+Nine are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `practiceSession`
+is the unfinished sitting and its completion plan: its meaning is local to this device's
+bank and deck, and a copy on a second device could finish the same sitting again, so
+completed sittings travel through `practiceHistory` instead. `packMarks`
 annotates the pack cache and is excluded for the cache's own reason, at the cost of a
 second phone re-offering a practised pack once. `moments`
 is a kind and one line in the learner's own words about their own life, an

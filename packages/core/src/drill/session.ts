@@ -284,8 +284,11 @@ export function mixQueue(
  * smaller wrong than demanding production the learner has not earned — and
  * only reach upward when nothing easier exists. First match wins, so a bank's
  * ordering is a preference, not an accident.
+ *
+ * Exported for `practice.ts`, which picks through this same rule rather than
+ * keeping a second copy of it. `candidates` must not be empty.
  */
-function pickForStage(candidates: readonly DrillExercise[], stage: DrillStage): DrillExercise {
+export function pickForStage(candidates: readonly DrillExercise[], stage: DrillStage): DrillExercise {
   const earned = DRILL_STAGES.indexOf(stage);
   for (let i = earned; i >= 0; i--) {
     const hit = candidates.find((e) => stageOf(e) === DRILL_STAGES[i]);

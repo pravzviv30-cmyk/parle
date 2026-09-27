@@ -66,6 +66,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Drill: 'drill',
       Review: 'review',
       SoundCheck: 'sound-check',
+      SoundJourney: 'sound-journey',
+      GoalStep: 'goal-step',
       Missions: 'missions',
       Phrasebook: 'phrasebook',
       Conversations: 'conversations',

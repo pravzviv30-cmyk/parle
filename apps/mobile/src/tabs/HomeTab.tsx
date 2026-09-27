@@ -4,11 +4,13 @@
  * story replace the separate Progress destination and share its existing
  * projections, never made-up counts. A new learner receives forward-looking
  * copy rather than a false record. The hero is independent of the momentum gate.
+ * The weekly expansion also carries a three-line reflection (Stage 4): one
+ * improvement, one focus, one next place, from this week's recorded evidence.
  * All data is re-read on focus with one clock, so completion and midnight changes
  * appear as soon as the learner comes back.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { levelFor, missionStates, totalXp, type ReviewCard } from '@luvani/core';
@@ -20,7 +22,7 @@ import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { DailyCarousel } from '../daily/DailyCarousel.tsx';
 import { todayItems } from '../daily/catalogue.ts';
 import { useSocial } from '../friends/useSocial.ts';
-import { usefulFriends, usefulPace } from '../home/activitySections.ts';
+import { usefulFriends } from '../home/activitySections.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { useGreetingRotation } from '../home/useGreetingRotation.ts';
 import { MissionHero } from '../home/MissionHero.tsx';
@@ -35,12 +37,17 @@ import { stampsFrom } from '../progress/passport.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { loadScenarioProgress } from '../missions/progressStore.ts';
-import { hasSpokenBefore, missionCompletionsFrom } from '../missions/chooserView.ts';
+import { hasPractisedBefore, hasSpokenBefore, missionCompletionsFrom } from '../missions/chooserView.ts';
 import { firstNameOf } from '../tutor/dashboard.ts';
 import { momentumFrom, type Momentum } from '../progress/momentum.ts';
 import { HomeMomentum } from '../home/HomeMomentum.tsx';
 import { homeActionFor } from '../home/nextAction.ts';
 import { useHomeRefresh } from '../home/useHomeRefresh.ts';
+import { loadSoundChecks } from '../soundcheck/store.ts';
+import { loadPracticeHistory } from '../practice/historyStore.ts';
+import { allConversations } from '../myfrench/recentConversations.ts';
+import { reflectionFrom, type Reflection } from '../progress/reflection.ts';
+import { scopeGeneration } from '../storage/scope.ts';
 
 export function HomeTab() {
   // A bottom tab stays mounted after its first visit, so the greeting's timers
@@ -62,12 +69,12 @@ export function HomeTab() {
   // What the learner can now do, or null before the passport has been read.
   const [rows, setRows] = useState<readonly CanDoRow[] | null>(null);
   const [story, setStory] = useState<WeekStory | null>(null);
+  // One improvement, one focus, one next (Stage 4), or null before the read.
+  const [reflection, setReflection] = useState<Reflection | null>(null);
   const [momentum, setMomentum] = useState<Momentum | null>(null);
   const [daily, setDaily] = useState(() => todayItems(0, Date.now()));
   const [due, setDue] = useState<ReviewCard[]>([]);
-  const [recalled, setRecalled] = useState(false);
   const revision = useHomeRefresh(focused);
-  useEffect(() => { setRecalled(false); }, [due[0]?.id]);
   const { snapshot: social } = useSocial();
   const friendsActivity = usefulFriends(social);
 
@@ -78,10 +85,13 @@ export function HomeTab() {
     useCallback(() => {
       let cancelled = false;
       const now = Date.now();
+      // Bound to the account before any read (Stage 4), so a result from the
+      // previous account is dropped rather than drawn for this one.
+      const scope = scopeGeneration();
       // All independent reads cross the native storage bridge together.
-      void Promise.all([loadActivity(), loadDeck(), loadMissionCompletions(), loadScenarioProgress(), loadActiveDays(), loadHistory(), loadConversationPacks()])
-        .then(([activity, deck, completions, records, activeDays, history, packs]) => {
-          if (cancelled) return;
+      void Promise.all([loadActivity(), loadDeck(), loadMissionCompletions(), loadScenarioProgress(), loadActiveDays(), loadHistory(), loadConversationPacks(), loadSoundChecks(), loadPracticeHistory()])
+        .then(([activity, deck, completions, records, activeDays, history, packs, checks, events]) => {
+          if (cancelled || scopeGeneration() !== scope) return;
           // The scene is pitched, so it waits. `scenariosForLevel` narrows the
           // pool to the learner's tier inside the rule, and the standing is the
           // app's one level rule, read rather than re-derived: a second opinion
@@ -99,12 +109,19 @@ export function HomeTab() {
               progress,
               records,
               spokenBefore: hasSpokenBefore(activity),
+              practisedBefore: hasPractisedBefore(activity),
               levelIndex: standing.index,
               now,
             }),
           );
           setRows(canDoRows(stampsFrom(progress)));
           setStory(storyFrom({ sessions: history, activity, packs, completions, now }));
+          // The reflection (Stage 4) reads the same week from the same four
+          // inputs and the same clock, so it can never tell a different week.
+          // Built twice rather than shared through a variable, because the
+          // ledger-named F233 test pins the line above byte for byte; the
+          // function is pure over arrays already in hand.
+          setReflection(reflectionFrom({ story: storyFrom({ sessions: history, activity, packs, completions, now }), recent: allConversations({ packs, events }), checks, progress, now }));
           setMomentum(momentumFrom({ activity, deck, profile, now, activeDays }));
         })
         .catch(() => {
@@ -149,12 +166,11 @@ export function HomeTab() {
 
         {momentum !== null && <HomeMomentum momentum={momentum} onPhrases={() => nav.navigate('Phrasebook')} onReview={() => nav.navigate('Review')} onTarget={() => nav.navigate('Profile')} />}
         <DailyCarousel word={daily.word} phrase={daily.phrase} />
-        <HomeProgressDetails story={story} rows={rows} />
-        {due[0] && <Card style={{ marginTop: space(4), gap: space(2) }}><Label>Keep this phrase</Label><Text style={[type.body, { color: paper.inkSoft }]}>From your own collection. How would you say this?</Text><Text style={[type.bodyStrong, { color: paper.ink }]}>{due[0].back}</Text>{recalled ? <Text style={[type.french, { color: paper.ink }]}>{due[0].front}</Text> : <GhostButton label="Reveal the French" onPress={() => setRecalled(true)} />}<GhostButton label="Practise my phrases" onPress={() => nav.navigate('Review')} /></Card>}
-        {momentum !== null && usefulPace(momentum) && <Card style={{ marginTop: space(3), gap: space(1) }}>
-          <Label>Today, at your pace</Label><Text style={[type.small, { color: paper.inkSoft }]}>{momentum.goal.note}</Text>
-          <GhostButton label="Adjust my optional speaking target" onPress={() => nav.navigate('Profile')} />
-        </Card>}
+        <HomeProgressDetails story={story} rows={rows} reflection={reflection} />
+        {/* Stage 3A: the "Keep this phrase" card and the separate pace card
+            left. Review is opened by the hero (when review is the day's
+            action) and the Recall tile; the optional target by the Practice
+            time tile. One door per destination. */}
         {friendsActivity !== null && <Card style={{ marginTop: space(3), gap: space(2) }}><Label>French with friends</Label><Text style={[type.body, { color: paper.ink }]}>{friendsActivity}</Text><GhostButton label="Open my circle" onPress={() => nav.navigate('Friends')} /></Card>}
         <GhostButton label="Explore my daily collection" onPress={() => nav.navigate('DailyLibrary')} />
       </View>

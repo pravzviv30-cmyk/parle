@@ -5206,8 +5206,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): F574 replaced the archive with the next-practice card, so both tab-level
   titles moved to tabs/PracticeTab.test.ts; the step is still drawn first and still the only thing
   on the tab competing for the eye.
+- note: conversation practice (2026-09): the card's one control became the recommended action (a short
+  practice, a resume, or the first conversation), so the pill test was renamed. It still pins exactly
+  one PillButton on the tab and that it is the card's action; the first conversation is one branch of it.
 - verified-by: `the tab counts nothing a learner could read as a score`
-- verified-by: `the tab keeps exactly one primary pill, and it is the first conversation — F574`
+- verified-by: `the tab keeps exactly one primary pill, and it is the recommended action`
 - verified-by: `the blocks arrive in the order the mockup draws them`
 
 ### F347 — A situation's row action and the next-situation words are decided in one module
@@ -5446,7 +5449,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   second branch is a conversation now. The count it pins, one pill in two branches, is untouched.
 - note: revamp A (2026-09): the deck branch became a quiet outline and the one pill is the learner's
   first conversation, so the count of one is untouched and only the branch that keeps it moved.
-- verified-by: `the tab keeps exactly one primary pill, and it is the first conversation — F574`
+- note: conversation practice (2026-09): the one pill is now the recommended action, whose branches are
+  a short practice, a resume, and the first conversation. The count of one is untouched; the test was
+  renamed and still asserts one PillButton, wired to the recommended action and nothing else.
+- verified-by: `the tab keeps exactly one primary pill, and it is the recommended action`
 - verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
 
 ### F366 — My French opens on the evidence, and draws nothing at zero
@@ -6372,7 +6378,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `GOAL_UNTIMED`, otherwise `GOAL_START`. Once time exists, the footer may say how many minutes remain
   only with “if you want”; at the target it uses `GOAL_MET`. The goal shape exposes no percentage or
   percentage label, and Progress draws no target fraction or bar.
-- verified-by: `today's speaking time carries the optional Profile target and counts only timed spoken sittings — F435`
+  2026-09-24 whole-app phase 1B: the card became "Practice time today" and sums measured active
+  learning time (`activeMs`) across all four kinds; legacy wall-clock `durationMs` is no longer read as
+  practice. The same test was retitled with it and still holds every property above (optional target,
+  measured amount without a target, no percentage, "if you want" remainder).
+- verified-by: `today's practice time sums measured active time across all four kinds and carries the optional target — Phase 1B`
 
 ### F436 — MomentumCards draws the four cards in tokens, the accent once on the badge
 - severity: P1
@@ -8403,7 +8413,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A. The next-step pill becomes a phrase card with a speaker and one control per branch;
   the vault, the feed and the filters move to a pushed Conversations screen; the suggestion and the
   closing lines go.
-- verified-by: `the next practice card says one French line and one control per branch`
+- note: conversation practice (2026-09): the per-branch controls became one recommended action chosen by
+  practice/practiceCard.ts over the balanced selector. The card is still one French line, its meaning,
+  a speaker and one action; the renamed test pins the line, gloss, speaker and the single action.
+- verified-by: `the recommended card says one French line and one action, both from the practice model`
 - verified-by: `the conversations screen carries the feed, the filters and the delete flow`
 
 ### F575 — My French is the tinted situation rows and the phrase shelf

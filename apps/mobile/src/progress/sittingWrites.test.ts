@@ -117,3 +117,72 @@ describe('a sitting says how long it took, and a scene says where it was left â€
     );
   });
 });
+
+describe('a sitting says how much of it was active learning â€” Phase 1B', () => {
+  const CLOCKED: readonly { readonly file: string; readonly kind: string }[] = [
+    { file: '../ConvoScreen.tsx', kind: 'convo' },
+    { file: '../ReviewScreen.tsx', kind: 'review' },
+    { file: '../DrillScreen.tsx', kind: 'drill' },
+  ];
+
+  test('every screen that records a sitting holds an active clock and writes its total', () => {
+    for (const { file, kind } of CLOCKED) {
+      const body = flat(file);
+      assert.match(body, new RegExp(`useActiveClock\\('${kind}'\\)`), `${file} holds no active clock for ${kind}`);
+      const at = body.indexOf(`recordActivity('${kind}'`) >= 0 ? body.indexOf(`recordActivity('${kind}'`) : body.indexOf(`recordActivity( '${kind}'`);
+      assert.ok(at >= 0, `${file} no longer records a ${kind} sitting, so this test is stale`);
+      assert.match(body.slice(at, at + 400), /activeMs:/, `${file} records a ${kind} sitting without its active time`);
+      assert.match(body, /\.touch\(\)/, `${file} never tells its clock a learner did anything`);
+    }
+  });
+
+  test('no screen credits wall-clock time as active time', () => {
+    for (const { file } of CLOCKED) {
+      assert.doesNotMatch(flat(file), /activeMs: [^,}]*(openedAt|dealtAt|startedAt|endedAt -)/, `${file} derives activeMs from wall time`);
+    }
+  });
+
+  test('review: typing, the attempt, the flip, hearing and a grade are all learner evidence', () => {
+    const body = flat('../ReviewScreen.tsx');
+    for (const handler of ['onChangeText', 'attempt = ', 'flipped: !t.flipped', 'tutorVoice.speak(hear)', 'handleGrade = ']) {
+      const at = body.indexOf(handler);
+      assert.ok(at >= 0, `the review screen has no ${handler}, so this test is stale`);
+      assert.match(body.slice(Math.max(0, at - 200), at + 250), /clock\.touch\(\)/, `${handler} does not touch the active clock`);
+    }
+  });
+
+  test('drill: both completion paths carry active time, and the resume record saves and restores it', () => {
+    const body = flat('../DrillScreen.tsx');
+    const complete = body.indexOf('completePracticeSitting(');
+    assert.ok(complete >= 0, 'the drill no longer completes practice sittings, so this test is stale');
+    assert.match(body.slice(complete, complete + 600), /activeMs:/, 'a practice sitting completes without its active time');
+    const saves = body.split('savePracticeSession(').slice(1);
+    assert.ok(saves.length > 0, 'the drill no longer saves a resume record, so this test is stale');
+    for (const save of saves) assert.match(save.slice(0, 600), /activeMs:/, 'a resume save drops the active total');
+    assert.match(body, /clock\.restore\(/, 'a resumed sitting restarts its active time from zero');
+    assert.match(body, /onChangeText=\{[^}]*clock\.touch\(\)/, 'typing in the drill is not active learning');
+  });
+
+  test('conversation: learner turns and tutor turn boundaries are evidence; opening the room is not', () => {
+    const body = flat('../ConvoScreen.tsx');
+    assert.match(body, /clock\.touch\(\)/);
+    assert.doesNotMatch(body, /activeMs: [^,}]*openedAt/, 'the room being open is counted as practice');
+  });
+
+  test('lesson: the session screen reports active time through its finish callback', () => {
+    const body = flat('../SessionScreen.tsx');
+    assert.match(body, /useActiveClock\('lesson'\)/, 'the lesson holds no active clock');
+    assert.match(body, /onFinish\(summarise\(state\), \{ activeMs: clock\.read\(\) \}\)/, 'the lesson does not report its active time');
+    assert.match(body, /onFinish: \(s: SessionSummary, timing\?: \{ activeMs: number \}\) => void/, 'the finish callback shape moved; tell the navigator owner');
+  });
+
+  test('lesson: the navigator writes the reported active time, and only when it was reported', () => {
+    const body = flat('../nav/RootNavigator.tsx');
+    const at = body.indexOf("recordActivity( 'lesson'") >= 0 ? body.indexOf("recordActivity( 'lesson'") : body.indexOf("recordActivity('lesson'");
+    assert.ok(at >= 0, 'the navigator no longer records a lesson sitting, so this test is stale');
+    const call = body.slice(at, at + 400);
+    assert.match(call, /activeMs: timing\.activeMs/, 'the lesson writer drops the active time the screen measured');
+    assert.match(call, /timing === undefined \? \{ durationMs:[^}]*\} :/, 'a lesson with no measured time would get an invented one');
+    assert.match(body, /const finish = useCallback\(\(s: SessionSummary, timing\?: \{ activeMs: number \}\)/, 'the finish callback no longer takes timing');
+  });
+});

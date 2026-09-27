@@ -328,6 +328,9 @@ describe('the 402 the hook is handed — F251', () => {
         `${name} renders something other than the sentence the hook supplies`,
       );
     }
+    // Stage 3 (2026-09-25): the lesson hands the sentence to its own page on
+    // the scrolling frame, so the page is held to drawing it.
+    assert.match(read('./OutOfMinutesView.tsx'), /<Text[^>]*>\{message\}<\/Text>/, "the lesson's out-of-minutes page drops the hook's sentence");
 
     // And every sentence that field can hold, over every 402 the server sends,
     // is one of ours.

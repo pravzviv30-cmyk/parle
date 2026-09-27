@@ -1162,6 +1162,14 @@ describe('database security contract — SQL cannot drift quietly', () => {
     const billingLedgerDown = readFileSync(path.join(ROLLBACKS, '202608300001_down.sql'), 'utf8');
     assert.match(billingLedgerDown, /DESTRUCTIVE/);
     assert.match(billingLedgerDown, /every billing event we have already acted on looks new again/i);
+
+    // Stage 4 (2026-09-25): the goal-steps rollback deletes server rows before it
+    // narrows the whitelist, so it says so and refuses to run unasked.
+    const goalStepsDown = readFileSync(path.join(ROLLBACKS, '202609250001_down.sql'), 'utf8');
+    assert.match(goalStepsDown, /DESTRUCTIVE/);
+    assert.match(goalStepsDown, /luvani\.remove_goal_steps/);
+    assert.match(goalStepsDown, /raise exception/i, 'the goal-steps rollback has an interlock that never refuses');
+    assert.match(goalStepsDown, /delete from public\.learner_state\s+where namespace = 'goalSteps'/i);
   });
 
   test('the supabase runbook applies every migration in order and pairs each with its rollback', () => {

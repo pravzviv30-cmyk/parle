@@ -3,9 +3,11 @@
  *
  * It used to be one long scroll mixing three unrelated things: the learner's
  * own settings, the account, and what the law and the store require the app to
- * say. The last two went behind one `Settings` row with F473, last on the
- * screen and in a bare Card with no caps label over it, because a caps SETTINGS
- * above a row reading Settings is redundancy this system already retired.
+ * say. The last two went behind one `Settings` row with F473, in a bare Card
+ * with no caps label over it, because a caps SETTINGS above a row reading
+ * Settings is redundancy this system already retired. That row is first on the
+ * screen now, above the learner's own header, so the account is one tap away
+ * without scrolling past the learning settings.
  *
  * Revamp A (F576) took the split one step further. The plan card, the daily
  * reminder and the link to the voice-circle intro are all general-issue
@@ -30,7 +32,16 @@
  * shows comes from a module: `profile/frenchLife.ts` for the headings,
  * `profile/tutorMemory.ts` for the tutor card, `profile/dailyGoal.ts`,
  * `tutor/strictness.ts`, `profile/typing.ts` and `tutor/pace.ts` for the
- * choices, and `settings/sections.ts` for the row at the foot.
+ * choices, and `settings/sections.ts` for the Settings row at the top.
+ *
+ * ## One stored value, one way of saying it (Stage 3)
+ *
+ * Correction style is edited here and on the tutor memory screen, on purpose:
+ * how the tutor treats you belongs beside what it knows about you. Both rows
+ * are the same `ChoiceRow` over `withStrictness`, word for word, and
+ * `settings/responsibilities.test.ts` holds them to it. The speaking target
+ * has one editor, here; Home's Practice time tile opens this screen rather
+ * than growing a second one.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -275,6 +286,12 @@ export function ProfileTab() {
 
   return (
     <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: goBack }} title="Profile" />}>
+      {/* The one row that leads to everything general: the account, the plan,
+          the subscription, the documents, the phone's own permissions and the
+          daily reminder. First on the screen, in a bare Card with no Label
+          above it, because a caps SETTINGS over a row reading Settings says
+          nothing twice. Everything behind it is `settings/SettingsScreen.tsx`,
+          a stack sibling above the tabs. */}
       <Card style={{ marginBottom: space(3) }}><SettingsRow first label={SETTINGS_ROW} value={SETTINGS_ROW_SUB} onPress={() => nav.navigate('Settings')} /></Card>
       <View>
         {/* The art sits behind the centred column and bleeds off the corner, so
@@ -339,14 +356,6 @@ export function ProfileTab() {
             />
           </Card>
         </View>
-
-        {/* The one row that leads to everything general: the account, the plan,
-            the subscription, the documents, the phone's own permissions and the
-            daily reminder. Last on the screen and in a bare Card with no Label
-            above it, because a caps SETTINGS over a row reading Settings is
-            redundancy that says nothing twice. Everything behind it is
-            `settings/SettingsScreen.tsx`, a stack sibling above the tabs, so
-            the bar goes with the push. */}
       </View>
     </ScrollScreen>
   );

@@ -16,7 +16,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mergeActiveDays } from './activeDays.ts';
 import { totalXp, type DatedXp } from '@luvani/core';
-import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import type { PersistAck } from '../storage/ack.ts';
+import { onUserScopeReset, scopeGeneration, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
 export type ActivityKind = 'lesson' | 'convo' | 'drill' | 'review';
@@ -39,6 +40,17 @@ export interface ActivityEntry {
    * It is device wall clock, not metered minutes, so it is never the balance.
    */
   durationMs?: number;
+  /**
+   * Active learning time, in milliseconds: only the stretches between real
+   * learner events that were close enough together to be one stretch of work,
+   * with idle, background and paused gaps left out (see `activeTime.ts`).
+   * Typed work counts. It is what Home's Practice time sums.
+   *
+   * Optional and absent on every entry written before Phase 1B. Absent means
+   * not measured, and it is never filled from `durationMs`, which measured
+   * something else. Never metered minutes either.
+   */
+  activeMs?: number;
 }
 
 /**
@@ -51,6 +63,20 @@ export interface ActivityEntry {
 export interface ActivityDetail {
   /** Wall-clock milliseconds from the screen opening to the sitting banking. */
   readonly durationMs?: number;
+  /** Active learning milliseconds from the screen's `ActiveClock`. Absent when not measured. */
+  readonly activeMs?: number;
+}
+
+/**
+ * The log row for one sitting, carrying each measurement only when it is a
+ * value this store holds. A malformed measurement is dropped on its own; the
+ * sitting and the other measurement still land.
+ */
+function entryOf(at: number, kind: ActivityKind, xp: number, detail: ActivityDetail): ActivityEntry {
+  const entry: ActivityEntry = { at, kind, xp };
+  if (detail.durationMs !== undefined && isDuration(detail.durationMs)) entry.durationMs = detail.durationMs;
+  if (detail.activeMs !== undefined && isDuration(detail.activeMs)) entry.activeMs = detail.activeMs;
+  return entry;
 }
 
 /**
@@ -103,7 +129,8 @@ function isEntry(value: unknown): value is ActivityEntry {
     typeof entry.xp === 'number' &&
     Number.isFinite(entry.xp) &&
     (entry.kind === 'lesson' || entry.kind === 'convo' || entry.kind === 'drill' || entry.kind === 'review') &&
-    isDuration(entry.durationMs)
+    isDuration(entry.durationMs) &&
+    isDuration(entry.activeMs)
   );
 }
 
@@ -207,10 +234,92 @@ export async function recordActivity(
   detail: ActivityDetail = {},
 ): Promise<void> {
   if (!Number.isFinite(xp) || !Number.isFinite(now) || xp <= 0) return;
-  const entry: ActivityEntry = isDuration(detail.durationMs)
-    ? { at: now, kind, xp, ...(detail.durationMs === undefined ? {} : { durationMs: detail.durationMs }) }
-    : { at: now, kind, xp };
+  const entry = entryOf(now, kind, xp, detail);
   await mutate((stored) => ({ ...stored, version: 2, activeDays: mergeActiveDays([...stored.entries, entry], stored.activeDays), entries: prune([...stored.entries, entry], now) }));
+}
+
+/**
+ * A sitting's fixed log instant that no entry of the same `(kind, xp)` already
+ * on DISK holds: `at` itself, or the next free millisecond after it.
+ *
+ * The log's identity is `(at, kind, xp)` and it has no id field, so this is how
+ * a caller that must record a sitting at most once gets a stamp it can own.
+ * The caller freezes the answer durably before recording, and a replay that
+ * finds that exact entry knows it is its own. Only sound while the caller has
+ * at most one such stamp outstanding per account (practice completion does).
+ * Null when the disk cannot be read.
+ */
+export function claimActivityInstant(kind: ActivityKind, xp: number, at: number): Promise<number | null> {
+  return serialized(async (key) => {
+    let raw: string | null;
+    try {
+      raw = await AsyncStorage.getItem(key);
+    } catch {
+      return null;
+    }
+    const parsed = raw ? parseStored(raw) : empty();
+    const taken = new Set(parsed.entries.filter((e) => e.kind === kind && e.xp === xp).map((e) => e.at));
+    let free = Math.floor(at);
+    while (taken.has(free)) free += 1;
+    return free;
+  });
+}
+
+/**
+ * Record one sitting exactly once at a stamp from `claimActivityInstant`, and
+ * say whether it is on disk.
+ *
+ * `durable` when the entry `(at, kind, xp)` is already there (an earlier try
+ * landed) or this write landed; `failed` when the disk refused, could not be
+ * read, or the account changed or was reset since the call. A failed write
+ * raises no dirty flag. `xp <= 0` records nothing and is honestly `durable`.
+ * Ordinary `recordActivity` is unchanged.
+ */
+export function recordActivityOnce(
+  kind: ActivityKind,
+  xp: number,
+  at: number,
+  detail: ActivityDetail = {},
+): Promise<PersistAck> {
+  if (!Number.isFinite(xp) || !Number.isFinite(at)) return Promise.resolve('failed');
+  if (xp <= 0) return Promise.resolve('durable');
+  const generation = scopeGeneration();
+  return serialized(async (key) => {
+    let raw: string | null;
+    try {
+      raw = await AsyncStorage.getItem(key);
+    } catch {
+      return 'failed';
+    }
+    const stored = raw ? parseStored(raw) : empty();
+    if (stored.entries.some((e) => e.at === at && e.kind === kind && e.xp === xp)) return 'durable';
+    const entry = entryOf(at, kind, xp, detail);
+    const entries = [...stored.entries, entry];
+    const next: Stored = {
+      ...stored,
+      version: 2,
+      activeDays: mergeActiveDays(entries, stored.activeDays),
+      entries: prune(entries, Math.max(at, Date.now())),
+    };
+    if (scopeGeneration() !== generation) return 'failed';
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      return 'failed';
+    }
+    if (scopeGeneration() === generation) markDirty('activity');
+    return 'durable';
+  });
+}
+
+function parseStored(raw: string): Stored {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isStored(parsed)) return empty();
+    return { ...parsed, entries: parsed.entries.filter(isEntry) };
+  } catch {
+    return empty();
+  }
 }
 
 export async function loadActivity(): Promise<ActivityEntry[]> {
@@ -268,9 +377,9 @@ export async function backfillFrom(sessions: readonly { endedAt: number }[], bas
  * The identity stayed `(at, kind, xp)` when `durationMs` arrived, on purpose:
  * widening it would make the same sitting two rows on a device that synced
  * before the field existed and one row after, and the XP would be counted
- * twice. Instead the policy's pick prefers the copy that carries a duration, so
- * an older device folding its copy in cannot erase a measurement a newer one
- * made.
+ * twice. Instead the policy's pick prefers the copy that carries an active
+ * total, then a duration, so an older device folding its copy in cannot erase a
+ * measurement a newer one made. `activeMs` joined on the same terms.
  *
  * Validated as if it came off a stranger's disk, because in effect it did: it
  * was merged from a payload another device wrote. `backfilled` is still ORed

@@ -193,6 +193,8 @@ interface Hook {
   statuses: string[];
   failures: string[];
   sent: string[];
+  /** Every session id the lifted `start` published, in order. */
+  sessionIds: (string | null)[];
   timers: (() => void)[];
   journalled: number;
   audioSessionHeld: () => boolean;
@@ -215,6 +217,8 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
   const statuses: string[] = [];
   const failures: string[] = [];
   const sent: string[] = [];
+  // Every value the lifted `start` published as the session id, in order.
+  const sessionIds: (string | null)[] = [];
   const timers: (() => void)[] = [];
   let journalled = 0;
   // Modelled on globals.native.ts, which refuses to release a session it has
@@ -306,6 +310,11 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     },
     setWaitingForTutor: () => {},
     setDiagnostics: () => {},
+    // The grant's id, for source-linked history. Recorded so an abandoned
+    // attempt can be shown never to publish one.
+    setSessionId: (id: string | null) => {
+      sessionIds.push(id);
+    },
     setSafety: () => {},
     setTurns: () => {},
     setThinking: () => {},
@@ -372,6 +381,7 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     statuses,
     failures,
     sent,
+    sessionIds,
     timers,
     get journalled(): number {
       return journalled;
@@ -409,6 +419,7 @@ describe('the learner leaves while the session is still connecting — F151', ()
     });
 
     assert.deepEqual(session.rooms, [], 'a room was opened for a screen the learner had already left');
+    assert.deepEqual(session.sessionIds, [null], 'an abandoned attempt published a session id for a room that never opened');
     assert.equal(session.roomRef.current, null, 'the abandoned attempt left its room where the screen reads one');
     assert.ok(!session.statuses.includes('live'), 'the session went live after the learner left it');
     assert.deepEqual(session.timers, [], 'watchdogs were armed for a session nobody is in');
@@ -497,6 +508,16 @@ describe('two starts at once — the older one must not clobber the newer', () =
     assert.equal(session.roomRef.current, session.rooms[0], 'the late attempt overwrote the room the learner is actually in');
     assert.equal(session.rooms[0]!.disconnects, 0, 'the session on screen was torn down by an older attempt finishing');
     assert.equal(session.statuses.filter((phase) => phase === 'live').length, 1, 'the screen was told it went live twice');
+  });
+
+  test('a granted session publishes its own id, and a restart clears it before asking again', async () => {
+    const session = liveHook();
+    const grant = (sessionId: string) => ({
+      fetch: async () => ({ status: 200, ok: true, headers: { get: () => null }, json: async () => ({ token: 't', livekitUrl: 'wss://x', sessionId }) }),
+    });
+    await start(session, grant('s-one'));
+    await start(session, grant('s-two'));
+    assert.deepEqual(session.sessionIds, [null, 's-one', null, 's-two'], 'a restart carried the old session id into the new session');
   });
 
   test('a restart takes the old room with it rather than leaving it running', async () => {

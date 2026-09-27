@@ -30,9 +30,11 @@ export function TuneSoundCard({
     <TintRow
       tint={MADE_FROM_TINT.sound}
       glyph={<WaveformGlyph color={accent.primary} />}
-      title={MADE_FROM.sound.label}
+      // With no measured sound there is nothing to tune yet, and the row opens
+      // the situations list. Its title says that first step, never a tuning.
+      title={sound === null ? MADE_FROM.sound.go : MADE_FROM.sound.label}
       gloss={sound === null ? MADE_FROM.sound.none : MADE_FROM.sound.gloss}
-      accessibilityLabel={sound === null ? `${MADE_FROM.sound.label}, ${MADE_FROM.sound.go}` : `${MADE_FROM.sound.label}, ${sound.acoustic.heading}`}
+      accessibilityLabel={sound === null ? `${MADE_FROM.sound.go}. ${MADE_FROM.sound.none}` : `${MADE_FROM.sound.label}, ${sound.acoustic.heading}`}
       onPress={() => {
         if (sound === null) onChoose();
         else onCheck(sound.missionId);

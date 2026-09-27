@@ -12,9 +12,10 @@ import { scoreRecordedAttempt } from '../speech/scoreAttempt.ts';
 import { consumeRecording, discardRecording } from '../speech/discardRecording.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
 import { headSound } from './headSound.ts';
-import { SELF_GUIDED, nextSoundCheckReference, soundCheckDecision, type SoundCheckDecision } from './model.ts';
+import { MIC_DENIED, SELF_GUIDED, nextSoundCheckReference, soundCheckDecision, type SoundCheckDecision } from './model.ts';
 import { loadSoundChecks, recordSoundCheck } from './store.ts';
 import { trackProductEvent } from '../analytics/track.ts';
+import { PHONE_SETTINGS_AVAILABLE, openPhoneSettings } from '../settings/phoneSettings.ts';
 
 const CAN_RECORD =
   Platform.OS !== 'web' ||
@@ -24,13 +25,21 @@ export function SoundCheckScreen({
   userId,
   missionId,
   onDone,
+  onChooseSituation,
 }: {
   userId: string;
-  missionId: string;
+  /**
+   * The situation whose known lines are checked. Null when the screen was
+   * opened without one (a reload or a shared address): the check never guesses
+   * a scene, it asks the learner to choose one.
+   */
+  missionId: string | null;
   onDone: () => void;
+  /** Opens the situations list, offered when there is no situation to check. */
+  onChooseSituation?: () => void;
 }) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const mission = getMission(missionId);
+  const mission = missionId === null ? undefined : getMission(missionId);
   const [reference, setReference] = useState<string | null>(null);
   // How the learner's own last measured sound is made, drawn above the line.
   // Null on a first check, on a run of self-guided attempts, and whenever the
@@ -76,11 +85,14 @@ export function SoundCheckScreen({
     [mission, reference],
   );
 
-  const selfGuided = useCallback(() => {
-    setResult(SELF_GUIDED);
-    setPhase('result');
-    persist(SELF_GUIDED);
-  }, [persist]);
+  const selfGuided = useCallback(
+    (decision: SoundCheckDecision = SELF_GUIDED) => {
+      setResult(decision);
+      setPhase('result');
+      persist(decision);
+    },
+    [persist],
+  );
 
   const toggle = useCallback(async () => {
     if (!reference || phase === 'scoring' || phase === 'loading') return;
@@ -117,7 +129,8 @@ export function SoundCheckScreen({
 
     try {
       const permission = await AudioModule.requestRecordingPermissionsAsync();
-      if (!permission.granted) return selfGuided();
+      // Refused access is explained, not silently turned into practice.
+      if (!permission.granted) return selfGuided(MIC_DENIED);
       tutorVoice.stop();
       await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
       await recorder.prepareToRecordAsync();
@@ -138,7 +151,19 @@ export function SoundCheckScreen({
       header={!noCheck && phase !== 'result' ? <ScreenHeader back={{ onPress: onDone }} /> : undefined}
       footer={noCheck || phase === 'result' ? <PillButton label="Done" onPress={onDone} /> : null}
     >
-      {noCheck ? (
+      {noCheck && missionId === null ? (
+        <Card tone="feature">
+          <Text style={[type.title, { color: paper.ink }]}>Choose a situation first.</Text>
+          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
+            A sound check uses the known lines from one situation, so it needs to know which one.
+          </Text>
+          {onChooseSituation !== undefined && (
+            <View style={{ marginTop: space(4) }}>
+              <GhostButton label="Choose a situation" onPress={onChooseSituation} />
+            </View>
+          )}
+        </Card>
+      ) : noCheck ? (
         <Card tone="feature">
           <Text style={[type.title, { color: paper.ink }]}>No sound check for this situation yet.</Text>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>The conversation and its practice still count.</Text>
@@ -177,6 +202,11 @@ export function SoundCheckScreen({
             <Card style={{ marginTop: space(5) }}>
               <Text style={[type.title, { color: paper.ink }]}>{result.headline}</Text>
               <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{result.detail}</Text>
+              {result === MIC_DENIED && PHONE_SETTINGS_AVAILABLE && (
+                <View style={{ marginTop: space(3) }}>
+                  <GhostButton label="Open settings" onPress={() => void openPhoneSettings()} />
+                </View>
+              )}
             </Card>
           ) : (
             <View style={st.micBlock}>
@@ -191,7 +221,7 @@ export function SoundCheckScreen({
                 {phase === 'recording' ? 'Tap when you are done' : phase === 'scoring' ? 'Checking the sound…' : 'Tap, then say the line'}
               </Text>
               {!CAN_RECORD && <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Recording is unavailable here. Say it aloud and use the self-guided option.</Text>}
-              <GhostButton label="I said it without assessment" onPress={selfGuided} />
+              <GhostButton label="I said it without assessment" onPress={() => selfGuided()} />
             </View>
           )}
         </>

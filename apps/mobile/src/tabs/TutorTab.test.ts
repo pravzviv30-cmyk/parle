@@ -20,6 +20,8 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { guiltIn } from '../copy/guilt.ts';
+import { launchAccessibilityLabel, launchLabel, launchNotice, orbStatusLabel, tutorOrbState } from '../tutor/orbState.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -149,6 +151,16 @@ describe('the tutor tab recommends a conversation and exposes its supporting too
     const written = convo.indexOf('markPackContinued(continuationPackId, Date.now())');
     assert.ok(raised >= 0 && written > raised, 'the async mark is queued before the once-only guard is raised');
 
+    // The same moment in the account history: a revisit started, only for a
+    // room that published a view and has a server session id, once per id.
+    assert.match(
+      convo,
+      /if \(continuationPackId === undefined \|\| live\.convo === null \|\| live\.sessionId === null\) return; if \(revisitRecordedRef\.current === live\.sessionId\) return; revisitRecordedRef\.current = live\.sessionId; void recordRevisitStarted\(\{ sessionId: live\.sessionId, packId: continuationPackId, at: Date\.now\(\) \}\);/,
+      'the revisit is recorded before the room opens, without a real session id, or more than once',
+    );
+    assert.equal((convo.match(/recordRevisitStarted\(/g) ?? []).length, 1, 'the revisit is recorded from more than one place');
+    assert.doesNotMatch(convo, /sessionId: [`'"]/, 'a revisit session id is made up rather than read from the grant');
+
     // ── no pill ────────────────────────────────────────────────────────────
     // The circle is the tab's one primary action. The resume card's pill left
     // with the resume card, and a row that opens a screen says so with a
@@ -203,7 +215,14 @@ describe('the tutor page owns its words — F415', () => {
     // The ready words live inside the circle; non-ready states keep the status
     // under it, and the purpose line remains beneath the whole control.
     assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart \}\)/, 'the circle no longer reads its state from the facts');
-    assert.match(FLAT, /label=\{checking \? 'Connecting…' : mode === 'type' \? 'Start typing' : 'Start speaking'\}/, 'the explicit action explains the selected mode');
+    // The label is one pure rule now, so what an unavailable tutor's button
+    // says is held directly rather than read off a ternary.
+    assert.match(FLAT, /<PillButton label=\{launchLabel\(\{ checking, live, mode \}\)\}/, 'the start button no longer reads its words from the rule');
+    assert.equal(launchLabel({ checking: false, live: true, mode: 'speak' }), 'Start speaking', 'the explicit action explains the selected mode');
+    assert.equal(launchLabel({ checking: false, live: true, mode: 'type' }), 'Start typing');
+    assert.equal(launchLabel({ checking: true, live: false, mode: 'speak' }), 'Connecting…');
+    assert.equal(launchLabel({ checking: false, live: false, mode: 'speak' }), 'Check connection', 'an unavailable tutor still offers to start speaking');
+    assert.equal(launchLabel({ checking: false, live: false, mode: 'type' }), 'Check connection', 'typing is not offline and cannot start without the tutor');
     assert.match(FLAT, /\{orb\.state !== 'ready' && <Text style=\{st\.orbSubline\}>\{orb\.subline\}<\/Text>\}/, 'a non-ready state no longer explains why the circle cannot start');
     const rule = read('../tutor/orbState.ts');
     assert.match(rule, /'Tap to talk'/, 'the rule lost the minimalist ready line');
@@ -212,20 +231,70 @@ describe('the tutor page owns its words — F415', () => {
     assert.match(words, /'Your tutor remembers where you left off\.'/, 'the header lost the continuity promise in the approved Tutor direction');
   });
 
-  test('the whole circle block is one press, and it says what it opens', () => {
-    // The circle, the line under it and the line under that are one target, so
-    // a thumb that lands on the words opens the conversation rather than
-    // nothing. Under the touch floor and with a role, because a Pressable with
-    // no role is a control a screen reader walks past.
-    const press = between(RENDER, '<Pressable', '</Pressable>', 'the circle is something a learner can press');
-    assert.match(press, /accessibilityRole="button"/, 'the circle is a control a screen reader walks straight past');
-    assert.match(press, /accessibilityLabel=\{`Start \$\{mode === 'type' \? 'a typed' : 'a spoken'\} conversation with \$\{tutorName\}`\}/, 'the circle names the tutor and mode');
-    assert.match(press, /onPress=\{\(\) => open\(mode === 'type', next\.params\)\}/, 'the circle opens the recommended conversation');
-    assert.match(press, /disabled=\{checking\}/, 'a second tap during the connection check opens a second room');
+  /**
+   * Rewritten 2026-09-25 (whole-app Stage 3A), by decision. This test used to
+   * pin the circle as a second press that opened the same room as the pill.
+   * Two equally actionable controls for one start is what the whole-app review
+   * asked to remove: the circle now reports the tutor's state and the pill is
+   * the one launch. What the old test protected still holds, moved to the pill:
+   * one named action, mode kept, no second room during the probe.
+   */
+  test('the circle reports the tutor state, and the one pill is the only way to start', () => {
+    // The circle is not a control any more: nothing on the tab is a Pressable,
+    // and the recommended start is opened from exactly one place.
+    assert.ok(!SCREEN.includes('<Pressable'), 'the circle is still a press that starts the conversation beside the pill');
+    assert.equal(
+      (RENDER.match(/open\(mode === 'type', next\.params\)/g) ?? []).length,
+      1,
+      'the recommended conversation is started from more than one control',
+    );
+    const pill = between(FLAT, '<PillButton', '/>', 'the tab keeps one launch pill');
+    assert.match(pill, /onPress=\{\(\) => open\(mode === 'type', next\.params\)\}/, 'the pill no longer opens the recommended conversation');
+    assert.match(pill, /disabled=\{checking\}/, 'a second tap during the connection check opens a second room');
+    assert.match(pill, /accessibilityLabel=\{launchAccessibilityLabel\(\{ checking, live, mode, tutorName \}\)\}/, 'the one launch does not name the tutor and the mode to a screen reader');
+
+    // The circle is announced as a state, in words from the rule, never as an action.
+    const block = between(FLAT, '<View style={st.orb}', '</View>', 'the circle sits in its own block');
+    assert.match(block, /accessibilityLabel=\{orbStatusLabel\(orb, tutorName\)\}/, 'the circle is not announced by its state');
+    assert.doesNotMatch(block, /accessibilityRole="button"/, 'the circle still announces itself as a button');
+    assert.doesNotMatch(block, /onPress=/, 'the circle still starts something');
+    const tutor = 'Camille';
+    const states = [
+      tutorOrbState({ live: true, checking: false, canStart: true }),
+      tutorOrbState({ live: true, checking: true, canStart: null }),
+      tutorOrbState({ live: false, checking: false, canStart: null }),
+      tutorOrbState({ live: true, checking: false, canStart: false }),
+    ];
+    const said = states.map((view) => orbStatusLabel(view, tutor));
+    assert.equal(new Set(said).size, states.length, 'two different states read the same to a screen reader');
+    for (const line of said) {
+      assert.ok(line.startsWith(tutor), `"${line}" does not say whose state it is`);
+      assert.doesNotMatch(line, /\b(tap|start|open|press)\b/i, `"${line}" reads as an action, and the circle does nothing when pressed`);
+      assert.doesNotMatch(line, /—|\d/, `"${line}" carries an em dash or a number`);
+      assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
+    }
+
     const orbStyle = between(SCREEN, 'orb: {', '}', 'the circle block has a style');
-    assert.match(orbStyle, /minWidth: TUTOR_ORB_SIZE/, 'only the drawing is large; the full visible orb is not the touch target');
-    assert.match(orbStyle, /minHeight: TUTOR_ORB_SIZE/, 'the circle block is smaller than its 218pt visible control');
-    assert.doesNotMatch(between(SCREEN, 'pressed: {', '}', 'the orb has no immediate press state'), /opacity/, 'pressing the orb fades away the control the learner just chose');
+    assert.match(orbStyle, /minWidth: TUTOR_ORB_SIZE/, 'the circle block is smaller than the circle');
+    assert.match(orbStyle, /minHeight: TUTOR_ORB_SIZE/, 'the circle block is smaller than the circle');
+    assert.ok(!SCREEN.includes('st.pressed'), 'the circle still carries a press state for a press it no longer has');
+  });
+
+  test('speaking and typing are a mode, and the page says both use live minutes', () => {
+    // Typed is not the free choice: both open the metered tutor. Free practice
+    // is Practice's, and it says so there.
+    assert.match(FLAT, /<Text style=\{st\.notice\}>\{launchNotice\(mode\)\}<\/Text>/, 'the line under the pill is spelled on the tab');
+    for (const mode of ['speak', 'type'] as const) {
+      const line = launchNotice(mode);
+      assert.match(line, /live minutes/, `the ${mode} notice hides that the tutor uses live minutes`);
+      assert.doesNotMatch(line, /\bfree\b|offline/i, `the ${mode} notice calls the tutor free or offline`);
+      assert.doesNotMatch(line, /—/);
+      assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
+    }
+    assert.match(launchNotice('type'), /microphone/i, 'the typed notice no longer says the microphone stays closed');
+    assert.equal(launchAccessibilityLabel({ checking: false, live: true, mode: 'type', tutorName: 'Camille' }), 'Start a typed conversation with Camille');
+    assert.equal(launchAccessibilityLabel({ checking: false, live: true, mode: 'speak', tutorName: 'Camille' }), 'Start a spoken conversation with Camille');
+    assert.equal(launchAccessibilityLabel({ checking: false, live: false, mode: 'speak', tutorName: 'Camille' }), 'Check connection', 'an unreachable tutor is still offered a conversation to a screen reader');
   });
 });
 
@@ -347,5 +416,24 @@ describe('the tutor tab keeps working after a tab switch, a probe that threw and
       SCREEN.indexOf('const GLYPH: Record<EntryModeKey, ReactNode>') < SCREEN.indexOf('export function TutorTab()'),
       'the row marks are rebuilt on every render',
     );
+  });
+});
+
+describe('the offline block leaves when the tutor comes back — Stage 4 review (2026-09-25)', () => {
+  test('a refused start is forgotten once the tutor is reachable again', () => {
+    // `heldBack` was cleared only by a successful start from this tab, while
+    // `live` can turn true from another screen's `recheck()`. The block, and
+    // its unmetered "Try guided practice" door into a lesson that would now
+    // run live, stayed drawn. `recheck()` sets `live` to its own answer
+    // (app/LiveContext.tsx), so a refusal always coincides with `live` false
+    // and clearing on `live` loses no refusal that is still true.
+    assert.match(FLAT, /useEffect\(\(\) => \{ if \(live\) setHeldBack\(null\); \}, \[live\]\);/, 'a stale refusal keeps the offline block on screen after the tutor is back');
+    const context = stripComments(read('../app/LiveContext.tsx'));
+    assert.match(context, /setLive\(r\.ok\);\s*return r\.ok;/, 'recheck answers one thing and sets live to another');
+    assert.match(context, /setLive\(false\);\s*return false;/, 'a probe that threw leaves live as it was');
+    // The block is still drawn on the same two conditions, and says nothing
+    // about minutes, because offline the lesson runs on the phone.
+    const offline = between(RENDER, '{(!live || heldBack !== null) && (', '</Card>', 'the offline block is drawn');
+    assert.ok(!offline.includes('LESSON_MINUTES'), 'the offline lesson, which uses no minutes, is said to use them');
   });
 });

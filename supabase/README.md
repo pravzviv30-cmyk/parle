@@ -55,6 +55,8 @@ transactional migration tooling. Inspect the schema before recovering a partial 
 | 16 | `migrations/20260920194653_conversation_practice_jobs.sql` | Atomic pack receipt and durable drill recovery, leased claims, five-attempt retries, stale-result fencing and content-free deletion tombstones. Requires 11. |
 | 17 | `migrations/20260920200454_practice_receipt_finalization.sql` | Explicit pack grants; preserves recovered exercises against a late failed analyst and keeps exhausted jobs failed. Requires 16. |
 | 18 | `migrations/20260920200807_practice_account_deletion.sql` | Narrow, search-path-hardened trigger elevation so Supabase Auth account deletion can tombstone a pack without granting Auth access to queue contents. Requires 16. |
+| 19 | `migrations/202609230001_learner_state_practice_history.sql` | Widens `learner_state`'s namespace whitelist to accept `practiceHistory`, the account-synced record of completed conversation practice (ids, times, source links and per-target outcomes only). Recreates one named check constraint, touches no rows. Prepared, not applied to any project. |
+| 20 | `migrations/202609250001_learner_state_goal_steps.sql` | Widens `learner_state`'s namespace whitelist to accept `goalSteps`, the account-synced record that a conversation was opened from a goal card (session id, normalised goal key, task id) and the learner's own "used outside" self-report (ids only). Recreates one named check constraint, touches no rows. Prepared, not applied to any project. Requires 12. |
 
 Order is load-bearing in one direction only: everything after 1 names tables and
 functions that 1 creates, so 1 first. Files 3, 4, 5, 7 and 9 are each a single `create or
@@ -145,6 +147,8 @@ depends on what the earlier ones built.
 
 | Rolling back | Script | Cost |
 |---|---|---|
+| `202609250001_learner_state_goal_steps.sql` | `rollback/202609250001_down.sql` | **DESTRUCTIVE.** Deletes every server copy of a learner's goal steps (which conversations were opened from a goal, and their "used outside" reports) before narrowing the whitelist. Device copies survive; a learner who changes phone loses them. Refuses to run until you set `luvani.remove_goal_steps` in the same session |
+| `202609230001_learner_state_practice_history.sql` | `rollback/202609230001_down.sql` | **DESTRUCTIVE.** Deletes every server copy of completed conversation-practice history before narrowing the whitelist. Device copies survive; a learner who changes phone loses it. Refuses to run until you set `luvani.remove_practice_history` in the same session |
 | `20260920200807_practice_account_deletion.sql` | `rollback/20260920200807_down.sql` | Reopens restricted-role account deletion failure. Guarded by `luvani.reopen_practice_delete`; prefer fixing forward. |
 | `20260920200454_practice_receipt_finalization.sql` | `rollback/20260920200454_down.sql` | Reopens late-result overwrite. Guarded by `luvani.reopen_practice_receipt`; retains required reader/service grants. |
 | `20260920194653_conversation_practice_jobs.sql` | `rollback/20260920194653_down.sql` | DESTRUCTIVE. Stop API/worker and back up jobs and tombstones first. Guarded by `luvani.remove_practice_queue`; saved packs survive, but removing tombstones removes protection against late resurrection. |
@@ -208,7 +212,7 @@ the project has real accounts on it.
 "We can roll back" is a claim, and this is how it becomes evidence. Do it on a disposable
 project, and keep the output:
 
-1. Apply all eighteen migrations. Run the harness. Record: twelve proofs, all passed. Separately run `scripts/verifyPracticeQueue.mjs` against disposable PostgreSQL/WASM for the new queue functions; the legacy harness does not cover them.
+1. Apply all twenty migrations. Run the harness. Record: twelve proofs, all passed. Separately run `scripts/verifyPracticeQueue.mjs` against disposable PostgreSQL/WASM for the new queue functions; the legacy harness does not cover them.
 2. Note the row counts of all seven tables (`select count(*) from public.<table>;`).
 3. Take the backup from `## Backup`, and record its timestamp.
 4. Apply `rollback/202608240001_down.sql` with the interlock set. Re-run the harness and
@@ -216,14 +220,20 @@ project, and keep the output:
    evidence the rollback did something, and the evidence F73 was real.
 5. Re-apply `migrations/202608240001_claim_trial_null_fix.sql`. Re-run the harness and
    record twelve passes again.
-6. Apply `rollback/202609100002_down.sql` with its interlock set, then `rollback/202609100001_down.sql`, then `rollback/202609050001_down.sql`, then `rollback/202609040001_down.sql`, then `rollback/202608300003_down.sql`, then `rollback/202608300002_down.sql` with its interlock set, then
+6. Apply `rollback/202609250001_down.sql` with `luvani.remove_goal_steps` set, then
+   `rollback/202609230001_down.sql` with `luvani.remove_practice_history` set, then
+   `rollback/20260920200807_down.sql` with `luvani.reopen_practice_delete` set, then
+   `rollback/20260920200454_down.sql` with `luvani.reopen_practice_receipt` set, then
+   `rollback/20260920194653_down.sql` with `luvani.remove_practice_queue` set, then
+   `rollback/20260919120650_down.sql` with `luvani.remove_friends` set to `'yes'`, then
+   `rollback/202609100002_down.sql` with its interlock set, then `rollback/202609100001_down.sql`, then `rollback/202609050001_down.sql`, then `rollback/202609040001_down.sql`, then `rollback/202608300003_down.sql`, then `rollback/202608300002_down.sql` with its interlock set, then
    `rollback/202608300001_down.sql`, then `rollback/202608270001_down.sql` with its
    interlock set, then `rollback/202608260001_down.sql`, then
    `rollback/202608250002_down.sql` and `rollback/202608250001_down.sql` with their
    interlocks set, then `rollback/202608230001_down.sql`, then
    `rollback/202608220001_down.sql`. Record that the harness now reports the schema as
    not applied, naming each missing object.
-7. Re-apply all eighteen migrations, restore from step 3, and record the row counts from
+7. Re-apply all twenty migrations, restore from step 3, and record the row counts from
    step 2 matching.
 
 Steps 4 and 5 are the cheap half and can be run on their own: they touch one function

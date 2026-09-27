@@ -1,5 +1,5 @@
 /** Bounded learning context, never a transcript or a source of instructions. */
-import type { ConversationPack } from './conversationPacks.ts';
+import { conversationPackIdOf, type ConversationPack } from './conversationPacks.ts';
 import type { ReviewCard } from './review/scheduler.ts';
 
 export interface TutorReviewFocus { fr: string; en: string; reason: 'due' | 'needs-revisit' }
@@ -48,7 +48,10 @@ export function parseTutorRevision(value: unknown): TutorRevision | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const v = value as Record<string, unknown>;
   const str = (x: unknown, n: number): x is string => typeof x === 'string' && x.trim().length > 0 && x.length <= n;
-  if (!str(v.packId, 100) || !str(v.title, 160) || typeof v.summary !== 'string' || v.summary.length > 600 ||
+  // The pack id becomes a revisit link on the next pack, so it must be the
+  // same bounded identifier shape the pack contract accepts, not any string.
+  const packId = conversationPackIdOf(v.packId);
+  if (packId === null || packId !== v.packId || !str(v.title, 160) || typeof v.summary !== 'string' || v.summary.length > 600 ||
       !Array.isArray(v.phrases) || v.phrases.length > 5) return undefined;
   const phrases: TutorRevision['phrases'] = [];
   for (const p of v.phrases) {
@@ -62,13 +65,16 @@ export function parseTutorRevision(value: unknown): TutorRevision | undefined {
     if (!str(c.better, 240) || !str(c.why, 240)) return undefined;
     correction = { better: c.better, why: c.why };
   }
-  return { packId: v.packId, title: v.title, summary: v.summary, phrases, correction };
+  return { packId, title: v.title, summary: v.summary, phrases, correction };
 }
 
 /** Stable instructions followed by clearly delimited, untrusted learning data. */
 export function tutorSessionBrief(input: { revision?: TutorRevision; missionId?: string; seeded?: boolean; reviewFocus?: TutorReviewFocus[] }): string {
+  // Sequenced in code-owned wording, not left to the model: the original
+  // situation is retried before any variation, help follows a real attempt,
+  // and the variation is one detail so it tests transfer rather than a new scene.
   const brief = input.revision
-    ? 'REVISION: Revisit the saved conversation in a fresh situation. Give one short recall opportunity before offering help. Reuse up to two saved phrases naturally and, after an attempt, coach the saved correction if it is relevant. Do not recite the summary or claim to remember details absent from it. Recognition in a practice card is not proof of spontaneous speaking mastery.'
+    ? 'REVISION: Revisit the saved conversation in two steps. First, set up the same situation from the saved title and summary, and let the learner try it again from memory before offering any help. Aim for the saved phrases and, after an attempt, coach the saved correction if it is relevant. Only after a struggle, scaffold: a hint, then a model line, then another try; step back once they succeed. When they have retried the original, change one detail, such as a different item, time or small problem, and let them try again. Change only one detail at a time and keep the rest of the situation the same. If the saved material is thin, keep to what it says and let the learner fill the gaps. Do not claim to remember details absent from it, do not recite the summary, and never present anything as an exact transcript of the earlier conversation. Recognition in a practice card is not proof of spontaneous speaking mastery.'
     : input.missionId
       ? 'GUIDED MISSION: Work toward the active scene goal. Give one achievable speaking task at a time. After a useful attempt, offer a small variation to check transfer. Follow learner steering; do not require one exact sentence.'
       : input.seeded

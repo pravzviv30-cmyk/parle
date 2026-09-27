@@ -1,10 +1,10 @@
 /**
- * What happens when two devices disagree — one table, eighteen namespaces, no exceptions.
+ * What happens when two devices disagree — one table, twenty-three namespaces, no exceptions.
  *
  * The engine in `engine.ts` decides *when* to reconcile. This file decides *what the
  * answer is*, and it is the only file in the app that holds an opinion about how two
- * copies of a learner become one. Twelve namespaces are synced under three merge classes;
- * six are excluded with a stated reason, because a namespace that is silently absent
+ * copies of a learner become one. Fourteen namespaces are synced under three merge classes;
+ * nine are excluded with a stated reason, because a namespace that is silently absent
  * from a sync table is indistinguishable from one somebody forgot.
  *
  * | namespace     | class      | the rule                                                  |
@@ -23,18 +23,25 @@
  * | `scenarioProgress` | per-item | union by mission; the newer record wins. Oldest first,   |
  * |               |            | last 40. `beatsTotal` is never stored, so never merged.    |
  * | `history`     | set-union  | union by session identity, oldest first, last 50.          |
- * | `activity`    | set-union  | union by `(at, kind, xp)`, the copy carrying a `durationMs` |
+ * | `activity`    | set-union  | union by `(at, kind, xp)`, the copy carrying an `activeMs`, then a `durationMs` |
  * |               |            | winning the pick, 400-day prune, `backfilled` OR.          |
  * | `missions`    | set-union  | union by `(id, at)`, then the per-mission cap.             |
  * | `soundChecks` | set-union  | union by attempt identity, oldest first, last 60.          |
  * | `coachMarks`  | set-union  | union of ids seen. Seen anywhere is seen.                  |
  * | `tutorIntro`  | set-union  | OR. A one-time flag only ever turns on.                    |
+ * | `practiceHistory` | set-union | union by (kind, id) under practice/history.ts's strict |
+ * |               |            | validator, canonical pick, oldest first, last 150.         |
+ * | `goalSteps`   | set-union  | union by whole row under goals/model.ts's strict validator,|
+ * |               |            | oldest first, last 60. Nothing is attributed by time.      |
+ * | `practiceSession` | **excluded** — see SYNC_EXCLUSIONS                      |
  * | `journal`     | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `friends`     | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `reminder`    | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `conversationPacks` | **excluded** — see SYNC_EXCLUSIONS                   |
  * | `suggestions` | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `analytics`   | **excluded** — see SYNC_EXCLUSIONS                          |
+ * | `moments`     | **excluded** — see SYNC_EXCLUSIONS                          |
+ * | `packMarks`   | **excluded** — see SYNC_EXCLUSIONS                          |
  *
  * ## Every policy is commutative and idempotent by construction
  *
@@ -98,6 +105,8 @@ import { MAX_DISCUSSED_DATES, MAX_STORED_TOPICS, mergeDecks } from '@luvani/core
 import type { DrillExercise, PracticeTopic } from '@luvani/core';
 import { upgradeStored } from '../profile/upgrade.ts';
 import { exerciseIdentity, mergeExerciseBank } from '../drill/merge.ts';
+import { mergePracticeHistory, PRACTICE_HISTORY_VERSION } from '../practice/history.ts';
+import { GOAL_STEPS_VERSION, mergeGoalSteps } from '../goals/model.ts';
 
 // ─────────────────────────────────────────────────────── the stores' own caps
 //
@@ -436,10 +445,11 @@ interface ActivityEntryish {
   kind: string;
   xp: number;
   durationMs?: number;
+  activeMs?: number;
 }
 
 /**
- * The same shape `isEntry` accepts in progress/activity.ts, `durationMs` included, so
+ * The same shape `isEntry` accepts in progress/activity.ts, `durationMs` and `activeMs` included, so
  * the merge and the disk agree on which rows exist. A validator here that was looser
  * than the store's would answer with entries the adopter then drops, and the engine
  * would find the disk different from the fold on every single cycle.
@@ -450,7 +460,8 @@ function isActivityEntry(value: unknown): value is ActivityEntryish {
     isFiniteNumber(value.at) &&
     isFiniteNumber(value.xp) &&
     ACTIVITY_KINDS.has(String(value.kind)) &&
-    (value.durationMs === undefined || (isFiniteNumber(value.durationMs) && value.durationMs >= 0))
+    (value.durationMs === undefined || (isFiniteNumber(value.durationMs) && value.durationMs >= 0)) &&
+    (value.activeMs === undefined || (isFiniteNumber(value.activeMs) && value.activeMs >= 0))
   );
 }
 
@@ -463,10 +474,18 @@ function isActivityEntry(value: unknown): value is ActivityEntryish {
  * only one answer is safe: the measurement, every time. The other order would let the
  * older device erase a number the newer one actually observed, on every cycle, quietly.
  *
- * A max over `(has a duration, canonical rendering)`, which is a total order, so this is
- * commutative, associative and idempotent like every other pick in this file.
+ * `activeMs` (Phase 1B, active learning time) ranks first on the same argument: it is
+ * the measurement Home's Practice time reads, and a copy from a device that only knew
+ * wall time must not erase it.
+ *
+ * A max over `(has an active total, has a duration, canonical rendering)`, which is a
+ * lexicographic total order, so this is commutative, associative and idempotent like
+ * every other pick in this file.
  */
 function withDuration(x: ActivityEntryish, y: ActivityEntryish): ActivityEntryish {
+  const xActive = x.activeMs === undefined ? 0 : 1;
+  const yActive = y.activeMs === undefined ? 0 : 1;
+  if (xActive !== yActive) return xActive > yActive ? x : y;
   const xHas = x.durationMs === undefined ? 0 : 1;
   const yHas = y.durationMs === undefined ? 0 : 1;
   if (xHas !== yHas) return xHas > yHas ? x : y;
@@ -703,7 +722,7 @@ export const SYNC_POLICIES: readonly NamespacePolicy[] = [
     namespace: 'activity',
     merges: 'set-union',
     writes: 2,
-    rule: 'union by (at, kind, xp) with the copy carrying a durationMs winning, pruned to 400 days from the newest entry, backfilled ORed',
+    rule: 'union by (at, kind, xp) with the copy carrying an activeMs, then a durationMs, winning, pruned to 400 days from the newest entry, backfilled ORed',
     merge: (local, remote) => mergeActivity(local, remote),
   },
   {
@@ -733,6 +752,24 @@ export const SYNC_POLICIES: readonly NamespacePolicy[] = [
     writes: null,
     rule: 'OR; seen anywhere is seen and there is no way back',
     merge: (local, remote) => mergeTutorIntro(local, remote),
+  },
+  {
+    namespace: 'practiceHistory',
+    merges: 'set-union',
+    // Moves with PRACTICE_HISTORY_VERSION in practice/history.ts, which is imported
+    // rather than copied because that file is pure and shares the validator.
+    writes: PRACTICE_HISTORY_VERSION,
+    rule: 'union by (kind, id) of strictly validated practice events, canonical pick, oldest first, last 150',
+    merge: (local, remote) => mergePracticeHistory(local, remote),
+  },
+  {
+    namespace: 'goalSteps',
+    merges: 'set-union',
+    // Moves with GOAL_STEPS_VERSION in goals/model.ts, imported rather than
+    // copied because that file is pure and shares the validator with the store.
+    writes: GOAL_STEPS_VERSION,
+    rule: 'union by whole row of strictly validated goal-step events, oldest first, last sixty, nothing attributed by time',
+    merge: (local, remote) => mergeGoalSteps(local, remote),
   },
 ];
 
@@ -784,6 +821,11 @@ export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
     namespace: 'packMarks',
     reason:
       'what this phone did with a server-owned pack: practised it, kept its conversation going. It annotates the pack cache and is excluded for the cache\'s own reason: the pack is server-owned and its cache is replaced by the server\'s copy on every refresh, so a mark that rode the account envelope would be a second authority over a record that has one. What excluding it costs is a second phone re-offering a pack this one already practised, once.',
+  },
+  {
+    namespace: 'practiceSession',
+    reason:
+      'the one unfinished practice sitting on this phone and the frozen plan for finishing it: exercise ids in queue order, settled outcomes and miss counts. Its meaning is local to the bank and deck this device holds, and its completion plan is what stops grades and XP being applied twice, so a second device holding a copy could finish the same sitting again against a different deck. Completed sittings reach the account through practiceHistory. What excluding it costs is resuming an interrupted sitting only on the phone it started on.',
   },
   {
     namespace: 'conversationPacks',

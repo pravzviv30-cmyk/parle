@@ -52,8 +52,9 @@ import { OneLineCard } from '../myfrench/OneLineCard.tsx';
 import { cadenceFrom, type Cadence } from '../myfrench/cadence.ts';
 import { LEDGER } from '../myfrench/ledger.ts';
 import { oneLineFrom, type OneLine } from '../myfrench/oneLine.ts';
-import { buildPhrasebook, hasPhrases, type Phrase, type Phrasebook } from './phrasebook.ts';
-import { PHRASEBOOK_TITLE, speakerLabel } from './phrasebookView.ts';
+import { buildPhrasebook, hasPhrases, hasSaved, SAVED_NOTE, SAVED_TITLE, type Phrasebook, type SavedPhrase } from './phrasebook.ts';
+import { loadConversationPacks } from '../conversationPacks/store.ts';
+import { CADENCE_NOTE, PHRASEBOOK_TITLE, cadenceToggleLabel, hasCadence, speakerLabel } from './phrasebookView.ts';
 
 export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
   const [book, setBook] = useState<Phrasebook | null>(null);
@@ -64,17 +65,19 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
   const [playing, setPlaying] = useState<string | null>(null);
   // Bumped after a grade, so the page re-reads the deck it has just written to.
   const [graded, setGraded] = useState(0);
+  // The authored connectors are an optional collection, closed on every visit.
+  const [cadenceOpen, setCadenceOpen] = useState(false);
 
   useEffect(() => () => tutorVoice.stop(), []);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void Promise.all([loadDeck(), loadTopics()])
-        .then(([deck, topics]) => {
+      void Promise.all([loadDeck(), loadTopics(), loadConversationPacks().catch(() => [])])
+        .then(([deck, topics, packs]) => {
           if (cancelled) return;
           const now = Date.now();
-          setBook(buildPhrasebook(deck, topics, now));
+          setBook(buildPhrasebook(deck, topics, now, packs));
           setOneLine(oneLineFrom({ deck, now }));
           setCadence(cadenceFrom({ deck }));
         })
@@ -135,9 +138,44 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
         </View>
       )}
 
-      {/* Authored, so it is here on a first morning too, and it closes the page
-          on something a learner can use tonight rather than on a summary. */}
-      {cadence !== null && <CadenceCard cadence={cadence} />}
+      {/* Saved but not yet recalled, apart from the lines above and under a
+          name that claims nothing about holding them. A saved phrase used to
+          vanish here, because the list above is recalled lines only. */}
+      {book !== null && hasSaved(book) && (
+        <View style={st.block}>
+          <Label>{SAVED_TITLE}</Label>
+          <Text style={st.savedNote}>{SAVED_NOTE}</Text>
+          <Card style={st.savedCard}>
+            {book.saved.map((phrase, index) => (
+              <PhraseRow
+                key={phrase.id}
+                phrase={phrase}
+                first={index === 0}
+                playing={playing === phrase.front}
+                onHear={() => say(phrase.front)}
+              />
+            ))}
+          </Card>
+        </View>
+      )}
+
+      {/* Authored, so it is here on a first morning too, but it is an optional
+          collection now (Stage 3): one quiet row, closed until asked for, so
+          the learner's own lines lead and the glossary never outweighs them. */}
+      {hasCadence(cadence) && (
+        <View style={st.block}>
+          <Pressable
+            onPress={() => setCadenceOpen((open) => !open)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: cadenceOpen }}
+            style={({ pressed }) => [st.disclosure, pressed && st.speakerPressed]}
+          >
+            <Text style={[type.bodyStrong, { color: paper.ink }]}>{cadenceToggleLabel(cadenceOpen)}</Text>
+            {!cadenceOpen && <Text style={st.savedNote}>{CADENCE_NOTE}</Text>}
+          </Pressable>
+          {cadenceOpen && <CadenceCard cadence={cadence} />}
+        </View>
+      )}
     </ScrollScreen>
   );
 }
@@ -157,7 +195,8 @@ function PhraseRow({
   playing,
   onHear,
 }: {
-  phrase: Phrase;
+  /** A recalled phrase or a saved one; the row reads only the words, never a shelf. */
+  phrase: SavedPhrase;
   /** The first row in a card carries no rule above it. */
   first: boolean;
   playing: boolean;
@@ -191,6 +230,11 @@ const st = StyleSheet.create({
   block: { marginTop: space(7) },
   groups: { marginTop: space(3), gap: space(3) },
   rows: { marginTop: space(2) },
+  savedNote: { ...type.small, color: paper.inkSoft, marginTop: space(1) },
+  savedCard: { marginTop: space(3) },
+  // The collection's row: a full-width target at the touch floor, no card of
+  // its own, so it reads as a quiet door rather than another block of content.
+  disclosure: { minHeight: HIT, justifyContent: 'center', paddingVertical: space(2), borderRadius: radius.row },
   // The words take the room and the button keeps its floor, so a long line
   // wraps rather than squeezing the control under the touch minimum.
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },

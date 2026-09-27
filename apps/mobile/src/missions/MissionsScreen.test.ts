@@ -57,7 +57,12 @@ describe('the chooser is one card and five rows — F573', () => {
     // Where the learner stands is still said, and it is said to everybody who
     // listens to the screen rather than dropped when the status line left the
     // row. `chooserView.ts` owns the words; nothing here invents one.
-    assert.match(SCREEN, /accessibilityLabel=\{`\$\{card\.mission\.title\}\. \$\{card\.mission\.titleEn\}\. \$\{card\.status\}`\}/, 'a row stops saying where the learner stands with the situation behind it');
+    // Stage 4 review (2026-09-25): the parts are joined by the shared sentence
+    // joiner, so a French title that already ends on its own mark ("Ta
+    // journée, ça a été ?") is not read with a second one after it. The same
+    // three parts, in the same order.
+    assert.match(SCREEN, /accessibilityLabel=\{asSentences\(\[card\.mission\.title, card\.mission\.titleEn, card\.status\]\)\}/, 'a row stops saying where the learner stands with the situation behind it');
+    assert.match(SCREEN, /^import \{ asSentences \} from '\.\.\/copy\/spoken\.ts';$/m, 'the row joins its label its own way rather than through the shared joiner');
     assert.ok(!/'Started'|'Ready when you are'|'Ready to come back to'/.test(SCREEN), 'the screen spells a status line that chooserView.ts already decides');
 
     // Every place in the catalogue has a picture and a paper, so a seventh

@@ -80,6 +80,12 @@ export type HomeMission =
 export const HERO_LABELS = {
   resume: 'Pick up where you left off',
   first: 'Your first French',
+  /**
+   * The café for a learner who has practised (typed drills, review) but never
+   * had a conversation. "Your first French" would be untrue for them; the
+   * conversation is the first, so the label says that and nothing more.
+   */
+  firstConversation: 'Your first conversation',
   evening: "Tonight's French",
   day: "Today's French",
 } as const;
@@ -145,6 +151,13 @@ export function homeMissionFrom(input: {
   progress: readonly MissionProgress[];
   records: readonly ScenarioRecord[];
   spokenBefore: boolean;
+  /**
+   * Whether the learner has done any practice or review at all. Only read when
+   * they have not spoken yet, to choose between "Your first French" and "Your
+   * first conversation". Optional so a caller that cannot tell keeps the old
+   * wording rather than a guess.
+   */
+  practisedBefore?: boolean;
   /** The learner's level standing, so the daily pool is pitched at them. */
   levelIndex: number;
   now: number;
@@ -177,7 +190,7 @@ export function homeMissionFrom(input: {
       mission,
       ...fromMission(
         mission,
-        HERO_LABELS.first,
+        input.practisedBefore === true ? HERO_LABELS.firstConversation : HERO_LABELS.first,
         estimateMinutes({ kind: 'mission', beats: mission.beatIds.length }),
         HERO_REASONS.first,
       ),

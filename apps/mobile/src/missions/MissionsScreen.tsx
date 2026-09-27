@@ -46,6 +46,8 @@ import {
   type ChooserCard,
 } from './chooserView.ts';
 import { trackProductEvent } from '../analytics/track.ts';
+import { asSentences } from '../copy/spoken.ts';
+import { ListeningPreview } from './ListeningPreview.tsx';
 
 export function MissionsScreen() {
   const nav = useNavigation<{
@@ -130,6 +132,7 @@ export function MissionsScreen() {
         <Text style={st.sub}>{view.sub}</Text>
         {view.promise !== null && <Text style={st.promise}>{view.promise}</Text>}
         {view.microphoneNotice !== null && <Text style={st.microphoneNotice}>{view.microphoneNotice}</Text>}
+        <Text style={st.access}>{view.access}</Text>
         <View style={st.mode}>
           <TabBar tabs={[{ key: 'speak', label: 'Speak' }, { key: 'type', label: 'Type' }]} active={mode} onChange={setMode} accessibilityLabel="Mission conversation mode" />
         </View>
@@ -148,6 +151,9 @@ export function MissionsScreen() {
               accessibilityLabel={`${mode === 'type' ? 'Start typed mission' : 'Start mission'}. ${first.mission.titleEn}. ${first.status}`}
               onPress={() => open(first)}
             />
+            {/* A quiet way to hear the scene's authored lines first. Never a
+                second primary: the pill above is this card's one action. */}
+            <ListeningPreview selection={{ kind: 'mission', mission: first.mission }} />
           </Card>
         )}
 
@@ -155,6 +161,7 @@ export function MissionsScreen() {
           <Label>Want a little more support?</Label>
           <Text style={[type.body, { color: paper.inkSoft }]}>Listen to a café phrase, then try it yourself. The line stays on screen while you practise.</Text>
           <OutlineButton label={LESSON_DOOR.title} icon={<WaveformGlyph size={20} color={paper.ink} />} disabled={checking} onPress={() => openLesson(mode === 'type')} />
+          <Text style={[type.small, { color: paper.inkSoft }]}>{LESSON_DOOR.minutes}</Text>
         </Card>
 
         <View style={st.rows}>
@@ -166,7 +173,7 @@ export function MissionsScreen() {
               glyph={<PlaceGlyph place={card.mission.place} color={accent.primary} />}
               title={card.mission.titleEn}
               gloss={`${card.mission.goalEn} · ${card.status}`}
-              accessibilityLabel={`${card.mission.title}. ${card.mission.titleEn}. ${card.status}`}
+              accessibilityLabel={asSentences([card.mission.title, card.mission.titleEn, card.status])}
               onPress={() => open(card)}
             />
           ))}
@@ -179,7 +186,7 @@ export function MissionsScreen() {
             without this link a learner who cannot speak reaches the typed
             lesson only by first having the session fail. */}
         <View style={st.footer}>
-          <GhostButton label={LESSON_DOOR.quiet} disabled={checking} onPress={() => openLesson(true)} />
+          <GhostButton label={LESSON_DOOR.quiet} accessibilityLabel={`${LESSON_DOOR.quiet}. ${LESSON_DOOR.minutes}`} disabled={checking} onPress={() => openLesson(true)} />
           <GhostButton label={view.talkFreely} disabled={checking} onPress={() => nav.navigate('Convo', { textMode: mode === 'type' })} />
         </View>
       </View>
@@ -195,6 +202,7 @@ const st = StyleSheet.create({
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
   promise: { ...type.bodyStrong, color: paper.ink, marginTop: space(4) },
   microphoneNotice: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
+  access: { ...type.small, color: paper.ink, marginTop: space(2) },
   hero: { marginTop: space(5), gap: space(3) },
   heroArt: { alignSelf: 'center' },
   rows: { marginTop: space(5), gap: space(2) },

@@ -14,7 +14,9 @@
  * The door is the Max plan's (`purchases/capabilities.ts`). The plan is read
  * on focus; loading, read failure and a plan without access are distinct states.
  * A failed read offers retry without discarding the learner's draft. Only a
- * confirmed plan without access is offered an upgrade.
+ * confirmed plan without access is offered an upgrade, and since whole-app
+ * Stage 3A that answer is given in the notice above the situations, before the
+ * learner chooses or writes anything.
  *
  * Moments already brought are kept on this phone and offered again below,
  * because the same interview is worth running twice.
@@ -38,6 +40,9 @@ import {
   DETAIL_LABEL,
   DETAIL_PLACEHOLDER,
   MAX_ONLY_LINE,
+  PLAN_CHECKING,
+  PLAN_INCLUDED,
+  PLAN_READ_FAILED,
   REAL_MOMENTS,
   REAL_MOMENT_SUB,
   REAL_MOMENT_TITLE,
@@ -182,12 +187,23 @@ export function RealMomentScreen({
       <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{REAL_MOMENT_TITLE}</Text>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{REAL_MOMENT_SUB}</Text>
 
+      {/* The plan, said before anything is filled in (Stage 3A). One notice,
+          four answers: checking, could not check (a retry, the draft kept),
+          not included (the one door to plans), or included. A failed read is
+          never offered an upgrade. */}
       <Card tone="journal" style={st.detail}>
         <Label>Included with Max</Label>
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Choose your situation and practise with your tutor before it happens.</Text>
-        {allowed === false && <GhostButton label={SEE_PLANS} onPress={onSeePlans} />}
-        {allowed === null && <Text accessibilityLiveRegion="polite" style={st.checking}>{planError ? 'We could not check your plan. Your choices will stay here while you try again.' : 'Checking your plan…'}</Text>}
+        {allowed === null && <Text accessibilityLiveRegion="polite" style={st.planLine}>{planError ? PLAN_READ_FAILED : PLAN_CHECKING}</Text>}
         {planError && <GhostButton label="Check my plan again" onPress={() => setPlanAttempt((attempt) => attempt + 1)} />}
+        {allowed === false && (
+          <View style={st.gate}>
+            <Text style={st.gateLine}>{MAX_ONLY_LINE}</Text>
+            <OutlineButton label={SEE_PLANS} onPress={onSeePlans} />
+            <GhostButton label="Not now" onPress={onBack} />
+          </View>
+        )}
+        {allowed === true && <Text style={st.planLine}>{PLAN_INCLUDED}</Text>}
       </Card>
 
       <View style={st.detail}>
@@ -231,13 +247,6 @@ export function RealMomentScreen({
         <View style={st.action}>
           <PillButton label={checking ? 'Connecting…' : REHEARSE_ACTION} disabled={checking || kind === null || (key === 'other' && detail.trim().length === 0)} onPress={open} />
           {kind === null && <Text style={st.checking}>Choose a situation to begin.</Text>}
-        </View>
-      )}
-      {allowed === false && (
-        <View style={st.action}>
-          <Text style={st.gateLine}>{MAX_ONLY_LINE}</Text>
-          <OutlineButton label={SEE_PLANS} onPress={onSeePlans} />
-          <GhostButton label="Not now" onPress={onBack} />
         </View>
       )}
 
@@ -303,7 +312,9 @@ const st = StyleSheet.create({
   chosen: { borderColor: paper.ink },
   detail: { marginTop: space(5) },
   action: { marginTop: space(6), gap: space(3) },
+  gate: { marginTop: space(3), gap: space(3) },
   gateLine: { ...type.body, color: paper.ink },
+  planLine: { ...type.small, color: paper.ink, marginTop: space(2) },
   checking: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
   offline: { marginTop: space(3), gap: space(3) },
   offlineBody: { ...type.body, color: paper.ink },

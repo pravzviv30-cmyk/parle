@@ -117,7 +117,10 @@ describe('practice is three rows made from what the learner said — F574, F582'
         new RegExp(`<${GLYPHS[key]} color=\\{accent\\.primary\\}`),
         `the ${key} row draws the wrong mark, or draws it in the wrong ink`,
       );
-      assert.match(body, new RegExp(`title=\\{MADE_FROM\\.${key}\\.label\\}`), `the ${key} row spells its own title`);
+      // The sound row alone names its first step when nothing is measured yet
+      // (whole-app phase 1). Both words still come from MADE_FROM.
+      const title = key === 'sound' ? `title=\\{sound === null \\? MADE_FROM\\.sound\\.go : MADE_FROM\\.sound\\.label\\}` : `title=\\{MADE_FROM\\.${key}\\.label\\}`;
+      assert.match(body, new RegExp(title), `the ${key} row spells its own title`);
       // The card anatomy is gone: no second Card, no button, no French printed
       // on the tab. All of that lives in the sitting the row opens.
       assert.ok(!/<Card\b/.test(body), `the ${key} row is still a card`);
@@ -146,5 +149,13 @@ describe('practice is three rows made from what the learner said — F574, F582'
     assert.match(ROWS.phrase, /phraseKeys: \[phrase\.key\]/, 'the sitting is opened on something other than this phrase');
     // The answer is not smuggled along beside the question.
     assert.ok(!/accepted/.test(ROWS.phrase), 'the phrase row hands the sitting an answer key');
+  });
+});
+
+describe('the sound row names its real first step — whole-app phase 1', () => {
+  test('with no measured sound it offers to choose a situation, not to tune a sound', () => {
+    const card = readFileSync(fileURLToPath(new URL('./TuneSoundCard.tsx', import.meta.url)), 'utf8');
+    assert.match(card, /title=\{sound === null \? MADE_FROM\.sound\.go : MADE_FROM\.sound\.label\}/);
+    assert.match(MADE_FROM.sound.go, /sound check/);
   });
 });

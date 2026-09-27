@@ -1006,6 +1006,10 @@ const ADOPTERS = [
   // own (F572, F574, F575). All three take the frame from the day they are
   // written, so none of them has a safe area to be walked back from.
   'conversationPacks/ConversationsScreen.tsx',
+  // Whole-app upgrade Stage 4 (2026-09-25): the sound journey and the goal
+  // screen are new pushed routes, held to the frame from the day they land.
+  'soundcheck/SoundJourneyScreen.tsx',
+  'goals/GoalStepScreen.tsx',
 ];
 
 /**
@@ -1094,6 +1098,9 @@ describe('one way back, and it is the shared header — F309', () => {
     // Revamp A's three routes. Each is a chevron and a title, and each is the
     // only way back out of a place that used to be reachable by scrolling.
     'conversationPacks/ConversationsScreen.tsx',
+    // Stage 4 (2026-09-25): both new routes are pushed, with one way back.
+    'soundcheck/SoundJourneyScreen.tsx',
+    'goals/GoalStepScreen.tsx',
   ];
 
   test('a pushed screen has exactly one way back, and it is the shared header — F309', () => {

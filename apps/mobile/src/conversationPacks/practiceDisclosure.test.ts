@@ -33,3 +33,20 @@ test('onboarding removes decorative chrome but retains progress, back navigation
     assert.doesNotMatch(auth, /Le début de votre histoire/);
   }
 });
+
+test('a finished warm-up is recorded once as exposure, and a skip or the preview records nothing', () => {
+  const screen = read('./ConversationPracticeScreen.tsx');
+  // Raised only where the last listening round is answered.
+  assert.equal((screen.match(/setWarmedUp\(true\)/g) ?? []).length, 1, 'the warm-up is marked complete from more than one place');
+  const finished = screen.slice(screen.indexOf('if (round + 1 >= listening.length) {'), screen.indexOf("setStage('ready');", screen.indexOf('if (round + 1 >= listening.length) {')));
+  assert.match(finished, /setWarmedUp\(true\)/, 'finishing the last round does not mark the warm-up complete');
+  const skip = screen.slice(screen.indexOf('Skip warm-up and recall') - 200, screen.indexOf('Skip warm-up and recall') + 120);
+  assert.doesNotMatch(skip, /setWarmedUp/, 'skipping the warm-up records it as completed');
+  // Recorded through the store, once, never for the preview, and with no grade.
+  const effect = screen.slice(screen.indexOf('if (!warmedUp || previewPack || !pack || warmupRecordedRef.current) return;'));
+  assert.ok(effect.length > 0, 'the warm-up recording is not guarded against the preview, a re-render, or a missing pack');
+  assert.match(effect, /warmupRecordedRef\.current = true;/);
+  assert.match(effect, /recordWarmupCompleted\(\{ warmupId: warmupIdRef\.current, packId: pack\.id, at: Date\.now\(\) \}\)/);
+  assert.match(screen, /mintPracticeId\(Date\.now\(\), 'w'\)/, 'the warm-up id is not a minted practice id');
+  assert.doesNotMatch(screen, /gradeCards|recordActivity|recordPracticeEvent\(\{ kind: 'session-completed'/, 'the warm-up grades, earns XP or claims a practice sitting');
+});

@@ -82,7 +82,7 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     // and the module's start line stands in its place.
     const gates = [
       'days.count', 'retained.count', 'retained.weekLine', 'retained.moreLine', 'retained.foot',
-      'retained.link', 'mastery.percentLabel', 'mastery.line', 'goal.amount',
+      'retained.link', 'mastery.percentLabel', 'mastery.line', 'goal.amount', 'goal.untimedNote',
     ];
     for (const gate of gates) {
       assert.ok(MOMENTUM.includes(`${gate} !== null &&`), `${gate} is drawn without being checked, so a nought or an empty line can reach the card`);
@@ -107,7 +107,7 @@ describe('the momentum block and the day\'s word, one level down — F436, F438,
     // now and a one-word ban would trip on an identifier rather than on copy.
     // This is a substring sweep: no style name in the file may contain one.
     for (const spelled of [
-      'Days active', 'Retained phrases', 'Speaking time today', 'this week', "today's target",
+      'Days active', 'Retained phrases', 'Practice time today', 'Speaking time', 'not timed', 'this week', "today's target",
       'spoken naturally', 'Active vocabulary', 'Review phrase bank', 'land here', 'Takes shape',
       'Settling in', 'of reviews',
     ]) {

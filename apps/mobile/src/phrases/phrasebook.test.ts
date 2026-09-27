@@ -13,7 +13,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { SETTLED_DAYS, SETTLED_REPS, isSettled, phraseKeyOf, type PracticeTopic, type ReviewCard } from '@luvani/core';
-import { buildPhrasebook, hasPhrases, LESSONS_GROUP } from './phrasebook.ts';
+import { guiltIn } from '../copy/guilt.ts';
+import { buildPhrasebook, hasPhrases, hasSaved, LESSONS_GROUP, OTHER_PHRASES_TITLE, SAVED_NOTE, SAVED_TITLE } from './phrasebook.ts';
 
 const NOW = Date.parse('2026-08-20T12:00:00.000Z');
 /** Epoch ms, because that is what a card stores. */
@@ -206,5 +207,63 @@ describe('the shelf is core\'s rule, not a second copy of it', () => {
     assert.doesNotMatch(source, /card\.reps >=|card\.intervalDays >=|card\.due <=/, 'the phrasebook decides dueness itself again');
     assert.match(source, /isDue\(card, now\)/, 'dueness is no longer asked of core');
     assert.match(source, /isSettled\(card, now\)/, 'settledness is no longer asked of core');
+  });
+});
+
+describe('provenance is a fact, never a guess — whole-app phase 1', () => {
+  const cafe = topic('topic:le-cafe', 'The cafe', ["l'addition"]);
+  const pack = { id: 'pack-1', title: { en: 'Ordering at a café' }, keyPhrases: [{ fr: 'Sur place, merci.' }] };
+
+  test('a saved-conversation phrase with no topic sits under that conversation, not under lessons', () => {
+    const book = buildPhrasebook([card({ front: "l'addition" }), card({ front: 'Sur place, merci.' })], [cafe], NOW, [pack]);
+    assert.deepEqual(book.groups.map((g) => g.title), ['The cafe', 'Ordering at a café']);
+    assert.ok(!book.groups.some((g) => g.id === LESSONS_GROUP), 'a pack phrase was labelled as a lesson');
+  });
+
+  test('a topic still wins over a pack for the same phrase, so a phrase is listed once', () => {
+    const also = { ...pack, keyPhrases: [{ fr: "l'addition" }] };
+    const book = buildPhrasebook([card({ front: "l'addition" })], [cafe], NOW, [also]);
+    assert.equal(book.groups.length, 1);
+    assert.equal(book.groups[0]?.id, 'topic:le-cafe');
+  });
+
+  test('a phrase saved from a conversation but never recalled is shown apart, and never counted as retained — Stage 1', () => {
+    // The finding: a phrase the learner saved from a conversation lands in the
+    // deck at reps 0, the retained groups rightly leave it out, and so it
+    // vanished from the page entirely. It is shown now, in its own list under
+    // an honest name, and it still adds nothing to the count or the groups.
+    const older = card({ front: 'Sur place, merci.', reps: 0, addedAt: days(-2) });
+    const newer = card({ front: 'Autre chose ?', reps: 0, addedAt: days(-1) });
+    const lapsed = card({ front: 'un croissant', reps: 0, lapses: 2, addedAt: days(-3) });
+    const known = card({ front: "l'addition", reps: 4 });
+    const sound = card({ id: 'phoneme:y', kind: 'phoneme', front: 'y', reps: 0 });
+    const book = buildPhrasebook([older, known, newer, sound, lapsed], [cafe], NOW, [pack]);
+
+    assert.equal(book.count, 1, 'a saved phrase was counted as one the learner can say');
+    assert.deepEqual(book.groups.map((g) => g.id), ['topic:le-cafe'], 'a saved phrase reached a retained group');
+    assert.deepEqual(book.saved.map((p) => p.front), ['Autre chose ?', 'Sur place, merci.', 'un croissant'], 'the saved list is not every unrecalled phrase, newest first');
+    assert.ok(!book.saved.some((p) => p.front === 'y'), 'a sound is not a phrase, saved or not');
+    for (const phrase of book.saved) {
+      assert.equal('hold' in phrase, false, 'a saved phrase carries a shelf, which is a claim about how well it is held');
+    }
+    assert.equal(hasPhrases(buildPhrasebook([older], [], NOW)), false, 'a saved phrase alone makes the retained list look non-empty');
+    assert.equal(hasSaved(buildPhrasebook([older], [], NOW)), true);
+    assert.equal(hasSaved(buildPhrasebook([known], [], NOW)), false);
+    assert.deepEqual(buildPhrasebook([], [], NOW).saved, []);
+
+    // The name says what is true: saved, and not yet recalled. No word that
+    // claims the learner holds it, no count, no dash, nothing that scolds.
+    for (const line of [SAVED_TITLE, SAVED_NOTE]) {
+      assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
+      assert.doesNotMatch(line, /\d|—/, `"${line}" counts something or carries an em dash`);
+      assert.doesNotMatch(line, /retain|know|mastered|learnt|learned|can say/i, `"${line}" claims retention`);
+    }
+    assert.match(SAVED_TITLE, /^Saved/, 'the heading does not say these are saved');
+  });
+
+  test('an unknown source reads as a neutral group, never as lessons', () => {
+    const book = buildPhrasebook([card({ front: 'merci beaucoup' })], [], NOW, []);
+    assert.equal(book.groups[0]?.title, OTHER_PHRASES_TITLE);
+    assert.doesNotMatch(OTHER_PHRASES_TITLE, /lesson/i);
   });
 });

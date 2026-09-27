@@ -75,37 +75,75 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
     }
   });
 
-  test('the next practice card says one French line and one control per branch', () => {
-    // The card is the whole top of the page. It reads its line, its gloss and
-    // its label out of practice/nextStep.ts, and each of the three branches
-    // gives the learner exactly one way forward: back to the deck, back to a
-    // conversation, or into the first conversation of their life.
-    // Sliced to the next block rather than to the first `/>`, because the
-    // controls inside the card close themselves first and a slice that stopped
-    // there would be asking these questions of two of the six props.
+  test('the recommended card says one French line and one action, both from the practice model', () => {
+    // The card is the whole top of the page. Its line, its action and what it
+    // says under the action all come from practice/practiceCard.ts, over
+    // core's balanced selector, so the line and the button are about the same
+    // sitting. Sliced to the next block rather than to the first `/>`, because
+    // the controls inside the card close themselves first.
     const card = RENDER.slice(at('<PhraseCard'), at('made !== null'));
     assert.match(card, /label=\{NEXT_STEP\.label\}/, 'the card spells its own label instead of reading it from nextStep.ts');
-    assert.match(card, /french=\{step\.phrase\.fr\}/, 'the card draws something other than the step\'s own French line');
-    assert.match(card, /gloss=\{step\.phrase\.en\}/, 'the line is shown with no meaning beside it, which is a line a learner cannot use');
+    assert.match(card, /french=\{step\.card\.phrase\.fr\}/, 'the card draws something other than the model\'s own French line');
+    assert.match(card, /gloss=\{step\.card\.phrase\.en\}/, 'the line is shown with no meaning beside it, which is a line a learner cannot use');
     assert.match(card, /playing=\{playing\}/, 'the card cannot say it is already speaking, so a second tap has nothing to stop');
-    assert.match(card, /onHear=\{\(\) => hearNext\(step\.phrase\.fr\)\}/, 'the card hears something other than the line it shows');
+    assert.match(card, /onHear=\{\(\) => hearNext\(step\.card\.phrase\.fr\)\}/, 'the card hears something other than the line it shows');
 
     const controlAt = card.indexOf('control={');
     assert.notEqual(controlAt, -1, 'the card offers the learner no way forward at all');
     const control = card.slice(controlAt);
-    assert.match(control, /step\.kind === 'review' \?[\s\S]*label=\{REVIEW_ACTION\}/, 'the deck branch no longer names its control from practice/copy.ts');
-    assert.match(control, /nav\.navigate\('Review'\)/, 'the review branch no longer opens the deck');
-    assert.match(control, /step\.kind === 'pack' \?[\s\S]*label=\{PACK_ACTION\}/, 'the conversation branch no longer names its control from practice/copy.ts');
-    assert.match(control, /label=\{NEXT_STEP\.first\}/, 'the first conversation is not a branch of the one control');
-    assert.equal((control.match(/<OutlineButton/g) ?? []).length, 3, 'the three branches are not one quiet control each plus the held-back retry');
+    assert.match(control, /<PillButton label=\{step\.card\.action\.label\}/, 'the action spells its own label instead of reading the model');
+    assert.match(control, /\{step\.card\.source !== null && /, 'the card does not say where the sitting comes from, or says it with nothing to say');
+    assert.match(control, /\{step\.card\.noMinutes !== null && /, 'the card does not say a module sitting uses no live minutes');
+    // The held-back retry for the first conversation is still the one quiet
+    // control inside the card.
+    assert.equal((control.match(/<OutlineButton/g) ?? []).length, 1, 'the card grew a second control beside the one action and its retry');
+    assert.match(FLAT, /const rec = recommendation\(\{ resumable: resumableOf\(saved, packs, bank\), deck, bank, packs, now \}\)/, 'the card is not chosen by the balanced selector over real bank material and the saved sitting');
   });
 
-  test('the tab keeps exactly one primary pill, and it is the first conversation — F574', () => {
-    // Every other way forward on this page is a quiet control, because the one
-    // learner who needs a loud one is the learner with nothing behind them.
+  test('the tab keeps exactly one primary pill, and it is the recommended action', () => {
+    // Every other way forward on this page is a quiet control. The one loud one
+    // is whatever the model recommends: a short practice, a resume, or the
+    // first conversation for a learner with nothing behind them.
     assert.equal((SCREEN.match(/<PillButton/g) ?? []).length, 1, 'a second primary pill was added somewhere on the tab');
     const pill = between(RENDER, '<PillButton', '/>', 'the tab draws one pill');
-    assert.match(pill, /onPress=\{startFirst\}/, 'the one pill opens something other than the first conversation');
+    assert.match(pill, /onPress=\{startRecommended\}/, 'the one pill opens something other than the recommended action');
+    const handler = between(SCREEN, 'const startRecommended = () => {', '\n  };\n', 'the recommended action is a component-level handler');
+    assert.match(handler, /if \(action\.kind === 'first'\) return startFirst\(\);/, 'the first conversation no longer goes through its probe');
+    assert.match(handler, /nav\.navigate\('Drill', action\.params\)/, 'a short practice opens something other than a practice sitting');
+    assert.ok(!/practice: action/.test(handler), 'the route is handed an object, which the web address bar writes as [object Object]');
+    assert.ok(!/navigate\('Convo'/.test(handler), 'the recommended action opens a live room, which is not what the card promised');
+  });
+
+  test('a half-done completion lands first, a waiting sitting is resumed, and every read is bound to the account', () => {
+    const load = between(SCREEN, 'const load = useCallback(', '\n  );\n', 'the tab reads its stores in one callback');
+    // Recovery replays a frozen plan before anything is read, so the card
+    // never offers to resume a sitting whose grades are still in flight.
+    assert.ok(load.indexOf('recoverPracticeCompletion()') >= 0, 'a completion a previous launch left half-done is never finished');
+    assert.ok(load.indexOf('recoverPracticeCompletion()') < load.indexOf('loadPracticeSession()'), 'the saved sitting is read before a pending completion lands');
+    // The saved sitting feeds the recommendation, so Resume leads when one waits.
+    assert.match(flat(load), /recommendation\(\{ resumable: resumableOf\(saved, packs, bank\), deck, bank, packs, now \}\)/, 'a waiting sitting is never offered as a resume');
+    // Bound before the reads, checked after each one.
+    assert.match(flat(load), /const scope = scopeGeneration\(\); const stale = \(\): boolean => cancelled\(\) \|\| scopeGeneration\(\) !== scope;/);
+    assert.equal((load.match(/if \(stale\(\)\)/g) ?? []).length + (load.match(/if \(!stale\(\)\)/g) ?? []).length + (load.match(/if \(stale\(\) \|\|/g) ?? []).length, 3, 'a read can be drawn for an account that has changed');
+    // Resume opens the saved sitting through a flat route, never an object.
+    const start = between(SCREEN, 'const startRecommended = () => {', '\n  };\n', 'the recommended action is a component-level handler');
+    assert.match(start, /nav\.navigate\('Drill', practiceRouteParams\(\{ origin: 'resume', packId: null, exposed: false \}\)\)/, 'Resume opens something other than the saved sitting');
+  });
+
+  test('the quiet doors are gated on the model, and the tutor door says it uses live minutes', () => {
+    assert.match(FLAT, /\{step\.doors\.review !== null && <GhostButton label=\{step\.doors\.review\}[^>]*onPress=\{\(\) => nav\.navigate\('Review'\)\}/, 'scheduled review is not a quiet door to the deck');
+    assert.match(FLAT, /\{step\.doors\.choose !== null && <GhostButton label=\{step\.doors\.choose\}[^>]*onPress=\{\(\) => nav\.navigate\('Conversations'\)\}/, 'choosing a conversation is not a quiet door to the list');
+    // Every quiet door says its whole destination to a screen reader: the
+    // label is its full sentence, and the revisit carries its cost with it.
+    assert.match(FLAT, /accessibilityLabel=\{`\$\{step\.doors\.revisit\.label\}\. \$\{step\.doors\.revisit\.uses\}`\}/, 'the tutor door does not say its cost to a screen reader');
+    assert.match(FLAT, /\{step\.doors\.revisit !== null && \(/, 'the tutor door is drawn without asking the model');
+    assert.match(FLAT, /\{step\.doors\.revisit\.uses\}/, 'the tutor door does not say it uses live minutes');
+    // The Tutor tab's continueArc rule, through the one shared helper, and
+    // open only on a real answer: null (still reading) and false both close it.
+    assert.match(FLAT, /const revisitAllowed = useContinueArc\(\) === true;/, 'the tutor door is not gated by the shared plan helper');
+    assert.ok(!SCREEN.includes('capabilitiesFor('), 'the tab asks the plan table itself instead of through the helper');
+    const revisit = between(SCREEN, 'const revisitWithTutor = (', '\n  };\n', 'the revisit is a component-level handler');
+    assert.match(revisit, /nav\.navigate\('Convo', \{ continuationPackId: packId \}\)/, 'the revisit does not go through the owner-checked continuation path');
   });
 
   test('the blocks arrive in the order the mockup draws them', () => {
@@ -113,6 +151,9 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
     assert.ok(at('<TabHeader') < at('<PhraseCard'), 'the tab header is not first');
     assert.ok(at('<PhraseCard') < at('made !== null'), 'the one thing to do now sits below the made-from rows');
     assert.ok(at('made !== null') < at('<TuneSoundCard'), 'the made-from rows are drawn above the block that holds them');
+    // Whole-app phase 2: the quiet doors are the foot of the page, after the
+    // more-ways rows, rather than a stack between the card and the rows.
+    assert.ok(at('<TuneSoundCard') < at('<View style={st.doors}>'), 'the quiet doors sit between the card and the ways to practise');
     // Inside the made-from branch, because the starter branch above it draws
     // its own phrase row and a first `indexOf` over the whole file would answer
     // about that one. Both branches draw the moment, the phrase and the sound
@@ -138,22 +179,59 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
     assert.ok(at('STARTER.line') > at('<TuneSoundCard'), 'the sentence about what this page becomes is not under the shapes it is about');
   });
 
-  test('personal practice says which conversation made it and keeps the archive one quiet tap away', () => {
+  test('the source is named once per cluster, and the archive has exactly one door — whole-app phase 2', () => {
+    // The card names the conversation its sitting draws on. The rows under it
+    // name theirs only when it is a different one, which the practice model
+    // decides; the tab no longer draws a second heading repeating the title.
     assert.match(
       FLAT,
-      /const personalSource = madeFromSource\(made\?\.value \?\? null\)/,
-      'the screen invents provenance instead of asking the practice model',
+      /const alsoFrom = alternativesSource\(made\?\.value \?\? null, step\?\.card\.sourcePackId \?\? null\)/,
+      'the screen decides for itself whether the rows need their own provenance',
     );
-    assert.match(
-      FLAT,
-      /\{personalSource !== null && \([\s\S]*<Label>\{MADE_FROM_LABEL\}<\/Label>[\s\S]*\{personalSource\}/,
-      'the personal rows do not say where they came from',
-    );
-    assert.match(
-      FLAT,
-      /label=\{CONVERSATION_ARCHIVE_ACTION\}[\s\S]*nav\.navigate\('Conversations'\)/,
-      'the complete conversation library is not reachable from Practice',
-    );
+    assert.match(FLAT, /\{alsoFrom !== null && <Text style=\{st\.fromLine\}>\{alsoFrom\}<\/Text>\}/, 'the rows name their conversation without asking the model, or not at all');
+    for (const gone of ['MADE_FROM_LABEL', 'CONVERSATION_ARCHIVE_ACTION', 'madeFromSource(', 'personalSource']) {
+      assert.ok(!SCREEN.includes(gone), `${gone} is back on Practice; the conversation is named once and the archive has one door`);
+    }
+    // One archive door on the whole page, and it is the quiet one.
+    assert.equal((SCREEN.match(/nav\.navigate\('Conversations'\)/g) ?? []).length, 1, 'the archive has more than one door on Practice, or none');
+    // The more-ways rows sit under their own quiet heading, in both branches.
+    assert.equal((SCREEN.match(/<Label>\{ALTERNATIVES\.label\}<\/Label>/g) ?? []).length, 2, 'a branch of the more-ways rows has no heading, or has two');
+  });
+
+  test('the card says where its sitting comes from once, and what it costs beside the action — whole-app phase 2', () => {
+    const card = RENDER.slice(at('<PhraseCard'), at('made !== null'));
+    const control = card.slice(card.indexOf('control={'));
+    const source = control.indexOf('{step.card.source !== null && ');
+    const pill = control.indexOf('<PillButton');
+    const cost = control.indexOf('{step.card.noMinutes !== null && ');
+    assert.ok(source >= 0 && source < pill, 'the source is not said above the action it belongs to');
+    assert.ok(cost > pill, 'the cost line is not beside the action');
+    // Nothing between the pill and its cost but the pill itself.
+    assert.ok(!/<Text|<GhostButton|<OutlineButton/.test(control.slice(pill, cost).replace(/<PillButton[^>]*\/>/, '')), 'something sits between the action and what it costs');
+  });
+
+  test('a made-from row is drawn only when it can actually start — whole-app phase 2', () => {
+    // With no measured sound there is nothing to tune, so the personal branch
+    // draws the sound row only when the model found one. The replay row was
+    // always gated on a correction existing, and still is.
+    const personal = RENDER.slice(RENDER.indexOf('<ReplayMomentCard') - 200);
+    // Fable review (whole-app phase 2): gating on a correction existing was not
+    // enough, because a held correction opens an empty sitting. The row is
+    // gated on the model's `sayable`, the same rule the phrase row follows.
+    assert.match(flat(personal), /\{made\.value\.replay !== null && made\.value\.replay\.sayable && \(/, 'the replay row draws when its sitting would be empty');
+    // The model can only judge that with the bank the sitting would draw from.
+    assert.match(SCREEN, /madeFromConversations\(\{ packs, marks, deck, checks, bank, now \}\)/, 'the made-from rows are judged without the bank');
+    assert.match(flat(personal), /\{made\.value\.phrase !== null && \(/, 'the phrase row draws with no phrase behind it');
+    assert.match(flat(personal), /\{made\.value\.sound !== null && \( <TuneSoundCard/, 'the sound row draws with nothing measured to tune');
+  });
+
+  test('the quiet doors come after the ways to practise, never as a second primary — whole-app phase 2', () => {
+    // Review, the one archive door and the tutor revisit are the page's foot,
+    // below the recommended card and the alternatives, drawn only when the
+    // card has answered.
+    assert.ok(at('<PhraseCard') < at('<Label>{ALTERNATIVES.label}</Label>'), 'the alternatives sit above the recommended card');
+    assert.ok(at('<Label>{ALTERNATIVES.label}</Label>') < at('step.doors.review'), 'scheduled review competes with the recommendation from above the alternatives');
+    assert.match(FLAT, /\{step !== null && \( <View style=\{st\.doors\}>/, 'the doors draw before the card has answered');
   });
 
   test('every block that can be empty is gated, and the gate is the model rather than a length', () => {
@@ -170,6 +248,9 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
     const header = between(RENDER, '<TabHeader', '/>', 'Practice opens on a TabHeader');
     assert.match(header, /title=\{PRACTICE_TITLE\}/, 'the tab lost its title, or spells it on the screen');
     assert.match(header, /purpose=\{PRACTICE_PURPOSE\}/, 'the tab lost its purpose line, which every tab but Home carries');
+    // Whole-app phase 2 (2026-09-25): the heading is the tab's own name and one
+    // short line, and nothing else sits between it and the card.
+    assert.ok(!/<HeaderArt|<Label>\{MADE_FROM/.test(RENDER.slice(0, RENDER.indexOf('<PhraseCard'))), 'a second heading is back between the header and the card');
     assert.match(SCREEN, /trailing=\{<ProfileButton \/>\}/, 'Practice must retain the shared profile entry point');
 
     // The corner art is decoration and says nothing, so it is named from the
@@ -208,7 +289,11 @@ describe('Practice draws the learner\'s own conversations, and decides none of i
     // it, and nothing on screen says why.
     assert.ok(!/phraseKeys: [^}]*\.map\(\(phrase\) => phrase\.fr\)/.test(FLAT),
       'a drill is opened with raw French instead of the deck keys it is indexed by');
-    assert.match(FLAT, /navigate\('ConversationPractice', \{ packId: step.pack.id \}\)/, 'the saved conversation opens its grounded warm-up');
+    // The recommended sitting is keyed through core's targets, which carry the
+    // deck's own phrase keys; the tab never builds a node out of French lines.
+    const card = readFileSync(new URL('../practice/recommendation.ts', import.meta.url), 'utf8');
+    assert.match(card, /pack\.keyPhrases\.map\(\(p\) => phraseKeyOf\(p\.fr\)\)/, 'practice targets must use review-card identities');
+    assert.match(card, /pack\.corrections\.map\(\(c\) => phraseKeyOf\(c\.better\)\)/, 'correction phrases must also reach practice');
     const practice = readFileSync(new URL('../conversationPacks/ConversationPracticeScreen.tsx', import.meta.url), 'utf8');
     assert.match(practice, /phraseKeyOf\(p\.fr\)/, 'recall must use review-card identities');
     assert.match(practice, /phraseKeyOf\(c\.better\)/, 'correction phrases must also reach recall');

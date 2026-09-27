@@ -33,6 +33,7 @@ import {
 import { acousticFor, type Acoustic } from '../myfrench/acoustic.ts';
 import { cadenceFrom } from '../myfrench/cadence.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
+import { soundExampleWord } from '../tutor/soundExample.ts';
 
 export const MAX_CLOSURE_PHRASES = 3;
 export const MAX_CLOSURE_WINS = 3;
@@ -44,7 +45,8 @@ export interface ClosureContext {
 }
 
 export type ClosureFocus =
-  | { kind: 'sound'; acoustic: Acoustic; missionId: string }
+  /** `example` is the inventory's word for the sound, so the card can lead with a word. */
+  | { kind: 'sound'; acoustic: Acoustic; missionId: string; example: string | null }
   | { kind: 'clarity'; line: string }
   | { kind: 'cadence'; fr: string; en: string; note: string };
 
@@ -93,7 +95,7 @@ export function soundFocus(checks: readonly SoundCheckEvidence[]): { acoustic: A
 function focusFor(parts: ClosureParts, ctx: ClosureContext | null): ClosureFocus | null {
   if (ctx !== null) {
     const sound = soundFocus(ctx.checks);
-    if (sound !== null) return { kind: 'sound', acoustic: sound.acoustic, missionId: sound.missionId };
+    if (sound !== null) return { kind: 'sound', acoustic: sound.acoustic, missionId: sound.missionId, example: soundExampleWord(sound.ipa) };
   }
   const clarity = parts.clarity?.trim() ?? '';
   if (clarity.length > 0) return { kind: 'clarity', line: clarity };

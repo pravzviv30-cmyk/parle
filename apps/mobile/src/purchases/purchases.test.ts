@@ -123,7 +123,11 @@ describe('the shared paywall — F250', () => {
       const source = read(screen);
       const at = source.indexOf("live.status.phase === 'out-of-minutes'");
       assert.notEqual(at, -1, `${screen} has no out-of-minutes branch`);
-      assert.match(source.slice(at, at + 1200), /<Paywall userId=\{userId\}/, `${screen} omits the shared paywall`);
+      const branch = source.slice(at, at + 1200);
+      // Stage 3 (2026-09-25): the lesson hands this phase to its own page on
+      // the scrolling frame, so its paywall is read there.
+      const page = /<OutOfMinutesView\b/.test(branch) ? read('../live/OutOfMinutesView.tsx') : branch;
+      assert.match(page, /<Paywall userId=\{userId\}/, `${screen} omits the shared paywall`);
     }
   });
 });

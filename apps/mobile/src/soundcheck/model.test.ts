@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { getMission, getPhoneme, bestDrillFor, type FocusPoint, type SessionPhonemeReport } from '@luvani/core';
 
-import { SELF_GUIDED, nextSoundCheckReference, soundCheckDecision, type SoundCheckEvidence } from './model.ts';
+import { MIC_DENIED, SELF_GUIDED, nextSoundCheckReference, soundCheckDecision, type SoundCheckEvidence } from './model.ts';
 
 const emptyReport: SessionPhonemeReport = { stats: [], focus: null, overall: 0, wins: [] };
 
@@ -78,5 +78,16 @@ describe('the sound check remembers which sound it was about — F468', () => {
     for (const decision of [soundCheckDecision(0, null), SELF_GUIDED]) {
       assert.ok('phoneme' in decision, `${decision.kind} omits the key instead of writing null`);
     }
+  });
+});
+
+describe('a refused microphone is explained, never assessed — whole-app phase 1', () => {
+  test('it records as self-guided with no sound, and says why and how to change it', () => {
+    assert.equal(MIC_DENIED.kind, 'self-guided');
+    assert.equal(MIC_DENIED.phoneme, null);
+    assert.equal(MIC_DENIED.focus, null);
+    assert.match(MIC_DENIED.detail, /did not assess/i);
+    assert.match(MIC_DENIED.detail, /microphone access in your settings/i);
+    assert.doesNotMatch(MIC_DENIED.detail + MIC_DENIED.headline, /—/, 'user copy carries an em dash');
   });
 });

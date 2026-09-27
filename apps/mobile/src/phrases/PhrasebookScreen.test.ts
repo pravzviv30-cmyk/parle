@@ -15,7 +15,18 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { guiltIn } from '../copy/guilt.ts';
-import { PHRASEBOOK_TITLE, STOP_LABEL, speakerLabel } from './phrasebookView.ts';
+import { cadenceFrom } from '../myfrench/cadence.ts';
+import {
+  CADENCE_HIDE,
+  CADENCE_NOTE,
+  CADENCE_SHOW,
+  PHRASEBOOK_COPY,
+  PHRASEBOOK_TITLE,
+  STOP_LABEL,
+  cadenceToggleLabel,
+  hasCadence,
+  speakerLabel,
+} from './phrasebookView.ts';
 
 const read = (relative: string): string =>
   readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
@@ -41,10 +52,15 @@ describe('your phrases, as a route of its own — F575', () => {
     assert.ok(at('<OneLineCard') < at('<Label>{LEDGER.rowsLabel}</Label>'), 'the lines already said are drawn above the one line the visit asks for');
     assert.ok(at('<CadenceCard cadence={cadence}') > at('<Label>{LEDGER.rowsLabel}</Label>'), 'the cadence set no longer closes the page');
     assert.match(FLAT, /oneLine !== null && <OneLineCard/, 'an empty deck still deals a card');
-    assert.match(FLAT, /cadence !== null && <CadenceCard/, 'the cadence card is drawn from an unanswered read');
+    // Stage 3: the set is an optional collection now, so the card is gated on a
+    // read that has answered with words AND on the learner asking to see it.
+    assert.match(FLAT, /hasCadence\(cadence\) && \(/, 'the cadence collection is drawn from an unanswered read');
+    assert.match(FLAT, /cadenceOpen && <CadenceCard cadence=\{cadence\} \/>/, 'the cadence card is drawn without being asked for');
 
     // Built from the deck and the topics, by the modules that own each answer.
-    assert.match(FLAT, /setBook\(buildPhrasebook\(deck, topics, now\)\)/, 'the screen groups the phrases itself instead of asking phrasebook.ts');
+    // Saved conversations are the second known source (whole-app phase 1), so
+    // the pack list rides along; the grouping is still phrasebook.ts's alone.
+    assert.match(FLAT, /setBook\(buildPhrasebook\(deck, topics, now, packs\)\)/, 'the screen groups the phrases itself instead of asking phrasebook.ts');
     assert.match(FLAT, /setOneLine\(oneLineFrom\(\{ deck, now \}\)\)/, 'the screen deals the card itself instead of asking oneLine.ts');
     assert.match(FLAT, /setCadence\(cadenceFrom\(\{ deck \}\)\)/, 'the screen picks the connectors itself instead of asking cadence.ts');
     assert.match(FLAT, /book !== null && hasPhrases\(book\)/, 'a learner with no kept lines is shown an empty list under a heading');
@@ -58,6 +74,56 @@ describe('your phrases, as a route of its own — F575', () => {
     // the learner can see, and a hold mark beside every line they wrote.
     assert.ok(!SCREEN.includes('<Stat'), 'the phrasebook counts itself again; a total over a visible list is a number asking to be compared');
     assert.ok(!SCREEN.includes('hold'), 'a per-phrase hold mark is back, so a page of the learner’s own French reports on them while they read it');
+  });
+
+  test('saved phrases not yet recalled are their own block, after the retained lines and under their own name — Stage 1', () => {
+    // Separate from "Yours in conversation", never inside it: the retained
+    // groups are evidence, and a saved phrase is a promise until it is recalled.
+    assert.match(FLAT, /book !== null && hasSaved\(book\) &&/, 'the saved block is drawn from an unanswered read, or on a length the screen works out itself');
+    assert.match(FLAT, /<Label>\{SAVED_TITLE\}<\/Label>/, 'the saved block spells its own heading, or has none');
+    assert.match(FLAT, /\{SAVED_NOTE\}/, 'the saved block does not say how a phrase joins the retained lines');
+    assert.match(FLAT, /book\.saved\.map\(/, 'the saved phrases are not drawn');
+    assert.ok(at('<Label>{LEDGER.rowsLabel}</Label>') < at('<Label>{SAVED_TITLE}</Label>'), 'saved phrases are drawn above the lines already recalled');
+    assert.ok(at('<Label>{SAVED_TITLE}</Label>') < at('<CadenceCard cadence={cadence}'), 'the cadence set no longer closes the page');
+    // The retained gate is unchanged, so a saved phrase alone never draws the retained heading.
+    assert.match(FLAT, /book !== null && hasPhrases\(book\) &&/, 'the retained block lost its own gate');
+    // And each saved line can be heard by the same labelled speaker.
+    const saved = FLAT.slice(at('book.saved.map('));
+    assert.match(saved.slice(0, 400), /<PhraseRow/, 'a saved line is drawn without the shared row and its speaker');
+  });
+
+  test('the cadence glossary is an optional collection, closed until the learner opens it — Stage 3', () => {
+    // The learner's own lines lead. The authored connectors used to close the
+    // page as a long open glossary under them; now they are one quiet row that
+    // opens the set on request, so a page of the learner's French is not
+    // followed by a longer page of somebody else's.
+    assert.equal(cadenceToggleLabel(false), CADENCE_SHOW, 'the closed row does not offer to open the set');
+    assert.equal(cadenceToggleLabel(true), CADENCE_HIDE, 'the open row does not offer to close the set');
+    assert.notEqual(CADENCE_SHOW, CADENCE_HIDE, 'open and closed read the same, so nobody can tell which state it is in');
+    for (const line of PHRASEBOOK_COPY) {
+      assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
+      assert.doesNotMatch(line, /\d|—/, `"${line}" counts something or carries an em dash`);
+    }
+    for (const line of [CADENCE_SHOW, CADENCE_HIDE, CADENCE_NOTE]) {
+      assert.ok(PHRASEBOOK_COPY.includes(line), `left out of the scanned list: ${line}`);
+    }
+
+    // Only a set with words in it gets a row: an empty one would be a door onto nothing.
+    assert.equal(hasCadence(null), false, 'an unanswered read draws the row');
+    assert.equal(hasCadence({ words: [], earned: 0 }), false, 'an empty set draws the row');
+    assert.equal(hasCadence(cadenceFrom({ deck: [] })), true, 'the authored set on a first morning draws no row');
+
+    // Closed by default, said to a screen reader, and toggled in place.
+    assert.match(FLAT, /const \[cadenceOpen, setCadenceOpen\] = useState\(false\);/, 'the collection opens by default');
+    assert.match(FLAT, /accessibilityState=\{\{ expanded: cadenceOpen \}\}/, 'the row does not say whether the set is open');
+    assert.match(FLAT, /onPress=\{\(\) => setCadenceOpen\(\(open\) => !open\)\}/, 'the row does not toggle the set');
+    assert.match(FLAT, /\{cadenceToggleLabel\(cadenceOpen\)\}/, 'the row spells its own words');
+    assert.match(FLAT, /!cadenceOpen && <Text[^>]*>\{CADENCE_NOTE\}<\/Text>/, 'the closed row does not say what the set is');
+
+    // And it comes after everything that is the learner's own.
+    assert.ok(at('<OneLineCard') < at('cadenceToggleLabel(cadenceOpen)'), 'the collection is drawn above the one line to say');
+    assert.ok(at('<Label>{LEDGER.rowsLabel}</Label>') < at('cadenceToggleLabel(cadenceOpen)'), 'the collection is drawn above the recalled lines');
+    assert.ok(at('<Label>{SAVED_TITLE}</Label>') < at('cadenceToggleLabel(cadenceOpen)'), 'the collection is drawn above the saved lines');
   });
 
   test('every phrase can be heard by a name a screen reader can tell apart, and the voice stops when the screen goes', () => {

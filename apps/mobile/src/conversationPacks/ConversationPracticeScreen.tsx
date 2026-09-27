@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { phraseKeyOf, type ConversationPack } from '@luvani/core';
 import { Card, GhostButton, Label, PillButton } from '../components.tsx';
@@ -7,12 +7,25 @@ import { paper, radius, space, type, HIT } from '../theme.ts';
 import * as voice from '../speech/tutorVoice.ts';
 import { loadConversationPacks } from './store.ts';
 import { choicesFor, matchPair, pairsFor, matchingOrder, checkRecognition, NEW_ATTEMPT, type RecognitionAttempt } from './recognition.ts';
+import { mintPracticeId } from '../practice/history.ts';
+import { recordWarmupCompleted } from '../practice/historyStore.ts';
 
 /** Recognition is preparation, not proof of unaided recall; that follows in Drill. */
-export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPack }: {
+export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPack, onLoadSample }: {
+  /**
+   * Development only, and only on the preview: put the labelled sample into
+   * this mock account's own stores so the rest of the journey can be looked
+   * at. The navigator supplies it only when `sampleAllowed` is true.
+   */
+  onLoadSample?: () => Promise<string>;
   packId: string;
   onBack: () => void;
-  onRecall: (node: { id: string; title: string; phraseKeys: string[] }) => void;
+  /**
+   * Go on to recall. `exposed` is always true from this screen: the matching
+   * stage puts every French line on screen the moment it opens, so even a
+   * learner who skips straight to recall has just seen them.
+   */
+  onRecall: (node: { id: string; title: string; phraseKeys: string[] }, exposed: boolean) => void;
   /** Story fixture only. The navigator supplies this exclusively in development. */
   previewPack?: ConversationPack;
 }) {
@@ -29,6 +42,23 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
   const [quiet, setQuiet] = useState(false);
   const [audioReady, setAudioReady] = useState<boolean | null>(null);
   const [played, setPlayed] = useState(false);
+  const [sampleNote, setSampleNote] = useState<string | null>(null);
+  const [loadingSample, setLoadingSample] = useState(false);
+  // The warm-up ran to its end: matching and every listening round. A skip,
+  // or a pack too small to warm up at all, leaves it false.
+  const [warmedUp, setWarmedUp] = useState(false);
+  // One id per run of this screen, minted once, so a re-render records nothing
+  // twice and a second run is a second, separate fact.
+  const warmupIdRef = useRef<string | null>(null);
+  const warmupRecordedRef = useRef(false);
+  useEffect(() => {
+    // Exposure, never recall: no grade and no XP. Not for the preview, whose
+    // pack is not the learner's, and only once per run.
+    if (!warmedUp || previewPack || !pack || warmupRecordedRef.current) return;
+    warmupRecordedRef.current = true;
+    warmupIdRef.current ??= mintPracticeId(Date.now(), 'w');
+    void recordWarmupCompleted({ warmupId: warmupIdRef.current, packId: pack.id, at: Date.now() });
+  }, [warmedUp, previewPack, pack]);
   useEffect(() => {
     let cancelled = false;
     if (previewPack) setPack(previewPack);
@@ -76,6 +106,22 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
       <View style={{ gap: space(5), paddingBottom: space(6) }}>
         <View style={{ gap: space(2) }}>
           {previewPack && <Label>Design preview · Sample conversation</Label>}
+          {previewPack && onLoadSample && (
+            <View style={{ gap: space(1) }}>
+              <GhostButton
+                label={loadingSample ? 'Loading sample' : 'Load sample conversation'}
+                disabled={loadingSample}
+                onPress={() => {
+                  if (loadingSample) return;
+                  setLoadingSample(true);
+                  void onLoadSample().then(setSampleNote).finally(() => setLoadingSample(false));
+                }}
+              />
+              <Text accessibilityLiveRegion="polite" style={type.small}>
+                {sampleNote ?? 'Development only. Adds a labelled sample to this local account so Practice can be tried.'}
+              </Text>
+            </View>
+          )}
           <Label>{pack.title.en}</Label>
           <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(progress * 100) }} style={{ height: 5, backgroundColor: paper.line, borderRadius: 3 }}>
             <View style={{ height: 5, width: `${progress * 100}%`, backgroundColor: paper.ink, borderRadius: 3 }} />
@@ -94,7 +140,7 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
             voice.stop();
             onRecall({ id: pack.id, title: pack.title.en, phraseKeys: [...new Set([
               ...pack.keyPhrases.map((p) => phraseKeyOf(p.fr)), ...pack.corrections.map((c) => phraseKeyOf(c.better)),
-            ])] });
+            ])] }, true);
           }} /></View>
         </Card> : stage === 'match' ? <>
           <Text style={type.display}>Find the pairs.</Text>
@@ -129,7 +175,12 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
               return;
             }
             voice.stop(); setChoice(null); setAttempt(NEW_ATTEMPT); setPlayed(false);
-            if (round + 1 >= listening.length) setStage('ready'); else setRound(round + 1);
+            if (round + 1 >= listening.length) {
+              // The last listening round answered: the warm-up was completed,
+              // which is the only way `warmedUp` is ever raised. A skip is not.
+              setWarmedUp(true);
+              setStage('ready');
+            } else setRound(round + 1);
           }} />
           {!reading && <GhostButton label="I can’t listen now" onPress={() => { voice.stop(); setQuiet(true); }} />}
         </> : null}

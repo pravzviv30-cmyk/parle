@@ -15,7 +15,7 @@ import type { MissionState } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
 import { STAMP_STATES } from '../progress/passport.ts';
-import { CHIP, NEXT_PLACES, YOU_CAN_NOW, chipFor, splitByStamp } from './situations.ts';
+import { CHIP, NEXT_PLACES, TRY_NEXT_LIMIT, YOU_CAN_NOW, chipFor, splitByStamp, tryNext } from './situations.ts';
 
 const STATES: MissionState[] = ['new', 'in-progress', 'complete', 'needs-review'];
 
@@ -110,6 +110,21 @@ describe('the situations, in two groups — F575', () => {
     assert.deepEqual(splitByStamp(rows, 'hotel').next.map((row) => row.id), ['cafe', 'market']);
   });
 
+  test('My French suggests at most two next places, core\'s own first, and Missions keeps the rest — whole-app phase 2', () => {
+    // The personal page is not the catalogue. Two suggestions are enough to act
+    // on; every place is still one tap away in Missions, and nothing is locked.
+    const next = splitByStamp(rows, 'market').next;
+    assert.deepEqual(tryNext(next).map((row) => row.id), ['market', 'cafe']);
+    const many = [...rows, { id: 'station', earned: false }, { id: 'pharmacy', earned: false }];
+    const suggested = tryNext(splitByStamp(many, 'pharmacy').next);
+    assert.equal(suggested.length, TRY_NEXT_LIMIT);
+    assert.equal(TRY_NEXT_LIMIT, 2);
+    assert.equal(suggested[0]!.id, 'pharmacy', 'core\'s suggestion does not lead the two');
+    assert.deepEqual(tryNext([]), []);
+    // A split that is only two long is drawn whole, in its own order.
+    assert.deepEqual(tryNext(splitByStamp(rows, null).next).map((row) => row.id), ['cafe', 'market']);
+  });
+
   test('every row is drawn exactly once, whatever core suggests', () => {
     // The split is a partition, not a filter. A row that fell out of both
     // groups would be a place the learner could no longer reach.
@@ -125,10 +140,12 @@ describe('the situations, in two groups — F575', () => {
       assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
       assert.doesNotMatch(line, /\d|—|lock(ed)? (behind|until)/i, `"${line}" counts, dashes or locks`);
     }
-    // The three dots are the founder's, and they are what makes the heading run
-    // into the row under it as one sentence about the learner.
-    assert.equal(YOU_CAN_NOW.label, 'You can now...');
-    assert.equal(NEXT_PLACES.label, 'Next places');
+    // Whole-app phase 2 (2026-09-25) renamed both groups to the approved My
+    // French structure: the places already theirs are "French you can use",
+    // and at most two suggestions sit under "Try next". Still no count and no
+    // lock in either.
+    assert.equal(YOU_CAN_NOW.label, 'French you can use');
+    assert.equal(NEXT_PLACES.label, 'Try next');
   });
 
   test('the card draws the split it did not make, and names no state of its own', () => {

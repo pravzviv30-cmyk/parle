@@ -14,6 +14,12 @@
  * the screen a learner reaches at the moment they decide whether they are any
  * good at this.
  *
+ * Whole-app Stage 3A (2026-09-25) set the reading order: what went well, one
+ * thing to try, the phrase to practise, Done. The other phrases, the small fix
+ * and the next step are all still here, one tap away under a closed More. A
+ * sound focus leads with the drill's two words; its notation is a detail the
+ * learner opens.
+ *
  * The closure is built from the live recap the moment it arrives, so the
  * card never waits on a disk, and the focus and the next situation fill in
  * once the three reads answer. The one visible keepsake is persisted exactly
@@ -22,15 +28,16 @@
  */
 
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { missionStates, type RecapPayload } from '@luvani/core';
 
-import { accent, HAIRLINE, paper, radius, signal, space, type } from './theme.ts';
-import { BookmarkGlyph, GhostButton, Label, OutlineButton, PillButton, TintPanel } from './components.tsx';
+import { accent, HAIRLINE, HIT, paper, radius, signal, space, type } from './theme.ts';
+import { BookmarkGlyph, Card, GhostButton, Label, OutlineButton, PillButton, TintPanel } from './components.tsx';
 import { Art } from './art/Art.tsx';
 import { SCREEN_ART } from './art/maps.ts';
-import { ConversationPackCard } from './conversationPacks/ConversationPackCard.tsx';
+import { ConversationPackCard, NEXT_WAITING } from './conversationPacks/ConversationPackCard.tsx';
+import { SOUND_DETAIL, exampleFirstHeading } from './tutor/soundExample.ts';
 import { MAX_CLOSURE_PHRASES, closureFromRecap, type ClosureContext } from './conversationPacks/closure.ts';
 import { missionCompletionsFrom } from './missions/chooserView.ts';
 import { loadMissionCompletions } from './missions/store.ts';
@@ -84,11 +91,17 @@ export function RecapScreen({
   // to prefer something new; remove this exact key wherever it lands and keep
   // the original three-phrase ceiling across the keepsake and the rows below.
   const keptPhrase = closureFromRecap(recap, null).phrases[0] ?? null;
-  const remainingClosure = {
-    ...closure,
-    summary: '',
-    phrases: closure.phrases.filter((phrase) => phrase.key !== keptPhrase?.key).slice(0, MAX_CLOSURE_PHRASES - 1),
-  };
+  const otherPhrases = closure.phrases.filter((phrase) => phrase.key !== keptPhrase?.key).slice(0, MAX_CLOSURE_PHRASES - 1);
+  // Stage 3A: the lead is what went well and one focus. A sound focus is said
+  // with the drill's own two words first; the notation is an optional detail.
+  const leadFocus =
+    closure.focus !== null && closure.focus.kind === 'sound'
+      ? { ...closure.focus, acoustic: { ...closure.focus.acoustic, heading: exampleFirstHeading(closure.focus.acoustic, closure.focus.example) } }
+      : closure.focus;
+  const leadClosure = { ...closure, summary: '', phrases: [], repair: null, nextMission: null, focus: leadFocus };
+  const hasMore = otherPhrases.length > 0 || closure.repair !== null || closure.nextMission !== null;
+  const [more, setMore] = useState(false);
+  const [soundDetail, setSoundDetail] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   const situation = closure.title;
   const retrySave = () => {
@@ -144,6 +157,23 @@ export function RecapScreen({
           </View>
         </View>
 
+        {/* What went well, and the one thing to try. */}
+        <ConversationPackCard closure={leadClosure} />
+
+        {closure.focus !== null && closure.focus.kind === 'sound' && (
+          <View>
+            <Pressable
+              onPress={() => setSoundDetail((open) => !open)}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: soundDetail }}
+              style={({ pressed }) => [st.disclosure, pressed && st.pressed]}
+            >
+              <Text style={[type.small, { color: paper.ink }]}>{soundDetail ? SOUND_DETAIL.hide : SOUND_DETAIL.show}</Text>
+            </Pressable>
+            {soundDetail && <Text style={[type.notation, { color: paper.inkSoft }]}>{closure.focus.acoustic.heading}</Text>}
+          </View>
+        )}
+
         {keptPhrase !== null ? (
           <View style={st.keptStack}>
             <Label>A phrase to take with you</Label>
@@ -173,9 +203,64 @@ export function RecapScreen({
           </View>
         ) : null}
 
-        <ConversationPackCard closure={remainingClosure} />
-
         <GhostButton label="Finish conversation" onPress={onDone} />
+
+        {/* Everything else the closure chose, one tap away and closed by
+            default: the other phrases, the small fix and the next step. Drawn
+            after Done so opening it never pushes the way out down the screen. */}
+        {hasMore && (
+          <View>
+            <Pressable
+              onPress={() => setMore((open) => !open)}
+              accessibilityRole="button"
+              accessibilityLabel={more ? 'Hide more from this conversation' : 'More from this conversation'}
+              accessibilityState={{ expanded: more }}
+              style={({ pressed }) => [st.disclosure, pressed && st.pressed]}
+            >
+              <Text style={[type.small, { color: paper.ink }]}>{more ? 'Show less' : 'More'}</Text>
+            </Pressable>
+            {more && (
+              <View style={st.more}>
+                {otherPhrases.length > 0 && (
+                  <View>
+                    <Label>New phrases</Label>
+                    <Card style={st.section}>
+                      <View style={{ gap: space(3) }}>
+                        {otherPhrases.map((phrase, index) => (
+                          <View key={phrase.key} style={index > 0 ? st.divider : undefined}>
+                            <Text style={[type.french, { color: paper.ink }]}>{phrase.fr}</Text>
+                            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{phrase.en}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </Card>
+                  </View>
+                )}
+                {closure.repair !== null && (
+                  <View>
+                    <Label color={signal.correspondance}>Small fixes</Label>
+                    <Card style={st.section}>
+                      <Text style={[type.small, { color: paper.inkSoft }]}>« {closure.repair.quote} »</Text>
+                      <Text style={[type.french, { color: paper.ink, marginTop: space(1) }]}>{closure.repair.better}</Text>
+                      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{closure.repair.betterEn}</Text>
+                      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{closure.repair.why}</Text>
+                    </Card>
+                  </View>
+                )}
+                {closure.nextMission !== null && (
+                  <View>
+                    <Label color={signal.correspondance}>Next step</Label>
+                    <Card style={st.section}>
+                      <Text style={[type.title, { color: paper.ink }]}>{closure.nextMission.mission.title}</Text>
+                      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(0.5) }]}>{closure.nextMission.mission.titleEn}</Text>
+                      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{NEXT_WAITING}</Text>
+                    </Card>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -208,6 +293,11 @@ const st = StyleSheet.create({
     borderWidth: HAIRLINE,
     borderColor: paper.lineOnCard,
   },
+  disclosure: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
+  pressed: { opacity: 0.6 },
+  more: { gap: space(7), marginTop: space(3) },
+  section: { marginTop: space(2) },
+  divider: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard, paddingTop: space(3) },
   savedLine: {
     minHeight: 48,
     alignSelf: 'center',

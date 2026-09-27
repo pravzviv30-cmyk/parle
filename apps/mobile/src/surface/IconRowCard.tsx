@@ -27,6 +27,7 @@ export function IconRowCard({
   glyph,
   label,
   line,
+  note,
   onPress,
   accessibilityLabel,
 }: {
@@ -35,6 +36,11 @@ export function IconRowCard({
   label: string;
   /** The sentence under the label: what the learner will find in there. */
   line: string;
+  /**
+   * An optional quieter line under it, for a separate fact such as a dated
+   * outcome. Its own element, so two sentences are never glued into one.
+   */
+  note?: string | null;
   onPress: () => void;
   accessibilityLabel: string;
 }) {
@@ -50,6 +56,9 @@ export function IconRowCard({
         <View style={s.words}>
           <Label>{label}</Label>
           <Text style={[type.bodyStrong, { color: paper.ink }]}>{line}</Text>
+          {note !== undefined && note !== null && note !== '' && (
+            <Text style={[type.small, { color: paper.inkSoft }]}>{note}</Text>
+          )}
         </View>
         <ChevronRight color={paper.inkFaint} />
       </Card>

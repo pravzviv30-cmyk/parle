@@ -313,3 +313,77 @@ describe('the conversation screen no longer banks by hand — F118, F124', () =>
     assert.doesNotMatch(screen, /timesUsedWell|repairProfile/, 'the screen reads the learner model itself');
   });
 });
+
+/**
+ * Stage 4 (2026-09-25), contract test 9: a conversation opened from a goal card
+ * is recorded as a goal step once, only after the room published a real view,
+ * and only under the server's own session id. The same guard the revisit uses,
+ * pinned the same way `tabs/TutorTab.test.ts` pins that one.
+ */
+describe('a goal step is recorded once, from a real room — Stage 4', () => {
+  const flat = stripComments(read('./ConvoScreen.tsx')).replace(/\s+/g, ' ');
+  const navigator = stripComments(read('./nav/RootNavigator.tsx')).replace(/\s+/g, ' ');
+
+  test('the effect records only after a view and a session id, once per id, with the goal key and task it was given', () => {
+    assert.match(
+      flat,
+      /const goalStepRecordedRef = useRef<string \| null>\(null\); useEffect\(\(\) => \{ if \(goalStep === undefined \|\| live\.convo === null \|\| live\.sessionId === null\) return; if \(goalStepRecordedRef\.current === live\.sessionId\) return; goalStepRecordedRef\.current = live\.sessionId; void recordGoalStepStarted\(\{ sessionId: live\.sessionId, goalKey: goalStep\.goalKey, task: goalStep\.task, at: Date\.now\(\) \}\); \}, \[goalStep, live\.convo, live\.sessionId\]\);/,
+      'a goal step is recorded before the room opens, without a real session id, or more than once',
+    );
+    assert.equal((flat.match(/recordGoalStepStarted\(/g) ?? []).length, 1, 'a goal step is recorded from more than one place');
+    assert.doesNotMatch(flat, /sessionId: [`'"]/, 'a goal step id is made up rather than read from the grant');
+    assert.ok(!flat.includes('recordUsedOutside'), 'the conversation writes the learner\'s own report for them');
+    // Beside the revisit effect, which is the same moment for a different record.
+    assert.ok(flat.indexOf('goalStepRecordedRef') > flat.indexOf('revisitRecordedRef'), 'the goal effect is not beside the revisit one');
+  });
+
+  test('the route hands the goal step to the screen, and it never becomes a seed topic', () => {
+    // Stage 4 review (2026-09-25): the route carries an opaque key and the task
+    // as flat strings, and the goal step is made from the profile here, so no
+    // goal words ride in the address bar and the screen's guard is unchanged.
+    assert.match(
+      navigator,
+      /const goalStep = useMemo\(\(\) => \{ const ref = route\.params\?\.goalRef; const task = route\.params\?\.goalTask; if \(ref === undefined \|\| task === undefined\) return undefined; const goal = profile\.learnerGoals\.find\(\(held\) => goalRouteKey\(held\) === ref\); return goal === undefined \? undefined : \{ goalKey: factKey\(goal\), task \}; \}, \[profile\.learnerGoals, route\.params\?\.goalRef, route\.params\?\.goalTask\]\);/,
+      'the route does not rebuild the goal step from the profile by its opaque key',
+    );
+    assert.match(navigator, /goalStep=\{goalStep\}/, 'the route drops the goal step before ConvoScreen');
+    assert.match(flat, /goalStep\?: \{ goalKey: string; task: string \};/, 'the screen takes the goal step as something other than two flat strings');
+    // The goal is never sent to the agent as a seed: seedTopic is a Max-only door.
+    const opts = flat.slice(flat.indexOf('useLiveSession('), flat.indexOf('useLiveSession(') + 600);
+    assert.ok(!opts.includes('goalStep'), 'the goal step rides into the session start body');
+  });
+});
+
+describe('the tutor talking to an empty room is not practice time — Stage 1 idle credit', () => {
+  // In voice mode the agent re-arms a silence rescue every few seconds, so a
+  // learner who walks away with the app foregrounded would keep touching the
+  // clock through the tutor's speaking boundaries. Behaviour lives in
+  // progress/activeTime.ts (`learnerEngaged`, walked with rescues in its own
+  // suite); what this file can ask is whether the screen goes through it.
+  const body = stripComments(read('./ConvoScreen.tsx')).replace(/\s+/g, ' ');
+
+  test('a tutor speaking boundary touches the clock only while the learner acted recently', () => {
+    const at = body.indexOf('[roomOpen, live.tutorSpeaking');
+    assert.ok(at >= 0, 'the tutor boundary effect moved, so this test is reading the wrong thing');
+    const effect = body.slice(Math.max(0, body.lastIndexOf('useEffect(', at)), at);
+    assert.match(
+      effect,
+      /learnerEngaged\(lastLearnerActionAtRef\.current, now, ACTIVE_CUTOFF_MS\.convo\)/,
+      'a tutor boundary credits time without asking whether the learner is still there',
+    );
+    assert.doesNotMatch(effect, /if \(roomOpen\) clock\.touch\(\)/, 'the unconditional tutor-boundary touch is back');
+  });
+
+  test('every learner action marks the learner present and always touches', () => {
+    const marks = [...body.matchAll(/lastLearnerActionAtRef\.current = /g)].length;
+    assert.ok(marks >= 1, 'nothing marks the learner present, so no tutor boundary could ever credit');
+    const send = body.slice(body.indexOf('const sendDraft = '), body.indexOf('const changeDraft = '));
+    assert.match(send, /markLearnerAction\(\)/, 'a typed send does not mark the learner present');
+    const turnsAt = body.indexOf('[roomOpen, learnerTurns');
+    assert.ok(turnsAt >= 0, 'the learner turn effect moved, so this test is reading the wrong thing');
+    const turns = body.slice(body.lastIndexOf('useEffect(', turnsAt), turnsAt);
+    assert.match(turns, /markLearnerAction\(\)/, 'a new learner turn does not mark the learner present');
+    const mark = body.slice(body.indexOf('const markLearnerAction = '), body.indexOf('const markLearnerAction = ') + 200);
+    assert.match(mark, /lastLearnerActionAtRef\.current = Date\.now\(\); clock\.touch\(\);/, 'a learner action does not both mark presence and touch the clock');
+  });
+});

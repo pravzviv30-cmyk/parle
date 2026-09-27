@@ -41,6 +41,7 @@ import {
   createSyncPolicy,
 } from './policy.ts';
 import { upgradeStored } from '../profile/upgrade.ts';
+import { GOAL_STEPS_VERSION, mergeGoalSteps } from '../goals/model.ts';
 
 const MOBILE = fileURLToPath(new URL('../..', import.meta.url));
 const FIXED_NOW = Date.UTC(2026, 7, 26, 12, 0, 0);
@@ -249,7 +250,10 @@ function genActivity(pick: Chooser): unknown {
       kind: pick.one(['lesson', 'convo', 'drill', 'review']),
       xp: 1 + pick.int(30),
     };
-    entries.push(pick.bool() ? { ...base, durationMs: pick.int(900_000) } : base);
+    // Phase 1B adds a measured active total on some rows too, so the property
+    // tests below fold rows with and without it into each other.
+    const timed = pick.bool() ? { ...base, durationMs: pick.int(900_000) } : base;
+    entries.push(pick.bool() ? { ...timed, activeMs: pick.int(600_000) } : timed);
   }
   return pick.bool() ? { version: 1, entries, backfilled: true } : { version: 1, entries };
 }
@@ -315,6 +319,53 @@ function genTutorIntro(pick: Chooser): unknown {
   return pick.bool() ? 1 : null;
 }
 
+function genPracticeHistory(pick: Chooser): unknown {
+  const events: unknown[] = [];
+  for (let i = 0; i < pick.int(6); i += 1) {
+    const at = BASE + pick.int(90) * DAY;
+    const id = `s${pick.int(5)}`;
+    const packId = pick.one(['pack-a', 'pack-b']);
+    const kind = pick.one(['session-completed', 'warmup-completed', 'revisit-started']);
+    if (kind === 'session-completed') {
+      const fromPack = pick.bool();
+      events.push({
+        kind,
+        id,
+        at,
+        packId: fromPack ? packId : null,
+        targets: [
+          {
+            phraseKey: `phrase:${pick.one(FRENCH)}`,
+            source: fromPack ? { kind: 'pack', packId } : { kind: 'review' },
+            outcome: pick.one(['practised', 'unresolved']),
+            attempts: 1 + pick.int(3),
+          },
+        ],
+      });
+    } else {
+      events.push({ kind, id, at, packId });
+    }
+  }
+  return { version: 1, events };
+}
+
+/**
+ * Stage 4 (2026-09-25): goal steps. A narrow time range and a small id pool on
+ * purpose, so two differing copies of one (kind, id) are common: that is the
+ * case a per-key canonical pick fails associativity on.
+ */
+function genGoalSteps(pick: Chooser): unknown {
+  const steps: unknown[] = [];
+  const goals = ['order a coffee in paris', 'check into a hotel'];
+  for (let i = 0; i < pick.int(7); i += 1) {
+    const id = pick.one(['pack-a', 'pack-b', 'pack-c']);
+    const at = BASE + pick.int(4) * DAY;
+    if (pick.bool()) steps.push({ kind: 'step-started', id, at, goalKey: pick.one(goals), task: pick.one(['mission:cafe', 'mission:hotel']) });
+    else steps.push({ kind: 'used-outside', id: `u.${id}`, at, goalKey: pick.one(goals) });
+  }
+  return { version: 1, steps };
+}
+
 const GENERATORS: Record<string, (pick: Chooser) => unknown> = {
   profile: genProfile,
   review: genReview,
@@ -328,6 +379,8 @@ const GENERATORS: Record<string, (pick: Chooser) => unknown> = {
   scenarioProgress: genScenarioProgress,
   coachMarks: genCoachMarks,
   tutorIntro: genTutorIntro,
+  practiceHistory: genPracticeHistory,
+  goalSteps: genGoalSteps,
 };
 
 /** A blob a store might have on disk, plus the occasional absence and the occasional lie. */
@@ -341,7 +394,8 @@ function blobFor(namespace: string, seed: number): unknown {
 
 // ──────────────────────────────────────────────────────────────────── tests
 
-describe('the per-domain conflict policy — twenty namespaces, three classes, eight exclusions', () => {
+// Stage 4 (2026-09-25): twenty-three, with goalSteps synced.
+describe('the per-domain conflict policy — twenty-three namespaces, three classes, nine exclusions', () => {
   test('every synced namespace has an explicit merge policy and every excluded one an explicit reason', () => {
     const suffixes = userKeySuffixes().filter((suffix) => suffix !== SYNC_STATE_SUFFIX);
     assert.ok(suffixes.length > 0, 'the scan read no suffixes out of scope.ts, so it is checking nothing');
@@ -373,7 +427,7 @@ describe('the per-domain conflict policy — twenty namespaces, three classes, e
     // because a merged consent is a withdrawal that can come back on its own.
     assert.deepEqual(
       [...excluded].sort(),
-      ['analytics', 'conversationPacks', 'friends', 'journal', 'moments', 'packMarks', 'reminder', 'suggestions'],
+      ['analytics', 'conversationPacks', 'friends', 'journal', 'moments', 'packMarks', 'practiceSession', 'reminder', 'suggestions'],
     );
     for (const exclusion of SYNC_EXCLUSIONS) {
       assert.ok(exclusion.reason.trim().length > 40, `${exclusion.namespace} has no real reason for being excluded`);
@@ -679,6 +733,34 @@ describe('the per-domain conflict policy — twenty namespaces, three classes, e
     );
   });
 
+  test('activity: colliding copies keep the measured active total, commutative, associative, idempotent (Phase 1B)', () => {
+    // Every copy is the same sitting (at, kind, xp), so every merge is a pick.
+    const variant = (pick: Chooser): Record<string, unknown> => {
+      const row: Record<string, unknown> = { at: BASE, kind: 'drill', xp: 5 };
+      if (pick.bool()) row.durationMs = pick.int(4) * 1_000;
+      if (pick.bool()) row.activeMs = pick.int(4) * 1_000;
+      return row;
+    };
+    const blob = (pick: Chooser) => ({ version: 2, entries: [variant(pick)] });
+    const rows = (value: unknown) => (value as { entries: Record<string, unknown>[] }).entries;
+    for (let seed = 1; seed <= 200; seed += 1) {
+      const pick = chooser(seed);
+      const a = blob(pick);
+      const b = blob(pick);
+      const c = blob(pick);
+      const ab = merge('activity', a, b);
+      assert.ok(sameData(ab, merge('activity', b, a)), `seed ${seed}: depends on which device asked`);
+      assert.ok(sameData(merge('activity', ab, ab), ab), `seed ${seed}: not idempotent`);
+      assert.ok(
+        sameData(merge('activity', ab, c), merge('activity', a, merge('activity', b, c))),
+        `seed ${seed}: grouping changed the answer`,
+      );
+      assert.equal(rows(ab).length, 1, `seed ${seed}: one sitting became two rows`);
+      const anyActive = [a, b].some((x) => x.entries[0]!.activeMs !== undefined);
+      assert.equal(rows(ab)[0]!.activeMs !== undefined, anyActive, `seed ${seed}: a measured active total was erased`);
+    }
+  });
+
   test('a namespace absent on both sides never creates a row', () => {
     for (const { namespace } of SYNC_POLICIES) {
       const result = policy.merge({ namespace, local: null, remote: null });
@@ -737,6 +819,24 @@ describe('the per-domain conflict policy — twenty namespaces, three classes, e
     for (const forbidden of ['MASTERY_USES', 'applyGrade', 'intervalDays', 'evictOverflowPhrases']) {
       assert.ok(!source.includes(forbidden), `policy.ts reaches for ${forbidden} instead of delegating the judgement`);
     }
+  });
+
+  test('goal steps are merged by goals/model.ts, at the version it writes, never restated here — Stage 4', () => {
+    // Imported rather than copied, like practiceHistory, because that file is
+    // pure and shares its validator with the store.
+    const row = SYNC_POLICIES.find((entry) => entry.namespace === 'goalSteps');
+    assert.ok(row, 'goalSteps has no sync policy, so the store adopts merges nothing makes');
+    assert.equal(row.merges, 'set-union');
+    assert.equal(row.writes, GOAL_STEPS_VERSION);
+    assert.match(row.rule, /nothing attributed by time/, 'the rule no longer says nothing is attributed by time');
+    for (let seed = 1; seed <= 20; seed += 1) {
+      const a = blobFor('goalSteps', seed * 3 + 1);
+      const b = blobFor('goalSteps', seed * 5 + 2);
+      if (a === null && b === null) continue;
+      assert.ok(sameData(merge('goalSteps', a, b), mergeGoalSteps(a, b)), `seed ${seed}: the policy is not goals/model.ts's merge`);
+    }
+    const source = readFileSync(join(MOBILE, 'src/sync/policy.ts'), 'utf8');
+    assert.match(source, /import \{[^}]*GOAL_STEPS_VERSION[^}]*\} from '\.\.\/goals\/model\.ts'/, 'the version is copied rather than imported');
   });
 
   test('a merge that throws costs one namespace one pass, never the cycle', () => {

@@ -31,7 +31,7 @@ import {
   type SessionSummary,
 } from '@luvani/core';
 import type { PersistAck } from '../storage/ack.ts';
-import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { onUserScopeReset, scopeGeneration, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
 /** Resolved per call: the active account can change between calls. */
@@ -287,6 +287,139 @@ export function gradeCards(grades: readonly CardGrade[]): Promise<ReviewCard[]> 
     }
     await saveDeck(key, updated, 'local');
     return updated;
+  });
+}
+
+// ─────────────────────────────────────── acknowledged practice grades (compare-and-set)
+
+/**
+ * One practice grade, frozen with the card it was decided against.
+ *
+ * `before` and `after` are fingerprints of the card's schedule (reps, lapses,
+ * due, interval, ease) read off the DISK, never the optimistic cache: a cache
+ * that holds a grade whose write failed is not a state anyone can resume from.
+ * `after` is what `applyGrade` produces from `before` at the plan's fixed
+ * instant, so a replay can tell "not yet applied" from "already applied" from
+ * "moved by somebody else" without any receipt riding on the card itself.
+ * `before: null` means the deck had no such card when the plan was made.
+ */
+export interface PlannedPracticeGrade {
+  id: string;
+  grade: ReviewGrade;
+  transfer?: true;
+  before: string | null;
+  after: string | null;
+}
+
+export interface PracticeGradeReport {
+  ack: PersistAck;
+  /** Applied by this call. */
+  applied: string[];
+  /** Found already in the planned `after` state, so applied by an earlier try. */
+  alreadyApplied: string[];
+  /** Neither before nor after: the card moved for another reason, or is gone. Never forced. */
+  skipped: string[];
+}
+
+function scheduleFingerprint(card: ReviewCard): string {
+  return `${card.reps}|${card.lapses}|${card.due}|${card.intervalDays}|${card.ease}`;
+}
+
+/** The deck exactly as the disk holds it, or null when the disk cannot be read. */
+async function durableDeck(key: string): Promise<ReviewCard[] | null> {
+  let raw: string | null;
+  try {
+    raw = await AsyncStorage.getItem(key);
+  } catch {
+    return null;
+  }
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(isCard) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Freeze a practice sitting's grades against the durable deck at a fixed
+ * instant. Null when the deck cannot be read, in which case nothing may be
+ * planned. Pure with respect to the deck: nothing is written.
+ */
+export function planPracticeGrades(grades: readonly CardGrade[], at: number): Promise<PlannedPracticeGrade[] | null> {
+  return serialized(async (key) => {
+    const deck = await durableDeck(key);
+    if (deck === null) return null;
+    return grades.map(({ id, grade, transfer }) => {
+      const card = deck.find((c) => c.id === id);
+      const context: GradeContext = transfer === true ? { transfer: true } : {};
+      return {
+        id,
+        grade,
+        ...(transfer === true ? { transfer: true as const } : {}),
+        before: card ? scheduleFingerprint(card) : null,
+        after: card ? scheduleFingerprint(applyGrade(card, grade, at, context)) : null,
+      };
+    });
+  });
+}
+
+/**
+ * Apply a frozen practice plan, at most once per card, and say whether it landed.
+ *
+ * A card still in its `before` state is graded at the plan's own instant, so the
+ * result is exactly the planned `after`. A card already in `after` is counted as
+ * applied and left alone. Anything else is skipped and reported: a replay never
+ * grades a card twice, and never grades one that moved for another reason.
+ *
+ * The write is acknowledged, bound to the account at enqueue, and refused if the
+ * account changed or its data was reset in between. Ordinary `gradeCards` is
+ * untouched by this and still unacknowledged.
+ */
+export function applyPracticeGrades(plan: readonly PlannedPracticeGrade[], at: number): Promise<PracticeGradeReport> {
+  const generation = scopeGeneration();
+  return serialized(async (key) => {
+    const report: PracticeGradeReport = { ack: 'durable', applied: [], alreadyApplied: [], skipped: [] };
+    const deck = await durableDeck(key);
+    if (deck === null) return { ...report, ack: 'failed' };
+    const graded = new Map<string, ReviewCard>();
+    const next = deck.map((card) => {
+      const planned = plan.find((p) => p.id === card.id);
+      if (!planned || graded.has(card.id)) return card;
+      const print = scheduleFingerprint(card);
+      if (planned.before !== null && print === planned.before) {
+        const updated = applyGrade(card, planned.grade, at, planned.transfer === true ? { transfer: true } : {});
+        graded.set(card.id, updated);
+        return updated;
+      }
+      return card;
+    });
+    for (const planned of plan) {
+      if (graded.has(planned.id)) report.applied.push(planned.id);
+      else {
+        const card = deck.find((c) => c.id === planned.id);
+        if (card && planned.after !== null && scheduleFingerprint(card) === planned.after) report.alreadyApplied.push(planned.id);
+        else report.skipped.push(planned.id);
+      }
+    }
+    if (graded.size === 0) return report;
+    if (scopeGeneration() !== generation) return { ...report, ack: 'failed', applied: [], skipped: [...report.skipped, ...report.applied] };
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      // The cache is deliberately NOT given these grades. A cached grade the
+      // disk never took would be persisted by the next ordinary write, outside
+      // this plan, and the replay could no longer tell applied from skipped.
+      return { ack: 'failed', applied: [], alreadyApplied: report.alreadyApplied, skipped: [...report.skipped, ...report.applied] };
+    }
+    // Landed: the cache keeps serving what it held with exactly these cards
+    // replaced, so an ordinary grade made this launch is not rolled back on screen.
+    const cached = caches.get(key);
+    const held = cached ? await cached : deck;
+    caches.set(key, Promise.resolve(held.map((card) => graded.get(card.id) ?? card)));
+    if (scopeGeneration() === generation) markDirty('review');
+    return report;
   });
 }
 

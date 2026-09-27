@@ -49,6 +49,7 @@ import {
   type ReviewTurn,
 } from './review/cardView.ts';
 import { recordActivity } from './progress/activity.ts';
+import { useActiveClock } from './progress/useActiveClock.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 
 /** The speaker disc on the card. Wider than a hit target because it is the one control on it. */
@@ -78,6 +79,10 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   // hook to read one from.
   const recalled = useRef(0);
   const banked = useRef(false);
+  // Active learning time for Practice time: only the gaps between the
+  // learner's own actions (typing, an attempt, a flip, hearing, a grade) that
+  // are short enough to be one stretch of work. Opening the deck adds nothing.
+  const clock = useActiveClock('review');
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +113,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
         const endedAt = Date.now();
         void recordActivity('review', reviewXp({ recalled: recalled.current }), endedAt, {
           durationMs: endedAt - dealtAt.current,
+          activeMs: clock.read(),
         });
       }
     };
@@ -127,6 +133,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   const handleGrade = useCallback(
     (grade: ReviewGrade) => {
       if (!card || !view) return;
+      clock.touch();
       tutorVoice.stop();
       // Persist in the background; the sitting itself never waits on a disk.
       // The context is what the view knows and nothing more: an attempt that
@@ -139,7 +146,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       setTurn(CARD_START);
       setIndex((i) => i + 1);
     },
-    [card, view],
+    [card, view, clock],
   );
 
   if (queue === null) {
@@ -227,6 +234,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
         <Pressable
           onPress={(e) => {
             e.stopPropagation();
+            clock.touch();
             tutorVoice.speak(hear);
           }}
           accessibilityRole="button"
@@ -241,6 +249,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
   const typedReady = typedAttemptReady(turn.typed);
   const attempt = (kind: 'typed' | 'said') => {
+    clock.touch();
     setTurn((t) => ({ ...t, attempt: kind }));
   };
 
@@ -275,7 +284,10 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
               microphone this screen is never going to grow. */}
           <TextInput
             value={turn.typed}
-            onChangeText={(typed) => setTurn((t) => ({ ...t, typed }))}
+            onChangeText={(typed) => {
+              clock.touch();
+              setTurn((t) => ({ ...t, typed }));
+            }}
             autoCapitalize="none"
             autoCorrect={false}
             spellCheck={false}
@@ -343,7 +355,10 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
       {view.flippable ? (
         <Pressable
-          onPress={() => setTurn((t) => ({ ...t, flipped: !t.flipped }))}
+          onPress={() => {
+            clock.touch();
+            setTurn((t) => ({ ...t, flipped: !t.flipped }));
+          }}
           accessibilityRole="button"
           accessibilityLabel={view.revealed ? 'Show the front of the card' : 'Turn the card over'}
         >

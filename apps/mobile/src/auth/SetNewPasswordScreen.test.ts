@@ -101,3 +101,14 @@ describe('the reset screen, and which line owns which mistake — F157', () => {
     assert.match(screen, /\{formMessage != null &&/, 'the screen never renders the failure it stores');
   });
 });
+
+describe('the reset screen has a way out that grants nothing — whole-app phase 1', () => {
+  test('cancel signs the recovery session out, and never skips the password or clears recovery by itself', () => {
+    const screen = read('SetNewPasswordScreen.tsx');
+    assert.match(screen, /label=\{leaving \? 'Signing out…' : 'Cancel and sign out'\}/);
+    const cancel = screen.slice(screen.indexOf('const cancel = async'), screen.indexOf('const submit = async'));
+    assert.ok(cancel.length > 0, 'the cancel handler moved; this test is stale');
+    assert.match(cancel, /await adapter\.signOut\(\);/, 'cancel no longer ends the recovery session');
+    assert.doesNotMatch(cancel, /onDone\(\)|clearRecovery/, 'cancel would drop the learner into the app without a new password');
+  });
+});

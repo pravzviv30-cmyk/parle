@@ -27,6 +27,7 @@ import { guiltIn } from '../copy/guilt.ts';
 import { tutorDoors } from '../tutor/gate.ts';
 import {
   LESS_HELP,
+  CHOOSER_ACCESS,
   CHOOSER_OTHER,
   CHOOSER_START_HERE,
   LESSON_DOOR,
@@ -34,6 +35,7 @@ import {
   PROMISE,
   TALK_FREELY,
   chooserView,
+  hasPractisedBefore,
   hasSpokenBefore,
   headMissionId,
   missionReplay,
@@ -130,6 +132,13 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     assert.equal(hasSpokenBefore([{ kind: 'convo' }]), true);
     assert.equal(hasSpokenBefore([{ kind: 'lesson' }]), true, 'the guided lesson is speaking French too');
 
+    // Whole-app Stage 3A: practice is a separate fact, so Home can tell "never
+    // done anything" from "practised, but no conversation yet".
+    assert.equal(hasPractisedBefore([]), false);
+    assert.equal(hasPractisedBefore([{ kind: 'drill' }]), true, 'typed practice is practice');
+    assert.equal(hasPractisedBefore([{ kind: 'review' }]), true, 'a recall review is practice');
+    assert.equal(hasPractisedBefore([{ kind: 'convo' }]), false, 'a conversation is not what this asks about');
+
     assert.ok(!/—/.test(PROMISE), 'the promise carries an em dash');
     assert.match(stripComments(read('./MissionsScreen.tsx')), /view\.promise/, 'the screen never draws the promise');
   });
@@ -138,6 +147,11 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     assert.equal(firstEver().microphoneNotice, MICROPHONE_NOTICE);
     assert.match(MICROPHONE_NOTICE, /microphone/i, 'the notice never names the permission it is preparing for');
     assert.match(MICROPHONE_NOTICE, /tap the circle/i, 'the notice does not say when the microphone opens');
+    // Stage 3 browser proof (2026-09-25): Speak's own circle is a state
+    // indicator now and cannot be tapped, and this line sits under it. The
+    // circle that opens the microphone is the one inside the conversation, so
+    // the promise names where it is.
+    assert.match(MICROPHONE_NOTICE, /conversation/i, 'the notice points at a circle that cannot be tapped');
     assert.match(MICROPHONE_NOTICE, /type/i, 'the notice leaves no quiet way through');
     assert.ok(!/—/.test(MICROPHONE_NOTICE), 'the notice carries an em dash');
     assert.equal(
@@ -150,6 +164,22 @@ describe('the first-win chooser — what a learner who has never spoken is shown
       /view\.microphoneNotice/,
       'the decision exists but the chooser never puts it on glass',
     );
+  });
+
+  // Whole-app Stage 3A (2026-09-25): access before effort. A situation opens
+  // the metered tutor whichever mode is chosen, so the chooser says so before
+  // the learner picks one, every time, and names no price or plan.
+  test('the chooser says a situation uses live minutes before the learner picks one', () => {
+    for (const spokenBefore of [false, true]) {
+      assert.equal(chooserView({ progress: missionStates([], [], NOW), spokenBefore }).access, CHOOSER_ACCESS);
+    }
+    assert.match(CHOOSER_ACCESS, /live minutes/, 'the access line hides that a situation is metered');
+    assert.match(CHOOSER_ACCESS, /typed/, 'the access line implies typing is free');
+    assert.doesNotMatch(CHOOSER_ACCESS, /—|\d|£|\$|€|\bfree\b/i, 'the access line carries a dash, a number, a price or a free claim');
+    assert.equal(guiltIn(CHOOSER_ACCESS), undefined);
+    const screen = stripComments(read('./MissionsScreen.tsx'));
+    assert.match(screen, /\{view\.access\}/, 'the chooser never draws the access line');
+    assert.ok(screen.indexOf('{view.access}') < screen.indexOf('{first && ('), 'the access line is only said after a situation is already on offer');
   });
 
   test('talk freely is still a door, and not the first one for a beginner', () => {

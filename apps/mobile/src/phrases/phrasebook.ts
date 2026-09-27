@@ -51,17 +51,55 @@ export interface PhraseGroup {
   phrases: Phrase[];
 }
 
+/**
+ * A phrase in the deck the learner has not yet recalled. No `hold`: a shelf is
+ * a claim about how well a phrase is held, and nothing is held yet.
+ */
+export interface SavedPhrase {
+  id: string;
+  front: string;
+  back: string;
+}
+
 export interface Phrasebook {
+  /** Recalled phrases only, grouped by source. Saved-only phrases are never here. */
   groups: PhraseGroup[];
-  /** How many phrases in total. A count, never a ratio. */
+  /** How many recalled phrases in total. A count, never a ratio. Saved-only phrases are not in it. */
   count: number;
   /** How many conversations are represented. */
   topics: number;
+  /**
+   * Phrases in the deck that have never been recalled, newest saved first.
+   * Kept apart from `groups` and `count` so a saved phrase is visible without
+   * being counted as one the learner can say.
+   */
+  saved: SavedPhrase[];
 }
 
-/** Where anything the learner met in a lesson rather than a conversation goes. */
+/**
+ * The saved-but-not-recalled list's heading and its one line. Honest about
+ * what the list is: saved, not yet recalled, and how a phrase leaves it.
+ * "Recalled" rather than "practised", because a card can have been tried and
+ * missed (lapses without a success) and still be here.
+ */
+export const SAVED_TITLE = 'Saved, not recalled yet';
+export const SAVED_NOTE = 'Each one joins your phrases once you recall it.';
+
+/**
+ * Where a phrase goes when neither a conversation topic nor a saved
+ * conversation claims it. The id is kept for continuity; the title is neutral
+ * because the source is not known, and "lessons" was a claim, not a fact:
+ * saved-conversation phrases landed here with no topic and read as lessons.
+ */
 export const LESSONS_GROUP = 'lessons';
-const LESSONS_TITLE = 'From your lessons';
+export const OTHER_PHRASES_TITLE = 'Other phrases';
+
+/** The one thing the phrasebook needs to know about a saved conversation. */
+export interface PhraseSourcePack {
+  id: string;
+  title: { en: string };
+  keyPhrases: readonly { fr: string }[];
+}
 
 /**
  * Which shelf a phrase is on, asked of core rather than decided here.
@@ -95,6 +133,12 @@ export function buildPhrasebook(
   cards: readonly ReviewCard[],
   topics: readonly PracticeTopic[],
   now: number,
+  /**
+   * Saved conversations, a second known source. A phrase no topic claims but a
+   * saved conversation holds is grouped under that conversation's title,
+   * after the topics, rather than under a label that is not true.
+   */
+  packs: readonly PhraseSourcePack[] = [],
 ): Phrasebook {
   const said = cards.filter((c) => c.kind !== 'phoneme' && c.reps > 0);
 
@@ -106,6 +150,14 @@ export function buildPhrasebook(
     titles.set(topic.id, topic.title.en);
     for (const key of topic.phraseKeys) {
       if (!claimed.has(key)) claimed.set(key, topic.id);
+    }
+  }
+  const packGroup = (id: string) => `pack:${id}`;
+  for (const pack of packs) {
+    titles.set(packGroup(pack.id), pack.title.en);
+    for (const phrase of pack.keyPhrases) {
+      const key = phraseKeyOf(phrase.fr);
+      if (!claimed.has(key)) claimed.set(key, packGroup(pack.id));
     }
   }
 
@@ -132,19 +184,40 @@ export function buildPhrasebook(
       groups.push({ id: topic.id, title: titles.get(topic.id) ?? topic.title.en, phrases });
     }
   }
+  for (const pack of packs) {
+    const id = packGroup(pack.id);
+    const phrases = byGroup.get(id);
+    if (phrases && phrases.length > 0 && !groups.some((g) => g.id === id)) {
+      groups.push({ id, title: titles.get(id) ?? pack.title.en, phrases });
+    }
+  }
   const lessons = byGroup.get(LESSONS_GROUP);
   if (lessons && lessons.length > 0) {
-    groups.push({ id: LESSONS_GROUP, title: LESSONS_TITLE, phrases: lessons });
+    groups.push({ id: LESSONS_GROUP, title: OTHER_PHRASES_TITLE, phrases: lessons });
   }
+
+  // Saved from a conversation (or anywhere) and never recalled. Shown apart,
+  // newest first, and never folded into the groups or the count above.
+  const saved: SavedPhrase[] = cards
+    .filter((c) => c.kind !== 'phoneme' && c.reps === 0)
+    .slice()
+    .sort((a, b) => b.addedAt - a.addedAt)
+    .map((c) => ({ id: c.id, front: c.front, back: c.back }));
 
   return {
     groups,
     count: said.length,
     topics: groups.filter((g) => g.id !== LESSONS_GROUP).length,
+    saved,
   };
 }
 
 /** Home shows the card only when there is something behind it. */
 export function hasPhrases(book: Phrasebook): boolean {
   return book.count > 0;
+}
+
+/** Whether there is a saved-but-not-recalled phrase to show apart. */
+export function hasSaved(book: Phrasebook): boolean {
+  return book.saved.length > 0;
 }

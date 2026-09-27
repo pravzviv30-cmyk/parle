@@ -84,3 +84,24 @@ describe('billing endpoint wiring — F248', () => {
     assert.doesNotMatch(route, /body\.userId/);
   });
 });
+
+describe('revisit source provenance on /conversation-packs/complete', () => {
+  const start = server.indexOf("url.pathname === '/conversation-packs/complete'");
+  const route = server.slice(start, server.indexOf("url.pathname === '/conversation-packs'", start + 1));
+
+  test('the claimed link is stripped before validation and re-attached only through the owner lookup', () => {
+    assert.ok(start > 0, 'the pack completion route does not exist');
+    const strip = route.indexOf('withoutRevisionSource(body.pack)');
+    const validate = route.indexOf('validConversationPackFor(incoming, userId, sessionId)');
+    const verify = route.indexOf('withVerifiedRevisionSource(incoming, claimedSource');
+    const lookup = route.indexOf('getConversationPack(supabaseUrl, serviceRoleKey, userId, sourceId)');
+    assert.ok(strip > 0 && validate > strip && verify > validate && lookup > verify,
+      'the revisit link must be taken off, the pack validated, then the source owner-checked');
+  });
+
+  test('both persistence paths store the verified pack, never the raw body', () => {
+    assert.match(route, /practiceJobs\(supabaseUrl, serviceRoleKey\)\.receive\(pack, /);
+    assert.match(route, /saveConversationPack\(supabaseUrl, serviceRoleKey, pack\)/);
+    assert.doesNotMatch(route, /receive\(body\.pack|saveConversationPack\([^)]*body\.pack/);
+  });
+});

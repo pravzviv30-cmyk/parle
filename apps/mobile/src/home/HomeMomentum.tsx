@@ -26,10 +26,15 @@ export function HomeMomentum({ momentum, onPhrases, onReview, onTarget }: {
         <Text style={s.value}>{mastery.percentLabel ?? 'After a few reviews'}</Text>
         {mastery.line && <Text style={s.note}>{mastery.line}</Text>}
       </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Speaking time today. ${goal.amount ?? 'No timed speaking yet'}. Adjust optional target`} onPress={onTarget} style={({ pressed }) => [s.tile, pressed && s.pressed]}>
-        <Text style={s.label}>Speaking time</Text>
-        <Text style={s.value}>{goal.minutes > 0 ? goal.amount : 'Ready when you are'}</Text>
+      {/* Active practice time (Phase 1B): measured learning time, typed or spoken, with idle
+          and away gaps left out. Never the metered live-minutes balance. `measured` is null
+          only when nothing active was recorded today; a timed sitting under a minute reads
+          "Under a minute today", never "nothing timed". */}
+      <Pressable accessibilityRole="button" accessibilityLabel={`Practice time today. ${goal.measured ?? 'No active practice timed yet'}.${goal.untimedNote === null ? '' : ` ${goal.untimedNote}.`} Adjust optional target`} onPress={onTarget} style={({ pressed }) => [s.tile, pressed && s.pressed]}>
+        <Text style={s.label}>Practice time</Text>
+        <Text style={s.value}>{goal.measured ?? 'Ready when you are'}</Text>
         <Text style={s.note}>{goal.target === null ? 'Optional target' : `${goal.target} min optional target`}</Text>
+        {goal.untimedNote !== null && <Text style={s.note}>{goal.untimedNote}</Text>}
       </Pressable>
     </View>
   </View>;

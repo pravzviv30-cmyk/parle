@@ -8,6 +8,7 @@ import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { useSocial } from './useSocial.ts';
 import { space, paper, type } from '../theme.ts';
 import type { SocialSettings } from './socialModel.ts';
+import { FRIENDS_START } from './friendsView.ts';
 
 const SETTINGS: { key: keyof SocialSettings; title: string; sub: string }[] = [
   { key: 'showScore', title: 'Show my weekly score', sub: 'Only accepted friends can see your learning points.' },
@@ -34,6 +35,6 @@ export function SocialSettingsScreen() {
         {s.blocked.map(p => <Card key={p.id}><Text style={[type.body, { color: paper.ink }]}>{p.name}</Text><GhostButton label="Unblock" onPress={() => void act('unblock', { id: p.id })} /></Card>)}
       </View>
       <Card style={{ marginTop: space(5) }}><Text style={[type.body, { color: paper.ink }]}>Leave Friends</Text><Text style={[type.small, { color: paper.inkSoft }]}>Remove your connections, end your shared challenges and hide your username. Your French and personal progress stay with you.</Text>{confirmLeave ? <><GhostButton label="Confirm: remove my connections" onPress={() => void act('settings', { enabled: false })} /><GhostButton label="Stay in Friends" onPress={() => setConfirmLeave(false)} /></> : <GhostButton label="Leave Friends" onPress={() => setConfirmLeave(true)} />}</Card>
-    </> : s && <GhostButton label="Set up Friends" onPress={() => nav.navigate('AddFriends')} />}
+    </> : s && <GhostButton label={FRIENDS_START} onPress={() => nav.navigate('AddFriends')} />}
   </ScrollScreen>;
 }

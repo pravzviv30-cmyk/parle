@@ -705,16 +705,6 @@ export function SettingsScreen({
         <SettingsRow first label={EMAIL_ROW} value={user?.email ?? EMAIL_UNKNOWN} />
         {user?.provider === 'mock' && <SettingsRow label={DEMO_ROW} value={DEMO_VALUE} />}
         <SettingsRow label={SIGN_OUT_ROW} onPress={onSignOut} />
-        {/* Opening is an exit too: the sheet is entered blank, never holding a
-            password or a reason from a visit that ended some other way. */}
-        <SettingsRow
-          label={DELETE_ROW}
-          destructive
-          onPress={() => {
-            forgetDeleteDraft();
-            setSheet('delete');
-          }}
-        />
       </Card>
 
       {/* The plan, which moved here from Profile with revamp A (F576). It sits
@@ -878,6 +868,26 @@ export function SettingsScreen({
             {versionLine}
           </Text>
         )}
+      </View>
+
+      {/* Delete account, apart from every routine row (Stage 3). It used to sit
+          in the Account card between Sign out and nothing, one slip away from
+          the row above it. Now it is a card of its own at the foot of the
+          screen, with room above it, and it opens the same confirmation. */}
+      <View style={{ marginTop: space(2), paddingBottom: space(8) }}>
+        <Card>
+          {/* Opening is an exit too: the sheet is entered blank, never holding a
+              password or a reason from a visit that ended some other way. */}
+          <SettingsRow
+            first
+            label={DELETE_ROW}
+            destructive
+            onPress={() => {
+              forgetDeleteDraft();
+              setSheet('delete');
+            }}
+          />
+        </Card>
       </View>
     </ScrollScreen>
   );

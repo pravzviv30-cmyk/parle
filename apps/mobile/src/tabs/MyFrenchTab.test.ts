@@ -231,14 +231,91 @@ describe('My French is the places, the shelf and the way back — F575', () => {
     }
   });
 
-  test('the way back to a conversation appears only once there is one to go back to', () => {
-    const drawn = SCREEN.indexOf('label={CONVERSATIONS_ROW}');
-    assert.notEqual(drawn, -1, 'there is no conversations row to gate');
-    const gate = SCREEN.lastIndexOf('model.showConversations &&', drawn);
+  test('recent conversations lead the page, each opening its own conversation, from recorded evidence only', () => {
+    // Prominent: above the situations, straight under the header and the one
+    // progress sentence. Headed "Your conversations" since whole-app phase 2,
+    // because the group and the door at its foot are one thing now.
+    assert.ok(SCREEN.indexOf('<Label>{CONVERSATIONS_ROW}</Label>') > 0, 'there is no conversations block');
+    assert.ok(SCREEN.indexOf('<Label>{CONVERSATIONS_ROW}</Label>') < SCREEN.indexOf('<SituationsCard'), 'the conversations sit below the situations');
+    // Each row names itself whole, title, French preview and outcome, from
+    // the model rather than a template on the screen.
+    assert.match(
+      FLAT,
+      /label=\{row\.pack\.title\.en\} line=\{row\.preview\.join\(' · '\)\} note=\{row\.line\} accessibilityLabel=\{row\.accessibilityLabel\}/,
+      'a recent row reads a partial label to a screen reader, or builds it on the screen',
+    );
+    // The places carry the page's block gap, so their heading never touches the
+    // last recent card (seen in the browser at 390 wide before this held).
+    assert.match(FLAT, /<View style=\{st\.block\}> <SituationsCard/, 'the places sit flush against the recent conversations');
+    // Each row opens the conversation it names, not the whole library.
+    assert.match(FLAT, /nav\.navigate\('Conversations', \{ packId: row\.pack\.id \}\)/, 'a recent row opens something other than its own conversation');
+    // Every line comes from the model, and the model reads history, not guesses.
+    assert.match(FLAT, /const recent = recentConversations\(\{ packs, events: history \}\)/);
+    // Fable review (whole-app phase 2): the sentence reads every ready
+    // conversation, not only the three rows drawn.
+    assert.match(FLAT, /const progress = progressStatement\(allConversations\(\{ packs, events: history \}\)\)/);
+    assert.match(FLAT, /\{progress !== null && /, 'the progress sentence is drawn with nothing behind it');
+    // The recorded history and the old marks as their reader-only view, and
+    // nothing else: no events are made up on this screen.
+    assert.match(FLAT, /setHistory\(sameAccount\(\) \? \[\.\.\.events, \.\.\.legacyMarkItems\(marks\)\] : \[\]\)/, 'My French reads something other than the recorded history, or draws it for a changed account');
+    // Bound to the account before the reads, checked after every one: a switch
+    // or deletion mid-load never draws the previous account's packs or history.
+    assert.match(FLAT, /const scope = scopeGeneration\(\); const sameAccount = \(\): boolean => !cancelled && scopeGeneration\(\) === scope;/);
+    assert.match(FLAT, /loadConversationPacks\(\)\.then\(\(stored\) => \{ if \(sameAccount\(\)\) setPacks\(stored\);/, 'the cached packs are drawn for a changed account');
+    assert.match(FLAT, /if \(sameAccount\(\) && result\.ok\) setPacks\(result\.packs\)/, 'refreshed packs are drawn for a changed account');
+    assert.match(FLAT, /Promise\.all\(\[loadPracticeHistory\(\), loadPackMarks\(\)\]\)/);
+    assert.match(FLAT, /\.catch\(\(\) => \{ if \(!cancelled\) setHistory\(\[\]\); \}\)/, 'an unreadable history leaves stale or invented outcomes on screen');
+    assert.ok(!/kind: 'session-completed'|kind: 'recalled'/.test(SCREEN), 'the screen writes an event shape of its own');
+    for (const claim of ['Used while speaking', 'mastered', 'fluent', 'CEFR']) {
+      assert.ok(!SCREEN.includes(claim), `My French claims ${claim}`);
+    }
+  });
+
+  test('the conversations group and its one See all appear only once there is a conversation to go back to', () => {
+    // One heading, up to three recent rows, and one door into the whole
+    // library. The group is gated as a whole, so a learner with no
+    // conversation meets neither an empty heading nor an empty library.
+    const heading = SCREEN.indexOf('<Label>{CONVERSATIONS_ROW}</Label>');
+    assert.notEqual(heading, -1, 'there is no conversations heading to gate');
+    const gate = SCREEN.lastIndexOf('model.showConversations &&', heading);
     assert.notEqual(gate, -1, 'a learner with no conversations is offered an empty library');
-    assert.ok(drawn - gate < 200, 'the gate is somewhere else on the screen, not on the row it is meant to hold back');
-    assert.match(FLAT, /line=\{CONVERSATIONS_SUB\}/, 'the row does not say what is behind it');
-    assert.match(FLAT, /nav\.navigate\('Conversations'\)/, 'the row does not open the conversations route');
+    assert.ok(heading - gate < 120, 'the gate is somewhere else on the screen, not on the group it is meant to hold back');
+
+    // Exactly one See all, after the rows, into the library with no pack named.
+    assert.equal((SCREEN.match(/label=\{RECENT_ALL\}/g) ?? []).length, 1, 'the library has more than one door, or none');
+    assert.ok(SCREEN.indexOf('recent.map(') < SCREEN.indexOf('label={RECENT_ALL}'), 'See all sits above the rows it gathers');
+    assert.match(FLAT, /label=\{RECENT_ALL\} line=\{CONVERSATIONS_SUB\}/, 'See all does not say what is behind it');
+    // Browser proof: with the saved-conversation document glyph, See all read
+    // as one more saved conversation. The library door carries the chat mark.
+    assert.match(FLAT, /glyph=\{<ChatGlyph color=\{accent\.primary\} \/>\} label=\{RECENT_ALL\}/, 'See all looks like one more saved conversation');
+    assert.match(FLAT, /accessibilityLabel=\{RECENT_ALL\} onPress=\{\(\) => nav\.navigate\('Conversations'\)\}/, 'See all opens something other than the whole library');
+    // The row list is capped by the model, never sliced on the screen.
+    assert.ok(!/recent\.slice\(/.test(SCREEN), 'the screen caps the recent rows itself');
+  });
+
+  test('the collection sits in the first useful scroll, above every situation — whole-app phase 2', () => {
+    // The phrasebook and the daily collection used to be reached only after
+    // every mission in the catalogue. They are the learner's own material, so
+    // they come straight after the conversations it was made from.
+    assert.ok(at('<Label>{COLLECTION_LABEL}</Label>') < at('<SituationsCard'), 'the collection is below the situations again');
+    assert.ok(at('<Label>{COLLECTION_LABEL}</Label>') < at('label={SHELF_LABEL}'), 'the shelf is outside its collection');
+    assert.ok(at('label={SHELF_LABEL}') < at('label={DAILY_LABEL}'), 'the daily collection comes before the learner\'s own phrases');
+    assert.ok(at('label={DAILY_LABEL}') < at('<SituationsCard'), 'the daily collection is below the situations');
+    // Its words are the copy module's, like every other door here.
+    assert.match(FLAT, /label=\{DAILY_LABEL\} line=\{DAILY_LINE\} accessibilityLabel=\{DAILY_OPEN\} onPress=\{\(\) => nav\.navigate\('DailyLibrary'\)\}/, 'the daily collection spells its own words or opens somewhere else');
+    assert.ok(!SCREEN.includes('"Daily collection"') && !SCREEN.includes('"Open daily collection"'), 'the daily collection is spelled on the screen again');
+  });
+
+  test('the portfolio suggests at most two next places, and the catalogue is one door away in Missions — whole-app phase 2', () => {
+    // The whole catalogue under "Next places" was the one list on this page a
+    // learner had to scroll past to reach their own phrases. The suggestion is
+    // decided in situations.ts; the card draws what it is given.
+    assert.match(ROWS_FLAT, /\{next\.length > 0 && \(/, 'the next group draws with nothing in it');
+    assert.match(ROWS_FLAT, /\{tryNext\(next\)\.map\(\(row\) =>/, 'the card draws every next place instead of the capped suggestion');
+    assert.ok(!/next\.slice\(/.test(ROWS), 'the card caps the list itself instead of asking situations.ts');
+    // Browse is a row like every other door, after the places, into Missions.
+    assert.ok(at('<SituationsCard') < at('label={BROWSE_LABEL}'), 'the way to every situation sits above the suggestions');
+    assert.match(FLAT, /label=\{BROWSE_LABEL\} line=\{BROWSE_LINE\} accessibilityLabel=\{BROWSE_OPEN\} onPress=\{\(\) => nav\.navigate\('Missions'\)\}/, 'Browse situations does not open the full catalogue');
   });
 
   test('a finished place refines its sounds, and a new one opens the scene, in the module’s words', () => {
@@ -274,12 +351,26 @@ describe('My French is the places, the shelf and the way back — F575', () => {
     assert.ok(drawn - gate < 260, 'the measured-evidence gate is not attached to the row it protects');
     assert.match(FLAT, /glyph=\{<WaveformGlyph color=\{accent\.primary\} \/>\}/, 'the sound door has no voice mark');
     assert.match(FLAT, /line=\{fingerprint\.line\}/, 'the sound door writes a claim instead of drawing the projection');
-    assert.match(FLAT, /accessibilityLabel=\{SOUND_FINGERPRINT_OPEN\}/, 'the sound door names nothing to a screen reader');
+    // Stage 4 (2026-09-25): the name comes from `soundDoorLabel`, which answers
+    // SOUND_FINGERPRINT_OPEN when there is no journey (journey.test.ts pins it).
+    assert.match(FLAT, /accessibilityLabel=\{soundDoorLabel\(journey\)\}/, 'the sound door names nothing to a screen reader');
+    // Stage 4 (2026-09-25): the same row opens the focused sound journey when
+    // there is one. With no journey the door is exactly what it was: the sound
+    // check for the situation the fingerprint shows.
     assert.match(
       FLAT,
-      /nav\.navigate\('SoundCheck', \{ missionId: fingerprint\.missionId \}\)/,
-      'the fingerprint does not reopen the situation whose evidence it shows',
+      /journey !== null \? nav\.navigate\('SoundJourney'\) : nav\.navigate\('SoundCheck', \{ missionId: fingerprint\.missionId \}\)/,
+      'the fingerprint does not reopen the situation whose evidence it shows, or the journey never opens',
     );
+  });
+
+  test('the sound row opens the journey only when journey.ts says there is one — Stage 4', () => {
+    assert.match(FLAT, /const journey = soundJourney\(checks, Date\.now\(\)\)/, 'the tab decides for itself when there is a journey');
+    assert.match(FLAT, /accessibilityLabel=\{soundDoorLabel\(journey\)\}/, 'the row names a place other than the one it opens');
+    assert.doesNotMatch(FLAT, /accessibilityLabel=\{SOUND_FINGERPRINT_OPEN\}/, 'the row always says it opens the check');
+    // The journey adds no row of its own: the fingerprint is the one door.
+    assert.equal((SCREEN.match(/SOUND_FINGERPRINT_LABEL\}/g) ?? []).length, 1);
+    assert.equal((SCREEN.match(/navigate\('SoundJourney'/g) ?? []).length, 1);
   });
 
   test('the header carries its own picture, and the picture never takes a tap', () => {
@@ -338,13 +429,18 @@ describe('My French is the places, the shelf and the way back — F575', () => {
     }
   });
 
-  test('the page runs places, shelf, saved, conversations, which is the order the mockup asks for', () => {
-    // Top to bottom: where your French works, the line you kept, what you put
-    // aside, and the way back. The record first and the doors after it.
-    assert.ok(at('<TabHeader') < at('<SituationsCard'), 'something sits above the header');
-    assert.ok(at('<SituationsCard') < at('label={SHELF_LABEL}'), 'the shelf sits above the places');
-    assert.ok(at('label={SHELF_LABEL}') < at('<Label>{SAVED_LABEL}'), 'the saved shelf sits above the phrase shelf');
-    assert.ok(at('<Label>{SAVED_LABEL}') < at('label={CONVERSATIONS_ROW}'), 'the way back sits above what the learner saved');
+  test('the page runs progress, conversations, collection, places, then every situation — whole-app phase 2', () => {
+    // Top to bottom: one sentence of evidence, the conversations it came from,
+    // the material the learner kept, where their French works and where to try
+    // next, and one door into the whole catalogue.
+    assert.ok(at('<TabHeader') < at('{progress !== null &&'), 'something sits above the header');
+    assert.ok(at('{progress !== null &&') < at('<Label>{CONVERSATIONS_ROW}</Label>'), 'the progress sentence sits under the rows it summarises');
+    assert.ok(at('<Label>{CONVERSATIONS_ROW}</Label>') < at('<Label>{COLLECTION_LABEL}</Label>'), 'the collection sits above the conversations');
+    assert.ok(at('<Label>{COLLECTION_LABEL}</Label>') < at('<Label>{SAVED_LABEL}'), 'the saved scenes sit above the learner\'s own phrases');
+    assert.ok(at('<Label>{SAVED_LABEL}') < at('<SituationsCard'), 'the places sit above what the learner saved');
+    assert.ok(at('<SituationsCard') < at('label={BROWSE_LABEL}'), 'the catalogue door sits above the places');
+    // The slogan is gone from routine visits: the purpose is one plain line.
+    assert.ok(!SCREEN.includes('Real conversations'), 'the slogan is spelled on the screen');
   });
 
   test('the tab imports nothing it no longer draws', () => {
@@ -379,7 +475,9 @@ describe('My French is the places, the shelf and the way back — F575', () => {
       assert.match(row, /accessibilityLabel=(?:\{|"[^"]+")/, `a row on My French names nothing to a screen reader: ${row.slice(0, 80)}`);
     }
     assert.match(ROWS_FLAT, /onPress=\{\(\) => onOpen\(row\.id, row\.action\.kind === 'refine'\)\}/, 'a situation row goes nowhere');
-    assert.ok(at('<SituationsCard') < at('label={SHELF_LABEL}'), 'the places do not open the page');
+    // Whole-app phase 2 moved the shelf above the places; every row still
+    // carries its own destination and its own full name.
+    assert.ok(at('label={SHELF_LABEL}') < at('<SituationsCard'), 'the places open the page again, above the learner\'s own phrases');
   });
 });
 
@@ -440,5 +538,70 @@ describe('My French speaks, and stops — F470', () => {
         assert.ok(!body.includes(listening), `${name} reaches for ${listening}; nothing on this tab records`);
       }
     }
+  });
+});
+
+/**
+ * Stage 4 (2026-09-25): the learner's goals, each a row card that opens the
+ * goal screen. Only when there is a goal; nothing at all otherwise. Row cards
+ * rather than buttons, because this page draws no Outline, Ghost or Pill.
+ */
+describe('the goal rows on My French — Stage 4', () => {
+  test('goal rows are drawn only when the learner has a goal, as row cards that open the goal screen', () => {
+    assert.match(FLAT, /const goals = goalRows\(profile\.learnerGoals, MISSIONS\);/, 'the rows are not the pure goal-row model over the profile\'s goals');
+    const drawn = SCREEN.indexOf('goals.map(');
+    assert.notEqual(drawn, -1, 'the goal rows are not drawn');
+    const gate = SCREEN.lastIndexOf('goals.length > 0 &&', drawn);
+    assert.notEqual(gate, -1, 'a learner with no goal is shown an empty goal block');
+    assert.ok(drawn - gate < 160, 'the gate is not on the block it holds back');
+    // Stage 4 review (2026-09-25): the door carries an opaque key, never the
+    // goal's words, because on the web a route's params are the address bar.
+    assert.match(
+      FLAT,
+      /<IconRowCard key=\{row\.goal\} glyph=\{<DocumentGlyph color=\{accent\.primary\} \/>\} label=\{GOALS_ROW_LABEL\} line=\{row\.goal\} note=\{row\.line\} accessibilityLabel=\{row\.spoken\} onPress=\{\(\) => nav\.navigate\('GoalStep', \{ key: goalRouteKey\(row\.goal\) \}\)\} \/>/,
+      'a goal row is not the row card with the goal, its next task and one door to the goal screen',
+    );
+    assert.ok(!/navigate\('GoalStep', \{ goal:/.test(FLAT), 'the goal\'s own words ride in the route again');
+    assert.ok(!/seedTopic[^\n]*row\.goal|row\.goal[^\n]*seedTopic/.test(SCREEN), 'a goal becomes a seed topic, which is a Max-only door');
+  });
+
+  test('the goals are their own group, under the words the goal editor uses — Stage 4 browser proof', () => {
+    // Without a heading of their own the goal cards read as part of "Your
+    // collection" (lead browser proof, 2026-09-25). The heading is the one
+    // the tutor-memory screen writes goals under, so it is one name, not two.
+    const block = SCREEN.slice(SCREEN.indexOf('goals.length > 0 &&'), SCREEN.indexOf('goals.map('));
+    assert.match(block, /<Label>\{GOALS_LABEL\}<\/Label>/, 'the goal cards have no heading of their own');
+    assert.match(FLAT, /import \{ GOALS_LABEL \} from '\.\.\/profile\/tutorMemory\.ts';/, 'the heading is spelled again instead of shared with the goal editor');
+  });
+
+  test('the goal rows sit after the learner\'s own material and directly above the places to try', () => {
+    assert.ok(at('fingerprint !== null &&') < at('goals.length > 0 &&'), 'the goals sit above the sound row');
+    assert.ok(at('goals.length > 0 &&') < at('<SituationsCard'), 'the goals sit below the places to try');
+    assert.ok(at('<Label>{SAVED_LABEL}') < at('goals.length > 0 &&'));
+  });
+});
+
+describe('loading, unreadable and empty are three facts — whole-app phase 1', () => {
+  test('My French shows Retry when its read fails, and never draws a failed read as an empty account', () => {
+    assert.match(FLAT, /useState<'loading' \| 'ready' \| 'unread'>\('loading'\)/);
+    assert.match(FLAT, /setStatus\(\(current\) => \(current === 'ready' \? 'ready' : 'unread'\)\)/, 'a failed read is silent or wipes a drawn page');
+    assert.match(FLAT, /status === 'unread' && \(/);
+    assert.match(FLAT, /label=\{MY_FRENCH_RETRY\} line=\{MY_FRENCH_UNREAD\}/);
+    assert.match(FLAT, /\[user, adapter, attempt\]/, 'Retry does not re-run the read');
+    assert.match(FLAT, /if \(!sameAccount\(\)\) return;/, 'the main read can draw the previous account');
+  });
+
+  test('a recent row keeps its French preview and its outcome as two separate lines', () => {
+    assert.match(FLAT, /line=\{row\.preview\.join\(' · '\)\}/);
+    assert.match(FLAT, /note=\{row\.line\}/);
+    assert.doesNotMatch(FLAT, /\.join\('\. '\)/, 'the preview and the outcome are glued into one sentence again');
+  });
+
+  test('Conversations shows loading, then its archive or a Retry, never an empty archive for a failed read', () => {
+    const screen = read('../conversationPacks/ConversationsScreen.tsx').replace(/\s+/g, ' ');
+    assert.match(screen, /archive === null && !unread && \(/);
+    assert.match(screen, /archive === null && unread && \(/);
+    assert.match(screen, /if \(sameAccount\(\)\) setUnread\(true\);/);
+    assert.match(screen, /\[user, adapter, attempt\]/);
   });
 });

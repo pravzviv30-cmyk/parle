@@ -8,7 +8,15 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import 'dotenv/config';
 
-import { PLANS, buildReport, secondsRemaining, revisionFromPack, type TutorRevision } from '@luvani/core';
+import {
+  PLANS,
+  buildReport,
+  secondsRemaining,
+  revisionFromPack,
+  withoutRevisionSource,
+  withVerifiedRevisionSource,
+  type TutorRevision,
+} from '@luvani/core';
 import { brainClientFromEnv, type LlmClient } from '@luvani/brain/llm';
 import { scoreUtterance } from '../../shared/speechace.ts';
 import {
@@ -549,7 +557,11 @@ const server = createServer(async (req, res) => {
       const body = await readJson(req);
       const userId = typeof body.userId === 'string' ? body.userId : null;
       const sessionId = typeof body.sessionId === 'string' ? body.sessionId : null;
-      if (!userId || !sessionId || !sessionIdPattern.test(sessionId) || !validConversationPackFor(body.pack, userId, sessionId)) {
+      // A revisit link is a claim until the owner check below proves it. It is
+      // taken off before validation so a bad link can never cost the learner
+      // the practice itself, and so nothing unverified reaches storage.
+      const { pack: incoming, claimedSource } = withoutRevisionSource(body.pack);
+      if (!userId || !sessionId || !sessionIdPattern.test(sessionId) || !validConversationPackFor(incoming, userId, sessionId)) {
         return json(res, 400, { error: 'a valid, audio-free Conversation Pack for this session is required' });
       }
       if (!(await withinLimits(req, res, [
@@ -559,10 +571,14 @@ const server = createServer(async (req, res) => {
       const supabaseUrl = process.env.SUPABASE_URL;
       const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       if (!supabaseUrl || !serviceRoleKey) return json(res, 503, { error: 'Conversation Pack storage is not configured' });
+      // Owner-scoped through the same lookup a continuation uses: a foreign,
+      // deleted, unfinished or unreadable source links nothing and leaks nothing.
+      const pack = await withVerifiedRevisionSource(incoming, claimedSource, async (sourceId) =>
+        sessionIdPattern.test(sourceId) && (await getConversationPack(supabaseUrl, serviceRoleKey, userId, sourceId)) !== null);
       if (process.env.LUVANI_DURABLE_PRACTICE === '1') {
-        await practiceJobs(supabaseUrl, serviceRoleKey).receive(body.pack, body.phase !== 'baseline');
-      } else await saveConversationPack(supabaseUrl, serviceRoleKey, body.pack);
-      return json(res, 200, { saved: true, id: body.pack.id, state: body.pack.state });
+        await practiceJobs(supabaseUrl, serviceRoleKey).receive(pack, body.phase !== 'baseline');
+      } else await saveConversationPack(supabaseUrl, serviceRoleKey, pack);
+      return json(res, 200, { saved: true, id: pack.id, state: pack.state });
     }
 
     // Packs are read and deleted through the authenticated caller, never a

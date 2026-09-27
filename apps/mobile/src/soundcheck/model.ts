@@ -90,3 +90,15 @@ export const SELF_GUIDED: SoundCheckDecision = {
   headline: 'You said the line.',
   detail: 'This was listen-and-repeat practice. Luvani did not assess your pronunciation.',
 };
+
+/**
+ * The same self-guided outcome, when the reason is that microphone access was
+ * refused. It is still recorded as self-guided, because nothing was measured;
+ * only the explanation differs, so the learner knows why and how to change it.
+ */
+export const MIC_DENIED: SoundCheckDecision = {
+  ...SELF_GUIDED,
+  headline: 'Microphone access is off.',
+  detail:
+    'So Luvani did not assess your pronunciation this time. Saying the line aloud still counts as practice. To get a sound check, allow microphone access in your settings.',
+};

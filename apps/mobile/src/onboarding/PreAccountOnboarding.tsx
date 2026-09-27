@@ -23,6 +23,7 @@ import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { WELCOME_SUBLINE } from './disclosure.ts';
 import { settleIn, useReduceMotion } from '../motion.ts';
 import { tapSettled } from '../motion/haptics.ts';
+import { asSentences } from '../copy/spoken.ts';
 import {
   freshPreAccountDraft,
   type PreAccountOnboardingDraft,
@@ -227,7 +228,7 @@ export function PreAccountOnboarding({
             {!demoAnswered ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Reply: ${CAFÉ_DEMO.learnerFr}. ${CAFÉ_DEMO.learnerEn}`}
+                accessibilityLabel={`Reply: ${asSentences([CAFÉ_DEMO.learnerFr, CAFÉ_DEMO.learnerEn])}`}
                 accessibilityHint="Shows how the tutor carries the conversation forward"
                 onPress={() => {
                   tapSettled();

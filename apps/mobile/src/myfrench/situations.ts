@@ -65,18 +65,31 @@ export const CHIP = {
  * Decided here rather than on the card, so the card draws a split it did not
  * make.
  *
- * The three dots on the first are the founder's and they are load-bearing: the
- * heading runs straight into the row under it, so "You can now" and "Au café du
- * coin" read as one sentence about the learner rather than as a claim followed
- * by a list.
+ * Whole-app phase 2 renamed both to the approved My French structure. "You can
+ * now..." became "French you can use", a heading over evidence rather than a
+ * sentence running into the row; "Next places" became "Try next", and draws at
+ * most two suggestions, with every place one tap away in Missions.
  */
 export const YOU_CAN_NOW = {
-  label: 'You can now...',
+  label: 'French you can use',
 } as const;
 
 export const NEXT_PLACES = {
-  label: 'Next places',
+  label: 'Try next',
 } as const;
+
+/**
+ * How many suggestions the portfolio draws under "Try next" (whole-app phase
+ * 2). The whole catalogue used to sit here, which put every mission between a
+ * learner and their own phrases. Two is enough to act on; every place is still
+ * one tap away in Missions, and nothing is locked.
+ */
+export const TRY_NEXT_LIMIT = 2;
+
+/** The suggestions to draw: the head of the next group, core's pick first. */
+export function tryNext<T>(next: readonly T[]): readonly T[] {
+  return next.slice(0, TRY_NEXT_LIMIT);
+}
 
 export interface SituationSplit<T> {
   /** Stamped rows, the learner's own, in the order they arrived. */

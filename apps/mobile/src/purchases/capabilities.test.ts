@@ -54,8 +54,30 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
       .filter((file) => readFileSync(file, 'utf8').includes('capabilitiesFor('))
       .map((file) => file.slice(SRC.length))
       .sort();
-    assert.deepEqual(askers, ['purchases/capabilities.ts', 'tabs/TutorTab.tsx', 'tutor/RealMomentScreen.tsx'], `something else gates on the plan: ${askers.join(', ')}`);
+    // One named addition, and it is a helper rather than a screen: the tutor
+    // revisit offered from Practice and from the conversation library asks the
+    // same continueArc rule the Tutor tab does, through one file.
+    assert.deepEqual(
+      askers,
+      ['purchases/capabilities.ts', 'purchases/useContinueArc.ts', 'tabs/TutorTab.tsx', 'tutor/RealMomentScreen.tsx'],
+      `something else gates on the plan: ${askers.join(', ')}`,
+    );
     assert.ok(askers.includes('tutor/RealMomentScreen.tsx'), 'the real moment no longer asks the plan');
+
+    // The helper reads the one Max door it exists for, and nothing else.
+    const helper = readFileSync(join(SRC, 'purchases/useContinueArc.ts'), 'utf8');
+    assert.match(helper, /capabilitiesFor\(status\.plan, status\.lapsed\)\.continueArc/, 'the helper reads something other than continueArc');
+    assert.match(helper, /setAllowed\(status !== null && /, 'a status nobody could read opens the revisit door');
+    for (const earned of ['.packs', '.savedPhrases', '.missions', '.memory', '.customRehearsal']) {
+      assert.ok(!helper.includes(earned), `the helper gates ${earned}, which it was not added for`);
+    }
+    // And exactly the two doors it was added for use it.
+    const users = sourceFiles(SRC)
+      .filter((file) => readFileSync(file, 'utf8').includes('useContinueArc('))
+      .map((file) => file.slice(SRC.length))
+      .filter((file) => file !== 'purchases/useContinueArc.ts')
+      .sort();
+    assert.deepEqual(users, ['conversationPacks/ConversationsScreen.tsx', 'tabs/PracticeTab.tsx'], `the revisit gate is read by an unexpected screen: ${users.join(', ')}`);
     for (const line of CAPABILITY_COPY) assert.equal(guiltIn(line), undefined);
   });
 

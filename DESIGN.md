@@ -26,17 +26,24 @@ pressure, no text clipping and no cap on the learner's reading size.
 
 - Tutor revision (20 September): the chartreuse recommendation panel leads with
   an actual unfinished mission, an eligible conversation continuation, or the
-  next guided mission. A compact 96pt orb sits beside clear Speak/Type selection
-  and one dark Start action. Pronunciation and tutor-memory controls are directly
-  reachable. Mission rows show their goals and recorded status. Real Moment
-  discloses Max before setup and distinguishes a failed plan read from an upgrade.
+  next guided mission. A compact 96pt orb reports the tutor's state and is not
+  pressable. It sits beside clear Speak/Type selection and one dark Start pill,
+  the single launch, and both Speak and Type note that they use live minutes.
+  Pronunciation and tutor-memory controls are directly reachable. Missions says
+  each situation uses live minutes before any card. Mission rows show their goals
+  and recorded status. Real Moment discloses Max before setup and distinguishes a
+  failed plan read from an upgrade.
 - Live Tutor keeps its purpose in the header and its microphone near the reply
   controls. Corrections offer a natural alternative without crossing out the
   learner's words; scrolling back through the transcript does not force a jump
   to new messages. Guided lessons explain support in words and reveal IPA on
-  request. Recaps prioritise a useful next practice and offer retry after a
-  failed phrase save. Memory editing and clearing are explicit; clearing details
-  requires confirmation and keeps goals and saved conversations.
+  request. Recaps and lesson summaries read what went well, one focus, practise
+  it, then Done; everything else sits under one closed More below Done. A focus
+  sound leads with an example word and its symbol is optional. Retry after a
+  failed phrase save is kept. A live error leads with its recovery actions; the
+  technical rows sit under a closed Support details. Memory editing and clearing
+  are explicit; clearing details requires confirmation and keeps goals and saved
+  conversations.
 
 - Feature: chartreuse, an ink rule, 12pt corners. Used for the mission hero,
   onboarding story, tutor studio, profile identity and chosen plan.
@@ -52,21 +59,63 @@ pressure, no text clipping and no cap on the learner's reading size.
 - Tab pages begin with their screen title, not a website-style brand/tagline bar.
   Shared content is capped at 760pt with safe-area-aware gutters on both sides.
 - Home: greeting and a labelled profile avatar, one useful next action, then
-  “Your French in practice”: Days active, Retained phrases, Recall and Speaking
-  time in four compact tiles. The existing progress model still owns the counts.
+  “Your French in practice”: Days active, Retained phrases, Recall and Practice
+  time in four compact tiles. Practice time is active learning time, typed or
+  spoken, with idle gaps excluded, and is separate from billed minutes. The
+  existing progress model still owns the counts.
   One swipeable Word/Phrase card sits directly below, with two labelled pills,
   the existing decorative illustrations and brief, reduced-motion-aware animation.
   The separate Real progress route is removed; evidence-backed weekly details
-  expand inline. Friends and speaking-pace sections appear only for useful activity.
+  expand inline. Friends appears only for useful activity. Review opens from the
+  hero or the Recall tile, the optional target from the Practice time tile. After
+  practice with no conversation yet, the café hero reads Your first conversation.
 - Bottom destinations: Home, Speak, Practice, My French, Friends. Profile is a
   pushed screen reached from the same labelled avatar on every root tab; Settings
   is its first row. Friends is opt-in, friends-only and based on real learning
-  activity, with no global leaderboard or punishment for missing a day.
-- Daily collection: 1,000 words and 1,000 phrases. The first voiced subset has
-  200 of each in all six tutors, bundled Flash recordings at a moderate -4 dB.
-  Home picks only from that level-appropriate subset. Hear and Slow replay follow
-  the selected tutor without a speech API or generic fallback. Unvoiced library
-  items retain text, Save and self-recording practice; examples remain text-only.
+  activity, with no global leaderboard or punishment for missing a day. Before
+  joining, Friends shows one start and a secondary privacy link; the circle's
+  own doors appear after joining.
+- Daily collection: 1,000 words and 1,000 phrases, stated on the Words and
+  Phrases tabs only. The first voiced subset has 200 of each in all six tutors,
+  bundled Flash recordings at a moderate -4 dB. Home picks only from that
+  level-appropriate subset. An empty Saved tab leads with three voiced first-tier
+  starters. Every library card says whether it has tutor audio before it is
+  tapped. Hear and Slow replay follow the selected tutor without a speech API or
+  generic fallback. Unvoiced library items retain text, Save and self-recording
+  practice; examples remain text-only.
+- Phrasebook: the learner's own lines lead; the authored connectors are an
+  optional collection, closed by default. Settings: Delete account sits in its own
+  card at the foot. Out of minutes: the inline paywall shows the store offer with
+  its renewal terms and legal links, or a store-unavailable block with Restore and
+  the legal links; Back always sits outside it.
+- Sound journey: My French's sound row opens the focused sound journey once more
+  than one measured check exists and one has called out a sound; otherwise it
+  opens the sound check. The journey leads with an example word, keeps the symbol
+  behind a toggle, and shows no number except how many measured checks called the
+  sound out. A line is said to come back clear only when that same line was later
+  measured with nothing called out.
+- Goals: written goals sit on My French under What you want from French, one row
+  card each, with the goal in the learner's words and one next mission. Only a
+  keyword match says matches your goal; anything else, a negated goal included, is
+  a good place to start. The goal screen has one pill, Start this conversation,
+  with the connection and live-minutes line under it, and a trail of the
+  conversations opened from it. "I used this outside the app" is the learner's
+  own word and never counts toward review, XP or Practice time. Routes carry an
+  opaque key, never the goal's words.
+- Conversations: a revisited conversation shows Before and after on its detail,
+  with the curated correction it was briefed with, what was practised before, and
+  whether that correction came up again. It never claims the variation went well.
+- Listening preview: the Missions hero carries a quiet Hear an example first. Once
+  known, its label names the source exactly (recorded tutor audio, device voice or
+  text only), and it always says it is an authored example, not the learner's
+  conversation. It stops when the chooser is left or the app goes to the
+  background.
+- What costs minutes is said in one vocabulary (`copy/access.ts`): every door into
+  the pronunciation lesson says it uses live minutes while the tutor is connected,
+  and no line calls typed tutoring free. Home's weekly details end with a short
+  reflection, Your week, in short: what went well, one thing to keep working on
+  and a place to go next, each drawn only from recorded evidence, and nothing when
+  there is none.
 - Onboarding: a chapter marker, a graphic story panel, a meaningful illustration
   and an immediate next action. The demonstration is still interactive and
   consent remains optional and initially off.
@@ -487,8 +536,8 @@ still there. Passing it is one tap and nothing else is asked twice.
 |---|---|
 | Home | Tonight's French, and nothing else. The complete greeting and learner name rise together through one clipped line, with the hour's own question under it. Then one card: the situation to walk into tonight, with the kind of offer in caps above it, its French title in the serif, one line of English saying what happens there, the watercolour of the place it happens in, how long it usually takes as `Ready for 7 min` or the learner's own measured remainder, a bookmark in the top corner, and the tab's one pill. Under it one white row, **Real progress**, carrying a single sentence about what this learner can now do on their own, and a chevron into the `Progress` screen. That is the whole tab. The word of the day, the four momentum cards and the week's story are one level down behind that row rather than deleted, and the level, the evidence and the phrasebook are My French's |
 | Tutor | The tutor by name, then the orb, which reads its state from the facts: away when the servers are, connecting while a probe runs, quiet with a caption when the account has no speaking time, and violet only when a tap would start something. In that ready state, **Tap to talk** is embedded directly beneath seven white voice bars inside one large misty watercolour disc; there is no microphone icon and no frosted capsule competing with it. Every live state changes those same bars, colour and plain status rather than adding a second control. No card sits behind it, because the circle is the one focal point on the page. Then what the tutor remembers, as a peach row with the tutor's own orb on its disc, one line from a real record and a way to pick the scene up, absent for a learner with nothing behind them. Then **Practice together**: three tinted rows, one per way in, and each one a row rather than a button because the circle above is the tab's only primary. An everyday mission on peach, which opens the chooser and every situation with it; an open chat on sky, which runs the circle's own probe; rehearsing something on sage, which opens the screen where a learner names a real moment, writes one line about it and runs it in French first. The quiet "Unable to speak right now?" door and the microphone notice close the page, and the pronunciation lesson moved to the chooser's own footer |
-| Practice | Made from the learner's own conversations, and it is what the tab is called. The header, then one **Your next practice** card: a French line set large, a round white speaker that says it aloud, the English under it, and exactly one control for the branch it is in, which is Review when cards are due, Practise this conversation for the newest pack nobody has come back to, and the tab's one pill for a learner with no conversation yet. Under it three rows, always the same three, on peach, sky and sage: replay a moment, which speaks the better line and opens a drill on it; make this phrase yours, which is the own-words drill; and tune one sound. A learner with no conversation meets the same three shapes from the café lesson and one sentence saying the page becomes personal after the first. The archive went one level down to `Conversations` rather than off the map: the vault, the feed, the filters and the pack library all live there behind My French's own row |
-| My French | The ledger of what has become the learner's, and the one tab whose unit is the place and the phrase rather than the session. The situations first, as one tinted row each on the paper of the place they happen in, with the place's line-art mark on a white disc and the state reached in a chip at the end: **You can now...** for the ones handled with nothing handed over, then **Next places** for the rest, worded as suggested and never as locked or missing. A learner with nothing stamped meets one group, so no empty ability card is ever drawn. Then **Your phrase shelf**, one white row carrying the phrase most worth keeping and a chevron into the `Phrasebook` route, present on a first morning too because the module has a sentence for an empty shelf. Then **Saved for later**, the situations bookmarked from Home, present only when there are any. Then **Your conversations**, one row into `Conversations`, present only once a conversation exists. There is no percentage anywhere on it and none is available to be drawn: the climb is the layout |
+| Practice | Doing, made from the learner's own conversations. A compact header: the title **Practice**, one short purpose line and the profile avatar. Then one **Your next practice** card: a French line set large with a round white speaker and the English under it, then where the sitting comes from said once (Includes phrases from the conversation it names, or review), then one primary pill with **Uses no live minutes** directly under it: Resume practice for an unfinished sitting, Start a short practice for a bounded mix of due review and saved-conversation phrases, or Start your first conversation when there is no playable material. The line on the card is never one the sitting then asks for: it is another line from the named conversation, a phrase the learner already holds and is not due, or a café lesson line, so a preview is never credited as cold recall. Under it **More ways to practise**, up to three rows on peach, sky and sage, each drawn only when it can start: replay a moment, which speaks the better line and opens a drill on it; make this phrase yours, the own-words drill; and tune one sound, only once a sound has been measured. They name their conversation only when the card named a different one, as a quiet From line and never a second heading. A learner with no conversation meets the same three shapes from the café lesson and one sentence saying the page becomes personal after the first. The quiet doors close the page: Scheduled review when something is due, **Choose a conversation** as the one door into the archive, and an eligible tutor revisit that says it uses live minutes. Inside a practice sitting the drill header says, in words, which phrase of how many (Phrase two of six), never a score, fraction or bar. The archive went one level down to `Conversations` rather than off the map: the vault, the feed, the filters and the pack library all live there |
+| My French | Evidence and saved material, kept separate from Practice. A compact header: the title **My French**, one plain purpose line and the profile avatar, with no slogan on routine visits. A failed read is a Try again row, never an empty account. Then one progress sentence, only when source-linked completed practice supports it. Then **Your conversations**, present only once a conversation exists: up to three recent rows, each with its title, a French preview and its latest recorded outcome on separate lines, named whole to a screen reader and opening that conversation's detail in `Conversations`, then one **See all your conversations** row into the whole library. Helped practice is not labelled recall; a tutor room opening is only a revisit started. Deleted conversations are absent. Then **Your collection**, in the first useful scroll: **Your phrase shelf**, one white row carrying the phrase most worth keeping and a chevron into the `Phrasebook` route, present on a first morning too, and the **Daily collection** of saved authored items. Then **Saved for later**, the situations bookmarked from Home, and a measured sound, each present only when there is one. The situations follow, as one tinted row each on the paper of the place they happen in, with the place's line-art mark on a white disc and the state reached in a chip at the end: **French you can use** for the ones handled with nothing handed over, then **Try next**, at most two suggestions with core's own pick first, worded as suggested and never as locked or missing. A learner with nothing stamped meets one group, so no empty ability card is ever drawn. Last, one **Browse situations** row into `Missions`, where the full catalogue lives. There is no percentage anywhere on it and none is available to be drawn |
 | Profile | The one tab that is a person, so it is the one tab whose header is centred: the learner's monogram at 72 above their own name, and "Your French journey, your way." under it. Then **Your tutor**, a white card of two rows: who they are talking to, drawn as the orb and never as a face, opening the voice sheet; and what the tutor remembers, in words and never as a count, opening the screen where every remembered fact can be forgotten one at a time. Then **Your speaking rhythm**, a lilac panel with the Monday-to-Sunday week as seven violet dots under their day names, one caption, and the week said as a sentence to anyone who cannot see the marks. Then **Your learning**, a white card of standing choices: the name, the flexible speaking target and the correction dial as three-way controls with the chosen gloss beneath, and prefer typing. Then the Settings row, last and alone, and everything general is behind it: the account, the plan, the subscription, the documents, the phone's own permissions, the reminder and the version line |
 
 Three routes carry what used to be a section of a tab. Each is pushed, each opens
@@ -497,7 +546,7 @@ a section with a learner's own data behind it is worth a page.
 
 | Route | What it is |
 |---|---|
-| Progress | What Home's **Real progress** row opens. A serif title, then the week told back in at most three sentences, absent entirely on a quiet week because a surface that can render empty is a quota. Then what the learner can now do, one tinted row per situation handled alone. Then the momentum block, moved here whole: **four cards**, there from the first day and worded as a start where a number would be nought, which are retained phrases with two of the learner's own lines, days active with the **week rail** under it, recall over reviews once ten of them are behind it, and **Speaking time today**, which shows truthful measured minutes beside the optional Profile target as a gentle sentence, never a fraction, percentage or progress bar. Then the word of the day at the foot, which is a fact about the day rather than a claim about the learner, drawn with one of the daily pack's twenty and stopped the moment something is pushed over the top of it |
+| Progress | What Home's **Real progress** row opens. A serif title, then the week told back in at most three sentences, absent entirely on a quiet week because a surface that can render empty is a quota. Then what the learner can now do, one tinted row per situation handled alone. Then the momentum block, moved here whole: **four cards**, there from the first day and worded as a start where a number would be nought, which are retained phrases with two of the learner's own lines, days active with the **week rail** under it, recall over reviews once ten of them are behind it, and **Practice time today**, which shows measured active learning minutes (typed or spoken, excluding idle and away gaps and separate from the metered balance) beside the optional Profile target as a gentle sentence, never a fraction, percentage or progress bar. Then the word of the day at the foot, which is a fact about the day rather than a claim about the learner, drawn with one of the daily pack's twenty and stopped the moment something is pushed over the top of it |
 | Phrasebook | What My French's phrase shelf opens. The one-line card first, a single phrase from the deck with the English showing and the French withheld until an attempt lands, because the thing worth doing should never sit under a list of things already done. Then the kept phrases as white cards grouped by where they came from, each with a speaker. Then the cadence set at the foot: ten authored connectors with the note each was written with, the ones the learner has produced unprompted lifted to the top |
 | Conversations | What My French's **Your conversations** row opens, and where Practice's archive went. The filters, the vault said in words, then the feed: one row per finished conversation carrying when it was, how long they spoke and what it left behind, each one opening a drill on its own phrases. The pack library opens over it in place rather than as a second push, which is why this screen answers Android's back itself. Deleting a saved conversation, and deleting all of them, is reachable here and nowhere else |
 
@@ -520,9 +569,9 @@ Two rules ride with the block. **One primary pill per door**, so the eye has one
 place to go on each thing it can act on. That used to read "one per tab", and it
 has only ever been tightened: the count is pinned per tab at exactly what each
 one draws, over the tab AND every card it draws, so a pill that moves into a
-component cannot go uncounted. Two tabs draw one each and three draw none. Home's
-is Start conversation on tonight's card. Practice's is the first conversation,
-which only a learner who has never had one ever meets. Tutor now has one explicit
+component cannot go uncounted. Home's pill is Start conversation on tonight's
+card. Practice's is its recommended action: resume, a short practice, or the
+first conversation, with exactly one branch shown. Tutor has one explicit
 Start action in its recommendation panel, with Speak/Type selection; My French has none, because a list of places is a
 list and the next place is the first row of it; Profile has none, because nothing
 on it is a thing to start.

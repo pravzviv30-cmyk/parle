@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 360" role="img" aria-labelledby="title desc">
+  <title id="title">Luvani logo</title>
+  <desc id="desc">The Luvani spoken L mark and wordmark.</desc>
+  <defs>
+    <style>
+      @font-face { font-family: "Luvani DM Sans"; src: url("../fonts/DMSans-Bold.ttf"); font-weight: 700; }
+    </style>
+  </defs>
+  <g transform="translate(28 28) scale(.296875)">
+    <path fill="#182019" d="M358 184c-53 0-96 43-96 96v348c0 117 95 212 212 212h181l126-103-52-126H493c-22 0-40-18-40-40V280c0-53-42-96-95-96Z"/>
+    <path fill="#D8FF54" d="m655 690 60 35-60 49Z"/>
+  </g>
+  <text x="350" y="244" fill="#182019" font-family="Luvani DM Sans, DM Sans, sans-serif" font-size="190" font-weight="700" letter-spacing="-7">Luvani</text>
+</svg>

@@ -55,6 +55,12 @@ import {
 } from '../tutor/store.ts';
 import { journalRecap } from '../live/journal.ts';
 import { createLocalAdapter } from '../friends/localAdapter.ts';
+import { loadGoalSteps, recordGoalStepStarted } from '../goals/store.ts';
+
+/** Stage 4 (2026-09-25): the goal-step fixtures, a pack-shaped session id and a normalised goal key. */
+const GOAL_KEY = 'order a coffee in paris';
+const goalStep = (id: string, at: number) =>
+  ({ kind: 'step-started', id, at, goalKey: GOAL_KEY, task: 'mission:cafe' }) as const;
 
 // ─────────────────────────────────────────────────────────── the storage double
 
@@ -205,7 +211,18 @@ const QUEUED_WRITES: readonly QueuedWrite[] = [
   },
   { store: 'profile/store.ts', suffix: 'profile', write: () => saveProfile(createStoredProfile({ name: 'A', motivation: null }, 5)) },
   { store: 'tutor/store.ts (intro)', suffix: 'tutorIntro', write: () => markTutorIntroSeen() },
+  // Stage 4 (2026-09-25): the goal-step store binds the account at enqueue too.
+  // Its write is refused outright on a switch (scope generation), so "mine" is
+  // checked separately in goals/store.test.ts; here it must not land in theirs.
+  {
+    store: 'goals/store.ts',
+    suffix: 'goalSteps',
+    write: () => recordGoalStepStarted({ sessionId: 'pack-queued', goalKey: GOAL_KEY, task: 'mission:cafe', at: 5 }),
+  },
 ];
+
+/** Stores that refuse a write outright when the account changes mid-queue, rather than landing it in the old account. */
+const REFUSES_ON_SWITCH: ReadonlySet<string> = new Set(['goalSteps']);
 
 /**
  * Queue a write, switch account before the queue can drain, and report where it
@@ -238,7 +255,9 @@ describe('the account a queued write belongs to', () => {
       uid = nextUid();
       setActiveUser(uid);
       const landed = await landingOf(entry);
-      assert.equal(landed.mine, true, `${entry.store}: the write never reached the account that asked for it`);
+      // Stage 4 (2026-09-25): a generation-checked store refuses the write
+      // outright, which is stricter: it lands in neither account.
+      assert.equal(landed.mine, !REFUSES_ON_SWITCH.has(entry.suffix), `${entry.store}: the write reached the wrong place in the account that asked for it`);
       assert.equal(landed.theirs, false, `${entry.store}: the write landed under the account that signed in after it`);
     }
   });
@@ -246,7 +265,7 @@ describe('the account a queued write belongs to', () => {
   for (const entry of QUEUED_WRITES) {
     test(`${entry.store} binds the account when the write is asked for, not when it runs`, async () => {
       const landed = await landingOf(entry);
-      assert.equal(landed.mine, true, 'the write never reached the account that asked for it');
+      assert.equal(landed.mine, !REFUSES_ON_SWITCH.has(entry.suffix), 'the write reached the wrong place in the account that asked for it');
       assert.equal(landed.theirs, false, 'the write landed under the account that signed in after it');
     });
   }
@@ -610,6 +629,24 @@ const SYNCED_STORES: readonly SyncedStore[] = [
         await loadSeenCoachMarks(),
         ['ladder', 'mic', 'orb'],
         'the mark dismissed during the cycle was unread by the adoption',
+      );
+    },
+  },
+  // Stage 4 (2026-09-25): goal steps join the same seam, whole-row set union.
+  {
+    namespace: 'goalSteps',
+    write: () => recordGoalStepStarted({ sessionId: 'pack-local', goalKey: GOAL_KEY, task: 'mission:cafe', at: 5 }),
+    merged: { version: 1, steps: [goalStep('pack-merged', 9)] },
+    read: async () => (await loadGoalSteps()).map((row) => row.id),
+    expected: ['pack-merged'],
+    corrupt: { version: 99, steps: [] },
+    during: () => recordGoalStepStarted({ sessionId: 'pack-during', goalKey: GOAL_KEY, task: 'mission:cafe', at: 6 }),
+    remote: { version: 1, steps: [goalStep('pack-remote', 9)] },
+    survived: async () => {
+      assert.deepEqual(
+        (await loadGoalSteps()).map((row) => row.id).sort(),
+        ['pack-during', 'pack-local', 'pack-remote'],
+        "the goal step recorded during the cycle was written over by the account's record",
       );
     },
   },

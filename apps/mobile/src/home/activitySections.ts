@@ -1,4 +1,3 @@
-import type { Momentum } from '../progress/momentum.ts';
 import type { SocialSnapshot } from '../friends/socialModel.ts';
 import { socialPreview, socialUpdateCount } from '../friends/socialModel.ts';
 
@@ -13,5 +12,5 @@ export function usefulFriends(s: SocialSnapshot | null): string | null {
   return null;
 }
 
-/** A configured target alone is not activity. Settings stays one tap away. */
-export function usefulPace(momentum: Momentum): boolean { return momentum.goal.minutes > 0; }
+// `usefulPace` left with the "Today, at your pace" card (whole-app Stage 3A):
+// the Practice time tile is the one door to the optional target now.

@@ -379,9 +379,13 @@ describe('Home says what the learner can now do, and counts nothing — F399, F5
     // and which tier to pitch the day at. Home draws the answer and re-derives
     // nothing.
     assert.match(FLAT, /const progress = missionStates\(missionCompletionsFrom\(completions\), deck, now\)/, 'Home reads where the scenes stand somewhere other than core');
+    // Re-pointed 2026-09-25 (whole-app Stage 3A): the rule is also told whether
+    // the learner has practised without a conversation, so it can say "Your
+    // first conversation" instead of "Your first French". Same call, same
+    // owner, one more fact read through chooserView.ts.
     assert.match(
       flat(FLAT),
-      /setHero\( homeMissionFrom\(\{ progress, records, spokenBefore: hasSpokenBefore\(activity\), levelIndex: standing\.index, now, \}\), \)/,
+      /setHero\( homeMissionFrom\(\{ progress, records, spokenBefore: hasSpokenBefore\(activity\), practisedBefore: hasPractisedBefore\(activity\), levelIndex: standing\.index, now, \}\), \)/,
       'the hero is not the situation homeMission.ts decides',
     );
     assert.match(SCREEN, /\{hero !== null && \(homeActionFor/, 'the adaptive hero must remain independent of the momentum gate');
@@ -391,7 +395,8 @@ describe('Home says what the learner can now do, and counts nothing — F399, F5
     // for a learner with nothing behind them too, because it is also how they
     // find out what this app keeps track of.
     assert.match(FLAT, /setRows\(canDoRows\(stampsFrom\(progress\)\)\)/, 'the inline abilities must use the passport projection');
-    assert.match(SCREEN, /<HomeProgressDetails story=\{story\} rows=\{rows\} \/>/, 'Home must retain the weekly story and ability details inline');
+    // Stage 4 (2026-09-25): the details take the weekly reflection as a third prop.
+    assert.match(SCREEN, /<HomeProgressDetails story=\{story\} rows=\{rows\} reflection=\{reflection\} \/>/, 'Home must retain the weekly story and ability details inline');
     assert.doesNotMatch(SCREEN, /navigate\('Progress'\)/, 'the retired Progress destination must not return');
     assert.match(flat(ABILITIES), /<IconRowCard/, 'real progress is no longer the white row the mockup draws');
     assert.match(flat(ABILITIES), /label=\{can\.label\}/, 'the row spells its own heading');
@@ -428,6 +433,62 @@ describe('Home says what the learner can now do, and counts nothing — F399, F5
     for (const retired of ['../home/SituationCard.tsx', '../home/NextSituationCard.tsx', '../home/MomentumCards.tsx', '../home/WordOfDayCard.tsx']) {
       assert.ok(!existsSync(fileURLToPath(new URL(retired, import.meta.url))), `${retired} still ships and nothing on Home renders it`);
     }
+  });
+});
+
+/**
+ * Whole-app Stage 3A (2026-09-25): one door per destination.
+ *
+ * The hero's review card, the Recall tile and a "Keep this phrase" card all
+ * opened Review, and the Practice time tile and a separate pace card both
+ * opened Profile. Three doors to one place read as three different things to
+ * do. Review keeps the one obvious route (the hero, when review is the day's
+ * action) plus the tile; the target keeps the tile alone.
+ */
+describe('Home offers one door per destination', () => {
+  test('home opens review from the hero and the recall tile only, and the speaking target from the tile only', () => {
+    const toReview = FLAT.match(/nav\.navigate\('Review'\)/g) ?? [];
+    assert.equal(toReview.length, 2, `Home opens Review from ${toReview.length} places; the hero and the Recall tile are enough`);
+    assert.match(FLAT, /<PillButton label="Practise recall" onPress=\{\(\) => nav\.navigate\('Review'\)\} \/>/, 'the review hero lost its one way into Review');
+    assert.match(FLAT, /onReview=\{\(\) => nav\.navigate\('Review'\)\}/, 'the Recall tile no longer opens Review');
+    for (const gone of ['Keep this phrase', 'Practise my phrases', 'Reveal the French']) {
+      assert.ok(!SCREEN.includes(gone), `Home still draws "${gone}", a third door into the same review`);
+    }
+
+    const toProfile = FLAT.match(/nav\.navigate\('Profile'\)/g) ?? [];
+    assert.equal(toProfile.length, 1, `Home opens Profile from ${toProfile.length} places; the Practice time tile is the one way to the target`);
+    assert.match(FLAT, /onTarget=\{\(\) => nav\.navigate\('Profile'\)\}/, 'the Practice time tile no longer opens the target');
+    assert.ok(!SCREEN.includes('Adjust my optional speaking target'), 'the pace card still carries a second door to the same setting');
+
+    // The weekly details stay one expansion, drawn once.
+    assert.equal((SCREEN.match(/<HomeProgressDetails\b/g) ?? []).length, 1, 'the weekly details are drawn more than once');
+  });
+
+  // Stage 4 (2026-09-25): the weekly reflection is fed from the same focus
+  // read, under the same account guard, and drawn by the same expansion.
+  test('the weekly reflection is built from the same read, behind the account guard, and handed to the details', () => {
+    const readChain = between(FLAT, 'void Promise.all(', 'return () => {', 'Home folds its storage reads together');
+    assert.match(readChain, /loadSoundChecks\(\)/, 'the reflection never reads the measured sounds');
+    assert.match(readChain, /loadPracticeHistory\(\)/, 'the reflection never reads what was practised');
+    assert.match(FLAT, /const scope = scopeGeneration\(\);/, 'Home reads without binding the account first');
+    assert.match(readChain, /if \(cancelled \|\| scopeGeneration\(\) !== scope\) return;/, 'a read for the previous account can be drawn');
+    assert.match(
+      readChain,
+      /setReflection\(reflectionFrom\(\{ story: storyFrom\(\{ sessions: history, activity, packs, completions, now \}\), recent: allConversations\(\{ packs, events \}\), checks, progress, now \}\)\)/,
+      'the reflection is not built from the same week story, the recorded history and the one mission projection',
+    );
+    // A failed read claims nothing about the learner's week.
+    const rescue = readChain.slice(readChain.indexOf('.catch('));
+    assert.ok(!rescue.includes('setReflection('), 'a failed read invents a reflection');
+  });
+
+  test('a learner with practice but no conversation is told the café is their first conversation', () => {
+    assert.match(
+      FLAT,
+      /import \{ hasPractisedBefore, hasSpokenBefore, missionCompletionsFrom \} from '\.\.\/missions\/chooserView\.ts'/,
+      'Home decides for itself what counts as practice',
+    );
+    assert.match(FLAT, /practisedBefore: hasPractisedBefore\(activity\)/, 'the hero is never told the learner has practised');
   });
 });
 
@@ -471,7 +532,8 @@ describe('Home closes on a kind line and carries nothing else — F400', () => {
     // History is now used by the weekly story, expanded inline on Home.
     assert.match(FLAT, /loadHistory\(\)/);
     assert.match(FLAT, /setStory\(storyFrom\(\{ sessions: history, activity, packs, completions, now \}\)\)/);
-    assert.match(FLAT, /<HomeProgressDetails story=\{story\} rows=\{rows\} \/>/);
+    // Stage 4 (2026-09-25): the reflection rides the same component as a third prop.
+    assert.match(FLAT, /<HomeProgressDetails story=\{story\} rows=\{rows\} reflection=\{reflection\} \/>/);
 
     // And nothing else is carried either. Every name Home imports is a name
     // Home uses, which is J14's rule applied to one file.

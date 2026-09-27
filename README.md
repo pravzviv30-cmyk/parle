@@ -78,7 +78,8 @@ to work first. The mic-free typed route was behind the same gate — the door a
 learner who cannot speak needs most.
 
 When a live session cannot start, it says which of eleven things went wrong,
-always offers a way out, and hides a **What happened?** panel reporting whether
+always offers a way out, and keeps a closed **Support details** panel, after
+every recovery action, reporting whether
 the token server answered, how long the room took to connect, whether the tutor
 joined, and whether it ever said anything. That panel is how you tell an
 environment problem from a bug without reading LiveKit's logs.

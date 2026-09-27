@@ -53,6 +53,69 @@ senior-level scrutiny before code is written:
 - Nothing ships without a test that fails if the behaviour regresses, and
   `npm run gate` green.
 
+## Mercury development model routing
+
+This section governs Mercury's Agent dispatch for development, not the app's tutor
+models. The Claude Code `/forge` commands and their gate-enforced agent pins remain
+unchanged; their mandatory Fable design/judge sequence is not Mercury's default loop.
+`MERCURY.md` imports this file so the routing policy has one home.
+
+| Role | Model | When to use it |
+|---|---|---|
+| Lead and integrator | `gpt-6-astra` main session | Own scope, acceptance checks, shared interfaces, integration and final report. Do tiny fixes directly. |
+| Default builder | Agent `model: "claude-opus-5-5"` | Delegate substantial, bounded implementation with tests, using the relevant specialist role when available. |
+| Escalation architect or judge | Agent `model: "fable"` | Unresolved architecture, difficult cross-cutting failures, or independent review of high-risk changes. |
+| Independent verifier and bounded alternate builder | Agent `model: "gpt-6-sol"` | Review Opus-built changes read-only; take bounded fixes/tests when a separate builder is useful. |
+
+As of 2026-09-23, a direct Mercury Agent request with `model: "gpt-6-sol"`
+successfully executed. Use this exact ID, not the older `gpt-5.6-sol` bundled entry.
+The successful dispatch confirms access, not comparative quality or current pricing.
+Explicit model overrides must succeed;
+if a builder is unavailable, report that and use Astra for the bounded implementation
+rather than silently claiming the requested model ran. An independent review must
+remain a fresh read-only agent, never the lead reviewing its own work. If a required
+Fable reviewer is unavailable, stop and report the missing review; do not downgrade it.
+Never override a Fable-pinned role with another engine. In Mercury, use the separate
+Claude Code `/forge` workflow only when explicitly requested and available; do not
+invent or invoke an unavailable command.
+
+### Smallest sufficient workflow
+
+- **Small, clear change:** Astra edits and runs the relevant checks. No planning
+  agent, implementation handoff or duplicate model opinion just for ceremony.
+- **Normal feature:** Astra sets the acceptance criteria and file boundaries;
+  Opus implements and tests; Astra inspects the diff, integrates and verifies.
+  For work needing independent verification, use a fresh read-only verifier,
+  normally Sol for an Opus-built change, or Opus for a Sol-built change. Give it the
+  original requirements and diff, not just the builder's success summary. This provides
+  a different model perspective, not a guarantee of independent errors. Agent type
+  supplies the role; the explicit model supplies the engine.
+- **High-risk or ambiguous change:** use Fable for a bounded design decision when
+  ambiguity warrants it; Opus builds; a separate read-only Fable verifier challenges
+  security, payments, learner-data, migration, or cross-service invariants. Planning
+  is not verification, and a green model verdict never replaces executable checks.
+- **Repeated failure:** after two unsuccessful repair attempts on the same issue,
+  send the reproducer, attempted fixes and evidence to Fable for diagnosis. Do not
+  keep cycling models or widening scope. Stop for a concrete external blocker.
+
+Every handoff names the objective, allowed files, relevant project rules, acceptance
+checks, non-goals, and whether editing is permitted. Return changed paths, checks
+actually run, failures and remaining uncertainty. Preserve the territory ownership
+rules below. Parallelize only independent work with disjoint write sets; default to
+one builder, at most two when independence is clear. Astra owns shared interfaces.
+Do not have multiple models re-read the entire repository or rebuild the same feature.
+Run focused tests during development and `npm run gate` before completion; prove
+changed UI journeys on the actual app when applicable. Do not weaken existing gates.
+
+Treat this routing as a starting policy, not a model-performance ranking. For the
+next five substantial tasks, include model used, elapsed time, repair rounds,
+verification result and actual usage/cost when available in the existing task report.
+Compare cost per accepted change, not token price alone. The bundled price table
+records Opus 5.5 at $4/$20 and Astra/Fable at $10/$50 per million input/output tokens;
+these are not refreshed billing quotes or subscription-quota estimates. Sol 6 pricing
+has not been verified; do not reuse Sol 5.6 prices. Change the default builder only
+with evidence from comparable bounded tasks.
+
 ## The team
 
 Sixteen agents work in this repo. Four are **roles in a loop** — `design-architect`
@@ -79,9 +142,9 @@ each, and a second opinion about them is how a repo grows two ladders.
 
 ## graphify
 
-This project has a knowledge graph at `graphify-out/` — 7653 nodes, 18782 links
-across the source files, grouped into 332 communities. Re-measured 2026-09-17 after revamp A
-landed (the previous figures, 6203 / 14723 / 297, were read on 2026-09-05). The community
+This project has a knowledge graph at `graphify-out/` — 8820 nodes, 22455 links
+across the source files, grouped into 375 communities. Re-measured 2026-09-26 after the
+whole-app upgrade (the previous figures, 7653 / 18782 / 332, were read on 2026-09-17). The community
 names are **placeholders** (`Community N`) as of that rebuild: `graphify label . --backend
 claude-cli` needs a signed-in `claude` CLI, and the session on this Mac had expired, so the
 first session with a working `claude login` should run `graphify label . --backend

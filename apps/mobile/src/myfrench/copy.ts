@@ -21,11 +21,17 @@
  * refuse everywhere else on this tab.
  */
 
-/** The tab's headline: what this page is a record of. */
-export const MY_FRENCH_TITLE = 'The French that has become yours.';
+/**
+ * The tab's title: the word on the tab bar.
+ *
+ * Whole-app phase 2 retired "The French that has become yours." and the
+ * three-claim slogan under it from routine visits: three lines of heading a
+ * learner read every time before anything of their own.
+ */
+export const MY_FRENCH_TITLE = 'My French';
 
-/** The line under it. Three claims, and the page has to earn all three. */
-export const MY_FRENCH_PURPOSE = 'Real conversations. Real situations. Real independence.';
+/** The line under it: one plain sentence about what is on the page. */
+export const MY_FRENCH_PURPOSE = 'The French you have used and kept.';
 
 /** The heading over the phrase the learner kept most recently. */
 export const SHELF_LABEL = 'Your phrase shelf';
@@ -39,11 +45,55 @@ export const SHELF_OPEN = 'Open my phrases';
 /** The heading over the situations the learner bookmarked to come back to. */
 export const SAVED_LABEL = 'Saved for later';
 
-/** The row into the conversations the tutor turned into practice. */
+/** The heading over the recent conversations, which is also the group's name. */
 export const CONVERSATIONS_ROW = 'Your conversations';
 
-/** The line under it: nothing is spent, and nothing expires. */
+/** The line on the See all row: nothing is spent, and nothing expires. */
 export const CONVERSATIONS_SUB = 'Return to any of them';
+
+/** Under the recent rows: the whole library, one quiet tap away. */
+export const RECENT_ALL = 'See all your conversations';
+
+/**
+ * The heading over the learner's own material: the phrase shelf and the
+ * daily collection, together, straight after the conversations (whole-app
+ * phase 2). Two kinds of saved French with one heading, each its own row so
+ * the difference between earned phrases and saved daily items stays visible.
+ */
+export const COLLECTION_LABEL = 'Your collection';
+
+/**
+ * The daily collection's row: saved authored items, not phrases from a conversation.
+ *
+ * The line used to end "and offline audio", which read as sound for every
+ * item. Only the voiced ones carry a recording (Stage 4, 2026-09-25).
+ */
+export const DAILY_LABEL = 'Daily collection';
+export const DAILY_LINE = 'Saved words and phrases. Tutor audio plays offline for the voiced ones.';
+export const DAILY_OPEN = 'Open daily collection';
+
+/**
+ * The one door from the portfolio into every situation. The full catalogue
+ * lives in Missions; this page suggests at most two.
+ */
+export const BROWSE_LABEL = 'Browse situations';
+export const BROWSE_LINE = 'Every place to practise, in any order.';
+export const BROWSE_OPEN = 'Browse every situation';
+
+/**
+ * One row per goal the learner wrote (Stage 4, 2026-09-25): the goal in their
+ * words under this heading, the next task under it, and the row opens the
+ * goal screen. The fit wording ("matches your goal" or a starting point) is
+ * `goals/next.ts`'s, because it depends on whether the table matched.
+ */
+export const GOALS_ROW_LABEL = 'Your goal';
+export const GOALS_ROW_OPEN = 'Open your goal';
+
+/** The page could not read what is saved on this phone. Not the same as having nothing. */
+export const MY_FRENCH_UNREAD = 'Your French could not be loaded just now. It is all still saved.';
+
+/** The one action on that state. */
+export const MY_FRENCH_RETRY = 'Try again';
 
 /**
  * Every line above, so one sweep can walk them all.
@@ -61,4 +111,16 @@ export const MY_FRENCH_COPY = [
   SAVED_LABEL,
   CONVERSATIONS_ROW,
   CONVERSATIONS_SUB,
+  RECENT_ALL,
+  COLLECTION_LABEL,
+  DAILY_LABEL,
+  DAILY_LINE,
+  DAILY_OPEN,
+  BROWSE_LABEL,
+  BROWSE_LINE,
+  BROWSE_OPEN,
+  GOALS_ROW_LABEL,
+  GOALS_ROW_OPEN,
+  MY_FRENCH_UNREAD,
+  MY_FRENCH_RETRY,
 ] as const;

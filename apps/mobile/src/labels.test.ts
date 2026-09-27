@@ -119,7 +119,10 @@ const KEPT_IN_A_MODULE: readonly { words: string; from: string; name: string }[]
   { words: 'Real progress', from: 'home/abilities.ts', name: 'REAL_PROGRESS_LABEL' },
   { words: 'Practice together', from: 'tutor/gate.ts', name: 'ENTRY_MODES_LABEL' },
   { words: 'Your next practice', from: 'practice/copy.ts', name: 'NEXT_PRACTICE_LABEL' },
-  { words: 'You can now...', from: 'myfrench/situations.ts', name: 'YOU_CAN_NOW' },
+  // Reworded by decision in whole-app phase 2 (2026-09-25): the approved My
+  // French structure names the group "French you can use". Same constant, same
+  // module, still drawn as a caps label by SituationsCard.
+  { words: 'French you can use', from: 'myfrench/situations.ts', name: 'YOU_CAN_NOW' },
   { words: 'Your phrase shelf', from: 'myfrench/copy.ts', name: 'SHELF_LABEL' },
   { words: 'Your tutor', from: 'profile/frenchLife.ts', name: 'TUTOR_LABEL' },
   { words: 'Your speaking rhythm', from: 'profile/frenchLife.ts', name: 'RHYTHM_LABEL' },

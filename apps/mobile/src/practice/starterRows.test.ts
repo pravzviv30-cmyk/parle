@@ -19,7 +19,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { phraseKeyOf } from '@luvani/core';
 
+import { LESSON_MINUTES } from '../copy/access.ts';
 import { guiltIn } from '../copy/guilt.ts';
+import { asSentences } from '../copy/spoken.ts';
 import { MADE_FROM } from './madeFrom.ts';
 import { MADE_FROM_TINT } from './madeFromTint.ts';
 import { STARTER, starterFrom } from './starter.ts';
@@ -43,7 +45,11 @@ describe('the starter rows — the same three shapes, from authored material', (
 
     // And the one difference is the gloss, which says where the material came
     // from. That is the honest half: the learner has not made this yet.
-    assert.equal(moment.gloss, STARTER.moment.lead, 'the first row does not say where the authored moment came from');
+    // Stage 4 review (2026-09-25): the row opens the pronunciation lesson,
+    // which runs live and metered while the tutor is reachable, so the gloss
+    // goes on to say so in the shared words. Where it came from still leads.
+    assert.equal(moment.gloss, asSentences([STARTER.moment.lead, LESSON_MINUTES]), 'the first row does not say where the authored moment came from, or that the lesson can use live minutes');
+    assert.ok(moment.gloss.startsWith(STARTER.moment.lead), 'the row no longer leads with where the authored moment came from');
     assert.notEqual(moment.gloss, MADE_FROM.replay.gloss, 'the starter row claims to be made from a conversation there has not been');
 
     // Three destinations, each the only place its row can honestly go.

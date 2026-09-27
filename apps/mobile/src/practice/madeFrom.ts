@@ -20,7 +20,7 @@
  * instead. Nothing here is a count, and nothing is stored.
  */
 
-import { drillsFor, focusDrillSteps, isDue, phraseKeyOf, type ConversationPack, type FocusStep, type ReviewCard } from '@luvani/core';
+import { drillsFor, focusDrillSteps, isDue, phraseKeyOf, type ConversationPack, type DrillExercise, type FocusStep, type ReviewCard } from '@luvani/core';
 
 import { latestReadyPack } from '../conversationPacks/model.ts';
 import { withMarks, type PackMark } from '../conversationPacks/marks.ts';
@@ -28,6 +28,7 @@ import { repairKeyOf } from '../conversationPacks/packExercises.ts';
 import { soundFocus } from '../conversationPacks/closure.ts';
 import type { Acoustic } from '../myfrench/acoustic.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
+import { ALTERNATIVES } from './copy.ts';
 
 export const MADE_FROM = {
   replay: {
@@ -52,7 +53,7 @@ export const MADE_FROM = {
     gloss: 'Focus on a tricky sound',
     check: 'Check this sound',
     none: 'After your next situation, a short sound check names one sound to tune.',
-    go: 'Choose a situation',
+    go: 'Choose a situation for a sound check',
   },
 } as const;
 
@@ -73,6 +74,12 @@ export interface Replay {
   why: string;
   /** The better line's deck key, which is what the drill opens on. */
   key: string;
+  /**
+   * A sitting scoped to it would have something in it: the deck has never met
+   * the better line, or wants it back. A held line queues nothing, so the row
+   * is not offered (whole-app phase 2 review), by the same rule as the phrase.
+   */
+  sayable: boolean;
 }
 
 export interface PhraseToOwn {
@@ -111,6 +118,22 @@ export function madeFromSource(made: MadeFrom | null): string | null {
   return made?.replay?.from ?? made?.phrase?.from ?? null;
 }
 
+/**
+ * What the rows under the recommended card say about where they came from,
+ * or null to say nothing (whole-app phase 2).
+ *
+ * Source once per cluster: the card already names the conversation its sitting
+ * draws on, so when the rows come from that same conversation they say nothing
+ * more. When they come from another one, or the card names none, they say which
+ * one, once, as a quiet line rather than a second heading.
+ */
+export function alternativesSource(made: MadeFrom | null, cardPackId: string | null): string | null {
+  const packId = made?.replay?.packId ?? made?.phrase?.packId ?? null;
+  const title = madeFromSource(made);
+  if (packId === null || title === null || packId === cardPackId) return null;
+  return `${ALTERNATIVES.from} ${title}`;
+}
+
 /** The newest sound check, with the steps to work it, or null. Read by the starter too. */
 export function soundToTune(checks: readonly SoundCheckEvidence[]): SoundToTune | null {
   const focus = soundFocus(checks);
@@ -119,11 +142,24 @@ export function soundToTune(checks: readonly SoundCheckEvidence[]): SoundToTune 
   return { acoustic: focus.acoustic, missionId: focus.missionId, steps: drill === undefined ? [] : focusDrillSteps(drill) };
 }
 
-function replayOf(pack: ConversationPack): Replay | null {
+function replayOf(pack: ConversationPack, deck: readonly ReviewCard[], bank: readonly DrillExercise[], now: number): Replay | null {
   const repair = pack.corrections[0];
   const key = repairKeyOf(pack);
   if (repair === undefined || key === null) return null;
-  return { packId: pack.id, from: pack.title.en, quote: repair.quote, better: repair.better, betterEn: repair.betterEn, why: repair.why, key };
+  const card = deck.find((c) => c.id === key);
+  // The bank keeps a capped set of exercises, so an older pack's repair
+  // exercise can be gone while its card is due: nothing would be queued.
+  const drillable = bank.some((e) => e.phraseKey === key);
+  return {
+    packId: pack.id,
+    from: pack.title.en,
+    quote: repair.quote,
+    better: repair.better,
+    betterEn: repair.betterEn,
+    why: repair.why,
+    key,
+    sayable: drillable && (card === undefined || isDue(card, now)),
+  };
 }
 
 function phraseOf(pack: ConversationPack, deck: readonly ReviewCard[], now: number): PhraseToOwn | null {
@@ -156,12 +192,14 @@ export function madeFromConversations(input: {
   marks: readonly PackMark[];
   deck: readonly ReviewCard[];
   checks: readonly SoundCheckEvidence[];
+  /** The drill bank a sitting would draw from, so a row is never offered over nothing. */
+  bank: readonly DrillExercise[];
   now: number;
 }): MadeFrom | null {
   const pack = latestReadyPack(withMarks(input.packs, input.marks));
   if (pack === null) return null;
   return {
-    replay: replayOf(pack),
+    replay: replayOf(pack, input.deck, input.bank, input.now),
     phrase: phraseOf(pack, input.deck, input.now),
     sound: soundToTune(input.checks),
   };

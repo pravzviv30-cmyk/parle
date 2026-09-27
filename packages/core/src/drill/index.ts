@@ -56,6 +56,22 @@ export {
   type OwnWordsDecision,
 } from './ownWords.ts';
 
+export {
+  selectPracticeQueue,
+  selectPackQueue,
+  buildPracticeSession,
+  practiceGrades,
+  practiceOutcomeOf,
+  PRACTICE_QUEUE_CAP,
+  PER_SOURCE_CAP,
+  type PracticeSource,
+  type PracticeTarget,
+  type PracticeSelection,
+  type PracticePack,
+  type PracticeSession,
+  type PracticeOutcome,
+} from './practice.ts';
+
 export { validateExercise, validateBatch, learnerVisibleStrings, type ValidationResult } from './validate.ts';
 
 export { DRILL_FIXTURES } from './fixtures.ts';

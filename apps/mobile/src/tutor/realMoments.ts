@@ -81,6 +81,10 @@ export const REHEARSE_ACTION = 'Start my rehearsal';
 export const REHEARSE_AGAIN_LABEL = 'Rehearse again';
 export const MAX_ONLY_LINE = 'Personal rehearsals are included with Max. Everyday missions and open conversations are available separately.';
 export const SEE_PLANS = 'See what Max includes';
+/** The plan notice above the situations, one line per answer (Stage 3A). */
+export const PLAN_CHECKING = 'Checking your plan…';
+export const PLAN_INCLUDED = 'Your plan includes personal rehearsals.';
+export const PLAN_READ_FAILED = 'We could not check your plan. Your choices will stay here while you try again.';
 
 /** Every line this module can say, for the copy sweeps. */
 export const REAL_MOMENT_COPY: readonly string[] = [
@@ -93,4 +97,7 @@ export const REAL_MOMENT_COPY: readonly string[] = [
   REHEARSE_AGAIN_LABEL,
   MAX_ONLY_LINE,
   SEE_PLANS,
+  PLAN_CHECKING,
+  PLAN_INCLUDED,
+  PLAN_READ_FAILED,
 ];

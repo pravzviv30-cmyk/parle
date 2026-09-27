@@ -62,7 +62,8 @@ export async function available(): Promise<boolean> {
   return (await frenchVoice()) !== null;
 }
 
-export function speak(text: string, opts?: { onDone?: () => void; rate?: number }): void {
+/** Returns the playback it started, so a chain of lines can tell it was stopped. */
+export function speak(text: string, opts?: { onDone?: () => void; rate?: number }): number {
   const generation = ++playbackGeneration;
   void frenchVoice().then((voice) => {
     if (generation !== playbackGeneration) return;
@@ -77,6 +78,7 @@ export function speak(text: string, opts?: { onDone?: () => void; rate?: number 
       onError: opts?.onDone,
     });
   });
+  return generation;
 }
 
 /** Speak lines in order, then call done. Used to model the line after the ask. */
@@ -86,7 +88,13 @@ export function speakLines(lines: readonly string[], onDone?: () => void): void 
     onDone?.();
     return;
   }
-  speak(head, { onDone: () => speakLines(rest, onDone) });
+  // A stop, or newer speech, ends the chain. A browser reports a cancelled
+  // line as an error, which `speak` hands to the same callback as a finished one.
+  const generation = speak(head, {
+    onDone: () => {
+      if (generation === playbackGeneration) speakLines(rest, onDone);
+    },
+  });
 }
 
 export function stop(): void {

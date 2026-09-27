@@ -42,6 +42,8 @@
 
 import { phraseKeyOf } from '@luvani/core';
 
+import { LESSON_MINUTES } from '../copy/access.ts';
+import { asSentences } from '../copy/spoken.ts';
 import type { TintName } from '../palette.ts';
 import { MADE_FROM, type PhraseToOwn } from './madeFrom.ts';
 import { MADE_FROM_TINT } from './madeFromTint.ts';
@@ -83,7 +85,9 @@ export function starterMomentRow(): StarterMomentRow {
   return {
     tint: MADE_FROM_TINT.replay,
     title: MADE_FROM.replay.label,
-    gloss: STARTER.moment.lead,
+    // The lesson runs live, and metered, while the tutor is reachable, so the
+    // row says so in the shared words, after where the material came from.
+    gloss: asSentences([STARTER.moment.lead, LESSON_MINUTES]),
     screen: STARTER_DESTINATION.moment,
   };
 }

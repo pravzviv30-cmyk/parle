@@ -31,11 +31,11 @@
  */
 
 import { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type ConversationPack, type ReviewCard } from '@luvani/core';
 
-import { Label } from '../components.tsx';
+import { Card, Label, OutlineButton } from '../components.tsx';
 import { ChatGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { IconRowCard } from '../surface/IconRowCard.tsx';
@@ -62,8 +62,21 @@ import {
   refreshConversationPacks,
 } from './store.ts';
 import { loadPackMarks, withMarks, type PackMark } from './marks.ts';
+import { useContinueArc } from '../purchases/useContinueArc.ts';
+import { scopeGeneration } from '../storage/scope.ts';
+import { MY_FRENCH_RETRY } from '../myfrench/copy.ts';
 
-export function ConversationsScreen({ onBack }: { onBack: () => void }) {
+/** The archive could not be read. Said as itself, never as an empty archive. */
+export const CONVERSATIONS_UNREAD = 'Your conversations could not be loaded just now. They are all still saved.';
+
+export function ConversationsScreen({
+  onBack,
+  openPackId,
+}: {
+  onBack: () => void;
+  /** Open straight onto this saved conversation, when it is here. */
+  openPackId?: string;
+}) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { user, adapter } = useAuth();
 
@@ -71,11 +84,17 @@ export function ConversationsScreen({ onBack }: { onBack: () => void }) {
   // with nothing: a feed drawn from an unanswered read would show an empty
   // archive to somebody who has had thirty conversations.
   const [archive, setArchive] = useState<Archive | null>(null);
+  // Loading, read and unreadable are three facts. A failed read shows Retry
+  // rather than an archive that looks empty; `attempt` re-runs the read.
+  const [unread, setUnread] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [packs, setPacks] = useState<readonly ConversationPack[]>([]);
   // Which filter the learner chose. `sessionsUnder` falls back to the whole
   // feed when the row stops earning its place, so this can stay put.
   const [filter, setFilter] = useState<FilterKey>('all');
-  const [showingLibrary, setShowingLibrary] = useState(false);
+  // A direct link from My French opens the library on its conversation.
+  const [showingLibrary, setShowingLibrary] = useState(openPackId !== undefined);
+  const continueArc = useContinueArc();
 
   useHardwareBack(showingLibrary, () => setShowingLibrary(false));
 
@@ -84,45 +103,60 @@ export function ConversationsScreen({ onBack }: { onBack: () => void }) {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      // Bound to the account before the read: a result from a previous account
+      // is dropped, never drawn for this one.
+      const scope = scopeGeneration();
+      const sameAccount = (): boolean => !cancelled && scopeGeneration() === scope;
       const draw = (fetched: readonly ConversationPack[], deck: readonly ReviewCard[], marks: readonly PackMark[]) => {
         // This phone's marks folded in first, so the feed and the library
         // cannot disagree about a conversation that was already practised.
         const marked = withMarks(fetched, marks);
         setPacks(marked);
         setArchive(archiveFrom({ packs: marked, deck, now: Date.now() }));
+        setUnread(false);
       };
       void Promise.all([loadConversationPacks(), loadDeck(), loadPackMarks()])
         .then(([stored, deck, marks]) => {
-          if (cancelled) return undefined;
+          if (!sameAccount()) return undefined;
           draw(stored, deck, marks);
           if (user === null) return undefined;
           // The cache first, then the server-owned truth. A closed app can miss
           // the original delivery, so this pull is the recovery path.
           return refreshConversationPacks(user, adapter).then((result) => {
-            if (!cancelled && result.ok) draw(result.packs, deck, marks);
+            if (sameAccount() && result.ok) draw(result.packs, deck, marks);
           });
         })
         .catch(() => {
-          // Nothing to draw and nothing to say about a disk. The learner's
-          // conversations are safe on their account either way.
+          // The learner's conversations are safe on their account either way,
+          // but a failed read is not an empty archive. Say so and offer Retry,
+          // unless this same account already has an archive on screen.
+          if (sameAccount()) setUnread(true);
         });
       return () => {
         cancelled = true;
       };
-    }, [user, adapter]),
+    }, [user, adapter, attempt]),
   );
 
   if (showingLibrary) {
     return (
       <ConversationPackLibrary
         packs={packs}
+        initialPackId={openPackId}
         onBack={() => setShowingLibrary(false)}
         onReview={(pack) => nav.navigate('ConversationPractice', { packId: pack.id })}
-        onContinue={(pack) =>
-          nav.navigate('Convo', {
-            seedTopic: { fr: pack.continuationSeed.titleFr, en: pack.continuationSeed.titleEn },
-            continuationPackId: pack.id,
-          })
+        // The tutor revisit is offered only when the plan opens it, by the
+        // same continueArc rule the Tutor tab reads. Otherwise the library
+        // draws no door, and the learner still has Review phrases, which is
+        // module practice and costs no minutes.
+        onContinue={
+          continueArc === true
+            ? (pack) =>
+                nav.navigate('Convo', {
+                  seedTopic: { fr: pack.continuationSeed.titleFr, en: pack.continuationSeed.titleEn },
+                  continuationPackId: pack.id,
+                })
+            : undefined
         }
         onDeleteOne={async (pack) => {
           if (!user) return { ok: false, message: 'Please sign in again before changing your Tutor history.' };
@@ -154,6 +188,27 @@ export function ConversationsScreen({ onBack }: { onBack: () => void }) {
         {CONVERSATIONS_TITLE}
       </Text>
       <Text style={st.purpose}>{CONVERSATIONS_PURPOSE}</Text>
+
+      {archive === null && !unread && (
+        <View style={st.block}>
+          <ActivityIndicator color={paper.inkSoft} accessibilityLabel="Loading your conversations" />
+        </View>
+      )}
+
+      {archive === null && unread && (
+        <Card style={st.block}>
+          <Text style={[type.body, { color: paper.ink }]}>{CONVERSATIONS_UNREAD}</Text>
+          <View style={{ marginTop: space(3) }}>
+            <OutlineButton
+              label={MY_FRENCH_RETRY}
+              onPress={() => {
+                setUnread(false);
+                setAttempt((n) => n + 1);
+              }}
+            />
+          </View>
+        </Card>
+      )}
 
       {archive !== null && archive.filters.length > 0 && (
         <View style={st.block}>

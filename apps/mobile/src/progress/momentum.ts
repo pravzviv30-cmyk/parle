@@ -4,7 +4,7 @@
  * Home's fourth block draws one full-width card and three smaller ones: the
  * phrases this learner has actually used in conversation, the days they have
  * practised, how much of the deck comes back when asked, and today's measured
- * speaking time beside an optional target. Each of the four is a fold over data somebody else owns, each carries
+ * practice time (active learning time) beside an optional target. Each of the four is a fold over data somebody else owns, each carries
  * its own copy, and each is always returned. Where a count would be nought the
  * numeral is withheld and a start line stands in its place.
  *
@@ -184,7 +184,7 @@ export const DAYS_LABEL = 'Days active';
 export const RETAINED_LABEL = 'Retained phrases';
 export const RETAINED_SUB = 'Active vocabulary bank';
 export const MASTERY_LABEL = 'Recall';
-export const GOAL_TITLE = 'Speaking time today';
+export const GOAL_TITLE = 'Practice time today';
 
 /**
  * What each card says before there is a number in it.
@@ -223,27 +223,39 @@ export const MASTERY_LINES = {
  * the number and the number has been met, and "keep going" at that moment is the
  * app moving the line the learner just crossed.
  */
-export const GOAL_MET = 'Your speaking target is complete. Anything else is a bonus.';
+export const GOAL_MET = 'Your practice target is complete. Anything else is a bonus.';
 
 /**
- * Said when today's only spoken sitting recorded no duration.
+ * Said when today's sittings recorded no active time.
  *
- * Sittings from before `durationMs` existed measured nothing, and nothing is
- * not zero minutes of speaking. The line says why without drawing an empty
- * meter that could turn a real conversation into a shortfall.
+ * Sittings from before active learning time existed (Phase 1B) measured
+ * nothing, and nothing is not zero minutes of practice. Their wall-clock
+ * `durationMs` is never read as practice time, because it includes idle and
+ * away time. The line says why without drawing an empty meter that could turn
+ * a real sitting into a shortfall.
  */
-export const GOAL_UNTIMED = "Today's sitting was not timed, so no minutes are shown";
+export const GOAL_UNTIMED = 'Earlier practice today was not timed, so it is not counted in these minutes';
 
 /**
- * What counts as speaking.
+ * The measured amount when today's active time is real but under one whole
+ * minute. Minutes stay floored, so this is said in words rather than as a
+ * nought, and it is never "nothing timed", because something was.
+ */
+export const GOAL_UNDER_MINUTE = 'Under a minute today';
+
+/**
+ * The kinds that put the learner in a situation producing French, spoken or
+ * typed: the same rule `today.ts` counts sittings by.
  *
- * `review` is deliberately not here. The card deck is recall — a phrase read,
- * recognised and graded — and the mockup calls this card a *speaking* goal, so
- * counting review minutes under that name would be false. The other three all
- * put the learner in a situation producing French, whether they spoke it or
- * typed it, which is the same rule `today.ts` counts sittings by.
+ * No longer what the goal card sums. Since Phase 1B the card is Practice time
+ * and sums measured active learning time over `PRACTICE_KINDS`, review
+ * included, because recall is active work and the card no longer claims to be
+ * speaking. Kept exported for any reader of "producing French".
  */
 export const SPOKEN_KINDS: readonly ActivityKind[] = ['convo', 'lesson', 'drill'];
+
+/** Every kind whose measured active time counts toward today's practice time. */
+export const PRACTICE_KINDS: readonly ActivityKind[] = ['convo', 'lesson', 'drill', 'review'];
 
 export interface MomentumDays {
   /**
@@ -344,18 +356,32 @@ export interface MomentumMastery {
 }
 
 export interface MomentumGoal {
-  /** Whole timed spoken minutes today. Zero is allowed, and is worded, not scored. */
+  /** Whole minutes of measured active learning time today, all kinds. Zero is allowed, and is worded, not scored. */
   minutes: number;
   /** What the learner asked for, from `dailyGoalOf`, or null if nobody asked them. */
   target: GoalMinutes | null;
   /** Whole minutes still to go, floored at zero, or null without a target. */
   remaining: number | null;
-  /** "Speaking time today". */
+  /** "Practice time today". */
   title: string;
-  /** '6 min today', the optional target before any measured time, or null when both are absent. */
+  /**
+   * True when any measured active time was recorded today, however little.
+   * Separate from `minutes` because minutes are floored: seven active seconds
+   * are zero minutes and were still timed.
+   */
+  timedToday: boolean;
+  /** '6 min today', `GOAL_UNDER_MINUTE` for a timed day under a minute, or null when nothing was measured today. */
+  measured: string | null;
+  /** `measured`, else the optional target before any measured time, or null when both are absent. */
   amount: string | null;
   /** A gentle invitation, an optional remaining-time line, or the warm line once it is met. */
   note: string;
+  /**
+   * `GOAL_UNTIMED` when a sitting today recorded no active time and `note`
+   * does not already say so, else null. Separate from `note` so a surface can
+   * show both the footer and the legacy explanation, and never say it twice.
+   */
+  untimedNote: string | null;
 }
 
 export interface Momentum {
@@ -685,7 +711,12 @@ function goalNote(remaining: number | null, minutes: number, untimed: boolean): 
 }
 
 /**
- * Today's speaking time, always a card and never an accusation.
+ * Today's practice time, always a card and never an accusation.
+ *
+ * Sums `activeMs` only: measured active learning time, typed or spoken, with
+ * idle and away gaps already left out by the screen's clock. `durationMs` is
+ * wall clock and is never read here. An entry with no `activeMs` is unknown,
+ * so it adds nothing and marks the day as partly untimed.
  *
  * Minutes are floored, never rounded up. This is a claim about time the learner
  * actually spent, and the direction to be wrong in is the modest one.
@@ -694,26 +725,33 @@ function goalFrom(activity: readonly ActivityEntry[], profile: StoredProfile | n
   const target = dailyGoalOf(profile);
   const today = localDayKey(now);
 
-  let spokenMs = 0;
+  let activeMs = 0;
   let untimed = false;
   for (const entry of activity) {
-    if (!SPOKEN_KINDS.includes(entry.kind)) continue;
+    if (!PRACTICE_KINDS.includes(entry.kind)) continue;
     if (localDayKey(entry.at) !== today) continue;
-    if (entry.durationMs === undefined) untimed = true;
-    spokenMs += entry.durationMs ?? 0;
+    if (entry.activeMs === undefined) untimed = true;
+    activeMs += entry.activeMs ?? 0;
   }
 
-  const minutes = Math.floor(spokenMs / 60_000);
+  const minutes = Math.floor(activeMs / 60_000);
+  const timedToday = activeMs > 0;
   const remaining = target === null ? null : Math.max(0, target - minutes);
+  const note = goalNote(remaining, minutes, untimed);
+  const measured = minutes > 0 ? `${minutes} min today` : timedToday ? GOAL_UNDER_MINUTE : null;
   return {
     minutes,
     target,
     remaining,
     title: GOAL_TITLE,
-    // Time already spoken is the first fact, even when no target was chosen.
-    // Before that, a chosen target is named on its own rather than as 0 / N.
-    amount: minutes > 0 ? `${minutes} min today` : target === null ? null : `${target} min target`,
-    note: goalNote(remaining, minutes, untimed),
+    timedToday,
+    measured,
+    // Time already practised is the first fact, even when no target was chosen
+    // and even when it is under a minute. Before any, a chosen target is named
+    // on its own rather than as 0 / N.
+    amount: measured ?? (target === null ? null : `${target} min target`),
+    note,
+    untimedNote: untimed && note !== GOAL_UNTIMED ? GOAL_UNTIMED : null,
   };
 }
 

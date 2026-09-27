@@ -34,15 +34,25 @@ import {
 } from '@luvani/core';
 
 import type { ScenarioRecord } from './progressStore.ts';
+import { LESSON_MINUTES } from '../copy/access.ts';
 
 /** Shown before the first conversation, and never again. */
 export const PROMISE = 'Your tutor will help you find your first useful French line.';
 
 /** The just-in-time permission promise, beside the first scene rather than behind it. */
-export const MICROPHONE_NOTICE = 'The microphone opens only when you tap the circle. You can type instead.';
+export const MICROPHONE_NOTICE = 'In a conversation, the microphone opens only when you tap the circle. You can type instead.';
 
 export const CHOOSER_HEADLINE = 'What do you want to practise?';
 export const CHOOSER_SUB = 'Choose a real situation. Your tutor plays the other person and helps when you need it.';
+
+/**
+ * What a situation costs, said before one is chosen (whole-app Stage 3A).
+ *
+ * Every card opens the live tutor, spoken or typed, and that is metered. The
+ * line names the unit the rest of the app uses and no price or plan: which
+ * plan buys how many minutes is the Plans screen's to say.
+ */
+export const CHOOSER_ACCESS = 'Each situation is a live conversation with your tutor, spoken or typed, and uses live minutes.';
 
 /** The free path, kept as a peer rather than demoted to a footnote. */
 export const TALK_FREELY = 'Talk freely about something else';
@@ -79,6 +89,13 @@ export const CHOOSER_OTHER = 'Other situations';
 export const LESSON_DOOR = {
   title: 'Pronunciation lesson: Au café',
   quiet: 'Read and type this one instead',
+  /**
+   * What the lesson costs, said on both of its doors (Stage 4, 2026-09-25).
+   * With a tutor connected the navigator opens the metered live lesson; offline
+   * it runs the scripted one on this phone. The shared vocabulary says exactly
+   * that condition.
+   */
+  minutes: LESSON_MINUTES,
 } as const;
 
 export interface MissionRoute {
@@ -110,6 +127,8 @@ export interface ChooserView {
   promise: string | null;
   /** Null once the learner has already crossed the speaking door. */
   microphoneNotice: string | null;
+  /** That a situation uses live minutes, always, before any card. */
+  access: string;
   cards: ChooserCard[];
   talkFreely: string;
 }
@@ -187,6 +206,7 @@ export function chooserView(input: ChooserInput): ChooserView {
     sub: CHOOSER_SUB,
     promise: input.spokenBefore ? null : PROMISE,
     microphoneNotice: input.spokenBefore ? null : MICROPHONE_NOTICE,
+    access: CHOOSER_ACCESS,
     cards: ordered.map((p, i) => ({
       id: p.mission.id,
       mission: p.mission,
@@ -211,6 +231,19 @@ export function chooserView(input: ChooserInput): ChooserView {
  */
 export function hasSpokenBefore(activity: readonly { kind: string }[]): boolean {
   return activity.some((entry) => entry.kind === 'convo' || entry.kind === 'lesson');
+}
+
+/**
+ * Has this learner done any practice or review, spoken or not?
+ *
+ * The companion to `hasSpokenBefore`, and deliberately not folded into it: the
+ * promise line and the café-first rule are about a first CONVERSATION, which
+ * typed practice does not change. What it does change is the wording. Home
+ * calls the café "Your first French" only for somebody who has done nothing
+ * yet; after a drill or a review it is their first conversation.
+ */
+export function hasPractisedBefore(activity: readonly { kind: string }[]): boolean {
+  return activity.some((entry) => entry.kind === 'drill' || entry.kind === 'review');
 }
 
 /**

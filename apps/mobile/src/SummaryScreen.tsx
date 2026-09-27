@@ -8,12 +8,19 @@
  *
  * Digits are welcome here — the no-numbers rule holds only mid-session, and an
  * end card that cannot say "9 words" would be coy rather than calm.
+ *
+ * Whole-app Stage 3A (2026-09-25) set the reading order: what went well, the
+ * one sound, practise it, Done. The long-run headlines, the notebook with
+ * Review and the Anki export, and another go at the conversation are behind one
+ * closed More. The sound is met as a word; its symbol and the scorer's reason
+ * are a detail the learner opens.
  */
 
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@luvani/core';
-import { accent, HAIRLINE, paper, radius, signal, space, type } from './theme.ts';
+import { accent, HAIRLINE, HIT, paper, radius, signal, space, type } from './theme.ts';
+import { SOUND_DETAIL, heldSoundsLine, soundExampleWord, soundInWord } from './tutor/soundExample.ts';
 import { Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
 import { ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useHardwareBack } from './nav/useHardwareBack.ts';
@@ -42,6 +49,14 @@ export function SummaryScreen({
 }) {
   const focus = summary.pronunciation.focus;
   const [drilling, setDrilling] = useState(false);
+  const [more, setMore] = useState(false);
+  const [soundDetail, setSoundDetail] = useState(false);
+  // A word first: the one this learner said worst in this lesson, else the
+  // inventory's own beginner example. The symbol is behind the toggle.
+  const focusWord = focus ? soundExampleWord(focus.phoneme.ipa, focus.stat.worstWord) ?? focus.phoneme.ipa : '';
+  const heldWords = summary.pronunciation.wins
+    .map((w) => soundExampleWord(w.ipa))
+    .filter((word): word is string => word !== null);
   // The focus drill opens in place, so Android's hardware back closes it back to
   // the card rather than popping the whole end card off the stack.
   useHardwareBack(drilling, () => setDrilling(false));
@@ -78,18 +93,46 @@ export function SummaryScreen({
           </Text>
         </View>
 
+        {/* ── what went well ────────────────────────────────────────── */}
+        <View>
+          <Label>Your practice today</Label>
+          <View style={st.stats}>
+            <Stat value={String(summary.wordsProduced.length)} label="Words used" />
+            <Stat value={`${summary.longestTurnSec.toFixed(1)}s`} label="Longest turn" />
+          </View>
+        </View>
+
+        {heldWords.length > 0 && (
+          <View style={st.wins}>
+            <Label color={signal.good}>What held up</Label>
+            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1.5) }]}>{heldSoundsLine(heldWords)}</Text>
+          </View>
+        )}
+
         {/* ── the one thing to work on ───────────────────────────────── */}
         {focus ? (
           <View style={{ gap: space(3) }}>
             <Card>
               <Label>One sound to practise next</Label>
-              <Text style={[type.frenchLg, { color: paper.ink, marginTop: space(2.5) }]}>/{focus.phoneme.ipa}/</Text>
-              <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{focus.reason}</Text>
-              <View style={st.divider} />
-              <Text style={[type.bodyStrong, { color: paper.ink }]}>{focus.phoneme.cue}</Text>
+              {/* A word first, because a beginner can hear a word in their
+                  head and cannot hear a symbol. The notation and the scorer's
+                  reason are there for anyone who opens them. */}
+              <Text style={[type.frenchLg, { color: paper.ink, marginTop: space(2.5) }]}>{soundInWord(focusWord)}</Text>
+              <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{focus.phoneme.cue}</Text>
               {focus.phoneme.trick && (
                 <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{focus.phoneme.trick}</Text>
               )}
+              <View style={st.divider} />
+              <Pressable
+                onPress={() => setSoundDetail((open) => !open)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: soundDetail }}
+                style={({ pressed }) => [st.disclosure, pressed && st.pressed]}
+              >
+                <Text style={[type.small, { color: paper.ink }]}>{soundDetail ? SOUND_DETAIL.hide : SOUND_DETAIL.show}</Text>
+              </Pressable>
+              {soundDetail && <Text style={[type.notation, { color: paper.inkSoft }]}>/{focus.phoneme.ipa}/</Text>}
+              {soundDetail && <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{focus.reason}</Text>}
             </Card>
 
             {/* the drill */}
@@ -120,7 +163,7 @@ export function SummaryScreen({
                       <Text style={[type.french, { color: paper.ink }]}>{i.word}</Text>
                       <Text style={[type.small, { color: paper.inkSoft }]}>{i.gloss}</Text>
                     </View>
-                    <Text style={[type.notation, { color: paper.inkSoft }]}>/{i.ipa}/</Text>
+                    {soundDetail && <Text style={[type.notation, { color: paper.inkSoft }]}>/{i.ipa}/</Text>}
                   </View>
                 ))}
               </View>
@@ -147,83 +190,82 @@ export function SummaryScreen({
           <Card>
             <Text style={[type.title, { color: paper.ink }]}>Your pronunciation was not assessed.</Text>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
-              There was no pronunciation result for this lesson. You can still review the French you practised below.
+              There was no pronunciation result for this lesson. The French you practised is under More.
             </Text>
           </Card>
         ) : (
           <Card>
             <Text style={[type.title, { color: paper.ink }]}>Keep building on this.</Text>
             <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
-              No focus sound was selected this time. Try the conversation again, or revisit your words below.
+              No focus sound was selected this time. Your words and another go at the conversation are under More.
             </Text>
           </Card>
         )}
 
-        {/* ── what actually moved ───────────────────────────────────── */}
-        <View>
-          <Label>Your practice today</Label>
-          <View style={st.stats}>
-            <Stat value={String(summary.wordsProduced.length)} label="Words used" />
-            <Stat value={`${summary.longestTurnSec.toFixed(1)}s`} label="Longest turn" />
-          </View>
-        </View>
-
-        {summary.pronunciation.wins.length > 0 && (
-          <View style={st.wins}>
-            <Label color={signal.good}>What held up</Label>
-            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1.5) }]}>
-              You held {summary.pronunciation.wins.map((w) => `/${w.ipa}/`).join(', ')} steady in this lesson.
-            </Text>
-          </View>
-        )}
-
-        {/* The since-you-started block. Only appears once there is real history,
-            and never more than three sentences. Proof of progress, not a dashboard. */}
-        {report && report.sessionCount >= 2 && report.headlines.length > 0 && (
-          <Card>
-            <Label color={signal.good}>Since you started</Label>
-            <View style={{ marginTop: space(2.5), gap: space(2) }}>
-              {report.headlines.map((h) => (
-                <Text key={h} style={[type.bodyStrong, { color: paper.ink }]}>
-                  {h}
-                </Text>
-              ))}
-            </View>
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2.5) }]}>
-              {report.sessionCount} sessions so far
-            </Text>
-          </Card>
-        )}
-
-        {summary.wordsProduced.length > 0 && (
-          <View>
-            <Label>Your notebook</Label>
-            {/* One white card of lines rather than a scatter of chips: the
-                mockup sets what the learner said as a list you read down, and
-                a chip that wraps mid-phrase stops being a chip (F584). */}
-            <Card style={st.words}>
-              {summary.wordsProduced.map((w, index) => (
-                <View key={w} style={[st.word, index > 0 && st.worded]}>
-                  <Text style={[type.frenchSm, { color: paper.ink }]}>{w}</Text>
-                </View>
-              ))}
-            </Card>
-            {onReview && (
-              <View style={{ marginTop: space(3.5) }}>
-                <OutlineButton label="Review" onPress={onReview} />
-              </View>
-            )}
-            <View style={{ marginTop: space(1.5) }}>
-              <GhostButton label="Export to Anki" onPress={exportCards} />
-            </View>
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1.5), textAlign: 'center' }]}>
-              Downloads your words as flashcards you can import into Anki or any deck app.
-            </Text>
-          </View>
-        )}
-
-        <OutlineButton label="Practise the conversation again" onPress={onAgain} />
         <GhostButton label="Finish lesson" onPress={onDone} />
+
+        {/* ── More: everything else, one tap away and closed by default ──
+            Drawn after Done so opening it never pushes the way out down. */}
+        <View>
+          <Pressable
+            onPress={() => setMore((open) => !open)}
+            accessibilityRole="button"
+            accessibilityLabel={more ? 'Hide more from this lesson' : 'More from this lesson'}
+            accessibilityState={{ expanded: more }}
+            style={({ pressed }) => [st.disclosure, pressed && st.pressed]}
+          >
+            <Text style={[type.small, { color: paper.ink }]}>{more ? 'Show less' : 'More'}</Text>
+          </Pressable>
+          {more && (
+            <View style={st.more}>
+              {/* The since-you-started block. Only appears once there is real
+                  history, and never more than three sentences. */}
+              {report && report.sessionCount >= 2 && report.headlines.length > 0 && (
+                <Card>
+                  <Label color={signal.good}>Since you started</Label>
+                  <View style={{ marginTop: space(2.5), gap: space(2) }}>
+                    {report.headlines.map((h) => (
+                      <Text key={h} style={[type.bodyStrong, { color: paper.ink }]}>
+                        {h}
+                      </Text>
+                    ))}
+                  </View>
+                  <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2.5) }]}>
+                    {report.sessionCount} sessions so far
+                  </Text>
+                </Card>
+              )}
+
+              {summary.wordsProduced.length > 0 && (
+                <View>
+                  <Label>Your notebook</Label>
+                  {/* One white card of lines rather than a scatter of chips
+                      (F584). */}
+                  <Card style={st.words}>
+                    {summary.wordsProduced.map((w, index) => (
+                      <View key={w} style={[st.word, index > 0 && st.worded]}>
+                        <Text style={[type.frenchSm, { color: paper.ink }]}>{w}</Text>
+                      </View>
+                    ))}
+                  </Card>
+                  {onReview && (
+                    <View style={{ marginTop: space(3.5) }}>
+                      <OutlineButton label="Review" onPress={onReview} />
+                    </View>
+                  )}
+                  <View style={{ marginTop: space(1.5) }}>
+                    <GhostButton label="Export to Anki" onPress={exportCards} />
+                  </View>
+                  <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1.5), textAlign: 'center' }]}>
+                    Downloads your words as flashcards you can import into Anki or any deck app.
+                  </Text>
+                </View>
+              )}
+
+              <OutlineButton label="Practise the conversation again" onPress={onAgain} />
+            </View>
+          )}
+        </View>
       </View>
     </ScrollScreen>
   );
@@ -254,6 +296,9 @@ const st = StyleSheet.create({
     borderLeftColor: signal.good,
     paddingLeft: space(3.5),
   },
+  disclosure: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
+  pressed: { opacity: 0.6 },
+  more: { gap: space(7), marginTop: space(3) },
   words: { marginTop: space(3) },
   word: { paddingVertical: space(2) },
   worded: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },

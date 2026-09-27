@@ -14,6 +14,8 @@
  * non-serialisable is ever put into navigation state.
  */
 
+import type { PracticeRouteOrigin } from '../practice/practiceRoute.ts';
+
 export type TabParamList = {
   Home: undefined;
   Tutor: undefined;
@@ -52,12 +54,21 @@ export type RootStackParamList = {
    * after the room publishes its first real view. Keeping it in navigation
    * state rather than stamping it on the Tutor-tab tap means an offline or
    * refused start cannot erase a thread the learner never reached.
+   *
+   * `goalRef` and `goalTask` say this conversation was opened from one of the
+   * learner's goals (Stage 4): the goal's opaque route key (`goals/rows.ts`
+   * `goalRouteKey`) and the task id, two flat strings. Never the goal's words,
+   * because on the web a route's params are the address bar; the route looks
+   * the goal up again from the profile. It is recorded only once the room is
+   * real, and it never rides to the agent; a goal is not a seed topic.
    */
   Convo: {
     textMode?: boolean;
     seedTopic?: { fr: string; en: string };
     missionId?: string;
     continuationPackId?: string;
+    goalRef?: string;
+    goalTask?: string;
   } | undefined;
   /**
    * The mission chooser. A stack screen rather than a tab or an onboarding
@@ -85,11 +96,39 @@ export type RootStackParamList = {
          * opens the ordinary deck.
          */
         ownWords?: { fr: string; en: string; situation: string };
+        /**
+         * A practice-now sitting, as flat strings only (`practice/practiceRoute.ts`).
+         * On the web these are the address bar, so nothing here is an object:
+         * the screen rebuilds the selection from the learner's stores and reads
+         * these back through `parsePracticeRoute`, which refuses what it cannot
+         * read. Absent, the drill is the ordinary scheduled sitting, unchanged.
+         */
+        practice?: PracticeRouteOrigin;
+        packId?: string;
+        exposed?: '1';
       }
     | undefined;
   Review: undefined;
   /** A known-reference pronunciation check after a completed situation. */
-  SoundCheck: { missionId: string };
+  /**
+   * Optional because the web route can be opened cold (`/sound-check`) with no
+   * params at all. The route validates it and never invents a situation.
+   */
+  SoundCheck: { missionId?: string } | undefined;
+  /**
+   * The focused sound journey (Stage 4): one sound across the measured checks
+   * that called it out. No params: it reads the sound-check store itself, so a
+   * cold link and a tap from My French draw the same thing.
+   */
+  SoundJourney: undefined;
+  /**
+   * One goal, its next task and what came of it (Stage 4). `key` is the goal's
+   * opaque route key (`goals/rows.ts` `goalRouteKey`), never the learner's own
+   * words, because on the web a route's params are the address bar. The screen
+   * looks the goal up from the profile by it, and says a goal is gone when no
+   * goal the profile holds has that key.
+   */
+  GoalStep: { key: string };
   /**
    * The account, the subscription, the documents and the phone's permissions.
    *
@@ -162,6 +201,11 @@ export type RootStackParamList = {
    * place. Data and privacy in Settings points here too, because the screen
    * that lists saved conversations is also the screen that deletes them.
    */
-  Conversations: undefined;
+  /**
+   * `packId` opens straight onto that saved conversation, which is how My
+   * French's recent conversations reach the one a row names. A pack that is no
+   * longer here simply opens the list.
+   */
+  Conversations: { packId?: string } | undefined;
   ConversationPractice: { packId: string };
 };

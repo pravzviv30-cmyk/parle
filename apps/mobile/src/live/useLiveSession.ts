@@ -418,6 +418,15 @@ export interface LiveSession {
   waitingForTutor: boolean;
   /** Filled in when a session fails. Null otherwise. */
   diagnostics: LiveDiagnostics | null;
+  /**
+   * The server's id for the session this screen holds, from its grant.
+   *
+   * Read-only, and null until a grant for the current start has arrived; every
+   * new start clears it first, so a rebuilt session never reports the old id.
+   * It proves only that a grant was issued, not that a room opened or a tutor
+   * spoke: a caller that records a room as started must also wait for a view.
+   */
+  sessionId: string | null;
   /** Restart playback — call from a tap so the gesture satisfies autoplay policy. */
   resumeAudio: () => void;
   /**
@@ -561,6 +570,7 @@ export function useLiveSession(
   const [reconnecting, setReconnecting] = useState(false);
   const [waitingForTutor, setWaitingForTutor] = useState(false);
   const [diagnostics, setDiagnostics] = useState<LiveDiagnostics | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Destructured so `start` does not churn on every render just because the
   // caller wrote the options object inline.
@@ -729,6 +739,8 @@ export function useLiveSession(
     setStatus({ phase: 'connecting' });
     setWaitingForTutor(false);
     setDiagnostics(null);
+    // A new start is a new session: the old grant's id must not survive into it.
+    setSessionId(null);
     diagRef.current = emptyDiagnostics();
     heardAgentRef.current = false;
     sessionOpenedRef.current = false;
@@ -738,6 +750,9 @@ export function useLiveSession(
     safetyRef.current = null;
     setSafety(null);
     setTurns([]);
+    // The last room's view goes with its turns: a rebuilt session is a new one,
+    // and it is open only once its own agent publishes a view (Stage 4).
+    setConvo(null);
     setThinking(false);
     setMicOpen(false);
     setReconnecting(false);
@@ -850,6 +865,9 @@ export function useLiveSession(
       // The last gate before a room exists at all. Everything past here has to
       // be given back rather than simply skipped.
       if (await abandoned()) return;
+      // Published only once this attempt still owns the session, and only when
+      // the grant actually named one; nothing here invents an id.
+      setSessionId(typeof grant.sessionId === 'string' && grant.sessionId !== '' ? grant.sessionId : null);
       diagRef.current.livekitUrl = grant.livekitUrl;
       trace('token', {
         status: res.status,
@@ -1410,6 +1428,7 @@ export function useLiveSession(
     reconnecting,
     waitingForTutor,
     diagnostics,
+    sessionId,
     resumeAudio,
     openMic,
     switchToText,

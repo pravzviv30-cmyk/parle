@@ -15,7 +15,7 @@
  * paths do not diverge, and so no route ever has to carry a summary object.
  */
 
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -46,8 +46,11 @@ import { PhrasebookScreen } from '../phrases/PhrasebookScreen.tsx';
 import { ConversationsScreen } from '../conversationPacks/ConversationsScreen.tsx';
 import { ConversationPracticeScreen } from '../conversationPacks/ConversationPracticeScreen.tsx';
 import { PRACTICE_PREVIEW } from '../conversationPacks/practicePreview.ts';
+import { loadSampleConversation, sampleAllowed } from '../conversationPacks/sampleFixture.ts';
+import { parsePracticeRoute, practiceRouteParams } from '../practice/practiceRoute.ts';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
-import { snapshotFor } from '../profile/memory.ts';
+import { factKey, snapshotFor } from '../profile/memory.ts';
+import { goalRouteKey } from '../goals/rows.ts';
 import { markPackPractised, packIdOfNode } from '../conversationPacks/marks.ts';
 import { missionReplay, type MissionReplay } from '../missions/chooserView.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
@@ -64,6 +67,8 @@ import { DailyPracticeScreen } from '../daily/DailyPracticeScreen.tsx';
 import { DailyLibraryScreen } from '../daily/DailyLibraryScreen.tsx';
 import { SettingsScreen } from '../settings/SettingsScreen.tsx';
 import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
+import { SoundJourneyScreen } from '../soundcheck/SoundJourneyScreen.tsx';
+import { GoalStepScreen } from '../goals/GoalStepScreen.tsx';
 import { LuvaniTabBar } from './LuvaniTabBar.tsx';
 import type { RootStackParamList, TabParamList } from './types.ts';
 import type { AuthResult } from '../auth/types.ts';
@@ -97,13 +102,31 @@ function Loading() {
   );
 }
 
+/**
+ * Back when there is a screen behind this one, otherwise the tabs. On the web
+ * a pushed screen can be opened cold by a reload or a shared address, and a
+ * bare goBack then does nothing at all (GO_BACK not handled), leaving the
+ * learner on a Done or Leave that is dead.
+ */
+function backOrTabs(nav: {
+  canGoBack: () => boolean;
+  goBack: () => void;
+  navigate: (screen: 'Tabs', params?: { screen: keyof TabParamList }) => void;
+}, tab?: keyof TabParamList): void {
+  if (nav.canGoBack()) nav.goBack();
+  else nav.navigate('Tabs', tab === undefined ? undefined : { screen: tab });
+}
+
 /** The guided lesson, and the end card it finishes on. */
 function LessonRoute() {
   const nav = useNavigation<{
+    canGoBack: () => boolean;
     goBack: () => void;
-    navigate: (screen: keyof RootStackParamList) => void;
+    navigate: ((screen: 'Tabs', params?: { screen: keyof TabParamList }) => void) &
+      ((screen: keyof RootStackParamList) => void);
     setParams: (p: { textMode?: boolean }) => void;
   }>();
+  const leave = () => backOrTabs(nav);
   const route = useRoute<RouteProp<RootStackParamList, 'Lesson'>>();
   const textMode = route.params?.textMode ?? false;
   const { user } = useAuth();
@@ -123,7 +146,7 @@ function LessonRoute() {
     };
   }, []);
 
-  const finish = useCallback((s: SessionSummary) => {
+  const finish = useCallback((s: SessionSummary, timing?: { activeMs: number }) => {
     // Show the card immediately; the history write catches up and fills the
     // since-you-started block when it lands. A slow disk must not delay it.
     setSummary(s);
@@ -136,7 +159,11 @@ function LessonRoute() {
       'lesson',
       lessonXp({ wordsProduced: s.wordsProduced, unassistedRate: s.unassistedRate }),
       Date.now(),
-      { durationMs: Math.round(s.durationSec * 1000) },
+      // Active learning time only when the screen measured it. A driver that
+      // reports none writes none: the wall-clock duration is never copied in.
+      timing === undefined
+        ? { durationMs: Math.round(s.durationSec * 1000) }
+        : { durationMs: Math.round(s.durationSec * 1000), activeMs: timing.activeMs },
     );
     // The session's words become review cards, through the outbox the
     // conversation has used since Phase 4. `addFromSummary` still compiles and
@@ -176,7 +203,7 @@ function LessonRoute() {
         report={report}
         onAgain={again}
         onReview={() => nav.navigate('Review')}
-        onDone={() => nav.goBack()}
+        onDone={leave}
       />
     );
   }
@@ -190,11 +217,11 @@ function LessonRoute() {
         textMode={textMode}
         onRetryAsText={() => nav.setParams({ textMode: true })}
         onFinish={finish}
-        onExit={() => nav.goBack()}
+        onExit={leave}
       />
     </Suspense>
   ) : (
-    <SessionScreen key="mock" lesson={CAFE_LESSON} startRung={startRung} textMode={textMode} onFinish={finish} onExit={() => nav.goBack()} />
+    <SessionScreen key="mock" lesson={CAFE_LESSON} startRung={startRung} textMode={textMode} onFinish={finish} onExit={leave} />
   );
 }
 
@@ -210,15 +237,28 @@ function LessonRoute() {
  */
 function ConvoRoute() {
   const nav = useNavigation<{
+    canGoBack: () => boolean;
     goBack: () => void;
+    navigate: (screen: 'Tabs', params?: { screen: keyof TabParamList }) => void;
     replace: (screen: 'Drill', params: NonNullable<RootStackParamList['Drill']>) => void;
   }>();
+  const leave = () => backOrTabs(nav);
   const route = useRoute<RouteProp<RootStackParamList, 'Convo'>>();
   const { user } = useAuth();
   const { profile, updateBrain } = useProfile();
   const { live, recheck } = useLive();
   const [checking, setChecking] = useState(false);
   const missionId = route.params?.missionId;
+  // Opened from a goal (Stage 4): the route carries the goal's opaque key and
+  // the task, never the goal's words, so the step is made here from the
+  // profile. A key that names no goal the profile holds records nothing.
+  const goalStep = useMemo(() => {
+    const ref = route.params?.goalRef;
+    const task = route.params?.goalTask;
+    if (ref === undefined || task === undefined) return undefined;
+    const goal = profile.learnerGoals.find((held) => goalRouteKey(held) === ref);
+    return goal === undefined ? undefined : { goalKey: factKey(goal), task };
+  }, [profile.learnerGoals, route.params?.goalRef, route.params?.goalTask]);
   const [reviewDeck, setReviewDeck] = useState<ReviewCard[] | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -302,7 +342,7 @@ function ConvoRoute() {
           />
         </View>
         <View style={st.gateSecondary}>
-          <GhostButton label={TUTOR_OFFLINE.back} onPress={() => nav.goBack()} />
+          <GhostButton label={TUTOR_OFFLINE.back} onPress={leave} />
         </View>
       </View>
     );
@@ -321,7 +361,7 @@ function ConvoRoute() {
         // the agent, and `snapshotFor` is the one place it is composed.
         snapshot={snapshotFor(profile, reviewDeck)}
         onRecap={onRecap}
-        onExit={() => nav.goBack()}
+        onExit={leave}
         onPractice={(phrase) => nav.replace('Drill', { ownWords: phrase })}
         startInTextMode={route.params?.textMode ?? false}
         seedTopic={route.params?.seedTopic}
@@ -336,6 +376,9 @@ function ConvoRoute() {
         // one ended. Null for a first attempt and for every conversation that
         // is not a mission, which is the whole of today's behaviour.
         replay={replayRead.replay}
+        // Opened from a goal card (Stage 4): recorded once the room is real,
+        // and never sent to the agent.
+        goalStep={goalStep}
       />
     </Suspense>
   );
@@ -352,24 +395,51 @@ async function markPractisedNode(nodeId: string): Promise<void> {
 }
 
 function DrillRoute() {
-  const nav = useNavigation<{ goBack: () => void }>();
+  const nav = useNavigation<{
+    goBack: () => void;
+    canGoBack: () => boolean;
+    navigate: (screen: 'Tabs', params?: { screen: keyof TabParamList }) => void;
+  }>();
   const route = useRoute<RouteProp<RootStackParamList, 'Drill'>>();
   const { user } = useAuth();
   if (!user) return <Loading />;
+  // Read back through the one parser: on the web these are the address bar,
+  // and a value that cannot be read is refused, not guessed at.
+  const practice = parsePracticeRoute(route.params) ?? undefined;
   return (
     <DrillScreen
       userId={user.id}
       node={route.params?.node}
       mix={route.params?.mix ?? false}
-      onDone={() => nav.goBack()}
+      practice={practice}
+      // Every way out of the drill (Leave, Done, an unreadable link, a sitting
+      // that cannot resume) comes through here. With a screen behind it, back
+      // is back. Opened cold, by a reload or a shared address, there is nothing
+      // behind it, so a practice sitting returns to the Practice tab and any
+      // other drill to the tabs, rather than a Leave that does nothing.
+      onDone={() => {
+        if (nav.canGoBack()) nav.goBack();
+        else if (practice !== undefined) nav.navigate('Tabs', { screen: 'Practice' });
+        else nav.navigate('Tabs');
+      }}
       onFinished={(nodeId) => void markPractisedNode(nodeId)}
+      // The existing phone-only mark, kept for compatibility with the next
+      // step and the session cards. Only a pack whose own targets were
+      // answered is marked; review alone names none.
+      onPracticeFinished={(packId) => {
+        if (packId !== null) void markPackPractised(packId, Date.now());
+      }}
     />
   );
 }
 
 function ReviewRoute() {
-  const nav = useNavigation<{ goBack: () => void }>();
-  return <ReviewScreen onDone={() => nav.goBack()} />;
+  const nav = useNavigation<{
+    canGoBack: () => boolean;
+    goBack: () => void;
+    navigate: (screen: 'Tabs', params?: { screen: keyof TabParamList }) => void;
+  }>();
+  return <ReviewScreen onDone={() => backOrTabs(nav, 'Practice')} />;
 }
 
 function PolicyRoute() {
@@ -454,25 +524,60 @@ function PhrasebookRoute() {
 
 function ConversationsRoute() {
   const nav = useNavigation<{ goBack: () => void; canGoBack: () => boolean; navigate: (screen: string) => void }>();
-  return <ConversationsScreen onBack={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'))} />;
+  const route = useRoute<RouteProp<RootStackParamList, 'Conversations'>>();
+  return (
+    <ConversationsScreen
+      openPackId={route.params?.packId}
+      onBack={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'))}
+    />
+  );
 }
 
 function ConversationPracticeRoute() {
   const route = useRoute<RouteProp<RootStackParamList, 'ConversationPractice'>>();
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { user, adapter } = useAuth();
   const preview = __DEV__ && route.params.packId === 'preview';
+  // The sample loader is offered only on the preview, only with a signed-in
+  // user, and only when `sampleAllowed` says this is a local mock build. The
+  // loader checks all of it again itself before it writes.
+  const canLoadSample = preview && user !== null && sampleAllowed(adapter);
   return <ConversationPracticeScreen key={route.params.packId} packId={route.params.packId}
     previewPack={preview ? PRACTICE_PREVIEW : undefined}
+    onLoadSample={canLoadSample ? () => loadSampleConversation(user, adapter).then((result) =>
+      result.ok
+        ? result.added ? 'Sample added. Open Practice to try it.' : 'The sample is already here. Open Practice to try it.'
+        : result.reason === 'not-allowed' ? 'Samples are only for a local development account.' : 'The sample could not be added. Try again.') : undefined}
     onBack={() => nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs')}
-    onRecall={(node) => preview ? nav.navigate('Tabs') : nav.replace('Drill', { node })} />;
+    // Recall after the warm-up is a practice sitting on this conversation, due
+    // or not, and `exposed`: the warm-up just showed and played these lines,
+    // so nothing answered next is reported as unaided recall.
+    onRecall={(node, exposed) => preview
+      ? nav.navigate('Tabs')
+      : nav.replace('Drill', practiceRouteParams({ origin: 'pack', packId: node.id, exposed }))} />;
 }
 
 function SoundCheckRoute() {
-  const nav = useNavigation<{ goBack: () => void }>();
+  const nav = useNavigation<{
+    canGoBack: () => boolean;
+    goBack: () => void;
+    navigate: (screen: 'Tabs' | 'Missions', params?: { screen: keyof TabParamList }) => void;
+  }>();
   const route = useRoute<RouteProp<RootStackParamList, 'SoundCheck'>>();
   const { user } = useAuth();
   if (!user) return <Loading />;
-  return <SoundCheckScreen userId={user.id} missionId={route.params.missionId} onDone={() => nav.goBack()} />;
+  // A cold `/sound-check` has no params. Read what is there, and pass null
+  // rather than guess a situation: the screen asks the learner to choose one.
+  const raw = route.params?.missionId;
+  const missionId = typeof raw === 'string' && raw.length > 0 ? raw : null;
+  return (
+    <SoundCheckScreen
+      userId={user.id}
+      missionId={missionId}
+      onDone={() => backOrTabs(nav)}
+      onChooseSituation={() => nav.navigate('Missions')}
+    />
+  );
 }
 
 /**
@@ -550,6 +655,8 @@ export function RootNavigator({
       <Stack.Screen name="Drill" component={DrillRoute} />
       <Stack.Screen name="Review" component={ReviewRoute} />
       <Stack.Screen name="SoundCheck" component={SoundCheckRoute} />
+      <Stack.Screen name="SoundJourney" component={SoundJourneyScreen} />
+      <Stack.Screen name="GoalStep" component={GoalStepScreen} />
       <Stack.Screen name="Missions" component={MissionsScreen} />
       <Stack.Screen name="RealMoment" component={RealMomentRoute} />
       <Stack.Screen name="TutorMemory" component={TutorMemoryRoute} />

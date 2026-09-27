@@ -1303,3 +1303,50 @@ describe('the voice the learner chose, on its way to the agent — F291', () => 
     }
   });
 });
+
+describe('the session id the hook exposes, for source-linked history', () => {
+  const HOOK = read('./useLiveSession.ts');
+
+  test('the id is cleared by every start and published only from an owned grant', () => {
+    const startAt = HOOK.indexOf('const start = useCallback(async () => {');
+    assert.ok(startAt > 0, 'the start callback moved; this test is stale');
+    const start = HOOK.slice(startAt, HOOK.indexOf('const room = new Room();', startAt));
+    const cleared = start.indexOf('setSessionId(null);');
+    const fetched = start.indexOf('/session/start');
+    const granted = start.indexOf('heldSessionId = grant.sessionId;');
+    const published = start.indexOf('setSessionId(typeof grant.sessionId');
+    assert.ok(cleared > 0 && cleared < fetched, 'a new start does not clear the last session id before asking for a grant');
+    assert.ok(published > granted, 'the id is published before the grant arrives');
+    const between = start.slice(granted, published);
+    assert.match(between, /if \(await abandoned\(\)\) return;/, 'an abandoned start can still publish its id');
+    assert.equal((HOOK.match(/setSessionId\(/g) ?? []).length, 2, 'the id is set somewhere other than the clear and the grant');
+  });
+
+  // Stage 4 (2026-09-25): a rebuilt session is a new session, so the last
+  // session's view must not survive into it. Without this, the typed-door
+  // rebuild would publish the new grant's id while `convo` still held the old
+  // room's view, and ConvoScreen's goal-step and revisit effects would record
+  // the new id before the new room was real.
+  test('every start clears the last view before it asks for a grant, and nothing else clears it — Stage 4', () => {
+    const startAt = HOOK.indexOf('const start = useCallback(async () => {');
+    assert.ok(startAt > 0, 'the start callback moved; this test is stale');
+    const start = HOOK.slice(startAt, HOOK.indexOf('const room = new Room();', startAt));
+    const cleared = start.indexOf('setConvo(null);');
+    const fetched = start.indexOf('/session/start');
+    const published = start.indexOf('setSessionId(typeof grant.sessionId');
+    assert.ok(cleared > 0, 'a new start keeps the last session\'s view, so a rebuilt room reads as open before it is');
+    const code = start.replace(/\/\/.*$/gm, '').replace(/\s+/g, ' ');
+    assert.match(code, /setTurns\(\[\]\); setConvo\(null\);/, 'the view is cleared somewhere other than beside the turns it belongs with');
+    assert.ok(cleared < fetched && cleared < published, 'the view is cleared after the grant, so the new id can meet the old view');
+    // Exactly the two sites: the clear here and the view the agent publishes.
+    assert.equal((HOOK.match(/setConvo\(/g) ?? []).length, 2, 'the view is set somewhere other than the clear and the published view');
+    assert.match(HOOK, /setConvo\(msg\.view\);/, 'the published view no longer reaches convo');
+  });
+
+  test('the hook returns the id read-only, and the interface says what it does not prove', () => {
+    const iface = HOOK.slice(HOOK.indexOf('export interface LiveSession {'), HOOK.indexOf('export function useLiveSession('));
+    assert.match(iface, /sessionId: string \| null;/);
+    const returned = HOOK.slice(HOOK.lastIndexOf('  return {'));
+    assert.match(returned, /\n\s+sessionId,\n/, 'the hook does not return the session id');
+  });
+});

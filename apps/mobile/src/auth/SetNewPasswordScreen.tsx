@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { View, Text } from 'react-native';
 import { paper, space, type, signal } from '../theme.ts';
-import { Card, PillButton, Field } from '../components.tsx';
+import { Card, GhostButton, PillButton, Field } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useAuth } from './useAuth.tsx';
 import { PASSWORD_MIN, passwordTooShort } from './validate.ts';
@@ -14,6 +14,20 @@ import { authButtonLabel } from './busyLabel.ts';
 
 export function SetNewPasswordScreen({ onDone }: { onDone: () => void }) {
   const { adapter } = useAuth();
+  // A way out that grants nothing. The recovery link signed this device in
+  // only to choose a password, so leaving without one signs it out again: the
+  // learner lands on sign in, and no reset link becomes a way into the app.
+  const [leaving, setLeaving] = useState(false);
+  const cancel = async () => {
+    if (busy || leaving) return;
+    setLeaving(true);
+    try {
+      await adapter.signOut();
+    } catch {
+      setLeaving(false);
+      setFormMessage('That did not work. Please try again.');
+    }
+  };
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   // Two field errors and one banner. The length and the mismatch each belong to
@@ -78,6 +92,14 @@ export function SetNewPasswordScreen({ onDone }: { onDone: () => void }) {
         {formMessage != null && (
           <Text style={[type.body, { color: signal.correspondance, marginTop: space(4) }]}>{formMessage}</Text>
         )}
+        <View style={{ marginTop: space(6) }}>
+          <Text style={[type.small, { color: paper.inkSoft }]}>Changed your mind? Your current password still works.</Text>
+          <GhostButton
+            label={leaving ? 'Signing out…' : 'Cancel and sign out'}
+            disabled={leaving}
+            onPress={() => void cancel()}
+          />
+        </View>
       </View>
     </ScrollScreen>
   );
