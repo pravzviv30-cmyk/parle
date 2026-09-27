@@ -84,21 +84,48 @@ describe('Speak leads with the tutor, then one Start, then the path', () => {
   });
 
   test('the level path from the spine, then every scene as a ledger row that opens its brief', () => {
+    // 2026-09-27, notebook Phase 4 (B1): the Phase 3 browser proof found the
+    // path drawn twice, the level path's can-do stops and then the same lines
+    // as rows. It is one list now: rows grouped by level, each with its minutes,
+    // the "here" row carrying the highlighter, and each opening its brief.
     assert.match(FLAT, /const path = speakPath\(progress\)/, 'the path is not the spine projection');
-    assert.match(RENDER, /<LevelPath levels=\{path\.levels\} \/>/);
+    assert.ok(!SCREEN.includes('<LevelPath'), 'Speak draws the path twice again');
+    assert.ok(!SCREEN.includes('path.levels'), 'Speak reads a second list of the same scenes');
     assert.match(RENDER_FLAT, /path\.groups\.map\(\(group\) => \(/);
-    const row = between(RENDER_FLAT, '<LedgerRow key={row.missionId}', '/>', 'each scene is a ledger row');
-    for (const prop of ['title={row.title}', 'gloss={row.gloss}', 'meta={row.meta}', 'onPress={() => nav.navigate(row.route.screen, row.route.params)}', 'disabled={checking}']) {
+    const group = between(RENDER_FLAT, 'path.groups.map((group) => (', '))}', 'the path is drawn by level');
+    assert.match(group, /<Label>\{group\.level\}<\/Label>/, 'a group of scenes does not say its level');
+    // To the row's own close, past the highlighter's `/>` inside its trailing slot.
+    const row = between(RENDER_FLAT, '<LedgerRow key={row.missionId}', 'row.route.params)} />', 'each scene is a ledger row');
+    for (const prop of [
+      'label={row.label}',
+      'title={row.title}',
+      'gloss={row.gloss}',
+      'meta={row.meta}',
+      'accessibilityLabel={row.accessibilityLabel}',
+      'onPress={() => nav.navigate(row.route.screen, ',
+      'disabled={checking}',
+    ]) {
       assert.ok(row.includes(prop), `a scene row does not take ${prop}`);
     }
-    // Order: the tutor, the Start, the path, the rows.
+    // The highlighter is the "here" row's, and nothing else on Speak draws one.
+    assert.match(row, /trailing=\{row\.state === 'here' \? <Highlight text=\{HERE_MARK\}/, 'the "here" row does not carry the highlighter');
+    assert.equal((SCREEN.match(/<Highlight\b/g) ?? []).length, 1, 'Speak draws more or less than one highlighter');
+    assert.ok(!SCREEN.includes('accent.feature'), 'Speak paints chartreuse outside the path');
+    // Order: the tutor, the Start, the rows.
     assert.ok(at('<TabHeader') < at('<TutorCard'));
     assert.ok(at('<TutorCard') < at('<PillButton'));
-    assert.ok(at('<PillButton') < at('<LevelPath'));
-    assert.ok(at('<LevelPath') < at('<LedgerRow key={row.missionId}'));
-    // The highlighter is the path's "here": nothing else on Speak draws one.
-    assert.ok(!SCREEN.includes('<Highlight'), 'Speak draws a second highlighter beside the path');
-    assert.ok(!SCREEN.includes('accent.feature') && !SCREEN.includes('highlight'), 'Speak paints chartreuse outside the path');
+    assert.ok(at('<PillButton') < at('<LedgerRow key={row.missionId}'));
+  });
+
+  test('offline Speak says it is unavailable once', () => {
+    // 2026-09-27, notebook Phase 4 (B1): the line under the Start said the tutor
+    // was away while the offline card under it said it could not connect.
+    // `startNote` stands the line down while the card is up.
+    assert.match(FLAT, /const offlineShown = !live \|\| heldBack !== null;/);
+    assert.match(FLAT, /const note = startNote\(orb, offlineShown\);/);
+    assert.match(RENDER_FLAT, /\{note !== null && <Text style=\{st\.notice\}>\{note\}<\/Text>\}/);
+    assert.match(RENDER_FLAT, /\{offlineShown && \(/, 'the offline card is drawn on a different condition from the one the line stands down for');
+    assert.ok(!RENDER.includes('orb.subline'), 'the line under the Start is drawn without asking whether the card already says it');
   });
 
   test('"More ways to practise" appears only after a first finished scene', () => {
@@ -169,10 +196,11 @@ describe('Speak keeps its memory, its plan read and its continuation', () => {
 
   test('a refused start is forgotten once the tutor is reachable again', () => {
     assert.match(FLAT, /useEffect\(\(\) => \{ if \(live\) setHeldBack\(null\); \}, \[live\]\);/);
-    const offline = between(RENDER, '{(!live || heldBack !== null) && (', '</Card>', 'the offline block is drawn');
+    const offline = between(RENDER, '{offlineShown && (', '</Card>', 'the offline block is drawn');
     assert.ok(!offline.includes('LESSON_MINUTES'));
-    // The circle's state words survive as a line under the Start when it is not ready.
+    // The circle's state words survive as a line under the Start when it is not
+    // ready, unless the offline card already says the same thing.
     assert.match(FLAT, /const orb = tutorOrbState\(\{ live, checking, canStart \}\)/);
-    assert.match(FLAT, /\{orb\.state !== 'ready' && <Text style=\{st\.notice\}>\{orb\.subline\}<\/Text>\}/);
+    assert.match(FLAT, /const note = startNote\(orb, offlineShown\);/);
   });
 });

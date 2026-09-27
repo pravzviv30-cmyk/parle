@@ -1,54 +1,49 @@
 import { useEffect, useRef, useState } from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { paper, space, type } from '../theme.ts';
 
 import { useAuth } from '../auth/useAuth.tsx';
-import { useProfile } from '../app/ProfileContext.tsx';
 import { trackProductEvent } from '../analytics/track.ts';
-import { Card, Label, PillButton, ProgressDots } from '../components.tsx';
+import { Card, PillButton, ProgressDots } from '../components.tsx';
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
-import { missionStates, type MissionProgress } from '@luvani/core';
-import { missionCompletionsFrom } from '../missions/chooserView.ts';
-import { loadMissionCompletions } from '../missions/store.ts';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
-import { loadActivity } from '../progress/activity.ts';
-import { momentumFrom } from '../progress/momentum.ts';
 import { purchases, type PaidPlan, type StoreOffering } from '../purchases/adapter.ts';
+import type { BillingStatus } from '../purchases/billingStatus.ts';
+import { fetchBillingStatus } from '../purchases/client.ts';
 import { paywallSurface, restoreTrouble } from '../purchases/paywallView.ts';
 import { restorePurchases, settleStoreAction } from '../purchases/restore.ts';
-import { loadDeck } from '../review/store.ts';
-import { tutorNameOf } from '../tutor/tutorName.ts';
 import { latestCatalogue, noteCatalogue } from './catalogue.ts';
-import { WallFrenchPage } from './WallFrenchPage.tsx';
-import { WallMapPage } from './WallMapPage.tsx';
-import { WallPlansPage } from './WallPlansPage.tsx';
+import { WallPlansAtButton, WallPlansPage } from './WallPlansPage.tsx';
 import { WallYoursPage } from './WallYoursPage.tsx';
 import { PLANS_CHOOSE, WALL_BUSY, WALL_DONE, WALL_NEXT, WALL_READY, YOURS_NEXT } from './wallCopy.ts';
+import { wallAccount } from './wallAccount.ts';
 import { wallPlanRows } from './wallPlans.ts';
 import { previewCatalogue, previewOffering } from './preview.ts';
-import { wallFrench, type WallFrench } from './wallFrench.ts';
-import { wallMap, type WallMap } from './wallMap.ts';
 import { wallAction, wallPages, type WallEntry } from './wallPages.ts';
 
 /**
- * The subscription wall: a short paged report that ends in a price, or does not.
+ * The subscription wall: two pages, what you get and then the plans, or one
+ * page when there is nothing to sell.
  *
  * The frame owns the paging, the one primary button and the two analytics
  * events. Every page under it is null gates and a stylesheet, and every decision
  * either page draws was made in a module a test can call, because apps/mobile
  * has no renderer.
  *
- * Three of the four pages need no store at all, which is not a convenience. The
- * purchase half cannot be switched on until the RevenueCat keys exist and
- * F263 and F266 close, and a wall nobody could look at until then is a wall
- * nobody could correct. So the value sequence stands alone, on web as well, and
- * ends on the free promise when there is nothing to sell.
+ * 2026-09-27, notebook Phase 6-E: the map and French pages left, and with them
+ * the wall's disk reads. The first page needs no store and no progress at all,
+ * which is not a convenience: the purchase half cannot be switched on until the
+ * RevenueCat keys exist, and a wall nobody could look at until then is a wall
+ * nobody could correct. So the first page stands alone, on web as well, and ends
+ * on the free promise when there is nothing to sell.
+ *
+ * `onOpenBank` is still accepted because the navigator hands it over, and it
+ * opened the phrase bank from the retired French page. Nothing here uses it now.
  */
 export function WallScreen({
   entry,
   onLeave,
-  onOpenBank,
   onOpenPolicy,
   onOpenTerms,
 }: {
@@ -58,45 +53,33 @@ export function WallScreen({
   onOpenPolicy: () => void;
   onOpenTerms: () => void;
 }) {
-  const { profile } = useProfile();
   const { user } = useAuth();
   const [selected, setSelected] = useState<PaidPlan | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
-  const [map, setMap] = useState<WallMap | null>(null);
-  const [french, setFrench] = useState<WallFrench | null>(null);
   const [offering, setOffering] = useState<StoreOffering>({ available: false });
-  const [loaded, setLoaded] = useState(false);
   const [offeringLoaded, setOfferingLoaded] = useState(false);
-  const [loadFailed, setLoadFailed] = useState(false);
+  const [status, setStatus] = useState<BillingStatus | null>(null);
   const [retry, setRetry] = useState(0);
   const shown = useRef(false);
 
+  // The account in hand, for the plans page's minutes left. The same read the
+  // Settings card makes. It never blocks the wall: until it answers, and when it
+  // cannot, the page simply says nothing about the account. It is read again
+  // once a purchase or restore has granted something, so the minutes above the
+  // plans are never the ones from before the learner paid.
+  const granted = message === WALL_READY;
   useEffect(() => {
     let cancelled = false;
-    setLoaded(false);
-    setLoadFailed(false);
-    const now = Date.now();
-    void Promise.all([loadActivity(), loadDeck(), loadMissionCompletions()]).then(
-      ([activity, deck, completions]) => {
-        if (cancelled) return;
-        // Through the same door every other screen uses. The store's own
-        // MissionCompletion carries `id: string`, because a disk read cannot
-        // promise the id names a mission this build has, and this drops the ones
-        // that do not along with any rung outside the ladder.
-        const progress: readonly MissionProgress[] = missionStates(missionCompletionsFrom(completions), deck, now);
-        setMap(wallMap({ progress, deck, tutorName: profile === null ? null : tutorNameOf(profile) }));
-        setFrench(wallFrench(momentumFrom({ activity, deck, profile, now })));
-        setLoaded(true);
-      },
-    ).catch(() => {
-      if (!cancelled) setLoadFailed(true);
+    if (user === null) return;
+    void fetchBillingStatus(user.id).then((next) => {
+      if (!cancelled) setStatus(next);
     });
     return () => {
       cancelled = true;
     };
-  }, [profile, retry]);
+  }, [user, retry, granted]);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,23 +109,22 @@ export function WallScreen({
   const storeHasPlans = paywallSurface(offering) !== null;
   const pages = wallPages({ entry, storeHasPlans });
   const page = pages[index];
-  const last = index === pages.length - 1;
 
   // Fired once per showing, with the door and the length, because a drop-off at
   // page two says nothing without knowing how many pages there were.
   useEffect(() => {
-    if (!offeringLoaded || (!loaded && entry !== 'settings') || pages.length === 0 || shown.current) return;
+    if (!offeringLoaded || pages.length === 0 || shown.current) return;
     shown.current = true;
     void trackProductEvent({ name: 'wall_shown', properties: { entry, pages: pages.length } });
     // The page count is settled by the time this runs, and re-firing on a page
     // turn would make one showing look like several.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded, offeringLoaded, entry, pages.length]);
+  }, [offeringLoaded, entry, pages.length]);
 
   useEffect(() => {
-    if (!offeringLoaded || (!loaded && entry !== 'settings') || page === undefined) return;
+    if (!offeringLoaded || page === undefined) return;
     void trackProductEvent({ name: 'wall_page_seen', properties: { page, index } });
-  }, [loaded, offeringLoaded, entry, page, index]);
+  }, [offeringLoaded, page, index]);
 
   const back = () => (index > 0 ? setIndex((at) => at - 1) : onLeave());
   useHardwareBack(true, back);
@@ -203,25 +185,23 @@ export function WallScreen({
           ? WALL_DONE
           : WALL_NEXT;
 
-  // A missing native store or a failed disk read must never become a blank page.
-  // Settings can show real plans without waiting for progress data it never uses.
+  // A missing native store must never become a blank page. The wall reads no
+  // progress any more, so the store is the one thing it waits for.
   const unavailable = offeringLoaded && page === undefined;
-  const failed = loadFailed && entry !== 'settings';
-  const loading = !offeringLoaded || (entry !== 'settings' && (!loaded || map === null || french === null));
-  if (unavailable || failed || loading) {
+  const loading = !offeringLoaded;
+  if (unavailable || loading) {
     return (
       <ScrollScreen
         bottom="inset"
         header={<ScreenHeader back={{ onPress: onLeave }} title="Your plan" />}
-        footer={<PillButton label={unavailable || failed ? 'Try again' : 'Back'} onPress={unavailable || failed ? () => setRetry((value) => value + 1) : onLeave} />}
+        footer={<PillButton label={unavailable ? 'Try again' : 'Back'} onPress={unavailable ? () => setRetry((value) => value + 1) : onLeave} />}
       >
-        <Card tone="feature">
-          <Label>Luvani · Your next chapter</Label>
-          <Text accessibilityLiveRegion="polite" style={{ ...type.display, color: paper.ink, marginTop: space(4) }}>
-            {unavailable ? 'Plans aren’t available here yet.' : failed ? 'Let’s try that again.' : 'Getting things ready.'}
+        <Card>
+          <Text accessibilityLiveRegion="polite" style={{ ...type.display, color: paper.ink }}>
+            {unavailable ? 'Plans aren’t available here yet.' : 'Getting things ready.'}
           </Text>
           <Text style={{ ...type.body, color: paper.ink, marginTop: space(4) }}>
-            {unavailable ? 'We couldn’t load a store offering on this device. You can go back and keep using your current plan.' : failed ? 'Your progress couldn’t be loaded. Nothing has been changed. Try again, or go back to your French.' : 'A moment while we load your next steps.'}
+            {unavailable ? 'We couldn’t load a store offering on this device. You can go back and keep using your current plan.' : 'A moment while we load your next steps.'}
           </Text>
         </Card>
       </ScrollScreen>
@@ -233,21 +213,23 @@ export function WallScreen({
       bottom="inset"
       header={<ScreenHeader back={{ onPress: back }} title={<ProgressDots total={pages.length} index={index} />} />}
       footer={
-        <PillButton
-          label={label}
-          // Nothing to buy until a tier is chosen: a purchase needs a product id,
-          // and a pill that opens the store with none is a pill that fails.
-          disabled={busy || (action === 'buy' && chosen === null)}
-          onPress={forward}
-        />
+        <View>
+          <PillButton
+            label={label}
+            // Nothing to buy until a tier is chosen: a purchase needs a product id,
+            // and a pill that opens the store with none is a pill that fails.
+            disabled={busy || (action === 'buy' && chosen === null)}
+            onPress={forward}
+          />
+          {page === 'plans' && <WallPlansAtButton />}
+        </View>
       }
     >
-      {page === 'map' && map !== null && <WallMapPage map={map} />}
-      {page === 'french' && french !== null && <WallFrenchPage french={french} onOpenBank={onOpenBank} />}
       {page === 'yours' && <WallYoursPage canBuy={storeHasPlans} />}
       {page === 'plans' && planRows !== null && (
         <WallPlansPage
           rows={planRows}
+          account={wallAccount(status, latestCatalogue(), Date.now())}
           selected={selected}
           onSelect={(plan) => {
             setSelected(plan);

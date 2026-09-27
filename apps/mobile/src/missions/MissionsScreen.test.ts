@@ -22,7 +22,6 @@ import { fileURLToPath } from 'node:url';
 import { MISSIONS } from '@luvani/core';
 
 import { HERO_ART } from '../art/maps.ts';
-import { MISSION_TINT } from './missionTint.ts';
 
 const read = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -59,12 +58,14 @@ describe('the chooser is one card and five rows — F573', () => {
     assert.match(SCREEN, /\{first\.mission\.cefr\} · \{first\.status\} · \{minutesLine\(missionMinutes\(first\.mission\)\)\}/, 'the brief does not say its level and derived minutes');
     assert.ok(!SCREEN.includes('estimateMinutes('), 'the chooser estimates a mission itself instead of asking missionMinutes');
 
-    // The other five, as rows. A row is a tinted strip with the place's mark, the
-    // French title, the English under it and a chevron.
+    // The other five, as rows. 2026-09-27, notebook Phase 4 (B1): a row is a
+    // ledger line now, the place's mark in ink with no disc and no tint, the
+    // English title, the goal under it and a chevron, on one hairline list.
     assert.match(SCREEN, /\{rest\.map\(\(card\) => \(/, 'the other situations are not drawn from the view model');
-    assert.match(SCREEN, /<TintRow/, 'the other situations are still six rectangles rather than rows');
-    assert.match(SCREEN, /tint=\{missionTint\(card\.mission\.place\)\}/, 'a row picks its own paper instead of reading missionTint.ts');
-    assert.match(SCREEN, /glyph=\{<PlaceGlyph place=\{card\.mission\.place\}/, 'a row lost the mark that says where it is set');
+    assert.match(SCREEN, /<Ledger\b/, 'the other situations are not one ruled list');
+    assert.match(SCREEN, /<LedgerRow\b/, 'the other situations are still six rectangles rather than rows');
+    assert.ok(!/<TintRow\b|missionTint|tone="feature"|accent\.feature/.test(SCREEN), 'the chooser still paints a place tint or feature paper');
+    assert.match(SCREEN, /glyph=\{<PlaceGlyph place=\{card\.mission\.place\} color=\{paper\.ink\}/, 'a row lost the ink mark that says where it is set');
     assert.match(SCREEN, /title=\{card\.mission\.titleEn\}/, 'a row names the situation in the learner’s language');
     assert.match(SCREEN, /gloss=\{`\$\{card\.mission\.goalEn\} · \$\{card\.status\}`\}/, 'each row visibly explains its goal and earned status');
     assert.match(SCREEN, /<Label>\{CHOOSER_OTHER\}<\/Label>/, 'the rest of the situations sit under no heading');
@@ -80,11 +81,10 @@ describe('the chooser is one card and five rows — F573', () => {
     assert.match(SCREEN, /^import \{ asSentences \} from '\.\.\/copy\/spoken\.ts';$/m, 'the row joins its label its own way rather than through the shared joiner');
     assert.ok(!/'Started'|'Ready when you are'|'Ready to come back to'/.test(SCREEN), 'the screen spells a status line that chooserView.ts already decides');
 
-    // Every place in the catalogue has a picture and a paper, so a seventh
-    // situation cannot reach this screen undrawn or untinted.
+    // Every place in the catalogue has a picture, so a seventh situation
+    // cannot reach this screen with a blank brief.
     for (const mission of MISSIONS) {
       assert.ok(HERO_ART[mission.place], `${mission.place} has no scene, so the hero card for it is blank`);
-      assert.ok(MISSION_TINT[mission.place], `${mission.place} has no paper, so its row is drawn on nothing`);
     }
   });
 

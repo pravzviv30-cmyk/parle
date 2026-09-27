@@ -111,10 +111,8 @@ function oneOf<T>(allowed: readonly T[], value: unknown): T | null {
  */
 export function firstNameFrom(value: unknown): string | null {
   if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
+  const trimmed = value.replace(/[\p{Cf}\p{Cc}]/gu, '').trim();
   if (trimmed.length === 0 || trimmed.length > MAX_FIRST_NAME_CHARS) return null;
-  // eslint-disable-next-line no-control-regex
-  if (/[\u0000-\u001f\u007f]/.test(trimmed)) return null;
   return trimmed;
 }
 
@@ -184,7 +182,7 @@ export async function loadPreAccountDraft(): Promise<PreAccountOnboardingDraft |
   }
 }
 
-/** Called only after the draft has become the signed-in learner's profile. */
+/** Discarded on sign-in, or once a signed-in learner has a complete profile. */
 export async function clearPreAccountDraft(): Promise<void> {
   try {
     await AsyncStorage.removeItem(KEY);

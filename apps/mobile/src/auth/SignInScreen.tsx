@@ -17,7 +17,7 @@
 
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { accent, HAIRLINE, paper, radius, space, type, signal, HIT } from '../theme.ts';
+import { paper, space, type, signal, HIT } from '../theme.ts';
 import { PillButton, OutlineButton, GhostButton, Field, GoogleMark, AppleMark } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useAuth } from './useAuth.tsx';
@@ -132,7 +132,8 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
         </View>
       }
     >
-      {/* A compact feature heading keeps the form close to its introduction. */}
+      {/* A compact heading on the paper itself keeps the form close to its
+          introduction (notebook Phase 4: no feature panel, no ink outline). */}
       <View style={st.head}>
         <Text style={[type.frenchSm, { color: paper.inkSoft, marginBottom: space(2) }]}>Votre journal vous attend.</Text>
         <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Welcome back</Text>
@@ -187,6 +188,6 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
 }
 
 const st = StyleSheet.create({
-  head: { backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card, padding: space(5) },
+  head: { paddingTop: space(2) },
   switchRow: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
 });

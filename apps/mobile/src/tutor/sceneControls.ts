@@ -33,6 +33,19 @@ import type { ClientMessage, ConvoSupportView } from '@luvani/core';
 import { TAP_TO_TALK } from './choosingView.ts';
 
 /**
+ * The scene control that used to say "Slower" (notebook Phase 4, report change
+ * 25). It never slowed the voice, which plays at the speed the cache holds: it
+ * asks the tutor for shorter sentences and simpler words, so it says that. The
+ * wire tag it sends is still `slower`, which is what the agent reads.
+ */
+export const SIMPLER = 'Simpler';
+
+/** What a screen reader hears on it: what it asks for, of whom. */
+export function simplerLabel(tutorName: string): string {
+  return `Ask ${tutorName} to say it more simply`;
+}
+
+/**
  * Is there a line on the card that the tutor would actually say if asked?
  *
  * Only the full-line support view carries one. Options each have their own

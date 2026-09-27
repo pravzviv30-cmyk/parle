@@ -1,0 +1,165 @@
+/**
+ * The recap as a keepsake, decided — notebook Phase 4 (B1), report change 19.
+ *
+ * The end of a conversation is where a learner decides whether to come back, so
+ * it is something kept rather than something scored: the lines they said, one
+ * phrase kept, one sound, and "Next time" naming the spine's next scene. After
+ * all of that, and only then, the recap offers a daily reminder at the time the
+ * learner chose in their plan.
+ *
+ * ## When the phone is asked
+ *
+ * Never on the way in. `reminderOffer` is a pure answer from facts the screen has
+ * already read (`reminderPermission()` reads; it raises nothing), so drawing the
+ * offer cannot put a system dialog in front of anybody. The dialog is raised in
+ * exactly one place, `acceptReminderOffer`, which a screen calls from the accept
+ * control. A learner who has not had a win yet is not offered anything at all.
+ *
+ * ## What a reminder is
+ *
+ * Not decided here. `reminders/reminder.ts` owns the presets, the words, and
+ * what a stored flag means over a revoked permission (`reminderRow`), and this
+ * module asks it rather than holding a second opinion. The accept flow is the
+ * same shape Settings has used since F576: ask or read, decide with
+ * `reminderRow`, write, schedule, and put the store back if the phone refuses,
+ * so the app never believes in a reminder the phone will not deliver.
+ *
+ * The platform calls come in as arguments so the whole flow runs on node; the
+ * screen hands in `reminders/schedule.ts` and `reminders/store.ts`.
+ */
+
+import { getMission, spineFrom, type MissionProgress } from '@luvani/core';
+
+import type { PersistAck } from '../storage/ack.ts';
+import {
+  REMINDER_EXPLAIN,
+  REMINDER_REFUSED,
+  reminderRow,
+  reminderTime,
+  type ReminderPermission,
+  type ReminderTime,
+  type ReminderTimeId,
+  type StoredReminder,
+} from '../reminders/reminder.ts';
+import type { ScheduleOutcome } from '../reminders/schedule.ts';
+import type { TurnLine } from './turns.ts';
+
+/** Enough to be a keepsake, few enough to read at a glance. */
+export const MAX_KEEPSAKE_LINES = 3;
+
+/** The keepsake's own labels, in the order the recap draws them. */
+export const KEEPSAKE_COPY = {
+  lines: 'Your lines',
+  kept: 'One phrase kept',
+  sound: 'One sound',
+} as const;
+
+/**
+ * The lines the learner said, as they said them: their own French, the last few
+ * of the conversation, once each, in the order they came. Nothing the tutor or
+ * the narrator said is theirs to keep.
+ */
+export function keepsakeLines(turns: readonly Pick<TurnLine, 'who' | 'fr'>[]): string[] {
+  const said: string[] = [];
+  for (const turn of turns) {
+    if (turn.who !== 'learner') continue;
+    const line = turn.fr.trim();
+    if (line.length === 0) continue;
+    const at = said.indexOf(line);
+    if (at !== -1) said.splice(at, 1);
+    said.push(line);
+  }
+  return said.slice(-MAX_KEEPSAKE_LINES);
+}
+
+/**
+ * "Next time: <the spine's next scene>", or null once there is none.
+ *
+ * The spine's own answer, never a second opinion about what comes next: the
+ * same `spineFrom(progress).next` that puts "you are here" on Speak.
+ */
+export function nextTimeLine(progress: readonly MissionProgress[]): string | null {
+  const next = spineFrom(progress).next;
+  if (next === null) return null;
+  const mission = getMission(next.id);
+  return mission === undefined ? null : `Next time: ${mission.titleEn}`;
+}
+
+export interface ReminderOffer {
+  /** The learner's chosen preset, or the default when they never chose one. */
+  time: ReminderTime;
+  /** True when accepting will raise the phone's notification dialog. */
+  asks: boolean;
+  title: string;
+  /** Says a dialog is coming when one is, and what the reminder is either way. */
+  body: string;
+  accept: string;
+  decline: string;
+}
+
+/**
+ * The offer, or null when there is nothing honest to offer.
+ *
+ * `won` is the first-win gate: a recap with nothing in it (no line said, no
+ * phrase kept) offers nothing. `permission` is null until the screen has read
+ * it, and no offer is drawn on a guess. A refusal is not argued with, and a
+ * reminder already on is not offered twice.
+ */
+export function reminderOffer(facts: {
+  available: boolean;
+  won: boolean;
+  stored: StoredReminder | null;
+  permission: ReminderPermission | null;
+}): ReminderOffer | null {
+  if (!facts.available || !facts.won || facts.permission === null) return null;
+  if (facts.permission === 'denied') return null;
+  if (reminderRow(facts.stored, facts.permission).on) return null;
+  const time = reminderTime(facts.stored?.time);
+  const asks = facts.permission === 'undetermined';
+  return {
+    time,
+    asks,
+    title: `A daily reminder at ${time.gloss}?`,
+    body: asks ? REMINDER_EXPLAIN : 'One a day at the time you pick, and it says the same thing every day.',
+    accept: 'Remind me',
+    decline: 'Not now',
+  };
+}
+
+export type ReminderAnswer = 'on' | 'refused' | 'failed';
+
+export interface ReminderPhone {
+  /** Raises the system dialog. Called from here and nowhere on the way in. */
+  ask: () => Promise<ReminderPermission>;
+  /** Reads the permission without raising anything. */
+  read: () => Promise<ReminderPermission>;
+  save: (reminder: StoredReminder) => Promise<PersistAck>;
+  schedule: (time: ReminderTimeId) => Promise<ScheduleOutcome>;
+}
+
+/**
+ * The learner said yes. Ask the phone (only now), decide with `reminderRow`,
+ * write, schedule, and put the store back to off if the phone will not take it.
+ */
+export async function acceptReminderOffer(offer: ReminderOffer, phone: ReminderPhone): Promise<ReminderAnswer> {
+  try {
+    const permission = offer.asks ? await phone.ask() : await phone.read();
+    const time = offer.time.value;
+    if (!reminderRow({ enabled: true, time }, permission).on) return 'refused';
+    if ((await phone.save({ enabled: true, time })) !== 'durable') return 'failed';
+    if ((await phone.schedule(time)) !== 'done') {
+      await phone.save({ enabled: false, time });
+      return 'failed';
+    }
+    return 'on';
+  } catch {
+    return 'failed';
+  }
+}
+
+/** What the recap says once the learner has answered. */
+export function reminderAnswerLine(answer: ReminderAnswer, offer: ReminderOffer): string {
+  if (answer === 'on') return `Your reminder is on for ${offer.time.gloss}. You can change it in Settings.`;
+  if (answer === 'refused') return REMINDER_REFUSED;
+  return 'Your phone did not set the reminder just now. You can turn it on in Settings.';
+}

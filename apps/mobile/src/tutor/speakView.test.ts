@@ -14,7 +14,20 @@ import { FIRST_MISSION, SCENE_SPINE, TUTOR_VOICES, getMission, missionStates, sp
 
 import { guiltIn } from '../copy/guilt.ts';
 import { minutesLine, missionMinutes } from '../home/estimate.ts';
-import { MORE_WAYS, MORE_WAYS_LABEL, SPEAK_COPY, SPEAK_INSTEAD, TYPE_INSTEAD, moreWaysOpen, speakPath, startModes, tutorCardFacts } from './speakView.ts';
+import {
+  HERE_MARK,
+  MORE_WAYS,
+  MORE_WAYS_LABEL,
+  SPEAK_COPY,
+  SPEAK_INSTEAD,
+  TYPE_INSTEAD,
+  YOU_ARE_HERE,
+  moreWaysOpen,
+  speakPath,
+  startModes,
+  startNote,
+  tutorCardFacts,
+} from './speakView.ts';
 
 const NOW = new Date(2026, 8, 12, 21, 0, 0).getTime();
 
@@ -35,17 +48,15 @@ describe('the level path', () => {
   test('draws A0 then A1 from the spine, with "here" on the next scene and nothing invented', () => {
     const progress = missionStates([], [], NOW);
     const path = speakPath(progress);
-    assert.deepEqual(path.levels.map((level) => level.level), ['A0', 'A1'], 'the path draws a level with no scene on it, or misses one');
-    const stops = path.levels.flatMap((level) => level.stops);
-    assert.equal(stops.length, SCENE_SPINE.length);
-    assert.deepEqual(stops.filter((stop) => stop.state === 'here').length, 1, 'the path has more or less than one "you are here"');
-    assert.equal(stops[0]!.state, 'here');
-    assert.equal(stops[0]!.canDo, getMission(FIRST_MISSION)!.canDoEn);
-    assert.ok(stops.slice(1).every((stop) => stop.state === 'ahead'));
+    assert.deepEqual(path.groups.map((group) => group.level), ['A0', 'A1'], 'the path draws a level with no scene on it, or misses one');
 
     // Grouped rows, one per scene, in spine order, each with its can-do and minutes.
     const rows = path.groups.flatMap((group) => group.rows);
+    assert.equal(rows.length, SCENE_SPINE.length);
     assert.deepEqual(rows.map((row) => row.missionId), [...SCENE_SPINE]);
+    assert.equal(rows.filter((row) => row.state === 'here').length, 1, 'the path has more or less than one "you are here"');
+    assert.equal(rows[0]!.state, 'here');
+    assert.ok(rows.slice(1).every((row) => row.state === 'ahead'));
     for (const row of rows) {
       const mission = getMission(row.missionId)!;
       assert.equal(row.title, mission.titleEn);
@@ -61,15 +72,45 @@ describe('the level path', () => {
 
   test('an earned scene reads as earned, and "here" moves on', () => {
     const progress = missionStates([{ id: FIRST_MISSION, at: NOW - 1000, rung: 4 }], [], NOW);
-    const path = speakPath(progress);
-    const stops = path.levels.flatMap((level) => level.stops);
-    assert.equal(stops[0]!.state, 'earned');
-    assert.equal(stops[0]!.canDo, getMission(FIRST_MISSION)!.earnedEn);
-    assert.equal(stops[1]!.state, 'here');
+    const rows = speakPath(progress).groups.flatMap((group) => group.rows);
+    assert.equal(rows[0]!.state, 'earned');
+    assert.equal(rows[0]!.gloss, getMission(FIRST_MISSION)!.earnedEn);
+    assert.equal(rows[1]!.state, 'here');
     assert.equal(spineFrom(progress).next!.id, SCENE_SPINE[1]);
-    const first = path.groups[0]!.rows[0]!;
-    assert.equal(first.state, 'earned');
-    assert.equal(first.gloss, getMission(FIRST_MISSION)!.earnedEn);
+  });
+
+  // 2026-09-27, notebook Phase 4 (B1). The Phase 3 browser proof found Speak
+  // drawing the path twice: the level path's can-do stops, then the same can-do
+  // lines again as rows. It is one list now, so the model hands the screen rows
+  // and nothing a second list could be drawn from.
+  test('the path is drawn once: rows grouped by level, each saying where the learner stands', () => {
+    const path = speakPath(missionStates([], [], NOW));
+    assert.deepEqual(Object.keys(path), ['groups'], 'the path model still carries a second list to draw');
+    const rows = path.groups.flatMap((group) => group.rows);
+    const here = rows.find((row) => row.state === 'here')!;
+    assert.equal(here.label, YOU_ARE_HERE, 'the "here" row does not say so in words, so the mark is colour alone');
+    assert.ok(rows.filter((row) => row.state !== 'here').every((row) => row.label === undefined), 'a row that is not "here" carries the here line');
+    assert.equal(HERE_MARK, 'ici', 'the highlighter mark on the "here" row is not the French word for it');
+    for (const row of rows) {
+      // One sentence to a screen reader: the scene, the can-do, the minutes and where the learner stands.
+      const where = row.state === 'here' ? 'you are here' : row.state === 'earned' ? 'done' : 'not yet';
+      assert.equal(row.accessibilityLabel, `${row.title}, ${row.gloss}, ${row.meta}, ${where}`);
+    }
+    assert.ok(SPEAK_COPY.includes(YOU_ARE_HERE));
+  });
+});
+
+describe('offline Speak', () => {
+  // 2026-09-27, notebook Phase 4 (B1): offline, the line under the Start said
+  // the tutor was away and the card under it said it could not connect. One
+  // unavailable message is enough, and the card is the one with a way forward.
+  test('says it is unavailable once: the line under the Start stands down while the offline card is up', () => {
+    const away = { state: 'error' as const, subline: 'Your tutor is away right now.' };
+    assert.equal(startNote(away, true), null, 'offline Speak says it is unavailable twice');
+    assert.equal(startNote({ state: 'idle', subline: 'No speaking time just now.' }, false), 'No speaking time just now.');
+    assert.equal(startNote({ state: 'connecting', subline: 'Opening your room.' }, false), 'Opening your room.');
+    assert.equal(startNote({ state: 'ready', subline: 'anything' }, false), null, 'a ready tutor still carries a state line');
+    assert.equal(startNote({ state: 'idle', subline: 'No speaking time just now.' }, true), null);
   });
 });
 

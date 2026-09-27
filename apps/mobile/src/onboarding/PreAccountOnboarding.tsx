@@ -49,7 +49,7 @@ import { REMINDER_TIMES } from '../reminders/reminder.ts';
 import { useReduceMotion } from '../motion.ts';
 import { tapSettled } from '../motion/haptics.ts';
 import { asSentences } from '../copy/spoken.ts';
-import { WELCOME_SUBLINE } from './disclosure.ts';
+import { SAVE_PRIVACY, WELCOME_SUBLINE } from './disclosure.ts';
 import { TUTOR_LINES_VOICE } from './tutorLines.ts';
 import { clipFor } from './exchangeAudio.ts';
 import {
@@ -545,7 +545,7 @@ export function PreAccountOnboarding({
               <Card style={st.trust}>
                 <View style={st.trustBlock}>
                   <Text style={st.trustTitle}>Your tutor is AI</Text>
-                  <Text style={st.trustBody}>You always know who you are talking to.</Text>
+                  <Text style={st.trustBody}>{SAVE_PRIVACY(chosenPersona)}</Text>
                 </View>
                 <View style={st.trustDivider} />
                 <View style={st.trustBlock}>

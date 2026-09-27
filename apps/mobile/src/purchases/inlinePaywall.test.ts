@@ -169,6 +169,20 @@ describe('the inline paywall always leaves a way forward — Stage 3', () => {
     }
   });
 
+  test('the renewal and the no-adverts line both sit at the buy button', () => {
+    // 2026-09-27, notebook Phase 6-E: the trust line moved up from the documents
+    // under the restore to sit with the renewal, right under the pill, which is
+    // where the wall's plans page puts the same two lines.
+    const offer = FLAT.slice(FLAT.indexOf('const surface = view.surface;'));
+    const pill = offer.indexOf('<PillButton');
+    const renewal = offer.indexOf('{view.renewal}');
+    const trust = offer.indexOf('{view.trust}');
+    const restore = offer.indexOf('<GhostButton');
+    assert.ok(pill !== -1 && renewal !== -1 && trust !== -1 && restore !== -1, 'the offer lost its pill, renewal, trust line or restore');
+    assert.ok(pill < renewal && renewal < trust && trust < restore, 'the renewal and trust lines are not together under the buy button');
+    assert.doesNotMatch(offer, /<Legal trust=/, 'the offer says the trust line twice, or down by the documents');
+  });
+
   test('buying and restoring are the same calls, and no entitlement or metering is read here', () => {
     assert.match(PAYWALL, /await settleStoreAction\(await purchases\.purchase\(userId, surface\.product\.productId\)\)/, 'the buy call changed');
     assert.match(PAYWALL, /: await restorePurchases\(userId\)/, 'the restore call changed');

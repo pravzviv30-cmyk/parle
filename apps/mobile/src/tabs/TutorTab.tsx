@@ -5,8 +5,11 @@
  * (the name and sound line from the voice catalogue, the voice sample's French
  * line as the signature, a play control, and a link to change the voice), then
  * the one Start for the next conversation with a quiet "Type instead" under
- * it, then the level path from the CEFR spine with "you are here" on the next
- * scene, then every scene as a ledger row that opens its brief in the chooser.
+ * it, then the path from the CEFR spine: every scene as a ledger row grouped by
+ * level, with its minutes, opening its brief in the chooser, and the "here" row
+ * carrying the highlighter. Phase 4 (B1) drew the path once, where it had been
+ * a level path and then the same can-do lines again as rows, and left offline
+ * Speak saying "unavailable" once rather than twice.
  * "More ways to practise" (the open conversation, a real moment, and memory)
  * appears only after a first finished scene.
  *
@@ -21,7 +24,7 @@ import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/n
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { missionStates, type MissionProgress } from '@luvani/core';
 
-import { Card, GhostButton, Label, Ledger, LedgerRow, LevelPath, OutlineButton, PillButton, TutorCard } from '../components.tsx';
+import { Card, GhostButton, Highlight, Label, Ledger, LedgerRow, OutlineButton, PillButton, TutorCard } from '../components.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
@@ -50,12 +53,14 @@ import { nextConversation } from '../tutor/nextConversation.ts';
 import { prefersTyping } from '../profile/typing.ts';
 import {
   CHANGE_VOICE,
+  HERE_MARK,
   MORE_WAYS,
   MORE_WAYS_LABEL,
   PATH_LABEL,
   moreWaysOpen,
   speakPath,
   startModes,
+  startNote,
   tutorCardFacts,
   type MoreWay,
 } from '../tutor/speakView.ts';
@@ -184,6 +189,8 @@ export function TutorTab() {
   );
 
   const orb = tutorOrbState({ live, checking, canStart });
+  const offlineShown = !live || heldBack !== null;
+  const note = startNote(orb, offlineShown);
   const next = nextConversation(progress, thread, capabilitiesFor(plan.tier, plan.lapsed).continueArc);
   const path = speakPath(progress);
 
@@ -213,7 +220,7 @@ export function TutorTab() {
         <Text style={[type.cardTitle, { color: paper.ink }]}>{next.title}</Text>
         <Text style={[type.small, { color: paper.inkSoft }]}>{next.detail}</Text>
         {next.lines.map((line) => <Text key={line} style={[type.french, { color: paper.ink }]}>{line}</Text>)}
-        {orb.state !== 'ready' && <Text style={st.notice}>{orb.subline}</Text>}
+        {note !== null && <Text style={st.notice}>{note}</Text>}
         <PillButton label={launchLabel({ checking, live, mode: modes.mode })} accessibilityLabel={launchAccessibilityLabel({ checking, live, mode: modes.mode, tutorName })} disabled={checking} onPress={() => open(modes.textMode, next.params)} />
         <GhostButton label={modes.other.label} color={paper.ink} disabled={checking} onPress={() => open(modes.other.textMode, next.params)} />
         <Text style={st.notice}>{launchNotice(modes.mode)}</Text>
@@ -221,7 +228,7 @@ export function TutorTab() {
 
       {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
 
-      {(!live || heldBack !== null) && (
+      {offlineShown && (
         <Card style={st.offline}>
           <Label>{TUTOR_OFFLINE.label}</Label>
           <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{TUTOR_OFFLINE.headline}</Text>
@@ -237,17 +244,17 @@ export function TutorTab() {
         </Card>
       )}
 
-      {/* The path: A0 then A1 from the spine, "you are here" on the next scene,
-          and every scene a row that opens its brief in the chooser. */}
+      {/* The path, drawn once: A0 then A1 from the spine, every scene a row
+          with its can-do and minutes that opens its brief in the chooser, and
+          the "here" row carrying the screen's one highlighter mark. */}
       <View style={st.path}>
         <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{PATH_LABEL}</Text>
-        <LevelPath levels={path.levels} />
         {path.groups.map((group) => (
           <View key={group.level} style={st.group}>
             <Label>{group.level}</Label>
             <Ledger accessibilityLabel={`${group.level} scenes`}>
               {group.rows.map((row) => (
-                <LedgerRow key={row.missionId} title={row.title} gloss={row.gloss} meta={row.meta} disabled={checking} onPress={() => nav.navigate(row.route.screen, row.route.params)} />
+                <LedgerRow key={row.missionId} label={row.label} title={row.title} gloss={row.gloss} meta={row.meta} trailing={row.state === 'here' ? <Highlight text={HERE_MARK} style={type.frenchSm} /> : undefined} accessibilityLabel={row.accessibilityLabel} disabled={checking} onPress={() => nav.navigate(row.route.screen, row.route.params)} />
               ))}
             </Ledger>
           </View>

@@ -168,6 +168,11 @@ export function MEET_PRIVACY(persona: TutorPersona): string {
   return `No person hears you. What you say goes to ${VENDOR_PHRASE} so ${persona.name} can answer, and nothing about it goes anywhere for any purpose other than carrying a conversation, answering you and keeping what you have learned.`;
 }
 
+/** The save page also names the typed answers carried into the account. */
+export function SAVE_PRIVACY(persona: TutorPersona): string {
+  return `No person hears you. What you say and type, like your name and your goal, goes to ${VENDOR_PHRASE} so ${persona.name} can answer, and nothing about it goes anywhere for any purpose other than carrying a conversation, answering you and keeping what you have learned.`;
+}
+
 /**
  * The microphone, said before the system dialog rather than after it.
  *

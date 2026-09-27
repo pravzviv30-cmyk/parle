@@ -18,7 +18,7 @@ import { MISSIONS } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
 import * as copy from './wallCopy.ts';
-import { PLANS_RENEWAL, WALL_COPY, YOURS_SUB, PLANS_TITLE } from './wallCopy.ts';
+import { PLANS_RENEWAL, WALL_COPY, YOURS_BANK, YOURS_SUB, PLANS_TITLE } from './wallCopy.ts';
 import { WELCOME_PATH } from './welcomePath.ts';
 
 const SOURCE = readFileSync(fileURLToPath(new URL('./wallCopy.ts', import.meta.url)), 'utf8');
@@ -58,6 +58,52 @@ describe('the wall says nothing it is not allowed to say', () => {
       }
     }
     assert.deepEqual(missing, [], 'a line the wall can say is not covered by the scan');
+  });
+});
+
+describe('the sentences with a number in them keep the numbers off the page', () => {
+  // 2026-09-27, notebook Phase 6-E. The plans now read in minutes and in
+  // conversations, so some sentences need a number. They are functions of the
+  // number, and every digit they print is one they were handed: the catalogue's,
+  // the server's, or the one stated conversation length in wallPlans.ts.
+  test('every sentence template clears the guilt list and the em dash, and prints only the digits it is given', () => {
+    const templates = Object.entries(copy).filter(([, value]) => typeof value === 'function') as [string, (...args: unknown[]) => string][];
+    assert.ok(templates.length > 0, 'the wall has no sentence with a number in it');
+    for (const [name, template] of templates) {
+      for (const sample of [0, 1, 4, 30]) {
+        const line = template(...Array.from({ length: Math.max(1, template.length) }, () => sample));
+        assert.equal(typeof line, 'string', `${name} does not say a sentence`);
+        assert.equal(guiltIn(line), undefined, `guilt in ${name}: ${line}`);
+        assert.doesNotMatch(line, /—/, `em dash in ${name}: ${line}`);
+        assert.doesNotMatch(line.split(String(sample)).join(''), /\d/, `${name} printed a digit it was not given: ${line}`);
+        assert.doesNotMatch(line, /[$€£]/, `a currency symbol in ${name}: ${line}`);
+      }
+    }
+  });
+
+  test('one of anything is singular', () => {
+    for (const [name, template] of Object.entries(copy)) {
+      if (typeof template !== 'function') continue;
+      const line = (template as (...args: unknown[]) => string)(...Array.from({ length: Math.max(1, template.length) }, () => 1));
+      assert.doesNotMatch(line, /\b1 (minutes|conversations)\b/, `${name} says one in the plural: ${line}`);
+    }
+  });
+});
+
+describe('the phrase bank is described as what it actually keeps', () => {
+  test('no line claims the app kept every line the learner said', () => {
+    // 2026-09-27, notebook Phase 6-E (report change 23). The bank holds the
+    // phrases each session's recap and each conversation's pack picked out
+    // (review/store.ts: addFromSummary, addPhrases). No transcript is kept, and
+    // a Conversation Pack is curated learning data, never a readable transcript
+    // (docs/STATE_AND_STORAGE.md). "Every line you have said" was not true.
+    for (const line of WALL_COPY) {
+      assert.doesNotMatch(line, /every (line|word|sentence) you|everything you (have )?said|all you (have )?said|transcript/i,
+        `the wall claims the app kept more than it does: ${line}`);
+    }
+    assert.match(YOURS_BANK, /phrase bank/i);
+    assert.match(YOURS_BANK, /phrases/i, 'the bank line no longer says it holds phrases');
+    assert.match(YOURS_BANK, /conversations/i, 'the bank line no longer says where the phrases came from');
   });
 });
 

@@ -113,7 +113,10 @@ export function Paywall({ userId }: { userId: string }) {
               onPress={() => void finish('buying')}
             />
           </View>
+          {/* The renewal and the trust line together, right under the button they
+              are about, as on the wall's plans page. */}
           <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{view.renewal}</Text>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{view.trust}</Text>
           <GhostButton
             label={action === 'restoring' ? RESTORE_BUSY : surface.restoreLabel}
             disabled={action !== 'idle'}
@@ -121,16 +124,19 @@ export function Paywall({ userId }: { userId: string }) {
           />
         </>
       ) : null}
-      <Legal trust={view.trust} privacy={view.privacy} terms={view.terms} onPolicy={() => nav.navigate('Policy')} onTerms={() => nav.navigate('Terms')} />
+      <Legal privacy={view.privacy} terms={view.terms} onPolicy={() => nav.navigate('Policy')} onTerms={() => nav.navigate('Terms')} />
     </View>
   );
 }
 
-/** The trust line and the two documents, the same pair the Wall plans page links. */
-function Legal({ trust, privacy, terms, onPolicy, onTerms }: { trust: string; privacy: string; terms: string; onPolicy: () => void; onTerms: () => void }) {
+/**
+ * The two documents, the same pair the Wall plans page links, and the trust
+ * line when there is no buy button for it to sit beside.
+ */
+function Legal({ trust, privacy, terms, onPolicy, onTerms }: { trust?: string; privacy: string; terms: string; onPolicy: () => void; onTerms: () => void }) {
   return (
     <View style={{ marginTop: space(2) }}>
-      <Text style={[type.small, { color: paper.inkSoft }]}>{trust}</Text>
+      {trust !== undefined ? <Text style={[type.small, { color: paper.inkSoft }]}>{trust}</Text> : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(3) }}>
         <GhostButton label={privacy} onPress={onPolicy} />
         <GhostButton label={terms} onPress={onTerms} />

@@ -38,12 +38,12 @@ export { unit, place, frameHeight, restFor } from './timing.ts';
 // the only caller of, and which nothing rendered once the chooser and the rows
 // took `heroArt` and `PlaceGlyph`. Two levels of indirection is exactly how a
 // drawing keeps looking alive to a walk over source while no learner has seen
-// it for a pass, so the two components went with the scenes. `SpeakBubbles`
-// stays: the tutor intro draws it.
-export { SpeakBubbles } from './scenes/bubbles.tsx';
+// it for a pass, so the two components went with the scenes.
 // `OnboardClock` left with the goal sheet it headed, the same way as the two
 // above: F368 put the daily goal on the Profile row itself, so nothing draws it.
-export { OnboardWave } from './scenes/onboarding.tsx';
+// 2026-09-27, notebook Phase 4 (B1): `SpeakBubbles` and `OnboardWave` left too.
+// The tutor intro was their last caller, and the notebook took its clip-art out.
+// Their files stay in `scenes/` until the final sweep deletes them.
 
 // The empty states and the tick.
 export { NobodyYet, StillWriting } from './scenes/empty.tsx';

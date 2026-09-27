@@ -28,23 +28,46 @@ function literals(source: string, field: string): string[] {
 }
 
 describe('the wall is as long as it has something to show', () => {
-  test('with a store there are four pages, and the price is last', () => {
-    const pages = wallPages({ entry: 'path-complete', storeHasPlans: true });
-    assert.deepEqual([...pages], ['map', 'french', 'yours', 'plans']);
-    assert.equal(canBuy(pages), true);
-    assert.equal(endsOnPlans(pages), true);
+  // 2026-09-27, notebook Phase 6-E: the wall went from four pages to two, what
+  // you get and then the plans. These two replace "with a store there are four
+  // pages, and the price is last" and "with no store there are three, and the
+  // wall ends on the free promise", and are stricter: exactly two, never more.
+  test('with a store there are two pages, what you get and then the price', () => {
+    for (const entry of ['path-complete', 'refused', 'recap'] as const) {
+      const pages = wallPages({ entry, storeHasPlans: true });
+      assert.deepEqual([...pages], ['yours', 'plans'], `${entry} drew the wall at the wrong length`);
+      assert.equal(canBuy(pages), true);
+      assert.equal(endsOnPlans(pages), true);
+    }
   });
 
-  test('with no store there are three, and the wall ends on the free promise', () => {
-    // Web, Expo Go, and every build without a RevenueCat key. Three pages of
-    // appetite ending in a button to nowhere would be worse than not opening the
-    // wall at all, so the last word is the promise page three just made.
+  test('with no store there is one page, and the wall ends on the free promise', () => {
+    // Web, Expo Go, and every build without a RevenueCat key. A page of appetite
+    // ending in a button to nowhere would be worse than not opening the wall at
+    // all, so the last word is the promise the page just made.
     for (const entry of ['path-complete', 'refused', 'recap'] as const) {
       const pages = wallPages({ entry, storeHasPlans: false });
-      assert.deepEqual([...pages], ['map', 'french', 'yours'], `${entry} drew a page that cannot exist`);
+      assert.deepEqual([...pages], ['yours'], `${entry} drew a page that cannot exist`);
       assert.equal(canBuy(pages), false);
       assert.equal(endsOnPlans(pages), false);
     }
+  });
+
+  test('no door ever draws more than two pages, or the retired map and French pages', () => {
+    const doors: readonly WallEntry[] = ['path-complete', 'refused', 'settings', 'recap'];
+    for (const entry of doors) {
+      for (const storeHasPlans of [true, false]) {
+        const pages = wallPages({ entry, storeHasPlans });
+        assert.ok(pages.length <= 2, `${entry} drew ${pages.length} pages`);
+        for (const retired of ['map', 'french']) {
+          assert.ok(!pages.includes(retired as never), `${entry} drew the retired ${retired} page`);
+        }
+      }
+    }
+    // The frame no longer draws them either, so a page that came back into the
+    // list would render nothing rather than an old four-page wall.
+    const screen = read('./WallScreen.tsx');
+    assert.doesNotMatch(screen, /<WallMapPage|<WallFrenchPage/, 'the frame still draws a retired page');
   });
 
   test('somebody who came to buy is not sold to', () => {
@@ -58,11 +81,19 @@ describe('the wall is as long as it has something to show', () => {
   test('a missing store or failed load draws a recoverable state, never a blank page', () => {
     const screen = read('./WallScreen.tsx');
     assert.doesNotMatch(screen, /if \([^\n]*page === undefined[^\n]*\) return null/);
-    assert.match(screen, /if \(unavailable \|\| failed \|\| loading\)/);
     assert.match(screen, /Plans aren’t available here yet\./);
     assert.match(screen, /header=\{<ScreenHeader back=\{\{ onPress: onLeave \}\}/);
     assert.match(screen, /setRetry\(\(value\) => value \+ 1\)/);
-    assert.match(screen, /\.catch\(\(\) => \{[\s\S]*setLoadFailed\(true\)/);
+    // 2026-09-27, notebook Phase 6-E: the map and French pages left, and with
+    // them the wall's only disk read, so there is no progress load left to fail.
+    // The store read is the one load, it still cannot leave a blank page, and the
+    // wall now reads no progress at all, which is stricter than a failure path.
+    assert.match(screen, /if \(unavailable \|\| loading\)/);
+    assert.match(screen, /\.catch\(\(\) => \{[\s\S]*setOffering\(\{ available: false \}\)/);
+    const code = screen.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    for (const name of ['loadActivity', 'loadDeck', 'loadMissionCompletions', 'momentumFrom', 'missionStates']) {
+      assert.doesNotMatch(code, new RegExp(`\\b${name}\\b`), `the wall reads ${name}, so a page could vary by progress`);
+    }
   });
 
   test('no door draws a page that is not there, whatever the door', () => {

@@ -31,6 +31,7 @@ import {
   MEET_MORE,
   MEET_PILL,
   MEET_PRIVACY,
+  SAVE_PRIVACY,
   MEET_TITLE,
   MEET_TYPING,
   PERSONA_BODY,
@@ -393,6 +394,16 @@ describe('the first run says what a learner is talking to', () => {
     assert.doesNotMatch(MEET_TYPING, /cannot|can't|unable/i, 'the typing line frames typing as a fallback again');
     assert.ok(!/[—–]/.test(MEET_TYPING), 'the typing line carries an em dash');
     assert.ok(!/\b(wrong|bad|failed|must)\b/i.test(MEET_TYPING), 'the typing line scolds');
+  });
+
+  test('the pre-account save page renders the approved speech and typed-data disclosure beside AI', () => {
+    for (const persona of EVERY_PERSONA) {
+      assert.equal(SAVE_PRIVACY(persona), `No person hears you. What you say and type, like your name and your goal, goes to ${VENDOR_PHRASE} so ${persona.name} can answer, and nothing about it goes anywhere for any purpose other than carrying a conversation, answering you and keeping what you have learned.`);
+    }
+    const screen = stripComments(read('onboarding/PreAccountOnboarding.tsx'));
+    const save = screen.slice(screen.indexOf("page === 'save' && ("), screen.indexOf('avoidKeyboard='));
+    assert.match(save, /Your tutor is AI<\/Text>\s*<Text[^>]*>\{SAVE_PRIVACY\(chosenPersona\)\}<\/Text>/);
+    assert.match(screen, /import \{[^}]*SAVE_PRIVACY[^}]*\} from '\.\/disclosure\.ts'/);
   });
 
   test('every first-run screen reads its AI disclosure from one module', () => {

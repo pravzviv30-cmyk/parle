@@ -9,6 +9,7 @@ import { DEFAULT_TUTOR_VOICE } from '@luvani/core';
 import {
   MAX_FIRST_NAME_CHARS,
   PRE_ACCOUNT_PAGES,
+  firstNameFrom,
   freshPreAccountDraft,
   loadPreAccountDraft,
   savePreAccountDraft,
@@ -99,7 +100,7 @@ describe('the pre-account hand-off', () => {
       reason: ['holiday', '', ['trip']],
       minutes: [0, 7, '10', 20, null],
       reminderTime: ['dawn', 18, { value: 'evening' }],
-      firstName: ['', '   ', 42, 'x'.repeat(MAX_FIRST_NAME_CHARS + 1), 'Ada\u0000'],
+      firstName: ['', '   ', 42, 'x'.repeat(MAX_FIRST_NAME_CHARS + 1), '\u0000'],
     };
     for (const [field, values] of Object.entries(junk)) {
       for (const value of values) {
@@ -122,6 +123,31 @@ describe('the pre-account hand-off', () => {
       assert.equal(back?.reason, 'trip');
     }
     assert.ok(disk.has(KEY));
+  });
+
+  test('first names strip Unicode formatting and controls before validation', async () => {
+    const disk = installDisk();
+    for (const [input, expected] of [['x\u202eevil', 'xevil'], ['\u200b\u200d', null], ['A\u0085da', 'Ada'], ['Ada\u0000', 'Ada']] as const) {
+      assert.equal(firstNameFrom(input), expected);
+      disk.set(KEY, JSON.stringify({ ...freshPreAccountDraft(), firstName: input }));
+      assert.equal((await loadPreAccountDraft())?.firstName, expected);
+    }
+  });
+
+  test('the signup sign-in link discards the draft before navigating', () => {
+    const auth = read('../auth/AuthFlow.tsx');
+    const signup = auth.slice(auth.indexOf("if (screen === 'signup')"), auth.indexOf("if (screen === 'signin')"));
+    assert.match(signup, /onSignIn=\{\(\) => \{\s*onSignIn\(\);\s*setScreen\('signin'\);\s*\}\}/);
+    assert.match(app, /onSignIn=\{discardPreAccountDraft\}/);
+    assert.match(app, /const discardPreAccountDraft = useCallback\(\(\) => \{\s*setPreAccountDraft\(null\);\s*void clearPreAccountDraft\(\)/);
+  });
+
+  test('a complete signed-in profile clears the draft without bootstrapping it', () => {
+    const boundary = app.slice(app.indexOf('function CompleteProfileDraftCleanup'), app.indexOf('function SignedInRoot'));
+    assert.match(boundary, /useEffect\(\(\) => \{\s*onConsumed\(\);\s*\}, \[onConsumed\]\)/);
+    assert.match(app, /<ProfileGate[\s\S]*?>\s*<CompleteProfileDraftCleanup onConsumed=\{onPreAccountDraftConsumed\} \/>/);
+    assert.match(app, /onPreAccountDraftConsumed=\{discardPreAccountDraft\}/);
+    assert.match(app, /existing === null && preAccountDraft !== null \? \(\s*<PreAccountProfileBootstrap/);
   });
 
   test('the first name is optional, trimmed and bounded', async () => {

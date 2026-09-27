@@ -8,8 +8,13 @@
  * Deliberately NOT appended to onboarding. An explainer read four screens
  * before the thing it explains is a leaflet; read at the door of the tutor, it
  * is instructions. It also names the three controls the conversation actually
- * renders — Help me out, Slower, In English — so it teaches the real UI rather
+ * renders — Help me out, Simpler, In English — so it teaches the real UI rather
  * than a general idea of one.
+ *
+ * Notebook Phase 4 (2026-09-27): the clip-art left (the speech bubbles, the
+ * wave and the postcard) and so did the chartreuse feature panel. The orb page
+ * stays whole, because this is the only place the app teaches what the orb's
+ * colours mean.
  *
  * The first page does not write its own words. Its title and body come from
  * `onboarding/disclosure.ts`, the same module the welcome subline and the Meet
@@ -29,13 +34,10 @@
 
 import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { accent, paper, radius, space, type, HAIRLINE } from '../theme.ts';
+import { paper, space, type, HAIRLINE } from '../theme.ts';
 import { ProgressDots, PillButton, Card, ROW_WORDS } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
-import { Art } from '../art/Art.tsx';
-import { SCREEN_ART } from '../art/maps.ts';
-import { SpeakBubbles, OnboardWave } from '../illustrations.tsx';
 import { VoiceOrb, type OrbState } from './VoiceOrb.tsx';
 import { tutorPersonaOf, type TutorPersona } from './tutorName.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
@@ -80,7 +82,7 @@ function OrbWalkthrough({ persona }: { persona: TutorPersona }) {
  * It used to be a module constant, which is exactly what a set of pages
  * introducing a person should not be once the person can be a different one.
  * Rung one of this walkthrough says who is talking, and the hint card says whose
- * speed the Slower button changes, and both name somebody.
+ * sentences the Simpler button shortens, and both name somebody.
  */
 function pagesFor(persona: TutorPersona) {
   // Two of the eight voices are women, so every sentence on these pages that
@@ -90,7 +92,6 @@ function pagesFor(persona: TutorPersona) {
   return [
   {
     key: 'what',
-    art: SpeakBubbles,
     // Both are functions of the persona now. "AI tutor" is not something the
     // persona may move: that sentence is the disclosure itself, and
     // `disclosure.test.ts` fails for any of the eight if it goes.
@@ -100,21 +101,18 @@ function pagesFor(persona: TutorPersona) {
   },
   {
     key: 'stuck',
-    art: OnboardWave,
     title: 'Getting stuck is planned for',
     body: 'You always get the first attempt. If you get stuck, a small English hint appears without interrupting the scene. The answer stays hidden unless you ask again.',
-    note: `Help me out reveals a hint. Slower keeps ${persona.name} slow. In English tells you what ${p.subject} just said.`,
+    note: `Help me out reveals a hint. Simpler keeps ${persona.name}'s sentences short. In English tells you what ${p.subject} just said.`,
   },
   {
     key: 'after',
-    art: null,
     title: 'Leave with something useful',
-    body: 'Your recap brings together useful phrases and feedback from the conversation. You can revisit saved phrases in My French and review remembered details from the Tutor page.',
+    body: 'Your recap keeps the lines you said, one phrase to take with you and one sound, and says what comes next time. Saved phrases wait in My French.',
     note: null,
   },
   {
     key: 'orb',
-    art: null,
     title: 'The circle runs the room',
     body: 'One circle tells you whose turn it is, in traffic lights. You never have to guess.',
     note: null,
@@ -129,7 +127,6 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
   const persona = tutorPersonaOf(useProfile().profile);
   const pages = pagesFor(persona);
   const page = pages[index]!;
-  const Scene = page.art;
   const last = index === pages.length - 1;
 
   // The chevron and the hardware back agree: step back a page, or leave on page
@@ -143,15 +140,6 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
       footer={<PillButton label={last ? 'Ready to practise' : 'Next'} onPress={() => (last ? onDone() : setIndex((i) => i + 1))} />}
     >
       <View style={st.page}>
-        {Scene ? (
-          <View style={st.art}>
-            <Scene width={170} />
-          </View>
-        ) : page.key === 'after' ? (
-          <View style={st.art}>
-            <Art name={SCREEN_ART.recap} />
-          </View>
-        ) : null}
         <Text style={st.title} accessibilityRole="header">{page.title}</Text>
         <Text style={st.body}>{page.body}</Text>
         {page.key === 'orb' ? <OrbWalkthrough persona={persona} /> : null}
@@ -166,12 +154,11 @@ export function TutorIntro({ onDone }: { onDone: () => void }) {
 }
 
 const st = StyleSheet.create({
-  page: { padding: space(5), marginBottom: space(4), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
+  page: { paddingTop: space(3), marginBottom: space(4) },
   states: { alignSelf: 'stretch', marginTop: space(5) },
   stateRow: { flexDirection: 'row', alignItems: 'center', gap: space(4), paddingVertical: space(2) },
   stateDivided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard, marginTop: space(2) },
   stateWords: ROW_WORDS,
-  art: { alignItems: 'center', marginBottom: space(5), backgroundColor: paper.card, borderRadius: radius.row, overflow: 'hidden' },
   title: { ...type.display, color: paper.ink },
   body: { ...type.body, color: paper.inkSoft, marginTop: space(3) },
 });

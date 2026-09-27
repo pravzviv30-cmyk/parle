@@ -28,11 +28,9 @@
 
 import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { accent, HAIRLINE, paper, radius, space, type } from '../theme.ts';
+import { paper, space, type } from '../theme.ts';
 import { PillButton, GhostButton } from '../components.tsx';
 import { ScrollScreen } from '../layout.tsx';
-import { Art } from '../art/Art.tsx';
-import { SCREEN_ART } from '../art/maps.ts';
 import { AGE_CONFIRM, AGE_DENY, AGE_RETURN_SUB, AGE_RETURN_TITLE, ageGate } from './answers.ts';
 import { AgeRefusal } from './AgeRefusal.tsx';
 
@@ -60,9 +58,8 @@ export function AgeGateScreen({ onPass, onSignOut }: { onPass: () => void; onSig
         ) : undefined
       }
     >
-      <View style={st.art}>
-        <Art name={SCREEN_ART.agePage} />
-      </View>
+      {/* Notebook Phase 4 (2026-09-27): the cake picture and the feature panel
+          under it retired, so the question leads on the paper itself. */}
       <Text accessibilityRole="header" style={st.question}>
         {AGE_RETURN_TITLE}
       </Text>
@@ -78,8 +75,7 @@ export function AgeGateScreen({ onPass, onSignOut }: { onPass: () => void; onSig
 }
 
 const st = StyleSheet.create({
-  art: { alignItems: 'center', marginBottom: space(5), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card, padding: space(6) },
-  question: { ...type.display, color: paper.ink },
+  question: { ...type.display, color: paper.ink, marginTop: space(3) },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
   secondary: { marginTop: space(5) },
 });

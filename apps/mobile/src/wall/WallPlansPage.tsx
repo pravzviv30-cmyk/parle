@@ -1,39 +1,48 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { GhostButton, Label } from '../components.tsx';
-import { accent, shadow, HAIRLINE, HIT, paper, radius, space, type } from '../theme.ts';
+import { Card, GhostButton, Label } from '../components.tsx';
+import { HAIRLINE, HIT, paper, radius, space, type } from '../theme.ts';
 import type { PaidPlan } from '../purchases/adapter.ts';
 import {
+  ACCOUNT_LABEL,
   PLANS_BOTH,
   PLANS_PRIVACY,
   PLANS_RENEWAL,
   PLANS_RESTORE,
   PLANS_SUB,
   PLANS_TERMS,
-  PLANS_TIME,
   PLANS_TITLE,
   PLANS_TRUST,
   WALL_LEAVE,
+  conversationLength,
+  minutesAMonth,
+  perWeekLine,
 } from './wallCopy.ts';
-import type { WallPlanRow } from './wallPlans.ts';
+import type { WallAccount } from './wallAccount.ts';
+import { CONVERSATION_MINUTES, type WallPlanRow } from './wallPlans.ts';
 
 /**
- * Page four. Two plans, and every number on it came off the wire.
+ * Page two of two. The plans, priced in conversations, and every number off the wire.
  *
- * The cards select rather than buy, and the one primary pill lives in the
- * frame's footer. That is the app's "one primary per door" rule, and here it
- * also buys something worth having: choosing a tier and committing to it are two
- * different moments, so the funnel can tell "they compared and left" apart from
- * "they tried to buy and it failed". Two buy buttons would have collapsed both
- * into one event and made the page argue with itself about which tier is the
- * real one.
+ * 2026-09-27, notebook Phase 6-E. One card of ruled rows, one per plan: its
+ * name, about how many ten-minute conversations a week it buys, its minutes a
+ * month, and the store's own price. The chosen row is said in ink, with a filled
+ * mark, rather than in the chartreuse, which is for French. The account's own
+ * minutes sit above the card when the server has said them.
+ *
+ * The rows select rather than buy, and the one primary pill lives in the
+ * frame's footer. Choosing a tier and committing to it are two different
+ * moments, so the funnel can tell "they compared and left" apart from "they
+ * tried to buy and it failed". The renewal terms and the trust line ride in
+ * the same footer, right under that pill (`WallPlansAtButton` below).
  *
  * Nothing is marked recommended, best value or most popular. The founder ruled
  * out invented social proof, and with two tiers that both open every situation
- * the only honest difference is the speaking time, which each card states.
+ * the only honest difference is the speaking time, which each row states.
  */
 export function WallPlansPage({
   rows,
+  account,
   selected,
   onSelect,
   onRestore,
@@ -42,6 +51,7 @@ export function WallPlansPage({
   onLeave,
 }: {
   rows: readonly WallPlanRow[];
+  account: WallAccount | null;
   selected: PaidPlan | null;
   onSelect: (plan: PaidPlan) => void;
   onRestore: () => void;
@@ -54,8 +64,20 @@ export function WallPlansPage({
       <Text accessibilityRole="header" style={st.title}>{PLANS_TITLE}</Text>
       <Text style={st.sub}>{PLANS_SUB}</Text>
 
-      <View style={st.cards}>
-        {rows.map((row) => {
+      {/* What the learner already holds, only when the server said so. A still
+          line read once, never a count that ticks. */}
+      {account !== null && (
+        <View style={st.account}>
+          <Label>{ACCOUNT_LABEL}</Label>
+          <Text style={st.accountTitle}>{account.title}</Text>
+          {account.lines.map((line) => (
+            <Text key={line} style={st.accountLine}>{line}</Text>
+          ))}
+        </View>
+      )}
+
+      <Card padded={false} style={st.card}>
+        {rows.map((row, index) => {
           const chosen = row.plan === selected;
           return (
             <Pressable
@@ -76,83 +98,104 @@ export function WallPlansPage({
               // plan was picked (F522, closed by F586).
               aria-selected={chosen}
               accessibilityLabel={row.name}
-              style={({ pressed }) => [st.card, chosen && st.chosen, pressed && st.pressed]}
+              style={({ pressed }) => [st.row, index > 0 && st.divided, pressed && st.pressed]}
             >
-              <View style={st.cardHead}>
-                <Text style={st.name}>{row.name}</Text>
-                <Text style={st.price}>{row.price}</Text>
+              <View style={[st.mark, chosen && st.markChosen]} {...decorative}>
+                {chosen && <View style={st.markDot} />}
               </View>
-              {/* The allowance is absent rather than guessed when the server has
-                  not sent a catalogue. A minute count invented on the phone is
-                  the one number on this page that could disagree with the meter. */}
-              {row.minutes !== null && (
-                <View style={st.time}>
-                  <Text style={st.minutes}>{row.minutes}</Text>
-                  <Label>{PLANS_TIME}</Label>
-                </View>
-              )}
+              <View style={st.words}>
+                <Text style={st.name}>{row.name}</Text>
+                {/* The conversations and the minutes are absent rather than
+                    guessed when the server has not sent a catalogue. A count
+                    invented on the phone is the one number on this page that
+                    could disagree with the meter. */}
+                {row.perWeek !== null && <Text style={st.perWeek}>{perWeekLine(row.perWeek)}</Text>}
+                {row.minutes !== null && <Text style={st.minutes}>{minutesAMonth(row.minutes)}</Text>}
+              </View>
+              <Text style={st.price}>{row.price}</Text>
             </Pressable>
           );
         })}
-      </View>
+      </Card>
 
-      <Text style={st.both}>{PLANS_BOTH}</Text>
-      <Text style={st.trust}>{PLANS_TRUST}</Text>
+      <Text style={st.note}>{conversationLength(CONVERSATION_MINUTES)}</Text>
+      <Text style={st.note}>{PLANS_BOTH}</Text>
 
-      {/* The way out, said rather than implied.
-          The wall has always been soft: it never blocks, the chevron goes back,
-          and page three promises everything stays. But the only visible way to
-          decline was a chevron in the corner, which reads as navigation rather
-          than as a choice. The third video's point about commitment is the one it
-          is most right about, and this is the whole of the fix. */}
+      {/* The way out, said rather than implied. The wall never blocks and the
+          chevron goes back, but a chevron in the corner reads as navigation
+          rather than as a choice. */}
       <View style={st.decline}>
         <GhostButton label={WALL_LEAVE} onPress={onLeave} />
       </View>
 
-      <View style={st.smallPrint}>
-        <View style={st.rule} />
-        <Text style={st.renewal}>{PLANS_RENEWAL}</Text>
-        <View style={st.links}>
-          <GhostButton label={PLANS_PRIVACY} onPress={onOpenPolicy} />
-          <GhostButton label={PLANS_TERMS} onPress={onOpenTerms} />
-        </View>
+      <View style={st.links}>
+        <GhostButton label={PLANS_PRIVACY} onPress={onOpenPolicy} />
+        <GhostButton label={PLANS_TERMS} onPress={onOpenTerms} />
         <GhostButton label={PLANS_RESTORE} onPress={onRestore} />
       </View>
     </View>
   );
 }
 
+/**
+ * The two lines a buyer is owed, drawn right under the frame's one pill.
+ *
+ * Apple asks for the length and the renewal on the purchase screen itself, and
+ * the trust line is the other true thing worth saying at the moment of paying:
+ * no adverts, and stopping costs nothing made. Both used to sit at the foot of
+ * the scrolling page, a long way below the button they were about.
+ */
+export function WallPlansAtButton() {
+  return (
+    <View style={st.atButton}>
+      <Text style={st.small}>{PLANS_RENEWAL}</Text>
+      <Text style={st.small}>{PLANS_TRUST}</Text>
+    </View>
+  );
+}
+
+/** The mark is a picture of the selected state the row already announces. */
+const decorative = { accessible: false, importantForAccessibility: 'no-hide-descendants' } as const;
+
+const MARK = 22;
+
 const st = StyleSheet.create({
   title: { ...type.display, color: paper.ink },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
-  cards: { marginTop: space(6), gap: space(3) },
-  // Two white cards with the app's one whisper under them. The unselected one
-  // is the plain card rule; the chosen one is ringed in the identity violet,
-  // which is what the founder circled on the frame and is the one place a ring
-  // rather than a fill says "this one" on a purchase surface. The ring is drawn
-  // at the same width either way, so choosing a plan does not move its
-  // neighbour down the page by two points.
-  card: {
-    backgroundColor: paper.card,
-    borderRadius: radius.card,
+  account: { marginTop: space(5) },
+  accountTitle: { ...type.heading, color: paper.ink, marginTop: space(1) },
+  accountLine: { ...type.body, color: paper.ink, marginTop: space(1) },
+  card: { marginTop: space(5) },
+  // Ledger rows: a hairline between them, 56pt at least, growing with the text.
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(3),
+    paddingHorizontal: space(4),
+    paddingVertical: space(4),
+    minHeight: Math.max(HIT, 56),
+  },
+  divided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
+  pressed: { backgroundColor: paper.groundDeep },
+  mark: {
+    width: MARK,
+    height: MARK,
+    borderRadius: radius.pill,
     borderWidth: 2,
     borderColor: paper.line,
-    padding: space(4),
-    minHeight: HIT,
-    ...shadow.whisper,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  chosen: { borderColor: accent.primary, backgroundColor: accent.feature },
-  pressed: { backgroundColor: paper.groundDeep },
-  cardHead: { flexDirection: 'row', alignItems: 'baseline', gap: space(3) },
-  name: { ...type.heading, color: paper.ink, flex: 1, minWidth: 0 },
-  price: { ...type.title, color: paper.ink, textAlign: 'right' },
-  time: { flexDirection: 'row', alignItems: 'baseline', gap: space(2), marginTop: space(2) },
-  minutes: { ...type.bodyStrong, color: paper.ink },
-  both: { ...type.small, color: paper.inkSoft, marginTop: space(4) },
-  trust: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
+  markChosen: { borderColor: paper.ink, backgroundColor: paper.ink },
+  markDot: { width: MARK / 3, height: MARK / 3, borderRadius: radius.pill, backgroundColor: paper.card },
+  words: { flex: 1, minWidth: 0 },
+  name: { ...type.heading, color: paper.ink },
+  perWeek: { ...type.body, color: paper.ink, marginTop: space(1) },
+  minutes: { ...type.small, color: paper.inkSoft, marginTop: space(0.5) },
+  price: { ...type.heading, color: paper.ink, textAlign: 'right' },
+  note: { ...type.small, color: paper.inkSoft, marginTop: space(3) },
   decline: { marginTop: space(4), alignItems: 'center' },
-  smallPrint: { marginTop: space(6) },
-  rule: { height: HAIRLINE, backgroundColor: paper.line, marginBottom: space(3) },
-  renewal: { ...type.small, color: paper.inkSoft },
-  links: { flexDirection: 'row', flexWrap: 'wrap', gap: space(3), marginTop: space(1) },
+  links: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space(3), marginTop: space(4) },
+  atButton: { marginTop: space(2), gap: space(1) },
+  small: { ...type.small, color: paper.inkSoft, textAlign: 'center' },
 });

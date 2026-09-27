@@ -8,8 +8,10 @@
  * settled on: a purchase surface that guesses is the failure F265 was.
  *
  * The seconds arrive as a fact and leave this module untouched. Nothing here
- * turns them into words, and nothing on a screen may draw them: that fold is
- * `planStatus.ts`'s, and it speaks in bands.
+ * turns them into words. The plan card's fold is `planStatus.ts`'s, and it
+ * speaks in bands. The one exception (2026-09-27, F541) is the wall, where a
+ * learner deciding what to buy is owed the size of what is left:
+ * `wall/wallAccount.ts` says it once, rounded down, and it never ticks.
  */
 
 import type { Plan, StartRefusal } from '@luvani/core';

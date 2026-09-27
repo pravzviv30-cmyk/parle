@@ -8029,8 +8029,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `no line counts the situations on the path`
 - verified-by: `the plans page says what a subscription is, which Apple asks for and a learner is owed`
 - verified-by: `a real mission phrase would be refused by the guilt list, which is why it is not scanned`
-- verified-by: `with a store there are four pages, and the price is last`
-- verified-by: `with no store there are three, and the wall ends on the free promise`
+- note: notebook redesign (2026-09-27): the wall became two pages, what you get and then the plans,
+  priced as conversations a week from each plan's minutes. With no store it is one page that still
+  ends on the free promise. The page tests were renamed with it.
+- verified-by: `with a store there are two pages, what you get and then the price`
+- verified-by: `with no store there is one page, and the wall ends on the free promise`
 - verified-by: `somebody who came to buy is not sold to`
 - verified-by: `the value pages never vary by what the learner has done`
 - verified-by: `a learner with none is an invitation rather than a nought`
@@ -8189,6 +8192,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   number is a scarcity mechanic. So the seconds never reach a screen: `planStatus.ts` folds them
   into one of three bands said in words, and the card draws the plan's label, its period and that
   band. A numeral on the card is the defect.
+- note: notebook redesign (2026-09-27): one carve-out, reviewed by Fable. The paywall now says the
+  minutes left and the reset date once, rounded down and still (`wall/wallAccount.ts`), because a
+  learner choosing what to buy is owed the size of what is left. It is not a falling countdown, which
+  is what this item refuses, and the plan card keeps its bands.
 - verified-by: `plan status is one of three bands in words, and no numeral reaches the card`
 
 ### F542 — The tutor's circle says ready when the account cannot start

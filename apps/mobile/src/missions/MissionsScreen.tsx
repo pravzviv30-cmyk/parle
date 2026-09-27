@@ -25,8 +25,8 @@ import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { missionStates, type MissionProgress } from '@luvani/core';
-import { accent, paper, space, type } from '../theme.ts';
-import { Card, GhostButton, Label, MicGlyph, OutlineButton, PillButton, TintRow } from '../components.tsx';
+import { paper, space, type } from '../theme.ts';
+import { Card, GhostButton, Label, Ledger, LedgerRow, MicGlyph, OutlineButton, PillButton } from '../components.tsx';
 import { minutesLine, missionMinutes } from '../home/estimate.ts';
 import { TYPE_INSTEAD } from '../tutor/speakView.ts';
 import { PlaceGlyph, WaveformGlyph } from '../glyphs.tsx';
@@ -35,7 +35,6 @@ import { heroArt } from '../art/maps.ts';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { lessonStart, TUTOR_OFFLINE } from '../tutor/gate.ts';
-import { missionTint } from './missionTint.ts';
 import { loadMissionCompletions } from './store.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadActivity } from '../progress/activity.ts';
@@ -139,7 +138,7 @@ export function MissionsScreen() {
         <Text style={st.access}>{view.access}</Text>
 
         {first && (
-          <Card tone="feature" style={st.hero}>
+          <Card style={st.hero}>
             <Label>{CHOOSER_START_HERE}</Label>
             <Art name={heroArt(first.mission.place)} style={st.heroArt} />
             <Text style={[type.cardTitle, { color: paper.ink }]}>{first.mission.titleEn}</Text>
@@ -166,19 +165,22 @@ export function MissionsScreen() {
           <Text style={[type.small, { color: paper.inkSoft }]}>{LESSON_DOOR.minutes}</Text>
         </Card>
 
+        {/* The other five, as one ruled list: the place's mark in ink with no
+            disc, the English title, the goal and where the learner stands. */}
         <View style={st.rows}>
           <Label>{CHOOSER_OTHER}</Label>
-          {rest.map((card) => (
-            <TintRow
-              key={card.id}
-              tint={missionTint(card.mission.place)}
-              glyph={<PlaceGlyph place={card.mission.place} color={accent.primary} />}
-              title={card.mission.titleEn}
-              gloss={`${card.mission.goalEn} · ${card.status}`}
-              accessibilityLabel={asSentences([card.mission.title, card.mission.titleEn, card.status])}
-              onPress={() => open(card)}
-            />
-          ))}
+          <Ledger accessibilityLabel={CHOOSER_OTHER}>
+            {rest.map((card) => (
+              <LedgerRow
+                key={card.id}
+                glyph={<PlaceGlyph place={card.mission.place} color={paper.ink} />}
+                title={card.mission.titleEn}
+                gloss={`${card.mission.goalEn} · ${card.status}`}
+                accessibilityLabel={asSentences([card.mission.title, card.mission.titleEn, card.status])}
+                onPress={() => open(card)}
+              />
+            ))}
+          </Ledger>
         </View>
 
         {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}

@@ -273,12 +273,12 @@ describe('only the orb and the highlighter move', () => {
   // drill verdict, so illustrations/scenes/reward.tsx came off this list; and
   // the rebuilt onboarding (Phase 5) no longer animates, so
   // onboarding/PreAccountOnboarding.tsx came off it too.
+  // 2026-09-27, notebook Phase 4 (B1): the mission win card and the thread
+  // arrive in place, so ConvoScreen.tsx and tutor/Transcript.tsx came off it.
   const PENDING = [
-    'ConvoScreen.tsx',
     join('illustrations', 'pen.tsx'),
     join('illustrations', 'useSceneMotion.ts'),
     'layout.tsx',
-    join('tutor', 'Transcript.tsx'),
   ];
 
   test('the files that animate are the orb, the highlighter and the pending list, and nothing new', () => {

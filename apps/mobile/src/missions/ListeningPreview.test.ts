@@ -140,7 +140,8 @@ describe('the listening preview control — Stage 4 item 4', () => {
 
 describe('the chooser offers it on the one situation already picked out', () => {
   const SCREEN = stripComments(read('./MissionsScreen.tsx'));
-  const hero = SCREEN.slice(SCREEN.indexOf('<Card tone="feature" style={st.hero}>'), SCREEN.indexOf('</Card>', SCREEN.indexOf('style={st.hero}')));
+  // 2026-09-27, notebook Phase 4 (B1): the card dropped the deprecated `tone="feature"`.
+  const hero = SCREEN.slice(SCREEN.indexOf('<Card style={st.hero}>'), SCREEN.indexOf('</Card>', SCREEN.indexOf('style={st.hero}')));
 
   test('mounted inside the Start here card, after its one pill, for that mission', () => {
     assert.ok(hero.length > 0, 'the hero card moved; this test is stale');

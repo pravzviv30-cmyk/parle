@@ -15,12 +15,12 @@
  * themselves, which is most of the reason recasts fail to land.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
-import { accent, paper, shadow, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
-import { EarGlyph, Label, TintPanel } from '../components.tsx';
+import { useRef, useState } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { accent, paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
+import { EarGlyph, Label } from '../components.tsx';
 import type { TurnLine } from '../live/turns.ts';
-import { settleIn, useReduceMotion } from '../motion.ts';
+import { useReduceMotion } from '../motion.ts';
 import { replayEar } from './replayEar.ts';
 
 function Recast({ better, betterEn, why }: { quote: string; better: string; betterEn: string; why: string }) {
@@ -117,12 +117,10 @@ function Line({
             )}
           </Pressable>
         ) : learner ? (
-          // The learner's own side is the house lilac, which is the one tint a
-          // surface may take when it is not about a place: these are their
-          // words, and the paper under them says so without a second colour
-          // entering the signal set. TintPanel draws it, because a screen never
-          // names a colour (palette.test.ts).
-          <TintPanel tint="lilac" style={st.learnerBubble}>{body}</TintPanel>
+          // The learner's own side is the deeper paper rather than a tint, since
+          // the notebook redesign retired the tints: these are their words, set
+          // on the page itself, and the tutor's are the white card opposite.
+          <View style={st.learnerBubble}>{body}</View>
         ) : (
           <View style={st.tutorBubble}>{body}</View>
         )}
@@ -163,34 +161,16 @@ export function Transcript({
   const ref = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const [newLines, setNewLines] = useState(false);
-  // One settling entrance, in the vocabulary the splash established and the
-  // only one this app has: transform and opacity, native driver, nothing
-  // bounces. It lives here rather than at the call site so both places the
-  // thread appears get it, and neither has to remember the numbers.
-  const settle = useRef(new Animated.Value(0)).current;
-
-  // The final frame when movement is withheld. The conversation is the content;
-  // the arrival is the flourish, and nobody should sit through a flourish to
-  // read. settleIn owns both halves of that, for every surface.
+  // The thread arrives in place (notebook Phase 4, 2026-09-27): only the orb
+  // and the highlighter move in this app. Reduce motion still decides whether
+  // the scroll to the newest line glides or jumps.
   const reduced = useReduceMotion();
   // Which bubble carries the replay. Found by walking back rather than by
   // index, because the last line in the thread is usually the learner's.
   const lastTutorId = [...turns].reverse().find((t) => t.who === 'tutor')?.id;
-  useEffect(() => {
-    const animation = settleIn(settle, reduced);
-    return () => animation?.stop();
-  }, [settle, reduced]);
 
   return (
-    <Animated.View
-      style={[
-        st.settleBox,
-        {
-          opacity: settle,
-          transform: [{ translateY: settle.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
-        },
-      ]}
-    >
+    <View style={st.frame}>
       <ScrollView
         ref={ref}
         style={st.scroll}
@@ -225,16 +205,16 @@ export function Transcript({
       {newLines && <Pressable accessibilityRole="button" accessibilityLabel="Go to the latest message" onPress={() => { nearBottom.current = true; setNewLines(false); ref.current?.scrollToEnd({ animated: !reduced }); }} style={st.latest}>
         <Text style={[type.small, { color: paper.ink }]}>Latest message ↓</Text>
       </Pressable>}
-    </Animated.View>
+    </View>
   );
 }
 
 const st = StyleSheet.create({
   latest: { minHeight: HIT, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: space(4), backgroundColor: paper.groundDeep, borderRadius: radius.control },
-  // The entrance wrapper carries the same flex the scroll used to, so adding it
-  // moves nothing: minHeight 0 is what stops a flex child from refusing to
-  // shrink and pushing the controls off the bottom of the screen.
-  settleBox: { flex: 1, minHeight: 0 },
+  // The wrapper carries the same flex the scroll does, so it moves nothing:
+  // minHeight 0 is what stops a flex child from refusing to shrink and pushing
+  // the controls off the bottom of the screen.
+  frame: { flex: 1, minHeight: 0 },
   scroll: { flex: 1, minHeight: 0 },
   // Short conversations sit against the controls instead of stranded at the top.
   content: { flexGrow: 1, justifyContent: 'flex-end', gap: space(3), paddingVertical: space(3) },
@@ -251,10 +231,9 @@ const st = StyleSheet.create({
   // nothing here for reduce motion to withhold.
   ear: { padding: space(1) },
   earSounding: { padding: space(1), backgroundColor: paper.groundDeep, borderRadius: radius.pill },
-  // The tutor speaks from a white card, with the app's one whisper under it and
-  // the hairline still there: elevation draws nothing on older Android and
-  // clips on the web column, and without the rule a card there dissolves into
-  // the ground. Same bargain `components.tsx` states for Card itself.
+  // The tutor speaks from a white card on the paper hairline, and no shadow:
+  // the notebook retired the whisper, and the rule alone keeps the card from
+  // dissolving into the ground. Same bargain `components.tsx` states for Card.
   tutorBubble: {
     backgroundColor: paper.card,
     borderWidth: HAIRLINE,
@@ -262,11 +241,11 @@ const st = StyleSheet.create({
     borderRadius: radius.card,
     paddingHorizontal: space(4),
     paddingVertical: space(3.5),
-    ...shadow.whisper,
   },
-  // Tighter corners than the card and no shadow: a row is not a card, and the
-  // learner's side is a surface rather than an object sitting on the page.
+  // Tighter corners than the card: the learner's side is the page itself,
+  // a shade deeper, rather than an object sitting on it.
   learnerBubble: {
+    backgroundColor: paper.groundDeep,
     borderRadius: radius.row,
     paddingHorizontal: space(3.5),
     paddingVertical: space(3),

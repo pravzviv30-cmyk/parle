@@ -28,12 +28,11 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
-import { Card, Field, GhostButton, Label, OutlineButton, PillButton, TabBar, TintPanel } from '../components.tsx';
+import { Card, Field, GhostButton, Label, OutlineButton, PillButton, TabBar } from '../components.tsx';
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { capabilitiesFor } from '../purchases/capabilities.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import { paper, radius, space, type, HIT } from '../theme.ts';
-import { momentTint } from './momentTint.ts';
 import { TUTOR_OFFLINE, tutorGate } from './gate.ts';
 import { loadMoments, saveMoment, type RealMoment } from './momentsStore.ts';
 import {
@@ -56,12 +55,12 @@ import {
 } from './realMoments.ts';
 
 /**
- * One moment the learner could bring, as a card on its own paper.
+ * One moment the learner could bring, as a white cell on the page.
  *
  * Two columns, because eight of these read as a grid to choose from rather than
- * a list to read down, and that is what the mockup draws. Each one sits on the
- * tint `momentTint.ts` gives it, which tells them apart and claims nothing: a
- * job interview is not a warmer or a harder thing than a family dinner.
+ * a list to read down, and that is what the mockup draws. Since the notebook
+ * redesign (Phase 4, 2026-09-27) every cell is the same white: the place tints
+ * retired, and the title is what tells one moment from another.
  *
  * Chosen is an ink ring, not a fill and never a second tint. `OptionCard` and
  * `TabBar` already say "this one" that way, and a filled card here would read
@@ -73,7 +72,6 @@ import {
  * reading size the two columns fall to one and every title wraps whole.
  */
 function MomentCard({
-  momentKey,
   title,
   gloss,
   selected,
@@ -94,10 +92,10 @@ function MomentCard({
       aria-selected={selected}
       style={st.cell}
     >
-      <TintPanel tint={momentTint(momentKey)} style={[st.moment, selected && st.chosen]}>
+      <View style={[st.moment, selected && st.chosen]}>
         <Text style={[type.heading, { color: paper.ink }]}>{title}</Text>
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{gloss}</Text>
-      </TintPanel>
+      </View>
     </Pressable>
   );
 }
@@ -301,6 +299,7 @@ const st = StyleSheet.create({
   kinds: { marginTop: space(4), flexDirection: 'row', flexWrap: 'wrap', gap: space(3) },
   cell: { flexGrow: 1, flexBasis: 150, minHeight: HIT },
   moment: {
+    backgroundColor: paper.card,
     borderRadius: radius.row,
     padding: space(4),
     minHeight: HIT,

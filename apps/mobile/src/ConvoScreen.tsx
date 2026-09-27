@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Animated, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePreventRemove } from '@react-navigation/native';
 import {
@@ -43,6 +43,7 @@ import { RecapScreen, type RecapPracticePhrase } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
 import { bankPractice, journalDrills, journalPractice } from './live/journal.ts';
 import { saveRecapKeepsake } from './live/recapKeepsake.ts';
+import { keepsakeLines } from './live/keepsake.ts';
 import { MAX_RECOVERED_PHRASES, convoUsesFrom, type PracticeBatch } from './live/journalRules.ts';
 import { recordActivity } from './progress/activity.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
@@ -65,7 +66,7 @@ import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 import { enterSubmits, keyPressFrom } from './tutor/enterSubmit.ts';
 import { tutorNameOf } from './tutor/tutorName.ts';
 import { tutorVoiceOf } from './tutor/tutorVoice.ts';
-import { OPEN_MIC_LABEL, sceneControls, typedTurn } from './tutor/sceneControls.ts';
+import { OPEN_MIC_LABEL, sceneControls, simplerLabel, typedTurn } from './tutor/sceneControls.ts';
 import { NO_WIN, dismissWin, winAfterTurn, winCard, type WinState } from './tutor/missionWin.ts';
 import { recapWait } from './tutor/recapWait.ts';
 import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
@@ -138,7 +139,6 @@ import { recordGoalStepStarted } from './goals/store.ts';
 import { replayNote, type MissionReplay } from './missions/chooserView.ts';
 import { trackProductEvent } from './analytics/track.ts';
 import { MOMENT_ANSWER_MS, momentAnswer } from './practice/statusLine.ts';
-import { settleIn, useReduceMotion } from './motion.ts';
 import { Paywall } from './purchases/Paywall.tsx';
 
 /**
@@ -179,9 +179,9 @@ function ListenPlaque({ onPress, tutorName }: { onPress: () => void; tutorName: 
  * so continuing is chosen and never assumed. Leaving is the ghost, and the
  * standing end control in the header still works, as it must in any metered room.
  *
- * Motion is the app's one settle: transform and opacity, native driver, and the
- * final frame under reduce motion. The arrival is the flourish; the sentence is
- * the point, and nobody waits through a flourish to read that they did it.
+ * Still, since the notebook redesign (Phase 4, 2026-09-27): only the orb and
+ * the highlighter move in this app, so the card arrives in place. The sentence
+ * was always the point, and nobody waits through a flourish to read it.
  */
 function MissionWin({
   card,
@@ -192,23 +192,8 @@ function MissionWin({
   onKeep: () => void;
   onFinish: () => void;
 }) {
-  const settle = useRef(new Animated.Value(0)).current;
-  const reduced = useReduceMotion();
-  useEffect(() => {
-    const animation = settleIn(settle, reduced);
-    return () => animation?.stop();
-  }, [settle, reduced]);
-
   return (
-    <Animated.View
-      style={[
-        st.win,
-        {
-          opacity: settle,
-          transform: [{ translateY: settle.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
-        },
-      ]}
-    >
+    <View style={st.win}>
       <Card>
         <Text
           accessibilityLiveRegion="polite"
@@ -226,7 +211,7 @@ function MissionWin({
           <GhostButton label={card.finishLabel} onPress={onFinish} />
         </View>
       </Card>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -808,6 +793,7 @@ export function ConvoScreen({
     return (
       <RecapScreen
         recap={live.recap.recap}
+        lines={keepsakeLines(live.turns)}
         onDone={leaveNow}
         onPractice={onPractice === undefined ? undefined : practiseAfterRecap}
         onSave={saveRecapKeepsake}
@@ -1312,10 +1298,14 @@ export function ConvoScreen({
                     }}
                     disabled={!listening}
                     accessibilityRole="button"
-                    accessibilityLabel={`Ask ${tutorName} to slow down`}
+                    accessibilityLabel={simplerLabel(tutorName)}
                     style={({ pressed }) => [st.helpItem, !listening && st.helpItemOff, pressed && listening && { opacity: 0.6 }]}
                   >
-                    <Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Slower</Text>
+                    {/* "Simpler", not "Slower" (notebook Phase 4, report change
+                        25): the control changes what the tutor says, shorter
+                        sentences and simpler words, and never the speed of the
+                        cached voice. The wire tag is still `slower`. */}
+                    <Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Simpler</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => {
@@ -1392,7 +1382,9 @@ const st = StyleSheet.create({
   // Once the thread opens it takes the room, and the head above it gives way
   // rather than pushing anything off the bottom.
   chooseHeadShrink: { flexGrow: 0, flexShrink: 1 },
-  chooseTop: { alignItems: 'center', padding: space(4), alignSelf: 'stretch', backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
+  // Plain paper since the notebook redesign: the question and the circle sit on
+  // the page, with no feature panel and no ink outline around them.
+  chooseTop: { alignItems: 'center', padding: space(4), alignSelf: 'stretch' },
   chooseOrb: { alignItems: 'center', marginTop: space(5), marginBottom: space(5) },
   chooseOrbTight: { alignItems: 'center', marginTop: space(2), marginBottom: space(5) },
   // The circle is well past the touch floor already; the floor is here so it

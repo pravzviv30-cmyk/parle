@@ -30,7 +30,10 @@ export function AuthFlow({
   const [screen, setScreen] = useState<AuthScreen>('welcome');
 
   if (screen === 'signup') {
-    return <SignUpScreen onBack={() => setScreen('welcome')} onSignIn={() => setScreen('signin')} />;
+    return <SignUpScreen onBack={() => setScreen('welcome')} onSignIn={() => {
+      onSignIn();
+      setScreen('signin');
+    }} />;
   }
   if (screen === 'signin') {
     return <SignInScreen onBack={() => setScreen('welcome')} onCreateAccount={() => setScreen('signup')} />;

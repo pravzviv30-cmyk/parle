@@ -46,14 +46,16 @@ describe('the end card wears revamp A and still counts — F584', () => {
     }
   });
 
-  test('the end card draws the postcard from the art registry, at the registry size', () => {
-    // One picture, one size, one renderer. `Art` is the only file allowed to
-    // reach `Image`, and the registry is the one place a scene's dimensions
-    // live, so the recap and the end card cannot drift apart by a caller
-    // writing a width. The vector drawing it replaces took one.
-    assert.match(card, /<Art name=\{SCREEN_ART\.recap\} \/>/, 'the end card no longer draws the registry postcard');
-    assert.ok(!card.includes('RecapPostcard'), 'the vector postcard is back beside the registered one');
-    assert.doesNotMatch(card, /width=\{\d+\}/, 'the end card writes a picture width, which the registry exists to own');
+  test('the end card wears the notebook: no postcard, no feature paper, no ink outline', () => {
+    // 2026-09-27, notebook Phase 4 (B1). The recap-postcard raster retires with
+    // the redesign's imagery (the recap and this card both drew it), and the
+    // head that sat on chartreuse feature paper inside an ink outline is plain
+    // paper now: the scene's name leads, and the chartreuse is a highlighter.
+    assert.ok(!card.includes('<Art'), 'the end card still draws the retired postcard');
+    assert.ok(!card.includes('SCREEN_ART'), 'the end card still reaches for a screen picture');
+    assert.ok(!card.includes('RecapPostcard'), 'the vector postcard is back');
+    assert.doesNotMatch(card, /accent\.feature/, 'the end card still stands on feature paper');
+    assert.doesNotMatch(card, /borderColor: paper\.ink/, 'the end card still draws an ink outline');
   });
 
   test('the end card leads with the scene as a heading, and keeps its one way back and its one pill', () => {

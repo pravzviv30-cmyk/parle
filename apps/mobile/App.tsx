@@ -188,6 +188,14 @@ function PreAccountProfileBootstrap({
   return <Loading />;
 }
 
+/** ProfileGate mounts its children only once the signed-in profile is complete. */
+function CompleteProfileDraftCleanup({ onConsumed }: { onConsumed: () => void }) {
+  useEffect(() => {
+    onConsumed();
+  }, [onConsumed]);
+  return null;
+}
+
 function SignedInRoot({
   user,
   preAccountDraft,
@@ -389,6 +397,7 @@ function SignedInRoot({
         )
       )}
     >
+      <CompleteProfileDraftCleanup onConsumed={onPreAccountDraftConsumed} />
       <LiveProvider>
         <NavigationContainer
           ref={navigationRef}

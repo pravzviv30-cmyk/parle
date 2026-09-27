@@ -38,8 +38,14 @@ export const DEFAULT_PACE: Pace = 'normal';
 /** Both values, so a reader can be checked against the set rather than against a literal. */
 export const PACE_ORDER: readonly Pace[] = ['normal', 'slow'];
 
-/** The row's own name. It says what the tutor does, not what the field is called. */
-export const PACE_ROW = 'Tutor speaks slower';
+/**
+ * The row's own name. It says what the tutor does, not what the field is called.
+ *
+ * "Tutor speaks slower" until the notebook redesign (2026-09-27, report change
+ * 25): the voice is never slowed, the sentences are simplified, so the row and
+ * the scene's "Simpler" control now say the same true thing.
+ */
+export const PACE_ROW = 'Tutor speaks more simply';
 
 /**
  * What saying yes does, in one plain sentence.

@@ -531,17 +531,12 @@ describe('one highlighter — notebook Phase 1', () => {
     // through it. The list may only shrink; a primitive may never be on it.
     // 2026-09-27, notebook Phase 4 (B2): daily/DailyCarousel.tsx,
     // phrases/PhrasebookScreen.tsx and profile/ProfileButton.tsx came off it.
+    // 2026-09-27, notebook Phase 6-E: wall/WallPlansPage.tsx came off it; the
+    // chosen plan is said in ink now.
+    // 2026-09-27, notebook Phase 4 (B1): ConvoScreen, RecapScreen, SummaryScreen,
+    // the two auth screens, AgeGateScreen, OnboardingFlow and TutorIntro came off it.
     const PENDING = new Set([
-      'ConvoScreen.tsx',
-      'RecapScreen.tsx',
-      'SummaryScreen.tsx',
-      'auth/SignInScreen.tsx',
-      'auth/SignUpScreen.tsx',
       'nav/tabSurface.ts',
-      'onboarding/AgeGateScreen.tsx',
-      'onboarding/OnboardingFlow.tsx',
-      'tutor/TutorIntro.tsx',
-      'wall/WallPlansPage.tsx',
     ]);
     const spelling = new Set<string>();
     for (const file of walk(SRC)) {

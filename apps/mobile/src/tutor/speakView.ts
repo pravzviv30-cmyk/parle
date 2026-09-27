@@ -2,10 +2,11 @@
  * Speak, decided (notebook Phase 3, B1, 2026-09-27).
  *
  * The Speak tab draws, in order: the tutor card, one Start for the next
- * conversation with a quiet "Type instead" under it, the A0 to A1 level path
- * from the CEFR spine with "you are here" on the next scene, every scene as a
- * ledger row that opens its brief in the chooser, and, only after a first
- * finished scene, "More ways to practise". Every decision in that list lives
+ * conversation with a quiet "Type instead" under it, the A0 to A1 path from the
+ * CEFR spine drawn once (every scene a ledger row grouped by level, with its
+ * minutes, opening its brief in the chooser, the "here" row carrying the
+ * highlighter; Phase 4, 2026-09-27), and, only after a first finished scene,
+ * "More ways to practise". Every decision in that list lives
  * here, where a test can ask it, rather than in the `.tsx`.
  *
  * Nothing here invents a number or a rank. The minutes come from
@@ -26,7 +27,7 @@ import {
   type TutorVoiceKey,
 } from '@luvani/core';
 
-import type { PathLevel, LevelStop } from '../components.tsx';
+import type { LevelStop } from '../components.tsx';
 import { minutesLine, missionMinutes } from '../home/estimate.ts';
 import { entryStart, tutorDoors } from './gate.ts';
 
@@ -94,8 +95,20 @@ export function tutorCardFacts(key: TutorVoiceKey): TutorCardFacts {
 
 export type SceneState = LevelStop['state'];
 
+/** The words on the "here" row, so the mark is never colour alone. */
+export const YOU_ARE_HERE = 'You are here';
+
+/**
+ * The highlighter mark the "here" row carries: the French for "here", on the
+ * band. The highlighter only ever sits behind a French line, and this is the
+ * shortest honest one.
+ */
+export const HERE_MARK = 'ici';
+
 export interface SpeakRow {
   missionId: Mission['id'];
+  /** "You are here" on the one row that is, and nothing on the rest. */
+  label?: string;
   /** The scene's name in the learner's language. */
   title: string;
   /** The can-do, or the earned line once it is earned. */
@@ -103,17 +116,28 @@ export interface SpeakRow {
   /** "About N min", from the mission's own shape. */
   meta: string;
   state: SceneState;
+  /** One sentence: the scene, the can-do, the minutes and where the learner stands. */
+  accessibilityLabel: string;
   /** Opens this scene's brief, first in the chooser. */
   route: { screen: 'Missions'; params: { focus: Mission['id'] } };
 }
 
+/**
+ * The path, drawn once.
+ *
+ * 2026-09-27, notebook Phase 4 (B1). It used to carry the level path's stops as
+ * well as these rows, and Speak drew both: the same can-do lines twice, one
+ * list under the other (Phase 3 browser proof). The rows are the path now, so
+ * there is nothing here a second list could be drawn from.
+ */
 export interface SpeakPath {
   /** A0 then A1, each only when a scene carries it. */
-  levels: PathLevel[];
   groups: { level: 'A0' | 'A1'; rows: SpeakRow[] }[];
 }
 
 const LEVELS = ['A0', 'A1'] as const;
+
+const WHERE: Record<SceneState, string> = { earned: 'done', here: 'you are here', ahead: 'not yet' };
 
 export function speakPath(progress: readonly MissionProgress[]): SpeakPath {
   const earned = earnedMissionIds(progress);
@@ -129,24 +153,36 @@ export function speakPath(progress: readonly MissionProgress[]): SpeakPath {
       .filter((mission) => mission.cefr === level)
       .map((mission): SpeakRow => {
         const state = stateOf(mission);
+        const title = mission.titleEn;
+        const gloss = state === 'earned' ? mission.earnedEn : mission.canDoEn;
+        const meta = minutesLine(missionMinutes(mission));
         return {
           missionId: mission.id,
-          title: mission.titleEn,
-          gloss: state === 'earned' ? mission.earnedEn : mission.canDoEn,
-          meta: minutesLine(missionMinutes(mission)),
+          ...(state === 'here' ? { label: YOU_ARE_HERE } : {}),
+          title,
+          gloss,
+          meta,
           state,
+          accessibilityLabel: `${title}, ${gloss}, ${meta}, ${WHERE[state]}`,
           route: { screen: 'Missions', params: { focus: mission.id } },
         };
       }),
   })).filter((group) => group.rows.length > 0);
 
-  return {
-    levels: groups.map((group) => ({
-      level: group.level,
-      stops: group.rows.map((row) => ({ canDo: row.gloss, state: row.state })),
-    })),
-    groups,
-  };
+  return { groups };
+}
+
+/**
+ * The line under the Start, or null.
+ *
+ * The tutor's state in words when it is not ready ("Opening your room.", "No
+ * speaking time just now."), except while the offline card is up: that card
+ * already says the tutor cannot connect and offers the way forward, and the
+ * Phase 3 browser proof found offline Speak saying "unavailable" twice.
+ */
+export function startNote(orb: { state: string; subline: string }, offlineShown: boolean): string | null {
+  if (offlineShown || orb.state === 'ready') return null;
+  return orb.subline;
 }
 
 // ─────────────────────────────────────────────────────── more ways to practise
@@ -187,6 +223,7 @@ export const SPEAK_COPY: readonly string[] = [
   PATH_LABEL,
   MORE_WAYS_LABEL,
   CHANGE_VOICE,
+  YOU_ARE_HERE,
   withTutor(tutorVoice(DEFAULT_TUTOR_VOICE).persona.name),
   ...MORE_WAYS.flatMap((way) => [way.title, way.gloss]),
 ];

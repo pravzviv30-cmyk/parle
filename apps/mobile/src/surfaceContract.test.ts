@@ -195,10 +195,10 @@ describe('two shadows, both named — F569', () => {
     assert.doesNotMatch(exact('components.tsx'), /shadow\.whisper/, 'the card still spreads the whisper');
     // 2026-09-27, Phase 4 (B2): ReviewScreen, MomentCard and PhrasebookScreen came off, and the list now
     // fails on an entry that no longer spreads the whisper, so it cannot linger as a standing allowance.
-    const PENDING_WHISPER = new Set([
-      'tutor/Transcript.tsx',
-      'wall/WallPlansPage.tsx',
-    ]);
+    // 2026-09-27, notebook Phase 6-E: wall/WallPlansPage.tsx came off; the plans are one flat card.
+    // 2026-09-27, Phase 4 (B1): tutor/Transcript.tsx came off, so the list is empty and any file that
+    // spreads the whisper now fails outright.
+    const PENDING_WHISPER = new Set<string>([]);
     const spreading = new Set<string>();
     for (const { path, body } of SOURCES) {
       if (!/shadow\.whisper/.test(body)) continue;
@@ -758,13 +758,12 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
         `${where} draws a vector scene as well as the registered picture, so two drawings answer for one page`,
       );
     }
-    const intro = named('tutor/TutorIntro.tsx');
-    const scenes = /import \{ ([^}]*) \} from '\.\.\/illustrations\.tsx'/.exec(intro);
-    assert.ok(scenes, 'the tutor intro no longer draws the two scenes this check is about; delete it rather than leaving it stale');
-    assert.deepEqual(
-      scenes![1]!.split(',').map((n) => n.trim()),
-      ['SpeakBubbles', 'OnboardWave'],
-      'the tutor intro draws a different set of authored scenes; say which and why, because everything else on the first run is raster',
+    // 2026-09-27, Phase 4 (B1): the tutor intro's clip-art left with the notebook redesign; it keeps the
+    // orb-colour teaching and draws no authored scene at all, so any illustrations import is a regression.
+    assert.doesNotMatch(
+      named('tutor/TutorIntro.tsx'),
+      /from '(\.\.\/)+illustrations/,
+      'the tutor intro draws a clip-art scene again; the orb is its only picture',
     );
   });
 
@@ -1509,7 +1508,8 @@ describe('faint ink is a mark, not a word — F330, F338', () => {
     // because "Give me a moment" and "Type your reply instead" stay live: they
     // are the two ways out of a turn that is going badly.
     '<Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Help me out</Text>',
-    '<Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Slower</Text>',
+    // 2026-09-27, Phase 4 (B1): "Slower" is labelled "Simpler", which is what it does; the wire tag is unchanged.
+    '<Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Simpler</Text>',
     '<Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>In English</Text>',
   ]);
 
@@ -1680,7 +1680,10 @@ describe('the tabs and the drill use the app buttons — F339', () => {
 
     // The scenes are on this tab on purpose now: the level path is the spine.
     // They come from the path model, never from a hand-typed catalogue list.
-    assert.match(tutor, /<LevelPath\b/, 'Speak lost the level path');
+    // 2026-09-27, Phase 4 (B1): the path is drawn once, as the scene rows, so
+    // Speak reads the model and draws no second LevelPath above them.
+    assert.match(tutor, /speakPath\(progress\)/, 'Speak no longer reads its rows from the path model');
+    assert.doesNotMatch(tutor, /<LevelPath\b/, 'Speak draws the path twice again, as a LevelPath above the rows');
     assert.doesNotMatch(tutor, /MISSIONS\.map\(/, 'Speak lists the catalogue by hand instead of reading the level path');
     assert.doesNotMatch(tutor, /DOOR_TINT|<TintRow\b/, 'Speak paints a way in with a place tint again');
     assert.doesNotMatch(tutor, /st\.door\b/, 'the tutor still draws a bespoke card-button for its quiet doors');
