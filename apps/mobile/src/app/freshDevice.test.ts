@@ -21,6 +21,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { FRESH_DEVICE_BUDGET_MS, adoptBeforeReady, adoptedAnything } from './freshDevice.ts';
+import * as freshDevice from './freshDevice.ts';
 import type { SyncOutcome, SyncRunSummary } from '../sync/engine.ts';
 
 function outcome(namespace: string, adopted: boolean): SyncOutcome {
@@ -45,6 +46,22 @@ const neverExpires = () => new Promise<void>(() => {});
 const expiresAtOnce = () => Promise.resolve();
 
 describe('the fresh device pull — waiting for an account, but never for long', () => {
+  test('only a confirmed empty account or no sync engine may adopt the device draft', () => {
+    assert.equal(typeof freshDevice.mayAdoptPreAccountDraft, 'function');
+    const cases = {
+      'has-local': false,
+      adopted: false,
+      empty: true,
+      'no-sync': true,
+      'timed-out': false,
+      unavailable: false,
+    } satisfies Record<freshDevice.FreshStartKind, boolean>;
+    for (const kind of Object.keys(cases) as freshDevice.FreshStartKind[]) {
+      for (const waited of [true, false]) {
+        assert.equal(freshDevice.mayAdoptPreAccountDraft({ kind, waited }), cases[kind], kind);
+      }
+    }
+  });
   test("a fresh sign-in on a new device adopts the account's synced state instead of onboarding again", async () => {
     // The whole scenario in three facts: nothing on disk, an account with a
     // profile and a deck, and a pull that answers inside the budget.
@@ -124,7 +141,7 @@ describe('the fresh device pull — waiting for an account, but never for long',
       hasLocalProfile: () => Promise.resolve(false),
       pull: null,
     });
-    assert.equal(start.kind, 'unavailable');
+    assert.equal(start.kind, 'no-sync');
     assert.equal(start.waited, false);
   });
 

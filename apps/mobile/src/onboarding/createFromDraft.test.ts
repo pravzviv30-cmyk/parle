@@ -57,7 +57,9 @@ describe('the plan is written at account creation', () => {
   });
 
   test('App.tsx writes consent and the reminder before it releases the app, and opens the first scene', () => {
-    const boot = APP.slice(APP.indexOf('function PreAccountProfileBootstrap'), APP.indexOf('function SignedInRoot'));
+    // 2026-09-27: keep the ordering pin and require proof the account may adopt a draft.
+    const boot = APP.slice(APP.indexOf('function PreAccountProfileBootstrap'), APP.indexOf('function CompleteProfileDraftCleanup'));
+    assert.match(APP, /existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft\(freshStart\) \? \(\s*<PreAccountProfileBootstrap/);
     assert.match(boot, /const built = profileFromDraft\(draft\)/, 'the bootstrap builds the profile some other way');
     const consent = boot.indexOf('await saveConsent({ allowed: draft.analyticsConsent })');
     const reminder = boot.indexOf('await saveReminder(reminderFromDraft(draft))');

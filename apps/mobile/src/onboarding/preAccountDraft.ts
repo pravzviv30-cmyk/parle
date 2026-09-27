@@ -111,8 +111,10 @@ function oneOf<T>(allowed: readonly T[], value: unknown): T | null {
  */
 export function firstNameFrom(value: unknown): string | null {
   if (typeof value !== 'string') return null;
-  const trimmed = value.replace(/[\p{Cf}\p{Cc}]/gu, '').trim();
-  if (trimmed.length === 0 || trimmed.length > MAX_FIRST_NAME_CHARS) return null;
+  // Joiners carry spelling in scripts such as Persian and Sinhala. All other
+  // format/control characters are removed, including bidi overrides and ZWSP.
+  const trimmed = value.replace(/(?![\u200c\u200d])[\p{Cf}\p{Cc}]/gu, '').trim();
+  if (trimmed.replace(/[\u200c\u200d]/gu, '').trim().length === 0 || trimmed.length > MAX_FIRST_NAME_CHARS) return null;
   return trimmed;
 }
 

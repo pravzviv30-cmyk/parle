@@ -56,7 +56,7 @@ import { startSync, type SyncEngine } from './src/sync/engine.ts';
 import { createSyncDiagnostics } from './src/sync/diagnostics.ts';
 import { syncPolicy } from './src/sync/policy.ts';
 import { resetSyncRegistry } from './src/sync/registry.ts';
-import { adoptBeforeReady } from './src/app/freshDevice.ts';
+import { adoptBeforeReady, mayAdoptPreAccountDraft, type FreshStart } from './src/app/freshDevice.ts';
 import { loadHistory } from './src/progress/store.ts';
 import { backfillFrom } from './src/progress/activity.ts';
 import { FIRST_MISSION, lessonXp, type MissionId } from '@luvani/core';
@@ -215,6 +215,7 @@ function SignedInRoot({
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
   const [ready, setReady] = useState(false);
+  const [freshStart, setFreshStart] = useState<FreshStart | null>(null);
   /**
    * Did this learner finish onboarding a moment ago, in this launch?
    *
@@ -296,9 +297,10 @@ function SignedInRoot({
         // something correctness depends on. Skipped when the fresh device pull
         // above already ran one.
         if (started !== null && !start.waited) void started.reconcileAll();
-      })
-      .then(() => {
-        if (!cancelled) setReady(true);
+        if (!cancelled) {
+          setFreshStart(start);
+          setReady(true);
+        }
       });
     return () => {
       cancelled = true;
@@ -334,13 +336,13 @@ function SignedInRoot({
     setJustOnboarded(false);
   }, [justOnboarded, navigationRef]);
 
-  if (!ready) return <Loading />;
+  if (!ready || freshStart === null) return <Loading />;
 
   return (
     <ProfileGate
       onSignOut={() => void auth.signOut()}
       onboarding={(existing, done) => (
-        existing === null && preAccountDraft !== null ? (
+        existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft(freshStart) ? (
           <PreAccountProfileBootstrap
             draft={preAccountDraft}
             onConsumed={onPreAccountDraftConsumed}

@@ -134,6 +134,21 @@ describe('the pre-account hand-off', () => {
     }
   });
 
+  test('joiners preserve Persian and Sinhala spelling but cannot form a name alone', async () => {
+    const disk = installDisk();
+    for (const [input, expected] of [
+      ['علی\u200cرضا', 'علی\u200cرضا'],
+      ['ශ්\u200dරී', 'ශ්\u200dරී'],
+      ['\u200c\u200d', null],
+      ['x\u202eevil', 'xevil'],
+      ['A\u200b\ufeff\u0000\u00adda', 'Ada'],
+    ] as const) {
+      assert.equal(firstNameFrom(input), expected);
+      disk.set(KEY, JSON.stringify({ ...freshPreAccountDraft(), firstName: input }));
+      assert.equal((await loadPreAccountDraft())?.firstName, expected);
+    }
+  });
+
   test('the signup sign-in link discards the draft before navigating', () => {
     const auth = read('../auth/AuthFlow.tsx');
     const signup = auth.slice(auth.indexOf("if (screen === 'signup')"), auth.indexOf("if (screen === 'signin')"));
@@ -147,7 +162,15 @@ describe('the pre-account hand-off', () => {
     assert.match(boundary, /useEffect\(\(\) => \{\s*onConsumed\(\);\s*\}, \[onConsumed\]\)/);
     assert.match(app, /<ProfileGate[\s\S]*?>\s*<CompleteProfileDraftCleanup onConsumed=\{onPreAccountDraftConsumed\} \/>/);
     assert.match(app, /onPreAccountDraftConsumed=\{discardPreAccountDraft\}/);
-    assert.match(app, /existing === null && preAccountDraft !== null \? \(\s*<PreAccountProfileBootstrap/);
+    // 2026-09-27: retain both original conditions and require safe account-read evidence.
+    assert.match(app, /existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft\(freshStart\) \? \(\s*<PreAccountProfileBootstrap/);
+    assert.match(app, /const \[freshStart, setFreshStart\] = useState<FreshStart \| null>\(null\)/);
+    assert.match(app, /if \(!cancelled\) \{\s*setFreshStart\(start\);\s*setReady\(true\);\s*\}/);
+    assert.match(app, /if \(!ready \|\| freshStart === null\) return <Loading \/>/);
+    const fallback = app.slice(app.indexOf('<OnboardingFlow'), app.indexOf('</ProfileGate>'));
+    assert.match(fallback, /^<OnboardingFlow\s+existing=\{existing\}/);
+    assert.doesNotMatch(fallback, /preAccountDraft|profileFromDraft|firstName|initialDraft/,
+      'uncertain account reads must not prefill ordinary onboarding from the device draft');
   });
 
   test('the first name is optional, trimmed and bounded', async () => {
