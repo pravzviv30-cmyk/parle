@@ -111,26 +111,24 @@ function hits(words: readonly string[], mission: Mission): number {
 }
 
 /**
- * The one mission to offer for a goal, or null when the catalogue is empty.
+ * The one mission to offer for a goal, or null when the catalogue holds no full
+ * scene.
  *
  * The mission with the most hits wins; ties go to catalogue order, so the same
  * goal always gets the same task. No hit at all is the starter: the catalogue's
  * first full scene, fit `'starter'`. Core's `FIRST_MISSION`, the three-line
- * opener, is never offered for a goal, matched or not (2026-09-27): a goal
- * names a place, and a place means its full scene.
+ * opener, is never offered for a goal, matched or not, at any boundary
+ * (2026-09-27): a goal names a place, and a place means its full scene, so the
+ * opener shares the café's place but is only ever the starting point.
  */
 export function nextTaskForGoal(goal: string, input: { missions: readonly Mission[] }): NextGoalTask | null {
-  const missions = input.missions;
+  const missions = input.missions.filter((mission) => mission.id !== FIRST_MISSION);
   if (missions.length === 0) return null;
   const said = wordsOf(goal);
   const negated = said.some((word) => NEGATIONS.has(word));
   let best: Mission | null = null;
   let bestHits = 0;
   for (const mission of negated ? [] : missions) {
-    // A goal names a place, and a place means its full scene. The three-line
-    // opener shares the café's place but is only ever the starting point, never
-    // a match (2026-09-27), so ties never hand a café goal to the opener.
-    if (mission.id === FIRST_MISSION) continue;
     const count = hits(said, mission);
     if (count > bestHits) {
       best = mission;
@@ -138,10 +136,7 @@ export function nextTaskForGoal(goal: string, input: { missions: readonly Missio
     }
   }
   if (best !== null) return { task: { kind: 'mission', id: best.id }, fit: 'matched' };
-  // The starter is the catalogue's first full scene. A learner who has written
-  // a goal is past the three-line opener's job, so it is skipped here too.
-  const starter = missions.find((mission) => mission.id !== FIRST_MISSION) ?? missions[0]!;
-  return { task: { kind: 'mission', id: starter.id }, fit: 'starter' };
+  return { task: { kind: 'mission', id: missions[0]!.id }, fit: 'starter' };
 }
 
 /** The stored task id: the mission id, which already reads `mission:<place>`. */

@@ -73,6 +73,11 @@ describe('the next task for a goal — Stage 4', () => {
     const noCafe = MISSIONS.filter((m) => m.id !== FIRST_MISSION);
     assert.equal(nextTaskForGoal('Pass my exam', { missions: noCafe })?.task.id, noCafe[0]!.id);
     assert.equal(nextTaskForGoal('Pass my exam', { missions: [] }), null, 'an empty catalogue invented a task');
+    // 2026-09-27 review: a catalogue holding only the opener has no full scene to offer, so nothing is
+    // offered, matched or not. The opener is never a goal's task at any boundary.
+    const onlyOpener = [getMission(FIRST_MISSION)!];
+    assert.equal(nextTaskForGoal('Order a coffee', { missions: onlyOpener }), null, 'a café goal was handed the opener');
+    assert.equal(nextTaskForGoal('Pass my exam', { missions: onlyOpener }), null, 'the starter fell back to the opener');
   });
 
   test('a word with an ordinary second meaning, or a negated goal, never claims a match — Stage 4 review', () => {
