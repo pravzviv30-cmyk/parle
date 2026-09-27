@@ -15,16 +15,10 @@ Pre-account onboarding renders **6 pages**: `hear-it`, `first-line`, `start-leve
 A brand-new learner crosses **8 screens** before the first spoken line: those six
 pages, account creation, and the first scene's microphone primer. The age
 confirmation is part of the save page, not a separate marketing screen. (Notebook
-redesign, 2026-09-27; the screen table below is rewritten in the redesign's final
-phase.)
+redesign, 2026-09-27.)
 
-The pre-account draft holds the selected voice, the age confirmation, the
-usage-data answer, the three one-tap answers (starting level, reason, minutes a
-day), the reminder time, and an optional first name. That name is the only
-free-form learner text in it; it holds no transcript or raw audio. It is cleared as
-soon as it becomes the signed-in learner's normal profile, or when the learner
-says they already have an account. Pages 1 and 2 play bundled recordings only, so
-nothing reaches an AI service before the save page is passed.
+Pages 1 and 2 play bundled recordings only, so nothing reaches an AI service
+before the save page is passed.
 
 The usage-data answer is the switch on the save page, off unless the learner turns it on,
 and it rides the draft because it is given before there is an account to key it
@@ -35,15 +29,60 @@ of a learner with no record at all, so nobody is asked twice.
 
 | # | Screen | The one thing it does |
 |---|---|---|
-| 1 | Welcome (`onboarding/PreAccountOnboarding.tsx`) | Makes one honest promise about speaking with an AI tutor |
-| 2 | Speak in real situations | Shows that a spoken conversation becomes future practice |
-| 3 | Life happens | Says progress remains without streak pressure |
-| 4 | Meet the selected Tutor | Lets the learner choose and manually preview one of eight voices |
-| 5 | Ready | Gives compact AI, microphone and history information, offers the usage-data switch, then records the 13+ confirmation |
-| 6 | Sign up (`auth/SignUpScreen.tsx`) | Creates an account by email/password, Google, or Apple on iOS |
-| 7 | Mission chooser (`missions/`) | Chooses the first situation to speak in |
+| 1 | Hear it first (`hear-it`, `onboarding/PreAccountOnboarding.tsx`) | Plays a recorded, captioned three-line exchange at a café and says the tutor is AI. "I have an account" leads to sign-in |
+| 2 | Your first line (`first-line`) | The learner taps the reply, hears it in the tutor's recording, and it is marked with the highlighter. "I'm stuck" hands back the start of the line |
+| 3 | Where are you starting? (`start-level`) | One tap: from zero, a few words, or "I can get by" |
+| 4 | What's it for? (`reason`) | One tap from five reasons, or skip it |
+| 5 | Your plan (`plan`) | The first three scenes with their can-do lines, minutes a day, the tutor's voice, the goal, how it works, and a reminder time marked as not on yet |
+| 6 | Save your plan (`save`) | An optional first name, the AI, microphone and history notes, the usage-data switch (off), then "I am 13 or older · Create account". "I am younger than that" shows the refusal |
+| 7 | Sign up (`auth/SignUpScreen.tsx`) | Creates an account by email/password, Google, or Apple on iOS |
+| 8 | Your first scene (`onboarding/FirstSceneScreen.tsx`) | The microphone primer for the scene the plan put first. One button raises the phone's prompt, and "Type instead" is always there |
 
-Then the scene, where the first French is spoken.
+The words on pages 1 to 6 live in `onboarding/firstRun.ts` and `onboarding/plan.ts`.
+The first scene is `firstSceneFor` in `plan.ts`: the first coffee, or the full café
+for "I can get by". `App.tsx` opens it once, over Today, so a back lands on Today.
+The primer's choices are `onboarding/micPrimer.ts`: a granted microphone opens the
+ordinary conversation, and a refusal offers the phone's Settings where there are
+any, and typing either way.
+
+Then the scene, where the first French is spoken, and then the recap as a keepsake
+(`RecapScreen.tsx`, decided in `live/keepsake.ts`). It shows the learner's own
+lines (the last three), one phrase kept on the highlighter and saved to My French,
+one sound, and "Next time" naming the next scene on the spine. Only after that,
+and only when the conversation had something in it, it offers a daily reminder at
+the time chosen in the plan. The phone's notification dialog is raised only if the
+learner accepts.
+
+### The draft before the account
+
+The pre-account draft (`onboarding/preAccountDraft.ts`) lives on the device only.
+It holds the selected voice, the age confirmation, the usage-data answer, the page
+the learner is on, the starting level, the reason, the minutes a day, the reminder
+time, and an optional first name. It holds no transcript and no audio.
+
+- **The name.** `firstNameFrom` trims it and removes control and format
+  characters, which includes bidi overrides and zero-width spaces. It keeps the
+  two joiners (ZWNJ and ZWJ), because they carry spelling in scripts such as
+  Persian and Sinhala. A name that is empty once joiners are ignored, or longer
+  than 40 characters, is stored as no name. It is refused, never cut.
+- **Repair on load.** A stored draft must be version 1 with the age confirmed, or
+  it is dropped. Any answer that is not one of this build's values reads as not
+  answered. A missing or odd usage-data answer reads as no. A voice that left the
+  catalogue becomes the default.
+- **When it is thrown away.** On every link to sign in: "I have an account",
+  "I already have an account", and sign-up's own link to sign in
+  (`discardPreAccountDraft` in `App.tsx`). Also once a signed-in learner's profile
+  is complete, whether or not the draft was used (`CompleteProfileDraftCleanup`).
+- **When it becomes the profile.** Only when this device has no profile and
+  `mayAdoptPreAccountDraft` in `app/freshDevice.ts` says yes, which is on an
+  `empty` account read or on `no-sync`. A timed-out or failed read, or an account
+  that already had state, never adopts it, because the draft on this device may be
+  somebody else's answers. Those learners get the recovery flow below instead.
+- **How it is written.** `onboarding/createFromDraft.ts` turns it into the
+  profile through doors that already exist: the name, the age, the reason as
+  `motivation` and as a seeded goal, the minutes as the daily goal, the starting
+  level as a low-confidence CEFR estimate, and the voice. The usage-data answer is
+  saved first, and the reminder time is saved switched off.
 
 ## Historical context
 
@@ -64,55 +103,58 @@ tutor is AI.
 
 ## What changed, and why each one
 
-The current path is the five-page pre-account flow above. The retained
-age/name/meet/voice flow below is a recovery path for older profiles, so its
-age-first ordering remains a safeguard without moving normal account creation
-behind a second onboarding sequence.
+The current path is the six-page pre-account flow above. The older
+age/name/meet/voice flow (`onboarding/OnboardingFlow.tsx`, pages in `PAGES` in
+`answers.ts`) is kept as a recovery path. It runs for a signed-in learner who has
+no profile the draft may become, or an older profile that never answered the age
+question. It asks the age first, so a learner is never asked their name and then
+told they cannot stay.
 
-**The splash is gone, and its café scene moved.** A device-level flag decided
-whether a two-page introduction ran before the app knew who the learner was; the
-account already knows whether somebody has been here. The animated café that
-screen established the app's motion vocabulary with now belongs to the welcome,
-imported from `illustrations/scenes/cafe.tsx` rather than copied, so the durations
-still come from `illustrations/timing.ts` and reduce motion still renders the final
-frame rather than nothing.
+**The product is heard before it is described.** The first page plays a real
+recorded exchange instead of explaining what speaking practice is, and the second
+lets the learner say a line of their own before anything is asked of them. Both
+use bundled recordings, so nothing reaches an AI service and no microphone is
+opened before an account exists.
 
-**Each page now arrives with the same restrained settle used by the rest of the
-app.** The content fades and travels ten points into place when the page changes;
-there is no carousel slide and no bounce. It runs through `motion.ts`, so reduced
-motion renders the final frame immediately and the words are never withheld.
+**The AI disclosure comes first, and again before the account.** The first page's
+subline says the tutor is AI (`WELCOME_SUBLINE` in `onboarding/disclosure.ts`).
+The save page says it again beside the privacy line (`SAVE_PRIVACY`), which also
+names the typed answers the account will carry. The recovery flow's Meet page and
+TutorIntro's persona page read from the same module, so the surfaces cannot drift
+apart.
 
-**The age gate moved to the front.** It used to be the second question, which
-meant the app took a learner's name and then decided whether to serve them at all.
-Nothing was ever persisted on a refusal, but the question had still been asked.
-The refusal itself is unchanged: one honest sentence, no retry button dressed up as
-a second chance, nothing written to disk, and the question offered again on the
-next launch, which is the escape hatch for a mis-tap.
+**The age question sits on the save page.** It is the pill that creates the
+account: "I am 13 or older · Create account". "I am younger than that" replaces the
+page with one honest sentence and removes the pill. No account is created and
+nothing is sent anywhere.
 
-**The why page is gone.** It asked which of four reasons brought the learner here,
-and nothing ever read the answer: `motivation` was stored, defaulted on upgrade,
-merged by the sync policy, and reported as one analytics boolean. Not one line of
-the product changed shape because of it. The field stays in the stored record, so
-nobody's data is thrown away and the synced blob keeps its shape; the flow simply
-stops asking, and hands back whatever the record already carried.
+**The reason is asked again, because it is used now.** The old why page was
+removed because nothing read its answer. The `reason` page is different: its
+answer sets the suggested minutes on the plan, is written to `motivation`, and
+becomes the goal the tutor is given on the first session (`SEEDED_GOAL` in
+`onboarding/plan.ts`). It can be skipped, and a skip writes no goal.
 
-**Meet Luc arrived in its place.** One page, no question, the last thing before
-the voice step: the tutor is AI, he is a character somebody wrote, no
-person hears you, your phone will ask for the microphone at the first scene, and
-typing is offered as a choice in any scene. Every line comes from
-`onboarding/disclosure.ts`, which also feeds the welcome subline and TutorIntro's
-persona page, so the three cannot drift apart.
+**The first scene opens the app, not the chooser.** On web, `NavigationContainer`
+resolves `/` to Home before a stack `initialRouteName` can win, so `App.tsx` waits
+for `onReady` and then `openFirstRun` resets the root once to Today with the first
+scene above it (`[Tabs, FirstScene { missionId }]`). The scene is the one the plan
+put first. A back from the primer or the scene lands on Today. The flag that
+triggers this lives in memory and is never persisted, so an app killed between
+sign-up and the first frame opens on Today. The chooser is never the first screen
+a new learner sees. It is still reachable from Speak's level path and from My
+French.
 
-**The chooser keeps both first-run promises at the point of action.** A learner
-who has never spoken sees the first-useful-line promise and one just-in-time line:
-the microphone opens only when they tap the circle, and they can type instead.
-Both expire after the first conversation. On web, `NavigationContainer` resolves
-`/` to Home before a stack `initialRouteName` can win, so `App.tsx` waits for
-`onReady` and resets the new learner's root to Missions exactly once. Native uses
-the same rule; the flag is never persisted. This is the implemented mechanism,
-and a driven local mock-auth web journey proved the one-shot `/missions` landing
-and Back/reload behavior on 2026-08-27. Supabase, native and five-viewport evidence
-remain separate in `DEVICE_VERIFICATION.md`.
+**History.** Until the notebook redesign on 2026-09-27, the front door was a
+different set of pages, and before that a two-page splash. The splash used a
+device-level flag and an animated café scene, and it was removed because the
+account already knows whether somebody has been here. The five-page flow that
+followed had a welcome, "Speak in real situations", "Life happens", a voice page
+and a "Ready" page, and it ended on the ten-way mission chooser. The chooser
+carried the first-run promise and the just-in-time microphone line, and a driven
+local mock-auth web journey proved its one-shot `/missions` landing on
+2026-08-27. The notebook redesign replaced all of that with the six pages, the
+first scene and its microphone primer. The one-shot landing on `FirstScene` has not
+yet been proven the same way.
 
 **A third door, where the platform has one (F375, F376).** Sign up and sign in
 both draw "Continue with Apple" above the Google outline, and only when
@@ -130,8 +172,9 @@ Apple Developer capability and the project's Apple provider, and neither exists
 on the machine this was written on. That half belongs to
 [DEVICE_VERIFICATION.md](DEVICE_VERIFICATION.md) and has not been run.
 
-Net: one page removed, one page added, one screen of splash removed twice over,
-and a learner who now knows what they are talking to before they talk to it.
+Net: a learner hears the product and says a line before anything is asked of
+them, knows what they are talking to before they talk to it, and lands in the
+scene the plan promised.
 
 ## Who never sees any of this
 
@@ -176,12 +219,16 @@ conversation.
 
 | What | Where |
 |---|---|
-| The five-page pre-account front door | `apps/mobile/src/onboarding/PreAccountOnboarding.tsx` |
+| The six-page pre-account front door | `apps/mobile/src/onboarding/PreAccountOnboarding.tsx` |
+| The words on those pages, and the plan they build | `apps/mobile/src/onboarding/firstRun.ts`, `apps/mobile/src/onboarding/plan.ts` |
 | The four-page account recovery flow | `apps/mobile/src/onboarding/OnboardingFlow.tsx` |
-| The compact local hand-off | `apps/mobile/src/onboarding/preAccountDraft.ts` |
+| The compact local hand-off, and how it becomes a profile | `apps/mobile/src/onboarding/preAccountDraft.ts`, `apps/mobile/src/onboarding/createFromDraft.ts` |
+| When the draft may be adopted | `mayAdoptPreAccountDraft` in `apps/mobile/src/app/freshDevice.ts` |
 | The rules: pages, the gate, the leaving guard | `apps/mobile/src/onboarding/answers.ts` |
 | The words about AI, privacy and the microphone | `apps/mobile/src/onboarding/disclosure.ts` |
 | Who is asked at all | `apps/mobile/src/app/ProfileContext.tsx` |
 | What is stored afterwards | `apps/mobile/src/profile/store.ts`, [STATE_AND_STORAGE.md](STATE_AND_STORAGE.md) |
 | What the first run promises a learner | [PRIVACY_AND_SAFETY.md](PRIVACY_AND_SAFETY.md) |
-| Why the chooser opens after web linking resolves | `apps/mobile/App.tsx`, `apps/mobile/src/nav/theme.ts` |
+| The first scene and its microphone primer | `apps/mobile/src/onboarding/FirstSceneScreen.tsx`, `apps/mobile/src/onboarding/micPrimer.ts` |
+| Why the first scene opens once, after web linking resolves | `apps/mobile/App.tsx` (`openFirstRun`), `apps/mobile/src/nav/theme.ts` |
+| The recap keepsake and its reminder offer | `apps/mobile/src/RecapScreen.tsx`, `apps/mobile/src/live/keepsake.ts` |

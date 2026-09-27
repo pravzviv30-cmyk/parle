@@ -1,8 +1,8 @@
 /**
  * The one ban list, held to the record of what was once banned.
  *
- * "No streak guilt" is the hardest promise in PRODUCT.md (:90-93, and principle
- * 4 at :138), and until F216 three suites kept it with three different
+ * "No streak guilt" is the hardest promise in PRODUCT.md (:90-94, and principle
+ * 4 at :179), and until F216 three suites kept it with three different
  * contents: eleven phrases on Home, four words on the mix offer, and a source
  * scan on the review screen. The gate can see a lowered test floor and a ledger
  * box ticked without a passing test. It cannot see a ban list getting shorter,
@@ -111,14 +111,19 @@ describe('the words no Luvani surface may say', () => {
 /**
  * The brand commitment, and the third time it was asked.
  *
- * PRODUCT.md records two refusals of a streak. A "Days active" tile ships now,
- * and it is not the thing that was refused: it only ever rises, reads no
- * yesterday, has no state a loss could be written into, and is absent at zero.
- * Those properties are held by name in `progress/momentum.test.ts`. What this
- * checks is that the commitment itself says so, because the next reader of
- * PRODUCT.md, human or agent, will otherwise see a days tile beside a sentence
- * saying days tiles were dropped, and one of the two will get changed on a
- * guess.
+ * PRODUCT.md records two refusals of a streak. A "Days active" tile then
+ * shipped, and it was not the thing that was refused: it only ever rises, reads
+ * no yesterday, has no state a loss could be written into, and is present from
+ * the first day, worded as a start. Those properties are held by name in
+ * `progress/momentum.test.ts`. What this checks is that the commitment itself
+ * says so, because the next reader of PRODUCT.md, human or agent, would
+ * otherwise see a days count beside a sentence saying days counts were dropped,
+ * and one of the two would get changed on a guess.
+ *
+ * 2026-09-27, notebook redesign: the tile left Today and nothing renders
+ * `progress/MomentumCards.tsx` now. PRODUCT.md records the tile as history and
+ * keeps its properties as the rule any days count that comes back must follow,
+ * so the assertions below are unchanged and still hold the wording of that rule.
  */
 describe('the brand commitment records what shipped — F414', () => {
   test('PRODUCT.md records why days active is not the streak it refused — F414', () => {
