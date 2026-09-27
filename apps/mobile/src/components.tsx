@@ -44,7 +44,6 @@ import {
   STROKE,
   rungColor,
   rungLabel,
-  type TintName,
 } from './theme.ts';
 import { tapSettled } from './motion/haptics.ts';
 import { drawIn, useReduceMotion } from './motion.ts';
@@ -731,50 +730,6 @@ export function Monogram({ initial, size = HIT }: { initial: string; size?: numb
   );
 }
 
-/**
- * Deprecated. A circle that once held a place's tint under its line art.
- *
- * Tints are no longer drawn (notebook Phase 1); the token stays for the role
- * tables and the call sites go in Phase 4. The disc keeps its size and stays
- * decorative, and simply draws its children on the page.
- */
-export function TintDisc({ size = 64, children }: { tint: TintName; size?: number; children?: React.ReactNode }) {
-  return (
-    <View
-      {...decorative}
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-      }}
-    >
-      {children}
-    </View>
-  );
-}
-
-/**
- * Deprecated. The ground under a block about one place, once in its tint.
- *
- * Tints are no longer drawn (notebook Phase 1), so the panel is plain paper: the
- * white card surface with a paper hairline, which reads both on the ground and
- * inside a card. The `tint` prop is accepted and ignored until Phase 4 renames
- * the call sites. Not decorative: a panel has words in it.
- */
-export function TintPanel({
-  children,
-  style,
-}: {
-  tint: TintName;
-  children?: React.ReactNode;
-  style?: StyleProp<ViewStyle>;
-}) {
-  return <View style={[{ backgroundColor: paper.card, borderRadius: radius.card, borderWidth: HAIRLINE, borderColor: paper.line }, style]}>{children}</View>;
-}
-
 /** Onboarding progress: one dot per page, the current one stretched. */
 export function ProgressDots({ total, index }: { total: number; index: number }) {
   return (
@@ -972,86 +927,11 @@ export function AbilityRow({
   );
 }
 
-/** TodayRow's mark, at TodayRow's size, because it is TodayRow's mark. */
-const MARK = 10;
-
-/**
- * Seven marks for seven days, oldest first, each under the day it stands for
- * (F561, F577).
- *
- * A picture, never a target: a day that happened is a filled mark and a day
- * that did not is a hairline, on TodayRow's rule that a thing which has not
- * happened is not a state worth signalling. Home's momentum card and Profile's
- * rhythm draw the same rail, so the week looks the same wherever a learner
- * meets it.
- *
- * The fill is the identity violet since revamp A, and that is a deliberate
- * exception rather than a drift. The rule it bends is "a state mark is never
- * violet", which exists so nothing reads as the primary action; a calendar
- * record is not a state, it is a diary of days already spent, and the founder
- * chose the identity colour for it. The orb's traffic lights remain the only
- * marks in the app that report a state, and none of them is violet.
- *
- * `labels` are the seven day names. Given them, each mark sits in its own
- * column under its day; given nothing, the rail is the bare row of dots it has
- * always been. Either way the whole thing is hidden from assistive technology:
- * seven letters read aloud are not a week, and whatever the rail stands beside
- * says the week in a sentence.
- */
-export function WeekRail({ week, labels }: { week: readonly boolean[]; labels?: readonly string[] }) {
-  return (
-    <View style={s.marks} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      {week.map((filled, index) => (
-        <View key={index} style={s.day}>
-          {labels != null && <Text style={[type.small, { color: paper.inkSoft }]}>{labels[index]}</Text>}
-          <View style={[s.mark, filled ? s.markDone : s.markWaiting]} />
-        </View>
-      ))}
-    </View>
-  );
-}
-
-/**
- * Deprecated. The tinted row, now drawn as a `LedgerRow`.
- *
- * Tints are no longer drawn (notebook Phase 1). Every promise this row made
- * (one target, named once, disabled said in ink, a chevron, words that grow) is
- * kept by `LedgerRow`, appended at the end of this file, and this wrapper only
- * forwards to it. The `tint` prop is accepted and ignored until Phase 4 renames
- * the call sites.
- */
-export function TintRow({
-  glyph,
-  title,
-  gloss,
-  onPress,
-  accessibilityLabel,
-  trailing,
-  disabled = false,
-}: {
-  tint: TintName;
-  /** One line-art glyph, drawn in ink with no disc. */
-  glyph: ReactNode;
-  title: string;
-  gloss?: string;
-  onPress?: () => void;
-  /** Say something other than the title and gloss. Falls back to both, joined. */
-  accessibilityLabel?: string;
-  /** A state the row has earned, drawn before the chevron. */
-  trailing?: ReactNode;
-  disabled?: boolean;
-}) {
-  return (
-    <LedgerRow glyph={glyph} title={title} gloss={gloss} onPress={onPress} accessibilityLabel={accessibilityLabel} trailing={trailing} disabled={disabled} />
-  );
-}
+// The seven-mark week rail (`WeekRail`, F561/F577) stood here until the
+// notebook final sweep, 2026-09-27. The week is a sentence on Today and on
+// Profile now, and the rail's last live caller was the retired French wall page.
 
 const s = StyleSheet.create({
-  marks: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(1.5), marginTop: space(3) },
-  day: { alignItems: 'center', gap: space(1) },
-  mark: { width: MARK, height: MARK, borderRadius: MARK / 2 },
-  markDone: { backgroundColor: accent.primary },
-  markWaiting: { backgroundColor: paper.card, borderWidth: HAIRLINE + 0.4, borderColor: paper.line },
   abilityRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
   abilityDivided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
   abilityWords: ROW_WORDS,

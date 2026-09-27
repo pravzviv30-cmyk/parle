@@ -241,7 +241,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     assert.ok(at('{start !== null') < at('<DailyCard'));
 
     // Today's phrase, audio first, with no picture.
-    assert.match(RENDER, /<DailyCard item=\{daily\.phrase\} picture=\{false\} \/>/, "today's phrase is not the phrase, or still carries its picture");
+    assert.match(RENDER, /<DailyCard item=\{daily\.phrase\} \/>/, "today's phrase is not the phrase, or still carries its picture");
     assert.ok(!SCREEN.includes('<DailyCarousel'), 'the word and phrase carousel is back on Today');
   });
 
@@ -258,8 +258,84 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     // The standing picks the daily pool and nothing else (HomeTab's one use).
     assert.match(FLAT, /const standing = levelFor\(totalXp\(activity\)\)/);
     assert.match(FLAT, /setDaily\(todayItems\(standing\.index, now\)\)/);
-    // The phrase card may keep its picture elsewhere, but not on Today.
-    assert.match(DAILY, /picture = true/);
+    // The shared card is picture-free everywhere, including the library.
+    assert.doesNotMatch(DAILY, /WordScene|sceneForDaily|<Art\b|<Image\b|\bpicture\b/);
+  });
+
+  // 2026-09-27, notebook final sweep: these two moved here from
+  // progress/momentumCards.test.ts when the momentum block was deleted. The
+  // F391 test keeps its title because F391 and F422 name it; F438's successor
+  // keeps what was about Today and Practice and drops the block's own link.
+  test("home draws tier-selected daily French with audio first and no decorative scene — F391", () => {
+    // The pool and the pick are core's. The screen reads them with the one
+    // `now` it takes per focus and stores nothing, so the same day gives the
+    // same word on a fresh install and on a two-year-old one.
+    const catalogue = read('../daily/catalogue.ts');
+    assert.match(catalogue, /dailyPick\(wordsForLevel\(homeWords, level\), now\)/);
+    assert.match(catalogue, /homePhrases.filter\(p => p.tier === wordTierFor\(level\)\)/);
+    assert.match(catalogue, /homeWords = DAILY_WORDS.filter\(item => voicedWords.has\(item.id\)\)/);
+    assert.match(catalogue, /homePhrases = DAILY_PHRASES.filter\(item => voicedPhrases.has\(item.id\)\)/);
+    assert.match(SCREEN, /todayItems/);
+    assert.ok(!SCREEN.includes('Math.random'), 'the word is picked at random, so it would change under the learner mid-day');
+
+    // The word is pitched, so it waits on storage: the tier comes from the
+    // level standing and the level standing is XP that has to be read. Picked
+    // before the read it would be a tier one word replaced a moment later,
+    // which is the app appearing to change its mind about a learner.
+    const awaited = between(
+      FLAT,
+      'void Promise.all(',
+      'return () => {',
+      'the screen no longer folds its storage reads together, so this walk reads the wrong half of the effect',
+    );
+    assert.match(
+      awaited,
+      /const standing = levelFor\(totalXp\(activity\)\);/,
+      "the tier is not read from the app's one level standing, so the screen has grown a second opinion about how far a learner has come",
+    );
+    assert.match(
+      awaited,
+      /setDaily\(todayItems\(standing\.index, now\)\)/,
+      "the word of the day is not today's word from the learner's tier, on the screen's one clock reading",
+    );
+    assert.ok(
+      FLAT.indexOf('setDaily(') > FLAT.indexOf('void Promise.all('),
+      'the word is picked before the XP is read, so a learner would watch it change tier a moment after it appeared',
+    );
+
+    assert.match(FLAT, /<DailyCard item=\{daily\.phrase\} \/>/);
+    for (const source of [SCREEN, DAILY]) {
+      assert.doesNotMatch(source, /<DailyCarousel|<WordScene|<WordOfDayCard|sceneForDaily\(/);
+    }
+    for (const field of ['item.fr', 'item.en', 'item.note', 'item.exampleFr', 'item.exampleEn']) {
+      assert.ok(DAILY.includes(`{${field}}`), `the daily card does not draw ${field}`);
+    }
+    assert.match(DAILY, /<Label>\{item.label\}<\/Label>/);
+    const hear = DAILY.indexOf('<GhostButton label="Hear"');
+    assert.ok(hear >= 0 && hear < DAILY.indexOf('{item.fr}'));
+
+    // No caption line, and no caption ink. Every word on this card is a word
+    // the learner reads, and words clear 4.5; inkFaint measures under even the
+    // mark floor on a card, which is how the least legible text in the app
+    // happened once already.
+    assert.ok(!DAILY.includes('inkFaint'), 'the word card sets learner-facing text in the faint ink');
+  });
+
+  test("Today's one recall action opens the review deck, Practice opens the same deck, and the hero sits outside every count — F438", () => {
+    // Two surfaces sending a learner to two different decks would be two
+    // answers to one question.
+    assert.match(FLAT, /<PillButton label="Practise recall" onPress=\{\(\) => nav\.navigate\('Review'\)\} \/>/, "Today's review action does not open the review deck");
+    const practice = stripComments(read('../tabs/PracticeTab.tsx'));
+    assert.match(practice, /nav\.navigate\('Review'\)/, 'Practice no longer opens the review deck, so the two surfaces have drifted apart');
+
+    // The hero is drawn for a learner with nothing behind them, and a gate
+    // around it would be a blank page on a first run. The counts left Today
+    // entirely and their block is deleted, so nothing on Today folds or draws
+    // them and the hero cannot sit inside one of their gates.
+    assert.match(SCREEN, /\{hero !== null && \(homeActionFor\(hero, due.length\) === 'review' \?/, 'one adaptive action must be available independently of any count');
+    assert.match(SCREEN, /: <MissionHero hero=\{hero\} \/>/, 'the conversation hero must remain the alternate, not a second primary action');
+    assert.doesNotMatch(SCREEN, /momentumFrom\(|<HomeMomentum|<MomentumCards|<WeekRail|<HomeProgressDetails/, 'the counts are back on Today');
+    assert.doesNotMatch(SCREEN, /nav\.navigate\('Progress'\)/, 'the old destination must be removed');
   });
 
   test('every word Today spells is plain, and every import is used — F400', () => {
@@ -405,9 +481,7 @@ describe('the two tabs fit a phone at every reading size — F409', () => {
     assert.match(style(components, '  row'), /minHeight: HIT \+ space\(3\)/, 'the shared ledger row falls under its 56pt floor');
     const ledger = between(components, 'export function LedgerRow(', '\nexport function ', 'LedgerRow is drawn in components.tsx');
     assert.equal((ledger.match(/<Pressable\b/g) ?? []).length, 1, 'the ledger row is not one pressable, so only its arrow would be tappable');
-    for (const wrapper of ['../surface/IconRowCard.tsx']) {
-      assert.match(flat(stripComments(read(wrapper))), /<LedgerRow /, `${wrapper} no longer draws the one ledger row`);
-    }
-    assert.match(flat(between(components, 'export function TintRow(', 'const s = StyleSheet.create(', 'TintRow is drawn')), /<LedgerRow /, 'the tinted row no longer draws the one ledger row');
+    assert.doesNotMatch(components, /export function TintRow\b/);
+    assert.equal(existsSync(fileURLToPath(new URL('../surface/IconRowCard.tsx', import.meta.url))), false);
   });
 });

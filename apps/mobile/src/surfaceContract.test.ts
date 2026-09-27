@@ -13,7 +13,7 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 import { PAGES } from './onboarding/answers.ts';
@@ -184,7 +184,7 @@ describe('only the live microphone casts a shadow — F569', () => {
 });
 
 describe('nothing animates where nobody is looking — J7', () => {
-  test('a scene on a tab that is not focused stops moving', () => {
+  test('decorative scenes are static even when a mounted tab is not focused', () => {
     // Bottom tabs stay mounted after their first visit, so an unpaused loop
     // here runs for the rest of the session behind whatever the learner is
     // actually doing. DESIGN.md says scenes stop; four of them did not.
@@ -198,59 +198,13 @@ describe('nothing animates where nobody is looking — J7', () => {
     // The scene names are the barrel's own, read out of it rather than copied
     // here, because a list typed into a test is a list that stops matching the
     // app the day somebody adds the twenty-first drawing.
-    const DAILY = [
-      'WordSprout', 'WordKettle', 'WordCroissant', 'WordCandle', 'WordCasserole', 'WordTeapot',
-      'WordUmbrella', 'WordCloud', 'WordKite', 'WordLeaves', 'WordSnowflake', 'WordPostbox',
-      'WordBicycle', 'WordFountain', 'WordPigeon', 'WordLantern', 'WordShutters', 'WordSnail',
-      'WordCat', 'WordSailboat',
-    ];
-    const exported = [...named('illustrations/index.ts').matchAll(/export \{([^}]*)\}/g)]
-      .flatMap((m) => m[1]!.split(','))
-      .map((n) => n.trim())
-      .filter((n) => /^[A-Z]/.test(n));
-    for (const name of DAILY) {
-      assert.ok(exported.includes(name), `${name} is no longer offered by the illustration barrel, so the daily pack has shrunk`);
+    const illustrations = SOURCES.filter(({ path }) => rel(path).startsWith('illustrations/'));
+    assert.ok(illustrations.length > 0);
+    for (const { path, body } of illustrations) {
+      assert.doesNotMatch(body, /\bAnimated\b|useSceneMotion|arriveStyle|\.interpolate\(/, `${rel(path)} animates a decorative scene`);
     }
-    // `WordScene` is the chooser itself rather than a drawing, and it is the
-    // one thing a card renders in place of a scene, so it is held to the same
-    // rule as the twenty it picks from.
-    const SCENE = [...new Set([...exported, 'WordScene'])].join('|');
-    const SURFACES = [
-      'daily/DailyCard.tsx',
-      'progress/WordOfDayCard.tsx',
-      'progress/WordScene.tsx',
-      'missions/MissionsScreen.tsx',
-    ];
-    let drawn = 0;
-    for (const name of SURFACES) {
-      const body = named(name);
-      const scenes = body.match(new RegExp(`<(${SCENE})\\b[^/>]*\\/>`, 'g')) ?? [];
-      drawn += scenes.length;
-      for (const scene of scenes) {
-        assert.ok(scene.includes('paused='), `${name} loops a scene off-screen: ${scene}`);
-      }
-    }
-    assert.ok(drawn > 0, 'none of these surfaces renders a scene any more; this test is stale');
-    // And the chooser draws every one of the twenty, so a key added without a
-    // drawing, or a case that forgets to pass `paused` down, fails here too.
-    const chooser = named('progress/WordScene.tsx');
-    for (const name of DAILY) {
-      assert.match(
-        chooser,
-        new RegExp(`<${name}\\b[^/>]*paused=`),
-        `the word-of-the-day chooser draws ${name} without telling it to stop when the screen is not on top`,
-      );
-    }
-    // Only a screen can ask whether it is focused: the hook throws outside a
-    // navigator, so a card takes `paused` as a prop from the screen above it.
-    // Progress is a pushed screen and asks for itself; the two tabs still ask
-    // because a bottom tab is never unmounted.
-    for (const name of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx', 'daily/DailyCarousel.tsx']) {
-      assert.ok(
-        named(name).includes('useIsFocused'),
-        `${name} passes paused without knowing whether it is focused`,
-      );
-    }
+    const daily = named('daily/DailyCard.tsx');
+    assert.doesNotMatch(daily, /WordScene|sceneForDaily|\bAnimated\b/);
   });
 });
 
@@ -443,7 +397,7 @@ describe('nothing ships that nothing renders — J14', () => {
     // reached.
     const registry = named('art/registry.ts');
     const keys = [...registry.matchAll(/^ {2}'?([a-z][a-z-]*)'?: \{ source: require\(/gm)].map((m) => m[1]!);
-    assert.equal(keys.length, 13, `the registry reads as ${keys.length} entries; this walk is stale`);
+    assert.deepEqual(keys.sort(), ['hero-cafe', 'hero-friends', 'hero-home', 'hero-hotel', 'hero-market', 'hero-street'], 'only the six place watercolours may ship');
 
     const maps = named('art/maps.ts');
     const mapped = new Set([...maps.matchAll(/:\s*'([a-z][a-z-]*)'/g)].map((m) => m[1]!));
@@ -1792,7 +1746,7 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     }
     const tinted: Record<string, number> = {
       'tabs/HomeTab.tsx': 0,
-      'tabs/TutorTab.tsx': 1,
+      'tabs/TutorTab.tsx': 0,
       'tabs/PracticeTab.tsx': 0,
       'tabs/MyFrenchTab.tsx': 0,
       'tabs/ProfileTab.tsx': 0,
@@ -1800,8 +1754,8 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     const ledger: Record<string, number> = {
       // Today is a scene brief, two sentences and one phrase; nothing is a list.
       'tabs/HomeTab.tsx': 0,
-      // The level path's scenes, then the other ways in.
-      'tabs/TutorTab.tsx': 2,
+      // The level path's scenes, the other ways in, and the memory row.
+      'tabs/TutorTab.tsx': 3,
       // The review door on the tab, then replay a moment and make this phrase
       // yours in their own card files.
       'tabs/PracticeTab.tsx': 3,
@@ -2094,66 +2048,19 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     );
   });
 
-  test('the design doc describes the greeting, the daily situation and the tutor\'s pills as the tabs draw them — F407', () => {
+  test('the design doc and tabs agree on static greetings, picture-free daily French and one Speak primary — F407', () => {
     const design = readFileSync(join(ROOT, 'DESIGN.md'), 'utf8');
     const home = named('tabs/HomeTab.tsx');
     const tutor = named('tabs/TutorTab.tsx');
-
-    // 1. The greeting. The doc used to call "Bonjour, {name}" Home's single
-    //    French flourish, which stopped being true when it started cycling.
-    for (const word of ['Salut', 'Bonjour', 'Hello']) {
-      assert.ok(design.includes(word), `DESIGN.md never names "${word}", which Home's greeting cycles through`);
-    }
-    assert.doesNotMatch(
-      design,
-      /single flourish/,
-      'DESIGN.md still calls the greeting a single flourish, and it is three words on a loop now',
-    );
-
-    // 2. Home's header. Home was the one tab with no purpose line for four
-    //    passes and is not any more: the line is the hour's own question, so
-    //    the doc says that and the tab is held to reading it rather than
-    //    spelling it.
-    assert.match(design, /Home's purpose line is the hour's question/, "DESIGN.md does not say what Home's purpose line is");
-    assert.doesNotMatch(design, /Home is the one tab that carries no purpose line/, 'DESIGN.md still calls Home the tab without a purpose line, and it has one now');
-    assert.match(home, /purpose=\{greeting\.subline\}/, "Home's purpose line is not the one the design doc describes");
-
-    // 3. The pill rule, which changed from per tab to per door, and then to
-    //    none at all on the tab whose primary is a circle.
-    assert.match(design, /One primary pill per door/, 'DESIGN.md still states the rule as one pill per tab');
-    assert.equal(
-      (tutor.match(/<PillButton\b/g) ?? []).length,
-      1,
-      'Tutor has one explicit primary start action in its recommendation panel',
-    );
-
-    // 4. The native revision. The complete phrase overlaps through the handoff
-    //    and stands down before a fixed slot can clip accessibility text.
-    assert.match(design, /rise together through one clipped line/, 'DESIGN.md does not describe the native greeting transition');
-    assert.match(design, /opacities always add to one/, 'DESIGN.md permits an empty frame between greetings');
-    assert.match(design, /accessibility text sizes[^.]*stands down/, 'DESIGN.md does not record the large-text fallback');
-    assert.doesNotMatch(
-      design,
-      /name is outside the\s+slot and never moves/,
-      'DESIGN.md still describes the retired split word/name mechanism',
-    );
-    assert.match(
-      design,
-      /Seven greetings, and the hour decides which/,
-      'DESIGN.md does not record that the greeting pool is filtered by the hour',
-    );
-    assert.match(design, /daily pack/i, 'DESIGN.md never names the pack of drawings Home rotates through');
-    assert.match(
-      design,
-      /Demo mode\*{0,2} label left the situation card/,
-      'DESIGN.md does not record that the demo label left the situation card',
-    );
-
-    // 5. The retired pair, so nobody reinstates them from a stale doc.
-    for (const gone of ['TodayRow', 'PhrasebookCard']) {
-      assert.ok(design.includes(gone), `DESIGN.md never records that ${gone} left Home`);
-    }
-    assert.ok(design.includes('WordSprout'), 'DESIGN.md never names the scene Home draws for the word of the day');
+    assert.match(design, /Only the voice orb and the highlighter animate/);
+    assert.match(design, /daily library and Today\s+show no pictures/);
+    assert.match(design, /six place watercolours/);
+    assert.doesNotMatch(home, /titleSwap|useGreetingRotation|<DailyCarousel|<WordOfDayCard/);
+    assert.match(home, /title=\{greeting\.title\}/);
+    assert.match(home, /purpose=\{greeting\.subline\}/);
+    assert.match(home, /<DailyCard item=\{daily\.phrase\} \/>/);
+    assert.doesNotMatch(named('daily/DailyCard.tsx'), /<Art\b|<WordScene\b|sceneForDaily/);
+    assert.equal((tutor.match(/<PillButton\b/g) ?? []).length, 1);
   });
 
   /**
@@ -2167,64 +2074,29 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
    * checked against another doc is two documents agreeing about a screen
    * neither of them has seen.
    */
-  test('the design doc describes the momentum block as four cards there from the first day — F440', () => {
-    const design = readFileSync(join(ROOT, 'DESIGN.md'), 'utf8');
-    // The block left Home for the `Progress` screen with revamp A, so the
-    // sentence that describes it is in the routes table rather than the tab
-    // table. The claim is unchanged and so is every assertion under it: what
-    // moved is where the doc has to be right.
-    const row = design.split('\n').find((line) => line.startsWith('| Progress |'));
-    assert.ok(row, 'DESIGN.md no longer carries a Progress row, so the momentum block is described nowhere');
-    const home = design.split('\n').find((line) => line.startsWith('| Home |'));
-    assert.ok(home, 'DESIGN.md no longer carries a Home row in the tab table');
-    assert.ok(
-      home!.toLowerCase().includes('one level down'),
-      'the Home row does not say the momentum block is one level down, so a reader would expect it on Home',
-    );
-
-    // Four, and the source says four: one hero, two half tiles and the goal.
-    const block = named('progress/MomentumCards.tsx');
-    const cards = (block.match(/<Card\b/g) ?? []).length;
-    assert.equal(cards, 4, `MomentumCards draws ${cards} cards; the design doc says four`);
-    assert.match(row!, /four cards/, 'DESIGN.md does not say the momentum block is four cards');
-
-    // The overturn itself, in the two phrases PRODUCT.md uses for it, so the
-    // doc cannot drift back to describing a block nobody would meet on day one.
-    assert.match(row!, /there from the first day/, 'DESIGN.md does not record that the momentum block ships on a first run');
-    assert.match(row!, /worded as a start/, 'DESIGN.md does not record that a count at nought is worded as a start');
-    assert.doesNotMatch(row!, /momentum[^|]{0,80}absent at zero/, 'DESIGN.md still says the momentum block is absent at zero, and it ships from day one now');
-
-    // And it names all four cards, in the module's own words. A doc that names
-    // three of them is a doc that will be believed about the fourth.
-    const module = named('progress/momentum.ts');
-    const labelOf = (name: string): string => {
-      const found = new RegExp(`export const ${name} = (?:'([^']*)'|"([^"]*)")`).exec(module);
-      assert.ok(found, `momentum.ts no longer exports ${name}, so this check reads nothing`);
-      return (found![1] ?? found![2])!;
-    };
-    for (const name of ['RETAINED_LABEL', 'DAYS_LABEL', 'MASTERY_LABEL', 'GOAL_TITLE']) {
-      const label = labelOf(name);
-      assert.ok(
-        row!.toLowerCase().includes(label.toLowerCase()),
-        `DESIGN.md's Home row never names "${label}", which is one of the four cards Home draws`,
+  test('nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440', () => {
+    // 2026-09-27, notebook final sweep. `progress/MomentumCards.tsx` and
+    // `HomeProgressDetails` had had no renderer since the Phase 3 Today
+    // rebuild, and `WeekRail`'s last live caller was the retired French wall
+    // page, so all three are deleted rather than described. The DESIGN.md half
+    // of F440 (the `| Progress |` route row and the Home row's "one level
+    // down") is dropped here, not repointed: the docs rewrite that follows this
+    // sweep pins the new Structure section.
+    for (const file of ['progress/MomentumCards.tsx', 'progress/ProgressScreen.tsx', 'progress/progressView.ts']) {
+      assert.equal(existsSync(join(SRC, file)), false, `${file} is retired`);
+    }
+    assert.doesNotMatch(named('components.tsx'), /export function WeekRail\b/, 'the week rail is exported again');
+    // No screen draws a days count. The rule is PRODUCT.md's, and the model
+    // that holds it by name stays in `progress/momentum.ts` with its suite;
+    // nothing else may fold `momentumFrom` or spell the tile back onto a screen.
+    for (const { path, body } of SOURCES) {
+      if (rel(path) === 'progress/momentum.ts') continue;
+      assert.doesNotMatch(
+        body,
+        /\b(?:MomentumCards|HomeProgressDetails|WeekRail|weekRailFrom|canDoRows|momentumFrom|DAYS_LABEL)\b|Days active|days\.count/,
+        `${rel(path)} renders the retired momentum block, its details, the week rail or a days-active count`,
       );
     }
-    // The week rail is drawn and described, and it is a picture rather than a
-    // quota, which is the one part of this block that has ever been mistaken
-    // for one.
-    assert.match(row!, /week rail/, "DESIGN.md does not describe the days card's week rail");
-    // The plain rail, without day names, and that is the whole of the fix that
-    // put it back: this tile is half the screen wide and seven labels under it
-    // wrap onto a second line at 430pt, worse at 390. The labelled rail is
-    // Profile's, where the rhythm panel is full width and the week is what the
-    // surface is about rather than one tile of four.
-    assert.match(
-      block,
-      /<WeekRail week=\{days\.week\} \/>/,
-      'the days card no longer draws the week rail the design doc describes',
-    );
-    assert.ok(!block.includes('labels='), 'the half-width momentum tile labels its seven days, which wraps the rail onto two lines');
-    assert.match(named('components.tsx'), /week\.map\(\(filled, index\)/, 'the shared week rail no longer draws one mark per day');
   });
 
   /**
@@ -2419,4 +2291,41 @@ describe('the notebook composition rules have no transitional allowances', () =>
       assert.equal(notebookComposition(body).nestedCards, 0, `${rel(path)} nests a Card inside a Card`);
     }
   });
+});
+
+describe('retired notebook presentation cannot return', () => {
+  test('no source retains a tint token, role table or tinted primitive', () => {
+    for (const { path, body } of SOURCES) {
+      assert.doesNotMatch(rel(path), /Tint\.(?:ts|tsx)$/, `${rel(path)} retains a tint role table`);
+      assert.doesNotMatch(body, /\b(?:tint|TintName|TintRow|TintPanel|TintDisc|MISSION_TINT|DOOR_TINT|CONTINUITY_TINT|MADE_FROM_TINT|RHYTHM_TINT|MOMENT_TINT|missionTint|doorTint|madeFromTint|momentTint)\b/, `${rel(path)} retains the old tint vocabulary`);
+    }
+  });
+});
+
+test('retired notebook files and artwork stay deleted', () => {
+  const files = [
+    'surface/IconRowCard.tsx', 'surface/HeroCard.tsx', 'nav/tabSurface.ts',
+    'missions/missionTint.ts', 'tutor/doorTint.ts', 'tutor/momentTint.ts',
+    'practice/madeFromTint.ts', 'profile/rhythmTint.ts', 'practice/starterRows.ts',
+    'practice/PathNodeRow.tsx', 'daily/DailyCarousel.tsx', 'daily/carousel.ts',
+    'progress/WordScene.tsx', 'progress/WordOfDayCard.tsx', 'progress/wordScenes.ts',
+    'wall/WallMapPage.tsx', 'wall/WallFrenchPage.tsx', 'wall/wallMap.ts', 'wall/wallFrench.ts',
+    'illustrations/scenes/bubbles.tsx', 'illustrations/scenes/onboarding.tsx',
+    'illustrations/scenes/sprout.tsx', 'illustrations/scenes/stack.tsx',
+    'illustrations/scenes/daily/kitchen.tsx', 'illustrations/scenes/daily/weather.tsx',
+    'illustrations/scenes/daily/street.tsx', 'illustrations/scenes/daily/garden.tsx',
+    'illustrations/useSceneMotion.ts',
+  ];
+  for (const file of files) assert.equal(existsSync(join(SRC, file)), false, `${file} is retired`);
+  const retiredArt = ['welcome-bubbles', 'onboard-cake', 'onboard-wave', 'empty-table', 'recap-postcard', 'phrasebook', 'wall-map'];
+  for (const name of retiredArt) {
+    for (const density of ['', '@2x', '@3x']) {
+      assert.equal(existsSync(join(APP, 'assets', 'art', `${name}${density}.png`)), false, `${name}${density} must not ship`);
+    }
+    assert.ok(!named('art/registry.ts').includes(`'${name}'`), `${name} is still registered`);
+  }
+  for (const { path, body } of SOURCES) {
+    assert.doesNotMatch(body, /\b(?:IconRowCard|HeroCard|sceneForDaily|WordScene|StillWriting|TitleSwapRow)\b/, `${rel(path)} retains retired presentation`);
+    assert.doesNotMatch(body, /#(?:FEE7DB|F8D8DF|E4D3EE|CFF3EB|E8EED5|D5EFFE)\b/i, `${rel(path)} restores a retired tint as a raw hex`);
+  }
 });

@@ -222,42 +222,18 @@ describe('the empty drill bank draws the scene the art registry promises it — 
     return screen.slice(from, to);
   })();
 
-  test('the empty drill bank draws the nothing due scene', () => {
-    // Revamp A retired the vector scene for the registered drawing. The claim
-    // is unchanged and so is every assertion below it: the empty bank is a
-    // cleared table, above the card, with the same two sentences.
-    assert.ok(
-      /import \{ Art \} from '\.\/art\/Art\.tsx'/.test(screen),
-      'the drill screen does not import the one art renderer',
-    );
-    assert.ok(
-      /<Art name=\{SCREEN_ART\.emptyDeck\}[^/>]*\/>/.test(emptyBranch),
-      'the empty drill bank still renders a bare card',
-    );
-    assert.ok(
-      emptyBranch.indexOf('<Art ') < emptyBranch.indexOf('<Card>'),
-      'the scene sits above the card on the review deck and has to sit above it here',
-    );
-    // A width written at the call site is the drift the registry exists to
-    // stop, and it is exactly what the retired scene took.
-    assert.ok(!/<Art[^/>]*width=/.test(emptyBranch), 'the empty bank sizes the scene itself instead of reading the registry');
-    // The item is the missing drawing, not a rewrite. The copy stays put.
-    assert.ok(emptyBranch.includes('Nothing to review.'), 'the copy changed; F158 is about the drawing');
-    assert.ok(emptyBranch.includes('Your next session adds more.'), 'the copy changed; F158 is about the drawing');
+  test('the empty drill bank keeps its explanation and next action without retired art', () => {
+    assert.doesNotMatch(emptyBranch, /<Art\b|SCREEN_ART|NothingDue/);
+    assert.match(emptyBranch, /<Card>/);
+    assert.ok(emptyBranch.includes('Nothing to review.'));
+    assert.ok(emptyBranch.includes('Your next session adds more.'));
+    assert.match(emptyBranch, /footer=\{doneFooter\}/);
   });
 
-  test('both surfaces the scene claims actually draw it', () => {
-    // Read from the promise rather than from a list written here, so a scene
-    // that stops naming its second home stops being held to it. The promise
-    // moved with the drawing: it is `SCREEN_ART.emptyDeck`'s own comment now.
-    const promise = read('./art/maps.ts');
-    assert.ok(
-      /Review and Drill, when there is nothing due/.test(promise),
-      'the scene no longer claims both surfaces; this test is stale',
-    );
-    const drawn = /<Art name=\{SCREEN_ART\.emptyDeck\}/;
-    assert.ok(drawn.test(stripComments(read('./ReviewScreen.tsx'))), 'the review deck stopped drawing it');
-    assert.ok(drawn.test(screen), 'the drill bank stopped drawing it');
+  test('review and drill no longer import or draw retired empty-table art', () => {
+    for (const source of [screen, stripComments(read('./ReviewScreen.tsx'))]) {
+      assert.doesNotMatch(source, /SCREEN_ART|<Art\b|empty-table/);
+    }
   });
 });
 

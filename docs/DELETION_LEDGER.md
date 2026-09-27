@@ -26,3 +26,134 @@ replacement tests, focused tests, and the full gate have been checked.
 when the row was written. Every Done row names the evidence and the test that keeps it
 true; a row whose reader is gone but whose key is still on the device is not Done,
 because a device-level key survives both account reset and account deletion.
+
+## Notebook final sweep, 2026-09-27
+
+Audit scope: `apps/mobile/src/` imports and JSX consumers, `nav/types.ts` and the root
+navigator, raster registry/maps, and the deleted modules' storage dependencies.
+None of the objects below owns a persisted key, synced namespace or compatibility
+reader. No storage key, route or saved learner record was removed. The `tint`
+fields removed from `myfrench/model.ts` are explicitly non-persisted projections.
+The welcome-path partition remains live and its four tests remain in
+`wall/wallMap.test.ts`; purchase, entitlement and metering implementation is unchanged.
+
+Evidence keys below name executable tests, not aliases:
+- **Files**: `retired notebook files and artwork stay deleted` (source-file and all-density absence, production-reference and raw retired-colour scan).
+- **Tints**: `no source retains a tint token, role table or tinted primitive`, `the palette exports no retired tint tokens or raw tint colours`, and `the retired tinted wrappers are not exported`.
+- **Rows**: `a ledger row is one pressable at 56pt with an ink glyph and no disc, a title, a gloss, meta and a chevron, and it names itself once`; the migrated ContinuityCard, portfolio and weekly-reflection tests retain their routing, state and accessibility assertions.
+- **Daily**: `daily cards and the library contain no pictures or scene selection`, `daily French retains all its text and its save and practice actions without a carousel`, and `daily audio leads the French on every card and stays still`.
+- **Art**: `every raster scene is decorative and every asset the registry names exists on disk under budget` now pins exactly six place keys, and `every art key the registry names is drawn somewhere and nothing in the folder is unregistered` checks both directions.
+- **Wall**: `the retired map and French wall pages have no source, renderer or analytics page`, `no door ever draws more than two pages, or the retired map and French pages`, and `WallPage and wall_page_seen name exactly the same pages`.
+- **Motion**: the empty-PENDING motion allow-list test, `decorative scenes are static even when a mounted tab is not focused`, and the three static-header successor tests F418/F427/F428.
+- **Momentum**: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440` (file absence, a source walk for every retired name and for a days count outside `progress/momentum.ts`), `the retired week rail is not exported and leaves no mark style behind`, `the Profile card is the one importer of the story, and the rhythm rail names no number` (story importers now exactly `tabs/HomeTab.tsx`), and `Today's one recall action opens the review deck, Practice opens the same deck, and the hero sits outside every count — F438`.
+- **Template art**: `the app is built with the brand mark rather than the template artwork` in `app/deviceBuildContract.test.ts` (every app.json art slot reads `./assets/brand/`, the file exists, the store icon is 1024 square without alpha, the adaptive layers keep the safe zone).
+
+The no-tint, no-pending-motion, daily, wall and momentum retirement checks were observed
+failing before their corresponding migrations/deletions (the momentum successors were run
+red against the tree on 2026-09-27 before the six files were removed). Known-issue
+repoints carry dated notes explaining removal rather than pretending the old feature is
+still tested. Every row below was verified on 2026-09-27 by the full gate (3,686 tests
+green, mobile 1,893) and `npx tsc --noEmit -p apps/mobile` clean.
+
+| Deleted item | Status | Import/navigation and replacement evidence | Persisted-data concern |
+|---|---|---|---|
+| `components.tsx` TintRow | Done (2026-09-27, gate 3,686 green) | Last consumers ContinuityCard, SituationsCard and HomeProgressDetails use LedgerRow; F569 tinted count is zero. Tints, Rows. | Prop-only wrapper; none. |
+| `components.tsx` TintPanel | Done (2026-09-27, gate 3,686 green) | HomeProgressDetails uses Card; retired WallMapPage deleted. Tints, Rows. | Presentation only. |
+| `components.tsx` TintDisc | Done (2026-09-27, gate 3,686 green) | No caller remained. Tints; component export slicing follows ProgressDots now. | Decorative only. |
+| `palette.ts` tint tokens and TintName, theme re-exports | Done (2026-09-27, gate 3,686 green) | Role tables deleted; derived MyFrench row fields removed. Tints and palette documentation checks. | No serialized schema field. |
+| `missions/missionTint.ts` | Done (2026-09-27, gate 3,686 green) | Situations/progress callers migrated; wall map removed. Files, Tints. | Pure mapping. |
+| `missions/missionTint.test.ts` | Done (2026-09-27, gate 3,686 green) | Obsolete mapping test superseded by Tints; F362 repointed. | Tests only. |
+| `tutor/doorTint.ts` | Done (2026-09-27, gate 3,686 green) | ContinuityCard reads no colour role. Files, Tints, Rows. | Pure mapping. |
+| `tutor/doorTint.test.ts` | Done (2026-09-27, gate 3,686 green) | Table-existence assertions replaced by Tints. | Tests only. |
+| `practice/madeFromTint.ts` | Done (2026-09-27, gate 3,686 green) | Only retired starterRows retained it; both removed. Files, Tints. | Pure mapping. |
+| `practice/madeFromTint.test.ts` | Done (2026-09-27, gate 3,686 green) | Table-existence assertions replaced by Tints. | Tests only. |
+| `profile/rhythmTint.ts` | Done (2026-09-27, gate 3,686 green) | No importer remained; FrenchLifeCard already uses a sentence. Files, Tints. | Pure constant. |
+| `profile/rhythmTint.test.ts` | Done (2026-09-27, gate 3,686 green) | Palette-role existence replaced by Tints; rhythm sentence tests preserved. | Tests only. |
+| `tutor/momentTint.ts` | Done (2026-09-27, gate 3,686 green) | Additional obsolete role table found by no-tint walk, with no importer. Files, Tints. | Pure mapping. |
+| `surface/IconRowCard.tsx` | Done (2026-09-27, gate 3,686 green) | AbilitiesCard uses LedgerRow directly; other callers already migrated. Files, Rows. | Props only. |
+| `surface/IconRowCard.test.ts` | Done (2026-09-27, gate 3,686 green) | Wrapper forwarding test removed; full LedgerRow semantics retained. Files, Rows. | Tests only. |
+| `surface/HeroCard.tsx` | Done (2026-09-27, gate 3,686 green) | No production caller; SceneBrief is the direct replacement. Files and SceneBrief component tests. | Props only. |
+| `surface/HeroCard.test.ts` | Done (2026-09-27, gate 3,686 green) | Retired wrapper tests removed; SceneBrief and MissionHero tests retained. | Tests only. |
+| `practice/starterRows.ts` | Done (2026-09-27, gate 3,686 green) | No production importer remained; Practice already owns the current starter sound entry. Files and PracticeTab tests. | Derived sample rows only; no pack or deck data deleted. |
+| `practice/starterRows.test.ts` | Done (2026-09-27, gate 3,686 green) | Tests of unreachable sample-row builder removed; PracticeTab starter-journey checks remain. Files. | Tests only. |
+| `practice/PathNodeRow.tsx` | Done (2026-09-27, gate 3,686 green) | No screen imports it. Current practice rows/navigation remain. Files. | Read-only props; no stored path removed. |
+| `daily/DailyCarousel.tsx` | Done (2026-09-27, gate 3,686 green) | No screen imports it; Home renders DailyCard directly, library lists cards. Files, Daily. | Local selection state only. |
+| `daily/carousel.ts`, including sceneForDaily | Done (2026-09-27, gate 3,686 green) | Only old carousel and DailyCard art imported it; both dependencies gone. Files, Daily. | Pure tab/swipe/hash functions. |
+| `progress/WordScene.tsx` | Done (2026-09-27, gate 3,686 green) | DailyCard no longer imports or draws it. Files, Daily. | Decorative chooser only. |
+| `progress/WordOfDayCard.tsx` | Done (2026-09-27, gate 3,686 green) | No screen imports it; DailyCard retains all text/audio/save/practice. Files, Daily. | Read-only props. |
+| `progress/wordScenes.ts` | Done (2026-09-27, gate 3,686 green) | Scene chooser and hash removed. Files, Daily. | Decorative key list, not learner data. |
+| `progress/wordScenes.test.ts` | Done (2026-09-27, gate 3,686 green) | Rotation suite superseded by picture-free daily checks; F425 repointed. | Tests only. |
+| `wall/WallMapPage.tsx` | Done (2026-09-27, gate 3,686 green) | WallScreen already renders only yours/plans. Files, Wall. | Interior page, not a route or store. |
+| `wall/WallFrenchPage.tsx` | Done (2026-09-27, gate 3,686 green) | WallScreen already renders only yours/plans. Files, Wall. | Interior page, not a route or store. |
+| `wall/wallMap.ts` | Done (2026-09-27, gate 3,686 green) | Only retired map page called it; live welcomePath invariants preserved. Files, Wall. | Read-only projection; saved phrases/completions unchanged. |
+| `wall/wallFrench.ts` | Done (2026-09-27, gate 3,686 green) | Only retired French page called it. Files, Wall. | Read-only momentum projection. |
+| `wallMap.test.ts` retired projection cases, `wallPages.test.ts` French-page cases | Done (2026-09-27, gate 3,686 green) | Genuine Wall retirement tests replace obsolete row projections; F516/F517/F520 dated repoints. Four live welcome-path cases preserved. | Tests only. |
+| `wall_page_seen` map/french variants and WallPage variants | Done (2026-09-27, gate 3,686 green) | Both narrowed together to yours/plans; all doors and analytics agreement tested. Wall. | No historical analytics data rewritten. |
+| `welcome-bubbles@2x.png` | Done (2026-09-27, gate 3,686 green) | Registry/map entry removed; onboarding no longer draws it. Files, Art. | Bundled art only. |
+| `welcome-bubbles@3x.png` | Done (2026-09-27, gate 3,686 green) | Same audited retirement, both densities checked. Files, Art. | Bundled art only. |
+| `onboard-cake@2x.png` | Done (2026-09-27, gate 3,686 green) | No remaining screen use; registry/map entry removed. Files, Art. | Bundled art only. |
+| `onboard-cake@3x.png` | Done (2026-09-27, gate 3,686 green) | Same audited retirement, both densities checked. Files, Art. | Bundled art only. |
+| `onboard-wave@2x.png` | Done (2026-09-27, gate 3,686 green) | No remaining screen use; registry/map entry removed. Files, Art. | Bundled art only. |
+| `onboard-wave@3x.png` | Done (2026-09-27, gate 3,686 green) | Same audited retirement, both densities checked. Files, Art. | Bundled art only. |
+| `empty-table@2x.png` | Done (2026-09-27, gate 3,686 green) | Removed last Drill/Review uses; explanation and footer tests preserved. Files, Art. | Bundled art only. |
+| `empty-table@3x.png` | Done (2026-09-27, gate 3,686 green) | Same audited retirement, both densities checked. Files, Art. | Bundled art only. |
+| `recap-postcard@2x.png` | Done (2026-09-27, gate 3,686 green) | No remaining screen use; registry/map entry removed. Files, Art. | Bundled art only. |
+| `recap-postcard@3x.png` | Done (2026-09-27, gate 3,686 green) | Same audited retirement, both densities checked. Files, Art. | Bundled art only. |
+| `phrasebook@2x.png` | Done (2026-09-27, gate 3,686 green) | Removed last PhrasebookScreen use; its retained text/audio tests pass. Files, Art. | Bundled art only. |
+| `phrasebook@3x.png` | Done (2026-09-27, gate 3,686 green) | Same audited retirement, both densities checked. Files, Art. | Bundled art only. |
+| `wall-map@2x.png` | Done (2026-09-27, gate 3,686 green) | Sole drawing was retired WallMapPage; no live screen still draws it. Files, Art, Wall. | Bundled art only. |
+| `wall-map@3x.png` | Done (2026-09-27, gate 3,686 green) | Same audited retirement, both densities checked. Files, Art, Wall. | Bundled art only. |
+| `art/maps.ts` SCREEN_ART and seven retired registry entries | Done (2026-09-27, gate 3,686 green) | Last three live screen references removed; HERO_ART and six place watercolours retained for plan/missions. Art, Files. | Presentation lookup only. |
+| `assets/icon.png` (Expo template) | Done (2026-09-27, gate 3,686 green) | Removed by the lead. `grep` over apps/mobile, docs and scripts finds no reference outside the gitignored `dist/` bundle; `app.json` `expo.icon` reads `./assets/brand/luvani-app-icon-1024.png`. Template art. | Bundled art only; no learner data. |
+| `assets/favicon.png` (Expo template) | Done (2026-09-27, gate 3,686 green) | Removed by the lead. No reference; `app.json` `web.favicon` reads `./assets/brand/luvani-app-icon-1024.png`. Template art. | Bundled art only. |
+| `assets/splash-icon.png` (Expo template) | Done (2026-09-27, gate 3,686 green) | Removed by the lead. No reference; the `expo-splash-screen` plugin image reads `./assets/brand/luvani-mark-1024.png`. Template art. | Bundled art only. |
+| `assets/android-icon-foreground.png` (Expo template) | Done (2026-09-27, gate 3,686 green) | Removed by the lead. No reference; `android.adaptiveIcon.foregroundImage` reads `./assets/brand/luvani-adaptive-foreground-1024.png`. Template art. | Bundled art only. |
+| `assets/android-icon-background.png` (Expo template) | Done (2026-09-27, gate 3,686 green) | Removed by the lead. No reference; `android.adaptiveIcon.backgroundImage` is deliberately absent, so the ground colour is the background (the test refuses a background picture). Template art. | Bundled art only. |
+| `assets/android-icon-monochrome.png` (Expo template) | Done (2026-09-27, gate 3,686 green) | Removed by the lead. No reference; `android.adaptiveIcon.monochromeImage` reads `./assets/brand/luvani-adaptive-monochrome-1024.png`. Template art. | Bundled art only. |
+| SpeakBubbles (`illustrations/scenes/bubbles.tsx`) | Done (2026-09-27, gate 3,686 green) | Already absent from barrel and screens. Files, Motion. | Decorative only. |
+| OnboardWave (`illustrations/scenes/onboarding.tsx`) | Done (2026-09-27, gate 3,686 green) | Already absent from barrel and screens. Files, Motion. | Decorative only. |
+| OnboardSuitcase (same retired onboarding file) | Done (2026-09-27, gate 3,686 green) | No importer/exporter remained. Files, Motion. | Decorative only. |
+| OnboardClock (same retired onboarding file) | Done (2026-09-27, gate 3,686 green) | No importer/exporter remained. Files, Motion. | Decorative only. |
+| WordSprout (`scenes/sprout.tsx`) | Done (2026-09-27, gate 3,686 green) | Barrel, chooser and DailyCard art removed. Files, Daily, Motion. | Decorative only. |
+| WordKettle (`scenes/daily/kitchen.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordCroissant (`scenes/daily/kitchen.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordCandle (`scenes/daily/kitchen.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordCasserole (`scenes/daily/kitchen.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordTeapot (`scenes/daily/kitchen.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordUmbrella (`scenes/daily/weather.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordCloud (`scenes/daily/weather.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordKite (`scenes/daily/weather.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordLeaves (`scenes/daily/weather.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordSnowflake (`scenes/daily/weather.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordPostbox (`scenes/daily/street.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordBicycle (`scenes/daily/street.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordFountain (`scenes/daily/street.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordPigeon (`scenes/daily/street.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordLantern (`scenes/daily/street.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordShutters (`scenes/daily/street.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordSnail (`scenes/daily/garden.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordCat (`scenes/daily/garden.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| WordSailboat (`scenes/daily/garden.tsx`) | Done (2026-09-27, gate 3,686 green) | Daily pack has no caller or barrel export. Files, Daily, Motion. | Decorative only. |
+| LearnStack (`illustrations/scenes/stack.tsx`) | Done (2026-09-27, gate 3,686 green) | Unexported, unimported retired scene retained the obsolete motion hook. Files, Motion. | Decorative only. |
+| StillWriting (`illustrations/scenes/empty.tsx`) | Done (2026-09-27, gate 3,686 green) | Last consumer was deleted PathNodeRow; barrel reachability check caught it. Files, Motion. | Decorative only. |
+| `illustrations/useSceneMotion.ts` | Done (2026-09-27, gate 3,686 green) | Remaining NobodyYet mark made static; retired stack removed; no callers. Files, Motion. | Animation state only. |
+| `pen.tsx` Moving and Scene layers | Done (2026-09-27, gate 3,686 green) | Static Frame draws retained marks; no moving layer caller. Motion. | Animation state only. |
+| `layout.tsx` TitleSwap, TitleSwapRow, titleSwap prop and swapLine style | Done (2026-09-27, gate 3,686 green) | No caller passed a swap; plain accessible Text is the only heading. F418/F427/F428 successor tests and Motion. | Transient animation API, never persisted. |
+| DailyCard picture/paused compatibility props | Done (2026-09-27, gate 3,686 green) | Sole picture caller Home now renders the same picture-free card as the library. Daily. | Props only; playback focus handling preserved. |
+| `progress/MomentumCards.tsx` | Done (2026-09-27, gate 3,686 green) | `git grep` at HEAD aa29031 found only its definition; no route mounts it and `HomeTab.tsx` has refused `<MomentumCards` since Phase 3. Its four glyphs stay exported for the screens that still draw them. Momentum. | Read-only view of `momentumFrom`; no store, route or key. |
+| `progress/ProgressScreen.tsx` (`HomeProgressDetails`) | Done (2026-09-27, gate 3,686 green) | Only export had no renderer: `RootNavigator.tsx` carries no `Progress` route and `HomeTab.tsx` refuses `<HomeProgressDetails`. It was the second permitted importer of `progress/story.ts`; the F233/F561 importer test now pins Home alone. Momentum. | Read-only props; the week story and reflection are still built on Today. |
+| `progress/progressView.ts` | Done (2026-09-27, gate 3,686 green) | Sole importer was `ProgressScreen.tsx`; `CAN_DO_LABEL` only re-exported `home/abilities.ts`'s `ABILITIES_LABEL`, which stays. Momentum. | Pure copy and a stamp filter; no persisted field. |
+| `components.tsx` WeekRail and its `markDone`/`markWaiting` styles | Done (2026-09-27, gate 3,686 green) | Last live caller was the retired `WallFrenchPage.tsx`; the only other caller was the unrendered `MomentumCards.tsx`. Profile says the week with `rhythmSentence`, Today with `weekLines`. `momentum.ts` keeps `weekRailFrom` for the days fold's own picture, with no drawer. Momentum, F577 repointed. | Presentation only. |
+| `progress/momentumCards.test.ts` | Done (2026-09-27, gate 3,686 green) | The F391 test moved whole to `tabs/HomeTab.test.ts` under its own title; F438 has a successor there; F436's test is retired with a dated note on F398/F436/F437/F439. | Tests only. |
+| `progress/ProgressScreen.test.ts` | Done (2026-09-27, gate 3,686 green) | F572 repointed to the Momentum ban; its DESIGN.md "Home: greeting" bullet check (Stage 1) went with it and is not re-pinned, leaving that bullet to the docs rewrite. | Tests only. |
+| `progress/progressView.test.ts` | Done (2026-09-27, gate 3,686 green) | No ledger entry named any of its five tests; the module it tested is gone. | Tests only. |
+
+Retained deliberately: all six place-watercolour pairs and HERO_ART (the plan and
+missions still draw them), the static NobodyYet mark still referenced by social UI,
+RewardMark, the live orb, the highlighter and live microphone glow. No TutorIntro
+namespace, learner store, authentication path or payment implementation was removed.
+`progress/momentum.ts` is kept whole, `momentumFrom` and the four folds included, even
+though nothing renders them: PRODUCT.md:108-117 records the days-active rule as still
+"held by name in `progress/momentum.ts` and its suite", and F396, F412, F432, F433,
+F434 and F441 name that suite. Retiring the model is a product decision for the docs
+rewrite, not a sweep.

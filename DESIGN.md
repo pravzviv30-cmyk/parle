@@ -243,58 +243,12 @@ four is plain ink: no line left to follow.
 Green is the same green everywhere the learner speaks: the orb's your-turn state,
 the lesson SpeakCircle, the Review button, the path's learned marks.
 
-### Tints: paper for a place (retiring)
+### Tints are retired
 
-**Notebook Phase 1: tints are no longer drawn.** `TintRow`, `TintPanel` and
-`TintDisc` are deprecated wrappers that draw a ledger row, plain paper and a
-bare circle, and ignore the tint they are handed. The six tokens and their four
-role tables stay exported until Phase 4 retires the call sites, so the table
-below is still the palette the app ships. The rest of this section records the
-rule the tints were held to while they were drawn.
-
-The founder's mockups put each situation's line art on a soft coloured disc, and
-that much of the retired five-paper scheme came back as six **tints**. A tint
-names a **place** (the café, the hotel, the market, the street, home, friends) or
-a **kind of practice** (replaying a moment, making a phrase yours, tuning one
-sound) — never a state, a level or a mood. Which tint goes with which is decided
-once, in a role table beside the thing it describes: `missions/missionTint.ts`,
-`tutor/doorTint.ts`, `practice/madeFromTint.ts`, `profile/rhythmTint.ts`. A
-screen names the role and never the colour.
-
-A tint is a **surface**, not a mark and not an accent: it is drawn as the ground
-under a row about a place or a kind of practice (`TintRow`, and `TintPanel` under
-it) and as the panel behind the speaking rhythm. It was also the disc behind a
-mission's authored drawing until revamp A retired those; the row's white disc
-carries a `PlaceGlyph` now, so a tint is a paper and never a disc. Never as lettering, never as a stroke or
-a border, never as a ring or a dot that reports state.
-
-The second of those is F467 and it is the founder's decision, taken the way
-Theme C was. A later mockup carried the colour through to the rows themselves,
-and the choice was between keeping a rule that said the disc was the only place
-a tint is ever drawn, or widening it to what the rule was actually protecting.
-It was widened, in the open: the hex still lives in four files so a screen names
-a place and never a colour, and `palette.test.ts` now catches lettering in a
-tint more tightly than it did before, because the old ban missed
-`backgroundColor` through an accident of casing rather than by permission. So it is held to a
-paper's floors rather than a signal's. Ink clears 4.5 on every tint; every tint
-sits at least a Delta-E of 8 off the ground, the chip fill, the card and the
-card's hairline, so it reads as a disc; it stays 30 from every signal, the accent
-and the thinking amber; 20 from every rung fill and lighter than every mark (the
-lightest mark, rung one's yellow, is L* 84 and the darkest tint is 86); and no
-two tints come within 10 of each other. The sky is 26 from rung three's blue,
-which is why the rung floor is 20: nothing reads a disc under a café cup as a
-support colour, and `palette.test.ts` walks the source so nothing can letter or
-signal in a tint.
-
-| Token | Value | Place |
-|---|---|---|
-| `tint.sand` | `#FEE7DB` | Café: a warm paper under the cup |
-| `tint.rose` | `#F8D8DF` | Friends: a blush under the clinking bubbles |
-| `tint.lilac` | `#E4D3EE` | Home: the old house lilac, under the window and the moon |
-| `tint.lagoon` | `#CFF3EB` | The street: a cool lagoon under the signpost |
-| `tint.sage` | `#E8EED5` | The market: sage under the crate of tomatoes |
-| `tint.sky` | `#D5EFFE` | The hotel: sky under the front desk |
-
+There are no tint tokens, role tables or tinted primitives. Places are named by
+words and ink glyphs, not pastel surfaces. `palette.test.ts` rejects the retired
+palette, and `surfaceContract.test.ts` rejects every tint token, role table and
+wrapper in production source. There are no transitional allowances.
 ### Shadow
 
 One. **The live glow** is the green halo under `SpeakCircle` while the
@@ -425,144 +379,51 @@ the end, and they go with their call sites in Phase 4.
   Medium on `paper.groundDeep`, hidden from assistive tech. `HIT`-sized in the
   header, larger on Profile.
 
-Deprecated wrappers, kept until Phase 4 so the gate stays green without screen
-edits. Each draws the notebook look and ignores what it no longer uses:
-
-- **TintRow** draws a `LedgerRow` and no tint.
-- **IconRowCard** draws a `LedgerRow`: its label stays the row's one caps line,
-  its sentence becomes the title, its note its own quiet line. No card, no disc.
-- **TintPanel** draws plain paper: white, radius 16, a paper hairline.
-- **TintDisc** draws a bare decorative circle.
-- **HeroCard** draws a `SceneBrief` with the fields it has: label, title, the
-  plain line, the reason, the minutes beside the clock, the caller's Start and
-  bookmark. The watercolour and the tint well are not drawn.
+The deprecated TintRow, TintPanel, TintDisc, IconRowCard and HeroCard wrappers
+are deleted. Callers use LedgerRow, Card and SceneBrief directly. No tint or
+retired wrapper is allowed in production source.
 ## Illustrations
-
-Two kinds, drawn with the same pen. **Raster scenes** carry the places and the
-moments; **inline SVG** carries the marks, the postcards and everything that
-moves.
 
 ### Raster scenes
 
-Thirteen watercolour-and-line PNGs in `apps/mobile/assets/art/`, at `@2x` and
-`@3x` (Metro picks the density; the web takes the `@2x`). Every one is named
-once in `src/art/registry.ts` with the point size it is drawn at, and reaches a
-screen only through `src/art/Art.tsx` — the one file in the app allowed to import
-`Image`, which spreads `decorative` so a scene is silent to a screen reader.
+Only the six place watercolours ship in `apps/mobile/assets/art/`, each at `@2x`
+and `@3x`. `HERO_ART` maps each place to its scene. The missions chooser and the
+onboarding plan draw them through `src/art/Art.tsx`, the single decorative Image
+renderer. Each is 300x180 points, with `resizeMode="contain"` and no crop.
 
-| File | Where it is drawn | Size (pt) |
-|---|---|---|
-| `hero-cafe` `hero-hotel` `hero-market` `hero-street` `hero-home` `hero-friends` | The missions chooser, one per place (`heroArt`); Home's hero stopped drawing it when it became a scene brief in notebook Phase 1 | 300x180 |
-| `welcome-bubbles` | The first page of pre-account onboarding | 220x140 |
-| `onboard-cake` | The age gate | 220x140 |
-| `onboard-wave` | The page that asks the learner's name | 220x140 |
-| `empty-table` | Review and Drill with nothing due | 220x140 |
-| `recap-postcard` | The end of a conversation and the end of a lesson | 220x140 |
-| `phrasebook` | The phrasebook route | 220x140 |
-| `wall-map` | The wall's map of places | 300x180 |
+| File | Place |
+|---|---|
+| `hero-cafe` | Café |
+| `hero-hotel` | Hotel |
+| `hero-market` | Market |
+| `hero-street` | Street |
+| `hero-home` | Home |
+| `hero-friends` | Friends |
 
-**Notebook direction.** The six place watercolours and `wall-map` stay. The
-`welcome-bubbles`, `onboard-cake`, `onboard-wave`, `empty-table`,
-`recap-postcard` and `phrasebook` rasters, and the hashed daily-word drawings,
-retire through `docs/DELETION_LEDGER.md` once the screens that draw them are
-rebuilt (Phases 3 to 5). Until then they still ship and are still drawn.
+The welcome, cake, wave, empty table, recap postcard and phrasebook rasters are
+deleted, including both densities and their registry entries. The wall-map art
+left with its last renderer, the retired map page. The daily library and Today
+show no pictures. Their French, glosses, notes, examples and audio remain.
 
-Tutor has no header picture on purpose: the orb is the one thing on that screen
-that means something, and a second drawing beside it is two focal points where
-the design has one. There is no art in a live session, in settings, in the memory
-editor or in the legal pages.
-
-**Generator and licensing.** Generated on 2026-09-15 with Gemini
-(`gemini-2.5-flash-image`) from one shared prompt plus one subject line per
-scene. All of it is owned by Luvani; nothing here is third-party and nothing
-needs attribution. The originals and the generation scripts live with the
-founder, outside the repo, so any scene can be redrawn in a minute and dropped in
-under the same name.
-
-The shared prompt: *hand-drawn line art in one thin dark violet ink line, loose
-and slightly imperfect, round line ends, with a soft translucent watercolour wash
-in pale peach, pale sky blue, sage green, mint teal and lilac that stays inside
-the lines only loosely and fades out at the edges; no text, no gradients, no drop
-shadows, no border, generous white space, plain white background; picture book
-for adults, calm, Parisian.* Colours are named in **words, never as a hex code**:
-a hex in the prompt came back painted onto the picture as a swatch.
-
-**The matte rule.** The model returns a white rectangle, and a white rectangle on
-porcelain is a visible box. So every file is keyed to real transparency, trimmed
-to the ink, and quantised to 256 colours before it lands: the bleed at a header
-corner is painted into the alpha rather than produced with a negative margin,
-because negative margins clip on Android and scroll on the web. Budget: 350 KB
-per `@3x` file, 4 MB for the folder, heroes no larger than 900x540, all enforced
-by `src/art/registry.test.ts`, which also fails on a picture nobody draws and a
-drawn name nobody registered.
+The place art was generated on 2026-09-15 from a shared watercolour-and-line
+prompt and is owned by Luvani. The founder holds originals and generation
+scripts outside the repo. Files are keyed to transparency, trimmed to the ink
+and quantised to 256 colours. No painted hex swatches, shadows or borders.
+`registry.test.ts` keeps the budget at 350 KB per file and 4 MB total, requires
+both densities and refuses anything unregistered. No asset is exempt.
 
 ### Inline SVG
 
-Authored inline SVG in `src/illustrations/`, one style contract stated in
-`pen.tsx`: ink stroke 2.2 round-capped, `fill="none"` except tiny solid
-accents (a beret, a flame, a heart — a tenth of a scene at most), stipple-dot
-shading, deliberately quirky proportions, viewBox 200×150, no second colour —
-the paper shows through. `src/illustrations.tsx` remains as a one-line barrel,
-so the thirteen screens that import from it did not change.
+The static pen in `src/illustrations/pen.tsx` uses ink strokes at 2.2, round caps
+and joins, a 200x150 viewBox and stipple shading. Frame spreads `decorative` on
+every SVG. `NobodyYet` and `StillWriting` retain their empty-state marks but no
+longer animate. `RewardMark` remains the static tick beside a drill verdict.
 
-Four scenes, plus the tick and plus the daily pack. Of the original eight, three
-are left: name tag, clinking speech bubbles, sprouting word cards. The winged
-clock left the barrel with the daily-goal sheet that was its only caller, once
-the goal became a three-way control chosen in place; it is drawn, like the
-suitcase, and not exported.
-
-Revamp A retired nine, and for the opposite reason: not a caller that left but a
-drawing that was replaced. The postcard, the birthday cake, the cleared table and
-the phrasebook room are `recap-postcard`, `onboard-cake`, `empty-table` and
-`phrasebook` in the raster table above. The café table and the four place
-postcards went with the components that stood between them and a screen: a
-situation's picture is `heroArt` now on the chooser's hero card and on Home, and
-a situation's mark in a row is a `PlaceGlyph`, so `MissionDisc` and `MissionArt`
-had nothing left to draw and left with their scenes. In every case the scene file
-went too, because a vector kept beside the raster that replaced it is the next
-person's coin toss. What is left is the two empty states the app still draws by
-hand:
-
-| Scene | Where |
-|---|---|
-| `NobodyYet` | The dormant social prototype's empty states; not reachable from the app navigation |
-| `StillWriting` | A topic the tutor has not finished, which is the only thing the app locks |
-
-The rule those five place drawings were kept under is still the rule, and the
-raster that replaced them keeps it for free: **a picture of a place does not
-move**. Six drawings on one scrolling screen is six loops competing for the eye
-at the moment somebody is trying to choose one of them, and the motion
-vocabulary below is one loop per screen.
-
-`SpeakBubbles` is the one authored scene left outside the daily pack that a
-screen still draws, on the tutor intro, and it moves.
-
-Plus `RewardMark`, which is not a scene: one tick arriving beside a drill
-verdict, in the reserved-height slot the screen already keeps. There is no
-`miss` variant on purpose, because a drawing scolds louder than a word.
-
-And the **daily pack**: twenty drawings for the word of the day, one a day, chosen by the date
-the same way the word and the situation are. The card moved to the foot of the `Progress`
-screen with revamp A, and the pack moved with it. `WordSprout` is one of them and the rest are a
-kettle, a croissant, a candle, a casserole, a teapot, an umbrella, a cloud, a kite, falling
-leaves, a snowflake, a postbox, a bicycle, a fountain, a pigeon, a lantern, shutters, a snail, a
-cat and a sailboat. Every one moves, because the card is the same card every day and the drawing
-is the thing that tells a learner it is a new one. They are drawn through a switch with one case each, which is not taste: the guard that
-proves nothing ships unrendered finds a scene by looking for it written as a tag, and a table
-of bare names would hide all twenty from it.
-
-`WordSprout` itself is a seedling being watered. Only
-the water moves, on one loop; the figure and the can stay still, because the
-figure is the subject and tilting the can would pull the eye off the word beside
-it. Two components left with the same pass: `TodayRow` and `PhrasebookCard` were
-Home's alone, and Home now opens on the day instead of on a count of it. The
-**Demo mode** label left the situation card later, for a different reason: a
-badge reporting that a server is down, worn before the learner has asked for
-anything, is the app talking about itself. The honest signal is the answer to the
-tap, which the card already gives and still does. The
-daily count's philosophy stays where it always lived, in `progress/today.ts` and
-its suite, which is the standing refusal to turn it into a streak.
-
+SpeakBubbles, OnboardWave, the unused onboarding drawings and LearnStack are
+deleted. All twenty daily-pack drawings, their selector and their unused card
+are deleted. The illustration animation hook and moving layers are gone.
+`motion.test.ts` and `surfaceContract.test.ts` enforce static illustrations;
+only the voice orb and the highlighter may animate.
 ## Structure
 
 A two-page moving welcome on first launch (the café scene says hello; page two
@@ -747,91 +608,31 @@ Two hard rules, held from the enamel era:
 
 ## Motion
 
-**The notebook moves two things** (redesign Phase 1): the orb, with its
-existing breathing and wave lines, and the highlighter drawing in once behind a
-French line (`drawIn` and `DRAW_MS` in `motion.ts`). Touch feedback stays. The
-tab bar's selection wash and lift are gone. `motion.test.ts` pins the files that
-animate: the orb, `components.tsx` for the highlighter, `motion.ts` itself, and
-a pending list that may only shrink as later phases remove the rotating
-greeting, the twenty animated daily drawings, `SpeakBubbles`, the welcome steam
-and the `RewardMark` motion (which becomes static).
+Only the voice orb and the highlighter animate. The strict source allow-list is
+`components.tsx` (Highlight), `motion.ts` (its shared driver) and
+`tutor/VoiceOrb.tsx`. There is no PENDING allowance. Decorative illustrations,
+the greeting and the tab bar are static. The old illustration hook and moving
+layers are deleted, and `RewardMark` is a still tick.
 
-The app had none. It now has exactly one vocabulary. The rules live in
-`apps/mobile/src/motion.ts` — `useReduceMotion`, `settleIn` and `drawIn` — and
-every surface reads them from there: the scene hook, the voice orb, the
-transcript, the pre-account page transition and the highlighter. That sentence used to be here while four files each asked
-`AccessibilityInfo` themselves and three of them sampled it once and never
-looked again, so a learner who turned reduce motion on mid-session went on
-being animated at until the next launch. It is watched now, everywhere.
-`src/motion.test.ts` and `src/surfaceContract.test.ts` enforce this by walking
-every source file: a timing without `useNativeDriver`,
-an `Animated.spring`, an `Animated.createAnimatedComponent`, or an
-interpolation handed to `r`/`d`/`cx`/`cy`/`width`/`height` all fail the suite.
-The rules themselves are unchanged:
+`useReduceMotion` observes the OS preference. Reduced motion shows the final
+frame rather than hiding content. `drawIn` and `DRAW_MS` own the highlighter's
+single entrance. VoiceOrb owns its speaking/listening/thinking movement and
+stands down when paused. The orb keeps its captions and state colours when
+still; motion never carries information on its own.
 
-- **transform and opacity only**, always `useNativeDriver: true`
-- **never an SVG attribute** (`r`, `d`, `cx`) — those cannot cross to the
-  native driver and drop the whole animation onto the JS thread
-- one continuous loop plus one settling entrance; nothing bounces
-- **reduce-motion renders the final frame**, not nothing: the scene is the
-  content, the movement is the flourish
-- absolutely-positioned moving pieces are placed in *container* pixels, not in
-  the viewBox units the still art is drawn in
+The enforced rules remain:
 
-Touch has one equally restrained vocabulary. Primary pills, ledger rows, option
-cards and tab cells compress by one or two percent and move
-one point toward the page while held, then return without a bounce. Native taps
-use selection feedback and an earned conversation closure uses one success
-feedback through `motion/haptics.native.ts`; web keeps the same calls as safe
-no-ops. Haptics never gate navigation or learning state, and a device refusal is
-swallowed rather than turned into a failed action.
+- Transform and opacity only, with `useNativeDriver: true`.
+- Never animate SVG geometry or layout dimensions.
+- No springs or bouncing.
+- No scene loops, animated greeting swaps or moving tab washes.
+- Reduced motion is watched, not sampled only once.
 
-Twelve scenes move now rather than one, and they all move through the same
-hook, so the reduce-motion branch cannot be forgotten and no loop can outlive
-the screen that started it. A scene also stops when its screen is not on top,
-via a `paused` prop rather than `useIsFocused`: five of the places that render
-a scene mount *above* the navigator, where that hook throws.
+Pressed-state touch feedback and haptics stay. Native selection feedback and
+successful conversation feedback go through `motion/haptics.native.ts`; web
+keeps safe no-ops. A haptic refusal never blocks navigation or learning state.
 
-`illustrations/pen.tsx` adds `Moving`, which places an animated layer from
-viewBox coordinates and sizes it from the scene's own unit. That fixes a real
-bug: the splash drew its café at 260 wide, so the cup's 2.2 stroke rendered at
-2.86px while the steam above it, in its own 44-unit box at width 44, rendered
-at 2.2px. The steam was 23% thinner than the cup it rose from.
-
-Two things moved before. The **welcome** — steam drifting off a café cup, two speech
-bubbles arriving one after the other, then a settling second page. And the
-**voice circle**, which revamp A redrew.
-
-It is a lit **gradient disc** now: one radial gradient built from the state's own
-single colour at full, 0.85 and 0.45 opacity, so the sphere reads as lit without
-a second token entering the palette. Three faint concentric **rings** sit behind
-it, and three soundwave **lines** either side lean in. The lines are part of the
-shape rather than a state: they are drawn on the untapped circle and on the
-resting one too, because the founder's Tutor tab has them beside the orb before
-anybody has tapped it, and hiding them until a conversation started made the one
-control on that screen a bare disc. They **move** only in the two states where
-somebody is talking, which is the only place the second driver runs: drawn and
-still everywhere else, and absent only while the orb is thinking or stopped,
-where a line either side would be a voice that is not in the room. The founder reversed the earlier decision here: rings around
-a flat centre was the first choice and the lit sphere the rejected one, and after
-seeing both on the mockup the founder took the sphere with the rings kept around
-it.
-
-Six states — ready, idle, speaking, listening, thinking, error — said in
-traffic-light colour (red listen, green speak, amber one-moment), violet for the
-untapped control, and one caption always set in ink. The disc breathes on one
-`scale` and the wave lines stretch on a second `scaleY`, both transform-only on
-the native driver; the gradient, the rings and the waves are static SVG and
-nothing interpolates an SVG attribute. Under **reduce motion** the whole thing
-rests: the gradient, its rings and its lines are drawn once, at the final frame,
-because the orb is the content and the breathing is the flourish. It carries no
-shadow: the one shadow in this app is the live microphone's glow, and it does
-not belong to the orb.
-
-Deliberately not driven by audio amplitude. An analyser feeding setState sixty
-times a second is the churn that would force a reanimated dependency, and that
-is the one place worth spending one later.
-
+The live microphone glow remains the only shadow. The voice orb casts none.
 ## Three deliberate divergences
 
 Written down so nobody "fixes" them back:

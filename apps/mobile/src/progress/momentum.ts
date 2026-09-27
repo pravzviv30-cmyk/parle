@@ -422,9 +422,11 @@ function recentDayKeys(now: number, span: number): string[] {
 /**
  * The last seven local days, oldest first, true where something happened.
  *
- * Exported for Profile's week (F561), which draws the same rail Home's days
- * card does from the same log, so the two pictures can never disagree about
- * which of the last seven days had French in them.
+ * Nothing draws this row any more: the seven-mark rail left Today and Profile
+ * with the notebook redesign (2026-09-27) and the week is a sentence on both.
+ * It stays as the days fold's own picture of the week, folded from the same
+ * `activeDayKeys` as Profile's calendar week, so the two can never disagree
+ * about which days had French in them.
  */
 export function weekRailFrom(activity: readonly { at: number }[], now: number): readonly boolean[] {
   const active = activeDayKeys(activity);
@@ -454,9 +456,10 @@ function activeDayKeys(activity: readonly { at: number }[]): Set<string> {
  * head. Three letters each: the rail gives each mark one narrow column, and a
  * full day name would either wrap or shrink the marks at the largest text.
  *
- * They are a picture and not a sentence. `WeekRail` hides the whole row from
- * assistive technology, because seven letters read aloud are not a week, and
- * `rhythmSentence` is what a screen reader is given instead.
+ * They are a picture and not a sentence. Since the notebook redesign nothing
+ * draws them at all: Profile says the week with `rhythmSentence`, which is
+ * also what a screen reader is given, and the labels stay here as the shape
+ * `calendarWeekFrom` returns.
  */
 export const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 

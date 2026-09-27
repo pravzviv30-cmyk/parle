@@ -62,8 +62,6 @@ import { recordActivity } from './progress/activity.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
 import { Card, GhostButton, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, fitDisplay } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
-import { Art } from './art/Art.tsx';
-import { SCREEN_ART } from './art/maps.ts';
 import { addPhrases, gradeCards, loadDeck } from './review/store.ts';
 import { RewardMark } from './illustrations.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
@@ -1552,9 +1550,6 @@ export function DrillScreen({
             cleared table — the same scene and spacing the review deck uses,
             because these two screens say the same thing. The size is the art
             registry's, never a width written here. */}
-        <View style={{ alignItems: 'center', marginBottom: space(5) }}>
-          <Art name={SCREEN_ART.emptyDeck} />
-        </View>
         <Card>
           <Text style={[type.title, { color: paper.ink }]}>Nothing to review.</Text>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>

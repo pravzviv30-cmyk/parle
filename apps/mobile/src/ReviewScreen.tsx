@@ -36,8 +36,6 @@ import { HAIRLINE, HIT, accent, font, paper, radius, space, type } from './theme
 import { Card, Label, OutlineButton, PillButton, fitDisplay } from './components.tsx';
 import { SpeakerGlyph } from './glyphs.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
-import { Art } from './art/Art.tsx';
-import { SCREEN_ART } from './art/maps.ts';
 import { loadDeck, gradeCard } from './review/store.ts';
 import {
   CARD_START,
@@ -170,9 +168,6 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
         {/* An empty deck is the good outcome, not a dead end, so it gets the
             cleared table rather than a sentence sitting on its own. The size is
             the art registry's, never a width written here. */}
-        <View style={{ alignItems: 'center', marginBottom: space(5) }}>
-          <Art name={SCREEN_ART.emptyDeck} />
-        </View>
         <Card>
           <Text style={[type.title, { color: paper.ink }]}>Nothing waiting.</Text>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Your next session adds more.</Text>

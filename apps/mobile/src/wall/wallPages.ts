@@ -30,7 +30,7 @@
  * (`analytics/track.ts`, held by the agreement test in `wallPages.test.ts`), and
  * the two should narrow together, in one change, by whoever owns the funnel.
  */
-export type WallPage = 'map' | 'french' | 'yours' | 'plans';
+export type WallPage = 'yours' | 'plans';
 
 /**
  * How the wall was reached.

@@ -44,13 +44,6 @@ export const ART = {
   'hero-street': { source: require('../../assets/art/hero-street.png'), width: 300, height: 180 },
   'hero-home': { source: require('../../assets/art/hero-home.png'), width: 300, height: 180 },
   'hero-friends': { source: require('../../assets/art/hero-friends.png'), width: 300, height: 180 },
-  'welcome-bubbles': { source: require('../../assets/art/welcome-bubbles.png'), width: 220, height: 140 },
-  'onboard-wave': { source: require('../../assets/art/onboard-wave.png'), width: 220, height: 140 },
-  'onboard-cake': { source: require('../../assets/art/onboard-cake.png'), width: 220, height: 140 },
-  'empty-table': { source: require('../../assets/art/empty-table.png'), width: 220, height: 140 },
-  'recap-postcard': { source: require('../../assets/art/recap-postcard.png'), width: 220, height: 140 },
-  phrasebook: { source: require('../../assets/art/phrasebook.png'), width: 220, height: 140 },
-  'wall-map': { source: require('../../assets/art/wall-map.png'), width: 300, height: 180 },
 } as const;
 
 /** The closed set of pictures. A name that is not here is a compile error at the call site. */

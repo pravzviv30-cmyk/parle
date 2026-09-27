@@ -141,7 +141,7 @@ export function HomeTab() {
         )}
 
         {/* Today's phrase, the tutor's audio first, with no picture. */}
-        <DailyCard item={daily.phrase} picture={false} />
+        <DailyCard item={daily.phrase} />
 
         {friendsActivity !== null && <Card style={{ marginTop: space(3), gap: space(2) }}><Label>French with friends</Label><Text style={[type.body, { color: paper.ink }]}>{friendsActivity}</Text><GhostButton label="Open my circle" onPress={() => nav.navigate('Friends')} /></Card>}
         <GhostButton label="Explore my daily collection" onPress={() => nav.navigate('DailyLibrary')} />

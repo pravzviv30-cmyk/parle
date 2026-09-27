@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { paper, accent, highlight, signal, orb, rungColor, tint } from './palette.ts';
+import { paper, accent, highlight, signal, orb, rungColor } from './palette.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 
@@ -248,40 +248,7 @@ describe('signals are re-saturated and held to what they are — F322', () => {
   });
 });
 
-describe('a tint is paper under ink art, never a mark — F362', () => {
-  // A tint is a surface: the disc behind a mission's drawing and nothing else.
-  // So it is held to a paper's floors, not a mark's and not an accent's. A blue
-  // that clears thirty from rung three's blue cannot also read as a disc on the
-  // ground (every such blue sits under eight from it), which is why the rung
-  // floor here is twenty, with the lightness rule making sure no tint can be
-  // mistaken for a fill that means something.
-  const surfaces: Record<string, string> = {
-    ground: paper.ground,
-    groundDeep: paper.groundDeep,
-    card: paper.card,
-    lineOnCard: paper.lineOnCard,
-  };
-  const marks: Record<string, string> = {
-    good: signal.good,
-    live: signal.live,
-    correspondance: signal.correspondance,
-    thinking: orb.thinking,
-    accent: accent.primary,
-  };
-  // Outlined surfaces carry their boundary in ink; the tint supplies context.
-  const DISC = 5;
-  const RUNG_APART = 20;
-  const TWIN = 10;
-
-  test('ink clears the text floor on every tint, and every tint reads as a disc — F362', () => {
-    for (const [name, hex] of Object.entries(tint)) {
-      assert.ok(contrast(INK, hex) >= TEXT, `ink is ${contrast(INK, hex).toFixed(2)} on ${name}`);
-      for (const [surface, sh] of Object.entries(surfaces)) {
-        const d = deltaE(hex, sh);
-        assert.ok(d >= DISC, `${name} is only ${d.toFixed(1)} off the ${surface}, so it does not read as a disc`);
-      }
-    }
-  });
+describe('retired palette aliases stay absent', () => {
 
   test('the retired feature alias is absent from the palette', () => {
     assert.ok(!Object.hasOwn(accent, 'feature'), 'the retired accent.feature alias must not return');
@@ -291,78 +258,10 @@ describe('a tint is paper under ink art, never a mark — F362', () => {
     for (const value of Object.values(orb)) assert.ok(deltaE(paper.card, value) >= APART);
   });
 
-  test('inkSoft clears 4.5 on every tint', () => {
-    // Revamp A puts running words on a tint for the first time: a tinted row is
-    // a title in ink over a gloss in soft ink, and a disabled row says so by
-    // stepping its title down to soft ink too. Ink on a tint was already held
-    // above; soft ink never was, because until now nothing set a word in it on
-    // one. It passes today on all six, and this pins it, so a re-tint cannot
-    // clear the floor for ink alone and leave every gloss in the app under it.
-    for (const [name, hex] of Object.entries(tint)) {
-      const r = contrast(paper.inkSoft, hex);
-      assert.ok(r >= TEXT, `inkSoft is ${r.toFixed(2)} on ${name}, under the ${TEXT} floor for words`);
-    }
-  });
-
-  test('no tint comes within thirty of a signal or the accent, within twenty of a rung, or as dark as any mark — F362', () => {
-    const everyMark = [...Object.values(marks), rungColor[1], rungColor[2], rungColor[3]];
-    const maxMarkL = Math.max(...everyMark.map((h) => lab(h).l));
-    for (const [name, hex] of Object.entries(tint)) {
-      for (const [mark, mh] of Object.entries(marks)) {
-        const d = deltaE(hex, mh);
-        assert.ok(d >= APART, `${name} is only ${d.toFixed(0)} from ${mark}`);
-      }
-      for (const rung of [1, 2, 3, 4] as const) {
-        const d = deltaE(hex, rungColor[rung]);
-        assert.ok(d >= RUNG_APART, `${name} is only ${d.toFixed(0)} from rung ${rung}'s fill`);
-      }
-      assert.ok(lab(hex).l > maxMarkL, `${name} is as dark as a mark (L* ${lab(hex).l.toFixed(0)} against ${maxMarkL.toFixed(0)})`);
-    }
-  });
-
-  test('no two tints read as one, and nothing letters or signals in a tint — F362', () => {
-    const entries = Object.entries(tint);
-    for (let i = 0; i < entries.length; i++) {
-      for (let j = i + 1; j < entries.length; j++) {
-        const d = deltaE(entries[i]![1], entries[j]![1]);
-        assert.ok(d >= TWIN, `${entries[i]![0]} and ${entries[j]![0]} are only ${d.toFixed(1)} apart`);
-      }
-    }
-
-    // The source walk. A tint is a SURFACE: the disc under a place's line art,
-    // or the ground under a row about one place (F467, the founder's call). It
-    // is never lettering, never a stroke, never a border and never a mark that
-    // reports state, and the hex is still reachable from four files only, so a
-    // screen names a place and never a colour.
-    //
-    // The ban used to read `(?:color|stroke|fill|borderColor)` with no `i` and
-    // no boundary, which quietly matched nothing in `backgroundColor` — so a
-    // tint ground passed by accident rather than by permission. Now the
-    // permission is explicit and the ban is real: the lookbehind lets
-    // `backgroundColor` through and holds `borderColor`, `tintColor` and a bare
-    // `color` however they are cased.
-    const LETTERS_IN_A_TINT = /(?<!background)(?:[Cc]olor|stroke|fill)\s*[:=]\s*\{?\s*tint[.[]/;
-
-    // The refutations first, so a regex that stopped catching anything fails
-    // here rather than going quietly green over the whole app.
-    for (const forbidden of ['color: tint.sage', 'borderColor: tint.sky', 'stroke={tint.rose}', 'fill: tint.lilac']) {
-      assert.match(forbidden, LETTERS_IN_A_TINT, `"${forbidden}" is lettering or a stroke in a tint and must be caught`);
-    }
-    for (const permitted of ['backgroundColor: tint.sage', 'backgroundColor: tint[name]']) {
-      assert.doesNotMatch(permitted, LETTERS_IN_A_TINT, `"${permitted}" is a surface, which is what a tint is`);
-    }
-
-    const allowed = new Set(['palette.ts', 'theme.ts', 'components.tsx', 'missions/missionTint.ts', 'nav/tabSurface.ts']);
-    for (const file of walk(SRC)) {
-      if (/\.test\.tsx?$/.test(file)) continue;
-      const rel = file.slice(SRC.length);
-      const source = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-      const reaches = /\btint\.[a-z]+\b|\btint\[/.test(source);
-      if (reaches && !allowed.has(rel)) {
-        assert.fail(`${rel} reaches a tint directly; a screen names a place, and the primitive names the colour`);
-      }
-      assert.doesNotMatch(source, LETTERS_IN_A_TINT, `${rel} letters or signals in a tint`);
-    }
+  test('the palette exports no retired tint tokens or raw tint colours', () => {
+    const source = readFileSync(join(SRC, 'palette.ts'), 'utf8');
+    assert.doesNotMatch(source, /export\s+(?:const\s+tint|type\s+TintName)\b/);
+    assert.doesNotMatch(source, /#(?:FEE7DB|F8D8DF|E4D3EE|CFF3EB|E8EED5|D5EFFE)\b/i);
   });
 });
 
@@ -543,7 +442,6 @@ describe('the recorded palette matches the code — F327, F328', () => {
   for (const [k, v] of Object.entries(signal)) tokens[`signal.${k}`] = v;
   for (const [k, v] of Object.entries(orb)) tokens[`orb.${k}`] = v;
   for (const k of [1, 2, 3, 4] as const) tokens[`rungColor[${k}]`] = rungColor[k];
-  for (const [k, v] of Object.entries(tint)) tokens[`tint.${k}`] = v;
 
   test('DESIGN.md records the palette the app ships', () => {
     // DESIGN.md is recorded from the built artifact, so its token table has to be

@@ -17,20 +17,18 @@
 
 import { type ReactNode } from 'react';
 import {
-  Animated,
   View,
   ScrollView,
   Text,
   Pressable,
   Platform,
-  PixelRatio,
   useWindowDimensions,
   KeyboardAvoidingView,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Card, PillButton, OutlineButton } from './components.tsx';
-import { decorative, paper, radius, space, type, HAIRLINE, HIT } from './theme.ts';
+import { paper, radius, space, type, HAIRLINE, HIT } from './theme.ts';
 import { screenInsets } from './responsiveLayout.ts';
 
 /** Where the bottom of a screen ends. */
@@ -231,27 +229,11 @@ export function ScreenHeader(props: ScreenHeaderProps) {
  * `progress` runs 0 to 1 across one swipe and is driven by whoever owns the
  * timing. The frame is handed the value; it never starts it.
  */
-export interface TitleSwap {
-  /** The word showing now, comma included: 'Salut,' */
-  word: string;
-  /** The word rising in behind it. */
-  next: string;
-  /** The name, or null when the learner skipped it. */
-  rest: string | null;
-  /** 0 at rest, 1 when the swipe is complete. Somebody else drives it. */
-  progress: Animated.Value;
-}
-
 type TabHeaderProps = {
   /** The tab's name, set large. */
   title: string;
   /** One plain line saying what the tab is for. Home is the one tab without one. */
   purpose?: string;
-  /**
-   * Draw the title as a moving word in a fixed slot with a still name beside
-   * it. Given nothing, the title is the plain line it has always been.
-   */
-  titleSwap?: TitleSwap | null;
   /** An optional control on the title row — the learner's monogram on Home. */
   trailing?: ReactNode;
   /**
@@ -303,7 +285,7 @@ type TabHeaderProps = {
  * title pulls it off centre; and a header that could do everything is a header
  * with no shape.
  */
-export function TabHeader({ title, purpose, titleSwap, trailing, leading, align = 'left', children }: TabHeaderProps) {
+export function TabHeader({ title, purpose, trailing, leading, align = 'left', children }: TabHeaderProps) {
   if (align === 'center') {
     return (
       <View style={{ marginBottom: space(5), alignItems: 'center', paddingVertical: space(2) }}>
@@ -329,13 +311,9 @@ export function TabHeader({ title, purpose, titleSwap, trailing, leading, align 
   return (
     <View style={{ marginBottom: space(5) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
-        {titleSwap != null ? (
-          <TitleSwapRow title={title} swap={titleSwap} />
-        ) : (
-          <Text accessibilityRole="header" style={[type.display, { color: paper.ink, flex: 1 }]}>
-            {title}
-          </Text>
-        )}
+        <Text accessibilityRole="header" style={[type.display, { color: paper.ink, flex: 1 }]}>
+          {title}
+        </Text>
         {trailing != null ? trailing : null}
       </View>
       {purpose != null ? (
@@ -367,36 +345,6 @@ export function TabHeader({ title, purpose, titleSwap, trailing, leading, align 
  * renamed itself every few seconds and announced each one is the most hostile
  * thing this app could do to somebody listening to it.
  */
-function TitleSwapRow({ title, swap }: { title: string; swap: TitleSwap }) {
-  const fontScale = PixelRatio.getFontScale();
-  if (fontScale >= 1.6) {
-    return <Text accessibilityRole="header" style={[type.display, { color: paper.ink, flex: 1 }]}>{title}</Text>;
-  }
-  const line = type.display.lineHeight * fontScale;
-  const join = (word: string) => (swap.rest == null ? word : `${word}\u00A0${swap.rest}`);
-  return (
-    <View
-      accessible
-      accessibilityRole="header"
-      accessibilityLabel={title}
-      style={{ flex: 1, height: line, overflow: 'hidden', position: 'relative' }}
-    >
-      <View style={StyleSheet.absoluteFill} {...decorative}>
-        <Animated.Text style={[type.display, st.swapLine, {
-          color: paper.ink,
-          opacity: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-          transform: [{ translateY: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [0, -line] }) }],
-        }]}>{join(swap.word)}</Animated.Text>
-        <Animated.Text style={[type.display, st.swapLine, {
-          color: paper.ink,
-          opacity: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
-          transform: [{ translateY: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [line, 0] }) }],
-        }]}>{join(swap.next)}</Animated.Text>
-      </View>
-    </View>
-  );
-}
-
 type ConfirmSheetProps = {
   visible: boolean;
   title: string;
@@ -445,7 +393,6 @@ export function ConfirmSheet({
 }
 
 const st = StyleSheet.create({
-  swapLine: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   overlay: {
     ...StyleSheet.absoluteFill,
     alignItems: 'center',

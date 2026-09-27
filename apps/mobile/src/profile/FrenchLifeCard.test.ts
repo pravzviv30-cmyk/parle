@@ -6,21 +6,23 @@
  * It is byte-identical to the one three ticked ledger entries name (F233, F348,
  * F561), and `scripts/gate.mjs` refuses a tick whose named test did not run, so
  * it cannot be changed from here. The title names an older placement. The story
- * now belongs to Home: Home loads the four inputs and ProgressScreen.tsx exports
- * its inline disclosure component, not a navigation destination. Those two
- * files are the only permitted story importers. The privacy and no-delta rules
- * the ledger entries were filed for are still checked on their actual owners.
+ * now belongs to Home alone: Home loads the four inputs, builds the story, and
+ * hands it to `home/todayView.ts`, which turns it into at most two sentences.
+ * (Until the notebook final sweep, 2026-09-27, `progress/ProgressScreen.tsx`
+ * was a second permitted importer; it had had no renderer since the Phase 3
+ * Today rebuild and is deleted.) The privacy and no-delta rules the ledger
+ * entries were filed for are still checked on their actual owners.
  *
  * ## What is checked, and why it is split over two files
  *
  * `progress/story.ts` decides everything about the week and something has to
- * draw it. The positive half is small on purpose: four reads, a gate, a map.
- * Every assertion with weight in it is about what the drawing surface must
- * *not* have grown, and about "only": every non-test file under `src/` is read,
- * comments stripped, and the set of files that import `progress/story.ts` has
- * to be exactly Home and its inline disclosure. That proves no other module can see the week,
- * so nothing scheduled, backgrounded or notified can carry it anywhere. The
- * other half of "never pushed" is enforced from the far side, by
+ * draw it. The positive half is small on purpose: four reads, one call, one
+ * hand-off. Every assertion with weight in it is about what the drawing surface
+ * must *not* have grown, and about "only": every non-test file under `src/` is
+ * read, comments stripped, and the set of files that import `progress/story.ts`
+ * has to be exactly Home. That proves no other module can see the week, so
+ * nothing scheduled, backgrounded or notified can carry it anywhere. The other
+ * half of "never pushed" is enforced from the far side, by
  * `reminders/reminder.test.ts` refusing any module under `reminders/` the
  * ability to import `progress/`. Neither test alone is the promise; the pair is.
  *
@@ -50,10 +52,11 @@ function stripComments(source: string): string {
 const CARD = stripComments(read('./FrenchLifeCard.tsx'));
 const FLAT = CARD.replace(/\s+/g, ' ');
 const STORY_HOME = stripComments(read('../tabs/HomeTab.tsx'));
-const STORY_DETAILS = stripComments(read('../progress/ProgressScreen.tsx'));
-const STORY_SCREEN = `${STORY_HOME}\n${STORY_DETAILS}`;
+/** The one module Home hands the story to, which never imports it. */
+const STORY_LINES = stripComments(read('../home/todayView.ts'));
+const STORY_SCREEN = `${STORY_HOME}\n${STORY_LINES}`;
 const STORY_FLAT = STORY_SCREEN.replace(/\s+/g, ' ');
-const RAIL = stripComments(read('../components.tsx'));
+const COMPONENTS = stripComments(read('../components.tsx'));
 
 /** src/, so "reached from one place" can be counted rather than asserted. */
 const SRC = fileURLToPath(new URL('..', import.meta.url));
@@ -73,10 +76,13 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
   test('the Profile card is the one importer of the story, and the rhythm rail names no number', () => {
     // ─────────────────────────────── the story, on the screen that holds it now
     //
-    // One surface draws it, and the module that owns every word of it is
-    // imported whole, with both of its doors.
+    // One surface builds it, from the module that owns every word of it, and
+    // hands it on to the one function that turns it into lines. That function
+    // states the story's shape itself rather than importing the module, so the
+    // importer count below stays one.
     assert.match(STORY_HOME, /import \{[^}]*storyFrom[^}]*\} from '\.\.\/progress\/story\.ts'/);
-    assert.match(STORY_DETAILS, /import \{[^}]*hasStory[^}]*\} from '\.\/story\.ts'/);
+    assert.match(STORY_FLAT, /setWeek\(weekLines\(\{ story, reflection: /, 'the story is not handed to weekLines');
+    assert.doesNotMatch(STORY_LINES, /from '[^']*story\.ts'/, 'todayView.ts imports the story module, so the week has a second importer');
 
     // All four inputs, whole, with a passed clock. Narrowing is the module's
     // job, and doing it here is how the no-delta guarantee gets bypassed one
@@ -97,43 +103,38 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
       );
     }
 
-    // Drawn as it arrives, ordered and capped by the module. A surface that
-    // sorts or slices is a second opinion about a week.
-    assert.match(STORY_SCREEN, /story\.sentences\.map\(/, 'the screen never draws the sentences the module built');
-    for (const meddling of ['.sort(', '.slice(', '.reverse(', '.join(', '.filter(', '.length']) {
+    // Drawn as the module wrote them. `weekLines` reads the sentences in order,
+    // drops nothing but a blank or a repeat, and stops at its two; nothing on
+    // Today or in that module sorts or reverses them, and Today itself never
+    // touches the sentences at all. A surface with a second opinion about the
+    // order of a week is a second week.
+    assert.match(STORY_LINES, /\.\.\.input\.story\.sentences\]/, 'weekLines no longer reads the sentences the module built');
+    assert.ok(!STORY_HOME.includes('story.sentences'), 'Today reaches into the sentences itself instead of handing the story on');
+    for (const meddling of ['.sort(', '.reverse(', '.join(', '.filter(', '.slice(']) {
       assert.ok(!STORY_SCREEN.includes(`story.sentences${meddling}`), `the screen writes story.sentences${meddling}`);
     }
-    assert.ok(
-      !STORY_SCREEN.includes('[...story.sentences]'),
-      'the screen copies the sentences, which is only ever done to reorder or trim them',
-    );
     for (const owned of ['unassistedRate', 'wordsProduced', 'MAX_STORY_SENTENCES', 'DAYS_IN_THE_STORY']) {
       assert.ok(!STORY_SCREEN.includes(owned), `the screen names ${owned} itself; what a week contained is story.ts's judgement`);
     }
 
-    // Nothing at all on a quiet week. The gate is on the block it holds back,
-    // and there is no other branch: a surface that can render empty is a quota,
-    // and a quota nobody met is guilt. F55's spirit, and the reason the old
-    // invitation line left with the sentences rather than following them.
-    assert.match(STORY_DETAILS, /const hasWeek = story !== null && hasStory\(story\)/);
-    assert.match(STORY_DETAILS, /\{hasWeek && <TintPanel[^]*story\.sentences\.map\(/,
-      'the inline story must still be gated by a nonempty week');
-    assert.match(STORY_DETAILS, /\{expanded && <View/,
-      'the full story only appears when the learner asks for it');
-    assert.doesNotMatch(
-      STORY_FLAT,
-      /hasStory\(story\)[\s\S]{0,400}\) : \(/,
-      'a quiet week draws something else in the story block, so the block is a slot that can read as empty',
-    );
+    // Nothing at all on a quiet week. The block is drawn only when there is a
+    // line to draw, and there is no other branch: a surface that can render
+    // empty is a quota, and a quota nobody met is guilt. F55's spirit, and the
+    // reason the old invitation line left with the sentences rather than
+    // following them.
+    assert.match(STORY_FLAT, /: week\.length > 0 && \(/, 'the week block is drawn on a quiet week');
+    assert.doesNotMatch(STORY_FLAT, /week\.length > 0 \? /, 'a quiet week draws something else in the week block, so the block is a slot that can read as empty');
 
     // Neither surface can carry the week anywhere. The path ban is the half
     // `reminders/reminder.test.ts` cannot see from its own side.
-    for (const [name, source] of [['the Profile card', FLAT], ['the Progress screen', STORY_FLAT]] as const) {
+    for (const [name, source] of [['the Profile card', FLAT], ['Today', STORY_FLAT]] as const) {
       assert.doesNotMatch(source, /from '[^']*\/reminders\//, `${name} reaches into the reminders layer`);
       assert.doesNotMatch(source, /expo-notifications/, `${name} reaches for the notification API`);
     }
 
-    // And "only". Home and its inline disclosure, never a background reader.
+    // And "only". Home, never a background reader. (The inline details
+    // component that was the second importer left with the notebook final
+    // sweep, 2026-09-27; nothing had rendered it since Phase 3.)
     const storyModule = join('progress', 'story.ts');
     const readers = sourceFiles(SRC)
       .filter((path) => !path.endsWith(storyModule))
@@ -141,8 +142,8 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
       .map((path) => path.slice(SRC.length));
     assert.deepEqual(
       readers,
-      ['progress/ProgressScreen.tsx', 'tabs/HomeTab.tsx'],
-      'only Home and its inline detail component may read the story; no background or notification importer',
+      ['tabs/HomeTab.tsx'],
+      'only Home may read the story; no background or notification importer',
     );
     // Profile is not that file any more, and half a move is worse than either
     // end of it: two surfaces drawing one week are two weeks to keep in step.
@@ -174,32 +175,11 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
     // screen reader hears: there is no hidden picture beside it any more.
     assert.ok(!CARD.includes('accessibilityLabel='), 'the card says one thing to the eye and another to a screen reader');
 
-    // The rail itself, still in components.tsx for the screens that have not
-    // yet dropped it: seven marks, a picture, no count and no words of its own.
-    const rail = RAIL.slice(RAIL.indexOf('export function WeekRail('), RAIL.indexOf('export function TintRow('));
-    assert.ok(rail.length > 0, 'components.tsx no longer exports WeekRail');
-    // The rail draws day names now (F577) and nothing else. Every Text in it is
-    // the caller's own label, so the rail still holds no sentence of its own and
-    // still cannot say a count: a word it writes itself is a word nobody passed it.
-    for (const text of rail.match(/<Text[\s\S]*?<\/Text>/g) ?? []) {
-      assert.match(text, /\{labels\[index\]\}/, `the rail writes words of its own: ${text.replace(/\s+/g, ' ')}`);
-    }
-    assert.doesNotMatch(rail, /\d/, 'the rail types a digit of its own');
-    assert.match(rail, /accessibilityElementsHidden/, 'the rail reaches a screen reader as seven unnamed views');
-    // Violet, and deliberately so: the founder chose the identity colour for the
-    // calendar record (F577). A day already spent is a diary entry, not a state
-    // being reported, so the rule that no state mark is violet is not bent here.
-    assert.match(RAIL, /markDone: \{ backgroundColor: accent\.primary \}/, 'a day that happened is not the filled violet mark the founder chose for the calendar');
-    // The waiting day is an empty slot, drawn as the mockup's outline dot: the
-    // card's own white under a hairline ring. The white is not a signal, it is
-    // the paper a card is made of, and it is what makes the dot visible on this
-    // card's lilac panel at all. A hairline ring alone sat at a hair's contrast
-    // from the tint and seven days of the week were simply not on screen.
-    assert.match(
-      RAIL,
-      /markWaiting: \{ backgroundColor: paper\.card, borderWidth: HAIRLINE \+ 0\.4, borderColor: paper\.line \}/,
-      'a day that has not happened is filled with a colour that means something, or has no paper under it on the tint',
-    );
+    // The rail itself is gone (notebook final sweep, 2026-09-27). Its last live
+    // caller was the retired French wall page; the week is a sentence wherever
+    // a learner meets it, so nothing may draw seven marks again.
+    assert.doesNotMatch(COMPONENTS, /export function WeekRail\b/, 'components.tsx exports the week rail again');
+    assert.doesNotMatch(COMPONENTS, /\bmarkDone\b|\bmarkWaiting\b/, 'the rail\'s mark styles are back in the sheet');
 
     // Words a learner reads: ink, no digit typed here, no banned word, no em
     // dash, and nothing on the card counting anything.
@@ -207,12 +187,13 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
     for (const line of FRENCH_LIFE_COPY) {
       assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
       assert.doesNotMatch(line, /\d|%|—/, `"${line}" counts, marks a percentage or dashes`);
-      // A weekday belongs to the rail's labels, which are passed in. A heading
-      // or a caption naming one is this card having an opinion about a day.
+      // A weekday is the momentum module's to name (`WEEKDAY_LABELS`), and the
+      // sentence never names one. A heading or a caption naming a day is this
+      // card having an opinion about it.
       assert.doesNotMatch(
         line,
         /\b(mon|tue|wed|thu|fri|sat|sun)(day|sday|nesday|rsday|urday)?s?\b/i,
-        `"${line}" names a day of the week, which is the rail's to label and not the card's to say`,
+        `"${line}" names a day of the week, which is the module's to name and not the card's to say`,
       );
     }
     assert.ok(!CARD.includes('inkFaint'), 'a sentence a learner reads is set in the faint ink');

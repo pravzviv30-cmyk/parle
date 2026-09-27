@@ -2,12 +2,8 @@
  * One daily word or phrase: the French, the English, the tutor's recording, a
  * save, and a way to say it.
  *
- * 2026-09-27 (notebook Phase 3): nothing here moves. Only the orb and the
- * highlighter do, so the card's entrance and its settle timer left, and the
- * drawing beside the words is always still. Today asks for the card with
- * `picture={false}`: no hashed drawing, and the tutor's audio comes first,
- * before the words it says. The library keeps the picture until the daily
- * drawings retire through the deletion ledger in Phase 4.
+ * Nothing here moves. The tutor's audio leads the French on Today and in the
+ * library. Decorative daily drawings and their selector are retired.
  */
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
@@ -21,16 +17,10 @@ import { dailyTutorVoice, tutorAudioFor } from './tutorAudio.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import type { DailyItem } from './catalogue.ts';
 import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from './playback.ts';
-import { WordScene } from '../progress/WordScene.tsx';
-import { sceneForDaily } from './carousel.ts';
 import { audioLine } from './libraryView.ts';
 
-export function DailyCard({ item, reveal = true, onSaved, compact = false, embedded = false, picture = true }: {
+export function DailyCard({ item, reveal = true, onSaved, compact = false, embedded = false }: {
   item: DailyItem; reveal?: boolean; onSaved?: (id: string, saved: boolean) => void; compact?: boolean; embedded?: boolean;
-  /** Kept for callers that still pass it; the card no longer moves, so there is nothing to pause. */
-  paused?: boolean;
-  /** False on Today: no drawing, and the audio leads. */
-  picture?: boolean;
 }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const focused = useIsFocused();
@@ -72,22 +62,15 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const contents = <View style={{ gap: space(2) }}>
     <Label>{item.label}</Label>
     {!shown ? <><Text style={[type.body, { color: paper.ink }]}>{item.en}</Text><GhostButton label="Try it from memory, then reveal" onPress={() => setShown(true)} /></> : <>
-      {/* Without the picture the tutor's audio leads, and the line saying
-          whether there is any sits above it, as it does above the buttons. */}
-      {!picture && !embedded && <Text style={[type.small, { color: paper.inkSoft }]}>{audioLine(asset != null)}</Text>}
-      {!picture && asset != null && <GhostButton label="Hear" color={paper.ink} onPress={() => void play()} />}
+      {/* The library states audio availability before the first listen. */}
+      {!embedded && <Text style={[type.small, { color: paper.inkSoft }]}>{audioLine(asset != null)}</Text>}
+      {asset != null && <GhostButton label="Hear" color={paper.ink} onPress={() => void play()} />}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
-        {picture && <WordScene scene={sceneForDaily(item.id)} width={76} paused={true} />}
         <View style={{ flex: 1, minWidth: 0 }}><Text selectable={!embedded} style={[compact ? type.french : type.frenchLg, { color: paper.ink }]}>{item.fr}</Text><Text selectable={!embedded} style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{item.en}</Text></View>
       </View>
       {(!compact || !item.exampleFr || expanded) && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.note}</Text>}
       {item.exampleFr && <><Text selectable={!embedded} style={[type.frenchSm, { color: paper.ink }]}>{item.exampleFr}</Text>{expanded && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.exampleEn}</Text>}</>}
-      {/* Whether this line has tutor audio, said before anybody taps, from the
-          same manifest lookup that decides whether Hear is drawn at all. Home's
-          embedded card draws only voiced items, so the line is the library's. */}
-      {picture && !embedded && <Text style={[type.small, { color: paper.inkSoft }]}>{audioLine(asset != null)}</Text>}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(2) }}>
-        {picture && asset != null && <GhostButton label="Hear" onPress={() => void play()} />}
         <GhostButton label={busy ? 'Saving…' : saved ? 'Saved ✓' : 'Save'} onPress={() => void save()} />
         {compact && <GhostButton label={expanded ? 'Less' : 'More'} onPress={() => setExpanded(v => !v)} />}
         {expanded && <>{asset != null && <GhostButton label="Slow replay" onPress={() => void play(true)} />}

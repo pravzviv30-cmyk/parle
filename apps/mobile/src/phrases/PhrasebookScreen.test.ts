@@ -67,7 +67,7 @@ describe('your phrases, as a route of its own — F575', () => {
 
     // The route's own picture, at the registry's size, and the heading from the
     // module rather than typed here.
-    assert.match(FLAT, /<Art name=\{SCREEN_ART\.phrasebook\}/, 'the phrasebook scene is gone, or is named by a filename at the call site');
+    assert.doesNotMatch(FLAT, /<Art\b|SCREEN_ART/, 'the phrasebook must not draw retired scene art');
     assert.match(FLAT, /\{PHRASEBOOK_TITLE\}/, 'the screen types its own title, so nothing can read the copy back');
 
     // What left with the route, and must not come back: two figures over a list

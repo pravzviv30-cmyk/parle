@@ -251,36 +251,14 @@ describe('the shared header may hold a title alone — F353', () => {
  * the title to wrap.
  */
 describe('the greeting word rises through a fixed slot — F418', () => {
-  test('the tab header clips the moving word to one line, keeps the name in flow, and starts nothing — F418', () => {
+  test('the tab header is a static accessible heading with no swap API or animation — F418', () => {
     const source = layoutSource();
     const header = region(source, 'export function TabHeader(', 'type ConfirmSheetProps');
     const props = region(source, 'type TabHeaderProps = {', 'export function TabHeader(');
-
-    assert.match(props, /titleSwap\?: TitleSwap \| null;/, 'TabHeader takes no optional greeting swap');
-    for (const field of ['word: string;', 'next: string;', 'rest: string | null;', 'progress: Animated.Value;']) {
-      assert.ok(props.includes(field) || source.includes(field), `TitleSwap is missing \`${field}\``);
-    }
-    assert.match(header, /const fontScale = PixelRatio\.getFontScale\(\)/);
-    assert.match(
-      header,
-      /if \(fontScale >= 1\.6\) \{\s*return <Text accessibilityRole="header"/,
-      'a fixed-height animated line still clips accessibility text instead of standing down',
-    );
-    assert.match(
-      header,
-      /accessible\s+accessibilityRole="header"\s+accessibilityLabel=\{title\}/,
-      'the two visual layers are not exposed as one stable heading',
-    );
-    assert.match(
-      header,
-      /height: line, overflow: 'hidden', position: 'relative'/,
-      'the handoff does not live in one stable line-height slot',
-    );
-    assert.equal((header.match(/<Animated\.Text/g) ?? []).length, 2, 'the greeting needs exactly one outgoing and one incoming layer');
-    assert.match(header, /<View style=\{StyleSheet\.absoluteFill\} \{\.\.\.decorative\}>/, 'the visual layers are announced separately');
-    assert.doesNotMatch(header, /numberOfLines|ellipsizeMode|maxFontSizeMultiplier/, 'the header caps or truncates text');
-    assert.doesNotMatch(header, /Animated\.(timing|spring|loop|sequence|stagger|decay|parallel|delay)\b/, 'the shared frame starts the animation');
-    assert.doesNotMatch(header, /\.start\s*\(/, 'the shared frame owns a timer it cannot pause');
+    assert.doesNotMatch(props, /titleSwap\??:|TitleSwap/);
+    assert.doesNotMatch(header, /Animated|TitleSwapRow|\.interpolate\(|\.start\s*\(/);
+    assert.match(header, /<Text accessibilityRole="header"/);
+    assert.doesNotMatch(header, /numberOfLines|ellipsizeMode|maxFontSizeMultiplier|accessibilityLiveRegion/);
   });
 });
 
@@ -288,18 +266,12 @@ describe('the greeting word rises through a fixed slot — F418', () => {
  * The greeting and the learner's name move as one phrase — F427.
  */
 describe('the greeting word hugs the name — F427', () => {
-  test('the greeting word hugs the name, and the name travels with the swipe rather than jumping — F427', () => {
+  test('the static tab heading keeps the complete greeting and name in one text node — F427', () => {
     const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
-
-    assert.match(
-      header,
-      /const join = \(word: string\) => \(swap\.rest == null \? word : `\$\{word\}\\u00A0\$\{swap\.rest\}`\);/,
-      'the name is not joined directly to each greeting as one phrase',
-    );
-    assert.equal((header.match(/\{join\(swap\.(?:word|next)\)\}/g) ?? []).length, 2, 'one greeting layer leaves the name behind');
-    assert.doesNotMatch(header, /swap\.widest|widths|setWidths|setNameTop|onLayout=/, 'the retired measured-name mechanism can still pause or jump');
-    assert.match(header, /outputRange: \[0, -line\]/, 'the outgoing phrase does not clear the line-height slot');
-    assert.match(header, /outputRange: \[line, 0\]/, 'the incoming phrase does not start one full line below');
+    const left = header.slice(header.indexOf('\n  return ('));
+    assert.equal((left.match(/\{title\}/g) ?? []).length, 1);
+    assert.match(left, /<Text accessibilityRole="header"[^>]*>\s*\{title\}\s*<\/Text>/);
+    assert.doesNotMatch(left, /swap\.|setWidths|setNameTop|onLayout=/);
   });
 });
 
@@ -307,25 +279,11 @@ describe('the greeting word hugs the name — F427', () => {
  * Both full-line layers share geometry without sharing a baseline — F428.
  */
 describe('the greeting travels by word, not by slot — F428', () => {
-  test("the name's travel is right on the frame the words change, not one layout later — F428", () => {
+  test('the static greeting wraps in normal flow without a measured or clipped motion slot — F428', () => {
     const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
-
-    assert.match(
-      header,
-      /opacity: swap\.progress\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \[1, 0\] \}\)/,
-      'the outgoing full line does not fade through the handoff',
-    );
-    assert.match(
-      header,
-      /opacity: swap\.progress\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \[0, 1\] \}\)/,
-      'the incoming full line does not cross-fade with the outgoing one',
-    );
-    assert.doesNotMatch(
-      header,
-      /translateX|arrivingWidth|shownWidth|grow|measure\(/,
-      'a late layout measurement still controls the commit frame',
-    );
-    assert.match(header, /st\.swapLine/, 'the two complete phrases do not share identical geometry');
+    assert.doesNotMatch(header, /translateX|translateY|arrivingWidth|shownWidth|measure\(|st\.swapLine/);
+    assert.doesNotMatch(header, /height:|overflow:|position:|numberOfLines|allowFontScaling|maxFontSizeMultiplier/);
+    assert.match(header, /type\.display/);
   });
 });
 

@@ -17,7 +17,6 @@ import { describe, test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { CONTINUITY_TINT, DOOR_TINT } from './doorTint.ts';
 
 const read = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -30,8 +29,8 @@ const CARD = stripComments(read('./ContinuityCard.tsx'));
 
 describe('what the tutor remembers is drawn as one row, and decides nothing — F573', () => {
   test('the memory is the shared row, wearing the tutor and the paper the everyday thread wears', () => {
-    assert.match(CARD, /<TintRow/, 'the memory is drawn as something other than the row every other way in is drawn as');
-    assert.match(CARD, /tint=\{CONTINUITY_TINT\}/, 'the memory picks its own paper instead of reading doorTint.ts');
+    assert.match(CARD, /<LedgerRow/, 'the memory must draw the shared notebook row');
+    assert.doesNotMatch(CARD, /Tint|\btint\b/, 'the memory must not retain a tint');
     assert.match(CARD, /glyph=\{<TutorMark \/>\}/, 'the row lost the tutor mark, so nothing on it says whose memory it is');
     assert.match(CARD, /title=\{headline\}/, 'the row stops naming the tutor whose memory it is');
     assert.match(CARD, /gloss=\{row\.gloss\}/, 'the row says a line of its own instead of the one that was decided');
@@ -42,10 +41,7 @@ describe('what the tutor remembers is drawn as one row, and decides nothing — 
     // on one screen would say the tutor is the learner (F337).
     assert.ok(!CARD.includes('<Monogram'), "the row draws the learner's initial where the tutor's mark belongs");
 
-    // It is the peach of the everyday thread, and deliberately the same peach
-    // the everyday mission sits on: a fourth colour here would read as a fourth
-    // way in rather than as the one the learner already started.
-    assert.equal(CONTINUITY_TINT, DOOR_TINT.everyday, 'the memory sits on a paper that reads as a way in of its own');
+    assert.equal((CARD.match(/<LedgerRow\b/g) ?? []).length, 1, 'memory is exactly one shared row');
   });
 
   test('the row holds no rule of its own, so the four things it can do stay where a test can reach them', () => {

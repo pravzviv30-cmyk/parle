@@ -10,8 +10,7 @@
 import { Platform } from 'react-native';
 import { paper } from './palette.ts';
 
-export { paper, accent, highlight, signal, orb, rungColor, tint } from './palette.ts';
-export type { TintName } from './palette.ts';
+export { paper, accent, highlight, signal, orb, rungColor } from './palette.ts';
 
 /**
  * What each rung asks of the learner, in words.
@@ -101,7 +100,7 @@ export const space = (n: number) => n * 4;
 export const radius = {
   /** The one Card: white, a paper hairline, no shadow, never nested. */
   card: 16,
-  /** Deprecated with TintRow; nothing new draws at it. */
+  /** The small radius: a pressed row's wash, a disclosure, an inline stage. Not a card. */
   row: 8,
   chip: 6,
   input: 8,

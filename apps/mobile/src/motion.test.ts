@@ -275,11 +275,7 @@ describe('only the orb and the highlighter move', () => {
   // onboarding/PreAccountOnboarding.tsx came off it too.
   // 2026-09-27, notebook Phase 4 (B1): the mission win card and the thread
   // arrive in place, so ConvoScreen.tsx and tutor/Transcript.tsx came off it.
-  const PENDING = [
-    join('illustrations', 'pen.tsx'),
-    join('illustrations', 'useSceneMotion.ts'),
-    'layout.tsx',
-  ];
+  const PENDING: string[] = [];
 
   test('the files that animate are the orb, the highlighter and the pending list, and nothing new', () => {
     const moving = FILES.filter((f) => /\bAnimated\./.test(f.body)).map((f) => f.short).sort();

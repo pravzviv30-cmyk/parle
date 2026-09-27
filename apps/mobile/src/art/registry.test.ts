@@ -66,7 +66,7 @@ const SOURCES = sourceFiles(SRC).map((path) => ({
 describe('the raster art seam — F570', () => {
   test('every raster scene is decorative and every asset the registry names exists on disk under budget', () => {
     const art = registered();
-    assert.equal(art.length, 13, 'the registry no longer reads as one entry a line; this walk is stale');
+    assert.deepEqual(art.map(row => row.key).sort(), ['hero-cafe', 'hero-friends', 'hero-home', 'hero-hotel', 'hero-market', 'hero-street'], 'only the six place watercolours may ship');
 
     let folder = 0;
     for (const { key, file, width, height } of art) {

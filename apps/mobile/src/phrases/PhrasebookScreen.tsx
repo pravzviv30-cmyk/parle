@@ -38,8 +38,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { Art } from '../art/Art.tsx';
-import { SCREEN_ART } from '../art/maps.ts';
 import { Card, Label } from '../components.tsx';
 import { SpeakerGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
@@ -107,7 +105,6 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
         <Text accessibilityRole="header" style={st.title}>
           {PHRASEBOOK_TITLE}
         </Text>
-        <Art name={SCREEN_ART.phrasebook} compact style={st.art} />
       </View>
 
       {/* The one card this visit deals, at the top, so the thing worth doing is

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { BadgeGlyph, Label, TintRow } from '../components.tsx';
+import { BadgeGlyph, Label, LedgerRow } from '../components.tsx';
 import { PlaceGlyph } from '../glyphs.tsx';
 import { accent, paper, radius, signal, space, type } from '../theme.ts';
 import { NEXT_PLACES, YOU_CAN_NOW, splitByStamp, tryNext, type SituationChip } from './situations.ts';
@@ -15,7 +15,7 @@ import type { MyFrench, SituationRow } from './model.ts';
  * list is sorted by. It is never a state, and no state on this page is ever
  * told in one of these six.
  *
- * Revamp A replaced the card-of-rows with the shared `TintRow`, so the place's
+ * Revamp A replaced the card-of-rows with the shared `LedgerRow`, so the place's
  * drawing became the place's line-art mark on the white disc every tinted row
  * in the app now carries. Nothing here caps a line count or a reading size:
  * at the largest text the French title wraps and the row grows.
@@ -55,8 +55,7 @@ export function SituationsCard({ model, onOpen }: { model: MyFrench; onOpen: (id
 /** One place, on its own paper, with the state it has reached beside it. */
 function Row({ row, onOpen }: { row: SituationRow; onOpen: (id: string, refine: boolean) => void }) {
   return (
-    <TintRow
-      tint={row.tint}
+    <LedgerRow
       glyph={<PlaceGlyph place={row.place} color={accent.primary} />}
       title={row.title}
       gloss={row.gloss}

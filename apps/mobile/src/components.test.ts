@@ -49,7 +49,7 @@ describe('the drawn vocabulary keeps its promises — F332, F333', () => {
     // competing with the one ink pill. The initial is DM Sans Medium because
     // Fraunces is for French only. Still a circle, still sized from the disc,
     // still decorative so a screen reader walks past a loose letter.
-    const mono = region(componentsSource(), 'export function Monogram(', 'export function TintDisc(');
+    const mono = region(componentsSource(), 'export function Monogram(', 'export function ProgressDots(');
     assert.match(mono, /backgroundColor: paper\.groundDeep/, 'the disc is not the deeper paper');
     assert.doesNotMatch(mono, /accent\./, 'the monogram still wears an accent');
     assert.match(mono, /borderRadius: size \/ 2/, 'the disc is not a circle at its own size');
@@ -162,20 +162,8 @@ describe('the mockup-review primitives keep their promises — F362, F366, F368,
     assert.match(bar, /accessibilityState=\{\{ selected: isActive \}\}/, 'a segment no longer says it is selected');
   });
 
-  test('the tint disc and the tint panel are deprecated wrappers that draw no tint — F362', () => {
-    // 2026-09-27, notebook Phase 1: tints stop being drawn. Their tokens stay
-    // for the role tables and their call sites go in Phase 4. The disc keeps
-    // its shape and its silence; the panel is plain paper with a hairline.
-    const disc = region(componentsSource(), 'export function TintDisc(', 'export function TintPanel(');
-    assert.match(disc, /\{\.\.\.decorative\}/, 'the disc is not hidden from assistive tech');
-    assert.match(disc, /borderRadius: size \/ 2/, 'the disc is not a circle at its own size');
-    assert.doesNotMatch(disc, /\btint\[|\btint\./, 'the disc still draws a tint');
-    assert.doesNotMatch(disc, /<Text/, 'the disc letters something');
-    const panel = region(componentsSource(), 'export function TintPanel(', 'export function ProgressDots(');
-    assert.doesNotMatch(panel, /\btint\[|\btint\./, 'the panel still draws a tint');
-    assert.match(panel, /backgroundColor: paper\.card, borderRadius: radius\.card, borderWidth: HAIRLINE, borderColor: paper\.line/, 'the panel is not plain paper with a hairline');
-    // No tint is drawn anywhere in the component file now.
-    assert.doesNotMatch(componentsSource(), /\btint\[|\btint\.[a-z]/, 'components.tsx still draws a tint');
+  test('the retired tinted wrappers are not exported', () => {
+    assert.doesNotMatch(componentsSource(), /export function Tint(?:Disc|Panel|Row)\b/);
   });
 });
 
@@ -188,21 +176,6 @@ describe('the mockup-review primitives keep their promises — F362, F366, F368,
  * what follows is the promises they make.
  */
 describe('the revamp primitives keep their promises — F569, F577, F586', () => {
-  test('a tinted row is now a deprecated wrapper that draws the ledger row and no tint', () => {
-    // 2026-09-27, notebook Phase 1. Every promise the tinted row made is still
-    // made, by LedgerRow, and held in full below. The wrapper only forwards, so
-    // a screen still calling TintRow draws the notebook row today and its call
-    // site can be renamed in Phase 4 without a visual change.
-    const row = region(componentsSource(), 'export function TintRow(', 'const s = StyleSheet.create(');
-    assert.match(
-      row.replace(/\s+/g, ' '),
-      /<LedgerRow glyph=\{glyph\} title=\{title\} gloss=\{gloss\} onPress=\{onPress\} accessibilityLabel=\{accessibilityLabel\} trailing=\{trailing\} disabled=\{disabled\} \/>/,
-      'the tinted row does not hand every one of its promises to the ledger row',
-    );
-    assert.doesNotMatch(row, /<Pressable/, 'the wrapper grew a target of its own, so the row is two buttons');
-    assert.doesNotMatch(row, /\btint\[|\btint\./, 'the wrapper still draws its tint');
-  });
-
   test('a ledger row is one pressable at 56pt with an ink glyph and no disc, a title, a gloss, meta and a chevron, and it names itself once', () => {
     // One Pressable, not a card with a button in it: the whole row is the
     // target, a nested button is invalid on the web, and a row whose only tap
@@ -294,23 +267,13 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
     assert.doesNotMatch(track, /accent\./, 'the chosen segment still wears the ink fill of the primary pill');
   });
 
-  test('the week rail labels every dot and stays hidden from assistive technology', () => {
-    // Seven days, each mark under the day it stands for. A day that happened is
-    // the identity violet: the founder chose it for the calendar record, and a
-    // calendar is a diary of days already spent rather than a state, so the
-    // "a state mark is never violet" rule is not what this bends (F577).
-    const rail = region(componentsSource(), 'export function WeekRail(', 'export function TintRow(');
-    assert.match(rail, /labels\?: readonly string\[\]/, 'the rail cannot be given the seven day names');
-    assert.match(rail, /\{labels != null && <Text style=\{\[type\.small, \{ color: paper\.inkSoft \}\]\}>\{labels\[index\]\}<\/Text>\}/, 'the day names are not one small soft-ink line over each mark');
-    assert.match(rail, /week\.map\(\(filled, index\)/, 'the rail no longer draws one mark per day');
-    assert.match(
-      rail,
-      /accessibilityElementsHidden importantForAccessibility="no-hide-descendants"/,
-      'the rail is no longer hidden from assistive technology, so seven letters are read aloud as if they were a week',
-    );
-    assert.doesNotMatch(rail, /accessibilityLabel/, 'the rail carries a label of its own; the sentence beside it is what says the week');
-    const done = region(componentsSource(), '  markDone: {', '  markWaiting:');
-    assert.match(done, /backgroundColor: accent\.primary/, 'a day that happened is no longer the identity violet the founder chose');
+  test('the retired week rail is not exported and leaves no mark style behind', () => {
+    // 2026-09-27, notebook final sweep. The week is a sentence on Today and on
+    // Profile; the seven-dot rail's last live caller was the retired French wall
+    // page, and its only other caller was the momentum block nothing rendered.
+    const source = componentsSource();
+    assert.doesNotMatch(source, /export function WeekRail\b/, 'the week rail is exported again');
+    assert.doesNotMatch(source, /\bmarkDone\b|\bmarkWaiting\b/, 'the rail\'s mark styles are still in the sheet');
   });
 });
 

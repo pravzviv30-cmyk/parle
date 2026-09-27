@@ -1020,7 +1020,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   sites passed it. Bottom-tab screens stay mounted after their first visit, so Home's
   bubbles, Tutor's bubbles and both of Leaderboard's empty states loop for the rest of
   the session behind whatever the learner is actually doing.
-- verified-by: `a scene on a tab that is not focused stops moving`
+- note: 2026-09-27 notebook final sweep: decorative scene motion is deleted rather than paused;
+  the successor checks all illustration sources and the daily card contain no animation.
+- verified-by: `decorative scenes are static even when a mounted tab is not focused`
 
 ### J8 — The lesson header says the position twice, once as a number
 - severity: P2
@@ -2895,7 +2897,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: illustrations/scenes/empty.tsx says NothingDue serves the empty review deck and
   the empty drill bank; the drill's empty branch renders a bare Card, breaking the
   file's own promise. Draw the scene, keep the copy.
-- verified-by: `the empty drill bank draws the nothing due scene`
+- note: 2026-09-27 notebook final sweep: the empty-table raster is retired. Its successor
+  verifies the same empty-bank explanation and Done footer remain without decorative art.
+- verified-by: `the empty drill bank keeps its explanation and next action without retired art`
 
 ### F159 — A friend search that slugs to nothing still says something
 - severity: P2
@@ -5418,10 +5422,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   and orb.thinking, 20 off every rung and lighter than every mark (max mark L* 84, min tint L* 86), and no two
   tints within 10. Sky vs rung 3 is 26, which is why the rung floor is 20 rather than 30. DESIGN.md gains a
   Tints table.
-- verified-by: `ink clears the text floor on every tint, and every tint reads as a disc — F362`
-- verified-by: `no tint comes within thirty of a signal or the accent, within twenty of a rung, or as dark as any mark — F362`
-- verified-by: `no two tints read as one, and nothing letters or signals in a tint — F362`
-- verified-by: `every situation has one tint, every tint has a situation — F362`
+- note: 2026-09-27 notebook final sweep: all tint tokens, role tables and wrappers are deleted.
+  Contrast/separation tests for that absent palette are superseded by checks refusing both the
+  old palette values and any production token, role-table or wrapper use.
+- verified-by: `the palette exports no retired tint tokens or raw tint colours`
+- verified-by: `no source retains a tint token, role table or tinted primitive`
 - verified-by: `DESIGN.md records the palette the app ships`
 
 ### F363 — The next situation shows its place and its goal, once, on Home and on My French
@@ -5827,7 +5832,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: F422 rewrote the pool above the phrasebook bar, F423 pitched it at the learner's tier, and
   F425 turned the one drawing into twenty. The test was retitled to say so; every assertion it made
   about the card drawing its word from core and pausing its scene still holds.
-- verified-by: `home draws the word of the day from the learner's tier under a paused, decorative daily scene — F391`
+- note: 2026-09-27 notebook final sweep: tier selection and all daily text remain covered;
+  the successor requires audio before the French and rejects the removed decorative scene.
+- verified-by: `home draws tier-selected daily French with audio first and no decorative scene — F391`
 
 ### F392 — Today's situation card starts a spoken session through the tutor's gate
 - severity: P1
@@ -5921,7 +5928,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   founder's overturn of absent-at-zero, so this entry's test is retitled rather than dropped: the colour
   grammar, the token rule and the score refusal it existed for are all still asserted, and more strictly.
   The gate moved down a level, from the part to the field.
-- verified-by: `progress draws four momentum cards, keeps the target gentle and uses the accent once — F436`
+- note: 2026-09-27 notebook final sweep: `progress/MomentumCards.tsx` had had no renderer since the
+  Phase 3 Today rebuild and is deleted, with `WeekRail` and the inline details. The colour grammar it
+  was held to is retired with it; the successor bans the block's return and any days-active count.
+- verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 
 ### F399 — Next step is a row, and the next-situation card leaves Home for My French
 - severity: P1
@@ -6042,7 +6052,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   one-pill rule rewritten as one pill per door with Tutor named, the French flourish sentence widened to the
   rotating greeting and the daily situation, `WordSprout` in the scenes table, TodayRow and PhrasebookCard
   noted as retired, and the green bar rule.
-- verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
+- note: 2026-09-27 notebook final sweep: the animated greeting and daily scenes are retired.
+  The successor checks documentation against the static header, picture-free daily card and
+  Speak's single primary rather than requiring the deleted animation vocabulary.
+- verified-by: `the design doc and tabs agree on static greetings, picture-free daily French and one Speak primary — F407`
 
 ### F408 — The storage doc names the two new stores and the duration
 - severity: P1
@@ -6115,6 +6128,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   set of distinct days, no chain, no loss state, absent at zero) lives only in `momentum.ts` and its suite.
   The next reader of that commitment, human or agent, will flag the tile as a violation. One paragraph
   recording the third decision closes it.
+- note: 2026-09-27, notebook redesign: the Days active tile left Today; nothing renders
+  `progress/MomentumCards.tsx`. PRODUCT.md:96-117 now records the tile as history and states its five
+  properties as the rule for any days count that returns. guilt.test.ts assertions unchanged and
+  passing; header comment dated.
 - verified-by: `PRODUCT.md records why days active is not the streak it refused — F414`
 
 ### F415 — The voice circle draws its caption on top of the card's own
@@ -6181,7 +6198,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `Animated.Text` layers containing the complete greeting and name. Their opacity curves overlap;
   one rises a full line while the other enters from the full line below. At font scale 1.6 and above,
   the motion slot stands down and the full title renders in normal flow. The frame starts nothing.
-- verified-by: `the tab header clips the moving word to one line, keeps the name in flow, and starts nothing — F418`
+- note: 2026-09-27 notebook final sweep: title swapping is removed from the frame API.
+  The successor rejects animation and verifies an uncapped accessible static heading.
+- verified-by: `the tab header is a static accessible heading with no swap API or animation — F418`
 - verified-by: `the screen primitives never drive movement themselves, and never cap font scaling — F388`
 
 ### F419 — The eased native handoff has a suspension watchdog
@@ -6229,7 +6248,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   in the navigator — so the tap's honest answer is proved on the hero and the removal is held by
   the DESIGN.md contract test.
 - verified-by: `the brief keeps its connection check and its held-back answer — F392`
-- verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
+- note: 2026-09-27 notebook final sweep: the animated greeting and daily scenes are retired.
+  The successor checks documentation against the static header, picture-free daily card and
+  Speak's single primary rather than requiring the deleted animation vocabulary.
+- verified-by: `the design doc and tabs agree on static greetings, picture-free daily French and one Speak primary — F407`
 - verified-by: `one Start, launching the scene directly, and a quiet "Type instead" under it`
 
 ### F422 — The word pool clears the phrasebook bar and is tiered
@@ -6258,7 +6280,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   tier on the same `now` as the situation and the scene. A brand new learner gets a tier 1 word
   on day one; the day after a promotion the tier changes and the sequence re-phases.
 - verified-by: `the learner's level picks the tier by one rule, and the tier picks the word by the day — F423`
-- verified-by: `home draws the word of the day from the learner's tier under a paused, decorative daily scene — F391`
+- note: 2026-09-27 notebook final sweep: tier selection and all daily text remain covered;
+  the successor requires audio before the French and rejects the removed decorative scene.
+- verified-by: `home draws tier-selected daily French with audio first and no decorative scene — F391`
 
 ### F424 — The situations say what people say, in both languages, and keep their ids
 - severity: P1
@@ -6288,11 +6312,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `fill="none"` but for tiny accents, one oversized object, at most two loops, transform and
   opacity only. All twenty exported from `illustrations/index.ts` and each reached as `<Name` in
   the chooser, which is what J14 needs; J7's alternation gains `WordScene`.
-- verified-by: `twenty daily scenes rotate by the day, each reached from the chooser and paused from the card — F425`
+- note: 2026-09-27 notebook final sweep: all twenty daily drawings, their chooser and unused card
+  are deleted. The successor checks the files remain absent and both daily surfaces are picture-free.
+- verified-by: `daily cards and the library contain no pictures or scene selection`
 - verified-by: `every scene the barrel exports is drawn somewhere`
 - verified-by: `every scene hides itself from a screen reader`
 - verified-by: `every scene draws at the one stroke weight`
-- verified-by: `a scene on a tab that is not focused stops moving`
+- note: 2026-09-27 notebook final sweep: decorative scene motion is deleted rather than paused;
+  the successor checks all illustration sources and the daily card contain no animation.
+- verified-by: `decorative scenes are static even when a mounted tab is not focused`
 
 ### F426 — The guards, the docs and the older ledger lines changed on purpose
 - severity: P1
@@ -6307,7 +6335,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   Demo mode left the situation card. `docs/DEVICE_VERIFICATION.md` rewrites P5-1 for the swipe
   and the still name and returns it to `not run` because the web walk measured a fade; P5-2 names
   Bonjour by day, Bonsoir by evening, and the daily scene. Nine rows stay nine so F410 passes.
-- verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
+- note: 2026-09-27 notebook final sweep: the animated greeting and daily scenes are retired.
+  The successor checks documentation against the static header, picture-free daily card and
+  Speak's single primary rather than requiring the deleted animation vocabulary.
+- verified-by: `the design doc and tabs agree on static greetings, picture-free daily French and one Speak primary — F407`
 - verified-by: `the device runbook carries the Pass 5 checks — F410`
 - verified-by: `the Pass 5 runbook expects the next step row on a fresh account — F413`
 
@@ -6322,7 +6353,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   The final design joins the name to both outgoing and incoming greetings before drawing them. Each
   complete phrase therefore has exactly one word-space, and the phrase moves as one object without
   measuring either word or correcting the name separately. The header still starts nothing.
-- verified-by: `the greeting word hugs the name, and the name travels with the swipe rather than jumping — F427`
+- note: 2026-09-27 notebook final sweep: the moving greeting is removed. The successor
+  verifies the complete greeting and name are a single static text node, with no measured split.
+- verified-by: `the static tab heading keeps the complete greeting and name in one text node — F427`
 
 ### F428 — The name jumps at every greeting commit because its travel is measured one render late
 - severity: P1
@@ -6341,7 +6374,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the complete greeting and name in identical absolute geometry, so no previous pair's width can
   affect the commit frame. They remain a full line apart throughout the handoff, their opacity
   curves overlap, and the hook resets only after layout.
-- verified-by: `the name's travel is right on the frame the words change, not one layout later — F428`
+- note: 2026-09-27 notebook final sweep: no moving greeting geometry remains. The successor
+  requires normal-flow wrapping and refuses clipping, measurements and animation slots.
+- verified-by: `the static greeting wraps in normal flow without a measured or clipped motion slot — F428`
 
 ### F429 — The docs and the runbook still describe the header F427 replaced
 - severity: P2
@@ -6355,7 +6390,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   a designed fail, and `surfaceContract.test.ts` pins that phrase. `home/greeting.ts` has a
   half-edited sentence. All four describe the shape F428 settles, and the F407 and F410 tests pin the
   new description and refuse the old.
-- verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
+- note: 2026-09-27 notebook final sweep: the animated greeting and daily scenes are retired.
+  The successor checks documentation against the static header, picture-free daily card and
+  Speak's single primary rather than requiring the deleted animation vocabulary.
+- verified-by: `the design doc and tabs agree on static greetings, picture-free daily French and one Speak primary — F407`
 - verified-by: `the device runbook carries the Pass 5 checks — F410`
 
 ### F430 — A word-of-the-day note reads "everybody s ticket"
@@ -6466,7 +6504,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   fraction, percentage, track, fill or progressbar semantics. `accent.` exactly once and never in the
   stylesheet; no `hasMomentum`, no `return null`, no `Math.`, `toFixed`, `.length`, `<PillButton`,
   `numberOfLines`, raw `fontSize`, numeric `width`, `paddingBottom`; imports only `type Momentum`.
-- verified-by: `progress draws four momentum cards, keeps the target gentle and uses the accent once — F436`
+- note: 2026-09-27 notebook final sweep: the block is deleted (no renderer since the Phase 3 Today
+  rebuild). Every promise above was about a file that no longer exists; the successor holds that
+  nothing renders it, its inline details or the week rail, and that no screen draws a days count.
+- verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 - verified-by: `home and tutor wrap every line, cap no reading size, and keep every row at the touch floor — F409`
 
 ### F437 — A badge glyph for the Recall tile
@@ -6479,8 +6520,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   animation.
 - note: revamp A (2026-09): the assistive-tech contract widened to raster scenes and was renamed for it;
   the badge glyph itself is untouched.
+- note: 2026-09-27 notebook final sweep: `MomentumCards.tsx`, its only caller, is deleted. The glyph's
+  assistive-tech contract is still held below; the successor to the block's test bans its return.
 - verified-by: `every drawing and every raster scene in the app is hidden from assistive technology`
-- verified-by: `progress draws four momentum cards, keeps the target gentle and uses the accent once — F436`
+- verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 
 ### F438 — Home wires the phrase bank link and tells the truth in its header
 - severity: P1
@@ -6493,7 +6536,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   returning learner meets the start lines for a frame before their own numbers arrive. The header's
   "What is deliberately absent" paragraph stops claiming every count is absent at zero and names the
   one percentage Home now shows, recall over reviews, and the date it was decided.
-- verified-by: `home wires the phrase bank link to the review deck and keeps the next step outside every momentum gate — F438`
+- note: 2026-09-27 notebook final sweep: the block and its phrase-bank link are deleted. What survives
+  is Today's own recall action and Practice opening the same deck, and the hero outside every count;
+  the successor holds exactly that and refuses the block, the rail and the details on Today.
+- verified-by: `Today's one recall action opens the review deck, Practice opens the same deck, and the hero sits outside every count — F438`
 - verified-by: `the Pass 5 runbook expects the next step row on a fresh account — F413`
 
 ### F439 — The guards and the closed entries change on purpose, each with the founder's reason
@@ -6511,8 +6557,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `/worded as a start/`. F410's descriptor string is reworded, pattern unchanged. The closed F396 and
   F398 entries have their `verified-by` lines retitled to follow, and F396's note records the
   overturn and the date.
+- note: 2026-09-27 notebook final sweep: F436's test went with the deleted block; its successor bans
+  the block's return. F432's, F414's and F410's tests are unchanged.
 - verified-by: `a learner with no progress meets all four cards, worded as a start — F432`
-- verified-by: `progress draws four momentum cards, keeps the target gentle and uses the accent once — F436`
+- verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 - verified-by: `PRODUCT.md records why days active is not the streak it refused — F414`
 - verified-by: `the device runbook carries the Pass 5 checks — F410`
 
@@ -6526,8 +6574,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `/worded as a start/`. DESIGN.md's Home row describes four cards there from the first day. P5-4 and
   P5-5 are rewritten, eleven rows, all `not run`, `fresh account` and `next step row` still present,
   `no next step` absent. `scheduler.ts` says lapses are shown only in aggregate on Home.
+- note: 2026-09-27 notebook final sweep: the block is deleted, so the docs no longer describe it. The
+  DESIGN.md half of this entry (the `| Progress |` route row and the Home row's "one level down") is
+  not repointed: the docs rewrite that follows the sweep pins the new Structure section. The
+  successor holds that nothing renders the block, its details or the rail, and that no screen draws
+  a days-active count; PRODUCT.md:96-117 records the tile as history and its properties as the rule.
 - verified-by: `PRODUCT.md records why days active is not the streak it refused — F414`
-- verified-by: `the design doc describes the momentum block as four cards there from the first day — F440`
+- verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 - verified-by: `the device runbook carries the Pass 5 checks — F410`
 
 ### F441 — The scheduler's lapses comment described the recall formula decision 7 replaced
@@ -7109,7 +7162,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the tinted place rows left My French; the page is plain ledger
   rows with no tint, no `TintRow`, no `missionTint(` and no `<Stat` count. The tint rule itself still
   stands where tints are drawn, under the F362 test.
-- verified-by: `no two tints read as one, and nothing letters or signals in a tint — F362`
+- note: 2026-09-27 notebook final sweep: the tint palette and role tables are removed;
+  the successor forbids their reintroduction anywhere in production source.
+- verified-by: `no source retains a tint token, role table or tinted primitive`
 - verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
 - verified-by: `only a scene handled with nothing handed over is filled`
 - verified-by: `every combination says something, and nothing says it is locked`
@@ -7986,20 +8041,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   second was spent in, which is why the list lives beside the wall it justifies rather than in
   `PLANS`. It is not enforcement either: a learner who reaches a held back room is stopped by the
   402 at the door.
-- verified-by: `a learner who walked nothing still gets four rows naming four things they could do`
-- verified-by: `a learner who walked all four is opened on what is still closed, with the wins below as the proof`
-- verified-by: `a half walked path is four rows too, two of each kind`
-- verified-by: `one finish at the lowest rung lights the room`
-- verified-by: `the row reads timesFinished and never the review state or the independence`
-- verified-by: `their own line wins, and the most used one wins among those`
-- verified-by: `a phrase with no conversational use behind it does not count as theirs`
-- verified-by: `another room's phrase is never borrowed to fill a row`
-- verified-by: `an unwalked room quotes nothing at all, because they have not been there`
-- verified-by: `a sound is never quoted as something the learner said, however often it was used`
-- verified-by: `rung 1 is the one line that needs the name, and without a profile the row withholds it`
+- note: 2026-09-27 notebook final sweep: the map page, its model and its learner-quote projection
+  are deleted. The old map-row tests have no surviving renderer to exercise; their successor
+  proves the sources and renderer stay absent and analytics accepts only the two current pages.
+  The live welcome-path partition and ordering tests below are preserved, not aliased.
+- verified-by: `the retired map and French wall pages have no source, renderer or analytics page`
+- verified-by: `no door ever draws more than two pages, or the retired map and French pages`
 - verified-by: `every situation is either on the path or beyond it, and none is both`
 - verified-by: `the path climbs, rather than putting both A1 rooms first`
-- verified-by: `nothing a row carries mentions a plan, a price or a lock`
 
 ### F517 — Every decision the wall makes had nowhere to live but a screen
 - severity: P2
@@ -8036,8 +8085,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `with no store there is one page, and the wall ends on the free promise`
 - verified-by: `somebody who came to buy is not sold to`
 - verified-by: `the value pages never vary by what the learner has done`
-- verified-by: `a learner with none is an invitation rather than a nought`
-- verified-by: `page two counts nothing for itself`
+- note: 2026-09-27 notebook final sweep: the French-evidence wall page and projection are gone;
+  their two tests are superseded by a source/renderer/analytics retirement check, not by aliases.
+- verified-by: `the retired map and French wall pages have no source, renderer or analytics page`
 - verified-by: `WallPage and wall_page_seen name exactly the same pages`
 - verified-by: `WallEntry and wall_shown name exactly the same doors`
 
@@ -8126,10 +8176,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   The problem is named as a situation and never as a feeling, which was the founder's explicit
   setting. `goalEn` is the catalogue's own sentence about what happens in that room, so nothing on
   the page describes the learner, and a test refuses a line that starts to.
-- verified-by: `a learner who walked all four is opened on what is still closed, with the wins below as the proof`
-- verified-by: `the closed rooms carry no borrowed French, because they have never been walked`
-- verified-by: `a learner who walked nothing still gets four rows naming four things they could do`
-- verified-by: `a half walked path is four rows too, two of each kind`
+- note: 2026-09-27 notebook final sweep: the map and its row-order projection have been deleted.
+  The successor verifies they cannot return, and every door is bounded to the two current pages.
+- verified-by: `the retired map and French wall pages have no source, renderer or analytics page`
+- verified-by: `no door ever draws more than two pages, or the retired map and French pages`
 
 ### F521 — The wall was soft and never said so
 - severity: P2
@@ -8523,9 +8573,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/home/abilities.ts:1
 - note: revamp A. The abilities become one joined can-do sentence on a white row; tapping it pushes a
   Progress screen that keeps the week story, the momentum cards and the word of the day.
+- note: 2026-09-27 notebook final sweep: the Progress screen became inline details on Today in Phase 3
+  and then nothing rendered them; `ProgressScreen.tsx`, `progressView.ts` and `MomentumCards.tsx` are
+  deleted. Today says the week in at most two sentences (`home/todayView.ts`) and today's phrase on
+  the daily card. The sentence tests stay; the successor bans the deleted screen's return.
 - verified-by: `two stamps join with and, no comma`
 - verified-by: `before any stamp the card says where progress starts and never a count`
-- verified-by: `the progress screen keeps the momentum, the week story and the word of the day`
+- verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 
 ### F573 — Tutor is the orb, the remembers row and three tinted ways in
 - severity: P2
@@ -8580,9 +8634,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/progress/momentum.ts:392
 - note: revamp A. The founder chose the identity violet for the calendar record; the rule that a state
   mark is never violet now exempts a calendar, and the orb's traffic lights stay the only state marks.
+- note: 2026-09-27 notebook final sweep: the labelled violet dots are gone. Profile says the week as
+  one sentence (Phase 4, B2) and `WeekRail` is deleted from components.tsx, so the calendar exemption
+  has nothing left to exempt; the Monday-to-Sunday model and its sentence stay tested. The successor
+  refuses the rail's return.
 - verified-by: `the rhythm week starts on Monday and ends on Sunday whatever today is`
 - verified-by: `the rhythm sentence counts in words and passes the guilt list`
-- verified-by: `the week rail labels every dot and stays hidden from assistive technology`
+- verified-by: `the retired week rail is not exported and leaves no mark style behind`
 
 ### F578 — Own words is a drill kind whose verdict arrives from outside
 - severity: P2

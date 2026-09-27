@@ -14,8 +14,6 @@ import { fileURLToPath } from 'node:url';
 import { describe, test } from 'node:test';
 
 import { canBuy, endsOnPlans, wallPages, type WallEntry } from './wallPages.ts';
-import { wallFrench } from './wallFrench.ts';
-import type { Momentum } from '../progress/momentum.ts';
 
 const HERE = new URL('.', import.meta.url);
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, HERE)), 'utf8');
@@ -116,34 +114,6 @@ describe('the wall is as long as it has something to show', () => {
     for (const word of ['progress', 'deck', 'retained', 'timesFinished', 'momentum', 'hasEvidence']) {
       assert.doesNotMatch(source, new RegExp(word, 'i'), `the page list is reading ${word}`);
     }
-  });
-});
-
-describe("page two draws either way", () => {
-  const momentumWith = (count: number | null): Momentum =>
-    ({
-      retained: { count, thisWeek: null, weekLine: null, chips: [], moreLine: null },
-      days: { count: null, week: [false, false, false, false, false, false, false] },
-    }) as unknown as Momentum;
-
-  test('a learner with phrases has evidence', () => {
-    const french = wallFrench(momentumWith(6));
-    assert.equal(french.hasEvidence, true);
-    assert.equal(french.count, 6);
-  });
-
-  test('a learner with none is an invitation rather than a nought', () => {
-    const french = wallFrench(momentumWith(null));
-    assert.equal(french.hasEvidence, false);
-    assert.equal(french.count, null, 'the page is about to draw a zero');
-  });
-
-  test('page two counts nothing for itself', () => {
-    // momentum.ts owns every count in this app and Home draws the same numbers.
-    // A wall that counted for itself would be a second answer to a question with
-    // one owner, and the two would disagree the first time either moved.
-    const source = read('./wallFrench.ts').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-    assert.doesNotMatch(source, /Math\.|\.length|\.filter\(|\.map\(|toFixed|\+ 1|reduce\(/, 'page two is doing arithmetic');
   });
 });
 

@@ -138,7 +138,7 @@ const KEPT_IN_A_MODULE: readonly { words: string; from: string; name: string }[]
  * the app takes, and a button word is not a caps label. These three are the
  * only components that turn the prop into `<Label>`.
  */
-const LABEL_PRIMITIVES = ['surface/HeroCard.tsx', 'surface/IconRowCard.tsx', 'surface/PhraseCard.tsx'];
+const LABEL_PRIMITIVES = ['surface/PhraseCard.tsx'];
 
 describe('the caps micro-label — what it is allowed to be used for', () => {
   test('the retired kickers stay retired', () => {

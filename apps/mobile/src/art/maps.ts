@@ -41,19 +41,3 @@ export function heroArt(place: MissionPlace): ArtKey {
  * empty deck, the end of a lesson, the wall. Naming them by screen rather than
  * by subject is what lets `registry.test.ts` prove nothing ships undrawn.
  */
-export const SCREEN_ART = {
-  /** The first page of the pre-account onboarding. */
-  welcome: 'welcome-bubbles',
-  /** The age gate, which comes before the name. */
-  agePage: 'onboard-cake',
-  /** The page that asks what to call the learner. */
-  namePage: 'onboard-wave',
-  /** Review and Drill, when there is nothing due. */
-  emptyDeck: 'empty-table',
-  /** The end of a conversation and the end of a lesson. */
-  recap: 'recap-postcard',
-  /** The phrasebook route. */
-  phrasebook: 'phrasebook',
-  /** The wall's first page, the map of places. */
-  wallMap: 'wall-map',
-} as const satisfies Record<string, ArtKey>;

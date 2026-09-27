@@ -40,7 +40,7 @@ const SINGLE = [
   'tabs/ProfileTab.tsx',
   'tabs/FriendsTab.tsx',
   'illustrations/scenes/reward.tsx',
-  'daily/DailyCarousel.tsx',
+  'daily/DailyCard.tsx',
   'daily/DailyLibraryScreen.tsx',
   'daily/DailyPracticeScreen.tsx',
 ];

@@ -13,7 +13,6 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { DAILY_SCENARIOS, missionStates, type ReviewCard } from '@luvani/core';
 
-import { MISSION_TINT } from '../missions/missionTint.ts';
 import { isRetained, retainedOrder } from '../progress/momentum.ts';
 import { SHELF_EMPTY } from './copy.ts';
 import { myFrenchFrom } from './model.ts';
@@ -52,7 +51,7 @@ describe('the model — it decides, and it writes nothing', () => {
       assert.equal(row.title, row.progress.mission.title, 'a row is not titled in French');
       assert.equal(row.gloss, row.progress.mission.titleEn, 'a row does not say in English what the place is');
       assert.notEqual(row.title, row.gloss, 'a row says the same thing twice');
-      assert.equal(row.tint, MISSION_TINT[row.place], 'a row picked a colour other than its place’s');
+      assert.equal(Object.hasOwn(row, 'tint'), false, 'derived rows must not retain retired tint fields');
       assert.equal(typeof row.earned, 'boolean');
       assert.notEqual(row.chip.text, '', 'a row arrived with no state on it');
       assert.ok(['start', 'refine'].includes(row.action.kind));
@@ -87,7 +86,7 @@ describe('the model — it decides, and it writes nothing', () => {
     assert.equal(model.saved.length, 1);
     const row = model.saved[0]!;
     assert.equal(row.scenario, scenario, 'the row lost the scenario the screen opens');
-    assert.equal(row.tint, MISSION_TINT[scenario.place], 'a saved row picked a colour other than its place’s');
+    assert.equal(Object.hasOwn(row, 'tint'), false, 'saved rows must not retain retired tint fields');
     assert.equal(row.accessibilityLabel, `Start ${scenario.titleEn}`);
   });
 
