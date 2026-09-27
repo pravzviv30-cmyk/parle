@@ -79,6 +79,14 @@ export type RootStackParamList = {
    */
   Missions: { focus?: string; textMode?: boolean } | undefined;
   /**
+   * The first scene after a brand-new account, behind a microphone primer
+   * (notebook Phase 5). `missionId` is the scene the plan put first, a plain
+   * string; an id this build does not know opens the default first scene. The
+   * primer hands over to `Convo` with the same id, so the live session is the
+   * ordinary one.
+   */
+  FirstScene: { missionId: string };
+  /**
    * One node of the practice path, or the whole deck when omitted. The node
    * is plain data — id, title and phrase keys — so navigation state stays
    * serialisable. `mix` asks for the unscoped sitting interleaved across

@@ -32,7 +32,7 @@ import {
   TextInput,
 } from 'react-native';
 import { dueCards, reviewXp, type ReviewCard, type ReviewGrade } from '@luvani/core';
-import { HAIRLINE, HIT, accent, font, paper, radius, shadow, space, type } from './theme.ts';
+import { HAIRLINE, HIT, accent, font, paper, radius, space, type } from './theme.ts';
 import { Card, Label, OutlineButton, PillButton, fitDisplay } from './components.tsx';
 import { SpeakerGlyph } from './glyphs.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
@@ -173,7 +173,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
         <View style={{ alignItems: 'center', marginBottom: space(5) }}>
           <Art name={SCREEN_ART.emptyDeck} />
         </View>
-        <Card tone="feature">
+        <Card>
           <Text style={[type.title, { color: paper.ink }]}>Nothing waiting.</Text>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Your next session adds more.</Text>
         </Card>
@@ -375,7 +375,8 @@ const st = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // The card itself: the SessionView main-card anatomy, content centred.
   card: { alignItems: 'center', minHeight: 240, justifyContent: 'center', borderTopWidth: 5 },
-  // The speaker disc: white, on the card, with the one soft shadow.
+  // The speaker disc: white, on the card, under a paper hairline. No shadow:
+  // the whisper retired with notebook Phase 4 (2026-09-27).
   hear: {
     marginTop: space(4),
     width: SPEAKER,
@@ -384,7 +385,8 @@ const st = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: paper.card,
-    ...shadow.whisper,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
   },
   grades: { flexDirection: 'row', gap: space(2.5) },
   gradeCell: { flex: 1 },

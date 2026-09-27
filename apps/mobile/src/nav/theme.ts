@@ -69,6 +69,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       SoundJourney: 'sound-journey',
       GoalStep: 'goal-step',
       Missions: 'missions',
+      FirstScene: 'first-scene/:missionId',
       Phrasebook: 'phrasebook',
       Conversations: 'conversations',
       ConversationPractice: 'conversation-practice/:packId',

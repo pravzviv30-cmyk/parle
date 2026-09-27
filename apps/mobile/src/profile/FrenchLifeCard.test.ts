@@ -24,8 +24,8 @@
  * `reminders/reminder.test.ts` refusing any module under `reminders/` the
  * ability to import `progress/`. Neither test alone is the promise; the pair is.
  *
- * What is left on Profile is the picture a learner came to that tab for:
- * Monday to Sunday, one mark per day, the days named, and no number anywhere.
+ * What is left on Profile is the week in one plain sentence (notebook Phase 4,
+ * 2026-09-27; it was a seven-dot rail), with no number anywhere.
  * `FrenchLifeCard.tsx` kept its name because every test that reads it reads it
  * by name, and this is one of them.
  */
@@ -154,13 +154,12 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
     // here. Which seven days count and which of them are done is
     // `calendarWeekFrom`'s judgement, and there is no second opinion on the card.
     assert.match(FLAT, /setWeek\(calendarWeekFrom\(activity, Date\.now\(\)\)\)/, "the week is not the momentum module's own calendar");
-    assert.match(
-      FLAT,
-      /<WeekRail week=\{week\.map\(\(day\) => day\.state === 'done'\)\} labels=\{WEEKDAY_LABELS\} \/>/,
-      'the card does not draw the shared week rail with the module\'s own day labels',
-    );
-    assert.match(FLAT, /<TintPanel tint=\{RHYTHM_TINT\}/, 'the week sits on a tint this card chose for itself rather than the one the role table names');
-    assert.match(FLAT, /\{WEEK_CAPTION\}/, 'the caption under the week is written in JSX, where no copy sweep can read it back');
+    // 2026-09-27, notebook Phase 4 (B2): the rail left Profile and the week is
+    // one plain sentence, the module's own, on one white card. Stricter than
+    // the pins it replaces: no rail, no tint, no caption, one line of words.
+    assert.match(FLAT, /<Text style=\{st\.sentence\}>\{rhythmSentence\(week\)\}<\/Text>/, 'the week is not said as the momentum module\'s one sentence');
+    assert.doesNotMatch(FLAT, /<WeekRail\b|<TintPanel\b|RHYTHM_TINT|WEEK_CAPTION|WEEKDAY_LABELS/, 'the week is still drawn as a rail, on a tint, or under a caption');
+    assert.equal((CARD.match(/<Text\b/g) ?? []).length, 1, 'the week card says more than one thing');
     assert.match(FLAT, /if \(week === null\) return null;/, 'an unanswered read draws an empty week at somebody whose week is on its way');
     for (const meddling of ['.sort(', '.slice(', '.reverse(', '.filter(', '.length']) {
       assert.ok(!CARD.includes(`week${meddling}`), `the card writes week${meddling}`);
@@ -171,16 +170,12 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
       "the card narrows the activity log before calendarWeekFrom sees it; which days count is that module's decision",
     );
 
-    // Hidden marks, one spoken sentence. Seven letters read aloud are not a
-    // week, so the rail stays out of the accessibility tree and the panel
-    // carries `rhythmSentence` instead. The sentence is the module's, in words.
-    assert.match(
-      FLAT,
-      /<View accessible accessibilityLabel=\{rhythmSentence\(week\)\}>/,
-      'the week arrives at a screen reader as a row of unnamed views, or says something this card wrote itself',
-    );
+    // The sentence is the module's, in words, and it is the same sentence a
+    // screen reader hears: there is no hidden picture beside it any more.
+    assert.ok(!CARD.includes('accessibilityLabel='), 'the card says one thing to the eye and another to a screen reader');
 
-    // The rail itself: seven marks, a picture, no count and no words of its own.
+    // The rail itself, still in components.tsx for the screens that have not
+    // yet dropped it: seven marks, a picture, no count and no words of its own.
     const rail = RAIL.slice(RAIL.indexOf('export function WeekRail('), RAIL.indexOf('export function TintRow('));
     assert.ok(rail.length > 0, 'components.tsx no longer exports WeekRail');
     // The rail draws day names now (F577) and nothing else. Every Text in it is

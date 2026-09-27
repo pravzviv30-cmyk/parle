@@ -193,16 +193,20 @@ describe('two shadows, both named — F569', () => {
     // spread the alias. That list may only shrink; Phase 4 deletes it.
     assert.match(exact('theme.ts'), /whisper: \{/, 'theme.ts dropped the alias while screens still spread it');
     assert.doesNotMatch(exact('components.tsx'), /shadow\.whisper/, 'the card still spreads the whisper');
+    // 2026-09-27, Phase 4 (B2): ReviewScreen, MomentCard and PhrasebookScreen came off, and the list now
+    // fails on an entry that no longer spreads the whisper, so it cannot linger as a standing allowance.
     const PENDING_WHISPER = new Set([
-      'ReviewScreen.tsx',
-      'drill/MomentCard.tsx',
-      'phrases/PhrasebookScreen.tsx',
       'tutor/Transcript.tsx',
       'wall/WallPlansPage.tsx',
     ]);
+    const spreading = new Set<string>();
     for (const { path, body } of SOURCES) {
       if (!/shadow\.whisper/.test(body)) continue;
+      spreading.add(rel(path));
       assert.ok(PENDING_WHISPER.has(rel(path)), `${rel(path)} spreads the retired whisper; the mic glow is the only shadow now`);
+    }
+    for (const pending of PENDING_WHISPER) {
+      assert.ok(spreading.has(pending), `${pending} no longer spreads the whisper; take it off the pending list`);
     }
   });
 });
@@ -671,7 +675,8 @@ describe('a form says out loud what it shows — F109', () => {
  * page and the count comes from PAGES rather than from a number typed here.
  */
 const FIRST_RUN: readonly { where: string; headings: number }[] = [
-  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 5 },
+  // 2026-09-27, Phase 5: six pages (hear it, first line, start level, reason, plan, save), one title each.
+  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 6 },
   { where: 'auth/SignUpScreen.tsx', headings: 1 },
   { where: 'auth/SignInScreen.tsx', headings: 1 },
   { where: 'onboarding/OnboardingFlow.tsx', headings: PAGES.length },
@@ -1038,6 +1043,8 @@ const ADOPTERS = [
   // screen are new pushed routes, held to the frame from the day they land.
   'soundcheck/SoundJourneyScreen.tsx',
   'goals/GoalStepScreen.tsx',
+  // 2026-09-27, Phase 5: the first scene's microphone primer, pushed over Today on a first run.
+  'onboarding/FirstSceneScreen.tsx',
 ];
 
 /**
@@ -1129,6 +1136,7 @@ describe('one way back, and it is the shared header — F309', () => {
     // Stage 4 (2026-09-25): both new routes are pushed, with one way back.
     'soundcheck/SoundJourneyScreen.tsx',
     'goals/GoalStepScreen.tsx',
+    'onboarding/FirstSceneScreen.tsx',
   ];
 
   test('a pushed screen has exactly one way back, and it is the shared header — F309', () => {

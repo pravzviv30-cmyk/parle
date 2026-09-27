@@ -10,18 +10,23 @@ test can reach them.
 
 ## The shape now
 
-Pre-account onboarding renders **5 pages**: `welcome`, `situations`, `life`, `voice`, `ready`.
+Pre-account onboarding renders **6 pages**: `hear-it`, `first-line`, `start-level`, `reason`, `plan`, `save`.
 
-A brand-new learner crosses **7 screens** before the first scene: those five
-pages, account creation, and the mission chooser. The age confirmation is part
-of Ready, not a separate marketing screen.
+A brand-new learner crosses **8 screens** before the first spoken line: those six
+pages, account creation, and the first scene's microphone primer. The age
+confirmation is part of the save page, not a separate marketing screen. (Notebook
+redesign, 2026-09-27; the screen table below is rewritten in the redesign's final
+phase.)
 
-The selected voice, the age confirmation and the usage-data answer are the whole
-pre-account draft. It contains no name, transcript, raw audio or other free-form
-learner data, and is cleared as soon as it becomes the signed-in learner's normal
-profile.
+The pre-account draft holds the selected voice, the age confirmation, the
+usage-data answer, the three one-tap answers (starting level, reason, minutes a
+day), the reminder time, and an optional first name. That name is the only
+free-form learner text in it; it holds no transcript or raw audio. It is cleared as
+soon as it becomes the signed-in learner's normal profile, or when the learner
+says they already have an account. Pages 1 and 2 play bundled recordings only, so
+nothing reaches an AI service before the save page is passed.
 
-The usage-data answer is the switch on Ready, off unless the learner turns it on,
+The usage-data answer is the switch on the save page, off unless the learner turns it on,
 and it rides the draft because it is given before there is an account to key it
 to. `App.tsx` writes it to `analytics/consentStore.ts` before it hands the
 profile over, so nothing is counted against an answer that has not reached the

@@ -529,18 +529,17 @@ describe('one highlighter — notebook Phase 1', () => {
   test('no primitive spells the deprecated accent.feature, and no new screen starts to', () => {
     // Pending, Phase 4: every file below still names the alias and draws paper
     // through it. The list may only shrink; a primitive may never be on it.
+    // 2026-09-27, notebook Phase 4 (B2): daily/DailyCarousel.tsx,
+    // phrases/PhrasebookScreen.tsx and profile/ProfileButton.tsx came off it.
     const PENDING = new Set([
       'ConvoScreen.tsx',
       'RecapScreen.tsx',
       'SummaryScreen.tsx',
       'auth/SignInScreen.tsx',
       'auth/SignUpScreen.tsx',
-      'daily/DailyCarousel.tsx',
       'nav/tabSurface.ts',
       'onboarding/AgeGateScreen.tsx',
       'onboarding/OnboardingFlow.tsx',
-      'phrases/PhrasebookScreen.tsx',
-      'profile/ProfileButton.tsx',
       'tutor/TutorIntro.tsx',
       'wall/WallPlansPage.tsx',
     ]);

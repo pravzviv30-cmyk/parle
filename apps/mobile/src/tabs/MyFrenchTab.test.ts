@@ -211,9 +211,47 @@ describe('My French speaks, and stops — F470', () => {
       const plays = (body.match(/tutorVoice\.speak\(/g) ?? []).length;
       if (plays === 0) continue;
       assert.match(body.replace(/\s+/g, ' '), /useEffect\(\(\) => \(\) => tutorVoice\.stop\(\), \[\]\)/, `${name} starts a voice and never stops it`);
-      assert.equal((body.match(/accessibilityLabel=\{`Hear /g) ?? []).length, plays, `${name} plays ${plays} things and labels a different number`);
+      // 2026-09-27, notebook Phase 4 (B2): a label may also come from
+      // `phraseControlLabel`, which says Hear at rest and Stop while it plays
+      // (held below). Every speaker is still labelled, one label per voice.
+      assert.equal(
+        (body.match(/accessibilityLabel=\{(?:`Hear |phraseControlLabel\()/g) ?? []).length,
+        plays,
+        `${name} plays ${plays} things and labels a different number`,
+      );
     }
     assert.ok(SPEAKERS.includes('PhraseBank.tsx'));
+  });
+
+  // 2026-09-27, Phase 3 review (P2), reopening F470: My French and Practice
+  // stay mounted when the learner switches tab, so an unmount-only stop never
+  // ran and a voice or a recording followed the learner off the tab.
+  test('leaving the tab or the app stops a voice or a recording that My French or Practice started', () => {
+    const bank = BANK.replace(/\s+/g, ' ');
+    const player = stripComments(read('../practice/recordedPlayer.ts')).replace(/\s+/g, ' ');
+    for (const [name, body] of [['PhraseBank.tsx', bank], ['recordedPlayer.ts', player]] as const) {
+      assert.match(body, /const focused = useIsFocused\(\);/, `${name} cannot tell when its tab loses focus`);
+      assert.match(body, /if \(!focused\) /, `${name} does nothing when its tab loses focus`);
+      assert.match(body, /AppState\.addEventListener\('change', \(state\) => \{ if \(state !== 'active'\) /, `${name} keeps playing when the app goes to the background`);
+      assert.match(body, /subscription\.remove\(\)/, `${name} leaves its background listener behind`);
+    }
+    // The bank stops only a voice it started, so a blur never silences the next screen.
+    assert.match(bank, /if \(speakingRef\.current !== null\) \{ tutorVoice\.stop\(\);/, 'the bank stops a voice it did not start, or none at all');
+    assert.match(bank, /recorded\.stop\(\)/, 'the bank leaves its recording playing');
+    // The player lets go of its own recording, and cancels one still loading.
+    assert.match(player, /const stop = useCallback\(\(\) => \{ gate\.cancel\(\); releaseDailyPlayback\(player\);/, 'stopping the player leaves a loading recording free to start');
+  });
+
+  test('the phrase control says Stop to a screen reader while it plays', async () => {
+    const { phraseControlLabel } = (await import('../myfrench/notebook.ts')) as {
+      phraseControlLabel?: (fr: string, voice: string, playing: boolean) => string;
+    };
+    assert.equal(typeof phraseControlLabel, 'function', 'there is no one place that says what the phrase control will do');
+    const rest = phraseControlLabel!('Bonjour', 'Your phone reads this one', false);
+    const playing = phraseControlLabel!('Bonjour', 'Your phone reads this one', true);
+    assert.equal(rest, 'Hear Bonjour. Your phone reads this one');
+    assert.equal(playing, 'Stop Bonjour');
+    assert.match(BANK.replace(/\s+/g, ' '), /accessibilityLabel=\{phraseControlLabel\(row\.fr, row\.audio\.label, isPlaying\(row\)\)\}/, 'the control announces Hear while it shows Stop');
   });
 
   test('nothing here listens, records or scores', () => {

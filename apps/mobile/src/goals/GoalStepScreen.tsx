@@ -24,10 +24,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { MISSIONS, type ConversationPack } from '@luvani/core';
 
-import { GhostButton, Label, PillButton } from '../components.tsx';
+import { GhostButton, Label, Ledger, LedgerRow, PillButton } from '../components.tsx';
 import { DocumentGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { IconRowCard } from '../surface/IconRowCard.tsx';
 import { accent, paper, space, type } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { NEEDS_CONNECTION_AND_MINUTES } from '../copy/access.ts';
@@ -195,14 +194,16 @@ export function GoalStepScreen() {
                   const practice = row.practice !== null ? GOAL_PRACTICE_LINE[row.practice] : null;
                   return (
                     <View key={row.stepId} style={st.row}>
-                      <IconRowCard
-                        glyph={<DocumentGlyph color={accent.primary} />}
-                        label={row.pack.title.en}
-                        line={rehearsedOn(row.at)}
-                        note={practice}
-                        accessibilityLabel={[row.pack.title.en, rehearsedOn(row.at), practice].filter(Boolean).join(' ')}
-                        onPress={() => nav.navigate('Conversations', { packId: row.pack.id })}
-                      />
+                      <Ledger>
+                        <LedgerRow
+                          glyph={<DocumentGlyph color={accent.primary} />}
+                          title={row.pack.title.en}
+                          gloss={rehearsedOn(row.at)}
+                          note={practice}
+                          accessibilityLabel={[row.pack.title.en, rehearsedOn(row.at), practice].filter(Boolean).join(' ')}
+                          onPress={() => nav.navigate('Conversations', { packId: row.pack.id })}
+                        />
+                      </Ledger>
                       {row.usedOutside ? (
                         <Text style={st.said}>{USED_OUTSIDE_SAID}</Text>
                       ) : (

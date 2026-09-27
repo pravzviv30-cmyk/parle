@@ -41,7 +41,7 @@ import {
   pageBefore,
 } from './answers.ts';
 import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
-import { freshPreAccountDraft, loadPreAccountDraft } from './preAccountDraft.ts';
+import { PRE_ACCOUNT_PAGES, freshPreAccountDraft, loadPreAccountDraft } from './preAccountDraft.ts';
 import { createStoredProfile, completeProfile } from '../profile/store.ts';
 import { DAILY_GOAL_ROW } from '../profile/dailyGoal.ts';
 import { upgradeStored } from '../profile/upgrade.ts';
@@ -59,6 +59,8 @@ function stripComments(source: string): string {
 
 const FLOW = stripComments(read('./OnboardingFlow.tsx'));
 const PRE_ACCOUNT_FLOW = stripComments(read('./PreAccountOnboarding.tsx'));
+/** The pre-account page list lives with the draft that resumes on it. */
+const PRE_ACCOUNT_DRAFT = stripComments(read('./preAccountDraft.ts'));
 const RULES = stripComments(read('./answers.ts'));
 const AGE_GATE = stripComments(read('./AgeGateScreen.tsx'));
 const REFUSAL = stripComments(read('./AgeRefusal.tsx'));
@@ -423,23 +425,23 @@ describe('the onboarding doc counts the screens the code shows', () => {
     // instead of the code.
     const claim = DOC.match(/Pre-account onboarding renders \*\*(\d+) pages\*\*: ([^.]+)\./);
     assert.ok(claim, 'docs/ONBOARDING.md no longer says how many pages pre-account onboarding renders');
-    const preAccountPages = ['welcome', 'situations', 'life', 'voice', 'ready'];
+    const preAccountPages: readonly string[] = PRE_ACCOUNT_PAGES;
     assert.equal(Number(claim[1]), preAccountPages.length, `the doc claims ${claim[1]} pages and the pre-account flow holds ${preAccountPages.length}`);
     assert.deepEqual(
-      [...(claim[2] ?? '').matchAll(/`([a-z]+)`/g)].map((m) => m[1]),
+      [...(claim[2] ?? '').matchAll(/`([a-z-]+)`/g)].map((m) => m[1]),
       preAccountPages,
       'the doc names different pages, or names them in a different order',
     );
-    assert.match(PRE_ACCOUNT_FLOW, /PRE_ACCOUNT_PAGES = \['welcome', 'situations', 'life', 'voice', 'ready'\]/, 'the five pages in the doc are not the five the pre-account flow renders');
+    assert.match(PRE_ACCOUNT_DRAFT, /PRE_ACCOUNT_PAGES = \['hear-it', 'first-line', 'start-level', 'reason', 'plan', 'save'\]/, 'the six pages in the doc are not the six the pre-account flow renders');
 
-    // Sign-up and the mission chooser follow the five pages. The age gate is
-    // part of Ready rather than a sixth marketing screen.
+    // Sign-up and the first scene's microphone primer follow the six pages.
+    // The age gate is part of the save page rather than a seventh screen.
     const screens = DOC.match(/crosses \*\*(\d+) screens\*\*/);
     assert.ok(screens, 'the doc stopped counting the screens before the first scene');
     assert.equal(
       Number(screens[1]),
       preAccountPages.length + 2,
-      'the doc counts screens that no longer match the pages plus the welcome, the sign-up and the chooser',
+      'the doc counts screens that no longer match the pages plus the sign-up and the first scene',
     );
 
     // And it stays honest about what the count is standing in for. Wall-clock
@@ -476,15 +478,15 @@ describe('the first run asks about usage data once, and off is the answer until 
       'the pre-account flow asks about usage data more than once, or not at all',
     );
     assert.match(
-      PRE_ACCOUNT_FLOW,
-      /PRE_ACCOUNT_PAGES = \['welcome', 'situations', 'life', 'voice', 'ready'\]/,
+      PRE_ACCOUNT_DRAFT,
+      /PRE_ACCOUNT_PAGES = \['hear-it', 'first-line', 'start-level', 'reason', 'plan', 'save'\]/,
       'the switch was given a page of its own, which is a screen bought with a learner’s time',
     );
 
-    const ready = PRE_ACCOUNT_FLOW.indexOf("page === 'ready' &&");
+    const ready = PRE_ACCOUNT_FLOW.indexOf("page === 'save' &&");
     const privacy = PRE_ACCOUNT_FLOW.indexOf('Learning history does not include raw audio by default.');
     const row = PRE_ACCOUNT_FLOW.indexOf('<SwitchRow');
-    assert.ok(ready > 0 && privacy > ready, 'the privacy line is no longer on the ready page');
+    assert.ok(ready > 0 && privacy > ready, 'the privacy line is no longer on the save page');
     assert.ok(row > privacy, 'the switch is asked before the line that says what the app keeps, or on another page');
 
     // The words are the module’s, not this screen’s. A row that spelled its
@@ -511,7 +513,9 @@ describe('the first run asks about usage data once, and off is the answer until 
     assert.match(PRE_ACCOUNT_FLOW, /value=\{draft\.analyticsConsent\}/, 'the switch draws something other than the draft');
     assert.match(PRE_ACCOUNT_FLOW, /onChange=\{setConsent\}/, 'the switch is not wired to anything');
     const setter = PRE_ACCOUNT_FLOW.slice(PRE_ACCOUNT_FLOW.indexOf('const setConsent'));
-    assert.match(setter.slice(0, 400), /onDraftChange\(next\)/, 'a flip is kept in memory and never handed to the draft');
+    assert.match(setter.slice(0, 400), /keep\(\{ analyticsConsent: allowed \}\)/, 'a flip is kept in memory and never handed to the draft');
+    const keep = PRE_ACCOUNT_FLOW.slice(PRE_ACCOUNT_FLOW.indexOf('const keep ='));
+    assert.match(keep.slice(0, 300), /onDraftChange\(next\)/, 'the one door answers go through does not reach the draft');
   });
 
   test('the draft carries the answer and a missing one reads as no', async () => {
@@ -575,7 +579,7 @@ describe('the first run asks about usage data once, and off is the answer until 
     // the app, so nothing a learner does in the next seconds is counted against
     // an answer that has not landed.
     const preWrite = APP.indexOf('await saveConsent({ allowed: draft.analyticsConsent })');
-    const release = APP.indexOf('done(withChosenVoice(built, draft.tutorVoice))');
+    const release = APP.indexOf('done(built)');
     assert.ok(preWrite > 0, 'the pre-account bootstrap never writes the usage-data answer');
     assert.ok(release > preWrite, 'the app is released before the answer reaches the disk');
 

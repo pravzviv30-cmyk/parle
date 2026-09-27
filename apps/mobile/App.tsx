@@ -59,9 +59,12 @@ import { resetSyncRegistry } from './src/sync/registry.ts';
 import { adoptBeforeReady } from './src/app/freshDevice.ts';
 import { loadHistory } from './src/progress/store.ts';
 import { backfillFrom } from './src/progress/activity.ts';
-import { lessonXp } from '@luvani/core';
+import { FIRST_MISSION, lessonXp, type MissionId } from '@luvani/core';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { withChosenVoice } from './src/onboarding/voiceStep.ts';
+import { profileFromDraft, reminderFromDraft } from './src/onboarding/createFromDraft.ts';
+import { firstSceneFor } from './src/onboarding/plan.ts';
+import { saveReminder } from './src/reminders/store.ts';
 import {
   clearPreAccountDraft,
   loadPreAccountDraft,
@@ -150,7 +153,10 @@ function PreAccountProfileBootstrap({
     // too, so keep the bridge explicitly once-only.
     if (delivered.current) return;
     delivered.current = true;
-    const built = createStoredProfile({ name: null, ageConfirmed: draft.ageConfirmed, motivation: null });
+    // The whole plan, through the existing doors (spine contract section 3):
+    // reason, minutes, starting level, seeded goal, voice and first name. See
+    // src/onboarding/createFromDraft.ts for which answer lands where.
+    const built = profileFromDraft(draft);
     // The usage-data answer reaches the disk BEFORE the profile is handed over,
     // and the order is the point rather than a detail. `done` is what releases
     // the app, and `trackProductEvent` reads the stored consent at the moment
@@ -168,7 +174,14 @@ function PreAccountProfileBootstrap({
         // learner still gets their app, and an answer this build cannot prove
         // was given reads as off, which is the only safe direction.
       }
-      done(withChosenVoice(built, draft.tutorVoice));
+      try {
+        // The plan's reminder time, kept off: no notification permission has
+        // been asked for, and the recap is where it is offered.
+        await saveReminder(reminderFromDraft(draft));
+      } catch {
+        // Nothing stored reads as off, which is what was meant anyway.
+      }
+      done(built);
       onConsumed();
     })();
   }, [draft, done, onConsumed]);
@@ -198,14 +211,15 @@ function SignedInRoot({
    * Did this learner finish onboarding a moment ago, in this launch?
    *
    * In memory, and deliberately never written to disk. It decides one thing:
-   * whether the navigator opens on the mission chooser instead of Home, so the
-   * first thing after signing up is choosing something to say rather than
-   * reading a summary of a level nobody has earned yet. A persisted flag would
-   * be one more piece of state that can get stuck; an app killed between the
-   * last onboarding tap and the first frame lands on Home, whose mission card
-   * leads to exactly the same screen.
+   * whether the navigator opens on the first scene's microphone primer, with
+   * Today behind it, so the first thing after signing up is the scene the plan
+   * promised. A persisted flag would be one more piece of state that can get
+   * stuck; an app killed between the last onboarding tap and the first frame
+   * lands on Today, whose Start leads to the same scene.
    */
   const [justOnboarded, setJustOnboarded] = useState(false);
+  /** Which scene the plan put first: the spine's first, less the opener for "I can get by". */
+  const firstScene = useRef<MissionId>(FIRST_MISSION);
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
   const pendingInvite = useRef<string | null>(null);
   const openPendingInvite = useCallback(() => {
@@ -296,15 +310,19 @@ function SignedInRoot({
    * complete, then replace the root exactly once. Native takes the same path
    * harmlessly, which keeps one first-run rule for both platforms.
    *
-   * A first run lands on Today (notebook redesign, 2026-09-27): Today leads with
-   * the next scene and its Start goes straight into it, so the ten-way chooser
-   * is no longer the first thing a new learner meets. It stays reachable from
-   * Speak's level path. This is deliberately a reset rather than a push, because
-   * a first run has no screen behind it.
+   * A first run opens on the first scene (notebook Phase 5): the microphone
+   * primer for the scene the plan put first, with Today behind it, so a back
+   * from the primer or the scene lands on Today rather than on nothing. The
+   * ten-way chooser is never the first thing a new learner meets; it stays
+   * reachable from Speak's level path. A reset rather than a push, because a
+   * first run has no screen behind it.
    */
   const openFirstRun = useCallback(() => {
     if (!justOnboarded || !navigationRef.isReady()) return;
-    navigationRef.resetRoot({ index: 0, routes: [{ name: 'Tabs' }] });
+    navigationRef.resetRoot({
+      index: 1,
+      routes: [{ name: 'Tabs' }, { name: 'FirstScene', params: { missionId: firstScene.current } }],
+    });
     setJustOnboarded(false);
   }, [justOnboarded, navigationRef]);
 
@@ -319,6 +337,7 @@ function SignedInRoot({
             draft={preAccountDraft}
             onConsumed={onPreAccountDraftConsumed}
             done={(profile) => {
+              firstScene.current = firstSceneFor(preAccountDraft.startLevel);
               setJustOnboarded(true);
               done(profile);
             }}
@@ -382,7 +401,6 @@ function SignedInRoot({
           <RootNavigator
             onSignOut={() => void auth.signOut()}
             onDeleteAccount={onDeleteAccount}
-            startOnMissions={justOnboarded}
           />
         </NavigationContainer>
       </LiveProvider>

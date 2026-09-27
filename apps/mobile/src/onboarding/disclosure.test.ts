@@ -45,6 +45,7 @@ import { guiltIn } from '../copy/guilt.ts';
 import { LEGAL_REVIEW_PENDING, privacyNote } from '../legal/company.ts';
 import { POLICY_SECTIONS } from '../legal/policy.ts';
 import { TUTOR_VOICES, tutorVoice, type TutorVoiceKey } from '@luvani/core';
+import { PRE_ACCOUNT_PAGES } from './preAccountDraft.ts';
 
 /** The eight personas a learner can be reading these pages as. */
 const EVERY_PERSONA = (Object.keys(TUTOR_VOICES) as TutorVoiceKey[]).map((key) => tutorVoice(key).persona);
@@ -557,5 +558,77 @@ describe('the first-run disclosure follows the chosen persona — F294', () => {
     // it is a page that greets Céline as Luc.
     assert.ok(!intro.includes('TUTOR_NAME'), 'the intro reads the default name instead of the chosen persona');
     assert.ok(intro.includes('tutorPersonaOf('), 'the intro stopped asking who this learner chose');
+  });
+});
+
+/**
+ * Consent order, Phase 5 (spine contract section 4; Apple 5.1.2(i)).
+ *
+ * Nothing reaches an AI service or the network before the save page is passed.
+ * Two halves: the page order puts the AI disclosure first and the consent
+ * switch last, and a walk over every module the pre-account flow can load, by
+ * value import from the screen outward, finds no live, sync, auth or analytics
+ * sender and no network primitive. All six pages live in the one screen file,
+ * so the walk covers pages one to five and the save page as well.
+ */
+describe('nothing reaches an AI service or the network before the save page is passed', () => {
+  test('the answer pages come after the disclosure, and the consent switch is on the last page', () => {
+    const pages: readonly string[] = PRE_ACCOUNT_PAGES;
+    const at = (page: string) => pages.indexOf(page);
+    assert.equal(pages[0], 'hear-it', 'the AI disclosure is not the first page');
+    for (const answer of ['first-line', 'start-level', 'reason']) {
+      assert.ok(at(answer) > at('hear-it'), `${answer} is asked before the learner is told the tutor is AI`);
+      assert.ok(at(answer) < at('plan'), `${answer} comes after the plan it shapes`);
+    }
+    assert.equal(pages.at(-1), 'save', 'the save page is not the last page before an account');
+
+    const screen = stripComments(read('onboarding/PreAccountOnboarding.tsx'));
+    const hear = screen.indexOf("page === 'hear-it' && (");
+    const save = screen.indexOf("page === 'save' && (");
+    assert.ok(hear > 0 && screen.indexOf('WELCOME_SUBLINE(persona)', hear) > hear, 'the first page does not say AI');
+    assert.equal((screen.match(/<SwitchRow/g) ?? []).length, 1);
+    assert.ok(screen.indexOf('<SwitchRow') > save, 'the usage-data switch is asked before the save page');
+    assert.match(screen, /onPress=\{\(\) => onCreateAccount\(draft\)\}/, 'the account is created from somewhere other than the save page pill');
+  });
+
+  test('pages one to five import no live or network module', () => {
+    const BANNED_PATH = /^(live|sync|auth|api|voice|conversationPacks|wall|billing|friends)\/|^analytics\/(track|consentStore)\.ts$|^app\//;
+    const BANNED_PACKAGE = /^(livekit-client|@livekit\/|@supabase\/|expo-notifications|react-native-purchases|expo-web-browser|expo-auth-session|@luvani\/brain)/;
+    const NETWORK = /\bfetch\(|\bWebSocket\b|\bXMLHttpRequest\b|\bEventSource\b|\btrackProductEvent\b|\bsendBeacon\b/;
+
+    const seen = new Set<string>();
+    const packages = new Set<string>();
+    const queue = ['onboarding/PreAccountOnboarding.tsx'];
+    while (queue.length > 0) {
+      const file = queue.shift()!;
+      if (seen.has(file)) continue;
+      seen.add(file);
+      const source = stripComments(read(file));
+      for (const match of source.matchAll(/^\s*import\s+(type\s+)?[\s\S]*?\s+from\s+'([^']+)';?/gm)) {
+        if (match[1]) continue; // a type import is erased and loads nothing
+        const spec = match[2]!;
+        if (!spec.startsWith('.')) {
+          packages.add(spec);
+          continue;
+        }
+        const base = fileURLToPath(new URL(spec, new URL(file, SRC)));
+        const found = [base, `${base}.ts`, `${base}.tsx`].find((p) => existsSync(p) && !p.endsWith('/'));
+        if (found === undefined || !/\.tsx?$/.test(found)) continue;
+        queue.push(found.slice(fileURLToPath(SRC).length));
+      }
+    }
+
+    assert.ok(seen.has('onboarding/preAccountDraft.ts') && seen.has('onboarding/plan.ts'), 'the walk did not reach the flow’s own modules');
+    for (const file of seen) {
+      assert.doesNotMatch(file, BANNED_PATH, `the pre-account flow loads ${file}`);
+      assert.doesNotMatch(stripComments(read(file)), NETWORK, `${file}, loaded before the save page is passed, can reach the network`);
+    }
+    for (const spec of packages) {
+      assert.doesNotMatch(spec, BANNED_PACKAGE, `the pre-account flow loads ${spec}`);
+    }
+    // And the device's permissions stay unasked until the first scene.
+    for (const file of seen) {
+      assert.doesNotMatch(read(file), /request\w*PermissionsAsync/, `${file} asks for a permission before an account exists`);
+    }
   });
 });

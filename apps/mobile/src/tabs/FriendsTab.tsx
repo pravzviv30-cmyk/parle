@@ -7,7 +7,15 @@ import { HAIRLINE, paper, space, type } from '../theme.ts';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { useSocial } from '../friends/useSocial.ts';
 import { rankedFriends, POINTS_EXPLANATION, REACTIONS } from '../friends/socialModel.ts';
-import { FRIENDS_PRIVACY_LINK, FRIENDS_START, FRIENDS_START_BODY, FRIENDS_START_TITLE, friendsEntry } from '../friends/friendsView.ts';
+import {
+  FRIENDS_NO_POINTS,
+  FRIENDS_PRIVACY_LINK,
+  FRIENDS_PURPOSE,
+  FRIENDS_START,
+  FRIENDS_START_BODY,
+  FRIENDS_START_TITLE,
+  friendsEntry,
+} from '../friends/friendsView.ts';
 
 export function FriendsTab() {
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
@@ -23,7 +31,7 @@ export function FriendsTab() {
     catch { setShareNote('The postcard could not be shared just now. Try again.'); }
   };
   return <ScrollScreen bottom="tab">
-    <TabHeader title="Friends" purpose="A little French, together." trailing={<ProfileButton />} />
+    <TabHeader title="Friends" purpose={FRIENDS_PURPOSE} trailing={<ProfileButton />} />
     {error !== '' && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{error}</Text><GhostButton label="Try again" onPress={refresh} /></Card>}
     {entry === 'loading' && !error && <Text style={[type.body, { color: paper.inkSoft }]}>Opening your circle…</Text>}
     {/* Before joining: one opt-in start, with privacy a quiet link beneath it
@@ -48,7 +56,7 @@ export function FriendsTab() {
         {!s.friends.length ? <><Text style={[type.body, { color: paper.ink }]}>Invite someone you know to start your weekly board.</Text><GhostButton label="Invite a friend" onPress={() => nav.navigate('AddFriends')} /></> : <View>{rows.map(person => <View key={person.id} style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(2), paddingVertical: space(3), borderTopWidth: HAIRLINE, borderTopColor: paper.line }}>
           <Text style={[type.heading, { color: paper.ink }]}>{person.points === 0 ? '·' : person.rank}</Text>
           <View style={{ flex: 1, minWidth: 90 }}><Text style={[type.bodyStrong, { color: paper.ink }]}>{person.id === s.self.id ? 'You' : person.name}</Text><Text style={[type.small, { color: paper.inkSoft }]}>@{person.username}</Text></View>
-          <Text style={[type.bodyStrong, { color: paper.ink }]}>{person.points ? `${person.points} points` : 'Ready when you are'}</Text>
+          <Text style={[type.bodyStrong, { color: paper.ink }]}>{person.points ? `${person.points} points` : FRIENDS_NO_POINTS}</Text>
         </View>)}</View>}
         {!s.settings.showScore && <Text style={[type.small, { color: paper.inkSoft }]}>Your score is private. You can still encourage friends and join challenges.</Text>}
       </Card>

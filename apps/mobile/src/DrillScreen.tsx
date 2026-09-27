@@ -60,7 +60,7 @@ import { HAIRLINE, HIT, font, paper, radius, signal, space, type } from './theme
 import { tapSettled } from './motion/haptics.ts';
 import { recordActivity } from './progress/activity.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
-import { Card, GhostButton, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, TintPanel, fitDisplay } from './components.tsx';
+import { Card, GhostButton, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, fitDisplay } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
 import { Art } from './art/Art.tsx';
 import { SCREEN_ART } from './art/maps.ts';
@@ -93,17 +93,6 @@ import {
   OWN_WORDS_LABEL,
   OWN_WORDS_PROMPT,
 } from './drill/ownWordsCopy.ts';
-
-/**
- * The paper under a word the learner is putting into a sentence.
- *
- * Named rather than reached for: the house lilac is the one tint a surface may
- * take when it is not about a place, which is the reading Transcript already
- * gives it for the learner's own bubble. A chip here holds the learner's own
- * words a moment before they say them, so it is the same paper for the same
- * reason, and the hex stays where `palette.test.ts` keeps it.
- */
-const WORD_TINT = 'lilac';
 
 /** How long a feedback line holds the floor before the next exercise deals. */
 const FEEDBACK_MS = 1600;
@@ -172,16 +161,15 @@ function verdictColor(verdict: SettledVerdict): string {
 // and fill-blank options are bare words by authored design.
 
 /**
- * A single-word option, as a chip on the house lilac.
+ * A single-word option, as a chip.
  *
  * It was a full-width row with a chevron, which read as navigation: four doors
  * stacked down the screen rather than four words to choose between. Revamp A
  * draws the bare-word options as chips in the tap-translate pool's anatomy,
- * because they are the same thing — a word you put into a sentence.
+ * because they are the same thing: a word you put into a sentence.
  *
- * `TintPanel` lays the paper, because a screen names a tint and never a colour
- * (palette.test.ts), and the press is an opacity step rather than a second
- * paper: there is exactly one tint under one surface.
+ * Notebook Phase 4 (2026-09-27): the chip is plain white paper under a paper
+ * hairline, with no tint, and the press is an opacity step.
  */
 function WordChoice({ word, onPress, locked }: { word: string; onPress: () => void; locked: boolean }) {
   return (
@@ -192,9 +180,9 @@ function WordChoice({ word, onPress, locked }: { word: string; onPress: () => vo
       accessibilityLabel={word}
       style={({ pressed }) => pressed && ds.chipPressed}
     >
-      <TintPanel tint={WORD_TINT} style={ds.choice}>
+      <View style={ds.choice}>
         <Text style={[type.french, { color: paper.ink }]}>{word}</Text>
-      </TintPanel>
+      </View>
     </Pressable>
   );
 }
@@ -433,9 +421,9 @@ function TapTranslateView({
               accessibilityState={{ disabled: used }}
               style={({ pressed }) => pressed && !used && ds.chipPressed}
             >
-              <TintPanel tint={WORD_TINT} style={[ds.token, used && ds.tokenUsed]}>
+              <View style={[ds.token, used && ds.tokenUsed]}>
                 <Text style={[type.french, { color: used ? paper.inkSoft : paper.ink }]}>{token}</Text>
-              </TintPanel>
+              </View>
             </Pressable>
           );
         })}
@@ -750,7 +738,7 @@ function OwnWordsView({
 }) {
   return (
     <View style={{ gap: space(4) }}>
-      <Card tone="feature" style={ds.promptCard}>
+      <Card style={ds.promptCard}>
         <Label>{kindTag(exercise)}</Label>
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{exercise.situation}</Text>
         <Text style={[type.title, { color: paper.ink, marginTop: space(5), marginBottom: space(5) }]}>{exercise.en}</Text>
@@ -1631,8 +1619,7 @@ export function DrillScreen({
               {/* No mark on a miss, and that is the rule rather than an
                   oversight: a mid-session message may not scold, and a drawing
                   scolds louder than a word. A miss keeps the line it always
-                  had, alone. The mark unmounts between beats, so its arrival
-                  replays on every verdict without a key to force it. */}
+                  had, alone. The mark is still and unmounts between beats. */}
               {feedback.verdict !== 'miss' && <RewardMark size={26} kind={feedback.verdict} />}
               <Text style={[type.bodyStrong, { color: verdictColor(feedback.verdict), textAlign: 'center' }]}>
                 {feedback.message}
@@ -1709,12 +1696,15 @@ const ds = StyleSheet.create({
   exCard: { alignItems: 'center', minHeight: 220, justifyContent: 'center', borderTopWidth: 5 },
   promptCard: { minHeight: 260, justifyContent: 'space-between' },
 
-  // The chip anatomy, for choices that are bare words. The paper comes from
-  // TintPanel, so nothing here names a colour.
+  // The chip anatomy, for choices that are bare words: white paper under a
+  // paper hairline, the notebook's one surface, with no tint.
   choice: {
     minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
     borderRadius: radius.chip,
     paddingVertical: space(2),
     paddingHorizontal: space(3.5),
@@ -1771,6 +1761,9 @@ const ds = StyleSheet.create({
     minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
     borderRadius: radius.chip,
     paddingVertical: space(2),
     paddingHorizontal: space(3),
@@ -1785,8 +1778,10 @@ const ds = StyleSheet.create({
     justifyContent: 'center',
     gap: space(2.5),
     backgroundColor: paper.card,
-    borderWidth: 1.5,
-    borderColor: paper.ink,
+    // A paper hairline, not an ink outline (notebook Phase 4, 2026-09-27):
+    // the ink is kept for the one primary pill.
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
     borderRadius: radius.pill,
     paddingHorizontal: space(5),
   },

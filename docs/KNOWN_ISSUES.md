@@ -7160,7 +7160,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   nothing stops the last one when the learner leaves. That is F304 on a different surface, and
   it is filed rather than merely fixed because four components on this tab can start a voice
   and a fifth could be added without thinking about it. The source walk holds all of them.
+- note: notebook redesign (2026-09-27): the Phase 3 review found the claim reopened. The phrase bank
+  and Practice's recording stopped only on unmount, and tabs stay mounted, so a voice outlived a tab
+  switch; a stopped recording could also start after its load finished. Both now stop on focus loss
+  and on backgrounding, a load that was stopped never plays, and the new test fails if leaving does
+  not stop playback.
 - verified-by: `anything that starts a voice also stops one when it goes, and says what it will play`
+- verified-by: `leaving the tab or the app stops a voice or a recording that My French or Practice started`
+- verified-by: `a recording stopped before it finished loading never starts`
 - verified-by: `nothing here listens, records or scores`
 
 ### F471 — An opted-out learner emits nothing, and a learner who was never asked is opted out

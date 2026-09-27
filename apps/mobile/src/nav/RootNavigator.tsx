@@ -20,7 +20,8 @@ import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation, type RouteProp, useRoute } from '@react-navigation/native';
-import { CAFE_LESSON, lessonXp, type ProgressReport, type Rung, type SessionSummary, type ReviewCard } from '@luvani/core';
+import { CAFE_LESSON, FIRST_MISSION, getMission, lessonXp, type MissionId, type ProgressReport, type Rung, type SessionSummary, type ReviewCard } from '@luvani/core';
+import { FirstSceneScreen } from '../onboarding/FirstSceneScreen.tsx';
 import { loadDeck } from '../review/store.ts';
 import { paper, space, type } from '../theme.ts';
 import { GhostButton, Label, PillButton } from '../components.tsx';
@@ -115,6 +116,26 @@ function backOrTabs(nav: {
 }, tab?: keyof TabParamList): void {
   if (nav.canGoBack()) nav.goBack();
   else nav.navigate('Tabs', tab === undefined ? undefined : { screen: tab });
+}
+
+/**
+ * A brand-new learner's first scene, behind the microphone primer (notebook
+ * Phase 5). App.tsx resets the root onto Today with this above it. The primer
+ * replaces itself with the ordinary conversation route, so a back from the
+ * scene lands on Today and nothing in the live session is special-cased.
+ */
+function FirstSceneRoute() {
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'FirstScene'>>();
+  const raw = route.params?.missionId;
+  const missionId: MissionId = typeof raw === 'string' && getMission(raw as MissionId) !== undefined ? (raw as MissionId) : FIRST_MISSION;
+  return (
+    <FirstSceneScreen
+      missionId={missionId}
+      onStart={(textMode) => nav.replace('Convo', { missionId, textMode })}
+      onBack={() => backOrTabs(nav)}
+    />
+  );
 }
 
 /** The guided lesson, and the end card it finishes on. */
@@ -610,14 +631,6 @@ export function RootNavigator({
 }: {
   onSignOut: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
-  /**
-   * Retired as a route decision 2026-09-27 (notebook Phase 3): a learner who
-   * finished onboarding a second ago lands on Today, whose one Start goes
-   * straight into the next scene. The chooser stays a stack screen, reached
-   * from Speak's path rows. Still accepted so App.tsx typechecks until its
-   * post-onboarding `resetRoot` to Missions is retired with it.
-   */
-  startOnMissions?: boolean;
 }) {
   return (
     <Stack.Navigator
@@ -657,6 +670,7 @@ export function RootNavigator({
       <Stack.Screen name="SoundJourney" component={SoundJourneyScreen} />
       <Stack.Screen name="GoalStep" component={GoalStepScreen} />
       <Stack.Screen name="Missions" component={MissionsScreen} />
+      <Stack.Screen name="FirstScene" component={FirstSceneRoute} />
       <Stack.Screen name="RealMoment" component={RealMomentRoute} />
       <Stack.Screen name="TutorMemory" component={TutorMemoryRoute} />
       <Stack.Screen name="TutorIntro" component={TutorIntroRoute} />

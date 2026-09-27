@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { PanResponder, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { Card } from '../components.tsx';
-import { accent, HIT, paper, radius, space, type } from '../theme.ts';
+import { HAIRLINE, HIT, paper, radius, space, type } from '../theme.ts';
 import { DailyCard } from './DailyCard.tsx';
 import type { DailyItem } from './catalogue.ts';
 import { DAILY_TABS, horizontalSwipe, swipedCard } from './carousel.ts';
@@ -41,5 +41,7 @@ const s = StyleSheet.create({
   head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space(1) },
   pills: { flexDirection: 'row', marginLeft: 'auto', gap: space(1) },
   pill: { minHeight: HIT, minWidth: HIT, paddingHorizontal: space(2), justifyContent: 'center', alignItems: 'center', borderRadius: radius.pill, backgroundColor: paper.groundDeep },
-  selected: { backgroundColor: accent.feature },
+  // Notebook Phase 4 (2026-09-27): the segmented control's own anatomy, a white
+  // segment on the paper track, so a chosen pill never takes the highlighter.
+  selected: { backgroundColor: paper.card, borderWidth: HAIRLINE, borderColor: paper.line },
 });

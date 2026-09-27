@@ -44,7 +44,7 @@ import { Card, Label } from '../components.tsx';
 import { SpeakerGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import * as tutorVoice from '../speech/tutorVoice.ts';
-import { accent, paper, radius, shadow, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { accent, paper, radius, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
 import { CadenceCard } from '../myfrench/CadenceCard.tsx';
@@ -223,7 +223,9 @@ function PhraseRow({
 const st = StyleSheet.create({
   // The title and the scene share a row, both sitting on the same baseline, so
   // the drawing reads as part of the heading rather than as a banner over it.
-  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(3), marginTop: space(2), padding: space(4), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
+  // On the page itself (notebook Phase 4, 2026-09-27): no feature paper and no
+  // ink outline, so the heading is a heading rather than a panel.
+  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(3), marginTop: space(2) },
   title: { ...type.display, color: paper.ink, flexGrow: 1, flexBasis: 160, minWidth: 0 },
   // Placement only. The size is the registry's, never a number written here.
   art: { flexShrink: 0 },
@@ -240,17 +242,18 @@ const st = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
   ruled: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
   words: { flex: 1, minWidth: 0 },
-  // The identity violet on a white disc with the one shadow a card is allowed,
-  // which is what makes it read as a button on a white card. It is the thing
-  // you press, not a state being reported.
+  // The ink speaker on a white disc under a paper hairline, which is what makes
+  // it read as a button on a white card now the whisper has retired. It is the
+  // thing you press, not a state being reported.
   speaker: {
     width: HIT,
     height: HIT,
     borderRadius: HIT / 2,
     backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow.whisper,
   },
   speakerPressed: { backgroundColor: paper.groundDeep },
 });

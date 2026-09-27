@@ -60,6 +60,15 @@ export function levelLine(level: 'A0' | 'A1'): string {
   return `You are working in ${level}.`;
 }
 
+/**
+ * What the phrase control says to a screen reader: what it will play and whose
+ * voice it is at rest, and Stop while it plays, so the name matches the word
+ * on the button (Phase 3 review, 2026-09-27).
+ */
+export function phraseControlLabel(fr: string, voice: string, playing: boolean): string {
+  return playing ? `${NOTEBOOK.stop} ${fr}` : `${NOTEBOOK.hear} ${fr}. ${voice}`;
+}
+
 /** Every line this module can say, for the copy sweeps. */
 export const NOTEBOOK_COPY: readonly string[] = [...Object.values(NOTEBOOK), levelLine('A0'), levelLine('A1')];
 

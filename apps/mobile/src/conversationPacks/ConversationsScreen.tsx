@@ -35,10 +35,9 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type ConversationPack, type ReviewCard } from '@luvani/core';
 
-import { Card, Label, OutlineButton } from '../components.tsx';
+import { Card, Label, Ledger, LedgerRow, OutlineButton } from '../components.tsx';
 import { ChatGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { IconRowCard } from '../surface/IconRowCard.tsx';
 import { accent, paper, space, type } from '../theme.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
@@ -254,13 +253,15 @@ export function ConversationsScreen({
 
       {packs.length > 0 && (
         <View style={st.block}>
-          <IconRowCard
-            glyph={<ChatGlyph color={accent.primary} />}
-            label={LIBRARY_LABEL}
-            line={LIBRARY_LINE}
-            accessibilityLabel={libraryDoorLabel()}
-            onPress={() => setShowingLibrary(true)}
-          />
+          <Ledger>
+            <LedgerRow
+              glyph={<ChatGlyph color={accent.primary} />}
+              label={LIBRARY_LABEL}
+              title={LIBRARY_LINE}
+              accessibilityLabel={libraryDoorLabel()}
+              onPress={() => setShowingLibrary(true)}
+            />
+          </Ledger>
         </View>
       )}
     </ScrollScreen>

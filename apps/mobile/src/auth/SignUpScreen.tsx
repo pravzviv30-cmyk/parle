@@ -135,10 +135,10 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
     >
       {/* A compact feature heading keeps the form close to its introduction. */}
       <View style={st.head}>
-        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Create your account</Text>
+        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>One last step</Text>
       </View>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
-        Your progress, your phrases, and your tutor's memory live here.
+        An account keeps your plan, your lines and what your tutor remembers.
       </Text>
 
       <View style={{ gap: space(4), marginTop: space(6) }}>

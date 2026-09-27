@@ -312,9 +312,8 @@ export function ProfileTab() {
         <Label>{TUTOR_LABEL}</Label>
         <TutorMemoryCard onVoice={() => setSheet('tutorVoice')} />
 
-        {/* The week, Monday to Sunday, in the one tint that means a rhythm. It
-            names no number and sets no target: the card says the week in a
-            sentence to anyone who cannot see the marks. */}
+        {/* The week, Monday to Sunday, said in one plain sentence (notebook
+            Phase 4). It names no number and sets no target. */}
         <View style={st.group}>
           <Label>{RHYTHM_LABEL}</Label>
           <FrenchLifeCard />

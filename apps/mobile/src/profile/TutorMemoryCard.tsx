@@ -28,7 +28,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import { Card, ChevronRight } from '../components.tsx';
 import { ChatGlyph } from '../glyphs.tsx';
-import { accent, paper, radius, space, type, DISC, HAIRLINE, HIT } from '../theme.ts';
+import { accent, decorative, paper, radius, space, type, DISC, HAIRLINE, HIT } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { tapSettled } from '../motion/haptics.ts';
 import { TutorMark } from '../tutor/TutorMark.tsx';
@@ -85,7 +85,7 @@ export function TutorMemoryCard({ onVoice }: { onVoice: () => void }) {
       <TutorRow first mark={<TutorMark />} title={name} gloss={PARTNER_LINE} onPress={onVoice} />
       <TutorRow
         mark={
-          <View style={st.disc}>
+          <View style={st.glyph} {...decorative}>
             <ChatGlyph color={accent.primary} />
           </View>
         }
@@ -103,14 +103,10 @@ const st = StyleSheet.create({
   divided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
   pressed: { backgroundColor: paper.groundDeep, borderRadius: radius.row },
   words: { flex: 1, minWidth: 0 },
-  // The ground under the glyph, because a white disc on a white card is no
-  // disc at all. `TutorMark` brings its own, since the orb is drawn on white
-  // wherever it appears.
-  disc: {
+  // An ink glyph with no disc under it (notebook Phase 4, 2026-09-27), kept at
+  // the orb's width so the two titles start on one line.
+  glyph: {
     width: DISC,
-    height: DISC,
-    borderRadius: DISC / 2,
-    backgroundColor: paper.ground,
     alignItems: 'center',
     justifyContent: 'center',
   },

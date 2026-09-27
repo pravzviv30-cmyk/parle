@@ -152,7 +152,7 @@ export function SoundCheckScreen({
       footer={noCheck || phase === 'result' ? <PillButton label="Done" onPress={onDone} /> : null}
     >
       {noCheck && missionId === null ? (
-        <Card tone="feature">
+        <Card>
           <Text style={[type.title, { color: paper.ink }]}>Choose a situation first.</Text>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
             A sound check uses the known lines from one situation, so it needs to know which one.
@@ -164,7 +164,7 @@ export function SoundCheckScreen({
           )}
         </Card>
       ) : noCheck ? (
-        <Card tone="feature">
+        <Card>
           <Text style={[type.title, { color: paper.ink }]}>No sound check for this situation yet.</Text>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>The conversation and its practice still count.</Text>
         </Card>

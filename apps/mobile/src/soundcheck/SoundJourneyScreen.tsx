@@ -18,7 +18,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { getMission } from '@luvani/core';
 
-import { Card, GhostButton, Label, TintRow } from '../components.tsx';
+import { Card, GhostButton, Label, Ledger, LedgerRow } from '../components.tsx';
 import { WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { accent, HIT, paper, space, type } from '../theme.ts';
@@ -122,13 +122,14 @@ export function SoundJourneyScreen() {
                   <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{situationName(line.missionId)}</Text>
                   {line.clearAt !== null && <Text style={[type.small, { color: paper.ink, marginTop: space(2) }]}>{JOURNEY_COPY.lineClear}</Text>}
                 </Card>
-                <TintRow
-                  tint="sky"
-                  glyph={<WaveformGlyph color={accent.primary} />}
-                  title={againLabel(line, checks)}
-                  gloss={situationName(line.missionId)}
-                  onPress={() => nav.navigate('SoundCheck', { missionId: line.missionId })}
-                />
+                <Ledger>
+                  <LedgerRow
+                    glyph={<WaveformGlyph color={accent.primary} />}
+                    title={againLabel(line, checks)}
+                    gloss={situationName(line.missionId)}
+                    onPress={() => nav.navigate('SoundCheck', { missionId: line.missionId })}
+                  />
+                </Ledger>
               </View>
             ))}
           </View>

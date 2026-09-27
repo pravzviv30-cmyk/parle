@@ -3,8 +3,9 @@
  *
  * A voice, an age confirmation and the usage-data answer are enough to make the
  * account-creation hand-off personal without turning an unsigned device into a
- * second profile store.  There is deliberately no name, transcript, audio, or
- * free-form answer here.  Once an account exists the draft is folded into that
+ * second profile store.  There is deliberately no transcript, audio, or
+ * free-form answer here, and the one typed value, an optional first name, is
+ * bounded and stays on the device.  Once an account exists the draft is folded into that
  * account's normal, user-scoped profile and this key is cleared.
  *
  * ## The consent rides here, and the version does not move
@@ -21,12 +22,44 @@
  * The durable copy is `analytics/consentStore.ts` under the signed-in account.
  * This is a hand-off, not a second authority, and it is cleared with the rest of
  * the draft once the profile exists.
+ *
+ * ## The plan answers ride here too (notebook Phase 5, spine contract section 3)
+ *
+ * The three one-tap answers, the minutes and reminder time chosen on the plan,
+ * the page the learner is on, and an optional first name typed on the save
+ * page. Still version 1: every new field is optional on disk, and anything a
+ * disk can hand back that is not one of this build's values repairs to null,
+ * which reads as "not answered yet". Nothing here leaves the device before an
+ * account exists; `onboarding/createFromDraft.ts` writes it into the account's
+ * own stores at creation, and the draft is then cleared.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DEFAULT_TUTOR_VOICE, isTutorVoiceKey, type TutorVoiceKey } from '@luvani/core';
+import { REMINDER_TIMES, type ReminderTimeId } from '../reminders/reminder.ts';
 
 const KEY = '@luvani/pre-account-onboarding/v1';
+
+/**
+ * The six pages before an account, in the order a learner meets them. The AI
+ * disclosure is on the first, the answers follow it, and the consent switch is
+ * on the last (spine contract section 4). Held here because the draft resumes
+ * on one of them.
+ */
+export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'plan', 'save'] as const;
+export type PreAccountPage = (typeof PRE_ACCOUNT_PAGES)[number];
+
+export const START_LEVEL_KEYS = ['zero', 'few', 'getby'] as const;
+export type StartLevel = (typeof START_LEVEL_KEYS)[number];
+
+export const REASON_KEYS = ['trip', 'family', 'moving', 'work', 'because'] as const;
+export type Reason = (typeof REASON_KEYS)[number];
+
+export const PLAN_MINUTES = [5, 10, 15] as const;
+export type PlanMinutes = (typeof PLAN_MINUTES)[number];
+
+/** A first name, not a biography: long enough for any name, short enough for a greeting. */
+export const MAX_FIRST_NAME_CHARS = 40;
 
 export interface PreAccountOnboardingDraft {
   version: 1;
@@ -40,10 +73,49 @@ export interface PreAccountOnboardingDraft {
    * every draft written before the question existed.
    */
   analyticsConsent: boolean;
+  /** Where the learner was, so leaving and coming back resumes there. */
+  page: PreAccountPage | null;
+  startLevel: StartLevel | null;
+  reason: Reason | null;
+  /** Null until changed on the plan; the plan shows the preset until then. */
+  minutes: PlanMinutes | null;
+  reminderTime: ReminderTimeId | null;
+  /** Optional, typed on the save page. Never sent anywhere before an account exists. */
+  firstName: string | null;
 }
 
 export function freshPreAccountDraft(): PreAccountOnboardingDraft {
-  return { version: 1, ageConfirmed: true, tutorVoice: DEFAULT_TUTOR_VOICE, analyticsConsent: false };
+  return {
+    version: 1,
+    ageConfirmed: true,
+    tutorVoice: DEFAULT_TUTOR_VOICE,
+    analyticsConsent: false,
+    page: null,
+    startLevel: null,
+    reason: null,
+    minutes: null,
+    reminderTime: null,
+    firstName: null,
+  };
+}
+
+/** One of `allowed`, or null: the whole repair rule for a closed answer. */
+function oneOf<T>(allowed: readonly T[], value: unknown): T | null {
+  return allowed.includes(value as T) ? (value as T) : null;
+}
+
+/**
+ * A first name as the draft keeps it: trimmed, one line, no control characters,
+ * and within the bound, or null. An over-long value is refused rather than cut,
+ * because a cut name is a name nobody typed.
+ */
+export function firstNameFrom(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > MAX_FIRST_NAME_CHARS) return null;
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(trimmed)) return null;
+  return trimmed;
 }
 
 /** The two answers that decide whether a draft is a draft at all. */
@@ -77,6 +149,17 @@ function repaired(value: object): PreAccountOnboardingDraft {
     // rather than be asked every question again.
     tutorVoice: isTutorVoiceKey(draft.tutorVoice) ? draft.tutorVoice : DEFAULT_TUTOR_VOICE,
     analyticsConsent: (value as { analyticsConsent?: unknown }).analyticsConsent === true,
+    // Every plan answer is optional on disk: a draft from before these pages
+    // existed, or one with junk in a slot, reads as not answered yet.
+    page: oneOf(PRE_ACCOUNT_PAGES, (value as { page?: unknown }).page),
+    startLevel: oneOf(START_LEVEL_KEYS, (value as { startLevel?: unknown }).startLevel),
+    reason: oneOf(REASON_KEYS, (value as { reason?: unknown }).reason),
+    minutes: oneOf(PLAN_MINUTES, (value as { minutes?: unknown }).minutes),
+    reminderTime: oneOf(
+      REMINDER_TIMES.map((time) => time.value),
+      (value as { reminderTime?: unknown }).reminderTime,
+    ),
+    firstName: firstNameFrom((value as { firstName?: unknown }).firstName),
   };
 }
 
@@ -106,7 +189,7 @@ export async function clearPreAccountDraft(): Promise<void> {
   try {
     await AsyncStorage.removeItem(KEY);
   } catch {
-    // It contains only a voice choice and a confirmation, and the account now
-    // owns the durable copy. A later launch will safely try to clear it again.
+    // It holds only the first-run answers, and the account now owns the
+    // durable copy. A later launch will safely try to clear it again.
   }
 }

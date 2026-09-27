@@ -41,7 +41,7 @@ export function InviteFriendsScreen() {
   const size = code ? Math.sqrt(code.length) : 0;
   return <ScrollScreen bottom="inset" header={<ScreenHeader title="Add friends" back={{ onPress: goBack }} />}>
     {error !== '' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{error}</Text>}
-    {s && !s.settings.enabled ? <Card tone="feature"><Text style={[type.title, { color: paper.ink }]}>Choose your username</Text>
+    {s && !s.settings.enabled ? <Card><Text style={[type.title, { color: paper.ink }]}>Choose your username</Text>
       <Text style={[type.body, { color: paper.inkSoft }]}>Only accepted friends can see your weekly score. Milestone sharing starts off. You can leave at any time.</Text>
       <Field value={username} onChangeText={setUsername} placeholder="Your username" autoCapitalize="none" maxLength={24} />
       <OutlineButton label={busy ? 'Setting up…' : 'Join Friends'} disabled={busy} onPress={() => void act('enrol', { username: username.trim().toLowerCase(), name: profile.name ?? 'Learner' })} />

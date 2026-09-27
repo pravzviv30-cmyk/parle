@@ -269,13 +269,15 @@ describe('only the orb and the highlighter move', () => {
   // file), the DailyCard entrance and the Speak tab's settle-in entrance were
   // removed, so daily/DailyCard.tsx, home/useGreetingRotation.ts and
   // tabs/TutorTab.tsx came off this list. It may only shrink.
+  // 2026-09-27, notebook Phase 4 (B2): RewardMark is a still mark beside the
+  // drill verdict, so illustrations/scenes/reward.tsx came off this list; and
+  // the rebuilt onboarding (Phase 5) no longer animates, so
+  // onboarding/PreAccountOnboarding.tsx came off it too.
   const PENDING = [
     'ConvoScreen.tsx',
     join('illustrations', 'pen.tsx'),
-    join('illustrations', 'scenes', 'reward.tsx'),
     join('illustrations', 'useSceneMotion.ts'),
     'layout.tsx',
-    join('onboarding', 'PreAccountOnboarding.tsx'),
     join('tutor', 'Transcript.tsx'),
   ];
 
