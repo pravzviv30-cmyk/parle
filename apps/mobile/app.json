@@ -4,7 +4,7 @@
     "slug": "luvani",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/brand/luvani-app-icon-1024.png",
     "scheme": "luvani",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -22,9 +22,8 @@
       "package": "com.luvani.app",
       "adaptiveIcon": {
         "backgroundColor": "#F7F3E8",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/brand/luvani-adaptive-foreground-1024.png",
+        "monochromeImage": "./assets/brand/luvani-adaptive-monochrome-1024.png"
       },
       "permissions": [
         "android.permission.RECORD_AUDIO",
@@ -33,7 +32,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/brand/luvani-app-icon-1024.png",
       "bundler": "metro"
     },
     "plugins": [
@@ -48,7 +47,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F7F3E8"
+          "backgroundColor": "#F7F3E8",
+          "image": "./assets/brand/luvani-mark-1024.png",
+          "imageWidth": 200
         }
       ],
       "expo-notifications"
