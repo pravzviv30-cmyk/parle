@@ -47,7 +47,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../nav/types.ts';
 import { paper, space, type } from '../theme.ts';
 import { Card, Label, Monogram, OptionCard, OutlineButton, Field } from '../components.tsx';
 import { ScrollScreen, ScreenHeader, TabHeader } from '../layout.tsx';
@@ -105,9 +107,18 @@ type Sheet = 'none' | 'name' | 'tutorVoice';
 
 export function ProfileTab() {
   const goBack = useBackToHome();
-  const nav = useNavigation<{ navigate: (screen: string, params?: object) => void; goBack: () => void }>();
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Profile'>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Profile'>>();
   const { profile, update } = useProfile();
-  const [sheet, setSheet] = useState<Sheet>('none');
+  const [sheet, setSheet] = useState<Sheet>(route.params?.sheet === 'tutorVoice' ? 'tutorVoice' : 'none');
+
+  // Consume this one-shot request, including when Profile is already mounted.
+  // Closing the sheet must not leave a request that reopens it on the next visit.
+  useEffect(() => {
+    if (route.params?.sheet !== 'tutorVoice') return;
+    setSheet(route.params.sheet);
+    nav.setParams({ sheet: undefined });
+  }, [nav, route.params?.sheet]);
   const [draftName, setDraftName] = useState(profile.name ?? '');
 
   /**

@@ -175,16 +175,13 @@ French line, the `LevelPath` "you are here" stop, and the brand mark (an SVG in
 `assets/brand/`). At most one per screen, always under ink, and never the
 ground of a panel, tile, avatar, tab, title, card or button.
 
-`accent.feature` is a deprecated alias that resolves to the card, so every
-panel, tile, avatar and tab that still names it turned to plain paper at once,
-without a screen edit. `palette.test.ts` holds the list of screens still
-spelling it and lets it only shrink; no primitive may be on it.
+`accent.feature` is retired. `palette.test.ts` refuses the alias in the palette
+and any use in production source, with no transitional allowances.
 
 | Token | Value | Role |
 |---|---|---|
 | `accent.primary` | `#182019` | The one ink pill |
 | `accent.label` | `#182019` | Micro-labels — the caps line above a card |
-| `accent.feature` | `#FFFEFA` | Deprecated alias for the card; retires with its last screen |
 | `highlight` | `#D8FF54` | The highlighter: a band behind a French line, the "you are here" stop, the brand mark |
 
 Ink clears 14.6 on the highlighter and soft ink 6.4; the highlighter stays a
@@ -304,13 +301,11 @@ One. **The live glow** is the green halo under `SpeakCircle` while the
 microphone is open, the one shadow that reports something. Nothing else in the
 notebook floats: a card is told from the page by its paper hairline alone.
 
-**The whisper is retired.** `shadow.whisper` stays in `theme.ts` as an inert
-alias (offset, opacity, radius and elevation all zero, colour still the ink
-token) so the five screens that still spread it render flat until Phase 4
-deletes the spreads. `theme.test.ts` holds it at zero, `Card` and the phrase
-card's speaker spread nothing, and `surfaceContract.test.ts` fails on a
-`shadowOpacity` or an `elevation` written anywhere outside `theme.ts` and the
-glow, and on any new file spreading the alias.
+**The whisper is deleted.** The theme exports no shadow token. `theme.test.ts`
+refuses the retired alias, and `surfaceContract.test.ts` refuses shadow styles
+anywhere outside the live microphone glow. There are no pending callers or
+theme exceptions. Cards are never nested, and each screen file may host at
+most one `Highlight` or `LevelPath` highlighter.
 
 ## Type
 

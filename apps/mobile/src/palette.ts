@@ -39,12 +39,6 @@ export const accent = {
   primary: '#182019',
   /** Micro-labels — the caps line above a card. The same ink as primary. */
   label: '#182019',
-  /**
-   * Deprecated: resolves to the card. The chartreuse left this name for
-   * `highlight`, so every panel, tile, avatar and tab still spelling
-   * `accent.feature` turns to plain paper until its screen is rebuilt.
-   */
-  feature: paper.card,
 } as const;
 
 /**

@@ -283,17 +283,12 @@ describe('a tint is paper under ink art, never a mark — F362', () => {
     }
   });
 
-  test('feature paper carries dark text and remains distinct from voice states', () => {
-    // 2026-09-27, notebook Phase 1: the chartreuse left `accent.feature` for the
-    // `highlight` token, and the old name is a deprecated alias for the card, so
-    // every panel, tile, avatar and tab still spelling it turns to paper at once.
-    // The floors below held on the chartreuse and are held on it again, under its
-    // new name, in the highlighter suite; here they are kept for the alias too.
-    assert.equal(accent.feature, paper.card, 'accent.feature is no longer the deprecated alias for the card');
-    assert.ok(contrast(INK, accent.feature) >= 7);
-    assert.ok(contrast(paper.inkSoft, accent.feature) >= TEXT);
+  test('the retired feature alias is absent from the palette', () => {
+    assert.ok(!Object.hasOwn(accent, 'feature'), 'the retired accent.feature alias must not return');
+    assert.ok(contrast(INK, paper.card) >= 7);
+    assert.ok(contrast(paper.inkSoft, paper.card) >= TEXT);
     assert.ok(contrast(accent.primary, paper.onInk) >= TEXT);
-    for (const value of Object.values(orb)) assert.ok(deltaE(accent.feature, value) >= APART);
+    for (const value of Object.values(orb)) assert.ok(deltaE(paper.card, value) >= APART);
   });
 
   test('inkSoft clears 4.5 on every tint', () => {
@@ -526,31 +521,14 @@ describe('one highlighter — notebook Phase 1', () => {
     assert.ok(uses >= 2, 'neither host draws the highlighter, so this walk is guarding nothing');
   });
 
-  test('no primitive spells the deprecated accent.feature, and no new screen starts to', () => {
-    // Pending, Phase 4: every file below still names the alias and draws paper
-    // through it. The list may only shrink; a primitive may never be on it.
-    // 2026-09-27, notebook Phase 4 (B2): daily/DailyCarousel.tsx,
-    // phrases/PhrasebookScreen.tsx and profile/ProfileButton.tsx came off it.
-    // 2026-09-27, notebook Phase 6-E: wall/WallPlansPage.tsx came off it; the
-    // chosen plan is said in ink now.
-    // 2026-09-27, notebook Phase 4 (B1): ConvoScreen, RecapScreen, SummaryScreen,
-    // the two auth screens, AgeGateScreen, OnboardingFlow and TutorIntro came off it.
-    const PENDING = new Set([
-      'nav/tabSurface.ts',
-    ]);
-    const spelling = new Set<string>();
+  test('no source uses the retired accent.feature alias', () => {
+    const retired = /\baccent\s*(?:\.\s*feature\b|\[\s*['"]feature['"]\s*\])/;
+    for (const spelling of ['accent.feature', "accent['feature']", 'accent [ "feature" ]']) assert.match(spelling, retired);
     for (const file of walk(SRC)) {
       if (/\.test\.tsx?$/.test(file)) continue;
       const rel = file.slice(SRC.length);
       const body = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-      if (!/\baccent\.feature\b/.test(body)) continue;
-      spelling.add(rel);
-      assert.ok(PENDING.has(rel), `${rel} spells accent.feature; the chartreuse is the highlighter now and the alias is only for screens not yet rebuilt`);
-    }
-    // 2026-09-27, Phase 3: the list may only shrink, so an entry whose file no longer spells the alias (or
-    // no longer exists) fails here instead of lingering as a standing allowance.
-    for (const rel of PENDING) {
-      assert.ok(spelling.has(rel), `${rel} no longer spells accent.feature; take it off the pending list`);
+      assert.doesNotMatch(body, retired, `${rel} uses the retired feature alias`);
     }
   });
 });

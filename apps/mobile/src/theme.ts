@@ -110,23 +110,6 @@ export const radius = {
   pill: 999,
 } as const;
 
-/**
- * Retired. The whisper was one soft shadow under a white card; the notebook has
- * no shadow except the live microphone's glow in `SpeakCircle`. This inert alias
- * draws nothing and stays only so the screens still spreading it render flat
- * until they are rebuilt. Its colour is still the ink token, so no raw hex
- * enters this file.
- */
-export const shadow = {
-  whisper: {
-    shadowColor: paper.ink,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
-  },
-} as const;
-
 /** The white disc that holds a glyph inside a tinted row. */
 export const DISC = 44;
 

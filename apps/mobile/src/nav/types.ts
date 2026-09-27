@@ -25,7 +25,7 @@ export type TabParamList = {
 };
 
 export type RootStackParamList = {
-  Profile: undefined;
+  Profile: { sheet?: 'tutorVoice' } | undefined;
   AddFriends: { username?: string } | undefined;
   SocialSettings: undefined;
   DailyPractice: { id: string };

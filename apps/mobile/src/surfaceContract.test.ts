@@ -15,6 +15,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import ts from 'typescript';
 import { PAGES } from './onboarding/answers.ts';
 import { FIRST_RUN_SURFACES } from './onboarding/disclosure.ts';
 import { MORE_WAYS, startModes } from './tutor/speakView.ts';
@@ -153,16 +154,8 @@ describe('drawings are drawings — J6', () => {
   });
 });
 
-describe('two shadows, both named — F569', () => {
-  test('the whisper and the live glow are the only two shadows, and both are named', () => {
-    // Revamp A lifts the white card off the porcelain with one soft shadow, and
-    // a soft shadow is the easiest thing in a design system to copy onto a row,
-    // a pill, the tab bar and a header until the whole app floats. So there are
-    // exactly two in the codebase: `shadow.whisper` in theme.ts, spread by name
-    // and never written out, and the live microphone's green glow in
-    // `SpeakCircle`, which predates the revamp and is the one shadow that
-    // reports something. Anywhere else, a raw shadow number is the drift.
-    // Read by exact path, not by suffix: `named('theme.ts')` finds `nav/theme.ts`.
+describe('only the live microphone casts a shadow — F569', () => {
+  test('the live glow is the only shadow and no source uses the retired whisper', () => {
     const exact = (name: string) => SOURCES.find((f) => rel(f.path) === name)!.body;
     const glow = (() => {
       const body = exact('components.tsx');
@@ -178,36 +171,15 @@ describe('two shadows, both named — F569', () => {
 
     const offenders: string[] = [];
     for (const { path, body } of SOURCES) {
-      for (const line of body.split('\n')) {
-        if (!/\bshadowOpacity\b|\belevation:/.test(line)) continue;
-        if (rel(path) === 'theme.ts') continue;
-        if (rel(path) === 'components.tsx' && glow.includes(line.trim())) continue;
-        offenders.push(`${rel(path)}  ${line.trim()}`);
+      assert.doesNotMatch(body, /\bshadow\s*(?:\.\s*whisper\b|\[\s*['"]whisper['"]\s*\])/, `${rel(path)} uses the retired whisper`);
+      const outsideGlow = rel(path) === 'components.tsx' ? body.replace(glow, '') : body;
+      for (const line of outsideGlow.split('\n')) {
+        if (/\b(?:shadowColor|shadowOffset|shadowOpacity|shadowRadius|elevation|boxShadow)\s*:/.test(line)) {
+          offenders.push(`${rel(path)}  ${line.trim()}`);
+        }
       }
     }
-    assert.deepEqual(offenders, [], `A third shadow, written in numbers rather than named:\n${offenders.join('\n')}`);
-
-    // 2026-09-27, notebook Phase 1. Stricter than the rule this replaced: the
-    // whisper is retired to an inert alias (theme.test.ts holds it at zero), the
-    // card spreads no shadow, and only the screens not yet rebuilt may still
-    // spread the alias. That list may only shrink; Phase 4 deletes it.
-    assert.match(exact('theme.ts'), /whisper: \{/, 'theme.ts dropped the alias while screens still spread it');
-    assert.doesNotMatch(exact('components.tsx'), /shadow\.whisper/, 'the card still spreads the whisper');
-    // 2026-09-27, Phase 4 (B2): ReviewScreen, MomentCard and PhrasebookScreen came off, and the list now
-    // fails on an entry that no longer spreads the whisper, so it cannot linger as a standing allowance.
-    // 2026-09-27, notebook Phase 6-E: wall/WallPlansPage.tsx came off; the plans are one flat card.
-    // 2026-09-27, Phase 4 (B1): tutor/Transcript.tsx came off, so the list is empty and any file that
-    // spreads the whisper now fails outright.
-    const PENDING_WHISPER = new Set<string>([]);
-    const spreading = new Set<string>();
-    for (const { path, body } of SOURCES) {
-      if (!/shadow\.whisper/.test(body)) continue;
-      spreading.add(rel(path));
-      assert.ok(PENDING_WHISPER.has(rel(path)), `${rel(path)} spreads the retired whisper; the mic glow is the only shadow now`);
-    }
-    for (const pending of PENDING_WHISPER) {
-      assert.ok(spreading.has(pending), `${pending} no longer spreads the whisper; take it off the pending list`);
-    }
+    assert.deepEqual(offenders, [], `Only the live microphone may cast a shadow:\n${offenders.join('\n')}`);
   });
 });
 
@@ -2388,6 +2360,63 @@ describe('the device runbook carries revamp A — F587', () => {
       ['the web column', 'clamps to the column'],
     ] as const) {
       assert.ok(section.includes(phrase), `the Pass 8 section never asks anyone to check ${what}`);
+    }
+  });
+});
+
+/** Parse JSX, not angle brackets in comments, strings or callback expressions. */
+function notebookComposition(source: string): { highlighters: number; nestedCards: number } {
+  const tree = ts.createSourceFile('screen.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const names = new Map(['Card', 'Highlight', 'LevelPath'].map(name => [name, name]));
+  const namespaces = new Set<string>();
+  for (const statement of tree.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+    if (!/(?:^|\/)components(?:\.tsx)?$/.test(statement.moduleSpecifier.text)) continue;
+    const bindings = statement.importClause?.namedBindings;
+    if (bindings && ts.isNamespaceImport(bindings)) namespaces.add(bindings.name.text);
+    if (bindings && ts.isNamedImports(bindings)) {
+      for (const binding of bindings.elements) names.set(binding.name.text, binding.propertyName?.text ?? binding.name.text);
+    }
+  }
+  const result = { highlighters: 0, nestedCards: 0 };
+  function visit(node: ts.Node, cardDepth: number): void {
+    let depth = cardDepth;
+    if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const tag = ts.isJsxElement(node) ? node.openingElement.tagName : node.tagName;
+      const name = ts.isIdentifier(tag) ? names.get(tag.text)
+        : ts.isPropertyAccessExpression(tag) && ts.isIdentifier(tag.expression) && namespaces.has(tag.expression.text)
+          ? tag.name.text : undefined;
+      // A LevelPath owns its "here" mark, so it consumes the same budget as Highlight.
+      if (name === 'Highlight' || name === 'LevelPath') result.highlighters += 1;
+      if (name === 'Card') {
+        if (depth > 0) result.nestedCards += 1;
+        depth += 1;
+      }
+    }
+    ts.forEachChild(node, child => visit(child, depth));
+  }
+  visit(tree, 0);
+  return result;
+}
+
+describe('the notebook composition rules have no transitional allowances', () => {
+  test('the JSX guard counts both highlighter hosts and catches nested cards through callbacks and aliases', () => {
+    assert.deepEqual(notebookComposition('<><Highlight text="bonjour" /><LevelPath levels={levels} /></>'), { highlighters: 2, nestedCards: 0 });
+    assert.deepEqual(notebookComposition('<Card><View>{items.map(item => <Card key={item.id} />)}</View></Card>'), { highlighters: 0, nestedCards: 1 });
+    assert.deepEqual(notebookComposition("import { Card as Box, Highlight as Mark } from './components.tsx'; const view = <Box><Box /><Mark text='oui' /></Box>;"), { highlighters: 1, nestedCards: 1 });
+    assert.deepEqual(notebookComposition("import * as Kit from './components.tsx'; const view = <Kit.Card><Kit.Card /><Kit.LevelPath levels={levels} /></Kit.Card>;"), { highlighters: 1, nestedCards: 1 });
+    assert.deepEqual(notebookComposition('const example = "<Card><Card/><Highlight/></Card>"; const view = <><Card /><Card /></>;'), { highlighters: 0, nestedCards: 0 });
+  });
+
+  test('each screen file draws at most one Highlight or LevelPath here host', () => {
+    for (const { path, body } of SOURCES) {
+      assert.ok(notebookComposition(body).highlighters <= 1, `${rel(path)} draws more than one highlighter host`);
+    }
+  });
+
+  test('no Card is nested inside another Card', () => {
+    for (const { path, body } of SOURCES) {
+      assert.equal(notebookComposition(body).nestedCards, 0, `${rel(path)} nests a Card inside a Card`);
     }
   });
 });

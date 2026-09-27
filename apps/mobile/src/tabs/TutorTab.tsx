@@ -210,7 +210,7 @@ export function TutorTab() {
         signature={card.signature}
         onHear={hear}
         playing={playing}
-        onChange={() => nav.navigate('Profile')}
+        onChange={() => nav.navigate('Profile', { sheet: 'tutorVoice' })}
         changeLabel={CHANGE_VOICE}
       />
 

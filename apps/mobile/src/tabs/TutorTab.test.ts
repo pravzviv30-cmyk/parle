@@ -52,7 +52,7 @@ describe('Speak leads with the tutor, then one Start, then the path', () => {
     assert.match(FLAT, /const card = tutorCardFacts\(voiceKey\)/, 'the card reads its words from somewhere other than speakView.ts');
     assert.match(FLAT, /const voiceKey = tutorVoiceOf\(profile\)/, 'the card is not the learner\'s chosen voice');
     const tutorCard = between(RENDER_FLAT, '<TutorCard', '/>', 'Speak draws the tutor card');
-    for (const prop of ['name={card.name}', 'voice={card.voice}', 'signature={card.signature}', 'onHear={hear}', 'playing={playing}', "onChange={() => nav.navigate('Profile')}"]) {
+    for (const prop of ['name={card.name}', 'voice={card.voice}', 'signature={card.signature}', 'onHear={hear}', 'playing={playing}', "onChange={() => nav.navigate('Profile', { sheet: 'tutorVoice' })}"]) {
       assert.ok(tutorCard.includes(prop), `the tutor card does not take ${prop}`);
     }
     // The sample is the bundled clip, one player, and it stops when the tab is left.
@@ -60,6 +60,17 @@ describe('Speak leads with the tutor, then one Start, then the path', () => {
     assert.match(FLAT, /if \(!focused\) \{ player\.pause\(\); setPlaying\(false\); \}/, 'the sample keeps playing behind another tab');
     assert.match(FLAT, /if \(status\.didJustFinish\) setPlaying\(false\)/, 'a finished sample leaves the control saying Stop');
     assert.match(FLAT, /const focused = useIsFocused\(\);/);
+  });
+
+  test('Change voice opens the Profile voice sheet directly and consumes the route request', () => {
+    const profile = stripComments(read('./ProfileTab.tsx')).replace(/\s+/g, ' ');
+    const routes = stripComments(read('../nav/types.ts'));
+    assert.match(routes, /Profile: \{ sheet\?: 'tutorVoice' \} \| undefined/);
+    assert.match(profile, /useRoute<RouteProp<RootStackParamList, 'Profile'>>\(\)/);
+    assert.match(profile, /useState<Sheet>\(route\.params\?\.sheet === 'tutorVoice' \? 'tutorVoice' : 'none'\)/);
+    assert.match(profile, /if \(route\.params\?\.sheet !== 'tutorVoice'\) return; setSheet\(route\.params\.sheet\); nav\.setParams\(\{ sheet: undefined \}\);/);
+    assert.match(profile, /\[nav, route\.params\?\.sheet\]/);
+    assert.match(profile, /samplePlayer\.pause\(\); setSamplePlaying\(null\); setSheet\('none'\);/);
   });
 
   test('one Start, the next conversation, with a quiet "Type instead" under it and no segmented pill', () => {

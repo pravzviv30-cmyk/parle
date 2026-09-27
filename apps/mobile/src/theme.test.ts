@@ -52,26 +52,8 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     assert.match(radius, /\bpill: 999,/, 'the primary pill is no longer fully rounded like the logo');
   });
 
-  test('the whisper is retired: an inert alias of the ink token that draws nothing', () => {
-    // 2026-09-27, notebook Phase 1. Stricter than the rule it replaces: there
-    // was one soft shadow under a card, and now there is none. The live
-    // microphone's glow in SpeakCircle is the only shadow in the app. The name
-    // survives as a deprecated alias so the screens still spreading it draw
-    // flat until Phase 4 deletes the spreads, and its colour is still the ink
-    // TOKEN, so no raw hex enters theme.ts.
-    const whisper = block(themeSource(), 'export const shadow = {', '} as const;');
-    assert.match(whisper, /\bwhisper: \{/, 'the alias is gone while screens still spread it');
-    assert.match(whisper, /shadowColor: paper\.ink/, 'the whisper is not the ink token, so its colour escaped the palette');
-    assert.doesNotMatch(whisper, /#[0-9a-fA-F]{6}\b/, 'the whisper writes a raw colour');
-    assert.match(whisper, /shadowOffset: \{ width: 0, height: 0 \}/, 'the whisper still offsets a shadow');
-    assert.match(whisper, /shadowOpacity: 0,/, 'the whisper still draws a shadow on iOS and the web');
-    assert.match(whisper, /shadowRadius: 0,/, 'the whisper still blurs a shadow');
-    assert.match(whisper, /elevation: 0,/, 'the whisper still lifts a card on Android');
-    assert.equal(
-      (whisper.match(/^\s{2}\w+: \{$/gm) ?? []).length,
-      1,
-      'the theme names a second shadow; the live mic glow is the only one, and it is not a token',
-    );
+  test('the theme exports no shadow token or retired whisper alias', () => {
+    assert.doesNotMatch(themeSource(), /export\s+const\s+shadow\b|\bwhisper\s*:/);
   });
 
   test('UI type is DM Sans Medium, and the French hero is larger than any heading', () => {
