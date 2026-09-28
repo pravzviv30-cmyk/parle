@@ -30,6 +30,11 @@ export const USD_PER_MTOK: Record<string, MtokPrices> = {
   'gpt-5.6-terra': { input: 2, output: 12, cacheRead: 0.2, cacheWrite: 2.5 },
   'claude-sonnet-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
   'claude-opus-5': { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+  // TypeSafe bills input only, $0.042 per Mtok (docs.typesafe.ai/models,
+  // checked 2026-09-28). Jev reports no cache buckets, so the two cache columns
+  // always multiply zero; they follow the table's ratios only so the shape
+  // test keeps holding every row to them.
+  'jev-1.13.0': { input: 0.042, output: 0, cacheRead: 0.0042, cacheWrite: 0.0525 },
 };
 
 /**

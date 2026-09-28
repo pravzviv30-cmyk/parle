@@ -36,7 +36,7 @@ import { deleteSupabaseUser, signedInRecently } from './accountDeletion.ts';
 import { exportSupabaseAccountData } from './accountExport.ts';
 import { billingStatusFor } from './billingStatus.ts';
 import { insertProductEvent, parseProductEvent } from './productEvents.ts';
-import { handleDrillJudge } from './drillJudge.ts';
+import { handleDrillJudge, judgeUsageLine } from './drillJudge.ts';
 import {
   deleteAllConversationPacks,
   deleteConversationPack,
@@ -484,6 +484,7 @@ const server = createServer(async (req, res) => {
                 ...installationChecks(request, RATE_LIMITS.scoringInstallation),
               ]),
         client: judgeBrain(),
+        usage: (usage) => console.log(judgeUsageLine(usage)),
       });
     }
 

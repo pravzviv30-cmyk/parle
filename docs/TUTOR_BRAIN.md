@@ -92,6 +92,24 @@ Official references:
 - [Deepgram pricing](https://deepgram.com/pricing)
 - [ElevenLabs API pricing](https://elevenlabs.io/pricing/api)
 
+### Jev in front of the own-words judge
+
+`TYPESAFE_API_KEY` on the token server puts TypeSafe's Jev in front of
+whichever brain `TUTOR_LLM` chose, for `/drill/judge` only. Jev writes no text.
+It answers four typed questions about an attempt in one request, at $0.042 per
+million input tokens with output free. When the attempt kept its meaning, was
+understood, is French and sounds natural, all above conservative thresholds,
+Jev's verdict stands and the brain call is skipped: there is no better line to
+write, and the app never shows the note on a pass. Everything else goes to the
+brain, unchanged, including a confident "meaning lost", because the retry note
+is written help and a learner who was right must never be told otherwise. If
+Jev errors or takes longer than 2.5 seconds, the brain answers instead.
+
+Two things before relying on it. Jev's strongest language is English, so the
+thresholds in `jevJudge.ts` need checking against real learner attempts before
+anyone lowers them. And the attempt now reaches TypeSafe, so the privacy policy
+must name it before the key is set in production.
+
 ## Cost envelope
 
 Current list prices used for planning:

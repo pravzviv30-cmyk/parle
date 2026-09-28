@@ -152,6 +152,7 @@ The keys go into `services/tutor-agent/.env`:
 | `DEEPGRAM_API_KEY` | console.deepgram.com | French STT ($200 signup credit) |
 | `ELEVEN_API_KEY` + `ELEVEN_VOICE_ID` | elevenlabs.io | The tutor's French voice (free tier) |
 | `SPEECHACE_API_KEY` | speechace.com (optional) | Pronunciation scoring for speak drills via the token server's `/drill/score`. Absent, drills fall back to honest self-report. |
+| `TYPESAFE_API_KEY` | typesafe.ai (optional, token server) | Jev reads own-words drill attempts before the brain on `/drill/judge`. A clean pass is settled by Jev alone and skips the model call; everything else goes to the brain as before. See `packages/brain/src/llm/jevJudge.ts`. |
 
 **Warm the voice cache first** (one-off, costs about 10% of one month's free
 ElevenLabs credits, ever): every scripted lesson line is synthesized once and

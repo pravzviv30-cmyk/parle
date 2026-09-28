@@ -11,6 +11,7 @@ import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/typ
 import type { Curation } from '../curate/curate.ts';
 import type { DrillBatch } from '../drill/generate.ts';
 import type { SystemBlocks } from '../prompt/system.ts';
+import type { OwnWordsJudgeInput } from './judge.ts';
 
 /**
  * A provider-neutral transcript entry. `system` entries are app context, not
@@ -88,6 +89,13 @@ export interface BrainJudgeRequest extends Abortable {
   system: string;
   /** The line, its meaning, the situation, and the learner's attempt as data. */
   request: string;
+  /**
+   * The same facts `request` was written from, unrendered. The brain adapters
+   * never read it; JevFirstBrainClient does, because Jev takes named fields
+   * rather than a brief. Absent means nobody built this with
+   * `buildOwnWordsJudgeRequest`, and the brain answers as it always has.
+   */
+  input?: OwnWordsJudgeInput;
 }
 
 /**
