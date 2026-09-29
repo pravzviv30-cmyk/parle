@@ -1,11 +1,12 @@
 /**
  * The tutor's voice circle.
  *
- * A centred state-coloured voice surface, three quiet rings, and a white waveform
- * drawn directly on the colour. There is deliberately no microphone icon and
- * no frosted capsule inside the orb. On the Tutor landing page the short state
- * label sits directly under the bars; in a live room the existing caption can
- * remain under the orb.
+ * A centred state-coloured voice surface, three quiet rings, and a waveform
+ * drawn directly on the colour, in the glyph colour `onOrb` pairs with it:
+ * white on coral and ink, ink on mint and sun. There is deliberately no
+ * microphone icon and no frosted capsule inside the orb. On the Tutor landing
+ * page the short state label sits directly under the bars; in a live room the
+ * existing caption can remain under the orb.
  *
  * The SVG in `OrbGlyph` is still. This wrapper animates only opacity and
  * transform with core Animated and the native driver. The waveform is a small
@@ -15,7 +16,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import { decorative, orb, paper, space, type } from '../theme.ts';
+import { decorative, onOrb, orb, paper, space, type } from '../theme.ts';
 import { useReduceMotion } from '../motion.ts';
 import { orbRests } from './orbRest.ts';
 import { OrbGlyph } from './OrbGlyph.tsx';
@@ -31,7 +32,9 @@ const BAR_HEIGHTS = [0.1, 0.17, 0.27, 0.38, 0.27, 0.17, 0.1] as const;
 interface Look {
   /** One state colour drives every wash in the glyph. */
   colour: string;
-  /** Whether the direct white bars wait or respond. */
+  /** What sits on that colour: the bars and the embedded status. */
+  glyph: string;
+  /** Whether the direct bars wait or respond. */
   bars: 'still' | 'moving';
   /** Scale travel from the resting frame. */
   amplitude: number;
@@ -46,6 +49,7 @@ interface Look {
 const LOOKS: Record<OrbState, Look> = {
   ready: {
     colour: orb.ready,
+    glyph: onOrb.ready,
     bars: 'still',
     amplitude: 0.025,
     period: 3000,
@@ -54,6 +58,7 @@ const LOOKS: Record<OrbState, Look> = {
   },
   idle: {
     colour: paper.inkSoft,
+    glyph: paper.onInk,
     bars: 'still',
     amplitude: 0,
     period: 0,
@@ -62,6 +67,7 @@ const LOOKS: Record<OrbState, Look> = {
   },
   connecting: {
     colour: orb.ready,
+    glyph: onOrb.ready,
     bars: 'moving',
     amplitude: 0.025,
     period: 1150,
@@ -70,6 +76,7 @@ const LOOKS: Record<OrbState, Look> = {
   },
   speaking: {
     colour: orb.speaking,
+    glyph: onOrb.speaking,
     bars: 'moving',
     amplitude: 0.045,
     period: 780,
@@ -78,6 +85,7 @@ const LOOKS: Record<OrbState, Look> = {
   },
   listening: {
     colour: orb.yourTurn,
+    glyph: onOrb.yourTurn,
     bars: 'moving',
     amplitude: 0.035,
     period: 1120,
@@ -86,6 +94,7 @@ const LOOKS: Record<OrbState, Look> = {
   },
   thinking: {
     colour: orb.thinking,
+    glyph: onOrb.thinking,
     bars: 'still',
     amplitude: 0,
     period: 900,
@@ -94,6 +103,7 @@ const LOOKS: Record<OrbState, Look> = {
   },
   error: {
     colour: paper.inkSoft,
+    glyph: paper.onInk,
     bars: 'still',
     amplitude: 0,
     period: 0,
@@ -234,8 +244,8 @@ export function VoiceOrb({
             <Animated.View
               key={`${height}-${index}`}
               style={[
-                st.bar,
                 {
+                  backgroundColor: look.glyph,
                   width: barWidth,
                   height: Math.max(5, size * height),
                   borderRadius: barWidth / 2,
@@ -245,7 +255,9 @@ export function VoiceOrb({
             />
           ))}
         </View>
-        {embeddedLabel !== undefined ? <Text style={st.embeddedLabel}>{embeddedLabel}</Text> : null}
+        {embeddedLabel !== undefined ? (
+          <Text style={[st.embeddedLabel, { color: look.glyph }]}>{embeddedLabel}</Text>
+        ) : null}
       </Animated.View>
 
       {withCaption ? <Text style={st.caption}>{look.caption}</Text> : null}
@@ -257,10 +269,8 @@ const st = StyleSheet.create({
   root: { alignItems: 'center', justifyContent: 'center' },
   signal: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' },
   bars: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  bar: { backgroundColor: paper.onInk },
   embeddedLabel: {
     ...type.bodyStrong,
-    color: paper.onInk,
     position: 'absolute',
     bottom: '16%',
     textAlign: 'center',

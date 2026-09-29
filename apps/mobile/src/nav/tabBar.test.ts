@@ -88,9 +88,10 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
       'a tap on the tab you are already on announces a move that did not happen',
     );
     // 2026-09-27, notebook Phase 1: selected is an ink glyph and a Medium label;
-    // unselected is a faint glyph over a soft-ink word. The word stays soft ink
-    // because faint ink measures 4.50 on the ground, on the text floor's edge,
-    // and a label is words.
+    // unselected is a faint glyph over a soft-ink word, and a label is words, so
+    // the word is held to the text floor. In revamp B faint ink is an alias of
+    // soft ink (6.19 on the ground), so the two read the same until the bar is
+    // redrawn with the blue selected item.
     assert.match(
       FLAT,
       /color=\{focused \? paper\.ink : paper\.inkFaint\}/,
@@ -99,7 +100,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.match(
       FLAT,
       /focused \? \{ color: paper\.ink, fontFamily: font\.sansMedium \}/,
-      'the active tab label is not ink at DM Sans Medium',
+      'the active tab label is not ink at Outfit Medium',
     );
     assert.match(FLAT, /\{ color: paper\.inkSoft \}/, 'the inactive tab label is no longer soft ink');
     assert.ok(!/\bst\.dot\b/.test(BAR), 'the bar marks the active cell with a dot again');

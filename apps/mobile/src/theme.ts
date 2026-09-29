@@ -1,16 +1,16 @@
 /**
- * The French notebook with one highlighter.
- * Warm paper and near-black ink, one white card with a hairline and no shadow,
- * DM Sans Medium for the furniture and Fraunces for French only. The
- * chartreuse is a highlighter pen, never a surface. Voice signals, touch
- * floors, reading-size scaling and reduced motion keep their behaviour.
- * Raw colours live in palette.ts.
+ * Luvani, bright (revamp B).
+ * Warm paper, white cards with one hairline and no shadow, one deep ink, four
+ * saturated colours, and Outfit for every word on the screen, French and
+ * English alike. The chartreuse is a highlighter pen, never a surface. Voice
+ * signals, touch floors, reading-size scaling and reduced motion keep their
+ * behaviour. Raw colours live in palette.ts.
  */
 
 import { Platform } from 'react-native';
 import { paper } from './palette.ts';
 
-export { paper, accent, highlight, signal, orb, rungColor } from './palette.ts';
+export { paper, colour, accent, highlight, signal, orb, onOrb, rungColor } from './palette.ts';
 
 /**
  * What each rung asks of the learner, in words.
@@ -24,89 +24,106 @@ export { paper, accent, highlight, signal, orb, rungColor } from './palette.ts';
  */
 export { rungLabel } from './tutor/rungLabel.ts';
 
+/**
+ * Outfit, in the five cuts App.tsx loads, named exactly as it loads them. The
+ * old names below the canonical five are aliases, so no screen has to change in
+ * the same stage as the face; revamp B's Stage 6 retires them.
+ */
 export const font = {
-  serif: 'Fraunces-SemiBold',
-  serifBold: 'Fraunces-Bold',
-  sans: 'DMSans-Regular',
-  sansMedium: 'DMSans-Medium',
-  sansBold: 'DMSans-Bold',
+  regular: 'Outfit-Regular',
+  medium: 'Outfit-Medium',
+  semiBold: 'Outfit-SemiBold',
+  bold: 'Outfit-Bold',
+  extraBold: 'Outfit-ExtraBold',
+  // aliases until Stage 6
+  serif: 'Outfit-SemiBold',
+  serifBold: 'Outfit-Bold',
+  sans: 'Outfit-Regular',
+  sansMedium: 'Outfit-Medium',
+  sansBold: 'Outfit-Bold',
 } as const;
 
 /**
- * Type scale. Fraunces is for French only: every style set in the serif is a
- * French style by name. DM Sans Medium carries the UI heads and the regular cut
- * carries prose. Sizes are points and scale with the OS reading size; nothing
- * disables `allowFontScaling`.
+ * Type scale. One face, Outfit, at the STYLE scale: the weight and the size say
+ * what a line is, never a second face. French keeps its own tokens by name and
+ * is set in SemiBold, and the French line is always the largest text in its
+ * block. Sentence case everywhere, no caps and no italics. Sizes are points and
+ * scale with the OS reading size; nothing disables `allowFontScaling`.
+ *
+ * One line per token, in the order family, size, line height, tracking, which
+ * is the order `theme.test.ts` reads them in.
  */
 export const type = {
-  /** Screen headline. */
-  display: { fontFamily: font.sansMedium, fontSize: 28, lineHeight: 34, letterSpacing: -0.6 },
-  /** Section head, big stat. */
-  title: { fontFamily: font.sansMedium, fontSize: 22, lineHeight: 28, letterSpacing: -0.3 },
-  /** The title of a card. */
-  cardTitle: { fontFamily: font.sansMedium, fontSize: 20, lineHeight: 26, letterSpacing: -0.2 },
+  /** The one giant number on a story or colour card. At most one per screen. */
+  hero: { fontFamily: font.extraBold, fontSize: 112, lineHeight: 95, letterSpacing: -4.5 },
+  /** A headline on colour: stories and onboarding, and the tab header for now. */
+  display: { fontFamily: font.extraBold, fontSize: 44, lineHeight: 44, letterSpacing: -1.3 },
+  /** The title of a working screen. */
+  title: { fontFamily: font.extraBold, fontSize: 30, lineHeight: 33, letterSpacing: -0.6 },
+  /** Card titles and section heads. */
+  heading: { fontFamily: font.bold, fontSize: 20, lineHeight: 25, letterSpacing: -0.2 },
+  /** The title of a card. The same style as heading. */
+  cardTitle: { fontFamily: font.bold, fontSize: 20, lineHeight: 25, letterSpacing: -0.2 },
   /**
    * The French line that leads a screen. Always larger than any heading on the
    * screen it leads; `fitHero()` steps it 34, 30, 26 by length (`heroFit`).
    */
-  frenchHero: { fontFamily: font.serif, fontSize: 34, lineHeight: 42 },
-  /** The French line to say. Sentence case, never caps. */
-  frenchLg: { fontFamily: font.serif, fontSize: 28, lineHeight: 36 },
-  /** Inline French content — options and cards. */
-  french: { fontFamily: font.serif, fontSize: 21, lineHeight: 28 },
+  frenchHero: { fontFamily: font.semiBold, fontSize: 34, lineHeight: 42, letterSpacing: -0.3 },
+  /** The French line that leads a card or a scene. Sentence case, never caps. */
+  frenchLg: { fontFamily: font.semiBold, fontSize: 28, lineHeight: 34, letterSpacing: -0.3 },
+  /** French in lists, rows and thread bubbles. */
+  french: { fontFamily: font.semiBold, fontSize: 20, lineHeight: 26 },
   /**
    * French in a chip, where the phrase is a sample rather than the thing to
-   * say. Momentum's hero shows two of the learner's own lines beside a count,
-   * and at `french` a real sentence wraps to two lines and the chip stops
-   * being a chip. Nothing is ever clipped to make it fit — no `numberOfLines`
-   * anywhere in this app — so the size is the only lever, and this is the
-   * smallest Fraunces that still reads as the voice rather than the furniture.
+   * say. Nothing is ever clipped to make it fit (no `numberOfLines` anywhere in
+   * this app), so the size is the only lever.
    */
-  frenchSm: { fontFamily: font.serif, fontSize: 17, lineHeight: 23 },
-  heading: { fontFamily: font.sansMedium, fontSize: 17, lineHeight: 22 },
-  body: { fontFamily: font.sans, fontSize: 16, lineHeight: 23 },
-  bodyStrong: { fontFamily: font.sansMedium, fontSize: 16, lineHeight: 23 },
-  small: { fontFamily: font.sans, fontSize: 13.5, lineHeight: 19 },
-  /** The word under a bottom-tab glyph. Small enough to sit two to a cell. */
-  tabLabel: { fontFamily: font.sansBold, fontSize: 12, lineHeight: 16 },
-  /** Tiny caps label above a card or count. */
-  label: {
-    fontFamily: font.sansBold,
-    fontSize: 11.5,
-    lineHeight: 15,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase' as const,
-  },
-  /** Button lettering. */
-  button: { fontFamily: font.sansBold, fontSize: 16, lineHeight: 20 },
-  /** IPA and notation. Never monospace-as-costume — this really is notation. */
-  notation: { fontFamily: font.sansMedium, fontSize: 14, lineHeight: 20, letterSpacing: 0.4 },
+  frenchSm: { fontFamily: font.semiBold, fontSize: 17, lineHeight: 23 },
+  /** Sentences. */
+  body: { fontFamily: font.regular, fontSize: 17, lineHeight: 25 },
+  /** A sentence that has to carry more weight than the ones around it. */
+  bodyStrong: { fontFamily: font.semiBold, fontSize: 17, lineHeight: 25 },
+  /** Buttons and row titles. Sentence case, no tracking. */
+  label: { fontFamily: font.semiBold, fontSize: 16, lineHeight: 20 },
+  /** Button lettering. The same style as label. */
+  button: { fontFamily: font.semiBold, fontSize: 16, lineHeight: 20 },
+  /** Metadata lines, captions, and the English under a French line. */
+  small: { fontFamily: font.medium, fontSize: 14, lineHeight: 20 },
+  /** The word under a bottom-tab glyph, and nowhere else. */
+  tabLabel: { fontFamily: font.semiBold, fontSize: 12, lineHeight: 12 },
+  /** IPA and notation. Never monospace-as-costume; this really is notation. */
+  notation: { fontFamily: font.medium, fontSize: 14, lineHeight: 20, letterSpacing: 0.4 },
 } as const;
 
 /**
  * The French hero's fit steps for a long line, after `type.frenchHero` at 34.
- * Each step is still larger than every UI head a card carries.
+ * Each step is still larger than every head a card carries.
  */
 export const heroFit = {
   /** Over sixteen characters. */
-  long: { fontFamily: font.serif, fontSize: 30, lineHeight: 38 },
+  long: { fontFamily: font.semiBold, fontSize: 30, lineHeight: 38 },
   /** Over thirty-two characters. */
-  longest: { fontFamily: font.serif, fontSize: 26, lineHeight: 34 },
+  longest: { fontFamily: font.semiBold, fontSize: 26, lineHeight: 34 },
 } as const;
 
 /** 4pt base. Tight within a group, generous between groups. */
 export const space = (n: number) => n * 4;
 
 export const radius = {
-  /** The one Card: white, a paper hairline, no shadow, never nested. */
-  card: 16,
-  /** The small radius: a pressed row's wash, a disclosure, an inline stage. Not a card. */
-  row: 8,
-  chip: 6,
-  input: 8,
-  control: 8,
-  /** The one ink pill, fully rounded like the logo's L. */
+  /** The one Card and the colour card: white or colour, no shadow, never nested. */
+  card: 24,
+  /** A feature card that leads a screen. */
+  feature: 28,
+  /** A stat tile. */
+  tile: 20,
+  /** An input field. */
+  field: 16,
+  /** A real tappable capsule, fully rounded. */
   pill: 999,
+  row: 20, // alias of tile
+  chip: 16, // alias of field
+  input: 16, // alias of field
+  control: 16, // alias of field
 } as const;
 
 /** The white disc that holds a glyph inside a tinted row. */

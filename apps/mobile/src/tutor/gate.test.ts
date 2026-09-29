@@ -229,7 +229,7 @@ describe('the three ways into a conversation — what a learner meets instead of
     // Demoted, not deleted, twice over: off the front of the tab with F404 and
     // off the tab altogether with F573, because a page with one circle on it
     // does not also need a link about circles. It is the only place in the app
-    // that says what the three colours mean, so it is asserted to be somewhere
+    // that says what the circle's states mean, so it is asserted to be somewhere
     // rather than in a named file: whichever screen holds it, it is reachable.
     assert.equal(TUTOR_INTRO_LINK, 'How the voice circle works');
     const holders = sourceFiles().filter((file) => file.body.includes('TUTOR_INTRO_LINK'));
@@ -242,8 +242,10 @@ describe('the three ways into a conversation — what a learner meets instead of
     }
     const intro = stripComments(read('./TutorIntro.tsx'));
     assert.ok(intro.includes('OrbWalkthrough'), 'the intro lost the page that teaches the circle');
-    assert.ok(intro.includes('Amber, it is thinking'), 'the intro stopped naming the thinking colour');
-    assert.ok(intro.includes('Green, your turn'), 'the intro stopped saying green means you speak');
+    // Revamp B (F595): the states are named in words, not colours, because the
+    // orb now carries a glyph and a caption for each one.
+    assert.ok(intro.includes("'It is thinking'"), 'the intro stopped saying what the thinking state means');
+    assert.ok(intro.includes("'Your turn'"), 'the intro stopped saying the listening state means you speak');
   });
 
   test('the two formatters are still the only place a numeral becomes words', () => {

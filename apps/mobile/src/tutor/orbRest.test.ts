@@ -185,7 +185,7 @@ describe('the orb is a still watercolour field with directly animated voice bars
     assert.ok(!rest.includes('.start()'), 'the rest branch starts an animation before it returns');
   });
 
-  test('seven white bars sit directly in every orb and move only in active voice states', () => {
+  test('seven bars sit directly in every orb, in the glyph colour of the state, and move only in active voice states', () => {
     const signal = /signal: \{([^}]+)\}/.exec(ORB_FLAT)?.[1];
     assert.ok(signal, 'the waveform has its own centred overlay');
     assert.ok(!/padding|translate[XY]|margin/.test(signal), 'fixed offsets must not displace the waveform at compact sizes');
@@ -195,8 +195,21 @@ describe('the orb is a still watercolour field with directly animated voice bars
     assert.match(GLYPH_FLAT, /r=\{75\} fill=\{paper\.ground\}/, 'the paper collar separates the voice surface from chartreuse');
     assert.match(ORB_FLAT, /const BAR_HEIGHTS = \[0\.1, 0\.17, 0\.27, 0\.38, 0\.27, 0\.17, 0\.1\] as const/, 'the central voice mark is no longer the seven-bar form');
     assert.match(ORB_FLAT, /\{BAR_HEIGHTS\.map\(\(height, index\) => \(/, 'the direct voice mark is not drawn inside the orb');
-    assert.match(ORB_FLAT, /bar: \{ backgroundColor: paper\.onInk \}/, 'the voice bars are not the direct white mark from UI 4');
-    assert.match(ORB_FLAT, /embeddedLabel !== undefined \? <Text style=\{st\.embeddedLabel\}>\{embeddedLabel\}<\/Text> : null/, 'the landing status is not embedded directly under the bars');
+    // Revamp B: white on mint is 2.0 and on sun 1.4, so the bars and the
+    // embedded status take the glyph colour paired with each fill, never a
+    // fixed white.
+    assert.match(ORB_FLAT, /backgroundColor: look\.glyph/, 'the voice bars are a fixed colour, so they vanish on a light state fill');
+    assert.doesNotMatch(ORB_FLAT, /bar: \{ backgroundColor: paper\.onInk \}/, 'the voice bars are fixed white again, which fails on mint and sun');
+    assert.match(
+      ORB_FLAT,
+      /embeddedLabel !== undefined \? \(? ?<Text style=\{\[st\.embeddedLabel, \{ color: look\.glyph \}\]\}>\{embeddedLabel\}<\/Text> ?\)? : null/,
+      'the landing status is not embedded directly under the bars in the glyph colour of the state',
+    );
+    assert.doesNotMatch(
+      /embeddedLabel: \{([^}]+)\}/.exec(ORB_FLAT)?.[1] ?? '',
+      /color:/,
+      'the embedded status carries a fixed colour in its style, under the glyph colour',
+    );
 
     const look = (state: string): string => {
       const from = ORB.indexOf(`  ${state}: {`);
@@ -206,6 +219,23 @@ describe('the orb is a still watercolour field with directly animated voice bars
       return setting![1]!;
     };
     for (const state of ['ready', 'idle', 'thinking', 'error']) assert.equal(look(state), 'still', `${state} animates a voice that is not talking`);
+
+    // Each voice state's glyph is the colour onOrb pairs with its fill, which is
+    // what palette.test.ts holds to the text floor.
+    const glyph = (state: string): string => {
+      const from = ORB.indexOf(`  ${state}: {`);
+      const setting = /glyph: ([\w.]+),/.exec(ORB.slice(from, ORB.indexOf('\n  },', from)));
+      assert.ok(setting, `${state} names no glyph colour, so its bars fall back to whatever st.bar says`);
+      return setting![1]!;
+    };
+    for (const [state, token] of [
+      ['speaking', 'speaking'],
+      ['listening', 'yourTurn'],
+      ['thinking', 'thinking'],
+      ['ready', 'ready'],
+    ] as const) {
+      assert.equal(glyph(state), `onOrb.${token}`, `the ${state} orb's glyph is not the colour onOrb pairs with its fill`);
+    }
     for (const state of ['connecting', 'speaking', 'listening']) assert.equal(look(state), 'moving', `${state} gives no responsive movement`);
     assert.match(ORB_FLAT, /const moving = look\.bars === 'moving' \? drivers : drivers\.slice\(0, 1\);/, 'the waveform driver runs in resting states');
     assert.match(ORB_FLAT, /if \(look\.bars !== 'moving'\) drivers\[1\]!\.setValue\(0\.5\);/, 'still bars are parked part-way through a pulse');

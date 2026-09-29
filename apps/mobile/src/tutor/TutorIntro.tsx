@@ -14,7 +14,7 @@
  * Notebook Phase 4 (2026-09-27): the clip-art left (the speech bubbles, the
  * wave and the postcard) and so did the chartreuse feature panel. The orb page
  * stays whole, because this is the only place the app teaches what the orb's
- * colours mean.
+ * states mean.
  *
  * The first page does not write its own words. Its title and body come from
  * `onboarding/disclosure.ts`, the same module the welcome subline and the Meet
@@ -52,15 +52,19 @@ import { PERSONA_BODY, PERSONA_TITLE, pronouns } from '../onboarding/disclosure.
 function OrbWalkthrough({ persona }: { persona: TutorPersona }) {
   const rows: { state: OrbState; title: string; sub: string }[] = [
     { state: 'ready', title: 'Tap to talk', sub: 'The circle waits for you.' },
-    { state: 'speaking', title: `Red, ${persona.name} is talking`, sub: 'Just listen.' },
-    { state: 'listening', title: 'Green, your turn', sub: 'Say it out loud.' },
-    { state: 'thinking', title: 'Amber, it is thinking', sub: 'One moment.' },
+    { state: 'speaking', title: `${persona.name} is talking`, sub: 'Just listen.' },
+    { state: 'listening', title: 'Your turn', sub: 'Say it out loud.' },
+    { state: 'thinking', title: 'It is thinking', sub: 'One moment.' },
   ];
   // One card of four rows since revamp A, rather than four cards in a stack.
   // The four states are one lesson about one control, and four separate cards
-  // read as four separate things to learn. The violet rest state leads, because
-  // an untapped circle is the first one a learner meets and it is the one state
+  // read as four separate things to learn. The rest state leads, because an
+  // untapped circle is the first one a learner meets and it is the one state
   // that is a control rather than a report.
+  //
+  // Revamp B (F595): each title names its state in words and never by colour.
+  // The orb now carries a glyph and a caption for every state, so a colour word
+  // here would teach the one cue a colour-blind learner cannot see.
   return (
     <Card style={st.states}>
       {rows.map((row, index) => (

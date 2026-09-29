@@ -951,7 +951,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the primary control, so it now reads as one.
 - verified-by: `a closed microphone offers a control, not a hairline`
 - verified-by: `the orb only goes quiet when there is nothing to tap`
-- verified-by: `every orb state is legible as a mark against the ground`
+- verified-by: `every orb state carries a glyph that clears the text floor on its own fill`
 
 ### J2 — Two of the three traffic lights fail the contrast floor for a mark
 - severity: P1
@@ -964,9 +964,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   reads amber, red still reads red, and both stay far from rung one's yellow. Separately
   the captions leave the state colour for ink, because 3 is the floor for a mark and 4.5
   is the floor for words, and "Speak" in green measured 3.64.
-- verified-by: `every orb state is legible as a mark against the ground`
+- verified-by: `every orb state carries a glyph that clears the text floor on its own fill`
 - verified-by: `an orb caption is words, so it is held to the floor for words`
-- verified-by: `the three traffic lights stay far apart, and none of them is rung one`
+- verified-by: `the three traffic lights stay far apart, and none of them is the rung fill`
 
 ### J3 — The intro teaches the thinking colour by the wrong name
 - severity: P2
@@ -975,7 +975,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: the page that teaches the voice circle called amber "Yellow", while rung one's
   actual yellow lives one screen away in the same app. The same file's header said three
   pages and listed four.
-- verified-by: `the intro names the thinking colour what the theme calls it`
+- verified-by: `the intro names the orb states in words, never by colour`
 - verified-by: `the intro header counts its own pages`
 
 ### J4 — The icon-only tab bar never tells a screen reader the screen changed
@@ -4931,10 +4931,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   Porcelain (B): ground `#F4F2F7`, groundDeep `#E6E2EE`, line `#DAD5E3`, lineOnCard `#E9E5F0`; steps held
   by ΔE, not by matching four siblings.
 - verified-by: `nothing asks for a paper by place any more`
-- verified-by: `the ground is pinned, and there is only one`
+- verified-by: `the B paper is pinned: one ground, one white, one ink, one hairline`
 - verified-by: `the card still reads as a card, and the hairlines still read on the ground`
-- verified-by: `faint ink is a mark on the inactive tab, so it clears 3 on the ground`
-- verified-by: `ink, soft ink, the fix colour and the violet all hold on the ground`
+- verified-by: `faint ink is soft ink now: B has no third ink, so it clears the text floor on the ground and on a card`
+- verified-by: `ink, soft ink, the fix colour and the primary ink all hold on the ground`
 
 ### F322 — Signals re-saturated and held to the floor for what they are
 - severity: P1
@@ -4943,11 +4943,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: `good #437A62`, `live #A9564F`, `correspondance #8B5578` are greys with a hue. Green and magenta
   are words, held to 4.5 on the ground and a card; red is a mark only, held to 3. New values: `#12784A`,
   `#DE3B2D`, `#B4008A`. The green's `onInk` glyph on the live SpeakCircle gets its own floor.
-- verified-by: `green and the fix colour are words, so they clear 4.5 on the ground and on a card`
-- verified-by: `the tutor's red is a mark, so it clears 3 on the ground`
-- verified-by: `the mic glyph still reads on a live green circle`
-- verified-by: `no two signals come within a Delta-E of 30, and none reads as a rung`
-- verified-by: `no accent comes within a Delta-E of 30 of any signal or rung`
+- verified-by: `good and the fix colour are ink, so the words that carry them clear the floor by being ink`
+- verified-by: `the tutor's coral is a mark, so it clears 3 on the ground and on a card`
+- verified-by: `the mic glyph still reads on a live ink circle`
+- verified-by: `the one signal mark stays 30 from ink, the rung fill, the ground and the card`
+- verified-by: `the brand blue never reads as an orb state, the highlighter, the rung fill or the tutor's mark`
 
 ### F323 — The voice circle's traffic lights come back to full colour
 - severity: P1
@@ -4957,8 +4957,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   at 3.27 on the ground; speaking and yourTurn alias F322's red and green; ready stays the violet. The
   rung-one separation floor rises from 20 to 30 (measured 43.2). Captions stay ink; the amber ceiling
   tripwire is dropped (it was a ceiling, not a floor).
-- verified-by: `every orb state is legible as a mark against the ground`
-- verified-by: `the three traffic lights stay far apart, and none of them is rung one`
+- verified-by: `every orb state carries a glyph that clears the text floor on its own fill`
+- verified-by: `the three traffic lights stay far apart, and none of them is the rung fill`
 - verified-by: `an orb caption is words, so it is held to the floor for words`
 
 ### F324 — Support colours run hot to cool again as help is withdrawn
@@ -4970,8 +4970,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the floors are ink ≥ 4.5 on each fill, ΔE ≥ 30 from the ground and from each other, and b\* strictly
   decreasing. Say in the test comment why rung fills are not held to 3 against the ground.
 - verified-by: `a rung numeral in ink clears 4.5 on its own fill`
-- verified-by: `support cools as help is withdrawn: each rung is bluer than the last and rung four is ink`
-- verified-by: `no rung reads as another rung, as the ground, or as ink`
+- verified-by: `rungs one to three share the one skeleton fill and rung four is ink`
+- verified-by: `the rung fill lifts off the ground and the card, and never reads as ink, a signal, an orb state or the highlighter`
 
 ### F325 — The active tab takes the identity violet
 - severity: P1
@@ -4982,7 +4982,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   inactive stays `inkFaint`/`inkSoft`. The pill lettering floor (`onInk` on `accent.primary`, 6.94) has
   never been asserted and is added with the button it belongs to.
 - verified-by: `the active tab is set in the identity violet`
-- verified-by: `pill lettering clears 4.5 on the primary violet`
+- verified-by: `pill lettering clears 4.5 on the primary ink, the brand blue and the coral`
 
 ### F326 — The micro-label and the primary are one violet
 - severity: P2
@@ -4991,7 +4991,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: `accent.label` was the house paper's accent and is now simply `accent.primary`. Replaces the
   "every room shares the same identity accent" assertion. P2 because the value does not change; the
   assertion is a tripwire against a second identity colour creeping back.
-- verified-by: `the micro-label and the primary are one violet`
+- verified-by: `the micro-label and the primary are one ink`
 
 ### F327 — DESIGN.md records the palette the app ships
 - severity: P1
@@ -8798,3 +8798,28 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   My French already used the safe shape. The contract now walks every tab and refuses `flexGrow`
   or padding on any surviving `scroll` wrapper, so the AX5 failure cannot return one tab at a time.
 - verified-by: `no tab hangs a growing wrapper inside the scroll frame — F594`
+
+### F595 — The palette is the notebook's, not revamp B's
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/palette.ts:11
+- note: Stage 1 of revamp B. `palette.ts` takes STYLE §4 and §7: paper #FFF6E9, white cards, ink #16123A, ink2 #5C5A74, one hairline #EADFCB, skeleton #EFE6D6, `accent.brand` and a new `colour{blue,coral,sun,mint}`, the orb as coral, mint, sun and ink with a new `onOrb` glyph pairing because mint and sun fail 3:1 as marks on paper, `signal.good` and `signal.correspondance` as ink, rungs one to three on the skeleton fill. Old names stay as aliases. `palette.test.ts` is rewritten pair by pair at the same floors, never weakened; DESIGN.md's colour tables, app.json's two launch backgrounds, the orb's bars and TutorIntro's state words follow, so no forbidden pair and no colour name ships at any commit.
+- verified-by: `the B paper is pinned: one ground, one white, one ink, one hairline`
+- verified-by: `every orb state carries a glyph that clears the text floor on its own fill`
+- verified-by: `rungs one to three share the one skeleton fill and rung four is ink`
+- verified-by: `the brand blue never reads as an orb state, the highlighter, the rung fill or the tutor's mark`
+- verified-by: `DESIGN.md records the palette the app ships`
+- verified-by: `the splash and the icon background are the ground`
+- verified-by: `no six-digit hex is written anywhere in source but palette.ts`
+- verified-by: `seven bars sit directly in every orb, in the glyph colour of the state, and move only in active voice states`
+- verified-by: `the intro names the orb states in words, never by colour`
+
+### F596 — The app is set in Fraunces and DM Sans, not Outfit
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/theme.ts:27
+- note: Stage 1 of revamp B. `theme.ts` names the five Outfit cuts (400 to 800) with the old font names kept as aliases, the STYLE §3 scale by token (hero 112, display 44, title 30, heading 20, frenchLg 28, french 20, body 17, label 16 sentence case, small 14, tab 12) with the French tokens kept by name in Outfit 600 and frenchLg still larger than heading, and radii card 24, feature 28, tile 20, field 16, pill 999. `App.tsx` loads exactly those five files and the Fraunces and DM Sans files leave the bundle; Acknowledgements credits Outfit under the OFL. `theme.test.ts` is rewritten to the new values and gains a check that the theme, the loader and the fonts folder agree.
+- verified-by: `Outfit is the only face, at the STYLE scale, and every French style is Outfit SemiBold`
+- verified-by: `B corners: card 24, feature 28, tile 20, field 16, pill 999, and the aliases point at them`
+- verified-by: `the theme names the five Outfit cuts App.tsx loads, and the bundle carries no other face`
+- verified-by: `Acknowledgements credits Outfit under the OFL and names no retired face`

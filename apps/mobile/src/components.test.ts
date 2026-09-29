@@ -46,15 +46,16 @@ describe('the drawn vocabulary keeps its promises — F332, F333', () => {
   test('the monogram is an ink initial on the deeper paper, and it is hidden from assistive tech', () => {
     // 2026-09-27, notebook Phase 1: the monogram becomes an ink initial on
     // `groundDeep`, per the design contract, so the learner's mark stops
-    // competing with the one ink pill. The initial is DM Sans Medium because
-    // Fraunces is for French only. Still a circle, still sized from the disc,
+    // competing with the one ink pill. Revamp B keeps the names and changes
+    // what they mean: `groundDeep` is the skeleton fill and `font.sansMedium` is
+    // Outfit Medium, the one face. Still a circle, still sized from the disc,
     // still decorative so a screen reader walks past a loose letter.
     const mono = region(componentsSource(), 'export function Monogram(', 'export function ProgressDots(');
     assert.match(mono, /backgroundColor: paper\.groundDeep/, 'the disc is not the deeper paper');
     assert.doesNotMatch(mono, /accent\./, 'the monogram still wears an accent');
     assert.match(mono, /borderRadius: size \/ 2/, 'the disc is not a circle at its own size');
     assert.match(mono, /\{\.\.\.decorative\}/, 'the disc is not hidden from assistive tech');
-    assert.match(mono, /fontFamily: font\.sansMedium/, 'the initial is not DM Sans Medium');
+    assert.match(mono, /fontFamily: font\.sansMedium/, 'the initial is not Outfit Medium');
     assert.match(mono, /fontSize: size \* 0\.44/, 'the initial is not sized to the disc');
     assert.match(mono, /color: paper\.ink/, 'the initial is not ink');
   });

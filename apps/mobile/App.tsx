@@ -3,9 +3,9 @@
  * THESIS: Learning to speak should feel like a warm, unhurried picture book —
  *   calm, friendly, professional. Easy to look at twice a day.
  * OWN-WORLD: Paper & ink. Pale lilac paper, warm black ink, hand-drawn line
- *   art, Fraunces for anything with a voice (headlines and every French line),
- *   DM Sans for the furniture. Flat white cards on a hairline rule; one solid
- *   ink pill per screen. Chrome is plain English; French appears only as the
+ *   art, Outfit for every word on the screen, French and English alike.
+ *   Flat white cards on a hairline rule; one solid ink pill per screen.
+ *   Chrome is plain English; French appears only as the
  *   thing being learned.
  * KEPT FROM THE ENAMEL WORLD (behaviour, not surface): one primary action per
  *   screen; the four support colours cooling as help is withdrawn; no scores
@@ -534,11 +534,11 @@ function Gate() {
 
 export default function App() {
   const [loaded] = useFonts({
-    'Fraunces-SemiBold': require('./assets/fonts/Fraunces-SemiBold.ttf'),
-    'Fraunces-Bold': require('./assets/fonts/Fraunces-Bold.ttf'),
-    'DMSans-Regular': require('./assets/fonts/DMSans-Regular.ttf'),
-    'DMSans-Medium': require('./assets/fonts/DMSans-Medium.ttf'),
-    'DMSans-Bold': require('./assets/fonts/DMSans-Bold.ttf'),
+    'Outfit-Regular': require('./assets/fonts/Outfit-Regular.ttf'),
+    'Outfit-Medium': require('./assets/fonts/Outfit-Medium.ttf'),
+    'Outfit-SemiBold': require('./assets/fonts/Outfit-SemiBold.ttf'),
+    'Outfit-Bold': require('./assets/fonts/Outfit-Bold.ttf'),
+    'Outfit-ExtraBold': require('./assets/fonts/Outfit-ExtraBold.ttf'),
   });
 
   return (

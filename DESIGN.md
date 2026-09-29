@@ -134,114 +134,164 @@ The current composition above and `docs/HOME_FRIENDS_REVIEW.md` supersede them.
 
 ## Colour
 
-One ground, and everything else earning its place against it. Every raw value
-lives in `apps/mobile/src/palette.ts`, which imports nothing so that
-`palette.test.ts` can hold it to a contract; `theme.ts` composes its tokens from
-there and carries no raw hex of its own. The tables below are that palette, read
-back out of the code: `palette.test.ts` fails if this document and the export
-disagree on a single value.
+Luvani, bright (revamp B, 29 September): one warm paper ground, white cards,
+one deep ink, and four saturated colours that each lead a screen or report the
+tutor's state. Every raw value lives in `apps/mobile/src/palette.ts`, which
+imports nothing so that `palette.test.ts` can hold it to a contract. `theme.ts`
+composes its tokens from there and carries no raw hex of its own, and no other
+source file writes one either. The tables below are that palette, read back out
+of the code: `palette.test.ts` fails if this document and the export disagree on
+a single value, or if either names a token the other lacks.
 
-### One ground: warm paper
+The contract has three floors. Words clear 4.5 against whatever they sit on. A
+mark that reports state clears 3. Two colours that mean different things stay a
+Delta-E of 30 apart, so neither reads as the other.
 
-The five place-keyed papers are gone. The founder rejected a muted scheme of five
-grounds a hair apart, so there is one warm paper ground under the whole app,
-and colour earns attention by meaning something rather than by marking where the
-learner happens to be. The card lifts off the ground, each hairline separates
-from what it rules, and the steps are held by Delta-E rather than by matching
-four siblings at one lightness.
+### Paper and ink
+
+One ground, one white, one ink, one soft ink and one hairline. B has no pressed
+wash, no third ink and no second hairline, so the old names that asked for one
+(`groundDeep`, `inkFaint`, `lineOnCard`) are aliases of the one B value until
+Stage 6 retires them. `skeleton` is new: loading blocks, and the one fill the
+first three rungs share.
 
 | Token | Value | Role |
 |---|---|---|
-| `paper.ground` | `#F7F3E8` | The page — everything sits directly on it |
-| `paper.groundDeep` | `#E6DECD` | Pressed states, chip fills, the tab track |
-| `paper.card` | `#FFFEFA` | Card surface, flat, one hairline rule |
-| `paper.ink` | `#182019` | Near-black ink with a subtle green cast |
-| `paper.inkSoft` | `#51584C` | Secondary text |
-| `paper.inkFaint` | `#6A7266` | Tertiary — counts, placeholders, the inactive tab glyph |
-| `paper.line` | `#B8BCAD` | Hairline rule on the ground |
-| `paper.lineOnCard` | `#DADBCF` | Hairline divider inside a card |
-| `paper.onInk` | `#FFFDF5` | Warm-white text on a filled control |
+| `paper.ground` | `#FFF6E9` | The page. Every working screen sits directly on it |
+| `paper.skeleton` | `#EFE6D6` | Loading blocks, and the rung fill |
+| `paper.groundDeep` | `#EFE6D6` | Alias of `skeleton` until Stage 6 |
+| `paper.card` | `#FFFFFF` | Cards and tiles. White, one hairline, no shadow |
+| `paper.ink` | `#16123A` | Primary text, the primary button, the dark live ground |
+| `paper.inkSoft` | `#5C5A74` | Secondary text on paper or white, never on a colour |
+| `paper.inkFaint` | `#5C5A74` | Alias of `inkSoft`: counts and placeholders are words |
+| `paper.line` | `#EADFCB` | The one hairline, for decorative dividers only |
+| `paper.lineOnCard` | `#EADFCB` | Alias of `line` |
+| `paper.onInk` | `#FFFFFF` | Text and icons on a filled ink, blue or coral control |
 
-`inkFaint` moved from the old `#94849F` (2.91 against the ground, under the mark
-floor) to `#6A7266` so the inactive tab glyph reads as a mark.
+Ink clears 16.6 on the ground, 17.8 on a card and 14.4 on the skeleton. Soft
+ink clears 6.2 on the ground and 6.6 on a card. The card lifts off the ground by
+a Delta-E of 7.9, the hairline sits 8.9 off the ground and 15.5 off a card, and
+the skeleton 5.9 off the ground.
+
+### Four colours
+
+One colour leads a screen at most; the rest is paper, white and ink. What may
+sit on each is fixed, and the other way round is a forbidden pair: no white on
+sun or mint, no ink on blue or coral, and no soft ink on any colour.
+
+| Token | Value | Text on it |
+|---|---|---|
+| `colour.blue` | `#3B2FE0` | White (7.9). The brand: onboarding, the next-scene card, the selected tab |
+| `colour.coral` | `#D63A22` | White only (4.7), never below 14pt. The tutor speaking, the recap cover |
+| `colour.sun` | `#FFC93C` | Ink (11.6). Thinking, the plan, the focus sound |
+| `colour.mint` | `#2FD18B` | Ink (9.0). Your turn, a can-do earned, a done tick |
+
+Stage 1 adds these four and nothing else. The input field's border, the story
+segments' pending tints, secondary text on ink and the illustration lilac are
+added by the stage that first draws each, because an unused value is a value
+somebody builds to.
 
 ### Ink identity, one highlighter
 
-The French notebook with one highlighter (redesign Phase 1, 27 September).
-Primary actions and micro-labels share the same dark ink, and `accent.label`
-equals `accent.primary`. The chartreuse is no longer a surface. It is one pen,
-`highlight`, legal in exactly three places: the `Highlight` band behind a
-French line, the `LevelPath` "you are here" stop, and the brand mark (an SVG in
-`assets/brand/`). At most one per screen, always under ink, and never the
-ground of a panel, tile, avatar, tab, title, card or button.
+The primary action and the labels are ink, and `accent.label` equals
+`accent.primary`. `accent.brand` is the blue, pinned to `colour.blue` so a second
+brand cannot creep in, and held a Delta-E of 30 from every orb state, the
+highlighter, the rung fill and the tutor's mark. The chartreuse is one pen,
+`highlight`, legal in exactly three places: the `Highlight` band behind a French
+line, the `LevelPath` "you are here" stop, and the brand mark (an SVG in
+`assets/brand/`). At most one per screen, always under ink, and never the ground
+of a panel, tile, avatar, tab, title, card or button.
 
 `accent.feature` is retired. `palette.test.ts` refuses the alias in the palette
 and any use in production source, with no transitional allowances.
 
 | Token | Value | Role |
 |---|---|---|
-| `accent.primary` | `#182019` | The one ink pill |
-| `accent.label` | `#182019` | Micro-labels — the caps line above a card |
+| `accent.primary` | `#16123A` | The one ink pill (aliases `paper.ink`) |
+| `accent.label` | `#16123A` | Labels (aliases `paper.ink`) |
+| `accent.brand` | `#3B2FE0` | The brand blue (aliases `colour.blue`) |
 | `highlight` | `#D8FF54` | The highlighter: a band behind a French line, the "you are here" stop, the brand mark |
 
-Ink clears 14.6 on the highlighter and soft ink 6.4; the highlighter stays a
-Delta-E of 30 from every signal, orb state, rung, the ground and the card, so it
-never reads as a state, a support level or the page. `palette.test.ts` walks
-the source: the hex lives only in `palette.ts`, the token is spelled only in
-`palette.ts`, `theme.ts` and `components.tsx`, and inside `components.tsx` only
-within `Highlight` and `LevelPath`.
+Ink clears 15.5 on the highlighter and soft ink 5.8. The highlighter stays a
+Delta-E of 30 from every signal, orb state, the rung fill, the ground and the
+card, so it never reads as a state, a support level or the page.
+`palette.test.ts` walks the source: the hex lives only in `palette.ts`, the
+token is spelled only in `palette.ts`, `theme.ts` and `components.tsx`, and
+inside `components.tsx` only within `Highlight` and `LevelPath`.
 
-**An accent is typographic; a signal is a mark.** A label, a chip, or a drawing's
-one solid fill may take the accent. A dot, a ring, or anything reporting state
-never may, and no accent comes within a Delta-E of 30 of any signal or rung.
+**An accent is typographic; a signal is a mark.** A label, a chip, or a
+drawing's one solid fill may take the accent. A dot, a ring, or anything
+reporting state never may.
 
-### Signals, re-saturated
+### Signals: words in ink, and one mark
 
-Muted greys-with-a-hue became full colour again. Green and magenta are words and
-clear the 4.5 text floor on the ground and on a card; the tutor's red only ever
-marks the orb, so it is held to the 3 floor for a mark and its caption is ink.
+B carries meaning in words and puts colour only on marks. The two signals that
+letter words, a sound that is working and something to change, are the ink
+itself, so they clear the text floor by being ink. The tutor's coral only ever
+marks the orb, so it is held to the 3 floor for a mark (4.4 on the ground, 4.7
+on a card) and its caption is ink. It stays a Delta-E of 30 from ink, the rung
+fill, the ground and the card.
 
 | Token | Value | Role |
 |---|---|---|
-| `signal.good` | `#12784A` | A sound that is working — the same green the learner speaks in |
-| `signal.correspondance` | `#B4008A` | Something to change |
-| `signal.live` | `#DE3B2D` | The tutor's voice, a mark and never words |
+| `signal.good` | `#16123A` | A sound that is working, in ink (aliases `paper.ink`) |
+| `signal.correspondance` | `#16123A` | Something to change, in ink (aliases `paper.ink`) |
+| `signal.live` | `#D63A22` | The tutor's voice, a mark and never words (aliases `colour.coral`) |
 
-### The voice circle speaks traffic lights
+Where `signal.good` is drawn as a fill or a mark (the SpeakCircle's live disc
+and glow, an earned chip, a dot), it is ink until Stage 3 redraws each with the
+mint tick.
 
-`orb` is taught to every new learner by TutorIntro's final page, so these values
-changing means that page is teaching a lie — change both. Each state is a mark and
-clears 3 against the ground; the caption below it is ink. The three lights stay a
-Delta-E of 30 from each other and from rung one's yellow.
+### The voice circle
+
+Coral, the tutor is talking; mint, your turn; sun, it is thinking; ink, ready to
+be tapped. TutorIntro teaches these states in words and never by colour name,
+because the glyph and the caption carry the state for a learner who cannot tell
+the colours apart. The three lights stay a Delta-E of 30 from each other and
+from the rung fill.
+
+Mint and sun are far too light to be a mark on paper (1.85 and 1.43), so the
+fill is never the only signal. Every state carries a glyph, the voice bars and
+the embedded status, in the colour `onOrb` pairs with its fill, and that glyph
+is held to the 4.5 floor for words on it: white on coral 4.7, ink on mint 9.0,
+ink on sun 11.6, white on ink 17.8. The coral and the ink ready disc still clear
+3 on the ground.
 
 | Token | Value | Caption / role |
 |---|---|---|
-| `orb.speaking` | `#DE3B2D` | Listen: the tutor is speaking (aliases `signal.live`) |
-| `orb.yourTurn` | `#12784A` | Speak: your turn (aliases `signal.good`) |
-| `orb.thinking` | `#B07510` | One moment: the tutor is thinking |
-| `orb.ready` | `#182019` | Tap to talk: the untapped control (aliases `accent.primary`) |
+| `orb.speaking` | `#D63A22` | Listen: the tutor is speaking (aliases `colour.coral`) |
+| `orb.yourTurn` | `#2FD18B` | Speak: your turn (aliases `colour.mint`) |
+| `orb.thinking` | `#FFC93C` | One moment: the tutor is thinking (aliases `colour.sun`) |
+| `orb.ready` | `#16123A` | Tap to talk: the untapped control (aliases `paper.ink`) |
+
+| Token | Value | The glyph on |
+|---|---|---|
+| `onOrb.speaking` | `#FFFFFF` | Coral: white bars and status |
+| `onOrb.yourTurn` | `#16123A` | Mint: ink bars and status |
+| `onOrb.thinking` | `#16123A` | Sun: ink bars and status |
+| `onOrb.ready` | `#FFFFFF` | The ink ready disc: white bars and status. It turns ink when Stage 2a draws the ready orb as an ink ring on paper |
 
 Ink is not a fourth traffic light. A closed microphone waiting to be tapped is
 the primary control of the whole product, so it takes the primary colour exactly
-as the primary action does, and it changes to a signal when the orb reports state.
+as the primary action does, and it changes to a state colour when the orb
+reports state.
 
-### Support colours run hot to cool again
+### The rungs share one fill
 
 A rung colour is a fill under an ink numeral, not a state mark, so it is held to
-ink at 4.5 on the fill rather than to the mark floor against the ground — nothing
-reads a rung against the ground, an ink numeral reads against the rung. The b\*
-channel falls rung by rung, so support visibly cools as it is withdrawn, and rung
-four is plain ink: no line left to follow.
+ink at 4.5 on the fill rather than to the mark floor against the ground. B puts
+no further colours on the rungs: the first three share the skeleton fill under
+an ink numeral (14.4), the words in `rungLabel` say which rung is which, and
+rung four is plain ink under a white numeral, no line left to follow. The fill
+sits 5.9 off the ground and 12.2 off a card, and a Delta-E of 30 from ink, the
+tutor's mark, the three orb lights and the highlighter.
 
 | Token | Value | Meaning |
 |---|---|---|
-| `rungColor[1]` | `#FFCD00` | Echo — repeat after the tutor |
-| `rungColor[2]` | `#FF7B00` | Cued — choose a reply and say it |
-| `rungColor[3]` | `#6EC4E8` | Prompted — say it in your own words |
-| `rungColor[4]` | `#182019` | Free — plain ink, no line left to follow |
-
-Green is the same green everywhere the learner speaks: the orb's your-turn state,
-the lesson SpeakCircle, the Review button, the path's learned marks.
+| `rungColor[1]` | `#EFE6D6` | Echo, repeat after the tutor (aliases `paper.skeleton`) |
+| `rungColor[2]` | `#EFE6D6` | Cued, choose a reply and say it (aliases `paper.skeleton`) |
+| `rungColor[3]` | `#EFE6D6` | Prompted, say it in your own words (aliases `paper.skeleton`) |
+| `rungColor[4]` | `#16123A` | Free, plain ink, no line left to follow (aliases `paper.ink`) |
 
 ### Tints are retired
 
@@ -251,9 +301,10 @@ palette, and `surfaceContract.test.ts` rejects every tint token, role table and
 wrapper in production source. There are no transitional allowances.
 ### Shadow
 
-One. **The live glow** is the green halo under `SpeakCircle` while the
-microphone is open, the one shadow that reports something. Nothing else in the
-notebook floats: a card is told from the page by its paper hairline alone.
+One. **The live glow** is the halo under `SpeakCircle` while the microphone is
+open, the one shadow that reports something. It is drawn in `signal.good`, so it
+is ink until Stage 3 redraws it. Nothing else floats: a card is told from the
+page by its paper hairline alone.
 
 **The whisper is deleted.** The theme exports no shadow token. `theme.test.ts`
 refuses the retired alias, and `surfaceContract.test.ts` refuses shadow styles
@@ -263,28 +314,40 @@ most one `Highlight` or `LevelPath` highlighter.
 
 ## Type
 
-**Fraunces** (SemiBold/Bold, the 72pt optical statics) is for French only:
-**every French line the learner reads**, always sentence case, never caps, and
-nothing else. **DM Sans** (Regular/Medium/Bold) is the furniture, and the UI
-heads are DM Sans Medium. Both OFL, committed in `assets/fonts/` with their
-licences. `theme.test.ts` fails if a style set in Fraunces is not a French
-style by name, and if the French hero is not larger than the display.
+**Outfit** is the only face: every word on the screen, French and English
+alike, in five cuts (Regular 400, Medium 500, SemiBold 600, Bold 700, ExtraBold
+800). It is OFL, committed in `assets/fonts/` with its licence and credited in
+Acknowledgements; Fraunces and DM Sans have left the bundle. Weight and size say
+what a line is, never a second face, and nothing is set in italics or in caps.
+French keeps its own tokens by name, set in SemiBold, and the French line is
+always the largest text in its block. The old font names (`serif`, `serifBold`,
+`sans`, `sansMedium`, `sansBold`) are aliases of an Outfit cut until Stage 6.
+
+Sizes are points and scale with the OS reading size. Line heights are STYLE's
+ratios rounded to whole points, and tracking is STYLE's em value at the size.
+`theme.test.ts` pins every row below. It fails if the theme names a face
+`App.tsx` does not load or the fonts folder carries one nothing loads, if the
+French hero is not larger than the screen title, and if `frenchLg` is not larger
+than a heading.
 
 | Style | Face / size | Use |
 |---|---|---|
-| `display` | DM Sans Medium 28/34 | Screen headline |
-| `title` | DM Sans Medium 22/28 | Section head, big stat (not the tab title, which is `display` in `TabHeader`) |
-| `cardTitle` | DM Sans Medium 20/26 | The title of a card, and of a scene brief |
-| `frenchHero` | Fraunces 34/42 | The French line that leads a screen, always larger than any heading on it (`fitHero()` steps 34 → 30 → 26 by length, from `heroFit`) |
-| `frenchLg` | Fraunces 28 | The line to say (`fitDisplay()` steps 28 → 24 → 20 by length) |
-| `french` | Fraunces 21 | Inline French — options and cards |
-| `frenchSm` | Fraunces 17 | French in a chip — the momentum hero's sample lines, where a real sentence at 21 wraps and stops reading as a chip |
-| `heading` | DM Sans Medium 17/22 | Screen titles in chrome, a ledger row's title |
-| `body` / `bodyStrong` | DM Sans 16 | Prose |
-| `small` | DM Sans 13.5 | Secondary lines |
-| `label` | DM Sans Bold 11.5, caps, 1.2 tracking | Micro-labels above cards |
-| `button` | DM Sans Bold 16 | Pill and outline lettering |
-| `notation` | DM Sans Medium 14 | IPA — real notation, not mono-as-costume |
+| `hero` | Outfit ExtraBold 112/95, -4.5 | The one giant number on a story or colour card, at most one per screen |
+| `display` | Outfit ExtraBold 44/44, -1.3 | A headline on colour, and for now the tab title in `TabHeader` |
+| `title` | Outfit ExtraBold 30/33, -0.6 | The title of a working screen (today also the section heads Stage 3 remaps) |
+| `heading` | Outfit Bold 20/25, -0.2 | Card titles and section heads |
+| `cardTitle` | Outfit Bold 20/25, -0.2 | The title of a card, the same style as `heading` |
+| `frenchHero` | Outfit SemiBold 34/42, -0.3 | The French line that leads a screen (`fitHero()` steps 34, 30, 26 by length, from `heroFit`) |
+| `frenchLg` | Outfit SemiBold 28/34, -0.3 | The French line that leads a card or scene (`fitDisplay()` steps 28, 24, 20 by length) |
+| `french` | Outfit SemiBold 20/26 | French in lists, rows and thread bubbles |
+| `frenchSm` | Outfit SemiBold 17/23 | French in a chip, where the phrase is a sample |
+| `body` | Outfit Regular 17/25 | Sentences |
+| `bodyStrong` | Outfit SemiBold 17/25 | A sentence that carries more weight |
+| `label` | Outfit SemiBold 16/20 | Buttons and row titles, sentence case, no tracking |
+| `button` | Outfit SemiBold 16/20 | Pill and outline lettering, the same style as `label` |
+| `small` | Outfit Medium 14/20 | Metadata lines, captions, the English under a French line |
+| `tabLabel` | Outfit SemiBold 12/12 | Tab bar labels only |
+| `notation` | Outfit Medium 14/20, 0.4 | IPA: real notation, not mono-as-costume |
 
 ## Surfaces and controls
 

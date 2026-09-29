@@ -21,7 +21,7 @@
     "android": {
       "package": "com.luvani.app",
       "adaptiveIcon": {
-        "backgroundColor": "#F7F3E8",
+        "backgroundColor": "#FFF6E9",
         "foregroundImage": "./assets/brand/luvani-adaptive-foreground-1024.png",
         "monochromeImage": "./assets/brand/luvani-adaptive-monochrome-1024.png"
       },
@@ -47,7 +47,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F7F3E8",
+          "backgroundColor": "#FFF6E9",
           "image": "./assets/brand/luvani-mark-1024.png",
           "imageWidth": 200
         }

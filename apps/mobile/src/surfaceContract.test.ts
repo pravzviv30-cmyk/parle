@@ -69,10 +69,20 @@ describe('the tutor intro teaches what the app actually does — J3', () => {
   // the comments the rest of this file deliberately strips.
   const introRaw = readFileSync(join(SRC, 'tutor', 'TutorIntro.tsx'), 'utf8');
 
-  test('the intro names the thinking colour what the theme calls it', () => {
-    // It said "Yellow", and rung one's actual yellow lives one screen away.
-    assert.match(intro, /Amber, it is thinking/);
-    assert.doesNotMatch(intro, /Yellow, it is thinking/);
+  test('the intro names the orb states in words, never by colour', () => {
+    // It said "Yellow", and rung one's actual yellow lived one screen away; then
+    // it said "Amber" to match the theme. Revamp B (F595) repaints the orb coral,
+    // mint, sun and ink, each with a glyph and a caption, so the state is carried
+    // by the words and the glyph. A colour named in a title teaches the one cue a
+    // colour-blind learner cannot see, and goes stale the next time a token moves.
+    assert.match(intro, /title: `\$\{persona\.name\} is talking`/, 'the speaking row no longer says who is talking');
+    assert.match(intro, /title: 'Your turn'/, 'the listening row no longer says it is the learner\'s turn');
+    assert.match(intro, /title: 'It is thinking'/, 'the thinking row no longer says the tutor is thinking');
+    assert.doesNotMatch(
+      intro,
+      /[`'](Red|Green|Amber|Yellow|Violet|Coral|Mint|Sun|Blue)\b/,
+      'the intro names an orb state by its colour again',
+    );
   });
 
   test('the intro header counts its own pages', () => {
@@ -1213,8 +1223,9 @@ describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
 
   test('the active tab is told by ink and weight, and a screen reader still hears selected — F313', () => {
     assert.match(tabbar, /accessibilityState=\{\{\s*selected/, 'a screen reader is not told which tab is selected');
-    // 2026-09-27, notebook Phase 1: the heavier weight is DM Sans Medium.
-    assert.match(tabbar, /fontFamily: font\.sansMedium/, 'the active tab is not marked by the heavier weight');
+    // 2026-09-27, notebook Phase 1: the heavier weight is the Medium cut. Revamp B
+    // (F596) points the `sansMedium` name at Outfit Medium, so the pin is unchanged.
+    assert.match(tabbar, /fontFamily: font\.sansMedium/, 'the active tab is not marked by the heavier weight, Outfit Medium');
     assert.ok(!/\bst\.dot\b/.test(tabbar) && !tabbar.includes('dotActive'), 'the tab bar still marks the active cell with a dot');
   });
 
@@ -1256,7 +1267,7 @@ describe('the active tab wears the identity violet — F325', () => {
     assert.match(
       tabbar,
       /focused \? \{ color: paper\.ink, fontFamily: font\.sansMedium \}/,
-      'the active tab label is not ink at the heavier weight',
+      'the active tab label is not ink at the heavier weight, Outfit Medium',
     );
     assert.match(tabbar, /\{ color: paper\.inkSoft \}/, 'the inactive tab label is no longer soft ink');
   });
