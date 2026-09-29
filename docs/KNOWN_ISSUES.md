@@ -8823,3 +8823,98 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `B corners: card 24, feature 28, tile 20, field 16, pill 999, and the aliases point at them`
 - verified-by: `the theme names the five Outfit cuts App.tsx loads, and the bundle carries no other face`
 - verified-by: `Acknowledgements credits Outfit under the OFL and names no retired face`
+
+### F597 — The shared parts are the notebook's: static presses, hairline cards, ink chips, a gradient orb, and no B parts to paste
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/components.tsx:957
+- note: Stage 2a of revamp B. `motion.ts` gains the one spring (`pressTo`, 0.97, stiffness 439, damping 29.3, mass 1, native driver off on the web, instant under reduced motion) and `components.tsx` gains `Press` with a `haptic` prop over new `pressed()` and `soft()` haptics; the 0.985 statics go. `Card`, `Label`, `PillButton` (with a white tone), `GhostButton`, `Monogram`, `Highlight` (still, marked as French), `Field`, `TabBar<K>` (the SNIPPETS segmented) and `ProgressDots` (the story segments) are restyled in place; `RoundButton`, `ColourCard`, `StatTile`, `HeroNumber`, `OptionRow`, `Sheet`, `Skeleton`, `QuietLine`, `FrenchBlock`, `CloseGlyph` and `CheckGlyph` are appended; the orb becomes SNIPPETS' two rings, a core and one mark per state, with `onOrb.ready` unchanged; `ScreenHeader` takes the round back button. `palette.ts` gains the STYLE §4 colours these parts draw (`paper.field`, `lilac`, `textOn`, `onColour`, `segmentPending`) and `theme.ts` gains `type.stat` and `frenchText`. A punctuation ratchet bans the middot and both dashes in learner-facing strings with an allowlist of the fifteen files that fail today.
+- verified-by: `every tappable part presses through one spring: 0.97, stiffness 439, damping 29.3, released on lift, instant under reduced motion`
+- verified-by: `the one spring is the press, it lives in motion.ts at the STYLE numbers, and it crosses to the native driver everywhere but the web`
+- verified-by: `no pressed style scales by hand: the 0.985 statics are gone`
+- verified-by: `a press is a light impact, a choice is a selection tick, a hint is soft, and the web half stays silent`
+- verified-by: `the one card is white at the card radius with no hairline, no outline and no shadow`
+- verified-by: `one ink pill at 56, white on blue or coral; the second action is an underlined ink link at the touch floor; a label is the meta line`
+- verified-by: `the monogram is a white initial on an ink disc, and it is hidden from assistive tech`
+- verified-by: `the highlighter is a still band behind one French line, marked as French, and moves nothing`
+- verified-by: `the orb is two rings and a core in the state colour, with one mark per state in the glyph colour: bars while speaking, a microphone when it is your turn, three dots while thinking`
+- verified-by: `the seven bars are the speaking orb's waveform, in the glyph colour, and every other state holds a still mark`
+- verified-by: `the segmented control is a sand track with a white chosen segment, never ink capsules, and every segment keeps the touch floor`
+- verified-by: `the B parts are appended after the stylesheet, draw from tokens, cap no words, build no pill and spell no hex`
+- verified-by: `a round button is a 44 disc for back and close and a 64 disc for next, with the ICONS.md mark`
+- verified-by: `a colour card is one ground with its words in the palette's colours for it, and a stat tile and a hero number each read as one phrase`
+- verified-by: `an option row says its choice twice and marks it with the blue check or the field ring`
+- verified-by: `a sheet rises from the bottom under an ink scrim, is modal, and closes from the scrim`
+- verified-by: `a skeleton is still sand blocks that say Loading once, and a quiet line is a centred small line`
+- verified-by: `a French block leads with the French, marks it as French, glosses under it, and offers to hear or to stop`
+- verified-by: `the pushed header's way back is a 44 round white button`
+- verified-by: `the STYLE colours the parts draw are in the palette: the field border, the secondary on each ground, the pending segments, and lilac is drawn only by the flat illustrations`
+- verified-by: `DESIGN.md records the palette the app ships`
+- verified-by: `Outfit is the only face, at the STYLE scale, and every French style is Outfit SemiBold`
+- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
+
+### F598 — The glyphs are the notebook's pen at 2.2, not ICONS.md's at 2
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/glyphs.tsx:42
+- note: Stage 2b of revamp B. `STROKE` becomes 2. Every existing glyph export keeps its name and file and takes its ICONS.md path where one exists (next, back, chevron-right, mic, speaker, lifebuoy, check-circle, clock, language, book, repeat-one, waveform, home, practice, progress, friends, user, and the filled apple and google brand marks); `TutorIcon` becomes the same microphone as `MicGlyph`; the drawings ICONS.md has no match for are kept at the new stroke and listed for retirement with their callers. Fourteen marks the Round 1 boards draw and nothing covered are added to `glyphs.tsx`; `close` and `check` sit in `components.tsx` beside the parts that draw them, to keep the import edge one-way.
+- verified-by: `the one pen is ICONS.md's: STROKE is 2`
+- verified-by: `every glyph is an ICONS.md mark at the one stroke weight or a kept drawing on the retire list, and the tab and the control share one microphone`
+- verified-by: `the brand marks are the only filled glyphs, and they are filled in the mark's own colour`
+- verified-by: `every glyph draws in the one stroke weight and hides from assistive technology`
+
+### F599 — The place scenes are watercolour PNGs, and the B drawings are not in the app
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/art/registry.ts:38
+- note: Stage 2c of revamp B. `scripts/illustrations.mjs` converts the 23 place, state, celebrate and postcard drawings in ILLUSTRATIONS.md into react-native-svg components under `art/flat/`, every hex mapped to a palette token (`lilac` added for illustrations only), with one generated registry, one `Illustration` renderer that spreads `decorative`, and a `sceneIllustration` map keyed by mission id. The missions chooser and the onboarding plan draw one flat scene each in place of the PNGs; then the twelve PNGs, `Art.tsx`, `registry.ts` and `maps.ts` retire and nothing imports `Image`. The six mouth guides wait for Round 3. Drawings no screen reaches yet sit on an exact not-yet-drawn list that Stages 3 and 4 shrink.
+- verified-by: `the flat registry names the 23 Round 1 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- verified-by: `the watercolours are gone: no PNG under assets/art, no Art, no registry, no maps, and nothing imports Image`
+- verified-by: `every scene has a flat drawing of its own, and no two scenes share one`
+- verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
+- verified-by: `every drawing in the app is hidden from assistive technology, and nothing imports Image`
+- verified-by: `the chooser's first card draws its scene through the one illustration at the hero-spot size, and sizes nothing itself`
+- verified-by: `the plan draws one drawing, its first scene's, and no picture appears outside the plan`
+
+### F600 — The tab bar is paper and ink with Today and My French, not white with a blue Home and Progress
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx:35
+- note: Stage 2d of revamp B. `LuvaniTabBar` becomes SNIPPETS' bar: white with the one top hairline, the selected glyph and word in `accent.brand` at Outfit Bold, the rest in soft ink at SemiBold, the words Home, Speak, Practice, Progress and Friends under the ICONS.md marks, and each cell pressing through `Press` with no haptic of its own so a tap on the current tab stays silent. Route names, `ICONS`, the badge, the wrapping rule and the safe-area padding do not change.
+- verified-by: `the bar is white with a top hairline, and never a floating shadow`
+- verified-by: `the active tab is the brand blue at weight 700, the rest soft ink at 600, and a screen reader still hears selected`
+- verified-by: `the five words are Home, Speak, Practice, Progress and Friends, and no route name changed`
+- verified-by: `a tab cell presses through Press with no haptic of its own, and the bar still moves nothing`
+- verified-by: `the active tab is set in the brand blue, and the rest in soft ink`
+
+### F616 — Live pronunciation scoring is off, and the only scorer wired is a vendor nobody chose
+- severity: P1
+- status: [ ]
+- where: services/shared/pronunciation.ts:1
+- note: captured audio never reaches a scorer (`LUVANI_AUDIO_SCORING` unset), so every live end card reads `unavailable`; the one adapter is Speechace and the founder chose TonePerfect on 2026-09-29. Add a vendor-neutral router chosen by `LUVANI_SCORING_VENDOR` (TonePerfect when its key is set, Speechace otherwise, a named vendor without its key scores nothing), a TonePerfect adapter that goes through `phoneMap` into the same `PhonemeObservation[]`, one shared 5 s deadline, one random Idempotency-Key per call reused on the single retry, and a failure policy where a timeout, refusal, outage or unassessable answer is no score and never a low one. The real response is committed as `services/tutor-agent/src/fixtures/toneperfect-fr.json`; all 18 returned symbols map with none unmapped, and the tutor's own recording deterministically yields no focus. The model is marked experimental. Live-session scoring stays off by the founder's decision of 2026-09-29 until scoring runs off the reply path (see the follow-up entry).
+- verified-by: `TonePerfect is chosen whenever its key is set and nothing says otherwise`
+- verified-by: `LUVANI_SCORING_VENDOR picks the vendor by name, and the audio goes to that vendor's endpoint`
+- verified-by: `a vendor named without its key scores nothing rather than sending audio elsewhere`
+- verified-by: `with no vendor configured, the audio goes nowhere`
+- verified-by: `the request carries the audio, the line, the language and a bearer key, and never the key in the URL`
+- verified-by: `every attempt gets its own Idempotency-Key, and a retry reuses it`
+- verified-by: `a 5xx is retried once inside the same deadline; a 4xx is not retried`
+- verified-by: `an unassessable response means no score, not a low one`
+- verified-by: `a refusal, an outage, a hang and a malformed body all leave the turn unscored`
+- verified-by: `no request is made without a key or without audio`
+- verified-by: `the saved TonePerfect response parses into one observation per scored phone`
+- verified-by: `every symbol TonePerfect returned is in the French inventory, none unmapped`
+- verified-by: `what the learner said instead is kept as the substitution`
+- verified-by: `the fixture is deterministic: same ranking, same weakest sound, no focus to name`
+- verified-by: `a TonePerfect response with a genuinely weak sound reaches a focus point and its drill`
+- verified-by: `the Speechace request honours the shared deadline`
+- verified-by: `nothing in this suite reaches the network`
+- verified-by: `an inline TONEPERFECT_API_KEY assignment is caught as a server-only credential`
+- verified-by: `scoring stays off until it is deliberately turned on`
+
+### F623 — Live pronunciation scoring sits on the reply path and would add three to four seconds a turn
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/tutor.ts:482
+- note: `scoreUtterance` is awaited in `onUserTurnCompleted` before the brain replies, and `grade()` reads the turn's mean at `packages/core/src/session/session.ts:286`, so a live scene would wait for the scorer (3.4 s for a 1.7 s clip in the one TonePerfect call) on top of the brain (4.5 to 5.4 s). By the founder's decision of 2026-09-29, live-session scoring stays off (`LUVANI_AUDIO_SCORING` unset) while drills and sound checks score through the token server. The fix runs scoring alongside the reply and lets the grade read the score when it lands; it touches core session code, which has no specialist by design, so it needs its own contract in Round 2.
+- verified-by: `a live turn's reply never waits for the pronunciation score`
