@@ -34,6 +34,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
   buildOwnWordsJudgeRequest,
   parseOwnWordsVerdict,
+  priceUsage,
   type BrainJudgeRequest,
   type LlmUsage,
 } from '@luvani/brain/llm';
@@ -81,6 +82,18 @@ export interface DrillJudgeDeps {
    */
   usage?(usage: LlmUsage): void;
   timeoutMs?: number;
+}
+
+/**
+ * The one line the server prints per judged attempt: which model answered and
+ * what it cost. It is built from the usage object alone, so it cannot carry the
+ * attempt. With Jev in front of the brain, the model name is how an operator
+ * sees which checks Jev settled and which went on to the brain.
+ */
+export function judgeUsageLine(usage: LlmUsage): string {
+  const priced = priceUsage(usage);
+  const cost = `$${priced.usd.toFixed(6)}${priced.exact ? '' : ' (estimated)'}`;
+  return `[luvani:judge] answered by ${usage.model ?? 'an unnamed model'}: ${usage.inputTokens} input, ${usage.outputTokens} output, ${cost}`;
 }
 
 function json(res: ServerResponse, status: number, body: unknown): void {

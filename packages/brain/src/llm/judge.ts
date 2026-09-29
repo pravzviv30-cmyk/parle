@@ -133,6 +133,7 @@ export function buildOwnWordsJudgeRequest(input: OwnWordsJudgeInput, signal?: Ab
     kind: 'judge',
     system: JUDGE_SYSTEM,
     request,
+    input,
     ...(signal === undefined ? {} : { signal }),
   };
 }
