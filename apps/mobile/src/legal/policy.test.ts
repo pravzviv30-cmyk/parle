@@ -302,8 +302,9 @@ describe('the privacy notice — F479', () => {
     // And a boundary, so "after a session ends" cannot be read as open ended.
     // It closed on a count of the services until F501 and closes on the
     // services themselves now; what it has to keep saying is that the sending
-    // stops, which is what this asks for.
-    assert.match(said, /Nothing more about that session reaches any of them after that\./);
+    // stops, which is what this asks for. Since F625 it names the one way a
+    // session's phrase goes out again, which is practising it.
+    assert.match(said, /Nothing more about that session reaches any of them after that, unless you practise a phrase from it\./);
 
     // The scene list, named proportionately: what it is, and whose words.
     assert.match(said, /the titles of the last few situations you practised/, 'the notice hides the scene list sent with the memory facts');
@@ -328,6 +329,90 @@ describe('the privacy notice — F479', () => {
     assert.match(DOC, /The sending is not over when the session is/, 'the document stopped describing the calls that run after a session');
     assert.match(DOC, /every fact on file up to twelve, rendered as\n`Already on file:`/, 'the document stopped saying the facts go over again after a session');
     assert.match(DOC, /The recent scene list beside those facts is not learner words/, 'the document stopped saying what the scene list is made of');
+  });
+
+  test('the policy says a drill answer in your own words is read by the language model and by TypeSafe', () => {
+    // F625. `POST /drill/judge` hands a typed own-words answer to the language
+    // model, and with `TYPESAFE_API_KEY` set `JevFirstBrainClient` hands it to
+    // TypeSafe first. The section named neither, and closed on "Nothing more
+    // about that session reaches any of them after that" while the phrase and
+    // the situation being judged come out of a finished session's recap.
+    const seen = POLICY_SECTIONS.find((section) => section.heading === 'Who else sees it');
+    assert.ok(seen, 'the notice stopped saying who else sees what a learner says');
+    const said = seen.body.join(' ');
+
+    // The language model, and exactly what it is handed.
+    const model = seen.body.find((paragraph) => paragraph.startsWith('When you practise a phrase by writing it in your own words'));
+    assert.ok(model, 'the notice hides that an own-words answer is read by the language model');
+    assert.match(model, /your answer is read by the language model too\./);
+    assert.match(
+      model,
+      /It is sent your answer, the phrase, what the phrase means, the situation it came from and a note of your level\./,
+      'the notice names the recipient and hides what it is handed',
+    );
+    assert.match(model, /It checks that your words still mean the same thing and may suggest a more natural way to say it\./);
+    assert.match(model, /It is not told who you are, and we keep no copy of your answer\./);
+
+    // TypeSafe, named, and said to be conditional, to write nothing, and to be
+    // followed by the language model whenever it is not sure.
+    const jev = seen.body.find((paragraph) => paragraph.includes('TypeSafe'));
+    assert.ok(jev, 'the notice does not name TypeSafe, which reads the answer first when it is switched on');
+    assert.match(jev, /When we have it switched on, a company called TypeSafe reads your answer first\./);
+    assert.match(jev, /It is sent the same things, without your level\./, 'the notice hides what TypeSafe is handed');
+    assert.match(jev, /yes or no on whether your answer means the same thing/, 'the notice stopped saying what TypeSafe answers');
+    assert.match(jev, /writes nothing/);
+    assert.match(jev, /the language model is not asked\. Otherwise the language model reads it too\./, 'the notice lets TypeSafe read as the only reader');
+
+    // The "nothing more" bound, true again. The unqualified close is gone, and
+    // the exception it carries is the practice the two paragraphs describe.
+    assert.doesNotMatch(said, /reaches any of them after that\./, 'the notice still says nothing about a session goes out after it, which the drill judge contradicts');
+    assert.match(said, /Nothing more about that session reaches any of them after that, unless you practise a phrase from it\./);
+
+    // Order carries meaning here. The unchecked-retention sentence and the
+    // purpose bound speak of "these companies" and "the ones above", so the drill
+    // paragraphs have to sit above both or TypeSafe falls outside them.
+    const at = (start: string) => seen.body.findIndex((paragraph) => paragraph.startsWith(start));
+    const unchecked = at('What any of these companies keeps on its own side');
+    const bound = at('Nothing is sold.');
+    assert.ok(unchecked > 0 && bound > 0, 'the notice lost the retention caveat or the purpose bound');
+    assert.ok(seen.body.indexOf(model) < unchecked && seen.body.indexOf(jev) < unchecked, 'TypeSafe sits below the sentence that says its retention is unchecked');
+    assert.ok(seen.body.indexOf(jev) < bound, 'TypeSafe sits below the purpose bound, so the bound does not cover it');
+
+    // House voice, held on the new sentences directly as well as by the loop
+    // over the whole notice above.
+    for (const paragraph of [model, jev]) {
+      assert.doesNotMatch(paragraph, /[—–·]/, `a dash or middot in the drill judge copy: ${paragraph}`);
+      assert.equal(guiltIn(paragraph), undefined, `guilt in the drill judge copy: ${paragraph}`);
+    }
+
+    // The code every clause is about, so this fails when the route changes
+    // shape rather than only when somebody edits the copy.
+    const repo = (path: string) => readFileSync(fileURLToPath(new URL(`../../../../${path}`, import.meta.url)), 'utf8');
+    const drillJudge = repo('services/token-server/src/drillJudge.ts');
+    assert.match(
+      drillJudge,
+      /buildOwnWordsJudgeRequest\(\s*\{ fr, en, situation, mustKeep: mustKeepOf\(body\.mustKeep\), attempt, cefr: cefrOf\(body\.cefr\) \}/,
+      'the judge request is built from something other than the answer, the phrase, its meaning, the situation and the level',
+    );
+    assert.doesNotMatch(drillJudge, /console\.|\.insert\(|\.upsert\(/, 'the judge handler logs or stores something, so "we keep no copy" is untrue');
+    const server = repo('services/token-server/src/server.ts');
+    assert.match(server, /client: judgeBrain\(\),\s*usage: \(usage\) => console\.log\(judgeUsageLine\(usage\)\)/, 'the judge route logs more than the usage line');
+    const judge = repo('packages/brain/src/llm/judge.ts');
+    assert.match(judge, /`LEARNER LEVEL: \$\{input\.cefr\}`/, 'the model stopped being sent the level, so the sentence overclaims');
+    const jevJudge = repo('packages/brain/src/llm/jevJudge.ts');
+    const state = jevJudge.slice(jevJudge.indexOf('export function jevJudgeState'), jevJudge.indexOf('export const JEV_JUDGE_QUESTIONS'));
+    assert.match(state, /learner_attempt: input\.attempt/, 'TypeSafe stopped being sent the answer');
+    assert.doesNotMatch(state, /cefr|userId/, 'TypeSafe is now sent the level or an id, which the notice says it is not');
+    assert.match(jevJudge, /request\.signal\?\.throwIfAborted\(\);\s*return this\.brain\.judge\(request\);/, 'an unsettled answer no longer goes on to the language model');
+    const factory = repo('packages/brain/src/llm/factory.ts');
+    assert.match(factory, /jev === null \? brain : new JevFirstBrainClient\(\{ brain, jev \}\)/, 'TypeSafe stopped being optional in front of the model');
+    const typesafe = repo('packages/brain/src/llm/typesafe.ts');
+    assert.match(typesafe, /if \(apiKey === ''\) return null;/, 'TypeSafe is reached without a key, so "when we have it switched on" is untrue');
+
+    // Sourced to the document, and on the list of terms still to confirm.
+    assert.match(DOC, /\*\*An own-words answer is read by the language model, and first by TypeSafe when it is on\.\*\*/, 'the document stopped describing the drill judge route');
+    assert.match(DOC, /and so is TonePerfect's, [^|]*, and so is TypeSafe's/, 'the document stopped listing TypeSafe retention as unverified');
+    assert.match(repo('docs/RELEASE_GATE.md'), /Speechace, TonePerfect and TypeSafe retention/, 'the release gate stopped asking for TypeSafe terms to be confirmed');
   });
 
 
@@ -485,7 +570,7 @@ describe('the privacy notice — F479', () => {
     const said = seen.body.join(' ');
     assert.match(said, /Another is the language model/, 'the language model is the fifth of something again');
     assert.match(said, /What you say reaches these services during a session/, 'what a learner says reaches a number again');
-    assert.match(said, /Nothing more about that session reaches any of them after that\./, 'the sending after a session stops at a number again');
+    assert.match(said, /Nothing more about that session reaches any of them after that, unless you practise a phrase from it\./, 'the sending after a session stops at a number again');
     assert.match(said, /Paying for Luvani brings in another company/, 'the payment company is counted rather than named');
 
     // What a count is NOT. The opening enumeration gives each service the job it

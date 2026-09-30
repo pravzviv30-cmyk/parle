@@ -55,6 +55,17 @@
  * what it does, and a sentence that points back at the list points at the
  * services rather than at how many of them there are.
  *
+ * ## The own-words judge, and the one company named
+ *
+ * F625. `POST /drill/judge` sends a typed own-words answer, the phrase, its
+ * meaning, the situation and the level to the language model, and when
+ * `TYPESAFE_API_KEY` is set `JevFirstBrainClient` sends the same minus the level
+ * to TypeSafe first. The phrase and the situation come from a finished session's
+ * recap, so "Nothing more about that session reaches any of them after that"
+ * was untrue until it carried the practice exception. TypeSafe is the one
+ * recipient this notice names, because CLAUDE.md requires it; every other
+ * recipient is still named by what it does.
+ *
  * ## What survives a deletion is said where deletion is
  *
  * The trial markers and the installation id are ours, and "Your rights" already
@@ -149,7 +160,9 @@ export function policySections(facts: CompanyFacts = COMPANY): readonly PolicySe
       body: [
         'A live conversation needs services we pay for. One carries the audio, one turns speech into text, one gives the tutor its voice, and one scores a pronunciation attempt. Another is the language model: it reads what you said as text and writes the reply the tutor speaks, so your words are read rather than only carried.',
         "The language model is sent what you said, the turns already taken in the same session, the situation you are practising, including a moment you described in your own words when you brought one, your name where you gave one, and a short note of your level and the things to watch for in your French. It writes the tutor's answer from that. When a new situation is set up for you, the language model is also sent a few things you have told the tutor about yourself, which it remembers so it can bring them up next time, and any goals you write in Profile, and the titles of the last few situations you practised, which it wrote itself, so the next one is not a repeat. What the tutor remembers about you is yours to see, and each of those things can be removed in Profile. Your email and which sign-in you used are never part of it.",
-        "What you say reaches these services during a session, so the tutor can answer you. The language model hears from us once more after a session ends: that session's turns go back to it, together with the things already on file about you, so it can pick out the phrases worth practising and note anything new worth remembering. Nothing more about that session reaches any of them after that.",
+        "What you say reaches these services during a session, so the tutor can answer you. The language model hears from us once more after a session ends: that session's turns go back to it, together with the things already on file about you, so it can pick out the phrases worth practising and note anything new worth remembering. Nothing more about that session reaches any of them after that, unless you practise a phrase from it.",
+        'When you practise a phrase by writing it in your own words, your answer is read by the language model too. It is sent your answer, the phrase, what the phrase means, the situation it came from and a note of your level. It checks that your words still mean the same thing and may suggest a more natural way to say it. It is not told who you are, and we keep no copy of your answer.',
+        'When we have it switched on, a company called TypeSafe reads your answer first. It is sent the same things, without your level. It answers short questions and writes nothing: yes or no on whether your answer means the same thing, is clear and is French, and how natural it sounds. When it is sure your answer keeps the meaning, is clear French and sounds natural, the language model is not asked. Otherwise the language model reads it too.',
         'Paying for Luvani brings in another company, and it hears none of your French. It takes the payment and tells the app what was bought, so what you paid for is there for you and can be put back on a new phone. What it is told is which account bought what. No audio, no words you said and nothing you are learning goes to it.',
         'The server this notice calls ours runs on computers we rent. The database that keeps your account and your learning is run for us by a company we pay for exactly that, and the counters that hold cost and abuse in check sit with another, under a scrambled marker rather than your name. They hold what is described above so that we can, and nothing else is sent to them.',
         'What any of these companies keeps on its own side is theirs to answer and is not something we have checked, which is why this notice says what each one does for us and stops there.',

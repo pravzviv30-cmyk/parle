@@ -202,6 +202,55 @@ What each of the five vendors retains on its own side is a vendor question and i
 **not verified** by this repo. Naming their retention in the learner-facing privacy
 text is a launch blocker, listed below.
 
+**An own-words answer is read by the language model, and first by TypeSafe when it is on.**
+The own-words drill asks a learner to type a phrase their own way. It opens from a session
+recap (`RecapScreen.tsx` passes a kept phrase with that session's situation) or from a
+Practice card (`MakePhraseCard.tsx`, whose `from` is the conversation the phrase came out
+of). `judgeOwnWords` in `apps/mobile/src/speech/judgeAttempt.ts` posts one request to
+`POST /drill/judge` carrying the answer, the phrase (`fr`), its meaning (`en`), the
+situation, the must-keep meaning words, the CEFR estimate and the account id.
+
+The account id stops at our server. `handleDrillJudge` in
+`services/token-server/src/drillJudge.ts` uses it to authenticate and to rate limit, then
+builds the vendor request from the answer, the phrase, the meaning, the situation, the
+must-keep words and the level alone (`buildOwnWordsJudgeRequest` in
+`packages/brain/src/llm/judge.ts`: an English grading brief, those fields, and the answer
+fenced as data). No name, email, account id, session id or audio goes to either vendor, and
+because the server makes the call, neither sees the learner's phone.
+
+Who reads it is decided by `brainClientFromEnv` in `packages/brain/src/llm/factory.ts`,
+the same factory the tutor uses, so the language model is whichever vendor `TUTOR_LLM`
+picks. When `TYPESAFE_API_KEY` holds a value (`typeSafeFromEnv` in `typesafe.ts`; empty
+reads as unset), that brain is wrapped in `JevFirstBrainClient` (`jevJudge.ts`), which
+first sends TypeSafe's Jev model, at `https://api.typesafe.ai/v1/systemone`, the answer,
+the phrase, the meaning, the situation and the must-keep words (`jevJudgeState`). Never the
+level. Jev answers four typed questions and writes no text: meaning kept, comprehensible
+and in French as yes/no probabilities, and natural as one of yes, awkward or no. Only when
+every answer clears `JEV_PASS` is the brain skipped. A no, a doubt, an error or the 2.5 second
+timeout sends the same request on to the brain unchanged. So an answer reaches TypeSafe
+alone, or TypeSafe and then the language model, and with the key unset only the language
+model. The verdict decides nothing on its own: core's `decideOwnWords` does.
+
+**Nothing is stored.** The handler has no table, no event and no log line that carries the
+answer. The server's one line per judged attempt is `judgeUsageLine`: the model that
+answered, token counts and cost. The 503 path logs nothing from the body, and
+`TypeSafeError` carries the HTTP status only, because a 422 body can quote the learner's
+sentence. On the phone the answer lives only as long as the screen that shows it and is
+never written to the deck or the summary. The OpenAI client sends `store: false`; the
+Anthropic and Groq clients set no retention parameter.
+
+**What the vendors keep is unverified.** TypeSafe's retention and use of what it is sent
+has not been checked against its terms by anyone here, and the language model vendor's is
+as unverified for this call as for the turn call. Both are in [Not true yet](#not-true-yet)
+and on the vendor-terms item in `docs/RELEASE_GATE.md`.
+
+The notice says this in two paragraphs of "Who else sees it", and TypeSafe is the one
+recipient it names, because `CLAUDE.md` requires it before production. The route also
+falsified the sentence that closed the post-session calls, "Nothing more about that
+session reaches any of them after that", since the phrase and situation being judged come
+from a finished session. It now ends "unless you practise a phrase from it", which is also
+true of a drill line sent to the pronunciation scorer as described above (ledger F625).
+
 **A purchase reaches a company that hears none of it.**
 `apps/mobile/src/purchases/adapter.native.ts` calls
 `Purchases.configure({ apiKey, appUserID: userId })` and `Purchases.logIn(userId)`, so the
@@ -807,7 +856,7 @@ promise already kept.
 | `product_events` and `session_usage` have no scheduled delete | The 13-month and 24-month retentions are policy, not mechanism | This file, table above |
 | `trial_installations` has no scheduled delete | The 24-month antifraud retention is not enforced by anything | This file, section above |
 | The published notice commits to retention periods nothing enforces | Thirteen months for events and two years for usage and trial markers are a promise made in a learner-facing document with no scheduled delete behind it | This file, rows above; `legal/policy.ts` |
-| Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified, and so is the language model vendor's, and so is the purchase processor's, and so is TonePerfect's, whose own statement (audio deleted once scored, the assessment kept at most 24 hours) nobody here has checked | The privacy text cannot yet describe what any of them keep, and a vendor's statement is not a substitute for checking it | Not filed |
+| Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified, and so is the language model vendor's, and so is the purchase processor's, and so is TonePerfect's, whose own statement (audio deleted once scored, the assessment kept at most 24 hours) nobody here has checked, and so is TypeSafe's, which reads own-words drill answers whenever `TYPESAFE_API_KEY` is set | The privacy text cannot yet describe what any of them keep, and a vendor's statement is not a substitute for checking it | Not filed |
 | Account deletion does not reach the purchase processor | The subscriber record and the purchase history stay with the vendor after the Supabase user is gone; nothing here calls its delete API. Disclosed to learners in the notice; the call itself is still owed | Ledger F498 |
 | Attempt recordings are deleted in code, but that has never been watched happen on a device | The discard and the reset sweep are proven by test only; a phone has never been checked | Ledger F115 (closed), device proof owed by F114 |
 | The deletion cascade has never run against a live database | "Deletion removes everything" is unproven | Ledger F63 |

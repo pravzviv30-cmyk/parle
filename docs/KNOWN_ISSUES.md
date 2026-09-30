@@ -9075,7 +9075,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F625 — The drill judge sends a learner's French to the language model and to TypeSafe, and the policy names neither
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/legal/policy.ts:152
 - note: found by the privacy-safety-engineer during Stage 5; it came in with the Jev merge and predates revamp B. `POST /drill/judge` (`services/token-server/src/server.ts:478`) hands the learner's own-words drill attempt and the target to the language model vendor, while the policy's vendor section ends "Nothing more about that session reaches any of them after that" and names no drill judging at all. When `TYPESAFE_API_KEY` is set, `brainClientFromEnv` (`packages/brain/src/llm/factory.ts`) wraps the brain in `JevFirstBrainClient`, so the same attempt also reaches TypeSafe first, and neither the policy nor `docs/PRIVACY_AND_SAFETY.md` names TypeSafe at all. `docs/PRIVACY_AND_SAFETY.md` does not describe the route either. The fix is a sentence in both naming the language model and TypeSafe, owned by privacy-safety-engineer, plus the regenerated legal HTML; no code changes. It must land before production.
 - verified-by: `the policy says a drill answer in your own words is read by the language model and by TypeSafe`
